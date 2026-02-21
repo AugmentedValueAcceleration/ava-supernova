@@ -1,0 +1,61 @@
+{
+  "name": "ava-supernova",
+  "version": "0.1.0",
+  "description": "Open-source AI coding assistant CLI — agentic coding for everyone",
+  "type": "module",
+  "license": "Apache-2.0",
+  "bin": {
+    "ava": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/ tests/",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "ai",
+    "coding-assistant",
+    "cli",
+    "deepseek",
+    "kimi",
+    "glm",
+    "mistral",
+    "agentic",
+    "open-source"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stewai/ava-supernova"
+  },
+  "packageManager": "pnpm@10.30.1",
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "cli-highlight": "^2.1.11",
+    "glob": "^13.0.6",
+    "marked": "^17.0.3",
+    "marked-terminal": "^7.3.0",
+    "ora": "^9.3.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.0",
+    "@typescript-eslint/parser": "^8.56.0",
+    "eslint": "^10.0.1",
+    "prettier": "^3.8.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
