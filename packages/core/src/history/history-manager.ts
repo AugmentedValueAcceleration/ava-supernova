@@ -34,6 +34,9 @@ export class HistoryManager {
     };
 
     await this.storage.save(record);
+
+    // Prune oldest conversations in the background (don't block the save)
+    this.storage.prune().catch(() => {/* best-effort */});
   }
 
   async resumeConversation(id: string): Promise<ConversationRecord | null> {

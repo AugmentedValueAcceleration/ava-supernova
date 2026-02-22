@@ -79,11 +79,16 @@ async function main(): Promise<void> {
     providerRegistry,
     conversation,
     config,
+    toolRegistry,
+    historyManager,
     onModelSwitch: (provider, model) => {
       repl.setAgent(
         new Agent({ provider, model, toolRegistry, cwd }),
       );
       repl.setModelLabel(`${provider.name}:${model.id}`);
+    },
+    onRetry: () => {
+      repl.retry();
     },
   });
 

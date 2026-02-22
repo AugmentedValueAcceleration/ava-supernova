@@ -75,6 +75,8 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
     >
       {/* Header */}
       <button
+        aria-expanded={expanded}
+        aria-label={`${label} — ${toolCall.status}`}
         className="w-full flex items-center gap-2 px-3 py-1.5 text-left
                    hover:bg-[var(--vscode-list-hoverBackground)]
                    transition-colors border-none bg-transparent cursor-pointer

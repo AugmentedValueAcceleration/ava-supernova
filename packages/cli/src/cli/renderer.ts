@@ -10,6 +10,8 @@ const marked = new Marked(markedTerminal() as Record<string, unknown>);
 export class Renderer {
   private streamBuffer = '';
   private streamLineCount = 0;
+  private thinkingBuffer = '';
+  private isThinking = false;
 
   printWelcome(): void {
     console.log('');
@@ -18,16 +20,37 @@ export class Renderer {
     console.log('');
   }
 
+  streamThinking(delta: string): void {
+    if (!this.isThinking) {
+      this.isThinking = true;
+      process.stdout.write(chalk.dim.italic('\n  [thinking] '));
+    }
+    this.thinkingBuffer += delta;
+    // Show a condensed version — just dots for progress
+    process.stdout.write(chalk.dim('.'));
+  }
+
+  private endThinking(): void {
+    if (this.isThinking) {
+      this.isThinking = false;
+      const words = this.thinkingBuffer.split(/\s+/).length;
+      process.stdout.write(chalk.dim(` (${words} words)\n`));
+      this.thinkingBuffer = '';
+    }
+  }
+
   streamText(delta: string): void {
+    this.endThinking();
     this.streamBuffer += delta;
     this.streamLineCount += (delta.match(/\n/g) || []).length;
     process.stdout.write(delta);
   }
 
   endStream(): void {
+    this.endThinking();
     if (!this.streamBuffer) return;
 
-    const hasMarkdown = /```[\s\S]*```|^#{1,6}\s|^\*\*|^\- |\|.*\|/m.test(this.streamBuffer);
+    const hasMarkdown = /```[\s\S]*```|^#{1,6}\s|^\*\*|^- |\|.*\|/m.test(this.streamBuffer);
 
     if (hasMarkdown) {
       process.stdout.write('\r');
@@ -50,6 +73,9 @@ export class Renderer {
   }
 
   printToolCallStart(toolCall: ToolCall): void {
+    // todo_write is rendered entirely by printToolCallResult — skip the noisy start line
+    if (toolCall.function.name === 'todo_write') return;
+
     console.log('');
     console.log(
       chalk.hex(THEME.toolAccent)('  [tool] ') +
@@ -59,6 +85,34 @@ export class Renderer {
   }
 
   printToolCallResult(toolCall: ToolCall, result: string, success: boolean, metadata?: Record<string, unknown>): void {
+    // Pretty-print todo_write as a visual task list
+    if (toolCall.function.name === 'todo_write' && success) {
+      try {
+        const args = JSON.parse(toolCall.function.arguments);
+        const todos = args.todos as Array<{ content: string; status: string; activeForm: string }>;
+        const done = todos.filter((t) => t.status === 'completed').length;
+        console.log('');
+        console.log(
+          chalk.hex(THEME.toolAccent)('  [tasks] ') +
+            chalk.dim(`${done}/${todos.length} done`),
+        );
+        for (const t of todos) {
+          const icon =
+            t.status === 'completed'
+              ? chalk.green('\u2713')
+              : t.status === 'in_progress'
+                ? chalk.hex(THEME.accent)('~')
+                : chalk.dim('\u25CB');
+          const text = t.status === 'in_progress' ? t.activeForm : t.content;
+          const style = t.status === 'completed' ? chalk.dim : (s: string) => s;
+          console.log(`    ${icon} ${style(text)}`);
+        }
+        return;
+      } catch {
+        // fall through to default output
+      }
+    }
+
     const status = success ? chalk.green('OK') : chalk.red('FAIL');
     const preview = result.length > 200 ? result.slice(0, 200) + '...' : result;
     console.log(chalk.dim(`  [${status}] ${preview.split('\n')[0]}`));

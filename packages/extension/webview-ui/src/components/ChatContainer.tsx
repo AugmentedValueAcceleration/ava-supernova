@@ -24,7 +24,7 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3">
+    <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3" role="log" aria-label="Chat messages" aria-live="polite">
       {messages.map((msg, i) => (
         <MessageBubble
           key={msg.id}

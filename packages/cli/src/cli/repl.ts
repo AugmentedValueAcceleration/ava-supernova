@@ -18,6 +18,7 @@ export class Repl {
   private modelLabel: string;
   private multilineBuffer: string[] = [];
   private inMultiline = false;
+  private lastUserInput = '';
 
   constructor(opts: {
     agent: Agent;
@@ -203,13 +204,28 @@ export class Repl {
     }
   }
 
+  getLastUserInput(): string {
+    return this.lastUserInput;
+  }
+
+  async retry(): Promise<void> {
+    if (this.lastUserInput) {
+      await this.processUserMessage(this.lastUserInput);
+      this.prompt();
+    }
+  }
+
   private async processUserMessage(input: string): Promise<void> {
+    this.lastUserInput = input;
     this.conversation.addUserMessage(input);
 
     const onEvent = (event: AgentEvent): void => {
       switch (event.type) {
         case 'stream_start':
           this.spinner.stop();
+          break;
+        case 'thinking_delta':
+          this.renderer.streamThinking(event.content);
           break;
         case 'stream_delta':
           this.renderer.streamText(event.content);

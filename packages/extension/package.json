@@ -160,7 +160,8 @@
     "dev:webview": "cd webview-ui && npx vite build --watch",
     "dev:extension": "node esbuild.config.mjs --watch",
     "package": "pnpm build && npx @vscode/vsce package --no-dependencies",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src"
   },
   "dependencies": {
     "@ava/core": "workspace:*"

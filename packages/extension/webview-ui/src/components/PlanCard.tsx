@@ -85,6 +85,8 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
                    transition-colors border-none bg-transparent cursor-pointer
                    text-[var(--vscode-foreground)]"
         onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+        aria-label={`Plan: ${plan.title} — ${toolCall.status === 'success' ? 'approved' : toolCall.status === 'failed' ? 'rejected' : 'pending'}`}
       >
         <span style={{ color: statusColor }}>{statusIcon}</span>
         <span className="font-semibold text-[13px]">Plan: {plan.title}</span>

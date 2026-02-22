@@ -3,6 +3,7 @@ import { MarkdownRenderer } from './MarkdownRenderer';
 import { ThinkingBlock } from './ThinkingBlock';
 import { ToolCallCard } from './ToolCallCard';
 import { PlanCard } from './PlanCard';
+import { TodoCard } from './TodoCard';
 
 interface MessageBubbleProps {
   message: UIMessage;
@@ -105,13 +106,21 @@ export function MessageBubble({ message, onConfirmation, onContinue }: MessageBu
         </div>
       )}
 
-      {message.toolCalls.map((tc) =>
-        tc.name === 'present_plan' ? (
-          <PlanCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />
-        ) : (
-          <ToolCallCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />
-        )
-      )}
+      {(() => {
+        // Find the last todo_write index so only the most recent one is expanded
+        const lastTodoIdx = message.toolCalls.reduce(
+          (acc, tc, i) => (tc.name === 'todo_write' ? i : acc), -1,
+        );
+        return message.toolCalls.map((tc, i) =>
+          tc.name === 'todo_write' ? (
+            <TodoCard key={tc.id} toolCall={tc} isLatest={i === lastTodoIdx} />
+          ) : tc.name === 'present_plan' ? (
+            <PlanCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />
+          ) : (
+            <ToolCallCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />
+          ),
+        );
+      })()}
     </div>
   );
 }

@@ -250,11 +250,14 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage }: In
         {/* Bottom toolbar */}
         <div className="flex items-center justify-between px-2 pb-2 pt-0.5">
           {/* Mode selector */}
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-0.5" role="radiogroup" aria-label="Input mode">
             {MODES.map((m) => (
               <button
                 key={m.id}
                 onClick={() => setMode(m.id)}
+                role="radio"
+                aria-checked={mode === m.id}
+                aria-label={`${m.label} mode`}
                 className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium
                             border-none cursor-pointer transition-colors
                   ${mode === m.id
@@ -262,7 +265,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage }: In
                     : 'bg-transparent text-[var(--vscode-foreground)] opacity-40 hover:opacity-70'
                   }`}
               >
-                <span className="font-mono text-[10px] opacity-80">{m.icon}</span>
+                <span className="font-mono text-[10px] opacity-80" aria-hidden="true">{m.icon}</span>
                 {m.label}
               </button>
             ))}
@@ -304,14 +307,14 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage }: In
               onClick={handleAttach}
               disabled={disabled}
               title="Attach image"
+              aria-label="Attach image"
               className="flex items-center justify-center w-7 h-7 rounded
                          bg-transparent border-none cursor-pointer
                          text-[var(--vscode-foreground)] opacity-40 hover:opacity-70
                          disabled:opacity-20 disabled:cursor-not-allowed
                          transition-opacity"
             >
-              {/* Paperclip icon */}
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                 <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a2.75 2.75 0 1 1-3.935-3.84l4.486-4.486a1.75 1.75 0 0 1 2.505 2.44L6.623 9.573a.75.75 0 0 1-1.08-1.04l4.473-4.563z" />
               </svg>
             </button>
@@ -320,13 +323,14 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage }: In
               <button
                 onClick={onCancel}
                 title="Stop"
+                aria-label="Stop Ava"
                 className="flex items-center justify-center w-7 h-7 rounded-full
                            bg-[var(--vscode-errorForeground,#e53935)]
                            text-white
                            hover:opacity-80
                            border-none cursor-pointer transition-opacity"
               >
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                   <rect x="3" y="3" width="10" height="10" rx="1" />
                 </svg>
               </button>
@@ -335,6 +339,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage }: In
                 onClick={handleSend}
                 disabled={disabled || !hasContent}
                 title="Send (Enter)"
+                aria-label="Send message"
                 className={`flex items-center justify-center w-7 h-7 rounded-full
                            border-none cursor-pointer transition-all
                   ${hasContent && !disabled
@@ -342,7 +347,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage }: In
                     : 'bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)] opacity-20 cursor-not-allowed'
                   }`}
               >
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                   <path d="M8 3.5l-4.5 4.5.707.707L7.5 5.414V13h1V5.414l3.293 3.293.707-.707L8 3.5z" />
                 </svg>
               </button>

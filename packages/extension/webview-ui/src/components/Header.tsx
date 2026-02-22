@@ -20,7 +20,7 @@ export function Header({
   onNewChat,
 }: HeaderProps) {
   return (
-    <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--vscode-panel-border)]">
+    <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--vscode-panel-border)]" role="toolbar" aria-label="Chat controls">
       <div className="flex-1 min-w-0">
         <ModelSelector
           models={models}
@@ -34,12 +34,13 @@ export function Header({
       <button
         onClick={onOpenHistory}
         title="Chat History"
+        aria-label="Chat History"
         className="flex items-center justify-center w-7 h-7 rounded
                    hover:bg-[var(--vscode-toolbar-hoverBackground)]
                    text-[var(--vscode-foreground)] opacity-70 hover:opacity-100
                    bg-transparent border-none cursor-pointer text-sm"
       >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
           <path d="M13.507 12.324a7 7 0 0 0 .065-8.56A7 7 0 0 0 2 4.393V2H1v3.5l.5.5H5V5H2.811a6.008 6.008 0 1 1-.135 5.77l-.887.462a7 7 0 0 0 11.718 1.092zM8 4h1v4.28l3.35 2.01-.51.858L8 8.72V4z"/>
         </svg>
       </button>
@@ -47,12 +48,13 @@ export function Header({
       <button
         onClick={onOpenSettings}
         title="Settings"
+        aria-label="Settings"
         className="flex items-center justify-center w-7 h-7 rounded
                    hover:bg-[var(--vscode-toolbar-hoverBackground)]
                    text-[var(--vscode-foreground)] opacity-70 hover:opacity-100
                    bg-transparent border-none cursor-pointer text-sm"
       >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
           <path d="M9.1 4.4L8.6 2H7.4l-.5 2.4-.7.3-2-1.3-.9.8 1.3 2-.3.7-2.4.5v1.2l2.4.5.3.7-1.3 2 .8.8 2-1.3.7.3.5 2.4h1.2l.5-2.4.7-.3 2 1.3.8-.8-1.3-2 .3-.7 2.4-.5V6.8l-2.4-.5-.3-.7 1.3-2-.8-.8-2 1.3-.7-.3zM8 10a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/>
         </svg>
       </button>
@@ -60,12 +62,13 @@ export function Header({
       <button
         onClick={onNewChat}
         title="New Chat"
+        aria-label="New Chat"
         className="flex items-center justify-center w-7 h-7 rounded
                    hover:bg-[var(--vscode-toolbar-hoverBackground)]
                    text-[var(--vscode-foreground)] opacity-70 hover:opacity-100
                    bg-transparent border-none cursor-pointer text-sm"
       >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
           <path d="M14 7v1H8v6H7V8H1V7h6V1h1v6h6z"/>
         </svg>
       </button>

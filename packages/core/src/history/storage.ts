@@ -1,4 +1,4 @@
-import { readFile, writeFile, readdir, mkdir, unlink } from 'node:fs/promises';
+import { readFile, writeFile, rename, readdir, mkdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { HISTORY_DIR } from '../core/constants.js';
 import type { Message } from '../core/types.js';
@@ -11,6 +11,9 @@ export interface ConversationRecord {
   messages: Message[];
 }
 
+/** Default max conversations to keep before pruning oldest. */
+const MAX_HISTORY = 100;
+
 export class HistoryStorage {
   async init(): Promise<void> {
     await mkdir(HISTORY_DIR, { recursive: true });
@@ -18,7 +21,12 @@ export class HistoryStorage {
 
   async save(record: ConversationRecord): Promise<void> {
     const path = join(HISTORY_DIR, `${record.id}.json`);
-    await writeFile(path, JSON.stringify(record, null, 2), 'utf-8');
+    const tmpPath = join(HISTORY_DIR, `.${record.id}.tmp`);
+    const data = JSON.stringify(record, null, 2);
+
+    // Atomic write — temp file then rename
+    await writeFile(tmpPath, data, 'utf-8');
+    await rename(tmpPath, path);
   }
 
   async load(id: string): Promise<ConversationRecord | null> {
@@ -62,5 +70,19 @@ export class HistoryStorage {
     } catch {
       return false;
     }
+  }
+
+  /** Remove oldest conversations when count exceeds maxHistory. */
+  async prune(maxHistory: number = MAX_HISTORY): Promise<number> {
+    const all = await this.list();
+    if (all.length <= maxHistory) return 0;
+
+    // list() is sorted newest-first, so slice from maxHistory onwards
+    const toDelete = all.slice(maxHistory);
+    let deleted = 0;
+    for (const entry of toDelete) {
+      if (await this.delete(entry.id)) deleted++;
+    }
+    return deleted;
   }
 }

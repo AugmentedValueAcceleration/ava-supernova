@@ -7,6 +7,7 @@ import { GlobTool } from './glob.js';
 import { GrepTool } from './grep.js';
 import { BashTool } from './bash.js';
 import { PresentPlanTool } from './present-plan.js';
+import { TodoWriteTool } from './todo-write.js';
 
 // Which risk levels require confirmation under each permission mode
 const CONFIRMATION_MATRIX: Record<PermissionMode, Set<ToolRiskLevel>> = {
@@ -41,6 +42,7 @@ export class ToolRegistry {
       new GrepTool(),
       new BashTool(),
       new PresentPlanTool(),
+      new TodoWriteTool(),
     ];
     for (const tool of builtins) {
       this.tools.set(tool.name, tool);

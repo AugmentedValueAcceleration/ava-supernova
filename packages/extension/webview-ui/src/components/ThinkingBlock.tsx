@@ -17,6 +17,8 @@ export function ThinkingBlock({ content, isStreaming }: ThinkingBlockProps) {
                    transition-colors border-none bg-transparent cursor-pointer
                    text-[var(--vscode-foreground)]"
         onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+        aria-label={isStreaming ? 'Thinking in progress' : `Thought for ${duration}`}
       >
         {/* Spinner while thinking, checkmark when done */}
         {isStreaming ? (

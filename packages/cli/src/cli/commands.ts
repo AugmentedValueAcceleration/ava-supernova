@@ -8,7 +8,10 @@ import type {
   Provider,
   ModelDefinition,
   ProviderSettings,
+  ToolRegistry,
+  HistoryManager,
 } from '@ava/core';
+import type { PermissionMode } from '@ava/core';
 
 interface Command {
   name: string;
@@ -18,6 +21,7 @@ interface Command {
 }
 
 export type ModelSwitchHandler = (provider: Provider, model: ModelDefinition) => void;
+export type RetryHandler = () => void;
 
 export class CommandHandler {
   private commands: Map<string, Command> = new Map();
@@ -26,7 +30,10 @@ export class CommandHandler {
     providerRegistry: ProviderRegistry;
     conversation: Conversation;
     config: ConfigManager;
+    toolRegistry: ToolRegistry;
+    historyManager: HistoryManager;
     onModelSwitch?: ModelSwitchHandler;
+    onRetry?: RetryHandler;
   }) {
     this.registerCommand({
       name: 'help',
@@ -151,6 +158,137 @@ export class CommandHandler {
       },
     });
 
+    // ── History commands ─────────────────────────────────────────────────────
+
+    this.registerCommand({
+      name: 'history',
+      aliases: ['ls'],
+      description: 'List saved conversations',
+      execute: async () => {
+        const conversations = await opts.historyManager.listConversations();
+        if (conversations.length === 0) {
+          console.log('  No saved conversations.');
+          return true;
+        }
+        console.log('');
+        console.log(chalk.bold('  Saved conversations:'));
+        for (const c of conversations.slice(0, 20)) {
+          const date = new Date(c.updatedAt);
+          const relative = formatRelativeDate(date);
+          console.log(`  ${chalk.dim(c.id.slice(0, 8))} ${c.title} ${chalk.dim(`(${relative})`)}`);
+        }
+        if (conversations.length > 20) {
+          console.log(chalk.dim(`  ... and ${conversations.length - 20} more`));
+        }
+        console.log('');
+        console.log(chalk.dim('  Use /resume <id-prefix> to load a conversation.'));
+        console.log('');
+        return true;
+      },
+    });
+
+    this.registerCommand({
+      name: 'resume',
+      description: 'Resume a saved conversation (/resume <id-prefix>)',
+      execute: async (args) => {
+        const prefix = args.trim();
+        if (!prefix) {
+          console.log('  Usage: /resume <id-prefix>');
+          console.log('  Run /history to see available conversations.');
+          return true;
+        }
+
+        const conversations = await opts.historyManager.listConversations();
+        const match = conversations.find((c) => c.id.startsWith(prefix));
+        if (!match) {
+          console.log(`  No conversation found matching "${prefix}".`);
+          return true;
+        }
+
+        const record = await opts.historyManager.resumeConversation(match.id);
+        if (!record) {
+          console.log('  Failed to load conversation.');
+          return true;
+        }
+
+        opts.conversation.setMessages(record.messages);
+        console.log(chalk.green(`  Resumed: ${record.title}`));
+        console.log(chalk.dim(`  ${record.messages.length} messages loaded.`));
+        return true;
+      },
+    });
+
+    // ── Retry ─────────────────────────────────────────────────────────────────
+
+    this.registerCommand({
+      name: 'retry',
+      aliases: ['r'],
+      description: 'Retry the last message',
+      execute: async () => {
+        if (opts.onRetry) {
+          opts.onRetry();
+        } else {
+          console.log('  Retry not available.');
+        }
+        return true;
+      },
+    });
+
+    // ── Permission mode ──────────────────────────────────────────────────────
+
+    this.registerCommand({
+      name: 'permission',
+      aliases: ['perm'],
+      description: 'View or set permission mode (/permission <strict|balanced|autonomous>)',
+      execute: async (args) => {
+        const modes: PermissionMode[] = ['strict', 'balanced', 'autonomous'];
+        const input = args.trim().toLowerCase() as PermissionMode;
+
+        if (!input) {
+          const current = opts.toolRegistry.getPermissionMode();
+          console.log('');
+          console.log(chalk.bold('  Permission mode:'));
+          for (const m of modes) {
+            const active = m === current ? chalk.green(' (active)') : '';
+            const desc = m === 'strict'
+              ? 'confirm writes and shell commands'
+              : m === 'balanced'
+                ? 'auto-approve writes, confirm shell commands'
+                : 'auto-approve everything';
+            console.log(`  ${chalk.bold(m)} — ${desc}${active}`);
+          }
+          console.log('');
+          return true;
+        }
+
+        if (!modes.includes(input)) {
+          console.log(`  Unknown mode. Choose: ${modes.join(', ')}`);
+          return true;
+        }
+
+        opts.toolRegistry.setPermissionMode(input);
+        console.log(chalk.green(`  Permission mode set to ${input}.`));
+        return true;
+      },
+    });
+
+    // ── Tools list ───────────────────────────────────────────────────────────
+
+    this.registerCommand({
+      name: 'tools',
+      description: 'List available tools',
+      execute: async () => {
+        const schemas = opts.toolRegistry.getSchemas();
+        console.log('');
+        console.log(chalk.bold('  Available tools:'));
+        for (const s of schemas) {
+          console.log(`  ${chalk.bold(s.function.name)} — ${s.function.description.slice(0, 80)}`);
+        }
+        console.log('');
+        return true;
+      },
+    });
+
     this.registerCommand({
       name: 'exit',
       aliases: ['quit', 'q'],
@@ -190,4 +328,18 @@ export class CommandHandler {
 
     return command.execute(args);
   }
+}
+
+function formatRelativeDate(date: Date): string {
+  const now = Date.now();
+  const diff = now - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString();
 }
