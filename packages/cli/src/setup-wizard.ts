@@ -1,10 +1,8 @@
 import * as readline from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import chalk from 'chalk';
-import type { ConfigManager } from './config.js';
-import type { ProviderRegistry } from '../providers/provider-registry.js';
-import type { ProviderSettings } from './schema.js';
-import { THEME } from '../cli/theme.js';
+import type { ConfigManager, ProviderRegistry, ProviderSettings } from '@ava/core';
+import { THEME } from './cli/theme.js';
 
 const PROVIDERS = [
   {

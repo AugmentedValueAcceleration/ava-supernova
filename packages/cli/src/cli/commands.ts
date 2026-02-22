@@ -1,12 +1,14 @@
 import * as readline from 'node:readline';
 import { stdin, stdout } from 'node:process';
 import chalk from 'chalk';
-import type { ProviderRegistry } from '../providers/provider-registry.js';
-import type { Conversation } from '../agent/conversation.js';
-import type { ConfigManager } from '../config/config.js';
-import type { Provider } from '../providers/types.js';
-import type { ModelDefinition } from '../core/types.js';
-import type { ProviderSettings } from '../config/schema.js';
+import type {
+  ProviderRegistry,
+  Conversation,
+  ConfigManager,
+  Provider,
+  ModelDefinition,
+  ProviderSettings,
+} from '@ava/core';
 
 interface Command {
   name: string;

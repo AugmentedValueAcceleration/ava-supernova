@@ -1,17 +1,19 @@
 #!/usr/bin/env node
 
 import { platform } from 'node:os';
-import { ConfigManager } from './config/config.js';
-import { runSetupWizard } from './config/setup-wizard.js';
-import { ProviderRegistry } from './providers/provider-registry.js';
-import { ToolRegistry } from './tools/tool-registry.js';
-import { Agent } from './agent/agent.js';
-import { Conversation } from './agent/conversation.js';
-import { buildSystemPrompt } from './agent/system-prompt.js';
+import {
+  ConfigManager,
+  ProviderRegistry,
+  ToolRegistry,
+  Agent,
+  Conversation,
+  buildSystemPrompt,
+  HistoryManager,
+} from '@ava/core';
+import type { ProviderSettings } from '@ava/core';
+import { runSetupWizard } from './setup-wizard.js';
 import { Repl } from './cli/repl.js';
 import { CommandHandler } from './cli/commands.js';
-import { HistoryManager } from './history/history-manager.js';
-import type { ProviderSettings } from './config/schema.js';
 
 async function main(): Promise<void> {
   const config = new ConfigManager();

@@ -9,3 +9,5 @@ Thumbs.db
 coverage/
 .vscode/
 !.vscode/extensions.json
+*.vsix
+.claude/

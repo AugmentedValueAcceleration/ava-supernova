@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+/* Map VSCode theme variables to Tailwind custom properties */
+:root {
+  --color-vscode-bg: var(--vscode-sideBar-background);
+  --color-vscode-fg: var(--vscode-foreground);
+  --color-vscode-input-bg: var(--vscode-input-background);
+  --color-vscode-input-border: var(--vscode-input-border);
+  --color-vscode-input-fg: var(--vscode-input-foreground);
+  --color-vscode-button-bg: var(--vscode-button-background);
+  --color-vscode-button-fg: var(--vscode-button-foreground);
+  --color-vscode-button-hover: var(--vscode-button-hoverBackground);
+  --color-vscode-badge-bg: var(--vscode-badge-background);
+  --color-vscode-badge-fg: var(--vscode-badge-foreground);
+  --color-vscode-error: var(--vscode-errorForeground);
+  --color-vscode-border: var(--vscode-panel-border);
+  --color-vscode-link: var(--vscode-textLink-foreground);
+  --color-accent: #7C3AED;
+  --color-accent-light: #8B5CF6;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--vscode-sideBar-background);
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  line-height: 1.5;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Code block styling */
+pre {
+  background: var(--vscode-textCodeBlock-background, rgba(0, 0, 0, 0.1));
+  border-radius: 4px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size);
+}
+
+code {
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbarSlider-background);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-scrollbarSlider-hoverBackground);
+}

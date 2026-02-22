@@ -1,9 +1,7 @@
 import * as readline from 'node:readline';
 import { stdin, stdout } from 'node:process';
 import chalk from 'chalk';
-import type { Agent, AgentEvent } from '../agent/agent.js';
-import type { Conversation } from '../agent/conversation.js';
-import type { ToolRegistry } from '../tools/tool-registry.js';
+import type { Agent, AgentEvent, Conversation, ToolRegistry } from '@ava/core';
 import { Renderer } from './renderer.js';
 import { CommandHandler } from './commands.js';
 import { Spinner } from './spinner.js';

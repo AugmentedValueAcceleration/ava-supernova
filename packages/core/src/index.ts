@@ -1,0 +1,66 @@
+// Agent
+export { Agent } from './agent/agent.js';
+export type { AgentEvent, AgentEventHandler } from './agent/agent.js';
+export { Conversation } from './agent/conversation.js';
+export { buildSystemPrompt } from './agent/system-prompt.js';
+
+// Core types
+export type {
+  Message,
+  MessageRole,
+  SystemMessage,
+  UserMessage,
+  AssistantMessage,
+  ToolMessage,
+  ToolCall,
+  ToolCallFunction,
+  ModelDefinition,
+  TokenUsage,
+  StreamChunk,
+  StreamDelta,
+  CompletionResponse,
+} from './core/types.js';
+
+// Provider types
+export type {
+  Provider,
+  ProviderConfig,
+  ChatCompletionRequest,
+  ToolSchema,
+  FunctionSchema,
+} from './providers/types.js';
+export { BaseProvider } from './providers/base-provider.js';
+export { ProviderRegistry } from './providers/provider-registry.js';
+
+// Tools
+export { ToolRegistry } from './tools/tool-registry.js';
+export type {
+  Tool,
+  ToolResult,
+  ToolExecutionContext,
+  ToolConfirmationHandler,
+} from './tools/types.js';
+
+// Config
+export { ConfigManager } from './config/config.js';
+export type { AvaConfig, ProviderSettings } from './config/schema.js';
+export { DEFAULT_CONFIG } from './config/schema.js';
+
+// History
+export { HistoryManager } from './history/history-manager.js';
+
+// Constants & Errors
+export {
+  APP_NAME,
+  APP_DISPLAY_NAME,
+  APP_VERSION,
+  AVA_HOME,
+  CONFIG_PATH,
+  HISTORY_DIR,
+  MAX_TOOL_CALL_ITERATIONS,
+  DEFAULT_TEMPERATURE,
+  DEFAULT_MAX_TOKENS,
+} from './core/constants.js';
+export { AvaError, ProviderError, ToolExecutionError, ConfigError } from './core/errors.js';
+export { logger, setLogLevel } from './core/logger.js';
+export type { LogLevel } from './core/logger.js';

@@ -1,9 +1,8 @@
 import chalk from 'chalk';
 import { Marked } from 'marked';
 import { markedTerminal } from 'marked-terminal';
-import type { ToolCall, TokenUsage } from '../core/types.js';
-import { APP_DISPLAY_NAME } from '../core/constants.js';
-import { ProviderError } from '../core/errors.js';
+import type { ToolCall, TokenUsage } from '@ava/core';
+import { APP_DISPLAY_NAME, ProviderError } from '@ava/core';
 import { THEME } from './theme.js';
 
 const marked = new Marked(markedTerminal() as Record<string, unknown>);
@@ -31,17 +30,15 @@ export class Renderer {
     const hasMarkdown = /```[\s\S]*```|^#{1,6}\s|^\*\*|^\- |\|.*\|/m.test(this.streamBuffer);
 
     if (hasMarkdown) {
-      // Clear the raw streamed output
       process.stdout.write('\r');
       for (let i = 0; i <= this.streamLineCount; i++) {
-        process.stdout.write('\x1b[2K'); // Clear line
+        process.stdout.write('\x1b[2K');
         if (i < this.streamLineCount) {
-          process.stdout.write('\x1b[1A'); // Move up
+          process.stdout.write('\x1b[1A');
         }
       }
       process.stdout.write('\r');
 
-      // Re-render with markdown formatting
       const rendered = marked.parse(this.streamBuffer) as string;
       process.stdout.write(rendered);
     } else {

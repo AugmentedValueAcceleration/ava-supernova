@@ -1,0 +1,112 @@
+{
+  "name": "ava-supernova",
+  "displayName": "Ava | Supernova",
+  "description": "Open-source AI coding agent — DeepSeek, Kimi, GLM, and Mistral in your editor",
+  "version": "0.1.0",
+  "publisher": "stewai",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "AI",
+    "Chat"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ava-supernova",
+          "title": "Ava | Supernova",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "ava-supernova": [
+        {
+          "type": "webview",
+          "id": "ava-supernova.chatView",
+          "name": "Chat"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "ava-supernova.newChat",
+        "title": "New Chat",
+        "category": "Ava"
+      },
+      {
+        "command": "ava-supernova.clearChat",
+        "title": "Clear Chat",
+        "category": "Ava"
+      },
+      {
+        "command": "ava-supernova.switchModel",
+        "title": "Switch Model",
+        "category": "Ava"
+      }
+    ],
+    "configuration": {
+      "title": "Ava | Supernova",
+      "properties": {
+        "ava-supernova.activeModel": {
+          "type": "string",
+          "default": "",
+          "description": "Active model in provider:model-id format (e.g., deepseek:deepseek-chat)"
+        },
+        "ava-supernova.providers.deepseek.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "DeepSeek API key"
+        },
+        "ava-supernova.providers.kimi.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Kimi (Moonshot AI) API key"
+        },
+        "ava-supernova.providers.zhipu.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Zhipu AI (GLM) API key"
+        },
+        "ava-supernova.providers.mistral.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Mistral AI API key"
+        },
+        "ava-supernova.preferences.temperature": {
+          "type": "number",
+          "default": 0.7,
+          "description": "Sampling temperature"
+        },
+        "ava-supernova.preferences.confirmToolCalls": {
+          "type": "boolean",
+          "default": true,
+          "description": "Require confirmation before running tools that modify files or execute commands"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build:webview": "cd webview-ui && npx vite build",
+    "build:extension": "node esbuild.config.mjs",
+    "build": "pnpm build:webview && pnpm build:extension",
+    "dev:webview": "cd webview-ui && npx vite build --watch",
+    "dev:extension": "node esbuild.config.mjs --watch",
+    "package": "pnpm build && npx @vscode/vsce package --no-dependencies",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ava/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^25.3.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.9.3"
+  }
+}
