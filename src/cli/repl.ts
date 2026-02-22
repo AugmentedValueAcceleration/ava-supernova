@@ -9,7 +9,7 @@ import { Spinner } from './spinner.js';
 export class Repl {
   private rl: readline.Interface;
   private renderer: Renderer;
-  private commands: CommandHandler;
+  private commands!: CommandHandler;
   private spinner: Spinner;
   private agent: Agent;
   private conversation: Conversation;
@@ -17,11 +17,9 @@ export class Repl {
   constructor(opts: {
     agent: Agent;
     conversation: Conversation;
-    commands: CommandHandler;
   }) {
     this.agent = opts.agent;
     this.conversation = opts.conversation;
-    this.commands = opts.commands;
     this.renderer = new Renderer();
     this.spinner = new Spinner();
 
@@ -30,6 +28,14 @@ export class Repl {
       output: stdout,
       prompt: '\n> ',
     });
+  }
+
+  setAgent(agent: Agent): void {
+    this.agent = agent;
+  }
+
+  setCommands(commands: CommandHandler): void {
+    this.commands = commands;
   }
 
   async start(): Promise<void> {

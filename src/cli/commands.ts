@@ -2,6 +2,8 @@ import chalk from 'chalk';
 import type { ProviderRegistry } from '../providers/provider-registry.js';
 import type { Conversation } from '../agent/conversation.js';
 import type { ConfigManager } from '../config/config.js';
+import type { Provider } from '../providers/types.js';
+import type { ModelDefinition } from '../core/types.js';
 
 interface Command {
   name: string;
@@ -10,6 +12,8 @@ interface Command {
   execute: (args: string) => Promise<boolean>;
 }
 
+export type ModelSwitchHandler = (provider: Provider, model: ModelDefinition) => void;
+
 export class CommandHandler {
   private commands: Map<string, Command> = new Map();
 
@@ -17,6 +21,7 @@ export class CommandHandler {
     providerRegistry: ProviderRegistry;
     conversation: Conversation;
     config: ConfigManager;
+    onModelSwitch?: ModelSwitchHandler;
   }) {
     this.registerCommand({
       name: 'help',
@@ -50,14 +55,24 @@ export class CommandHandler {
             return true;
           }
           await opts.config.set('activeModel', `${resolved.provider.name}:${resolved.model.id}`);
+
+          if (opts.onModelSwitch) {
+            opts.onModelSwitch(resolved.provider, resolved.model);
+          }
+
           console.log(
-            chalk.green(`  Switched to ${resolved.model.name} (${resolved.provider.displayName})`),
+            chalk.green(
+              `  Switched to ${resolved.model.name} (${resolved.provider.displayName})`,
+            ),
           );
         } else {
+          const activeModel = await opts.config.get('activeModel');
           const models = opts.providerRegistry.listAllModels();
           console.log('');
           for (const m of models) {
-            console.log(`  ${chalk.bold(`${m.provider}:${m.id}`)} - ${m.name}`);
+            const qualifiedId = `${m.provider}:${m.id}`;
+            const active = qualifiedId === activeModel ? chalk.green(' (active)') : '';
+            console.log(`  ${chalk.bold(qualifiedId)} - ${m.name}${active}`);
           }
           console.log('');
         }

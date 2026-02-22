@@ -68,14 +68,22 @@ async function main(): Promise<void> {
     cwd,
   });
 
-  // Set up CLI
+  // Set up REPL
+  const repl = new Repl({ agent, conversation });
+
+  // Set up commands with live model switching
   const commands = new CommandHandler({
     providerRegistry,
     conversation,
     config,
+    onModelSwitch: (provider, model) => {
+      repl.setAgent(
+        new Agent({ provider, model, toolRegistry, cwd }),
+      );
+    },
   });
 
-  const repl = new Repl({ agent, conversation, commands });
+  repl.setCommands(commands);
 
   // Save conversation on exit
   process.on('SIGINT', () => {
