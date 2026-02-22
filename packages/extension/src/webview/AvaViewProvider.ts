@@ -8,6 +8,7 @@ import {
   HistoryManager,
   ProviderError,
   buildSystemPrompt,
+  killBackgroundProcesses,
 } from '@ava/core';
 import type { AgentEvent, Provider, ModelDefinition, Message, ContentPart, PermissionMode } from '@ava/core';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode } from './message-types.js';
@@ -19,12 +20,16 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
   private panel?: vscode.WebviewPanel;
   private agent?: Agent;
+  private activeModelDef?: ModelDefinition;
   private conversation?: Conversation;
   private toolRegistry?: ToolRegistry;
   private providerRegistry: ProviderRegistry;
   private historyManager: HistoryManager;
   private isRunning = false;
-  private pendingConfirmations = new Map<string, (approved: boolean) => void>();
+  private runAbortController?: AbortController;
+  private pendingConfirmations = new Map<string, { resolve: (result: boolean | string) => void; toolName: string }>();
+  private sessionAllowedTools = new Set<string>();
+  private sessionAllowAll = false;
   private settingsListener?: vscode.Disposable;
   private readonly outputChannel: vscode.OutputChannel;
 
@@ -170,6 +175,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   dispose(): void {
+    killBackgroundProcesses();
     this.settingsListener?.dispose();
     this.panel?.dispose();
     this.outputChannel.dispose();
@@ -235,6 +241,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       );
     }
 
+    this.activeModelDef = model;
     this.agent = new Agent({
       provider,
       model,
@@ -405,7 +412,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
 
       case 'tool_confirmation_response':
-        this.handleConfirmationResponse(message.confirmationId, message.approved);
+        this.handleConfirmationResponse(message.confirmationId, message.approved, message.alwaysAllow, message.allowAll, message.planSelection);
         break;
 
       case 'switch_model':
@@ -417,7 +424,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
 
       case 'cancel':
-        // Future: AbortController support
+        this.cancelRun();
         break;
 
       case 'open_settings':
@@ -451,16 +458,25 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       this.log('handleUserMessage: no agent or conversation — needs setup');
       this.postMessage({
         type: 'error',
-        message: 'No model configured. Open Settings to add an API key.',
+        message: 'No model configured.',
+        code: 'setup',
+        suggestion: 'Open Settings and add an API key for at least one provider, then select a model.',
       });
       return;
     }
 
     if (this.isRunning) {
       this.log('handleUserMessage: blocked — already running');
+      this.postMessage({
+        type: 'error',
+        message: 'Ava is still working on the previous message.',
+        code: 'busy',
+        suggestion: 'Wait for the current response to finish, or reload the window to reset.',
+      });
       return;
     }
     this.isRunning = true;
+    this.runAbortController = new AbortController();
 
     const userText = this.applyModePrefix(text, mode);
     this.log(`User message (mode=${mode}): "${text.slice(0, 80)}${text.length > 80 ? '...' : ''}"`);
@@ -480,23 +496,29 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.postMessage({ type: 'user_message_ack', text });
 
     let streamStarted = false;
+    let deltaCount = 0;
+    let thinkingDeltaCount = 0;
 
     const onEvent = (event: AgentEvent): void => {
       switch (event.type) {
         case 'stream_start':
           streamStarted = true;
+          deltaCount = 0;
+          thinkingDeltaCount = 0;
           this.postMessage({ type: 'stream_start' });
           this.log('Stream started');
           break;
         case 'thinking_delta':
+          thinkingDeltaCount++;
           this.postMessage({ type: 'thinking_delta', content: event.content });
           break;
         case 'stream_delta':
+          deltaCount++;
           this.postMessage({ type: 'stream_delta', content: event.content });
           break;
         case 'stream_end':
           this.postMessage({ type: 'stream_end' });
-          this.log('Stream ended');
+          this.log(`Stream ended (${deltaCount} content deltas, ${thinkingDeltaCount} thinking deltas)`);
           break;
         case 'tool_call_start':
           this.postMessage({
@@ -523,13 +545,16 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             type: 'usage',
             usage: event.usage,
             cost: event.cost,
+            contextWindow: this.activeModelDef?.contextWindow,
           });
           this.log(`Usage: ${event.usage.prompt_tokens}+${event.usage.completion_tokens} tokens${event.cost ? ` ($${event.cost.toFixed(4)})` : ''}`);
           break;
-        case 'error':
-          this.log(`Agent error event: ${event.error.message}`);
-          this.postMessage({ type: 'error', message: event.error.message });
+        case 'error': {
+          const info = this.deriveErrorInfo(event.error);
+          this.log(`Agent error event [${info.code}]: ${info.message}`);
+          this.postMessage({ type: 'error', message: info.message, code: info.code, suggestion: info.suggestion });
           break;
+        }
         case 'done':
           this.postMessage({ type: 'done' });
           this.log('Agent done');
@@ -538,34 +563,68 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     };
 
     try {
+      this.log(`Calling agent.run() with ${this.conversation.getMessages().length} messages`);
       const updatedMessages = await this.agent.run(
         this.conversation.getMessages(),
         onEvent,
+        this.runAbortController.signal,
       );
+      this.log(`agent.run() returned ${updatedMessages.length} messages`);
       this.conversation.setMessages(updatedMessages);
 
       await this.historyManager.saveConversation(this.conversation);
       this.setLastConversationId(this.conversation.id);
     } catch (error) {
-      const rawMsg = error instanceof Error ? error.message : String(error);
-      // Use human-friendly message for provider errors (e.g. "Invalid API key for deepseek")
-      const userMsg = error instanceof ProviderError ? error.humanMessage : rawMsg;
-      this.log(`handleUserMessage CATCH: ${rawMsg}`);
+      // Abort errors from cancellation — not a real error, just clean up
+      const isAbort = error instanceof DOMException && error.name === 'AbortError';
+      if (isAbort) {
+        this.log('Run cancelled by user');
+        if (streamStarted) {
+          this.postMessage({ type: 'stream_end' });
+        }
+      } else {
+        const errorInfo = this.deriveErrorInfo(error);
+        this.log(`handleUserMessage CATCH [${errorInfo.code}]: ${errorInfo.message}`);
 
-      // If stream_start was sent but we never got stream_end, close it cleanly
-      if (streamStarted) {
-        this.postMessage({ type: 'stream_end' });
+        // If stream_start was sent but we never got stream_end, close it cleanly
+        if (streamStarted) {
+          this.postMessage({ type: 'stream_end' });
+        }
+
+        this.postMessage({
+          type: 'error',
+          message: errorInfo.message,
+          code: errorInfo.code,
+          suggestion: errorInfo.suggestion,
+        });
       }
-
-      this.postMessage({
-        type: 'error',
-        message: userMsg,
-      });
     } finally {
       this.isRunning = false;
+      this.runAbortController = undefined;
       // Always send done to guarantee the UI resets
       this.postMessage({ type: 'done' });
       this.log('handleUserMessage finished — isRunning=false');
+    }
+  }
+
+  // ── Cancel ──────────────────────────────────────────────────────────────────
+
+  private cancelRun(): void {
+    if (!this.isRunning || !this.runAbortController) {
+      this.log('Cancel: nothing running');
+      return;
+    }
+
+    this.log('Cancelling current run...');
+    this.runAbortController.abort();
+
+    // Kill any background processes spawned by bash tool
+    killBackgroundProcesses();
+
+    // Reject any pending confirmations — unblocks the agent loop
+    for (const [id, pending] of this.pendingConfirmations) {
+      pending.resolve(false);
+      this.pendingConfirmations.delete(id);
     }
   }
 
@@ -587,10 +646,16 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private requestConfirmation(
     toolName: string,
     args: Record<string, unknown>,
-  ): Promise<boolean> {
+  ): Promise<boolean | string> {
+    // Session allow list — skip confirmation if already approved for this tool or all tools
+    if (this.sessionAllowAll || this.sessionAllowedTools.has(toolName)) {
+      this.log(`Auto-approved ${toolName} (session allow list)`);
+      return Promise.resolve(true);
+    }
+
     return new Promise((resolve) => {
       const confirmationId = crypto.randomUUID();
-      this.pendingConfirmations.set(confirmationId, resolve);
+      this.pendingConfirmations.set(confirmationId, { resolve, toolName });
 
       this.postMessage({
         type: 'tool_confirmation_request',
@@ -602,12 +667,88 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  private handleConfirmationResponse(confirmationId: string, approved: boolean): void {
-    const resolve = this.pendingConfirmations.get(confirmationId);
-    if (resolve) {
+  private handleConfirmationResponse(
+    confirmationId: string,
+    approved: boolean,
+    alwaysAllow?: boolean,
+    allowAll?: boolean,
+    planSelection?: string,
+  ): void {
+    const pending = this.pendingConfirmations.get(confirmationId);
+    if (pending) {
       this.pendingConfirmations.delete(confirmationId);
-      resolve(approved);
+
+      if (approved && alwaysAllow) {
+        this.sessionAllowedTools.add(pending.toolName);
+        this.log(`Session allow: ${pending.toolName}`);
+      }
+      if (approved && allowAll) {
+        this.sessionAllowAll = true;
+        this.log('Session allow ALL tools enabled');
+      }
+
+      // For present_plan, return a descriptive string instead of boolean
+      if (pending.toolName === 'present_plan') {
+        if (approved) {
+          const selection = planSelection ? ` User selected approach: "${planSelection}".` : '';
+          pending.resolve(`Plan approved.${selection} Execute the steps.`);
+        } else {
+          pending.resolve(false);
+        }
+      } else {
+        pending.resolve(approved);
+      }
     }
+  }
+
+  private deriveErrorInfo(error: unknown): { message: string; code: string; suggestion: string } {
+    if (error instanceof ProviderError) {
+      const msg = error.humanMessage;
+      switch (error.statusCode) {
+        case 400: {
+          const raw400 = error.message.toLowerCase();
+          if (raw400.includes('context') || raw400.includes('token') || raw400.includes('length') || raw400.includes('too long') || raw400.includes('maximum')) {
+            return { message: msg, code: 'bad_request', suggestion: 'The conversation is too long for this model. Start a new chat (click + in the header).' };
+          }
+          return { message: msg, code: 'bad_request', suggestion: 'The request format may be incompatible with this model. Try starting a new chat or switching models.' };
+        }
+        case 401:
+          return { message: msg, code: 'auth', suggestion: 'Open Settings and check your API key for this provider.' };
+        case 402:
+          return { message: msg, code: 'credits', suggestion: 'Top up your account balance with the provider.' };
+        case 403:
+          return { message: msg, code: 'forbidden', suggestion: 'Check that your API key has the required permissions.' };
+        case 404:
+          return { message: msg, code: 'model_not_found', suggestion: 'The model ID may have changed. Try switching to a different model.' };
+        case 429:
+          return { message: msg, code: 'rate_limit', suggestion: 'Wait a moment and try again, or switch to a different provider.' };
+        case 500: case 502: case 503:
+          return { message: msg, code: 'server_error', suggestion: 'The provider is having issues. Wait a few minutes or try another provider.' };
+        default: {
+          // No status code — check the raw message for patterns
+          const raw = error.message.toLowerCase();
+          if (raw.includes('timed out') || raw.includes('timeout')) {
+            return { message: msg, code: 'timeout', suggestion: 'The provider took too long to respond. Check your connection or try again.' };
+          }
+          if (raw.includes('stream stalled')) {
+            return { message: msg, code: 'stream_stall', suggestion: 'The response stream stopped unexpectedly. Try sending your message again.' };
+          }
+          if (raw.includes('network error') || raw.includes('fetch failed') || raw.includes('econnrefused')) {
+            return { message: msg, code: 'network', suggestion: 'Check your internet connection. If using a custom endpoint, verify the URL in Settings.' };
+          }
+          return { message: msg, code: 'provider_error', suggestion: 'Check Output > "Ava | Supernova" for details.' };
+        }
+      }
+    }
+
+    const rawMsg = error instanceof Error ? error.message : String(error);
+    const errorCode = error instanceof Error ? (error as Error & { code?: string }).code : undefined;
+
+    if (errorCode === 'iterations_exceeded') {
+      return { message: rawMsg, code: 'iterations_exceeded', suggestion: 'Click Continue to let Ava keep working, or start a new message with more specific instructions.' };
+    }
+
+    return { message: rawMsg, code: 'unknown', suggestion: 'An unexpected error occurred. Check Output > "Ava | Supernova" for details.' };
   }
 
   private formatToolSummary(toolName: string, args: Record<string, unknown>): string {
@@ -618,6 +759,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         return `Write to ${args.file_path}`;
       case 'file_edit':
         return `Edit ${args.file_path}`;
+      case 'present_plan':
+        return `Plan: ${String(args.title ?? 'Untitled')}`;
       default:
         return `${toolName}: ${JSON.stringify(args).slice(0, 100)}`;
     }

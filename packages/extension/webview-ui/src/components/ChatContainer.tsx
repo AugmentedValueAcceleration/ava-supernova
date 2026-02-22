@@ -6,11 +6,12 @@ import { ThinkingIndicator } from './ThinkingIndicator';
 interface ChatContainerProps {
   messages: UIMessage[];
   isThinking: boolean;
-  onConfirmation: (confirmationId: string, approved: boolean) => void;
+  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllow?: boolean, allowAll?: boolean, planSelection?: string) => void;
+  onContinue: () => void;
   chatEndRef: RefObject<HTMLDivElement | null>;
 }
 
-export function ChatContainer({ messages, isThinking, onConfirmation, chatEndRef }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, chatEndRef }: ChatContainerProps) {
   if (messages.length === 0 && !isThinking) {
     return (
       <div className="flex-1 flex items-center justify-center px-4">
@@ -24,11 +25,12 @@ export function ChatContainer({ messages, isThinking, onConfirmation, chatEndRef
 
   return (
     <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3">
-      {messages.map((msg) => (
+      {messages.map((msg, i) => (
         <MessageBubble
           key={msg.id}
           message={msg}
           onConfirmation={onConfirmation}
+          onContinue={msg.role === 'error' && i === messages.length - 1 ? onContinue : undefined}
         />
       ))}
       {isThinking && <ThinkingIndicator />}

@@ -51,7 +51,8 @@ export abstract class BaseProvider implements Provider {
   private static readonly RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503]);
   private static readonly MAX_RETRIES = 3;
   private static readonly BASE_DELAY_MS = 1000;
-  private static readonly FETCH_TIMEOUT_MS = 60_000; // 60s timeout
+  private static readonly FETCH_TIMEOUT_MS = 60_000; // 60s connection timeout
+  private static readonly STREAM_READ_TIMEOUT_MS = 90_000; // 90s per-chunk — reasoning models can think for a while
 
   private async fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
     let lastError: ProviderError | undefined;
@@ -102,7 +103,7 @@ export abstract class BaseProvider implements Provider {
 
   // ── Shared HTTP logic ────────────────────────────────────────────────────
 
-  async createCompletion(request: ChatCompletionRequest): Promise<CompletionResponse> {
+  async createCompletion(request: ChatCompletionRequest, signal?: AbortSignal): Promise<CompletionResponse> {
     const body = this.transformRequest({ ...request, stream: false });
     const url = this.getCompletionUrl();
     const headers = this.getAuthHeaders();
@@ -111,6 +112,7 @@ export abstract class BaseProvider implements Provider {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
+      signal,
     });
 
     const raw = await response.json();
@@ -119,6 +121,7 @@ export abstract class BaseProvider implements Provider {
 
   async *createStreamingCompletion(
     request: ChatCompletionRequest,
+    signal?: AbortSignal,
   ): AsyncGenerator<StreamChunk, void, unknown> {
     const body = this.transformRequest({
       ...request,
@@ -132,6 +135,7 @@ export abstract class BaseProvider implements Provider {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
+      signal,
     });
 
     if (!response.body) {
@@ -142,21 +146,62 @@ export abstract class BaseProvider implements Provider {
     const decoder = new TextDecoder();
     let buffer = '';
 
+    // Per-chunk read timeout — prevents hanging if stream stalls mid-response.
+    // Clears the timer on every successful read to avoid dangling unhandled
+    // rejections that can crash the extension host.
+    const readWithTimeout = () => {
+      // Check abort signal before each read
+      if (signal?.aborted) {
+        return Promise.reject(new DOMException('Aborted', 'AbortError'));
+      }
+
+      let timeoutId: ReturnType<typeof setTimeout>;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new ProviderError(
+            `${this.displayName} stream stalled — no data received for ${BaseProvider.STREAM_READ_TIMEOUT_MS / 1000}s`,
+            this.name,
+          )),
+          BaseProvider.STREAM_READ_TIMEOUT_MS,
+        );
+      });
+      // Wrap reader.read() to clear timeout on settle (success or error)
+      const readPromise = reader.read().then(
+        (result) => { clearTimeout(timeoutId); return result; },
+        (err) => { clearTimeout(timeoutId); throw err; },
+      );
+      return Promise.race([readPromise, timeoutPromise]);
+    };
+
     const processLine = (line: string): StreamChunk | 'done' | null => {
       const trimmed = line.trim();
       if (!trimmed || !trimmed.startsWith('data: ')) return null;
       const data = trimmed.slice(6);
       if (data === '[DONE]') return 'done';
       try {
-        return this.normalizeStreamChunk(JSON.parse(data));
-      } catch {
+        const parsed = JSON.parse(data);
+
+        // Some APIs return 200 OK but send error objects inside the SSE stream
+        if (parsed.error) {
+          const errMsg = parsed.error.message || parsed.error.type || JSON.stringify(parsed.error);
+          throw new ProviderError(
+            `${this.displayName} stream error: ${errMsg}`,
+            this.name,
+            parsed.error.code,
+          );
+        }
+
+        return this.normalizeStreamChunk(parsed);
+      } catch (err) {
+        // Re-throw ProviderErrors (from the check above)
+        if (err instanceof ProviderError) throw err;
         return null; // Skip malformed chunks
       }
     };
 
     try {
       while (true) {
-        const { done, value } = await reader.read();
+        const { done, value } = await readWithTimeout();
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
@@ -176,6 +221,7 @@ export abstract class BaseProvider implements Provider {
         if (result && result !== 'done') yield result;
       }
     } finally {
+      try { reader.cancel(); } catch { /* already closed */ }
       reader.releaseLock();
     }
   }

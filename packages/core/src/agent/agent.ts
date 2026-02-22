@@ -8,7 +8,7 @@ import type {
 } from '../core/types.js';
 import type { ToolRegistry } from '../tools/tool-registry.js';
 import type { ToolExecutionContext } from '../tools/types.js';
-import { MAX_TOOL_CALL_ITERATIONS } from '../core/constants.js';
+import { MAX_TOOL_CALL_ITERATIONS, ITERATION_WARNING_THRESHOLD } from '../core/constants.js';
 
 // ─── Event system ────────────────────────────────────────────────────────────
 
@@ -45,18 +45,43 @@ export class Agent {
     this.toolContext = { cwd: opts.cwd };
   }
 
-  async run(messages: Message[], onEvent: AgentEventHandler): Promise<Message[]> {
+  async run(messages: Message[], onEvent: AgentEventHandler, signal?: AbortSignal): Promise<Message[]> {
     const toolSchemas: ToolSchema[] = this.model.supportsToolCalls
       ? this.toolRegistry.getSchemas()
       : [];
 
+    // Pass signal to tool execution context so tools (esp. bash) can be cancelled
+    const runContext = { ...this.toolContext, signal };
+
     let iterations = 0;
+    let warningInjected = false;
 
     while (iterations < MAX_TOOL_CALL_ITERATIONS) {
+      // Check for cancellation before each iteration
+      if (signal?.aborted) {
+        onEvent({ type: 'done', finalMessage: { role: 'assistant', content: null } });
+        return messages;
+      }
+
       iterations++;
 
-      // Auto-truncate to fit context window (reserve 20% for output)
-      const maxInputTokens = Math.floor(this.model.contextWindow * 0.8);
+      // Warn the model when approaching the iteration limit
+      const remaining = MAX_TOOL_CALL_ITERATIONS - iterations;
+      if (!warningInjected && remaining <= ITERATION_WARNING_THRESHOLD) {
+        warningInjected = true;
+        messages = [
+          ...messages,
+          {
+            role: 'system' as const,
+            content: `[WARNING] You have ${remaining} iterations remaining before the loop limit. Wrap up your current task — summarize what you've done and what's left. Don't start new multi-step work.`,
+          },
+        ];
+      }
+
+      // Auto-truncate to fit context window (reserve 30% for output + safety margin)
+      // The 30% buffer accounts for: model output tokens, estimation inaccuracy,
+      // and tool call overhead that's hard to predict.
+      const maxInputTokens = Math.floor(this.model.contextWindow * 0.7);
       messages = this.truncateMessages(messages, maxInputTokens);
 
       const request: ChatCompletionRequest = {
@@ -67,15 +92,43 @@ export class Agent {
         stream: true,
       };
 
-      const assistantMessage = await this.streamResponse(request, onEvent);
+      const { message: assistantMessage, promptTokens } = await this.streamResponse(request, onEvent, signal);
       messages = [...messages, assistantMessage];
 
+      // If the actual token count was dangerously high, force aggressive truncation
+      // before the next iteration. Our estimation may have been too low.
+      if (promptTokens > 0 && promptTokens > this.model.contextWindow * 0.65) {
+        const targetTokens = Math.floor(this.model.contextWindow * 0.5);
+        messages = this.truncateMessages(messages, targetTokens);
+      }
+
+      // If cancelled during streaming, stop immediately
+      if (signal?.aborted) {
+        onEvent({ type: 'done', finalMessage: assistantMessage });
+        return messages;
+      }
+
       if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
+        // Surface empty responses — model returned nothing visible to the user
+        if (!assistantMessage.content && !assistantMessage.reasoning_content) {
+          onEvent({
+            type: 'error',
+            error: new Error(
+              'The model returned an empty response. This can happen when the API is overloaded or the request was filtered. Try again.',
+            ),
+          });
+        }
         onEvent({ type: 'done', finalMessage: assistantMessage });
         return messages;
       }
 
       for (const toolCall of assistantMessage.tool_calls) {
+        // Check for cancellation before each tool call
+        if (signal?.aborted) {
+          onEvent({ type: 'done', finalMessage: assistantMessage });
+          return messages;
+        }
+
         onEvent({ type: 'tool_call_start', toolCall });
 
         let parsedArgs: Record<string, unknown>;
@@ -88,7 +141,7 @@ export class Agent {
         const result = await this.toolRegistry.execute(
           toolCall.function.name,
           parsedArgs,
-          this.toolContext,
+          runContext,
         );
 
         onEvent({
@@ -110,17 +163,19 @@ export class Agent {
       }
     }
 
-    onEvent({
-      type: 'error',
-      error: new Error(`Agent loop exceeded ${MAX_TOOL_CALL_ITERATIONS} iterations`),
-    });
+    const iterError = new Error(
+      `Ava reached the ${MAX_TOOL_CALL_ITERATIONS}-iteration safety limit. This usually means the task is very large or the model got stuck in a loop.`,
+    );
+    (iterError as Error & { code?: string }).code = 'iterations_exceeded';
+    onEvent({ type: 'error', error: iterError });
     return messages;
   }
 
   private async streamResponse(
     request: ChatCompletionRequest,
     onEvent: AgentEventHandler,
-  ): Promise<AssistantMessage> {
+    signal?: AbortSignal,
+  ): Promise<{ message: AssistantMessage; promptTokens: number }> {
     onEvent({ type: 'stream_start' });
 
     let content = '';
@@ -135,7 +190,7 @@ export class Agent {
       }
     >();
 
-    for await (const chunk of this.provider.createStreamingCompletion(request)) {
+    for await (const chunk of this.provider.createStreamingCompletion(request, signal)) {
       if (chunk.usage) {
         usage = chunk.usage;
       }
@@ -194,19 +249,41 @@ export class Agent {
       onEvent({ type: 'usage', usage, cost });
     }
 
-    return message;
+    return { message, promptTokens: usage?.prompt_tokens ?? 0 };
   }
 
   private truncateMessages(messages: Message[], maxTokens: number): Message[] {
+    // Conservative token estimation — uses length/3 (not length/4) because
+    // code, JSON, and tool results tokenize at ~2.5-3 chars per token,
+    // not the ~4 chars/token that English prose averages.
+    const estimateTextTokens = (text: string): number => Math.ceil(text.length / 3);
+
     const estimateTokens = (msg: Message): number => {
+      let tokens = 4; // message overhead (role, separators)
+
       const { content } = msg;
-      if (content === null) return 4;
-      if (typeof content === 'string') return Math.ceil(content.length / 4) + 4;
-      return content.reduce((sum, part) => {
-        if (part.type === 'text') return sum + Math.ceil(part.text.length / 4);
-        if (part.type === 'image_url') return sum + 85;
-        return sum;
-      }, 0) + 4;
+      if (content === null) {
+        // no content
+      } else if (typeof content === 'string') {
+        tokens += estimateTextTokens(content);
+      } else {
+        for (const part of content) {
+          if (part.type === 'text') tokens += estimateTextTokens(part.text);
+          else if (part.type === 'image_url') tokens += 85;
+        }
+      }
+
+      // Count tool calls in assistant messages (function name + JSON arguments)
+      const toolCalls = (msg as unknown as Record<string, unknown>).tool_calls as
+        | Array<{ function: { name: string; arguments: string } }>
+        | undefined;
+      if (toolCalls) {
+        for (const tc of toolCalls) {
+          tokens += estimateTextTokens(tc.function.name) + estimateTextTokens(tc.function.arguments) + 8;
+        }
+      }
+
+      return tokens;
     };
 
     const total = messages.reduce((sum, m) => sum + estimateTokens(m), 0);

@@ -6,6 +6,7 @@ import { FileEditTool } from './file-edit.js';
 import { GlobTool } from './glob.js';
 import { GrepTool } from './grep.js';
 import { BashTool } from './bash.js';
+import { PresentPlanTool } from './present-plan.js';
 
 // Which risk levels require confirmation under each permission mode
 const CONFIRMATION_MATRIX: Record<PermissionMode, Set<ToolRiskLevel>> = {
@@ -39,6 +40,7 @@ export class ToolRegistry {
       new GlobTool(),
       new GrepTool(),
       new BashTool(),
+      new PresentPlanTool(),
     ];
     for (const tool of builtins) {
       this.tools.set(tool.name, tool);
@@ -74,12 +76,16 @@ export class ToolRegistry {
     }
 
     if (this.needsConfirmation(tool) && this.confirmationHandler) {
-      const approved = await this.confirmationHandler(name, args);
-      if (!approved) {
+      const result = await this.confirmationHandler(name, args);
+      if (result === false) {
         return {
           success: false,
           output: `Tool "${name}" was denied by the user.`,
         };
+      }
+      // Handler provided a custom result string (e.g., plan approval with context)
+      if (typeof result === 'string') {
+        return { success: true, output: result };
       }
     }
 

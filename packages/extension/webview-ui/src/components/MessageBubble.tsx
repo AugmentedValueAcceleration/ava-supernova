@@ -2,17 +2,73 @@ import type { UIMessage } from '../types/messages';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ThinkingBlock } from './ThinkingBlock';
 import { ToolCallCard } from './ToolCallCard';
+import { PlanCard } from './PlanCard';
 
 interface MessageBubbleProps {
   message: UIMessage;
-  onConfirmation: (confirmationId: string, approved: boolean) => void;
+  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllow?: boolean, allowAll?: boolean, planSelection?: string) => void;
+  onContinue?: () => void;
 }
 
-export function MessageBubble({ message, onConfirmation }: MessageBubbleProps) {
+const ERROR_LABELS: Record<string, string> = {
+  auth: 'Authentication',
+  credits: 'Billing',
+  forbidden: 'Access Denied',
+  rate_limit: 'Rate Limited',
+  model_not_found: 'Model Error',
+  bad_request: 'Bad Request',
+  server_error: 'Server Error',
+  timeout: 'Timeout',
+  stream_stall: 'Stream Stalled',
+  network: 'Network Error',
+  setup: 'Setup Required',
+  busy: 'Busy',
+  iterations_exceeded: 'Iteration Limit',
+  provider_error: 'Provider Error',
+  unknown: 'Error',
+};
+
+// Errors where "Continue" makes sense — the conversation context is intact
+const RESUMABLE_ERRORS = new Set([
+  'stream_stall', 'timeout', 'server_error', 'network', 'rate_limit', 'iterations_exceeded', 'provider_error', 'unknown',
+]);
+
+export function MessageBubble({ message, onConfirmation, onContinue }: MessageBubbleProps) {
   if (message.role === 'error') {
+    const label = ERROR_LABELS[message.errorCode || ''] || 'Error';
+    const canResume = onContinue && RESUMABLE_ERRORS.has(message.errorCode || '');
+
     return (
-      <div className="px-3 py-2 rounded text-xs bg-[var(--vscode-inputValidation-errorBackground,rgba(255,0,0,0.1))] text-[var(--vscode-errorForeground)] border border-[var(--vscode-inputValidation-errorBorder,rgba(255,0,0,0.3))]">
-        {message.content}
+      <div className="rounded-lg border border-[var(--vscode-inputValidation-errorBorder,rgba(255,0,0,0.3))] bg-[var(--vscode-inputValidation-errorBackground,rgba(255,0,0,0.08))] overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-2">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--vscode-errorForeground)" className="flex-shrink-0">
+            <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 1a6 6 0 1 1 0 12A6 6 0 0 1 8 2zm-.7 3h1.4L8.4 9H7.6L7.3 5zM8 10.2a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6z"/>
+          </svg>
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--vscode-errorForeground)] opacity-80">
+            {label}
+          </span>
+        </div>
+        <div className="px-3 pb-2 text-xs text-[var(--vscode-errorForeground)]">
+          {message.content}
+        </div>
+        {message.errorSuggestion && (
+          <div className="px-3 pb-2.5 text-xs text-[var(--vscode-foreground)] opacity-70">
+            {message.errorSuggestion}
+          </div>
+        )}
+        {canResume && (
+          <div className="px-3 pb-2.5">
+            <button
+              onClick={onContinue}
+              className="px-3 py-1 rounded text-[11px] font-medium
+                         bg-[var(--color-accent,var(--vscode-button-background))]
+                         text-[var(--vscode-button-foreground)]
+                         border-none cursor-pointer hover:opacity-80 transition-opacity"
+            >
+              Continue
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -49,13 +105,13 @@ export function MessageBubble({ message, onConfirmation }: MessageBubbleProps) {
         </div>
       )}
 
-      {message.toolCalls.map((tc) => (
-        <ToolCallCard
-          key={tc.id}
-          toolCall={tc}
-          onConfirmation={onConfirmation}
-        />
-      ))}
+      {message.toolCalls.map((tc) =>
+        tc.name === 'present_plan' ? (
+          <PlanCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />
+        ) : (
+          <ToolCallCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />
+        )
+      )}
     </div>
   );
 }

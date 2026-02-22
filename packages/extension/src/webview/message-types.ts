@@ -33,8 +33,9 @@ export type ExtToWebviewMessage =
       type: 'usage';
       usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
       cost?: number;
+      contextWindow?: number;
     }
-  | { type: 'error'; message: string }
+  | { type: 'error'; message: string; code?: string; suggestion?: string }
   | { type: 'done' }
   | { type: 'model_switched'; modelId: string; modelName: string }
   | {
@@ -55,7 +56,7 @@ export type AvaMode = 'code' | 'plan' | 'chat';
 
 export type WebviewToExtMessage =
   | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }> }
-  | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean }
+  | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllow?: boolean; allowAll?: boolean; planSelection?: string }
   | { type: 'switch_model'; modelId: string }
   | { type: 'clear_chat' }
   | { type: 'cancel' }

@@ -18,6 +18,7 @@ interface InputAreaProps {
     completion_tokens: number;
     total_tokens: number;
     cost?: number;
+    contextWindow?: number;
   } | null;
 }
 
@@ -94,15 +95,87 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage }: In
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
+  // ── Paste support (Ctrl+V / Cmd+V screenshots) ───────────────────────────
+
+  const addImageFromFile = useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    if (file.size > MAX_IMAGE_SIZE) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const data = reader.result as string;
+      const name = file.name || `pasted-${Date.now()}.png`;
+      setAttachments((prev) => [...prev, { type: 'image', data, name }]);
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) addImageFromFile(file);
+          return; // only handle one image per paste
+        }
+      }
+      // If no image found, let the default text paste happen
+    },
+    [addImageFromFile],
+  );
+
+  // ── Drag & drop support ───────────────────────────────────────────────────
+
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDragOver(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(false);
+
+      const files = e.dataTransfer?.files;
+      if (!files) return;
+
+      Array.from(files).forEach((file) => addImageFromFile(file));
+    },
+    [addImageFromFile],
+  );
+
   const hasContent = text.trim().length > 0 || attachments.length > 0;
 
   return (
     <div className="px-3 py-2">
       <div
-        className="rounded-lg border border-[var(--vscode-input-border)]
+        className={`rounded-lg border
                     bg-[var(--vscode-input-background)]
                     focus-within:border-[var(--color-accent,var(--vscode-focusBorder))]
-                    transition-colors overflow-hidden"
+                    transition-colors overflow-hidden relative
+                    ${isDragOver
+                      ? 'border-[var(--color-accent,var(--vscode-focusBorder))] border-dashed'
+                      : 'border-[var(--vscode-input-border)]'
+                    }`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
         {/* Image previews */}
         {attachments.length > 0 && (
@@ -144,6 +217,14 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage }: In
           className="hidden"
         />
 
+        {/* Drop overlay */}
+        {isDragOver && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center
+                          bg-[var(--vscode-input-background)] opacity-90 pointer-events-none">
+            <span className="text-xs opacity-50">Drop image here</span>
+          </div>
+        )}
+
         {/* Textarea */}
         <textarea
           ref={textareaRef}
@@ -153,6 +234,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage }: In
             handleInput();
           }}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder={disabled ? 'Configure a provider to start...' : 'What do you want to build?'}
           disabled={disabled}
           rows={1}
@@ -188,12 +270,34 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage }: In
 
           {/* Right side: attach + usage + send/stop */}
           <div className="flex items-center gap-2">
-            {usage && (
-              <span className="text-[10px] opacity-30 tabular-nums">
-                {usage.prompt_tokens.toLocaleString()}/{usage.completion_tokens.toLocaleString()}
-                {usage.cost !== undefined && usage.cost > 0 && ` · $${usage.cost.toFixed(4)}`}
-              </span>
-            )}
+            {usage && (() => {
+              const pct = usage.contextWindow
+                ? Math.round((usage.total_tokens / usage.contextWindow) * 100)
+                : 0;
+              const isWarning = pct >= 80;
+              const isCritical = pct >= 90;
+              return (
+                <span
+                  className={`text-[10px] tabular-nums ${
+                    isCritical
+                      ? 'text-[var(--vscode-errorForeground)] opacity-90'
+                      : isWarning
+                        ? 'text-[var(--vscode-editorWarning-foreground,#cca700)] opacity-80'
+                        : 'opacity-30'
+                  }`}
+                  title={isCritical
+                    ? 'Context window nearly full — start a new chat to avoid errors'
+                    : isWarning
+                      ? 'Context window filling up — consider starting a new chat soon'
+                      : undefined}
+                >
+                  {usage.prompt_tokens.toLocaleString()}/{usage.completion_tokens.toLocaleString()}
+                  {pct > 0 && ` · ${pct}%`}
+                  {usage.cost !== undefined && usage.cost > 0 && ` · $${usage.cost.toFixed(4)}`}
+                  {isCritical && ' ⚠ New chat recommended'}
+                </span>
+              );
+            })()}
 
             {/* Attach button */}
             <button

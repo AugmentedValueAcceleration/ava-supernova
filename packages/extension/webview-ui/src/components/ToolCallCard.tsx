@@ -3,7 +3,7 @@ import type { ToolCallDisplay } from '../types/messages';
 
 interface ToolCallCardProps {
   toolCall: ToolCallDisplay;
-  onConfirmation: (confirmationId: string, approved: boolean) => void;
+  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllow?: boolean, allowAll?: boolean) => void;
 }
 
 // ─── Human-readable tool descriptions ──────────────────────────────────────
@@ -105,32 +105,53 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
 
       {/* Confirmation bar */}
       {toolCall.status === 'pending_confirmation' && toolCall.confirmationId && (
-        <div className="px-3 py-2 border-t flex items-center gap-2"
+        <div className="px-3 py-2 border-t space-y-2"
              style={{ borderColor: STATUS_COLORS.pending_confirmation + '30',
                       backgroundColor: STATUS_COLORS.pending_confirmation + '10' }}>
-          <span className="opacity-70 flex-1">
+          <span className="opacity-70 block">
             {toolCall.summary || `Allow ${toolCall.name}?`}
           </span>
-          <button
-            className="px-3 py-1 rounded text-xs font-medium
-                       bg-[var(--vscode-button-background)]
-                       text-[var(--vscode-button-foreground)]
-                       hover:bg-[var(--vscode-button-hoverBackground)]
-                       border-none cursor-pointer"
-            onClick={() => onConfirmation(toolCall.confirmationId!, true)}
-          >
-            Allow
-          </button>
-          <button
-            className="px-3 py-1 rounded text-xs font-medium
-                       bg-[var(--vscode-button-secondaryBackground)]
-                       text-[var(--vscode-button-secondaryForeground)]
-                       hover:bg-[var(--vscode-button-secondaryHoverBackground)]
-                       border-none cursor-pointer"
-            onClick={() => onConfirmation(toolCall.confirmationId!, false)}
-          >
-            Deny
-          </button>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              className="px-3 py-1 rounded text-xs font-medium
+                         bg-[var(--vscode-button-background)]
+                         text-[var(--vscode-button-foreground)]
+                         hover:bg-[var(--vscode-button-hoverBackground)]
+                         border-none cursor-pointer"
+              onClick={() => onConfirmation(toolCall.confirmationId!, true)}
+            >
+              Allow
+            </button>
+            <button
+              className="px-3 py-1 rounded text-xs font-medium
+                         bg-[var(--color-accent,var(--vscode-button-background))]
+                         text-[var(--vscode-button-foreground)]
+                         hover:opacity-80
+                         border-none cursor-pointer transition-opacity"
+              onClick={() => onConfirmation(toolCall.confirmationId!, true, true)}
+            >
+              Always Allow
+            </button>
+            <button
+              className="px-2 py-1 rounded text-[10px]
+                         bg-transparent
+                         text-[var(--vscode-foreground)] opacity-50 hover:opacity-80
+                         border-none cursor-pointer transition-opacity"
+              onClick={() => onConfirmation(toolCall.confirmationId!, true, false, true)}
+            >
+              Allow All
+            </button>
+            <button
+              className="px-3 py-1 rounded text-xs font-medium
+                         bg-[var(--vscode-button-secondaryBackground)]
+                         text-[var(--vscode-button-secondaryForeground)]
+                         hover:bg-[var(--vscode-button-secondaryHoverBackground)]
+                         border-none cursor-pointer ml-auto"
+              onClick={() => onConfirmation(toolCall.confirmationId!, false)}
+            >
+              Deny
+            </button>
+          </div>
         </div>
       )}
 

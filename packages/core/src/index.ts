@@ -38,6 +38,7 @@ export { ProviderRegistry } from './providers/provider-registry.js';
 
 // Tools
 export { ToolRegistry } from './tools/tool-registry.js';
+export { killBackgroundProcesses } from './tools/bash.js';
 export type {
   Tool,
   ToolResult,
@@ -65,6 +66,7 @@ export {
   CONFIG_PATH,
   HISTORY_DIR,
   MAX_TOOL_CALL_ITERATIONS,
+  ITERATION_WARNING_THRESHOLD,
   DEFAULT_TEMPERATURE,
   DEFAULT_MAX_TOKENS,
 } from './core/constants.js';

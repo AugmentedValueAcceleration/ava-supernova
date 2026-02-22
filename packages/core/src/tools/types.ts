@@ -35,7 +35,10 @@ export interface ToolExecutionContext {
   signal?: AbortSignal;
 }
 
+// Returns boolean (true=approved, false=denied) or a string (approved with custom tool result).
+// When a string is returned, the ToolRegistry uses it as the tool output directly,
+// bypassing the tool's execute() method. Used by present_plan for rich approval messages.
 export type ToolConfirmationHandler = (
   toolName: string,
   args: Record<string, unknown>,
-) => Promise<boolean>;
+) => Promise<boolean | string>;

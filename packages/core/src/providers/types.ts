@@ -47,9 +47,10 @@ export interface Provider {
 
   listModels(): ModelDefinition[];
 
-  createCompletion(request: ChatCompletionRequest): Promise<CompletionResponse>;
+  createCompletion(request: ChatCompletionRequest, signal?: AbortSignal): Promise<CompletionResponse>;
 
   createStreamingCompletion(
     request: ChatCompletionRequest,
+    signal?: AbortSignal,
   ): AsyncGenerator<StreamChunk, void, unknown>;
 }

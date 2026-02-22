@@ -34,7 +34,8 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         toolCalls: [],
         isStreaming: false,
       };
-      return { ...state, messages: [...state.messages, msg] };
+      // Mark agent as running immediately so the Stop button appears
+      return { ...state, messages: [...state.messages, msg], isStreaming: true };
     }
 
     case 'stream_start': {
@@ -83,7 +84,9 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       if (last && last.role === 'assistant') {
         messages[messages.length - 1] = { ...last, isStreaming: false };
       }
-      return { ...state, messages, isStreaming: false, isThinking: false };
+      // Keep state.isStreaming TRUE — the agent loop may continue with tool calls
+      // and more streaming rounds. Only 'done' and 'error' set isStreaming to false.
+      return { ...state, messages, isThinking: false };
     }
 
     case 'tool_call_start': {
@@ -144,7 +147,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'usage':
       return {
         ...state,
-        lastUsage: { ...action.usage, cost: action.cost },
+        lastUsage: { ...action.usage, cost: action.cost, contextWindow: action.contextWindow },
       };
 
     case 'error': {
@@ -154,6 +157,8 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         content: action.message,
         toolCalls: [],
         isStreaming: false,
+        errorCode: action.code,
+        errorSuggestion: action.suggestion,
       };
       return {
         ...state,
@@ -322,8 +327,8 @@ export function App() {
   );
 
   const handleConfirmation = useCallback(
-    (confirmationId: string, approved: boolean) => {
-      postMessage({ type: 'tool_confirmation_response', confirmationId, approved });
+    (confirmationId: string, approved: boolean, alwaysAllow?: boolean, allowAll?: boolean, planSelection?: string) => {
+      postMessage({ type: 'tool_confirmation_response', confirmationId, approved, alwaysAllow, allowAll, planSelection });
     },
     [postMessage],
   );
@@ -358,6 +363,10 @@ export function App() {
     [postMessage],
   );
 
+  const handleContinue = useCallback(() => {
+    postMessage({ type: 'send_message', text: 'Continue where you left off.', mode: 'code' });
+  }, [postMessage]);
+
   const handleCloseHistory = useCallback(() => {
     dispatch({ type: 'close_history' });
   }, []);
@@ -378,6 +387,7 @@ export function App() {
         messages={state.messages}
         isThinking={state.isThinking}
         onConfirmation={handleConfirmation}
+        onContinue={handleContinue}
         chatEndRef={chatEndRef}
       />
 

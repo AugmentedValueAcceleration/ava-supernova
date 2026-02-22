@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { WebviewToExtMessage } from '../types/messages';
 
 interface VSCodeApi {
@@ -12,9 +13,10 @@ declare function acquireVsCodeApi(): VSCodeApi;
 const vscodeApi = acquireVsCodeApi();
 
 export function useVSCodeApi() {
-  return {
+  // Stable reference — prevents useEffect dependency loops
+  return useMemo(() => ({
     postMessage: (message: WebviewToExtMessage) => vscodeApi.postMessage(message),
     getState: () => vscodeApi.getState(),
     setState: (state: unknown) => vscodeApi.setState(state),
-  };
+  }), []);
 }
