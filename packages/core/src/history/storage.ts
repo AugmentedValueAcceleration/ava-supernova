@@ -1,4 +1,4 @@
-import { readFile, writeFile, readdir, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, readdir, mkdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { HISTORY_DIR } from '../core/constants.js';
 import type { Message } from '../core/types.js';
@@ -52,5 +52,15 @@ export class HistoryStorage {
     }
 
     return summaries.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const path = join(HISTORY_DIR, `${id}.json`);
+    try {
+      await unlink(path);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

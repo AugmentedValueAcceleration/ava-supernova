@@ -1,5 +1,6 @@
 import type { UIMessage } from '../types/messages';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { ThinkingBlock } from './ThinkingBlock';
 import { ToolCallCard } from './ToolCallCard';
 
 interface MessageBubbleProps {
@@ -27,8 +28,18 @@ export function MessageBubble({ message, onConfirmation }: MessageBubbleProps) {
   }
 
   // Assistant message
+  const hasThinking = !!message.thinking;
+  const isThinkingOnly = hasThinking && !message.content;
+
   return (
     <div className="space-y-2">
+      {hasThinking && (
+        <ThinkingBlock
+          content={message.thinking!}
+          isStreaming={message.isStreaming && isThinkingOnly}
+        />
+      )}
+
       {message.content && (
         <div className="text-sm leading-relaxed">
           <MarkdownRenderer content={message.content} />

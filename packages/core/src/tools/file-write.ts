@@ -1,11 +1,12 @@
 import { writeFile, mkdir } from 'node:fs/promises';
 import { resolve, isAbsolute, dirname } from 'node:path';
-import type { Tool, ToolResult, ToolExecutionContext } from './types.js';
+import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 
 export class FileWriteTool implements Tool {
   readonly name = 'file_write';
   readonly description = 'Create or overwrite a file with the given content';
+  readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = true;
 
   readonly schema: FunctionSchema = {

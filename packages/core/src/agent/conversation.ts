@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Message } from '../core/types.js';
+import type { Message, ContentPart } from '../core/types.js';
 
 export class Conversation {
   private messages: Message[] = [];
@@ -21,7 +21,7 @@ export class Conversation {
     }
   }
 
-  addUserMessage(content: string): void {
+  addUserMessage(content: string | ContentPart[]): void {
     this.messages.push({ role: 'user', content });
   }
 
@@ -48,7 +48,6 @@ export class Conversation {
     const systemTokens = systemMsg ? this.estimateMessageTokens(systemMsg) : 0;
     const budget = maxTokens - systemTokens;
 
-    // Keep messages from the end until we run out of budget
     const kept: Message[] = [];
     let used = 0;
 
@@ -68,8 +67,14 @@ export class Conversation {
   }
 
   private estimateMessageTokens(message: Message): number {
-    const content = message.content ?? '';
-    // ~4 chars per token is a reasonable approximation
-    return Math.ceil(content.length / 4) + 4; // +4 for role/metadata overhead
+    const { content } = message;
+    if (content === null) return 4;
+    if (typeof content === 'string') return Math.ceil(content.length / 4) + 4;
+    // Content array — sum text tokens + ~85 tokens per image
+    return content.reduce((sum, part) => {
+      if (part.type === 'text') return sum + Math.ceil(part.text.length / 4);
+      if (part.type === 'image_url') return sum + 85;
+      return sum;
+    }, 0) + 4;
   }
 }

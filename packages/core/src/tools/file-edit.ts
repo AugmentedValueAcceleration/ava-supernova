@@ -1,11 +1,12 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve, isAbsolute } from 'node:path';
-import type { Tool, ToolResult, ToolExecutionContext } from './types.js';
+import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 
 export class FileEditTool implements Tool {
   readonly name = 'file_edit';
   readonly description = 'Replace an exact string in a file with new content';
+  readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = true;
 
   readonly schema: FunctionSchema = {

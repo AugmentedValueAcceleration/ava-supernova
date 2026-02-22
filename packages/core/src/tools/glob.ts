@@ -1,11 +1,12 @@
 import { glob } from 'glob';
 import { resolve, isAbsolute } from 'node:path';
-import type { Tool, ToolResult, ToolExecutionContext } from './types.js';
+import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 
 export class GlobTool implements Tool {
   readonly name = 'glob';
   readonly description = 'Find files matching a glob pattern';
+  readonly riskLevel: ToolRiskLevel = 'safe';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {

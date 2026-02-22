@@ -1,10 +1,14 @@
 export function ThinkingIndicator() {
   return (
-    <div className="flex items-center gap-1.5 px-1 py-2 text-xs opacity-50">
-      <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
-      <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
-      <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
-      <span className="ml-1">Thinking</span>
+    <div className="flex items-center gap-2 px-2 py-2 text-xs opacity-50">
+      <span
+        className="inline-block w-3 h-3 border-2 border-t-transparent rounded-full animate-spin"
+        style={{
+          borderColor: 'var(--vscode-textLink-foreground, #3794ff)',
+          borderTopColor: 'transparent',
+        }}
+      />
+      <span>Ava is thinking...</span>
     </div>
   );
 }

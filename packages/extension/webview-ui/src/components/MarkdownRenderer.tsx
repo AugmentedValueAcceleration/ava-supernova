@@ -12,6 +12,16 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
       remarkPlugins={[remarkGfm]}
       rehypePlugins={[rehypeHighlight]}
       components={{
+        // Plan headers get accent color
+        h2: ({ children }) => {
+          const text = String(children ?? '');
+          const isPlan = text.startsWith('Plan:');
+          return (
+            <h2 className={`text-sm font-bold mt-3 mb-1 ${isPlan ? 'text-[var(--vscode-textLink-foreground)] border-l-2 border-[var(--vscode-textLink-foreground)] pl-2' : ''}`}>
+              {children}
+            </h2>
+          );
+        },
         // Style code blocks
         pre: ({ children }) => (
           <pre className="rounded p-3 my-2 overflow-x-auto text-xs leading-relaxed">

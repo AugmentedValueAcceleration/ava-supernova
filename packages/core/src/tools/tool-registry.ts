@@ -1,4 +1,4 @@
-import type { Tool, ToolResult, ToolExecutionContext, ToolConfirmationHandler } from './types.js';
+import type { Tool, ToolResult, ToolExecutionContext, ToolConfirmationHandler, PermissionMode, ToolRiskLevel } from './types.js';
 import type { ToolSchema } from '../providers/types.js';
 import { FileReadTool } from './file-read.js';
 import { FileWriteTool } from './file-write.js';
@@ -7,12 +7,28 @@ import { GlobTool } from './glob.js';
 import { GrepTool } from './grep.js';
 import { BashTool } from './bash.js';
 
+// Which risk levels require confirmation under each permission mode
+const CONFIRMATION_MATRIX: Record<PermissionMode, Set<ToolRiskLevel>> = {
+  strict: new Set(['write', 'dangerous']),
+  balanced: new Set(['dangerous']),
+  autonomous: new Set(),
+};
+
 export class ToolRegistry {
   private tools = new Map<string, Tool>();
   private confirmationHandler?: ToolConfirmationHandler;
+  private permissionMode: PermissionMode = 'strict';
 
   setConfirmationHandler(handler: ToolConfirmationHandler): void {
     this.confirmationHandler = handler;
+  }
+
+  setPermissionMode(mode: PermissionMode): void {
+    this.permissionMode = mode;
+  }
+
+  getPermissionMode(): PermissionMode {
+    return this.permissionMode;
   }
 
   registerBuiltins(): void {
@@ -40,6 +56,10 @@ export class ToolRegistry {
     }));
   }
 
+  private needsConfirmation(tool: Tool): boolean {
+    return CONFIRMATION_MATRIX[this.permissionMode].has(tool.riskLevel);
+  }
+
   async execute(
     name: string,
     args: Record<string, unknown>,
@@ -52,7 +72,8 @@ export class ToolRegistry {
         output: `Unknown tool: ${name}. Available: ${Array.from(this.tools.keys()).join(', ')}`,
       };
     }
-    if (tool.requiresConfirmation && this.confirmationHandler) {
+
+    if (this.needsConfirmation(tool) && this.confirmationHandler) {
       const approved = await this.confirmationHandler(name, args);
       if (!approved) {
         return {

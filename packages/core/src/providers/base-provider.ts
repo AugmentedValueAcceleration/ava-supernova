@@ -51,12 +51,34 @@ export abstract class BaseProvider implements Provider {
   private static readonly RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503]);
   private static readonly MAX_RETRIES = 3;
   private static readonly BASE_DELAY_MS = 1000;
+  private static readonly FETCH_TIMEOUT_MS = 60_000; // 60s timeout
 
   private async fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
     let lastError: ProviderError | undefined;
 
     for (let attempt = 0; attempt <= BaseProvider.MAX_RETRIES; attempt++) {
-      const response = await fetch(url, init);
+      // Add timeout signal — prevents hanging if API never responds
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), BaseProvider.FETCH_TIMEOUT_MS);
+
+      let response: Response;
+      try {
+        response = await fetch(url, { ...init, signal: controller.signal });
+      } catch (err: unknown) {
+        clearTimeout(timeoutId);
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          throw new ProviderError(
+            `${this.displayName} request timed out after ${BaseProvider.FETCH_TIMEOUT_MS / 1000}s`,
+            this.name,
+          );
+        }
+        throw new ProviderError(
+          `${this.displayName} network error: ${err instanceof Error ? err.message : String(err)}`,
+          this.name,
+        );
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       if (response.ok) return response;
 
@@ -120,6 +142,18 @@ export abstract class BaseProvider implements Provider {
     const decoder = new TextDecoder();
     let buffer = '';
 
+    const processLine = (line: string): StreamChunk | 'done' | null => {
+      const trimmed = line.trim();
+      if (!trimmed || !trimmed.startsWith('data: ')) return null;
+      const data = trimmed.slice(6);
+      if (data === '[DONE]') return 'done';
+      try {
+        return this.normalizeStreamChunk(JSON.parse(data));
+      } catch {
+        return null; // Skip malformed chunks
+      }
+    };
+
     try {
       while (true) {
         const { done, value } = await reader.read();
@@ -130,19 +164,16 @@ export abstract class BaseProvider implements Provider {
         buffer = lines.pop() ?? '';
 
         for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith('data: ')) continue;
-
-          const data = trimmed.slice(6);
-          if (data === '[DONE]') return;
-
-          try {
-            const parsed = JSON.parse(data);
-            yield this.normalizeStreamChunk(parsed);
-          } catch {
-            // Skip malformed chunks
-          }
+          const result = processLine(line);
+          if (result === 'done') return;
+          if (result) yield result;
         }
+      }
+
+      // Process any remaining data in the buffer (final line without trailing newline)
+      if (buffer.trim()) {
+        const result = processLine(buffer);
+        if (result && result !== 'done') yield result;
       }
     } finally {
       reader.releaseLock();

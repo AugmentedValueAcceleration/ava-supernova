@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { glob } from 'glob';
 import { resolve, isAbsolute } from 'node:path';
-import type { Tool, ToolResult, ToolExecutionContext } from './types.js';
+import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 
 const MAX_RESULTS = 200;
@@ -9,6 +9,7 @@ const MAX_RESULTS = 200;
 export class GrepTool implements Tool {
   readonly name = 'grep';
   readonly description = 'Search file contents using regex patterns';
+  readonly riskLevel: ToolRiskLevel = 'safe';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {

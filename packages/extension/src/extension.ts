@@ -13,10 +13,15 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('ava-supernova.openChat', () => provider.openInEditor()),
     vscode.commands.registerCommand('ava-supernova.newChat', () => provider.newChat()),
     vscode.commands.registerCommand('ava-supernova.clearChat', () => provider.clearChat()),
     vscode.commands.registerCommand('ava-supernova.switchModel', () => provider.switchModel()),
+    vscode.commands.registerCommand('ava-supernova.showHistory', () => provider.showHistory()),
   );
+
+  // Auto-open in editor area on activation
+  provider.openInEditor();
 }
 
 export function deactivate(): void {

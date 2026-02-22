@@ -2,6 +2,18 @@
 
 export type MessageRole = 'system' | 'user' | 'assistant' | 'tool';
 
+export interface TextContentPart {
+  type: 'text';
+  text: string;
+}
+
+export interface ImageContentPart {
+  type: 'image_url';
+  image_url: { url: string };
+}
+
+export type ContentPart = TextContentPart | ImageContentPart;
+
 export interface ToolCallFunction {
   name: string;
   arguments: string;
@@ -15,7 +27,7 @@ export interface ToolCall {
 
 export interface BaseMessage {
   role: MessageRole;
-  content: string | null;
+  content: string | ContentPart[] | null;
 }
 
 export interface SystemMessage extends BaseMessage {
@@ -25,12 +37,23 @@ export interface SystemMessage extends BaseMessage {
 
 export interface UserMessage extends BaseMessage {
   role: 'user';
-  content: string;
+  content: string | ContentPart[];
+}
+
+/** Extract text from string or content array. */
+export function getTextContent(content: string | ContentPart[] | null): string {
+  if (content === null) return '';
+  if (typeof content === 'string') return content;
+  return content
+    .filter((p): p is TextContentPart => p.type === 'text')
+    .map((p) => p.text)
+    .join('');
 }
 
 export interface AssistantMessage extends BaseMessage {
   role: 'assistant';
   content: string | null;
+  reasoning_content?: string | null;
   tool_calls?: ToolCall[];
 }
 
@@ -47,6 +70,10 @@ export type Message = SystemMessage | UserMessage | AssistantMessage | ToolMessa
 export interface StreamDelta {
   role?: 'assistant';
   content?: string | null;
+  /** Thinking/reasoning content (DeepSeek R1, GLM, Kimi, Mistral Magistral) */
+  reasoning_content?: string | null;
+  /** Alternate field name used by Kimi K2 Thinking (Together AI) */
+  reasoning?: string | null;
   tool_calls?: StreamToolCallDelta[];
 }
 

@@ -13,6 +13,7 @@
     "Chat"
   ],
   "activationEvents": [],
+  "icon": "media/AvaSupernovaIcon.png",
   "main": "./dist/extension.js",
   "contributes": {
     "viewsContainers": {
@@ -35,6 +36,15 @@
     },
     "commands": [
       {
+        "command": "ava-supernova.openChat",
+        "title": "Open Chat",
+        "category": "Ava",
+        "icon": {
+          "light": "media/AvaSupernovaIcon.png",
+          "dark": "media/AvaSupernovaIcon.png"
+        }
+      },
+      {
         "command": "ava-supernova.newChat",
         "title": "New Chat",
         "category": "Ava"
@@ -48,6 +58,11 @@
         "command": "ava-supernova.switchModel",
         "title": "Switch Model",
         "category": "Ava"
+      },
+      {
+        "command": "ava-supernova.showHistory",
+        "title": "Chat History",
+        "category": "Ava"
       }
     ],
     "configuration": {
@@ -56,7 +71,33 @@
         "ava-supernova.activeModel": {
           "type": "string",
           "default": "",
-          "description": "Active model in provider:model-id format (e.g., deepseek:deepseek-chat)"
+          "enum": [
+            "",
+            "deepseek:deepseek-chat",
+            "deepseek:deepseek-reasoner",
+            "kimi:kimi-k2.5",
+            "kimi:moonshot-v1-128k",
+            "zhipu:glm-5",
+            "zhipu:glm-4.7",
+            "zhipu:glm-4-flash",
+            "mistral:mistral-large-latest",
+            "mistral:codestral-latest",
+            "mistral:mistral-small-latest"
+          ],
+          "enumDescriptions": [
+            "No model selected",
+            "DeepSeek V3 — fast, affordable general-purpose",
+            "DeepSeek R1 — reasoning model",
+            "Kimi K2.5 — best multi-step tool calling",
+            "Moonshot V1 128K — long context",
+            "GLM-5 — best tool-call reliability",
+            "GLM-4.7 — balanced performance",
+            "GLM-4 Flash — fast and lightweight",
+            "Mistral Large — strongest Mistral model",
+            "Codestral — optimized for code",
+            "Mistral Small — fast and efficient"
+          ],
+          "description": "Select the AI model to use"
         },
         "ava-supernova.providers.deepseek.apiKey": {
           "type": "string",
@@ -83,13 +124,34 @@
           "default": 0.7,
           "description": "Sampling temperature"
         },
-        "ava-supernova.preferences.confirmToolCalls": {
-          "type": "boolean",
-          "default": true,
-          "description": "Require confirmation before running tools that modify files or execute commands"
+        "ava-supernova.preferences.permissionMode": {
+          "type": "string",
+          "default": "strict",
+          "enum": ["strict", "balanced", "autonomous"],
+          "enumDescriptions": [
+            "Confirm all file writes and shell commands (safest)",
+            "Auto-approve file edits, confirm shell commands only",
+            "Auto-approve everything — full autonomy (use with caution)"
+          ],
+          "description": "Controls which tool operations require your approval before Ava executes them"
         }
       }
-    }
+    },
+    "menus": {
+      "editor/title": [
+        {
+          "command": "ava-supernova.openChat",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "ava-supernova.openChat",
+        "key": "ctrl+shift+a",
+        "mac": "cmd+shift+a"
+      }
+    ]
   },
   "scripts": {
     "build:webview": "cd webview-ui && npx vite build",

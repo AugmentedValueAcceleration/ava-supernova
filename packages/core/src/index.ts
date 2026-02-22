@@ -14,12 +14,16 @@ export type {
   ToolMessage,
   ToolCall,
   ToolCallFunction,
+  ContentPart,
+  TextContentPart,
+  ImageContentPart,
   ModelDefinition,
   TokenUsage,
   StreamChunk,
   StreamDelta,
   CompletionResponse,
 } from './core/types.js';
+export { getTextContent } from './core/types.js';
 
 // Provider types
 export type {
@@ -39,6 +43,8 @@ export type {
   ToolResult,
   ToolExecutionContext,
   ToolConfirmationHandler,
+  ToolRiskLevel,
+  PermissionMode,
 } from './tools/types.js';
 
 // Config
@@ -48,6 +54,7 @@ export { DEFAULT_CONFIG } from './config/schema.js';
 
 // History
 export { HistoryManager } from './history/history-manager.js';
+export type { ConversationRecord } from './history/storage.js';
 
 // Constants & Errors
 export {

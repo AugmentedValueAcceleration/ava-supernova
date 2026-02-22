@@ -9,6 +9,7 @@ export type ExtToWebviewMessage =
     }
   | { type: 'user_message_ack'; text: string }
   | { type: 'stream_start' }
+  | { type: 'thinking_delta'; content: string }
   | { type: 'stream_delta'; content: string }
   | { type: 'stream_end' }
   | {
@@ -35,14 +36,32 @@ export type ExtToWebviewMessage =
     }
   | { type: 'error'; message: string }
   | { type: 'done' }
-  | { type: 'model_switched'; modelId: string; modelName: string };
+  | { type: 'model_switched'; modelId: string; modelName: string }
+  | {
+      type: 'history_list';
+      conversations: Array<{ id: string; title: string; updatedAt: string }>;
+    }
+  | {
+      type: 'conversation_loaded';
+      conversationId: string;
+      title: string;
+      messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+    }
+  | { type: 'chat_cleared' };
 
 // ─── Webview → Extension Host ────────────────────────────────────────────────
 
+export type AvaMode = 'code' | 'plan' | 'chat';
+
 export type WebviewToExtMessage =
-  | { type: 'send_message'; text: string }
+  | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }> }
   | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean }
   | { type: 'switch_model'; modelId: string }
   | { type: 'clear_chat' }
   | { type: 'cancel' }
+  | { type: 'open_settings' }
+  | { type: 'request_history' }
+  | { type: 'load_conversation'; conversationId: string }
+  | { type: 'delete_conversation'; conversationId: string }
+  | { type: 'new_chat' }
   | { type: 'webview_ready' };

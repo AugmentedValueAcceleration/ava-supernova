@@ -14,6 +14,7 @@ import { MAX_TOOL_CALL_ITERATIONS } from '../core/constants.js';
 
 export type AgentEvent =
   | { type: 'stream_start' }
+  | { type: 'thinking_delta'; content: string }
   | { type: 'stream_delta'; content: string }
   | { type: 'stream_end'; message: AssistantMessage }
   | { type: 'tool_call_start'; toolCall: ToolCall }
@@ -123,6 +124,7 @@ export class Agent {
     onEvent({ type: 'stream_start' });
 
     let content = '';
+    let reasoningContent = '';
     let usage: TokenUsage | undefined;
     const toolCallsAccumulator = new Map<
       number,
@@ -140,6 +142,13 @@ export class Agent {
 
       const delta = chunk.choices[0]?.delta;
       if (!delta) continue;
+
+      // Thinking/reasoning content (DeepSeek R1, GLM, Kimi, Mistral Magistral)
+      const thinking = delta.reasoning_content ?? delta.reasoning;
+      if (thinking) {
+        reasoningContent += thinking;
+        onEvent({ type: 'thinking_delta', content: thinking });
+      }
 
       if (delta.content) {
         content += delta.content;
@@ -169,6 +178,7 @@ export class Agent {
     const message: AssistantMessage = {
       role: 'assistant',
       content: content || null,
+      ...(reasoningContent ? { reasoning_content: reasoningContent } : {}),
       ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
     };
 
@@ -189,8 +199,14 @@ export class Agent {
 
   private truncateMessages(messages: Message[], maxTokens: number): Message[] {
     const estimateTokens = (msg: Message): number => {
-      const content = msg.content ?? '';
-      return Math.ceil(content.length / 4) + 4;
+      const { content } = msg;
+      if (content === null) return 4;
+      if (typeof content === 'string') return Math.ceil(content.length / 4) + 4;
+      return content.reduce((sum, part) => {
+        if (part.type === 'text') return sum + Math.ceil(part.text.length / 4);
+        if (part.type === 'image_url') return sum + 85;
+        return sum;
+      }, 0) + 4;
     };
 
     const total = messages.reduce((sum, m) => sum + estimateTokens(m), 0);

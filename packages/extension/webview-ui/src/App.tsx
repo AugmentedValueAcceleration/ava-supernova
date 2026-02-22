@@ -3,10 +3,13 @@ import type { ExtToWebviewMessage, ChatState, UIMessage, ToolCallDisplay } from 
 import { useVSCodeApi } from './hooks/useVSCodeApi';
 import { ChatContainer } from './components/ChatContainer';
 import { InputArea } from './components/InputArea';
-import { ModelSelector } from './components/ModelSelector';
-import { StatusBar } from './components/StatusBar';
+import { Header } from './components/Header';
+import { HistoryPanel } from './components/HistoryPanel';
+import type { AvaMode, ImageAttachment } from './components/InputArea';
 
-type ChatAction = ExtToWebviewMessage;
+type ChatAction =
+  | ExtToWebviewMessage
+  | { type: 'close_history' };
 
 let messageIdCounter = 0;
 function nextId(): string {
@@ -48,6 +51,18 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         isStreaming: true,
         isThinking: true,
       };
+    }
+
+    case 'thinking_delta': {
+      const messages = [...state.messages];
+      const last = messages[messages.length - 1];
+      if (last && last.role === 'assistant') {
+        messages[messages.length - 1] = {
+          ...last,
+          thinking: (last.thinking || '') + action.content,
+        };
+      }
+      return { ...state, messages, isThinking: false };
     }
 
     case 'stream_delta': {
@@ -154,6 +169,42 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'model_switched':
       return { ...state, activeModel: action.modelId };
 
+    // ── History ────────────────────────────────────────────────────────────
+
+    case 'history_list':
+      return {
+        ...state,
+        historyList: action.conversations,
+        historyOpen: true,
+      };
+
+    case 'conversation_loaded': {
+      const restoredMessages: UIMessage[] = action.messages.map((m) => ({
+        id: nextId(),
+        role: m.role,
+        content: m.content,
+        toolCalls: [],
+        isStreaming: false,
+      }));
+      return {
+        ...state,
+        messages: restoredMessages,
+        currentConversationId: action.conversationId,
+        historyOpen: false,
+      };
+    }
+
+    case 'chat_cleared':
+      return {
+        ...state,
+        messages: [],
+        currentConversationId: null,
+        historyOpen: false,
+      };
+
+    case 'close_history':
+      return { ...state, historyOpen: false };
+
     default:
       return state;
   }
@@ -167,25 +218,89 @@ const initialState: ChatState = {
   isThinking: false,
   needsSetup: true,
   lastUsage: null,
+  historyOpen: false,
+  historyList: [],
+  currentConversationId: null,
 };
+
+// ── Typing speed config ─────────────────────────────────────────────────────
+const DELTA_FLUSH_INTERVAL_MS = 30; // ~33fps — smooth typing feel
 
 export function App() {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const { postMessage } = useVSCodeApi();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Delta buffer for smooth typing animation
+  type BufferedDelta = { type: 'stream_delta' | 'thinking_delta'; content: string };
+  const deltaBuffer = useRef<BufferedDelta[]>([]);
+  const flushTimerRef = useRef<number | null>(null);
+
+  const flushAllDeltas = useCallback(() => {
+    if (deltaBuffer.current.length > 0) {
+      // Combine consecutive deltas of the same type
+      const grouped = new Map<string, string>();
+      for (const d of deltaBuffer.current) {
+        grouped.set(d.type, (grouped.get(d.type) || '') + d.content);
+      }
+      deltaBuffer.current = [];
+      for (const [type, content] of grouped) {
+        dispatch({ type: type as 'stream_delta' | 'thinking_delta', content });
+      }
+    }
+    if (flushTimerRef.current !== null) {
+      clearInterval(flushTimerRef.current);
+      flushTimerRef.current = null;
+    }
+  }, []);
+
+  const startFlushLoop = useCallback(() => {
+    if (flushTimerRef.current !== null) return; // already running
+    flushTimerRef.current = window.setInterval(() => {
+      if (deltaBuffer.current.length > 0) {
+        // Flush one chunk at a time for smooth typing
+        const next = deltaBuffer.current.shift()!;
+        dispatch({ type: next.type, content: next.content });
+      } else {
+        clearInterval(flushTimerRef.current!);
+        flushTimerRef.current = null;
+      }
+    }, DELTA_FLUSH_INTERVAL_MS);
+  }, []);
+
   // Listen for messages from extension host
   useEffect(() => {
     const handler = (event: MessageEvent<ExtToWebviewMessage>) => {
-      dispatch(event.data);
+      const msg = event.data;
+
+      // Buffer stream + thinking deltas for smooth typing
+      if (msg.type === 'stream_delta' || msg.type === 'thinking_delta') {
+        deltaBuffer.current.push({ type: msg.type, content: msg.content });
+        startFlushLoop();
+        return;
+      }
+
+      // Flush remaining deltas before ending stream
+      if (msg.type === 'stream_end' || msg.type === 'done' || msg.type === 'error') {
+        flushAllDeltas();
+      }
+
+      dispatch(msg);
     };
     window.addEventListener('message', handler);
 
     // Signal webview is ready
     postMessage({ type: 'webview_ready' });
 
-    return () => window.removeEventListener('message', handler);
-  }, [postMessage]);
+    return () => {
+      window.removeEventListener('message', handler);
+      // Cleanup flush timer
+      if (flushTimerRef.current !== null) {
+        clearInterval(flushTimerRef.current);
+        flushTimerRef.current = null;
+      }
+    };
+  }, [postMessage, startFlushLoop, flushAllDeltas]);
 
   // Auto-scroll to bottom on new content
   useEffect(() => {
@@ -193,8 +308,8 @@ export function App() {
   }, [state.messages, state.isThinking]);
 
   const handleSend = useCallback(
-    (text: string) => {
-      postMessage({ type: 'send_message', text });
+    (text: string, mode: AvaMode, attachments?: ImageAttachment[]) => {
+      postMessage({ type: 'send_message', text, mode, attachments });
     },
     [postMessage],
   );
@@ -217,13 +332,46 @@ export function App() {
     postMessage({ type: 'cancel' });
   }, [postMessage]);
 
+  const handleOpenSettings = useCallback(() => {
+    postMessage({ type: 'open_settings' });
+  }, [postMessage]);
+
+  const handleOpenHistory = useCallback(() => {
+    postMessage({ type: 'request_history' });
+  }, [postMessage]);
+
+  const handleNewChat = useCallback(() => {
+    postMessage({ type: 'new_chat' });
+  }, [postMessage]);
+
+  const handleLoadConversation = useCallback(
+    (conversationId: string) => {
+      postMessage({ type: 'load_conversation', conversationId });
+    },
+    [postMessage],
+  );
+
+  const handleDeleteConversation = useCallback(
+    (conversationId: string) => {
+      postMessage({ type: 'delete_conversation', conversationId });
+    },
+    [postMessage],
+  );
+
+  const handleCloseHistory = useCallback(() => {
+    dispatch({ type: 'close_history' });
+  }, []);
+
   return (
-    <div className="flex flex-col h-screen">
-      <ModelSelector
+    <div className="relative flex flex-col h-screen">
+      <Header
         models={state.models}
         activeModel={state.activeModel}
         needsSetup={state.needsSetup}
         onSwitch={handleModelSwitch}
+        onOpenSettings={handleOpenSettings}
+        onOpenHistory={handleOpenHistory}
+        onNewChat={handleNewChat}
       />
 
       <ChatContainer
@@ -233,14 +381,23 @@ export function App() {
         chatEndRef={chatEndRef}
       />
 
-      {state.lastUsage && <StatusBar usage={state.lastUsage} />}
-
       <InputArea
         onSend={handleSend}
         onCancel={handleCancel}
         isStreaming={state.isStreaming}
         disabled={state.needsSetup}
+        usage={state.lastUsage}
       />
+
+      {state.historyOpen && (
+        <HistoryPanel
+          conversations={state.historyList}
+          onClose={handleCloseHistory}
+          onSelect={handleLoadConversation}
+          onDelete={handleDeleteConversation}
+          onNewChat={handleNewChat}
+        />
+      )}
     </div>
   );
 }

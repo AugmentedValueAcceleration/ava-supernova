@@ -1,11 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import { resolve, isAbsolute } from 'node:path';
-import type { Tool, ToolResult, ToolExecutionContext } from './types.js';
+import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 
 export class FileReadTool implements Tool {
   readonly name = 'file_read';
   readonly description = 'Read the contents of a file with line numbers';
+  readonly riskLevel: ToolRiskLevel = 'safe';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
