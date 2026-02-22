@@ -84,9 +84,19 @@ export class Agent {
       const maxInputTokens = Math.floor(this.model.contextWindow * 0.7);
       messages = this.truncateMessages(messages, maxInputTokens);
 
+      // Strip reasoning_content before sending — it's an output-only field.
+      // Providers like DeepSeek reject requests that include it in input messages.
+      const sanitizedMessages = messages.map((m) => {
+        if (m.role === 'assistant' && 'reasoning_content' in m) {
+          const { reasoning_content: _, ...rest } = m as AssistantMessage;
+          return rest as Message;
+        }
+        return m;
+      });
+
       const request: ChatCompletionRequest = {
         model: this.model.id,
-        messages,
+        messages: sanitizedMessages,
         tools: toolSchemas.length > 0 ? toolSchemas : undefined,
         tool_choice: toolSchemas.length > 0 ? 'auto' : undefined,
         stream: true,
@@ -305,6 +315,51 @@ export class Agent {
       used += msgTokens;
     }
 
-    return systemMsg ? [systemMsg, ...kept] : kept;
+    // Fix orphaned tool messages — if truncation cut in the middle of a
+    // tool call/result sequence, the kept list may start with `tool` messages
+    // that reference a dropped assistant message. The API rejects these.
+    // Also drop any assistant messages whose tool_calls lost their results.
+    const fixed = this.fixToolPairing(kept);
+
+    return systemMsg ? [systemMsg, ...fixed] : fixed;
+  }
+
+  /**
+   * Ensure every `tool` message has a preceding `assistant` with a matching
+   * `tool_calls` entry, and every `assistant` with `tool_calls` has all its
+   * `tool` results following it. Drops orphans from the front.
+   */
+  private fixToolPairing(messages: Message[]): Message[] {
+    // 1. Drop leading orphaned tool messages (their assistant parent was truncated)
+    let start = 0;
+    while (start < messages.length && messages[start].role === 'tool') {
+      start++;
+    }
+
+    if (start === messages.length) return [];
+    const trimmed = start > 0 ? messages.slice(start) : messages;
+
+    // 2. Check the first message — if it's an assistant with tool_calls,
+    //    verify all its tool results are present
+    const first = trimmed[0];
+    if (first.role === 'assistant') {
+      const toolCalls = (first as AssistantMessage).tool_calls;
+      if (toolCalls && toolCalls.length > 0) {
+        const expectedIds = new Set(toolCalls.map((tc) => tc.id));
+        // Collect tool_call_ids from the immediately following tool messages
+        let j = 1;
+        while (j < trimmed.length && trimmed[j].role === 'tool') {
+          const toolMsg = trimmed[j] as { tool_call_id?: string };
+          expectedIds.delete(toolMsg.tool_call_id ?? '');
+          j++;
+        }
+        // If any tool results are missing, drop this assistant + its partial results
+        if (expectedIds.size > 0) {
+          return trimmed.slice(j);
+        }
+      }
+    }
+
+    return trimmed;
   }
 }
