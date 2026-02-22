@@ -13,6 +13,7 @@ export class Repl {
   private spinner: Spinner;
   private agent: Agent;
   private conversation: Conversation;
+  private closed = false;
 
   constructor(opts: {
     agent: Agent;
@@ -28,6 +29,10 @@ export class Repl {
       output: stdout,
       prompt: '\n> ',
     });
+
+    this.rl.on('close', () => {
+      this.closed = true;
+    });
   }
 
   setAgent(agent: Agent): void {
@@ -38,14 +43,20 @@ export class Repl {
     this.commands = commands;
   }
 
+  private prompt(): void {
+    if (!this.closed) {
+      this.rl.prompt();
+    }
+  }
+
   async start(): Promise<void> {
     this.renderer.printWelcome();
-    this.rl.prompt();
+    this.prompt();
 
     for await (const line of this.rl) {
       const input = line.trim();
       if (!input) {
-        this.rl.prompt();
+        this.prompt();
         continue;
       }
 
@@ -55,12 +66,12 @@ export class Repl {
           this.rl.close();
           return;
         }
-        this.rl.prompt();
+        this.prompt();
         continue;
       }
 
       await this.processUserMessage(input);
-      this.rl.prompt();
+      this.prompt();
     }
   }
 
