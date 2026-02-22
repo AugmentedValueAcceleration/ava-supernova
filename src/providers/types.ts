@@ -27,6 +27,7 @@ export interface ChatCompletionRequest {
   temperature?: number;
   max_tokens?: number;
   stream?: boolean;
+  stream_options?: { include_usage: boolean };
   top_p?: number;
   stop?: string | string[];
 }

@@ -6,6 +6,7 @@ import type { FunctionSchema } from '../providers/types.js';
 export class FileEditTool implements Tool {
   readonly name = 'file_edit';
   readonly description = 'Replace an exact string in a file with new content';
+  readonly requiresConfirmation = true;
 
   readonly schema: FunctionSchema = {
     name: 'file_edit',
@@ -72,7 +73,7 @@ export class FileEditTool implements Tool {
       return {
         success: true,
         output: `Edited ${absolutePath}: replaced ${replaceAll ? `all ${occurrences} occurrences` : '1 occurrence'}`,
-        metadata: { path: absolutePath, occurrences },
+        metadata: { path: absolutePath, occurrences, oldString, newString },
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);

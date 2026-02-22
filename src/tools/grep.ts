@@ -9,6 +9,7 @@ const MAX_RESULTS = 200;
 export class GrepTool implements Tool {
   readonly name = 'grep';
   readonly description = 'Search file contents using regex patterns';
+  readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'grep',

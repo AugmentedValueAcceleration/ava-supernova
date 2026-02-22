@@ -8,6 +8,7 @@ const MAX_OUTPUT_LENGTH = 30_000;
 export class BashTool implements Tool {
   readonly name = 'bash';
   readonly description = 'Execute a shell command';
+  readonly requiresConfirmation = true;
 
   readonly schema: FunctionSchema = {
     name: 'bash',

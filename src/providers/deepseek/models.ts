@@ -9,6 +9,7 @@ export const DEEPSEEK_MODELS: ModelDefinition[] = [
     maxOutputTokens: 8192,
     supportsToolCalls: true,
     supportsStreaming: true,
+    pricing: { inputPerMillion: 0.27, outputPerMillion: 1.10 },
   },
   {
     id: 'deepseek-reasoner',
@@ -19,5 +20,6 @@ export const DEEPSEEK_MODELS: ModelDefinition[] = [
     supportsToolCalls: false,
     supportsStreaming: true,
     supportsThinking: true,
+    pricing: { inputPerMillion: 0.55, outputPerMillion: 2.19 },
   },
 ];

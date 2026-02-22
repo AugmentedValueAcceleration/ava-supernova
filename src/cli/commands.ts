@@ -1,9 +1,12 @@
+import * as readline from 'node:readline';
+import { stdin, stdout } from 'node:process';
 import chalk from 'chalk';
 import type { ProviderRegistry } from '../providers/provider-registry.js';
 import type { Conversation } from '../agent/conversation.js';
 import type { ConfigManager } from '../config/config.js';
 import type { Provider } from '../providers/types.js';
 import type { ModelDefinition } from '../core/types.js';
+import type { ProviderSettings } from '../config/schema.js';
 
 interface Command {
   name: string;
@@ -92,10 +95,75 @@ export class CommandHandler {
     });
 
     this.registerCommand({
+      name: 'provider',
+      aliases: ['p'],
+      description: 'Add or list providers (/provider add <name>)',
+      execute: async (args) => {
+        const parts = args.trim().split(/\s+/);
+        const action = parts[0];
+
+        if (action === 'add') {
+          const providerName = parts[1];
+          const supported = ['deepseek', 'kimi', 'zhipu', 'mistral'];
+
+          if (!providerName || !supported.includes(providerName)) {
+            console.log(`  Usage: /provider add <${supported.join('|')}>`);
+            return true;
+          }
+
+          const apiKey = await this.askQuestion(`  Enter API key for ${providerName}: `);
+          if (!apiKey) {
+            console.log('  Cancelled.');
+            return true;
+          }
+
+          const settings: ProviderSettings = { apiKey };
+          const appConfig = await opts.config.load();
+          (appConfig.providers as Record<string, ProviderSettings>)[providerName] = settings;
+          await opts.config.save();
+
+          try {
+            opts.providerRegistry.register(providerName, settings);
+            console.log(chalk.green(`  Provider ${providerName} added successfully.`));
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.log(chalk.red(`  Failed to register ${providerName}: ${msg}`));
+          }
+        } else {
+          const appConfig = await opts.config.load();
+          console.log('');
+          console.log(chalk.bold('  Configured providers:'));
+          const supported = ['deepseek', 'kimi', 'zhipu', 'mistral'];
+          for (const name of supported) {
+            const configured = (appConfig.providers as Record<string, ProviderSettings | undefined>)[name];
+            const status = configured?.apiKey
+              ? chalk.green('configured')
+              : chalk.dim('not configured');
+            console.log(`  ${chalk.bold(name)} — ${status}`);
+          }
+          console.log('');
+          console.log(chalk.dim('  Use /provider add <name> to add a provider.'));
+          console.log('');
+        }
+        return true;
+      },
+    });
+
+    this.registerCommand({
       name: 'exit',
       aliases: ['quit', 'q'],
       description: 'Exit Ava',
       execute: async () => false,
+    });
+  }
+
+  private askQuestion(prompt: string): Promise<string> {
+    return new Promise((resolve) => {
+      const rl = readline.createInterface({ input: stdin, output: stdout });
+      rl.question(prompt, (answer) => {
+        rl.close();
+        resolve(answer.trim());
+      });
     });
   }
 

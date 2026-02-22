@@ -10,6 +10,7 @@ export const KIMI_MODELS: ModelDefinition[] = [
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsThinking: true,
+    pricing: { inputPerMillion: 1.00, outputPerMillion: 4.00 },
   },
   {
     id: 'moonshot-v1-128k',
@@ -19,5 +20,6 @@ export const KIMI_MODELS: ModelDefinition[] = [
     maxOutputTokens: 8192,
     supportsToolCalls: true,
     supportsStreaming: true,
+    pricing: { inputPerMillion: 0.82, outputPerMillion: 0.82 },
   },
 ];

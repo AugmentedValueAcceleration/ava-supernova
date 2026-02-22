@@ -9,6 +9,7 @@ export const ZHIPU_MODELS: ModelDefinition[] = [
     maxOutputTokens: 8192,
     supportsToolCalls: true,
     supportsStreaming: true,
+    pricing: { inputPerMillion: 0.70, outputPerMillion: 0.70 },
   },
   {
     id: 'glm-4.7',
@@ -18,6 +19,7 @@ export const ZHIPU_MODELS: ModelDefinition[] = [
     maxOutputTokens: 8192,
     supportsToolCalls: true,
     supportsStreaming: true,
+    pricing: { inputPerMillion: 0.70, outputPerMillion: 0.70 },
   },
   {
     id: 'glm-4-flash',
@@ -27,5 +29,6 @@ export const ZHIPU_MODELS: ModelDefinition[] = [
     maxOutputTokens: 4096,
     supportsToolCalls: true,
     supportsStreaming: true,
+    pricing: { inputPerMillion: 0.00, outputPerMillion: 0.00 },
   },
 ];

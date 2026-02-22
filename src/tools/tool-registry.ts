@@ -1,4 +1,4 @@
-import type { Tool, ToolResult, ToolExecutionContext } from './types.js';
+import type { Tool, ToolResult, ToolExecutionContext, ToolConfirmationHandler } from './types.js';
 import type { ToolSchema } from '../providers/types.js';
 import { FileReadTool } from './file-read.js';
 import { FileWriteTool } from './file-write.js';
@@ -9,6 +9,11 @@ import { BashTool } from './bash.js';
 
 export class ToolRegistry {
   private tools = new Map<string, Tool>();
+  private confirmationHandler?: ToolConfirmationHandler;
+
+  setConfirmationHandler(handler: ToolConfirmationHandler): void {
+    this.confirmationHandler = handler;
+  }
 
   registerBuiltins(): void {
     const builtins: Tool[] = [
@@ -47,6 +52,16 @@ export class ToolRegistry {
         output: `Unknown tool: ${name}. Available: ${Array.from(this.tools.keys()).join(', ')}`,
       };
     }
+    if (tool.requiresConfirmation && this.confirmationHandler) {
+      const approved = await this.confirmationHandler(name, args);
+      if (!approved) {
+        return {
+          success: false,
+          output: `Tool "${name}" was denied by the user.`,
+        };
+      }
+    }
+
     try {
       return await tool.execute(args, context);
     } catch (error) {

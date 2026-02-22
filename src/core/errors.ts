@@ -18,6 +18,29 @@ export class ProviderError extends AvaError {
     super(message, 'PROVIDER_ERROR');
     this.name = 'ProviderError';
   }
+
+  get humanMessage(): string {
+    switch (this.statusCode) {
+      case 400:
+        return `Bad request to ${this.provider}. The request format may be incompatible with this model.`;
+      case 401:
+        return `Invalid API key for ${this.provider}. Check your key in ~/.ava/config.json`;
+      case 402:
+        return `Insufficient credits for ${this.provider}. Top up your account balance.`;
+      case 403:
+        return `Access denied by ${this.provider}. Your API key may lack the required permissions.`;
+      case 404:
+        return `Model not found on ${this.provider}. The model ID may have changed — run /model to see available models.`;
+      case 429:
+        return `Rate limited by ${this.provider}. Too many requests — wait a moment and try again.`;
+      case 500:
+      case 502:
+      case 503:
+        return `${this.provider} is experiencing issues (${this.statusCode}). Try again in a few moments.`;
+      default:
+        return this.message;
+    }
+  }
 }
 
 export class ToolExecutionError extends AvaError {

@@ -4,6 +4,7 @@ import type {
   AssistantMessage,
   ToolCall,
   ModelDefinition,
+  TokenUsage,
 } from '../core/types.js';
 import type { ToolRegistry } from '../tools/tool-registry.js';
 import type { ToolExecutionContext } from '../tools/types.js';
@@ -16,7 +17,8 @@ export type AgentEvent =
   | { type: 'stream_delta'; content: string }
   | { type: 'stream_end'; message: AssistantMessage }
   | { type: 'tool_call_start'; toolCall: ToolCall }
-  | { type: 'tool_call_end'; toolCall: ToolCall; result: string; success: boolean }
+  | { type: 'tool_call_end'; toolCall: ToolCall; result: string; success: boolean; metadata?: Record<string, unknown> }
+  | { type: 'usage'; usage: TokenUsage; cost?: number }
   | { type: 'error'; error: Error }
   | { type: 'done'; finalMessage: AssistantMessage };
 
@@ -51,6 +53,10 @@ export class Agent {
 
     while (iterations < MAX_TOOL_CALL_ITERATIONS) {
       iterations++;
+
+      // Auto-truncate to fit context window (reserve 20% for output)
+      const maxInputTokens = Math.floor(this.model.contextWindow * 0.8);
+      messages = this.truncateMessages(messages, maxInputTokens);
 
       const request: ChatCompletionRequest = {
         model: this.model.id,
@@ -89,6 +95,7 @@ export class Agent {
           toolCall,
           result: result.output,
           success: result.success,
+          metadata: result.metadata,
         });
 
         messages = [
@@ -116,6 +123,7 @@ export class Agent {
     onEvent({ type: 'stream_start' });
 
     let content = '';
+    let usage: TokenUsage | undefined;
     const toolCallsAccumulator = new Map<
       number,
       {
@@ -126,6 +134,10 @@ export class Agent {
     >();
 
     for await (const chunk of this.provider.createStreamingCompletion(request)) {
+      if (chunk.usage) {
+        usage = chunk.usage;
+      }
+
       const delta = chunk.choices[0]?.delta;
       if (!delta) continue;
 
@@ -161,6 +173,45 @@ export class Agent {
     };
 
     onEvent({ type: 'stream_end', message });
+
+    if (usage) {
+      let cost: number | undefined;
+      if (this.model.pricing) {
+        cost =
+          (usage.prompt_tokens / 1_000_000) * this.model.pricing.inputPerMillion +
+          (usage.completion_tokens / 1_000_000) * this.model.pricing.outputPerMillion;
+      }
+      onEvent({ type: 'usage', usage, cost });
+    }
+
     return message;
+  }
+
+  private truncateMessages(messages: Message[], maxTokens: number): Message[] {
+    const estimateTokens = (msg: Message): number => {
+      const content = msg.content ?? '';
+      return Math.ceil(content.length / 4) + 4;
+    };
+
+    const total = messages.reduce((sum, m) => sum + estimateTokens(m), 0);
+    if (total <= maxTokens) return messages;
+
+    // Keep system prompt (first message) and trim from the beginning of the rest
+    const systemMsg = messages[0]?.role === 'system' ? messages[0] : null;
+    const rest = systemMsg ? messages.slice(1) : [...messages];
+    const systemTokens = systemMsg ? estimateTokens(systemMsg) : 0;
+    const budget = maxTokens - systemTokens;
+
+    const kept: Message[] = [];
+    let used = 0;
+
+    for (let i = rest.length - 1; i >= 0; i--) {
+      const msgTokens = estimateTokens(rest[i]);
+      if (used + msgTokens > budget) break;
+      kept.unshift(rest[i]);
+      used += msgTokens;
+    }
+
+    return systemMsg ? [systemMsg, ...kept] : kept;
   }
 }

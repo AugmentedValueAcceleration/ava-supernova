@@ -9,6 +9,7 @@ export const MISTRAL_MODELS: ModelDefinition[] = [
     maxOutputTokens: 8192,
     supportsToolCalls: true,
     supportsStreaming: true,
+    pricing: { inputPerMillion: 2.00, outputPerMillion: 6.00 },
   },
   {
     id: 'codestral-latest',
@@ -18,6 +19,7 @@ export const MISTRAL_MODELS: ModelDefinition[] = [
     maxOutputTokens: 8192,
     supportsToolCalls: true,
     supportsStreaming: true,
+    pricing: { inputPerMillion: 0.30, outputPerMillion: 0.90 },
   },
   {
     id: 'mistral-small-latest',
@@ -27,5 +29,6 @@ export const MISTRAL_MODELS: ModelDefinition[] = [
     maxOutputTokens: 8192,
     supportsToolCalls: true,
     supportsStreaming: true,
+    pricing: { inputPerMillion: 0.10, outputPerMillion: 0.30 },
   },
 ];

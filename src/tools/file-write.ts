@@ -6,6 +6,7 @@ import type { FunctionSchema } from '../providers/types.js';
 export class FileWriteTool implements Tool {
   readonly name = 'file_write';
   readonly description = 'Create or overwrite a file with the given content';
+  readonly requiresConfirmation = true;
 
   readonly schema: FunctionSchema = {
     name: 'file_write',

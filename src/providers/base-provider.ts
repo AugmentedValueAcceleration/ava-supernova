@@ -46,6 +46,38 @@ export abstract class BaseProvider implements Provider {
     return raw as StreamChunk;
   }
 
+  // ── Retry logic ─────────────────────────────────────────────────────────
+
+  private static readonly RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503]);
+  private static readonly MAX_RETRIES = 3;
+  private static readonly BASE_DELAY_MS = 1000;
+
+  private async fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
+    let lastError: ProviderError | undefined;
+
+    for (let attempt = 0; attempt <= BaseProvider.MAX_RETRIES; attempt++) {
+      const response = await fetch(url, init);
+
+      if (response.ok) return response;
+
+      const errorBody = await response.text();
+      lastError = new ProviderError(
+        `${this.displayName} API error: ${response.status} ${response.statusText}`,
+        this.name,
+        response.status,
+        errorBody,
+      );
+
+      if (!BaseProvider.RETRYABLE_STATUS_CODES.has(response.status)) throw lastError;
+      if (attempt === BaseProvider.MAX_RETRIES) break;
+
+      const delay = BaseProvider.BASE_DELAY_MS * Math.pow(2, attempt);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+
+    throw lastError!;
+  }
+
   // ── Shared HTTP logic ────────────────────────────────────────────────────
 
   async createCompletion(request: ChatCompletionRequest): Promise<CompletionResponse> {
@@ -53,21 +85,11 @@ export abstract class BaseProvider implements Provider {
     const url = this.getCompletionUrl();
     const headers = this.getAuthHeaders();
 
-    const response = await fetch(url, {
+    const response = await this.fetchWithRetry(url, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
     });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new ProviderError(
-        `${this.displayName} API error: ${response.status} ${response.statusText}`,
-        this.name,
-        response.status,
-        errorBody,
-      );
-    }
 
     const raw = await response.json();
     return this.normalizeResponse(raw);
@@ -76,25 +98,19 @@ export abstract class BaseProvider implements Provider {
   async *createStreamingCompletion(
     request: ChatCompletionRequest,
   ): AsyncGenerator<StreamChunk, void, unknown> {
-    const body = this.transformRequest({ ...request, stream: true });
+    const body = this.transformRequest({
+      ...request,
+      stream: true,
+      stream_options: { include_usage: true },
+    });
     const url = this.getCompletionUrl();
     const headers = this.getAuthHeaders();
 
-    const response = await fetch(url, {
+    const response = await this.fetchWithRetry(url, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
     });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new ProviderError(
-        `${this.displayName} API error: ${response.status} ${response.statusText}`,
-        this.name,
-        response.status,
-        errorBody,
-      );
-    }
 
     if (!response.body) {
       throw new ProviderError('No response body for streaming', this.name);

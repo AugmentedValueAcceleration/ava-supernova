@@ -6,6 +6,7 @@ import type { FunctionSchema } from '../providers/types.js';
 export class GlobTool implements Tool {
   readonly name = 'glob';
   readonly description = 'Find files matching a glob pattern';
+  readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'glob',

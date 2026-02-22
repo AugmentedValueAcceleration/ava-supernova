@@ -70,6 +70,7 @@ export interface StreamChunk {
     delta: StreamDelta;
     finish_reason: string | null;
   }>;
+  usage?: TokenUsage;
 }
 
 // ─── Completion Response (non-streaming) ─────────────────────────────────────
@@ -106,4 +107,8 @@ export interface ModelDefinition {
   supportsToolCalls: boolean;
   supportsStreaming: boolean;
   supportsThinking?: boolean;
+  pricing?: {
+    inputPerMillion: number;
+    outputPerMillion: number;
+  };
 }

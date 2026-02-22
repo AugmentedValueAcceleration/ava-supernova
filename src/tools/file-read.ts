@@ -6,6 +6,7 @@ import type { FunctionSchema } from '../providers/types.js';
 export class FileReadTool implements Tool {
   readonly name = 'file_read';
   readonly description = 'Read the contents of a file with line numbers';
+  readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'file_read',
