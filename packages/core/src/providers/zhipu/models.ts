@@ -10,6 +10,7 @@ export const ZHIPU_MODELS: ModelDefinition[] = [
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsThinking: true,
+    supportsVision: true,
     pricing: { inputPerMillion: 1.00, outputPerMillion: 3.20 },
   },
   {
@@ -21,6 +22,7 @@ export const ZHIPU_MODELS: ModelDefinition[] = [
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsThinking: true,
+    supportsVision: true,
     pricing: { inputPerMillion: 0.60, outputPerMillion: 2.20 },
   },
   {

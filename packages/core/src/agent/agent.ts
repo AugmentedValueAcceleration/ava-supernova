@@ -5,6 +5,7 @@ import type {
   ToolCall,
   ModelDefinition,
   TokenUsage,
+  ContentPart,
 } from '../core/types.js';
 import type { ToolRegistry } from '../tools/tool-registry.js';
 import type { ToolExecutionContext } from '../tools/types.js';
@@ -84,14 +85,40 @@ export class Agent {
       const maxInputTokens = Math.floor(this.model.contextWindow * 0.7);
       messages = this.truncateMessages(messages, maxInputTokens);
 
-      // Strip reasoning_content before sending — it's an output-only field.
-      // Providers like DeepSeek reject requests that include it in input messages.
+      // ── Sanitize messages for model compatibility ──────────────────────────
       const sanitizedMessages = messages.map((m) => {
-        if (m.role === 'assistant' && 'reasoning_content' in m) {
-          const { reasoning_content: _, ...rest } = m as AssistantMessage;
+        let msg = m;
+
+        // Strip image_url parts for non-vision models (DeepSeek, Mistral, etc.)
+        // The image stays in local history so vision-capable models can still see it.
+        if (!this.model.supportsVision && Array.isArray(msg.content)) {
+          const textParts = (msg.content as ContentPart[]).filter((p) => p.type === 'text');
+          if (textParts.length === 0) {
+            // Message was image-only — replace with a note so the model has context
+            msg = { ...msg, content: '[An image was shared but this model does not support vision]' };
+          } else if (textParts.length < (msg.content as ContentPart[]).length) {
+            // Mixed text+image — keep only the text, collapsed to a plain string
+            msg = { ...msg, content: textParts.map((p) => p.text).join('\n') };
+          }
+        }
+
+        // Handle reasoning_content based on model capability:
+        // - Thinking models (DeepSeek Reasoner, etc.): KEEP — required for multi-turn
+        // - Non-thinking models: STRIP — providers reject it as input
+        if (msg.role === 'assistant' && 'reasoning_content' in msg) {
+          const aMsg = msg as AssistantMessage;
+          if (this.model.supportsThinking) {
+            if (aMsg.reasoning_content && !aMsg.content) {
+              return { ...aMsg, content: '' } as Message;
+            }
+            return msg;
+          }
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { reasoning_content: _rc, ...rest } = aMsg;
           return rest as Message;
         }
-        return m;
+
+        return msg;
       });
 
       const request: ChatCompletionRequest = {
@@ -240,9 +267,14 @@ export class Agent {
     const toolCalls: ToolCall[] =
       toolCallsAccumulator.size > 0 ? Array.from(toolCallsAccumulator.values()) : [];
 
+    // DeepSeek Reasoner rule: "If reasoning_content is set, content must not be empty."
+    // When the model returns reasoning + tool_calls but no text, content would be null —
+    // which causes a 400 on the next request if reasoning_content is also present.
+    const finalContent = (!content && reasoningContent) ? '' : (content || null);
+
     const message: AssistantMessage = {
       role: 'assistant',
-      content: content || null,
+      content: finalContent,
       ...(reasoningContent ? { reasoning_content: reasoningContent } : {}),
       ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
     };

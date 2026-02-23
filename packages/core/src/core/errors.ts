@@ -21,8 +21,26 @@ export class ProviderError extends AvaError {
 
   get humanMessage(): string {
     switch (this.statusCode) {
-      case 400:
-        return `Bad request to ${this.provider}. The request format may be incompatible with this model.`;
+      case 400: {
+        // Surface the actual error detail from the provider — essential for diagnosis
+        let detail = '';
+        if (this.responseBody) {
+          try {
+            const raw = typeof this.responseBody === 'string' ? this.responseBody : '';
+            const body = raw ? JSON.parse(raw) : this.responseBody;
+            detail = body?.error?.message || body?.message || '';
+          } catch {
+            // responseBody wasn't JSON — use it as-is (truncated)
+            detail = typeof this.responseBody === 'string'
+              ? this.responseBody.slice(0, 200)
+              : '';
+          }
+        }
+        const base = `Bad request to ${this.provider}.`;
+        return detail
+          ? `${base} ${detail}`
+          : `${base} The request format may be incompatible with this model.`;
+      }
       case 401:
         return `Invalid API key for ${this.provider}. Check your key in ~/.ava/config.json`;
       case 402:

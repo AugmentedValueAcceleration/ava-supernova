@@ -10,6 +10,7 @@ export const KIMI_MODELS: ModelDefinition[] = [
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsThinking: true,
+    supportsVision: true,
     pricing: { inputPerMillion: 0.60, outputPerMillion: 3.00 },
   },
   {

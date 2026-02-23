@@ -134,6 +134,7 @@ export interface ModelDefinition {
   supportsToolCalls: boolean;
   supportsStreaming: boolean;
   supportsThinking?: boolean;
+  supportsVision?: boolean;
   pricing?: {
     inputPerMillion: number;
     outputPerMillion: number;

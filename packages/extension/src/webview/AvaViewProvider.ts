@@ -647,8 +647,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     toolName: string,
     args: Record<string, unknown>,
   ): Promise<boolean | string> {
-    // Session allow list — skip confirmation if already approved for this tool or all tools
-    if (this.sessionAllowAll || this.sessionAllowedTools.has(toolName)) {
+    // Session allow list — skip confirmation if already approved for this tool or all tools.
+    // BUT never skip for present_plan — plans are a collaboration checkpoint, not a permission check.
+    if (toolName !== 'present_plan' && (this.sessionAllowAll || this.sessionAllowedTools.has(toolName))) {
       this.log(`Auto-approved ${toolName} (session allow list)`);
       return Promise.resolve(true);
     }
@@ -706,7 +707,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       const msg = error.humanMessage;
       switch (error.statusCode) {
         case 400: {
-          const raw400 = error.message.toLowerCase();
+          // Check both the error message and the raw response body for context-length keywords
+          const raw400 = `${error.message} ${typeof error.responseBody === 'string' ? error.responseBody : ''}`.toLowerCase();
           if (raw400.includes('context') || raw400.includes('token') || raw400.includes('length') || raw400.includes('too long') || raw400.includes('maximum')) {
             return { message: msg, code: 'bad_request', suggestion: 'The conversation is too long for this model. Start a new chat (click + in the header).' };
           }

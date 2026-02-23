@@ -61,6 +61,9 @@ export class ToolRegistry {
   }
 
   private needsConfirmation(tool: Tool): boolean {
+    // Plans always require confirmation — they're a collaboration checkpoint, not a permission check.
+    // Even in autonomous mode, the user should approve the direction before Ava executes.
+    if (tool.name === 'present_plan') return true;
     return CONFIRMATION_MATRIX[this.permissionMode].has(tool.riskLevel);
   }
 
