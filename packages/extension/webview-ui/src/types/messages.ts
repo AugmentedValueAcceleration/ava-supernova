@@ -3,11 +3,11 @@
 export type ExtToWebviewMessage =
   | {
       type: 'init';
-      models: Array<{ id: string; name: string; provider: string }>;
+      models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean }>;
       activeModel: string | null;
       needsSetup: boolean;
     }
-  | { type: 'user_message_ack'; text: string }
+  | { type: 'user_message_ack'; text: string; images?: string[] }
   | { type: 'stream_start' }
   | { type: 'thinking_delta'; content: string }
   | { type: 'stream_delta'; content: string }
@@ -95,6 +95,7 @@ export interface UIMessage {
   role: 'user' | 'assistant' | 'error' | 'system';
   content: string;
   thinking?: string;
+  images?: string[];
   toolCalls: ToolCallDisplay[];
   isStreaming: boolean;
   errorCode?: string;
@@ -103,7 +104,7 @@ export interface UIMessage {
 
 export interface ChatState {
   messages: UIMessage[];
-  models: Array<{ id: string; name: string; provider: string }>;
+  models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean }>;
   activeModel: string | null;
   isStreaming: boolean;
   isThinking: boolean;

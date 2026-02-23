@@ -31,6 +31,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         id: nextId(),
         role: 'user',
         content: action.text,
+        ...(action.images?.length ? { images: action.images } : {}),
         toolCalls: [],
         isStreaming: false,
       };

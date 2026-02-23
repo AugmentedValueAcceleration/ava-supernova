@@ -335,11 +335,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  private getModelList(): Array<{ id: string; name: string; provider: string }> {
+  private getModelList(): Array<{ id: string; name: string; provider: string; supportsVision?: boolean }> {
     return this.providerRegistry.listAllModels().map((m) => ({
       id: `${m.provider}:${m.id}`,
       name: m.name,
       provider: m.provider,
+      ...(m.supportsVision ? { supportsVision: true } : {}),
     }));
   }
 
@@ -613,7 +614,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     } else {
       this.conversation.addUserMessage(userText);
     }
-    this.postMessage({ type: 'user_message_ack', text });
+    const images = attachments?.map((a) => a.data);
+    this.postMessage({ type: 'user_message_ack', text, ...(images?.length ? { images } : {}) });
 
     let streamStarted = false;
     let deltaCount = 0;

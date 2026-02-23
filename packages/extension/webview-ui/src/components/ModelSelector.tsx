@@ -1,5 +1,5 @@
 interface ModelSelectorProps {
-  models: Array<{ id: string; name: string; provider: string }>;
+  models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean }>;
   activeModel: string | null;
   needsSetup: boolean;
   onSwitch: (modelId: string) => void;
@@ -22,21 +22,33 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
     );
   }
 
+  const activeModelDef = models.find((m) => m.id === activeModel);
+
   return (
-    <select
-      value={activeModel || ''}
-      onChange={(e) => onSwitch(e.target.value)}
-      className="flex-1 text-xs px-2 py-1 rounded min-w-0
-                 bg-[var(--vscode-input-background)]
-                 text-[var(--vscode-input-foreground)]
-                 border border-[var(--vscode-input-border)]
-                 outline-none"
-    >
-      {models.map((m) => (
-        <option key={m.id} value={m.id}>
-          {m.name} ({m.provider})
-        </option>
-      ))}
-    </select>
+    <div className="flex items-center gap-1.5">
+      <select
+        value={activeModel || ''}
+        onChange={(e) => onSwitch(e.target.value)}
+        className="flex-1 text-xs px-2 py-1 rounded min-w-0
+                   bg-[var(--vscode-input-background)]
+                   text-[var(--vscode-input-foreground)]
+                   border border-[var(--vscode-input-border)]
+                   outline-none"
+      >
+        {models.map((m) => (
+          <option key={m.id} value={m.id}>
+            {m.name} ({m.provider}){m.supportsVision ? ' \u{1F441}' : ''}
+          </option>
+        ))}
+      </select>
+      {activeModelDef?.supportsVision && (
+        <span
+          title="This model supports image/vision input"
+          className="text-[10px] opacity-50 flex-shrink-0"
+        >
+          vision
+        </span>
+      )}
+    </div>
   );
 }

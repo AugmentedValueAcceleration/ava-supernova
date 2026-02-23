@@ -1,7 +1,7 @@
 import { ModelSelector } from './ModelSelector';
 
 interface HeaderProps {
-  models: Array<{ id: string; name: string; provider: string }>;
+  models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean }>;
   activeModel: string | null;
   needsSetup: boolean;
   onSwitch: (modelId: string) => void;
