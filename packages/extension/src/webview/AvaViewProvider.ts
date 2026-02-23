@@ -42,17 +42,49 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     private readonly context: vscode.ExtensionContext,
   ) {
     this.providerRegistry = new ProviderRegistry();
+    this.outputChannel = vscode.window.createOutputChannel('Ava | Supernova');
+    this.historyManager = new HistoryManager();
+    this.historyManager.init();
+
+    // Detect project and load instructions
+    this.refreshProjectContext();
+
+    // Re-detect project when workspace folders change
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      this.onWorkspaceChanged();
+    });
+  }
+
+  private async refreshProjectContext(): Promise<void> {
     const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
     this.projectRoot = detectProjectRoot(cwd) ?? undefined;
     this.historyManager = new HistoryManager(this.projectRoot);
     this.historyManager.init();
-    this.outputChannel = vscode.window.createOutputChannel('Ava | Supernova');
-    // Load project instructions asynchronously
-    if (this.projectRoot) {
-      loadProjectInstructions(this.projectRoot).then((instructions) => {
-        this.projectInstructions = instructions ?? undefined;
-      });
+    this.projectInstructions = this.projectRoot
+      ? (await loadProjectInstructions(this.projectRoot)) ?? undefined
+      : undefined;
+  }
+
+  private async onWorkspaceChanged(): Promise<void> {
+    // Save current conversation before switching
+    if (this.conversation) {
+      await this.historyManager.saveConversation(this.conversation);
     }
+
+    await this.refreshProjectContext();
+
+    // Start fresh for the new project
+    this.conversation = new Conversation();
+    const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
+    this.conversation.setSystemPrompt(
+      buildSystemPrompt({ cwd, platform: process.platform, shell: 'bash', permissionMode: this.getPermissionMode(), projectInstructions: this.projectInstructions }),
+    );
+    this.setLastConversationId(undefined);
+    this.postMessage({ type: 'chat_cleared' });
+
+    // Re-initialize the agent with new project context
+    this.initializeSession();
+    this.log(`Workspace changed — project root: ${this.projectRoot ?? 'none'}`);
   }
 
   private log(message: string): void {
