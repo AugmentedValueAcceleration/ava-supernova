@@ -1,7 +1,7 @@
 {
   "name": "ava-supernova",
   "displayName": "Ava | Supernova",
-  "description": "Open-source AI coding agent — DeepSeek and Kimi in your editor",
+  "description": "Open-source AI coding agent — DeepSeek, Kimi, and Qwen in your editor",
   "version": "0.1.0",
   "publisher": "stewai",
   "license": "Apache-2.0",
@@ -76,14 +76,18 @@
             "deepseek:deepseek-chat",
             "deepseek:deepseek-reasoner",
             "kimi:kimi-k2.5",
-            "kimi:moonshot-v1-128k"
+            "kimi:moonshot-v1-128k",
+            "qwen:qwen3.5-plus",
+            "qwen:qwen-turbo-latest"
           ],
           "enumDescriptions": [
             "No model selected",
             "DeepSeek V3 — fast, affordable general-purpose",
             "DeepSeek R1 — reasoning model",
             "Kimi K2.5 — best multi-step tool calling",
-            "Moonshot V1 128K — long context"
+            "Moonshot V1 128K — long context",
+            "Qwen 3.5 Plus — vision, thinking, 256K context",
+            "Qwen Turbo — fast and cheap, 1M context"
           ],
           "description": "Select the AI model to use"
         },
@@ -96,6 +100,11 @@
           "type": "string",
           "default": "",
           "description": "Kimi (Moonshot AI) API key"
+        },
+        "ava-supernova.providers.qwen.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Qwen (Alibaba Cloud) API key"
         },
         "ava-supernova.preferences.temperature": {
           "type": "number",

@@ -15,6 +15,11 @@ const PROVIDERS = [
     displayName: 'Kimi (Moonshot AI)',
     keyUrl: 'https://platform.moonshot.ai/console/api-keys',
   },
+  {
+    key: 'qwen',
+    displayName: 'Qwen (Alibaba Cloud)',
+    keyUrl: 'https://bailian.console.alibabacloud.com/#/model-market/detail/qwen3.5-plus',
+  },
 ];
 
 export async function runSetupWizard(

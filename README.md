@@ -30,6 +30,7 @@ Agentic coding shouldn't be a luxury. The open-source model ecosystem delivers n
 
 | Model | SWE-Bench | Input Cost / 1M tokens |
 |---|---|---|
+| Qwen 3.5 Plus | 76.4% | $0.40 |
 | Kimi K2.5 | 76.8% | $0.60 |
 | DeepSeek V3.2 | ~66% | $0.14 |
 
@@ -41,9 +42,11 @@ Ava bridges the gap between these powerful models and a polished agentic coding 
 |---|---|---|---|---|
 | **DeepSeek** | DeepSeek V3, DeepSeek R1 | 128K | Yes* | Yes |
 | **Kimi** (Moonshot AI) | Kimi K2.5, Moonshot V1 | 128K - 256K | Yes | Yes |
+| **Qwen** (Alibaba Cloud) | Qwen 3.5 Plus, Qwen Turbo | 256K - 1M | Yes | Yes |
 | **Custom** | Any compatible endpoint | Configurable | Yes | Yes |
 
 *DeepSeek R1 (reasoner) does not support tool calling but supports extended thinking.
+Qwen 3.5 Plus supports native vision (images) and extended thinking.
 
 The **Custom** provider supports any locally hosted model via [Ollama](https://ollama.com), [LM Studio](https://lmstudio.ai), or any server exposing a standard API format.
 
@@ -88,6 +91,7 @@ On first launch, Ava guides you through an interactive setup wizard:
 
   1. DeepSeek
   2. Kimi (Moonshot AI)
+  3. Qwen (Alibaba Cloud)
 
   Choose a provider (number): 1
 
@@ -107,7 +111,7 @@ Ava also runs as a VSCode sidebar extension with the same agent and tools.
 2. Press `F5` to launch the Extension Development Host
 3. Click the Ava icon in the activity bar
 4. Open Settings (`Ctrl+,`) and search `ava-supernova`
-5. Add your API key under **Providers > DeepSeek** or **Providers > Kimi**
+5. Add your API key under **Providers > DeepSeek**, **Providers > Kimi**, or **Providers > Qwen**
 6. Select a model under **Active Model**
 
 ### Features
@@ -215,9 +219,11 @@ Set via `/permission` in the CLI or in VSCode settings.
   deepseek:deepseek-reasoner - DeepSeek R1
   kimi:kimi-k2.5 - Kimi K2.5
   kimi:moonshot-v1-128k - Moonshot V1 128K
+  qwen:qwen3.5-plus - Qwen 3.5 Plus
+  qwen:qwen-turbo-latest - Qwen Turbo
 
-> /model kimi:kimi-k2.5
-  Switched to Kimi K2.5 (Kimi)
+> /model qwen:qwen3.5-plus
+  Switched to Qwen 3.5 Plus (Qwen (Alibaba Cloud))
 ```
 
 ## Project Context
@@ -267,7 +273,8 @@ Configure multiple providers and switch freely with `/model`:
   "activeModel": "deepseek:deepseek-chat",
   "providers": {
     "deepseek": { "apiKey": "sk-..." },
-    "kimi": { "apiKey": "sk-..." }
+    "kimi": { "apiKey": "sk-..." },
+    "qwen": { "apiKey": "sk-..." }
   }
 }
 ```
@@ -293,6 +300,7 @@ To use a local model, add a custom provider entry with a `baseUrl`:
 |---|---|
 | DeepSeek | https://platform.deepseek.com/api_keys |
 | Kimi (Moonshot) | https://platform.moonshot.ai/console/api-keys |
+| Qwen (Alibaba Cloud) | https://bailian.console.alibabacloud.com/ |
 
 ## Architecture
 

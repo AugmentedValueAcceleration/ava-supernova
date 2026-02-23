@@ -34,7 +34,7 @@ function validateConfig(raw: unknown): AvaConfig {
   // providers — validate structure, skip malformed entries
   if (typeof obj.providers === 'object' && obj.providers !== null) {
     const providers = obj.providers as Record<string, unknown>;
-    const validProviders = ['deepseek', 'kimi'];
+    const validProviders = ['deepseek', 'kimi', 'qwen'];
 
     for (const name of validProviders) {
       const entry = providers[name];

@@ -233,7 +233,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     this.log('Initializing session...');
 
-    for (const name of ['deepseek', 'kimi']) {
+    for (const name of ['deepseek', 'kimi', 'qwen']) {
       const apiKey = config.get<string>(`providers.${name}.apiKey`);
       if (apiKey) {
         try {

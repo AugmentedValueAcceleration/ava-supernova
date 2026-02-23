@@ -2,12 +2,14 @@ import type { Provider, ProviderConfig } from './types.js';
 import type { ModelDefinition } from '../core/types.js';
 import { DeepSeekProvider } from './deepseek/index.js';
 import { KimiProvider } from './kimi/index.js';
+import { QwenProvider } from './qwen/index.js';
 
 type ProviderFactory = (config: ProviderConfig) => Provider;
 
 const BUILT_IN_PROVIDERS: Record<string, ProviderFactory> = {
   deepseek: (config) => new DeepSeekProvider(config),
   kimi: (config) => new KimiProvider(config),
+  qwen: (config) => new QwenProvider(config),
 };
 
 export class ProviderRegistry {
