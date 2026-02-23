@@ -33,6 +33,12 @@ function getToolLabel(name: string, argsJson: string): { icon: string; label: st
       return { icon: '\uD83D\uDD0E', label: `Search: ${pattern ? `/${pattern}/` : '...'}` };
     case 'bash':
       return { icon: '\uD83D\uDCBB', label: `Run: ${truncate(command || '...', 60)}` };
+    case 'list_directory':
+      return { icon: '\uD83D\uDCC1', label: `List ${shortenPath(args.path as string | undefined) || 'directory'}` };
+    case 'web_search':
+      return { icon: '\uD83C\uDF10', label: `Search: ${truncate((args.query as string) || '...', 50)}` };
+    case 'ask_user':
+      return { icon: '\uD83D\uDCAC', label: 'Question for user' };
     default:
       return { icon: '\u2699\uFE0F', label: name };
   }

@@ -28,6 +28,7 @@ export type ExtToWebviewMessage =
       toolName: string;
       args: Record<string, unknown>;
       summary: string;
+      isAskUser?: boolean;
     }
   | {
       type: 'usage';
@@ -58,7 +59,7 @@ export type AvaMode = 'code' | 'plan' | 'chat';
 
 export type WebviewToExtMessage =
   | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }> }
-  | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllow?: boolean; allowAll?: boolean; planSelection?: string }
+  | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllow?: boolean; allowAll?: boolean; planSelection?: string; userResponse?: string }
   | { type: 'switch_model'; modelId: string }
   | { type: 'clear_chat' }
   | { type: 'cancel' }
@@ -83,6 +84,7 @@ export interface ToolCallDisplay {
   result?: string;
   confirmationId?: string;
   summary?: string;
+  isAskUser?: boolean;
 }
 
 export interface UIMessage {

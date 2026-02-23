@@ -491,7 +491,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
 
       case 'tool_confirmation_response':
-        this.handleConfirmationResponse(message.confirmationId, message.approved, message.alwaysAllow, message.allowAll, message.planSelection);
+        this.handleConfirmationResponse(message.confirmationId, message.approved, message.alwaysAllow, message.allowAll, message.planSelection, message.userResponse);
         break;
 
       case 'switch_model':
@@ -744,7 +744,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   ): Promise<boolean | string> {
     // Session allow list — skip confirmation if already approved for this tool or all tools.
     // BUT never skip for present_plan — plans are a collaboration checkpoint, not a permission check.
-    if (toolName !== 'present_plan' && (this.sessionAllowAll || this.sessionAllowedTools.has(toolName))) {
+    if (toolName !== 'present_plan' && toolName !== 'ask_user' && (this.sessionAllowAll || this.sessionAllowedTools.has(toolName))) {
       this.log(`Auto-approved ${toolName} (session allow list)`);
       return Promise.resolve(true);
     }
@@ -759,6 +759,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         toolName,
         args,
         summary: this.formatToolSummary(toolName, args),
+        ...(toolName === 'ask_user' ? { isAskUser: true } : {}),
       });
     });
   }
@@ -769,6 +770,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     alwaysAllow?: boolean,
     allowAll?: boolean,
     planSelection?: string,
+    userResponse?: string,
   ): void {
     const pending = this.pendingConfirmations.get(confirmationId);
     if (pending) {
@@ -788,6 +790,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         if (approved) {
           const selection = planSelection ? ` User selected approach: "${planSelection}".` : '';
           pending.resolve(`Plan approved.${selection} Execute the steps.`);
+        } else {
+          pending.resolve(false);
+        }
+      } else if (pending.toolName === 'ask_user') {
+        if (approved && userResponse) {
+          pending.resolve(`User response: ${userResponse}`);
         } else {
           pending.resolve(false);
         }
@@ -858,6 +866,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         return `Edit ${args.file_path}`;
       case 'present_plan':
         return `Plan: ${String(args.title ?? 'Untitled')}`;
+      case 'ask_user':
+        return String(args.question ?? 'Question');
+      case 'list_directory':
+        return `List ${args.path}`;
+      case 'web_search':
+        return `Search: ${String(args.query ?? '').slice(0, 80)}`;
       default:
         return `${toolName}: ${JSON.stringify(args).slice(0, 100)}`;
     }

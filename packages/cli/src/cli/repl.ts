@@ -59,7 +59,39 @@ export class Repl {
     return `\n${chalk.hex(THEME.accent)(this.modelLabel)} ${chalk.dim('>')} `;
   }
 
-  private askConfirmation(toolName: string, args: Record<string, unknown>): Promise<boolean> {
+  private askConfirmation(toolName: string, args: Record<string, unknown>): Promise<boolean | string> {
+    // ask_user: show the question and collect free-text response
+    if (toolName === 'ask_user') {
+      return new Promise((resolve) => {
+        this.spinner.stop();
+        const question = String(args.question ?? 'Ava has a question for you');
+        console.log('');
+        console.log(
+          chalk.hex(THEME.accent)('  [question] ') +
+          chalk.bold(question),
+        );
+
+        const askRl = readline.createInterface({
+          input: stdin,
+          output: stdout,
+        });
+
+        askRl.question(
+          chalk.hex(THEME.accent)('  Your response: '),
+          (answer) => {
+            askRl.close();
+            const response = answer.trim();
+            if (!response) {
+              console.log(chalk.dim('  Skipped.'));
+              resolve(false);
+            } else {
+              resolve(`User response: ${response}`);
+            }
+          },
+        );
+      });
+    }
+
     return new Promise((resolve) => {
       this.spinner.stop();
 
@@ -98,6 +130,12 @@ export class Repl {
         return `write to ${args.file_path}`;
       case 'file_edit':
         return `edit ${args.file_path}`;
+      case 'list_directory':
+        return `list ${args.path}`;
+      case 'web_search':
+        return `search "${String(args.query ?? '').slice(0, 60)}"`;
+      case 'ask_user':
+        return String(args.question ?? '').slice(0, 80);
       default:
         return JSON.stringify(args).slice(0, 80);
     }

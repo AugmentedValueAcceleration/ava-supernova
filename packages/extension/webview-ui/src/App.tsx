@@ -118,6 +118,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
                 status: 'pending_confirmation' as const,
                 confirmationId: action.confirmationId,
                 summary: action.summary,
+                ...(action.isAskUser ? { isAskUser: true } : {}),
               }
             : tc,
         );
@@ -333,8 +334,8 @@ export function App() {
   );
 
   const handleConfirmation = useCallback(
-    (confirmationId: string, approved: boolean, alwaysAllow?: boolean, allowAll?: boolean, planSelection?: string) => {
-      postMessage({ type: 'tool_confirmation_response', confirmationId, approved, alwaysAllow, allowAll, planSelection });
+    (confirmationId: string, approved: boolean, alwaysAllow?: boolean, allowAll?: boolean, planSelection?: string, userResponse?: string) => {
+      postMessage({ type: 'tool_confirmation_response', confirmationId, approved, alwaysAllow, allowAll, planSelection, userResponse });
     },
     [postMessage],
   );

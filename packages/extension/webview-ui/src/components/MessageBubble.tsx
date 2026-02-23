@@ -4,10 +4,11 @@ import { ThinkingBlock } from './ThinkingBlock';
 import { ToolCallCard } from './ToolCallCard';
 import { PlanCard } from './PlanCard';
 import { TodoCard } from './TodoCard';
+import { AskUserCard } from './AskUserCard';
 
 interface MessageBubbleProps {
   message: UIMessage;
-  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllow?: boolean, allowAll?: boolean, planSelection?: string) => void;
+  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllow?: boolean, allowAll?: boolean, planSelection?: string, userResponse?: string) => void;
   onContinue?: () => void;
 }
 
@@ -116,6 +117,8 @@ export function MessageBubble({ message, onConfirmation, onContinue }: MessageBu
             <TodoCard key={tc.id} toolCall={tc} isLatest={i === lastTodoIdx} />
           ) : tc.name === 'present_plan' ? (
             <PlanCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />
+          ) : tc.name === 'ask_user' ? (
+            <AskUserCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />
           ) : (
             <ToolCallCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />
           ),

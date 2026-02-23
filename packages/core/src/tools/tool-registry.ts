@@ -8,6 +8,9 @@ import { GrepTool } from './grep.js';
 import { BashTool } from './bash.js';
 import { PresentPlanTool } from './present-plan.js';
 import { TodoWriteTool } from './todo-write.js';
+import { ListDirectoryTool } from './list-directory.js';
+import { WebSearchTool } from './web-search.js';
+import { AskUserTool } from './ask-user.js';
 
 // Which risk levels require confirmation under each permission mode
 const CONFIRMATION_MATRIX: Record<PermissionMode, Set<ToolRiskLevel>> = {
@@ -43,6 +46,9 @@ export class ToolRegistry {
       new BashTool(),
       new PresentPlanTool(),
       new TodoWriteTool(),
+      new ListDirectoryTool(),
+      new WebSearchTool(),
+      new AskUserTool(),
     ];
     for (const tool of builtins) {
       this.tools.set(tool.name, tool);
@@ -63,7 +69,7 @@ export class ToolRegistry {
   private needsConfirmation(tool: Tool): boolean {
     // Plans always require confirmation — they're a collaboration checkpoint, not a permission check.
     // Even in autonomous mode, the user should approve the direction before Ava executes.
-    if (tool.name === 'present_plan') return true;
+    if (tool.name === 'present_plan' || tool.name === 'ask_user') return true;
     return CONFIRMATION_MATRIX[this.permissionMode].has(tool.riskLevel);
   }
 

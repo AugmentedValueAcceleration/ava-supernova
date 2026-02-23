@@ -6,7 +6,7 @@ import { ThinkingIndicator } from './ThinkingIndicator';
 interface ChatContainerProps {
   messages: UIMessage[];
   isThinking: boolean;
-  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllow?: boolean, allowAll?: boolean, planSelection?: string) => void;
+  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllow?: boolean, allowAll?: boolean, planSelection?: string, userResponse?: string) => void;
   onContinue: () => void;
   chatEndRef: RefObject<HTMLDivElement | null>;
 }
