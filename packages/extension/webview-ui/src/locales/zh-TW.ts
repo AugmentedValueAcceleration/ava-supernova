@@ -1,0 +1,149 @@
+/** Webview Traditional Chinese (zh-TW) strings */
+export const zhTWStrings: Record<string, string> = {
+  // Welcome / Branding
+  'welcome.title': 'Ava | Supernova',
+  'welcome.subtitle': '關於你的程式碼，隨時提問。',
+
+  // Input Area
+  'input.placeholder.code': '你想建構什麼？',
+  'input.placeholder.plan': '描述你想要規劃的內容...',
+  'input.placeholder.chat': '提一個問題或開始討論...',
+  'input.placeholder.disabled': '請先設定服務供應商...',
+  'input.mode.code': '程式碼',
+  'input.mode.plan': '規劃',
+  'input.mode.chat': '聊天',
+  'input.send': '傳送 (Enter)',
+  'input.send_aria': '傳送訊息',
+  'input.stop': '停止',
+  'input.stop_aria': '停止 Ava',
+  'input.attach': '附加圖片',
+  'input.attach_image': '附加圖片',
+  'input.drop_image': '將圖片拖放至此',
+  'input.compressing': '壓縮中...',
+  'input.compress_usage': '上下文用量 \u2014 點擊壓縮',
+  'input.compress_click': '點擊壓縮上下文',
+
+  // Header
+  'header.history': '聊天紀錄',
+  'header.settings': '設定',
+  'header.new_chat': '新對話',
+
+  // Model Selector
+  'model.no_providers': '尚未設定服務供應商。',
+  'model.open_settings': '開啟設定',
+  'model.vision': '視覺',
+  'model.vision_title': '此模型支援圖片/視覺輸入',
+  'model.switched': '已切換至 {model}',
+
+  // Thinking Indicator
+  'thinking.0': 'Ava 正在思考...',
+  'thinking.1': '正在分析你的程式碼...',
+  'thinking.2': '正在考慮方案...',
+  'thinking.3': '正在組織回覆...',
+
+  // Suggestions
+  'suggestion.explain': '解釋這個程式碼庫',
+  'suggestion.explain_prompt': '請給我一個關於專案結構與架構的概觀。',
+  'suggestion.bug': '尋找 Bug',
+  'suggestion.bug_prompt': '協助我尋找並修正目前檔案中的 Bug。',
+  'suggestion.test': '撰寫測試',
+  'suggestion.test_prompt': '為主要模組撰寫完整的測試。',
+  'suggestion.refactor': '重構程式碼',
+  'suggestion.refactor_prompt': '為目前檔案提供重構改善建議。',
+
+  // Error Labels
+  'error.auth': '身分驗證',
+  'error.credits': '帳單',
+  'error.forbidden': '拒絕存取',
+  'error.rate_limit': '請求過於頻繁',
+  'error.model_not_found': '模型錯誤',
+  'error.bad_request': '請求錯誤',
+  'error.server_error': '伺服器錯誤',
+  'error.timeout': '逾時',
+  'error.stream_stall': '串流回應停滯',
+  'error.network': '網路錯誤',
+  'error.setup': '需要設定',
+  'error.busy': '忙碌中',
+  'error.iterations_exceeded': '迭代次數限制',
+  'error.context_truncated': '上下文已截斷',
+  'error.provider_error': '供應商錯誤',
+  'error.unknown': '錯誤',
+  'error.continue': '繼續',
+
+  // Tool UI
+  'tool.allow': '允許',
+  'tool.always_allow': '一律允許',
+  'tool.allow_all': '全部允許',
+  'tool.deny': '拒絕',
+  'tool.allow_prompt': '允許 {tool}？',
+  'tool.arguments': '參數',
+  'tool.output': '輸出',
+  'tool.error': '錯誤',
+  'tool.truncated': '...（已截斷）',
+  'tool.read': '讀取 {file}',
+  'tool.write': '寫入 {file}',
+  'tool.edit': '編輯 {file}',
+  'tool.find_files': '尋找檔案：{pattern}',
+  'tool.search': '搜尋：{pattern}',
+  'tool.run': '執行：{command}',
+  'tool.list_dir': '列出 {path}',
+  'tool.web_search': '搜尋：{query}',
+  'tool.ask_user': '向使用者提問',
+  'tool.git': 'Git {command}',
+  'tool.http': '{method} {url}',
+
+  // History Panel
+  'history.title': '聊天紀錄',
+  'history.new_chat': '+ 新對話',
+  'history.close': '關閉',
+  'history.search': '搜尋對話...',
+  'history.empty': '尚無已儲存的對話。',
+  'history.no_match': '找不到符合的對話。',
+  'history.delete_confirm': '確認刪除？',
+  'history.rename_hint': '雙擊重新命名',
+  'history.pin': '釘選',
+  'history.unpin': '取消釘選',
+  'history.export_md': '匯出為 Markdown',
+  'history.pinned': '已釘選',
+  'history.just_now': '剛剛',
+  'history.minutes_ago': '{n}分鐘前',
+  'history.hours_ago': '{n}小時前',
+  'history.days_ago': '{n}天前',
+
+  // Ask User Card
+  'ask.question': '問題',
+  'ask.fallback': 'Ava 有一個問題',
+  'ask.placeholder': '輸入你的回覆...',
+  'ask.submit': '提交',
+  'ask.skip': '跳過',
+  'ask.skipped': '已跳過',
+
+  // Plan Card
+  'plan.unavailable': '計畫資料不可用',
+  'plan.prefix': '計畫：{title}',
+  'plan.approved': '已核准',
+  'plan.rejected': '已拒絕',
+  'plan.goal': '目標',
+  'plan.steps': '步驟',
+  'plan.verification': '驗證',
+  'plan.approaches': '方案',
+  'plan.approve': '核准',
+  'plan.reject': '拒絕',
+
+  // Todo Card
+  'todo.unavailable': '任務清單不可用',
+  'todo.tasks': '任務',
+  'todo.done': '{done}/{total} 已完成',
+
+  // Status Bar
+  'status.in': '輸入',
+  'status.out': '輸出',
+
+  // Plan Card extra
+  'plan.pending': '待處理',
+
+  // App-level
+  'app.model_switched': '已切換至 {model}',
+  'app.context_compressed': '上下文已壓縮：~{original} \u2192 ~{compressed} tokens',
+  'app.continue': '從上次中斷處繼續。',
+};

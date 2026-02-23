@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import { Marked } from 'marked';
 import { markedTerminal } from 'marked-terminal';
 import type { ToolCall, TokenUsage } from '@ava/core';
-import { APP_DISPLAY_NAME, ProviderError } from '@ava/core';
+import { t, APP_DISPLAY_NAME, ProviderError } from '@ava/core';
 import { THEME } from './theme.js';
 
 const marked = new Marked(markedTerminal() as Record<string, unknown>);
@@ -16,14 +16,14 @@ export class Renderer {
   printWelcome(): void {
     console.log('');
     console.log(chalk.hex(THEME.accent).bold(`  ${APP_DISPLAY_NAME}`));
-    console.log(chalk.dim('  Type your message, or /help for commands.'));
+    console.log(chalk.dim('  ' + t('welcome.cli_hint')));
     console.log('');
   }
 
   streamThinking(delta: string): void {
     if (!this.isThinking) {
       this.isThinking = true;
-      process.stdout.write(chalk.dim.italic('\n  [thinking] '));
+      process.stdout.write(chalk.dim.italic('\n  ' + t('cli.thinking_label')));
     }
     this.thinkingBuffer += delta;
     // Show a condensed version — just dots for progress
@@ -34,7 +34,7 @@ export class Renderer {
     if (this.isThinking) {
       this.isThinking = false;
       const words = this.thinkingBuffer.split(/\s+/).length;
-      process.stdout.write(chalk.dim(` (${words} words)\n`));
+      process.stdout.write(chalk.dim(` (${t('cli.thinking_words', { count: String(words) })})\n`));
       this.thinkingBuffer = '';
     }
   }
@@ -78,7 +78,7 @@ export class Renderer {
 
     console.log('');
     console.log(
-      chalk.hex(THEME.toolAccent)('  [tool] ') +
+      chalk.hex(THEME.toolAccent)('  ' + t('cli.tool_label')) +
         chalk.bold(toolCall.function.name) +
         chalk.dim(` (${this.truncateArgs(toolCall.function.arguments)})`),
     );
@@ -93,8 +93,8 @@ export class Renderer {
         const done = todos.filter((t) => t.status === 'completed').length;
         console.log('');
         console.log(
-          chalk.hex(THEME.toolAccent)('  [tasks] ') +
-            chalk.dim(`${done}/${todos.length} done`),
+          chalk.hex(THEME.toolAccent)('  ' + t('cli.tasks_label')) +
+            chalk.dim(t('todo.done', { done: String(done), total: String(todos.length) })),
         );
         for (const t of todos) {
           const icon =
@@ -113,7 +113,7 @@ export class Renderer {
       }
     }
 
-    const status = success ? chalk.green('OK') : chalk.red('FAIL');
+    const status = success ? chalk.green(t('cli.ok')) : chalk.red(t('cli.fail'));
     const preview = result.length > 200 ? result.slice(0, 200) + '...' : result;
     console.log(chalk.dim(`  [${status}] ${preview.split('\n')[0]}`));
 
@@ -134,13 +134,13 @@ export class Renderer {
       console.log(chalk.red(`    - ${line}`));
     }
     if (oldLines.length > maxLines) {
-      console.log(chalk.red(chalk.dim(`    ... (${oldLines.length - maxLines} more lines)`)));
+      console.log(chalk.red(chalk.dim('    ' + t('cli.more_lines', { count: String(oldLines.length - maxLines) }))));
     }
     for (const line of additions) {
       console.log(chalk.green(`    + ${line}`));
     }
     if (newLines.length > maxLines) {
-      console.log(chalk.green(chalk.dim(`    ... (${newLines.length - maxLines} more lines)`)));
+      console.log(chalk.green(chalk.dim('    ' + t('cli.more_lines', { count: String(newLines.length - maxLines) }))));
     }
   }
 
@@ -154,14 +154,14 @@ export class Renderer {
 
   printUsage(usage: TokenUsage, cost?: number): void {
     const parts = [
-      `${usage.prompt_tokens} in`,
-      `${usage.completion_tokens} out`,
-      `${usage.total_tokens} total`,
+      `${usage.prompt_tokens} ${t('status.in')}`,
+      `${usage.completion_tokens} ${t('status.out')}`,
+      `${usage.total_tokens} ${t('status.total')}`,
     ];
     if (cost !== undefined && cost > 0) {
       parts.push(`$${cost.toFixed(6)}`);
     }
-    console.log(chalk.dim(`  [tokens] ${parts.join(' / ')}`));
+    console.log(chalk.dim('  ' + t('cli.tokens_label') + ' ' + parts.join(' / ')));
   }
 
   private truncateArgs(argsJson: string): string {

@@ -1,0 +1,18 @@
+{
+  "displayName": "Ava | Supernova",
+  "description": "Trợ lý lập trình AI mã nguồn mở — DeepSeek, Kimi và Qwen trong trình soạn thảo",
+  "viewContainer.title": "Ava | Supernova",
+  "view.chat.name": "Trò chuyện",
+  "command.openChat.title": "Mở trò chuyện",
+  "command.newChat.title": "Trò chuyện mới",
+  "command.clearChat.title": "Xóa trò chuyện",
+  "command.switchModel.title": "Chuyển mô hình",
+  "command.showHistory.title": "Lịch sử trò chuyện",
+  "setting.activeModel.description": "Chọn mô hình AI để sử dụng",
+  "setting.deepseek.apiKey.description": "Khóa API DeepSeek",
+  "setting.kimi.apiKey.description": "Khóa API Kimi (Moonshot AI)",
+  "setting.qwen.apiKey.description": "Khóa API Qwen (Alibaba Cloud)",
+  "setting.temperature.description": "Nhiệt độ lấy mẫu",
+  "setting.language.description": "Ngôn ngữ giao diện và phản hồi của Ava",
+  "setting.permissionMode.description": "Kiểm soát những thao tác công cụ nào cần sự chấp thuận của bạn trước khi Ava thực hiện"
+}

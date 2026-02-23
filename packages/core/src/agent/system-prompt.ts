@@ -1,5 +1,6 @@
 import { APP_DISPLAY_NAME, APP_VERSION } from '../core/constants.js';
 import type { PermissionMode } from '../tools/types.js';
+import { getLanguageName } from '../i18n/index.js';
 
 interface SystemPromptOptions {
   cwd: string;
@@ -8,6 +9,7 @@ interface SystemPromptOptions {
   permissionMode?: PermissionMode;
   supportsVision?: boolean;
   projectInstructions?: string;
+  language?: string;
 }
 
 export function buildSystemPrompt(opts: SystemPromptOptions): string {
@@ -462,6 +464,15 @@ The difference: **good responses share your thinking, give context, and move the
 - When something cool happens, it's okay to be stoked about it.
 - After completing a task, give a summary of what changed, what to verify, and any follow-up suggestions.
 `;
+
+  // Append language instruction for non-English locales
+  if (opts.language && opts.language !== 'en') {
+    const nativeName = getLanguageName(opts.language);
+    if (nativeName) {
+      prompt += `\n\n## Language
+The user's preferred language is **${nativeName}**. Always respond in ${nativeName} unless the user writes in a different language — in that case, match their language. Code, file paths, and technical identifiers always stay in English.`;
+    }
+  }
 
   if (opts.projectInstructions) {
     prompt += `\n\n## Project Instructions\n\nThe following instructions were provided by the user in this project's \`.ava/instructions.md\` file. Follow them as project-specific guidance:\n\n${opts.projectInstructions}`;

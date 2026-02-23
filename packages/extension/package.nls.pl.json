@@ -1,0 +1,18 @@
+{
+  "displayName": "Ava | Supernova",
+  "description": "Agent kodowania AI open source — DeepSeek, Kimi i Qwen w twoim edytorze",
+  "viewContainer.title": "Ava | Supernova",
+  "view.chat.name": "Czat",
+  "command.openChat.title": "Otwórz czat",
+  "command.newChat.title": "Nowy czat",
+  "command.clearChat.title": "Wyczyść czat",
+  "command.switchModel.title": "Zmień model",
+  "command.showHistory.title": "Historia czatów",
+  "setting.activeModel.description": "Wybierz model AI do użycia",
+  "setting.deepseek.apiKey.description": "Klucz API DeepSeek",
+  "setting.kimi.apiKey.description": "Klucz API Kimi (Moonshot AI)",
+  "setting.qwen.apiKey.description": "Klucz API Qwen (Alibaba Cloud)",
+  "setting.temperature.description": "Temperatura próbkowania",
+  "setting.language.description": "Język interfejsu i odpowiedzi Avy",
+  "setting.permissionMode.description": "Kontroluje, które operacje narzędzi wymagają twojej zgody przed wykonaniem przez Avę"
+}

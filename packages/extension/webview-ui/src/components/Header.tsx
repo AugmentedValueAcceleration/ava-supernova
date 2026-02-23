@@ -1,4 +1,5 @@
 import { ModelSelector } from './ModelSelector';
+import { t } from '../i18n';
 
 interface HeaderProps {
   models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean }>;
@@ -33,8 +34,8 @@ export function Header({
 
       <button
         onClick={onOpenHistory}
-        title="Chat History"
-        aria-label="Chat History"
+        title={t('header.history')}
+        aria-label={t('header.history')}
         className="flex items-center justify-center w-7 h-7 rounded
                    hover:bg-[var(--vscode-toolbar-hoverBackground)]
                    text-[var(--vscode-foreground)] opacity-70 hover:opacity-100
@@ -47,8 +48,8 @@ export function Header({
 
       <button
         onClick={onOpenSettings}
-        title="Settings"
-        aria-label="Settings"
+        title={t('header.settings')}
+        aria-label={t('header.settings')}
         className="flex items-center justify-center w-7 h-7 rounded
                    hover:bg-[var(--vscode-toolbar-hoverBackground)]
                    text-[var(--vscode-foreground)] opacity-70 hover:opacity-100
@@ -61,8 +62,8 @@ export function Header({
 
       <button
         onClick={onNewChat}
-        title="New Chat"
-        aria-label="New Chat"
+        title={t('header.new_chat')}
+        aria-label={t('header.new_chat')}
         className="flex items-center justify-center w-7 h-7 rounded
                    hover:bg-[var(--vscode-toolbar-hoverBackground)]
                    text-[var(--vscode-foreground)] opacity-70 hover:opacity-100

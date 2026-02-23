@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { t } from '../i18n';
 
 interface HistoryPanelProps {
   conversations: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }>;
@@ -20,10 +21,10 @@ function formatRelativeDate(isoString: string): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffMins < 1) return t('history.just_now');
+  if (diffMins < 60) return t('history.minutes_ago', { n: diffMins });
+  if (diffHours < 24) return t('history.hours_ago', { n: diffHours });
+  if (diffDays < 7) return t('history.days_ago', { n: diffDays });
   return date.toLocaleDateString();
 }
 
@@ -64,23 +65,23 @@ export function HistoryPanel({
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--vscode-panel-border)]">
         <span className="text-xs font-semibold uppercase tracking-wider opacity-70">
-          Chat History
+          {t('history.title')}
         </span>
         <div className="flex items-center gap-1">
           <button
             onClick={onNewChat}
-            title="New Chat"
+            title={t('header.new_chat')}
             className="flex items-center gap-1 px-2 py-1 rounded text-xs
                        bg-[var(--vscode-button-background)]
                        text-[var(--vscode-button-foreground)]
                        hover:bg-[var(--vscode-button-hoverBackground)]
                        border-none cursor-pointer"
           >
-            + New Chat
+            {t('history.new_chat')}
           </button>
           <button
             onClick={onClose}
-            title="Close"
+            title={t('history.close')}
             className="flex items-center justify-center w-6 h-6 rounded
                        hover:bg-[var(--vscode-toolbar-hoverBackground)]
                        text-[var(--vscode-foreground)] opacity-70 hover:opacity-100
@@ -97,7 +98,7 @@ export function HistoryPanel({
       <div className="px-3 py-2 border-b border-[var(--vscode-panel-border)]">
         <input
           type="text"
-          placeholder="Search conversations..."
+          placeholder={t('history.search')}
           value={searchQuery}
           onChange={(e) => handleSearchChange(e.target.value)}
           className="w-full px-2 py-1 text-xs rounded
@@ -113,7 +114,7 @@ export function HistoryPanel({
       <div className="flex-1 overflow-y-auto">
         {sortedConversations.length === 0 ? (
           <div className="flex items-center justify-center h-32 opacity-50 text-xs">
-            {searchQuery ? 'No matching conversations.' : 'No saved conversations yet.'}
+            {searchQuery ? t('history.no_match') : t('history.empty')}
           </div>
         ) : (
           <div className="py-1">
@@ -126,7 +127,7 @@ export function HistoryPanel({
               >
                 {/* Pin indicator */}
                 {conv.pinned && (
-                  <span className="text-[var(--vscode-charts-yellow)] text-[10px] flex-shrink-0" title="Pinned">
+                  <span className="text-[var(--vscode-charts-yellow)] text-[10px] flex-shrink-0" title={t('history.pinned')}>
                     &#9733;
                   </span>
                 )}
@@ -160,7 +161,7 @@ export function HistoryPanel({
                         setEditingId(conv.id);
                         setEditTitle(conv.title);
                       }}
-                      title="Double-click to rename"
+                      title={t('history.rename_hint')}
                     >
                       {conv.title}
                     </p>
@@ -175,7 +176,7 @@ export function HistoryPanel({
                   {/* Pin/Unpin */}
                   <button
                     onClick={(e) => { e.stopPropagation(); onPin(conv.id, !conv.pinned); }}
-                    title={conv.pinned ? 'Unpin' : 'Pin'}
+                    title={conv.pinned ? t('history.unpin') : t('history.pin')}
                     className="flex items-center justify-center w-5 h-5 rounded
                                hover:!opacity-100 hover:bg-[var(--vscode-toolbar-hoverBackground)]
                                text-[var(--vscode-foreground)] bg-transparent border-none cursor-pointer text-[11px]"
@@ -186,7 +187,7 @@ export function HistoryPanel({
                   {/* Export */}
                   <button
                     onClick={(e) => { e.stopPropagation(); onExport(conv.id, 'markdown'); }}
-                    title="Export as Markdown"
+                    title={t('history.export_md')}
                     className="flex items-center justify-center w-5 h-5 rounded
                                hover:!opacity-100 hover:bg-[var(--vscode-toolbar-hoverBackground)]
                                text-[var(--vscode-foreground)] bg-transparent border-none cursor-pointer"
@@ -210,7 +211,7 @@ export function HistoryPanel({
                         deleteTimerRef.current = setTimeout(() => setDeletingId(null), 3000);
                       }
                     }}
-                    title={deletingId === conv.id ? 'Click again to confirm' : 'Delete'}
+                    title={deletingId === conv.id ? t('history.delete_confirm') : t('history.close')}
                     className={`flex items-center justify-center rounded
                                border-none cursor-pointer transition-all
                                ${deletingId === conv.id
@@ -219,7 +220,7 @@ export function HistoryPanel({
                                }`}
                   >
                     {deletingId === conv.id ? (
-                      'Delete?'
+                      t('history.delete_confirm')
                     ) : (
                       <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
                         <path d="M10 3h3v1h-1v9l-1 1H5l-1-1V4H3V3h3V2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1zM9 2H7v1h2V2zM5 4v9h6V4H5zm2 2h1v5H7V6zm2 0h1v5H9V6z"/>

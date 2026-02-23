@@ -1,3 +1,5 @@
+import { t } from '../i18n';
+
 interface ModelSelectorProps {
   models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean }>;
   activeModel: string | null;
@@ -10,12 +12,12 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
   if (needsSetup) {
     return (
       <p className="text-xs opacity-60 m-0">
-        No providers configured.{' '}
+        {t('model.no_providers')}{' '}
         <button
           onClick={onOpenSettings}
           className="text-[var(--vscode-textLink-foreground)] cursor-pointer underline bg-transparent border-none p-0 text-xs"
         >
-          Open Settings
+          {t('model.open_settings')}
         </button>{' '}
         to add an API key.
       </p>
@@ -43,10 +45,10 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
       </select>
       {activeModelDef?.supportsVision && (
         <span
-          title="This model supports image/vision input"
+          title={t('model.vision_title')}
           className="text-[10px] opacity-50 flex-shrink-0"
         >
-          vision
+          {t('model.vision')}
         </span>
       )}
     </div>

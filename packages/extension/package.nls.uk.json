@@ -1,0 +1,18 @@
+{
+  "displayName": "Ava | Supernova",
+  "description": "AI-агент для програмування з відкритим кодом — DeepSeek, Kimi та Qwen у вашому редакторі",
+  "viewContainer.title": "Ava | Supernova",
+  "view.chat.name": "Чат",
+  "command.openChat.title": "Відкрити чат",
+  "command.newChat.title": "Новий чат",
+  "command.clearChat.title": "Очистити чат",
+  "command.switchModel.title": "Змінити модель",
+  "command.showHistory.title": "Історія чату",
+  "setting.activeModel.description": "Оберіть AI-модель для використання",
+  "setting.deepseek.apiKey.description": "API-ключ DeepSeek",
+  "setting.kimi.apiKey.description": "API-ключ Kimi (Moonshot AI)",
+  "setting.qwen.apiKey.description": "API-ключ Qwen (Alibaba Cloud)",
+  "setting.temperature.description": "Температура семплювання",
+  "setting.language.description": "Мова інтерфейсу та відповідей Ava",
+  "setting.permissionMode.description": "Визначає, які операції інструментів потребують вашого схвалення перед виконанням Ava"
+}

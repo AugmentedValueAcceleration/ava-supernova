@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ToolCallDisplay } from '../types/messages';
+import { t } from '../i18n';
 
 interface TodoCardProps {
   toolCall: ToolCallDisplay;
@@ -43,7 +44,7 @@ export function TodoCard({ toolCall, isLatest = true }: TodoCardProps) {
     return (
       <div className="rounded border text-xs overflow-hidden"
            style={{ borderColor: 'var(--vscode-panel-border)' }}>
-        <div className="px-3 py-2 opacity-60">Task list unavailable</div>
+        <div className="px-3 py-2 opacity-60">{t('todo.unavailable')}</div>
       </div>
     );
   }
@@ -71,7 +72,7 @@ export function TodoCard({ toolCall, isLatest = true }: TodoCardProps) {
                    text-[var(--vscode-foreground)]"
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
-        aria-label={`Tasks: ${done} of ${total} done`}
+        aria-label={t('todo.done', { done: String(done), total: String(total) })}
       >
         {/* Checkbox icon */}
         <span style={{ color: accentColor, fontSize: '13px' }}>
@@ -79,11 +80,11 @@ export function TodoCard({ toolCall, isLatest = true }: TodoCardProps) {
         </span>
 
         {/* Label */}
-        <span className="font-medium">Tasks</span>
+        <span className="font-medium">{t('todo.tasks')}</span>
 
         {/* Count */}
         <span className="opacity-50 text-[11px]">
-          {done}/{total} done
+          {t('todo.done', { done: String(done), total: String(total) })}
         </span>
 
         {/* Mini progress bar */}

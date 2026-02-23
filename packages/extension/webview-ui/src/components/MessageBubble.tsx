@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import type { UIMessage } from '../types/messages';
+import { t } from '../i18n';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ThinkingBlock } from './ThinkingBlock';
 import { ToolCallCard } from './ToolCallCard';
@@ -14,24 +15,9 @@ interface MessageBubbleProps {
   onContinue?: () => void;
 }
 
-const ERROR_LABELS: Record<string, string> = {
-  auth: 'Authentication',
-  credits: 'Billing',
-  forbidden: 'Access Denied',
-  rate_limit: 'Rate Limited',
-  model_not_found: 'Model Error',
-  bad_request: 'Bad Request',
-  server_error: 'Server Error',
-  timeout: 'Timeout',
-  stream_stall: 'Stream Stalled',
-  network: 'Network Error',
-  setup: 'Setup Required',
-  busy: 'Busy',
-  iterations_exceeded: 'Iteration Limit',
-  context_truncated: 'Context Truncated',
-  provider_error: 'Provider Error',
-  unknown: 'Error',
-};
+function getErrorLabel(code: string): string {
+  return t(`error.${code}`) || t('error.unknown');
+}
 
 // Errors where "Continue" makes sense — the conversation context is intact
 const RESUMABLE_ERRORS = new Set([
@@ -50,7 +36,7 @@ export function MessageBubble({ message, onConfirmation, onContinue }: MessageBu
   }
 
   if (message.role === 'error') {
-    const label = ERROR_LABELS[message.errorCode || ''] || 'Error';
+    const label = getErrorLabel(message.errorCode || '');
     const canResume = onContinue && RESUMABLE_ERRORS.has(message.errorCode || '');
 
     return (
@@ -80,7 +66,7 @@ export function MessageBubble({ message, onConfirmation, onContinue }: MessageBu
                          text-[var(--vscode-button-foreground)]
                          border-none cursor-pointer hover:opacity-80 transition-opacity"
             >
-              Continue
+              {t('error.continue')}
             </button>
           </div>
         )}

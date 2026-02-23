@@ -12,7 +12,7 @@ import type {
   HistoryManager,
 } from '@ava/core';
 import type { PermissionMode } from '@ava/core';
-import { scaffoldProjectInstructions, detectProjectRoot, getInstructionsPath } from '@ava/core';
+import { t, scaffoldProjectInstructions, detectProjectRoot, getInstructionsPath } from '@ava/core';
 
 interface Command {
   name: string;
@@ -41,7 +41,7 @@ export class CommandHandler {
     this.registerCommand({
       name: 'help',
       aliases: ['h'],
-      description: 'Show available commands',
+      description: t('cmd.help.desc'),
       execute: async () => {
         const seen = new Set<string>();
         console.log('');
@@ -61,12 +61,12 @@ export class CommandHandler {
     this.registerCommand({
       name: 'model',
       aliases: ['m'],
-      description: 'List or switch models (/model <provider:model-id>)',
+      description: t('cmd.model.desc'),
       execute: async (args) => {
         if (args) {
           const resolved = opts.providerRegistry.resolveModel(args.trim());
           if (!resolved) {
-            console.log(`  Unknown model: ${args.trim()}`);
+            console.log(`  ${t('cmd.model.unknown', { model: args.trim() })}`);
             return true;
           }
           await opts.config.set('activeModel', `${resolved.provider.name}:${resolved.model.id}`);
@@ -77,7 +77,7 @@ export class CommandHandler {
 
           console.log(
             chalk.green(
-              `  Switched to ${resolved.model.name} (${resolved.provider.displayName})`,
+              `  ${t('cmd.model.switched', { name: resolved.model.name, provider: resolved.provider.displayName })}`,
             ),
           );
         } else {
@@ -86,7 +86,7 @@ export class CommandHandler {
           console.log('');
           for (const m of models) {
             const qualifiedId = `${m.provider}:${m.id}`;
-            const active = qualifiedId === activeModel ? chalk.green(' (active)') : '';
+            const active = qualifiedId === activeModel ? chalk.green(` ${t('cmd.model.active')}`) : '';
             console.log(`  ${chalk.bold(qualifiedId)} - ${m.name}${active}`);
           }
           console.log('');
@@ -98,10 +98,10 @@ export class CommandHandler {
     this.registerCommand({
       name: 'clear',
       aliases: ['c'],
-      description: 'Clear conversation history',
+      description: t('cmd.clear.desc'),
       execute: async () => {
         opts.conversation.clear();
-        console.log('  Conversation cleared.');
+        console.log(`  ${t('cmd.clear.done')}`);
         return true;
       },
     });
@@ -109,7 +109,7 @@ export class CommandHandler {
     this.registerCommand({
       name: 'provider',
       aliases: ['p'],
-      description: 'Add or list providers (/provider add <name>)',
+      description: t('cmd.provider.desc'),
       execute: async (args) => {
         const parts = args.trim().split(/\s+/);
         const action = parts[0];
@@ -119,13 +119,13 @@ export class CommandHandler {
           const supported = ['deepseek', 'kimi', 'qwen'];
 
           if (!providerName || !supported.includes(providerName)) {
-            console.log(`  Usage: /provider add <${supported.join('|')}>`);
+            console.log(`  ${t('cmd.provider.usage', { providers: supported.join('|') })}`);
             return true;
           }
 
-          const apiKey = await this.askQuestion(`  Enter API key for ${providerName}: `);
+          const apiKey = await this.askQuestion(`  ${t('cmd.provider.enter_key', { provider: providerName })}`);
           if (!apiKey) {
-            console.log('  Cancelled.');
+            console.log(`  ${t('cmd.provider.cancelled')}`);
             return true;
           }
 
@@ -136,25 +136,25 @@ export class CommandHandler {
 
           try {
             opts.providerRegistry.register(providerName, settings);
-            console.log(chalk.green(`  Provider ${providerName} added successfully.`));
+            console.log(chalk.green(`  ${t('cmd.provider.added', { provider: providerName })}`));
           } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
-            console.log(chalk.red(`  Failed to register ${providerName}: ${msg}`));
+            console.log(chalk.red(`  ${t('cmd.provider.failed', { provider: providerName, error: msg })}`));
           }
         } else {
           const appConfig = await opts.config.load();
           console.log('');
-          console.log(chalk.bold('  Configured providers:'));
+          console.log(chalk.bold(`  ${t('cmd.provider.title')}`));
           const supported = ['deepseek', 'kimi', 'qwen'];
           for (const name of supported) {
             const configured = (appConfig.providers as Record<string, ProviderSettings | undefined>)[name];
             const status = configured?.apiKey
-              ? chalk.green('configured')
-              : chalk.dim('not configured');
+              ? chalk.green(t('cmd.provider.configured'))
+              : chalk.dim(t('cmd.provider.not_configured'));
             console.log(`  ${chalk.bold(name)} — ${status}`);
           }
           console.log('');
-          console.log(chalk.dim('  Use /provider add <name> to add a provider.'));
+          console.log(chalk.dim(`  ${t('cmd.provider.hint')}`));
           console.log('');
         }
         return true;
@@ -166,11 +166,11 @@ export class CommandHandler {
     this.registerCommand({
       name: 'history',
       aliases: ['ls'],
-      description: 'List saved conversations',
+      description: t('cmd.history.desc'),
       execute: async () => {
         const conversations = await opts.historyManager.listConversations();
         if (conversations.length === 0) {
-          console.log('  No saved conversations.');
+          console.log(`  ${t('cmd.history.empty')}`);
           return true;
         }
         // Sort pinned first, then by updatedAt (already sorted newest-first)
@@ -179,7 +179,7 @@ export class CommandHandler {
           ...conversations.filter((c) => !c.pinned),
         ];
         console.log('');
-        console.log(chalk.bold('  Saved conversations:'));
+        console.log(chalk.bold(`  ${t('cmd.history.title')}`));
         for (const c of sorted.slice(0, 20)) {
           const date = new Date(c.updatedAt);
           const relative = formatRelativeDate(date);
@@ -187,10 +187,10 @@ export class CommandHandler {
           console.log(`  ${chalk.dim(c.id.slice(0, 8))} ${c.title}${pin} ${chalk.dim(`(${relative})`)}`);
         }
         if (sorted.length > 20) {
-          console.log(chalk.dim(`  ... and ${sorted.length - 20} more`));
+          console.log(chalk.dim(`  ${t('cmd.history.more', { count: String(sorted.length - 20) })}`));
         }
         console.log('');
-        console.log(chalk.dim('  Use /resume <id-prefix> to load a conversation.'));
+        console.log(chalk.dim(`  ${t('cmd.history.hint')}`));
         console.log('');
         return true;
       },
@@ -198,31 +198,31 @@ export class CommandHandler {
 
     this.registerCommand({
       name: 'resume',
-      description: 'Resume a saved conversation (/resume <id-prefix>)',
+      description: t('cmd.resume.desc'),
       execute: async (args) => {
         const prefix = args.trim();
         if (!prefix) {
-          console.log('  Usage: /resume <id-prefix>');
-          console.log('  Run /history to see available conversations.');
+          console.log(`  ${t('cmd.resume.usage')}`);
+          console.log(`  ${t('cmd.resume.hint')}`);
           return true;
         }
 
         const conversations = await opts.historyManager.listConversations();
         const match = conversations.find((c) => c.id.startsWith(prefix));
         if (!match) {
-          console.log(`  No conversation found matching "${prefix}".`);
+          console.log(`  ${t('cmd.resume.not_found', { prefix })}`);
           return true;
         }
 
         const record = await opts.historyManager.resumeConversation(match.id);
         if (!record) {
-          console.log('  Failed to load conversation.');
+          console.log(`  ${t('cmd.resume.failed')}`);
           return true;
         }
 
         opts.conversation.setMessages(record.messages);
-        console.log(chalk.green(`  Resumed: ${record.title}`));
-        console.log(chalk.dim(`  ${record.messages.length} messages loaded.`));
+        console.log(chalk.green(`  ${t('cmd.resume.done', { title: record.title })}`));
+        console.log(chalk.dim(`  ${t('cmd.resume.count', { count: String(record.messages.length) })}`));
         return true;
       },
     });
@@ -230,20 +230,20 @@ export class CommandHandler {
     this.registerCommand({
       name: 'search',
       aliases: ['s'],
-      description: 'Search conversations (/search <query>)',
+      description: t('cmd.search.desc'),
       execute: async (args) => {
         const query = args.trim();
         if (!query) {
-          console.log('  Usage: /search <query>');
+          console.log(`  ${t('cmd.search.usage')}`);
           return true;
         }
         const results = await opts.historyManager.searchConversations(query);
         if (results.length === 0) {
-          console.log(`  No conversations matching "${query}".`);
+          console.log(`  ${t('cmd.search.empty', { query })}`);
           return true;
         }
         console.log('');
-        console.log(chalk.bold(`  Search results for "${query}":`));
+        console.log(chalk.bold(`  ${t('cmd.search.title', { query })}`));
         for (const c of results.slice(0, 20)) {
           const date = new Date(c.updatedAt);
           const relative = formatRelativeDate(date);
@@ -251,7 +251,7 @@ export class CommandHandler {
           console.log(`  ${chalk.dim(c.id.slice(0, 8))} ${c.title}${pin} ${chalk.dim(`(${relative})`)}`);
         }
         if (results.length > 20) {
-          console.log(chalk.dim(`  ... and ${results.length - 20} more`));
+          console.log(chalk.dim(`  ${t('cmd.history.more', { count: String(results.length - 20) })}`));
         }
         console.log('');
         return true;
@@ -261,32 +261,32 @@ export class CommandHandler {
     this.registerCommand({
       name: 'delete',
       aliases: ['rm'],
-      description: 'Delete a saved conversation (/delete <id-prefix>)',
+      description: t('cmd.delete.desc'),
       execute: async (args) => {
         const prefix = args.trim();
         if (!prefix) {
-          console.log('  Usage: /delete <id-prefix>');
-          console.log('  Run /history to see available conversations.');
+          console.log(`  ${t('cmd.delete.usage')}`);
+          console.log(`  ${t('cmd.resume.hint')}`);
           return true;
         }
         const conversations = await opts.historyManager.listConversations();
         const match = conversations.find((c) => c.id.startsWith(prefix));
         if (!match) {
-          console.log(`  No conversation found matching "${prefix}".`);
+          console.log(`  ${t('cmd.resume.not_found', { prefix })}`);
           return true;
         }
         const confirm = await this.askQuestion(
-          `  Delete "${match.title}" (${match.id.slice(0, 8)})? (y/n) `,
+          `  ${t('cmd.delete.confirm', { title: match.title, id: match.id.slice(0, 8) })}`,
         );
         if (!confirm.toLowerCase().startsWith('y')) {
-          console.log('  Cancelled.');
+          console.log(`  ${t('cmd.provider.cancelled')}`);
           return true;
         }
         const deleted = await opts.historyManager.deleteConversation(match.id);
         if (deleted) {
-          console.log(chalk.green('  Conversation deleted.'));
+          console.log(chalk.green(`  ${t('cmd.delete.done')}`));
         } else {
-          console.log('  Failed to delete conversation.');
+          console.log(`  ${t('cmd.delete.failed')}`);
         }
         return true;
       },
@@ -294,31 +294,31 @@ export class CommandHandler {
 
     this.registerCommand({
       name: 'rename',
-      description: 'Rename a conversation (/rename <id-prefix> <new title>)',
+      description: t('cmd.rename.desc'),
       execute: async (args) => {
         const trimmed = args.trim();
         const spaceIdx = trimmed.indexOf(' ');
         if (!trimmed || spaceIdx === -1) {
-          console.log('  Usage: /rename <id-prefix> <new title>');
+          console.log(`  ${t('cmd.rename.usage')}`);
           return true;
         }
         const prefix = trimmed.slice(0, spaceIdx);
         const newTitle = trimmed.slice(spaceIdx + 1).trim();
         if (!newTitle) {
-          console.log('  Usage: /rename <id-prefix> <new title>');
+          console.log(`  ${t('cmd.rename.usage')}`);
           return true;
         }
         const conversations = await opts.historyManager.listConversations();
         const match = conversations.find((c) => c.id.startsWith(prefix));
         if (!match) {
-          console.log(`  No conversation found matching "${prefix}".`);
+          console.log(`  ${t('cmd.resume.not_found', { prefix })}`);
           return true;
         }
         const success = await opts.historyManager.renameConversation(match.id, newTitle);
         if (success) {
-          console.log(chalk.green(`  Renamed to: ${newTitle}`));
+          console.log(chalk.green(`  ${t('cmd.rename.done', { title: newTitle })}`));
         } else {
-          console.log('  Failed to rename conversation.');
+          console.log(`  ${t('cmd.rename.failed')}`);
         }
         return true;
       },
@@ -326,24 +326,24 @@ export class CommandHandler {
 
     this.registerCommand({
       name: 'pin',
-      description: 'Pin a conversation (/pin <id-prefix>)',
+      description: t('cmd.pin.desc'),
       execute: async (args) => {
         const prefix = args.trim();
         if (!prefix) {
-          console.log('  Usage: /pin <id-prefix>');
+          console.log(`  ${t('cmd.pin.usage')}`);
           return true;
         }
         const conversations = await opts.historyManager.listConversations();
         const match = conversations.find((c) => c.id.startsWith(prefix));
         if (!match) {
-          console.log(`  No conversation found matching "${prefix}".`);
+          console.log(`  ${t('cmd.resume.not_found', { prefix })}`);
           return true;
         }
         const success = await opts.historyManager.pinConversation(match.id, true);
         if (success) {
-          console.log(chalk.green(`  Pinned: ${match.title}`));
+          console.log(chalk.green(`  ${t('cmd.pin.done', { title: match.title })}`));
         } else {
-          console.log('  Failed to pin conversation.');
+          console.log(`  ${t('cmd.pin.failed')}`);
         }
         return true;
       },
@@ -351,24 +351,24 @@ export class CommandHandler {
 
     this.registerCommand({
       name: 'unpin',
-      description: 'Unpin a conversation (/unpin <id-prefix>)',
+      description: t('cmd.unpin.desc'),
       execute: async (args) => {
         const prefix = args.trim();
         if (!prefix) {
-          console.log('  Usage: /unpin <id-prefix>');
+          console.log(`  ${t('cmd.unpin.usage')}`);
           return true;
         }
         const conversations = await opts.historyManager.listConversations();
         const match = conversations.find((c) => c.id.startsWith(prefix));
         if (!match) {
-          console.log(`  No conversation found matching "${prefix}".`);
+          console.log(`  ${t('cmd.resume.not_found', { prefix })}`);
           return true;
         }
         const success = await opts.historyManager.pinConversation(match.id, false);
         if (success) {
-          console.log(chalk.green(`  Unpinned: ${match.title}`));
+          console.log(chalk.green(`  ${t('cmd.unpin.done', { title: match.title })}`));
         } else {
-          console.log('  Failed to unpin conversation.');
+          console.log(`  ${t('cmd.unpin.failed')}`);
         }
         return true;
       },
@@ -376,31 +376,31 @@ export class CommandHandler {
 
     this.registerCommand({
       name: 'export',
-      description: 'Export a conversation (/export <id-prefix> [markdown|json])',
+      description: t('cmd.export.desc'),
       execute: async (args) => {
         const parts = args.trim().split(/\s+/);
         const prefix = parts[0];
         const format = (parts[1] === 'json' ? 'json' : 'markdown') as 'markdown' | 'json';
         if (!prefix) {
-          console.log('  Usage: /export <id-prefix> [markdown|json]');
+          console.log(`  ${t('cmd.export.usage')}`);
           return true;
         }
         const conversations = await opts.historyManager.listConversations();
         const match = conversations.find((c) => c.id.startsWith(prefix));
         if (!match) {
-          console.log(`  No conversation found matching "${prefix}".`);
+          console.log(`  ${t('cmd.resume.not_found', { prefix })}`);
           return true;
         }
         const content = await opts.historyManager.exportConversation(match.id, format);
         if (!content) {
-          console.log('  Failed to export conversation.');
+          console.log(`  ${t('cmd.export.failed')}`);
           return true;
         }
         const ext = format === 'json' ? '.json' : '.md';
         const filename = `conversation-export${ext}`;
         const { writeFile } = await import('node:fs/promises');
         await writeFile(filename, content, 'utf-8');
-        console.log(chalk.green(`  Exported to ${filename}`));
+        console.log(chalk.green(`  ${t('cmd.export.done', { filename })}`));
         return true;
       },
     });
@@ -410,12 +410,12 @@ export class CommandHandler {
     this.registerCommand({
       name: 'retry',
       aliases: ['r'],
-      description: 'Retry the last message',
+      description: t('cmd.retry.desc'),
       execute: async () => {
         if (opts.onRetry) {
           opts.onRetry();
         } else {
-          console.log('  Retry not available.');
+          console.log(`  ${t('cmd.retry.unavailable')}`);
         }
         return true;
       },
@@ -426,12 +426,12 @@ export class CommandHandler {
     this.registerCommand({
       name: 'compact',
       aliases: ['compress'],
-      description: 'Compress conversation context to free up space',
+      description: t('cmd.compact.desc'),
       execute: async () => {
         if (opts.onCompact) {
           await opts.onCompact();
         } else {
-          console.log('  Compression not available.');
+          console.log(`  ${t('cmd.compact.unavailable')}`);
         }
         return true;
       },
@@ -442,7 +442,7 @@ export class CommandHandler {
     this.registerCommand({
       name: 'permission',
       aliases: ['perm'],
-      description: 'View or set permission mode (/permission <strict|balanced|autonomous>)',
+      description: t('cmd.permission.desc'),
       execute: async (args) => {
         const modes: PermissionMode[] = ['strict', 'balanced', 'autonomous'];
         const input = args.trim().toLowerCase() as PermissionMode;
@@ -450,14 +450,14 @@ export class CommandHandler {
         if (!input) {
           const current = opts.toolRegistry.getPermissionMode();
           console.log('');
-          console.log(chalk.bold('  Permission mode:'));
+          console.log(chalk.bold(`  ${t('cmd.permission.title')}`));
           for (const m of modes) {
-            const active = m === current ? chalk.green(' (active)') : '';
+            const active = m === current ? chalk.green(` ${t('cmd.model.active')}`) : '';
             const desc = m === 'strict'
-              ? 'confirm writes and shell commands'
+              ? t('cmd.permission.strict')
               : m === 'balanced'
-                ? 'auto-approve writes, confirm shell commands'
-                : 'auto-approve everything';
+                ? t('cmd.permission.balanced')
+                : t('cmd.permission.autonomous');
             console.log(`  ${chalk.bold(m)} — ${desc}${active}`);
           }
           console.log('');
@@ -465,12 +465,12 @@ export class CommandHandler {
         }
 
         if (!modes.includes(input)) {
-          console.log(`  Unknown mode. Choose: ${modes.join(', ')}`);
+          console.log(`  ${t('cmd.permission.unknown', { modes: modes.join(', ') })}`);
           return true;
         }
 
         opts.toolRegistry.setPermissionMode(input);
-        console.log(chalk.green(`  Permission mode set to ${input}.`));
+        console.log(chalk.green(`  ${t('cmd.permission.set', { mode: input })}`));
         return true;
       },
     });
@@ -479,11 +479,11 @@ export class CommandHandler {
 
     this.registerCommand({
       name: 'tools',
-      description: 'List available tools',
+      description: t('cmd.tools.desc'),
       execute: async () => {
         const schemas = opts.toolRegistry.getSchemas();
         console.log('');
-        console.log(chalk.bold('  Available tools:'));
+        console.log(chalk.bold(`  ${t('cmd.tools.title')}`));
         for (const s of schemas) {
           console.log(`  ${chalk.bold(s.function.name)} — ${s.function.description.slice(0, 80)}`);
         }
@@ -494,18 +494,18 @@ export class CommandHandler {
 
     this.registerCommand({
       name: 'init',
-      description: 'Create .ava/instructions.md for project-specific context',
+      description: t('cmd.init.desc'),
       execute: async () => {
         const cwd = process.cwd();
         const projectRoot = detectProjectRoot(cwd) ?? cwd;
         const result = await scaffoldProjectInstructions(projectRoot);
         if (result) {
-          console.log(chalk.green(`  Created ${result}`));
-          console.log(chalk.dim('  Edit this file to give Ava project-specific context.'));
-          console.log(chalk.dim('  Restart Ava for changes to take effect.'));
+          console.log(chalk.green(`  ${t('cmd.init.created', { path: result })}`));
+          console.log(chalk.dim(`  ${t('cmd.init.hint')}`));
+          console.log(chalk.dim(`  ${t('cmd.init.restart')}`));
         } else {
           const existing = getInstructionsPath(projectRoot);
-          console.log(`  ${existing} already exists.`);
+          console.log(`  ${t('cmd.init.exists', { path: existing })}`);
         }
         return true;
       },
@@ -514,7 +514,7 @@ export class CommandHandler {
     this.registerCommand({
       name: 'exit',
       aliases: ['quit', 'q'],
-      description: 'Exit Ava',
+      description: t('cmd.exit.desc'),
       execute: async () => false,
     });
   }
@@ -544,7 +544,7 @@ export class CommandHandler {
     const command = this.commands.get(cmdName);
 
     if (!command) {
-      console.log(`  Unknown command: ${input}. Type /help for available commands.`);
+      console.log(`  ${t('cmd.unknown', { input })}`);
       return true;
     }
 
@@ -559,9 +559,9 @@ function formatRelativeDate(date: Date): string {
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
 
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 7) return `${days}d ago`;
+  if (minutes < 1) return t('history.just_now');
+  if (minutes < 60) return t('history.minutes_ago', { n: String(minutes) });
+  if (hours < 24) return t('history.hours_ago', { n: String(hours) });
+  if (days < 7) return t('history.days_ago', { n: String(days) });
   return date.toLocaleDateString();
 }

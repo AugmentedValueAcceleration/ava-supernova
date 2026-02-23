@@ -1,6 +1,7 @@
 import * as readline from 'node:readline';
 import { stdin, stdout } from 'node:process';
 import chalk from 'chalk';
+import { t } from '@ava/core';
 import type { Agent, AgentEvent, Conversation, ToolRegistry, HistoryManager } from '@ava/core';
 import { Renderer } from './renderer.js';
 import { CommandHandler } from './commands.js';
@@ -64,10 +65,10 @@ export class Repl {
     if (toolName === 'ask_user') {
       return new Promise((resolve) => {
         this.spinner.stop();
-        const question = String(args.question ?? 'Ava has a question for you');
+        const question = String(args.question ?? t('cli.question_fallback'));
         console.log('');
         console.log(
-          chalk.hex(THEME.accent)('  [question] ') +
+          chalk.hex(THEME.accent)('  ' + t('cli.question_label') + ' ') +
           chalk.bold(question),
         );
 
@@ -77,15 +78,15 @@ export class Repl {
         });
 
         askRl.question(
-          chalk.hex(THEME.accent)('  Your response: '),
+          chalk.hex(THEME.accent)('  ' + t('cli.your_response')),
           (answer) => {
             askRl.close();
             const response = answer.trim();
             if (!response) {
-              console.log(chalk.dim('  Skipped.'));
+              console.log(chalk.dim('  ' + t('cli.skipped')));
               resolve(false);
             } else {
-              resolve(`User response: ${response}`);
+              resolve(t('cli.user_response', { response }));
             }
           },
         );
@@ -98,7 +99,7 @@ export class Repl {
       const summary = this.formatToolSummary(toolName, args);
       console.log('');
       console.log(
-        chalk.hex(THEME.toolAccent)('  [confirm] ') +
+        chalk.hex(THEME.toolAccent)('  ' + t('cli.confirm_label') + ' ') +
         chalk.bold(toolName) +
         chalk.dim(` — ${summary}`),
       );
@@ -109,12 +110,12 @@ export class Repl {
       });
 
       confirmRl.question(
-        chalk.hex(THEME.toolAccent)('  Allow? ') + chalk.dim('(y/n) '),
+        chalk.hex(THEME.toolAccent)(t('cli.allow_prompt')) + chalk.dim(t('cli.allow_yn')),
         (answer) => {
           confirmRl.close();
           const approved = answer.trim().toLowerCase().startsWith('y');
           if (!approved) {
-            console.log(chalk.dim('  Denied.'));
+            console.log(chalk.dim('  ' + t('cli.denied')));
           }
           resolve(approved);
         },
@@ -127,13 +128,13 @@ export class Repl {
       case 'bash':
         return String(args.command ?? '').slice(0, 80);
       case 'file_write':
-        return `write to ${args.file_path}`;
+        return t('cli.write_to', { path: String(args.file_path) });
       case 'file_edit':
-        return `edit ${args.file_path}`;
+        return t('cli.edit_file', { path: String(args.file_path) });
       case 'list_directory':
-        return `list ${args.path}`;
+        return t('cli.list_path', { path: String(args.path) });
       case 'web_search':
-        return `search "${String(args.query ?? '').slice(0, 60)}"`;
+        return t('cli.search_query', { query: String(args.query ?? '').slice(0, 60) });
       case 'ask_user':
         return String(args.question ?? '').slice(0, 80);
       case 'git_status':
@@ -261,7 +262,7 @@ export class Repl {
   }
 
   async compact(): Promise<void> {
-    this.spinner.start('Compressing context...');
+    this.spinner.start(t('compression.start'));
     try {
       const messages = this.conversation.getMessages();
       const compressed = await this.agent.compressContext(messages, (event) => {
@@ -270,18 +271,18 @@ export class Repl {
           if (event.originalTokens > 0) {
             console.log(
               chalk.green(
-                `  Context compressed: ~${event.originalTokens} → ~${event.compressedTokens} tokens`,
+                '  ' + t('compression.result', { original: String(event.originalTokens), compressed: String(event.compressedTokens) }),
               ),
             );
           } else {
-            console.log('  Nothing to compress.');
+            console.log('  ' + t('compression.nothing'));
           }
         }
       });
       this.conversation.setMessages(compressed);
     } catch {
       this.spinner.stop();
-      console.log(chalk.red('  Compression failed.'));
+      console.log(chalk.red('  ' + t('compression.failed')));
     }
   }
 
@@ -305,7 +306,7 @@ export class Repl {
           break;
         case 'tool_call_start':
           this.renderer.printToolCallStart(event.toolCall);
-          this.spinner.start(`Running ${event.toolCall.function.name}...`);
+          this.spinner.start(t('cli.running', { tool: event.toolCall.function.name }));
           break;
         case 'tool_call_end':
           this.spinner.stop();
@@ -319,17 +320,17 @@ export class Repl {
           this.renderer.printError(event.error);
           break;
         case 'context_truncated':
-          console.log(chalk.yellow(`  Context truncated: ${event.droppedCount} messages dropped.`));
+          console.log(chalk.yellow('  ' + t('compression.context_truncated', { count: String(event.droppedCount) })));
           break;
         case 'context_compression_start':
-          this.spinner.start('Compressing context...');
+          this.spinner.start(t('compression.start'));
           break;
         case 'context_compression_end':
           this.spinner.stop();
           if (event.originalTokens > 0) {
             console.log(
               chalk.green(
-                `  Context compressed: ~${event.originalTokens} → ~${event.compressedTokens} tokens`,
+                '  ' + t('compression.result', { original: String(event.originalTokens), compressed: String(event.compressedTokens) }),
               ),
             );
           }
@@ -339,7 +340,7 @@ export class Repl {
       }
     };
 
-    this.spinner.start('Thinking...');
+    this.spinner.start(t('cli.thinking'));
 
     try {
       const updatedMessages = await this.agent.run(this.conversation.getMessages(), onEvent);

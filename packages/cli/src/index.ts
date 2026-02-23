@@ -11,6 +11,8 @@ import {
   HistoryManager,
   detectProjectRoot,
   loadProjectInstructions,
+  setLocale,
+  resolveLocale,
 } from '@ava/core';
 import type { ProviderSettings } from '@ava/core';
 import { runSetupWizard } from './setup-wizard.js';
@@ -49,6 +51,10 @@ async function main(): Promise<void> {
     }
   }
 
+  // Resolve locale from config
+  const language = resolveLocale(appConfig.preferences?.language ?? 'auto');
+  await setLocale(language);
+
   // Resolve active model
   const resolved = providerRegistry.resolveModel(appConfig.activeModel);
   if (!resolved) {
@@ -69,6 +75,7 @@ async function main(): Promise<void> {
       shell: process.env.SHELL ?? (process.platform === 'win32' ? 'bash' : '/bin/bash'),
       supportsVision: resolved.model.supportsVision,
       projectInstructions: projectInstructions ?? undefined,
+      language,
     }),
   );
 

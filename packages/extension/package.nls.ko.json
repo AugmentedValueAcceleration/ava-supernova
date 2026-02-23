@@ -1,0 +1,18 @@
+{
+  "displayName": "Ava | Supernova",
+  "description": "오픈소스 AI 코딩 에이전트 — 에디터에서 DeepSeek, Kimi, Qwen 사용",
+  "viewContainer.title": "Ava | Supernova",
+  "view.chat.name": "채팅",
+  "command.openChat.title": "채팅 열기",
+  "command.newChat.title": "새 채팅",
+  "command.clearChat.title": "채팅 지우기",
+  "command.switchModel.title": "모델 전환",
+  "command.showHistory.title": "채팅 기록",
+  "setting.activeModel.description": "사용할 AI 모델 선택",
+  "setting.deepseek.apiKey.description": "DeepSeek API 키",
+  "setting.kimi.apiKey.description": "Kimi (Moonshot AI) API 키",
+  "setting.qwen.apiKey.description": "Qwen (Alibaba Cloud) API 키",
+  "setting.temperature.description": "샘플링 온도",
+  "setting.language.description": "Ava UI 및 응답 언어",
+  "setting.permissionMode.description": "Ava가 도구 작업을 실행하기 전에 승인이 필요한지 제어합니다"
+}

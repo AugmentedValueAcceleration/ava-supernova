@@ -1,0 +1,18 @@
+{
+  "displayName": "Ava | Supernova",
+  "description": "Açık kaynak AI kodlama ajanı — Editörünüzde DeepSeek, Kimi ve Qwen",
+  "viewContainer.title": "Ava | Supernova",
+  "view.chat.name": "Sohbet",
+  "command.openChat.title": "Sohbeti aç",
+  "command.newChat.title": "Yeni sohbet",
+  "command.clearChat.title": "Sohbeti temizle",
+  "command.switchModel.title": "Model değiştir",
+  "command.showHistory.title": "Sohbet geçmişi",
+  "setting.activeModel.description": "Kullanılacak AI modelini seçin",
+  "setting.deepseek.apiKey.description": "DeepSeek API anahtarı",
+  "setting.kimi.apiKey.description": "Kimi (Moonshot AI) API anahtarı",
+  "setting.qwen.apiKey.description": "Qwen (Alibaba Cloud) API anahtarı",
+  "setting.temperature.description": "Örnekleme sıcaklığı",
+  "setting.language.description": "Ava'nın arayüz ve yanıt dili",
+  "setting.permissionMode.description": "Ava'nın yürütmeden önce hangi araç işlemlerinin onayınızı gerektirdiğini kontrol eder"
+}

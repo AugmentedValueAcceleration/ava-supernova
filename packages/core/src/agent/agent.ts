@@ -11,6 +11,7 @@ import { getTextContent } from '../core/types.js';
 import type { ToolRegistry } from '../tools/tool-registry.js';
 import type { ToolExecutionContext } from '../tools/types.js';
 import { MAX_TOOL_CALL_ITERATIONS, ITERATION_WARNING_THRESHOLD } from '../core/constants.js';
+import { t } from '../i18n/index.js';
 
 // ─── Event system ────────────────────────────────────────────────────────────
 
@@ -78,7 +79,7 @@ export class Agent {
           ...messages,
           {
             role: 'system' as const,
-            content: `[WARNING] You have ${remaining} iterations remaining before the loop limit. Wrap up your current task — summarize what you've done and what's left. Don't start new multi-step work.`,
+            content: t('error.msg.iteration_warning', { remaining: String(remaining) }),
           },
         ];
       }
@@ -112,7 +113,7 @@ export class Agent {
           const textParts = (msg.content as ContentPart[]).filter((p) => p.type === 'text');
           if (textParts.length === 0) {
             // Message was image-only — replace with a note so the model has context
-            msg = { ...msg, content: '[An image was shared but this model does not support vision]' };
+            msg = { ...msg, content: t('error.msg.image_stripped') };
           } else if (textParts.length < (msg.content as ContentPart[]).length) {
             // Mixed text+image — keep only the text, collapsed to a plain string
             msg = { ...msg, content: textParts.map((p) => p.text).join('\n') };
@@ -175,9 +176,7 @@ export class Agent {
         if (!assistantMessage.content && !assistantMessage.reasoning_content) {
           onEvent({
             type: 'error',
-            error: new Error(
-              'The model returned an empty response. This can happen when the API is overloaded or the request was filtered. Try again.',
-            ),
+            error: new Error(t('error.msg.empty_response')),
           });
         }
         onEvent({ type: 'done', finalMessage: assistantMessage });
@@ -226,7 +225,7 @@ export class Agent {
     }
 
     const iterError = new Error(
-      `Ava reached the ${MAX_TOOL_CALL_ITERATIONS}-iteration safety limit. This usually means the task is very large or the model got stuck in a loop.`,
+      t('error.msg.iteration_limit', { limit: String(MAX_TOOL_CALL_ITERATIONS) }),
     );
     (iterError as Error & { code?: string }).code = 'iterations_exceeded';
     onEvent({ type: 'error', error: iterError });

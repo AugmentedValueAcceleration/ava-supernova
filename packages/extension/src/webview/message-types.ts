@@ -6,6 +6,8 @@ export type ExtToWebviewMessage =
       models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean }>;
       activeModel: string | null;
       needsSetup: boolean;
+      locale?: string;
+      localeStrings?: Record<string, string>;
     }
   | { type: 'user_message_ack'; text: string; images?: string[] }
   | { type: 'stream_start' }

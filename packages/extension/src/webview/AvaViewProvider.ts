@@ -11,6 +11,8 @@ import {
   killBackgroundProcesses,
   detectProjectRoot,
   loadProjectInstructions,
+  setLocaleSync,
+  resolveLocale,
 } from '@ava/core';
 import type { AgentEvent, Provider, ModelDefinition, Message, ContentPart, PermissionMode } from '@ava/core';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode } from './message-types.js';
@@ -37,6 +39,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private readonly statusBarItem: vscode.StatusBarItem;
   private projectRoot?: string;
   private projectInstructions?: string;
+  private currentLocale = 'en';
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -185,13 +188,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.conversation.setSystemPrompt(this.buildCurrentSystemPrompt());
     this.setLastConversationId(undefined);
     this.postMessage({ type: 'chat_cleared' });
-    this.postMessage({ type: 'init', models: this.getModelList(), activeModel: this.getActiveModelId(), needsSetup: !this.agent });
+    this.postMessage({ type: 'init', models: this.getModelList(), activeModel: this.getActiveModelId(), needsSetup: !this.agent, locale: this.currentLocale });
   }
 
   clearChat(): void {
     this.conversation?.clear();
     this.postMessage({ type: 'chat_cleared' });
-    this.postMessage({ type: 'init', models: this.getModelList(), activeModel: this.getActiveModelId(), needsSetup: !this.agent });
+    this.postMessage({ type: 'init', models: this.getModelList(), activeModel: this.getActiveModelId(), needsSetup: !this.agent, locale: this.currentLocale });
   }
 
   async switchModel(): Promise<void> {
@@ -244,7 +247,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const config = vscode.workspace.getConfiguration('ava-supernova');
     this.providerRegistry = new ProviderRegistry();
 
-    this.log('Initializing session...');
+    // Resolve locale from settings, falling back to VS Code language
+    const langSetting = config.get<string>('preferences.language') || 'auto';
+    this.currentLocale = resolveLocale(langSetting === 'auto' ? vscode.env.language : langSetting);
+    setLocaleSync(this.currentLocale);
+
+    this.log(`Initializing session... (locale: ${this.currentLocale})`);
 
     for (const name of ['deepseek', 'kimi', 'qwen']) {
       const apiKey = config.get<string>(`providers.${name}.apiKey`);
@@ -273,6 +281,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       models: this.getModelList(),
       activeModel: resolved ? `${resolved.provider.name}:${resolved.model.id}` : null,
       needsSetup: !resolved,
+      locale: this.currentLocale,
     });
   }
 
@@ -351,6 +360,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       permissionMode: this.getPermissionMode(),
       supportsVision: this.activeModelDef?.supportsVision,
       projectInstructions: this.projectInstructions,
+      language: this.currentLocale,
     });
   }
 

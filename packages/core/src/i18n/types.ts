@@ -1,0 +1,48 @@
+export const SUPPORTED_LOCALES = [
+  'en',
+  'zh-CN',
+  'zh-TW',
+  'ja',
+  'ko',
+  'es',
+  'pt',
+  'fr',
+  'de',
+  'ru',
+  'ar',
+  'hi',
+  'vi',
+  'th',
+  'tr',
+  'it',
+  'pl',
+  'uk',
+  'nl',
+  'id',
+] as const;
+
+export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
+
+/** Maps locale code → native language name (used in system prompt + settings UI) */
+export const LANGUAGE_NAMES: Record<SupportedLocale, string> = {
+  'en': 'English',
+  'zh-CN': '中文（简体）',
+  'zh-TW': '中文（繁體）',
+  'ja': '日本語',
+  'ko': '한국어',
+  'es': 'Español',
+  'pt': 'Português',
+  'fr': 'Français',
+  'de': 'Deutsch',
+  'ru': 'Русский',
+  'ar': 'العربية',
+  'hi': 'हिन्दी',
+  'vi': 'Tiếng Việt',
+  'th': 'ไทย',
+  'tr': 'Türkçe',
+  'it': 'Italiano',
+  'pl': 'Polski',
+  'uk': 'Українська',
+  'nl': 'Nederlands',
+  'id': 'Bahasa Indonesia',
+};

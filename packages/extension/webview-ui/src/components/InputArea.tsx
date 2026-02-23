@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { t } from '../i18n';
 
 export type AvaMode = 'code' | 'plan' | 'chat';
 
@@ -24,18 +25,18 @@ interface InputAreaProps {
   onCompress?: () => void;
 }
 
-const MODES: { id: AvaMode; label: string; icon: string }[] = [
-  { id: 'code', label: 'Code', icon: '>>' },
-  { id: 'plan', label: 'Plan', icon: '::' },
-  { id: 'chat', label: 'Chat', icon: '..' },
+const MODES: { id: AvaMode; labelKey: string; icon: string }[] = [
+  { id: 'code', labelKey: 'input.mode.code', icon: '>>' },
+  { id: 'plan', labelKey: 'input.mode.plan', icon: '::' },
+  { id: 'chat', labelKey: 'input.mode.chat', icon: '..' },
 ];
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
-const PLACEHOLDERS: Record<AvaMode, string> = {
-  code: 'What do you want to build?',
-  plan: 'Describe what you want to plan...',
-  chat: 'Ask a question or start a discussion...',
+const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
+  code: 'input.placeholder.code',
+  plan: 'input.placeholder.plan',
+  chat: 'input.placeholder.chat',
 };
 
 export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCompressing, onCompress }: InputAreaProps) {
@@ -229,7 +230,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
         {isDragOver && (
           <div className="absolute inset-0 z-10 flex items-center justify-center
                           bg-[var(--vscode-input-background)] opacity-90 pointer-events-none">
-            <span className="text-xs opacity-50">Drop image here</span>
+            <span className="text-xs opacity-50">{t('input.drop_image')}</span>
           </div>
         )}
 
@@ -243,7 +244,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
           }}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          placeholder={disabled ? 'Configure a provider to start...' : PLACEHOLDERS[mode]}
+          placeholder={disabled ? t('input.placeholder.disabled') : t(PLACEHOLDER_KEYS[mode])}
           disabled={disabled}
           rows={1}
           className="w-full resize-none text-sm px-3 pt-3 pb-1
@@ -265,7 +266,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                 onClick={() => setMode(m.id)}
                 role="radio"
                 aria-checked={mode === m.id}
-                aria-label={`${m.label} mode`}
+                aria-label={`${t(m.labelKey)} mode`}
                 className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium
                             border-none cursor-pointer transition-colors
                   ${mode === m.id
@@ -274,7 +275,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                   }`}
               >
                 <span className="font-mono text-[10px] opacity-80" aria-hidden="true">{m.icon}</span>
-                {m.label}
+                {t(m.labelKey)}
               </button>
             ))}
           </div>
@@ -300,14 +301,14 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                         : 'opacity-30 hover:opacity-50'
                   }`}
                   title={isCompressing
-                    ? 'Compressing context...'
+                    ? t('input.compressing')
                     : isCritical
-                      ? 'Click to compress context'
+                      ? t('input.compress_click')
                       : isWarning
-                        ? 'Click to compress context'
-                        : 'Context usage \u2014 click to compress'}
+                        ? t('input.compress_click')
+                        : t('input.compress_usage')}
                 >
-                  {isCompressing ? 'Compressing...' : (
+                  {isCompressing ? t('input.compressing') : (
                     <>
                       {usage.prompt_tokens.toLocaleString()}/{usage.completion_tokens.toLocaleString()}
                       {pct > 0 && ` \u00B7 ${pct}%`}
@@ -323,8 +324,8 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
             <button
               onClick={handleAttach}
               disabled={disabled}
-              title="Attach image"
-              aria-label="Attach image"
+              title={t('input.attach_image')}
+              aria-label={t('input.attach_image')}
               className="flex items-center justify-center w-7 h-7 rounded
                          bg-transparent border-none cursor-pointer
                          text-[var(--vscode-foreground)] opacity-40 hover:opacity-70
@@ -339,8 +340,8 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
             {isStreaming ? (
               <button
                 onClick={onCancel}
-                title="Stop"
-                aria-label="Stop Ava"
+                title={t('input.stop')}
+                aria-label={t('input.stop')}
                 className="flex items-center justify-center w-7 h-7 rounded-full
                            bg-[var(--vscode-errorForeground,#e53935)]
                            text-white
@@ -355,8 +356,8 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
               <button
                 onClick={handleSend}
                 disabled={disabled || !hasContent}
-                title="Send (Enter)"
-                aria-label="Send message"
+                title={t('input.send')}
+                aria-label={t('input.send')}
                 className={`flex items-center justify-center w-7 h-7 rounded-full
                            border-none cursor-pointer transition-all
                   ${hasContent && !disabled

@@ -1,0 +1,18 @@
+{
+  "displayName": "Ava | Supernova",
+  "description": "Agen pengkodean AI sumber terbuka — DeepSeek, Kimi, dan Qwen di editor Anda",
+  "viewContainer.title": "Ava | Supernova",
+  "view.chat.name": "Obrolan",
+  "command.openChat.title": "Buka obrolan",
+  "command.newChat.title": "Obrolan baru",
+  "command.clearChat.title": "Hapus obrolan",
+  "command.switchModel.title": "Ganti model",
+  "command.showHistory.title": "Riwayat obrolan",
+  "setting.activeModel.description": "Pilih model AI yang akan digunakan",
+  "setting.deepseek.apiKey.description": "Kunci API DeepSeek",
+  "setting.kimi.apiKey.description": "Kunci API Kimi (Moonshot AI)",
+  "setting.qwen.apiKey.description": "Kunci API Qwen (Alibaba Cloud)",
+  "setting.temperature.description": "Suhu sampling",
+  "setting.language.description": "Bahasa antarmuka dan respons Ava",
+  "setting.permissionMode.description": "Mengontrol operasi alat mana yang memerlukan persetujuan Anda sebelum Ava menjalankannya"
+}

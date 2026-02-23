@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import type { ToolCallDisplay } from '../types/messages';
 import { CopyButton } from './CopyButton';
+import { t } from '../i18n';
 
 interface ToolCallCardProps {
   toolCall: ToolCallDisplay;
@@ -23,27 +24,27 @@ function getToolLabel(name: string, argsJson: string): { icon: string; label: st
 
   switch (name) {
     case 'file_read':
-      return { icon: '\uD83D\uDCC4', label: `Read ${filePath || 'file'}` };
+      return { icon: '\uD83D\uDCC4', label: t('tool.read', { file: filePath || 'file' }) };
     case 'file_write':
-      return { icon: '\uD83D\uDCDD', label: `Write ${filePath || 'file'}` };
+      return { icon: '\uD83D\uDCDD', label: t('tool.write', { file: filePath || 'file' }) };
     case 'file_edit':
-      return { icon: '\u270F\uFE0F', label: `Edit ${filePath || 'file'}` };
+      return { icon: '\u270F\uFE0F', label: t('tool.edit', { file: filePath || 'file' }) };
     case 'glob':
-      return { icon: '\uD83D\uDD0D', label: `Find files: ${pattern || '...'}` };
+      return { icon: '\uD83D\uDD0D', label: t('tool.find_files', { pattern: pattern || '...' }) };
     case 'grep':
-      return { icon: '\uD83D\uDD0E', label: `Search: ${pattern ? `/${pattern}/` : '...'}` };
+      return { icon: '\uD83D\uDD0E', label: t('tool.search', { pattern: pattern ? `/${pattern}/` : '...' }) };
     case 'bash':
-      return { icon: '\uD83D\uDCBB', label: `Run: ${truncate(command || '...', 60)}` };
+      return { icon: '\uD83D\uDCBB', label: t('tool.run', { command: truncate(command || '...', 60) }) };
     case 'list_directory':
-      return { icon: '\uD83D\uDCC1', label: `List ${shortenPath(args.path as string | undefined) || 'directory'}` };
+      return { icon: '\uD83D\uDCC1', label: t('tool.list_dir', { path: shortenPath(args.path as string | undefined) || 'directory' }) };
     case 'web_search':
-      return { icon: '\uD83C\uDF10', label: `Search: ${truncate((args.query as string) || '...', 50)}` };
+      return { icon: '\uD83C\uDF10', label: t('tool.web_search', { query: truncate((args.query as string) || '...', 50) }) };
     case 'ask_user':
-      return { icon: '\uD83D\uDCAC', label: 'Question for user' };
+      return { icon: '\uD83D\uDCAC', label: t('tool.ask_user') };
     case 'git_status':
-      return { icon: '\uD83D\uDD00', label: `Git ${(args.command as string) || 'status'}` };
+      return { icon: '\uD83D\uDD00', label: t('tool.git', { command: (args.command as string) || 'status' }) };
     case 'http_request':
-      return { icon: '\uD83D\uDD17', label: `${(args.method as string) || 'GET'} ${truncate((args.url as string) || '...', 50)}` };
+      return { icon: '\uD83D\uDD17', label: t('tool.http', { method: (args.method as string) || 'GET', url: truncate((args.url as string) || '...', 50) }) };
     default:
       return { icon: '\u2699\uFE0F', label: name };
   }
@@ -123,7 +124,7 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
              style={{ borderColor: STATUS_COLORS.pending_confirmation + '30',
                       backgroundColor: STATUS_COLORS.pending_confirmation + '10' }}>
           <span className="opacity-70 block">
-            {toolCall.summary || `Allow ${toolCall.name}?`}
+            {toolCall.summary || t('tool.allow_prompt', { tool: toolCall.name })}
           </span>
           <div className="flex items-center gap-1.5 flex-wrap">
             <button
@@ -134,7 +135,7 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
                          border-none cursor-pointer"
               onClick={() => onConfirmation(toolCall.confirmationId!, true)}
             >
-              Allow
+              {t('tool.allow')}
             </button>
             <button
               className="px-3 py-1 rounded text-xs font-medium
@@ -144,7 +145,7 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
                          border-none cursor-pointer transition-opacity"
               onClick={() => onConfirmation(toolCall.confirmationId!, true, true)}
             >
-              Always Allow
+              {t('tool.always_allow')}
             </button>
             <button
               className="px-2 py-1 rounded text-[10px]
@@ -153,7 +154,7 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
                          border-none cursor-pointer transition-opacity"
               onClick={() => onConfirmation(toolCall.confirmationId!, true, false, true)}
             >
-              Allow All
+              {t('tool.allow_all')}
             </button>
             <button
               className="px-3 py-1 rounded text-xs font-medium
@@ -163,7 +164,7 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
                          border-none cursor-pointer ml-auto"
               onClick={() => onConfirmation(toolCall.confirmationId!, false)}
             >
-              Deny
+              {t('tool.deny')}
             </button>
           </div>
         </div>
@@ -175,7 +176,7 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
           {toolCall.arguments && (
             <details className="group">
               <summary className="opacity-40 cursor-pointer hover:opacity-60 text-[10px] uppercase tracking-wide">
-                Arguments
+                {t('tool.arguments')}
               </summary>
               <pre className="mt-1 text-xs overflow-x-auto whitespace-pre-wrap opacity-70 max-h-32 overflow-y-auto">
                 {formatArgs(toolCall.arguments)}
@@ -185,13 +186,13 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
           {toolCall.result && (
             <details open={isFailed}>
               <summary className="opacity-40 cursor-pointer hover:opacity-60 text-[10px] uppercase tracking-wide">
-                {isFailed ? 'Error' : 'Output'}
+                {isFailed ? t('tool.error') : t('tool.output')}
               </summary>
               <div className="relative group/output">
                 <pre className={`mt-1 text-xs overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto
                                 ${isFailed ? 'text-[var(--vscode-errorForeground)]' : 'opacity-70'}`}>
                   {toolCall.result.slice(0, 2000)}
-                  {toolCall.result.length > 2000 && '\n... (truncated)'}
+                  {toolCall.result.length > 2000 && `\n${t('tool.truncated')}`}
                 </pre>
                 <CopyButton
                   getText={getResult}

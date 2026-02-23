@@ -25,6 +25,7 @@ export interface AvaConfig {
     temperature?: number;
     maxTokens?: number;
     markdownRendering?: boolean;
+    language?: string;
   };
 }
 

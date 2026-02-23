@@ -6,6 +6,7 @@ import { InputArea } from './components/InputArea';
 import { Header } from './components/Header';
 import { HistoryPanel } from './components/HistoryPanel';
 import type { AvaMode, ImageAttachment } from './components/InputArea';
+import { t, setLocale, loadStrings } from './i18n';
 
 type ChatAction =
   | ExtToWebviewMessage
@@ -19,6 +20,13 @@ function nextId(): string {
 function chatReducer(state: ChatState, action: ChatAction): ChatState {
   switch (action.type) {
     case 'init':
+      // Initialize locale if provided by extension host
+      if (action.locale && action.locale !== 'en') {
+        setLocale(action.locale);
+        if (action.localeStrings) {
+          loadStrings(action.locale, action.localeStrings);
+        }
+      }
       return {
         ...state,
         models: action.models,
@@ -177,7 +185,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       const switchMsg: UIMessage = {
         id: nextId(),
         role: 'system',
-        content: `Switched to ${action.modelName}`,
+        content: t('app.model_switched', { model: action.modelName }),
         toolCalls: [],
         isStreaming: false,
       };
@@ -236,7 +244,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         const sysMsg: UIMessage = {
           id: nextId(),
           role: 'system',
-          content: `Context compressed: ~${action.originalTokens.toLocaleString()} \u2192 ~${action.compressedTokens.toLocaleString()} tokens`,
+          content: t('app.context_compressed', { original: action.originalTokens.toLocaleString(), compressed: action.compressedTokens.toLocaleString() }),
           toolCalls: [],
           isStreaming: false,
         };
@@ -432,7 +440,7 @@ export function App() {
   );
 
   const handleContinue = useCallback(() => {
-    postMessage({ type: 'send_message', text: 'Continue where you left off.', mode: 'code' });
+    postMessage({ type: 'send_message', text: t('app.continue'), mode: 'code' });
   }, [postMessage]);
 
   const handleSuggestion = useCallback(

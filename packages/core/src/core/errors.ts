@@ -1,3 +1,5 @@
+import { t } from '../i18n/index.js';
+
 export class AvaError extends Error {
   code: string;
 
@@ -40,25 +42,24 @@ export class ProviderError extends AvaError {
               : '';
           }
         }
-        const base = `Bad request to ${this.provider}.`;
         return detail
-          ? `${base} ${detail}`
-          : `${base} The request format may be incompatible with this model.`;
+          ? `Bad request to ${this.provider}. ${detail}`
+          : t('error.msg.bad_request', { provider: this.provider });
       }
       case 401:
-        return `Invalid API key for ${this.provider}. Check your key in ~/.ava/config.json`;
+        return t('error.msg.auth', { provider: this.provider });
       case 402:
-        return `Insufficient credits for ${this.provider}. Top up your account balance.`;
+        return t('error.msg.credits', { provider: this.provider });
       case 403:
-        return `Access denied by ${this.provider}. Your API key may lack the required permissions.`;
+        return t('error.msg.forbidden', { provider: this.provider });
       case 404:
-        return `Model not found on ${this.provider}. The model ID may have changed — run /model to see available models.`;
+        return t('error.msg.model_not_found', { provider: this.provider });
       case 429:
-        return `Rate limited by ${this.provider}. Too many requests — wait a moment and try again.`;
+        return t('error.msg.rate_limit', { provider: this.provider });
       case 500:
       case 502:
       case 503:
-        return `${this.provider} is experiencing issues (${this.statusCode}). Try again in a few moments.`;
+        return t('error.msg.server_error', { provider: this.provider, code: String(this.statusCode) });
       default:
         return this.message;
     }

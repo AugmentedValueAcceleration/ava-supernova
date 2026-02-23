@@ -2,6 +2,7 @@ import type { RefObject } from 'react';
 import type { UIMessage } from '../types/messages';
 import { MessageBubble } from './MessageBubble';
 import { ThinkingIndicator } from './ThinkingIndicator';
+import { t } from '../i18n';
 
 interface ChatContainerProps {
   messages: UIMessage[];
@@ -13,10 +14,10 @@ interface ChatContainerProps {
 }
 
 const SUGGESTIONS = [
-  { label: 'Explain this codebase', prompt: 'Give me a high-level overview of this project structure and architecture.' },
-  { label: 'Find a bug', prompt: 'Help me find and fix bugs in the current file.' },
-  { label: 'Write tests', prompt: 'Write comprehensive tests for the main module.' },
-  { label: 'Refactor code', prompt: 'Suggest refactoring improvements for the current file.' },
+  { labelKey: 'suggestion.explain', promptKey: 'suggestion.explain_prompt' },
+  { labelKey: 'suggestion.bug', promptKey: 'suggestion.bug_prompt' },
+  { labelKey: 'suggestion.test', promptKey: 'suggestion.test_prompt' },
+  { labelKey: 'suggestion.refactor', promptKey: 'suggestion.refactor_prompt' },
 ];
 
 export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onSuggestion, chatEndRef }: ChatContainerProps) {
@@ -24,20 +25,20 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
     return (
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-lg font-semibold mb-1 opacity-40">Ava | Supernova</p>
-          <p className="text-xs opacity-30 mb-4">Ask anything about your code.</p>
+          <p className="text-lg font-semibold mb-1 opacity-40">{t('welcome.title')}</p>
+          <p className="text-xs opacity-30 mb-4">{t('welcome.subtitle')}</p>
           <div className="flex flex-wrap justify-center gap-2">
             {SUGGESTIONS.map((s) => (
               <button
-                key={s.label}
-                onClick={() => onSuggestion(s.prompt)}
+                key={s.labelKey}
+                onClick={() => onSuggestion(t(s.promptKey))}
                 className="px-3 py-1.5 rounded-full text-[11px]
                            bg-[var(--vscode-button-secondaryBackground)]
                            text-[var(--vscode-button-secondaryForeground)]
                            hover:bg-[var(--vscode-button-secondaryHoverBackground)]
                            border-none cursor-pointer transition-colors opacity-60 hover:opacity-90"
               >
-                {s.label}
+                {t(s.labelKey)}
               </button>
             ))}
           </div>

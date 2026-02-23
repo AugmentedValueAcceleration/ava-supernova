@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { ToolCallDisplay } from '../types/messages';
+import { t } from '../i18n';
 
 interface PlanCardProps {
   toolCall: ToolCallDisplay;
@@ -67,7 +68,7 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
     return (
       <div className="rounded border text-xs overflow-hidden"
            style={{ borderColor: STATUS_COLORS[toolCall.status] + '40' }}>
-        <div className="px-3 py-2 opacity-60">Plan data unavailable</div>
+        <div className="px-3 py-2 opacity-60">{t('plan.unavailable')}</div>
       </div>
     );
   }
@@ -86,15 +87,15 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
                    text-[var(--vscode-foreground)]"
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
-        aria-label={`Plan: ${plan.title} — ${toolCall.status === 'success' ? 'approved' : toolCall.status === 'failed' ? 'rejected' : 'pending'}`}
+        aria-label={`${t('plan.prefix', { title: plan.title })} — ${toolCall.status === 'success' ? t('plan.approved') : toolCall.status === 'failed' ? t('plan.rejected') : t('plan.pending')}`}
       >
         <span style={{ color: statusColor }}>{statusIcon}</span>
-        <span className="font-semibold text-[13px]">Plan: {plan.title}</span>
+        <span className="font-semibold text-[13px]">{t('plan.prefix', { title: plan.title })}</span>
         {isSuccess && (
-          <span className="text-[10px] opacity-50 ml-1">Approved</span>
+          <span className="text-[10px] opacity-50 ml-1">{t('plan.approved')}</span>
         )}
         {isFailed && (
-          <span className="text-[10px] opacity-50 ml-1">Rejected</span>
+          <span className="text-[10px] opacity-50 ml-1">{t('plan.rejected')}</span>
         )}
         <span className="ml-auto opacity-30 text-[10px]">
           {expanded ? '\u25B2' : '\u25BC'}
@@ -108,13 +109,13 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
 
           {/* Goal */}
           <div className="pt-2">
-            <span className="text-[10px] uppercase tracking-wide opacity-40 block mb-0.5">Goal</span>
+            <span className="text-[10px] uppercase tracking-wide opacity-40 block mb-0.5">{t('plan.goal')}</span>
             <span className="opacity-80">{plan.goal}</span>
           </div>
 
           {/* Steps */}
           <div>
-            <span className="text-[10px] uppercase tracking-wide opacity-40 block mb-1">Steps</span>
+            <span className="text-[10px] uppercase tracking-wide opacity-40 block mb-1">{t('plan.steps')}</span>
             <ol className="list-none m-0 p-0 space-y-1.5">
               {plan.steps.map((step, i) => (
                 <li key={i} className="flex gap-2">
@@ -145,14 +146,14 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
 
           {/* Verification */}
           <div>
-            <span className="text-[10px] uppercase tracking-wide opacity-40 block mb-0.5">Verification</span>
+            <span className="text-[10px] uppercase tracking-wide opacity-40 block mb-0.5">{t('plan.verification')}</span>
             <span className="opacity-70">{plan.verification}</span>
           </div>
 
           {/* Alternatives (only shown during confirmation) */}
           {isPending && plan.alternatives && plan.alternatives.length > 0 && (
             <div>
-              <span className="text-[10px] uppercase tracking-wide opacity-40 block mb-1">Approaches</span>
+              <span className="text-[10px] uppercase tracking-wide opacity-40 block mb-1">{t('plan.approaches')}</span>
               <div className="space-y-1">
                 {plan.alternatives.map((alt) => (
                   <button
@@ -204,7 +205,7 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
                   selectedAlt ?? undefined,
                 )}
               >
-                Approve
+                {t('plan.approve')}
               </button>
               <button
                 className="px-4 py-1.5 rounded text-xs font-medium
@@ -214,7 +215,7 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
                            border-none cursor-pointer"
                 onClick={() => onConfirmation(toolCall.confirmationId!, false)}
               >
-                Reject
+                {t('plan.reject')}
               </button>
             </div>
           )}

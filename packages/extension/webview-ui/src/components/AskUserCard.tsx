@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ToolCallDisplay } from '../types/messages';
+import { t } from '../i18n';
 
 interface AskUserCardProps {
   toolCall: ToolCallDisplay;
@@ -9,7 +10,7 @@ interface AskUserCardProps {
 export function AskUserCard({ toolCall, onConfirmation }: AskUserCardProps) {
   const [response, setResponse] = useState('');
 
-  let question = 'Ava has a question';
+  let question = t('ask.fallback');
   try {
     const args = JSON.parse(toolCall.arguments);
     question = args.question || question;
@@ -35,7 +36,7 @@ export function AskUserCard({ toolCall, onConfirmation }: AskUserCardProps) {
            style={{ backgroundColor: isPending ? 'rgba(55, 148, 255, 0.08)' : 'transparent' }}>
         <span className="text-sm">💬</span>
         <span className="text-xs font-semibold uppercase tracking-wide opacity-70">
-          Question
+          {t('ask.question')}
         </span>
       </div>
 
@@ -50,7 +51,7 @@ export function AskUserCard({ toolCall, onConfirmation }: AskUserCardProps) {
           <textarea
             value={response}
             onChange={(e) => setResponse(e.target.value)}
-            placeholder="Type your response..."
+            placeholder={t('ask.placeholder')}
             rows={2}
             className="w-full px-2 py-1.5 rounded text-sm resize-y
                        bg-[var(--vscode-input-background)]
@@ -76,7 +77,7 @@ export function AskUserCard({ toolCall, onConfirmation }: AskUserCardProps) {
                          disabled:opacity-40 disabled:cursor-not-allowed"
               onClick={() => onConfirmation(toolCall.confirmationId!, true, false, false, undefined, response.trim())}
             >
-              Submit
+              {t('ask.submit')}
             </button>
             <button
               className="px-3 py-1 rounded text-xs font-medium
@@ -86,7 +87,7 @@ export function AskUserCard({ toolCall, onConfirmation }: AskUserCardProps) {
                          border-none cursor-pointer"
               onClick={() => onConfirmation(toolCall.confirmationId!, false)}
             >
-              Skip
+              {t('ask.skip')}
             </button>
           </div>
         </div>
@@ -102,7 +103,7 @@ export function AskUserCard({ toolCall, onConfirmation }: AskUserCardProps) {
       {/* Denied state */}
       {isDenied && (
         <div className="px-3 pb-2 text-xs opacity-50 italic">
-          Skipped
+          {t('ask.skipped')}
         </div>
       )}
     </div>

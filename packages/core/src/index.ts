@@ -65,6 +65,11 @@ export {
 export { HistoryManager } from './history/history-manager.js';
 export type { ConversationRecord } from './history/storage.js';
 
+// i18n
+export { t, setLocale, setLocaleSync, loadLocaleStrings, getLocale, getSupportedLocales, getLanguageName, resolveLocale } from './i18n/index.js';
+export type { SupportedLocale } from './i18n/types.js';
+export { SUPPORTED_LOCALES, LANGUAGE_NAMES } from './i18n/types.js';
+
 // Constants & Errors
 export {
   APP_NAME,

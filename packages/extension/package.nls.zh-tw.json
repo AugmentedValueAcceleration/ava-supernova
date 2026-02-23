@@ -1,0 +1,18 @@
+{
+  "displayName": "Ava | Supernova",
+  "description": "開源 AI 程式設計助手 — 在編輯器中使用 DeepSeek、Kimi 和 Qwen",
+  "viewContainer.title": "Ava | Supernova",
+  "view.chat.name": "聊天",
+  "command.openChat.title": "開啟聊天",
+  "command.newChat.title": "新建聊天",
+  "command.clearChat.title": "清除聊天",
+  "command.switchModel.title": "切換模型",
+  "command.showHistory.title": "聊天記錄",
+  "setting.activeModel.description": "選擇要使用的 AI 模型",
+  "setting.deepseek.apiKey.description": "DeepSeek API 金鑰",
+  "setting.kimi.apiKey.description": "Kimi (Moonshot AI) API 金鑰",
+  "setting.qwen.apiKey.description": "Qwen (阿里雲) API 金鑰",
+  "setting.temperature.description": "取樣溫度",
+  "setting.language.description": "Ava 介面和回覆的語言",
+  "setting.permissionMode.description": "控制 Ava 執行工具操作前是否需要您的批准"
+}
