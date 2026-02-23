@@ -78,6 +78,6 @@ export {
   DEFAULT_TEMPERATURE,
   DEFAULT_MAX_TOKENS,
 } from './core/constants.js';
-export { AvaError, ProviderError, ToolExecutionError, ConfigError } from './core/errors.js';
+export { AvaError, ProviderError, StreamError, ToolExecutionError, ConfigError } from './core/errors.js';
 export { logger, setLogLevel } from './core/logger.js';
 export type { LogLevel } from './core/logger.js';

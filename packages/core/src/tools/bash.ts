@@ -164,7 +164,7 @@ export class BashTool implements Tool {
       if (context.signal) {
         context.signal.addEventListener('abort', () => {
           child.kill('SIGTERM');
-        });
+        }, { once: true });
       }
     });
   }
@@ -255,7 +255,7 @@ export class BashTool implements Tool {
               process.kill(-child.pid!, 'SIGTERM');
             }
           } catch { /* already dead */ }
-        });
+        }, { once: true });
       }
     });
   }

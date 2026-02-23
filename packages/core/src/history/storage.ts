@@ -19,6 +19,15 @@ const MAX_HISTORY = 100;
 export class HistoryStorage {
   async init(): Promise<void> {
     await mkdir(HISTORY_DIR, { recursive: true });
+    // Clean up orphaned temp files from interrupted writes
+    try {
+      const files = await readdir(HISTORY_DIR);
+      for (const file of files) {
+        if (file.endsWith('.tmp')) {
+          await unlink(join(HISTORY_DIR, file)).catch(() => {});
+        }
+      }
+    } catch { /* directory might not exist yet */ }
   }
 
   async save(record: ConversationRecord): Promise<void> {
@@ -28,14 +37,32 @@ export class HistoryStorage {
 
     // Atomic write — temp file then rename
     await writeFile(tmpPath, data, 'utf-8');
-    await rename(tmpPath, path);
+    try {
+      await rename(tmpPath, path);
+    } catch (err) {
+      // Clean up temp file if rename fails (disk full, permissions, etc.)
+      await unlink(tmpPath).catch(() => {});
+      throw err;
+    }
+  }
+
+  /** Validate that parsed JSON has the required ConversationRecord shape. */
+  private isValidRecord(value: unknown): value is ConversationRecord {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      typeof (value as Record<string, unknown>).id === 'string' &&
+      Array.isArray((value as Record<string, unknown>).messages)
+    );
   }
 
   async load(id: string): Promise<ConversationRecord | null> {
     const path = join(HISTORY_DIR, `${id}.json`);
     try {
       const raw = await readFile(path, 'utf-8');
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (!this.isValidRecord(parsed)) return null;
+      return parsed;
     } catch {
       return null;
     }
@@ -50,7 +77,8 @@ export class HistoryStorage {
       if (!file.endsWith('.json')) continue;
       try {
         const raw = await readFile(join(HISTORY_DIR, file), 'utf-8');
-        const record: ConversationRecord = JSON.parse(raw);
+        const record = JSON.parse(raw);
+        if (!this.isValidRecord(record)) continue;
         summaries.push({
           id: record.id,
           title: record.title,

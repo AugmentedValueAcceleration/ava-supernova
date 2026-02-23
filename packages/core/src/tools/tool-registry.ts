@@ -91,16 +91,24 @@ export class ToolRegistry {
     }
 
     if (this.needsConfirmation(tool) && this.confirmationHandler) {
-      const result = await this.confirmationHandler(name, args);
-      if (result === false) {
+      try {
+        const result = await this.confirmationHandler(name, args);
+        if (result === false) {
+          return {
+            success: false,
+            output: `Tool "${name}" was denied by the user.`,
+          };
+        }
+        // Handler provided a custom result string (e.g., plan approval with context)
+        if (typeof result === 'string') {
+          return { success: true, output: result };
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
         return {
           success: false,
-          output: `Tool "${name}" was denied by the user.`,
+          output: `Tool "${name}" confirmation failed: ${message}`,
         };
-      }
-      // Handler provided a custom result string (e.g., plan approval with context)
-      if (typeof result === 'string') {
-        return { success: true, output: result };
       }
     }
 

@@ -1,4 +1,4 @@
-import { readFile, writeFile, rename, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, rename, mkdir, readdir, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { AVA_HOME, CONFIG_PATH } from '../core/constants.js';
@@ -14,7 +14,25 @@ import { ConfigError } from '../core/errors.js';
 async function atomicWriteFile(filePath: string, data: string): Promise<void> {
   const tmpPath = join(dirname(filePath), `.${Date.now()}.tmp`);
   await writeFile(tmpPath, data, 'utf-8');
-  await rename(tmpPath, filePath);
+  try {
+    await rename(tmpPath, filePath);
+  } catch (err) {
+    // Clean up temp file if rename fails (disk full, permissions, etc.)
+    await unlink(tmpPath).catch(() => {});
+    throw err;
+  }
+}
+
+/** Remove orphaned .tmp files left behind by interrupted atomic writes. */
+async function cleanOrphanedTempFiles(dir: string): Promise<void> {
+  try {
+    const files = await readdir(dir);
+    for (const file of files) {
+      if (file.endsWith('.tmp')) {
+        await unlink(join(dir, file)).catch(() => {});
+      }
+    }
+  } catch { /* directory might not exist */ }
 }
 
 /** Validate and sanitize a loaded config, fixing any structural issues. */
@@ -77,6 +95,9 @@ export class ConfigManager {
 
   async load(): Promise<AvaConfig> {
     if (this.config) return this.config;
+
+    // Clean up orphaned temp files from interrupted writes
+    cleanOrphanedTempFiles(AVA_HOME).catch(() => {});
 
     if (!existsSync(CONFIG_PATH)) {
       this.config = structuredClone(DEFAULT_CONFIG);

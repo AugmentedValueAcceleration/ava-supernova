@@ -22,6 +22,7 @@ export type AgentEvent =
   | { type: 'tool_call_end'; toolCall: ToolCall; result: string; success: boolean; metadata?: Record<string, unknown> }
   | { type: 'usage'; usage: TokenUsage; cost?: number }
   | { type: 'error'; error: Error }
+  | { type: 'context_truncated'; droppedCount: number }
   | { type: 'done'; finalMessage: AssistantMessage };
 
 export type AgentEventHandler = (event: AgentEvent) => void;
@@ -83,7 +84,12 @@ export class Agent {
       // The 30% buffer accounts for: model output tokens, estimation inaccuracy,
       // and tool call overhead that's hard to predict.
       const maxInputTokens = Math.floor(this.model.contextWindow * 0.7);
+      const preCount = messages.length;
       messages = this.truncateMessages(messages, maxInputTokens);
+      const dropped = preCount - messages.length;
+      if (dropped > 0) {
+        onEvent({ type: 'context_truncated', droppedCount: dropped });
+      }
 
       // ── Sanitize messages for model compatibility ──────────────────────────
       const sanitizedMessages = messages.map((m) => {
@@ -129,7 +135,15 @@ export class Agent {
         stream: true,
       };
 
-      const { message: assistantMessage, promptTokens } = await this.streamResponse(request, onEvent, signal);
+      let assistantMessage: AssistantMessage;
+      let promptTokens: number;
+      try {
+        ({ message: assistantMessage, promptTokens } = await this.streamResponse(request, onEvent, signal));
+      } catch (error) {
+        // Surface the error through the event system so CLI/extension handle it consistently
+        onEvent({ type: 'error', error: error instanceof Error ? error : new Error(String(error)) });
+        return messages;
+      }
       messages = [...messages, assistantMessage];
 
       // If the actual token count was dangerously high, force aggressive truncation
@@ -227,41 +241,54 @@ export class Agent {
       }
     >();
 
-    for await (const chunk of this.provider.createStreamingCompletion(request, signal)) {
-      if (chunk.usage) {
-        usage = chunk.usage;
-      }
+    try {
+      for await (const chunk of this.provider.createStreamingCompletion(request, signal)) {
+        if (chunk.usage) {
+          usage = chunk.usage;
+        }
 
-      const delta = chunk.choices[0]?.delta;
-      if (!delta) continue;
+        const delta = chunk.choices[0]?.delta;
+        if (!delta) continue;
 
-      // Thinking/reasoning content (DeepSeek R1, GLM, Kimi, Mistral Magistral)
-      const thinking = delta.reasoning_content ?? delta.reasoning;
-      if (thinking) {
-        reasoningContent += thinking;
-        onEvent({ type: 'thinking_delta', content: thinking });
-      }
+        // Thinking/reasoning content (DeepSeek R1, GLM, Kimi, Mistral Magistral)
+        const thinking = delta.reasoning_content ?? delta.reasoning;
+        if (thinking) {
+          reasoningContent += thinking;
+          onEvent({ type: 'thinking_delta', content: thinking });
+        }
 
-      if (delta.content) {
-        content += delta.content;
-        onEvent({ type: 'stream_delta', content: delta.content });
-      }
+        if (delta.content) {
+          content += delta.content;
+          onEvent({ type: 'stream_delta', content: delta.content });
+        }
 
-      if (delta.tool_calls) {
-        for (const tcDelta of delta.tool_calls) {
-          if (!toolCallsAccumulator.has(tcDelta.index)) {
-            toolCallsAccumulator.set(tcDelta.index, {
-              id: tcDelta.id ?? '',
-              type: 'function',
-              function: { name: '', arguments: '' },
-            });
+        if (delta.tool_calls) {
+          for (const tcDelta of delta.tool_calls) {
+            if (!toolCallsAccumulator.has(tcDelta.index)) {
+              toolCallsAccumulator.set(tcDelta.index, {
+                id: tcDelta.id ?? '',
+                type: 'function',
+                function: { name: '', arguments: '' },
+              });
+            }
+            const acc = toolCallsAccumulator.get(tcDelta.index)!;
+            if (tcDelta.id) acc.id = tcDelta.id;
+            if (tcDelta.function?.name) acc.function.name += tcDelta.function.name;
+            if (tcDelta.function?.arguments) acc.function.arguments += tcDelta.function.arguments;
           }
-          const acc = toolCallsAccumulator.get(tcDelta.index)!;
-          if (tcDelta.id) acc.id = tcDelta.id;
-          if (tcDelta.function?.name) acc.function.name += tcDelta.function.name;
-          if (tcDelta.function?.arguments) acc.function.arguments += tcDelta.function.arguments;
         }
       }
+    } catch (error) {
+      // Preserve partial content if we collected any before the error
+      if (content || reasoningContent) {
+        const partialMessage: AssistantMessage = {
+          role: 'assistant',
+          content: content || null,
+          ...(reasoningContent ? { reasoning_content: reasoningContent } : {}),
+        };
+        onEvent({ type: 'stream_end', message: partialMessage });
+      }
+      throw error;
     }
 
     const toolCalls: ToolCall[] =

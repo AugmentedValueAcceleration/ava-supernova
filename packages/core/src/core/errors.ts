@@ -1,9 +1,13 @@
 export class AvaError extends Error {
+  code: string;
+
   constructor(
     message: string,
-    public readonly code: string,
+    code: string,
+    options?: { cause?: Error },
   ) {
-    super(message);
+    super(message, options);
+    this.code = code;
     this.name = 'AvaError';
   }
 }
@@ -59,6 +63,12 @@ export class ProviderError extends AvaError {
         return this.message;
     }
   }
+
+  /** Whether this error is transient and worth retrying. */
+  get retryable(): boolean {
+    if (!this.statusCode) return true; // network errors are likely transient
+    return [429, 500, 502, 503].includes(this.statusCode);
+  }
 }
 
 export class ToolExecutionError extends AvaError {
@@ -75,5 +85,17 @@ export class ConfigError extends AvaError {
   constructor(message: string) {
     super(message, 'CONFIG_ERROR');
     this.name = 'ConfigError';
+  }
+}
+
+export class StreamError extends ProviderError {
+  constructor(
+    message: string,
+    provider: string,
+    public readonly partialContent?: string,
+  ) {
+    super(message, provider);
+    this.name = 'StreamError';
+    this.code = 'STREAM_ERROR';
   }
 }
