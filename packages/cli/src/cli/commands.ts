@@ -12,6 +12,7 @@ import type {
   HistoryManager,
 } from '@ava/core';
 import type { PermissionMode } from '@ava/core';
+import { scaffoldProjectInstructions, detectProjectRoot, getInstructionsPath } from '@ava/core';
 
 interface Command {
   name: string;
@@ -469,6 +470,25 @@ export class CommandHandler {
           console.log(`  ${chalk.bold(s.function.name)} — ${s.function.description.slice(0, 80)}`);
         }
         console.log('');
+        return true;
+      },
+    });
+
+    this.registerCommand({
+      name: 'init',
+      description: 'Create .ava/instructions.md for project-specific context',
+      execute: async () => {
+        const cwd = process.cwd();
+        const projectRoot = detectProjectRoot(cwd) ?? cwd;
+        const result = await scaffoldProjectInstructions(projectRoot);
+        if (result) {
+          console.log(chalk.green(`  Created ${result}`));
+          console.log(chalk.dim('  Edit this file to give Ava project-specific context.'));
+          console.log(chalk.dim('  Restart Ava for changes to take effect.'));
+        } else {
+          const existing = getInstructionsPath(projectRoot);
+          console.log(`  ${existing} already exists.`);
+        }
         return true;
       },
     });

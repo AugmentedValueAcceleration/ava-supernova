@@ -4,9 +4,11 @@ import { HistoryStorage, type ConversationRecord } from './storage.js';
 
 export class HistoryManager {
   private storage: HistoryStorage;
+  private projectPath?: string;
 
-  constructor() {
+  constructor(projectPath?: string) {
     this.storage = new HistoryStorage();
+    this.projectPath = projectPath;
   }
 
   async init(): Promise<void> {
@@ -32,6 +34,9 @@ export class HistoryManager {
       title: existing?.title || title, // preserve manual renames
       messages,
       ...(existing?.pinned ? { pinned: true } : {}),
+      ...(existing?.projectPath || this.projectPath
+        ? { projectPath: existing?.projectPath ?? this.projectPath }
+        : {}),
     };
 
     await this.storage.save(record);
@@ -44,14 +49,19 @@ export class HistoryManager {
     return this.storage.load(id);
   }
 
-  async listConversations(): Promise<Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }>> {
-    return this.storage.list();
+  async listConversations(filterByProject = true): Promise<Array<{ id: string; title: string; updatedAt: string; pinned?: boolean; projectPath?: string }>> {
+    const all = await this.storage.list();
+    if (!filterByProject || !this.projectPath) return all;
+    return all.filter((c) => c.projectPath === this.projectPath);
   }
 
-  async searchConversations(query: string): Promise<Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }>> {
-    const all = await this.storage.list();
+  async searchConversations(query: string, filterByProject = true): Promise<Array<{ id: string; title: string; updatedAt: string; pinned?: boolean; projectPath?: string }>> {
+    let all = await this.storage.list();
+    if (filterByProject && this.projectPath) {
+      all = all.filter((c) => c.projectPath === this.projectPath);
+    }
     const lowerQuery = query.toLowerCase();
-    const results: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }> = [];
+    const results: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean; projectPath?: string }> = [];
 
     for (const entry of all) {
       // Quick check: title match

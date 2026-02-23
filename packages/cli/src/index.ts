@@ -9,6 +9,8 @@ import {
   Conversation,
   buildSystemPrompt,
   HistoryManager,
+  detectProjectRoot,
+  loadProjectInstructions,
 } from '@ava/core';
 import type { ProviderSettings } from '@ava/core';
 import { runSetupWizard } from './setup-wizard.js';
@@ -16,9 +18,15 @@ import { Repl } from './cli/repl.js';
 import { CommandHandler } from './cli/commands.js';
 
 async function main(): Promise<void> {
+  const cwd = process.cwd();
+  const projectRoot = detectProjectRoot(cwd) ?? undefined;
+  const projectInstructions = projectRoot
+    ? await loadProjectInstructions(projectRoot)
+    : null;
+
   const config = new ConfigManager();
   const providerRegistry = new ProviderRegistry();
-  const historyManager = new HistoryManager();
+  const historyManager = new HistoryManager(projectRoot);
 
   await historyManager.init();
 
@@ -53,13 +61,13 @@ async function main(): Promise<void> {
   toolRegistry.registerBuiltins();
 
   // Create conversation and agent
-  const cwd = process.cwd();
   const conversation = new Conversation();
   conversation.setSystemPrompt(
     buildSystemPrompt({
       cwd,
       platform: platform(),
       shell: process.env.SHELL ?? (process.platform === 'win32' ? 'bash' : '/bin/bash'),
+      projectInstructions: projectInstructions ?? undefined,
     }),
   );
 

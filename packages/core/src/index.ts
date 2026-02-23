@@ -53,6 +53,14 @@ export { ConfigManager } from './config/config.js';
 export type { AvaConfig, ProviderSettings } from './config/schema.js';
 export { DEFAULT_CONFIG } from './config/schema.js';
 
+// Project detection
+export {
+  detectProjectRoot,
+  loadProjectInstructions,
+  scaffoldProjectInstructions,
+  getInstructionsPath,
+} from './config/project.js';
+
 // History
 export { HistoryManager } from './history/history-manager.js';
 export type { ConversationRecord } from './history/storage.js';

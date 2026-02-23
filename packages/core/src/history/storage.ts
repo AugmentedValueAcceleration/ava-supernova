@@ -10,6 +10,7 @@ export interface ConversationRecord {
   title: string;
   messages: Message[];
   pinned?: boolean;
+  projectPath?: string;
 }
 
 /** Default max conversations to keep before pruning oldest. */
@@ -40,10 +41,10 @@ export class HistoryStorage {
     }
   }
 
-  async list(): Promise<Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }>> {
+  async list(): Promise<Array<{ id: string; title: string; updatedAt: string; pinned?: boolean; projectPath?: string }>> {
     await this.init();
     const files = await readdir(HISTORY_DIR);
-    const summaries: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }> = [];
+    const summaries: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean; projectPath?: string }> = [];
 
     for (const file of files) {
       if (!file.endsWith('.json')) continue;
@@ -55,6 +56,7 @@ export class HistoryStorage {
           title: record.title,
           updatedAt: record.updatedAt,
           pinned: record.pinned,
+          projectPath: record.projectPath,
         });
       } catch {
         // skip corrupt files

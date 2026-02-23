@@ -9,6 +9,8 @@ import {
   ProviderError,
   buildSystemPrompt,
   killBackgroundProcesses,
+  detectProjectRoot,
+  loadProjectInstructions,
 } from '@ava/core';
 import type { AgentEvent, Provider, ModelDefinition, Message, ContentPart, PermissionMode } from '@ava/core';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode } from './message-types.js';
@@ -32,15 +34,25 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private sessionAllowAll = false;
   private settingsListener?: vscode.Disposable;
   private readonly outputChannel: vscode.OutputChannel;
+  private projectRoot?: string;
+  private projectInstructions?: string;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly context: vscode.ExtensionContext,
   ) {
     this.providerRegistry = new ProviderRegistry();
-    this.historyManager = new HistoryManager();
+    const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
+    this.projectRoot = detectProjectRoot(cwd) ?? undefined;
+    this.historyManager = new HistoryManager(this.projectRoot);
     this.historyManager.init();
     this.outputChannel = vscode.window.createOutputChannel('Ava | Supernova');
+    // Load project instructions asynchronously
+    if (this.projectRoot) {
+      loadProjectInstructions(this.projectRoot).then((instructions) => {
+        this.projectInstructions = instructions ?? undefined;
+      });
+    }
   }
 
   private log(message: string): void {
@@ -140,7 +152,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.conversation = new Conversation();
     const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
     this.conversation.setSystemPrompt(
-      buildSystemPrompt({ cwd, platform: process.platform, shell: 'bash', permissionMode: this.getPermissionMode() }),
+      buildSystemPrompt({ cwd, platform: process.platform, shell: 'bash', permissionMode: this.getPermissionMode(), projectInstructions: this.projectInstructions }),
     );
     this.setLastConversationId(undefined);
     this.postMessage({ type: 'chat_cleared' });
@@ -237,7 +249,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     if (!this.conversation) {
       this.conversation = new Conversation();
       this.conversation.setSystemPrompt(
-        buildSystemPrompt({ cwd, platform: process.platform, shell: 'bash', permissionMode }),
+        buildSystemPrompt({ cwd, platform: process.platform, shell: 'bash', permissionMode, projectInstructions: this.projectInstructions }),
       );
     }
 
@@ -328,7 +340,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     if (messages.length > 0 && messages[0].role === 'system') {
       messages[0] = {
         role: 'system' as const,
-        content: buildSystemPrompt({ cwd, platform: process.platform, shell: 'bash', permissionMode: this.getPermissionMode() }),
+        content: buildSystemPrompt({ cwd, platform: process.platform, shell: 'bash', permissionMode: this.getPermissionMode(), projectInstructions: this.projectInstructions }),
       };
     }
     this.conversation.setMessages(messages);
@@ -362,7 +374,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     if (messages.length > 0 && messages[0].role === 'system') {
       messages[0] = {
         role: 'system' as const,
-        content: buildSystemPrompt({ cwd, platform: process.platform, shell: 'bash', permissionMode: this.getPermissionMode() }),
+        content: buildSystemPrompt({ cwd, platform: process.platform, shell: 'bash', permissionMode: this.getPermissionMode(), projectInstructions: this.projectInstructions }),
       };
     }
     this.conversation.setMessages(messages);

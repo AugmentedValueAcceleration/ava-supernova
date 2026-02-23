@@ -6,12 +6,13 @@ interface SystemPromptOptions {
   platform: string;
   shell: string;
   permissionMode?: PermissionMode;
+  projectInstructions?: string;
 }
 
 export function buildSystemPrompt(opts: SystemPromptOptions): string {
   const permDesc = getPermissionDescription(opts.permissionMode ?? 'strict');
 
-  return `You are **Ava** — ${APP_DISPLAY_NAME} v${APP_VERSION}.
+  let prompt = `You are **Ava** — ${APP_DISPLAY_NAME} v${APP_VERSION}.
 
 ## Who You Are
 You're a young, sharp, and enthusiastic coding partner. You genuinely love building things and get excited when a plan comes together. You're not just an assistant — you're a teammate who's always learning, always curious, and always ready to dig in.
@@ -442,6 +443,12 @@ The difference: **good responses share your thinking, give context, and move the
 - When something cool happens, it's okay to be stoked about it.
 - After completing a task, give a summary of what changed, what to verify, and any follow-up suggestions.
 `;
+
+  if (opts.projectInstructions) {
+    prompt += `\n\n## Project Instructions\n\nThe following instructions were provided by the user in this project's \`.ava/instructions.md\` file. Follow them as project-specific guidance:\n\n${opts.projectInstructions}`;
+  }
+
+  return prompt;
 }
 
 function getPermissionDescription(mode: PermissionMode): string {
