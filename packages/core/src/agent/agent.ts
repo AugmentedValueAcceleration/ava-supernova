@@ -7,6 +7,7 @@ import type {
   TokenUsage,
   ContentPart,
 } from '../core/types.js';
+import { getTextContent } from '../core/types.js';
 import type { ToolRegistry } from '../tools/tool-registry.js';
 import type { ToolExecutionContext } from '../tools/types.js';
 import { MAX_TOOL_CALL_ITERATIONS, ITERATION_WARNING_THRESHOLD } from '../core/constants.js';
@@ -23,6 +24,8 @@ export type AgentEvent =
   | { type: 'usage'; usage: TokenUsage; cost?: number }
   | { type: 'error'; error: Error }
   | { type: 'context_truncated'; droppedCount: number }
+  | { type: 'context_compression_start' }
+  | { type: 'context_compression_end'; originalTokens: number; compressedTokens: number }
   | { type: 'done'; finalMessage: AssistantMessage };
 
 export type AgentEventHandler = (event: AgentEvent) => void;
@@ -84,6 +87,14 @@ export class Agent {
       // The 30% buffer accounts for: model output tokens, estimation inaccuracy,
       // and tool call overhead that's hard to predict.
       const maxInputTokens = Math.floor(this.model.contextWindow * 0.7);
+      const estimatedTotal = this.estimateTokenCount(messages);
+
+      // Try smart compression before dumb truncation (only if enough messages to summarize)
+      if (estimatedTotal > maxInputTokens && messages.length >= 8) {
+        messages = await this.compressContext(messages, onEvent, signal);
+      }
+
+      // Still over budget? Fall back to dumb truncation
       const preCount = messages.length;
       messages = this.truncateMessages(messages, maxInputTokens);
       const dropped = preCount - messages.length;
@@ -321,54 +332,151 @@ export class Agent {
     return { message, promptTokens: usage?.prompt_tokens ?? 0 };
   }
 
+  // ── Context compression ──────────────────────────────────────────────────
+
+  /**
+   * Compress conversation context by summarizing older messages.
+   * Keeps the system prompt and last 4 messages (2 user-assistant exchanges)
+   * verbatim, summarizes everything in between using the model.
+   * Falls back silently if the compression API call fails.
+   */
+  async compressContext(
+    messages: Message[],
+    onEvent: AgentEventHandler,
+    signal?: AbortSignal,
+  ): Promise<Message[]> {
+    onEvent({ type: 'context_compression_start' });
+
+    const systemMsg = messages[0]?.role === 'system' ? messages[0] : null;
+    const rest = systemMsg ? messages.slice(1) : [...messages];
+
+    // Keep last 4 messages verbatim (2 exchange pairs)
+    const KEEP_RECENT = 4;
+    if (rest.length <= KEEP_RECENT) {
+      onEvent({ type: 'context_compression_end', originalTokens: 0, compressedTokens: 0 });
+      return messages;
+    }
+
+    const toCompress = rest.slice(0, -KEEP_RECENT);
+    const toKeep = rest.slice(-KEEP_RECENT);
+
+    // Build the text to summarize (extract text content, skip raw tool JSON)
+    const transcript = toCompress
+      .map((m) => {
+        const text = getTextContent(m.content);
+        return `[${m.role}]: ${text || '(no text)'}`;
+      })
+      .join('\n');
+
+    const compressionPrompt = `You are a conversation summarizer. Summarize this conversation transcript concisely while preserving:
+- Key decisions and conclusions reached
+- File paths, function names, and code identifiers mentioned
+- Current task state and what was accomplished
+- Any errors encountered and how they were resolved
+- Important technical context the assistant will need going forward
+
+Be concise but thorough. Use bullet points. Do NOT include pleasantries or meta-commentary.
+
+TRANSCRIPT:
+${transcript}`;
+
+    try {
+      const response = await this.provider.createCompletion(
+        {
+          model: this.model.id,
+          messages: [
+            { role: 'system', content: 'You are a precise conversation summarizer.' },
+            { role: 'user', content: compressionPrompt },
+          ],
+          max_tokens: 1500,
+          temperature: 0.2,
+        },
+        signal,
+      );
+
+      const summary = response.choices?.[0]?.message?.content || '';
+      if (!summary) throw new Error('Empty compression response');
+
+      const summaryMessage: Message = {
+        role: 'user',
+        content: `[Context Summary — earlier conversation compressed]\n\n${summary}`,
+      };
+
+      const fixedTail = this.fixToolPairing(toKeep);
+      const result = systemMsg
+        ? [systemMsg, summaryMessage, ...fixedTail]
+        : [summaryMessage, ...fixedTail];
+
+      const originalTokens = this.estimateTokenCount(messages);
+      const compressedTokens = this.estimateTokenCount(result);
+      onEvent({ type: 'context_compression_end', originalTokens, compressedTokens });
+
+      return result;
+    } catch {
+      // Compression failed — fall back silently (caller will truncate if needed)
+      onEvent({ type: 'context_compression_end', originalTokens: 0, compressedTokens: 0 });
+      return messages;
+    }
+  }
+
+  // ── Token estimation ──────────────────────────────────────────────────────
+
+  private static estimateTextTokens(text: string): number {
+    // Conservative: uses length/3 (not length/4) because code, JSON, and
+    // tool results tokenize at ~2.5-3 chars per token.
+    return Math.ceil(text.length / 3);
+  }
+
+  private estimateMessageTokens(msg: Message): number {
+    let tokens = 4; // message overhead (role, separators)
+
+    const { content } = msg;
+    if (content === null) {
+      // no content
+    } else if (typeof content === 'string') {
+      tokens += Agent.estimateTextTokens(content);
+    } else {
+      for (const part of content) {
+        if (part.type === 'text') tokens += Agent.estimateTextTokens(part.text);
+        else if (part.type === 'image_url') tokens += 85;
+      }
+    }
+
+    // Count tool calls in assistant messages (function name + JSON arguments)
+    const toolCalls = (msg as unknown as Record<string, unknown>).tool_calls as
+      | Array<{ function: { name: string; arguments: string } }>
+      | undefined;
+    if (toolCalls) {
+      for (const tc of toolCalls) {
+        tokens += Agent.estimateTextTokens(tc.function.name) + Agent.estimateTextTokens(tc.function.arguments) + 8;
+      }
+    }
+
+    return tokens;
+  }
+
+  /** Estimate total token count across an array of messages. */
+  estimateTokenCount(messages: Message[]): number {
+    return messages.reduce((sum, m) => sum + this.estimateMessageTokens(m), 0);
+  }
+
+  // ── Truncation ──────────────────────────────────────────────────────────
+
   private truncateMessages(messages: Message[], maxTokens: number): Message[] {
-    // Conservative token estimation — uses length/3 (not length/4) because
-    // code, JSON, and tool results tokenize at ~2.5-3 chars per token,
-    // not the ~4 chars/token that English prose averages.
-    const estimateTextTokens = (text: string): number => Math.ceil(text.length / 3);
-
-    const estimateTokens = (msg: Message): number => {
-      let tokens = 4; // message overhead (role, separators)
-
-      const { content } = msg;
-      if (content === null) {
-        // no content
-      } else if (typeof content === 'string') {
-        tokens += estimateTextTokens(content);
-      } else {
-        for (const part of content) {
-          if (part.type === 'text') tokens += estimateTextTokens(part.text);
-          else if (part.type === 'image_url') tokens += 85;
-        }
-      }
-
-      // Count tool calls in assistant messages (function name + JSON arguments)
-      const toolCalls = (msg as unknown as Record<string, unknown>).tool_calls as
-        | Array<{ function: { name: string; arguments: string } }>
-        | undefined;
-      if (toolCalls) {
-        for (const tc of toolCalls) {
-          tokens += estimateTextTokens(tc.function.name) + estimateTextTokens(tc.function.arguments) + 8;
-        }
-      }
-
-      return tokens;
-    };
-
-    const total = messages.reduce((sum, m) => sum + estimateTokens(m), 0);
+    const total = messages.reduce((sum, m) => sum + this.estimateMessageTokens(m), 0);
     if (total <= maxTokens) return messages;
 
     // Keep system prompt (first message) and trim from the beginning of the rest
     const systemMsg = messages[0]?.role === 'system' ? messages[0] : null;
     const rest = systemMsg ? messages.slice(1) : [...messages];
-    const systemTokens = systemMsg ? estimateTokens(systemMsg) : 0;
+    const systemTokens = systemMsg ? this.estimateMessageTokens(systemMsg) : 0;
     const budget = maxTokens - systemTokens;
 
     const kept: Message[] = [];
     let used = 0;
 
     for (let i = rest.length - 1; i >= 0; i--) {
-      const msgTokens = estimateTokens(rest[i]);
+      const msgTokens = this.estimateMessageTokens(rest[i]);
       if (used + msgTokens > budget) break;
       kept.unshift(rest[i]);
       used += msgTokens;

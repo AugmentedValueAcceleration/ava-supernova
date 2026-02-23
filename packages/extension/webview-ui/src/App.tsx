@@ -112,7 +112,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       const last = messages[messages.length - 1];
       if (last && last.role === 'assistant') {
         const toolCalls = last.toolCalls.map((tc) =>
-          tc.id === action.toolName || tc.status === 'running'
+          tc.name === action.toolName || tc.status === 'running'
             ? {
                 ...tc,
                 status: 'pending_confirmation' as const,
@@ -225,6 +225,25 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'close_history':
       return { ...state, historyOpen: false };
 
+    // ── Context compression ──────────────────────────────────────────────
+
+    case 'compression_start':
+      return { ...state, isCompressing: true };
+
+    case 'compression_end': {
+      if (action.originalTokens > 0) {
+        const sysMsg: UIMessage = {
+          id: nextId(),
+          role: 'system',
+          content: `Context compressed: ~${action.originalTokens.toLocaleString()} \u2192 ~${action.compressedTokens.toLocaleString()} tokens`,
+          toolCalls: [],
+          isStreaming: false,
+        };
+        return { ...state, isCompressing: false, messages: [...state.messages, sysMsg] };
+      }
+      return { ...state, isCompressing: false };
+    }
+
     default:
       return state;
   }
@@ -238,6 +257,7 @@ const initialState: ChatState = {
   isThinking: false,
   needsSetup: true,
   lastUsage: null,
+  isCompressing: false,
   historyOpen: false,
   historyList: [],
   currentConversationId: null,
@@ -421,6 +441,10 @@ export function App() {
     [postMessage],
   );
 
+  const handleCompress = useCallback(() => {
+    postMessage({ type: 'compress_context' });
+  }, [postMessage]);
+
   const handleCloseHistory = useCallback(() => {
     dispatch({ type: 'close_history' });
   }, []);
@@ -452,6 +476,8 @@ export function App() {
         isStreaming={state.isStreaming}
         disabled={state.needsSetup}
         usage={state.lastUsage}
+        isCompressing={state.isCompressing}
+        onCompress={handleCompress}
       />
 
       {state.historyOpen && (

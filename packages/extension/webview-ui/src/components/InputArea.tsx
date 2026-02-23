@@ -20,6 +20,8 @@ interface InputAreaProps {
     cost?: number;
     contextWindow?: number;
   } | null;
+  isCompressing?: boolean;
+  onCompress?: () => void;
 }
 
 const MODES: { id: AvaMode; label: string; icon: string }[] = [
@@ -36,7 +38,7 @@ const PLACEHOLDERS: Record<AvaMode, string> = {
   chat: 'Ask a question or start a discussion...',
 };
 
-export function InputArea({ onSend, onCancel, isStreaming, disabled, usage }: InputAreaProps) {
+export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCompressing, onCompress }: InputAreaProps) {
   const [text, setText] = useState('');
   const [mode, setMode] = useState<AvaMode>('code');
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
@@ -286,25 +288,34 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage }: In
               const isWarning = pct >= 80;
               const isCritical = pct >= 90;
               return (
-                <span
-                  className={`text-[10px] tabular-nums ${
+                <button
+                  onClick={onCompress}
+                  disabled={isCompressing || disabled || isStreaming}
+                  className={`text-[10px] tabular-nums bg-transparent border-none cursor-pointer
+                              hover:underline transition-opacity disabled:cursor-default disabled:no-underline ${
                     isCritical
                       ? 'text-[var(--vscode-errorForeground)] opacity-90'
                       : isWarning
                         ? 'text-[var(--vscode-editorWarning-foreground,#cca700)] opacity-80'
-                        : 'opacity-30'
+                        : 'opacity-30 hover:opacity-50'
                   }`}
-                  title={isCritical
-                    ? 'Context window nearly full — start a new chat to avoid errors'
-                    : isWarning
-                      ? 'Context window filling up — consider starting a new chat soon'
-                      : undefined}
+                  title={isCompressing
+                    ? 'Compressing context...'
+                    : isCritical
+                      ? 'Click to compress context'
+                      : isWarning
+                        ? 'Click to compress context'
+                        : 'Context usage \u2014 click to compress'}
                 >
-                  {usage.prompt_tokens.toLocaleString()}/{usage.completion_tokens.toLocaleString()}
-                  {pct > 0 && ` · ${pct}%`}
-                  {usage.cost !== undefined && usage.cost > 0 && ` · $${usage.cost.toFixed(4)}`}
-                  {isCritical && ' ⚠ New chat recommended'}
-                </span>
+                  {isCompressing ? 'Compressing...' : (
+                    <>
+                      {usage.prompt_tokens.toLocaleString()}/{usage.completion_tokens.toLocaleString()}
+                      {pct > 0 && ` \u00B7 ${pct}%`}
+                      {usage.cost !== undefined && usage.cost > 0 && ` \u00B7 $${usage.cost.toFixed(4)}`}
+                      {isCritical && ' \u26A0'}
+                    </>
+                  )}
+                </button>
               );
             })()}
 

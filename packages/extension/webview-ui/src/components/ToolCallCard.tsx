@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { ToolCallDisplay } from '../types/messages';
+import { CopyButton } from './CopyButton';
 
 interface ToolCallCardProps {
   toolCall: ToolCallDisplay;
@@ -74,6 +75,7 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
     toolCall.status === 'failed' || toolCall.status === 'pending_confirmation',
   );
   const { icon, label } = getToolLabel(toolCall.name, toolCall.arguments);
+  const getResult = useCallback(() => toolCall.result || '', [toolCall.result]);
   const isRunning = toolCall.status === 'running';
   const isSuccess = toolCall.status === 'success';
   const isFailed = toolCall.status === 'failed';
@@ -185,11 +187,18 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
               <summary className="opacity-40 cursor-pointer hover:opacity-60 text-[10px] uppercase tracking-wide">
                 {isFailed ? 'Error' : 'Output'}
               </summary>
-              <pre className={`mt-1 text-xs overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto
-                              ${isFailed ? 'text-[var(--vscode-errorForeground)]' : 'opacity-70'}`}>
-                {toolCall.result.slice(0, 2000)}
-                {toolCall.result.length > 2000 && '\n... (truncated)'}
-              </pre>
+              <div className="relative group/output">
+                <pre className={`mt-1 text-xs overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto
+                                ${isFailed ? 'text-[var(--vscode-errorForeground)]' : 'opacity-70'}`}>
+                  {toolCall.result.slice(0, 2000)}
+                  {toolCall.result.length > 2000 && '\n... (truncated)'}
+                </pre>
+                <CopyButton
+                  getText={getResult}
+                  className="absolute top-1 right-1 w-5 h-5
+                             opacity-0 group-hover/output:opacity-50 hover:!opacity-100"
+                />
+              </div>
             </details>
           )}
         </div>

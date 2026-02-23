@@ -53,7 +53,9 @@ export type ExtToWebviewMessage =
       title: string;
       messages: Array<{ role: 'user' | 'assistant'; content: string }>;
     }
-  | { type: 'chat_cleared' };
+  | { type: 'chat_cleared' }
+  | { type: 'compression_start' }
+  | { type: 'compression_end'; originalTokens: number; compressedTokens: number };
 
 // ─── Webview → Extension Host ────────────────────────────────────────────────
 
@@ -74,4 +76,5 @@ export type WebviewToExtMessage =
   | { type: 'pin_conversation'; conversationId: string; pinned: boolean }
   | { type: 'export_conversation'; conversationId: string; format: 'markdown' | 'json' }
   | { type: 'new_chat' }
-  | { type: 'webview_ready' };
+  | { type: 'webview_ready' }
+  | { type: 'compress_context' };

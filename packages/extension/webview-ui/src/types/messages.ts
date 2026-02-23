@@ -53,7 +53,9 @@ export type ExtToWebviewMessage =
       title: string;
       messages: Array<{ role: 'user' | 'assistant'; content: string }>;
     }
-  | { type: 'chat_cleared' };
+  | { type: 'chat_cleared' }
+  | { type: 'compression_start' }
+  | { type: 'compression_end'; originalTokens: number; compressedTokens: number };
 
 export type AvaMode = 'code' | 'plan' | 'chat';
 
@@ -72,7 +74,8 @@ export type WebviewToExtMessage =
   | { type: 'pin_conversation'; conversationId: string; pinned: boolean }
   | { type: 'export_conversation'; conversationId: string; format: 'markdown' | 'json' }
   | { type: 'new_chat' }
-  | { type: 'webview_ready' };
+  | { type: 'webview_ready' }
+  | { type: 'compress_context' };
 
 // UI state types
 
@@ -112,6 +115,7 @@ export interface ChatState {
     cost?: number;
     contextWindow?: number;
   } | null;
+  isCompressing: boolean;
   historyOpen: boolean;
   historyList: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }>;
   currentConversationId: string | null;

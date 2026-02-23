@@ -561,6 +561,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       case 'new_chat':
         await this.newChat();
         break;
+
+      case 'compress_context':
+        await this.handleCompressContext();
+        break;
     }
   }
 
@@ -680,6 +684,16 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             suggestion: 'Start a new chat for best results, or continue and older context will be summarized.',
           });
           break;
+        case 'context_compression_start':
+          this.postMessage({ type: 'compression_start' });
+          break;
+        case 'context_compression_end':
+          this.postMessage({
+            type: 'compression_end',
+            originalTokens: event.originalTokens,
+            compressedTokens: event.compressedTokens,
+          });
+          break;
         case 'done':
           this.postMessage({ type: 'done' });
           this.log('Agent done');
@@ -730,6 +744,43 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // Always send done to guarantee the UI resets
       this.postMessage({ type: 'done' });
       this.log('handleUserMessage finished — isRunning=false');
+    }
+  }
+
+  // ── Context compression ──────────────────────────────────────────────────────
+
+  private async handleCompressContext(): Promise<void> {
+    if (!this.agent || !this.conversation) return;
+    if (this.isRunning) {
+      this.postMessage({
+        type: 'error',
+        message: 'Cannot compress while Ava is working.',
+        code: 'busy',
+      });
+      return;
+    }
+
+    this.postMessage({ type: 'compression_start' });
+    try {
+      const messages = this.conversation.getMessages();
+      const compressed = await this.agent.compressContext(messages, (event) => {
+        if (event.type === 'context_compression_end') {
+          this.postMessage({
+            type: 'compression_end',
+            originalTokens: event.originalTokens,
+            compressedTokens: event.compressedTokens,
+          });
+        }
+      });
+      this.conversation.setMessages(compressed);
+      this.log('Context compressed successfully');
+    } catch (err) {
+      this.postMessage({
+        type: 'compression_end',
+        originalTokens: 0,
+        compressedTokens: 0,
+      });
+      this.log(`Compression failed: ${err}`);
     }
   }
 

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { CopyButton } from './CopyButton';
 
 interface ThinkingBlockProps {
   content: string;
@@ -8,6 +9,7 @@ interface ThinkingBlockProps {
 export function ThinkingBlock({ content, isStreaming }: ThinkingBlockProps) {
   const [expanded, setExpanded] = useState(false);
   const duration = estimateDuration(content);
+  const getContent = useCallback(() => content, [content]);
 
   return (
     <div className="rounded border border-[var(--vscode-panel-border)] text-xs overflow-hidden mb-2">
@@ -48,13 +50,20 @@ export function ThinkingBlock({ content, isStreaming }: ThinkingBlockProps) {
 
       {/* Expanded thinking content */}
       {expanded && (
-        <div className="px-3 py-2 border-t border-[var(--vscode-panel-border)]">
+        <div className="px-3 py-2 border-t border-[var(--vscode-panel-border)] relative group/thinking">
           <pre className="text-xs whitespace-pre-wrap opacity-60 max-h-64 overflow-y-auto leading-relaxed">
             {content}
             {isStreaming && (
               <span className="inline-block w-1.5 h-3 bg-[var(--vscode-foreground)] opacity-40 animate-pulse ml-0.5" />
             )}
           </pre>
+          {!isStreaming && (
+            <CopyButton
+              getText={getContent}
+              className="absolute top-2 right-2 w-5 h-5
+                         opacity-0 group-hover/thinking:opacity-50 hover:!opacity-100"
+            />
+          )}
         </div>
       )}
     </div>

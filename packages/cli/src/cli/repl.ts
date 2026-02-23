@@ -260,6 +260,31 @@ export class Repl {
     }
   }
 
+  async compact(): Promise<void> {
+    this.spinner.start('Compressing context...');
+    try {
+      const messages = this.conversation.getMessages();
+      const compressed = await this.agent.compressContext(messages, (event) => {
+        if (event.type === 'context_compression_end') {
+          this.spinner.stop();
+          if (event.originalTokens > 0) {
+            console.log(
+              chalk.green(
+                `  Context compressed: ~${event.originalTokens} → ~${event.compressedTokens} tokens`,
+              ),
+            );
+          } else {
+            console.log('  Nothing to compress.');
+          }
+        }
+      });
+      this.conversation.setMessages(compressed);
+    } catch {
+      this.spinner.stop();
+      console.log(chalk.red('  Compression failed.'));
+    }
+  }
+
   private async processUserMessage(input: string): Promise<void> {
     this.lastUserInput = input;
     this.conversation.addUserMessage(input);
@@ -292,6 +317,22 @@ export class Repl {
         case 'error':
           this.spinner.stop();
           this.renderer.printError(event.error);
+          break;
+        case 'context_truncated':
+          console.log(chalk.yellow(`  Context truncated: ${event.droppedCount} messages dropped.`));
+          break;
+        case 'context_compression_start':
+          this.spinner.start('Compressing context...');
+          break;
+        case 'context_compression_end':
+          this.spinner.stop();
+          if (event.originalTokens > 0) {
+            console.log(
+              chalk.green(
+                `  Context compressed: ~${event.originalTokens} → ~${event.compressedTokens} tokens`,
+              ),
+            );
+          }
           break;
         case 'done':
           break;

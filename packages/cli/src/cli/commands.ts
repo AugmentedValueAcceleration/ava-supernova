@@ -23,6 +23,7 @@ interface Command {
 
 export type ModelSwitchHandler = (provider: Provider, model: ModelDefinition) => void;
 export type RetryHandler = () => void;
+export type CompactHandler = () => Promise<void>;
 
 export class CommandHandler {
   private commands: Map<string, Command> = new Map();
@@ -35,6 +36,7 @@ export class CommandHandler {
     historyManager: HistoryManager;
     onModelSwitch?: ModelSwitchHandler;
     onRetry?: RetryHandler;
+    onCompact?: CompactHandler;
   }) {
     this.registerCommand({
       name: 'help',
@@ -414,6 +416,22 @@ export class CommandHandler {
           opts.onRetry();
         } else {
           console.log('  Retry not available.');
+        }
+        return true;
+      },
+    });
+
+    // ── Context compression ────────────────────────────────────────────────
+
+    this.registerCommand({
+      name: 'compact',
+      aliases: ['compress'],
+      description: 'Compress conversation context to free up space',
+      execute: async () => {
+        if (opts.onCompact) {
+          await opts.onCompact();
+        } else {
+          console.log('  Compression not available.');
         }
         return true;
       },

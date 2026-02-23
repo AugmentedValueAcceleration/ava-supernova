@@ -98,6 +98,7 @@ async function main(): Promise<void> {
     onRetry: () => {
       repl.retry();
     },
+    onCompact: () => repl.compact(),
   });
 
   repl.setCommands(commands);

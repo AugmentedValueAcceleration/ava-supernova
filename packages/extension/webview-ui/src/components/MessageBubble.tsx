@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import type { UIMessage } from '../types/messages';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ThinkingBlock } from './ThinkingBlock';
@@ -5,6 +6,7 @@ import { ToolCallCard } from './ToolCallCard';
 import { PlanCard } from './PlanCard';
 import { TodoCard } from './TodoCard';
 import { AskUserCard } from './AskUserCard';
+import { CopyButton } from './CopyButton';
 
 interface MessageBubbleProps {
   message: UIMessage;
@@ -89,7 +91,7 @@ export function MessageBubble({ message, onConfirmation, onContinue }: MessageBu
   if (message.role === 'user') {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] px-3 py-2 rounded-lg bg-[var(--color-accent)] text-white text-sm">
+        <div className="max-w-[85%] px-3 py-2 rounded-lg bg-[var(--color-accent)] text-white text-sm whitespace-pre-wrap">
           {message.content}
         </div>
       </div>
@@ -99,6 +101,7 @@ export function MessageBubble({ message, onConfirmation, onContinue }: MessageBu
   // Assistant message
   const hasThinking = !!message.thinking;
   const isThinkingOnly = hasThinking && !message.content;
+  const getContent = useCallback(() => message.content, [message.content]);
 
   return (
     <div className="space-y-2">
@@ -110,10 +113,19 @@ export function MessageBubble({ message, onConfirmation, onContinue }: MessageBu
       )}
 
       {message.content && (
-        <div className="text-sm leading-relaxed">
-          <MarkdownRenderer content={message.content} />
-          {message.isStreaming && (
-            <span className="inline-block w-2 h-4 bg-[var(--vscode-foreground)] opacity-60 animate-pulse ml-0.5" />
+        <div className="relative group">
+          <div className="text-sm leading-relaxed">
+            <MarkdownRenderer content={message.content} />
+            {message.isStreaming && (
+              <span className="inline-block w-2 h-4 bg-[var(--vscode-foreground)] opacity-60 animate-pulse ml-0.5" />
+            )}
+          </div>
+          {!message.isStreaming && (
+            <CopyButton
+              getText={getContent}
+              className="absolute top-0 right-0 w-6 h-6
+                         opacity-0 group-hover:opacity-50 hover:!opacity-100"
+            />
           )}
         </div>
       )}
