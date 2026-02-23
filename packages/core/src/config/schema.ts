@@ -8,8 +8,6 @@ export interface AvaConfig {
   providers: {
     deepseek?: ProviderSettings;
     kimi?: ProviderSettings;
-    zhipu?: ProviderSettings;
-    mistral?: ProviderSettings;
     generic?: Array<{
       name: string;
       apiKey?: string;

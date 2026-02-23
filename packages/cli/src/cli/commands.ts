@@ -114,7 +114,7 @@ export class CommandHandler {
 
         if (action === 'add') {
           const providerName = parts[1];
-          const supported = ['deepseek', 'kimi', 'zhipu', 'mistral'];
+          const supported = ['deepseek', 'kimi'];
 
           if (!providerName || !supported.includes(providerName)) {
             console.log(`  Usage: /provider add <${supported.join('|')}>`);
@@ -143,7 +143,7 @@ export class CommandHandler {
           const appConfig = await opts.config.load();
           console.log('');
           console.log(chalk.bold('  Configured providers:'));
-          const supported = ['deepseek', 'kimi', 'zhipu', 'mistral'];
+          const supported = ['deepseek', 'kimi'];
           for (const name of supported) {
             const configured = (appConfig.providers as Record<string, ProviderSettings | undefined>)[name];
             const status = configured?.apiKey

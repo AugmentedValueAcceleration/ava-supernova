@@ -15,16 +15,6 @@ const PROVIDERS = [
     displayName: 'Kimi (Moonshot AI)',
     keyUrl: 'https://platform.moonshot.ai/console/api-keys',
   },
-  {
-    key: 'zhipu',
-    displayName: 'Zhipu AI (GLM)',
-    keyUrl: 'https://open.bigmodel.cn/usercenter/apikeys',
-  },
-  {
-    key: 'mistral',
-    displayName: 'Mistral AI',
-    keyUrl: 'https://console.mistral.ai/api-keys/',
-  },
 ];
 
 export async function runSetupWizard(

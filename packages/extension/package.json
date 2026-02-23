@@ -1,7 +1,7 @@
 {
   "name": "ava-supernova",
   "displayName": "Ava | Supernova",
-  "description": "Open-source AI coding agent — DeepSeek, Kimi, GLM, and Mistral in your editor",
+  "description": "Open-source AI coding agent — DeepSeek and Kimi in your editor",
   "version": "0.1.0",
   "publisher": "stewai",
   "license": "Apache-2.0",
@@ -76,26 +76,14 @@
             "deepseek:deepseek-chat",
             "deepseek:deepseek-reasoner",
             "kimi:kimi-k2.5",
-            "kimi:moonshot-v1-128k",
-            "zhipu:glm-5",
-            "zhipu:glm-4.7",
-            "zhipu:glm-4-flash",
-            "mistral:mistral-large-latest",
-            "mistral:codestral-latest",
-            "mistral:mistral-small-latest"
+            "kimi:moonshot-v1-128k"
           ],
           "enumDescriptions": [
             "No model selected",
             "DeepSeek V3 — fast, affordable general-purpose",
             "DeepSeek R1 — reasoning model",
             "Kimi K2.5 — best multi-step tool calling",
-            "Moonshot V1 128K — long context",
-            "GLM-5 — best tool-call reliability",
-            "GLM-4.7 — balanced performance",
-            "GLM-4 Flash — fast and lightweight",
-            "Mistral Large — strongest Mistral model",
-            "Codestral — optimized for code",
-            "Mistral Small — fast and efficient"
+            "Moonshot V1 128K — long context"
           ],
           "description": "Select the AI model to use"
         },
@@ -108,16 +96,6 @@
           "type": "string",
           "default": "",
           "description": "Kimi (Moonshot AI) API key"
-        },
-        "ava-supernova.providers.zhipu.apiKey": {
-          "type": "string",
-          "default": "",
-          "description": "Zhipu AI (GLM) API key"
-        },
-        "ava-supernova.providers.mistral.apiKey": {
-          "type": "string",
-          "default": "",
-          "description": "Mistral AI API key"
         },
         "ava-supernova.preferences.temperature": {
           "type": "number",
