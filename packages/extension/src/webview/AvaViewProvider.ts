@@ -78,10 +78,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     // Start fresh for the new project
     this.conversation = new Conversation();
-    const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
-    this.conversation.setSystemPrompt(
-      buildSystemPrompt({ cwd, platform: process.platform, shell: 'bash', permissionMode: this.getPermissionMode(), projectInstructions: this.projectInstructions }),
-    );
+    this.conversation.setSystemPrompt(this.buildCurrentSystemPrompt());
     this.setLastConversationId(undefined);
     this.postMessage({ type: 'chat_cleared' });
 
@@ -185,10 +182,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
 
     this.conversation = new Conversation();
-    const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
-    this.conversation.setSystemPrompt(
-      buildSystemPrompt({ cwd, platform: process.platform, shell: 'bash', permissionMode: this.getPermissionMode(), projectInstructions: this.projectInstructions }),
-    );
+    this.conversation.setSystemPrompt(this.buildCurrentSystemPrompt());
     this.setLastConversationId(undefined);
     this.postMessage({ type: 'chat_cleared' });
     this.postMessage({ type: 'init', models: this.getModelList(), activeModel: this.getActiveModelId(), needsSetup: !this.agent });
@@ -297,14 +291,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
 
+    this.activeModelDef = model;
+
     if (!this.conversation) {
       this.conversation = new Conversation();
-      this.conversation.setSystemPrompt(
-        buildSystemPrompt({ cwd, platform: process.platform, shell: 'bash', permissionMode, projectInstructions: this.projectInstructions }),
-      );
+      this.conversation.setSystemPrompt(this.buildCurrentSystemPrompt());
     }
 
-    this.activeModelDef = model;
     this.agent = new Agent({
       provider,
       model,
@@ -349,6 +342,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     return config.get<string>('activeModel') || null;
   }
 
+  private buildCurrentSystemPrompt(): string {
+    const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
+    return buildSystemPrompt({
+      cwd,
+      platform: process.platform,
+      shell: 'bash',
+      permissionMode: this.getPermissionMode(),
+      supportsVision: this.activeModelDef?.supportsVision,
+      projectInstructions: this.projectInstructions,
+    });
+  }
+
   // ── Session Persistence ───────────────────────────────────────────────────
 
   private getLastConversationId(): string | undefined {
@@ -387,13 +392,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     // Restore it silently
     this.conversation = new Conversation(record.id);
-    const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
 
     const messages = record.messages;
     if (messages.length > 0 && messages[0].role === 'system') {
       messages[0] = {
         role: 'system' as const,
-        content: buildSystemPrompt({ cwd, platform: process.platform, shell: 'bash', permissionMode: this.getPermissionMode(), projectInstructions: this.projectInstructions }),
+        content: this.buildCurrentSystemPrompt(),
       };
     }
     this.conversation.setMessages(messages);
@@ -421,13 +425,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
 
     this.conversation = new Conversation(record.id);
-    const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
 
     const messages = record.messages;
     if (messages.length > 0 && messages[0].role === 'system') {
       messages[0] = {
         role: 'system' as const,
-        content: buildSystemPrompt({ cwd, platform: process.platform, shell: 'bash', permissionMode: this.getPermissionMode(), projectInstructions: this.projectInstructions }),
+        content: this.buildCurrentSystemPrompt(),
       };
     }
     this.conversation.setMessages(messages);

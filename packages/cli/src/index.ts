@@ -67,6 +67,7 @@ async function main(): Promise<void> {
       cwd,
       platform: platform(),
       shell: process.env.SHELL ?? (process.platform === 'win32' ? 'bash' : '/bin/bash'),
+      supportsVision: resolved.model.supportsVision,
       projectInstructions: projectInstructions ?? undefined,
     }),
   );

@@ -6,6 +6,7 @@ interface SystemPromptOptions {
   platform: string;
   shell: string;
   permissionMode?: PermissionMode;
+  supportsVision?: boolean;
   projectInstructions?: string;
 }
 
@@ -90,7 +91,10 @@ This is non-negotiable. Even if you're confident about the right approach, prese
 - Working directory: ${opts.cwd}
 - Platform: ${opts.platform}
 - Shell: ${opts.shell}
-
+${opts.supportsVision ? `
+## Vision
+You can see and analyze images. When the user shares an image (screenshot, photo, diagram, UI mockup, etc.), you can see it directly — describe what you see, answer questions about it, and use it to inform your work. You can reference specific visual elements, read text in images, identify UI components, spot bugs in screenshots, and understand diagrams or architecture drawings.
+` : ''}
 ## Your Tools
 
 You have thirteen tools. **When the user asks you to do something**, use them proactively — don't talk about what you *could* do, go do it. But when the user is asking a question or having a conversation, respond with words first.
