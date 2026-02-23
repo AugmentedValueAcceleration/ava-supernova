@@ -41,7 +41,9 @@ export function HistoryPanel({
   const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sort: pinned first, then by updatedAt (already sorted newest-first)
   const sortedConversations = [
@@ -194,17 +196,35 @@ export function HistoryPanel({
                     </svg>
                   </button>
 
-                  {/* Delete */}
+                  {/* Delete (two-click confirmation) */}
                   <button
-                    onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
-                    title="Delete"
-                    className="flex items-center justify-center w-5 h-5 rounded
-                               hover:!opacity-100 hover:bg-[var(--vscode-toolbar-hoverBackground)]
-                               text-[var(--vscode-foreground)] bg-transparent border-none cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (deletingId === conv.id) {
+                        onDelete(conv.id);
+                        setDeletingId(null);
+                        if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
+                      } else {
+                        setDeletingId(conv.id);
+                        if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
+                        deleteTimerRef.current = setTimeout(() => setDeletingId(null), 3000);
+                      }
+                    }}
+                    title={deletingId === conv.id ? 'Click again to confirm' : 'Delete'}
+                    className={`flex items-center justify-center rounded
+                               border-none cursor-pointer transition-all
+                               ${deletingId === conv.id
+                                 ? 'w-auto px-1.5 h-5 bg-[var(--vscode-errorForeground,#e53935)] text-white text-[10px] font-medium opacity-100'
+                                 : 'w-5 h-5 hover:!opacity-100 hover:bg-[var(--vscode-toolbar-hoverBackground)] text-[var(--vscode-foreground)] bg-transparent'
+                               }`}
                   >
-                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-                      <path d="M10 3h3v1h-1v9l-1 1H5l-1-1V4H3V3h3V2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1zM9 2H7v1h2V2zM5 4v9h6V4H5zm2 2h1v5H7V6zm2 0h1v5H9V6z"/>
-                    </svg>
+                    {deletingId === conv.id ? (
+                      'Delete?'
+                    ) : (
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M10 3h3v1h-1v9l-1 1H5l-1-1V4H3V3h3V2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1zM9 2H7v1h2V2zM5 4v9h6V4H5zm2 2h1v5H7V6zm2 0h1v5H9V6z"/>
+                      </svg>
+                    )}
                   </button>
                 </div>
               </div>

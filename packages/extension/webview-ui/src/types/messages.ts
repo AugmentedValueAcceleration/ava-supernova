@@ -89,7 +89,7 @@ export interface ToolCallDisplay {
 
 export interface UIMessage {
   id: string;
-  role: 'user' | 'assistant' | 'error';
+  role: 'user' | 'assistant' | 'error' | 'system';
   content: string;
   thinking?: string;
   toolCalls: ToolCallDisplay[];

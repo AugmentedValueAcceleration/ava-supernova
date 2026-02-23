@@ -172,8 +172,16 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'done':
       return { ...state, isStreaming: false, isThinking: false };
 
-    case 'model_switched':
-      return { ...state, activeModel: action.modelId };
+    case 'model_switched': {
+      const switchMsg: UIMessage = {
+        id: nextId(),
+        role: 'system',
+        content: `Switched to ${action.modelName}`,
+        toolCalls: [],
+        isStreaming: false,
+      };
+      return { ...state, activeModel: action.modelId, messages: [...state.messages, switchMsg] };
+    }
 
     // ── History ────────────────────────────────────────────────────────────
 
@@ -406,6 +414,13 @@ export function App() {
     postMessage({ type: 'send_message', text: 'Continue where you left off.', mode: 'code' });
   }, [postMessage]);
 
+  const handleSuggestion = useCallback(
+    (prompt: string) => {
+      postMessage({ type: 'send_message', text: prompt, mode: 'code' });
+    },
+    [postMessage],
+  );
+
   const handleCloseHistory = useCallback(() => {
     dispatch({ type: 'close_history' });
   }, []);
@@ -427,6 +442,7 @@ export function App() {
         isThinking={state.isThinking}
         onConfirmation={handleConfirmation}
         onContinue={handleContinue}
+        onSuggestion={handleSuggestion}
         chatEndRef={chatEndRef}
       />
 

@@ -26,7 +26,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private conversation?: Conversation;
   private toolRegistry?: ToolRegistry;
   private providerRegistry: ProviderRegistry;
-  private historyManager: HistoryManager;
+  private historyManager!: HistoryManager;
   private isRunning = false;
   private runAbortController?: AbortController;
   private pendingConfirmations = new Map<string, { resolve: (result: boolean | string) => void; toolName: string }>();
@@ -34,6 +34,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private sessionAllowAll = false;
   private settingsListener?: vscode.Disposable;
   private readonly outputChannel: vscode.OutputChannel;
+  private readonly statusBarItem: vscode.StatusBarItem;
   private projectRoot?: string;
   private projectInstructions?: string;
 
@@ -43,10 +44,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   ) {
     this.providerRegistry = new ProviderRegistry();
     this.outputChannel = vscode.window.createOutputChannel('Ava | Supernova');
-    this.historyManager = new HistoryManager();
-    this.historyManager.init();
+    this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    this.statusBarItem.command = 'ava-supernova.switchModel';
+    this.updateStatusBar();
+    this.statusBarItem.show();
 
-    // Detect project and load instructions
+    // Detect project and load instructions (also creates historyManager)
     this.refreshProjectContext();
 
     // Re-detect project when workspace folders change
@@ -221,8 +224,24 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   dispose(): void {
     killBackgroundProcesses();
     this.settingsListener?.dispose();
+    this.statusBarItem.dispose();
     this.panel?.dispose();
     this.outputChannel.dispose();
+  }
+
+  private updateStatusBar(state: 'ready' | 'busy' | 'error' = 'ready'): void {
+    const modelName = this.activeModelDef?.name || 'No model';
+    switch (state) {
+      case 'busy':
+        this.statusBarItem.text = `$(loading~spin) Ava: ${modelName}`;
+        break;
+      case 'error':
+        this.statusBarItem.text = `$(error) Ava: ${modelName}`;
+        break;
+      default:
+        this.statusBarItem.text = `$(sparkle) Ava: ${modelName}`;
+    }
+    this.statusBarItem.tooltip = `Ava | Supernova — ${modelName}\nClick to switch model`;
   }
 
   // ── Private Methods ────────────────────────────────────────────────────────
@@ -308,6 +327,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const config = vscode.workspace.getConfiguration('ava-supernova');
     config.update('activeModel', modelId, vscode.ConfigurationTarget.Global);
 
+    this.updateStatusBar('ready');
     this.postMessage({
       type: 'model_switched',
       modelId,
@@ -572,6 +592,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
     this.isRunning = true;
     this.runAbortController = new AbortController();
+    this.updateStatusBar('busy');
 
     const userText = this.applyModePrefix(text, mode);
     this.log(`User message (mode=${mode}): "${text.slice(0, 80)}${text.length > 80 ? '...' : ''}"`);
@@ -650,6 +671,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           this.postMessage({ type: 'error', message: info.message, code: info.code, suggestion: info.suggestion });
           break;
         }
+        case 'context_truncated':
+          this.log(`Context truncated: ${event.droppedCount} messages dropped`);
+          this.postMessage({
+            type: 'error',
+            message: `Context window full — ${event.droppedCount} older messages were dropped to fit.`,
+            code: 'context_truncated',
+            suggestion: 'Start a new chat for best results, or continue and older context will be summarized.',
+          });
+          break;
         case 'done':
           this.postMessage({ type: 'done' });
           this.log('Agent done');
@@ -696,6 +726,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     } finally {
       this.isRunning = false;
       this.runAbortController = undefined;
+      this.updateStatusBar('ready');
       // Always send done to guarantee the UI resets
       this.postMessage({ type: 'done' });
       this.log('handleUserMessage finished — isRunning=false');

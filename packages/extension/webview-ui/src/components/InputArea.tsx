@@ -30,6 +30,12 @@ const MODES: { id: AvaMode; label: string; icon: string }[] = [
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
+const PLACEHOLDERS: Record<AvaMode, string> = {
+  code: 'What do you want to build?',
+  plan: 'Describe what you want to plan...',
+  chat: 'Ask a question or start a discussion...',
+};
+
 export function InputArea({ onSend, onCancel, isStreaming, disabled, usage }: InputAreaProps) {
   const [text, setText] = useState('');
   const [mode, setMode] = useState<AvaMode>('code');
@@ -235,7 +241,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage }: In
           }}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          placeholder={disabled ? 'Configure a provider to start...' : 'What do you want to build?'}
+          placeholder={disabled ? 'Configure a provider to start...' : PLACEHOLDERS[mode]}
           disabled={disabled}
           rows={1}
           className="w-full resize-none text-sm px-3 pt-3 pb-1

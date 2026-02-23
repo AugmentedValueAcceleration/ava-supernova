@@ -1,9 +1,44 @@
+import { useState, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 
 interface MarkdownRendererProps {
   content: string;
+}
+
+function CodeBlock({ children }: { children: React.ReactNode }) {
+  const preRef = useRef<HTMLPreElement>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    const text = preRef.current?.textContent || '';
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, []);
+
+  return (
+    <div className="relative group">
+      <pre
+        ref={preRef}
+        className="rounded p-3 my-2 overflow-x-auto text-xs leading-relaxed
+                    bg-[var(--vscode-textCodeBlock-background,rgba(0,0,0,0.15))]"
+      >
+        {children}
+      </pre>
+      <button
+        onClick={handleCopy}
+        className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[10px]
+                   opacity-0 group-hover:opacity-60 hover:!opacity-100
+                   bg-[var(--vscode-button-secondaryBackground)]
+                   text-[var(--vscode-button-secondaryForeground)]
+                   border-none cursor-pointer transition-opacity"
+      >
+        {copied ? 'Copied!' : 'Copy'}
+      </button>
+    </div>
+  );
 }
 
 export function MarkdownRenderer({ content }: MarkdownRendererProps) {
@@ -77,12 +112,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
           ),
 
           // ── Code ────────────────────────────────────────────────────────
-          pre: ({ children }) => (
-            <pre className="rounded p-3 my-2 overflow-x-auto text-xs leading-relaxed
-                            bg-[var(--vscode-textCodeBlock-background,rgba(0,0,0,0.15))]">
-              {children}
-            </pre>
-          ),
+          pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
           code: ({ children, className }) => {
             const isInline = !className;
             if (isInline) {

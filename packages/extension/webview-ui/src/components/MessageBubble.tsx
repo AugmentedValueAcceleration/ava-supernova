@@ -26,16 +26,27 @@ const ERROR_LABELS: Record<string, string> = {
   setup: 'Setup Required',
   busy: 'Busy',
   iterations_exceeded: 'Iteration Limit',
+  context_truncated: 'Context Truncated',
   provider_error: 'Provider Error',
   unknown: 'Error',
 };
 
 // Errors where "Continue" makes sense — the conversation context is intact
 const RESUMABLE_ERRORS = new Set([
-  'stream_stall', 'timeout', 'server_error', 'network', 'rate_limit', 'iterations_exceeded', 'provider_error', 'unknown',
+  'stream_stall', 'timeout', 'server_error', 'network', 'rate_limit', 'iterations_exceeded', 'context_truncated', 'provider_error', 'unknown',
 ]);
 
 export function MessageBubble({ message, onConfirmation, onContinue }: MessageBubbleProps) {
+  if (message.role === 'system') {
+    return (
+      <div className="flex justify-center py-1">
+        <span className="text-[11px] opacity-40 italic">
+          {message.content}
+        </span>
+      </div>
+    );
+  }
+
   if (message.role === 'error') {
     const label = ERROR_LABELS[message.errorCode || ''] || 'Error';
     const canResume = onContinue && RESUMABLE_ERRORS.has(message.errorCode || '');

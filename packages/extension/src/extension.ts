@@ -1,29 +1,33 @@
 import * as vscode from 'vscode';
 import { AvaViewProvider } from './webview/AvaViewProvider.js';
+import { killBackgroundProcesses } from '@ava/core';
+
+let viewProvider: AvaViewProvider | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
-  const provider = new AvaViewProvider(context.extensionUri, context);
+  viewProvider = new AvaViewProvider(context.extensionUri, context);
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
       AvaViewProvider.viewType,
-      provider,
+      viewProvider,
       { webviewOptions: { retainContextWhenHidden: true } },
     ),
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('ava-supernova.openChat', () => provider.openInEditor()),
-    vscode.commands.registerCommand('ava-supernova.newChat', () => provider.newChat()),
-    vscode.commands.registerCommand('ava-supernova.clearChat', () => provider.clearChat()),
-    vscode.commands.registerCommand('ava-supernova.switchModel', () => provider.switchModel()),
-    vscode.commands.registerCommand('ava-supernova.showHistory', () => provider.showHistory()),
+    vscode.commands.registerCommand('ava-supernova.openChat', () => viewProvider!.openInEditor()),
+    vscode.commands.registerCommand('ava-supernova.newChat', () => viewProvider!.newChat()),
+    vscode.commands.registerCommand('ava-supernova.clearChat', () => viewProvider!.clearChat()),
+    vscode.commands.registerCommand('ava-supernova.switchModel', () => viewProvider!.switchModel()),
+    vscode.commands.registerCommand('ava-supernova.showHistory', () => viewProvider!.showHistory()),
   );
 
   // Auto-open in editor area on activation
-  provider.openInEditor();
+  viewProvider.openInEditor();
 }
 
 export function deactivate(): void {
-  // cleanup
+  killBackgroundProcesses();
+  viewProvider?.dispose();
 }
