@@ -136,6 +136,10 @@ export class Repl {
         return `search "${String(args.query ?? '').slice(0, 60)}"`;
       case 'ask_user':
         return String(args.question ?? '').slice(0, 80);
+      case 'git_status':
+        return `git ${args.command}${args.args ? ' ' + String(args.args).slice(0, 60) : ''}`;
+      case 'http_request':
+        return `${args.method ?? 'GET'} ${String(args.url ?? '').slice(0, 60)}`;
       default:
         return JSON.stringify(args).slice(0, 80);
     }

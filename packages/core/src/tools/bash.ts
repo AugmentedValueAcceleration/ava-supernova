@@ -13,7 +13,7 @@ const BACKGROUND_WARMUP_MS = 5_000; // collect output for 5s before returning
 
 let resolvedShell: string | undefined;
 
-function getShell(): string {
+export function getShell(): string {
   if (resolvedShell) return resolvedShell;
 
   if (process.platform !== 'win32') {

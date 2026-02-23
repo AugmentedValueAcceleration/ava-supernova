@@ -11,6 +11,8 @@ import { TodoWriteTool } from './todo-write.js';
 import { ListDirectoryTool } from './list-directory.js';
 import { WebSearchTool } from './web-search.js';
 import { AskUserTool } from './ask-user.js';
+import { GitStatusTool } from './git.js';
+import { HttpRequestTool } from './http-request.js';
 
 // Which risk levels require confirmation under each permission mode
 const CONFIRMATION_MATRIX: Record<PermissionMode, Set<ToolRiskLevel>> = {
@@ -49,6 +51,8 @@ export class ToolRegistry {
       new ListDirectoryTool(),
       new WebSearchTool(),
       new AskUserTool(),
+      new GitStatusTool(),
+      new HttpRequestTool(),
     ];
     for (const tool of builtins) {
       this.tools.set(tool.name, tool);

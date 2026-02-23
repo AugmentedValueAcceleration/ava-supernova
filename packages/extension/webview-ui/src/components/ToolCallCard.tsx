@@ -39,6 +39,10 @@ function getToolLabel(name: string, argsJson: string): { icon: string; label: st
       return { icon: '\uD83C\uDF10', label: `Search: ${truncate((args.query as string) || '...', 50)}` };
     case 'ask_user':
       return { icon: '\uD83D\uDCAC', label: 'Question for user' };
+    case 'git_status':
+      return { icon: '\uD83D\uDD00', label: `Git ${(args.command as string) || 'status'}` };
+    case 'http_request':
+      return { icon: '\uD83D\uDD17', label: `${(args.method as string) || 'GET'} ${truncate((args.url as string) || '...', 50)}` };
     default:
       return { icon: '\u2699\uFE0F', label: name };
   }

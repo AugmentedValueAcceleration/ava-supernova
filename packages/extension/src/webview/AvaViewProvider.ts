@@ -872,6 +872,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         return `List ${args.path}`;
       case 'web_search':
         return `Search: ${String(args.query ?? '').slice(0, 80)}`;
+      case 'git_status':
+        return `git ${args.command}${args.args ? ' ' + String(args.args).slice(0, 60) : ''}`;
+      case 'http_request':
+        return `${args.method ?? 'GET'} ${String(args.url ?? '').slice(0, 80)}`;
       default:
         return `${toolName}: ${JSON.stringify(args).slice(0, 100)}`;
     }
