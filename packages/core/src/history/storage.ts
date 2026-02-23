@@ -9,6 +9,7 @@ export interface ConversationRecord {
   updatedAt: string;
   title: string;
   messages: Message[];
+  pinned?: boolean;
 }
 
 /** Default max conversations to keep before pruning oldest. */
@@ -39,10 +40,10 @@ export class HistoryStorage {
     }
   }
 
-  async list(): Promise<Array<{ id: string; title: string; updatedAt: string }>> {
+  async list(): Promise<Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }>> {
     await this.init();
     const files = await readdir(HISTORY_DIR);
-    const summaries: Array<{ id: string; title: string; updatedAt: string }> = [];
+    const summaries: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }> = [];
 
     for (const file of files) {
       if (!file.endsWith('.json')) continue;
@@ -53,6 +54,7 @@ export class HistoryStorage {
           id: record.id,
           title: record.title,
           updatedAt: record.updatedAt,
+          pinned: record.pinned,
         });
       } catch {
         // skip corrupt files
@@ -72,13 +74,15 @@ export class HistoryStorage {
     }
   }
 
-  /** Remove oldest conversations when count exceeds maxHistory. */
+  /** Remove oldest unpinned conversations when count exceeds maxHistory. */
   async prune(maxHistory: number = MAX_HISTORY): Promise<number> {
     const all = await this.list();
-    if (all.length <= maxHistory) return 0;
+    // Never prune pinned conversations
+    const unpinned = all.filter((entry) => !entry.pinned);
+    if (unpinned.length <= maxHistory) return 0;
 
     // list() is sorted newest-first, so slice from maxHistory onwards
-    const toDelete = all.slice(maxHistory);
+    const toDelete = unpinned.slice(maxHistory);
     let deleted = 0;
     for (const entry of toDelete) {
       if (await this.delete(entry.id)) deleted++;

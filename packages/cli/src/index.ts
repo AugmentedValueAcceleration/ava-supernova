@@ -72,7 +72,7 @@ async function main(): Promise<void> {
 
   // Set up REPL
   const modelLabel = `${resolved.provider.name}:${resolved.model.id}`;
-  const repl = new Repl({ agent, conversation, toolRegistry, modelLabel });
+  const repl = new Repl({ agent, conversation, toolRegistry, historyManager, modelLabel });
 
   // Set up commands with live model switching
   const commands = new CommandHandler({

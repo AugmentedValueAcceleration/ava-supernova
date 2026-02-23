@@ -382,6 +382,41 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     await this.sendHistoryList();
   }
 
+  private async searchHistory(query: string): Promise<void> {
+    const results = await this.historyManager.searchConversations(query);
+    this.postMessage({ type: 'history_search_results', conversations: results });
+  }
+
+  private async renameConversation(conversationId: string, newTitle: string): Promise<void> {
+    await this.historyManager.renameConversation(conversationId, newTitle);
+    await this.sendHistoryList();
+  }
+
+  private async pinConversation(conversationId: string, pinned: boolean): Promise<void> {
+    await this.historyManager.pinConversation(conversationId, pinned);
+    await this.sendHistoryList();
+  }
+
+  private async exportConversation(conversationId: string, format: 'markdown' | 'json'): Promise<void> {
+    const content = await this.historyManager.exportConversation(conversationId, format);
+    if (!content) {
+      this.postMessage({ type: 'error', message: 'Failed to export conversation.' });
+      return;
+    }
+    const ext = format === 'json' ? 'json' : 'md';
+    const defaultUri = vscode.Uri.file(`conversation-export.${ext}`);
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri,
+      filters: format === 'json'
+        ? { 'JSON': ['json'] }
+        : { 'Markdown': ['md'] },
+    });
+    if (uri) {
+      await vscode.workspace.fs.writeFile(uri, Buffer.from(content, 'utf-8'));
+      vscode.window.showInformationMessage(`Conversation exported to ${uri.fsPath}`);
+    }
+  }
+
   private buildUIMessages(messages: Message[]): Array<{ role: 'user' | 'assistant'; content: string }> {
     return messages
       .filter((m) =>
@@ -441,6 +476,22 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
       case 'delete_conversation':
         await this.deleteConversation(message.conversationId);
+        break;
+
+      case 'search_history':
+        await this.searchHistory(message.query);
+        break;
+
+      case 'rename_conversation':
+        await this.renameConversation(message.conversationId, message.newTitle);
+        break;
+
+      case 'pin_conversation':
+        await this.pinConversation(message.conversationId, message.pinned);
+        break;
+
+      case 'export_conversation':
+        await this.exportConversation(message.conversationId, message.format);
         break;
 
       case 'new_chat':

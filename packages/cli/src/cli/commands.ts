@@ -170,15 +170,21 @@ export class CommandHandler {
           console.log('  No saved conversations.');
           return true;
         }
+        // Sort pinned first, then by updatedAt (already sorted newest-first)
+        const sorted = [
+          ...conversations.filter((c) => c.pinned),
+          ...conversations.filter((c) => !c.pinned),
+        ];
         console.log('');
         console.log(chalk.bold('  Saved conversations:'));
-        for (const c of conversations.slice(0, 20)) {
+        for (const c of sorted.slice(0, 20)) {
           const date = new Date(c.updatedAt);
           const relative = formatRelativeDate(date);
-          console.log(`  ${chalk.dim(c.id.slice(0, 8))} ${c.title} ${chalk.dim(`(${relative})`)}`);
+          const pin = c.pinned ? chalk.yellow(' [pinned]') : '';
+          console.log(`  ${chalk.dim(c.id.slice(0, 8))} ${c.title}${pin} ${chalk.dim(`(${relative})`)}`);
         }
-        if (conversations.length > 20) {
-          console.log(chalk.dim(`  ... and ${conversations.length - 20} more`));
+        if (sorted.length > 20) {
+          console.log(chalk.dim(`  ... and ${sorted.length - 20} more`));
         }
         console.log('');
         console.log(chalk.dim('  Use /resume <id-prefix> to load a conversation.'));
@@ -214,6 +220,184 @@ export class CommandHandler {
         opts.conversation.setMessages(record.messages);
         console.log(chalk.green(`  Resumed: ${record.title}`));
         console.log(chalk.dim(`  ${record.messages.length} messages loaded.`));
+        return true;
+      },
+    });
+
+    this.registerCommand({
+      name: 'search',
+      aliases: ['s'],
+      description: 'Search conversations (/search <query>)',
+      execute: async (args) => {
+        const query = args.trim();
+        if (!query) {
+          console.log('  Usage: /search <query>');
+          return true;
+        }
+        const results = await opts.historyManager.searchConversations(query);
+        if (results.length === 0) {
+          console.log(`  No conversations matching "${query}".`);
+          return true;
+        }
+        console.log('');
+        console.log(chalk.bold(`  Search results for "${query}":`));
+        for (const c of results.slice(0, 20)) {
+          const date = new Date(c.updatedAt);
+          const relative = formatRelativeDate(date);
+          const pin = c.pinned ? chalk.yellow(' [pinned]') : '';
+          console.log(`  ${chalk.dim(c.id.slice(0, 8))} ${c.title}${pin} ${chalk.dim(`(${relative})`)}`);
+        }
+        if (results.length > 20) {
+          console.log(chalk.dim(`  ... and ${results.length - 20} more`));
+        }
+        console.log('');
+        return true;
+      },
+    });
+
+    this.registerCommand({
+      name: 'delete',
+      aliases: ['rm'],
+      description: 'Delete a saved conversation (/delete <id-prefix>)',
+      execute: async (args) => {
+        const prefix = args.trim();
+        if (!prefix) {
+          console.log('  Usage: /delete <id-prefix>');
+          console.log('  Run /history to see available conversations.');
+          return true;
+        }
+        const conversations = await opts.historyManager.listConversations();
+        const match = conversations.find((c) => c.id.startsWith(prefix));
+        if (!match) {
+          console.log(`  No conversation found matching "${prefix}".`);
+          return true;
+        }
+        const confirm = await this.askQuestion(
+          `  Delete "${match.title}" (${match.id.slice(0, 8)})? (y/n) `,
+        );
+        if (!confirm.toLowerCase().startsWith('y')) {
+          console.log('  Cancelled.');
+          return true;
+        }
+        const deleted = await opts.historyManager.deleteConversation(match.id);
+        if (deleted) {
+          console.log(chalk.green('  Conversation deleted.'));
+        } else {
+          console.log('  Failed to delete conversation.');
+        }
+        return true;
+      },
+    });
+
+    this.registerCommand({
+      name: 'rename',
+      description: 'Rename a conversation (/rename <id-prefix> <new title>)',
+      execute: async (args) => {
+        const trimmed = args.trim();
+        const spaceIdx = trimmed.indexOf(' ');
+        if (!trimmed || spaceIdx === -1) {
+          console.log('  Usage: /rename <id-prefix> <new title>');
+          return true;
+        }
+        const prefix = trimmed.slice(0, spaceIdx);
+        const newTitle = trimmed.slice(spaceIdx + 1).trim();
+        if (!newTitle) {
+          console.log('  Usage: /rename <id-prefix> <new title>');
+          return true;
+        }
+        const conversations = await opts.historyManager.listConversations();
+        const match = conversations.find((c) => c.id.startsWith(prefix));
+        if (!match) {
+          console.log(`  No conversation found matching "${prefix}".`);
+          return true;
+        }
+        const success = await opts.historyManager.renameConversation(match.id, newTitle);
+        if (success) {
+          console.log(chalk.green(`  Renamed to: ${newTitle}`));
+        } else {
+          console.log('  Failed to rename conversation.');
+        }
+        return true;
+      },
+    });
+
+    this.registerCommand({
+      name: 'pin',
+      description: 'Pin a conversation (/pin <id-prefix>)',
+      execute: async (args) => {
+        const prefix = args.trim();
+        if (!prefix) {
+          console.log('  Usage: /pin <id-prefix>');
+          return true;
+        }
+        const conversations = await opts.historyManager.listConversations();
+        const match = conversations.find((c) => c.id.startsWith(prefix));
+        if (!match) {
+          console.log(`  No conversation found matching "${prefix}".`);
+          return true;
+        }
+        const success = await opts.historyManager.pinConversation(match.id, true);
+        if (success) {
+          console.log(chalk.green(`  Pinned: ${match.title}`));
+        } else {
+          console.log('  Failed to pin conversation.');
+        }
+        return true;
+      },
+    });
+
+    this.registerCommand({
+      name: 'unpin',
+      description: 'Unpin a conversation (/unpin <id-prefix>)',
+      execute: async (args) => {
+        const prefix = args.trim();
+        if (!prefix) {
+          console.log('  Usage: /unpin <id-prefix>');
+          return true;
+        }
+        const conversations = await opts.historyManager.listConversations();
+        const match = conversations.find((c) => c.id.startsWith(prefix));
+        if (!match) {
+          console.log(`  No conversation found matching "${prefix}".`);
+          return true;
+        }
+        const success = await opts.historyManager.pinConversation(match.id, false);
+        if (success) {
+          console.log(chalk.green(`  Unpinned: ${match.title}`));
+        } else {
+          console.log('  Failed to unpin conversation.');
+        }
+        return true;
+      },
+    });
+
+    this.registerCommand({
+      name: 'export',
+      description: 'Export a conversation (/export <id-prefix> [markdown|json])',
+      execute: async (args) => {
+        const parts = args.trim().split(/\s+/);
+        const prefix = parts[0];
+        const format = (parts[1] === 'json' ? 'json' : 'markdown') as 'markdown' | 'json';
+        if (!prefix) {
+          console.log('  Usage: /export <id-prefix> [markdown|json]');
+          return true;
+        }
+        const conversations = await opts.historyManager.listConversations();
+        const match = conversations.find((c) => c.id.startsWith(prefix));
+        if (!match) {
+          console.log(`  No conversation found matching "${prefix}".`);
+          return true;
+        }
+        const content = await opts.historyManager.exportConversation(match.id, format);
+        if (!content) {
+          console.log('  Failed to export conversation.');
+          return true;
+        }
+        const ext = format === 'json' ? '.json' : '.md';
+        const filename = `conversation-export${ext}`;
+        const { writeFile } = await import('node:fs/promises');
+        await writeFile(filename, content, 'utf-8');
+        console.log(chalk.green(`  Exported to ${filename}`));
         return true;
       },
     });

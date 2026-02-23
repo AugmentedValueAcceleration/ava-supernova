@@ -1,7 +1,7 @@
 import * as readline from 'node:readline';
 import { stdin, stdout } from 'node:process';
 import chalk from 'chalk';
-import type { Agent, AgentEvent, Conversation, ToolRegistry } from '@ava/core';
+import type { Agent, AgentEvent, Conversation, ToolRegistry, HistoryManager } from '@ava/core';
 import { Renderer } from './renderer.js';
 import { CommandHandler } from './commands.js';
 import { Spinner } from './spinner.js';
@@ -19,15 +19,18 @@ export class Repl {
   private multilineBuffer: string[] = [];
   private inMultiline = false;
   private lastUserInput = '';
+  private historyManager: HistoryManager;
 
   constructor(opts: {
     agent: Agent;
     conversation: Conversation;
     toolRegistry: ToolRegistry;
+    historyManager: HistoryManager;
     modelLabel: string;
   }) {
     this.agent = opts.agent;
     this.conversation = opts.conversation;
+    this.historyManager = opts.historyManager;
     this.renderer = new Renderer();
     this.spinner = new Spinner();
     this.modelLabel = opts.modelLabel;
@@ -258,6 +261,8 @@ export class Repl {
     try {
       const updatedMessages = await this.agent.run(this.conversation.getMessages(), onEvent);
       this.conversation.setMessages(updatedMessages);
+      // Auto-save after each completed turn (protects against crashes)
+      await this.historyManager.saveConversation(this.conversation);
     } catch (error) {
       this.spinner.stop();
       this.renderer.printError(error instanceof Error ? error : new Error(String(error)));

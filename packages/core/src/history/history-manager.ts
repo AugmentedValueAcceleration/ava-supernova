@@ -29,8 +29,9 @@ export class HistoryManager {
       id: conversation.id,
       createdAt: existing?.createdAt ?? new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      title,
+      title: existing?.title || title, // preserve manual renames
       messages,
+      ...(existing?.pinned ? { pinned: true } : {}),
     };
 
     await this.storage.save(record);
@@ -43,8 +44,80 @@ export class HistoryManager {
     return this.storage.load(id);
   }
 
-  async listConversations(): Promise<Array<{ id: string; title: string; updatedAt: string }>> {
+  async listConversations(): Promise<Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }>> {
     return this.storage.list();
+  }
+
+  async searchConversations(query: string): Promise<Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }>> {
+    const all = await this.storage.list();
+    const lowerQuery = query.toLowerCase();
+    const results: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }> = [];
+
+    for (const entry of all) {
+      // Quick check: title match
+      if (entry.title.toLowerCase().includes(lowerQuery)) {
+        results.push(entry);
+        continue;
+      }
+      // Deep check: message content match
+      const record = await this.storage.load(entry.id);
+      if (!record) continue;
+      const hasMatch = record.messages.some((m) => {
+        const text = getTextContent(m.content);
+        return text.toLowerCase().includes(lowerQuery);
+      });
+      if (hasMatch) results.push(entry);
+    }
+
+    return results;
+  }
+
+  async renameConversation(id: string, newTitle: string): Promise<boolean> {
+    const record = await this.storage.load(id);
+    if (!record) return false;
+    record.title = newTitle;
+    record.updatedAt = new Date().toISOString();
+    await this.storage.save(record);
+    return true;
+  }
+
+  async pinConversation(id: string, pinned: boolean): Promise<boolean> {
+    const record = await this.storage.load(id);
+    if (!record) return false;
+    record.pinned = pinned;
+    await this.storage.save(record);
+    return true;
+  }
+
+  async exportConversation(id: string, format: 'markdown' | 'json'): Promise<string | null> {
+    const record = await this.storage.load(id);
+    if (!record) return null;
+
+    if (format === 'json') {
+      return JSON.stringify(record, null, 2);
+    }
+
+    // Markdown format
+    const lines: string[] = [];
+    lines.push(`# ${record.title}`);
+    lines.push('');
+    lines.push(`**Created:** ${record.createdAt}`);
+    lines.push(`**Updated:** ${record.updatedAt}`);
+    lines.push('');
+    lines.push('---');
+    lines.push('');
+
+    for (const msg of record.messages) {
+      if (msg.role === 'system') continue;
+      if (msg.role === 'tool') continue;
+      const roleLabel = msg.role === 'user' ? '## User' : '## Ava';
+      lines.push(roleLabel);
+      lines.push('');
+      lines.push(getTextContent(msg.content));
+      lines.push('');
+    }
+
+    return lines.join('\n');
   }
 
   async deleteConversation(id: string): Promise<boolean> {

@@ -183,6 +183,12 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         historyOpen: true,
       };
 
+    case 'history_search_results':
+      return {
+        ...state,
+        historyList: action.conversations,
+      };
+
     case 'conversation_loaded': {
       const restoredMessages: UIMessage[] = action.messages.map((m) => ({
         id: nextId(),
@@ -363,6 +369,38 @@ export function App() {
     [postMessage],
   );
 
+  const handleSearchHistory = useCallback(
+    (query: string) => {
+      if (query.trim()) {
+        postMessage({ type: 'search_history', query });
+      } else {
+        postMessage({ type: 'request_history' });
+      }
+    },
+    [postMessage],
+  );
+
+  const handleRenameConversation = useCallback(
+    (conversationId: string, newTitle: string) => {
+      postMessage({ type: 'rename_conversation', conversationId, newTitle });
+    },
+    [postMessage],
+  );
+
+  const handlePinConversation = useCallback(
+    (conversationId: string, pinned: boolean) => {
+      postMessage({ type: 'pin_conversation', conversationId, pinned });
+    },
+    [postMessage],
+  );
+
+  const handleExportConversation = useCallback(
+    (conversationId: string, format: 'markdown' | 'json') => {
+      postMessage({ type: 'export_conversation', conversationId, format });
+    },
+    [postMessage],
+  );
+
   const handleContinue = useCallback(() => {
     postMessage({ type: 'send_message', text: 'Continue where you left off.', mode: 'code' });
   }, [postMessage]);
@@ -406,6 +444,10 @@ export function App() {
           onSelect={handleLoadConversation}
           onDelete={handleDeleteConversation}
           onNewChat={handleNewChat}
+          onSearch={handleSearchHistory}
+          onRename={handleRenameConversation}
+          onPin={handlePinConversation}
+          onExport={handleExportConversation}
         />
       )}
     </div>

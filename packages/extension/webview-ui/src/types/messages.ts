@@ -40,7 +40,11 @@ export type ExtToWebviewMessage =
   | { type: 'model_switched'; modelId: string; modelName: string }
   | {
       type: 'history_list';
-      conversations: Array<{ id: string; title: string; updatedAt: string }>;
+      conversations: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }>;
+    }
+  | {
+      type: 'history_search_results';
+      conversations: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }>;
     }
   | {
       type: 'conversation_loaded';
@@ -62,6 +66,10 @@ export type WebviewToExtMessage =
   | { type: 'request_history' }
   | { type: 'load_conversation'; conversationId: string }
   | { type: 'delete_conversation'; conversationId: string }
+  | { type: 'search_history'; query: string }
+  | { type: 'rename_conversation'; conversationId: string; newTitle: string }
+  | { type: 'pin_conversation'; conversationId: string; pinned: boolean }
+  | { type: 'export_conversation'; conversationId: string; format: 'markdown' | 'json' }
   | { type: 'new_chat' }
   | { type: 'webview_ready' };
 
@@ -103,6 +111,6 @@ export interface ChatState {
     contextWindow?: number;
   } | null;
   historyOpen: boolean;
-  historyList: Array<{ id: string; title: string; updatedAt: string }>;
+  historyList: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }>;
   currentConversationId: string | null;
 }
