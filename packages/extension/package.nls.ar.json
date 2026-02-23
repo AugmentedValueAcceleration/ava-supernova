@@ -36,5 +36,18 @@
   "lang.pl": "البولندية",
   "lang.uk": "الأوكرانية",
   "lang.nl": "الهولندية",
-  "lang.id": "الإندونيسية"
+  "lang.id": "الإندونيسية",
+  "command.gettingStarted.title": "البدء",
+  "walkthrough.title": "البدء مع Ava",
+  "walkthrough.description": "قم بإعداد وكيل البرمجة الذكي في دقائق",
+  "walkthrough.step.apiKey.title": "أضف مفتاح API الخاص بك",
+  "walkthrough.step.apiKey.description": "احصل على مفتاح API من [DeepSeek](https://platform.deepseek.com/api_keys) أو [Kimi](https://platform.moonshot.ai/console/api-keys) أو [Qwen](https://bailian.console.alibabacloud.com/) وأضفه في [الإعدادات](command:workbench.action.openSettings?%22ava-supernova.providers%22).",
+  "walkthrough.step.model.title": "اختر نموذجاً",
+  "walkthrough.step.model.description": "اختر نموذجاً من [إعداد النموذج النشط](command:workbench.action.openSettings?%22ava-supernova.activeModel%22). لكل نموذج نقاط قوة مختلفة — اختر ما يناسب سير عملك.",
+  "walkthrough.step.language.title": "اضبط لغتك",
+  "walkthrough.step.language.description": "تدعم Ava 20 لغة. اضبط [اللغة](command:workbench.action.openSettings?%22ava-supernova.preferences.language%22) المفضلة لديك أو اتركها على الاكتشاف التلقائي.",
+  "walkthrough.step.permissions.title": "اختر وضع الأذونات",
+  "walkthrough.step.permissions.description": "تحكم فيما يمكن لـ Ava فعله دون سؤالك. ابدأ بالوضع **الصارم** (الافتراضي) وقم بالترقية لاحقاً. [فتح إعدادات الأذونات](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22).",
+  "walkthrough.step.start.title": "ابدأ المحادثة",
+  "walkthrough.step.start.description": "أنت جاهز! [افتح محادثة Ava](command:ava-supernova.openChat) وابدأ البناء."
 }

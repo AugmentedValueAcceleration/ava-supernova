@@ -36,5 +36,18 @@
   "lang.pl": "Tiếng Ba Lan",
   "lang.uk": "Tiếng Ukraina",
   "lang.nl": "Tiếng Hà Lan",
-  "lang.id": "Tiếng Indonesia"
+  "lang.id": "Tiếng Indonesia",
+  "command.gettingStarted.title": "Bắt đầu",
+  "walkthrough.title": "Bắt đầu với Ava",
+  "walkthrough.description": "Thiết lập trợ lý lập trình AI của bạn trong vài phút",
+  "walkthrough.step.apiKey.title": "Thêm khóa API của bạn",
+  "walkthrough.step.apiKey.description": "Lấy khóa API từ [DeepSeek](https://platform.deepseek.com/api_keys), [Kimi](https://platform.moonshot.ai/console/api-keys), hoặc [Qwen](https://bailian.console.alibabacloud.com/) và thêm vào [Cài đặt](command:workbench.action.openSettings?%22ava-supernova.providers%22).",
+  "walkthrough.step.model.title": "Chọn mô hình",
+  "walkthrough.step.model.description": "Chọn mô hình từ [Cài đặt mô hình đang hoạt động](command:workbench.action.openSettings?%22ava-supernova.activeModel%22). Mỗi mô hình có thế mạnh khác nhau — chọn cái phù hợp với quy trình của bạn.",
+  "walkthrough.step.language.title": "Đặt ngôn ngữ của bạn",
+  "walkthrough.step.language.description": "Ava hỗ trợ 20 ngôn ngữ. Đặt [ngôn ngữ](command:workbench.action.openSettings?%22ava-supernova.preferences.language%22) ưa thích hoặc để chế độ tự động phát hiện.",
+  "walkthrough.step.permissions.title": "Chọn chế độ quyền",
+  "walkthrough.step.permissions.description": "Kiểm soát những gì Ava có thể làm mà không cần hỏi. Bắt đầu với chế độ **Nghiêm ngặt** (mặc định) và nâng cấp sau. [Mở cài đặt quyền](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22).",
+  "walkthrough.step.start.title": "Bắt đầu trò chuyện",
+  "walkthrough.step.start.description": "Bạn đã sẵn sàng! [Mở Ava Chat](command:ava-supernova.openChat) và bắt đầu xây dựng."
 }

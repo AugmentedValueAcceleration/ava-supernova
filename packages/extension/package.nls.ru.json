@@ -36,5 +36,18 @@
   "lang.pl": "Польский",
   "lang.uk": "Украинский",
   "lang.nl": "Нидерландский",
-  "lang.id": "Индонезийский"
+  "lang.id": "Индонезийский",
+  "command.gettingStarted.title": "Начало работы",
+  "walkthrough.title": "Начало работы с Ava",
+  "walkthrough.description": "Настройте своего AI-агента для программирования за несколько минут",
+  "walkthrough.step.apiKey.title": "Добавьте свой API-ключ",
+  "walkthrough.step.apiKey.description": "Получите API-ключ от [DeepSeek](https://platform.deepseek.com/api_keys), [Kimi](https://platform.moonshot.ai/console/api-keys) или [Qwen](https://bailian.console.alibabacloud.com/) и добавьте его в [Настройках](command:workbench.action.openSettings?%22ava-supernova.providers%22).",
+  "walkthrough.step.model.title": "Выберите модель",
+  "walkthrough.step.model.description": "Выберите модель в [настройке активной модели](command:workbench.action.openSettings?%22ava-supernova.activeModel%22). У каждой модели свои сильные стороны — выберите подходящую для вашего рабочего процесса.",
+  "walkthrough.step.language.title": "Установите язык",
+  "walkthrough.step.language.description": "Ava поддерживает 20 языков. Установите предпочтительный [язык](command:workbench.action.openSettings?%22ava-supernova.preferences.language%22) или оставьте автоопределение.",
+  "walkthrough.step.permissions.title": "Выберите режим разрешений",
+  "walkthrough.step.permissions.description": "Управляйте тем, что Ava может делать без запроса. Начните со **Строгого** (по умолчанию) и измените позже. [Открыть настройки разрешений](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22).",
+  "walkthrough.step.start.title": "Начните общение",
+  "walkthrough.step.start.description": "Всё готово! [Открыть Ava Chat](command:ava-supernova.openChat) и начинайте работу."
 }

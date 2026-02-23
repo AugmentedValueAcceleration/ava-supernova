@@ -36,5 +36,18 @@
   "lang.pl": "Polandia",
   "lang.uk": "Ukraina",
   "lang.nl": "Belanda",
-  "lang.id": "Indonesia"
+  "lang.id": "Indonesia",
+  "command.gettingStarted.title": "Memulai",
+  "walkthrough.title": "Memulai dengan Ava",
+  "walkthrough.description": "Siapkan agen pengkodean AI Anda dalam hitungan menit",
+  "walkthrough.step.apiKey.title": "Tambahkan kunci API Anda",
+  "walkthrough.step.apiKey.description": "Dapatkan kunci API dari [DeepSeek](https://platform.deepseek.com/api_keys), [Kimi](https://platform.moonshot.ai/console/api-keys), atau [Qwen](https://bailian.console.alibabacloud.com/) dan tambahkan di [Pengaturan](command:workbench.action.openSettings?%22ava-supernova.providers%22).",
+  "walkthrough.step.model.title": "Pilih model",
+  "walkthrough.step.model.description": "Pilih model dari [pengaturan Model Aktif](command:workbench.action.openSettings?%22ava-supernova.activeModel%22). Setiap model memiliki kekuatan berbeda — pilih yang sesuai dengan alur kerja Anda.",
+  "walkthrough.step.language.title": "Atur bahasa Anda",
+  "walkthrough.step.language.description": "Ava mendukung 20 bahasa. Atur [bahasa](command:workbench.action.openSettings?%22ava-supernova.preferences.language%22) pilihan Anda atau biarkan deteksi otomatis.",
+  "walkthrough.step.permissions.title": "Pilih mode izin",
+  "walkthrough.step.permissions.description": "Kontrol apa yang bisa dilakukan Ava tanpa bertanya. Mulai dengan **Ketat** (default) dan tingkatkan nanti. [Buka pengaturan izin](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22).",
+  "walkthrough.step.start.title": "Mulai mengobrol",
+  "walkthrough.step.start.description": "Anda siap! [Buka Obrolan Ava](command:ava-supernova.openChat) dan mulai membangun."
 }

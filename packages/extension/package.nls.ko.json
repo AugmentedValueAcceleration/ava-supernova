@@ -36,5 +36,18 @@
   "lang.pl": "폴란드어",
   "lang.uk": "우크라이나어",
   "lang.nl": "네덜란드어",
-  "lang.id": "인도네시아어"
+  "lang.id": "인도네시아어",
+  "command.gettingStarted.title": "시작하기",
+  "walkthrough.title": "Ava 시작하기",
+  "walkthrough.description": "몇 분 만에 AI 코딩 에이전트를 설정하세요",
+  "walkthrough.step.apiKey.title": "API 키 추가",
+  "walkthrough.step.apiKey.description": "[DeepSeek](https://platform.deepseek.com/api_keys), [Kimi](https://platform.moonshot.ai/console/api-keys) 또는 [Qwen](https://bailian.console.alibabacloud.com/)에서 API 키를 받아 [설정](command:workbench.action.openSettings?%22ava-supernova.providers%22)에서 추가하세요.",
+  "walkthrough.step.model.title": "모델 선택",
+  "walkthrough.step.model.description": "[활성 모델 설정](command:workbench.action.openSettings?%22ava-supernova.activeModel%22)에서 모델을 선택하세요. 각 모델은 서로 다른 강점이 있습니다 — 워크플로에 맞는 모델을 선택하세요.",
+  "walkthrough.step.language.title": "언어 설정",
+  "walkthrough.step.language.description": "Ava는 20개 언어를 지원합니다. 원하는 [언어](command:workbench.action.openSettings?%22ava-supernova.preferences.language%22)를 설정하거나 자동 감지로 두세요.",
+  "walkthrough.step.permissions.title": "권한 모드 선택",
+  "walkthrough.step.permissions.description": "Ava가 묻지 않고 수행할 수 있는 작업을 제어합니다. **엄격 모드**(기본값)로 시작하고 나중에 업그레이드하세요. [권한 설정 열기](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22).",
+  "walkthrough.step.start.title": "채팅 시작",
+  "walkthrough.step.start.description": "준비 완료! [Ava 채팅 열기](command:ava-supernova.openChat)로 빌드를 시작하세요."
 }

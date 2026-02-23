@@ -36,5 +36,18 @@
   "lang.pl": "Pools",
   "lang.uk": "Oekraïens",
   "lang.nl": "Nederlands",
-  "lang.id": "Indonesisch"
+  "lang.id": "Indonesisch",
+  "command.gettingStarted.title": "Aan de slag",
+  "walkthrough.title": "Aan de slag met Ava",
+  "walkthrough.description": "Stel je AI-programmeeragent in binnen enkele minuten",
+  "walkthrough.step.apiKey.title": "Voeg je API-sleutel toe",
+  "walkthrough.step.apiKey.description": "Haal een API-sleutel op bij [DeepSeek](https://platform.deepseek.com/api_keys), [Kimi](https://platform.moonshot.ai/console/api-keys) of [Qwen](https://bailian.console.alibabacloud.com/) en voeg deze toe in [Instellingen](command:workbench.action.openSettings?%22ava-supernova.providers%22).",
+  "walkthrough.step.model.title": "Selecteer een model",
+  "walkthrough.step.model.description": "Kies een model uit de [instelling Actief model](command:workbench.action.openSettings?%22ava-supernova.activeModel%22). Elk model heeft verschillende sterke punten — kies wat bij je workflow past.",
+  "walkthrough.step.language.title": "Stel je taal in",
+  "walkthrough.step.language.description": "Ava ondersteunt 20 talen. Stel je voorkeurs[taal](command:workbench.action.openSettings?%22ava-supernova.preferences.language%22) in of laat automatische detectie aan.",
+  "walkthrough.step.permissions.title": "Kies een machtigingsmodus",
+  "walkthrough.step.permissions.description": "Bepaal wat Ava mag doen zonder te vragen. Begin met **Strikt** (standaard) en upgrade later. [Machtigingsinstellingen openen](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22).",
+  "walkthrough.step.start.title": "Begin met chatten",
+  "walkthrough.step.start.description": "Je bent klaar! [Open Ava Chat](command:ava-supernova.openChat) en begin met bouwen."
 }

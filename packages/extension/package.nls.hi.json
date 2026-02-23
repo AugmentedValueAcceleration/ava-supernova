@@ -36,5 +36,18 @@
   "lang.pl": "पोलिश",
   "lang.uk": "यूक्रेनी",
   "lang.nl": "डच",
-  "lang.id": "इंडोनेशियाई"
+  "lang.id": "इंडोनेशियाई",
+  "command.gettingStarted.title": "शुरू करें",
+  "walkthrough.title": "Ava के साथ शुरुआत करें",
+  "walkthrough.description": "अपने AI कोडिंग एजेंट को मिनटों में सेट करें",
+  "walkthrough.step.apiKey.title": "अपनी API कुंजी जोड़ें",
+  "walkthrough.step.apiKey.description": "[DeepSeek](https://platform.deepseek.com/api_keys), [Kimi](https://platform.moonshot.ai/console/api-keys), या [Qwen](https://bailian.console.alibabacloud.com/) से API कुंजी प्राप्त करें और इसे [सेटिंग्स](command:workbench.action.openSettings?%22ava-supernova.providers%22) में जोड़ें।",
+  "walkthrough.step.model.title": "एक मॉडल चुनें",
+  "walkthrough.step.model.description": "[सक्रिय मॉडल सेटिंग](command:workbench.action.openSettings?%22ava-supernova.activeModel%22) से एक मॉडल चुनें। हर मॉडल की अलग-अलग खूबियाँ हैं — अपने वर्कफ़्लो के अनुसार चुनें।",
+  "walkthrough.step.language.title": "अपनी भाषा सेट करें",
+  "walkthrough.step.language.description": "Ava 20 भाषाओं का समर्थन करता है। अपनी पसंदीदा [भाषा](command:workbench.action.openSettings?%22ava-supernova.preferences.language%22) सेट करें या स्वतः पहचान पर छोड़ दें।",
+  "walkthrough.step.permissions.title": "अनुमति मोड चुनें",
+  "walkthrough.step.permissions.description": "नियंत्रित करें कि Ava बिना पूछे क्या कर सकता है। **सख्त** (डिफ़ॉल्ट) से शुरू करें और बाद में अपग्रेड करें। [अनुमति सेटिंग्स खोलें](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22)।",
+  "walkthrough.step.start.title": "चैट शुरू करें",
+  "walkthrough.step.start.description": "आप तैयार हैं! [Ava चैट खोलें](command:ava-supernova.openChat) और बनाना शुरू करें।"
 }

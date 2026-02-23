@@ -373,11 +373,15 @@ cd packages/extension && pnpm build
 - [x] Vision support (image attachments)
 - [x] Project context (`.ava/instructions.md`)
 - [x] Permission modes (strict / balanced / autonomous)
-- [ ] Context window management and compression
+- [x] Context compression and management
+- [x] Error recovery and resilience
+- [x] i18n — 20 languages
+- [x] Getting Started walkthrough in extension
+- [x] 208 tests across 19 test files
 - [ ] Multi-file awareness improvements
 - [ ] Plugin system for custom tools
-- [ ] Error recovery resilience
-- [ ] Marketplace extension publishing
+- [ ] Productivity tools (email, Slack, calendar)
+- [ ] Settings/history sync across machines
 
 ## Contributing
 

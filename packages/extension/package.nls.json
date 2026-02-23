@@ -36,5 +36,18 @@
   "lang.pl": "Polish",
   "lang.uk": "Ukrainian",
   "lang.nl": "Dutch",
-  "lang.id": "Indonesian"
+  "lang.id": "Indonesian",
+  "command.gettingStarted.title": "Getting Started",
+  "walkthrough.title": "Getting Started with Ava",
+  "walkthrough.description": "Set up your AI coding agent in minutes",
+  "walkthrough.step.apiKey.title": "Add your API key",
+  "walkthrough.step.apiKey.description": "Get an API key from [DeepSeek](https://platform.deepseek.com/api_keys), [Kimi](https://platform.moonshot.ai/console/api-keys), or [Qwen](https://bailian.console.alibabacloud.com/) and add it in [Settings](command:workbench.action.openSettings?%22ava-supernova.providers%22).",
+  "walkthrough.step.model.title": "Select a model",
+  "walkthrough.step.model.description": "Choose a model from the [Active Model setting](command:workbench.action.openSettings?%22ava-supernova.activeModel%22). Each model has different strengths — pick what fits your workflow.",
+  "walkthrough.step.language.title": "Set your language",
+  "walkthrough.step.language.description": "Ava supports 20 languages. Set your preferred [language](command:workbench.action.openSettings?%22ava-supernova.preferences.language%22) or leave on auto-detect.",
+  "walkthrough.step.permissions.title": "Choose a permission mode",
+  "walkthrough.step.permissions.description": "Control what Ava can do without asking. Start with **Strict** (default) and upgrade later. [Open permission settings](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22).",
+  "walkthrough.step.start.title": "Start chatting",
+  "walkthrough.step.start.description": "You're ready! [Open Ava Chat](command:ava-supernova.openChat) and start building."
 }

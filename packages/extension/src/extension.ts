@@ -21,6 +21,9 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('ava-supernova.clearChat', () => viewProvider!.clearChat()),
     vscode.commands.registerCommand('ava-supernova.switchModel', () => viewProvider!.switchModel()),
     vscode.commands.registerCommand('ava-supernova.showHistory', () => viewProvider!.showHistory()),
+    vscode.commands.registerCommand('ava-supernova.gettingStarted', () => {
+      vscode.commands.executeCommand('workbench.action.openWalkthrough', 'stewai.ava-supernova#ava-supernova.gettingStarted', false);
+    }),
   );
 
   // Auto-open in editor area on activation

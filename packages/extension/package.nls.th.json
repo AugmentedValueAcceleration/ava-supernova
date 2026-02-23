@@ -36,5 +36,18 @@
   "lang.pl": "โปแลนด์",
   "lang.uk": "ยูเครน",
   "lang.nl": "ดัตช์",
-  "lang.id": "อินโดนีเซีย"
+  "lang.id": "อินโดนีเซีย",
+  "command.gettingStarted.title": "เริ่มต้นใช้งาน",
+  "walkthrough.title": "เริ่มต้นใช้งาน Ava",
+  "walkthrough.description": "ตั้งค่าเอเจนต์เขียนโค้ด AI ของคุณในไม่กี่นาที",
+  "walkthrough.step.apiKey.title": "เพิ่มคีย์ API ของคุณ",
+  "walkthrough.step.apiKey.description": "รับคีย์ API จาก [DeepSeek](https://platform.deepseek.com/api_keys), [Kimi](https://platform.moonshot.ai/console/api-keys) หรือ [Qwen](https://bailian.console.alibabacloud.com/) แล้วเพิ่มใน [การตั้งค่า](command:workbench.action.openSettings?%22ava-supernova.providers%22)",
+  "walkthrough.step.model.title": "เลือกโมเดล",
+  "walkthrough.step.model.description": "เลือกโมเดลจาก [การตั้งค่าโมเดลที่ใช้งาน](command:workbench.action.openSettings?%22ava-supernova.activeModel%22) แต่ละโมเดลมีจุดแข็งต่างกัน — เลือกสิ่งที่เหมาะกับขั้นตอนการทำงานของคุณ",
+  "walkthrough.step.language.title": "ตั้งค่าภาษาของคุณ",
+  "walkthrough.step.language.description": "Ava รองรับ 20 ภาษา ตั้งค่า [ภาษา](command:workbench.action.openSettings?%22ava-supernova.preferences.language%22) ที่ต้องการหรือปล่อยให้ตรวจจับอัตโนมัติ",
+  "walkthrough.step.permissions.title": "เลือกโหมดสิทธิ์",
+  "walkthrough.step.permissions.description": "ควบคุมสิ่งที่ Ava ทำได้โดยไม่ต้องถาม เริ่มต้นด้วยโหมด **เข้มงวด** (ค่าเริ่มต้น) แล้วอัปเกรดภายหลัง [เปิดการตั้งค่าสิทธิ์](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22)",
+  "walkthrough.step.start.title": "เริ่มแชท",
+  "walkthrough.step.start.description": "คุณพร้อมแล้ว! [เปิดแชท Ava](command:ava-supernova.openChat) แล้วเริ่มสร้าง"
 }

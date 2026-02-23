@@ -36,5 +36,18 @@
   "lang.pl": "波兰语",
   "lang.uk": "乌克兰语",
   "lang.nl": "荷兰语",
-  "lang.id": "印尼语"
+  "lang.id": "印尼语",
+  "command.gettingStarted.title": "快速入门",
+  "walkthrough.title": "Ava 快速入门",
+  "walkthrough.description": "几分钟内设置您的 AI 编程助手",
+  "walkthrough.step.apiKey.title": "添加 API 密钥",
+  "walkthrough.step.apiKey.description": "从 [DeepSeek](https://platform.deepseek.com/api_keys)、[Kimi](https://platform.moonshot.ai/console/api-keys) 或 [Qwen](https://bailian.console.alibabacloud.com/) 获取 API 密钥，然后在[设置](command:workbench.action.openSettings?%22ava-supernova.providers%22)中添加。",
+  "walkthrough.step.model.title": "选择模型",
+  "walkthrough.step.model.description": "从[活动模型设置](command:workbench.action.openSettings?%22ava-supernova.activeModel%22)中选择模型。每个模型有不同的优势——选择适合您工作流程的模型。",
+  "walkthrough.step.language.title": "设置语言",
+  "walkthrough.step.language.description": "Ava 支持 20 种语言。设置您偏好的[语言](command:workbench.action.openSettings?%22ava-supernova.preferences.language%22)或保持自动检测。",
+  "walkthrough.step.permissions.title": "选择权限模式",
+  "walkthrough.step.permissions.description": "控制 Ava 无需询问即可执行的操作。从**严格模式**（默认）开始，之后可以升级。[打开权限设置](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22)。",
+  "walkthrough.step.start.title": "开始聊天",
+  "walkthrough.step.start.description": "准备就绪！[打开 Ava 聊天](command:ava-supernova.openChat)，开始构建。"
 }

@@ -36,5 +36,18 @@
   "lang.pl": "ポーランド語",
   "lang.uk": "ウクライナ語",
   "lang.nl": "オランダ語",
-  "lang.id": "インドネシア語"
+  "lang.id": "インドネシア語",
+  "command.gettingStarted.title": "はじめに",
+  "walkthrough.title": "Ava をはじめよう",
+  "walkthrough.description": "数分で AI コーディングエージェントをセットアップ",
+  "walkthrough.step.apiKey.title": "API キーを追加",
+  "walkthrough.step.apiKey.description": "[DeepSeek](https://platform.deepseek.com/api_keys)、[Kimi](https://platform.moonshot.ai/console/api-keys)、または [Qwen](https://bailian.console.alibabacloud.com/) から API キーを取得し、[設定](command:workbench.action.openSettings?%22ava-supernova.providers%22)で追加してください。",
+  "walkthrough.step.model.title": "モデルを選択",
+  "walkthrough.step.model.description": "[アクティブモデル設定](command:workbench.action.openSettings?%22ava-supernova.activeModel%22)からモデルを選択してください。各モデルには異なる強みがあります——ワークフローに合ったものを選びましょう。",
+  "walkthrough.step.language.title": "言語を設定",
+  "walkthrough.step.language.description": "Ava は 20 言語に対応しています。お好みの[言語](command:workbench.action.openSettings?%22ava-supernova.preferences.language%22)を設定するか、自動検出のままにしてください。",
+  "walkthrough.step.permissions.title": "権限モードを選択",
+  "walkthrough.step.permissions.description": "Ava が確認なしで実行できる操作を制御します。まず**厳格モード**（デフォルト）から始め、後からアップグレードできます。[権限設定を開く](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22)。",
+  "walkthrough.step.start.title": "チャットを開始",
+  "walkthrough.step.start.description": "準備完了！[Ava チャットを開く](command:ava-supernova.openChat)して、構築を始めましょう。"
 }
