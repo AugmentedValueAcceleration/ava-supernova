@@ -5,6 +5,8 @@ import { killBackgroundProcesses } from '@ava/core';
 
 let viewProvider: AvaViewProvider | undefined;
 
+const PANEL_STATE_KEY = 'avaSupernova.panelOpen';
+
 export function activate(context: vscode.ExtensionContext): void {
   viewProvider = new AvaViewProvider(context.extensionUri, context);
 
@@ -14,15 +16,6 @@ export function activate(context: vscode.ExtensionContext): void {
       viewProvider,
       { webviewOptions: { retainContextWhenHidden: true } },
     ),
-  );
-
-  // Register serializer so VS Code can restore the editor panel on restart
-  context.subscriptions.push(
-    vscode.window.registerWebviewPanelSerializer('ava-supernova.chat', {
-      async deserializeWebviewPanel(panel: vscode.WebviewPanel) {
-        viewProvider!.restorePanel(panel);
-      },
-    }),
   );
 
   context.subscriptions.push(
@@ -37,10 +30,16 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
   );
 
-  // Auto-open in editor area only if no panel was restored by the serializer
-  if (!viewProvider.hasActivePanel) {
+  // Restore panel if it was open in the previous session (default: open on first install)
+  const wasOpen = context.globalState.get<boolean>(PANEL_STATE_KEY, true);
+  if (wasOpen) {
     viewProvider.openInEditor();
   }
+
+  // Track panel open/close state for persistence across restarts
+  viewProvider.onPanelStateChange((isOpen) => {
+    context.globalState.update(PANEL_STATE_KEY, isOpen);
+  });
 }
 
 export function deactivate(): void {

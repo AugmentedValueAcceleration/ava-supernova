@@ -40,6 +40,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private projectRoot?: string;
   private projectInstructions?: string;
   private currentLocale = 'en';
+  private panelStateCallback?: (isOpen: boolean) => void;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -120,8 +121,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   // ── Editor Panel ───────────────────────────────────────────────────────────
 
-  get hasActivePanel(): boolean {
-    return !!this.panel;
+  onPanelStateChange(callback: (isOpen: boolean) => void): void {
+    this.panelStateCallback = callback;
   }
 
   openInEditor(): void {
@@ -149,21 +150,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     this.panel.onDidDispose(() => {
       this.panel = undefined;
+      this.panelStateCallback?.(false);
     });
 
     this.ensureSettingsListener();
-  }
-
-  restorePanel(panel: vscode.WebviewPanel): void {
-    this.panel = panel;
-    panel.iconPath = vscode.Uri.joinPath(this.extensionUri, 'media', 'AvaSupernovaIcon.png');
-    this.setupWebview(panel.webview);
-
-    panel.onDidDispose(() => {
-      this.panel = undefined;
-    });
-
-    this.ensureSettingsListener();
+    this.panelStateCallback?.(true);
   }
 
   // ── Shared Webview Setup ───────────────────────────────────────────────────
@@ -176,11 +167,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       ],
     };
 
-    webview.html = this.getHtmlForWebview(webview);
-
+    // Register handler BEFORE setting HTML to guarantee we catch webview_ready
     webview.onDidReceiveMessage(
       (message: WebviewToExtMessage) => this.handleWebviewMessage(message),
     );
+
+    webview.html = this.getHtmlForWebview(webview);
   }
 
   private ensureSettingsListener(): void {
