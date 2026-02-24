@@ -120,6 +120,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   // ── Editor Panel ───────────────────────────────────────────────────────────
 
+  get hasActivePanel(): boolean {
+    return !!this.panel;
+  }
+
   openInEditor(): void {
     if (this.panel) {
       this.panel.reveal();
@@ -144,6 +148,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.setupWebview(this.panel.webview);
 
     this.panel.onDidDispose(() => {
+      this.panel = undefined;
+    });
+
+    this.ensureSettingsListener();
+  }
+
+  restorePanel(panel: vscode.WebviewPanel): void {
+    this.panel = panel;
+    panel.iconPath = vscode.Uri.joinPath(this.extensionUri, 'media', 'AvaSupernovaIcon.png');
+    this.setupWebview(panel.webview);
+
+    panel.onDidDispose(() => {
       this.panel = undefined;
     });
 
