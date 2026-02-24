@@ -49,5 +49,11 @@
   "walkthrough.step.permissions.title": "권한 모드 선택",
   "walkthrough.step.permissions.description": "Ava가 묻지 않고 수행할 수 있는 작업을 제어합니다. **엄격 모드**(기본값)로 시작하고 나중에 업그레이드하세요. [권한 설정 열기](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22).",
   "walkthrough.step.start.title": "채팅 시작",
-  "walkthrough.step.start.description": "준비 완료! [Ava 채팅 열기](command:ava-supernova.openChat)로 빌드를 시작하세요."
+  "walkthrough.step.start.description": "준비 완료! [Ava 채팅 열기](command:ava-supernova.openChat)로 빌드를 시작하세요.",
+  "command.openDocs.title": "문서",
+  "setting.section.modelApi": "모델 및 API",
+  "setting.section.preferences": "환경 설정",
+  "setting.section.help": "도움말 및 문서",
+  "setting.help.docs": "**[문서 열기](command:ava-supernova.openDocs)** — 모델, 도구, 명령어 및 설정에 대한 전체 참조 가이드.",
+  "setting.help.gettingStarted": "**[시작하기 열기](command:ava-supernova.gettingStarted)** — 신규 사용자를 위한 단계별 설정 안내."
 }

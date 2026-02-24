@@ -49,5 +49,11 @@
   "walkthrough.step.permissions.title": "Pilih mode izin",
   "walkthrough.step.permissions.description": "Kontrol apa yang bisa dilakukan Ava tanpa bertanya. Mulai dengan **Ketat** (default) dan tingkatkan nanti. [Buka pengaturan izin](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22).",
   "walkthrough.step.start.title": "Mulai mengobrol",
-  "walkthrough.step.start.description": "Anda siap! [Buka Obrolan Ava](command:ava-supernova.openChat) dan mulai membangun."
+  "walkthrough.step.start.description": "Anda siap! [Buka Obrolan Ava](command:ava-supernova.openChat) dan mulai membangun.",
+  "command.openDocs.title": "Dokumentasi",
+  "setting.section.modelApi": "Model & API",
+  "setting.section.preferences": "Preferensi",
+  "setting.section.help": "Bantuan & Dokumentasi",
+  "setting.help.docs": "**[Buka Dokumentasi](command:ava-supernova.openDocs)** — Panduan referensi lengkap untuk model, alat, perintah, dan konfigurasi.",
+  "setting.help.gettingStarted": "**[Buka Panduan Memulai](command:ava-supernova.gettingStarted)** — Panduan pengaturan langkah demi langkah untuk pengguna baru."
 }

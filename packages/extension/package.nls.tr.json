@@ -49,5 +49,11 @@
   "walkthrough.step.permissions.title": "Bir izin modu seçin",
   "walkthrough.step.permissions.description": "Ava'nın sormadan neler yapabileceğini kontrol edin. **Sıkı** (varsayılan) ile başlayın ve daha sonra yükseltin. [İzin ayarlarını açın](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22).",
   "walkthrough.step.start.title": "Sohbete başlayın",
-  "walkthrough.step.start.description": "Hazırsınız! [Ava Sohbet'i açın](command:ava-supernova.openChat) ve oluşturmaya başlayın."
+  "walkthrough.step.start.description": "Hazırsınız! [Ava Sohbet'i açın](command:ava-supernova.openChat) ve oluşturmaya başlayın.",
+  "command.openDocs.title": "Belgeler",
+  "setting.section.modelApi": "Model ve API",
+  "setting.section.preferences": "Tercihler",
+  "setting.section.help": "Yardım ve Belgeler",
+  "setting.help.docs": "**[Belgeleri aç](command:ava-supernova.openDocs)** — Modeller, araçlar, komutlar ve yapılandırma için eksiksiz başvuru kılavuzu.",
+  "setting.help.gettingStarted": "**[Başlangıç kılavuzunu aç](command:ava-supernova.gettingStarted)** — Yeni kullanıcılar için adım adım kurulum rehberi."
 }

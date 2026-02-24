@@ -49,5 +49,11 @@
   "walkthrough.step.permissions.title": "اختر وضع الأذونات",
   "walkthrough.step.permissions.description": "تحكم فيما يمكن لـ Ava فعله دون سؤالك. ابدأ بالوضع **الصارم** (الافتراضي) وقم بالترقية لاحقاً. [فتح إعدادات الأذونات](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22).",
   "walkthrough.step.start.title": "ابدأ المحادثة",
-  "walkthrough.step.start.description": "أنت جاهز! [افتح محادثة Ava](command:ava-supernova.openChat) وابدأ البناء."
+  "walkthrough.step.start.description": "أنت جاهز! [افتح محادثة Ava](command:ava-supernova.openChat) وابدأ البناء.",
+  "command.openDocs.title": "التوثيق",
+  "setting.section.modelApi": "النموذج والـ API",
+  "setting.section.preferences": "التفضيلات",
+  "setting.section.help": "المساعدة والتوثيق",
+  "setting.help.docs": "**[فتح التوثيق](command:ava-supernova.openDocs)** — دليل مرجعي شامل للنماذج والأدوات والأوامر والإعدادات.",
+  "setting.help.gettingStarted": "**[فتح دليل البدء](command:ava-supernova.gettingStarted)** — شرح خطوة بخطوة لإعداد المستخدمين الجدد."
 }

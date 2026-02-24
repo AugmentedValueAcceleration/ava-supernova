@@ -49,5 +49,11 @@
   "walkthrough.step.permissions.title": "Выберите режим разрешений",
   "walkthrough.step.permissions.description": "Управляйте тем, что Ava может делать без запроса. Начните со **Строгого** (по умолчанию) и измените позже. [Открыть настройки разрешений](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22).",
   "walkthrough.step.start.title": "Начните общение",
-  "walkthrough.step.start.description": "Всё готово! [Открыть Ava Chat](command:ava-supernova.openChat) и начинайте работу."
+  "walkthrough.step.start.description": "Всё готово! [Открыть Ava Chat](command:ava-supernova.openChat) и начинайте работу.",
+  "command.openDocs.title": "Документация",
+  "setting.section.modelApi": "Модель и API",
+  "setting.section.preferences": "Настройки",
+  "setting.section.help": "Помощь и документация",
+  "setting.help.docs": "**[Открыть документацию](command:ava-supernova.openDocs)** — Полное справочное руководство по моделям, инструментам, командам и конфигурации.",
+  "setting.help.gettingStarted": "**[Открыть начало работы](command:ava-supernova.gettingStarted)** — Пошаговое руководство по настройке для новых пользователей."
 }

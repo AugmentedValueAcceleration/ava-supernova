@@ -49,5 +49,11 @@
   "walkthrough.step.permissions.title": "Kies een machtigingsmodus",
   "walkthrough.step.permissions.description": "Bepaal wat Ava mag doen zonder te vragen. Begin met **Strikt** (standaard) en upgrade later. [Machtigingsinstellingen openen](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22).",
   "walkthrough.step.start.title": "Begin met chatten",
-  "walkthrough.step.start.description": "Je bent klaar! [Open Ava Chat](command:ava-supernova.openChat) en begin met bouwen."
+  "walkthrough.step.start.description": "Je bent klaar! [Open Ava Chat](command:ava-supernova.openChat) en begin met bouwen.",
+  "command.openDocs.title": "Documentatie",
+  "setting.section.modelApi": "Model & API",
+  "setting.section.preferences": "Voorkeuren",
+  "setting.section.help": "Hulp & Documentatie",
+  "setting.help.docs": "**[Documentatie openen](command:ava-supernova.openDocs)** — Volledige naslaggids voor modellen, tools, commando's en configuratie.",
+  "setting.help.gettingStarted": "**[Aan de slag openen](command:ava-supernova.gettingStarted)** — Stapsgewijze installatiehandleiding voor nieuwe gebruikers."
 }

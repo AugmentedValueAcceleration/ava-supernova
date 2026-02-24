@@ -49,5 +49,11 @@
   "walkthrough.step.permissions.title": "अनुमति मोड चुनें",
   "walkthrough.step.permissions.description": "नियंत्रित करें कि Ava बिना पूछे क्या कर सकता है। **सख्त** (डिफ़ॉल्ट) से शुरू करें और बाद में अपग्रेड करें। [अनुमति सेटिंग्स खोलें](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22)।",
   "walkthrough.step.start.title": "चैट शुरू करें",
-  "walkthrough.step.start.description": "आप तैयार हैं! [Ava चैट खोलें](command:ava-supernova.openChat) और बनाना शुरू करें।"
+  "walkthrough.step.start.description": "आप तैयार हैं! [Ava चैट खोलें](command:ava-supernova.openChat) और बनाना शुरू करें।",
+  "command.openDocs.title": "दस्तावेज़ीकरण",
+  "setting.section.modelApi": "मॉडल और API",
+  "setting.section.preferences": "प्राथमिकताएँ",
+  "setting.section.help": "सहायता और दस्तावेज़ीकरण",
+  "setting.help.docs": "**[दस्तावेज़ीकरण खोलें](command:ava-supernova.openDocs)** — मॉडल, टूल, कमांड और कॉन्फ़िगरेशन के लिए संपूर्ण संदर्भ गाइड।",
+  "setting.help.gettingStarted": "**[शुरुआत गाइड खोलें](command:ava-supernova.gettingStarted)** — नए उपयोगकर्ताओं के लिए चरण-दर-चरण सेटअप वॉकथ्रू।"
 }

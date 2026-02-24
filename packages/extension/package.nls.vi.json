@@ -49,5 +49,11 @@
   "walkthrough.step.permissions.title": "Chọn chế độ quyền",
   "walkthrough.step.permissions.description": "Kiểm soát những gì Ava có thể làm mà không cần hỏi. Bắt đầu với chế độ **Nghiêm ngặt** (mặc định) và nâng cấp sau. [Mở cài đặt quyền](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22).",
   "walkthrough.step.start.title": "Bắt đầu trò chuyện",
-  "walkthrough.step.start.description": "Bạn đã sẵn sàng! [Mở Ava Chat](command:ava-supernova.openChat) và bắt đầu xây dựng."
+  "walkthrough.step.start.description": "Bạn đã sẵn sàng! [Mở Ava Chat](command:ava-supernova.openChat) và bắt đầu xây dựng.",
+  "command.openDocs.title": "Tài liệu",
+  "setting.section.modelApi": "Mô hình & API",
+  "setting.section.preferences": "Tùy chọn",
+  "setting.section.help": "Trợ giúp & Tài liệu",
+  "setting.help.docs": "**[Mở tài liệu](command:ava-supernova.openDocs)** — Hướng dẫn tham khảo đầy đủ về mô hình, công cụ, lệnh và cấu hình.",
+  "setting.help.gettingStarted": "**[Mở hướng dẫn bắt đầu](command:ava-supernova.gettingStarted)** — Hướng dẫn thiết lập từng bước cho người dùng mới."
 }

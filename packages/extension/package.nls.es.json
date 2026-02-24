@@ -49,5 +49,11 @@
   "walkthrough.step.permissions.title": "Elige un modo de permisos",
   "walkthrough.step.permissions.description": "Controla lo que Ava puede hacer sin preguntar. Empieza con **Estricto** (predeterminado) y actualiza después. [Abrir configuración de permisos](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22).",
   "walkthrough.step.start.title": "Empieza a chatear",
-  "walkthrough.step.start.description": "¡Todo listo! [Abrir Ava Chat](command:ava-supernova.openChat) y empieza a construir."
+  "walkthrough.step.start.description": "¡Todo listo! [Abrir Ava Chat](command:ava-supernova.openChat) y empieza a construir.",
+  "command.openDocs.title": "Documentación",
+  "setting.section.modelApi": "Modelo y API",
+  "setting.section.preferences": "Preferencias",
+  "setting.section.help": "Ayuda y documentación",
+  "setting.help.docs": "**[Abrir documentación](command:ava-supernova.openDocs)** — Guía de referencia completa para modelos, herramientas, comandos y configuración.",
+  "setting.help.gettingStarted": "**[Abrir primeros pasos](command:ava-supernova.gettingStarted)** — Tutorial paso a paso para nuevos usuarios."
 }

@@ -49,5 +49,11 @@
   "walkthrough.step.permissions.title": "选择权限模式",
   "walkthrough.step.permissions.description": "控制 Ava 无需询问即可执行的操作。从**严格模式**（默认）开始，之后可以升级。[打开权限设置](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22)。",
   "walkthrough.step.start.title": "开始聊天",
-  "walkthrough.step.start.description": "准备就绪！[打开 Ava 聊天](command:ava-supernova.openChat)，开始构建。"
+  "walkthrough.step.start.description": "准备就绪！[打开 Ava 聊天](command:ava-supernova.openChat)，开始构建。",
+  "command.openDocs.title": "文档",
+  "setting.section.modelApi": "模型与 API",
+  "setting.section.preferences": "偏好设置",
+  "setting.section.help": "帮助与文档",
+  "setting.help.docs": "**[打开文档](command:ava-supernova.openDocs)** — 模型、工具、命令和配置的完整参考指南。",
+  "setting.help.gettingStarted": "**[打开快速入门](command:ava-supernova.gettingStarted)** — 面向新用户的逐步设置指南。"
 }

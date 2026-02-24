@@ -49,5 +49,11 @@
   "walkthrough.step.permissions.title": "権限モードを選択",
   "walkthrough.step.permissions.description": "Ava が確認なしで実行できる操作を制御します。まず**厳格モード**（デフォルト）から始め、後からアップグレードできます。[権限設定を開く](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22)。",
   "walkthrough.step.start.title": "チャットを開始",
-  "walkthrough.step.start.description": "準備完了！[Ava チャットを開く](command:ava-supernova.openChat)して、構築を始めましょう。"
+  "walkthrough.step.start.description": "準備完了！[Ava チャットを開く](command:ava-supernova.openChat)して、構築を始めましょう。",
+  "command.openDocs.title": "ドキュメント",
+  "setting.section.modelApi": "モデルと API",
+  "setting.section.preferences": "環境設定",
+  "setting.section.help": "ヘルプとドキュメント",
+  "setting.help.docs": "**[ドキュメントを開く](command:ava-supernova.openDocs)** — モデル、ツール、コマンド、設定の完全リファレンスガイド。",
+  "setting.help.gettingStarted": "**[はじめにを開く](command:ava-supernova.gettingStarted)** — 新規ユーザー向けのステップバイステップセットアップガイド。"
 }

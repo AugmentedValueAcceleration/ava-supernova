@@ -68,6 +68,11 @@
         "command": "ava-supernova.gettingStarted",
         "title": "%command.gettingStarted.title%",
         "category": "Ava"
+      },
+      {
+        "command": "ava-supernova.openDocs",
+        "title": "%command.openDocs.title%",
+        "category": "Ava"
       }
     ],
     "walkthroughs": [
@@ -112,121 +117,153 @@
         ]
       }
     ],
-    "configuration": {
-      "title": "Ava | Supernova",
-      "properties": {
-        "ava-supernova.activeModel": {
-          "type": "string",
-          "default": "",
-          "enum": [
-            "",
-            "deepseek:deepseek-chat",
-            "deepseek:deepseek-reasoner",
-            "kimi:kimi-k2.5",
-            "kimi:moonshot-v1-128k",
-            "qwen:qwen3.5-plus",
-            "qwen:qwen-turbo-latest"
-          ],
-          "enumDescriptions": [
-            "No model selected",
-            "DeepSeek V3 — fast, affordable general-purpose",
-            "DeepSeek R1 — reasoning model",
-            "Kimi K2.5 — best multi-step tool calling",
-            "Moonshot V1 128K — long context",
-            "Qwen 3.5 Plus — vision, thinking, 256K context",
-            "Qwen Turbo — fast and cheap, 1M context"
-          ],
-          "description": "%setting.activeModel.description%"
-        },
-        "ava-supernova.providers.deepseek.apiKey": {
-          "type": "string",
-          "default": "",
-          "description": "%setting.deepseek.apiKey.description%"
-        },
-        "ava-supernova.providers.kimi.apiKey": {
-          "type": "string",
-          "default": "",
-          "description": "%setting.kimi.apiKey.description%"
-        },
-        "ava-supernova.providers.qwen.apiKey": {
-          "type": "string",
-          "default": "",
-          "description": "%setting.qwen.apiKey.description%"
-        },
-        "ava-supernova.preferences.temperature": {
-          "type": "number",
-          "default": 0.7,
-          "description": "%setting.temperature.description%"
-        },
-        "ava-supernova.preferences.language": {
-          "type": "string",
-          "default": "auto",
-          "enum": [
-            "auto", "en", "zh-CN", "zh-TW", "ja", "ko",
-            "es", "pt", "fr", "de", "ru", "ar", "hi",
-            "vi", "th", "tr", "it", "pl", "uk", "nl", "id"
-          ],
-          "enumItemLabels": [
-            "%lang.auto%",
-            "%lang.en%",
-            "%lang.zh-CN%",
-            "%lang.zh-TW%",
-            "%lang.ja%",
-            "%lang.ko%",
-            "%lang.es%",
-            "%lang.pt%",
-            "%lang.fr%",
-            "%lang.de%",
-            "%lang.ru%",
-            "%lang.ar%",
-            "%lang.hi%",
-            "%lang.vi%",
-            "%lang.th%",
-            "%lang.tr%",
-            "%lang.it%",
-            "%lang.pl%",
-            "%lang.uk%",
-            "%lang.nl%",
-            "%lang.id%"
-          ],
-          "enumDescriptions": [
-            "%lang.auto.desc%",
-            "",
-            "中文（简体）",
-            "中文（繁體）",
-            "日本語",
-            "한국어",
-            "Español",
-            "Português",
-            "Français",
-            "Deutsch",
-            "Русский",
-            "العربية",
-            "हिन्दी",
-            "Tiếng Việt",
-            "ไทย",
-            "Türkçe",
-            "Italiano",
-            "Polski",
-            "Українська",
-            "Nederlands",
-            "Bahasa Indonesia"
-          ],
-          "description": "%setting.language.description%"
-        },
-        "ava-supernova.preferences.permissionMode": {
-          "type": "string",
-          "default": "strict",
-          "enum": ["strict", "balanced", "autonomous"],
-          "enumDescriptions": [
-            "Confirm all file writes and shell commands (safest)",
-            "Auto-approve file edits, confirm shell commands only",
-            "Auto-approve everything — full autonomy (use with caution)"
-          ],
-          "description": "%setting.permissionMode.description%"
+    "configuration": [
+      {
+        "title": "%setting.section.modelApi%",
+        "order": 1,
+        "properties": {
+          "ava-supernova.activeModel": {
+            "type": "string",
+            "default": "",
+            "order": 1,
+            "enum": [
+              "",
+              "deepseek:deepseek-chat",
+              "deepseek:deepseek-reasoner",
+              "kimi:kimi-k2.5",
+              "kimi:moonshot-v1-128k",
+              "qwen:qwen3.5-plus",
+              "qwen:qwen-turbo-latest"
+            ],
+            "enumDescriptions": [
+              "No model selected",
+              "DeepSeek V3 — fast, affordable general-purpose",
+              "DeepSeek R1 — reasoning model",
+              "Kimi K2.5 — best multi-step tool calling",
+              "Moonshot V1 128K — long context",
+              "Qwen 3.5 Plus — vision, thinking, 256K context",
+              "Qwen Turbo — fast and cheap, 1M context"
+            ],
+            "description": "%setting.activeModel.description%"
+          },
+          "ava-supernova.providers.deepseek.apiKey": {
+            "type": "string",
+            "default": "",
+            "order": 2,
+            "description": "%setting.deepseek.apiKey.description%"
+          },
+          "ava-supernova.providers.kimi.apiKey": {
+            "type": "string",
+            "default": "",
+            "order": 3,
+            "description": "%setting.kimi.apiKey.description%"
+          },
+          "ava-supernova.providers.qwen.apiKey": {
+            "type": "string",
+            "default": "",
+            "order": 4,
+            "description": "%setting.qwen.apiKey.description%"
+          }
+        }
+      },
+      {
+        "title": "%setting.section.preferences%",
+        "order": 2,
+        "properties": {
+          "ava-supernova.preferences.temperature": {
+            "type": "number",
+            "default": 0.7,
+            "order": 1,
+            "description": "%setting.temperature.description%"
+          },
+          "ava-supernova.preferences.language": {
+            "type": "string",
+            "default": "auto",
+            "order": 2,
+            "enum": [
+              "auto", "en", "zh-CN", "zh-TW", "ja", "ko",
+              "es", "pt", "fr", "de", "ru", "ar", "hi",
+              "vi", "th", "tr", "it", "pl", "uk", "nl", "id"
+            ],
+            "enumItemLabels": [
+              "%lang.auto%",
+              "%lang.en%",
+              "%lang.zh-CN%",
+              "%lang.zh-TW%",
+              "%lang.ja%",
+              "%lang.ko%",
+              "%lang.es%",
+              "%lang.pt%",
+              "%lang.fr%",
+              "%lang.de%",
+              "%lang.ru%",
+              "%lang.ar%",
+              "%lang.hi%",
+              "%lang.vi%",
+              "%lang.th%",
+              "%lang.tr%",
+              "%lang.it%",
+              "%lang.pl%",
+              "%lang.uk%",
+              "%lang.nl%",
+              "%lang.id%"
+            ],
+            "enumDescriptions": [
+              "%lang.auto.desc%",
+              "",
+              "中文（简体）",
+              "中文（繁體）",
+              "日本語",
+              "한국어",
+              "Español",
+              "Português",
+              "Français",
+              "Deutsch",
+              "Русский",
+              "العربية",
+              "हिन्दी",
+              "Tiếng Việt",
+              "ไทย",
+              "Türkçe",
+              "Italiano",
+              "Polski",
+              "Українська",
+              "Nederlands",
+              "Bahasa Indonesia"
+            ],
+            "description": "%setting.language.description%"
+          },
+          "ava-supernova.preferences.permissionMode": {
+            "type": "string",
+            "default": "strict",
+            "order": 3,
+            "enum": ["strict", "balanced", "autonomous"],
+            "enumDescriptions": [
+              "Confirm all file writes and shell commands (safest)",
+              "Auto-approve file edits, confirm shell commands only",
+              "Auto-approve everything — full autonomy (use with caution)"
+            ],
+            "description": "%setting.permissionMode.description%"
+          }
+        }
+      },
+      {
+        "title": "%setting.section.help%",
+        "order": 3,
+        "properties": {
+          "ava-supernova.help.documentation": {
+            "type": "null",
+            "order": 1,
+            "markdownDescription": "%setting.help.docs%"
+          },
+          "ava-supernova.help.gettingStarted": {
+            "type": "null",
+            "order": 2,
+            "markdownDescription": "%setting.help.gettingStarted%"
+          }
         }
       }
-    },
+    ],
     "menus": {
       "editor/title": [
         {

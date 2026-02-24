@@ -49,5 +49,11 @@
   "walkthrough.step.permissions.title": "เลือกโหมดสิทธิ์",
   "walkthrough.step.permissions.description": "ควบคุมสิ่งที่ Ava ทำได้โดยไม่ต้องถาม เริ่มต้นด้วยโหมด **เข้มงวด** (ค่าเริ่มต้น) แล้วอัปเกรดภายหลัง [เปิดการตั้งค่าสิทธิ์](command:workbench.action.openSettings?%22ava-supernova.preferences.permissionMode%22)",
   "walkthrough.step.start.title": "เริ่มแชท",
-  "walkthrough.step.start.description": "คุณพร้อมแล้ว! [เปิดแชท Ava](command:ava-supernova.openChat) แล้วเริ่มสร้าง"
+  "walkthrough.step.start.description": "คุณพร้อมแล้ว! [เปิดแชท Ava](command:ava-supernova.openChat) แล้วเริ่มสร้าง",
+  "command.openDocs.title": "เอกสาร",
+  "setting.section.modelApi": "โมเดลและ API",
+  "setting.section.preferences": "การตั้งค่า",
+  "setting.section.help": "ความช่วยเหลือและเอกสาร",
+  "setting.help.docs": "**[เปิดเอกสาร](command:ava-supernova.openDocs)** — คู่มืออ้างอิงฉบับสมบูรณ์สำหรับโมเดล เครื่องมือ คำสั่ง และการกำหนดค่า",
+  "setting.help.gettingStarted": "**[เปิดคู่มือเริ่มต้นใช้งาน](command:ava-supernova.gettingStarted)** — คำแนะนำการตั้งค่าทีละขั้นตอนสำหรับผู้ใช้ใหม่"
 }
