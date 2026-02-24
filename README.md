@@ -399,7 +399,7 @@ Please ensure all code passes type checking and follows the existing style conve
 
 ## License
 
-[Apache License 2.0](LICENSE) — Copyright 2026 Stew.AI
+[Apache License 2.0](LICENSE) — Copyright 2026 Augmented Value Acceleration
 
 ---
 

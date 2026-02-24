@@ -60,4 +60,4 @@ Open **Settings** (`Ctrl+,`) and search `ava-supernova` to configure:
 
 ## License
 
-[Apache License 2.0](../../LICENSE) — Copyright 2026 Stew.AI
+[Apache License 2.0](../../LICENSE) — Copyright 2026 Augmented Value Acceleration
