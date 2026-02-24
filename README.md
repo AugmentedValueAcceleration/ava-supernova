@@ -28,11 +28,13 @@ Ava | Supernova is an open-source AI coding agent that brings the power of agent
 
 Agentic coding shouldn't be a luxury. The open-source model ecosystem delivers near-frontier autonomous coding performance at **50-100x lower cost** than proprietary alternatives.
 
-| Model | SWE-Bench | Input Cost / 1M tokens |
+| Model | SWE-Bench | Input Cost / 1M tokens* |
 |---|---|---|
-| Qwen 3.5 Plus | 76.4% | $0.40 |
-| Kimi K2.5 | 76.8% | $0.60 |
-| DeepSeek V3.2 | ~66% | $0.14 |
+| Qwen 3.5 Plus | 76.4% | ~$0.40 |
+| Kimi K2.5 | 76.8% | ~$0.60 |
+| DeepSeek V3.2 | ~66% | ~$0.28 |
+
+*Pricing is approximate and subject to change. Check each provider's website for current rates.
 
 Ava bridges the gap between these powerful models and a polished agentic coding experience.
 

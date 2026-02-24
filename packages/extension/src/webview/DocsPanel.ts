@@ -278,17 +278,18 @@ export class DocsPanel {
       <h2>Supported Models</h2>
       <table>
         <thead>
-          <tr><th>Provider</th><th>Model</th><th>Highlights</th><th>Cost / 1M tokens</th></tr>
+          <tr><th>Provider</th><th>Model</th><th>Highlights</th><th>Cost / 1M tokens*</th></tr>
         </thead>
         <tbody>
-          <tr><td>DeepSeek</td><td>DeepSeek V3</td><td>Fast, affordable general-purpose</td><td>$0.14 in / $0.28 out</td></tr>
-          <tr><td>DeepSeek</td><td>DeepSeek R1</td><td>Extended thinking, reasoning</td><td>$0.14 in / $2.19 out</td></tr>
-          <tr><td>Kimi</td><td>Kimi K2.5</td><td>Best multi-step tool calling</td><td>$0.60 in / $2.00 out</td></tr>
-          <tr><td>Kimi</td><td>Moonshot V1 128K</td><td>Long context</td><td>$0.74 in / $0.74 out</td></tr>
-          <tr><td>Qwen</td><td>Qwen 3.5 Plus</td><td>Vision, thinking, 256K</td><td>$0.40 in / $1.20 out</td></tr>
-          <tr><td>Qwen</td><td>Qwen Turbo</td><td>Fast and cheap, 1M context</td><td>$0.05 in / $0.20 out</td></tr>
+          <tr><td>DeepSeek</td><td>DeepSeek V3</td><td>Fast, affordable general-purpose</td><td>~$0.28 in / ~$0.42 out</td></tr>
+          <tr><td>DeepSeek</td><td>DeepSeek R1</td><td>Extended thinking, reasoning</td><td>~$0.28 in / ~$0.42 out</td></tr>
+          <tr><td>Kimi</td><td>Kimi K2.5</td><td>Best multi-step tool calling</td><td>~$0.60 in / ~$3.00 out</td></tr>
+          <tr><td>Kimi</td><td>Moonshot V1 128K</td><td>Long context</td><td>~$2.00 in / ~$5.00 out</td></tr>
+          <tr><td>Qwen</td><td>Qwen 3.5 Plus</td><td>Vision, thinking, 256K</td><td>~$0.40 in / ~$2.40 out</td></tr>
+          <tr><td>Qwen</td><td>Qwen Turbo</td><td>Fast and cheap, 1M context</td><td>~$0.05 in / ~$0.20 out</td></tr>
         </tbody>
       </table>
+      <p class="small muted">*Pricing is approximate and subject to change. Check each provider's website for current rates.</p>
       <p class="small muted">You can also use any locally hosted model via Ollama, LM Studio, or any standard API format endpoint by configuring a custom <code>baseUrl</code> in your provider settings.</p>
     </section>
 

@@ -21,6 +21,6 @@ export const KIMI_MODELS: ModelDefinition[] = [
     maxOutputTokens: 8192,
     supportsToolCalls: true,
     supportsStreaming: true,
-    pricing: { inputPerMillion: 0.82, outputPerMillion: 0.82 },
+    pricing: { inputPerMillion: 2.00, outputPerMillion: 5.00 },
   },
 ];
