@@ -12,7 +12,7 @@ import type {
 
 // ─── Platform API ─────────────────────────────────────────────────────────────
 
-const PLATFORM_API = 'https://dpxdjnpqaxhsydoeaogl.supabase.co/functions/v1';
+const PLATFORM_API = 'https://ava-supernova.com/api';
 const DEV_MODE = false;
 const PLATFORM_KEY_SECRET = 'ava-supernova.platformKey';
 

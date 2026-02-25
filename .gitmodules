@@ -1,0 +1,4 @@
+[submodule "packages/web"]
+	path = packages/web
+	url = https://github.com/AugmentedValueAcceleration/ava-supernova-platform.git
+	branch = development
