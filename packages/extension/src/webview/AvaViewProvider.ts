@@ -17,6 +17,7 @@ import {
 import type { AgentEvent, Provider, ModelDefinition, Message, ContentPart, PermissionMode } from '@ava/core';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode } from './message-types.js';
 import { getNonce } from '../utils/nonce.js';
+import { apiFetch } from '../utils/platform-api.js';
 
 export class AvaViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'ava-supernova.chatView';
@@ -94,6 +95,27 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private log(message: string): void {
     const timestamp = new Date().toISOString().slice(11, 23);
     this.outputChannel.appendLine(`[${timestamp}] ${message}`);
+  }
+
+  /** Report token usage to the platform API (fire-and-forget, never throws) */
+  private async reportUsageToPlatform(usage: { prompt_tokens: number; completion_tokens: number }): Promise<void> {
+    try {
+      const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
+      if (!platformKey) return; // Not logged in, skip
+
+      await apiFetch('/usage', {
+        method: 'POST',
+        platformKey,
+        body: {
+          model: this.activeModelDef?.id ?? 'unknown',
+          provider: this.activeModelDef?.provider ?? 'unknown',
+          input_tokens: usage.prompt_tokens,
+          output_tokens: usage.completion_tokens,
+        },
+      });
+    } catch {
+      // Silent fail — usage reporting should never block the user
+    }
   }
 
   // ── Sidebar View ───────────────────────────────────────────────────────────
@@ -691,6 +713,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             contextWindow: this.activeModelDef?.contextWindow,
           });
           this.log(`Usage: ${event.usage.prompt_tokens}+${event.usage.completion_tokens} tokens${event.cost ? ` ($${event.cost.toFixed(4)})` : ''}`);
+          // Report usage to platform (fire-and-forget)
+          this.reportUsageToPlatform(event.usage);
           break;
         case 'error': {
           const info = this.deriveErrorInfo(event.error);
