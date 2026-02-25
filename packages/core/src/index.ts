@@ -35,6 +35,7 @@ export type {
 } from './providers/types.js';
 export { BaseProvider } from './providers/base-provider.js';
 export { ProviderRegistry } from './providers/provider-registry.js';
+export { PlatformProvider } from './providers/platform/index.js';
 
 // Tools
 export { ToolRegistry } from './tools/tool-registry.js';

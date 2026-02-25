@@ -1,11 +1,38 @@
 import { useState, useEffect } from 'react';
 import { post } from '../App';
-import type { DashboardSettings } from '../types/messages';
+import { Select } from '../components/Select';
+import type { DashboardSettings, ProviderKeyStatus } from '../types/messages';
 
 interface SettingsProps {
   settings: DashboardSettings;
   onSettingsChange: (s: DashboardSettings) => void;
+  providerKeys: ProviderKeyStatus;
+  showProviderKeys: boolean;
 }
+
+const PROVIDERS = [
+  {
+    id: 'deepseek' as const,
+    name: 'DeepSeek',
+    placeholder: 'sk-...',
+    signupUrl: 'https://platform.deepseek.com',
+    description: 'DeepSeek V3 and R1 models',
+  },
+  {
+    id: 'kimi' as const,
+    name: 'Kimi (Moonshot)',
+    placeholder: 'sk-...',
+    signupUrl: 'https://platform.moonshot.cn',
+    description: 'Kimi K2.5 — best multi-step tool calling',
+  },
+  {
+    id: 'qwen' as const,
+    name: 'Qwen (Alibaba)',
+    placeholder: 'sk-...',
+    signupUrl: 'https://dashscope.console.aliyun.com',
+    description: 'Qwen 3.5 Plus and Qwen Turbo',
+  },
+];
 
 const LANGUAGES = [
   { value: 'auto', label: 'Auto-detect' },
@@ -37,11 +64,20 @@ const PERMISSION_MODES = [
   { value: 'autonomous', label: 'Autonomous — approve everything' },
 ];
 
-export function Settings({ settings, onSettingsChange }: SettingsProps) {
+const TOKEN_OPTIONS = [
+  { value: '2048', label: '2,048' },
+  { value: '4096', label: '4,096' },
+  { value: '8192', label: '8,192' },
+  { value: '16384', label: '16,384' },
+  { value: '32768', label: '32,768' },
+];
+
+export function Settings({ settings, onSettingsChange, providerKeys, showProviderKeys }: SettingsProps) {
   const [local, setLocal] = useState<DashboardSettings>(settings);
   const [saved, setSaved] = useState(false);
+  const [providerInputs, setProviderInputs] = useState<Record<string, string>>({});
+  const [savingProvider, setSavingProvider] = useState<string | null>(null);
 
-  // Sync if parent changes
   useEffect(() => setLocal(settings), [settings]);
 
   function update<K extends keyof DashboardSettings>(key: K, value: DashboardSettings[K]) {
@@ -56,55 +92,143 @@ export function Settings({ settings, onSettingsChange }: SettingsProps) {
     setTimeout(() => setSaved(false), 2000);
   }
 
+  function handleSaveProviderKey(provider: 'deepseek' | 'kimi' | 'qwen') {
+    const key = providerInputs[provider]?.trim();
+    if (!key) return;
+    setSavingProvider(provider);
+    post({ type: 'save_provider_key', provider, apiKey: key });
+    setProviderInputs(prev => ({ ...prev, [provider]: '' }));
+    setTimeout(() => setSavingProvider(null), 1500);
+  }
+
+  function handleRemoveProviderKey(provider: 'deepseek' | 'kimi' | 'qwen') {
+    post({ type: 'remove_provider_key', provider });
+  }
+
   const hasChanges = JSON.stringify(local) !== JSON.stringify(settings);
+  const configuredCount = [providerKeys.deepseek, providerKeys.kimi, providerKeys.qwen].filter(Boolean).length;
 
   return (
-    <div style={{ maxWidth: '520px' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h1
-          style={{
-            fontSize: '18px',
-            fontWeight: 700,
-            marginBottom: '4px',
-            background: 'linear-gradient(135deg, #a78bfa, #c084fc)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}
-        >
-          Settings
-        </h1>
-        <p style={{ opacity: 0.55, fontSize: '13px' }}>
-          Preferences for Ava | Supernova.
+    <div className="mx-auto max-w-2xl">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold">Settings</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">
+          {showProviderKeys
+            ? 'Configure your API providers and preferences.'
+            : 'Preferences for Ava | Supernova.'}
         </p>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div className="space-y-5">
+        {/* Provider Keys */}
+        {showProviderKeys && (
+          <>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                API Providers
+              </p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">
+                {configuredCount === 0
+                  ? 'Add at least one provider API key to start using Ava.'
+                  : `${configuredCount}/3 providers configured.`}
+              </p>
+            </div>
+
+            {PROVIDERS.map(provider => (
+              <Section
+                key={provider.id}
+                title={provider.name}
+                description={provider.description}
+              >
+                {providerKeys[provider.id] ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                      <span className="text-sm text-emerald-400">Connected</span>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveProviderKey(provider.id)}
+                      className="rounded-lg border border-red-500/30 px-3 py-1.5 text-xs text-red-400 transition hover:bg-red-500/10"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex gap-2">
+                      <input
+                        type="password"
+                        value={providerInputs[provider.id] ?? ''}
+                        onChange={e => setProviderInputs(prev => ({
+                          ...prev,
+                          [provider.id]: e.target.value,
+                        }))}
+                        placeholder={provider.placeholder}
+                        className="flex-1 rounded-lg border border-[var(--border-input)] bg-[var(--bg-input)] px-4 py-2.5 font-mono text-sm text-white placeholder-[var(--text-muted)] outline-none transition focus:border-[var(--accent)]"
+                      />
+                      <button
+                        onClick={() => handleSaveProviderKey(provider.id)}
+                        disabled={!providerInputs[provider.id]?.trim() || savingProvider === provider.id}
+                        className="rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                      >
+                        {savingProvider === provider.id ? 'Saved' : 'Save'}
+                      </button>
+                    </div>
+                    <a
+                      href={provider.signupUrl}
+                      className="mt-1.5 inline-block text-[10px] text-[var(--gradient-start)] hover:underline"
+                    >
+                      Get an API key &rarr;
+                    </a>
+                  </div>
+                )}
+              </Section>
+            ))}
+
+            <div className="border-t border-[var(--border-card)]" />
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              Preferences
+            </p>
+          </>
+        )}
 
         {/* Language */}
         <Section title="Language" description="Language for Ava's responses and the UI.">
-          <SelectField
+          <Select
             value={local.language}
             onChange={v => update('language', v)}
             options={LANGUAGES}
           />
         </Section>
 
-        {/* Tool permissions */}
+        {/* Permission Mode */}
         <Section title="Permission Mode" description="Controls when Ava asks before running tools.">
-          <RadioGroup
-            value={local.permissionMode}
-            onChange={v => update('permissionMode', v as DashboardSettings['permissionMode'])}
-            options={PERMISSION_MODES}
-          />
+          <div className="flex flex-col gap-1.5">
+            {PERMISSION_MODES.map(o => (
+              <label
+                key={o.value}
+                className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
+                  local.permissionMode === o.value
+                    ? 'border-[var(--accent)]/30 bg-[var(--accent)]/10'
+                    : 'border-transparent hover:bg-[var(--bg-input)]'
+                }`}
+              >
+                <input
+                  type="radio"
+                  checked={local.permissionMode === o.value}
+                  onChange={() => update('permissionMode', o.value as DashboardSettings['permissionMode'])}
+                  className="accent-[var(--accent)]"
+                />
+                <span className="text-[var(--text-secondary)]">{o.label}</span>
+              </label>
+            ))}
+          </div>
         </Section>
 
         {/* Temperature */}
-        <Section
-          title="Temperature"
-          description={`Controls response creativity vs. precision. (${local.temperature.toFixed(1)})`}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '11px', opacity: 0.5 }}>Precise</span>
+        <Section title="Temperature" description={`Controls response creativity vs. precision. (${local.temperature.toFixed(1)})`}>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] text-[var(--text-muted)]">Precise</span>
             <input
               type="range"
               min={0}
@@ -112,28 +236,22 @@ export function Settings({ settings, onSettingsChange }: SettingsProps) {
               step={0.1}
               value={local.temperature}
               onChange={e => update('temperature', parseFloat(e.target.value))}
-              style={{ flex: 1, accentColor: '#7c3aed' }}
+              className="flex-1 accent-[var(--accent)]"
             />
-            <span style={{ fontSize: '11px', opacity: 0.5 }}>Creative</span>
+            <span className="text-[10px] text-[var(--text-muted)]">Creative</span>
           </div>
         </Section>
 
-        {/* Max tokens per response */}
+        {/* Max Tokens */}
         <Section title="Max Response Tokens" description="Maximum tokens per model response.">
-          <SelectField
+          <Select
             value={String(local.maxTokens)}
             onChange={v => update('maxTokens', parseInt(v))}
-            options={[
-              { value: '2048', label: '2,048' },
-              { value: '4096', label: '4,096' },
-              { value: '8192', label: '8,192' },
-              { value: '16384', label: '16,384' },
-              { value: '32768', label: '32,768' },
-            ]}
+            options={TOKEN_OPTIONS}
           />
         </Section>
 
-        {/* Auto-memory */}
+        {/* Auto Memory */}
         <Section title="Auto Memory" description="Automatically save important details from conversations.">
           <ToggleSwitch
             value={local.autoMemory}
@@ -142,7 +260,7 @@ export function Settings({ settings, onSettingsChange }: SettingsProps) {
           />
         </Section>
 
-        {/* Stream responses */}
+        {/* Stream Responses */}
         <Section title="Stream Responses" description="Show tokens as they arrive instead of waiting for completion.">
           <ToggleSwitch
             value={local.streamResponses}
@@ -150,174 +268,53 @@ export function Settings({ settings, onSettingsChange }: SettingsProps) {
             label={local.streamResponses ? 'Enabled' : 'Disabled'}
           />
         </Section>
-
       </div>
 
-      {/* Save button */}
-      <div style={{ marginTop: '28px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+      {/* Save */}
+      <div className="mt-8 flex items-center gap-3">
         <button
           onClick={handleSave}
           disabled={!hasChanges}
-          style={{
-            padding: '8px 20px',
-            borderRadius: '6px',
-            border: 'none',
-            background: hasChanges ? '#7c3aed' : '#7c3aed44',
-            color: '#fff',
-            fontSize: '13px',
-            fontWeight: 600,
-            cursor: hasChanges ? 'pointer' : 'default',
-            fontFamily: 'var(--vscode-font-family)',
-          }}
+          className="rounded-lg bg-[var(--accent)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
           Save Changes
         </button>
-        {saved && <span style={{ fontSize: '12px', color: '#22c55e' }}>✓ Saved</span>}
+        {saved && <span className="text-sm text-emerald-400">Saved</span>}
       </div>
     </div>
   );
 }
 
-function Section({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
+function Section({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        background: 'var(--vscode-editorWidget-background)',
-        border: '1px solid var(--vscode-panel-border, #333)',
-        borderRadius: '8px',
-        padding: '16px',
-      }}
-    >
-      <div style={{ marginBottom: '10px' }}>
-        <p style={{ fontSize: '13px', fontWeight: 600, margin: '0 0 2px' }}>{title}</p>
-        <p style={{ fontSize: '12px', opacity: 0.5, margin: 0 }}>{description}</p>
+    <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+      <div className="mb-3">
+        <p className="text-sm font-semibold">{title}</p>
+        <p className="mt-0.5 text-xs text-[var(--text-muted)]">{description}</p>
       </div>
       {children}
     </div>
   );
 }
 
-function SelectField({
-  value,
-  onChange,
-  options,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string }[];
-}) {
+function ToggleSwitch({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
-    <select
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      style={{
-        padding: '7px 10px',
-        borderRadius: '5px',
-        border: '1px solid var(--vscode-panel-border, #444)',
-        background: 'var(--vscode-input-background)',
-        color: 'var(--vscode-foreground)',
-        fontSize: '13px',
-        fontFamily: 'var(--vscode-font-family)',
-        cursor: 'pointer',
-        outline: 'none',
-        width: '100%',
-      }}
-    >
-      {options.map(o => (
-        <option key={o.value} value={o.value}>{o.label}</option>
-      ))}
-    </select>
-  );
-}
-
-function RadioGroup({
-  value,
-  onChange,
-  options,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string }[];
-}) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      {options.map(o => (
-        <label
-          key={o.value}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            cursor: 'pointer',
-            fontSize: '13px',
-            padding: '6px 10px',
-            borderRadius: '5px',
-            background: value === o.value ? '#7c3aed22' : 'transparent',
-            border: `1px solid ${value === o.value ? '#7c3aed44' : 'transparent'}`,
-          }}
-        >
-          <input
-            type="radio"
-            checked={value === o.value}
-            onChange={() => onChange(o.value)}
-            style={{ accentColor: '#7c3aed' }}
-          />
-          {o.label}
-        </label>
-      ))}
-    </div>
-  );
-}
-
-function ToggleSwitch({
-  value,
-  onChange,
-  label,
-}: {
-  value: boolean;
-  onChange: (v: boolean) => void;
-  label: string;
-}) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+    <div className="flex items-center gap-3">
       <button
         role="switch"
         aria-checked={value}
         onClick={() => onChange(!value)}
-        style={{
-          width: '40px',
-          height: '22px',
-          borderRadius: '11px',
-          border: 'none',
-          background: value ? '#7c3aed' : 'var(--vscode-panel-border, #555)',
-          cursor: 'pointer',
-          position: 'relative',
-          transition: 'background 0.2s',
-          flexShrink: 0,
-        }}
+        className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+          value ? 'bg-[var(--accent)]' : 'bg-[var(--border-input)]'
+        }`}
       >
         <span
-          style={{
-            position: 'absolute',
-            top: '3px',
-            left: value ? '21px' : '3px',
-            width: '16px',
-            height: '16px',
-            borderRadius: '50%',
-            background: '#fff',
-            transition: 'left 0.2s',
-          }}
+          className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+            value ? 'translate-x-5' : ''
+          }`}
         />
       </button>
-      <span style={{ fontSize: '13px', opacity: 0.7 }}>{label}</span>
+      <span className="text-sm text-[var(--text-secondary)]">{label}</span>
     </div>
   );
 }

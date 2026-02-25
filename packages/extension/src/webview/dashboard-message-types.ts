@@ -42,6 +42,12 @@ export interface DashboardSettings {
   streamResponses: boolean;
 }
 
+export interface ProviderKeyStatus {
+  deepseek: boolean;
+  kimi: boolean;
+  qwen: boolean;
+}
+
 // ─── Extension Host → Dashboard Webview ──────────────────────────────────────
 
 export type ExtToDashboardMessage =
@@ -50,9 +56,11 @@ export type ExtToDashboardMessage =
       account: AccountInfo | null;
       connections: ConnectionStatus;
       settings: DashboardSettings;
+      providerKeys: ProviderKeyStatus;
       locale: string;
     }
   | { type: 'account_updated'; account: AccountInfo | null }
+  | { type: 'provider_keys_updated'; providerKeys: ProviderKeyStatus }
   | { type: 'memories_loaded'; memories: MemoryEntry[] }
   | { type: 'memory_deleted'; id: string }
   | { type: 'memory_upserted'; memory: MemoryEntry }
@@ -67,6 +75,9 @@ export type DashboardToExtMessage =
   | { type: 'webview_ready' }
   | { type: 'connect_account'; key: string }
   | { type: 'disconnect_account' }
+  | { type: 'skip_account' }
+  | { type: 'save_provider_key'; provider: 'deepseek' | 'kimi' | 'qwen'; apiKey: string }
+  | { type: 'remove_provider_key'; provider: 'deepseek' | 'kimi' | 'qwen' }
   | { type: 'load_memories' }
   | { type: 'delete_memory'; id: string }
   | { type: 'upsert_memory'; id?: string; scope?: 'global' | 'project'; key?: string; content: string; category?: string | null }
@@ -77,4 +88,5 @@ export type DashboardToExtMessage =
   | { type: 'open_topup'; package: 'starter' | 'standard' | 'pro_pack' }
   | { type: 'open_portal' }
   | { type: 'save_settings'; settings: DashboardSettings }
-  | { type: 'open_chat' };
+  | { type: 'open_chat' }
+  | { type: 'open_url'; url: string };

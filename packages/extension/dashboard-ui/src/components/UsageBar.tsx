@@ -11,41 +11,23 @@ function formatTokens(n: number): string {
 
 export function UsageBar({ used, limit }: UsageBarProps) {
   const pct = Math.min(100, (used / limit) * 100);
-  const color = pct >= 95 ? '#ef4444' : pct >= 80 ? '#f59e0b' : '#22c55e';
+
+  const barColor =
+    pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]';
 
   return (
     <div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          fontSize: '12px',
-          marginBottom: '6px',
-          opacity: 0.75,
-        }}
-      >
+      <div className="mb-1.5 flex justify-between text-xs text-[var(--text-secondary)]">
         <span>{formatTokens(used)} tokens used</span>
         <span>{formatTokens(limit)} limit</span>
       </div>
-      <div
-        style={{
-          height: '6px',
-          borderRadius: '3px',
-          background: 'var(--vscode-progressBar-background, #333)',
-          overflow: 'hidden',
-        }}
-      >
+      <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
         <div
-          style={{
-            height: '100%',
-            width: `${pct}%`,
-            borderRadius: '3px',
-            background: color,
-            transition: 'width 0.3s ease',
-          }}
+          className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+          style={{ width: `${pct}%` }}
         />
       </div>
-      <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.5 }}>
+      <div className="mt-1 text-xs text-[var(--text-muted)]">
         {pct.toFixed(0)}% used
       </div>
     </div>

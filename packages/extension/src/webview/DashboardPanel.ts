@@ -7,6 +7,7 @@ import type {
   DashboardSettings,
   AccountInfo,
   ConnectionStatus,
+  ProviderKeyStatus,
 } from './dashboard-message-types.js';
 
 // ─── Platform API ─────────────────────────────────────────────────────────────
@@ -36,7 +37,7 @@ export class DashboardPanel {
   // ─── Static factory ────────────────────────────────────────────────────────
 
   public static show(extensionUri: vscode.Uri, context: vscode.ExtensionContext): void {
-    const column = vscode.ViewColumn.Beside;
+    const column = vscode.ViewColumn.One;
 
     if (DashboardPanel.currentPanel) {
       DashboardPanel.currentPanel.panel.reveal(column);
@@ -98,6 +99,18 @@ export class DashboardPanel {
         this.post({ type: 'account_updated', account: null });
         break;
 
+      case 'skip_account':
+        // No-op on host — webview manages its own BYOK state
+        break;
+
+      case 'save_provider_key':
+        await this.saveProviderKey(msg.provider, msg.apiKey);
+        break;
+
+      case 'remove_provider_key':
+        await this.removeProviderKey(msg.provider);
+        break;
+
       case 'load_memories':
         await this.loadMemories();
         break;
@@ -137,6 +150,10 @@ export class DashboardPanel {
       case 'open_chat':
         vscode.commands.executeCommand('ava-supernova.openChat');
         break;
+
+      case 'open_url':
+        vscode.env.openExternal(vscode.Uri.parse(msg.url));
+        break;
     }
   }
 
@@ -147,9 +164,10 @@ export class DashboardPanel {
     const account = platformKey ? await this.fetchAccount(platformKey) : null;
     const connections = await this.getConnectionStatus();
     const settings = this.readSettings();
+    const providerKeys = this.getProviderKeyStatus();
     const locale = vscode.workspace.getConfiguration('ava-supernova').get<string>('preferences.language') ?? 'auto';
 
-    this.post({ type: 'init', account, connections, settings, locale });
+    this.post({ type: 'init', account, connections, settings, providerKeys, locale });
 
     // Auto-load memories if signed in
     if (account) {
@@ -361,6 +379,34 @@ export class DashboardPanel {
     }
   }
 
+  // ─── Provider Keys ────────────────────────────────────────────────────────
+
+  private getProviderKeyStatus(): ProviderKeyStatus {
+    const cfg = vscode.workspace.getConfiguration('ava-supernova');
+    return {
+      deepseek: Boolean(cfg.get<string>('providers.deepseek.apiKey')),
+      kimi: Boolean(cfg.get<string>('providers.kimi.apiKey')),
+      qwen: Boolean(cfg.get<string>('providers.qwen.apiKey')),
+    };
+  }
+
+  private async saveProviderKey(
+    provider: 'deepseek' | 'kimi' | 'qwen',
+    apiKey: string,
+  ): Promise<void> {
+    const cfg = vscode.workspace.getConfiguration('ava-supernova');
+    await cfg.update(`providers.${provider}.apiKey`, apiKey, vscode.ConfigurationTarget.Global);
+    this.post({ type: 'provider_keys_updated', providerKeys: this.getProviderKeyStatus() });
+  }
+
+  private async removeProviderKey(
+    provider: 'deepseek' | 'kimi' | 'qwen',
+  ): Promise<void> {
+    const cfg = vscode.workspace.getConfiguration('ava-supernova');
+    await cfg.update(`providers.${provider}.apiKey`, undefined, vscode.ConfigurationTarget.Global);
+    this.post({ type: 'provider_keys_updated', providerKeys: this.getProviderKeyStatus() });
+  }
+
   // ─── Settings ──────────────────────────────────────────────────────────────
 
   private readSettings(): DashboardSettings {
@@ -404,6 +450,9 @@ export class DashboardPanel {
     const scriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'dist', 'dashboard', 'index.js'),
     );
+    const styleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'dist', 'dashboard', 'index.css'),
+    );
     const nonce = getNonce();
 
     return `<!DOCTYPE html>
@@ -413,9 +462,10 @@ export class DashboardPanel {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'none';
-                 style-src 'unsafe-inline';
+                 style-src ${webview.cspSource} 'unsafe-inline';
                  script-src 'nonce-${nonce}';
                  img-src ${webview.cspSource} data:;">
+  <link rel="stylesheet" href="${styleUri}">
   <title>Ava | Dashboard</title>
 </head>
 <body>

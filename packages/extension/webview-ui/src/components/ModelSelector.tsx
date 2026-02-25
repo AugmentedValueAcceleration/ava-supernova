@@ -5,16 +5,16 @@ interface ModelSelectorProps {
   activeModel: string | null;
   needsSetup: boolean;
   onSwitch: (modelId: string) => void;
-  onOpenSettings: () => void;
+  onOpenDashboard: () => void;
 }
 
-export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpenSettings }: ModelSelectorProps) {
+export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpenDashboard }: ModelSelectorProps) {
   if (needsSetup) {
     return (
       <p className="text-xs opacity-60 m-0">
         {t('model.no_providers')}{' '}
         <button
-          onClick={onOpenSettings}
+          onClick={onOpenDashboard}
           className="text-[var(--vscode-textLink-foreground)] cursor-pointer underline bg-transparent border-none p-0 text-xs"
         >
           {t('model.open_settings')}

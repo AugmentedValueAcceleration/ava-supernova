@@ -297,10 +297,6 @@
         {
           "command": "ava-supernova.openChat",
           "group": "navigation"
-        },
-        {
-          "command": "ava-supernova.openDashboard",
-          "group": "navigation"
         }
       ]
     },

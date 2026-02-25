@@ -2,6 +2,7 @@ import { post } from '../App';
 import type { AccountInfo } from '../types/messages';
 import { UsageBar } from '../components/UsageBar';
 import { TierBadge } from '../components/TierBadge';
+import { CheckIcon } from '../components/Icons';
 
 interface BillingProps {
   account: AccountInfo;
@@ -32,39 +33,28 @@ const PLAN_FEATURES: Record<string, string[]> = {
 
 export function Billing({ account }: BillingProps) {
   return (
-    <div style={{ maxWidth: '600px' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h1
-          style={{
-            fontSize: '18px',
-            fontWeight: 700,
-            marginBottom: '4px',
-            background: 'linear-gradient(135deg, #a78bfa, #c084fc)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}
-        >
-          Billing
-        </h1>
-        <p style={{ opacity: 0.55, fontSize: '13px' }}>
+    <div className="max-w-3xl">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold">Billing</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">
           Manage your subscription and token usage.
         </p>
       </div>
 
-      {/* Current plan */}
-      <Card style={{ marginBottom: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+      {/* Current Plan */}
+      <div className="mb-6 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+        <div className="mb-4 flex items-center justify-between">
           <TierBadge tier={account.tier} />
           {account.usage?.period_end && (
-            <span style={{ fontSize: '12px', opacity: 0.5 }}>
+            <span className="text-xs text-[var(--text-muted)]">
               Renews {new Date(account.usage.period_end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
           )}
         </div>
 
         {account.tier === 'pro' && account.usage && account.usage.tokens_limit !== null && (
-          <div style={{ marginBottom: '16px' }}>
-            <p style={{ fontSize: '12px', fontWeight: 600, opacity: 0.5, marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <div className="mb-4">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
               Token Usage This Month
             </p>
             <UsageBar used={account.usage.tokens_used} limit={account.usage.tokens_limit} />
@@ -72,82 +62,62 @@ export function Billing({ account }: BillingProps) {
         )}
 
         {account.tier === 'ultra' && (
-          <p style={{ fontSize: '13px', color: '#a78bfa', fontWeight: 500, marginBottom: '16px' }}>
-            ∞ Unlimited tokens
+          <p className="mb-4 text-sm font-medium text-[var(--gradient-start)]">
+            Unlimited tokens
           </p>
         )}
 
         {account.tier !== 'free' && (
           <button
             onClick={() => post({ type: 'open_portal' })}
-            style={{
-              padding: '7px 14px',
-              borderRadius: '5px',
-              border: '1px solid var(--vscode-panel-border, #555)',
-              background: 'transparent',
-              color: 'var(--vscode-foreground)',
-              fontSize: '12px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              fontFamily: 'var(--vscode-font-family)',
-            }}
+            className="rounded-lg border border-[var(--border-input)] px-4 py-2 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)] hover:text-white"
           >
-            Manage Subscription →
+            Manage Subscription &rarr;
           </button>
         )}
-      </Card>
+      </div>
 
       {/* Top-ups (Pro only) */}
       {account.tier === 'pro' && (
-        <Card style={{ marginBottom: '16px' }}>
-          <p style={{ fontSize: '12px', fontWeight: 600, opacity: 0.5, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '14px' }}>
+        <div className="mb-6 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             Top Up Tokens
           </p>
-          <p style={{ fontSize: '13px', opacity: 0.65, marginBottom: '14px' }}>
-            Running low? Add extra tokens to your account — they never expire.
+          <p className="mb-4 text-sm text-[var(--text-secondary)]">
+            Running low? Add extra tokens — they never expire.
           </p>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <div className="grid gap-3 sm:grid-cols-3">
             {TOPUP_PACKAGES.map(pkg => (
               <button
                 key={pkg.id}
                 onClick={() => post({ type: 'open_topup', package: pkg.id as 'starter' | 'standard' | 'pro_pack' })}
-                style={{
-                  padding: '12px 16px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--vscode-panel-border, #444)',
-                  background: 'var(--vscode-editorWidget-background)',
-                  color: 'var(--vscode-foreground)',
-                  cursor: 'pointer',
-                  fontFamily: 'var(--vscode-font-family)',
-                  textAlign: 'center',
-                  minWidth: '100px',
-                }}
+                className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-input)] p-4 text-center transition hover:border-[var(--accent)]/30"
               >
-                <p style={{ fontSize: '15px', fontWeight: 700, margin: '0 0 4px', color: '#a78bfa' }}>{pkg.price}</p>
-                <p style={{ fontSize: '12px', opacity: 0.7, margin: 0 }}>{pkg.label}</p>
+                <p className="text-xl font-bold text-[var(--gradient-start)]">{pkg.price}</p>
+                <p className="mt-1 text-xs text-[var(--text-secondary)]">{pkg.label}</p>
               </button>
             ))}
           </div>
-        </Card>
+        </div>
       )}
 
-      {/* Upgrade cards */}
+      {/* Upgrade Cards */}
       {account.tier !== 'ultra' && (
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <div className="grid gap-4 sm:grid-cols-2">
           {account.tier === 'free' && (
             <UpgradeCard
-              plan="pro"
               title="Pro"
-              price="$19/mo"
+              price="$19"
+              period="/mo"
               features={PLAN_FEATURES.pro}
               highlight={false}
               onUpgrade={() => post({ type: 'open_checkout', plan: 'pro' })}
             />
           )}
           <UpgradeCard
-            plan="ultra"
             title="Ultra"
-            price="$49/mo"
+            price="$49"
+            period="/mo"
             features={PLAN_FEATURES.ultra}
             highlight={true}
             onUpgrade={() => post({ type: 'open_checkout', plan: 'ultra' })}
@@ -161,71 +131,49 @@ export function Billing({ account }: BillingProps) {
 function UpgradeCard({
   title,
   price,
+  period,
   features,
   highlight,
   onUpgrade,
 }: {
-  plan: string;
   title: string;
   price: string;
+  period: string;
   features: string[];
   highlight: boolean;
   onUpgrade: () => void;
 }) {
   return (
     <div
-      style={{
-        flex: 1,
-        minWidth: '220px',
-        background: 'var(--vscode-editorWidget-background)',
-        border: `1px solid ${highlight ? '#7c3aed66' : 'var(--vscode-panel-border, #333)'}`,
-        borderRadius: '8px',
-        padding: '18px',
-      }}
+      className={`flex flex-col rounded-xl border p-5 ${
+        highlight ? 'border-[var(--accent)]/40 bg-[var(--bg-card)]' : 'border-[var(--border-card)] bg-[var(--bg-card)]'
+      }`}
     >
-      <p style={{ fontSize: '15px', fontWeight: 700, marginBottom: '2px' }}>{title}</p>
-      <p style={{ fontSize: '20px', fontWeight: 800, color: '#a78bfa', marginBottom: '14px' }}>{price}</p>
-      <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <TierBadge tier={title.toLowerCase() as 'pro' | 'ultra'} />
+      <div className="mt-3">
+        <span className="text-3xl font-bold">{price}</span>
+        <span className="text-xs text-[var(--text-muted)]">{period}</span>
+      </div>
+
+      <ul className="mt-4 flex-1 space-y-2.5">
         {features.map(f => (
-          <li key={f} style={{ fontSize: '12px', opacity: 0.75, display: 'flex', gap: '6px' }}>
-            <span style={{ color: '#22c55e', flexShrink: 0 }}>✓</span>
+          <li key={f} className="flex items-start gap-2 text-xs text-[var(--text-secondary)]">
+            <CheckIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--gradient-start)]" />
             {f}
           </li>
         ))}
       </ul>
+
       <button
         onClick={onUpgrade}
-        style={{
-          width: '100%',
-          padding: '8px',
-          borderRadius: '6px',
-          border: 'none',
-          background: highlight ? '#7c3aed' : '#5b21b6',
-          color: '#fff',
-          fontSize: '13px',
-          fontWeight: 600,
-          cursor: 'pointer',
-          fontFamily: 'var(--vscode-font-family)',
-        }}
+        className={`mt-4 w-full rounded-lg py-2.5 text-sm font-semibold text-white transition ${
+          highlight
+            ? 'bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] hover:opacity-90'
+            : 'bg-[var(--accent)] hover:bg-[var(--accent-hover)]'
+        }`}
       >
         Upgrade to {title}
       </button>
-    </div>
-  );
-}
-
-function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
-  return (
-    <div
-      style={{
-        background: 'var(--vscode-editorWidget-background)',
-        border: '1px solid var(--vscode-panel-border, #333)',
-        borderRadius: '8px',
-        padding: '18px',
-        ...style,
-      }}
-    >
-      {children}
     </div>
   );
 }

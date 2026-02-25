@@ -12,6 +12,7 @@ import type {
   ConnectionStatus,
   DashboardSettings,
   MemoryEntry,
+  ProviderKeyStatus,
   ExtToDashboardMessage,
   DashboardToExtMessage,
 } from './types/messages';
@@ -46,6 +47,10 @@ export function App() {
     streamResponses: true,
   });
   const [memories, setMemories] = useState<MemoryEntry[]>([]);
+  const [providerKeys, setProviderKeys] = useState<ProviderKeyStatus>({
+    deepseek: false, kimi: false, qwen: false,
+  });
+  const [byokMode, setByokMode] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleMessage = useCallback((event: MessageEvent) => {
@@ -55,10 +60,22 @@ export function App() {
         setAccount(msg.account);
         setConnections(msg.connections);
         setSettings(msg.settings);
+        setProviderKeys(msg.providerKeys);
+        if (!msg.account && (msg.providerKeys.deepseek || msg.providerKeys.kimi || msg.providerKeys.qwen)) {
+          setByokMode(true);
+          setPage('settings');
+        }
         setInitialized(true);
         break;
       case 'account_updated':
         setAccount(msg.account);
+        if (!msg.account && (providerKeys.deepseek || providerKeys.kimi || providerKeys.qwen)) {
+          setByokMode(true);
+          setPage('settings');
+        }
+        break;
+      case 'provider_keys_updated':
+        setProviderKeys(msg.providerKeys);
         break;
       case 'memories_loaded':
         setMemories(msg.memories);
@@ -98,69 +115,53 @@ export function App() {
 
   if (!initialized) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100vh',
-          opacity: 0.4,
-          fontSize: '13px',
-          fontFamily: 'var(--vscode-font-family)',
-          color: 'var(--vscode-foreground)',
-          background: 'var(--vscode-editor-background)',
-        }}
-      >
-        Loading…
+      <div className="flex h-screen items-center justify-center text-sm text-[var(--text-muted)]">
+        Loading...
       </div>
     );
   }
 
+  const hasAccess = Boolean(account) || byokMode;
+
+  function handleSkipAccount() {
+    setByokMode(true);
+    setPage('settings');
+    post({ type: 'skip_account' });
+  }
+
+  function handleConnectAccount() {
+    setByokMode(false);
+    setPage('overview');
+  }
+
   const renderPage = () => {
-    if (!account) {
-      return <ConnectAccount />;
+    if (!hasAccess) {
+      return <ConnectAccount onSkipAccount={handleSkipAccount} />;
     }
     switch (page) {
       case 'overview':
-        return <Overview account={account} connections={connections} onNavigate={setPage} />;
+        if (account) {
+          return <Overview account={account} connections={connections} onNavigate={setPage} />;
+        }
+        return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
       case 'memory':
         return <Memory memories={memories} />;
       case 'connections':
         return <Connections connections={connections} />;
       case 'billing':
-        return <Billing account={account} />;
+        return account ? <Billing account={account} /> : <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
       case 'settings':
-        return <Settings settings={settings} onSettingsChange={setSettings} />;
+        return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys={!account} />;
     }
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        height: '100vh',
-        overflow: 'hidden',
-        background: 'var(--vscode-editor-background)',
-        color: 'var(--vscode-editor-foreground)',
-        fontFamily: 'var(--vscode-font-family)',
-        fontSize: 'var(--vscode-font-size, 13px)',
-      }}
-    >
-      {account && <NavSidebar currentPage={page} onNavigate={setPage} />}
+    <div className="flex h-screen overflow-hidden text-sm">
+      {hasAccess && <NavSidebar currentPage={page} onNavigate={setPage} mode={account ? 'platform' : 'byok'} email={account?.email} onConnectAccount={handleConnectAccount} />}
 
-      <main style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
+      <main className="flex-1 overflow-y-auto p-8">
         {errorMsg && (
-          <div
-            style={{
-              marginBottom: '16px',
-              padding: '10px 14px',
-              borderRadius: '6px',
-              background: 'var(--vscode-inputValidation-errorBackground)',
-              border: '1px solid var(--vscode-inputValidation-errorBorder)',
-              color: 'var(--vscode-errorForeground)',
-              fontSize: '12px',
-            }}
-          >
+          <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-400">
             {errorMsg}
           </div>
         )}

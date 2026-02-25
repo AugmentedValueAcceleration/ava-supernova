@@ -6,7 +6,7 @@ interface HeaderProps {
   activeModel: string | null;
   needsSetup: boolean;
   onSwitch: (modelId: string) => void;
-  onOpenSettings: () => void;
+  onOpenDashboard: () => void;
   onOpenHistory: () => void;
   onNewChat: () => void;
 }
@@ -16,7 +16,7 @@ export function Header({
   activeModel,
   needsSetup,
   onSwitch,
-  onOpenSettings,
+  onOpenDashboard,
   onOpenHistory,
   onNewChat,
 }: HeaderProps) {
@@ -28,7 +28,7 @@ export function Header({
           activeModel={activeModel}
           needsSetup={needsSetup}
           onSwitch={onSwitch}
-          onOpenSettings={onOpenSettings}
+          onOpenDashboard={onOpenDashboard}
         />
       </div>
 
@@ -47,16 +47,16 @@ export function Header({
       </button>
 
       <button
-        onClick={onOpenSettings}
-        title={t('header.settings')}
-        aria-label={t('header.settings')}
+        onClick={onOpenDashboard}
+        title="Dashboard"
+        aria-label="Dashboard"
         className="flex items-center justify-center w-7 h-7 rounded
                    hover:bg-[var(--vscode-toolbar-hoverBackground)]
                    text-[var(--vscode-foreground)] opacity-70 hover:opacity-100
                    bg-transparent border-none cursor-pointer text-sm"
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-          <path d="M9.1 4.4L8.6 2H7.4l-.5 2.4-.7.3-2-1.3-.9.8 1.3 2-.3.7-2.4.5v1.2l2.4.5.3.7-1.3 2 .8.8 2-1.3.7.3.5 2.4h1.2l.5-2.4.7-.3 2 1.3.8-.8-1.3-2 .3-.7 2.4-.5V6.8l-2.4-.5-.3-.7 1.3-2-.8-.8-2 1.3-.7-.3zM8 10a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/>
+          <path d="M8 1a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM2 13c0-3 2.69-4.5 6-4.5s6 1.5 6 4.5v1H2v-1z"/>
         </svg>
       </button>
 

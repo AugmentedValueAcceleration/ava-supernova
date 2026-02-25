@@ -5,6 +5,7 @@ import {
   Conversation,
   ToolRegistry,
   ProviderRegistry,
+  PlatformProvider,
   HistoryManager,
   ProviderError,
   buildSystemPrompt,
@@ -16,6 +17,7 @@ import {
 } from '@ava/core';
 import type { AgentEvent, Provider, ModelDefinition, Message, ContentPart, PermissionMode } from '@ava/core';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode } from './message-types.js';
+import type { AccountInfo } from './dashboard-message-types.js';
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
 
@@ -42,6 +44,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private projectInstructions?: string;
   private currentLocale = 'en';
   private panelStateCallback?: (isOpen: boolean) => void;
+  private cachedAccount: AccountInfo | null = null;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -60,6 +63,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // Re-detect project when workspace folders change
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       this.onWorkspaceChanged();
+    });
+
+    // Re-initialize when platform key is added or removed (dashboard connect/disconnect)
+    this.context.secrets.onDidChange((e) => {
+      if (e.key === 'ava-supernova.platformKey') {
+        this.cachedAccount = null;
+        this.initializeSession();
+      }
     });
   }
 
@@ -88,7 +99,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.postMessage({ type: 'chat_cleared' });
 
     // Re-initialize the agent with new project context
-    this.initializeSession();
+    await this.initializeSession();
     this.log(`Workspace changed — project root: ${this.projectRoot ?? 'none'}`);
   }
 
@@ -128,9 +139,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.view = webviewView;
     this.setupWebview(webviewView.webview);
 
-    webviewView.onDidChangeVisibility(() => {
+    webviewView.onDidChangeVisibility(async () => {
       if (webviewView.visible) {
-        this.initializeSession();
+        await this.initializeSession();
       }
     });
 
@@ -200,9 +211,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private ensureSettingsListener(): void {
     if (this.settingsListener) return;
 
-    this.settingsListener = vscode.workspace.onDidChangeConfiguration((e) => {
+    this.settingsListener = vscode.workspace.onDidChangeConfiguration(async (e) => {
       if (e.affectsConfiguration('ava-supernova')) {
-        this.initializeSession();
+        await this.initializeSession();
       }
     });
   }
@@ -273,7 +284,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   // ── Private Methods ────────────────────────────────────────────────────────
 
-  private initializeSession(): void {
+  private async initializeSession(): Promise<void> {
     const config = vscode.workspace.getConfiguration('ava-supernova');
     this.providerRegistry = new ProviderRegistry();
 
@@ -284,6 +295,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     this.log(`Initializing session... (locale: ${this.currentLocale})`);
 
+    // ── BYOK providers ──────────────────────────────────────────────────────
     for (const name of ['deepseek', 'kimi', 'qwen']) {
       const apiKey = config.get<string>(`providers.${name}.apiKey`);
       if (apiKey) {
@@ -294,6 +306,28 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           this.log(`Provider ${name} failed to register: ${err}`);
         }
       }
+    }
+
+    // ── Platform account provider ───────────────────────────────────────────
+    try {
+      const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
+      if (platformKey) {
+        if (!this.cachedAccount) {
+          const res = await apiFetch('/account-info', { platformKey });
+          this.cachedAccount = res.ok ? (res.data as AccountInfo) : null;
+        }
+        if (this.cachedAccount && (this.cachedAccount.tier === 'pro' || this.cachedAccount.tier === 'ultra')) {
+          const platform = new PlatformProvider({ apiKey: platformKey });
+          this.providerRegistry.registerCustom('platform', platform);
+          this.log(`Platform provider registered (tier: ${this.cachedAccount.tier}, email: ${this.cachedAccount.email})`);
+        } else if (this.cachedAccount) {
+          this.log(`Platform account found but tier "${this.cachedAccount.tier}" does not include managed access`);
+        } else {
+          this.log('Platform key present but account verification failed');
+        }
+      }
+    } catch (err) {
+      this.log(`Platform account check failed: ${err}`);
     }
 
     const activeModelId = config.get<string>('activeModel') || '';
@@ -546,7 +580,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private async handleWebviewMessage(message: WebviewToExtMessage): Promise<void> {
     switch (message.type) {
       case 'webview_ready':
-        this.initializeSession();
+        await this.initializeSession();
         await this.restoreLastConversation();
         break;
 
@@ -570,8 +604,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         this.cancelRun();
         break;
 
-      case 'open_settings':
-        vscode.commands.executeCommand('workbench.action.openSettings', 'ava-supernova');
+      case 'open_dashboard':
+        vscode.commands.executeCommand('ava-supernova.openDashboard');
         break;
 
       case 'request_history':

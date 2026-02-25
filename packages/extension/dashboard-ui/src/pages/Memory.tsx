@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { post } from '../App';
+import { SearchIcon, PencilIcon, TrashIcon } from '../components/Icons';
 import type { MemoryEntry } from '../types/messages';
 
 interface MemoryProps {
@@ -35,78 +36,43 @@ export function Memory({ memories }: MemoryProps) {
   }
 
   return (
-    <div style={{ maxWidth: '700px' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h1
-          style={{
-            fontSize: '18px',
-            fontWeight: 700,
-            marginBottom: '4px',
-            background: 'linear-gradient(135deg, #a78bfa, #c084fc)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}
-        >
-          Memory
-        </h1>
-        <p style={{ opacity: 0.55, fontSize: '13px' }}>
+    <div className="max-w-3xl">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold">Memory</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">
           Things Ava remembers about you and your projects.
         </p>
       </div>
 
       {/* Search */}
-      <div style={{ marginBottom: '16px' }}>
+      <div className="relative mb-4">
+        <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
         <input
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search memories..."
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            borderRadius: '6px',
-            border: '1px solid var(--vscode-panel-border, #333)',
-            background: 'var(--vscode-input-background)',
-            color: 'var(--vscode-foreground)',
-            fontSize: '13px',
-            fontFamily: 'var(--vscode-font-family)',
-            boxSizing: 'border-box',
-            outline: 'none',
-          }}
+          className="w-full rounded-lg border border-[var(--border-input)] bg-[var(--bg-input)] py-2.5 pl-10 pr-4 text-sm text-white placeholder-[var(--text-muted)] outline-none transition focus:border-[var(--accent)]"
         />
       </div>
 
-      {/* Memory count */}
-      <p style={{ fontSize: '12px', opacity: 0.45, marginBottom: '12px' }}>
+      {/* Count */}
+      <p className="mb-3 text-xs text-[var(--text-muted)]">
         {filtered.length} {filtered.length === 1 ? 'memory' : 'memories'}
         {search && ` matching "${search}"`}
       </p>
 
-      {/* Memory list */}
+      {/* List */}
       {filtered.length === 0 ? (
-        <div
-          style={{
-            padding: '32px',
-            textAlign: 'center',
-            opacity: 0.45,
-            fontSize: '13px',
-            border: '1px dashed var(--vscode-panel-border, #444)',
-            borderRadius: '8px',
-          }}
-        >
+        <div className="rounded-xl border border-dashed border-[var(--border-card)] bg-[var(--bg-card)] p-8 text-center text-sm text-[var(--text-muted)]">
           {search ? 'No memories match your search.' : 'No memories yet. Ava will remember things as you work together.'}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className="flex flex-col gap-2">
           {filtered.map(m => (
             <div
               key={m.id}
-              style={{
-                background: 'var(--vscode-editorWidget-background)',
-                border: '1px solid var(--vscode-panel-border, #333)',
-                borderRadius: '6px',
-                padding: '12px 14px',
-              }}
+              className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4"
             >
               {editingId === m.id ? (
                 <div>
@@ -114,53 +80,68 @@ export function Memory({ memories }: MemoryProps) {
                     value={editText}
                     onChange={e => setEditText(e.target.value)}
                     rows={3}
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      borderRadius: '4px',
-                      border: '1px solid #7c3aed',
-                      background: 'var(--vscode-input-background)',
-                      color: 'var(--vscode-foreground)',
-                      fontSize: '13px',
-                      fontFamily: 'var(--vscode-font-family)',
-                      resize: 'vertical',
-                      boxSizing: 'border-box',
-                      outline: 'none',
-                      marginBottom: '8px',
-                    }}
+                    className="mb-2 w-full resize-y rounded-lg border border-[var(--accent)] bg-[var(--bg-input)] p-2 text-sm text-white outline-none"
                     autoFocus
                     onKeyDown={e => {
                       if (e.key === 'Escape') setEditingId(null);
                       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) saveEdit(m);
                     }}
                   />
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <SmallButton onClick={() => saveEdit(m)}>Save</SmallButton>
-                    <SmallButton variant="ghost" onClick={() => setEditingId(null)}>Cancel</SmallButton>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => saveEdit(m)}
+                      className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover)]"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setEditingId(null)}
+                      className="rounded-lg border border-[var(--border-input)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)]"
+                    >
+                      Cancel
+                    </button>
                   </div>
                 </div>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                  <p style={{ fontSize: '13px', flex: 1, lineHeight: 1.5, margin: 0 }}>
-                    {m.content}
-                  </p>
-                  <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-                    <SmallButton variant="ghost" onClick={() => startEdit(m)}>Edit</SmallButton>
+                <div className="flex items-start gap-3">
+                  <p className="flex-1 text-sm leading-relaxed">{m.content}</p>
+                  <div className="flex shrink-0 gap-1">
+                    <button
+                      onClick={() => startEdit(m)}
+                      className="rounded p-1.5 text-[var(--text-muted)] transition hover:bg-[var(--bg-input)] hover:text-white"
+                      title="Edit"
+                    >
+                      <PencilIcon className="h-3.5 w-3.5" />
+                    </button>
                     {confirmDeleteId === m.id ? (
                       <>
-                        <SmallButton variant="danger" onClick={() => confirmDelete(m.id)}>Confirm</SmallButton>
-                        <SmallButton variant="ghost" onClick={() => setConfirmDeleteId(null)}>Cancel</SmallButton>
+                        <button
+                          onClick={() => confirmDelete(m.id)}
+                          className="rounded bg-red-500 px-2 py-1 text-[10px] font-semibold text-white transition hover:bg-red-600"
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="rounded px-2 py-1 text-[10px] text-[var(--text-muted)] transition hover:bg-[var(--bg-input)]"
+                        >
+                          Cancel
+                        </button>
                       </>
                     ) : (
-                      <SmallButton variant="ghost" onClick={() => setConfirmDeleteId(m.id)}>
-                        Delete
-                      </SmallButton>
+                      <button
+                        onClick={() => setConfirmDeleteId(m.id)}
+                        className="rounded p-1.5 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
+                        title="Delete"
+                      >
+                        <TrashIcon className="h-3.5 w-3.5" />
+                      </button>
                     )}
                   </div>
                 </div>
               )}
-              {m.created_at && !editingId && (
-                <p style={{ fontSize: '11px', opacity: 0.35, marginTop: '6px', margin: '6px 0 0 0' }}>
+              {m.created_at && editingId !== m.id && (
+                <p className="mt-2 text-[10px] text-[var(--text-muted)]">
                   {new Date(m.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </p>
               )}
@@ -170,32 +151,4 @@ export function Memory({ memories }: MemoryProps) {
       )}
     </div>
   );
-}
-
-function SmallButton({
-  children,
-  onClick,
-  variant = 'default',
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  variant?: 'default' | 'ghost' | 'danger';
-}) {
-  const styles: React.CSSProperties = {
-    padding: '4px 10px',
-    borderRadius: '4px',
-    fontSize: '11px',
-    fontWeight: 500,
-    cursor: 'pointer',
-    fontFamily: 'var(--vscode-font-family)',
-    border: 'none',
-    ...(variant === 'default' && { background: '#7c3aed', color: '#fff' }),
-    ...(variant === 'ghost' && {
-      background: 'transparent',
-      color: 'var(--vscode-foreground)',
-      border: '1px solid var(--vscode-panel-border, #555)',
-    }),
-    ...(variant === 'danger' && { background: '#dc2626', color: '#fff' }),
-  };
-  return <button onClick={onClick} style={styles}>{children}</button>;
 }

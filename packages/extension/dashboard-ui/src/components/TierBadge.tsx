@@ -2,27 +2,16 @@ interface TierBadgeProps {
   tier: 'free' | 'pro' | 'ultra';
 }
 
-const TIER_STYLES = {
-  free: { background: '#374151', color: '#9ca3af', label: 'FREE' },
-  pro: { background: '#1e3a5f', color: '#60a5fa', label: 'PRO' },
-  ultra: { background: '#3b1f5e', color: '#a78bfa', label: 'ULTRA' },
+const TIER_CLASSES: Record<string, { bg: string; text: string; label: string }> = {
+  free: { bg: 'bg-[#374151]', text: 'text-gray-300', label: 'Free' },
+  pro: { bg: 'bg-[#1e3a5f]', text: 'text-blue-300', label: 'Pro' },
+  ultra: { bg: 'bg-[#3b1f5e]', text: 'text-purple-300', label: 'Ultra' },
 };
 
 export function TierBadge({ tier }: TierBadgeProps) {
-  const style = TIER_STYLES[tier];
+  const style = TIER_CLASSES[tier];
   return (
-    <span
-      style={{
-        display: 'inline-block',
-        padding: '3px 10px',
-        borderRadius: '12px',
-        fontSize: '11px',
-        fontWeight: 700,
-        letterSpacing: '0.5px',
-        background: style.background,
-        color: style.color,
-      }}
-    >
+    <span className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${style.bg} ${style.text}`}>
       {style.label}
     </span>
   );

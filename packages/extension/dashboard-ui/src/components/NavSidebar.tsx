@@ -1,98 +1,82 @@
+import { post } from '../App';
 import type { Page } from '../types/messages';
+import { BoltIcon, SparklesIcon, LinkIcon, CreditCardIcon, CogIcon } from './Icons';
 
 interface NavSidebarProps {
   currentPage: Page;
   onNavigate: (page: Page) => void;
+  mode: 'platform' | 'byok';
+  email?: string | null;
+  onConnectAccount?: () => void;
 }
 
-const NAV_ITEMS: Array<{ page: Page; icon: string; label: string }> = [
-  { page: 'overview', icon: '⚡', label: 'Overview' },
-  { page: 'memory', icon: '🧠', label: 'Memory' },
-  { page: 'connections', icon: '🔗', label: 'Connections' },
-  { page: 'billing', icon: '💳', label: 'Billing' },
-  { page: 'settings', icon: '⚙️', label: 'Settings' },
+const NAV_ITEMS: Array<{ page: Page; label: string; icon: React.FC<{ className?: string }>; platformOnly?: boolean }> = [
+  { page: 'overview', label: 'Overview', icon: BoltIcon, platformOnly: true },
+  { page: 'memory', label: 'Memory', icon: SparklesIcon, platformOnly: true },
+  { page: 'connections', label: 'Connections', icon: LinkIcon, platformOnly: true },
+  { page: 'billing', label: 'Billing', icon: CreditCardIcon, platformOnly: true },
+  { page: 'settings', label: 'Settings', icon: CogIcon },
 ];
 
-export function NavSidebar({ currentPage, onNavigate }: NavSidebarProps) {
+export function NavSidebar({ currentPage, onNavigate, mode, email, onConnectAccount }: NavSidebarProps) {
+  const visibleItems = mode === 'byok'
+    ? NAV_ITEMS.filter(item => !item.platformOnly)
+    : NAV_ITEMS;
+
   return (
-    <nav
-      style={{
-        width: '180px',
-        flexShrink: 0,
-        borderRight: '1px solid var(--vscode-panel-border, #333)',
-        padding: '16px 8px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '2px',
-      }}
-    >
+    <nav className="flex w-56 shrink-0 flex-col border-r border-[var(--border-card)] bg-[var(--bg-card)] p-4">
       {/* Logo */}
-      <div
-        style={{
-          padding: '8px 12px 16px',
-          marginBottom: '8px',
-          borderBottom: '1px solid var(--vscode-panel-border, #333)',
-        }}
-      >
-        <span
-          style={{
-            fontSize: '13px',
-            fontWeight: 600,
-            background: 'linear-gradient(135deg, #a78bfa, #c084fc)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}
-        >
+      <div className="mb-4 border-b border-[var(--border-card)] px-3 pb-4">
+        <span className="bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] bg-clip-text text-sm font-semibold text-transparent">
           Ava | Supernova
         </span>
       </div>
 
-      {NAV_ITEMS.map(({ page, icon, label }) => {
-        const isActive = currentPage === page;
-        return (
-          <button
-            key={page}
-            onClick={() => onNavigate(page)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '8px 12px',
-              borderRadius: '6px',
-              border: 'none',
-              cursor: 'pointer',
-              textAlign: 'left',
-              fontSize: '13px',
-              fontFamily: 'var(--vscode-font-family)',
-              fontWeight: isActive ? 600 : 400,
-              background: isActive
-                ? 'var(--vscode-list-activeSelectionBackground, #a78bfa22)'
-                : 'transparent',
-              color: isActive
-                ? 'var(--vscode-list-activeSelectionForeground, #a78bfa)'
-                : 'var(--vscode-foreground)',
-              opacity: isActive ? 1 : 0.75,
-              transition: 'background 0.15s, opacity 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              if (!isActive) {
-                (e.currentTarget as HTMLButtonElement).style.background =
-                  'var(--vscode-list-hoverBackground)';
-                (e.currentTarget as HTMLButtonElement).style.opacity = '1';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isActive) {
-                (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-                (e.currentTarget as HTMLButtonElement).style.opacity = '0.75';
-              }
-            }}
-          >
-            <span style={{ fontSize: '14px' }}>{icon}</span>
-            <span>{label}</span>
-          </button>
-        );
-      })}
+      <div className="flex flex-1 flex-col gap-1">
+        {visibleItems.map(({ page, label, icon: Icon }) => {
+          const isActive = currentPage === page;
+          return (
+            <button
+              key={page}
+              onClick={() => onNavigate(page)}
+              className={`flex items-center gap-3 rounded-lg border-none px-3 py-2 text-left text-sm transition ${
+                isActive
+                  ? 'bg-[var(--bg-input)] font-medium text-white'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-input)] hover:text-white'
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              <span>{label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="border-t border-[var(--border-card)] px-3 pt-3">
+        {mode === 'platform' ? (
+          <>
+            {email && (
+              <p className="mb-2 truncate text-[10px] text-[var(--text-muted)]">{email}</p>
+            )}
+            <button
+              onClick={() => post({ type: 'disconnect_account' })}
+              className="w-full rounded-lg border border-red-500/30 bg-transparent px-3 py-1.5 text-xs text-red-400 transition hover:bg-red-500/10"
+            >
+              Disconnect Account
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="mb-2 text-[10px] text-[var(--text-muted)]">Using your own API keys</p>
+            <button
+              onClick={onConnectAccount}
+              className="w-full rounded-lg border border-[var(--border-input)] bg-transparent px-3 py-1.5 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)] hover:text-white"
+            >
+              Connect Account
+            </button>
+          </>
+        )}
+      </div>
     </nav>
   );
 }

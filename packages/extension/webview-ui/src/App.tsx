@@ -381,8 +381,8 @@ export function App() {
     postMessage({ type: 'cancel' });
   }, [postMessage]);
 
-  const handleOpenSettings = useCallback(() => {
-    postMessage({ type: 'open_settings' });
+  const handleOpenDashboard = useCallback(() => {
+    postMessage({ type: 'open_dashboard' });
   }, [postMessage]);
 
   const handleOpenHistory = useCallback(() => {
@@ -465,7 +465,7 @@ export function App() {
         activeModel={state.activeModel}
         needsSetup={state.needsSetup}
         onSwitch={handleModelSwitch}
-        onOpenSettings={handleOpenSettings}
+        onOpenDashboard={handleOpenDashboard}
         onOpenHistory={handleOpenHistory}
         onNewChat={handleNewChat}
       />

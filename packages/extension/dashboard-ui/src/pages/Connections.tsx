@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { post } from '../App';
+import { GitHubIcon, EnvelopeIcon, ChatBubbleIcon, GameControllerIcon } from '../components/Icons';
 import type { ConnectionStatus } from '../types/messages';
 
 interface ConnectionsProps {
@@ -13,9 +14,9 @@ interface FieldDef {
   type?: string;
 }
 
-const SERVICE_DEFS: Record<string, { icon: string; title: string; description: string; fields: FieldDef[] }> = {
+const SERVICE_DEFS: Record<string, { icon: React.FC<{ className?: string }>; title: string; description: string; fields: FieldDef[] }> = {
   github: {
-    icon: '🐙',
+    icon: GitHubIcon,
     title: 'GitHub',
     description: 'Connect your GitHub account to let Ava create branches, PRs, and issues.',
     fields: [
@@ -23,18 +24,18 @@ const SERVICE_DEFS: Record<string, { icon: string; title: string; description: s
     ],
   },
   email: {
-    icon: '📧',
+    icon: EnvelopeIcon,
     title: 'Email (SMTP)',
     description: 'Allow Ava to send emails on your behalf with your approval.',
     fields: [
       { key: 'host', label: 'SMTP Host', placeholder: 'smtp.gmail.com' },
       { key: 'port', label: 'Port', placeholder: '587' },
       { key: 'user', label: 'Username / Email', placeholder: 'you@example.com' },
-      { key: 'pass', label: 'Password / App Password', placeholder: '••••••••', type: 'password' },
+      { key: 'pass', label: 'Password / App Password', placeholder: 'App password', type: 'password' },
     ],
   },
   slack: {
-    icon: '💬',
+    icon: ChatBubbleIcon,
     title: 'Slack',
     description: 'Post messages or summaries to your Slack workspace.',
     fields: [
@@ -42,7 +43,7 @@ const SERVICE_DEFS: Record<string, { icon: string; title: string; description: s
     ],
   },
   discord: {
-    icon: '🎮',
+    icon: GameControllerIcon,
     title: 'Discord',
     description: 'Send notifications or summaries to your Discord server.',
     fields: [
@@ -79,7 +80,6 @@ export function Connections({ connections }: ConnectionsProps) {
 
     setSaving(service);
     post({ type: 'save_connection', service: service as keyof ConnectionStatus, credentials: data });
-    // Extension host will reply with updated connection status
     setTimeout(() => setSaving(null), 2000);
   }
 
@@ -91,103 +91,58 @@ export function Connections({ connections }: ConnectionsProps) {
   const connectedCount = Object.values(connections).filter(Boolean).length;
 
   return (
-    <div style={{ maxWidth: '600px' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h1
-          style={{
-            fontSize: '18px',
-            fontWeight: 700,
-            marginBottom: '4px',
-            background: 'linear-gradient(135deg, #a78bfa, #c084fc)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}
-        >
-          Connections
-        </h1>
-        <p style={{ opacity: 0.55, fontSize: '13px' }}>
+    <div className="max-w-3xl">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold">Connections</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">
           {connectedCount}/4 services connected. Credentials are stored securely in VS Code's secret storage.
         </p>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div className="flex flex-col gap-3">
         {Object.entries(SERVICE_DEFS).map(([service, def]) => {
           const connected = connections[service as keyof ConnectionStatus];
           const isOpen = expanded === service;
+          const Icon = def.icon;
 
           return (
             <div
               key={service}
-              style={{
-                background: 'var(--vscode-editorWidget-background)',
-                border: `1px solid ${connected ? '#16a34a44' : 'var(--vscode-panel-border, #333)'}`,
-                borderRadius: '8px',
-                overflow: 'hidden',
-              }}
+              className={`overflow-hidden rounded-xl border bg-[var(--bg-card)] ${
+                connected ? 'border-emerald-500/20' : 'border-[var(--border-card)]'
+              }`}
             >
-              {/* Header row */}
+              {/* Header */}
               <button
                 onClick={() => toggleExpand(service)}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '14px 16px',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--vscode-foreground)',
-                  fontFamily: 'var(--vscode-font-family)',
-                  textAlign: 'left',
-                }}
+                className="flex w-full items-center gap-3 border-none bg-transparent px-5 py-4 text-left text-white"
               >
-                <span style={{ fontSize: '20px' }}>{def.icon}</span>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '14px', fontWeight: 600, margin: 0 }}>{def.title}</p>
-                  <p style={{ fontSize: '12px', opacity: 0.5, margin: '2px 0 0 0' }}>{def.description}</p>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-input)] text-[var(--gradient-start)]">
+                  <Icon className="h-5 w-5" />
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      padding: '3px 8px',
-                      borderRadius: '12px',
-                      background: connected ? '#14532d22' : 'transparent',
-                      border: `1px solid ${connected ? '#16a34a44' : 'var(--vscode-panel-border, #444)'}`,
-                      color: connected ? '#22c55e' : 'var(--vscode-foreground)',
-                      opacity: connected ? 1 : 0.5,
-                    }}
-                  >
-                    {connected ? 'Connected' : 'Not connected'}
-                  </span>
-                  <span style={{ opacity: 0.4, fontSize: '12px' }}>{isOpen ? '▲' : '▼'}</span>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold">{def.title}</p>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">{def.description}</p>
                 </div>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                    connected
+                      ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400'
+                      : 'border-[var(--border-card)] text-[var(--text-muted)]'
+                  }`}
+                >
+                  {connected ? 'Connected' : 'Not connected'}
+                </span>
+                <span className="text-xs text-[var(--text-muted)]">{isOpen ? '\u25B2' : '\u25BC'}</span>
               </button>
 
-              {/* Expanded form */}
+              {/* Form */}
               {isOpen && (
-                <div style={{ padding: '0 16px 16px' }}>
-                  <div
-                    style={{
-                      borderTop: '1px solid var(--vscode-panel-border, #333)',
-                      paddingTop: '14px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '10px',
-                    }}
-                  >
+                <div className="border-t border-[var(--border-card)] px-5 pb-5 pt-4">
+                  <div className="flex flex-col gap-3">
                     {def.fields.map(field => (
                       <div key={field.key}>
-                        <label
-                          style={{
-                            display: 'block',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            opacity: 0.6,
-                            marginBottom: '4px',
-                          }}
-                        >
+                        <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">
                           {field.label}
                         </label>
                         <input
@@ -195,55 +150,23 @@ export function Connections({ connections }: ConnectionsProps) {
                           placeholder={field.placeholder}
                           value={getField(service, field.key)}
                           onChange={e => setField(service, field.key, e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '7px 10px',
-                            borderRadius: '5px',
-                            border: '1px solid var(--vscode-panel-border, #444)',
-                            background: 'var(--vscode-input-background)',
-                            color: 'var(--vscode-foreground)',
-                            fontSize: '13px',
-                            fontFamily: 'var(--vscode-font-family)',
-                            boxSizing: 'border-box',
-                            outline: 'none',
-                          }}
+                          className="w-full rounded-lg border border-[var(--border-input)] bg-[var(--bg-input)] px-4 py-2.5 text-sm text-white placeholder-[var(--text-muted)] outline-none transition focus:border-[var(--accent)]"
                         />
                       </div>
                     ))}
 
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                    <div className="mt-1 flex gap-2">
                       <button
                         onClick={() => handleSave(service)}
                         disabled={saving === service}
-                        style={{
-                          padding: '7px 16px',
-                          borderRadius: '5px',
-                          border: 'none',
-                          background: '#7c3aed',
-                          color: '#fff',
-                          fontSize: '12px',
-                          fontWeight: 500,
-                          cursor: 'pointer',
-                          fontFamily: 'var(--vscode-font-family)',
-                          opacity: saving === service ? 0.7 : 1,
-                        }}
+                        className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-70"
                       >
                         {saving === service ? 'Saving...' : connected ? 'Update' : 'Connect'}
                       </button>
                       {connected && (
                         <button
                           onClick={() => handleDisconnect(service)}
-                          style={{
-                            padding: '7px 16px',
-                            borderRadius: '5px',
-                            border: '1px solid #dc262644',
-                            background: 'transparent',
-                            color: '#ef4444',
-                            fontSize: '12px',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            fontFamily: 'var(--vscode-font-family)',
-                          }}
+                          className="rounded-lg border border-red-500/30 px-4 py-2 text-xs text-red-400 transition hover:bg-red-500/10"
                         >
                           Disconnect
                         </button>
