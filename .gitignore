@@ -11,3 +11,6 @@ coverage/
 !.vscode/extensions.json
 *.vsix
 .claude/
+
+# Planning docs — private, not for public repo
+docs/
