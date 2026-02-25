@@ -77,6 +77,12 @@
         "command": "ava-supernova.openDocs",
         "title": "%command.openDocs.title%",
         "category": "Ava"
+      },
+      {
+        "command": "ava-supernova.openDashboard",
+        "title": "%command.openDashboard.title%",
+        "category": "Ava",
+        "icon": "$(account)"
       }
     ],
     "walkthroughs": [
@@ -248,6 +254,24 @@
               "Auto-approve everything — full autonomy (use with caution)"
             ],
             "description": "%setting.permissionMode.description%"
+          },
+          "ava-supernova.preferences.maxTokens": {
+            "type": "number",
+            "default": 8192,
+            "order": 4,
+            "description": "%setting.maxTokens.description%"
+          },
+          "ava-supernova.preferences.autoMemory": {
+            "type": "boolean",
+            "default": true,
+            "order": 5,
+            "description": "%setting.autoMemory.description%"
+          },
+          "ava-supernova.preferences.streamResponses": {
+            "type": "boolean",
+            "default": true,
+            "order": 6,
+            "description": "%setting.streamResponses.description%"
           }
         }
       },
@@ -273,6 +297,10 @@
         {
           "command": "ava-supernova.openChat",
           "group": "navigation"
+        },
+        {
+          "command": "ava-supernova.openDashboard",
+          "group": "navigation"
         }
       ]
     },
@@ -286,9 +314,11 @@
   },
   "scripts": {
     "build:webview": "cd webview-ui && npx vite build",
+    "build:dashboard": "cd dashboard-ui && npx vite build",
     "build:extension": "node esbuild.config.mjs",
-    "build": "pnpm build:webview && pnpm build:extension",
+    "build": "pnpm build:webview && pnpm build:dashboard && pnpm build:extension",
     "dev:webview": "cd webview-ui && npx vite build --watch",
+    "dev:dashboard": "cd dashboard-ui && npx vite build --watch",
     "dev:extension": "node esbuild.config.mjs --watch",
     "package": "pnpm build && npx @vscode/vsce package --no-dependencies",
     "typecheck": "tsc --noEmit",
