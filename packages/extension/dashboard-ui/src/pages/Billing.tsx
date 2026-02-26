@@ -52,22 +52,33 @@ export function Billing({ account }: BillingProps) {
           )}
         </div>
 
-        {account.tier === 'pro' && account.usage && account.usage.tokens_limit !== null && (
+        {/* Free Token Pool (all except admin) */}
+        {account.tier !== 'admin' && account.usage && (
           <div className="mb-4">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              Token Usage This Month
+              Free Token Pool
+            </p>
+            <UsageBar used={account.usage.free_tokens_used} limit={account.usage.free_tokens_limit} />
+          </div>
+        )}
+
+        {/* Subscription usage (paid tiers) */}
+        {(account.tier === 'pro' || account.tier === 'ultra') && account.usage && account.usage.tokens_limit !== null && (
+          <div className="mb-4">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              Subscription Tokens
             </p>
             <UsageBar used={account.usage.tokens_used} limit={account.usage.tokens_limit} />
           </div>
         )}
 
-        {account.tier === 'ultra' && (
+        {account.tier === 'admin' && (
           <p className="mb-4 text-sm font-medium text-[var(--gradient-start)]">
-            Unlimited tokens
+            Unlimited tokens — admin tier
           </p>
         )}
 
-        {account.tier !== 'free' && (
+        {account.tier !== 'free' && account.tier !== 'admin' && (
           <button
             onClick={() => post({ type: 'open_portal' })}
             className="rounded-lg border border-[var(--border-input)] px-4 py-2 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)] hover:text-white"
@@ -102,7 +113,7 @@ export function Billing({ account }: BillingProps) {
       )}
 
       {/* Upgrade Cards */}
-      {account.tier !== 'ultra' && (
+      {account.tier !== 'ultra' && account.tier !== 'admin' && (
         <div className="grid gap-4 sm:grid-cols-2">
           {account.tier === 'free' && (
             <UpgradeCard

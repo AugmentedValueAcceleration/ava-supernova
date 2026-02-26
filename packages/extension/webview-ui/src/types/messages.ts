@@ -1,5 +1,16 @@
 // Shared message types — mirrors the extension host definitions
 
+export type ProviderSource = 'platform' | 'byok';
+
+export interface PlatformStatus {
+  connected: boolean;
+  tier: string | null;
+  freeTokensUsed: number;
+  freeTokensLimit: number;
+  subTokensUsed: number;
+  subTokensLimit: number | null;
+}
+
 export type ExtToWebviewMessage =
   | {
       type: 'init';
@@ -8,7 +19,10 @@ export type ExtToWebviewMessage =
       needsSetup: boolean;
       locale?: string;
       localeStrings?: Record<string, string>;
+      providerSource?: ProviderSource;
+      platformStatus?: PlatformStatus;
     }
+  | ({ type: 'platform_status' } & PlatformStatus)
   | { type: 'user_message_ack'; text: string; images?: string[] }
   | { type: 'stream_start' }
   | { type: 'thinking_delta'; content: string }
@@ -77,7 +91,8 @@ export type WebviewToExtMessage =
   | { type: 'export_conversation'; conversationId: string; format: 'markdown' | 'json' }
   | { type: 'new_chat' }
   | { type: 'webview_ready' }
-  | { type: 'compress_context' };
+  | { type: 'compress_context' }
+  | { type: 'set_provider_source'; source: ProviderSource };
 
 // UI state types
 
@@ -122,4 +137,11 @@ export interface ChatState {
   historyOpen: boolean;
   historyList: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }>;
   currentConversationId: string | null;
+  providerSource: ProviderSource;
+  platformStatus: {
+    connected: boolean;
+    tier: string | null;
+    freeTokensUsed: number;
+    freeTokensLimit: number;
+  } | null;
 }

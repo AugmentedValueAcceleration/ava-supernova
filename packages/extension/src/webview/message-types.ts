@@ -1,3 +1,16 @@
+// ─── Shared Types ────────────────────────────────────────────────────────────
+
+export type ProviderSource = 'platform' | 'byok';
+
+export interface PlatformStatus {
+  connected: boolean;
+  tier: string | null;
+  freeTokensUsed: number;
+  freeTokensLimit: number;
+  subTokensUsed: number;
+  subTokensLimit: number | null;
+}
+
 // ─── Extension Host → Webview ────────────────────────────────────────────────
 
 export type ExtToWebviewMessage =
@@ -8,7 +21,10 @@ export type ExtToWebviewMessage =
       needsSetup: boolean;
       locale?: string;
       localeStrings?: Record<string, string>;
+      providerSource?: ProviderSource;
+      platformStatus?: PlatformStatus;
     }
+  | ({ type: 'platform_status' } & PlatformStatus)
   | { type: 'user_message_ack'; text: string; images?: string[] }
   | { type: 'stream_start' }
   | { type: 'thinking_delta'; content: string }
@@ -79,4 +95,5 @@ export type WebviewToExtMessage =
   | { type: 'export_conversation'; conversationId: string; format: 'markdown' | 'json' }
   | { type: 'new_chat' }
   | { type: 'webview_ready' }
-  | { type: 'compress_context' };
+  | { type: 'compress_context' }
+  | { type: 'set_provider_source'; source: ProviderSource };

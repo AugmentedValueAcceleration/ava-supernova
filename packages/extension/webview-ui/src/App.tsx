@@ -32,6 +32,15 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         models: action.models,
         activeModel: action.activeModel,
         needsSetup: action.needsSetup,
+        providerSource: action.providerSource ?? state.providerSource,
+        platformStatus: action.platformStatus
+          ? {
+              connected: action.platformStatus.connected,
+              tier: action.platformStatus.tier,
+              freeTokensUsed: action.platformStatus.freeTokensUsed,
+              freeTokensLimit: action.platformStatus.freeTokensLimit,
+            }
+          : state.platformStatus,
       };
 
     case 'user_message_ack': {
@@ -160,6 +169,17 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         lastUsage: { ...action.usage, cost: action.cost, contextWindow: action.contextWindow },
       };
 
+    case 'platform_status':
+      return {
+        ...state,
+        platformStatus: {
+          connected: action.connected,
+          tier: action.tier,
+          freeTokensUsed: action.freeTokensUsed,
+          freeTokensLimit: action.freeTokensLimit,
+        },
+      };
+
     case 'error': {
       const msg: UIMessage = {
         id: nextId(),
@@ -270,6 +290,8 @@ const initialState: ChatState = {
   historyOpen: false,
   historyList: [],
   currentConversationId: null,
+  providerSource: 'byok',
+  platformStatus: null,
 };
 
 // ── Typing speed config ─────────────────────────────────────────────────────
@@ -454,6 +476,13 @@ export function App() {
     postMessage({ type: 'compress_context' });
   }, [postMessage]);
 
+  const handleProviderSourceChange = useCallback(
+    (source: 'platform' | 'byok') => {
+      postMessage({ type: 'set_provider_source', source });
+    },
+    [postMessage],
+  );
+
   const handleCloseHistory = useCallback(() => {
     dispatch({ type: 'close_history' });
   }, []);
@@ -487,6 +516,9 @@ export function App() {
         usage={state.lastUsage}
         isCompressing={state.isCompressing}
         onCompress={handleCompress}
+        providerSource={state.providerSource}
+        platformStatus={state.platformStatus}
+        onProviderSourceChange={handleProviderSourceChange}
       />
 
       {state.historyOpen && (

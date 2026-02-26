@@ -54,11 +54,24 @@ export function Overview({ account, connections, onNavigate }: OverviewProps) {
         />
       </div>
 
-      {/* Usage Bar (paid tiers) */}
-      {account.tier === 'pro' && usage && usage.tokens_limit !== null && (
+      {/* Free Token Pool (all tiers except admin) */}
+      {account.tier !== 'admin' && usage && (
         <div className="mb-8 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
           <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-            Token Usage This Month
+            Free Token Pool
+          </p>
+          <UsageBar used={usage.free_tokens_used} limit={usage.free_tokens_limit} />
+          <p className="mt-2 text-xs text-[var(--text-muted)]">
+            500K free tokens included every month. Resets at the start of each billing period.
+          </p>
+        </div>
+      )}
+
+      {/* Subscription Usage (paid tiers) */}
+      {(account.tier === 'pro' || account.tier === 'ultra') && usage && usage.tokens_limit !== null && (
+        <div className="mb-8 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            Subscription Tokens
           </p>
           <UsageBar used={usage.tokens_used} limit={usage.tokens_limit} />
           {usage.tokens_used >= usage.tokens_limit * 0.95 && (
@@ -69,29 +82,33 @@ export function Overview({ account, connections, onNavigate }: OverviewProps) {
               >
                 Top Up Tokens
               </button>
-              <button
-                onClick={() => post({ type: 'open_checkout', plan: 'ultra' })}
-                className="rounded-lg border border-[var(--border-input)] px-4 py-2 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)] hover:text-white"
-              >
-                Upgrade to Ultra
-              </button>
+              {account.tier === 'pro' && (
+                <button
+                  onClick={() => post({ type: 'open_checkout', plan: 'ultra' })}
+                  className="rounded-lg border border-[var(--border-input)] px-4 py-2 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)] hover:text-white"
+                >
+                  Upgrade to Ultra
+                </button>
+              )}
             </div>
           )}
         </div>
       )}
 
-      {account.tier === 'ultra' && (
+      {/* Admin unlimited */}
+      {account.tier === 'admin' && (
         <div className="mb-8 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
           <p className="text-sm font-medium text-[var(--gradient-start)]">
-            Unlimited tokens
+            Unlimited tokens — admin tier
           </p>
         </div>
       )}
 
+      {/* Upgrade CTA (free tier only) */}
       {account.tier === 'free' && (
         <div className="mb-8 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
           <p className="mb-3 text-sm text-[var(--text-secondary)]">
-            Using your own API keys. Upgrade for managed access — no configuration needed.
+            Want more tokens? Upgrade for 10M+ managed tokens per month — no API key needed.
           </p>
           <button
             onClick={() => post({ type: 'open_checkout', plan: 'pro' })}

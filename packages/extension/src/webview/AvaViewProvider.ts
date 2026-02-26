@@ -16,7 +16,7 @@ import {
   resolveLocale,
 } from '@ava/core';
 import type { AgentEvent, Provider, ModelDefinition, Message, ContentPart, PermissionMode } from '@ava/core';
-import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode } from './message-types.js';
+import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus } from './message-types.js';
 import type { AccountInfo } from './dashboard-message-types.js';
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
@@ -45,6 +45,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private currentLocale = 'en';
   private panelStateCallback?: (isOpen: boolean) => void;
   private cachedAccount: AccountInfo | null = null;
+  private providerSource: ProviderSource = 'byok';
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -108,13 +109,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.outputChannel.appendLine(`[${timestamp}] ${message}`);
   }
 
-  /** Report token usage to the platform API (fire-and-forget, never throws) */
+  /** Report token usage to the platform API and update webview with pool state */
   private async reportUsageToPlatform(usage: { prompt_tokens: number; completion_tokens: number }): Promise<void> {
     try {
       const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
-      if (!platformKey) return; // Not logged in, skip
+      if (!platformKey) return;
+      if (this.providerSource !== 'platform') return;
 
-      await apiFetch('/usage', {
+      const res = await apiFetch('/usage', {
         method: 'POST',
         platformKey,
         body: {
@@ -124,6 +126,36 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           output_tokens: usage.completion_tokens,
         },
       });
+
+      if (res.ok && res.data && typeof res.data === 'object') {
+        const data = res.data as {
+          free_tokens_used: number;
+          free_tokens_limit: number;
+          tokens_used: number;
+          tokens_limit: number | null;
+        };
+
+        this.postMessage({
+          type: 'platform_status',
+          connected: true,
+          tier: this.cachedAccount?.tier ?? null,
+          freeTokensUsed: data.free_tokens_used,
+          freeTokensLimit: data.free_tokens_limit,
+          subTokensUsed: data.tokens_used,
+          subTokensLimit: data.tokens_limit,
+        });
+
+        // Low balance warning at 20% remaining (100K)
+        const freeRemaining = data.free_tokens_limit - data.free_tokens_used;
+        if (freeRemaining > 0 && freeRemaining <= 100_000) {
+          this.postMessage({
+            type: 'error',
+            message: `Low free token balance: ~${Math.round(freeRemaining / 1000)}K remaining this month.`,
+            code: 'low_balance',
+            suggestion: 'Add your own API key in settings or wait for the monthly reset.',
+          });
+        }
+      }
     } catch {
       // Silent fail — usage reporting should never block the user
     }
@@ -316,18 +348,29 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           const res = await apiFetch('/account-info', { platformKey });
           this.cachedAccount = res.ok ? (res.data as AccountInfo) : null;
         }
-        if (this.cachedAccount && (this.cachedAccount.tier === 'pro' || this.cachedAccount.tier === 'ultra')) {
+        if (this.cachedAccount) {
           const platform = new PlatformProvider({ apiKey: platformKey });
           this.providerRegistry.registerCustom('platform', platform);
           this.log(`Platform provider registered (tier: ${this.cachedAccount.tier}, email: ${this.cachedAccount.email})`);
-        } else if (this.cachedAccount) {
-          this.log(`Platform account found but tier "${this.cachedAccount.tier}" does not include managed access`);
         } else {
           this.log('Platform key present but account verification failed');
         }
       }
     } catch (err) {
       this.log(`Platform account check failed: ${err}`);
+    }
+
+    // Resolve provider source (persisted preference)
+    const hasPlatform = this.providerRegistry.listAllModels().some(m => m.provider === 'platform');
+    const hasByok = this.providerRegistry.listAllModels().some(m => m.provider !== 'platform');
+    const storedSource = this.context.globalState.get<ProviderSource>('providerSource');
+
+    if (storedSource === 'platform' && hasPlatform) {
+      this.providerSource = 'platform';
+    } else if (storedSource === 'byok' && hasByok) {
+      this.providerSource = 'byok';
+    } else {
+      this.providerSource = hasPlatform ? 'platform' : 'byok';
     }
 
     const activeModelId = config.get<string>('activeModel') || '';
@@ -340,12 +383,26 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       this.log(`No model resolved for activeModel="${activeModelId}". Available: ${this.getModelList().map(m => m.id).join(', ') || 'none'}`);
     }
 
+    // Build platform status from cached account
+    const platformStatus: PlatformStatus | undefined = this.cachedAccount
+      ? {
+          connected: true,
+          tier: this.cachedAccount.tier,
+          freeTokensUsed: this.cachedAccount.usage?.free_tokens_used ?? 0,
+          freeTokensLimit: this.cachedAccount.usage?.free_tokens_limit ?? 500000,
+          subTokensUsed: this.cachedAccount.usage?.tokens_used ?? 0,
+          subTokensLimit: this.cachedAccount.usage?.tokens_limit ?? null,
+        }
+      : undefined;
+
     this.postMessage({
       type: 'init',
       models: this.getModelList(),
       activeModel: resolved ? `${resolved.provider.name}:${resolved.model.id}` : null,
       needsSetup: !resolved,
       locale: this.currentLocale,
+      providerSource: this.providerSource,
+      platformStatus,
     });
   }
 
@@ -402,12 +459,17 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   private getModelList(): Array<{ id: string; name: string; provider: string; supportsVision?: boolean }> {
-    return this.providerRegistry.listAllModels().map((m) => ({
-      id: `${m.provider}:${m.id}`,
-      name: m.name,
-      provider: m.provider,
-      ...(m.supportsVision ? { supportsVision: true } : {}),
-    }));
+    return this.providerRegistry.listAllModels()
+      .filter((m) => {
+        if (this.providerSource === 'platform') return m.provider === 'platform';
+        return m.provider !== 'platform';
+      })
+      .map((m) => ({
+        id: `${m.provider}:${m.id}`,
+        name: m.name,
+        provider: m.provider,
+        ...(m.supportsVision ? { supportsVision: true } : {}),
+      }));
   }
 
   private getActiveModelId(): string | null {
@@ -642,6 +704,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
       case 'compress_context':
         await this.handleCompressContext();
+        break;
+
+      case 'set_provider_source':
+        this.providerSource = message.source;
+        this.context.globalState.update('providerSource', message.source);
+        this.log(`Provider source switched to: ${message.source}`);
+        await this.initializeSession();
         break;
     }
   }

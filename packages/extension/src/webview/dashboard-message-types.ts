@@ -4,13 +4,15 @@ export interface AccountInfo {
   id: string;
   email: string;
   name: string | null;
-  tier: 'free' | 'pro' | 'ultra';
+  tier: 'free' | 'pro' | 'ultra' | 'admin';
   usage: {
     tokens_used: number;
     tokens_limit: number | null;
     requests_count: number;
     period_start: string | null;
     period_end: string | null;
+    free_tokens_used: number;
+    free_tokens_limit: number;
   } | null;
 }
 

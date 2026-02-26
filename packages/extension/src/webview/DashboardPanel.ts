@@ -207,6 +207,8 @@ export class DashboardPanel {
           requests_count: 42,
           period_start: new Date(Date.now() - 14 * 86400000).toISOString(),
           period_end: new Date(Date.now() + 16 * 86400000).toISOString(),
+          free_tokens_used: 320_000,
+          free_tokens_limit: 500_000,
         },
       };
     }

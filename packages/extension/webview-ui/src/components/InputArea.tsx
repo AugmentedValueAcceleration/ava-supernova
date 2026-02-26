@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { t } from '../i18n';
+import type { ProviderSource } from '../types/messages';
 
 export type AvaMode = 'code' | 'plan' | 'chat';
 
@@ -23,6 +24,14 @@ interface InputAreaProps {
   } | null;
   isCompressing?: boolean;
   onCompress?: () => void;
+  providerSource?: ProviderSource;
+  platformStatus?: {
+    connected: boolean;
+    tier: string | null;
+    freeTokensUsed: number;
+    freeTokensLimit: number;
+  } | null;
+  onProviderSourceChange?: (source: ProviderSource) => void;
 }
 
 const MODES: { id: AvaMode; labelKey: string; icon: string }[] = [
@@ -39,7 +48,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   chat: 'input.placeholder.chat',
 };
 
-export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCompressing, onCompress }: InputAreaProps) {
+export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCompressing, onCompress, providerSource, platformStatus, onProviderSourceChange }: InputAreaProps) {
   const [text, setText] = useState('');
   const [mode, setMode] = useState<AvaMode>('code');
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
@@ -280,8 +289,61 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
             ))}
           </div>
 
+          {/* Provider source toggle */}
+          {platformStatus?.connected && onProviderSourceChange && (
+            <div className="flex items-center gap-0.5 rounded bg-[var(--vscode-input-background)] p-0.5">
+              <button
+                onClick={() => onProviderSourceChange('platform')}
+                disabled={
+                  providerSource !== 'platform' &&
+                  platformStatus.tier === 'free' &&
+                  platformStatus.freeTokensUsed >= platformStatus.freeTokensLimit
+                }
+                className={`px-2 py-0.5 rounded text-[10px] font-medium border-none cursor-pointer transition-colors
+                  disabled:opacity-20 disabled:cursor-not-allowed
+                  ${providerSource === 'platform'
+                    ? 'bg-[var(--color-accent,var(--vscode-button-background))] text-[var(--vscode-button-foreground)]'
+                    : 'bg-transparent text-[var(--vscode-foreground)] opacity-40 hover:opacity-70'
+                  }`}
+                title={providerSource === 'platform'
+                  ? `${Math.max(0, platformStatus.freeTokensLimit - platformStatus.freeTokensUsed).toLocaleString()} free tokens remaining`
+                  : 'Switch to free/platform tokens'}
+              >
+                {platformStatus.tier === 'free' ? 'Free' : 'Platform'}
+              </button>
+              <button
+                onClick={() => onProviderSourceChange('byok')}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium border-none cursor-pointer transition-colors
+                  ${providerSource === 'byok'
+                    ? 'bg-[var(--color-accent,var(--vscode-button-background))] text-[var(--vscode-button-foreground)]'
+                    : 'bg-transparent text-[var(--vscode-foreground)] opacity-40 hover:opacity-70'
+                  }`}
+                title="Use your own API key"
+              >
+                API Key
+              </button>
+            </div>
+          )}
+
           {/* Right side: attach + usage + send/stop */}
           <div className="flex items-center gap-2">
+            {/* Free token balance */}
+            {providerSource === 'platform' && platformStatus?.connected && (() => {
+              const remaining = Math.max(0, platformStatus.freeTokensLimit - platformStatus.freeTokensUsed);
+              const isLow = remaining <= 100_000;
+              return (
+                <span
+                  className={`text-[10px] tabular-nums ${
+                    isLow
+                      ? 'text-[var(--vscode-editorWarning-foreground,#cca700)] opacity-80'
+                      : 'opacity-30'
+                  }`}
+                  title={`${remaining.toLocaleString()} / ${platformStatus.freeTokensLimit.toLocaleString()} free tokens remaining`}
+                >
+                  {remaining >= 1000 ? `${Math.round(remaining / 1000)}K` : remaining} free
+                </span>
+              );
+            })()}
             {usage && (() => {
               const pct = usage.contextWindow
                 ? Math.round((usage.total_tokens / usage.contextWindow) * 100)
