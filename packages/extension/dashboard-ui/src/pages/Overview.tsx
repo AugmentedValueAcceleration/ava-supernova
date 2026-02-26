@@ -40,27 +40,60 @@ export function Overview({ account, connections: _connections, onNavigate }: Ove
         />
       </div>
 
-      {/* Free Token Pool (all tiers except admin) */}
-      {account.tier !== 'admin' && usage && (
+      {/* Token Credits */}
+      {usage && (
         <div className="mb-8 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-            Free Token Pool
+          <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            Token Credits
           </p>
-          <UsageBar used={usage.free_tokens_used} limit={usage.free_tokens_limit} />
-          <p className="mt-2 text-xs text-[var(--text-muted)]">
-            500K free tokens included every month. Resets at the start of each billing period.
-          </p>
-        </div>
-      )}
 
-      {/* Subscription Usage (paid tiers) */}
-      {(account.tier === 'pro' || account.tier === 'ultra') && usage && usage.tokens_limit !== null && (
-        <div className="mb-8 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-            Subscription Tokens
+          {/* Free Token Pool */}
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-medium text-[var(--text-secondary)]">Free Tokens</span>
+            {account.tier === 'admin' ? (
+              <span className="text-xs font-medium text-[var(--gradient-start)]">Unlimited</span>
+            ) : (
+              <span className="text-xs text-[var(--text-muted)]">
+                {formatNumber(usage.free_tokens_limit - usage.free_tokens_used)} remaining
+              </span>
+            )}
+          </div>
+          {account.tier === 'admin' ? (
+            <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
+              <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
+            </div>
+          ) : (
+            <UsageBar used={usage.free_tokens_used} limit={usage.free_tokens_limit} />
+          )}
+          <p className="mt-1 mb-5 text-[10px] text-[var(--text-muted)]">
+            {account.tier === 'admin' ? 'No metering — admin tier' : '500K free tokens included every month'}
           </p>
-          <UsageBar used={usage.tokens_used} limit={usage.tokens_limit} />
-          {usage.tokens_used >= usage.tokens_limit * 0.95 && (
+
+          {/* Plan Tokens */}
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-medium text-[var(--text-secondary)]">
+              {account.tier.charAt(0).toUpperCase() + account.tier.slice(1)} Plan
+            </span>
+            {account.tier === 'admin' ? (
+              <span className="text-xs font-medium text-[var(--gradient-start)]">Unlimited</span>
+            ) : usage.tokens_limit !== null ? (
+              <span className="text-xs text-[var(--text-muted)]">
+                {formatNumber(usage.tokens_limit - usage.tokens_used)} remaining
+              </span>
+            ) : (
+              <span className="text-xs text-[var(--text-muted)]">BYOK — no limit</span>
+            )}
+          </div>
+          {account.tier === 'admin' ? (
+            <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
+              <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
+            </div>
+          ) : usage.tokens_limit !== null ? (
+            <UsageBar used={usage.tokens_used} limit={usage.tokens_limit} />
+          ) : null}
+
+          {/* Top-up / Upgrade actions */}
+          {(account.tier === 'pro' || account.tier === 'ultra') && usage.tokens_limit !== null && usage.tokens_used >= usage.tokens_limit * 0.95 && (
             <div className="mt-3 flex gap-2">
               <button
                 onClick={() => post({ type: 'open_topup', package: 'starter' })}
@@ -78,15 +111,6 @@ export function Overview({ account, connections: _connections, onNavigate }: Ove
               )}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Admin unlimited */}
-      {account.tier === 'admin' && (
-        <div className="mb-8 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-          <p className="text-sm font-medium text-[var(--gradient-start)]">
-            Unlimited tokens — admin tier
-          </p>
         </div>
       )}
 

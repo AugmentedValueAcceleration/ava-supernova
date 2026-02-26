@@ -52,30 +52,54 @@ export function Billing({ account }: BillingProps) {
           )}
         </div>
 
-        {/* Free Token Pool (all except admin) */}
-        {account.tier !== 'admin' && account.usage && (
+        {/* Free Token Pool */}
+        {account.usage && (
           <div className="mb-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              Free Token Pool
-            </p>
-            <UsageBar used={account.usage.free_tokens_used} limit={account.usage.free_tokens_limit} />
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Free Tokens</p>
+              {account.tier === 'admin' ? (
+                <span className="text-xs font-medium text-[var(--gradient-start)]">Unlimited</span>
+              ) : (
+                <span className="text-xs text-[var(--text-muted)]">
+                  {formatNumber(account.usage.free_tokens_limit - account.usage.free_tokens_used)} remaining
+                </span>
+              )}
+            </div>
+            {account.tier === 'admin' ? (
+              <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
+                <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
+              </div>
+            ) : (
+              <UsageBar used={account.usage.free_tokens_used} limit={account.usage.free_tokens_limit} />
+            )}
           </div>
         )}
 
-        {/* Subscription usage (paid tiers) */}
-        {(account.tier === 'pro' || account.tier === 'ultra') && account.usage && account.usage.tokens_limit !== null && (
+        {/* Plan Tokens */}
+        {account.usage && (
           <div className="mb-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              Subscription Tokens
-            </p>
-            <UsageBar used={account.usage.tokens_used} limit={account.usage.tokens_limit} />
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                {account.tier.charAt(0).toUpperCase() + account.tier.slice(1)} Plan
+              </p>
+              {account.tier === 'admin' ? (
+                <span className="text-xs font-medium text-[var(--gradient-start)]">Unlimited</span>
+              ) : account.usage.tokens_limit !== null ? (
+                <span className="text-xs text-[var(--text-muted)]">
+                  {formatNumber(account.usage.tokens_limit - account.usage.tokens_used)} remaining
+                </span>
+              ) : (
+                <span className="text-xs text-[var(--text-muted)]">BYOK — no limit</span>
+              )}
+            </div>
+            {account.tier === 'admin' ? (
+              <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
+                <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
+              </div>
+            ) : account.usage.tokens_limit !== null ? (
+              <UsageBar used={account.usage.tokens_used} limit={account.usage.tokens_limit} />
+            ) : null}
           </div>
-        )}
-
-        {account.tier === 'admin' && (
-          <p className="mb-4 text-sm font-medium text-[var(--gradient-start)]">
-            Unlimited tokens — admin tier
-          </p>
         )}
 
         {account.tier !== 'free' && account.tier !== 'admin' && (
@@ -187,4 +211,10 @@ function UpgradeCard({
       </button>
     </div>
   );
+}
+
+function formatNumber(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
+  return String(n);
 }
