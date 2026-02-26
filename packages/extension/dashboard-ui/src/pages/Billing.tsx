@@ -97,7 +97,7 @@ export function Billing({ account }: BillingProps) {
                 <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
               </div>
             ) : account.usage.tokens_limit !== null ? (
-              <UsageBar used={account.usage.tokens_used} limit={account.usage.tokens_limit} />
+              <UsageBar used={account.usage.tokens_used} limit={account.usage.tokens_limit} accent />
             ) : null}
           </div>
         )}

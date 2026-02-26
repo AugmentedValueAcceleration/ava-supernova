@@ -65,12 +65,12 @@ export function Overview({ account, connections: _connections, onNavigate }: Ove
           ) : (
             <UsageBar used={usage.free_tokens_used} limit={usage.free_tokens_limit} />
           )}
-          <p className="mt-1 mb-5 text-[10px] text-[var(--text-muted)]">
+          <p className="mt-1 text-[10px] text-[var(--text-muted)]">
             {account.tier === 'admin' ? 'No metering — admin tier' : '500K free tokens included every month'}
           </p>
 
           {/* Plan Tokens */}
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mt-5 mb-2 flex items-center justify-between">
             <span className="text-xs font-medium text-[var(--text-secondary)]">
               {account.tier.charAt(0).toUpperCase() + account.tier.slice(1)} Plan
             </span>
@@ -89,28 +89,44 @@ export function Overview({ account, connections: _connections, onNavigate }: Ove
               <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
             </div>
           ) : usage.tokens_limit !== null ? (
-            <UsageBar used={usage.tokens_used} limit={usage.tokens_limit} />
+            <UsageBar used={usage.tokens_used} limit={usage.tokens_limit} accent />
           ) : null}
 
-          {/* Top-up / Upgrade actions */}
-          {(account.tier === 'pro' || account.tier === 'ultra') && usage.tokens_limit !== null && usage.tokens_used >= usage.tokens_limit * 0.95 && (
-            <div className="mt-3 flex gap-2">
-              <button
-                onClick={() => post({ type: 'open_topup', package: 'starter' })}
-                className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover)]"
-              >
-                Top Up Tokens
-              </button>
-              {account.tier === 'pro' && (
+          {/* Footer — view usage + actions */}
+          <div className="mt-4 flex items-center justify-between">
+            <button
+              onClick={() => onNavigate('usage')}
+              className="text-xs text-[var(--gradient-start)] hover:underline"
+            >
+              View detailed usage &rarr;
+            </button>
+            {(account.tier === 'pro' || account.tier === 'ultra') && usage.tokens_limit !== null && usage.tokens_used >= usage.tokens_limit * 0.95 && (
+              <div className="flex gap-2">
                 <button
-                  onClick={() => post({ type: 'open_checkout', plan: 'ultra' })}
-                  className="rounded-lg border border-[var(--border-input)] px-4 py-2 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)] hover:text-white"
+                  onClick={() => post({ type: 'open_topup', package: 'starter' })}
+                  className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover)]"
                 >
-                  Upgrade to Ultra
+                  Top Up
                 </button>
-              )}
-            </div>
-          )}
+                {account.tier === 'pro' && (
+                  <button
+                    onClick={() => post({ type: 'open_checkout', plan: 'ultra' })}
+                    className="rounded-lg border border-[var(--border-input)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)] hover:text-white"
+                  >
+                    Upgrade
+                  </button>
+                )}
+              </div>
+            )}
+            {account.tier === 'free' && (
+              <button
+                onClick={() => onNavigate('billing')}
+                className="text-xs text-[var(--text-muted)] hover:text-white hover:underline"
+              >
+                Upgrade for 10M+ tokens
+              </button>
+            )}
+          </div>
         </div>
       )}
 
