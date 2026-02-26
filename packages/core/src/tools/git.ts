@@ -1,7 +1,9 @@
-import { exec } from 'node:child_process';
-import { getShell } from './bash.js';
+import { execFile } from 'node:child_process';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
+
+/** Characters that could be used for shell injection. */
+const SHELL_METACHARACTERS = /[;&|`$(){}!<>\\]/;
 
 const MAX_OUTPUT_LENGTH = 30_000;
 const GIT_TIMEOUT_MS = 30_000;
@@ -51,17 +53,26 @@ export class GitStatusTool implements Tool {
       };
     }
 
-    const fullCommand = `git ${command}${extraArgs ? ' ' + extraArgs : ''}`;
+    // Reject args containing shell metacharacters to prevent injection
+    if (SHELL_METACHARACTERS.test(extraArgs)) {
+      return {
+        success: false,
+        output: `Arguments contain disallowed characters. Shell metacharacters (;, &, |, \`, $, etc.) are not permitted.`,
+      };
+    }
+
+    // Split args into array for execFile (no shell interpretation)
+    const gitArgs = [command, ...(extraArgs ? extraArgs.split(/\s+/).filter(Boolean) : [])];
+    const fullCommand = `git ${gitArgs.join(' ')}`;
 
     return new Promise((resolve) => {
-      const shell = getShell();
-      exec(
-        fullCommand,
+      execFile(
+        'git',
+        gitArgs,
         {
           cwd: context.cwd,
           timeout: GIT_TIMEOUT_MS,
           maxBuffer: 1024 * 1024 * 10,
-          shell,
         },
         (error, stdout, stderr) => {
           let output = '';
@@ -92,11 +103,6 @@ export class GitStatusTool implements Tool {
           });
         },
       );
-
-      if (context.signal) {
-        // exec doesn't return ChildProcess in this callback pattern,
-        // but the timeout will handle cleanup
-      }
     });
   }
 }
