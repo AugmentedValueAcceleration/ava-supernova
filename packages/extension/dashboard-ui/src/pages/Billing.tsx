@@ -32,6 +32,16 @@ const PLAN_FEATURES: Record<string, string[]> = {
 };
 
 export function Billing({ account }: BillingProps) {
+  const usage = account.usage ?? {
+    tokens_used: 0,
+    tokens_limit: null as number | null,
+    requests_count: 0,
+    period_start: null as string | null,
+    period_end: null as string | null,
+    free_tokens_used: 0,
+    free_tokens_limit: 500_000,
+  };
+
   return (
     <div className="max-w-3xl">
       <div className="mb-8">
@@ -45,62 +55,58 @@ export function Billing({ account }: BillingProps) {
       <div className="mb-6 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <div className="mb-4 flex items-center justify-between">
           <TierBadge tier={account.tier} />
-          {account.usage?.period_end && (
+          {usage.period_end && (
             <span className="text-xs text-[var(--text-muted)]">
-              Renews {new Date(account.usage.period_end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+              Renews {new Date(usage.period_end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
           )}
         </div>
 
         {/* Free Token Pool */}
-        {account.usage && (
-          <div className="mb-4">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Free Tokens</p>
-              {account.tier === 'admin' ? (
-                <span className="text-xs font-medium text-[var(--gradient-start)]">Unlimited</span>
-              ) : (
-                <span className="text-xs text-[var(--text-muted)]">
-                  {formatNumber(account.usage.free_tokens_limit - account.usage.free_tokens_used)} remaining
-                </span>
-              )}
-            </div>
+        <div className="mb-4">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Free Tokens</p>
             {account.tier === 'admin' ? (
-              <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
-                <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
-              </div>
+              <span className="text-xs font-medium text-[var(--gradient-start)]">Unlimited</span>
             ) : (
-              <UsageBar used={account.usage.free_tokens_used} limit={account.usage.free_tokens_limit} />
+              <span className="text-xs text-[var(--text-muted)]">
+                {formatNumber(usage.free_tokens_limit - usage.free_tokens_used)} remaining
+              </span>
             )}
           </div>
-        )}
+          {account.tier === 'admin' ? (
+            <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
+              <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
+            </div>
+          ) : (
+            <UsageBar used={usage.free_tokens_used} limit={usage.free_tokens_limit} />
+          )}
+        </div>
 
         {/* Plan Tokens */}
-        {account.usage && (
-          <div className="mb-4">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                {account.tier.charAt(0).toUpperCase() + account.tier.slice(1)} Plan
-              </p>
-              {account.tier === 'admin' ? (
-                <span className="text-xs font-medium text-[var(--gradient-start)]">Unlimited</span>
-              ) : account.usage.tokens_limit !== null ? (
-                <span className="text-xs text-[var(--text-muted)]">
-                  {formatNumber(account.usage.tokens_limit - account.usage.tokens_used)} remaining
-                </span>
-              ) : (
-                <span className="text-xs text-[var(--text-muted)]">BYOK — no limit</span>
-              )}
-            </div>
+        <div className="mb-4">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              {account.tier.charAt(0).toUpperCase() + account.tier.slice(1)} Plan
+            </p>
             {account.tier === 'admin' ? (
-              <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
-                <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
-              </div>
-            ) : account.usage.tokens_limit !== null ? (
-              <UsageBar used={account.usage.tokens_used} limit={account.usage.tokens_limit} accent />
-            ) : null}
+              <span className="text-xs font-medium text-[var(--gradient-start)]">Unlimited</span>
+            ) : usage.tokens_limit !== null ? (
+              <span className="text-xs text-[var(--text-muted)]">
+                {formatNumber(usage.tokens_limit - usage.tokens_used)} remaining
+              </span>
+            ) : (
+              <span className="text-xs text-[var(--text-muted)]">BYOK — no limit</span>
+            )}
           </div>
-        )}
+          {account.tier === 'admin' ? (
+            <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
+              <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
+            </div>
+          ) : usage.tokens_limit !== null ? (
+            <UsageBar used={usage.tokens_used} limit={usage.tokens_limit} accent />
+          ) : null}
+        </div>
 
         {account.tier !== 'free' && account.tier !== 'admin' && (
           <button

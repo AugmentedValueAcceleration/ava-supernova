@@ -155,24 +155,6 @@
               "Qwen Turbo — fast and cheap, 1M context"
             ],
             "description": "%setting.activeModel.description%"
-          },
-          "ava-supernova.providers.deepseek.apiKey": {
-            "type": "string",
-            "default": "",
-            "order": 2,
-            "description": "%setting.deepseek.apiKey.description%"
-          },
-          "ava-supernova.providers.kimi.apiKey": {
-            "type": "string",
-            "default": "",
-            "order": 3,
-            "description": "%setting.kimi.apiKey.description%"
-          },
-          "ava-supernova.providers.qwen.apiKey": {
-            "type": "string",
-            "default": "",
-            "order": 4,
-            "description": "%setting.qwen.apiKey.description%"
           }
         }
       },

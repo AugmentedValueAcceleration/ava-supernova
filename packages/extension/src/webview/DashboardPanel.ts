@@ -16,6 +16,13 @@ import type {
 const DEV_MODE = false;
 const PLATFORM_KEY_SECRET = 'ava-supernova.platformKey';
 
+// BYOK provider key secrets
+const PROVIDER_KEY_SECRETS: Record<string, string> = {
+  deepseek: 'ava-supernova.provider.deepseek.apiKey',
+  kimi: 'ava-supernova.provider.kimi.apiKey',
+  qwen: 'ava-supernova.provider.qwen.apiKey',
+};
+
 // Connection credential secret keys
 const CONNECTION_SECRETS: Record<string, string[]> = {
   github: ['ava.connection.github.token'],
@@ -169,7 +176,7 @@ export class DashboardPanel {
     const account = platformKey ? await this.fetchAccount(platformKey) : null;
     const connections = await this.getConnectionStatus();
     const settings = this.readSettings();
-    const providerKeys = this.getProviderKeyStatus();
+    const providerKeys = await this.getProviderKeyStatus();
     const locale = vscode.workspace.getConfiguration('ava-supernova').get<string>('preferences.language') ?? 'auto';
 
     this.post({ type: 'init', account, connections, settings, providerKeys, locale });
@@ -417,12 +424,11 @@ export class DashboardPanel {
 
   // ─── Provider Keys ────────────────────────────────────────────────────────
 
-  private getProviderKeyStatus(): ProviderKeyStatus {
-    const cfg = vscode.workspace.getConfiguration('ava-supernova');
+  private async getProviderKeyStatus(): Promise<ProviderKeyStatus> {
     return {
-      deepseek: Boolean(cfg.get<string>('providers.deepseek.apiKey')),
-      kimi: Boolean(cfg.get<string>('providers.kimi.apiKey')),
-      qwen: Boolean(cfg.get<string>('providers.qwen.apiKey')),
+      deepseek: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.deepseek)),
+      kimi: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.kimi)),
+      qwen: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.qwen)),
     };
   }
 
@@ -430,17 +436,21 @@ export class DashboardPanel {
     provider: 'deepseek' | 'kimi' | 'qwen',
     apiKey: string,
   ): Promise<void> {
-    const cfg = vscode.workspace.getConfiguration('ava-supernova');
-    await cfg.update(`providers.${provider}.apiKey`, apiKey, vscode.ConfigurationTarget.Global);
-    this.post({ type: 'provider_keys_updated', providerKeys: this.getProviderKeyStatus() });
+    const secretKey = PROVIDER_KEY_SECRETS[provider];
+    if (secretKey) {
+      await this.secrets.store(secretKey, apiKey);
+    }
+    this.post({ type: 'provider_keys_updated', providerKeys: await this.getProviderKeyStatus() });
   }
 
   private async removeProviderKey(
     provider: 'deepseek' | 'kimi' | 'qwen',
   ): Promise<void> {
-    const cfg = vscode.workspace.getConfiguration('ava-supernova');
-    await cfg.update(`providers.${provider}.apiKey`, undefined, vscode.ConfigurationTarget.Global);
-    this.post({ type: 'provider_keys_updated', providerKeys: this.getProviderKeyStatus() });
+    const secretKey = PROVIDER_KEY_SECRETS[provider];
+    if (secretKey) {
+      await this.secrets.delete(secretKey);
+    }
+    this.post({ type: 'provider_keys_updated', providerKeys: await this.getProviderKeyStatus() });
   }
 
   // ─── Settings ──────────────────────────────────────────────────────────────

@@ -327,13 +327,26 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     this.log(`Initializing session... (locale: ${this.currentLocale})`);
 
-    // ── BYOK providers ──────────────────────────────────────────────────────
+    // ── BYOK providers (keys stored in SecretStorage) ─────────────────────
+    const providerSecrets: Record<string, string> = {
+      deepseek: 'ava-supernova.provider.deepseek.apiKey',
+      kimi: 'ava-supernova.provider.kimi.apiKey',
+      qwen: 'ava-supernova.provider.qwen.apiKey',
+    };
     for (const name of ['deepseek', 'kimi', 'qwen']) {
-      const apiKey = config.get<string>(`providers.${name}.apiKey`);
+      // Migrate legacy plaintext settings → SecretStorage (one-time)
+      const legacyKey = config.get<string>(`providers.${name}.apiKey`);
+      if (legacyKey) {
+        await this.context.secrets.store(providerSecrets[name], legacyKey);
+        await config.update(`providers.${name}.apiKey`, undefined, vscode.ConfigurationTarget.Global);
+        this.log(`Migrated ${name} API key from settings to SecretStorage`);
+      }
+
+      const apiKey = await this.context.secrets.get(providerSecrets[name]);
       if (apiKey) {
         try {
           this.providerRegistry.register(name, { apiKey });
-          this.log(`Provider registered: ${name} (key: ${apiKey.slice(0, 8)}...)`);
+          this.log(`Provider registered: ${name}`);
         } catch (err) {
           this.log(`Provider ${name} failed to register: ${err}`);
         }

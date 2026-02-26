@@ -11,7 +11,15 @@ interface OverviewProps {
 }
 
 export function Overview({ account, connections: _connections, onNavigate }: OverviewProps) {
-  const usage = account.usage;
+  const usage = account.usage ?? {
+    tokens_used: 0,
+    tokens_limit: null as number | null,
+    requests_count: 0,
+    period_start: null as string | null,
+    period_end: null as string | null,
+    free_tokens_used: 0,
+    free_tokens_limit: 500_000,
+  };
 
   return (
     <div className="max-w-4xl">
@@ -28,21 +36,20 @@ export function Overview({ account, connections: _connections, onNavigate }: Ove
       <div className="mb-8 grid gap-4 sm:grid-cols-2">
         <StatCard
           icon={<ChartBarIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
-          value={usage ? formatNumber(usage.tokens_used) : '0'}
+          value={formatNumber(usage.tokens_used)}
           label="Tokens Used"
-          subtext={usage?.period_start ? `Since ${new Date(usage.period_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : undefined}
+          subtext={usage.period_start ? `Since ${new Date(usage.period_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : undefined}
         />
         <StatCard
           icon={<BoltIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
-          value={usage ? String(usage.requests_count) : '0'}
+          value={String(usage.requests_count)}
           label="Requests"
           subtext="This period"
         />
       </div>
 
       {/* Token Credits */}
-      {usage && (
-        <div className="mb-8 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+      <div className="mb-8 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
           <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             Token Credits
           </p>
@@ -128,7 +135,6 @@ export function Overview({ account, connections: _connections, onNavigate }: Ove
             )}
           </div>
         </div>
-      )}
 
       {/* Upgrade CTA (free tier only) */}
       {account.tier === 'free' && (

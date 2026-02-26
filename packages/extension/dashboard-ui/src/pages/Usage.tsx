@@ -16,7 +16,15 @@ interface ModelBreakdown {
 }
 
 export function Usage({ account, logs }: UsageProps) {
-  const usage = account.usage;
+  const usage = account.usage ?? {
+    tokens_used: 0,
+    tokens_limit: null as number | null,
+    requests_count: 0,
+    period_start: null as string | null,
+    period_end: null as string | null,
+    free_tokens_used: 0,
+    free_tokens_limit: 500_000,
+  };
   const [period, setPeriod] = useState<'7d' | '30d' | 'all'>('30d');
 
   useEffect(() => {
@@ -36,7 +44,7 @@ export function Usage({ account, logs }: UsageProps) {
   const breakdown = Object.values(modelMap).sort((a, b) => (b.input + b.output) - (a.input + a.output));
   const maxTotal = breakdown.length > 0 ? breakdown[0].input + breakdown[0].output : 1;
 
-  const periodLabel = usage?.period_start
+  const periodLabel = usage.period_start
     ? `${new Date(usage.period_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} — ${new Date(usage.period_end!).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
     : 'No active period';
 
@@ -53,17 +61,17 @@ export function Usage({ account, logs }: UsageProps) {
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
           label="Free Tokens"
-          value={usage ? formatNumber(Math.max(0, usage.free_tokens_limit - usage.free_tokens_used)) : '500K'}
-          sub={usage ? `of ${formatNumber(usage.free_tokens_limit)} remaining` : undefined}
+          value={formatNumber(Math.max(0, usage.free_tokens_limit - usage.free_tokens_used))}
+          sub={`of ${formatNumber(usage.free_tokens_limit)} remaining`}
         />
         <SummaryCard
           label="Plan Tokens"
-          value={usage ? formatNumber(usage.tokens_used) : '0'}
-          sub={usage?.tokens_limit ? `of ${formatNumber(usage.tokens_limit)} limit` : 'used this period'}
+          value={formatNumber(usage.tokens_used)}
+          sub={usage.tokens_limit ? `of ${formatNumber(usage.tokens_limit)} limit` : 'used this period'}
         />
         <SummaryCard
           label="Requests"
-          value={usage ? String(usage.requests_count) : '0'}
+          value={String(usage.requests_count)}
           sub="this period"
         />
         <SummaryCard
@@ -74,8 +82,7 @@ export function Usage({ account, logs }: UsageProps) {
       </div>
 
       {/* Token Bars */}
-      {usage && (
-        <div className="mb-8 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+      <div className="mb-8 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
           {/* Free Pool */}
           <div className="mb-2 flex justify-between text-xs">
             <span className="text-[var(--text-secondary)]">
@@ -127,7 +134,6 @@ export function Usage({ account, logs }: UsageProps) {
             </>
           )}
         </div>
-      )}
 
       {/* Model Breakdown */}
       <div className="mb-8">
