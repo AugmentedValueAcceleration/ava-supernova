@@ -1,7 +1,7 @@
 import { TierBadge } from '../components/TierBadge';
 import { UsageBar } from '../components/UsageBar';
 import { post } from '../App';
-import { BoltIcon, LinkIcon, ChartBarIcon, ChatBubbleIcon, GitHubIcon, EnvelopeIcon, GameControllerIcon } from '../components/Icons';
+import { BoltIcon, ChartBarIcon, SparklesIcon, LinkIcon } from '../components/Icons';
 import type { AccountInfo, ConnectionStatus, Page } from '../types/messages';
 
 interface OverviewProps {
@@ -10,15 +10,7 @@ interface OverviewProps {
   onNavigate: (page: Page) => void;
 }
 
-const SERVICE_ICONS: Record<string, React.FC<{ className?: string }>> = {
-  github: GitHubIcon,
-  email: EnvelopeIcon,
-  slack: ChatBubbleIcon,
-  discord: GameControllerIcon,
-};
-
-export function Overview({ account, connections, onNavigate }: OverviewProps) {
-  const connectedCount = Object.values(connections).filter(Boolean).length;
+export function Overview({ account, connections: _connections, onNavigate }: OverviewProps) {
   const usage = account.usage;
 
   return (
@@ -33,7 +25,7 @@ export function Overview({ account, connections, onNavigate }: OverviewProps) {
       </div>
 
       {/* Stats Grid */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mb-8 grid gap-4 sm:grid-cols-2">
         <StatCard
           icon={<ChartBarIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
           value={usage ? formatNumber(usage.tokens_used) : '0'}
@@ -45,12 +37,6 @@ export function Overview({ account, connections, onNavigate }: OverviewProps) {
           value={usage ? String(usage.requests_count) : '0'}
           label="Requests"
           subtext="This period"
-        />
-        <StatCard
-          icon={<LinkIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
-          value={`${connectedCount}/4`}
-          label="Connections"
-          subtext={connectedCount < 4 ? 'Set up more' : 'All connected'}
         />
       </div>
 
@@ -119,48 +105,37 @@ export function Overview({ account, connections, onNavigate }: OverviewProps) {
         </div>
       )}
 
-      {/* Connected Services */}
-      <div className="mb-8 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-            Connected Services
+      {/* Coming Soon — Memory & Connections */}
+      <div className="mb-8 grid gap-4 sm:grid-cols-2">
+        <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <SparklesIcon className="h-4 w-4 text-[var(--text-muted)]" />
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Memory</p>
+            </div>
+            <span className="rounded bg-[var(--bg-input)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">Coming Soon</span>
+          </div>
+          <p className="text-sm text-[var(--text-muted)]">
+            Memory sync between the extension and your account is on the way.
           </p>
-          <span className="text-xs text-[var(--text-muted)]">
-            {connectedCount}/4 connected
-          </span>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {(Object.entries(connections) as Array<[keyof ConnectionStatus, boolean]>).map(([service, connected]) => {
-            const Icon = SERVICE_ICONS[service];
-            return (
-              <div
-                key={service}
-                className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs ${
-                  connected
-                    ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400'
-                    : 'border-[var(--border-card)] bg-[var(--bg-input)] text-[var(--text-muted)]'
-                }`}
-              >
-                {Icon && <Icon className="h-3.5 w-3.5" />}
-                <span className="capitalize">{service}</span>
-              </div>
-            );
-          })}
+        <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <LinkIcon className="h-4 w-4 text-[var(--text-muted)]" />
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Connections</p>
+            </div>
+            <span className="rounded bg-[var(--bg-input)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">Coming Soon</span>
+          </div>
+          <p className="text-sm text-[var(--text-muted)]">
+            Connect GitHub, Email, Slack, and Discord — all from one place.
+          </p>
         </div>
-        {connectedCount < 4 && (
-          <button
-            onClick={() => onNavigate('connections')}
-            className="mt-3 border-none bg-transparent text-xs text-[var(--gradient-start)] hover:underline"
-          >
-            Set up connections &rarr;
-          </button>
-        )}
       </div>
 
       {/* Quick Actions */}
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <ActionCard label="Manage Billing" onClick={() => onNavigate('billing')} />
-        <ActionCard label="View Memory" onClick={() => onNavigate('memory')} />
         <ActionCard label="Open Chat" onClick={() => post({ type: 'open_chat' })} />
       </div>
     </div>

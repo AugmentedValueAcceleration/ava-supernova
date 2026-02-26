@@ -10,10 +10,10 @@ interface NavSidebarProps {
   onConnectAccount?: () => void;
 }
 
-const NAV_ITEMS: Array<{ page: Page; label: string; icon: React.FC<{ className?: string }>; platformOnly?: boolean }> = [
+const NAV_ITEMS: Array<{ page: Page; label: string; icon: React.FC<{ className?: string }>; platformOnly?: boolean; comingSoon?: boolean }> = [
   { page: 'overview', label: 'Overview', icon: BoltIcon, platformOnly: true },
-  { page: 'memory', label: 'Memory', icon: SparklesIcon, platformOnly: true },
-  { page: 'connections', label: 'Connections', icon: LinkIcon, platformOnly: true },
+  { page: 'memory', label: 'Memory', icon: SparklesIcon, platformOnly: true, comingSoon: true },
+  { page: 'connections', label: 'Connections', icon: LinkIcon, platformOnly: true, comingSoon: true },
   { page: 'billing', label: 'Billing', icon: CreditCardIcon, platformOnly: true },
   { page: 'settings', label: 'Settings', icon: CogIcon },
 ];
@@ -33,7 +33,19 @@ export function NavSidebar({ currentPage, onNavigate, mode, email, onConnectAcco
       </div>
 
       <div className="flex flex-1 flex-col gap-1">
-        {visibleItems.map(({ page, label, icon: Icon }) => {
+        {visibleItems.map(({ page, label, icon: Icon, comingSoon }) => {
+          if (comingSoon) {
+            return (
+              <div
+                key={page}
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-[var(--text-muted)] cursor-not-allowed"
+              >
+                <Icon className="h-4 w-4" />
+                <span>{label}</span>
+                <span className="ml-auto rounded bg-[var(--bg-input)] px-1.5 py-0.5 text-[10px]">Soon</span>
+              </div>
+            );
+          }
           const isActive = currentPage === page;
           return (
             <button
