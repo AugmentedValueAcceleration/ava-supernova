@@ -50,6 +50,15 @@ export interface ProviderKeyStatus {
   qwen: boolean;
 }
 
+export interface UsageLogEntry {
+  id: string;
+  model: string;
+  provider: string;
+  input_tokens: number;
+  output_tokens: number;
+  timestamp: string;
+}
+
 // ─── Extension Host → Dashboard Webview ──────────────────────────────────────
 
 export type ExtToDashboardMessage =
@@ -69,6 +78,7 @@ export type ExtToDashboardMessage =
   | { type: 'connection_tested'; service: string; success: boolean; message: string }
   | { type: 'connection_saved'; service: string }
   | { type: 'connection_removed'; service: string }
+  | { type: 'usage_logs_loaded'; logs: UsageLogEntry[] }
   | { type: 'error'; message: string };
 
 // ─── Dashboard Webview → Extension Host ──────────────────────────────────────
@@ -86,6 +96,7 @@ export type DashboardToExtMessage =
   | { type: 'save_connection'; service: 'github' | 'email' | 'slack' | 'discord'; credentials: Record<string, string> }
   | { type: 'remove_connection'; service: string }
   | { type: 'test_connection'; service: string }
+  | { type: 'load_usage_logs'; period: '7d' | '30d' | 'all' }
   | { type: 'open_checkout'; plan: 'pro' | 'ultra' }
   | { type: 'open_topup'; package: 'starter' | 'standard' | 'pro_pack' }
   | { type: 'open_portal' }

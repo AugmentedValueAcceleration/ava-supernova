@@ -8,6 +8,7 @@ import type {
   AccountInfo,
   ConnectionStatus,
   ProviderKeyStatus,
+  UsageLogEntry,
 } from './dashboard-message-types.js';
 
 // ─── Platform API ─────────────────────────────────────────────────────────────
@@ -129,6 +130,10 @@ export class DashboardPanel {
 
       case 'remove_connection':
         await this.removeConnection(msg.service);
+        break;
+
+      case 'load_usage_logs':
+        await this.loadUsageLogs(msg.period);
         break;
 
       case 'open_checkout':
@@ -320,6 +325,35 @@ export class DashboardPanel {
       await this.secrets.delete(key);
     }
     this.post({ type: 'connection_removed', service });
+  }
+
+  // ─── Usage Logs ──────────────────────────────────────────────────────────
+
+  private async loadUsageLogs(period: '7d' | '30d' | 'all'): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+
+    if (DEV_MODE) {
+      const now = Date.now();
+      const devLogs: UsageLogEntry[] = [
+        { id: '1', model: 'deepseek-v3', provider: 'deepseek', input_tokens: 2400, output_tokens: 1800, timestamp: new Date(now - 3600000).toISOString() },
+        { id: '2', model: 'kimi-k2.5', provider: 'kimi', input_tokens: 5200, output_tokens: 3100, timestamp: new Date(now - 7200000).toISOString() },
+        { id: '3', model: 'deepseek-v3', provider: 'deepseek', input_tokens: 1800, output_tokens: 900, timestamp: new Date(now - 86400000).toISOString() },
+      ];
+      this.post({ type: 'usage_logs_loaded', logs: devLogs });
+      return;
+    }
+
+    try {
+      const res = await apiFetch(`/usage-logs?period=${period}`, { platformKey });
+      if (res.ok && typeof res.data === 'object' && res.data && 'logs' in res.data) {
+        this.post({ type: 'usage_logs_loaded', logs: (res.data as { logs: UsageLogEntry[] }).logs });
+      } else {
+        this.post({ type: 'usage_logs_loaded', logs: [] });
+      }
+    } catch {
+      this.post({ type: 'usage_logs_loaded', logs: [] });
+    }
   }
 
   // ─── Billing ───────────────────────────────────────────────────────────────

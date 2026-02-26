@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { NavSidebar } from './components/NavSidebar';
 import { ConnectAccount } from './pages/ConnectAccount';
 import { Overview } from './pages/Overview';
+import { Usage } from './pages/Usage';
 import { Memory } from './pages/Memory';
 import { Connections } from './pages/Connections';
 import { Billing } from './pages/Billing';
@@ -13,6 +14,7 @@ import type {
   DashboardSettings,
   MemoryEntry,
   ProviderKeyStatus,
+  UsageLogEntry,
   ExtToDashboardMessage,
   DashboardToExtMessage,
 } from './types/messages';
@@ -50,6 +52,7 @@ export function App() {
   const [providerKeys, setProviderKeys] = useState<ProviderKeyStatus>({
     deepseek: false, kimi: false, qwen: false,
   });
+  const [usageLogs, setUsageLogs] = useState<UsageLogEntry[]>([]);
   const [byokMode, setByokMode] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -100,6 +103,9 @@ export function App() {
       case 'connection_removed':
         setConnections((prev) => ({ ...prev, [msg.service]: false }));
         break;
+      case 'usage_logs_loaded':
+        setUsageLogs(msg.logs);
+        break;
       case 'error':
         setErrorMsg(msg.message);
         setTimeout(() => setErrorMsg(null), 5000);
@@ -142,6 +148,11 @@ export function App() {
       case 'overview':
         if (account) {
           return <Overview account={account} connections={connections} onNavigate={setPage} />;
+        }
+        return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
+      case 'usage':
+        if (account) {
+          return <Usage account={account} logs={usageLogs} />;
         }
         return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
       case 'memory':

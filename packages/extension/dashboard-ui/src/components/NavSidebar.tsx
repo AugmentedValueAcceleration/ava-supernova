@@ -1,6 +1,6 @@
 import { post } from '../App';
 import type { Page } from '../types/messages';
-import { BoltIcon, SparklesIcon, LinkIcon, CreditCardIcon, CogIcon } from './Icons';
+import { BoltIcon, ChartBarIcon, SparklesIcon, LinkIcon, CreditCardIcon, CogIcon } from './Icons';
 
 interface NavSidebarProps {
   currentPage: Page;
@@ -12,6 +12,7 @@ interface NavSidebarProps {
 
 const NAV_ITEMS: Array<{ page: Page; label: string; icon: React.FC<{ className?: string }>; platformOnly?: boolean; comingSoon?: boolean }> = [
   { page: 'overview', label: 'Overview', icon: BoltIcon, platformOnly: true },
+  { page: 'usage', label: 'Usage', icon: ChartBarIcon, platformOnly: true },
   { page: 'memory', label: 'Memory', icon: SparklesIcon, platformOnly: true, comingSoon: true },
   { page: 'connections', label: 'Connections', icon: LinkIcon, platformOnly: true, comingSoon: true },
   { page: 'billing', label: 'Billing', icon: CreditCardIcon, platformOnly: true },
