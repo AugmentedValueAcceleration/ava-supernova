@@ -13,7 +13,6 @@ import type {
 
 // ─── Platform API ─────────────────────────────────────────────────────────────
 
-const DEV_MODE = false;
 const PLATFORM_KEY_SECRET = 'ava-supernova.platformKey';
 
 // BYOK provider key secrets
@@ -211,23 +210,6 @@ export class DashboardPanel {
   }
 
   private async fetchAccount(platformKey: string): Promise<AccountInfo | null> {
-    if (DEV_MODE) {
-      return {
-        id: 'dev-001',
-        email: 'dev@ava-supernova.com',
-        name: 'Dev User',
-        tier: 'pro',
-        usage: {
-          tokens_used: 1_250_000,
-          tokens_limit: 5_000_000,
-          requests_count: 42,
-          period_start: new Date(Date.now() - 14 * 86400000).toISOString(),
-          period_end: new Date(Date.now() + 16 * 86400000).toISOString(),
-          free_tokens_used: 320_000,
-          free_tokens_limit: 500_000,
-        },
-      };
-    }
     try {
       const res = await apiFetch('/account-info', { platformKey });
       if (!res.ok) return null;
@@ -343,17 +325,6 @@ export class DashboardPanel {
   private async loadUsageLogs(period: '7d' | '30d' | 'all'): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
     if (!platformKey) return;
-
-    if (DEV_MODE) {
-      const now = Date.now();
-      const devLogs: UsageLogEntry[] = [
-        { id: '1', model: 'deepseek-v3', provider: 'deepseek', input_tokens: 2400, output_tokens: 1800, timestamp: new Date(now - 3600000).toISOString() },
-        { id: '2', model: 'kimi-k2.5', provider: 'kimi', input_tokens: 5200, output_tokens: 3100, timestamp: new Date(now - 7200000).toISOString() },
-        { id: '3', model: 'deepseek-v3', provider: 'deepseek', input_tokens: 1800, output_tokens: 900, timestamp: new Date(now - 86400000).toISOString() },
-      ];
-      this.post({ type: 'usage_logs_loaded', logs: devLogs });
-      return;
-    }
 
     try {
       const res = await apiFetch(`/usage-logs?period=${period}`, { platformKey });

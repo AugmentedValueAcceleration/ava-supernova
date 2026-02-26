@@ -1,7 +1,7 @@
 # Security Fixes Checklist
 
 Audit date: 2026-02-26
-Status: **Pre-launch hardening — 18/23 fixed (all Critical + all High + all Medium)**
+Status: **Complete — 23/23 fixed**
 
 ---
 
@@ -131,32 +131,32 @@ Status: **Pre-launch hardening — 18/23 fixed (all Critical + all High + all Me
 ### 19. No `postMessage` Origin Validation in Webviews
 - **Files:** `packages/extension/webview-ui/src/App.tsx`, `packages/extension/dashboard-ui/src/App.tsx`
 - **Issue:** Neither webview checks `event.origin`. VSCode sandbox mitigates this, but defense-in-depth is missing.
-- **Fix:** Check `event.origin` starts with `vscode-webview://` before processing messages.
-- [ ] Done
+- **Fix:** Added `event.origin.startsWith('vscode-webview://')` guard in both webviews.
+- [x] Done
 
 ### 20. Supabase `error.message` Leaked in Responses
 - **Files:** Multiple admin routes + `api/news/route.ts`
 - **Issue:** DB error messages (table names, constraint names, PostgreSQL internals) returned to client.
-- **Fix:** Log specifics server-side, return generic `"Internal server error"` to client.
-- [ ] Done
+- **Fix:** All 5 leaking routes now `console.error` server-side, return generic messages to client.
+- [x] Done
 
 ### 21. No Length/Type Validation on Memory Content
 - **File:** `packages/web/src/app/api/memories/route.ts` (lines 42-63)
 - **Issue:** `key` and `content` checked for presence but not type or length. Could store megabytes of data.
-- **Fix:** Validate `typeof === 'string'`, enforce max lengths (key: 256, content: 100K).
-- [ ] Done
+- **Fix:** Added type checks + length limits (key: 256 chars, content: 100KB) on both POST and PATCH routes.
+- [x] Done
 
 ### 22. Supabase Admin Client Used Broadly
 - **Files:** Multiple API routes
 - **Issue:** `createAdminClient()` bypasses all RLS. No INSERT policies on `usage`, `usage_logs`, `user_api_keys` as defense-in-depth.
-- **Fix:** Add INSERT RLS policies on those tables. Where possible, use user-scoped client instead of admin client.
-- [ ] Done
+- **Fix:** Migration 015: INSERT RLS policies on `usage`, `usage_logs`, `user_api_keys`, and `memories` tables.
+- [x] Done
 
 ### 23. DEV_MODE Mock Data in Production Code
 - **File:** `packages/extension/src/webview/DashboardPanel.ts` (lines 16, 203-218)
 - **Issue:** Hardcoded `DEV_MODE = false` with mock pro-tier account data. If toggled, bypasses real auth.
-- **Fix:** Strip DEV_MODE blocks in production builds, or gate behind a build-time flag.
-- [ ] Done
+- **Fix:** Removed `DEV_MODE` constant and both mock data blocks entirely.
+- [x] Done
 
 ---
 

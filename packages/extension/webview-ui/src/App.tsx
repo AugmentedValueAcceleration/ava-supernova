@@ -342,6 +342,8 @@ export function App() {
   // Listen for messages from extension host
   useEffect(() => {
     const handler = (event: MessageEvent<ExtToWebviewMessage>) => {
+      // Only accept messages from the VSCode webview host
+      if (event.origin && !event.origin.startsWith('vscode-webview://')) return;
       const msg = event.data;
 
       // Buffer stream + thinking deltas for smooth typing
