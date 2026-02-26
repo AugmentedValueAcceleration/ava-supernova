@@ -9,6 +9,25 @@ const MAX_REDIRECTS = 5;
 
 const ALLOWED_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']);
 
+/** Block requests to private/internal IP ranges (SSRF protection). */
+function isPrivateHost(hostname: string): boolean {
+  // Block obvious private hostnames
+  if (hostname === 'localhost' || hostname === '[::1]') return true;
+
+  // IPv4 private ranges
+  const parts = hostname.split('.').map(Number);
+  if (parts.length === 4 && parts.every(n => !isNaN(n))) {
+    if (parts[0] === 127) return true;                                    // 127.0.0.0/8 loopback
+    if (parts[0] === 10) return true;                                     // 10.0.0.0/8 private
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true; // 172.16.0.0/12 private
+    if (parts[0] === 192 && parts[1] === 168) return true;               // 192.168.0.0/16 private
+    if (parts[0] === 169 && parts[1] === 254) return true;               // 169.254.0.0/16 link-local / cloud metadata
+    if (parts[0] === 0) return true;                                      // 0.0.0.0/8
+  }
+
+  return false;
+}
+
 /** Headers worth showing in the response summary. */
 const INTERESTING_HEADERS = new Set([
   'content-type', 'content-length', 'location', 'set-cookie',
@@ -157,11 +176,14 @@ export class HttpRequestTool implements Tool {
       return { success: false, output: 'URL is required.' };
     }
 
-    // Validate URL protocol
+    // Validate URL protocol and block private/internal hosts (SSRF protection)
     try {
       const parsed = new URL(url);
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
         return { success: false, output: `Unsupported protocol: ${parsed.protocol}. Only http:// and https:// are allowed.` };
+      }
+      if (isPrivateHost(parsed.hostname)) {
+        return { success: false, output: `Blocked: requests to private/internal addresses are not allowed (${parsed.hostname}).` };
       }
     } catch {
       return { success: false, output: `Invalid URL: ${url}` };

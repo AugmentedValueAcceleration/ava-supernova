@@ -163,9 +163,13 @@ export class DashboardPanel {
         vscode.commands.executeCommand('ava-supernova.openChat');
         break;
 
-      case 'open_url':
-        vscode.env.openExternal(vscode.Uri.parse(msg.url));
+      case 'open_url': {
+        const uri = vscode.Uri.parse(msg.url);
+        if (uri.scheme === 'https') {
+          vscode.env.openExternal(uri);
+        }
         break;
+      }
     }
   }
 
