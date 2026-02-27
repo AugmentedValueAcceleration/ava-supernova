@@ -107,6 +107,7 @@ async function main(): Promise<void> {
       repl.retry();
     },
     onCompact: () => repl.compact(),
+    onSecurity: (focus: string) => repl.securityScan(focus),
   });
 
   repl.setCommands(commands);

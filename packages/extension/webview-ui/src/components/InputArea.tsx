@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { t } from '../i18n';
 import type { ProviderSource } from '../types/messages';
 
-export type AvaMode = 'code' | 'plan' | 'chat';
+export type AvaMode = 'code' | 'plan' | 'chat' | 'security';
 
 export interface ImageAttachment {
   type: 'image';
@@ -38,6 +38,7 @@ const MODES: { id: AvaMode; labelKey: string; icon: string }[] = [
   { id: 'code', labelKey: 'input.mode.code', icon: '>>' },
   { id: 'plan', labelKey: 'input.mode.plan', icon: '::' },
   { id: 'chat', labelKey: 'input.mode.chat', icon: '..' },
+  { id: 'security', labelKey: 'input.mode.security', icon: '!!' },
 ];
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -46,6 +47,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   code: 'input.placeholder.code',
   plan: 'input.placeholder.plan',
   chat: 'input.placeholder.chat',
+  security: 'input.placeholder.security',
 };
 
 export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCompressing, onCompress, providerSource, platformStatus, onProviderSourceChange }: InputAreaProps) {

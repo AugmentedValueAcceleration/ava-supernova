@@ -10,9 +10,11 @@ export const plStrings: Record<string, string> = {
   'input.placeholder.plan': 'Opisz, co chcesz zaplanować...',
   'input.placeholder.chat': 'Zadaj pytanie lub rozpocznij dyskusję...',
   'input.placeholder.disabled': 'Skonfiguruj dostawcę, aby rozpocząć...',
+  'input.placeholder.security': 'Opisz, co chcesz przeskanować, lub naciśnij Enter, aby wykonać pełny audyt...',
   'input.mode.code': 'Kod',
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Czat',
+  'input.mode.security': 'Bezpieczeństwo',
   'input.send': 'Wyślij (Enter)',
   'input.send_aria': 'Wyślij wiadomość',
   'input.stop': 'Zatrzymaj',
@@ -184,6 +186,7 @@ export const plStrings: Record<string, string> = {
   'cmd.tools.desc': 'Lista dostępnych narzędzi',
   'cmd.init.desc': 'Utwórz .ava/instructions.md dla kontekstu specyficznego dla projektu',
   'cmd.exit.desc': 'Zamknij Avę',
+  'cmd.security.desc': 'Uruchom audyt bezpieczeństwa (/security [obszar zainteresowania])',
 
   // ── CLI Command Messages ──────────────────────────────────────────────────
   'cmd.model.unknown': 'Nieznany model: {model}',

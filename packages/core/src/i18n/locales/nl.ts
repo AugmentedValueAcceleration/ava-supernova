@@ -10,9 +10,11 @@ export const nlStrings: Record<string, string> = {
   'input.placeholder.plan': 'Beschrijf wat je wilt plannen...',
   'input.placeholder.chat': 'Stel een vraag of begin een gesprek...',
   'input.placeholder.disabled': 'Configureer een provider om te beginnen...',
+  'input.placeholder.security': 'Beschrijf wat je wilt scannen, of druk op Enter voor een volledige audit...',
   'input.mode.code': 'Code',
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Chat',
+  'input.mode.security': 'Beveiliging',
   'input.send': 'Versturen (Enter)',
   'input.send_aria': 'Bericht versturen',
   'input.stop': 'Stoppen',
@@ -184,6 +186,7 @@ export const nlStrings: Record<string, string> = {
   'cmd.tools.desc': 'Beschikbare tools weergeven',
   'cmd.init.desc': '.ava/instructions.md aanmaken voor projectspecifieke context',
   'cmd.exit.desc': 'Ava afsluiten',
+  'cmd.security.desc': 'Beveiligingsaudit uitvoeren (/security [focusgebied])',
 
   // ── CLI Command Messages ──────────────────────────────────────────────────
   'cmd.model.unknown': 'Onbekend model: {model}',

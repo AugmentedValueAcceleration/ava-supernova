@@ -24,6 +24,7 @@ interface Command {
 export type ModelSwitchHandler = (provider: Provider, model: ModelDefinition) => void;
 export type RetryHandler = () => void;
 export type CompactHandler = () => Promise<void>;
+export type SecurityHandler = (focus: string) => Promise<void>;
 
 export class CommandHandler {
   private commands: Map<string, Command> = new Map();
@@ -37,6 +38,7 @@ export class CommandHandler {
     onModelSwitch?: ModelSwitchHandler;
     onRetry?: RetryHandler;
     onCompact?: CompactHandler;
+    onSecurity?: SecurityHandler;
   }) {
     this.registerCommand({
       name: 'help',
@@ -506,6 +508,22 @@ export class CommandHandler {
         } else {
           const existing = getInstructionsPath(projectRoot);
           console.log(`  ${t('cmd.init.exists', { path: existing })}`);
+        }
+        return true;
+      },
+    });
+
+    // ── Security scan ──────────────────────────────────────────────────────
+
+    this.registerCommand({
+      name: 'security',
+      aliases: ['sec', 'audit'],
+      description: t('cmd.security.desc'),
+      execute: async (args) => {
+        if (opts.onSecurity) {
+          await opts.onSecurity(args.trim());
+        } else {
+          console.log(`  ${t('cmd.security.desc')}`);
         }
         return true;
       },

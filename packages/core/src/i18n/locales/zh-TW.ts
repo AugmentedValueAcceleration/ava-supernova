@@ -10,9 +10,11 @@ export const zhTWStrings: Record<string, string> = {
   'input.placeholder.plan': '描述你想要規劃的內容...',
   'input.placeholder.chat': '提一個問題或開始討論...',
   'input.placeholder.disabled': '請先設定服務供應商...',
+  'input.placeholder.security': '描述要掃描的內容，或直接按 Enter 進行完整稽核...',
   'input.mode.code': '程式碼',
   'input.mode.plan': '規劃',
   'input.mode.chat': '聊天',
+  'input.mode.security': '安全',
   'input.send': '傳送 (Enter)',
   'input.send_aria': '傳送訊息',
   'input.stop': '停止',
@@ -184,6 +186,7 @@ export const zhTWStrings: Record<string, string> = {
   'cmd.tools.desc': '列出可用工具',
   'cmd.init.desc': '建立 .ava/instructions.md 用於專案專屬上下文',
   'cmd.exit.desc': '退出 Ava',
+  'cmd.security.desc': '執行安全稽核 (/security [關注領域])',
 
   // ── CLI Command Messages ──────────────────────────────────────────────────
   'cmd.model.unknown': '未知模型：{model}',

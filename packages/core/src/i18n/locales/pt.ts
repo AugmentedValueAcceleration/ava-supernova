@@ -10,9 +10,11 @@ export const ptStrings: Record<string, string> = {
   'input.placeholder.plan': 'Descreva o que voc\u00ea quer planejar...',
   'input.placeholder.chat': 'Fa\u00e7a uma pergunta ou inicie uma conversa...',
   'input.placeholder.disabled': 'Configure um provedor para come\u00e7ar...',
+  'input.placeholder.security': 'Descreva o que escanear, ou pressione Enter para uma auditoria completa...',
   'input.mode.code': 'C\u00f3digo',
   'input.mode.plan': 'Plano',
   'input.mode.chat': 'Chat',
+  'input.mode.security': 'Segurança',
   'input.send': 'Enviar (Enter)',
   'input.send_aria': 'Enviar mensagem',
   'input.stop': 'Parar',
@@ -184,6 +186,7 @@ export const ptStrings: Record<string, string> = {
   'cmd.tools.desc': 'Listar ferramentas dispon\u00edveis',
   'cmd.init.desc': 'Criar .ava/instructions.md para contexto espec\u00edfico do projeto',
   'cmd.exit.desc': 'Sair do Ava',
+  'cmd.security.desc': 'Executar uma auditoria de segurança (/security [área de foco])',
 
   // \u2500\u2500 CLI Command Messages \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   'cmd.model.unknown': 'Modelo desconhecido: {model}',

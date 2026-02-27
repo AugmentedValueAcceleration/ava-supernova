@@ -10,9 +10,11 @@ export const ukStrings: Record<string, string> = {
   'input.placeholder.plan': 'Опишіть, що ви хочете спланувати...',
   'input.placeholder.chat': 'Задайте питання або почніть обговорення...',
   'input.placeholder.disabled': 'Налаштуйте провайдера, щоб почати...',
+  'input.placeholder.security': 'Опишіть, що потрібно перевірити, або натисніть Enter для повного аудиту...',
   'input.mode.code': 'Код',
   'input.mode.plan': 'План',
   'input.mode.chat': 'Чат',
+  'input.mode.security': 'Безпека',
   'input.send': 'Надіслати (Enter)',
   'input.send_aria': 'Надіслати повідомлення',
   'input.stop': 'Зупинити',
@@ -184,6 +186,7 @@ export const ukStrings: Record<string, string> = {
   'cmd.tools.desc': 'Перелік доступних інструментів',
   'cmd.init.desc': 'Створити .ava/instructions.md для контексту проєкту',
   'cmd.exit.desc': 'Вийти з Ava',
+  'cmd.security.desc': 'Запустити аудит безпеки (/security [область перевірки])',
 
   // ── CLI Command Messages ──────────────────────────────────────────────────
   'cmd.model.unknown': 'Невідома модель: {model}',

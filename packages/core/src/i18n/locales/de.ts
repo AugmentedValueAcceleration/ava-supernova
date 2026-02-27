@@ -10,9 +10,11 @@ export const deStrings: Record<string, string> = {
   'input.placeholder.plan': 'Beschreibe, was du planen m\u00f6chtest...',
   'input.placeholder.chat': 'Stelle eine Frage oder starte eine Diskussion...',
   'input.placeholder.disabled': 'Konfiguriere einen Anbieter, um zu beginnen...',
+  'input.placeholder.security': 'Beschreibe, was gescannt werden soll, oder drücke Enter für ein vollständiges Audit...',
   'input.mode.code': 'Code',
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Chat',
+  'input.mode.security': 'Sicherheit',
   'input.send': 'Senden (Enter)',
   'input.send_aria': 'Nachricht senden',
   'input.stop': 'Stopp',
@@ -184,6 +186,7 @@ export const deStrings: Record<string, string> = {
   'cmd.tools.desc': 'Verf\u00fcgbare Werkzeuge auflisten',
   'cmd.init.desc': '.ava/instructions.md f\u00fcr projektspezifischen Kontext erstellen',
   'cmd.exit.desc': 'Ava beenden',
+  'cmd.security.desc': 'Sicherheitsaudit durchführen (/security [Fokusbereich])',
 
   // \u2500\u2500 CLI Command Messages \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   'cmd.model.unknown': 'Unbekanntes Modell: {model}',

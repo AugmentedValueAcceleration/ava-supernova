@@ -10,9 +10,11 @@ export const arStrings: Record<string, string> = {
   'input.placeholder.plan': 'صِف ما تريد التخطيط له...',
   'input.placeholder.chat': 'اطرح سؤالاً أو ابدأ نقاشاً...',
   'input.placeholder.disabled': 'قم بإعداد مزوّد للبدء...',
+  'input.placeholder.security': 'صِف ما تريد فحصه، أو اضغط Enter لتدقيق شامل...',
   'input.mode.code': 'كود',
   'input.mode.plan': 'خطة',
   'input.mode.chat': 'محادثة',
+  'input.mode.security': 'أمان',
   'input.send': 'إرسال (Enter)',
   'input.send_aria': 'إرسال الرسالة',
   'input.stop': 'إيقاف',
@@ -184,6 +186,7 @@ export const arStrings: Record<string, string> = {
   'cmd.tools.desc': 'عرض الأدوات المتاحة',
   'cmd.init.desc': 'إنشاء .ava/instructions.md لسياق المشروع',
   'cmd.exit.desc': 'الخروج من Ava',
+  'cmd.security.desc': 'تشغيل تدقيق أمني (/security [مجال التركيز])',
 
   // ── CLI Command Messages ──────────────────────────────────────────────────
   'cmd.model.unknown': 'نموذج غير معروف: {model}',

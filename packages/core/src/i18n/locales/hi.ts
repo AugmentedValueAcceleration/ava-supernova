@@ -10,9 +10,11 @@ export const hiStrings: Record<string, string> = {
   'input.placeholder.plan': 'बताएँ कि आप क्या प्लान करना चाहते हैं...',
   'input.placeholder.chat': 'कोई सवाल पूछें या चर्चा शुरू करें...',
   'input.placeholder.disabled': 'शुरू करने के लिए एक प्रोवाइडर कॉन्फ़िगर करें...',
+  'input.placeholder.security': 'बताएँ कि क्या स्कैन करना है, या पूर्ण ऑडिट के लिए Enter दबाएँ...',
   'input.mode.code': 'कोड',
   'input.mode.plan': 'प्लान',
   'input.mode.chat': 'चैट',
+  'input.mode.security': 'सुरक्षा',
   'input.send': 'भेजें (Enter)',
   'input.send_aria': 'संदेश भेजें',
   'input.stop': 'रोकें',
@@ -184,6 +186,7 @@ export const hiStrings: Record<string, string> = {
   'cmd.tools.desc': 'उपलब्ध टूल की सूची',
   'cmd.init.desc': 'प्रोजेक्ट कॉन्टेक्स्ट के लिए .ava/instructions.md बनाएँ',
   'cmd.exit.desc': 'Ava से बाहर निकलें',
+  'cmd.security.desc': 'सुरक्षा ऑडिट चलाएँ (/security [फोकस क्षेत्र])',
 
   // ── CLI Command Messages ──────────────────────────────────────────────────
   'cmd.model.unknown': 'अज्ञात मॉडल: {model}',

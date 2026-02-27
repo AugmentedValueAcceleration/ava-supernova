@@ -10,9 +10,11 @@ export const jaStrings: Record<string, string> = {
   'input.placeholder.plan': '計画したい内容を記述してください...',
   'input.placeholder.chat': '質問をするか、議論を始めましょう...',
   'input.placeholder.disabled': 'まずプロバイダーを設定してください...',
+  'input.placeholder.security': 'スキャン対象を記述するか、Enter を押して完全な監査を実行...',
   'input.mode.code': 'コード',
   'input.mode.plan': '計画',
   'input.mode.chat': 'チャット',
+  'input.mode.security': 'セキュリティ',
   'input.send': '送信 (Enter)',
   'input.send_aria': 'メッセージを送信',
   'input.stop': '停止',
@@ -184,6 +186,7 @@ export const jaStrings: Record<string, string> = {
   'cmd.tools.desc': '利用可能なツールを一覧表示',
   'cmd.init.desc': 'プロジェクト固有のコンテキスト用に .ava/instructions.md を作成',
   'cmd.exit.desc': 'Ava を終了',
+  'cmd.security.desc': 'セキュリティ監査を実行 (/security [対象領域])',
 
   // ── CLI Command Messages ──────────────────────────────────────────────────
   'cmd.model.unknown': '不明なモデル：{model}',

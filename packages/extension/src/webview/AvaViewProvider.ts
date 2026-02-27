@@ -9,6 +9,7 @@ import {
   HistoryManager,
   ProviderError,
   buildSystemPrompt,
+  getSecurityModePrefix,
   killBackgroundProcesses,
   detectProjectRoot,
   loadProjectInstructions,
@@ -976,6 +977,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         return `[Plan Mode] Analyze the codebase and create a structured plan for the following request. You may read files and search the codebase to understand context. Do NOT write files, edit files, or execute commands — only output a detailed plan.\n\n${text}`;
       case 'chat':
         return `[Chat Mode] Respond conversationally. Do not use any tools — just discuss, explain, or brainstorm.\n\n${text}`;
+      case 'security':
+        return getSecurityModePrefix(text || 'Perform a comprehensive security audit of this project.');
       default:
         return text;
     }

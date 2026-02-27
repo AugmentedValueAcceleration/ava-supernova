@@ -10,9 +10,11 @@ export const viStrings: Record<string, string> = {
   'input.placeholder.plan': 'Mô tả những gì bạn muốn lên kế hoạch...',
   'input.placeholder.chat': 'Đặt câu hỏi hoặc bắt đầu thảo luận...',
   'input.placeholder.disabled': 'Hãy cấu hình nhà cung cấp trước...',
+  'input.placeholder.security': 'Mô tả nội dung cần quét, hoặc nhấn Enter để kiểm tra toàn bộ...',
   'input.mode.code': 'Code',
   'input.mode.plan': 'Kế hoạch',
   'input.mode.chat': 'Trò chuyện',
+  'input.mode.security': 'Bảo mật',
   'input.send': 'Gửi (Enter)',
   'input.send_aria': 'Gửi tin nhắn',
   'input.stop': 'Dừng',
@@ -184,6 +186,7 @@ export const viStrings: Record<string, string> = {
   'cmd.tools.desc': 'Liệt kê các công cụ khả dụng',
   'cmd.init.desc': 'Tạo .ava/instructions.md cho ngữ cảnh riêng của dự án',
   'cmd.exit.desc': 'Thoát Ava',
+  'cmd.security.desc': 'Chạy kiểm tra bảo mật (/security [lĩnh vực tập trung])',
 
   // ── CLI Command Messages ──────────────────────────────────────────────────
   'cmd.model.unknown': 'Mô hình không xác định: {model}',

@@ -10,9 +10,11 @@ export const thStrings: Record<string, string> = {
   'input.placeholder.plan': 'อธิบายสิ่งที่คุณต้องการวางแผน...',
   'input.placeholder.chat': 'ถามคำถามหรือเริ่มพูดคุย...',
   'input.placeholder.disabled': 'ตั้งค่าผู้ให้บริการเพื่อเริ่มต้น...',
+  'input.placeholder.security': 'อธิบายสิ่งที่ต้องการสแกน หรือกด Enter เพื่อตรวจสอบทั้งหมด...',
   'input.mode.code': 'โค้ด',
   'input.mode.plan': 'แผน',
   'input.mode.chat': 'แชท',
+  'input.mode.security': 'ความปลอดภัย',
   'input.send': 'ส่ง (Enter)',
   'input.send_aria': 'ส่งข้อความ',
   'input.stop': 'หยุด',
@@ -184,6 +186,7 @@ export const thStrings: Record<string, string> = {
   'cmd.tools.desc': 'แสดงเครื่องมือที่มี',
   'cmd.init.desc': 'สร้าง .ava/instructions.md สำหรับบริบทโปรเจกต์',
   'cmd.exit.desc': 'ออกจาก Ava',
+  'cmd.security.desc': 'เรียกใช้การตรวจสอบความปลอดภัย (/security [พื้นที่เน้น])',
 
   // ── CLI Command Messages ──────────────────────────────────────────────────
   'cmd.model.unknown': 'ไม่รู้จักโมเดล: {model}',

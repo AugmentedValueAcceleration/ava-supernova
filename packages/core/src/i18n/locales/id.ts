@@ -10,9 +10,11 @@ export const idStrings: Record<string, string> = {
   'input.placeholder.plan': 'Jelaskan apa yang ingin Anda rencanakan...',
   'input.placeholder.chat': 'Ajukan pertanyaan atau mulai diskusi...',
   'input.placeholder.disabled': 'Konfigurasikan provider untuk memulai...',
+  'input.placeholder.security': 'Jelaskan apa yang ingin dipindai, atau tekan Enter untuk audit lengkap...',
   'input.mode.code': 'Kode',
   'input.mode.plan': 'Rencana',
   'input.mode.chat': 'Obrolan',
+  'input.mode.security': 'Keamanan',
   'input.send': 'Kirim (Enter)',
   'input.send_aria': 'Kirim pesan',
   'input.stop': 'Hentikan',
@@ -184,6 +186,7 @@ export const idStrings: Record<string, string> = {
   'cmd.tools.desc': 'Daftar alat yang tersedia',
   'cmd.init.desc': 'Buat .ava/instructions.md untuk konteks khusus proyek',
   'cmd.exit.desc': 'Keluar dari Ava',
+  'cmd.security.desc': 'Jalankan audit keamanan (/security [area fokus])',
 
   // ── CLI Command Messages ──────────────────────────────────────────────────
   'cmd.model.unknown': 'Model tidak dikenal: {model}',

@@ -10,9 +10,11 @@ export const trStrings: Record<string, string> = {
   'input.placeholder.plan': 'Planlamak istediğinizi açıklayın...',
   'input.placeholder.chat': 'Bir soru sorun veya sohbet başlatın...',
   'input.placeholder.disabled': 'Başlamak için bir sağlayıcı yapılandırın...',
+  'input.placeholder.security': 'Neyi taramak istediğinizi açıklayın veya tam denetim için Enter tuşuna basın...',
   'input.mode.code': 'Kod',
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Sohbet',
+  'input.mode.security': 'Güvenlik',
   'input.send': 'Gönder (Enter)',
   'input.send_aria': 'Mesaj gönder',
   'input.stop': 'Durdur',
@@ -184,6 +186,7 @@ export const trStrings: Record<string, string> = {
   'cmd.tools.desc': 'Mevcut araçları listele',
   'cmd.init.desc': 'Proje bağlamı için .ava/instructions.md oluştur',
   'cmd.exit.desc': "Ava'dan çık",
+  'cmd.security.desc': 'Güvenlik denetimi çalıştır (/security [odak alanı])',
 
   // ── CLI Command Messages ──────────────────────────────────────────────────
   'cmd.model.unknown': 'Bilinmeyen model: {model}',

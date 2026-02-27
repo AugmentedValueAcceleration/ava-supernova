@@ -1,7 +1,7 @@
 import * as readline from 'node:readline';
 import { stdin, stdout } from 'node:process';
 import chalk from 'chalk';
-import { t } from '@ava/core';
+import { t, getSecurityModePrefix } from '@ava/core';
 import type { Agent, AgentEvent, Conversation, ToolRegistry, HistoryManager } from '@ava/core';
 import { Renderer } from './renderer.js';
 import { CommandHandler } from './commands.js';
@@ -284,6 +284,13 @@ export class Repl {
       this.spinner.stop();
       console.log(chalk.red('  ' + t('compression.failed')));
     }
+  }
+
+  async securityScan(focus: string): Promise<void> {
+    const userText = focus || 'Perform a comprehensive security audit of this project.';
+    const prefixed = getSecurityModePrefix(userText);
+    await this.processUserMessage(prefixed);
+    this.prompt();
   }
 
   private async processUserMessage(input: string): Promise<void> {

@@ -10,9 +10,11 @@ export const zhCNStrings: Record<string, string> = {
   'input.placeholder.plan': '描述你想要规划的内容...',
   'input.placeholder.chat': '提一个问题或开始讨论...',
   'input.placeholder.disabled': '请先配置服务商...',
+  'input.placeholder.security': '描述要扫描的内容，或直接按 Enter 进行完整审计...',
   'input.mode.code': '编码',
   'input.mode.plan': '规划',
   'input.mode.chat': '聊天',
+  'input.mode.security': '安全',
   'input.send': '发送 (Enter)',
   'input.send_aria': '发送消息',
   'input.stop': '停止',
@@ -184,6 +186,7 @@ export const zhCNStrings: Record<string, string> = {
   'cmd.tools.desc': '列出可用工具',
   'cmd.init.desc': '创建 .ava/instructions.md 用于项目专属上下文',
   'cmd.exit.desc': '退出 Ava',
+  'cmd.security.desc': '运行安全审计 (/security [关注领域])',
 
   // ── CLI Command Messages ──────────────────────────────────────────────────
   'cmd.model.unknown': '未知模型：{model}',

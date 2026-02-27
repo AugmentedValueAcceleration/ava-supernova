@@ -10,9 +10,11 @@ export const koStrings: Record<string, string> = {
   'input.placeholder.plan': '계획하고 싶은 내용을 설명해 주세요...',
   'input.placeholder.chat': '질문하거나 토론을 시작하세요...',
   'input.placeholder.disabled': '먼저 공급자를 설정해 주세요...',
+  'input.placeholder.security': '스캔할 내용을 설명하거나, Enter를 눌러 전체 감사를 실행하세요...',
   'input.mode.code': '코드',
   'input.mode.plan': '계획',
   'input.mode.chat': '채팅',
+  'input.mode.security': '보안',
   'input.send': '전송 (Enter)',
   'input.send_aria': '메시지 전송',
   'input.stop': '중지',
@@ -184,6 +186,7 @@ export const koStrings: Record<string, string> = {
   'cmd.tools.desc': '사용 가능한 도구 목록 보기',
   'cmd.init.desc': '프로젝트 전용 컨텍스트를 위한 .ava/instructions.md 생성',
   'cmd.exit.desc': 'Ava 종료',
+  'cmd.security.desc': '보안 감사 실행 (/security [초점 영역])',
 
   // ── CLI Command Messages ──────────────────────────────────────────────────
   'cmd.model.unknown': '알 수 없는 모델: {model}',

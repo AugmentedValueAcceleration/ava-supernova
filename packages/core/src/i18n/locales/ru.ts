@@ -10,9 +10,11 @@ export const ruStrings: Record<string, string> = {
   'input.placeholder.plan': 'Опишите, что вы хотите спланировать...',
   'input.placeholder.chat': 'Задайте вопрос или начните обсуждение...',
   'input.placeholder.disabled': 'Настройте провайдера для начала работы...',
+  'input.placeholder.security': 'Опишите, что нужно проверить, или нажмите Enter для полного аудита...',
   'input.mode.code': 'Код',
   'input.mode.plan': 'План',
   'input.mode.chat': 'Чат',
+  'input.mode.security': 'Безопасность',
   'input.send': 'Отправить (Enter)',
   'input.send_aria': 'Отправить сообщение',
   'input.stop': 'Стоп',
@@ -184,6 +186,7 @@ export const ruStrings: Record<string, string> = {
   'cmd.tools.desc': 'Список доступных инструментов',
   'cmd.init.desc': 'Создать .ava/instructions.md для контекста проекта',
   'cmd.exit.desc': 'Выйти из Ava',
+  'cmd.security.desc': 'Запустить аудит безопасности (/security [область проверки])',
 
   // ── CLI Command Messages ──────────────────────────────────────────────────
   'cmd.model.unknown': 'Неизвестная модель: {model}',

@@ -10,9 +10,11 @@ export const enStrings: Record<string, string> = {
   'input.placeholder.plan': 'Describe what you want to plan...',
   'input.placeholder.chat': 'Ask a question or start a discussion...',
   'input.placeholder.disabled': 'Configure a provider to start...',
+  'input.placeholder.security': 'Describe what to scan, or just hit Enter for a full audit...',
   'input.mode.code': 'Code',
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Chat',
+  'input.mode.security': 'Security',
   'input.send': 'Send (Enter)',
   'input.send_aria': 'Send message',
   'input.stop': 'Stop',
@@ -184,6 +186,7 @@ export const enStrings: Record<string, string> = {
   'cmd.tools.desc': 'List available tools',
   'cmd.init.desc': 'Create .ava/instructions.md for project-specific context',
   'cmd.exit.desc': 'Exit Ava',
+  'cmd.security.desc': 'Run a security audit (/security [focus area])',
 
   // ── CLI Command Messages ──────────────────────────────────────────────────
   'cmd.model.unknown': 'Unknown model: {model}',

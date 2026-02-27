@@ -10,9 +10,11 @@ export const frStrings: Record<string, string> = {
   'input.placeholder.plan': 'D\u00e9crivez ce que vous voulez planifier...',
   'input.placeholder.chat': 'Posez une question ou lancez une discussion...',
   'input.placeholder.disabled': 'Configurez un fournisseur pour commencer...',
+  'input.placeholder.security': 'Décrivez ce que vous souhaitez analyser, ou appuyez sur Entrée pour un audit complet...',
   'input.mode.code': 'Code',
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Chat',
+  'input.mode.security': 'S\u00e9curit\u00e9',
   'input.send': 'Envoyer (Entr\u00e9e)',
   'input.send_aria': 'Envoyer le message',
   'input.stop': 'Arr\u00eater',
@@ -184,6 +186,7 @@ export const frStrings: Record<string, string> = {
   'cmd.tools.desc': 'Lister les outils disponibles',
   'cmd.init.desc': 'Cr\u00e9er .ava/instructions.md pour le contexte sp\u00e9cifique au projet',
   'cmd.exit.desc': 'Quitter Ava',
+  'cmd.security.desc': 'Lancer un audit de sécurité (/security [domaine ciblé])',
 
   // \u2500\u2500 CLI Command Messages \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   'cmd.model.unknown': 'Mod\u00e8le inconnu : {model}',
