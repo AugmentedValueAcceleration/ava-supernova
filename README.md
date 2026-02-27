@@ -22,7 +22,7 @@
 
 ---
 
-Ava | Supernova is an open-source AI coding agent that brings the power of agentic coding to every developer — as both a **terminal CLI** and a **VSCode extension**. Choose your model, plug in your API key, and get a full coding agent that can read, write, edit, search, plan, and execute across your entire codebase.
+Ava | Supernova is an open-source AI coding agent that brings the power of agentic coding to every developer — as both a **terminal CLI** and a **VSCode extension**. Choose your model, plug in your API key (or connect your Ava account for managed access), and get a full coding agent that can read, write, edit, search, plan, scan for security vulnerabilities, and execute across your entire codebase.
 
 ## Why Ava?
 
@@ -44,11 +44,13 @@ Ava bridges the gap between these powerful models and a polished agentic coding 
 |---|---|---|---|---|
 | **DeepSeek** | DeepSeek V3, DeepSeek R1 | 128K | Yes* | Yes |
 | **Kimi** (Moonshot AI) | Kimi K2.5, Moonshot V1 | 128K - 256K | Yes | Yes |
+| **GLM** (Zhipu AI) | GLM-5, GLM-4.7, GLM-4 Flash | 128K - 200K | Yes | Yes |
 | **Qwen** (Alibaba Cloud) | Qwen 3.5 Plus, Qwen Turbo | 256K - 1M | Yes | Yes |
+| **Mistral** | Mistral Large 3, Codestral, Devstral 2 | 128K - 256K | Yes | Yes |
 | **Custom** | Any compatible endpoint | Configurable | Yes | Yes |
 
 *DeepSeek R1 (reasoner) does not support tool calling but supports extended thinking.
-Qwen 3.5 Plus supports native vision (images) and extended thinking.
+Qwen 3.5 Plus and GLM-5 support native vision (images) and extended thinking.
 
 The **Custom** provider supports any locally hosted model via [Ollama](https://ollama.com), [LM Studio](https://lmstudio.ai), or any server exposing a standard API format.
 
@@ -58,7 +60,7 @@ The **Custom** provider supports any locally hosted model via [Ollama](https://o
 
 - [Node.js](https://nodejs.org) v20.0.0 or later
 - [pnpm](https://pnpm.io) package manager
-- An API key from at least one supported provider
+- An API key from at least one supported provider, **or** an Ava platform account (Pro/Ultra) for managed API access
 
 ### Installation
 
@@ -93,7 +95,9 @@ On first launch, Ava guides you through an interactive setup wizard:
 
   1. DeepSeek
   2. Kimi (Moonshot AI)
-  3. Qwen (Alibaba Cloud)
+  3. GLM (Zhipu AI)
+  4. Qwen (Alibaba Cloud)
+  5. Mistral
 
   Choose a provider (number): 1
 
@@ -102,6 +106,8 @@ On first launch, Ava guides you through an interactive setup wizard:
 
   Setup complete! Active model: DeepSeek V3.2
 ```
+
+Alternatively, if you have an Ava platform account (Pro or Ultra tier), connect it for managed API access — no provider keys needed.
 
 ## VSCode Extension
 
@@ -119,7 +125,8 @@ Ava also runs as a VSCode sidebar extension with the same agent and tools.
 ### Features
 
 - **Chat interface** — Markdown rendering, thinking blocks, tool call cards
-- **Three modes** — Code (full agent), Plan (read-only analysis), Chat (no tools)
+- **Four modes** — Code (full agent), Plan (read-only analysis), Chat (no tools), Security (OWASP-aligned audit)
+- **Security scanning** — AI-powered security audit using existing tools to scan your project for vulnerabilities
 - **Tool approval UI** — Approve, deny, "Always Allow", or "Allow All" per session
 - **Plan approval** — Review and approve plans before Ava executes
 - **Ask User** — Ava can ask you questions mid-task with a text input card
@@ -128,6 +135,8 @@ Ava also runs as a VSCode sidebar extension with the same agent and tools.
 - **Model switching** — Switch models from the dropdown without restarting
 - **Project context** — Loads `.ava/instructions.md` for project-specific guidance
 - **Permission modes** — Strict, Balanced, or Autonomous (configurable in settings)
+- **Platform account** — Connect your Ava account for managed API access and cloud features
+- **Dashboard panel** — Account management, billing, and settings inside VSCode
 
 ## Tools
 
@@ -198,6 +207,7 @@ Set via `/permission` in the CLI or in VSCode settings.
 | `/tools` | | List available tools |
 | `/retry` | `/r` | Retry the last message |
 | `/init` | | Create `.ava/instructions.md` for project context |
+| `/security` | `/sec`, `/audit` | Run a security audit on the current project |
 | `/exit` | `/quit`, `/q` | Exit Ava |
 
 ### History
@@ -212,6 +222,18 @@ Set via `/permission` in the CLI or in VSCode settings.
 | `/pin <id>` | | Pin a conversation |
 | `/unpin <id>` | | Unpin a conversation |
 | `/export <id> [format]` | | Export as markdown or JSON |
+
+### Security Scanning
+
+```
+> /security
+  Starting comprehensive security audit...
+
+> /security auth
+  Scanning authentication and access control...
+```
+
+The security mode uses Ava's existing tools (file_read, grep, glob, bash) to perform an OWASP-aligned audit of your project. It checks for injection, auth flaws, secrets exposure, XSS, CSRF, misconfigurations, vulnerable dependencies, weak crypto, SSRF, unsafe deserialization, and logging issues.
 
 ### Switching Models
 
@@ -296,32 +318,48 @@ To use a local model, add a custom provider entry with a `baseUrl`:
 }
 ```
 
-### Where to Get API Keys
+### Ava Platform Account (Optional)
+
+Instead of managing your own API keys, you can connect an Ava platform account for managed access:
+
+| Tier | Price | What You Get |
+|---|---|---|
+| **Free** | $0 | Own API keys, full agent, all tools |
+| **Pro** | $19/mo | Managed API access, 10M tokens/month, cloud sync |
+| **Ultra** | $49/mo | Unlimited tokens, all models, cloud sync |
+
+Sign up at [ava-supernova.com](https://ava-supernova.com), get your platform key, and paste it into the extension dashboard or CLI.
+
+### Where to Get API Keys (BYOK)
 
 | Provider | API Key Portal |
 |---|---|
 | DeepSeek | https://platform.deepseek.com/api_keys |
 | Kimi (Moonshot) | https://platform.moonshot.ai/console/api-keys |
+| GLM (Zhipu AI) | https://open.bigmodel.cn/ |
 | Qwen (Alibaba Cloud) | https://bailian.console.alibabacloud.com/ |
+| Mistral | https://console.mistral.ai/api-keys/ |
 
 ## Architecture
 
-Ava is a monorepo with four packages:
+Ava is a monorepo with four packages, plus a web platform submodule:
 
 ```
 packages/
 ├── core/                  # @ava/core — shared agent engine
 │   ├── agent/             #   Agentic loop, system prompt, events
-│   ├── providers/         #   LLM provider adapters (DeepSeek, Kimi, generic)
+│   ├── providers/         #   LLM provider adapters (DeepSeek, Kimi, GLM, Qwen, Mistral)
 │   ├── tools/             #   13 built-in tool implementations
 │   ├── config/            #   Configuration management
 │   └── history/           #   Conversation persistence
 ├── cli/                   # @ava/cli — terminal REPL interface
 │   └── cli/               #   Commands, renderer, spinner, setup wizard
 ├── extension/             # ava-supernova — VSCode extension host
-│   └── webview/           #   Extension ↔ webview bridge
-└── extension/webview-ui/  # @ava/webview-ui — React + Tailwind webview
-    └── components/        #   Chat UI, tool cards, plan cards, etc.
+│   ├── webview/           #   Extension ↔ webview bridge
+│   └── dashboard-ui/     #   Account dashboard (billing, memory, settings)
+├── extension/webview-ui/  # @ava/webview-ui — React + Tailwind webview
+│   └── components/        #   Chat UI, tool cards, plan cards, etc.
+└── web/                   # Platform website (ava-supernova.com, git submodule)
 ```
 
 ### Key Design Decisions
@@ -380,10 +418,15 @@ cd packages/extension && pnpm build
 - [x] i18n — 20 languages
 - [x] Getting Started walkthrough in extension
 - [x] 208 tests across 19 test files
-- [ ] Multi-file awareness improvements
+- [x] Security scanning mode — OWASP-aligned AI-powered security audits
+- [x] Platform account system — Free, Pro ($19/mo), Ultra ($49/mo)
+- [x] Dashboard panel in VSCode — billing, memory, settings inside the editor
+- [x] Security audit — 23 vulnerabilities found and fixed
+- [ ] Office suite tools (email, Slack, Discord, GitHub, documents)
+- [ ] Web chat interface (ava-supernova.com/chat)
+- [ ] Mobile app (iOS + Android via Capacitor)
+- [ ] Memory system — persistent AI memory across sessions
 - [ ] Plugin system for custom tools
-- [ ] Productivity tools (email, Slack, calendar)
-- [ ] Settings/history sync across machines
 
 ## Contributing
 

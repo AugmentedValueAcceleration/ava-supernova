@@ -2,6 +2,61 @@
 
 All notable changes to Ava | Supernova will be documented in this file.
 
+## [0.2.0-beta] - 2026-02-27
+
+### Security Mode
+
+- **AI-powered security scanning** — new `!!` Security mode in the extension and `/security` CLI command
+- OWASP-aligned audit covering 11 vulnerability categories: injection, auth, secrets, XSS, CSRF, misconfiguration, dependencies, crypto, SSRF, deserialization, logging
+- Uses existing tools (file_read, grep, glob, bash) to scan the project — no new tools or agents needed
+- Streams findings in real-time through the chat interface with severity, file, category, and fix recommendations
+- Interactive — reply to findings ("fix that one", "explain more", "scan auth deeper")
+- Available via mode selector (`!!`) in extension and `/security` (`/sec`, `/audit`) in CLI
+
+### Platform Integration
+
+- **Ava platform account system** — connect your account from [ava-supernova.com](https://ava-supernova.com) for managed API access
+- Free, Pro ($19/mo), and Ultra ($49/mo) tiers with managed LLM proxy
+- Platform key stored securely in VSCode SecretStorage
+- Dashboard panel inside VSCode — account overview, billing, memory, connections, settings
+- Token usage tracking and display for Pro tier users
+- Automatic proxy routing for paid tier users (no provider API keys needed)
+
+### Security Audit & Hardening
+
+- Comprehensive security audit — 23 vulnerabilities identified and fixed
+- API key storage migrated from plaintext settings to VSCode SecretStorage
+- Git tool command injection prevention (execFile + metacharacter rejection)
+- SSRF protection on http_request tool (blocks private/internal IPs)
+- Rate limiting on all platform API routes
+- Atomic usage tracking with row-level locking
+- Signed admin cookies replacing client-side session storage
+- CSP nonce upgraded to crypto.randomBytes
+- Input validation and error sanitization across all endpoints
+- RLS INSERT policies for defense-in-depth
+
+### Providers
+
+- **GLM (Zhipu AI)** — GLM-5, GLM-4.7, GLM-4 Flash added to platform
+- **Mistral** — Mistral Large 3, Codestral, Devstral 2, Mistral Small added to platform
+
+### Extension
+
+- Four modes: Code (`>>`), Plan (`::`), Chat (`..`), Security (`!!`)
+- Dashboard panel (`Ava: Open Dashboard` command) — account management without leaving VSCode
+- Provider source toggle — switch between own API keys and platform managed access
+
+### CLI
+
+- `/security` command (aliases: `/sec`, `/audit`) — run security audits from the terminal
+- Supports focused scans: `/security auth`, `/security dependencies`, etc.
+
+### i18n
+
+- Security mode strings added to all 20 languages (core + webview)
+
+---
+
 ## [0.1.0-beta] - 2026-02-23
 
 ### First beta release

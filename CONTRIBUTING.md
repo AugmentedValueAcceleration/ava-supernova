@@ -25,10 +25,10 @@ This is a **pnpm monorepo** with four packages:
 
 | Package | Path | Description |
 |---------|------|-------------|
-| `@ava/core` | `packages/core` | Agent loop, providers, tools, config, history |
-| `@ava/cli` | `packages/cli` | Terminal REPL interface |
-| `ava-supernova` | `packages/extension` | VSCode extension host |
-| `@ava/webview-ui` | `packages/extension/webview-ui` | React webview for the extension |
+| `@ava/core` | `packages/core` | Agent loop, providers (5), tools (13), config, history, i18n |
+| `@ava/cli` | `packages/cli` | Terminal REPL interface, `/security` command |
+| `ava-supernova` | `packages/extension` | VSCode extension host, dashboard panel |
+| `@ava/webview-ui` | `packages/extension/webview-ui` | React webview (4 modes: code/plan/chat/security) |
 
 ### Development Commands
 
@@ -92,6 +92,8 @@ Update system prompt with anti-spiraling rules
 - **Webview is pure browser React** — no Node.js APIs, communicate via postMessage
 - **Tools are self-contained** — each tool has its own file with schema + execute()
 - **Providers extend BaseProvider** — override only what's different
+- **Mode prefixes live in core** — `applyModePrefix()` wraps user input; new modes go in `system-prompt.ts`
+- **API keys in SecretStorage** — never store secrets in plaintext settings
 
 ## What We Need Help With
 
