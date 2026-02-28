@@ -116,12 +116,15 @@ export class CommandHandler {
         const parts = args.trim().split(/\s+/);
         const action = parts[0];
 
+        const liveProviders = ['deepseek', 'kimi', 'qwen'];
+        const comingSoonProviders = ['zhipu', 'mistral'];
+        const allSupported = [...liveProviders, ...comingSoonProviders];
+
         if (action === 'add') {
           const providerName = parts[1];
-          const supported = ['deepseek', 'kimi', 'qwen', 'zhipu', 'mistral'];
 
-          if (!providerName || !supported.includes(providerName)) {
-            console.log(`  ${t('cmd.provider.usage', { providers: supported.join('|') })}`);
+          if (!providerName || !allSupported.includes(providerName)) {
+            console.log(`  ${t('cmd.provider.usage', { providers: allSupported.join('|') })}`);
             return true;
           }
 
@@ -147,13 +150,15 @@ export class CommandHandler {
           const appConfig = await opts.config.load();
           console.log('');
           console.log(chalk.bold(`  ${t('cmd.provider.title')}`));
-          const supported = ['deepseek', 'kimi', 'qwen', 'zhipu', 'mistral'];
-          for (const name of supported) {
+          for (const name of liveProviders) {
             const configured = (appConfig.providers as Record<string, ProviderSettings | undefined>)[name];
             const status = configured?.apiKey
               ? chalk.green(t('cmd.provider.configured'))
               : chalk.dim(t('cmd.provider.not_configured'));
             console.log(`  ${chalk.bold(name)} — ${status}`);
+          }
+          if (comingSoonProviders.length > 0) {
+            console.log(chalk.dim(`  Coming soon: ${comingSoonProviders.join(', ')}`));
           }
           console.log('');
           console.log(chalk.dim(`  ${t('cmd.provider.hint')}`));

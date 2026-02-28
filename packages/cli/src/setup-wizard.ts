@@ -11,30 +11,35 @@ const PROVIDERS = [
     displayName: 'DeepSeek',
     description: 'Best price/performance, strong reasoning',
     keyUrl: 'https://platform.deepseek.com/api_keys',
+    live: true,
   },
   {
     key: 'kimi',
     displayName: 'Kimi (Moonshot AI)',
     description: 'Best multi-step tool calling, 76.8% SWE-Bench',
     keyUrl: 'https://platform.moonshot.ai/console/api-keys',
+    live: true,
   },
   {
     key: 'qwen',
     displayName: 'Qwen (Alibaba Cloud)',
     description: 'Strong all-round, 1M context window',
     keyUrl: 'https://bailian.console.alibabacloud.com/#/model-market/detail/qwen3.5-plus',
+    live: true,
   },
   {
     key: 'zhipu',
     displayName: 'GLM (Zhipu AI)',
     description: '77.8% SWE-Bench, best tool-call reliability',
     keyUrl: 'https://bigmodel.cn/usercenter/proj-mgmt/apikeys',
+    live: false,
   },
   {
     key: 'mistral',
     displayName: 'Mistral AI',
     description: 'European provider, 256K context, Codestral',
     keyUrl: 'https://console.mistral.ai/api-keys',
+    live: false,
   },
 ];
 
@@ -51,37 +56,47 @@ export async function runSetupWizard(
   console.log(dim('  ' + t('setup.intro')));
   console.log('');
 
-  // Show providers with descriptions
+  // Split into live and coming soon
+  const liveProviders = PROVIDERS.filter(p => p.live);
+  const comingSoon = PROVIDERS.filter(p => !p.live);
+
+  // Show live providers
   console.log(accent('  Available providers:'));
   console.log('');
-  for (let i = 0; i < PROVIDERS.length; i++) {
-    const p = PROVIDERS[i];
+  for (let i = 0; i < liveProviders.length; i++) {
+    const p = liveProviders[i];
     console.log(
       accent(`  ${i + 1}.`) +
       chalk.bold(` ${p.displayName}`) +
       dim(` — ${p.description}`),
     );
   }
-  console.log(dim(`  ${PROVIDERS.length + 1}. Skip for now`));
+  console.log(dim(`  ${liveProviders.length + 1}. Skip for now`));
+
+  // Show coming soon providers
+  if (comingSoon.length > 0) {
+    console.log('');
+    console.log(dim('  Coming soon: ' + comingSoon.map(p => p.displayName).join(', ')));
+  }
   console.log('');
 
   const choice = await rl.question(accent('  > ') + t('setup.choose'));
   const choiceIdx = parseInt(choice, 10) - 1;
 
   // Skip option
-  if (choiceIdx === PROVIDERS.length) {
+  if (choiceIdx === liveProviders.length) {
     console.log(dim('\n  Skipped. Run /provider add <name> later to configure.\n'));
     rl.close();
     return;
   }
 
-  if (choiceIdx < 0 || choiceIdx >= PROVIDERS.length) {
+  if (choiceIdx < 0 || choiceIdx >= liveProviders.length) {
     console.log(chalk.hex(THEME.error)('  ' + t('setup.invalid_choice')));
     rl.close();
     return;
   }
 
-  const selected = PROVIDERS[choiceIdx];
+  const selected = liveProviders[choiceIdx];
 
   console.log('');
   console.log(dim('  ' + t('setup.key_url', { url: selected.keyUrl })));
