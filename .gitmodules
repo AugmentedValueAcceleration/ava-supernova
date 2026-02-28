@@ -2,3 +2,7 @@
 	path = packages/web
 	url = https://github.com/AugmentedValueAcceleration/ava-supernova-platform.git
 	branch = development
+[submodule "packages/ide"]
+	path = packages/ide
+	url = https://github.com/AugmentedValueAcceleration/ava-supernova-ide.git
+	branch = development
