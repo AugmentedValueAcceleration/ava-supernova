@@ -165,7 +165,7 @@ export class Repl {
   }
 
   async start(): Promise<void> {
-    this.renderer.printWelcome();
+    this.renderer.printWelcome(this.modelLabel);
     this.prompt();
 
     for await (const line of this.rl) {
@@ -313,7 +313,7 @@ export class Repl {
           break;
         case 'tool_call_start':
           this.renderer.printToolCallStart(event.toolCall);
-          this.spinner.start(t('cli.running', { tool: event.toolCall.function.name }));
+          this.spinner.startForTool(event.toolCall.function.name);
           break;
         case 'tool_call_end':
           this.spinner.stop();

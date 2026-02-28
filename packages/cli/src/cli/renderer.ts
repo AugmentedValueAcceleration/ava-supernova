@@ -2,10 +2,33 @@ import chalk from 'chalk';
 import { Marked } from 'marked';
 import { markedTerminal } from 'marked-terminal';
 import type { ToolCall, TokenUsage } from '@ava/core';
-import { t, APP_DISPLAY_NAME, ProviderError } from '@ava/core';
+import { t, APP_VERSION, ProviderError } from '@ava/core';
 import { THEME } from './theme.js';
 
 const marked = new Marked(markedTerminal() as Record<string, unknown>);
+
+const LOGO = [
+  '     \u2554\u2550\u2557 \u2566  \u2566 \u2554\u2550\u2557',
+  '     \u2560\u2550\u2563 \u255A\u2557\u2554\u255D \u2560\u2550\u2563',
+  '     \u2569 \u2569  \u255A\u255D  \u2569 \u2569',
+];
+
+const SEPARATOR = '\u2500'.repeat(40);
+const TOOL_ICONS: Record<string, string> = {
+  file_read: '\u25B6',
+  file_write: '\u25C6',
+  file_edit: '\u25C8',
+  glob: '\u25CE',
+  grep: '\u25C9',
+  bash: '\u25B8',
+  web_search: '\u25C7',
+  list_directory: '\u25A1',
+  git_status: '\u25A0',
+  http_request: '\u25C7',
+  present_plan: '\u25B7',
+  ask_user: '\u25CB',
+  todo_write: '\u25A3',
+};
 
 export class Renderer {
   private streamBuffer = '';
@@ -13,10 +36,19 @@ export class Renderer {
   private thinkingBuffer = '';
   private isThinking = false;
 
-  printWelcome(): void {
+  printWelcome(modelLabel?: string): void {
+    const accent = chalk.hex(THEME.accent);
+    const dim = chalk.dim;
+
     console.log('');
-    console.log(chalk.hex(THEME.accent).bold(`  ${APP_DISPLAY_NAME}`));
-    console.log(chalk.dim('  ' + t('welcome.cli_hint')));
+    for (const line of LOGO) {
+      console.log(accent.bold(line));
+    }
+    console.log(accent('     \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500'));
+    console.log(accent.bold('      S U P E R N O V A'));
+    console.log('');
+    console.log(dim(`     v${APP_VERSION}`) + (modelLabel ? dim('  \u00B7  ') + chalk.hex(THEME.text)(modelLabel) : ''));
+    console.log(dim('     ' + t('welcome.cli_hint')));
     console.log('');
   }
 
@@ -26,7 +58,6 @@ export class Renderer {
       process.stdout.write(chalk.dim.italic('\n  ' + t('cli.thinking_label')));
     }
     this.thinkingBuffer += delta;
-    // Show a condensed version — just dots for progress
     process.stdout.write(chalk.dim('.'));
   }
 
@@ -76,11 +107,13 @@ export class Renderer {
     // todo_write is rendered entirely by printToolCallResult — skip the noisy start line
     if (toolCall.function.name === 'todo_write') return;
 
+    const icon = TOOL_ICONS[toolCall.function.name] || '\u25B8';
     console.log('');
+    console.log(chalk.dim(`  ${SEPARATOR}`));
     console.log(
-      chalk.hex(THEME.toolAccent)('  ' + t('cli.tool_label')) +
-        chalk.bold(toolCall.function.name) +
-        chalk.dim(` (${this.truncateArgs(toolCall.function.arguments)})`),
+      chalk.hex(THEME.toolAccent)(`  ${icon} `) +
+        chalk.hex(THEME.toolAccent).bold(toolCall.function.name) +
+        chalk.dim(` \u2014 ${this.truncateArgs(toolCall.function.arguments)}`),
     );
   }
 
@@ -90,22 +123,24 @@ export class Renderer {
       try {
         const args = JSON.parse(toolCall.function.arguments);
         const todos = args.todos as Array<{ content: string; status: string; activeForm: string }>;
-        const done = todos.filter((t) => t.status === 'completed').length;
+        const done = todos.filter((td) => td.status === 'completed').length;
         console.log('');
+        console.log(chalk.dim(`  ${SEPARATOR}`));
         console.log(
-          chalk.hex(THEME.toolAccent)('  ' + t('cli.tasks_label')) +
-            chalk.dim(t('todo.done', { done: String(done), total: String(todos.length) })),
+          chalk.hex(THEME.toolAccent)(`  \u25A3 `) +
+            chalk.hex(THEME.toolAccent).bold(t('cli.tasks_label').replace(/[\[\]\s]/g, '')) +
+            chalk.dim(` ${t('todo.done', { done: String(done), total: String(todos.length) })}`),
         );
-        for (const t of todos) {
-          const icon =
-            t.status === 'completed'
+        for (const td of todos) {
+          const tdIcon =
+            td.status === 'completed'
               ? chalk.green('\u2713')
-              : t.status === 'in_progress'
-                ? chalk.hex(THEME.accent)('~')
+              : td.status === 'in_progress'
+                ? chalk.hex(THEME.accent)('\u25B8')
                 : chalk.dim('\u25CB');
-          const text = t.status === 'in_progress' ? t.activeForm : t.content;
-          const style = t.status === 'completed' ? chalk.dim : (s: string) => s;
-          console.log(`    ${icon} ${style(text)}`);
+          const text = td.status === 'in_progress' ? td.activeForm : td.content;
+          const style = td.status === 'completed' ? chalk.dim : (s: string) => s;
+          console.log(`    ${tdIcon} ${style(text)}`);
         }
         return;
       } catch {
@@ -113,9 +148,11 @@ export class Renderer {
       }
     }
 
-    const status = success ? chalk.green(t('cli.ok')) : chalk.red(t('cli.fail'));
+    const status = success
+      ? chalk.hex(THEME.success)('\u2713')
+      : chalk.hex(THEME.error)('\u2717');
     const preview = result.length > 200 ? result.slice(0, 200) + '...' : result;
-    console.log(chalk.dim(`  [${status}] ${preview.split('\n')[0]}`));
+    console.log(chalk.dim(`  ${status} ${preview.split('\n')[0]}`));
 
     if (toolCall.function.name === 'file_edit' && success && metadata?.oldString && metadata?.newString) {
       this.printDiff(metadata.oldString as string, metadata.newString as string);
@@ -146,9 +183,9 @@ export class Renderer {
 
   printError(error: Error): void {
     if (error instanceof ProviderError) {
-      console.error(chalk.red(`\n  ${error.humanMessage}\n`));
+      console.error(chalk.red(`\n  \u2717 ${error.humanMessage}\n`));
     } else {
-      console.error(chalk.red(`\n  Error: ${error.message}\n`));
+      console.error(chalk.red(`\n  \u2717 Error: ${error.message}\n`));
     }
   }
 
@@ -161,7 +198,8 @@ export class Renderer {
     if (cost !== undefined && cost > 0) {
       parts.push(`$${cost.toFixed(6)}`);
     }
-    console.log(chalk.dim('  ' + t('cli.tokens_label') + ' ' + parts.join(' / ')));
+    console.log(chalk.dim(`  ${SEPARATOR}`));
+    console.log(chalk.dim('  \u25C8 ' + parts.join(' \u00B7 ')));
   }
 
   private truncateArgs(argsJson: string): string {
