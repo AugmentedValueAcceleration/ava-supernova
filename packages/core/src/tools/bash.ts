@@ -130,6 +130,9 @@ export class BashTool implements Tool {
           shell,
         },
         (error, stdout, stderr) => {
+          // Remove stream listeners — final result is handled here
+          child.stdout?.removeAllListeners('data');
+          child.stderr?.removeAllListeners('data');
           let output = '';
           if (stdout) output += stdout;
           if (stderr) output += (output ? '\n' : '') + stderr;
@@ -160,6 +163,13 @@ export class BashTool implements Tool {
           });
         },
       );
+
+      // Stream partial output for real-time display
+      if (context.onOutput) {
+        const onOutput = context.onOutput;
+        child.stdout?.on('data', (chunk: Buffer) => onOutput(chunk.toString()));
+        child.stderr?.on('data', (chunk: Buffer) => onOutput(chunk.toString()));
+      }
 
       if (context.signal) {
         context.signal.addEventListener('abort', () => {

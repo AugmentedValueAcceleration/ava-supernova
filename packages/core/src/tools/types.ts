@@ -33,6 +33,8 @@ export interface Tool {
 export interface ToolExecutionContext {
   cwd: string;
   signal?: AbortSignal;
+  /** Called with incremental output chunks (stdout/stderr) for real-time streaming. */
+  onOutput?: (data: string) => void;
 }
 
 // Returns boolean (true=approved, false=denied) or a string (approved with custom tool result).

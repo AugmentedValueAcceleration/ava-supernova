@@ -21,6 +21,7 @@ export type AgentEvent =
   | { type: 'stream_delta'; content: string }
   | { type: 'stream_end'; message: AssistantMessage }
   | { type: 'tool_call_start'; toolCall: ToolCall }
+  | { type: 'tool_call_partial'; toolCallId: string; data: string }
   | { type: 'tool_call_end'; toolCall: ToolCall; result: string; success: boolean; metadata?: Record<string, unknown> }
   | { type: 'usage'; usage: TokenUsage; cost?: number }
   | { type: 'error'; error: Error }
@@ -199,10 +200,17 @@ export class Agent {
           parsedArgs = {};
         }
 
+        const toolRunContext = {
+          ...runContext,
+          onOutput: (data: string) => {
+            onEvent({ type: 'tool_call_partial', toolCallId: toolCall.id, data });
+          },
+        };
+
         const result = await this.toolRegistry.execute(
           toolCall.function.name,
           parsedArgs,
-          runContext,
+          toolRunContext,
         );
 
         onEvent({
