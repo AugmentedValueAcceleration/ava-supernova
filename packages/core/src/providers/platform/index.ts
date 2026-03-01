@@ -10,6 +10,10 @@ export class PlatformProvider extends BaseProvider {
     return 'https://ava-supernova.com/api';
   }
 
+  protected getCompletionUrl(): string {
+    return `${this.baseUrl}/chat`;
+  }
+
   listModels(): ModelDefinition[] {
     return PLATFORM_MODELS;
   }
