@@ -5,6 +5,7 @@ export interface ProviderSettings {
 
 export interface AvaConfig {
   activeModel: string;
+  platformKey?: string;
   providers: {
     deepseek?: ProviderSettings;
     kimi?: ProviderSettings;

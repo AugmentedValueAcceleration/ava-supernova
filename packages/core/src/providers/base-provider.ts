@@ -1,6 +1,7 @@
 import type { Provider, ProviderConfig, ChatCompletionRequest } from './types.js';
 import type { ModelDefinition, CompletionResponse, StreamChunk } from '../core/types.js';
 import { ProviderError } from '../core/errors.js';
+import { logger } from '../core/logger.js';
 
 export abstract class BaseProvider implements Provider {
   abstract readonly name: string;
@@ -130,6 +131,9 @@ export abstract class BaseProvider implements Provider {
     });
     const url = this.getCompletionUrl();
     const headers = this.getAuthHeaders();
+
+    const toolCount = Array.isArray(body.tools) ? body.tools.length : 0;
+    logger.debug(`[${this.name}] POST ${url} | model=${body.model} tools=${toolCount} tool_choice=${body.tool_choice ?? 'none'}`);
 
     const response = await this.fetchWithRetry(url, {
       method: 'POST',

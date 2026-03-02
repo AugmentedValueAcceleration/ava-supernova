@@ -12,6 +12,7 @@ import type { ToolRegistry } from '../tools/tool-registry.js';
 import type { ToolExecutionContext } from '../tools/types.js';
 import { MAX_TOOL_CALL_ITERATIONS, ITERATION_WARNING_THRESHOLD } from '../core/constants.js';
 import { t } from '../i18n/index.js';
+import { logger } from '../core/logger.js';
 
 // ─── Event system ────────────────────────────────────────────────────────────
 
@@ -60,6 +61,7 @@ export class Agent {
     const toolSchemas: ToolSchema[] = this.model.supportsToolCalls
       ? this.toolRegistry.getSchemas()
       : [];
+    logger.debug(`[agent] Starting run: model=${this.model.id} supportsToolCalls=${this.model.supportsToolCalls} toolSchemas=${toolSchemas.length}`);
 
     // Pass signal to tool execution context so tools (esp. bash) can be cancelled
     const runContext = { ...this.toolContext, signal };
@@ -177,6 +179,7 @@ export class Agent {
       }
 
       if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
+        logger.debug(`[agent] No tool_calls in response. content=${(assistantMessage.content ?? '').length} chars, reasoning=${(assistantMessage.reasoning_content ?? '').length} chars`);
         // Surface empty responses — model returned nothing visible to the user
         if (!assistantMessage.content && !assistantMessage.reasoning_content) {
           onEvent({
@@ -187,6 +190,7 @@ export class Agent {
         onEvent({ type: 'done', finalMessage: assistantMessage });
         return messages;
       }
+      logger.debug(`[agent] Got ${assistantMessage.tool_calls.length} tool_calls: ${assistantMessage.tool_calls.map((tc: ToolCall) => tc.function.name).join(', ')}`);
 
       // ── Parallel tool execution ──────────────────────────────────────────
       // Partition tool calls: confirmation-required run sequentially first,
@@ -354,6 +358,9 @@ export class Agent {
         }
 
         if (delta.tool_calls) {
+          if (toolCallsAccumulator.size === 0) {
+            logger.debug('[agent] First tool_call delta received in stream');
+          }
           for (const tcDelta of delta.tool_calls) {
             if (!toolCallsAccumulator.has(tcDelta.index)) {
               toolCallsAccumulator.set(tcDelta.index, {

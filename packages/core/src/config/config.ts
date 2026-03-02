@@ -49,6 +49,11 @@ function validateConfig(raw: unknown): AvaConfig {
     config.activeModel = obj.activeModel;
   }
 
+  // platformKey — Ava platform account key
+  if (typeof obj.platformKey === 'string' && obj.platformKey) {
+    config.platformKey = obj.platformKey;
+  }
+
   // providers — validate structure, skip malformed entries
   if (typeof obj.providers === 'object' && obj.providers !== null) {
     const providers = obj.providers as Record<string, unknown>;
@@ -135,6 +140,9 @@ export class ConfigManager {
 
   async needsSetup(): Promise<boolean> {
     const config = await this.load();
-    return !config.activeModel || Object.keys(config.providers).length === 0;
+    const hasProvider = Object.values(config.providers).some(
+      v => v && typeof v === 'object' && 'apiKey' in v,
+    );
+    return !config.activeModel || (!hasProvider && !config.platformKey);
   }
 }
