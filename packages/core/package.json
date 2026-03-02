@@ -22,6 +22,20 @@
     "glob": "^13.0.6",
     "zod": "^4.3.6"
   },
+  "peerDependencies": {
+    "screenshot-desktop": ">=1.15.0",
+    "playwright": ">=1.40.0",
+    "pg": ">=8.0.0",
+    "better-sqlite3": ">=9.0.0",
+    "mysql2": ">=3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "screenshot-desktop": { "optional": true },
+    "playwright": { "optional": true },
+    "pg": { "optional": true },
+    "better-sqlite3": { "optional": true },
+    "mysql2": { "optional": true }
+  },
   "devDependencies": {
     "@types/node": "^25.3.0",
     "typescript": "^5.9.3"

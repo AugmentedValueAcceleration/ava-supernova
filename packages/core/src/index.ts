@@ -40,6 +40,7 @@ export { PlatformProvider } from './providers/platform/index.js';
 // Tools
 export { ToolRegistry } from './tools/tool-registry.js';
 export { killBackgroundProcesses } from './tools/bash.js';
+export { BrowserTool } from './tools/browser.js';
 export type {
   Tool,
   ToolResult,

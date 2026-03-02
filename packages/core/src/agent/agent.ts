@@ -229,6 +229,23 @@ export class Agent {
             content: result.output,
           },
         ];
+
+        // Vision pipeline: inject screenshot images so vision-capable models can "see" them.
+        // Non-vision models have these automatically stripped by the sanitizer above.
+        if (result.metadata?.base64_image) {
+          messages = [
+            ...messages,
+            {
+              role: 'user' as const,
+              content: [
+                { type: 'text' as const, text: `[Image captured by ${toolCall.function.name}]` },
+                { type: 'image_url' as const, image_url: {
+                  url: `data:${(result.metadata.mime_type as string) || 'image/png'};base64,${result.metadata.base64_image}`,
+                }},
+              ],
+            },
+          ];
+        }
       }
     }
 

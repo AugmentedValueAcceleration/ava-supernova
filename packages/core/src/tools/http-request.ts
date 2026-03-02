@@ -3,7 +3,8 @@ import { request as httpRequest } from 'node:http';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 
-const REQUEST_TIMEOUT = 15_000;
+const DEFAULT_TIMEOUT = 15_000;
+const MAX_TIMEOUT = 60_000;
 const MAX_BODY_LENGTH = 30_000;
 const MAX_REDIRECTS = 5;
 
@@ -41,9 +42,11 @@ interface RequestOptions {
   headers?: Record<string, string>;
   body?: string;
   redirectCount?: number;
+  timeout?: number;
+  verbose?: boolean;
 }
 
-function doRequest(opts: RequestOptions): Promise<{ status: number; statusText: string; headers: Record<string, string>; body: string }> {
+function doRequest(opts: RequestOptions): Promise<{ status: number; statusText: string; headers: Record<string, string>; allHeaders: Record<string, string>; body: string }> {
   return new Promise((resolve, reject) => {
     const parsed = new URL(opts.url);
     const isHttps = parsed.protocol === 'https:';
@@ -63,7 +66,7 @@ function doRequest(opts: RequestOptions): Promise<{ status: number; statusText: 
       {
         method: opts.method,
         headers: reqHeaders,
-        timeout: REQUEST_TIMEOUT,
+        timeout: opts.timeout ?? DEFAULT_TIMEOUT,
       },
       (res) => {
         // Handle redirects
@@ -75,6 +78,7 @@ function doRequest(opts: RequestOptions): Promise<{ status: number; statusText: 
               status: res.statusCode!,
               statusText: `Too many redirects (${MAX_REDIRECTS})`,
               headers: {},
+              allHeaders: {},
               body: `Redirect limit exceeded. Last location: ${res.headers.location}`,
             });
             return;
@@ -93,9 +97,14 @@ function doRequest(opts: RequestOptions): Promise<{ status: number; statusText: 
         res.on('end', () => {
           const rawHeaders = res.headers as Record<string, string | string[] | undefined>;
           const filteredHeaders: Record<string, string> = {};
+          const allHeaders: Record<string, string> = {};
           for (const [key, value] of Object.entries(rawHeaders)) {
-            if (INTERESTING_HEADERS.has(key.toLowerCase()) && value) {
-              filteredHeaders[key] = Array.isArray(value) ? value.join(', ') : value;
+            if (value) {
+              const strValue = Array.isArray(value) ? value.join(', ') : value;
+              allHeaders[key] = strValue;
+              if (INTERESTING_HEADERS.has(key.toLowerCase())) {
+                filteredHeaders[key] = strValue;
+              }
             }
           }
 
@@ -108,6 +117,7 @@ function doRequest(opts: RequestOptions): Promise<{ status: number; statusText: 
             status: res.statusCode ?? 0,
             statusText: res.statusMessage ?? '',
             headers: filteredHeaders,
+            allHeaders,
             body,
           });
         });
@@ -139,6 +149,7 @@ export class HttpRequestTool implements Tool {
     description:
       'Make an HTTP request. Supports GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS. ' +
       'Use to test API endpoints, check URLs, or fetch data. ' +
+      'Supports auth shortcuts, response assertions, JSON path extraction, and timing. ' +
       'Returns status code, relevant headers, and response body (truncated at 30KB). ' +
       'Follows redirects automatically (up to 5).',
     parameters: {
@@ -161,6 +172,36 @@ export class HttpRequestTool implements Tool {
           type: 'string',
           description: 'Request body for POST/PUT/PATCH (optional). Defaults to JSON content type.',
         },
+        auth: {
+          type: 'object',
+          description: 'Authentication shortcut. Sets Authorization header automatically.',
+          properties: {
+            type: { type: 'string', enum: ['bearer', 'basic'], description: 'Auth type' },
+            token: { type: 'string', description: 'Bearer token (for type: bearer)' },
+            username: { type: 'string', description: 'Username (for type: basic)' },
+            password: { type: 'string', description: 'Password (for type: basic)' },
+          },
+        },
+        timeout_ms: {
+          type: 'number',
+          description: 'Request timeout in milliseconds. Default: 15000. Max: 60000.',
+        },
+        assert_status: {
+          type: 'number',
+          description: 'Expected HTTP status code. Tool returns failure if status does not match.',
+        },
+        assert_body_contains: {
+          type: 'string',
+          description: 'String that must appear in response body. Tool returns failure if not found.',
+        },
+        extract_json_path: {
+          type: 'string',
+          description: 'Dot-notation path to extract from JSON response (e.g. "data.users[0].name").',
+        },
+        verbose: {
+          type: 'boolean',
+          description: 'Show full request/response headers and timing. Default: false.',
+        },
       },
       required: ['url'],
     },
@@ -169,8 +210,14 @@ export class HttpRequestTool implements Tool {
   async execute(args: Record<string, unknown>, _context: ToolExecutionContext): Promise<ToolResult> {
     const url = args.url as string;
     const method = ((args.method as string) ?? 'GET').toUpperCase();
-    const headers = args.headers as Record<string, string> | undefined;
+    const headers = { ...(args.headers as Record<string, string> | undefined) };
     const body = args.body as string | undefined;
+    const auth = args.auth as { type?: string; token?: string; username?: string; password?: string } | undefined;
+    const timeoutMs = Math.min(Math.max((args.timeout_ms as number) || DEFAULT_TIMEOUT, 1000), MAX_TIMEOUT);
+    const assertStatus = args.assert_status as number | undefined;
+    const assertBodyContains = args.assert_body_contains as string | undefined;
+    const extractJsonPath = args.extract_json_path as string | undefined;
+    const verbose = (args.verbose as boolean) ?? false;
 
     if (!url) {
       return { success: false, output: 'URL is required.' };
@@ -193,14 +240,36 @@ export class HttpRequestTool implements Tool {
       return { success: false, output: `Unsupported method: ${method}. Use one of: ${[...ALLOWED_METHODS].join(', ')}` };
     }
 
+    // Apply auth shortcut
+    if (auth?.type === 'bearer' && auth.token) {
+      headers['Authorization'] = `Bearer ${auth.token}`;
+    } else if (auth?.type === 'basic' && auth.username) {
+      const encoded = Buffer.from(`${auth.username}:${auth.password ?? ''}`).toString('base64');
+      headers['Authorization'] = `Basic ${encoded}`;
+    }
+
     try {
-      const result = await doRequest({ url, method, headers, body });
+      const startTime = Date.now();
+      const result = await doRequest({ url, method, headers, body, timeout: timeoutMs });
+      const elapsed = Date.now() - startTime;
 
       const lines: string[] = [];
+      const assertions: string[] = [];
+
+      // Verbose: show request info
+      if (verbose) {
+        lines.push(`> ${method} ${url}`);
+        for (const [key, value] of Object.entries(headers)) {
+          lines.push(`> ${key}: ${value}`);
+        }
+        lines.push('');
+      }
+
       lines.push(`HTTP ${result.status} ${result.statusText}`);
 
-      // Headers
-      const headerEntries = Object.entries(result.headers);
+      // Headers (verbose = all, normal = interesting only)
+      const showHeaders = verbose ? result.allHeaders : result.headers;
+      const headerEntries = Object.entries(showHeaders);
       if (headerEntries.length > 0) {
         lines.push('');
         for (const [key, value] of headerEntries) {
@@ -208,22 +277,75 @@ export class HttpRequestTool implements Tool {
         }
       }
 
+      // JSON path extraction
+      let extracted: unknown;
+      if (extractJsonPath && result.body) {
+        try {
+          const json = JSON.parse(result.body);
+          extracted = resolveJsonPath(json, extractJsonPath);
+          if (extracted !== undefined) {
+            lines.push('');
+            lines.push(`[extracted ${extractJsonPath}]: ${typeof extracted === 'object' ? JSON.stringify(extracted, null, 2) : String(extracted)}`);
+          } else {
+            lines.push('');
+            lines.push(`[extracted ${extractJsonPath}]: (not found)`);
+          }
+        } catch {
+          lines.push('');
+          lines.push(`[extract_json_path]: Response is not valid JSON`);
+        }
+      }
+
       // Body
-      if (result.body && method !== 'HEAD') {
+      if (result.body && method !== 'HEAD' && !extractJsonPath) {
         lines.push('');
         lines.push(result.body);
       }
 
-      const isSuccess = result.status >= 200 && result.status < 400;
+      // Timing
+      if (verbose) {
+        lines.push('');
+        lines.push(`Time: ${elapsed}ms`);
+      }
+
+      // Assertions
+      let isSuccess = result.status >= 200 && result.status < 400;
+      if (assertStatus !== undefined && result.status !== assertStatus) {
+        isSuccess = false;
+        assertions.push(`Status assertion failed: expected ${assertStatus}, got ${result.status}`);
+      }
+      if (assertBodyContains && !result.body.includes(assertBodyContains)) {
+        isSuccess = false;
+        assertions.push(`Body assertion failed: "${assertBodyContains}" not found in response`);
+      }
+      if (assertions.length > 0) {
+        lines.push('');
+        lines.push('ASSERTIONS FAILED:');
+        for (const a of assertions) lines.push(`  - ${a}`);
+      }
 
       return {
         success: isSuccess,
         output: lines.join('\n'),
-        metadata: { status: result.status, method, url },
+        metadata: {
+          status: result.status, method, url, elapsed_ms: elapsed,
+          ...(extracted !== undefined ? { extracted } : {}),
+        },
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       return { success: false, output: `HTTP request failed: ${message}` };
     }
   }
+}
+
+/** Resolve a dot-notation path like "data.users[0].name" against a JSON object. */
+function resolveJsonPath(obj: unknown, path: string): unknown {
+  const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.');
+  let current: unknown = obj;
+  for (const part of parts) {
+    if (current == null || typeof current !== 'object') return undefined;
+    current = (current as Record<string, unknown>)[part];
+  }
+  return current;
 }

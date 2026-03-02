@@ -13,6 +13,10 @@ import { WebSearchTool } from './web-search.js';
 import { AskUserTool } from './ask-user.js';
 import { GitStatusTool } from './git.js';
 import { HttpRequestTool } from './http-request.js';
+import { GitDiffTool } from './git-diff.js';
+import { ScreenshotTool } from './screenshot.js';
+import { DatabaseQueryTool } from './database-query.js';
+import { BrowserTool } from './browser.js';
 
 // Which risk levels require confirmation under each permission mode
 const CONFIRMATION_MATRIX: Record<PermissionMode, Set<ToolRiskLevel>> = {
@@ -53,6 +57,10 @@ export class ToolRegistry {
       new AskUserTool(),
       new GitStatusTool(),
       new HttpRequestTool(),
+      new GitDiffTool(),
+      new ScreenshotTool(),
+      new DatabaseQueryTool(),
+      new BrowserTool(),
     ];
     for (const tool of builtins) {
       this.tools.set(tool.name, tool);
