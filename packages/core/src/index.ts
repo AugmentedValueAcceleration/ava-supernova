@@ -41,6 +41,12 @@ export { PlatformProvider } from './providers/platform/index.js';
 export { ToolRegistry } from './tools/tool-registry.js';
 export { killBackgroundProcesses } from './tools/bash.js';
 export { BrowserTool } from './tools/browser.js';
+
+// Memory
+export { MemoryManager } from './memory/memory-manager.js';
+
+// Checkpoint
+export { CheckpointManager } from './checkpoint/checkpoint-manager.js';
 export type {
   Tool,
   ToolResult,
@@ -80,6 +86,7 @@ export {
   AVA_HOME,
   CONFIG_PATH,
   HISTORY_DIR,
+  MEMORY_DIR,
   MAX_TOOL_CALL_ITERATIONS,
   ITERATION_WARNING_THRESHOLD,
   DEFAULT_TEMPERATURE,

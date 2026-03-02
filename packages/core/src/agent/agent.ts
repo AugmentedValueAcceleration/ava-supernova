@@ -45,11 +45,15 @@ export class Agent {
     model: ModelDefinition;
     toolRegistry: ToolRegistry;
     cwd: string;
+    sharedState?: Record<string, unknown>;
   }) {
     this.provider = opts.provider;
     this.model = opts.model;
     this.toolRegistry = opts.toolRegistry;
-    this.toolContext = { cwd: opts.cwd };
+    this.toolContext = {
+      cwd: opts.cwd,
+      sharedState: opts.sharedState,
+    };
   }
 
   async run(messages: Message[], onEvent: AgentEventHandler, signal?: AbortSignal): Promise<Message[]> {
@@ -184,67 +188,119 @@ export class Agent {
         return messages;
       }
 
-      for (const toolCall of assistantMessage.tool_calls) {
-        // Check for cancellation before each tool call
+      // ── Parallel tool execution ──────────────────────────────────────────
+      // Partition tool calls: confirmation-required run sequentially first,
+      // auto-approved tools run in parallel after for speed.
+      const confirmCalls: ToolCall[] = [];
+      const autoCalls: ToolCall[] = [];
+
+      for (const tc of assistantMessage.tool_calls) {
+        const tool = this.toolRegistry.getTool(tc.function.name);
+        if (tool && this.toolRegistry.needsConfirmation(tool)) {
+          confirmCalls.push(tc);
+        } else {
+          autoCalls.push(tc);
+        }
+      }
+
+      // Phase 1: Confirmation-required tools (sequential — user must approve each)
+      for (const toolCall of confirmCalls) {
         if (signal?.aborted) {
           onEvent({ type: 'done', finalMessage: assistantMessage });
           return messages;
         }
 
-        onEvent({ type: 'tool_call_start', toolCall });
-
-        let parsedArgs: Record<string, unknown>;
-        try {
-          parsedArgs = JSON.parse(toolCall.function.arguments);
-        } catch {
-          parsedArgs = {};
+        // Auto-checkpoint before write/dangerous tools
+        const toolDef = this.toolRegistry.getTool(toolCall.function.name);
+        if (toolDef && (toolDef.riskLevel === 'write' || toolDef.riskLevel === 'dangerous')) {
+          const cp = runContext.sharedState?.checkpointManager as { hasActiveCheckpoint(): boolean; createCheckpoint(): Promise<unknown> } | undefined;
+          if (cp && !cp.hasActiveCheckpoint()) {
+            try { await cp.createCheckpoint(); } catch { /* best-effort */ }
+          }
         }
 
-        const toolRunContext = {
-          ...runContext,
-          onOutput: (data: string) => {
-            onEvent({ type: 'tool_call_partial', toolCallId: toolCall.id, data });
-          },
-        };
+        messages = await this.executeToolCall(toolCall, runContext, onEvent, messages);
+      }
 
-        const result = await this.toolRegistry.execute(
-          toolCall.function.name,
-          parsedArgs,
-          toolRunContext,
+      // Phase 2: Auto-approved tools (parallel via Promise.allSettled)
+      if (autoCalls.length > 0) {
+        if (signal?.aborted) {
+          onEvent({ type: 'done', finalMessage: assistantMessage });
+          return messages;
+        }
+
+        // Auto-checkpoint if any auto-approved tool is write/dangerous
+        const hasRiskyAuto = autoCalls.some(tc => {
+          const td = this.toolRegistry.getTool(tc.function.name);
+          return td && (td.riskLevel === 'write' || td.riskLevel === 'dangerous');
+        });
+        if (hasRiskyAuto) {
+          const cp = runContext.sharedState?.checkpointManager as { hasActiveCheckpoint(): boolean; createCheckpoint(): Promise<unknown> } | undefined;
+          if (cp && !cp.hasActiveCheckpoint()) {
+            try { await cp.createCheckpoint(); } catch { /* best-effort */ }
+          }
+        }
+
+        // Fire all start events
+        for (const tc of autoCalls) {
+          onEvent({ type: 'tool_call_start', toolCall: tc });
+        }
+
+        // Execute all in parallel
+        const results = await Promise.allSettled(
+          autoCalls.map(async (tc) => {
+            let parsedArgs: Record<string, unknown>;
+            try { parsedArgs = JSON.parse(tc.function.arguments); } catch { parsedArgs = {}; }
+            const ctx = {
+              ...runContext,
+              onOutput: (data: string) => {
+                onEvent({ type: 'tool_call_partial', toolCallId: tc.id, data });
+              },
+            };
+            return this.toolRegistry.execute(tc.function.name, parsedArgs, ctx);
+          })
         );
 
-        onEvent({
-          type: 'tool_call_end',
-          toolCall,
-          result: result.output,
-          success: result.success,
-          metadata: result.metadata,
-        });
+        // Append results in order (API requires tool messages match tool_call order)
+        for (let i = 0; i < autoCalls.length; i++) {
+          const toolCall = autoCalls[i];
+          const settled = results[i];
+          const result = settled.status === 'fulfilled'
+            ? settled.value
+            : { success: false, output: `Tool failed: ${settled.reason}`, metadata: undefined };
 
-        messages = [
-          ...messages,
-          {
-            role: 'tool' as const,
-            tool_call_id: toolCall.id,
-            content: result.output,
-          },
-        ];
+          onEvent({
+            type: 'tool_call_end',
+            toolCall,
+            result: result.output,
+            success: result.success,
+            metadata: result.metadata,
+          });
 
-        // Vision pipeline: inject screenshot images so vision-capable models can "see" them.
-        // Non-vision models have these automatically stripped by the sanitizer above.
-        if (result.metadata?.base64_image) {
           messages = [
             ...messages,
             {
-              role: 'user' as const,
-              content: [
-                { type: 'text' as const, text: `[Image captured by ${toolCall.function.name}]` },
-                { type: 'image_url' as const, image_url: {
-                  url: `data:${(result.metadata.mime_type as string) || 'image/png'};base64,${result.metadata.base64_image}`,
-                }},
-              ],
+              role: 'tool' as const,
+              tool_call_id: toolCall.id,
+              content: result.output,
             },
           ];
+
+          // Vision pipeline
+          if (result.metadata?.base64_image) {
+            messages = [
+              ...messages,
+              {
+                role: 'user' as const,
+                content: [
+                  { type: 'text' as const, text: `[Image captured by ${toolCall.function.name}]` },
+                  { type: 'image_url' as const, image_url: {
+                    url: `data:${(result.metadata.mime_type as string) || 'image/png'};base64,${result.metadata.base64_image}`,
+                  }},
+                ],
+              },
+            ];
+          }
         }
       }
     }
@@ -354,6 +410,72 @@ export class Agent {
     }
 
     return { message, promptTokens: usage?.prompt_tokens ?? 0 };
+  }
+
+  // ── Single tool call execution (used by sequential confirmation phase) ──
+
+  private async executeToolCall(
+    toolCall: ToolCall,
+    runContext: ToolExecutionContext,
+    onEvent: AgentEventHandler,
+    messages: Message[],
+  ): Promise<Message[]> {
+    onEvent({ type: 'tool_call_start', toolCall });
+
+    let parsedArgs: Record<string, unknown>;
+    try {
+      parsedArgs = JSON.parse(toolCall.function.arguments);
+    } catch {
+      parsedArgs = {};
+    }
+
+    const toolRunContext = {
+      ...runContext,
+      onOutput: (data: string) => {
+        onEvent({ type: 'tool_call_partial', toolCallId: toolCall.id, data });
+      },
+    };
+
+    const result = await this.toolRegistry.execute(
+      toolCall.function.name,
+      parsedArgs,
+      toolRunContext,
+    );
+
+    onEvent({
+      type: 'tool_call_end',
+      toolCall,
+      result: result.output,
+      success: result.success,
+      metadata: result.metadata,
+    });
+
+    messages = [
+      ...messages,
+      {
+        role: 'tool' as const,
+        tool_call_id: toolCall.id,
+        content: result.output,
+      },
+    ];
+
+    // Vision pipeline
+    if (result.metadata?.base64_image) {
+      messages = [
+        ...messages,
+        {
+          role: 'user' as const,
+          content: [
+            { type: 'text' as const, text: `[Image captured by ${toolCall.function.name}]` },
+            { type: 'image_url' as const, image_url: {
+              url: `data:${(result.metadata.mime_type as string) || 'image/png'};base64,${result.metadata.base64_image}`,
+            }},
+          ],
+        },
+      ];
+    }
+
+    return messages;
   }
 
   // ── Context compression ──────────────────────────────────────────────────

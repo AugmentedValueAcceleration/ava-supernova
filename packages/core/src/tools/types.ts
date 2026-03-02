@@ -35,6 +35,8 @@ export interface ToolExecutionContext {
   signal?: AbortSignal;
   /** Called with incremental output chunks (stdout/stderr) for real-time streaming. */
   onOutput?: (data: string) => void;
+  /** Shared state across tools within a session (e.g. memoryManager, checkpointManager). */
+  sharedState?: Record<string, unknown>;
 }
 
 // Returns boolean (true=approved, false=denied) or a string (approved with custom tool result).

@@ -17,6 +17,8 @@ import { GitDiffTool } from './git-diff.js';
 import { ScreenshotTool } from './screenshot.js';
 import { DatabaseQueryTool } from './database-query.js';
 import { BrowserTool } from './browser.js';
+import { MemorySaveTool } from './memory-save.js';
+import { RollbackTool } from './rollback.js';
 
 // Which risk levels require confirmation under each permission mode
 const CONFIRMATION_MATRIX: Record<PermissionMode, Set<ToolRiskLevel>> = {
@@ -61,6 +63,8 @@ export class ToolRegistry {
       new ScreenshotTool(),
       new DatabaseQueryTool(),
       new BrowserTool(),
+      new MemorySaveTool(),
+      new RollbackTool(),
     ];
     for (const tool of builtins) {
       this.tools.set(tool.name, tool);
@@ -71,6 +75,10 @@ export class ToolRegistry {
     this.tools.set(tool.name, tool);
   }
 
+  getTool(name: string): Tool | undefined {
+    return this.tools.get(name);
+  }
+
   getSchemas(): ToolSchema[] {
     return Array.from(this.tools.values()).map((tool) => ({
       type: 'function' as const,
@@ -78,7 +86,7 @@ export class ToolRegistry {
     }));
   }
 
-  private needsConfirmation(tool: Tool): boolean {
+  needsConfirmation(tool: Tool): boolean {
     // Plans always require confirmation — they're a collaboration checkpoint, not a permission check.
     // Even in autonomous mode, the user should approve the direction before Ava executes.
     if (tool.name === 'present_plan' || tool.name === 'ask_user') return true;

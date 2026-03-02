@@ -48,6 +48,11 @@ export class PresentPlanTool implements Tool {
           type: 'string',
           description: 'How to verify the plan worked (e.g. "Run npm test and npm run build")',
         },
+        confidence: {
+          type: 'string',
+          enum: ['high', 'medium', 'low'],
+          description: 'Your overall confidence in this plan succeeding. Be honest — high means you\'ve verified the approach, low means you\'re unsure.',
+        },
         alternatives: {
           type: 'array',
           description: 'Optional alternative approaches for the user to choose from',
