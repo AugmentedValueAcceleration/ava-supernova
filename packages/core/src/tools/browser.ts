@@ -7,13 +7,19 @@ const MAX_EXTRACT_LENGTH = 20_000;
 
 const ALLOWED_ACTIONS = new Set(['navigate', 'click', 'fill', 'screenshot', 'extract', 'evaluate', 'close']);
 
-/** Block requests to private/internal IP ranges (SSRF protection). */
+/**
+ * Block requests to internal-only IP ranges (SSRF protection).
+ * localhost and 127.0.0.0/8 are explicitly ALLOWED because Ava runs locally
+ * and dev servers always bind to localhost. We only block private network
+ * ranges (10.x, 172.16-31.x, 192.168.x) that could reach internal services.
+ */
 function isPrivateHost(hostname: string): boolean {
-  if (hostname === 'localhost' || hostname === '[::1]') return true;
+  // localhost / 127.x.x.x / [::1] are ALLOWED — dev servers run here
+  if (hostname === 'localhost' || hostname === '[::1]') return false;
 
   const parts = hostname.split('.').map(Number);
   if (parts.length === 4 && parts.every(n => !isNaN(n))) {
-    if (parts[0] === 127) return true;
+    if (parts[0] === 127) return false;  // loopback — allowed
     if (parts[0] === 10) return true;
     if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
     if (parts[0] === 192 && parts[1] === 168) return true;

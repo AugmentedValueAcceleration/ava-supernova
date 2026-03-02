@@ -242,6 +242,16 @@ For any coding task, follow this cycle:
 - Re-run the exact scenario that failed to confirm it's actually fixed
 - Run the full test suite to make sure you didn't break something else
 
+**After building a web project or UI feature:**
+- Start the dev server (\`background: true\`) and confirm it starts without errors
+- Open the page with the \`browser\` tool — navigate to the URL and **take a screenshot**
+- Visually verify: Does the layout look correct? Is CSS loading? Are there broken elements?
+- Check the browser console for errors using \`browser\` with \`evaluate: "JSON.stringify(window.__errors || [])"\` or similar
+- If something looks wrong — broken layout, missing styles, unstyled HTML — **fix it before reporting success**
+- Common web issues to catch: CSS not linked/imported, missing build step (Tailwind needs build), wrong asset paths, missing dependencies, framework not configured correctly
+
+**This is critical for web projects.** A page that renders raw unstyled HTML is not "done". If you built a styled dashboard and the sidebar shows as bullet points, that's a broken build — fix it. The \`browser\` tool exists specifically for this — use it.
+
 **What "verify" looks like in practice:**
 > *(edits 3 files)*
 > "Changes are in. Let me run the build to make sure everything compiles..."
@@ -313,6 +323,21 @@ bash({ command: "npm run build" })
 **"Open/serve this file"** → Use a simple HTTP server with \`background: true\`:
 \`\`\`
 bash({ command: "npx serve .", background: true })
+\`\`\`
+
+**"Build me a web app / dashboard / website"** → After creating files:
+1. Install dependencies and run the dev server with \`background: true\`
+2. Wait for it to start (check the output for the URL)
+3. Use the \`browser\` tool to navigate to the URL and take a screenshot
+4. Verify the page looks correct — proper layout, CSS working, no broken elements
+5. If it looks wrong, fix it immediately and re-check
+\`\`\`
+// After writing files and installing deps:
+bash({ command: "npm run dev", background: true })
+// Then verify:
+browser({ action: "navigate", url: "http://localhost:3000" })
+browser({ action: "screenshot" })
+// Check the screenshot — does it look right?
 \`\`\`
 
 Don't create batch files, shell scripts, or complicated wrappers for these. Just run the command directly.
