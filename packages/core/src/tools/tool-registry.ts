@@ -19,6 +19,8 @@ import { DatabaseQueryTool } from './database-query.js';
 import { BrowserTool } from './browser.js';
 import { MemorySaveTool } from './memory-save.js';
 import { RollbackTool } from './rollback.js';
+import { ProjectIndexTool } from './project-index.js';
+import { FindSymbolTool } from './find-symbol.js';
 
 // Which risk levels require confirmation under each permission mode
 const CONFIRMATION_MATRIX: Record<PermissionMode, Set<ToolRiskLevel>> = {
@@ -65,6 +67,8 @@ export class ToolRegistry {
       new BrowserTool(),
       new MemorySaveTool(),
       new RollbackTool(),
+      new ProjectIndexTool(),
+      new FindSymbolTool(),
     ];
     for (const tool of builtins) {
       this.tools.set(tool.name, tool);

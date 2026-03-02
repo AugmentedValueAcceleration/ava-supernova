@@ -47,6 +47,12 @@ export { MemoryManager } from './memory/memory-manager.js';
 
 // Checkpoint
 export { CheckpointManager } from './checkpoint/checkpoint-manager.js';
+
+// Indexer
+export { ProjectIndexer } from './indexer/project-indexer.js';
+export type { ProjectIndex, FrameworkInfo, LanguageStats, DirectoryNode, TestInfo } from './indexer/project-indexer.js';
+export { SymbolIndexer } from './indexer/symbol-indexer.js';
+export type { SymbolIndex, SymbolEntry, SymbolKind, SymbolReference } from './indexer/symbol-indexer.js';
 export type {
   Tool,
   ToolResult,
@@ -87,6 +93,7 @@ export {
   CONFIG_PATH,
   HISTORY_DIR,
   MEMORY_DIR,
+  INDEX_DIR,
   MAX_TOOL_CALL_ITERATIONS,
   ITERATION_WARNING_THRESHOLD,
   DEFAULT_TEMPERATURE,

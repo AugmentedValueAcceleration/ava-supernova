@@ -9,6 +9,7 @@ export const AVA_HOME = join(homedir(), '.ava');
 export const CONFIG_PATH = join(AVA_HOME, 'config.json');
 export const HISTORY_DIR = join(AVA_HOME, 'history');
 export const MEMORY_DIR = AVA_HOME; // global memory.md lives here
+export const INDEX_DIR = '.ava'; // project-level index files (project-index.json, symbols.json)
 
 export const MAX_TOOL_CALL_ITERATIONS = 200;
 export const ITERATION_WARNING_THRESHOLD = 10; // warn model when this many iterations remain

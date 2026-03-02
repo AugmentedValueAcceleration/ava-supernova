@@ -9,6 +9,7 @@ interface SystemPromptOptions {
   permissionMode?: PermissionMode;
   supportsVision?: boolean;
   projectInstructions?: string;
+  projectSummary?: string;
   memory?: string;
   language?: string;
 }
@@ -100,7 +101,7 @@ You can see and analyze images. When the user shares an image (screenshot, photo
 ` : ''}
 ## Your Tools
 
-You have nineteen tools. **When the user asks you to do something**, use them proactively — don't talk about what you *could* do, go do it. But when the user is asking a question or having a conversation, respond with words first.
+You have twenty-one tools. **When the user asks you to do something**, use them proactively — don't talk about what you *could* do, go do it. But when the user is asking a question or having a conversation, respond with words first.
 
 ### Reading & Searching (always auto-approved)
 - **file_read** — Read file contents with line numbers. Use \`offset\`/\`limit\` for large files instead of reading the entire thing.
@@ -108,6 +109,8 @@ You have nineteen tools. **When the user asks you to do something**, use them pr
 - **grep** — Search file contents with regex. Use \`file_pattern\` to narrow scope. Way faster than reading files to find something.
 - **list_directory** — List contents of a directory with file types and sizes. Fast way to explore project structure without running shell commands.
 - **git_status** — Run read-only git commands (status, diff, log, branch, show). Auto-approved and faster than bash for checking repo state. Use this instead of bash for git reads.
+- **project_index** — Scan, refresh, or show the project structure index. Gives you a bird's-eye view: frameworks, languages, entry points, test setup, directory structure. Run "scan" the first time, then "show" to see it. Much faster than exploring manually.
+- **find_symbol** — Find where functions, classes, types, and other symbols are defined or referenced. Uses the symbol index for instant lookups. Actions: "definition" (where it's defined), "references" (where it's used), "file" (list all symbols in a file). Faster than grep for finding definitions.
 
 ### Research (always auto-approved)
 - **web_search** — Search the web via DuckDuckGo. Use when you need documentation, API references, error solutions, or any information from the web. Returns titles, URLs, and snippets.
@@ -512,6 +515,21 @@ The user's preferred language is **${nativeName}**. Always respond in ${nativeNa
 
   if (opts.projectInstructions) {
     prompt += `\n\n## Project Instructions\n\nThe following instructions were provided by the user in this project's \`.ava/instructions.md\` file. Follow them as project-specific guidance:\n\n${opts.projectInstructions}`;
+  }
+
+  // Project overview injection
+  if (opts.projectSummary) {
+    prompt += `\n\n## Project Overview
+
+You have a structural understanding of this codebase. Use it to orient yourself before diving into files.
+
+${opts.projectSummary}
+
+Use \`project_index refresh\` if the project has changed significantly. Use \`find_symbol\` to locate definitions and references quickly.`;
+  } else {
+    prompt += `\n\n## Project Overview
+
+No project index available yet. When starting a task, use \`project_index scan\` to build a structural map of the codebase. This gives you a bird's-eye view of frameworks, languages, entry points, test setup, and directory structure — much faster than exploring manually.`;
   }
 
   // Memory injection
