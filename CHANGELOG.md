@@ -2,7 +2,7 @@
 
 All notable changes to Ava | Supernova will be documented in this file.
 
-## [0.2.0-beta] - 2026-02-27
+## [0.2.0] - 2026-03-02
 
 ### Security Mode
 
@@ -40,11 +40,23 @@ All notable changes to Ava | Supernova will be documented in this file.
 - **GLM (Zhipu AI)** — GLM-5, GLM-4.7, GLM-4 Flash added to platform
 - **Mistral** — Mistral Large 3, Codestral, Devstral 2, Mistral Small added to platform
 
+### New Tools (21 total, up from 13)
+
+- **git_diff** — View git diffs for staged/unstaged changes
+- **screenshot** — Capture screenshots for visual analysis
+- **database_query** — Query databases directly from the chat
+- **browser** — Control a browser for web interaction
+- **memory_save** — Save conversation memory for cross-session recall
+- **rollback** — Undo file changes with one command
+- **project_index** — Index your codebase for intelligent navigation
+- **find_symbol** — Find symbols (classes, functions, variables) across your project
+
 ### Extension
 
 - Four modes: Code (`>>`), Plan (`::`), Chat (`..`), Security (`!!`)
 - Dashboard panel (`Ava: Open Dashboard` command) — account management without leaving VSCode
 - Provider source toggle — switch between own API keys and platform managed access
+- Model selector updated with GLM and Mistral models
 
 ### CLI
 

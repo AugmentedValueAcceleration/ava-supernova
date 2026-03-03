@@ -1,15 +1,16 @@
 # Ava | Supernova — VSCode Extension
 
-Open-source AI coding agent powered by DeepSeek, Kimi, and Qwen. Full agentic coding in your editor at a fraction of frontier pricing.
+Open-source AI coding agent powered by DeepSeek, Kimi, GLM, Mistral, and Qwen. Full agentic coding in your editor at a fraction of frontier pricing.
 
 ## Features
 
 - **Chat interface** — Ask anything about your code, get intelligent responses with Markdown rendering
-- **13 built-in tools** — Read, write, edit, search, execute, plan, and more — all from the chat
+- **21 built-in tools** — Read, write, edit, search, execute, plan, git, browser, database, screenshots, and more
 - **Four modes** — Code (`>>` full agent), Plan (`::` read-only), Chat (`..` no tools), Security (`!!` OWASP audit)
 - **Security scanning** — AI-powered OWASP-aligned security audit of your project using existing tools
 - **Tool approval** — Review every action before Ava executes it, or grant autonomy with permission modes
 - **Vision** — Attach images directly in the chat for models that support it
+- **Codebase understanding** — Project indexer and symbol finder for intelligent code navigation
 - **Conversation history** — Auto-saved per project, searchable, pinnable, exportable
 - **20 languages** — Full UI localization, with model responses in your preferred language
 - **Project context** — Create `.ava/instructions.md` to give Ava persistent knowledge about your codebase
