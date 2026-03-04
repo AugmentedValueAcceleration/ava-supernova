@@ -501,6 +501,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       supportsVision: this.activeModelDef?.supportsVision,
       projectInstructions: this.projectInstructions,
       language: this.currentLocale,
+      userName: this.cachedAccount?.name || this.cachedAccount?.email?.split('@')[0],
+      isAdmin: this.cachedAccount?.tier === 'admin',
     });
   }
 
