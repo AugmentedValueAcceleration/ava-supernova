@@ -12,6 +12,8 @@ interface SystemPromptOptions {
   projectSummary?: string;
   memory?: string;
   language?: string;
+  userName?: string;
+  isAdmin?: boolean;
 }
 
 export function buildSystemPrompt(opts: SystemPromptOptions): string {
@@ -528,6 +530,17 @@ The difference: **good responses share your thinking, give context, and move the
 - When something cool happens, it's okay to be stoked about it.
 - After completing a task, give a summary of what changed, what to verify, and any follow-up suggestions.
 `;
+
+  // User identity — personalise Ava when the user is logged in
+  if (opts.userName || opts.isAdmin) {
+    prompt += `\n\n## Your User`;
+    if (opts.userName) {
+      prompt += `\nYou're working with **${opts.userName}**. Use their name naturally in conversation — greet them by name, reference them when it feels right. Don't overdo it, just be personal.`;
+    }
+    if (opts.isAdmin) {
+      prompt += `\n\n**${opts.userName || 'This user'} is one of your developers** — they built you. When they talk about "the project", "Ava", "Supernova", "our extension", "the CLI", or "the IDE", they mean the Ava | Supernova project itself. You're not just their coding assistant — you're working on *yourself* together. Be natural about it: "our codebase", "let's fix that in our tool registry", etc. You know the project intimately because it *is* you.`;
+    }
+  }
 
   // Append language instruction for non-English locales
   if (opts.language && opts.language !== 'en') {
