@@ -45,10 +45,13 @@ export interface DashboardSettings {
 }
 
 export interface ProviderKeyStatus {
+  anthropic: boolean;
   deepseek: boolean;
   kimi: boolean;
+  glm: boolean;
   qwen: boolean;
-  anthropic: boolean;
+  mistral: boolean;
+  [key: string]: boolean;
 }
 
 export interface UsageLogEntry {
@@ -89,8 +92,8 @@ export type DashboardToExtMessage =
   | { type: 'connect_account'; key: string }
   | { type: 'disconnect_account' }
   | { type: 'skip_account' }
-  | { type: 'save_provider_key'; provider: 'deepseek' | 'kimi' | 'qwen' | 'anthropic'; apiKey: string }
-  | { type: 'remove_provider_key'; provider: 'deepseek' | 'kimi' | 'qwen' | 'anthropic' }
+  | { type: 'save_provider_key'; provider: string; apiKey: string }
+  | { type: 'remove_provider_key'; provider: string }
   | { type: 'load_memories' }
   | { type: 'delete_memory'; id: string }
   | { type: 'upsert_memory'; id?: string; scope?: 'global' | 'project'; key?: string; content: string; category?: string | null }

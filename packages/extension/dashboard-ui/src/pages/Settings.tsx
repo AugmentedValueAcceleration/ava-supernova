@@ -12,11 +12,18 @@ interface SettingsProps {
 
 const PROVIDERS = [
   {
+    id: 'anthropic' as const,
+    name: 'Anthropic (Claude)',
+    placeholder: 'sk-ant-...',
+    signupUrl: 'https://console.anthropic.com',
+    description: 'Claude Opus 4.6, Sonnet 4.6, Haiku 4.5',
+  },
+  {
     id: 'deepseek' as const,
     name: 'DeepSeek',
     placeholder: 'sk-...',
     signupUrl: 'https://platform.deepseek.com',
-    description: 'DeepSeek V3 and R1 models',
+    description: 'DeepSeek V3 and R1 — best price/performance',
   },
   {
     id: 'kimi' as const,
@@ -26,6 +33,13 @@ const PROVIDERS = [
     description: 'Kimi K2.5 — best multi-step tool calling',
   },
   {
+    id: 'glm' as const,
+    name: 'GLM (Zhipu AI)',
+    placeholder: '...',
+    signupUrl: 'https://open.bigmodel.cn',
+    description: 'GLM-5, GLM-4.7 — best tool-call reliability',
+  },
+  {
     id: 'qwen' as const,
     name: 'Qwen (Alibaba)',
     placeholder: 'sk-...',
@@ -33,11 +47,11 @@ const PROVIDERS = [
     description: 'Qwen 3.5 Plus and Qwen Turbo',
   },
   {
-    id: 'anthropic' as const,
-    name: 'Anthropic (Claude)',
-    placeholder: 'sk-ant-...',
-    signupUrl: 'https://console.anthropic.com',
-    description: 'Claude Opus 4.6, Sonnet 4.6, Haiku 4.5',
+    id: 'mistral' as const,
+    name: 'Mistral AI',
+    placeholder: '...',
+    signupUrl: 'https://console.mistral.ai',
+    description: 'Mistral Large 3, Codestral, Devstral 2',
   },
 ];
 
@@ -99,21 +113,21 @@ export function Settings({ settings, onSettingsChange, providerKeys, showProvide
     setTimeout(() => setSaved(false), 2000);
   }
 
-  function handleSaveProviderKey(provider: 'deepseek' | 'kimi' | 'qwen' | 'anthropic') {
+  function handleSaveProviderKey(provider: string) {
     const key = providerInputs[provider]?.trim();
     if (!key) return;
     setSavingProvider(provider);
-    post({ type: 'save_provider_key', provider, apiKey: key });
+    post({ type: 'save_provider_key', provider: provider as any, apiKey: key });
     setProviderInputs(prev => ({ ...prev, [provider]: '' }));
     setTimeout(() => setSavingProvider(null), 1500);
   }
 
-  function handleRemoveProviderKey(provider: 'deepseek' | 'kimi' | 'qwen' | 'anthropic') {
-    post({ type: 'remove_provider_key', provider });
+  function handleRemoveProviderKey(provider: string) {
+    post({ type: 'remove_provider_key', provider: provider as any });
   }
 
   const hasChanges = JSON.stringify(local) !== JSON.stringify(settings);
-  const configuredCount = [providerKeys.deepseek, providerKeys.kimi, providerKeys.qwen, providerKeys.anthropic].filter(Boolean).length;
+  const configuredCount = Object.values(providerKeys).filter(Boolean).length;
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -137,7 +151,7 @@ export function Settings({ settings, onSettingsChange, providerKeys, showProvide
               <p className="mt-1 text-xs text-[var(--text-muted)]">
                 {configuredCount === 0
                   ? 'Add at least one provider API key to start using Ava.'
-                  : `${configuredCount}/4 providers configured.`}
+                  : `${configuredCount}/${PROVIDERS.length} providers configured.`}
               </p>
             </div>
 

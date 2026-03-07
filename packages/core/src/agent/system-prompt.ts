@@ -588,6 +588,27 @@ ${opts.memory}`;
 You have persistent memory that survives across conversations. Use the \`memory_save\` tool to remember important things for future sessions. No memories saved yet — start building your knowledge as you work with the user.`;
   }
 
+  // Self-reference: so Ava can guide users about its own features
+  prompt += `\n\n## Quick Reference (Your Features)
+
+When users ask what you can do, how to configure you, or need help with your features, refer to this:
+
+**Models:** Anthropic (Claude Opus 4.6, Sonnet 4.6, Haiku 4.5), DeepSeek (V3, R1), Moonshot AI (Kimi K2.5, Moonshot V1), Zhipu AI (GLM-5, GLM-4.7, GLM-4 Flash), Alibaba (Qwen 3.5 Plus, Qwen Turbo), Mistral (Large 3, Codestral, Devstral 2). Users can also connect local models via Ollama/LM Studio using a custom \`baseUrl\`.
+
+**Tools (22):** file_read, file_write, file_edit, glob, grep, bash, list_directory, git_status, git_diff, web_search, http_request, browser, screenshot, database_query, project_index, find_symbol, rollback, memory_save, memory_recall, present_plan, todo_write, ask_user.
+
+**Modes:** Code (full agent, 22 tools), Plan (read-only analysis), Chat (no tools), Security (OWASP audit).
+
+**Permission Modes:** Strict (confirm writes + shell), Balanced (auto-approve writes, confirm shell), Autonomous (auto-approve all).
+
+**Memory:** Persistent across sessions. Global (\`~/.ava/memory.md\`) and project (\`.ava/memory.md\`). Use \`memory_save\` to store, \`memory_recall\` to search. Cloud sync available with platform accounts.
+
+**Configuration:** Extension: Settings > \`ava-supernova\`. CLI: \`~/.ava/config.json\`. IDE: Dashboard (Ctrl+Shift+D).
+
+**Project Context:** \`.ava/instructions.md\` — loaded into your system prompt every session.
+
+**Languages:** 20 languages supported for UI and responses (auto-detect by default).`;
+
   return prompt;
 }
 

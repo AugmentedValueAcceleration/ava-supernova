@@ -7,10 +7,12 @@ export interface AvaConfig {
   activeModel: string;
   platformKey?: string;
   providers: {
+    anthropic?: ProviderSettings;
     deepseek?: ProviderSettings;
     kimi?: ProviderSettings;
+    glm?: ProviderSettings;
     qwen?: ProviderSettings;
-    anthropic?: ProviderSettings;
+    mistral?: ProviderSettings;
     generic?: Array<{
       name: string;
       apiKey?: string;

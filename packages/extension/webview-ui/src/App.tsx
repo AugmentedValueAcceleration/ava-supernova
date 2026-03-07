@@ -435,6 +435,10 @@ export function App() {
     postMessage({ type: 'open_dashboard' });
   }, [postMessage]);
 
+  const handleOpenDocs = useCallback(() => {
+    postMessage({ type: 'open_docs' });
+  }, [postMessage]);
+
   const handleOpenHistory = useCallback(() => {
     postMessage({ type: 'request_history' });
   }, [postMessage]);
@@ -547,6 +551,7 @@ export function App() {
         onOpenDashboard={handleOpenDashboard}
         onOpenHistory={handleOpenHistory}
         onOpenMemory={handleOpenMemory}
+        onOpenDocs={handleOpenDocs}
         onNewChat={handleNewChat}
       />
 

@@ -50,7 +50,7 @@ export function App() {
   });
   const [memories, setMemories] = useState<MemoryEntry[]>([]);
   const [providerKeys, setProviderKeys] = useState<ProviderKeyStatus>({
-    deepseek: false, kimi: false, qwen: false,
+    anthropic: false, deepseek: false, kimi: false, glm: false, qwen: false, mistral: false,
   });
   const [usageLogs, setUsageLogs] = useState<UsageLogEntry[]>([]);
   const [byokMode, setByokMode] = useState(false);
@@ -66,7 +66,7 @@ export function App() {
         setConnections(msg.connections);
         setSettings(msg.settings);
         setProviderKeys(msg.providerKeys);
-        if (!msg.account && (msg.providerKeys.deepseek || msg.providerKeys.kimi || msg.providerKeys.qwen)) {
+        if (!msg.account && Object.values(msg.providerKeys).some(Boolean)) {
           setByokMode(true);
           setPage('settings');
         }
@@ -74,7 +74,7 @@ export function App() {
         break;
       case 'account_updated':
         setAccount(msg.account);
-        if (!msg.account && (providerKeys.deepseek || providerKeys.kimi || providerKeys.qwen)) {
+        if (!msg.account && Object.values(providerKeys).some(Boolean)) {
           setByokMode(true);
           setPage('settings');
         }

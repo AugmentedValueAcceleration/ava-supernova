@@ -84,6 +84,7 @@ export type WebviewToExtMessage =
   | { type: 'clear_chat' }
   | { type: 'cancel' }
   | { type: 'open_dashboard' }
+  | { type: 'open_docs' }
   | { type: 'request_history' }
   | { type: 'load_conversation'; conversationId: string }
   | { type: 'delete_conversation'; conversationId: string }

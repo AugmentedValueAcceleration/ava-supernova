@@ -264,6 +264,7 @@ export class DocsPanel {
     <nav class="docs-nav">
       <a href="#models">Models</a>
       <a href="#tools">Tools</a>
+      <a href="#memory">Memory</a>
       <a href="#commands">Commands</a>
       <a href="#modes">Modes</a>
       <a href="#permissions">Permissions</a>
@@ -276,17 +277,27 @@ export class DocsPanel {
     <!-- Models -->
     <section class="docs-section" id="models">
       <h2>Supported Models</h2>
+      <p>All models work on every plan. Use our managed service or bring your own API keys.</p>
       <table>
         <thead>
           <tr><th>Provider</th><th>Model</th><th>Highlights</th><th>Cost / 1M tokens*</th></tr>
         </thead>
         <tbody>
-          <tr><td>DeepSeek</td><td>DeepSeek V3</td><td>Fast, affordable general-purpose</td><td>~$0.28 in / ~$0.42 out</td></tr>
-          <tr><td>DeepSeek</td><td>DeepSeek R1</td><td>Extended thinking, reasoning</td><td>~$0.28 in / ~$0.42 out</td></tr>
-          <tr><td>Kimi</td><td>Kimi K2.5</td><td>Best multi-step tool calling</td><td>~$0.60 in / ~$3.00 out</td></tr>
-          <tr><td>Kimi</td><td>Moonshot V1 128K</td><td>Long context</td><td>~$2.00 in / ~$5.00 out</td></tr>
-          <tr><td>Qwen</td><td>Qwen 3.5 Plus</td><td>Vision, thinking, 256K</td><td>~$0.40 in / ~$2.40 out</td></tr>
-          <tr><td>Qwen</td><td>Qwen Turbo</td><td>Fast and cheap, 1M context</td><td>~$0.05 in / ~$0.20 out</td></tr>
+          <tr><td>Anthropic</td><td>Claude Opus 4.6</td><td>Most capable, vision, 200K context</td><td>$15.00 in / $75.00 out</td></tr>
+          <tr><td>Anthropic</td><td>Claude Sonnet 4.6</td><td>Best balance of speed and capability</td><td>$3.00 in / $15.00 out</td></tr>
+          <tr><td>Anthropic</td><td>Claude Haiku 4.5</td><td>Fast and affordable, vision</td><td>$0.80 in / $4.00 out</td></tr>
+          <tr><td>DeepSeek</td><td>DeepSeek V3</td><td>Best price/performance</td><td>$0.14 in / $0.28 out</td></tr>
+          <tr><td>DeepSeek</td><td>DeepSeek R1</td><td>Extended thinking, reasoning</td><td>$0.14 in / $2.19 out</td></tr>
+          <tr><td>Moonshot AI</td><td>Kimi K2.5</td><td>Best multi-step tool calling</td><td>$0.60 in / $2.00 out</td></tr>
+          <tr><td>Moonshot AI</td><td>Moonshot V1 128K</td><td>Long context</td><td>$2.00 in / $5.00 out</td></tr>
+          <tr><td>Zhipu AI</td><td>GLM-5</td><td>Best tool-call reliability, vision</td><td>$0.70 in / $0.70 out</td></tr>
+          <tr><td>Zhipu AI</td><td>GLM-4.7</td><td>Fast, affordable coding</td><td>$0.25 in / $0.25 out</td></tr>
+          <tr><td>Zhipu AI</td><td>GLM-4 Flash</td><td>Free tier available</td><td>Free</td></tr>
+          <tr><td>Alibaba</td><td>Qwen 3.5 Plus</td><td>Vision, thinking, 256K context</td><td>$0.40 in / $1.20 out</td></tr>
+          <tr><td>Alibaba</td><td>Qwen Turbo</td><td>Fast, up to 1M context</td><td>$0.05 in / $0.20 out</td></tr>
+          <tr><td>Mistral AI</td><td>Mistral Large 3</td><td>Flagship general-purpose</td><td>$2.00 in / $6.00 out</td></tr>
+          <tr><td>Mistral AI</td><td>Codestral</td><td>Code-focused, 256K context</td><td>$0.30 in / $0.90 out</td></tr>
+          <tr><td>Mistral AI</td><td>Devstral 2</td><td>Agentic coding specialist</td><td>$0.10 in / $0.30 out</td></tr>
         </tbody>
       </table>
       <p class="small muted">*Pricing is approximate and subject to change. Check each provider's website for current rates.</p>
@@ -295,7 +306,7 @@ export class DocsPanel {
 
     <!-- Tools -->
     <section class="docs-section" id="tools">
-      <h2>Built-in Tools (13)</h2>
+      <h2>Built-in Tools (22)</h2>
 
       <h3>Reading &amp; Searching</h3>
       <table>
@@ -306,6 +317,9 @@ export class DocsPanel {
           <tr><td><code>grep</code></td><td>Search file contents with regex. Filter by file pattern.</td><td><span class="badge badge-safe">safe</span></td></tr>
           <tr><td><code>list_directory</code></td><td>List directory contents with file sizes and types.</td><td><span class="badge badge-safe">safe</span></td></tr>
           <tr><td><code>git_status</code></td><td>Read-only git commands (status, diff, log, branch, show).</td><td><span class="badge badge-safe">safe</span></td></tr>
+          <tr><td><code>git_diff</code></td><td>View detailed diffs between commits, branches, or working tree.</td><td><span class="badge badge-safe">safe</span></td></tr>
+          <tr><td><code>project_index</code></td><td>Index the project structure for intelligent code navigation.</td><td><span class="badge badge-safe">safe</span></td></tr>
+          <tr><td><code>find_symbol</code></td><td>Find symbols (functions, classes, variables) across the codebase.</td><td><span class="badge badge-safe">safe</span></td></tr>
         </tbody>
       </table>
 
@@ -316,15 +330,28 @@ export class DocsPanel {
           <tr><td><code>file_write</code></td><td>Create or overwrite files. Auto-creates parent directories.</td><td><span class="badge badge-write">write</span></td></tr>
           <tr><td><code>file_edit</code></td><td>Exact string replacement. Supports single or global replace.</td><td><span class="badge badge-write">write</span></td></tr>
           <tr><td><code>bash</code></td><td>Execute shell commands with configurable timeout.</td><td><span class="badge badge-dangerous">dangerous</span></td></tr>
+          <tr><td><code>rollback</code></td><td>Undo file changes made during the current session.</td><td><span class="badge badge-write">write</span></td></tr>
         </tbody>
       </table>
 
-      <h3>Research</h3>
+      <h3>Research &amp; Browser</h3>
       <table>
         <thead><tr><th>Tool</th><th>Description</th><th>Risk</th></tr></thead>
         <tbody>
           <tr><td><code>web_search</code></td><td>Search the web via DuckDuckGo. No API key required.</td><td><span class="badge badge-safe">safe</span></td></tr>
           <tr><td><code>http_request</code></td><td>Make HTTP requests (GET, POST, PUT, DELETE).</td><td><span class="badge badge-write">write</span></td></tr>
+          <tr><td><code>browser</code></td><td>Open and interact with web pages using a headless browser.</td><td><span class="badge badge-write">write</span></td></tr>
+          <tr><td><code>screenshot</code></td><td>Capture screenshots of the current screen or a URL.</td><td><span class="badge badge-safe">safe</span></td></tr>
+          <tr><td><code>database_query</code></td><td>Run read-only SQL queries against configured databases.</td><td><span class="badge badge-safe">safe</span></td></tr>
+        </tbody>
+      </table>
+
+      <h3>Memory</h3>
+      <table>
+        <thead><tr><th>Tool</th><th>Description</th><th>Risk</th></tr></thead>
+        <tbody>
+          <tr><td><code>memory_save</code></td><td>Save knowledge to persistent memory (global or project scope).</td><td><span class="badge badge-write">write</span></td></tr>
+          <tr><td><code>memory_recall</code></td><td>Search memories by keyword. Finds relevant stored knowledge.</td><td><span class="badge badge-safe">safe</span></td></tr>
         </tbody>
       </table>
 
@@ -339,6 +366,41 @@ export class DocsPanel {
       </table>
 
       <p class="small muted">The agent runs up to 50 iterations per request, deciding which tools to use, executing them, reading results, and continuing.</p>
+    </section>
+
+    <!-- Memory -->
+    <section class="docs-section" id="memory">
+      <h2>Memory System</h2>
+      <p>Ava has persistent memory that survives across sessions. Memories are stored locally and optionally synced to the cloud with a platform account.</p>
+
+      <div class="card-grid">
+        <div class="card">
+          <h4>Global Memory</h4>
+          <p>Preferences, patterns, and knowledge that apply to all your projects. Stored at <code>~/.ava/memory.md</code>.</p>
+        </div>
+        <div class="card">
+          <h4>Project Memory</h4>
+          <p>Context specific to the current project. Stored at <code>.ava/memory.md</code> in your project root.</p>
+        </div>
+        <div class="card">
+          <h4>Semantic Search</h4>
+          <p>Relevant memories are automatically retrieved at session start using vector embeddings.</p>
+        </div>
+        <div class="card">
+          <h4>Cloud Sync</h4>
+          <p>With a platform account, memories sync across machines and are viewable in the web dashboard.</p>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 12px;">
+        <h4>How It Works</h4>
+        <ul>
+          <li>Ask Ava to remember something and it saves via <code>memory_save</code></li>
+          <li>Memories load automatically into each new session</li>
+          <li>Use <code>memory_recall</code> to search stored knowledge mid-conversation</li>
+          <li>You have full control &mdash; view, edit, and delete memories in the Dashboard or locally</li>
+        </ul>
+      </div>
     </section>
 
     <!-- Commands (CLI) -->
@@ -385,7 +447,7 @@ export class DocsPanel {
       <div class="card-grid">
         <div class="card">
           <h4>Code Mode</h4>
-          <p>Full agent with all 13 tools. Ava reads, writes, searches, and executes across your codebase.</p>
+          <p>Full agent with all 22 tools. Ava reads, writes, searches, and executes across your codebase.</p>
         </div>
         <div class="card">
           <h4>Plan Mode</h4>
@@ -394,6 +456,10 @@ export class DocsPanel {
         <div class="card">
           <h4>Chat Mode</h4>
           <p>Conversation only. No tools, just discussion about code, architecture, or ideas.</p>
+        </div>
+        <div class="card">
+          <h4>Security Mode</h4>
+          <p>AI-powered OWASP-aligned security audit. Scans your project for vulnerabilities using existing tools.</p>
         </div>
       </div>
       <p class="small muted">Switch modes from the dropdown in the chat input area.</p>
@@ -443,6 +509,9 @@ export class DocsPanel {
           <tr><td>Temperature</td><td>Sampling temperature (0&ndash;2)</td><td>0.7</td></tr>
           <tr><td>Language</td><td>UI and response language</td><td>Auto-detect</td></tr>
           <tr><td>Permission Mode</td><td>Tool approval behavior</td><td>Strict</td></tr>
+          <tr><td>Max Tokens</td><td>Maximum output tokens per response</td><td>8192</td></tr>
+          <tr><td>Auto Memory</td><td>Enable/disable automatic memory persistence</td><td>Enabled</td></tr>
+          <tr><td>Stream Responses</td><td>Enable/disable streaming output</td><td>Enabled</td></tr>
         </tbody>
       </table>
 
@@ -451,9 +520,12 @@ export class DocsPanel {
       <pre><code>{
   "activeModel": "deepseek:deepseek-chat",
   "providers": {
+    "anthropic": { "apiKey": "sk-ant-..." },
     "deepseek": { "apiKey": "sk-..." },
     "kimi": { "apiKey": "sk-..." },
-    "qwen": { "apiKey": "sk-..." }
+    "glm": { "apiKey": "..." },
+    "qwen": { "apiKey": "sk-..." },
+    "mistral": { "apiKey": "..." }
   },
   "preferences": {
     "temperature": 0.7,
@@ -521,7 +593,7 @@ export class DocsPanel {
 
     <!-- Footer -->
     <div class="docs-header" style="margin-top: 48px; border-top: 1px solid var(--ava-border); border-bottom: none; padding-top: 24px;">
-      <p class="muted">Ava | Supernova v0.1.0 &mdash; Apache License 2.0</p>
+      <p class="muted">Ava | Supernova v0.3.0 &mdash; Apache License 2.0</p>
       <p class="muted small">Built with purpose. Agentic coding for everyone.</p>
     </div>
 

@@ -749,6 +749,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         vscode.commands.executeCommand('ava-supernova.openDashboard');
         break;
 
+      case 'open_docs':
+        vscode.commands.executeCommand('ava-supernova.openDocs');
+        break;
+
       case 'request_history':
         await this.sendHistoryList();
         break;
