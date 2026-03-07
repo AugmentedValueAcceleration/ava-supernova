@@ -411,7 +411,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     if (resolved) {
       this.log(`Active model: ${resolved.provider.name}:${resolved.model.id} (${resolved.model.name})`);
-      this.setupAgent(resolved.provider, resolved.model);
+      await this.setupAgent(resolved.provider, resolved.model);
     } else {
       this.log(`No model resolved for activeModel="${activeModelId}". Available: ${this.getModelList().map(m => m.id).join(', ') || 'none'}`);
     }
@@ -441,7 +441,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  private setupAgent(provider: Provider, model: ModelDefinition): void {
+  private async setupAgent(provider: Provider, model: ModelDefinition): Promise<void> {
     this.toolRegistry = new ToolRegistry();
     this.toolRegistry.registerBuiltins();
 
@@ -457,6 +457,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
 
     this.activeModelDef = model;
+
+    // Ensure memoryManager is ready (constructor fires refreshProjectContext without await)
+    if (!this.memoryManager) {
+      await this.refreshProjectContext();
+    }
 
     if (!this.conversation) {
       this.conversation = new Conversation();
@@ -477,11 +482,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     return (config.get<string>('preferences.permissionMode') || 'strict') as PermissionMode;
   }
 
-  private setActiveModel(modelId: string): void {
+  private async setActiveModel(modelId: string): Promise<void> {
     const resolved = this.providerRegistry.resolveModel(modelId);
     if (!resolved) return;
 
-    this.setupAgent(resolved.provider, resolved.model);
+    await this.setupAgent(resolved.provider, resolved.model);
 
     const config = vscode.workspace.getConfiguration('ava-supernova');
     config.update('activeModel', modelId, vscode.ConfigurationTarget.Global);
