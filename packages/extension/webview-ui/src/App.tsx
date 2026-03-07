@@ -327,6 +327,7 @@ export function App() {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const { postMessage } = useVSCodeApi();
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const justLoadedRef = useRef(false);
 
   // Delta buffer for smooth typing animation
   type BufferedDelta = { type: 'stream_delta' | 'thinking_delta'; content: string };
@@ -403,7 +404,17 @@ export function App() {
 
   // Auto-scroll to bottom on new content
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (state.messages.length === 0) return;
+    // Use instant scroll after loading a conversation, smooth for live streaming
+    if (justLoadedRef.current) {
+      // Wait for DOM to fully render all restored messages
+      requestAnimationFrame(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'instant' as ScrollBehavior });
+        justLoadedRef.current = false;
+      });
+    } else {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [state.messages, state.isThinking]);
 
   const handleSend = useCallback(
@@ -449,6 +460,7 @@ export function App() {
 
   const handleLoadConversation = useCallback(
     (conversationId: string) => {
+      justLoadedRef.current = true;
       postMessage({ type: 'load_conversation', conversationId });
     },
     [postMessage],
