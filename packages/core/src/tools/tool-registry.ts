@@ -23,6 +23,7 @@ import { RollbackTool } from './rollback.js';
 import { ProjectIndexTool } from './project-index.js';
 import { FindSymbolTool } from './find-symbol.js';
 import { DocsLookupTool } from './docs-lookup.js';
+import { SupportRequestTool } from './support-request.js';
 
 // Which risk levels require confirmation under each permission mode
 const CONFIRMATION_MATRIX: Record<PermissionMode, Set<ToolRiskLevel>> = {
@@ -73,6 +74,7 @@ export class ToolRegistry {
       new ProjectIndexTool(),
       new FindSymbolTool(),
       new DocsLookupTool(),
+      new SupportRequestTool(),
     ];
     for (const tool of builtins) {
       this.tools.set(tool.name, tool);

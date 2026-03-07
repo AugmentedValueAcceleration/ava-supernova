@@ -306,7 +306,7 @@ export class DocsPanel {
 
     <!-- Tools -->
     <section class="docs-section" id="tools">
-      <h2>Built-in Tools (23)</h2>
+      <h2>Built-in Tools (24)</h2>
 
       <h3>Reading &amp; Searching</h3>
       <table>
@@ -353,6 +353,14 @@ export class DocsPanel {
         <tbody>
           <tr><td><code>memory_save</code></td><td>Save knowledge to persistent memory (global or project scope).</td><td><span class="badge badge-write">write</span></td></tr>
           <tr><td><code>memory_recall</code></td><td>Search memories by keyword. Finds relevant stored knowledge.</td><td><span class="badge badge-safe">safe</span></td></tr>
+        </tbody>
+      </table>
+
+      <h3>Support</h3>
+      <table>
+        <thead><tr><th>Tool</th><th>Description</th><th>Risk</th></tr></thead>
+        <tbody>
+          <tr><td><code>support_request</code></td><td>Submit a support ticket to the Ava team. Requires email, subject, and message.</td><td><span class="badge badge-write">write</span></td></tr>
         </tbody>
       </table>
 
@@ -448,7 +456,7 @@ export class DocsPanel {
       <div class="card-grid">
         <div class="card">
           <h4>Code Mode</h4>
-          <p>Full agent with all 23 tools. Ava reads, writes, searches, and executes across your codebase.</p>
+          <p>Full agent with all 24 tools. Ava reads, writes, searches, and executes across your codebase.</p>
         </div>
         <div class="card">
           <h4>Plan Mode</h4>

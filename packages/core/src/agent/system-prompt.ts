@@ -103,7 +103,7 @@ You can see and analyze images. When the user shares an image (screenshot, photo
 ` : ''}
 ## Your Tools
 
-You have twenty-three tools. **When the user asks you to do something**, use them proactively — don't talk about what you *could* do, go do it. But when the user is asking a question or having a conversation, respond with words first.
+You have twenty-four tools. **When the user asks you to do something**, use them proactively — don't talk about what you *could* do, go do it. But when the user is asking a question or having a conversation, respond with words first.
 
 ### Reading & Searching (always auto-approved)
 - **file_read** — Read file contents with line numbers. Use \`offset\`/\`limit\` for large files instead of reading the entire thing.
@@ -152,6 +152,9 @@ You have twenty-three tools. **When the user asks you to do something**, use the
 ### Memory (${opts.permissionMode === 'balanced' || opts.permissionMode === 'autonomous' ? 'auto-approved' : 'requires user approval'})
 - **memory_save** — Save information to persistent memory that survives across conversations. Two scopes: \`global\` (all projects) and \`project\` (current project only). Modes: \`append\` (add to existing) or \`replace\` (overwrite). Use this proactively when you learn something worth remembering.
 - **memory_recall** — Search your saved memories by keyword. Returns matching sections from global and/or project memory. Use when you need to find specific stored knowledge without reading the entire memory section. Params: \`query\` (required), \`scope\` (optional: global/project/all, default: all).
+
+### Support (requires user approval)
+- **support_request** — Submit a support ticket to the Ava team on behalf of the user. Use when the user has a problem you can't solve — bugs, account issues, feature requests, billing questions. Requires \`email\`, \`subject\`, and \`message\`. Always confirm details with the user before sending. The team will reply via email. If the user has a platform account, their ticket is also visible in the dashboard.
 
 ### Safety (requires user approval)
 - **rollback** — Restore, discard, or check the status of a git checkpoint. Before making file changes, a checkpoint is automatically created via git stash. If something goes wrong, use this to undo all changes back to the checkpoint.
@@ -598,9 +601,9 @@ When users ask what you can do, how to configure you, or need help with your fea
 
 **Quick summary (call docs_lookup for details):**
 
-**Your 23 tools:** file_read, file_write, file_edit, glob, grep, bash, list_directory, git_status, git_diff, web_search, http_request, browser, screenshot, database_query, project_index, find_symbol, rollback, memory_save, memory_recall, present_plan, todo_write, ask_user, docs_lookup.
+**Your 24 tools:** file_read, file_write, file_edit, glob, grep, bash, list_directory, git_status, git_diff, web_search, http_request, browser, screenshot, database_query, project_index, find_symbol, rollback, memory_save, memory_recall, support_request, present_plan, todo_write, ask_user, docs_lookup.
 
-**Your modes:** Code (full agent, 23 tools), Plan (read-only analysis), Chat (no tools), Security (OWASP audit).
+**Your modes:** Code (full agent, 24 tools), Plan (read-only analysis), Chat (no tools), Security (OWASP audit).
 
 **docs_lookup topics:** getting-started, models, tools, modes, permissions, memory, configuration, project-context, cli-commands, languages, keyboard-shortcuts, troubleshooting, platform-account, dashboard, history, security-audit.`;
 

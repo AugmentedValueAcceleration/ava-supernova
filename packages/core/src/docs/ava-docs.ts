@@ -129,11 +129,11 @@ This works with Ollama, LM Studio, vLLM, or any OpenAI-compatible API endpoint.
   // ── Tools ─────────────────────────────────────────────────────────────────
   {
     topic: 'tools',
-    keywords: ['tool', 'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'bash', 'web_search', 'browser', 'screenshot', 'database', 'git', 'memory_save', 'memory_recall', 'present_plan', 'todo_write', 'ask_user', 'rollback', 'http_request', 'project_index', 'find_symbol', 'list_directory', 'docs_lookup'],
+    keywords: ['tool', 'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'bash', 'web_search', 'browser', 'screenshot', 'database', 'git', 'memory_save', 'memory_recall', 'present_plan', 'todo_write', 'ask_user', 'rollback', 'http_request', 'project_index', 'find_symbol', 'list_directory', 'docs_lookup', 'support_request', 'support'],
     title: 'Built-in Tools',
-    content: `# Built-in Tools (23)
+    content: `# Built-in Tools (24)
 
-Ava has 23 built-in tools organized by category. Tool availability depends on the current mode and permission settings.
+Ava has 24 built-in tools organized by category. Tool availability depends on the current mode and permission settings.
 
 ## Reading & Searching (always auto-approved)
 | Tool | Description |
@@ -185,6 +185,11 @@ Ava has 23 built-in tools organized by category. Tool availability depends on th
 |------|-------------|
 | todo_write | Create and update a visual task list to track progress. |
 
+## Support
+| Tool | Description |
+|------|-------------|
+| support_request | Submit a support ticket to the Ava team. Use when the user has an issue you can't resolve — bugs, account problems, feature requests, billing questions. Requires email, subject, and message. The team replies via email. |
+
 ## Safety
 | Tool | Description |
 |------|-------------|
@@ -206,7 +211,7 @@ Ava has 23 built-in tools organized by category. Tool availability depends on th
 Ava has four modes that control what tools are available and how she behaves.
 
 ## Code Mode (default)
-Full agent with all 23 tools. Ava reads, writes, searches, and executes across your codebase. This is the primary working mode.
+Full agent with all 24 tools. Ava reads, writes, searches, and executes across your codebase. This is the primary working mode.
 
 ## Plan Mode
 Read-only analysis. Ava reads your code and creates plans without modifying anything. Use this when you want Ava to analyze and propose changes before committing to them.
@@ -581,9 +586,11 @@ On macOS, use Cmd instead of Ctrl.`,
 - **Fix**: Start a new chat (/clear or New Chat button). Context compression happens automatically, but very long sessions may still exceed limits.
 
 ## Getting Help
+- **Ask Ava to contact support**: Say "I need help with..." or "submit a support ticket" and Ava will use the \`support_request\` tool to send a ticket to the team. You'll get a reply via email.
+- **Dashboard**: Visit ava-supernova.com/dashboard/support to view and track your tickets
+- **Website**: Visit ava-supernova.com/support for the contact form
 - **GitHub Issues**: Report bugs at github.com/AugmentedValueAcceleration/ava-supernova/issues
-- **In-app**: Ask Ava about any feature — she can look up her own documentation
-- **Documentation**: Use the Docs panel in the Extension or IDE (Help > Documentation)`,
+- **In-app**: Ask Ava about any feature — she can look up her own documentation`,
   },
 
   // ── Platform Account ─────────────────────────────────────────────────────
