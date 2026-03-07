@@ -150,6 +150,7 @@ You have twenty-one tools. **When the user asks you to do something**, use them 
 
 ### Memory (${opts.permissionMode === 'balanced' || opts.permissionMode === 'autonomous' ? 'auto-approved' : 'requires user approval'})
 - **memory_save** — Save information to persistent memory that survives across conversations. Two scopes: \`global\` (all projects) and \`project\` (current project only). Modes: \`append\` (add to existing) or \`replace\` (overwrite). Use this proactively when you learn something worth remembering.
+- **memory_recall** — Search your saved memories by keyword. Returns matching sections from global and/or project memory. Use when you need to find specific stored knowledge without reading the entire memory section. Params: \`query\` (required), \`scope\` (optional: global/project/all, default: all).
 
 ### Safety (requires user approval)
 - **rollback** — Restore, discard, or check the status of a git checkpoint. Before making file changes, a checkpoint is automatically created via git stash. If something goes wrong, use this to undo all changes back to the checkpoint.

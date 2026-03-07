@@ -7,6 +7,8 @@ import {
   ProviderRegistry,
   PlatformProvider,
   HistoryManager,
+  MemoryManager,
+  AVA_HOME,
   ProviderError,
   buildSystemPrompt,
   getSecurityModePrefix,
@@ -43,6 +45,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private readonly statusBarItem: vscode.StatusBarItem;
   private projectRoot?: string;
   private projectInstructions?: string;
+  private memoryManager?: MemoryManager;
+  private cachedMemory?: string;
   private currentLocale = 'en';
   private panelStateCallback?: (isOpen: boolean) => void;
   private cachedAccount: AccountInfo | null = null;
@@ -81,9 +85,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.projectRoot = detectProjectRoot(cwd) ?? undefined;
     this.historyManager = new HistoryManager(this.projectRoot);
     this.historyManager.init();
+    this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot });
     this.projectInstructions = this.projectRoot
       ? (await loadProjectInstructions(this.projectRoot)) ?? undefined
       : undefined;
+    this.cachedMemory = (await this.memoryManager.loadAll()) || undefined;
   }
 
   private async onWorkspaceChanged(): Promise<void> {
@@ -450,6 +456,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       model,
       toolRegistry: this.toolRegistry,
       cwd,
+      sharedState: { memoryManager: this.memoryManager },
     });
   }
 
@@ -503,6 +510,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       permissionMode: this.getPermissionMode(),
       supportsVision: this.activeModelDef?.supportsVision,
       projectInstructions: this.projectInstructions,
+      memory: this.cachedMemory,
       language: this.currentLocale,
       userName: this.cachedAccount?.name || this.cachedAccount?.email?.split('@')[0],
       isAdmin: this.cachedAccount?.tier === 'admin',

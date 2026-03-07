@@ -18,6 +18,7 @@ import { ScreenshotTool } from './screenshot.js';
 import { DatabaseQueryTool } from './database-query.js';
 import { BrowserTool } from './browser.js';
 import { MemorySaveTool } from './memory-save.js';
+import { MemoryRecallTool } from './memory-recall.js';
 import { RollbackTool } from './rollback.js';
 import { ProjectIndexTool } from './project-index.js';
 import { FindSymbolTool } from './find-symbol.js';
@@ -66,6 +67,7 @@ export class ToolRegistry {
       new DatabaseQueryTool(),
       new BrowserTool(),
       new MemorySaveTool(),
+      new MemoryRecallTool(),
       new RollbackTool(),
       new ProjectIndexTool(),
       new FindSymbolTool(),

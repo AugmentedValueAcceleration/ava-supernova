@@ -35,6 +35,7 @@ export type AgentEvent =
   | { type: 'context_usage'; context: ContextUsage }
   | { type: 'context_compression_start' }
   | { type: 'context_compression_end'; originalTokens: number; compressedTokens: number }
+  | { type: 'context_truncated'; droppedCount: number }
   | { type: 'done'; finalMessage: AssistantMessage };
 
 export type AgentEventHandler = (event: AgentEvent) => void;

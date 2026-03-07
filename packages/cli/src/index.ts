@@ -9,6 +9,8 @@ import {
   Conversation,
   buildSystemPrompt,
   HistoryManager,
+  MemoryManager,
+  AVA_HOME,
   detectProjectRoot,
   loadProjectInstructions,
   setLocale,
@@ -29,6 +31,7 @@ async function main(): Promise<void> {
   const config = new ConfigManager();
   const providerRegistry = new ProviderRegistry();
   const historyManager = new HistoryManager(projectRoot);
+  const memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot });
 
   await historyManager.init();
 
@@ -66,6 +69,9 @@ async function main(): Promise<void> {
   const toolRegistry = new ToolRegistry();
   toolRegistry.registerBuiltins();
 
+  // Load persistent memory
+  const memory = await memoryManager.loadAll();
+
   // Create conversation and agent
   const conversation = new Conversation();
   conversation.setSystemPrompt(
@@ -75,15 +81,19 @@ async function main(): Promise<void> {
       shell: process.env.SHELL ?? (process.platform === 'win32' ? 'bash' : '/bin/bash'),
       supportsVision: resolved.model.supportsVision,
       projectInstructions: projectInstructions ?? undefined,
+      memory: memory || undefined,
       language,
     }),
   );
+
+  const sharedState = { memoryManager };
 
   const agent = new Agent({
     provider: resolved.provider,
     model: resolved.model,
     toolRegistry,
     cwd,
+    sharedState,
   });
 
   // Set up REPL
@@ -99,7 +109,7 @@ async function main(): Promise<void> {
     historyManager,
     onModelSwitch: (provider, model) => {
       repl.setAgent(
-        new Agent({ provider, model, toolRegistry, cwd }),
+        new Agent({ provider, model, toolRegistry, cwd, sharedState }),
       );
       repl.setModelLabel(`${provider.name}:${model.id}`);
     },
