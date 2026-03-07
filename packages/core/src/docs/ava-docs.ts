@@ -155,7 +155,7 @@ Ava has 23 built-in tools organized by category. Tool availability depends on th
 | browser | Automate browser interactions using Playwright (navigate, click, fill, screenshot). |
 | screenshot | Capture a screenshot of the user's screen for visual analysis. |
 | database_query | Run read-only SQL queries against PostgreSQL, SQLite, or MySQL. |
-| docs_lookup | Search Ava's own documentation to help users with questions about features, setup, and troubleshooting. |
+| docs_lookup | **This is your tool.** Search your own documentation to answer user questions about features, setup, configuration, and troubleshooting. When a user asks "how do I…" or "what is…" about you, call \`docs_lookup\` with a query or topic. |
 
 ## Writing & Editing (permission mode dependent)
 | Tool | Description |
