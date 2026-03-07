@@ -407,10 +407,14 @@ export function App() {
     if (state.messages.length === 0) return;
     // Use instant scroll after loading a conversation, smooth for live streaming
     if (justLoadedRef.current) {
-      // Wait for DOM to fully render all restored messages
+      // Restored conversation: double-rAF + timeout ensures DOM is fully painted
       requestAnimationFrame(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'instant' as ScrollBehavior });
-        justLoadedRef.current = false;
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            chatEndRef.current?.scrollIntoView({ behavior: 'instant' as ScrollBehavior });
+            justLoadedRef.current = false;
+          }, 50);
+        });
       });
     } else {
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
