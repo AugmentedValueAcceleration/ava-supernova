@@ -150,7 +150,10 @@
               "mistral:devstral-2-25-12",
               "mistral:mistral-small-latest",
               "qwen:qwen3.5-plus",
-              "qwen:qwen-turbo-latest"
+              "qwen:qwen-turbo-latest",
+              "anthropic:claude-opus-4-6",
+              "anthropic:claude-sonnet-4-6",
+              "anthropic:claude-haiku-4-5-20251001"
             ],
             "enumDescriptions": [
               "No model selected",
@@ -166,7 +169,10 @@
               "Devstral 2 — agentic coding model",
               "Mistral Small — fast and affordable",
               "Qwen 3.5 Plus — vision, thinking, 256K context",
-              "Qwen Turbo — fast and cheap, 1M context"
+              "Qwen Turbo — fast and cheap, 1M context",
+              "Claude Opus 4.6 — most capable, vision, 200K context",
+              "Claude Sonnet 4.6 — balanced speed and intelligence",
+              "Claude Haiku 4.5 — fast and affordable"
             ],
             "description": "%setting.activeModel.description%"
           }
