@@ -5,6 +5,7 @@ import { KimiProvider } from './kimi/index.js';
 import { QwenProvider } from './qwen/index.js';
 import { ZhipuProvider } from './zhipu/index.js';
 import { MistralProvider } from './mistral/index.js';
+import { AnthropicProvider } from './anthropic/index.js';
 
 type ProviderFactory = (config: ProviderConfig) => Provider;
 
@@ -14,6 +15,7 @@ const BUILT_IN_PROVIDERS: Record<string, ProviderFactory> = {
   qwen: (config) => new QwenProvider(config),
   zhipu: (config) => new ZhipuProvider(config),
   mistral: (config) => new MistralProvider(config),
+  anthropic: (config) => new AnthropicProvider(config),
 };
 
 export class ProviderRegistry {

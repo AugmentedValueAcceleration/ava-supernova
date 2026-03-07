@@ -70,6 +70,7 @@ export type ExtToWebviewMessage =
       messages: Array<{ role: 'user' | 'assistant'; content: string }>;
     }
   | { type: 'chat_cleared' }
+  | { type: 'context_usage'; used: number; limit: number; percent: number }
   | { type: 'compression_start' }
   | { type: 'compression_end'; originalTokens: number; compressedTokens: number };
 
@@ -133,6 +134,7 @@ export interface ChatState {
     cost?: number;
     contextWindow?: number;
   } | null;
+  contextUsage: { used: number; limit: number; percent: number } | null;
   isCompressing: boolean;
   historyOpen: boolean;
   historyList: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }>;

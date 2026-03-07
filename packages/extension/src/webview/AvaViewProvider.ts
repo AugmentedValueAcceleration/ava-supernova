@@ -333,8 +333,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       deepseek: 'ava-supernova.provider.deepseek.apiKey',
       kimi: 'ava-supernova.provider.kimi.apiKey',
       qwen: 'ava-supernova.provider.qwen.apiKey',
+      anthropic: 'ava-supernova.provider.anthropic.apiKey',
     };
-    for (const name of ['deepseek', 'kimi', 'qwen']) {
+    for (const name of ['deepseek', 'kimi', 'qwen', 'anthropic']) {
       // Migrate legacy plaintext settings → SecretStorage (one-time)
       const legacyKey = config.get<string>(`providers.${name}.apiKey`);
       if (legacyKey) {
@@ -406,6 +407,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           freeTokensLimit: this.cachedAccount.usage?.free_tokens_limit ?? 500000,
           subTokensUsed: this.cachedAccount.usage?.tokens_used ?? 0,
           subTokensLimit: this.cachedAccount.usage?.tokens_limit ?? null,
+          claudeTokensUsed: this.cachedAccount.usage?.claude_tokens_used ?? 0,
+          claudeTokensLimit: this.cachedAccount.usage?.claude_tokens_limit ?? null,
         }
       : undefined;
 
@@ -841,13 +844,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           this.postMessage({ type: 'error', message: info.message, code: info.code, suggestion: info.suggestion });
           break;
         }
-        case 'context_truncated':
-          this.log(`Context truncated: ${event.droppedCount} messages dropped`);
+        case 'context_usage':
           this.postMessage({
-            type: 'error',
-            message: `Context window full — ${event.droppedCount} older messages were dropped to fit.`,
-            code: 'context_truncated',
-            suggestion: 'Start a new chat for best results, or continue and older context will be summarized.',
+            type: 'context_usage',
+            used: event.context.used,
+            limit: event.context.limit,
+            percent: event.context.percent,
           });
           break;
         case 'context_compression_start':

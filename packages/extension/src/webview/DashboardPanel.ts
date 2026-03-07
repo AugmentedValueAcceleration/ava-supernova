@@ -20,6 +20,7 @@ const PROVIDER_KEY_SECRETS: Record<string, string> = {
   deepseek: 'ava-supernova.provider.deepseek.apiKey',
   kimi: 'ava-supernova.provider.kimi.apiKey',
   qwen: 'ava-supernova.provider.qwen.apiKey',
+  anthropic: 'ava-supernova.provider.anthropic.apiKey',
 };
 
 // Connection credential secret keys
@@ -404,11 +405,12 @@ export class DashboardPanel {
       deepseek: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.deepseek)),
       kimi: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.kimi)),
       qwen: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.qwen)),
+      anthropic: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.anthropic)),
     };
   }
 
   private async saveProviderKey(
-    provider: 'deepseek' | 'kimi' | 'qwen',
+    provider: 'deepseek' | 'kimi' | 'qwen' | 'anthropic',
     apiKey: string,
   ): Promise<void> {
     const secretKey = PROVIDER_KEY_SECRETS[provider];
@@ -419,7 +421,7 @@ export class DashboardPanel {
   }
 
   private async removeProviderKey(
-    provider: 'deepseek' | 'kimi' | 'qwen',
+    provider: 'deepseek' | 'kimi' | 'qwen' | 'anthropic',
   ): Promise<void> {
     const secretKey = PROVIDER_KEY_SECRETS[provider];
     if (secretKey) {

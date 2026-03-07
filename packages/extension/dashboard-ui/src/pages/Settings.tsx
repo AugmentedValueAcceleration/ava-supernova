@@ -32,6 +32,13 @@ const PROVIDERS = [
     signupUrl: 'https://dashscope.console.aliyun.com',
     description: 'Qwen 3.5 Plus and Qwen Turbo',
   },
+  {
+    id: 'anthropic' as const,
+    name: 'Anthropic (Claude)',
+    placeholder: 'sk-ant-...',
+    signupUrl: 'https://console.anthropic.com',
+    description: 'Claude Opus 4.6, Sonnet 4.6, Haiku 4.5',
+  },
 ];
 
 const LANGUAGES = [
@@ -92,7 +99,7 @@ export function Settings({ settings, onSettingsChange, providerKeys, showProvide
     setTimeout(() => setSaved(false), 2000);
   }
 
-  function handleSaveProviderKey(provider: 'deepseek' | 'kimi' | 'qwen') {
+  function handleSaveProviderKey(provider: 'deepseek' | 'kimi' | 'qwen' | 'anthropic') {
     const key = providerInputs[provider]?.trim();
     if (!key) return;
     setSavingProvider(provider);
@@ -101,12 +108,12 @@ export function Settings({ settings, onSettingsChange, providerKeys, showProvide
     setTimeout(() => setSavingProvider(null), 1500);
   }
 
-  function handleRemoveProviderKey(provider: 'deepseek' | 'kimi' | 'qwen') {
+  function handleRemoveProviderKey(provider: 'deepseek' | 'kimi' | 'qwen' | 'anthropic') {
     post({ type: 'remove_provider_key', provider });
   }
 
   const hasChanges = JSON.stringify(local) !== JSON.stringify(settings);
-  const configuredCount = [providerKeys.deepseek, providerKeys.kimi, providerKeys.qwen].filter(Boolean).length;
+  const configuredCount = [providerKeys.deepseek, providerKeys.kimi, providerKeys.qwen, providerKeys.anthropic].filter(Boolean).length;
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -130,7 +137,7 @@ export function Settings({ settings, onSettingsChange, providerKeys, showProvide
               <p className="mt-1 text-xs text-[var(--text-muted)]">
                 {configuredCount === 0
                   ? 'Add at least one provider API key to start using Ava.'
-                  : `${configuredCount}/3 providers configured.`}
+                  : `${configuredCount}/4 providers configured.`}
               </p>
             </div>
 

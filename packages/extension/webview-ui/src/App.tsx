@@ -5,6 +5,7 @@ import { ChatContainer } from './components/ChatContainer';
 import { InputArea } from './components/InputArea';
 import { Header } from './components/Header';
 import { HistoryPanel } from './components/HistoryPanel';
+import { ContextBar } from './components/ContextBar';
 import type { AvaMode, ImageAttachment } from './components/InputArea';
 import { t, setLocale, loadStrings } from './i18n';
 
@@ -254,7 +255,13 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'close_history':
       return { ...state, historyOpen: false };
 
-    // ── Context compression ──────────────────────────────────────────────
+    // ── Context usage & compression ─────────────────────────────────────
+
+    case 'context_usage':
+      return {
+        ...state,
+        contextUsage: { used: action.used, limit: action.limit, percent: action.percent },
+      };
 
     case 'compression_start':
       return { ...state, isCompressing: true };
@@ -286,6 +293,7 @@ const initialState: ChatState = {
   isThinking: false,
   needsSetup: true,
   lastUsage: null,
+  contextUsage: null,
   isCompressing: false,
   historyOpen: false,
   historyList: [],
@@ -508,6 +516,13 @@ export function App() {
         onContinue={handleContinue}
         onSuggestion={handleSuggestion}
         chatEndRef={chatEndRef}
+      />
+
+      <ContextBar
+        contextUsage={state.contextUsage}
+        isCompressing={state.isCompressing ?? false}
+        onCompress={handleCompress}
+        disabled={state.needsSetup || state.isStreaming}
       />
 
       <InputArea

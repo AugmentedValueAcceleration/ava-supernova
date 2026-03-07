@@ -16,6 +16,12 @@ import { logger } from '../core/logger.js';
 
 // ─── Event system ────────────────────────────────────────────────────────────
 
+export interface ContextUsage {
+  used: number;
+  limit: number;
+  percent: number;
+}
+
 export type AgentEvent =
   | { type: 'stream_start' }
   | { type: 'thinking_delta'; content: string }
@@ -26,7 +32,7 @@ export type AgentEvent =
   | { type: 'tool_call_end'; toolCall: ToolCall; result: string; success: boolean; metadata?: Record<string, unknown> }
   | { type: 'usage'; usage: TokenUsage; cost?: number }
   | { type: 'error'; error: Error }
-  | { type: 'context_truncated'; droppedCount: number }
+  | { type: 'context_usage'; context: ContextUsage }
   | { type: 'context_compression_start' }
   | { type: 'context_compression_end'; originalTokens: number; compressedTokens: number }
   | { type: 'done'; finalMessage: AssistantMessage };
@@ -97,17 +103,30 @@ export class Agent {
       const maxInputTokens = Math.floor(this.model.contextWindow * 0.7);
       const estimatedTotal = this.estimateTokenCount(messages);
 
-      // Try smart compression before dumb truncation (only if enough messages to summarize)
-      if (estimatedTotal > maxInputTokens && messages.length >= 8) {
+      // Emit context usage so UIs can show a progress bar
+      const contextPercent = Math.round((estimatedTotal / this.model.contextWindow) * 100);
+      onEvent({
+        type: 'context_usage',
+        context: { used: estimatedTotal, limit: this.model.contextWindow, percent: contextPercent },
+      });
+
+      // Auto-compress at 80% of context window (before it's too late)
+      if (estimatedTotal > maxInputTokens && messages.length >= 6) {
         messages = await this.compressContext(messages, onEvent, signal);
       }
 
-      // Still over budget? Fall back to dumb truncation
+      // Still over budget? Fall back to truncation — emit warning instead of silent drop
       const preCount = messages.length;
       messages = this.truncateMessages(messages, maxInputTokens);
       const dropped = preCount - messages.length;
       if (dropped > 0) {
-        onEvent({ type: 'context_truncated', droppedCount: dropped });
+        onEvent({
+          type: 'error',
+          error: Object.assign(
+            new Error(`Context window full — ${dropped} older messages were compressed away. Consider starting a new chat for best results.`),
+            { code: 'context_compressed' },
+          ),
+        });
       }
 
       // ── Sanitize messages for model compatibility ──────────────────────────
@@ -485,11 +504,29 @@ export class Agent {
     return messages;
   }
 
+  // ── Context usage ────────────────────────────────────────────────────────
+
+  /** Get current context usage for a set of messages. */
+  getContextUsage(messages: Message[]): ContextUsage {
+    const used = this.estimateTokenCount(messages);
+    const limit = this.model.contextWindow;
+    return { used, limit, percent: Math.round((used / limit) * 100) };
+  }
+
+  /** Manually compress context — triggered by user clicking the context bar. */
+  async manualCompress(
+    messages: Message[],
+    onEvent: AgentEventHandler,
+    signal?: AbortSignal,
+  ): Promise<Message[]> {
+    return this.compressContext(messages, onEvent, signal);
+  }
+
   // ── Context compression ──────────────────────────────────────────────────
 
   /**
    * Compress conversation context by summarizing older messages.
-   * Keeps the system prompt and last 4 messages (2 user-assistant exchanges)
+   * Keeps the system prompt and last 8 messages (4 user-assistant exchanges)
    * verbatim, summarizes everything in between using the model.
    * Falls back silently if the compression API call fails.
    */
@@ -503,8 +540,8 @@ export class Agent {
     const systemMsg = messages[0]?.role === 'system' ? messages[0] : null;
     const rest = systemMsg ? messages.slice(1) : [...messages];
 
-    // Keep last 4 messages verbatim (2 exchange pairs)
-    const KEEP_RECENT = 4;
+    // Keep last 8 messages verbatim (4 exchange pairs) for better continuity
+    const KEEP_RECENT = 8;
     if (rest.length <= KEEP_RECENT) {
       onEvent({ type: 'context_compression_end', originalTokens: 0, compressedTokens: 0 });
       return messages;
@@ -524,7 +561,8 @@ export class Agent {
     const compressionPrompt = `You are a conversation summarizer. Summarize this conversation transcript concisely while preserving:
 - Key decisions and conclusions reached
 - File paths, function names, and code identifiers mentioned
-- Current task state and what was accomplished
+- Tool calls made and their results (especially file edits, searches, and command outputs)
+- Current task state and what was accomplished vs. what remains
 - Any errors encountered and how they were resolved
 - Important technical context the assistant will need going forward
 
@@ -563,6 +601,13 @@ ${transcript}`;
       const originalTokens = this.estimateTokenCount(messages);
       const compressedTokens = this.estimateTokenCount(result);
       onEvent({ type: 'context_compression_end', originalTokens, compressedTokens });
+
+      // Emit updated context usage so UI bars refresh after compression
+      const newPercent = Math.round((compressedTokens / this.model.contextWindow) * 100);
+      onEvent({
+        type: 'context_usage',
+        context: { used: compressedTokens, limit: this.model.contextWindow, percent: newPercent },
+      });
 
       return result;
     } catch {

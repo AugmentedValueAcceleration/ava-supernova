@@ -41,6 +41,13 @@ const PROVIDERS = [
     keyUrl: 'https://console.mistral.ai/api-keys',
     live: false,
   },
+  {
+    key: 'anthropic',
+    displayName: 'Anthropic (Claude)',
+    description: 'Claude Opus 4.6, Sonnet 4.6, Haiku 4.5',
+    keyUrl: 'https://console.anthropic.com/settings/keys',
+    live: true,
+  },
 ];
 
 export async function runSetupWizard(

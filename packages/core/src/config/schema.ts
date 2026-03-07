@@ -10,6 +10,7 @@ export interface AvaConfig {
     deepseek?: ProviderSettings;
     kimi?: ProviderSettings;
     qwen?: ProviderSettings;
+    anthropic?: ProviderSettings;
     generic?: Array<{
       name: string;
       apiKey?: string;

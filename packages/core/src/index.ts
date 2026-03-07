@@ -1,6 +1,6 @@
 // Agent
 export { Agent } from './agent/agent.js';
-export type { AgentEvent, AgentEventHandler } from './agent/agent.js';
+export type { AgentEvent, AgentEventHandler, ContextUsage } from './agent/agent.js';
 export { Conversation } from './agent/conversation.js';
 export { buildSystemPrompt, getSecurityModePrefix } from './agent/system-prompt.js';
 
