@@ -40,7 +40,7 @@ ava
 \`\`\`
 
 ### IDE (Desktop App)
-Download the installer from the Ava Supernova IDE GitHub releases page.
+Download the installer from the Ava Supernova GitHub releases page.
 
 ## First-Time Setup
 1. **Add an API key** — Go to Settings (or Dashboard) and add at least one provider API key. Or connect a platform account (sk-ava-...) for managed access.
