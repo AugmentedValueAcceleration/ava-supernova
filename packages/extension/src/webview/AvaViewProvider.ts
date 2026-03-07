@@ -101,7 +101,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.projectInstructions = this.projectRoot
       ? (await loadProjectInstructions(this.projectRoot)) ?? undefined
       : undefined;
-    this.cachedMemory = (await this.memoryManager.loadAll()) || undefined;
+    this.cachedMemory = (await this.memoryManager.loadAll(this.projectInstructions)) || undefined;
   }
 
   private async onWorkspaceChanged(): Promise<void> {

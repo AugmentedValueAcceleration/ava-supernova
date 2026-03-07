@@ -1,6 +1,6 @@
 import { readFile, writeFile, rename, mkdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { PlatformMemorySync } from './platform-sync.js';
+import type { PlatformMemorySync, SemanticMatch } from './platform-sync.js';
 
 const MEMORY_FILENAME = 'memory.md';
 
@@ -59,10 +59,11 @@ export class MemoryManager {
   }
 
   /** Load both memories, formatted for system prompt injection. Empty string if no memories. */
-  async loadAll(): Promise<string> {
-    const [global, project] = await Promise.all([
+  async loadAll(context?: string): Promise<string> {
+    const [global, project, episodic] = await Promise.all([
       this.loadGlobalMemory(),
       this.loadProjectMemory(),
+      context ? this.loadRelevantMemories(context) : Promise.resolve([]),
     ]);
 
     const sections: string[] = [];
@@ -73,8 +74,27 @@ export class MemoryManager {
     if (project?.trim()) {
       sections.push(`### Project Memory\n${project.trim()}`);
     }
+    if (episodic.length > 0) {
+      const items = episodic
+        .map((m) => `- **${m.key}** (${m.scope}, ${Math.round(m.similarity * 100)}% match): ${m.content}`)
+        .join('\n');
+      sections.push(`### Relevant Memories\n${items}`);
+    }
 
     return sections.join('\n\n');
+  }
+
+  /**
+   * Semantic search for memories relevant to the current context.
+   * Requires platform sync with embeddings. Returns empty if unavailable.
+   */
+  async loadRelevantMemories(context: string, limit = 5): Promise<SemanticMatch[]> {
+    if (!this.sync) return [];
+    try {
+      return await this.sync.semanticSearch(context, { threshold: 0.65, limit });
+    } catch {
+      return [];
+    }
   }
 
   /** Overwrite global memory with new content. Syncs to platform if available. */

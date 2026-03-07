@@ -68,7 +68,15 @@ export class MemoryRecallTool implements Tool {
       }
     }
 
+    // If keyword search found nothing, try semantic search via platform
     if (results.length === 0) {
+      const semanticResults = await memoryManager.loadRelevantMemories(query, 5);
+      if (semanticResults.length > 0) {
+        const items = semanticResults
+          .map((m) => `- **${m.key}** (${m.scope}, ${Math.round(m.similarity * 100)}% match): ${m.content}`)
+          .join('\n');
+        return { success: true, output: `### Semantic Matches\n${items}` };
+      }
       return { success: true, output: `No memories matching "${query}" found.` };
     }
 

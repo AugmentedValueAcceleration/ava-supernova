@@ -78,8 +78,8 @@ async function main(): Promise<void> {
   const toolRegistry = new ToolRegistry();
   toolRegistry.registerBuiltins();
 
-  // Load persistent memory
-  const memory = await memoryManager.loadAll();
+  // Load persistent memory (pass project instructions as context for episodic retrieval)
+  const memory = await memoryManager.loadAll(projectInstructions ?? undefined);
 
   // Create conversation and agent
   const conversation = new Conversation();

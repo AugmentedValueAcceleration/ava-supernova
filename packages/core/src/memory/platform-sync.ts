@@ -12,6 +12,14 @@ export interface PlatformMemory {
   updated_at: string;
 }
 
+export interface SemanticMatch {
+  id: string;
+  key: string;
+  content: string;
+  scope: 'global' | 'project';
+  similarity: number;
+}
+
 export class PlatformMemorySync {
   private readonly apiBase: string;
   private readonly platformKey: string;
@@ -65,6 +73,33 @@ export class PlatformMemorySync {
           project_id: scope === 'project' ? this.projectId : null,
         }),
       });
+    }
+  }
+
+  /** Semantic search across memories using vector similarity. */
+  async semanticSearch(
+    query: string,
+    opts?: { scope?: 'global' | 'project'; threshold?: number; limit?: number },
+  ): Promise<SemanticMatch[]> {
+    try {
+      const res = await fetch(`${this.apiBase}/memories/search`, {
+        method: 'POST',
+        headers: this.headers(),
+        body: JSON.stringify({
+          query,
+          scope: opts?.scope || null,
+          project_id: opts?.scope === 'project' ? this.projectId : null,
+          threshold: opts?.threshold ?? 0.7,
+          limit: opts?.limit ?? 10,
+        }),
+      });
+
+      if (!res.ok) return [];
+
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
     }
   }
 
