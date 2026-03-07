@@ -8,6 +8,7 @@ interface HeaderProps {
   onSwitch: (modelId: string) => void;
   onOpenDashboard: () => void;
   onOpenHistory: () => void;
+  onOpenMemory: () => void;
   onNewChat: () => void;
 }
 
@@ -18,6 +19,7 @@ export function Header({
   onSwitch,
   onOpenDashboard,
   onOpenHistory,
+  onOpenMemory,
   onNewChat,
 }: HeaderProps) {
   return (
@@ -43,6 +45,20 @@ export function Header({
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
           <path d="M13.507 12.324a7 7 0 0 0 .065-8.56A7 7 0 0 0 2 4.393V2H1v3.5l.5.5H5V5H2.811a6.008 6.008 0 1 1-.135 5.77l-.887.462a7 7 0 0 0 11.718 1.092zM8 4h1v4.28l3.35 2.01-.51.858L8 8.72V4z"/>
+        </svg>
+      </button>
+
+      <button
+        onClick={onOpenMemory}
+        title="Memory"
+        aria-label="Memory"
+        className="flex items-center justify-center w-7 h-7 rounded
+                   hover:bg-[var(--vscode-toolbar-hoverBackground)]
+                   text-[var(--vscode-foreground)] opacity-70 hover:opacity-100
+                   bg-transparent border-none cursor-pointer text-sm"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path d="M8 1C4.15 1 1 3.58 1 6.75c0 1.83 1.12 3.45 2.84 4.44L3 14l3.23-1.75c.57.1 1.16.15 1.77.15 3.85 0 7-2.58 7-5.65S11.85 1 8 1zm0 10.3c-.55 0-1.08-.06-1.59-.17l-.35-.08-1.93 1.05.5-1.7-.32-.2C3.22 9.42 2 8.15 2 6.75 2 4.13 4.69 2 8 2s6 2.13 6 4.75-2.69 4.55-6 4.55z"/>
         </svg>
       </button>
 

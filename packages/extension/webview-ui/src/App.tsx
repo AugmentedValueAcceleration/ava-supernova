@@ -5,13 +5,15 @@ import { ChatContainer } from './components/ChatContainer';
 import { InputArea } from './components/InputArea';
 import { Header } from './components/Header';
 import { HistoryPanel } from './components/HistoryPanel';
+import { MemoryPanel } from './components/MemoryPanel';
 import { ContextBar } from './components/ContextBar';
 import type { AvaMode, ImageAttachment } from './components/InputArea';
 import { t, setLocale, loadStrings } from './i18n';
 
 type ChatAction =
   | ExtToWebviewMessage
-  | { type: 'close_history' };
+  | { type: 'close_history' }
+  | { type: 'close_memory' };
 
 let messageIdCounter = 0;
 function nextId(): string {
@@ -255,6 +257,19 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'close_history':
       return { ...state, historyOpen: false };
 
+    // ── Memory ──────────────────────────────────────────────────────────
+
+    case 'memory_content':
+      return {
+        ...state,
+        memoryOpen: true,
+        memoryGlobal: action.global,
+        memoryProject: action.project,
+      };
+
+    case 'close_memory':
+      return { ...state, memoryOpen: false };
+
     // ── Context usage & compression ─────────────────────────────────────
 
     case 'context_usage':
@@ -300,6 +315,9 @@ const initialState: ChatState = {
   currentConversationId: null,
   providerSource: 'byok',
   platformStatus: null,
+  memoryOpen: false,
+  memoryGlobal: null,
+  memoryProject: null,
 };
 
 // ── Typing speed config ─────────────────────────────────────────────────────
@@ -497,6 +515,28 @@ export function App() {
     dispatch({ type: 'close_history' });
   }, []);
 
+  const handleOpenMemory = useCallback(() => {
+    postMessage({ type: 'request_memory' });
+  }, [postMessage]);
+
+  const handleCloseMemory = useCallback(() => {
+    dispatch({ type: 'close_memory' });
+  }, []);
+
+  const handleSaveMemory = useCallback(
+    (scope: 'global' | 'project', content: string) => {
+      postMessage({ type: 'save_memory', scope, content });
+    },
+    [postMessage],
+  );
+
+  const handleClearMemory = useCallback(
+    (scope: 'global' | 'project') => {
+      postMessage({ type: 'clear_memory', scope });
+    },
+    [postMessage],
+  );
+
   return (
     <div className="relative flex flex-col h-screen">
       <Header
@@ -506,6 +546,7 @@ export function App() {
         onSwitch={handleModelSwitch}
         onOpenDashboard={handleOpenDashboard}
         onOpenHistory={handleOpenHistory}
+        onOpenMemory={handleOpenMemory}
         onNewChat={handleNewChat}
       />
 
@@ -549,6 +590,16 @@ export function App() {
           onRename={handleRenameConversation}
           onPin={handlePinConversation}
           onExport={handleExportConversation}
+        />
+      )}
+
+      {state.memoryOpen && (
+        <MemoryPanel
+          globalMemory={state.memoryGlobal}
+          projectMemory={state.memoryProject}
+          onClose={handleCloseMemory}
+          onSave={handleSaveMemory}
+          onClear={handleClearMemory}
         />
       )}
     </div>

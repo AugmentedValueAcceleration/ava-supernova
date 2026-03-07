@@ -8,6 +8,7 @@ import {
   PlatformProvider,
   HistoryManager,
   MemoryManager,
+  PlatformMemorySync,
   AVA_HOME,
   ProviderError,
   buildSystemPrompt,
@@ -85,7 +86,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.projectRoot = detectProjectRoot(cwd) ?? undefined;
     this.historyManager = new HistoryManager(this.projectRoot);
     this.historyManager.init();
-    this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot });
+
+    // Set up memory with optional platform sync
+    let sync: PlatformMemorySync | undefined;
+    const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
+    if (platformKey) {
+      const projectId = this.projectRoot
+        ? crypto.createHash('sha256').update(this.projectRoot).digest('hex').slice(0, 16)
+        : undefined;
+      sync = new PlatformMemorySync('https://ava-supernova.com/api', platformKey, projectId);
+    }
+    this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync });
+
     this.projectInstructions = this.projectRoot
       ? (await loadProjectInstructions(this.projectRoot)) ?? undefined
       : undefined;
@@ -648,6 +660,41 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  // ── Memory Management ────────────────────────────────────────────────────────
+
+  private async sendMemoryContent(): Promise<void> {
+    if (!this.memoryManager) return;
+    const [global, project] = await Promise.all([
+      this.memoryManager.loadGlobalMemory(),
+      this.memoryManager.loadProjectMemory(),
+    ]);
+    this.postMessage({ type: 'memory_content', global, project });
+  }
+
+  private async saveMemory(scope: 'global' | 'project', content: string): Promise<void> {
+    if (!this.memoryManager) return;
+    if (scope === 'global') {
+      await this.memoryManager.saveGlobalMemory(content);
+    } else {
+      await this.memoryManager.saveProjectMemory(content);
+    }
+    // Refresh cached memory for system prompt
+    this.cachedMemory = (await this.memoryManager.loadAll()) || undefined;
+    // Send updated content back to webview
+    await this.sendMemoryContent();
+  }
+
+  private async clearMemory(scope: 'global' | 'project'): Promise<void> {
+    if (!this.memoryManager) return;
+    if (scope === 'global') {
+      await this.memoryManager.saveGlobalMemory('');
+    } else {
+      await this.memoryManager.saveProjectMemory('');
+    }
+    this.cachedMemory = (await this.memoryManager.loadAll()) || undefined;
+    await this.sendMemoryContent();
+  }
+
   private buildUIMessages(messages: Message[]): Array<{ role: 'user' | 'assistant'; content: string }> {
     return messages
       .filter((m) =>
@@ -738,6 +785,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         this.context.globalState.update('providerSource', message.source);
         this.log(`Provider source switched to: ${message.source}`);
         await this.initializeSession();
+        break;
+
+      case 'request_memory':
+        await this.sendMemoryContent();
+        break;
+
+      case 'save_memory':
+        await this.saveMemory(message.scope, message.content);
+        break;
+
+      case 'clear_memory':
+        await this.clearMemory(message.scope);
         break;
     }
   }

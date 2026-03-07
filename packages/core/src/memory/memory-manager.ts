@@ -1,28 +1,61 @@
 import { readFile, writeFile, rename, mkdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { PlatformMemorySync } from './platform-sync.js';
 
 const MEMORY_FILENAME = 'memory.md';
 
 export class MemoryManager {
   private readonly globalPath: string;
   private readonly projectPath: string | null;
+  private readonly sync?: PlatformMemorySync;
 
-  constructor(opts: { globalDir: string; projectRoot?: string }) {
+  constructor(opts: { globalDir: string; projectRoot?: string; sync?: PlatformMemorySync }) {
     this.globalPath = join(opts.globalDir, MEMORY_FILENAME);
     this.projectPath = opts.projectRoot
       ? join(opts.projectRoot, '.ava', MEMORY_FILENAME)
       : null;
+    this.sync = opts.sync;
   }
 
-  /** Read global memory (~/.ava/memory.md). Returns null if not found. */
+  /** Read global memory (~/.ava/memory.md). Falls back to platform if local is empty. */
   async loadGlobalMemory(): Promise<string | null> {
-    return this.readSafe(this.globalPath);
+    const local = await this.readSafe(this.globalPath);
+    if (local) return local;
+
+    // Bootstrap from platform if local doesn't exist
+    if (this.sync) {
+      try {
+        const remote = await this.sync.pull('global');
+        if (remote.length > 0) {
+          const content = remote.map((m) => m.content).join('\n\n');
+          await this.writeSafe(this.globalPath, content);
+          return content;
+        }
+      } catch { /* platform unavailable — not fatal */ }
+    }
+    return null;
   }
 
-  /** Read project memory (<projectRoot>/.ava/memory.md). Returns null if not found. */
+  /** Read project memory (<projectRoot>/.ava/memory.md). Falls back to platform if local is empty. */
   async loadProjectMemory(): Promise<string | null> {
     if (!this.projectPath) return null;
-    return this.readSafe(this.projectPath);
+    const local = await this.readSafe(this.projectPath);
+    if (local) return local;
+
+    // Bootstrap from platform if local doesn't exist
+    if (this.sync) {
+      try {
+        const remote = await this.sync.pull('project');
+        if (remote.length > 0) {
+          const content = remote.map((m) => m.content).join('\n\n');
+          const dir = join(this.projectPath, '..');
+          await mkdir(dir, { recursive: true });
+          await this.writeSafe(this.projectPath, content);
+          return content;
+        }
+      } catch { /* platform unavailable — not fatal */ }
+    }
+    return null;
   }
 
   /** Load both memories, formatted for system prompt injection. Empty string if no memories. */
@@ -44,9 +77,10 @@ export class MemoryManager {
     return sections.join('\n\n');
   }
 
-  /** Overwrite global memory with new content. */
+  /** Overwrite global memory with new content. Syncs to platform if available. */
   async saveGlobalMemory(content: string): Promise<void> {
     await this.writeSafe(this.globalPath, content);
+    this.syncPush('global', 'memory.md', content);
   }
 
   /** Overwrite project memory with new content. Creates .ava/ dir if needed. */
@@ -57,6 +91,7 @@ export class MemoryManager {
     const dir = join(this.projectPath, '..');
     await mkdir(dir, { recursive: true });
     await this.writeSafe(this.projectPath, content);
+    this.syncPush('project', 'memory.md', content);
   }
 
   /** Append an entry to global memory. */
@@ -99,5 +134,13 @@ export class MemoryManager {
       await unlink(tmpPath).catch(() => {});
       throw err;
     }
+  }
+
+  /** Fire-and-forget push to platform. Never throws. */
+  private syncPush(scope: 'global' | 'project', key: string, content: string): void {
+    if (!this.sync) return;
+    this.sync.push(scope, key, content).catch(() => {
+      /* platform unavailable — local is source of truth */
+    });
   }
 }

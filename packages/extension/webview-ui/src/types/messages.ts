@@ -72,7 +72,8 @@ export type ExtToWebviewMessage =
   | { type: 'chat_cleared' }
   | { type: 'context_usage'; used: number; limit: number; percent: number }
   | { type: 'compression_start' }
-  | { type: 'compression_end'; originalTokens: number; compressedTokens: number };
+  | { type: 'compression_end'; originalTokens: number; compressedTokens: number }
+  | { type: 'memory_content'; global: string | null; project: string | null };
 
 export type AvaMode = 'code' | 'plan' | 'chat' | 'security';
 
@@ -93,7 +94,10 @@ export type WebviewToExtMessage =
   | { type: 'new_chat' }
   | { type: 'webview_ready' }
   | { type: 'compress_context' }
-  | { type: 'set_provider_source'; source: ProviderSource };
+  | { type: 'set_provider_source'; source: ProviderSource }
+  | { type: 'request_memory' }
+  | { type: 'save_memory'; scope: 'global' | 'project'; content: string }
+  | { type: 'clear_memory'; scope: 'global' | 'project' };
 
 // UI state types
 
@@ -146,4 +150,7 @@ export interface ChatState {
     freeTokensUsed: number;
     freeTokensLimit: number;
   } | null;
+  memoryOpen: boolean;
+  memoryGlobal: string | null;
+  memoryProject: string | null;
 }

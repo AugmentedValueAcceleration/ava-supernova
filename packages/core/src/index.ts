@@ -44,6 +44,8 @@ export { BrowserTool } from './tools/browser.js';
 
 // Memory
 export { MemoryManager } from './memory/memory-manager.js';
+export { PlatformMemorySync } from './memory/platform-sync.js';
+export type { PlatformMemory } from './memory/platform-sync.js';
 
 // Checkpoint
 export { CheckpointManager } from './checkpoint/checkpoint-manager.js';
