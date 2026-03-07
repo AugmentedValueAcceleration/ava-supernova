@@ -306,7 +306,7 @@ export class DocsPanel {
 
     <!-- Tools -->
     <section class="docs-section" id="tools">
-      <h2>Built-in Tools (22)</h2>
+      <h2>Built-in Tools (23)</h2>
 
       <h3>Reading &amp; Searching</h3>
       <table>
@@ -343,6 +343,7 @@ export class DocsPanel {
           <tr><td><code>browser</code></td><td>Open and interact with web pages using a headless browser.</td><td><span class="badge badge-write">write</span></td></tr>
           <tr><td><code>screenshot</code></td><td>Capture screenshots of the current screen or a URL.</td><td><span class="badge badge-safe">safe</span></td></tr>
           <tr><td><code>database_query</code></td><td>Run read-only SQL queries against configured databases.</td><td><span class="badge badge-safe">safe</span></td></tr>
+          <tr><td><code>docs_lookup</code></td><td>Search Ava's own documentation to help with features, setup, and troubleshooting.</td><td><span class="badge badge-safe">safe</span></td></tr>
         </tbody>
       </table>
 
@@ -447,7 +448,7 @@ export class DocsPanel {
       <div class="card-grid">
         <div class="card">
           <h4>Code Mode</h4>
-          <p>Full agent with all 22 tools. Ava reads, writes, searches, and executes across your codebase.</p>
+          <p>Full agent with all 23 tools. Ava reads, writes, searches, and executes across your codebase.</p>
         </div>
         <div class="card">
           <h4>Plan Mode</h4>
@@ -593,7 +594,7 @@ export class DocsPanel {
 
     <!-- Footer -->
     <div class="docs-header" style="margin-top: 48px; border-top: 1px solid var(--ava-border); border-bottom: none; padding-top: 24px;">
-      <p class="muted">Ava | Supernova v0.3.0 &mdash; Apache License 2.0</p>
+      <p class="muted">Ava | Supernova v0.4.0 &mdash; Apache License 2.0</p>
       <p class="muted small">Built with purpose. Agentic coding for everyone.</p>
     </div>
 

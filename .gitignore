@@ -16,4 +16,4 @@ coverage/
 packages/plugins/
 
 # Planning docs — private, not for public repo
-docs/
+/docs/

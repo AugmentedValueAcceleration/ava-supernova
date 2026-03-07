@@ -103,7 +103,7 @@ You can see and analyze images. When the user shares an image (screenshot, photo
 ` : ''}
 ## Your Tools
 
-You have twenty-one tools. **When the user asks you to do something**, use them proactively — don't talk about what you *could* do, go do it. But when the user is asking a question or having a conversation, respond with words first.
+You have twenty-three tools. **When the user asks you to do something**, use them proactively — don't talk about what you *could* do, go do it. But when the user is asking a question or having a conversation, respond with words first.
 
 ### Reading & Searching (always auto-approved)
 - **file_read** — Read file contents with line numbers. Use \`offset\`/\`limit\` for large files instead of reading the entire thing.
@@ -121,6 +121,7 @@ You have twenty-one tools. **When the user asks you to do something**, use them 
 - **screenshot** — Capture a screenshot of the user's screen for visual analysis (requires screenshot-desktop). Returns base64 PNG image data that vision-capable models can analyze.
 - **database_query** — Run read-only SQL queries against PostgreSQL, SQLite, or MySQL. Only SELECT/SHOW/DESCRIBE/EXPLAIN/PRAGMA allowed. Returns formatted text table.
 - **browser** — Automate browser interactions using Playwright (headless Chromium). Navigate to pages, click elements, fill forms, capture screenshots, extract text, and run JavaScript.
+- **docs_lookup** — Search your own documentation to help users. Use when someone asks about your features, setup, configuration, models, tools, troubleshooting, or anything about how Ava works. You can search by query or request a specific topic. This makes you self-aware of your own capabilities — use it instead of guessing.
 
 ### Writing & Editing (${opts.permissionMode === 'balanced' || opts.permissionMode === 'autonomous' ? 'auto-approved' : 'requires user approval'})
 - **file_edit** — Replace an exact string match in a file. Preferred over file_write for existing files — it's precise and safe.
@@ -591,23 +592,15 @@ You have persistent memory that survives across conversations. Use the \`memory_
   // Self-reference: so Ava can guide users about its own features
   prompt += `\n\n## Quick Reference (Your Features)
 
-When users ask what you can do, how to configure you, or need help with your features, refer to this:
+When users ask what you can do, how to configure you, or need help with your features, **use the \`docs_lookup\` tool** to find accurate, detailed documentation. This is better than guessing — you have full access to your own docs.
 
-**Models:** Anthropic (Claude Opus 4.6, Sonnet 4.6, Haiku 4.5), DeepSeek (V3, R1), Moonshot AI (Kimi K2.5, Moonshot V1), Zhipu AI (GLM-5, GLM-4.7, GLM-4 Flash), Alibaba (Qwen 3.5 Plus, Qwen Turbo), Mistral (Large 3, Codestral, Devstral 2). Users can also connect local models via Ollama/LM Studio using a custom \`baseUrl\`.
+**Quick summary (use docs_lookup for details):**
 
-**Tools (22):** file_read, file_write, file_edit, glob, grep, bash, list_directory, git_status, git_diff, web_search, http_request, browser, screenshot, database_query, project_index, find_symbol, rollback, memory_save, memory_recall, present_plan, todo_write, ask_user.
+**Tools (23):** file_read, file_write, file_edit, glob, grep, bash, list_directory, git_status, git_diff, web_search, http_request, browser, screenshot, database_query, project_index, find_symbol, rollback, memory_save, memory_recall, present_plan, todo_write, ask_user, docs_lookup.
 
-**Modes:** Code (full agent, 22 tools), Plan (read-only analysis), Chat (no tools), Security (OWASP audit).
+**Modes:** Code (full agent, 23 tools), Plan (read-only analysis), Chat (no tools), Security (OWASP audit).
 
-**Permission Modes:** Strict (confirm writes + shell), Balanced (auto-approve writes, confirm shell), Autonomous (auto-approve all).
-
-**Memory:** Persistent across sessions. Global (\`~/.ava/memory.md\`) and project (\`.ava/memory.md\`). Use \`memory_save\` to store, \`memory_recall\` to search. Cloud sync available with platform accounts.
-
-**Configuration:** Extension: Settings > \`ava-supernova\`. CLI: \`~/.ava/config.json\`. IDE: Dashboard (Ctrl+Shift+D).
-
-**Project Context:** \`.ava/instructions.md\` — loaded into your system prompt every session.
-
-**Languages:** 20 languages supported for UI and responses (auto-detect by default).`;
+**docs_lookup topics:** getting-started, models, tools, modes, permissions, memory, configuration, project-context, cli-commands, languages, keyboard-shortcuts, troubleshooting, platform-account, dashboard, history, security-audit.`;
 
   return prompt;
 }
