@@ -58,8 +58,23 @@ export class ProviderError extends AvaError {
         return t('error.msg.rate_limit', { provider: this.provider });
       case 500:
       case 502:
-      case 503:
-        return t('error.msg.server_error', { provider: this.provider, code: String(this.statusCode) });
+      case 503: {
+        let detail = '';
+        if (this.responseBody) {
+          try {
+            const raw = typeof this.responseBody === 'string' ? this.responseBody : '';
+            const body = raw ? JSON.parse(raw) : this.responseBody;
+            detail = body?.error?.message || body?.error || body?.message || '';
+            if (typeof detail !== 'string') detail = JSON.stringify(detail);
+          } catch {
+            detail = typeof this.responseBody === 'string'
+              ? this.responseBody.slice(0, 200)
+              : '';
+          }
+        }
+        const base = t('error.msg.server_error', { provider: this.provider, code: String(this.statusCode) });
+        return detail ? `${base} (${detail})` : base;
+      }
       default:
         return this.message;
     }
