@@ -385,6 +385,11 @@ export function App() {
         flushAllDeltas();
       }
 
+      // Mark any conversation restore (including initial load) for scroll-to-bottom
+      if (msg.type === 'conversation_loaded') {
+        justLoadedRef.current = true;
+      }
+
       dispatch(msg);
     };
     window.addEventListener('message', handler);
@@ -405,15 +410,17 @@ export function App() {
   // Auto-scroll to bottom on new content
   useEffect(() => {
     if (state.messages.length === 0) return;
-    // Use instant scroll after loading a conversation, smooth for live streaming
     if (justLoadedRef.current) {
-      // Restored conversation: double-rAF + timeout ensures DOM is fully painted
+      justLoadedRef.current = false;
+      // Restored conversation: longer delay for initial load when DOM may not be ready
+      const scrollToBottom = () => chatEndRef.current?.scrollIntoView({ behavior: 'instant' as ScrollBehavior });
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setTimeout(() => {
-            chatEndRef.current?.scrollIntoView({ behavior: 'instant' as ScrollBehavior });
-            justLoadedRef.current = false;
-          }, 50);
+            scrollToBottom();
+            // Safety: re-scroll after content finishes loading
+            setTimeout(scrollToBottom, 200);
+          }, 100);
         });
       });
     } else {
