@@ -2,7 +2,7 @@
   "name": "ava-supernova",
   "displayName": "Ava | Supernova",
   "description": "%description%",
-  "version": "0.4.4",
+  "version": "0.4.7",
   "publisher": "augmentedvalueacceleration",
   "license": "Apache-2.0",
   "repository": {
@@ -97,34 +97,50 @@
             "id": "addApiKey",
             "title": "%walkthrough.step.apiKey.title%",
             "description": "%walkthrough.step.apiKey.description%",
-            "media": { "markdown": "media/walkthrough/api-key.md" },
-            "completionEvents": ["onSettingChanged:ava-supernova.providers.deepseek.apiKey"]
+            "media": {
+              "markdown": "media/walkthrough/api-key.md"
+            },
+            "completionEvents": [
+              "onSettingChanged:ava-supernova.providers.deepseek.apiKey"
+            ]
           },
           {
             "id": "selectModel",
             "title": "%walkthrough.step.model.title%",
             "description": "%walkthrough.step.model.description%",
-            "media": { "markdown": "media/walkthrough/select-model.md" },
-            "completionEvents": ["onSettingChanged:ava-supernova.activeModel"]
+            "media": {
+              "markdown": "media/walkthrough/select-model.md"
+            },
+            "completionEvents": [
+              "onSettingChanged:ava-supernova.activeModel"
+            ]
           },
           {
             "id": "setLanguage",
             "title": "%walkthrough.step.language.title%",
             "description": "%walkthrough.step.language.description%",
-            "media": { "markdown": "media/walkthrough/language.md" }
+            "media": {
+              "markdown": "media/walkthrough/language.md"
+            }
           },
           {
             "id": "permissions",
             "title": "%walkthrough.step.permissions.title%",
             "description": "%walkthrough.step.permissions.description%",
-            "media": { "markdown": "media/walkthrough/permissions.md" }
+            "media": {
+              "markdown": "media/walkthrough/permissions.md"
+            }
           },
           {
             "id": "startChatting",
             "title": "%walkthrough.step.start.title%",
             "description": "%walkthrough.step.start.description%",
-            "media": { "markdown": "media/walkthrough/start.md" },
-            "completionEvents": ["onCommand:ava-supernova.openChat"]
+            "media": {
+              "markdown": "media/walkthrough/start.md"
+            },
+            "completionEvents": [
+              "onCommand:ava-supernova.openChat"
+            ]
           }
         ]
       }
@@ -195,9 +211,27 @@
             "default": "auto",
             "order": 2,
             "enum": [
-              "auto", "en", "zh-CN", "zh-TW", "ja", "ko",
-              "es", "pt", "fr", "de", "ru", "ar", "hi",
-              "vi", "th", "tr", "it", "pl", "uk", "nl", "id"
+              "auto",
+              "en",
+              "zh-CN",
+              "zh-TW",
+              "ja",
+              "ko",
+              "es",
+              "pt",
+              "fr",
+              "de",
+              "ru",
+              "ar",
+              "hi",
+              "vi",
+              "th",
+              "tr",
+              "it",
+              "pl",
+              "uk",
+              "nl",
+              "id"
             ],
             "enumItemLabels": [
               "%lang.auto%",
@@ -251,7 +285,11 @@
             "type": "string",
             "default": "strict",
             "order": 3,
-            "enum": ["strict", "balanced", "autonomous"],
+            "enum": [
+              "strict",
+              "balanced",
+              "autonomous"
+            ],
             "enumDescriptions": [
               "Confirm all file writes and shell commands (safest)",
               "Auto-approve file edits, confirm shell commands only",

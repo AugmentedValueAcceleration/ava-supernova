@@ -51,12 +51,14 @@ async function main(): Promise<void> {
     sync = new PlatformMemorySync('https://ava-supernova.com/api', appConfig.platformKey, projectId);
   }
   const memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot, sync });
+  const configToRegistry: Record<string, string> = { glm: 'zhipu' };
   for (const [name, providerConfig] of Object.entries(appConfig.providers)) {
     if (name === 'generic' || !providerConfig) continue;
     const settings = providerConfig as ProviderSettings;
     if (settings.apiKey) {
       try {
-        providerRegistry.register(name, settings);
+        const registryKey = configToRegistry[name] || name;
+        providerRegistry.register(registryKey, settings);
       } catch {
         // Provider not yet implemented, skip
       }

@@ -116,9 +116,11 @@ export class CommandHandler {
         const parts = args.trim().split(/\s+/);
         const action = parts[0];
 
-        const liveProviders = ['deepseek', 'kimi', 'qwen'];
-        const comingSoonProviders = ['zhipu', 'mistral'];
+        const liveProviders = ['deepseek', 'kimi', 'qwen', 'glm', 'mistral'];
+        const comingSoonProviders: string[] = [];
         const allSupported = [...liveProviders, ...comingSoonProviders];
+        // Config key → registry key mapping (glm config maps to zhipu provider)
+        const configToRegistry: Record<string, string> = { glm: 'zhipu' };
 
         if (action === 'add') {
           const providerName = parts[1];
@@ -140,7 +142,8 @@ export class CommandHandler {
           await opts.config.save();
 
           try {
-            opts.providerRegistry.register(providerName, settings);
+            const registryKey = configToRegistry[providerName] || providerName;
+            opts.providerRegistry.register(registryKey, settings);
             console.log(chalk.green(`  ${t('cmd.provider.added', { provider: providerName })}`));
           } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
