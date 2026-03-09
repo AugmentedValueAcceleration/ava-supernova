@@ -13,6 +13,7 @@ import type { ToolExecutionContext } from '../tools/types.js';
 import { MAX_TOOL_CALL_ITERATIONS, ITERATION_WARNING_THRESHOLD } from '../core/constants.js';
 import { t } from '../i18n/index.js';
 import { logger } from '../core/logger.js';
+import { buildToolPrompt, parseToolCalls, formatToolResult } from './text-tool-parser.js';
 
 // ─── Event system ────────────────────────────────────────────────────────────
 
@@ -65,10 +66,27 @@ export class Agent {
   }
 
   async run(messages: Message[], onEvent: AgentEventHandler, signal?: AbortSignal): Promise<Message[]> {
-    const toolSchemas: ToolSchema[] = this.model.supportsToolCalls
-      ? this.toolRegistry.getSchemas()
-      : [];
-    logger.debug(`[agent] Starting run: model=${this.model.id} supportsToolCalls=${this.model.supportsToolCalls} toolSchemas=${toolSchemas.length}`);
+    const useNativeTools = this.model.supportsToolCalls !== false;
+    const allSchemas = this.toolRegistry.getSchemas();
+    const toolSchemas: ToolSchema[] = useNativeTools ? allSchemas : [];
+    logger.debug(`[agent] Starting run: model=${this.model.id} supportsToolCalls=${useNativeTools} toolSchemas=${toolSchemas.length}`);
+
+    // For models without native tool_calls, inject tool descriptions into the system prompt
+    if (!useNativeTools && allSchemas.length > 0) {
+      const toolPrompt = buildToolPrompt(allSchemas);
+      const firstMsg = messages[0];
+      if (firstMsg?.role === 'system') {
+        messages = [
+          { ...firstMsg, content: firstMsg.content + '\n\n' + toolPrompt },
+          ...messages.slice(1),
+        ];
+      } else {
+        messages = [
+          { role: 'system' as const, content: toolPrompt },
+          ...messages,
+        ];
+      }
+    }
 
     // Pass signal to tool execution context so tools (esp. bash) can be cancelled
     const runContext = { ...this.toolContext, signal };
@@ -131,7 +149,10 @@ export class Agent {
       }
 
       // ── Sanitize messages for model compatibility ──────────────────────────
-      const sanitizedMessages = messages.map((m) => {
+      const filteredMessages = !useNativeTools
+        ? messages.filter((m) => m.role !== 'tool')  // Drop any stray tool messages in text mode
+        : messages;
+      const sanitizedMessages = filteredMessages.map((m) => {
         let msg = m;
 
         // Strip image_url parts for non-vision models (DeepSeek, Mistral, etc.)
@@ -145,6 +166,14 @@ export class Agent {
             // Mixed text+image — keep only the text, collapsed to a plain string
             msg = { ...msg, content: textParts.map((p) => p.text).join('\n') };
           }
+        }
+
+        // Text-based tool mode: strip tool_calls from assistant messages
+        // The model doesn't understand these fields — they're our internal bookkeeping
+        if (!useNativeTools && msg.role === 'assistant' && (msg as AssistantMessage).tool_calls) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { tool_calls: _tc, ...rest } = msg as AssistantMessage;
+          msg = rest as Message;
         }
 
         // Handle reasoning_content based on model capability:
@@ -183,6 +212,19 @@ export class Agent {
         onEvent({ type: 'error', error: error instanceof Error ? error : new Error(String(error)) });
         return messages;
       }
+      // Text-based tool parsing: extract <tool_call> blocks from the model's text
+      if (!useNativeTools && assistantMessage.content) {
+        const { toolCalls: parsedCalls, cleanText } = parseToolCalls(assistantMessage.content);
+        if (parsedCalls.length > 0) {
+          logger.debug(`[agent] Parsed ${parsedCalls.length} tool calls from text output`);
+          assistantMessage = {
+            ...assistantMessage,
+            content: cleanText || null,
+            tool_calls: parsedCalls,
+          };
+        }
+      }
+
       messages = [...messages, assistantMessage];
 
       // If the actual token count was dangerously high, force aggressive truncation
@@ -243,7 +285,7 @@ export class Agent {
           }
         }
 
-        messages = await this.executeToolCall(toolCall, runContext, onEvent, messages);
+        messages = await this.executeToolCall(toolCall, runContext, onEvent, messages, useNativeTools);
       }
 
       // Phase 2: Auto-approved tools (parallel via Promise.allSettled)
@@ -301,14 +343,25 @@ export class Agent {
             metadata: result.metadata,
           });
 
-          messages = [
-            ...messages,
-            {
-              role: 'tool' as const,
-              tool_call_id: toolCall.id,
-              content: result.output,
-            },
-          ];
+          if (useNativeTools) {
+            messages = [
+              ...messages,
+              {
+                role: 'tool' as const,
+                tool_call_id: toolCall.id,
+                content: result.output,
+              },
+            ];
+          } else {
+            // Text-based mode: send tool results as user messages
+            messages = [
+              ...messages,
+              {
+                role: 'user' as const,
+                content: formatToolResult(toolCall.function.name, result.output, result.success),
+              },
+            ];
+          }
 
           // Vision pipeline
           if (result.metadata?.base64_image) {
@@ -446,6 +499,7 @@ export class Agent {
     runContext: ToolExecutionContext,
     onEvent: AgentEventHandler,
     messages: Message[],
+    useNativeTools = true,
   ): Promise<Message[]> {
     onEvent({ type: 'tool_call_start', toolCall });
 
@@ -477,14 +531,25 @@ export class Agent {
       metadata: result.metadata,
     });
 
-    messages = [
-      ...messages,
-      {
-        role: 'tool' as const,
-        tool_call_id: toolCall.id,
-        content: result.output,
-      },
-    ];
+    if (useNativeTools) {
+      messages = [
+        ...messages,
+        {
+          role: 'tool' as const,
+          tool_call_id: toolCall.id,
+          content: result.output,
+        },
+      ];
+    } else {
+      // Text-based mode: send tool results as user messages
+      messages = [
+        ...messages,
+        {
+          role: 'user' as const,
+          content: formatToolResult(toolCall.function.name, result.output, result.success),
+        },
+      ];
+    }
 
     // Vision pipeline
     if (result.metadata?.base64_image) {
