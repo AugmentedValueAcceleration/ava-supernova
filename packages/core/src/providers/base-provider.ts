@@ -51,29 +51,53 @@ export abstract class BaseProvider implements Provider {
 
   private static readonly RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503]);
   private static readonly MAX_RETRIES = 3;
+  private static readonly RATE_LIMIT_MAX_RETRIES = 5;  // More retries for rate limits (free-tier models)
   private static readonly BASE_DELAY_MS = 1000;
+  private static readonly RATE_LIMIT_BASE_DELAY_MS = 5000;  // 5s base for rate limits (Zhipu free models need ~6s)
   private static readonly FETCH_TIMEOUT_MS = 60_000; // 60s connection timeout
   private static readonly STREAM_READ_TIMEOUT_MS = 90_000; // 90s per-chunk — reasoning models can think for a while
 
   protected async fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
+    // Extract the caller's abort signal (for user cancellation) — it must not
+    // be overwritten by our internal timeout controller.
+    const callerSignal = init.signal;
     let lastError: ProviderError | undefined;
 
-    for (let attempt = 0; attempt <= BaseProvider.MAX_RETRIES; attempt++) {
-      // Add timeout signal — prevents hanging if API never responds
+    for (let attempt = 0; attempt <= BaseProvider.RATE_LIMIT_MAX_RETRIES; attempt++) {
+      // Check caller signal before each attempt
+      if (callerSignal?.aborted) {
+        throw new DOMException('Aborted', 'AbortError');
+      }
+
+      // Combine timeout + caller signals: abort on whichever fires first
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), BaseProvider.FETCH_TIMEOUT_MS);
 
+      // Forward caller abort to our controller so fetch() respects both
+      const onCallerAbort = () => controller.abort();
+      callerSignal?.addEventListener('abort', onCallerAbort, { once: true });
+
       let response: Response;
       try {
-        response = await fetch(url, { ...init, signal: controller.signal });
+        // Remove caller signal from init — our combined controller handles it
+        const { signal: _ignored, ...restInit } = init;
+        response = await fetch(url, { ...restInit, signal: controller.signal });
       } catch (err: unknown) {
         clearTimeout(timeoutId);
+        callerSignal?.removeEventListener('abort', onCallerAbort);
+
+        // If the caller aborted, propagate immediately (don't retry)
+        if (callerSignal?.aborted) {
+          throw new DOMException('Aborted', 'AbortError');
+        }
 
         // Timeouts and network errors are transient — retry with backoff
         const isTimeout = err instanceof DOMException && err.name === 'AbortError';
         const msg = isTimeout
           ? `${this.displayName} request timed out after ${BaseProvider.FETCH_TIMEOUT_MS / 1000}s`
           : `${this.displayName} network error: ${err instanceof Error ? err.message : String(err)}`;
+
+        logger.debug(`[${this.name}] Fetch error (attempt ${attempt + 1}/${BaseProvider.MAX_RETRIES + 1}): ${msg}`);
 
         lastError = new ProviderError(msg, this.name);
         if (attempt < BaseProvider.MAX_RETRIES) {
@@ -84,11 +108,17 @@ export abstract class BaseProvider implements Provider {
         throw lastError;
       } finally {
         clearTimeout(timeoutId);
+        callerSignal?.removeEventListener('abort', onCallerAbort);
       }
 
       if (response.ok) return response;
 
       const errorBody = await response.text();
+      const isRateLimit = response.status === 429 || (response.status === 502 && errorBody.includes('429'));
+      const maxRetries = isRateLimit ? BaseProvider.RATE_LIMIT_MAX_RETRIES : BaseProvider.MAX_RETRIES;
+
+      logger.debug(`[${this.name}] API error (attempt ${attempt + 1}/${maxRetries + 1}): ${response.status} ${response.statusText} — ${errorBody.slice(0, 500)}`);
+
       lastError = new ProviderError(
         `${this.displayName} API error: ${response.status} ${response.statusText}`,
         this.name,
@@ -97,9 +127,20 @@ export abstract class BaseProvider implements Provider {
       );
 
       if (!BaseProvider.RETRYABLE_STATUS_CODES.has(response.status)) throw lastError;
-      if (attempt === BaseProvider.MAX_RETRIES) break;
+      if (attempt >= maxRetries) break;
 
-      const delay = BaseProvider.BASE_DELAY_MS * Math.pow(2, attempt);
+      // Rate limits get longer backoff — free-tier models (Zhipu GLM Flash)
+      // need ~6s between requests.  Also respect Retry-After header.
+      let delay: number;
+      if (isRateLimit) {
+        const retryAfter = response.headers.get('retry-after');
+        const retryAfterMs = retryAfter ? Math.min(Number(retryAfter) * 1000, 30_000) : 0;
+        delay = Math.max(retryAfterMs, BaseProvider.RATE_LIMIT_BASE_DELAY_MS * Math.pow(1.5, attempt));
+      } else {
+        delay = BaseProvider.BASE_DELAY_MS * Math.pow(2, attempt);
+      }
+
+      logger.debug(`[${this.name}] Retrying in ${Math.round(delay / 1000)}s...`);
       await new Promise((r) => setTimeout(r, delay));
     }
 
