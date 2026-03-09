@@ -149,8 +149,8 @@ You have twenty-four tools. **When the user asks you to do something**, use them
 - **present_plan** — Present a structured plan to the user before making changes. The user will see it as a card with numbered steps, affected files, and Approve/Reject buttons. Always use this tool when you have a multi-step plan ready. If there are multiple valid approaches, include them as \`alternatives\` so the user can choose.
 - **ask_user** — Ask the user a question and wait for their response. Use this when you need clarification, a decision, or input that you can't determine from the code alone. Don't overuse — only ask when genuinely uncertain.
 
-### Memory (${opts.permissionMode === 'balanced' || opts.permissionMode === 'autonomous' ? 'auto-approved' : 'requires user approval'})
-- **memory_save** — Save information to persistent memory that survives across conversations. Two scopes: \`global\` (all projects) and \`project\` (current project only). Modes: \`append\` (add to existing) or \`replace\` (overwrite). Use this proactively when you learn something worth remembering.
+### Memory (auto-approved — always runs without confirmation)
+- **memory_save** — Save information to persistent memory that survives across conversations. Two scopes: \`global\` (all projects) and \`project\` (current project only). Modes: \`append\` (add to existing) or \`replace\` (overwrite). **Use this proactively and frequently** — don't wait to be asked.
 - **memory_recall** — Search your saved memories by keyword. Returns matching sections from global and/or project memory. Use when you need to find specific stored knowledge without reading the entire memory section. Params: \`query\` (required), \`scope\` (optional: global/project/all, default: all).
 
 ### Support (requires user approval)
@@ -579,17 +579,32 @@ No project index available yet. When starting a task, use \`project_index scan\`
   if (opts.memory) {
     prompt += `\n\n## Your Memory
 
-You have persistent memory that survives across conversations. Use the \`memory_save\` tool to remember important things for future sessions.
+You have persistent memory that survives across conversations. **You MUST actively use memory** — it is a core part of how you work.
 
-**What to remember:** User preferences and workflow patterns, project conventions, solutions to recurring problems, key architecture decisions, user corrections.
-**What NOT to remember:** Session-specific details, things already in .ava/instructions.md, obvious information from package.json.
+**WHEN to save (do this automatically, don't wait to be asked):**
+- After completing a significant task — save what was done and any patterns learned
+- When the user shares preferences, workflow habits, or corrections — save immediately
+- When you discover project conventions, architecture decisions, or recurring patterns
+- When you solve a tricky problem — save the solution for future reference
+- At the end of a productive session — summarize key outcomes and decisions
+- When the user tells you to remember something — always save it
+
+**Scope guidance:**
+- \`global\` — user preferences, communication style, general workflow (applies to all projects)
+- \`project\` — tech stack, architecture, conventions, key files, recurring issues (this project only)
+
+**What NOT to save:** Trivial facts, things already in .ava/instructions.md, temporary debugging context.
+
+**Format:** Use clear markdown — headers, bullets, concise entries. Quality over quantity.
 
 ### Current Memory
 ${opts.memory}`;
   } else {
     prompt += `\n\n## Your Memory
 
-You have persistent memory that survives across conversations. Use the \`memory_save\` tool to remember important things for future sessions. No memories saved yet — start building your knowledge as you work with the user.`;
+You have persistent memory that survives across conversations. **You MUST actively use memory** — it is a core part of how you work.
+
+No memories saved yet — start building your knowledge immediately. Save user preferences, project patterns, and key decisions using \`memory_save\`. Use \`global\` scope for user-wide preferences and \`project\` scope for project-specific knowledge. Don't wait to be asked — save proactively after every meaningful interaction.`;
   }
 
   // Self-reference: so Ava can guide users about its own features

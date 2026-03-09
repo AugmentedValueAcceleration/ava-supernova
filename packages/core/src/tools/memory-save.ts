@@ -5,8 +5,8 @@ import type { MemoryManager } from '../memory/memory-manager.js';
 export class MemorySaveTool implements Tool {
   readonly name = 'memory_save';
   readonly description = 'Save information to persistent memory that survives across conversations';
-  readonly riskLevel: ToolRiskLevel = 'write';
-  readonly requiresConfirmation = true;
+  readonly riskLevel: ToolRiskLevel = 'safe';
+  readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'memory_save',
