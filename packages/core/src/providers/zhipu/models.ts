@@ -2,6 +2,26 @@ import type { ModelDefinition } from '../../core/types.js';
 
 export const ZHIPU_MODELS: ModelDefinition[] = [
   {
+    id: 'glm-4.7-flash',
+    name: 'GLM-4.7 Flash (Free)',
+    provider: 'zhipu',
+    contextWindow: 128000,
+    maxOutputTokens: 4096,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    pricing: { inputPerMillion: 0, outputPerMillion: 0 },
+  },
+  {
+    id: 'glm-4.5-flash',
+    name: 'GLM-4.5 Flash (Free)',
+    provider: 'zhipu',
+    contextWindow: 128000,
+    maxOutputTokens: 4096,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    pricing: { inputPerMillion: 0, outputPerMillion: 0 },
+  },
+  {
     id: 'glm-5',
     name: 'GLM-5',
     provider: 'zhipu',
@@ -24,15 +44,5 @@ export const ZHIPU_MODELS: ModelDefinition[] = [
     supportsThinking: true,
     supportsVision: true,
     pricing: { inputPerMillion: 0.60, outputPerMillion: 2.20 },
-  },
-  {
-    id: 'glm-4-flash',
-    name: 'GLM-4 Flash (Free)',
-    provider: 'zhipu',
-    contextWindow: 128000,
-    maxOutputTokens: 4096,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    pricing: { inputPerMillion: 0.00, outputPerMillion: 0.00 },
   },
 ];
