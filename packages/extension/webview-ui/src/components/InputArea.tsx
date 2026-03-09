@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { t } from '../i18n';
 import type { ProviderSource } from '../types/messages';
 
@@ -56,6 +56,17 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const wasStreamingRef = useRef(false);
+
+  // Auto-focus textarea when streaming ends
+  useEffect(() => {
+    if (isStreaming) {
+      wasStreamingRef.current = true;
+    } else if (wasStreamingRef.current) {
+      wasStreamingRef.current = false;
+      textareaRef.current?.focus();
+    }
+  }, [isStreaming]);
 
   const handleSend = useCallback(() => {
     const trimmed = text.trim();

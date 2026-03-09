@@ -68,16 +68,20 @@ export abstract class BaseProvider implements Provider {
         response = await fetch(url, { ...init, signal: controller.signal });
       } catch (err: unknown) {
         clearTimeout(timeoutId);
-        if (err instanceof DOMException && err.name === 'AbortError') {
-          throw new ProviderError(
-            `${this.displayName} request timed out after ${BaseProvider.FETCH_TIMEOUT_MS / 1000}s`,
-            this.name,
-          );
+
+        // Timeouts and network errors are transient — retry with backoff
+        const isTimeout = err instanceof DOMException && err.name === 'AbortError';
+        const msg = isTimeout
+          ? `${this.displayName} request timed out after ${BaseProvider.FETCH_TIMEOUT_MS / 1000}s`
+          : `${this.displayName} network error: ${err instanceof Error ? err.message : String(err)}`;
+
+        lastError = new ProviderError(msg, this.name);
+        if (attempt < BaseProvider.MAX_RETRIES) {
+          const delay = BaseProvider.BASE_DELAY_MS * Math.pow(2, attempt);
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
         }
-        throw new ProviderError(
-          `${this.displayName} network error: ${err instanceof Error ? err.message : String(err)}`,
-          this.name,
-        );
+        throw lastError;
       } finally {
         clearTimeout(timeoutId);
       }
