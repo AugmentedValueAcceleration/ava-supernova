@@ -1,6 +1,11 @@
 import { BaseProvider } from '../base-provider.js';
+import type { ChatCompletionRequest } from '../types.js';
 import type { CompletionResponse, ModelDefinition, StreamChunk } from '../../core/types.js';
 import { ZHIPU_MODELS } from './models.js';
+
+// Flash models have thinking enabled by default on Zhipu's API.
+// Disable it — they're meant to be fast, and thinking adds 30-60s latency.
+const FLASH_MODELS = new Set(['glm-4.7-flash', 'glm-4.5-flash']);
 
 export class ZhipuProvider extends BaseProvider {
   readonly name = 'zhipu';
@@ -12,6 +17,17 @@ export class ZhipuProvider extends BaseProvider {
 
   listModels(): ModelDefinition[] {
     return ZHIPU_MODELS;
+  }
+
+  protected transformRequest(request: ChatCompletionRequest): Record<string, unknown> {
+    const transformed = { ...request } as Record<string, unknown>;
+
+    if (FLASH_MODELS.has(request.model)) {
+      // Disable thinking for Flash models — drastically reduces latency
+      transformed.enable_thinking = false;
+    }
+
+    return transformed;
   }
 
   // Zhipu sometimes returns tool_call arguments as objects instead of strings
