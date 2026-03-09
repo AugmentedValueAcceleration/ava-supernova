@@ -57,7 +57,7 @@ export class AnthropicProvider extends BaseProvider {
 
     logger.debug(`[anthropic] POST ${url} | model=${request.model}`);
 
-    const response = await this.fetchWithRetryPublic(url, {
+    const response = await this.fetchWithRetry(url, {
       method: 'POST',
       headers,
       body: JSON.stringify(anthropicBody),
@@ -81,7 +81,7 @@ export class AnthropicProvider extends BaseProvider {
 
     logger.debug(`[anthropic] POST ${url} (stream) | model=${request.model}`);
 
-    const response = await this.fetchWithRetryPublic(url, {
+    const response = await this.fetchWithRetry(url, {
       method: 'POST',
       headers,
       body: JSON.stringify(anthropicBody),
@@ -375,57 +375,6 @@ export class AnthropicProvider extends BaseProvider {
     return null;
   }
 
-  // ── Expose base class fetchWithRetry ───────────────────────────────────
-
-  private async fetchWithRetryPublic(url: string, init: RequestInit): Promise<Response> {
-    // We can't access the private method directly, so replicate the call pattern
-    // through the base class's createCompletion mechanism. Instead, we do a direct
-    // fetch with basic retry logic.
-    let lastError: Error | undefined;
-
-    for (let attempt = 0; attempt <= 3; attempt++) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60_000);
-
-      // Merge abort signals if provided
-      const originalSignal = init.signal;
-      if (originalSignal) {
-        originalSignal.addEventListener('abort', () => controller.abort());
-      }
-
-      try {
-        const response = await fetch(url, { ...init, signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (response.ok) return response;
-
-        const errorBody = await response.text();
-        lastError = new ProviderError(
-          `Anthropic API error: ${response.status} ${response.statusText}`,
-          this.name,
-          response.status,
-          errorBody,
-        );
-
-        if (![429, 500, 502, 503].includes(response.status)) throw lastError;
-        if (attempt === 3) break;
-
-        await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
-      } catch (err) {
-        clearTimeout(timeoutId);
-        if (err instanceof ProviderError) throw err;
-        if (err instanceof DOMException && err.name === 'AbortError') {
-          throw new ProviderError('Anthropic request timed out after 60s', this.name);
-        }
-        throw new ProviderError(
-          `Anthropic network error: ${err instanceof Error ? err.message : String(err)}`,
-          this.name,
-        );
-      }
-    }
-
-    throw lastError!;
-  }
 }
 
 function safeParse(str: string): unknown {

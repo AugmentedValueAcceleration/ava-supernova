@@ -39,7 +39,7 @@ export async function apiFetch(
       },
     );
 
-    req.on('error', () => resolve({ ok: false, status: 0, data: null }));
+    req.on('error', (err) => resolve({ ok: false, status: 0, data: err.message }));
     if (body) req.write(body);
     req.end();
   });

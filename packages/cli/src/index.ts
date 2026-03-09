@@ -135,7 +135,9 @@ async function main(): Promise<void> {
 
   // Save conversation on exit
   process.on('SIGINT', () => {
-    historyManager.saveConversation(conversation).then(() => process.exit(0));
+    historyManager.saveConversation(conversation)
+      .catch(() => {})
+      .then(() => process.exit(0));
   });
 
   await repl.start();

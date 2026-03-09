@@ -55,7 +55,7 @@ export abstract class BaseProvider implements Provider {
   private static readonly FETCH_TIMEOUT_MS = 60_000; // 60s connection timeout
   private static readonly STREAM_READ_TIMEOUT_MS = 90_000; // 90s per-chunk — reasoning models can think for a while
 
-  private async fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
+  protected async fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
     let lastError: ProviderError | undefined;
 
     for (let attempt = 0; attempt <= BaseProvider.MAX_RETRIES; attempt++) {
