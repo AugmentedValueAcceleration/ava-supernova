@@ -23,7 +23,7 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsThinking: true,
     pricing: { inputPerMillion: 0.28, outputPerMillion: 0.42 },
   },
-  // Kimi / Moonshot
+  // Kimi
   {
     id: 'kimi-k2.5',
     name: 'Kimi K2.5',
@@ -35,16 +35,6 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsThinking: true,
     supportsVision: true,
     pricing: { inputPerMillion: 0.60, outputPerMillion: 3.00 },
-  },
-  {
-    id: 'moonshot-v1-128k',
-    name: 'Moonshot V1 128K',
-    provider: 'platform',
-    contextWindow: 128000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    pricing: { inputPerMillion: 2.00, outputPerMillion: 5.00 },
   },
   // Qwen
   {
@@ -58,16 +48,6 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsThinking: true,
     supportsVision: true,
     pricing: { inputPerMillion: 0.40, outputPerMillion: 2.40 },
-  },
-  {
-    id: 'qwen-turbo-latest',
-    name: 'Qwen Turbo',
-    provider: 'platform',
-    contextWindow: 1000000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    pricing: { inputPerMillion: 0.05, outputPerMillion: 0.20 },
   },
   // Zhipu / GLM
   {
@@ -83,28 +63,6 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     pricing: { inputPerMillion: 1.00, outputPerMillion: 3.20 },
   },
   {
-    id: 'glm-4.7',
-    name: 'GLM-4.7',
-    provider: 'platform',
-    contextWindow: 200000,
-    maxOutputTokens: 128000,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsThinking: true,
-    supportsVision: true,
-    pricing: { inputPerMillion: 0.60, outputPerMillion: 2.20 },
-  },
-  {
-    id: 'glm-4.7-flash',
-    name: 'GLM-4.7 Flash (Free)',
-    provider: 'platform',
-    contextWindow: 128000,
-    maxOutputTokens: 4096,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    pricing: { inputPerMillion: 0, outputPerMillion: 0 },
-  },
-  {
     id: 'glm-4.5-flash',
     name: 'GLM-4.5 Flash (Free)',
     provider: 'platform',
@@ -117,7 +75,7 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
   // Mistral
   {
     id: 'mistral-large-latest',
-    name: 'Mistral Large 3',
+    name: 'Mistral Large',
     provider: 'platform',
     contextWindow: 256000,
     maxOutputTokens: 8192,
@@ -127,7 +85,7 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
   },
   {
     id: 'codestral-latest',
-    name: 'Codestral 25.08',
+    name: 'Codestral',
     provider: 'platform',
     contextWindow: 256000,
     maxOutputTokens: 8192,
@@ -136,7 +94,7 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     pricing: { inputPerMillion: 0.30, outputPerMillion: 0.90 },
   },
   {
-    id: 'devstral-2-25-12',
+    id: 'devstral-latest',
     name: 'Devstral 2',
     provider: 'platform',
     contextWindow: 256000,
@@ -144,16 +102,6 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsToolCalls: true,
     supportsStreaming: true,
     pricing: { inputPerMillion: 0.40, outputPerMillion: 2.00 },
-  },
-  {
-    id: 'mistral-small-latest',
-    name: 'Mistral Small 3.2',
-    provider: 'platform',
-    contextWindow: 128000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    pricing: { inputPerMillion: 0.10, outputPerMillion: 0.30 },
   },
   // Claude — available to admin/pro/ultra tiers via platform proxy
   {

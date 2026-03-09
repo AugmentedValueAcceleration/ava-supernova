@@ -13,14 +13,4 @@ export const QWEN_MODELS: ModelDefinition[] = [
     supportsVision: true,
     pricing: { inputPerMillion: 0.40, outputPerMillion: 2.40 },
   },
-  {
-    id: 'qwen-turbo-latest',
-    name: 'Qwen Turbo',
-    provider: 'qwen',
-    contextWindow: 1000000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    pricing: { inputPerMillion: 0.05, outputPerMillion: 0.20 },
-  },
 ];

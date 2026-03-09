@@ -76,8 +76,8 @@ describe('Model definitions', () => {
       }
     });
 
-    it('contains free tier model (glm-4.7-flash)', () => {
-      const flash = ZHIPU_MODELS.find((m) => m.id === 'glm-4.7-flash');
+    it('contains free tier model (glm-4.5-flash)', () => {
+      const flash = ZHIPU_MODELS.find((m) => m.id === 'glm-4.5-flash');
       expect(flash).toBeDefined();
       expect(flash?.pricing?.inputPerMillion).toBe(0);
     });

@@ -13,14 +13,4 @@ export const KIMI_MODELS: ModelDefinition[] = [
     supportsVision: true,
     pricing: { inputPerMillion: 0.60, outputPerMillion: 3.00 },
   },
-  {
-    id: 'moonshot-v1-128k',
-    name: 'Moonshot V1 128K',
-    provider: 'kimi',
-    contextWindow: 128000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    pricing: { inputPerMillion: 2.00, outputPerMillion: 5.00 },
-  },
 ];
