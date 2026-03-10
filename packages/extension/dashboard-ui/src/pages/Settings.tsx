@@ -94,11 +94,14 @@ const TOKEN_OPTIONS = [
   { value: '32768', label: '32,768' },
 ];
 
+type SettingsTab = 'providers' | 'general' | 'response';
+
 export function Settings({ settings, onSettingsChange, providerKeys, showProviderKeys }: SettingsProps) {
   const [local, setLocal] = useState<DashboardSettings>(settings);
   const [saved, setSaved] = useState(false);
   const [providerInputs, setProviderInputs] = useState<Record<string, string>>({});
   const [savingProvider, setSavingProvider] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<SettingsTab>(showProviderKeys ? 'providers' : 'general');
 
   useEffect(() => setLocal(settings), [settings]);
 
@@ -130,10 +133,16 @@ export function Settings({ settings, onSettingsChange, providerKeys, showProvide
   const hasChanges = JSON.stringify(local) !== JSON.stringify(settings);
   const configuredCount = Object.values(providerKeys).filter(Boolean).length;
 
+  const tabs: Array<{ id: SettingsTab; label: string }> = [
+    ...(showProviderKeys ? [{ id: 'providers' as const, label: 'Providers' }] : []),
+    { id: 'general', label: 'General' },
+    { id: 'response', label: 'Response' },
+  ];
+
   return (
     <div className="mx-auto max-w-2xl">
       {/* Page Header */}
-      <div className="mb-10">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold">Settings</h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
           {showProviderKeys
@@ -142,8 +151,25 @@ export function Settings({ settings, onSettingsChange, providerKeys, showProvide
         </p>
       </div>
 
-      {/* ── API Providers ─────────────────────────────────────────── */}
-      {showProviderKeys && (
+      {/* Tab Bar */}
+      <div className="mb-8 flex gap-1 rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] p-1">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition ${
+              activeTab === tab.id
+                ? 'bg-[var(--accent)] text-white'
+                : 'text-[var(--text-secondary)] hover:bg-[var(--bg-input)] hover:text-white'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Providers Tab ─────────────────────────────────────────── */}
+      {activeTab === 'providers' && showProviderKeys && (
         <div className="mb-10">
           <SectionGroup
             label="API Providers"
@@ -210,124 +236,127 @@ export function Settings({ settings, onSettingsChange, providerKeys, showProvide
         </div>
       )}
 
-      {/* ── General ───────────────────────────────────────────────── */}
-      <div className="mb-10">
-        <SectionGroup label="General">
-          {/* Language + Permission Mode in one card */}
-          <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-            <div className="mb-4">
-              <p className="text-sm font-semibold">Language</p>
-              <p className="mt-0.5 text-xs text-[var(--text-muted)]">Language for Ava's responses and the UI.</p>
-            </div>
-            <Select
-              value={local.language}
-              onChange={v => update('language', v)}
-              options={LANGUAGES}
-            />
+      {/* ── General Tab ───────────────────────────────────────────── */}
+      {activeTab === 'general' && (
+        <>
+          <div className="mb-10">
+            <SectionGroup label="Language &amp; Permissions">
+              <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+                <div className="mb-4">
+                  <p className="text-sm font-semibold">Language</p>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">Language for Ava's responses and the UI.</p>
+                </div>
+                <Select
+                  value={local.language}
+                  onChange={v => update('language', v)}
+                  options={LANGUAGES}
+                />
 
-            <div className="my-5 border-t border-[var(--border-card)]" />
+                <div className="my-5 border-t border-[var(--border-card)]" />
 
-            <div className="mb-4">
-              <p className="text-sm font-semibold">Permission Mode</p>
-              <p className="mt-0.5 text-xs text-[var(--text-muted)]">Controls when Ava asks before running tools.</p>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              {PERMISSION_MODES.map(o => (
-                <label
-                  key={o.value}
-                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
-                    local.permissionMode === o.value
-                      ? 'border-[var(--accent)]/30 bg-[var(--accent)]/10'
-                      : 'border-transparent hover:bg-[var(--bg-input)]'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    checked={local.permissionMode === o.value}
-                    onChange={() => update('permissionMode', o.value as DashboardSettings['permissionMode'])}
-                    className="accent-[var(--accent)]"
+                <div className="mb-4">
+                  <p className="text-sm font-semibold">Permission Mode</p>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">Controls when Ava asks before running tools.</p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {PERMISSION_MODES.map(o => (
+                    <label
+                      key={o.value}
+                      className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
+                        local.permissionMode === o.value
+                          ? 'border-[var(--accent)]/30 bg-[var(--accent)]/10'
+                          : 'border-transparent hover:bg-[var(--bg-input)]'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        checked={local.permissionMode === o.value}
+                        onChange={() => update('permissionMode', o.value as DashboardSettings['permissionMode'])}
+                        className="accent-[var(--accent)]"
+                      />
+                      <span className="text-[var(--text-secondary)]">{o.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </SectionGroup>
+          </div>
+
+          <div className="mb-10">
+            <SectionGroup label="Behavior">
+              <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">Auto Memory</p>
+                    <p className="mt-0.5 text-xs text-[var(--text-muted)]">Automatically save important details from conversations.</p>
+                  </div>
+                  <ToggleSwitch
+                    value={local.autoMemory}
+                    onChange={v => update('autoMemory', v)}
+                    label={local.autoMemory ? 'On' : 'Off'}
                   />
-                  <span className="text-[var(--text-secondary)]">{o.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </SectionGroup>
-      </div>
-
-      {/* ── Response ──────────────────────────────────────────────── */}
-      <div className="mb-10">
-        <SectionGroup label="Response">
-          <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-            {/* Temperature */}
-            <div className="mb-4">
-              <p className="text-sm font-semibold">Temperature</p>
-              <p className="mt-0.5 text-xs text-[var(--text-muted)]">Controls response creativity vs. precision. ({local.temperature.toFixed(1)})</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] text-[var(--text-muted)]">Precise</span>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.1}
-                value={local.temperature}
-                onChange={e => update('temperature', parseFloat(e.target.value))}
-                className="flex-1 accent-[var(--accent)]"
-              />
-              <span className="text-[10px] text-[var(--text-muted)]">Creative</span>
-            </div>
-
-            <div className="my-5 border-t border-[var(--border-card)]" />
-
-            {/* Max Tokens */}
-            <div className="mb-4">
-              <p className="text-sm font-semibold">Max Response Tokens</p>
-              <p className="mt-0.5 text-xs text-[var(--text-muted)]">Maximum tokens per model response.</p>
-            </div>
-            <Select
-              value={String(local.maxTokens)}
-              onChange={v => update('maxTokens', parseInt(v))}
-              options={TOKEN_OPTIONS}
-            />
-
-            <div className="my-5 border-t border-[var(--border-card)]" />
-
-            {/* Stream Responses */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold">Stream Responses</p>
-                <p className="mt-0.5 text-xs text-[var(--text-muted)]">Show tokens as they arrive instead of waiting for completion.</p>
+                </div>
               </div>
-              <ToggleSwitch
-                value={local.streamResponses}
-                onChange={v => update('streamResponses', v)}
-                label={local.streamResponses ? 'On' : 'Off'}
-              />
-            </div>
+            </SectionGroup>
           </div>
-        </SectionGroup>
-      </div>
+        </>
+      )}
 
-      {/* ── Behavior ──────────────────────────────────────────────── */}
-      <div className="mb-10">
-        <SectionGroup label="Behavior">
-          <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-            {/* Auto Memory */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold">Auto Memory</p>
-                <p className="mt-0.5 text-xs text-[var(--text-muted)]">Automatically save important details from conversations.</p>
+      {/* ── Response Tab ──────────────────────────────────────────── */}
+      {activeTab === 'response' && (
+        <div className="mb-10">
+          <SectionGroup label="Model Output">
+            <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+              {/* Temperature */}
+              <div className="mb-4">
+                <p className="text-sm font-semibold">Temperature</p>
+                <p className="mt-0.5 text-xs text-[var(--text-muted)]">Controls response creativity vs. precision. ({local.temperature.toFixed(1)})</p>
               </div>
-              <ToggleSwitch
-                value={local.autoMemory}
-                onChange={v => update('autoMemory', v)}
-                label={local.autoMemory ? 'On' : 'Off'}
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] text-[var(--text-muted)]">Precise</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.1}
+                  value={local.temperature}
+                  onChange={e => update('temperature', parseFloat(e.target.value))}
+                  className="flex-1 accent-[var(--accent)]"
+                />
+                <span className="text-[10px] text-[var(--text-muted)]">Creative</span>
+              </div>
+
+              <div className="my-5 border-t border-[var(--border-card)]" />
+
+              {/* Max Tokens */}
+              <div className="mb-4">
+                <p className="text-sm font-semibold">Max Response Tokens</p>
+                <p className="mt-0.5 text-xs text-[var(--text-muted)]">Maximum tokens per model response.</p>
+              </div>
+              <Select
+                value={String(local.maxTokens)}
+                onChange={v => update('maxTokens', parseInt(v))}
+                options={TOKEN_OPTIONS}
               />
+
+              <div className="my-5 border-t border-[var(--border-card)]" />
+
+              {/* Stream Responses */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold">Stream Responses</p>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">Show tokens as they arrive instead of waiting for completion.</p>
+                </div>
+                <ToggleSwitch
+                  value={local.streamResponses}
+                  onChange={v => update('streamResponses', v)}
+                  label={local.streamResponses ? 'On' : 'Off'}
+                />
+              </div>
             </div>
-          </div>
-        </SectionGroup>
-      </div>
+          </SectionGroup>
+        </div>
+      )}
 
       {/* ── Save Button ───────────────────────────────────────────── */}
       <div className="flex items-center gap-3 pb-8">
