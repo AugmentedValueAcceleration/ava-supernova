@@ -15,7 +15,8 @@ export class MemorySaveTool implements Tool {
       'injected into your system prompt at the start of each session. ' +
       'Use this to remember user preferences, project patterns, key decisions, and solutions. ' +
       'Two scopes: "global" (applies to all projects) and "project" (applies to current project only). ' +
-      'Default mode is "append" — adds to existing memory. Use "replace" to overwrite entirely.',
+      'Default mode is "append" — adds to existing memory. Use "replace" to overwrite entirely. ' +
+      'NEVER save API keys, passwords, tokens, or any credentials to memory — they would be exposed in every future conversation.',
     parameters: {
       type: 'object',
       properties: {
@@ -54,6 +55,28 @@ export class MemorySaveTool implements Tool {
 
     if (scope !== 'global' && scope !== 'project') {
       return { success: false, output: 'Scope must be "global" or "project".' };
+    }
+
+    // Block saving of credentials/secrets to memory
+    const secretPatterns = [
+      /sk[-_](?:live|test|ant|proj)[_-]\S{10,}/i,    // API keys (Stripe, Anthropic, OpenAI-style)
+      /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}/,  // GitHub tokens
+      /\bglpat-[A-Za-z0-9\-_]{20,}/,                   // GitLab tokens
+      /\bxox[baprs]-[A-Za-z0-9\-]{20,}/,               // Slack tokens
+      /\beyJ[A-Za-z0-9\-_]{50,}\.[A-Za-z0-9\-_]{50,}/, // JWTs
+      /\b(?:AKIA|ABIA|ACCA|ASIA)[A-Z0-9]{16}\b/,       // AWS access keys
+      /\bAIza[A-Za-z0-9\-_]{30,}/,                      // Google API keys
+      /-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----/,   // Private keys
+    ];
+    for (const pattern of secretPatterns) {
+      if (pattern.test(content)) {
+        return {
+          success: false,
+          output: 'Blocked: the content appears to contain API keys, tokens, or credentials. ' +
+            'Saving secrets to memory is a security risk — they would be exposed in every future conversation. ' +
+            'Store credentials in environment variables or a secure vault instead.',
+        };
+      }
     }
 
     const memoryManager = context.sharedState?.memoryManager as MemoryManager | undefined;
