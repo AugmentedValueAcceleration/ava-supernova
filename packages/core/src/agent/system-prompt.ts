@@ -11,6 +11,7 @@ interface SystemPromptOptions {
   projectInstructions?: string;
   projectSummary?: string;
   memory?: string;
+  autoMemory?: boolean;
   language?: string;
   userName?: string;
   isAdmin?: boolean;
@@ -586,10 +587,14 @@ No project index available yet. When starting a task, use \`project_index scan\`
   }
 
   // Memory injection
+  const autoMemory = opts.autoMemory !== false; // default true
   if (opts.memory) {
     prompt += `\n\n## Your Memory
 
-You have persistent memory that survives across conversations. **You MUST actively use memory** — it is a core part of how you work.
+You have persistent memory that survives across conversations.`;
+
+    if (autoMemory) {
+      prompt += ` **You MUST actively use memory** — it is a core part of how you work.
 
 **WHEN to save (do this automatically, don't wait to be asked):**
 - After completing a significant task — save what was done and any patterns learned
@@ -597,7 +602,12 @@ You have persistent memory that survives across conversations. **You MUST active
 - When you discover project conventions, architecture decisions, or recurring patterns
 - When you solve a tricky problem — save the solution for future reference
 - At the end of a productive session — summarize key outcomes and decisions
-- When the user tells you to remember something — always save it
+- When the user tells you to remember something — always save it`;
+    } else {
+      prompt += ` Auto-memory is **disabled**. Only save memories when the user explicitly asks you to remember something.`;
+    }
+
+    prompt += `
 
 **Scope guidance:**
 - \`global\` — user preferences, communication style, general workflow (applies to all projects)
@@ -609,12 +619,16 @@ You have persistent memory that survives across conversations. **You MUST active
 
 ### Current Memory
 ${opts.memory}`;
-  } else {
+  } else if (autoMemory) {
     prompt += `\n\n## Your Memory
 
 You have persistent memory that survives across conversations. **You MUST actively use memory** — it is a core part of how you work.
 
 No memories saved yet — start building your knowledge immediately. Save user preferences, project patterns, and key decisions using \`memory_save\`. Use \`global\` scope for user-wide preferences and \`project\` scope for project-specific knowledge. Don't wait to be asked — save proactively after every meaningful interaction.`;
+  } else {
+    prompt += `\n\n## Your Memory
+
+You have persistent memory that survives across conversations. Auto-memory is **disabled** — only save memories when the user explicitly asks you to remember something.`;
   }
 
   // Self-reference: so Ava can guide users about its own features

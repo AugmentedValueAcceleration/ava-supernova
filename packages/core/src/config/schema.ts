@@ -30,6 +30,7 @@ export interface AvaConfig {
     maxTokens?: number;
     markdownRendering?: boolean;
     language?: string;
+    autoMemory?: boolean;
   };
 }
 
@@ -40,5 +41,6 @@ export const DEFAULT_CONFIG: AvaConfig = {
     temperature: 0.7,
     maxTokens: 8192,
     markdownRendering: true,
+    autoMemory: true,
   },
 };

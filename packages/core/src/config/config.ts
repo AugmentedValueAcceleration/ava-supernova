@@ -90,6 +90,7 @@ function validateConfig(raw: unknown): AvaConfig {
     if (typeof prefs.temperature === 'number') config.preferences.temperature = prefs.temperature;
     if (typeof prefs.maxTokens === 'number') config.preferences.maxTokens = prefs.maxTokens;
     if (typeof prefs.markdownRendering === 'boolean') config.preferences.markdownRendering = prefs.markdownRendering;
+    if (typeof prefs.autoMemory === 'boolean') config.preferences.autoMemory = prefs.autoMemory;
   }
 
   return config;

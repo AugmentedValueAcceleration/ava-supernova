@@ -93,6 +93,7 @@ async function main(): Promise<void> {
       supportsVision: resolved.model.supportsVision,
       projectInstructions: projectInstructions ?? undefined,
       memory: memory || undefined,
+      autoMemory: appConfig.preferences.autoMemory ?? true,
       language,
     }),
   );

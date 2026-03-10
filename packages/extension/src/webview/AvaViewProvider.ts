@@ -538,6 +538,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   private buildCurrentSystemPrompt(): string {
     const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
+    const cfg = vscode.workspace.getConfiguration('ava-supernova');
     return buildSystemPrompt({
       cwd,
       platform: process.platform,
@@ -546,6 +547,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       supportsVision: this.activeModelDef?.supportsVision,
       projectInstructions: this.projectInstructions,
       memory: this.cachedMemory,
+      autoMemory: cfg.get<boolean>('preferences.autoMemory') ?? true,
       language: this.currentLocale,
       userName: this.cachedAccount?.name || this.cachedAccount?.email?.split('@')[0],
       isAdmin: this.cachedAccount?.tier === 'admin',
