@@ -9,6 +9,8 @@ export interface PlatformStatus {
   freeTokensLimit: number;
   subTokensUsed: number;
   subTokensLimit: number | null;
+  claudeTokensUsed: number;
+  claudeTokensLimit: number | null;
 }
 
 // ─── Extension Host → Webview ────────────────────────────────────────────────

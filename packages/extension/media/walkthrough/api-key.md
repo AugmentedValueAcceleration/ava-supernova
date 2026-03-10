@@ -1,25 +1,27 @@
-# Add Your API Key
+# Add Your API Key (Optional)
 
-Ava needs an API key from at least one provider — or an Ava platform account — to start.
+**Two free models work instantly — no API key, no account, no setup.**
 
-## Option 1: Ava Platform Account (easiest)
+GLM-4.7 Flash and GLM-4.5 Flash are always available for every user. Just start chatting.
 
-Sign up at [ava-supernova.com](https://ava-supernova.com), get your platform key, and paste it into the Dashboard (`Ava: Open Dashboard`). No provider keys needed — Pro and Ultra tiers include managed API access.
+## Want more models?
 
-## Option 2: Bring Your Own Key (BYOK)
+Add an API key from any of our 7 providers:
 
-| Provider | Portal | Cost* |
+| Provider | Portal | Starting Cost |
 |---|---|---|
-| **DeepSeek** | [platform.deepseek.com](https://platform.deepseek.com/api_keys) | From ~$0.28/M tokens |
-| **Kimi** | [platform.moonshot.ai](https://platform.moonshot.ai/console/api-keys) | From ~$0.60/M tokens |
-| **GLM** | [open.bigmodel.cn](https://open.bigmodel.cn/) | From free (GLM-4 Flash) |
-| **Qwen** | [bailian.console.alibabacloud.com](https://bailian.console.alibabacloud.com/) | From ~$0.05/M tokens |
-| **Mistral** | [console.mistral.ai](https://console.mistral.ai/api-keys/) | From ~$0.10/M tokens |
+| **DeepSeek** | [platform.deepseek.com](https://platform.deepseek.com/api_keys) | ~$0.28/M tokens |
+| **Kimi (Moonshot)** | [platform.moonshot.ai](https://platform.moonshot.ai/console/api-keys) | ~$0.60/M tokens |
+| **GLM (Zhipu AI)** | [open.bigmodel.cn](https://open.bigmodel.cn/) | ~$1.00/M tokens |
+| **Qwen (Alibaba)** | [bailian.console.alibabacloud.com](https://bailian.console.alibabacloud.com/) | ~$0.40/M tokens |
+| **Mistral** | [console.mistral.ai](https://console.mistral.ai/api-keys/) | ~$0.15/M tokens |
+| **Anthropic** | [console.anthropic.com](https://console.anthropic.com/) | ~$3.00/M tokens |
 
-*Pricing is approximate and subject to change. Several providers offer free tiers for getting started.
+*Pricing is approximate and subject to change.
 
 ## Add your key
 
 1. Open **Settings** (`Ctrl+,`)
 2. Search `ava-supernova`
 3. Enter your API key under the provider section
+4. Select the model from the **Active Model** dropdown
