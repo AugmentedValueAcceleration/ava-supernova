@@ -54,6 +54,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
   const [text, setText] = useState('');
   const [mode, setMode] = useState<AvaMode>('code');
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
+  const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const wasStreamingRef = useRef(false);
@@ -194,15 +195,19 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
   const hasContent = text.trim().length > 0 || attachments.length > 0;
 
   return (
-    <div className="px-3 py-2">
+    <div className="px-3 pb-3 pt-1">
       <div
-        className={`rounded-md overflow-hidden relative transition-colors
-                    bg-[var(--vscode-input-background)]
-                    ${isDragOver ? 'border-dashed' : ''}`}
+        className="rounded-xl overflow-hidden relative transition-all duration-200"
         style={{
           border: isDragOver
             ? '1px dashed var(--color-accent, #A855F7)'
-            : '1px solid rgba(168, 85, 247, 0.15)',
+            : isFocused
+              ? '1px solid rgba(168, 85, 247, 0.5)'
+              : '1px solid rgba(168, 85, 247, 0.12)',
+          background: 'var(--vscode-input-background)',
+          boxShadow: isFocused
+            ? '0 0 0 1px rgba(168, 85, 247, 0.15), 0 2px 8px rgba(168, 85, 247, 0.06)'
+            : 'none',
         }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -210,11 +215,11 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
       >
         {/* Image previews */}
         {attachments.length > 0 && (
-          <div className="flex gap-2 px-3 pt-2 flex-wrap">
+          <div className="flex gap-2 px-3 pt-3 flex-wrap">
             {attachments.map((att, i) => (
               <div
                 key={i}
-                className="relative group w-16 h-16 rounded overflow-hidden
+                className="relative group w-16 h-16 rounded-lg overflow-hidden
                            border border-[var(--vscode-panel-border)]"
               >
                 <img
@@ -251,7 +256,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
         {/* Drop overlay */}
         {isDragOver && (
           <div className="absolute inset-0 z-10 flex items-center justify-center
-                          bg-[var(--vscode-input-background)] opacity-90 pointer-events-none">
+                          bg-[var(--vscode-input-background)] opacity-90 pointer-events-none rounded-xl">
             <span className="text-xs opacity-50">{t('input.drop_image')}</span>
           </div>
         )}
@@ -266,10 +271,12 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
           }}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
           placeholder={disabled ? t('input.placeholder.disabled') : t(PLACEHOLDER_KEYS[mode])}
           disabled={disabled}
           rows={1}
-          className="w-full resize-none text-sm px-3 pt-3 pb-1
+          className="w-full resize-none text-sm px-4 pt-3 pb-1
                      bg-transparent
                      text-[var(--vscode-input-foreground)]
                      placeholder:opacity-40
@@ -279,9 +286,12 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
         />
 
         {/* Bottom toolbar */}
-        <div className="flex items-center justify-between px-2 pb-2 pt-1" style={{ borderTop: '1px solid rgba(168, 85, 247, 0.08)' }}>
+        <div
+          className="flex items-center justify-between px-2 pb-2 pt-1.5 mx-2 mt-0.5"
+          style={{ borderTop: '1px solid rgba(168, 85, 247, 0.06)' }}
+        >
           {/* Mode selector */}
-          <div className="flex items-center gap-0.5" role="radiogroup" aria-label="Input mode">
+          <div className="flex items-center gap-1" role="radiogroup" aria-label="Input mode">
             {MODES.map((m) => (
               <button
                 key={m.id}
@@ -289,14 +299,15 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                 role="radio"
                 aria-checked={mode === m.id}
                 aria-label={`${t(m.labelKey)} mode`}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium
-                            border-none cursor-pointer transition-colors
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium
+                            cursor-pointer transition-all duration-150
                   ${mode === m.id
-                    ? 'bg-[var(--color-accent,var(--vscode-button-background))] text-[var(--vscode-button-foreground)]'
-                    : 'bg-transparent text-[var(--vscode-foreground)] opacity-40 hover:opacity-70'
+                    ? 'bg-[var(--color-accent,var(--vscode-button-background))] text-white border border-transparent shadow-sm'
+                    : 'bg-transparent text-[var(--vscode-foreground)] opacity-40 hover:opacity-70 border border-transparent hover:border-[rgba(168,85,247,0.2)] hover:bg-[rgba(168,85,247,0.06)]'
                   }`}
+                style={mode === m.id ? { boxShadow: '0 1px 4px rgba(168, 85, 247, 0.3)' } : undefined}
               >
-                <span className="font-mono text-[10px] opacity-80" aria-hidden="true">{m.icon}</span>
+                <span className="font-mono text-[10px] opacity-70" aria-hidden="true">{m.icon}</span>
                 {t(m.labelKey)}
               </button>
             ))}
@@ -304,7 +315,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
 
           {/* Provider source toggle */}
           {platformStatus?.connected && onProviderSourceChange && (
-            <div className="flex items-center gap-0.5 rounded bg-[var(--vscode-input-background)] p-0.5">
+            <div className="flex items-center gap-0.5 rounded-lg bg-[rgba(168,85,247,0.06)] p-0.5 border border-[rgba(168,85,247,0.1)]">
               <button
                 onClick={() => onProviderSourceChange('platform')}
                 disabled={
@@ -312,10 +323,10 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                   platformStatus.tier === 'free' &&
                   platformStatus.freeTokensUsed >= platformStatus.freeTokensLimit
                 }
-                className={`px-2 py-0.5 rounded text-[10px] font-medium border-none cursor-pointer transition-colors
+                className={`px-2.5 py-1 rounded-md text-[10px] font-medium border-none cursor-pointer transition-all duration-150
                   disabled:opacity-20 disabled:cursor-not-allowed
                   ${providerSource === 'platform'
-                    ? 'bg-[var(--color-accent,var(--vscode-button-background))] text-[var(--vscode-button-foreground)]'
+                    ? 'bg-[var(--color-accent,var(--vscode-button-background))] text-white shadow-sm'
                     : 'bg-transparent text-[var(--vscode-foreground)] opacity-40 hover:opacity-70'
                   }`}
                 title={providerSource === 'platform'
@@ -326,9 +337,9 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
               </button>
               <button
                 onClick={() => onProviderSourceChange('byok')}
-                className={`px-2 py-0.5 rounded text-[10px] font-medium border-none cursor-pointer transition-colors
+                className={`px-2.5 py-1 rounded-md text-[10px] font-medium border-none cursor-pointer transition-all duration-150
                   ${providerSource === 'byok'
-                    ? 'bg-[var(--color-accent,var(--vscode-button-background))] text-[var(--vscode-button-foreground)]'
+                    ? 'bg-[var(--color-accent,var(--vscode-button-background))] text-white shadow-sm'
                     : 'bg-transparent text-[var(--vscode-foreground)] opacity-40 hover:opacity-70'
                   }`}
                 title="Use your own API key"
@@ -339,7 +350,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
           )}
 
           {/* Right side: attach + usage + send/stop */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {/* Free token balance */}
             {providerSource === 'platform' && platformStatus?.connected && (() => {
               const remaining = Math.max(0, platformStatus.freeTokensLimit - platformStatus.freeTokensUsed);
@@ -401,13 +412,14 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
               disabled={disabled}
               title={t('input.attach_image')}
               aria-label={t('input.attach_image')}
-              className="flex items-center justify-center w-7 h-7 rounded
-                         bg-transparent border-none cursor-pointer
+              className="flex items-center justify-center w-8 h-8 rounded-lg
+                         bg-transparent cursor-pointer
                          text-[var(--vscode-foreground)] opacity-40 hover:opacity-70
                          disabled:opacity-20 disabled:cursor-not-allowed
-                         transition-opacity"
+                         transition-all duration-150
+                         border border-transparent hover:border-[rgba(168,85,247,0.2)] hover:bg-[rgba(168,85,247,0.06)]"
             >
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                 <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a2.75 2.75 0 1 1-3.935-3.84l4.486-4.486a1.75 1.75 0 0 1 2.505 2.44L6.623 9.573a.75.75 0 0 1-1.08-1.04l4.473-4.563z" />
               </svg>
             </button>
@@ -417,14 +429,15 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                 onClick={onCancel}
                 title={t('input.stop')}
                 aria-label={t('input.stop')}
-                className="flex items-center justify-center w-7 h-7 rounded-full
+                className="flex items-center justify-center w-8 h-8 rounded-lg
                            bg-[var(--vscode-errorForeground,#e53935)]
                            text-white
                            hover:opacity-80
-                           border-none cursor-pointer transition-opacity"
+                           border border-transparent cursor-pointer transition-all duration-150"
+                style={{ boxShadow: '0 1px 4px rgba(229, 57, 53, 0.3)' }}
               >
                 <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                  <rect x="3" y="3" width="10" height="10" rx="1" />
+                  <rect x="3" y="3" width="10" height="10" rx="1.5" />
                 </svg>
               </button>
             ) : (
@@ -433,12 +446,13 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                 disabled={disabled || !hasContent}
                 title={t('input.send')}
                 aria-label={t('input.send')}
-                className={`flex items-center justify-center w-7 h-7 rounded-full
-                           border-none cursor-pointer transition-all
+                className={`flex items-center justify-center w-8 h-8 rounded-lg
+                           border cursor-pointer transition-all duration-150
                   ${hasContent && !disabled
-                    ? 'bg-[var(--color-accent,var(--vscode-button-background))] text-[var(--vscode-button-foreground)] opacity-100'
-                    : 'bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)] opacity-20 cursor-not-allowed'
+                    ? 'bg-[var(--color-accent,var(--vscode-button-background))] text-white border-transparent'
+                    : 'bg-transparent text-[var(--vscode-foreground)] opacity-20 cursor-not-allowed border-transparent'
                   }`}
+                style={hasContent && !disabled ? { boxShadow: '0 1px 6px rgba(168, 85, 247, 0.35)' } : undefined}
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                   <path d="M8 3.5l-4.5 4.5.707.707L7.5 5.414V13h1V5.414l3.293 3.293.707-.707L8 3.5z" />
