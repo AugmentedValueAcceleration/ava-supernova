@@ -1,58 +1,56 @@
 <p align="center">
   <h1 align="center">Ava | Supernova</h1>
   <p align="center">
-    <strong>Open-source AI coding agent — CLI + VSCode extension for agentic coding with open-source LLMs.</strong>
+    <strong>Open-source AI coding agent — 15 models, 7 providers, 24 tools, 2 free models that work instantly.</strong>
   </p>
   <p align="center">
-    <a href="#supported-providers">Providers</a> &middot;
+    <a href="#supported-models">Models</a> &middot;
     <a href="#getting-started">Getting Started</a> &middot;
     <a href="#vscode-extension">Extension</a> &middot;
-    <a href="#tools">Tools</a> &middot;
-    <a href="#commands">Commands</a> &middot;
-    <a href="#configuration">Configuration</a> &middot;
+    <a href="#ide">IDE</a> &middot;
+    <a href="#tools-24">Tools</a> &middot;
+    <a href="#privacy--security">Privacy</a> &middot;
     <a href="#contributing">Contributing</a>
   </p>
   <p align="center">
-    <a href="https://github.com/AugmentedValueAcceleration/ava-supernova/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
+    <a href="https://github.com/AugmentedValueAcceleration/ava-supernova/blob/production/LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
     <img src="https://img.shields.io/badge/Node-%3E%3D20.0.0-brightgreen.svg" alt="Node">
     <img src="https://img.shields.io/badge/TypeScript-5.9-blue.svg" alt="TypeScript">
-    <img src="https://img.shields.io/badge/Version-0.1.0-purple.svg" alt="Version">
+    <a href="https://marketplace.visualstudio.com/items?itemName=augmentedvalueacceleration.ava-supernova"><img src="https://img.shields.io/badge/VS%20Code-Marketplace-007ACC.svg" alt="VS Code Marketplace"></a>
   </p>
 </p>
 
 ---
 
-Ava | Supernova is an open-source AI coding agent that brings the power of agentic coding to every developer — as both a **terminal CLI** and a **VSCode extension**. Choose your model, plug in your API key (or connect your Ava account for managed access), and get a full coding agent that can read, write, edit, search, plan, scan for security vulnerabilities, and execute across your entire codebase.
+Ava | Supernova is an open-source AI coding agent that brings full agentic coding to every developer — as a **VS Code extension**, a **standalone IDE**, and a **terminal CLI**. Two free models work instantly with zero setup. Add your own API keys for 13 more models from 7 providers.
+
+> **Start coding with AI in 30 seconds.** Install, open, go. No account, no credit card, no trial expiry.
 
 ## Why Ava?
 
-Agentic coding shouldn't be a luxury. The open-source model ecosystem delivers near-frontier autonomous coding performance at **50-100x lower cost** than proprietary alternatives.
+Agentic coding shouldn't be a luxury. The open-source model ecosystem delivers near-frontier autonomous coding performance at a fraction of the cost.
 
-| Model | SWE-Bench | Input Cost / 1M tokens* |
+| Model | SWE-Bench | Input Cost |
 |---|---|---|
-| Qwen 3.5 Plus | 76.4% | ~$0.40 |
-| Kimi K2.5 | 76.8% | ~$0.60 |
-| DeepSeek V3.2 | ~66% | ~$0.28 |
+| GLM-5 (Zhipu AI) | 77.8% | $1.00/M |
+| Kimi K2.5 (Moonshot) | 76.8% | $0.60/M |
+| Qwen 3.5 Plus (Alibaba) | ~76% | $0.40/M |
+| DeepSeek V3.2 | ~66% | $0.28/M |
+| **GLM-4.7 Flash** | — | **FREE** |
+| **GLM-4.5 Flash** | — | **FREE** |
 
-*Pricing is approximate and subject to change. Check each provider's website for current rates.
+## Supported Models
 
-Ava bridges the gap between these powerful models and a polished agentic coding experience.
-
-## Supported Providers
-
-| Provider | Models | Context Window | Tool Calling | Streaming |
-|---|---|---|---|---|
-| **DeepSeek** | DeepSeek V3, DeepSeek R1 | 128K | Yes* | Yes |
-| **Kimi** (Moonshot AI) | Kimi K2.5, Moonshot V1 | 128K - 256K | Yes | Yes |
-| **GLM** (Zhipu AI) | GLM-5, GLM-4.7, GLM-4 Flash | 128K - 200K | Yes | Yes |
-| **Qwen** (Alibaba Cloud) | Qwen 3.5 Plus, Qwen Turbo | 256K - 1M | Yes | Yes |
-| **Mistral** | Mistral Large 3, Codestral, Devstral 2 | 128K - 256K | Yes | Yes |
-| **Custom** | Any compatible endpoint | Configurable | Yes | Yes |
-
-*DeepSeek R1 (reasoner) does not support tool calling but supports extended thinking.
-Qwen 3.5 Plus and GLM-5 support native vision (images) and extended thinking.
-
-The **Custom** provider supports any locally hosted model via [Ollama](https://ollama.com), [LM Studio](https://lmstudio.ai), or any server exposing a standard API format.
+| Provider | Models | Highlights |
+|---|---|---|
+| **Ava Free** | GLM-4.7 Flash, GLM-4.5 Flash | **FREE — no API key needed**, instant access |
+| **Zhipu AI** | GLM-5 | 77.8% SWE-Bench, vision, best tool-call reliability |
+| **Moonshot AI** | Kimi K2.5 | 76.8% SWE-Bench, best tool calling, vision, 256K context |
+| **DeepSeek** | V3.2, Reasoner | Best value ($0.28/M input), Reasoner has chain-of-thought |
+| **Alibaba Cloud** | Qwen 3.5 Plus | Thinking + vision, 256K context |
+| **Mistral** | Large, Codestral, Devstral 2 | European provider, code-specialized, up to 262K context |
+| **Anthropic** | Claude Opus 4.6, Sonnet 4.6, Haiku 4.5 | Frontier models, vision, 200K context |
+| **Generic** | Custom / Local | Ollama, LM Studio, or any standard API format endpoint |
 
 ## Getting Started
 
@@ -60,26 +58,20 @@ The **Custom** provider supports any locally hosted model via [Ollama](https://o
 
 - [Node.js](https://nodejs.org) v20.0.0 or later
 - [pnpm](https://pnpm.io) package manager
-- An API key from at least one supported provider, **or** an Ava platform account (Pro/Ultra) for managed API access
+- An API key from any supported provider — **or use the free models with no keys at all**
 
 ### Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/AugmentedValueAcceleration/ava-supernova.git
 cd ava-supernova
-
-# Install dependencies
 pnpm install
-
-# Build all packages
 pnpm build
 ```
 
 ### CLI — First Run
 
 ```bash
-# Start the CLI
 node packages/cli/dist/index.js
 
 # Or link globally
@@ -87,111 +79,85 @@ cd packages/cli && npm link
 ava
 ```
 
-On first launch, Ava guides you through an interactive setup wizard:
+On first launch, Ava guides you through an interactive setup wizard. Choose a provider, paste your API key, and you're ready — or skip setup entirely and use a free model.
 
-```
-  Welcome to Ava | Supernova
-  Let's set up your LLM provider.
+## VS Code Extension
 
-  1. DeepSeek
-  2. Kimi (Moonshot AI)
-  3. GLM (Zhipu AI)
-  4. Qwen (Alibaba Cloud)
-  5. Mistral
+Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=augmentedvalueacceleration.ava-supernova) — or search "Ava Supernova" in the Extensions panel.
 
-  Choose a provider (number): 1
+### Quick Start
 
-  Get your API key at: https://platform.deepseek.com/api_keys
-  DeepSeek API Key: sk-...
+1. Install the extension
+2. Click the Ava icon in the activity bar (or press `Ctrl+Shift+A`)
+3. **Start coding immediately** — free models work with zero configuration
+4. Optionally add API keys for premium models via the Dashboard
 
-  Setup complete! Active model: DeepSeek V3.2
-```
+### Extension Features
 
-Alternatively, if you have an Ava platform account (Pro or Ultra tier), connect it for managed API access — no provider keys needed.
+- **Agentic coding** — Ava reads, writes, edits, searches, and executes code autonomously
+- **Four modes** — Code (`>>` full agent), Plan (`::` read-only), Chat (`..` no tools), Security (`!!` OWASP audit)
+- **Model selector** — Switch models from the header dropdown with provider labels and availability indicators
+- **Persistent memory** — Ava remembers across sessions with automatic save/recall (credentials blocked at runtime)
+- **Vision** — Attach images in chat for models that support it
+- **Codebase understanding** — Project indexer and symbol finder for intelligent code navigation
+- **Context compression** — Automatic context management keeps long conversations within model limits
+- **Conversation history** — Auto-saved per project, searchable, with quick access from the header
+- **Project context** — Create `.ava/instructions.md` to give Ava persistent knowledge about your codebase
+- **Tool approval** — Review every action before Ava executes it, or grant autonomy with permission modes
+- **Security scanning** — AI-powered OWASP-aligned security audit using existing tools
+- **Dashboard panel** — Provider configuration, model selection, memory management, and settings
+- **20 languages** — Full UI and response localization
 
-## VSCode Extension
+## IDE
 
-Ava also runs as a VSCode sidebar extension with the same agent and tools.
+Ava | Supernova IDE is a standalone desktop application built on [Eclipse Theia](https://theia-ide.org/) with Ava deeply integrated. Download from [GitHub Releases](https://github.com/AugmentedValueAcceleration/ava-supernova-ide/releases) or from [ava-supernova.com](https://ava-supernova.com).
 
-### Setup
+The IDE includes everything in the extension plus:
+- Full VS Code extension compatibility (via Open VSX)
+- Built-in terminal, file tree, Git, settings, keybindings
+- Monaco editor (same engine as VS Code)
+- `@ava/core` runs directly in the Node.js backend — no sidecar needed
 
-1. Open the `ava-supernova` folder in VSCode
-2. Press `F5` to launch the Extension Development Host
-3. Click the Ava icon in the activity bar
-4. Open Settings (`Ctrl+,`) and search `ava-supernova`
-5. Add your API key under **Providers > DeepSeek**, **Providers > Kimi**, or **Providers > Qwen**
-6. Select a model under **Active Model**
+## Tools (24)
 
-### Features
-
-- **Chat interface** — Markdown rendering, thinking blocks, tool call cards
-- **Four modes** — Code (full agent), Plan (read-only analysis), Chat (no tools), Security (OWASP-aligned audit)
-- **Security scanning** — AI-powered security audit using existing tools to scan your project for vulnerabilities
-- **Tool approval UI** — Approve, deny, "Always Allow", or "Allow All" per session
-- **Plan approval** — Review and approve plans before Ava executes
-- **Ask User** — Ava can ask you questions mid-task with a text input card
-- **Conversation history** — Auto-saved per project, searchable, pinnable, exportable
-- **Vision** — Attach images directly in the chat
-- **Model switching** — Switch models from the dropdown without restarting
-- **Project context** — Loads `.ava/instructions.md` for project-specific guidance
-- **Permission modes** — Strict, Balanced, or Autonomous (configurable in settings)
-- **Platform account** — Connect your Ava account for managed API access and cloud features
-- **Dashboard panel** — Account management, billing, and settings inside VSCode
-
-## Tools
-
-Ava has **13 built-in tools** for full codebase interaction:
-
-### Reading & Searching
-
-| Tool | Description |
-|---|---|
-| **file_read** | Read files with line numbers. Supports offset and limit for large files. |
-| **glob** | Find files matching glob patterns (e.g. `**/*.ts`, `src/**/*.js`). |
-| **grep** | Search file contents with regex. Filter by file pattern. |
-| **list_directory** | List directory contents with file sizes and types. |
-| **git_status** | Run read-only git commands (status, diff, log, branch, show). Auto-approved. |
-
-### Writing & Editing
-
-| Tool | Description |
-|---|---|
-| **file_write** | Create or overwrite files. Automatically creates parent directories. |
-| **file_edit** | Exact string replacement in files. Supports single or global replace. |
-| **bash** | Execute shell commands with configurable timeout. Supports background processes. |
-
-### Research
-
-| Tool | Description |
-|---|---|
-| **web_search** | Search the web via DuckDuckGo. No API key required. |
-| **http_request** | Make HTTP requests (GET, POST, PUT, DELETE). Test APIs directly. |
-
-### Collaboration
-
-| Tool | Description |
-|---|---|
-| **present_plan** | Present a structured plan for user approval before executing. |
-| **todo_write** | Track task progress with a structured to-do list. |
-| **ask_user** | Ask the user a question mid-task and wait for their response. |
+| Category | Tools | Description |
+|---|---|---|
+| **File ops** | `file_read`, `file_write`, `file_edit` | Read, create, and surgically edit files |
+| **Search** | `glob`, `grep`, `list_directory`, `find_symbol`, `project_index` | Find files, search content, navigate symbols |
+| **Shell** | `bash` | Execute commands, run builds, start servers |
+| **Git** | `git_status`, `git_diff`, `rollback` | Check repo state, view diffs, undo changes |
+| **Web** | `web_search`, `http_request`, `browser` | Search the web, test APIs, automate browsers |
+| **Media** | `screenshot` | Capture screen for visual analysis |
+| **Data** | `database_query` | Read-only SQL against PostgreSQL, SQLite, MySQL |
+| **Memory** | `memory_save`, `memory_recall` | Persistent context across conversations |
+| **Planning** | `present_plan`, `todo_write` | Structured plans with approval, task tracking |
+| **Interaction** | `ask_user`, `support_request` | Ask for clarification, submit support tickets |
+| **Docs** | `docs_lookup` | Search built-in documentation |
 
 The agent automatically decides which tools to use, executes them, reads the results, and continues reasoning — up to 50 iterations per request.
 
 ## Permission Modes
 
-Control how much Ava can do without asking:
-
 | Mode | Behavior |
 |---|---|
-| **Strict** | Confirm all file writes and shell commands (safest) |
+| **Strict** | Approve all file writes and shell commands (safest, default) |
 | **Balanced** | Auto-approve file edits, confirm shell commands only |
-| **Autonomous** | Auto-approve everything — full autonomy |
+| **Autonomous** | Auto-approve everything — full agent freedom (use with caution) |
 
 Plans and user questions always require approval, regardless of mode.
 
-Set via `/permission` in the CLI or in VSCode settings.
+## Privacy & Security
 
-## Commands
+Your data stays yours. Here's what we built to protect it:
+
+- **API keys** — Encrypted in VS Code's SecretStorage (OS-level keychain). Never logged, never sent to Ava servers.
+- **Conversations** — Stored locally in `~/.ava/history/`. Never transmitted to third parties.
+- **Memory** — Local markdown files (`~/.ava/memory.md`). Runtime credential detection blocks saving API keys, JWTs, tokens, and private keys.
+- **Free proxy** — Messages stream through to the model provider. Nothing is logged or stored on our servers.
+- **Prompt injection resistance** — Ava refuses to reveal its system prompt, API keys, or memory contents, even when instructed to by injected text in files or URLs.
+- **No telemetry** — We don't track your usage, code, or conversations.
+
+## Commands (CLI)
 
 ### General
 
@@ -223,50 +189,16 @@ Set via `/permission` in the CLI or in VSCode settings.
 | `/unpin <id>` | | Unpin a conversation |
 | `/export <id> [format]` | | Export as markdown or JSON |
 
-### Security Scanning
-
-```
-> /security
-  Starting comprehensive security audit...
-
-> /security auth
-  Scanning authentication and access control...
-```
-
-The security mode uses Ava's existing tools (file_read, grep, glob, bash) to perform an OWASP-aligned audit of your project. It checks for injection, auth flaws, secrets exposure, XSS, CSRF, misconfigurations, vulnerable dependencies, weak crypto, SSRF, unsafe deserialization, and logging issues.
-
-### Switching Models
-
-```
-> /model
-  deepseek:deepseek-chat - DeepSeek V3.2 (active)
-  deepseek:deepseek-reasoner - DeepSeek R1
-  kimi:kimi-k2.5 - Kimi K2.5
-  kimi:moonshot-v1-128k - Moonshot V1 128K
-  qwen:qwen3.5-plus - Qwen 3.5 Plus
-  qwen:qwen-turbo-latest - Qwen Turbo
-
-> /model qwen:qwen3.5-plus
-  Switched to Qwen 3.5 Plus (Qwen (Alibaba Cloud))
-```
-
 ## Project Context
 
-Create a `.ava/instructions.md` file in your project root to give Ava persistent context about your codebase:
+Create a `.ava/instructions.md` file in your project root to give Ava persistent context:
 
 ```bash
 > /init
   Created .ava/instructions.md
-  Edit this file to give Ava project-specific context.
 ```
 
-This file is loaded into Ava's system prompt every session. Use it for:
-- Project architecture overview
-- Coding conventions and style preferences
-- Key file locations and patterns
-- Anything you'd tell a new team member
-
-History is also scoped per project — each project gets its own conversation history.
+Use it for project architecture, coding conventions, key file locations, and anything you'd tell a new team member. This file is loaded into Ava's system prompt every session.
 
 ## Configuration
 
@@ -276,100 +208,73 @@ Ava stores its configuration at `~/.ava/config.json`.
 {
   "activeModel": "deepseek:deepseek-chat",
   "providers": {
-    "deepseek": {
-      "apiKey": "sk-..."
-    }
-  },
-  "preferences": {
-    "temperature": 0.7,
-    "maxTokens": 8192,
-    "markdownRendering": true
-  }
-}
-```
-
-### Multiple Providers
-
-Configure multiple providers and switch freely with `/model`:
-
-```json
-{
-  "activeModel": "deepseek:deepseek-chat",
-  "providers": {
     "deepseek": { "apiKey": "sk-..." },
     "kimi": { "apiKey": "sk-..." },
     "qwen": { "apiKey": "sk-..." }
+  },
+  "preferences": {
+    "temperature": 0.7,
+    "maxTokens": 8192
   }
 }
 ```
 
 ### Custom Provider (Ollama, LM Studio)
 
-To use a local model, add a custom provider entry with a `baseUrl`:
-
 ```json
 {
   "providers": {
-    "deepseek": {
-      "apiKey": "sk-...",
+    "custom": {
+      "apiKey": "not-needed",
       "baseUrl": "http://localhost:11434/v1"
     }
   }
 }
 ```
 
-### Ava Platform Account (Optional)
+### Where to Get API Keys
 
-Instead of managing your own API keys, you can connect an Ava platform account for managed access:
+Free models require no keys. For premium models:
 
-| Tier | Price | What You Get |
-|---|---|---|
-| **Free** | $0 | Own API keys, full agent, all tools |
-| **Pro** | $19/mo | Managed API access, 10M tokens/month, cloud sync |
-| **Ultra** | $49/mo | Unlimited tokens, all models, cloud sync |
-
-Sign up at [ava-supernova.com](https://ava-supernova.com), get your platform key, and paste it into the extension dashboard or CLI.
-
-### Where to Get API Keys (BYOK)
-
-| Provider | API Key Portal |
+| Provider | Portal |
 |---|---|
-| DeepSeek | https://platform.deepseek.com/api_keys |
-| Kimi (Moonshot) | https://platform.moonshot.ai/console/api-keys |
-| GLM (Zhipu AI) | https://open.bigmodel.cn/ |
-| Qwen (Alibaba Cloud) | https://bailian.console.alibabacloud.com/ |
-| Mistral | https://console.mistral.ai/api-keys/ |
+| DeepSeek | [platform.deepseek.com](https://platform.deepseek.com/api_keys) |
+| Kimi (Moonshot) | [platform.moonshot.ai](https://platform.moonshot.ai/console/api-keys) |
+| GLM (Zhipu AI) | [open.bigmodel.cn](https://open.bigmodel.cn/) |
+| Qwen (Alibaba Cloud) | [bailian.console.alibabacloud.com](https://bailian.console.alibabacloud.com/) |
+| Mistral | [console.mistral.ai](https://console.mistral.ai/api-keys/) |
+| Anthropic | [console.anthropic.com](https://console.anthropic.com/) |
 
 ## Architecture
 
-Ava is a monorepo with four packages, plus a web platform submodule:
+Ava is a monorepo with shared packages, plus submodules for the IDE and web platform:
 
 ```
 packages/
 ├── core/                  # @ava/core — shared agent engine
 │   ├── agent/             #   Agentic loop, system prompt, events
-│   ├── providers/         #   LLM provider adapters (DeepSeek, Kimi, GLM, Qwen, Mistral)
-│   ├── tools/             #   13 built-in tool implementations
+│   ├── providers/         #   LLM provider adapters (7 providers)
+│   ├── tools/             #   24 built-in tool implementations
+│   ├── memory/            #   Persistent memory system
 │   ├── config/            #   Configuration management
 │   └── history/           #   Conversation persistence
 ├── cli/                   # @ava/cli — terminal REPL interface
-│   └── cli/               #   Commands, renderer, spinner, setup wizard
-├── extension/             # ava-supernova — VSCode extension host
-│   ├── webview/           #   Extension ↔ webview bridge
-│   └── dashboard-ui/     #   Account dashboard (billing, memory, settings)
-├── extension/webview-ui/  # @ava/webview-ui — React + Tailwind webview
-│   └── components/        #   Chat UI, tool cards, plan cards, etc.
-└── web/                   # Platform website (ava-supernova.com, git submodule)
+├── extension/             # ava-supernova — VS Code extension host
+│   ├── webview-ui/        #   React + Tailwind chat interface
+│   └── dashboard-ui/      #   Provider config and settings panel
+├── ide/                   # Standalone IDE (Eclipse Theia, git submodule)
+└── web/                   # Platform website (git submodule)
 ```
 
 ### Key Design Decisions
 
-- **Monorepo with shared core** — The CLI and VSCode extension share the same agent engine, tools, and providers via `@ava/core`. Zero duplication.
-- **Event-driven agent** — The agent emits typed events (`stream_delta`, `tool_call_start`, `done`, etc.) that both the CLI and extension subscribe to.
-- **Injectable confirmation handler** — The `ToolRegistry` accepts a `setConfirmationHandler()` callback, letting each UI (CLI readline, VSCode webview) implement its own approval flow.
+- **Monorepo with shared core** — CLI, extension, and IDE share the same agent engine, tools, and providers via `@ava/core`. Zero duplication.
+- **Event-driven agent** — The agent emits typed events (`stream_delta`, `tool_call_start`, `done`, etc.) that all host environments subscribe to.
+- **Injectable confirmation handler** — `ToolRegistry` accepts a `setConfirmationHandler()` callback, letting each UI implement its own approval flow.
 - **Self-contained tools** — Each tool carries its own JSON schema and execution handler. Adding a tool is one file and one line in the registry.
 - **No external SDKs** — All provider communication uses Node's native `fetch`. Zero dependency on any provider SDK.
-- **Permission matrix** — Risk levels (`safe`, `write`, `dangerous`) combined with permission modes (`strict`, `balanced`, `autonomous`) determine what requires user approval.
+- **Permission matrix** — Risk levels (`safe`, `write`, `dangerous`) combined with permission modes determine what requires user approval.
+- **Privacy by design** — Runtime credential detection, system prompt guardrails, local-only storage, no telemetry.
 
 ## Development
 
@@ -380,26 +285,20 @@ pnpm build
 # Run CLI in dev mode
 pnpm dev
 
-# Run tests
-pnpm test
-
 # Type check
 pnpm typecheck
 
 # Lint
 pnpm lint
-
-# Format
-pnpm format
 ```
 
-### VSCode Extension Development
+### VS Code Extension Development
 
 ```bash
 # Build everything
 pnpm build
 
-# Press F5 in VSCode to launch Extension Development Host
+# Press F5 in VS Code to launch Extension Development Host
 # Or rebuild just the extension:
 cd packages/extension && pnpm build
 ```
@@ -407,8 +306,12 @@ cd packages/extension && pnpm build
 ## Roadmap
 
 - [x] Terminal CLI with full agent loop
-- [x] VSCode extension with chat UI
-- [x] 13 built-in tools (file ops, search, bash, git, web, HTTP, planning)
+- [x] VS Code extension with chat UI
+- [x] Standalone IDE (Eclipse Theia)
+- [x] 24 built-in tools (file ops, search, bash, git, web, browser, database, memory, planning)
+- [x] 15 models from 7 providers, including 2 free models
+- [x] Persistent memory system with credential blocking
+- [x] Privacy guardrails — prompt injection resistance, credential redaction
 - [x] Conversation history with search, pin, rename, export
 - [x] Vision support (image attachments)
 - [x] Project context (`.ava/instructions.md`)
@@ -416,17 +319,11 @@ cd packages/extension && pnpm build
 - [x] Context compression and management
 - [x] Error recovery and resilience
 - [x] i18n — 20 languages
-- [x] Getting Started walkthrough in extension
-- [x] 208 tests across 19 test files
-- [x] Security scanning mode — OWASP-aligned AI-powered security audits
-- [x] Platform account system — Free, Pro ($19/mo), Ultra ($49/mo)
-- [x] Dashboard panel in VSCode — billing, memory, settings inside the editor
-- [x] Security audit — 23 vulnerabilities found and fixed
-- [ ] Office suite tools (email, Slack, Discord, GitHub, documents)
-- [ ] Web chat interface (ava-supernova.com/chat)
-- [ ] Mobile app (iOS + Android via Capacitor)
-- [ ] Memory system — persistent AI memory across sessions
-- [ ] Plugin system for custom tools
+- [x] Security scanning mode — OWASP-aligned audits
+- [ ] Memory system improvements — platform sync, embeddings
+- [ ] Plugin system for community-contributed tools
+- [ ] Productivity tools (email, Slack, Discord)
+- [ ] Settings/history sync across machines
 
 ## Contributing
 
@@ -435,14 +332,12 @@ Contributions are welcome. This is an open-source project built for the communit
 1. Fork the repository
 2. Create a feature branch from `development`
 3. Make your changes
-4. Run `pnpm build && pnpm test`
+4. Run `pnpm build`
 5. Submit a pull request to `development`
-
-Please ensure all code passes type checking and follows the existing style conventions.
 
 ## License
 
-[Apache License 2.0](LICENSE) — Copyright 2026 Augmented Value Acceleration
+[Apache License 2.0](LICENSE) — Copyright 2025-2026 Augmented Value Acceleration
 
 ---
 
