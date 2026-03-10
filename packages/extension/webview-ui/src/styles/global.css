@@ -15,14 +15,17 @@
   --color-vscode-error: var(--vscode-errorForeground);
   --color-vscode-border: var(--vscode-panel-border);
   --color-vscode-link: var(--vscode-textLink-foreground);
-  --color-accent: #7C3AED;
-  --color-accent-light: #8B5CF6;
+  --color-accent: #A855F7;
+  --color-accent-light: #C084FC;
+  --ava-accent: #A855F7;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background: var(--vscode-sideBar-background);
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(168, 85, 247, 0.06) 0%, transparent 70%),
+    var(--vscode-sideBar-background);
   color: var(--vscode-foreground);
   font-family: var(--vscode-font-family);
   font-size: var(--vscode-font-size);
@@ -39,7 +42,7 @@ body {
 /* Code block styling */
 pre {
   background: var(--vscode-textCodeBlock-background, rgba(0, 0, 0, 0.1));
-  border-radius: 4px;
+  border-radius: 6px;
   padding: 8px 12px;
   overflow-x: auto;
   font-family: var(--vscode-editor-font-family);
@@ -49,6 +52,19 @@ pre {
 code {
   font-family: var(--vscode-editor-font-family);
   font-size: var(--vscode-editor-font-size);
+}
+
+/* Inline code — purple tint to match IDE */
+:not(pre) > code {
+  background: rgba(168, 85, 247, 0.12);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* Pulse animation for running status */
+@keyframes ava-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
 /* Scrollbar styling */

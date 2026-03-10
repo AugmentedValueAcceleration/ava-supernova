@@ -196,14 +196,14 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
   return (
     <div className="px-3 py-2">
       <div
-        className={`rounded-lg border
+        className={`rounded-md overflow-hidden relative transition-colors
                     bg-[var(--vscode-input-background)]
-                    focus-within:border-[var(--color-accent,var(--vscode-focusBorder))]
-                    transition-colors overflow-hidden relative
-                    ${isDragOver
-                      ? 'border-[var(--color-accent,var(--vscode-focusBorder))] border-dashed'
-                      : 'border-[var(--vscode-input-border)]'
-                    }`}
+                    ${isDragOver ? 'border-dashed' : ''}`}
+        style={{
+          border: isDragOver
+            ? '1px dashed var(--color-accent, #A855F7)'
+            : '1px solid rgba(168, 85, 247, 0.15)',
+        }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -279,7 +279,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
         />
 
         {/* Bottom toolbar */}
-        <div className="flex items-center justify-between px-2 pb-2 pt-0.5">
+        <div className="flex items-center justify-between px-2 pb-2 pt-1" style={{ borderTop: '1px solid rgba(168, 85, 247, 0.08)' }}>
           {/* Mode selector */}
           <div className="flex items-center gap-0.5" role="radiogroup" aria-label="Input mode">
             {MODES.map((m) => (

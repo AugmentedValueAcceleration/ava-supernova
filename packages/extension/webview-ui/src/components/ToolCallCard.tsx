@@ -83,8 +83,11 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
 
   return (
     <div
-      className="rounded border text-xs overflow-hidden"
-      style={{ borderColor: STATUS_COLORS[toolCall.status] + '40' }}
+      className="rounded-md text-xs overflow-hidden"
+      style={{
+        border: '1px solid rgba(168, 85, 247, 0.15)',
+        background: 'rgba(168, 85, 247, 0.04)',
+      }}
     >
       {/* Header */}
       <button

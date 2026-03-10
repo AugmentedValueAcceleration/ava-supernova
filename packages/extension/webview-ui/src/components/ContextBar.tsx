@@ -43,9 +43,10 @@ export function ContextBar({ contextUsage, isCompressing, onCompress, disabled }
                  hover:bg-[var(--vscode-list-hoverBackground)]
                  disabled:cursor-default disabled:hover:bg-transparent
                  transition-colors group"
+      style={{ borderTop: '1px solid rgba(168, 85, 247, 0.08)' }}
     >
       {/* Bar */}
-      <div className="flex-1 h-1.5 rounded-full bg-[var(--vscode-input-background)] overflow-hidden">
+      <div className="flex-1 h-1 rounded-full bg-[var(--vscode-input-background)] overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-300 ${colorClass}`}
           style={{ width: `${Math.min(percent, 100)}%` }}

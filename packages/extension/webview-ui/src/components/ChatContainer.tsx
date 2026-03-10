@@ -25,18 +25,18 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
     return (
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-lg font-semibold mb-1 opacity-40">{t('welcome.title')}</p>
-          <p className="text-xs opacity-30 mb-4">{t('welcome.subtitle')}</p>
+          <p className="text-[15px] font-semibold mb-1 opacity-50">{t('welcome.title')}</p>
+          <p className="text-[11px] opacity-30 mb-4">{t('welcome.subtitle')}</p>
           <div className="flex flex-wrap justify-center gap-2">
             {SUGGESTIONS.map((s) => (
               <button
                 key={s.labelKey}
                 onClick={() => onSuggestion(t(s.promptKey))}
                 className="px-3 py-1.5 rounded-full text-[11px]
-                           bg-[var(--vscode-button-secondaryBackground)]
-                           text-[var(--vscode-button-secondaryForeground)]
-                           hover:bg-[var(--vscode-button-secondaryHoverBackground)]
-                           border-none cursor-pointer transition-colors opacity-60 hover:opacity-90"
+                           bg-transparent
+                           text-[var(--vscode-foreground)]
+                           border-none cursor-pointer transition-opacity opacity-50 hover:opacity-80"
+                style={{ border: '1px solid rgba(168, 85, 247, 0.15)' }}
               >
                 {t(s.labelKey)}
               </button>
