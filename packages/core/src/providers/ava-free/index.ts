@@ -3,8 +3,10 @@ import type { ChatCompletionRequest } from '../types.js';
 import type { CompletionResponse, ModelDefinition, StreamChunk } from '../../core/types.js';
 import { AVA_FREE_MODELS } from './models.js';
 
+const ALLOWED_FREE_MODELS = new Set(['glm-4.5-flash', 'glm-4.7-flash']);
+
 /**
- * Ava Free provider — routes through the Ava platform proxy to GLM-4.5 Flash.
+ * Ava Free provider — routes through the Ava platform proxy to free Zhipu models.
  * No API key required. Always available for all users.
  */
 export class AvaFreeProvider extends BaseProvider {
@@ -34,8 +36,9 @@ export class AvaFreeProvider extends BaseProvider {
   }
 
   protected transformRequest(request: ChatCompletionRequest): Record<string, unknown> {
-    // Force the model to glm-4.5-flash regardless of what's passed
-    return { ...request, model: 'glm-4.5-flash' };
+    // Only allow free models — default to glm-4.7-flash
+    const model = ALLOWED_FREE_MODELS.has(request.model) ? request.model : 'glm-4.7-flash';
+    return { ...request, model };
   }
 
   // Zhipu sometimes returns tool_call arguments as objects instead of strings
