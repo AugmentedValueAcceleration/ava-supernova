@@ -2,6 +2,7 @@ import { post } from '../App';
 import type { AccountInfo } from '../types/messages';
 import { UsageBar } from '../components/UsageBar';
 import { TierBadge } from '../components/TierBadge';
+import { SectionGroup } from '../components/SectionGroup';
 import { CheckIcon } from '../components/Icons';
 
 interface BillingProps {
@@ -44,7 +45,7 @@ export function Billing({ account }: BillingProps) {
 
   return (
     <div className="max-w-3xl">
-      <div className="mb-8">
+      <div className="mb-10">
         <h1 className="text-2xl font-bold">Billing</h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
           Manage your subscription and token usage.
@@ -52,7 +53,9 @@ export function Billing({ account }: BillingProps) {
       </div>
 
       {/* Current Plan */}
-      <div className="mb-6 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+      <div className="mb-10">
+      <SectionGroup label="Current Plan">
+      <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <div className="mb-4 flex items-center justify-between">
           <TierBadge tier={account.tier} />
           {usage.period_end && (
@@ -117,53 +120,53 @@ export function Billing({ account }: BillingProps) {
           </button>
         )}
       </div>
+      </SectionGroup>
+      </div>
 
       {/* Top-ups (Pro only) */}
       {account.tier === 'pro' && (
-        <div className="mb-6 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-            Top Up Tokens
-          </p>
-          <p className="mb-4 text-sm text-[var(--text-secondary)]">
-            Running low? Add extra tokens — they never expire.
-          </p>
+        <div className="mb-10">
+        <SectionGroup label="Top Up Tokens" description="Running low? Add extra tokens — they never expire.">
           <div className="grid gap-3 sm:grid-cols-3">
             {TOPUP_PACKAGES.map(pkg => (
               <button
                 key={pkg.id}
                 onClick={() => post({ type: 'open_topup', package: pkg.id as 'starter' | 'standard' | 'pro_pack' })}
-                className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-input)] p-4 text-center transition hover:border-[var(--accent)]/30"
+                className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-input)] p-5 text-center transition hover:border-[var(--accent)]/30"
               >
                 <p className="text-xl font-bold text-[var(--gradient-start)]">{pkg.price}</p>
                 <p className="mt-1 text-xs text-[var(--text-secondary)]">{pkg.label}</p>
               </button>
             ))}
           </div>
+        </SectionGroup>
         </div>
       )}
 
       {/* Upgrade Cards */}
       {account.tier !== 'ultra' && account.tier !== 'admin' && (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {account.tier === 'free' && (
+        <SectionGroup label="Upgrade">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {account.tier === 'free' && (
+              <UpgradeCard
+                title="Pro"
+                price="$19"
+                period="/mo"
+                features={PLAN_FEATURES.pro}
+                highlight={false}
+                onUpgrade={() => post({ type: 'open_checkout', plan: 'pro' })}
+              />
+            )}
             <UpgradeCard
-              title="Pro"
-              price="$19"
+              title="Ultra"
+              price="$49"
               period="/mo"
-              features={PLAN_FEATURES.pro}
-              highlight={false}
-              onUpgrade={() => post({ type: 'open_checkout', plan: 'pro' })}
+              features={PLAN_FEATURES.ultra}
+              highlight={true}
+              onUpgrade={() => post({ type: 'open_checkout', plan: 'ultra' })}
             />
-          )}
-          <UpgradeCard
-            title="Ultra"
-            price="$49"
-            period="/mo"
-            features={PLAN_FEATURES.ultra}
-            highlight={true}
-            onUpgrade={() => post({ type: 'open_checkout', plan: 'ultra' })}
-          />
-        </div>
+          </div>
+        </SectionGroup>
       )}
     </div>
   );

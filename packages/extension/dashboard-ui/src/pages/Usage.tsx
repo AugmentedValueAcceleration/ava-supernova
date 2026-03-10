@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { post } from '../App';
 import { UsageBar } from '../components/UsageBar';
+import { SectionGroup } from '../components/SectionGroup';
 import type { AccountInfo, UsageLogEntry } from '../types/messages';
 
 interface UsageProps {
@@ -50,7 +51,7 @@ export function Usage({ account, logs }: UsageProps) {
 
   return (
     <div className="max-w-4xl">
-      <div className="mb-8">
+      <div className="mb-10">
         <h1 className="text-2xl font-bold">Usage</h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
           Track your token usage and request history.
@@ -58,7 +59,9 @@ export function Usage({ account, logs }: UsageProps) {
       </div>
 
       {/* Period Summary */}
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-10">
+      <SectionGroup label="Summary">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
           label="Free Tokens"
           value={formatNumber(Math.max(0, usage.free_tokens_limit - usage.free_tokens_used))}
@@ -80,9 +83,13 @@ export function Usage({ account, logs }: UsageProps) {
           isText
         />
       </div>
+      </SectionGroup>
+      </div>
 
       {/* Token Bars */}
-      <div className="mb-8 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+      <div className="mb-10">
+      <SectionGroup label="Token Pools">
+      <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
           {/* Free Pool */}
           <div className="mb-2 flex justify-between text-xs">
             <span className="text-[var(--text-secondary)]">
@@ -134,17 +141,19 @@ export function Usage({ account, logs }: UsageProps) {
             </>
           )}
         </div>
+      </SectionGroup>
+      </div>
 
       {/* Model Breakdown */}
-      <div className="mb-8">
-        <h2 className="mb-4 text-sm font-semibold">Usage by Model</h2>
+      <div className="mb-10">
+        <SectionGroup label="Usage by Model">
         {breakdown.length > 0 ? (
           <div className="space-y-3">
             {breakdown.map((m) => {
               const total = m.input + m.output;
               const pct = (total / maxTotal) * 100;
               return (
-                <div key={m.model} className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
+                <div key={m.model} className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
                   <div className="mb-2 flex items-center justify-between">
                     <span className="text-sm font-medium">{m.model}</span>
                     <span className="text-xs text-[var(--text-muted)]">
@@ -171,12 +180,13 @@ export function Usage({ account, logs }: UsageProps) {
             <p className="text-sm text-[var(--text-muted)]">No usage data for this period.</p>
           </div>
         )}
+        </SectionGroup>
       </div>
 
       {/* Recent Requests */}
       <div>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Recent Requests</h2>
+        <SectionGroup label="Recent Requests">
+        <div className="flex items-center justify-end">
           <div className="flex gap-1 rounded-lg bg-[var(--bg-input)] p-1">
             {(['7d', '30d', 'all'] as const).map((p) => (
               <button
@@ -224,6 +234,7 @@ export function Usage({ account, logs }: UsageProps) {
             <p className="text-sm text-[var(--text-muted)]">No requests logged yet.</p>
           </div>
         )}
+        </SectionGroup>
       </div>
     </div>
   );
