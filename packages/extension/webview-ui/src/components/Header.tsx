@@ -2,7 +2,7 @@ import { ModelSelector } from './ModelSelector';
 import { t } from '../i18n';
 
 interface HeaderProps {
-  models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean }>;
+  models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;
   activeModel: string | null;
   needsSetup: boolean;
   onSwitch: (modelId: string) => void;

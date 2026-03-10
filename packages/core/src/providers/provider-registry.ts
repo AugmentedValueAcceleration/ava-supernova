@@ -7,8 +7,26 @@ import { ZhipuProvider } from './zhipu/index.js';
 import { MistralProvider } from './mistral/index.js';
 import { AnthropicProvider } from './anthropic/index.js';
 import { AvaFreeProvider } from './ava-free/index.js';
+import { DEEPSEEK_MODELS } from './deepseek/models.js';
+import { KIMI_MODELS } from './kimi/models.js';
+import { QWEN_MODELS } from './qwen/models.js';
+import { ZHIPU_MODELS } from './zhipu/models.js';
+import { MISTRAL_MODELS } from './mistral/models.js';
+import { ANTHROPIC_MODELS } from './anthropic/models.js';
+import { AVA_FREE_MODELS } from './ava-free/models.js';
 
 type ProviderFactory = (config: ProviderConfig) => Provider;
+
+/** Every model Ava supports, keyed by provider name. */
+const ALL_MODELS: Record<string, ModelDefinition[]> = {
+  'ava-free': AVA_FREE_MODELS,
+  deepseek: DEEPSEEK_MODELS,
+  kimi: KIMI_MODELS,
+  qwen: QWEN_MODELS,
+  zhipu: ZHIPU_MODELS,
+  mistral: MISTRAL_MODELS,
+  anthropic: ANTHROPIC_MODELS,
+};
 
 const BUILT_IN_PROVIDERS: Record<string, ProviderFactory> = {
   deepseek: (config) => new DeepSeekProvider(config),
@@ -70,5 +88,29 @@ export class ProviderRegistry {
       models.push(...provider.listModels());
     }
     return models;
+  }
+
+  /**
+   * List every model Ava supports, regardless of whether the provider is configured.
+   * Each entry includes `available: true` if the provider is registered (user has API key),
+   * or `available: false` if not.
+   */
+  listAllPossibleModels(): Array<ModelDefinition & { available: boolean }> {
+    const results: Array<ModelDefinition & { available: boolean }> = [];
+    for (const [providerName, models] of Object.entries(ALL_MODELS)) {
+      const isAvailable = this.providers.has(providerName);
+      for (const m of models) {
+        results.push({ ...m, available: isAvailable });
+      }
+    }
+    // Include any custom/generic providers that aren't in ALL_MODELS
+    for (const [name, provider] of this.providers) {
+      if (!(name in ALL_MODELS)) {
+        for (const m of provider.listModels()) {
+          results.push({ ...m, available: true });
+        }
+      }
+    }
+    return results;
   }
 }

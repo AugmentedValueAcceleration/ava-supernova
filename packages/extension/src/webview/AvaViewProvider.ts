@@ -516,8 +516,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  private getModelList(): Array<{ id: string; name: string; provider: string; supportsVision?: boolean }> {
-    return this.providerRegistry.listAllModels()
+  private getModelList(): Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }> {
+    return this.providerRegistry.listAllPossibleModels()
       .filter((m) => {
         if (this.providerSource === 'platform') return m.provider === 'platform';
         return m.provider !== 'platform';
@@ -526,6 +526,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         id: `${m.provider}:${m.id}`,
         name: m.name,
         provider: m.provider,
+        available: m.available,
         ...(m.supportsVision ? { supportsVision: true } : {}),
       }));
   }

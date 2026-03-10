@@ -14,7 +14,7 @@ export interface PlatformStatus {
 export type ExtToWebviewMessage =
   | {
       type: 'init';
-      models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean }>;
+      models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;
       activeModel: string | null;
       needsSetup: boolean;
       locale?: string;
@@ -127,7 +127,7 @@ export interface UIMessage {
 
 export interface ChatState {
   messages: UIMessage[];
-  models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean }>;
+  models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;
   activeModel: string | null;
   isStreaming: boolean;
   isThinking: boolean;
