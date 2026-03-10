@@ -32,7 +32,7 @@ export function Header({
         <span className="text-[9px] uppercase tracking-[2px] opacity-40 text-[var(--vscode-foreground)]">Supernova</span>
       </div>
 
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 flex justify-end">
         <ModelSelector
           models={models}
           activeModel={activeModel}

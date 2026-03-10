@@ -6,6 +6,7 @@ import { QwenProvider } from './qwen/index.js';
 import { ZhipuProvider } from './zhipu/index.js';
 import { MistralProvider } from './mistral/index.js';
 import { AnthropicProvider } from './anthropic/index.js';
+import { AvaFreeProvider } from './ava-free/index.js';
 
 type ProviderFactory = (config: ProviderConfig) => Provider;
 
@@ -20,6 +21,11 @@ const BUILT_IN_PROVIDERS: Record<string, ProviderFactory> = {
 
 export class ProviderRegistry {
   private providers = new Map<string, Provider>();
+
+  constructor() {
+    // Always register the free provider — available to all users without config
+    this.providers.set('ava-free', new AvaFreeProvider());
+  }
 
   register(name: string, config: ProviderConfig): void {
     const factory = BUILT_IN_PROVIDERS[name];

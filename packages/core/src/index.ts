@@ -36,6 +36,7 @@ export type {
 export { BaseProvider } from './providers/base-provider.js';
 export { ProviderRegistry } from './providers/provider-registry.js';
 export { PlatformProvider } from './providers/platform/index.js';
+export { AvaFreeProvider } from './providers/ava-free/index.js';
 
 // Tools
 export { ToolRegistry } from './tools/tool-registry.js';
