@@ -47,6 +47,16 @@ export { BrowserTool } from './tools/browser.js';
 export { MemoryManager } from './memory/memory-manager.js';
 export { PlatformMemorySync } from './memory/platform-sync.js';
 export type { PlatformMemory, SemanticMatch } from './memory/platform-sync.js';
+export type {
+  MemoryEntry,
+  MemoryCategory,
+  MemoryStore,
+  MemorySaveOptions,
+  MemoryRecallOptions,
+  MemoryRecallResult,
+  MemoryStoreSummary,
+} from './memory/types.js';
+export { MEMORY_CATEGORIES, createEmptyStore } from './memory/types.js';
 
 // Checkpoint
 export { CheckpointManager } from './checkpoint/checkpoint-manager.js';

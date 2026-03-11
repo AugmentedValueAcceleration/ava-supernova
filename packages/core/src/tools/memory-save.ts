@@ -1,6 +1,8 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import type { MemoryManager } from '../memory/memory-manager.js';
+import type { MemoryCategory } from '../memory/types.js';
+import { MEMORY_CATEGORIES } from '../memory/types.js';
 
 export class MemorySaveTool implements Tool {
   readonly name = 'memory_save';
@@ -11,12 +13,13 @@ export class MemorySaveTool implements Tool {
   readonly schema: FunctionSchema = {
     name: 'memory_save',
     description:
-      'Save information to persistent memory. Memories survive across conversations and are ' +
+      'Save information to persistent, categorized memory. Memories survive across conversations and are ' +
       'injected into your system prompt at the start of each session. ' +
-      'Use this to remember user preferences, project patterns, key decisions, and solutions. ' +
+      'Use this to remember user preferences, project patterns, key decisions, bug fixes, and solutions. ' +
       'Two scopes: "global" (applies to all projects) and "project" (applies to current project only). ' +
-      'Default mode is "append" — adds to existing memory. Use "replace" to overwrite entirely. ' +
-      'NEVER save API keys, passwords, tokens, or any credentials to memory — they would be exposed in every future conversation.',
+      'Memories are automatically categorized and deduplicated — if you save something similar to an existing memory, ' +
+      'it will be updated instead of duplicated. ' +
+      'NEVER save API keys, passwords, tokens, or any credentials to memory.',
     parameters: {
       type: 'object',
       properties: {
@@ -24,20 +27,30 @@ export class MemorySaveTool implements Tool {
           type: 'string',
           enum: ['global', 'project'],
           description:
-            'Where to save: "global" saves to ~/.ava/memory.md (all projects), ' +
-            '"project" saves to <projectRoot>/.ava/memory.md (this project only).',
+            'Where to save: "global" saves to ~/.ava/ (all projects), ' +
+            '"project" saves to <projectRoot>/.ava/ (this project only).',
         },
         content: {
           type: 'string',
           description:
-            'Markdown content to save. For append mode, this is added to the end. ' +
-            'For replace mode, this overwrites the entire memory file. ' +
-            'Use clear, structured markdown — bullet points, headers, etc.',
+            'The memory content to save (markdown). Be clear and structured. ' +
+            'If this is similar to an existing memory, it will be merged/updated automatically.',
         },
-        mode: {
+        category: {
           type: 'string',
-          enum: ['append', 'replace'],
-          description: 'How to save: "append" adds to existing memory (default), "replace" overwrites entirely.',
+          enum: MEMORY_CATEGORIES,
+          description:
+            'Category for this memory. Helps with organization and retrieval. ' +
+            'Options: pattern (coding patterns), preference (user preferences), ' +
+            'architecture (project structure), bug-fix (issues/fixes), ' +
+            'convention (naming/style rules), tool-config (environment setup), ' +
+            'decision (key decisions), person (people/roles), general (catch-all). ' +
+            'If omitted, category is inferred from content.',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional tags for additional filtering (e.g. ["auth", "api", "react"]).',
         },
       },
       required: ['scope', 'content'],
@@ -47,7 +60,8 @@ export class MemorySaveTool implements Tool {
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const scope = args.scope as 'global' | 'project';
     const content = args.content as string;
-    const mode = (args.mode as string) ?? 'append';
+    const category = args.category as MemoryCategory | undefined;
+    const tags = args.tags as string[] | undefined;
 
     if (!scope || !content?.trim()) {
       return { success: false, output: 'Both scope and content are required.' };
@@ -57,23 +71,26 @@ export class MemorySaveTool implements Tool {
       return { success: false, output: 'Scope must be "global" or "project".' };
     }
 
-    // Block saving of credentials/secrets to memory
+    if (category && !MEMORY_CATEGORIES.includes(category)) {
+      return { success: false, output: `Invalid category. Must be one of: ${MEMORY_CATEGORIES.join(', ')}` };
+    }
+
+    // Block saving of credentials/secrets
     const secretPatterns = [
-      /sk[-_](?:live|test|ant|proj)[_-]\S{10,}/i,    // API keys (Stripe, Anthropic, OpenAI-style)
-      /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}/,  // GitHub tokens
-      /\bglpat-[A-Za-z0-9\-_]{20,}/,                   // GitLab tokens
-      /\bxox[baprs]-[A-Za-z0-9\-]{20,}/,               // Slack tokens
-      /\beyJ[A-Za-z0-9\-_]{50,}\.[A-Za-z0-9\-_]{50,}/, // JWTs
-      /\b(?:AKIA|ABIA|ACCA|ASIA)[A-Z0-9]{16}\b/,       // AWS access keys
-      /\bAIza[A-Za-z0-9\-_]{30,}/,                      // Google API keys
-      /-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----/,   // Private keys
+      /sk[-_](?:live|test|ant|proj)[_-]\S{10,}/i,
+      /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}/,
+      /\bglpat-[A-Za-z0-9\-_]{20,}/,
+      /\bxox[baprs]-[A-Za-z0-9\-]{20,}/,
+      /\beyJ[A-Za-z0-9\-_]{50,}\.[A-Za-z0-9\-_]{50,}/,
+      /\b(?:AKIA|ABIA|ACCA|ASIA)[A-Z0-9]{16}\b/,
+      /\bAIza[A-Za-z0-9\-_]{30,}/,
+      /-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----/,
     ];
     for (const pattern of secretPatterns) {
       if (pattern.test(content)) {
         return {
           success: false,
-          output: 'Blocked: the content appears to contain API keys, tokens, or credentials. ' +
-            'Saving secrets to memory is a security risk — they would be exposed in every future conversation. ' +
+          output: 'Blocked: content appears to contain API keys, tokens, or credentials. ' +
             'Store credentials in environment variables or a secure vault instead.',
         };
       }
@@ -85,28 +102,23 @@ export class MemorySaveTool implements Tool {
     }
 
     try {
-      if (mode === 'replace') {
-        if (scope === 'global') {
-          await memoryManager.saveGlobalMemory(content);
-        } else {
-          await memoryManager.saveProjectMemory(content);
-        }
-      } else {
-        // Append with timestamp
-        const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-        const entry = `#### ${timestamp}\n${content}`;
-        if (scope === 'global') {
-          await memoryManager.appendGlobal(entry);
-        } else {
-          await memoryManager.appendProject(entry);
-        }
-      }
+      const entry = await memoryManager.saveEntry({
+        scope,
+        content: content.trim(),
+        category,
+        tags,
+        sourceConversationId: context.conversationId,
+      });
 
       const path = memoryManager.getPath(scope);
+      const wasUpdated = entry.createdAt !== entry.updatedAt;
+
       return {
         success: true,
-        output: `Memory saved (${scope}, ${mode}). File: ${path}`,
-        metadata: { scope, mode, path },
+        output: wasUpdated
+          ? `Memory updated (${scope}, ${entry.category}). Merged with existing similar entry. File: ${path}`
+          : `Memory saved (${scope}, ${entry.category}). ID: ${entry.id.slice(0, 8)}. File: ${path}`,
+        metadata: { scope, category: entry.category, id: entry.id, wasUpdated, path },
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);

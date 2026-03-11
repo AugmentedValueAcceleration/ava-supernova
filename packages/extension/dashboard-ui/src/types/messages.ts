@@ -17,15 +17,20 @@ export interface AccountInfo {
   } | null;
 }
 
+export type MemoryCategory = 'pattern' | 'preference' | 'architecture' | 'bug-fix' | 'convention' | 'tool-config' | 'decision' | 'person' | 'general';
+
 export interface MemoryEntry {
   id: string;
   scope: 'global' | 'project';
   project_id: string | null;
   key: string;
   content: string;
-  category: string | null;
+  category: MemoryCategory | string | null;
   created_at: string;
   updated_at: string;
+  last_recalled_at?: string | null;
+  recall_count?: number;
+  tags?: string[];
 }
 
 export interface ConnectionStatus {

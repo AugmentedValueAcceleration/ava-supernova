@@ -37,6 +37,8 @@ export interface ToolExecutionContext {
   onOutput?: (data: string) => void;
   /** Shared state across tools within a session (e.g. memoryManager, checkpointManager). */
   sharedState?: Record<string, unknown>;
+  /** Current conversation ID (for memory traceability). */
+  conversationId?: string;
 }
 
 // Returns boolean (true=approved, false=denied) or a string (approved with custom tool result).
