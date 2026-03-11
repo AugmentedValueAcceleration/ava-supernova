@@ -200,14 +200,14 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
         className="rounded-xl overflow-hidden relative transition-all duration-200"
         style={{
           border: isDragOver
-            ? '1px dashed var(--color-accent, #A855F7)'
+            ? '1.5px dashed #A855F7'
             : isFocused
-              ? '1px solid rgba(168, 85, 247, 0.5)'
-              : '1px solid rgba(168, 85, 247, 0.12)',
-          background: 'var(--vscode-input-background)',
+              ? '1.5px solid #A855F7'
+              : '1.5px solid rgba(168, 85, 247, 0.15)',
+          background: 'rgba(0, 0, 0, 0.35)',
           boxShadow: isFocused
-            ? '0 0 0 1px rgba(168, 85, 247, 0.15), 0 2px 8px rgba(168, 85, 247, 0.06)'
-            : 'none',
+            ? '0 0 12px rgba(168, 85, 247, 0.2), 0 0 0 1px rgba(168, 85, 247, 0.1)'
+            : '0 1px 3px rgba(0, 0, 0, 0.2)',
         }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -287,8 +287,8 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
 
         {/* Bottom toolbar */}
         <div
-          className="flex items-center justify-between px-2 pb-2 pt-1.5 mx-2 mt-0.5"
-          style={{ borderTop: '1px solid rgba(168, 85, 247, 0.06)' }}
+          className="flex items-center justify-between px-3 pb-2.5 pt-2 mx-2 mt-0.5"
+          style={{ borderTop: '1px solid rgba(168, 85, 247, 0.4)' }}
         >
           {/* Mode selector */}
           <div className="flex items-center gap-1" role="radiogroup" aria-label="Input mode">
@@ -299,13 +299,16 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                 role="radio"
                 aria-checked={mode === m.id}
                 aria-label={`${t(m.labelKey)} mode`}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium
-                            cursor-pointer transition-all duration-150
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
+                            cursor-pointer transition-all duration-200
                   ${mode === m.id
-                    ? 'bg-[var(--color-accent,var(--vscode-button-background))] text-white border border-transparent shadow-sm'
-                    : 'bg-transparent text-[var(--vscode-foreground)] opacity-40 hover:opacity-70 border border-transparent hover:border-[rgba(168,85,247,0.2)] hover:bg-[rgba(168,85,247,0.06)]'
+                    ? 'text-white border border-[rgba(168,85,247,0.6)]'
+                    : 'text-[var(--vscode-foreground)] opacity-40 hover:opacity-80 border border-transparent hover:border-[rgba(168,85,247,0.3)] hover:bg-[rgba(168,85,247,0.08)]'
                   }`}
-                style={mode === m.id ? { boxShadow: '0 1px 4px rgba(168, 85, 247, 0.3)' } : undefined}
+                style={mode === m.id ? {
+                  background: 'linear-gradient(135deg, #A855F7, #7C3AED)',
+                  boxShadow: '0 2px 8px rgba(168, 85, 247, 0.4), 0 0 12px rgba(168, 85, 247, 0.15)',
+                } : undefined}
               >
                 <span className="font-mono text-[10px] opacity-70" aria-hidden="true">{m.icon}</span>
                 {t(m.labelKey)}
@@ -350,7 +353,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
           )}
 
           {/* Right side: attach + usage + send/stop */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {/* Free token balance */}
             {providerSource === 'platform' && platformStatus?.connected && (() => {
               const remaining = Math.max(0, platformStatus.freeTokensLimit - platformStatus.freeTokensUsed);
@@ -412,14 +415,16 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
               disabled={disabled}
               title={t('input.attach_image')}
               aria-label={t('input.attach_image')}
-              className="flex items-center justify-center w-8 h-8 rounded-lg
-                         bg-transparent cursor-pointer
-                         text-[var(--vscode-foreground)] opacity-40 hover:opacity-70
+              className="flex items-center justify-center w-9 h-9 rounded-lg
+                         cursor-pointer
+                         text-[var(--vscode-foreground)] opacity-50 hover:opacity-90
                          disabled:opacity-20 disabled:cursor-not-allowed
-                         transition-all duration-150
-                         border border-transparent hover:border-[rgba(168,85,247,0.2)] hover:bg-[rgba(168,85,247,0.06)]"
+                         transition-all duration-200
+                         border border-[rgba(168,85,247,0.15)] hover:border-[rgba(168,85,247,0.4)]
+                         hover:bg-[rgba(168,85,247,0.1)]"
+              style={{ background: 'rgba(168, 85, 247, 0.05)' }}
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                 <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a2.75 2.75 0 1 1-3.935-3.84l4.486-4.486a1.75 1.75 0 0 1 2.505 2.44L6.623 9.573a.75.75 0 0 1-1.08-1.04l4.473-4.563z" />
               </svg>
             </button>
@@ -429,14 +434,16 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                 onClick={onCancel}
                 title={t('input.stop')}
                 aria-label={t('input.stop')}
-                className="flex items-center justify-center w-8 h-8 rounded-lg
-                           bg-[var(--vscode-errorForeground,#e53935)]
+                className="flex items-center justify-center w-9 h-9 rounded-lg
                            text-white
-                           hover:opacity-80
-                           border border-transparent cursor-pointer transition-all duration-150"
-                style={{ boxShadow: '0 1px 4px rgba(229, 57, 53, 0.3)' }}
+                           hover:opacity-90
+                           border border-[rgba(229,57,53,0.5)] cursor-pointer transition-all duration-200"
+                style={{
+                  background: 'linear-gradient(135deg, #e53935, #c62828)',
+                  boxShadow: '0 2px 8px rgba(229, 57, 53, 0.35), 0 0 12px rgba(229, 57, 53, 0.15)',
+                }}
               >
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                   <rect x="3" y="3" width="10" height="10" rx="1.5" />
                 </svg>
               </button>
@@ -446,15 +453,18 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                 disabled={disabled || !hasContent}
                 title={t('input.send')}
                 aria-label={t('input.send')}
-                className={`flex items-center justify-center w-8 h-8 rounded-lg
-                           border cursor-pointer transition-all duration-150
+                className={`flex items-center justify-center w-9 h-9 rounded-lg
+                           border cursor-pointer transition-all duration-200
                   ${hasContent && !disabled
-                    ? 'bg-[var(--color-accent,var(--vscode-button-background))] text-white border-transparent'
-                    : 'bg-transparent text-[var(--vscode-foreground)] opacity-20 cursor-not-allowed border-transparent'
+                    ? 'text-white border-[rgba(168,85,247,0.5)]'
+                    : 'bg-transparent text-[var(--vscode-foreground)] opacity-15 cursor-not-allowed border-[rgba(168,85,247,0.08)]'
                   }`}
-                style={hasContent && !disabled ? { boxShadow: '0 1px 6px rgba(168, 85, 247, 0.35)' } : undefined}
+                style={hasContent && !disabled ? {
+                  background: 'linear-gradient(135deg, #A855F7, #7C3AED)',
+                  boxShadow: '0 2px 8px rgba(168, 85, 247, 0.4), 0 0 12px rgba(168, 85, 247, 0.15)',
+                } : undefined}
               >
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                   <path d="M8 3.5l-4.5 4.5.707.707L7.5 5.414V13h1V5.414l3.293 3.293.707-.707L8 3.5z" />
                 </svg>
               </button>
