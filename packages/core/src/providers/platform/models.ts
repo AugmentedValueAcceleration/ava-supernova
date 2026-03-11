@@ -64,13 +64,13 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
   },
   {
     id: 'glm-4.7-flash',
-    name: 'GLM-4.7 Flash',
+    name: 'GLM-4.7 Flash (Free)',
     provider: 'platform',
     contextWindow: 128000,
     maxOutputTokens: 4096,
     supportsToolCalls: true,
     supportsStreaming: true,
-    pricing: { inputPerMillion: 0.07, outputPerMillion: 0.40 },
+    pricing: { inputPerMillion: 0, outputPerMillion: 0 },
   },
   {
     id: 'glm-4.5-flash',

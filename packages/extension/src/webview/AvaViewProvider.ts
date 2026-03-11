@@ -552,6 +552,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       sourceRoot = cwd;
     }
 
+    this.log(`System prompt build — userName: ${this.cachedAccount?.name || this.cachedAccount?.email?.split('@')[0] || 'none'}, isAdmin: ${isAdmin}, sourceRoot: ${sourceRoot || 'none'}`);
+
     return buildSystemPrompt({
       cwd,
       platform: process.platform,

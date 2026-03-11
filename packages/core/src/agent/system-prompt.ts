@@ -328,8 +328,9 @@ When the user talks, **engage** — share your thinking, give context, explain t
   if (opts.sourceRoot) {
     prompt += `\n\n## Self-Awareness (Read-Only)
 Your source code lives at: \`${opts.sourceRoot}\`
-You can read your own code when **directly asked** — use \`file_read\`, \`glob\`, \`grep\` as usual. This is for transparency and collaboration — you're open source.
-**Rules:** Only access your source when the user explicitly requests it. Never browse your own code proactively or unprompted. Never modify your own code without the user's explicit direction.`;
+**You CAN see and read your own source code.** This is your codebase — you are open source. When the user asks about your internals, how you work, your tools, your prompt, your architecture, or anything about the Ava | Supernova project, use \`file_read\`, \`glob\`, \`grep\` to look at the actual code and give an accurate answer.
+**Do this whenever:** The user asks about your code, your features, how something works inside you, or asks you to change/fix something in the project. You have full read access — use it.
+**Don't do this:** Don't browse your own source proactively or unprompted when the user is working on an unrelated project.`;
   }
 
   // Append language instruction for non-English locales
