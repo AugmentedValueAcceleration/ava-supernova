@@ -12,6 +12,7 @@ interface ChatContainerProps {
   onSuggestion: (prompt: string) => void;
   chatEndRef: RefObject<HTMLDivElement | null>;
   needsSetup?: boolean;
+  initialized?: boolean;
   onOpenDashboard?: () => void;
   activeModel?: string | null;
   models?: Array<{ id: string; name: string; provider: string }>;
@@ -40,7 +41,12 @@ const MODE_INFO = [
   { icon: '!!', label: 'Security', desc: 'welcome.mode.security_desc' },
 ];
 
-export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onSuggestion, chatEndRef, needsSetup, onOpenDashboard, activeModel, models }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onSuggestion, chatEndRef, needsSetup, initialized, onOpenDashboard, activeModel, models }: ChatContainerProps) {
+  // Don't render welcome screen until init message arrives — prevents setup banner flash
+  if (!initialized && messages.length === 0) {
+    return <div className="flex-1" />;
+  }
+
   if (messages.length === 0 && !isThinking) {
     const activeModelObj = models?.find(m => m.id === activeModel);
 

@@ -32,6 +32,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       }
       return {
         ...state,
+        initialized: true,
         models: action.models,
         activeModel: action.activeModel,
         needsSetup: action.needsSetup,
@@ -307,6 +308,7 @@ const initialState: ChatState = {
   isStreaming: false,
   isThinking: false,
   needsSetup: true,
+  initialized: false,
   lastUsage: null,
   contextUsage: null,
   isCompressing: false,
@@ -586,6 +588,7 @@ export function App() {
         onSuggestion={handleSuggestion}
         chatEndRef={chatEndRef}
         needsSetup={state.needsSetup}
+        initialized={state.initialized}
         onOpenDashboard={handleOpenDashboard}
         activeModel={state.activeModel}
         models={state.models}

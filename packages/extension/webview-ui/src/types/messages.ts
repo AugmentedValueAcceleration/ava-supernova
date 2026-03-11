@@ -132,6 +132,7 @@ export interface ChatState {
   isStreaming: boolean;
   isThinking: boolean;
   needsSetup: boolean;
+  initialized: boolean;
   lastUsage: {
     prompt_tokens: number;
     completion_tokens: number;
