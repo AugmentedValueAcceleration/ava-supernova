@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { TierBadge } from '../components/TierBadge';
 import { UsageBar } from '../components/UsageBar';
 import { SectionGroup } from '../components/SectionGroup';
@@ -12,6 +13,16 @@ interface OverviewProps {
 }
 
 export function Overview({ account, connections: _connections, onNavigate }: OverviewProps) {
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState(account.name ?? '');
+
+  const saveName = () => {
+    const trimmed = nameValue.trim();
+    if (trimmed && trimmed !== account.name) {
+      post({ type: 'update_name', name: trimmed });
+    }
+    setEditingName(false);
+  };
   const usage = account.usage ?? {
     tokens_used: 0,
     tokens_limit: null as number | null,
@@ -28,7 +39,32 @@ export function Overview({ account, connections: _connections, onNavigate }: Ove
       <div className="mb-10 flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold">Overview</h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">{account.email}</p>
+          <div className="mt-1 flex items-center gap-2">
+            {editingName ? (
+              <input
+                autoFocus
+                value={nameValue}
+                onChange={(e) => setNameValue(e.target.value)}
+                onBlur={saveName}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') saveName();
+                  if (e.key === 'Escape') { setNameValue(account.name ?? ''); setEditingName(false); }
+                }}
+                placeholder="Your name"
+                className="rounded-md border border-[var(--border-input)] bg-[var(--bg-input)] px-2 py-0.5 text-sm text-white outline-none focus:border-[var(--accent)]"
+              />
+            ) : (
+              <button
+                onClick={() => { setNameValue(account.name ?? ''); setEditingName(true); }}
+                className="text-sm text-[var(--text-secondary)] hover:text-white transition"
+                title="Click to edit name"
+              >
+                {account.name || 'Set your name'}
+              </button>
+            )}
+            <span className="text-xs text-[var(--text-muted)]">·</span>
+            <span className="text-sm text-[var(--text-muted)]">{account.email}</span>
+          </div>
         </div>
         <TierBadge tier={account.tier} />
       </div>

@@ -181,6 +181,10 @@ export class DashboardPanel {
         break;
       }
 
+      case 'update_name':
+        await this.updateName(msg.name);
+        break;
+
     }
   }
 
@@ -228,6 +232,25 @@ export class DashboardPanel {
       return res.data as AccountInfo;
     } catch {
       return null;
+    }
+  }
+
+  private async updateName(name: string): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+    try {
+      const res = await apiFetch('/account-info', { method: 'PATCH', body: { name }, platformKey });
+      if (res.ok) {
+        // Re-fetch account to get updated data and push to webview
+        const account = await this.fetchAccount(platformKey);
+        if (account) {
+          this.post({ type: 'account_updated', account });
+        }
+      } else {
+        this.post({ type: 'error', message: 'Failed to update name.' });
+      }
+    } catch {
+      this.post({ type: 'error', message: 'Failed to update name.' });
     }
   }
 

@@ -434,6 +434,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       }
     }
 
+    // Update status bar now that the model is resolved
+    this.updateStatusBar('ready');
+
     // Build platform status from cached account
     const platformStatus: PlatformStatus | undefined = this.cachedAccount
       ? {
@@ -483,8 +486,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     if (!this.conversation) {
       this.conversation = new Conversation();
-      this.conversation.setSystemPrompt(this.buildCurrentSystemPrompt());
     }
+    this.conversation.setSystemPrompt(this.buildCurrentSystemPrompt());
 
     this.agent = new Agent({
       provider,
