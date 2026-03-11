@@ -3,7 +3,7 @@
   "description": "Open-source AI coding agent — 15 models, 7 providers, 26 tools, 2 free models. Smart memory with TF-IDF retrieval. DeepSeek, Kimi, Qwen, Mistral, Anthropic, Zhipu & more.",
   "viewContainer.title": "Ava | Supernova",
   "view.chat.name": "Chat",
-  "command.openChat.title": "Open Chat — Start an AI coding session with 24 agentic tools",
+  "command.openChat.title": "Open Chat — Start an AI coding session with 26 agentic tools",
   "command.newChat.title": "New Chat — Fresh conversation with full context reset",
   "command.clearChat.title": "Clear Chat — Remove all messages from the current session",
   "command.switchModel.title": "Switch Model — Choose from 15 models across 7 providers",

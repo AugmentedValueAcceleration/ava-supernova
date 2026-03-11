@@ -73,7 +73,22 @@ export type ExtToWebviewMessage =
   | { type: 'context_usage'; used: number; limit: number; percent: number }
   | { type: 'compression_start' }
   | { type: 'compression_end'; originalTokens: number; compressedTokens: number }
-  | { type: 'memory_content'; global: string | null; project: string | null };
+  | { type: 'memory_content'; global: MemoryEntryUI[]; project: MemoryEntryUI[] };
+
+/** Structured memory entry for webview display. */
+export interface MemoryEntryUI {
+  id: string;
+  category: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  lastRecalledAt: string | null;
+  recallCount: number;
+  tags?: string[];
+  archived?: boolean;
+  archivedAt?: string | null;
+  branch?: string | null;
+}
 
 export type AvaMode = 'code' | 'plan' | 'chat' | 'security';
 
@@ -98,7 +113,10 @@ export type WebviewToExtMessage =
   | { type: 'set_provider_source'; source: ProviderSource }
   | { type: 'request_memory' }
   | { type: 'save_memory'; scope: 'global' | 'project'; content: string }
-  | { type: 'clear_memory'; scope: 'global' | 'project' };
+  | { type: 'clear_memory'; scope: 'global' | 'project' }
+  | { type: 'archive_memory'; scope: 'global' | 'project'; id: string }
+  | { type: 'restore_memory'; scope: 'global' | 'project'; id: string }
+  | { type: 'delete_memory_entry'; scope: 'global' | 'project'; id: string };
 
 // UI state types
 
@@ -153,6 +171,6 @@ export interface ChatState {
     freeTokensLimit: number;
   } | null;
   memoryOpen: boolean;
-  memoryGlobal: string | null;
-  memoryProject: string | null;
+  memoryGlobal: MemoryEntryUI[];
+  memoryProject: MemoryEntryUI[];
 }

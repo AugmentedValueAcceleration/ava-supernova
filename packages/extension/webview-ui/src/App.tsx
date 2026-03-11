@@ -318,8 +318,8 @@ const initialState: ChatState = {
   providerSource: 'byok',
   platformStatus: null,
   memoryOpen: false,
-  memoryGlobal: null,
-  memoryProject: null,
+  memoryGlobal: [],
+  memoryProject: [],
 };
 
 // ── Typing speed config ─────────────────────────────────────────────────────
@@ -566,6 +566,27 @@ export function App() {
     [postMessage],
   );
 
+  const handleArchiveMemory = useCallback(
+    (scope: 'global' | 'project', id: string) => {
+      postMessage({ type: 'archive_memory', scope, id });
+    },
+    [postMessage],
+  );
+
+  const handleRestoreMemory = useCallback(
+    (scope: 'global' | 'project', id: string) => {
+      postMessage({ type: 'restore_memory', scope, id });
+    },
+    [postMessage],
+  );
+
+  const handleDeleteMemoryEntry = useCallback(
+    (scope: 'global' | 'project', id: string) => {
+      postMessage({ type: 'delete_memory_entry', scope, id });
+    },
+    [postMessage],
+  );
+
   return (
     <div className="relative flex flex-col h-screen">
       <Header
@@ -630,11 +651,14 @@ export function App() {
 
       {state.memoryOpen && (
         <MemoryPanel
-          globalMemory={state.memoryGlobal}
-          projectMemory={state.memoryProject}
+          globalEntries={state.memoryGlobal}
+          projectEntries={state.memoryProject}
           onClose={handleCloseMemory}
           onSave={handleSaveMemory}
           onClear={handleClearMemory}
+          onArchive={handleArchiveMemory}
+          onRestore={handleRestoreMemory}
+          onDelete={handleDeleteMemoryEntry}
         />
       )}
     </div>

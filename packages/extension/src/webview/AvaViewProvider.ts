@@ -689,11 +689,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   private async sendMemoryContent(): Promise<void> {
     if (!this.memoryManager) return;
-    const [global, project] = await Promise.all([
-      this.memoryManager.loadGlobalMemory(),
-      this.memoryManager.loadProjectMemory(),
+    const [globalEntries, projectEntries] = await Promise.all([
+      this.memoryManager.getEntries('global'),
+      this.memoryManager.getEntries('project'),
     ]);
-    this.postMessage({ type: 'memory_content', global, project });
+    this.postMessage({
+      type: 'memory_content',
+      global: globalEntries as never[],
+      project: projectEntries as never[],
+    });
   }
 
   private async saveMemory(scope: 'global' | 'project', content: string): Promise<void> {
@@ -703,9 +707,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     } else {
       await this.memoryManager.saveProjectMemory(content);
     }
-    // Refresh cached memory for system prompt
     this.cachedMemory = (await this.memoryManager.loadAll()) || undefined;
-    // Send updated content back to webview
     await this.sendMemoryContent();
   }
 
@@ -716,6 +718,27 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     } else {
       await this.memoryManager.saveProjectMemory('');
     }
+    this.cachedMemory = (await this.memoryManager.loadAll()) || undefined;
+    await this.sendMemoryContent();
+  }
+
+  private async archiveMemory(scope: 'global' | 'project', id: string): Promise<void> {
+    if (!this.memoryManager) return;
+    await this.memoryManager.archiveEntry(scope, id);
+    this.cachedMemory = (await this.memoryManager.loadAll()) || undefined;
+    await this.sendMemoryContent();
+  }
+
+  private async restoreMemory(scope: 'global' | 'project', id: string): Promise<void> {
+    if (!this.memoryManager) return;
+    await this.memoryManager.restoreEntry(scope, id);
+    this.cachedMemory = (await this.memoryManager.loadAll()) || undefined;
+    await this.sendMemoryContent();
+  }
+
+  private async deleteMemoryEntry(scope: 'global' | 'project', id: string): Promise<void> {
+    if (!this.memoryManager) return;
+    await this.memoryManager.deleteEntry(scope, id);
     this.cachedMemory = (await this.memoryManager.loadAll()) || undefined;
     await this.sendMemoryContent();
   }
@@ -826,6 +849,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
       case 'clear_memory':
         await this.clearMemory(message.scope);
+        break;
+
+      case 'archive_memory':
+        await this.archiveMemory(message.scope, message.id);
+        break;
+
+      case 'restore_memory':
+        await this.restoreMemory(message.scope, message.id);
+        break;
+
+      case 'delete_memory_entry':
+        await this.deleteMemoryEntry(message.scope, message.id);
         break;
     }
   }

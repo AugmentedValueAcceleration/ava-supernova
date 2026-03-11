@@ -452,6 +452,32 @@ export class MemoryManager {
   }
 
   /**
+   * Archive a single entry by ID.
+   */
+  async archiveEntry(scope: 'global' | 'project', id: string): Promise<boolean> {
+    const store = scope === 'global'
+      ? await this.loadGlobalStore()
+      : await this.loadProjectStore();
+    if (!store) return false;
+
+    const entry = store.entries.find(e => e.id === id);
+    if (!entry || entry.archived) return false;
+
+    entry.archived = true;
+    entry.archivedAt = new Date().toISOString();
+    entry.updatedAt = new Date().toISOString();
+    store.lastModified = new Date().toISOString();
+
+    if (scope === 'global') {
+      await this.persistStore(this.globalDir, store);
+    } else if (this.projectDir) {
+      await this.persistStore(this.projectDir, store);
+    }
+
+    return true;
+  }
+
+  /**
    * Find groups of related entries that could be consolidated.
    * Uses TF-IDF similarity to cluster entries within the same category.
    * Returns groups sorted by number of related entries (largest first).
