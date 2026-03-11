@@ -174,7 +174,10 @@ export class DashboardPanel {
       }
 
       case 'run_onboarding':
-        vscode.commands.executeCommand('workbench.action.openWalkthrough', 'augmentedvalueacceleration.ava-supernova#ava-supernova.gettingStarted', true);
+        // Focus the chat sidebar and start a new chat to show the welcome screen
+        vscode.commands.executeCommand('ava-supernova.chatView.focus').then(() => {
+          vscode.commands.executeCommand('ava-supernova.newChat');
+        });
         break;
     }
   }
