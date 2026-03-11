@@ -52,6 +52,10 @@ export class MemorySaveTool implements Tool {
           items: { type: 'string' },
           description: 'Optional tags for additional filtering (e.g. ["auth", "api", "react"]).',
         },
+        branch: {
+          type: 'string',
+          description: 'Scope this memory to a specific git branch. Useful for experimental work that should not pollute other branches. Omit for all-branch memories.',
+        },
       },
       required: ['scope', 'content'],
     },
@@ -62,6 +66,7 @@ export class MemorySaveTool implements Tool {
     const content = args.content as string;
     const category = args.category as MemoryCategory | undefined;
     const tags = args.tags as string[] | undefined;
+    const branch = args.branch as string | undefined;
 
     if (!scope || !content?.trim()) {
       return { success: false, output: 'Both scope and content are required.' };
@@ -107,6 +112,7 @@ export class MemorySaveTool implements Tool {
         content: content.trim(),
         category,
         tags,
+        branch: branch ?? null,
         sourceConversationId: context.conversationId,
       });
 

@@ -21,6 +21,8 @@ const ALL_CATEGORIES: MemoryCategory[] = [
   'convention', 'tool-config', 'decision', 'person', 'general',
 ];
 
+type ViewMode = 'active' | 'stale' | 'archived';
+
 function CategoryBadge({ category }: { category: string | null }) {
   const cat = category ?? 'general';
   const colors = CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.general;
@@ -28,6 +30,14 @@ function CategoryBadge({ category }: { category: string | null }) {
   return (
     <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${colors}`}>
       {label}
+    </span>
+  );
+}
+
+function BranchBadge({ branch }: { branch: string }) {
+  return (
+    <span className="inline-block rounded-full border border-violet-500/20 bg-violet-500/10 px-2 py-0.5 text-[10px] font-medium text-violet-400">
+      {branch}
     </span>
   );
 }
@@ -44,6 +54,35 @@ function isStale(entry: MemoryEntry): boolean {
   return daysSince > 90;
 }
 
+function daysSinceActivity(entry: MemoryEntry): number {
+  const lastActivity = entry.last_recalled_at ?? entry.updated_at ?? entry.created_at;
+  if (!lastActivity) return 0;
+  return Math.floor((Date.now() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24));
+}
+
+// Simple archive icon (box with arrow)
+function ArchiveIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="12" height="4" rx="1" />
+      <path d="M3 6v7a1 1 0 001 1h8a1 1 0 001-1V6" />
+      <path d="M6 9h4" />
+    </svg>
+  );
+}
+
+// Restore icon (arrow coming out of box)
+function RestoreIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6v7a1 1 0 001 1h8a1 1 0 001-1V6" />
+      <rect x="2" y="2" width="12" height="4" rx="1" />
+      <path d="M8 12V8" />
+      <path d="M6 10l2-2 2 2" />
+    </svg>
+  );
+}
+
 interface MemoryProps {
   memories: MemoryEntry[];
 }
@@ -54,19 +93,54 @@ export function Memory({ memories }: MemoryProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('active');
 
-  // Category counts for filter badges
+  // Partition entries
+  const { activeEntries, staleEntries, archivedEntries } = useMemo(() => {
+    const active: MemoryEntry[] = [];
+    const stale: MemoryEntry[] = [];
+    const archived: MemoryEntry[] = [];
+
+    for (const m of memories) {
+      if (m.archived) {
+        archived.push(m);
+      } else if (isStale(m)) {
+        stale.push(m);
+      } else {
+        active.push(m);
+      }
+    }
+    return { activeEntries: active, staleEntries: stale, archivedEntries: archived };
+  }, [memories]);
+
+  // Current view's entries
+  const viewEntries = viewMode === 'active' ? activeEntries
+    : viewMode === 'stale' ? staleEntries
+    : archivedEntries;
+
+  // Category counts for current view
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    for (const m of memories) {
+    for (const m of viewEntries) {
       const cat = m.category ?? 'general';
       counts[cat] = (counts[cat] ?? 0) + 1;
+    }
+    return counts;
+  }, [viewEntries]);
+
+  // Branch counts
+  const branchCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const m of memories) {
+      if (m.branch && !m.archived) {
+        counts[m.branch] = (counts[m.branch] ?? 0) + 1;
+      }
     }
     return counts;
   }, [memories]);
 
   const filtered = useMemo(() => {
-    let result = memories;
+    let result = viewEntries;
     if (categoryFilter) {
       result = result.filter(m => (m.category ?? 'general') === categoryFilter);
     }
@@ -74,13 +148,12 @@ export function Memory({ memories }: MemoryProps) {
       const q = search.toLowerCase();
       result = result.filter(m =>
         m.content.toLowerCase().includes(q) ||
-        m.tags?.some(t => t.toLowerCase().includes(q))
+        m.tags?.some(t => t.toLowerCase().includes(q)) ||
+        m.branch?.toLowerCase().includes(q)
       );
     }
     return result;
-  }, [memories, search, categoryFilter]);
-
-  const staleCount = useMemo(() => memories.filter(isStale).length, [memories]);
+  }, [viewEntries, search, categoryFilter]);
 
   function startEdit(m: MemoryEntry) {
     setEditingId(m.id);
@@ -99,33 +172,76 @@ export function Memory({ memories }: MemoryProps) {
     setConfirmDeleteId(null);
   }
 
+  function archiveEntry(id: string) {
+    post({ type: 'archive_memory', id });
+  }
+
+  function restoreEntry(id: string) {
+    post({ type: 'restore_memory', id });
+  }
+
   return (
     <div className="max-w-3xl">
       {/* Page Header */}
       <div className="mb-10">
         <h1 className="text-2xl font-bold">Memory</h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          Structured, categorized knowledge Ava remembers across conversations.
+          Smart, structured knowledge Ava remembers — powered by TF-IDF retrieval and temporal scoring.
         </p>
       </div>
 
       {/* Stats Bar */}
       {memories.length > 0 && (
         <div className="mb-6 flex flex-wrap items-center gap-3 text-xs text-[var(--text-muted)]">
-          <span>{memories.length} {memories.length === 1 ? 'memory' : 'memories'}</span>
+          <span>{activeEntries.length} active</span>
           <span className="text-[var(--border-card)]">|</span>
           <span>{Object.keys(categoryCounts).length} categories</span>
-          {staleCount > 0 && (
+          {staleEntries.length > 0 && (
             <>
               <span className="text-[var(--border-card)]">|</span>
-              <span className="text-amber-400">{staleCount} stale (90+ days)</span>
+              <span className="text-amber-400">{staleEntries.length} stale</span>
+            </>
+          )}
+          {archivedEntries.length > 0 && (
+            <>
+              <span className="text-[var(--border-card)]">|</span>
+              <span className="text-[var(--text-muted)]">{archivedEntries.length} archived</span>
+            </>
+          )}
+          {Object.keys(branchCounts).length > 0 && (
+            <>
+              <span className="text-[var(--border-card)]">|</span>
+              <span className="text-violet-400">{Object.values(branchCounts).reduce((a, b) => a + b, 0)} branch-scoped</span>
             </>
           )}
         </div>
       )}
 
-      {/* Category Filters */}
+      {/* View Mode Tabs */}
       {memories.length > 0 && (
+        <div className="mb-4 flex gap-1 rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] p-1">
+          {[
+            { key: 'active' as ViewMode, label: 'Active', count: activeEntries.length },
+            { key: 'stale' as ViewMode, label: 'Stale', count: staleEntries.length },
+            { key: 'archived' as ViewMode, label: 'Archived', count: archivedEntries.length },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => { setViewMode(tab.key); setCategoryFilter(null); }}
+              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                viewMode === tab.key
+                  ? 'bg-[var(--accent)]/15 text-[var(--accent)]'
+                  : 'text-[var(--text-muted)] hover:text-white'
+              }`}
+            >
+              {tab.label} ({tab.count})
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Category Filters */}
+      {viewEntries.length > 0 && (
         <div className="mb-6 flex flex-wrap gap-2">
           <button
             onClick={() => setCategoryFilter(null)}
@@ -135,7 +251,7 @@ export function Memory({ memories }: MemoryProps) {
                 : 'border-[var(--border-card)] text-[var(--text-muted)] hover:border-[var(--accent)]/50'
             }`}
           >
-            All ({memories.length})
+            All ({viewEntries.length})
           </button>
           {ALL_CATEGORIES.filter(c => categoryCounts[c]).map(cat => (
             <button
@@ -155,7 +271,7 @@ export function Memory({ memories }: MemoryProps) {
 
       {/* Search & List */}
       <SectionGroup
-        label="Saved Memories"
+        label={viewMode === 'active' ? 'Active Memories' : viewMode === 'stale' ? 'Stale Memories' : 'Archived Memories'}
         count={`${filtered.length} ${filtered.length === 1 ? 'memory' : 'memories'}${search ? ` matching "${search}"` : ''}${categoryFilter ? ` in ${categoryFilter}` : ''}`}
       >
         {/* Search */}
@@ -165,17 +281,35 @@ export function Memory({ memories }: MemoryProps) {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search memories and tags..."
+            placeholder="Search memories, tags, and branches..."
             className="w-full rounded-lg border border-[var(--border-input)] bg-[var(--bg-input)] py-2.5 pl-10 pr-4 text-sm text-white placeholder-[var(--text-muted)] outline-none transition focus:border-[var(--accent)]"
           />
         </div>
+
+        {/* Stale mode info banner */}
+        {viewMode === 'stale' && staleEntries.length > 0 && (
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-xs text-amber-300">
+            These memories haven't been recalled in 90+ days. Review them — archive what's no longer needed, update what's outdated.
+          </div>
+        )}
+
+        {/* Archived mode info banner */}
+        {viewMode === 'archived' && archivedEntries.length > 0 && (
+          <div className="rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] px-4 py-3 text-xs text-[var(--text-muted)]">
+            Archived memories are excluded from Ava's active recall. Restore any that are still relevant.
+          </div>
+        )}
 
         {/* List */}
         {filtered.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[var(--border-card)] bg-[var(--bg-card)] p-8 text-center text-sm text-[var(--text-muted)]">
             {search || categoryFilter
               ? 'No memories match your filters.'
-              : 'No memories yet. Ava will remember things as you work together — patterns, preferences, decisions, and more.'}
+              : viewMode === 'archived'
+                ? 'No archived memories.'
+                : viewMode === 'stale'
+                  ? 'No stale memories — everything is fresh!'
+                  : 'No memories yet. Ava will remember things as you work together — patterns, preferences, decisions, and more.'}
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -183,7 +317,11 @@ export function Memory({ memories }: MemoryProps) {
               <div
                 key={m.id}
                 className={`rounded-xl border bg-[var(--bg-card)] p-5 ${
-                  isStale(m) ? 'border-amber-500/20' : 'border-[var(--border-card)]'
+                  m.archived
+                    ? 'border-[var(--border-card)] opacity-60'
+                    : isStale(m)
+                      ? 'border-amber-500/20'
+                      : 'border-[var(--border-card)]'
                 }`}
               >
                 {editingId === m.id ? (
@@ -216,11 +354,17 @@ export function Memory({ memories }: MemoryProps) {
                   </div>
                 ) : (
                   <div>
-                    {/* Header: category badge + actions */}
+                    {/* Header: category badge + branch + actions */}
                     <div className="mb-2 flex items-center gap-2">
                       <CategoryBadge category={m.category} />
-                      {isStale(m) && (
-                        <span className="text-[10px] text-amber-400 font-medium">Stale</span>
+                      {m.branch && <BranchBadge branch={m.branch} />}
+                      {isStale(m) && !m.archived && (
+                        <span className="text-[10px] text-amber-400 font-medium">
+                          {daysSinceActivity(m)}d stale
+                        </span>
+                      )}
+                      {m.archived && (
+                        <span className="text-[10px] text-[var(--text-muted)] font-medium">Archived</span>
                       )}
                       {m.tags && m.tags.length > 0 && (
                         <div className="flex gap-1 ml-1">
@@ -232,13 +376,34 @@ export function Memory({ memories }: MemoryProps) {
                         </div>
                       )}
                       <div className="ml-auto flex shrink-0 gap-1">
-                        <button
-                          onClick={() => startEdit(m)}
-                          className="rounded p-1.5 text-[var(--text-muted)] transition hover:bg-[var(--bg-input)] hover:text-white"
-                          title="Edit"
-                        >
-                          <PencilIcon className="h-3.5 w-3.5" />
-                        </button>
+                        {m.archived ? (
+                          <button
+                            onClick={() => restoreEntry(m.id)}
+                            className="rounded p-1.5 text-[var(--text-muted)] transition hover:bg-emerald-500/10 hover:text-emerald-400"
+                            title="Restore"
+                          >
+                            <RestoreIcon className="h-3.5 w-3.5" />
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => startEdit(m)}
+                              className="rounded p-1.5 text-[var(--text-muted)] transition hover:bg-[var(--bg-input)] hover:text-white"
+                              title="Edit"
+                            >
+                              <PencilIcon className="h-3.5 w-3.5" />
+                            </button>
+                            {isStale(m) && (
+                              <button
+                                onClick={() => archiveEntry(m.id)}
+                                className="rounded p-1.5 text-[var(--text-muted)] transition hover:bg-amber-500/10 hover:text-amber-400"
+                                title="Archive"
+                              >
+                                <ArchiveIcon className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </>
+                        )}
                         {confirmDeleteId === m.id ? (
                           <>
                             <button
@@ -277,6 +442,12 @@ export function Memory({ memories }: MemoryProps) {
                       )}
                       {(m.recall_count ?? 0) > 0 && (
                         <span>Recalled {m.recall_count}x</span>
+                      )}
+                      {m.last_recalled_at && (
+                        <span>Last recalled {formatDate(m.last_recalled_at)}</span>
+                      )}
+                      {m.archived_at && (
+                        <span>Archived {formatDate(m.archived_at)}</span>
                       )}
                       <span className="text-[var(--border-card)]">{m.scope}</span>
                     </div>

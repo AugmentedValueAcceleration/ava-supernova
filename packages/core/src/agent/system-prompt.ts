@@ -591,9 +591,9 @@ No project index available yet. When starting a task, use \`project_index scan\`
   // Memory injection
   const autoMemory = opts.autoMemory !== false; // default true
   if (opts.memory) {
-    prompt += `\n\n## Your Memory (v2 — Structured & Categorized)
+    prompt += `\n\n## Your Memory (v2 — Smart Retrieval & Temporal Awareness)
 
-You have persistent, categorized memory that survives across conversations. Memories are structured with categories, timestamps, and recall tracking.`;
+You have persistent, categorized memory with **TF-IDF smart search**, **temporal relevance scoring**, and **branch-scoped** entries.`;
 
     if (autoMemory) {
       prompt += ` **You MUST actively use memory** — it is a core part of how you work.
@@ -606,7 +606,7 @@ You have persistent, categorized memory that survives across conversations. Memo
 - At the end of a productive session — summarize key outcomes and decisions
 - When the user tells you to remember something — always save it
 
-**Auto-extraction:** Before finishing a conversation where you learned something meaningful, save it to memory. Don't ask — just do it. The user shouldn't have to tell you to remember things.`;
+**Auto-extraction:** Before finishing a conversation where you learned something meaningful, save it to memory. Don't ask — just do it.`;
     } else {
       prompt += ` Auto-memory is **disabled**. Only save memories when the user explicitly asks you to remember something.`;
     }
@@ -624,11 +624,16 @@ You have persistent, categorized memory that survives across conversations. Memo
 - \`person\` — people, roles, contacts
 - \`general\` — anything that doesn't fit above
 
-**Scope:**
+**Scope & Branching:**
 - \`global\` — user preferences, communication style, general workflow (all projects)
 - \`project\` — tech stack, architecture, conventions, key files (this project only)
+- **Branch scoping** — add \`branch\` parameter to scope memories to a specific git branch. Useful for experimental work. Omit for all-branch memories.
 
-**Conflict detection:** If you save something similar to an existing memory, it will be automatically merged/updated instead of creating a duplicate. This keeps memory clean.
+**Smart retrieval:** \`memory_recall\` uses TF-IDF ranking — finds relevant results even without exact substring matches. Results are scored by content relevance (55%), recency (25%), and recall frequency (20%).
+
+**Conflict detection:** TF-IDF similarity detects duplicate/overlapping entries — saves are automatically merged instead of duplicated.
+
+**Temporal awareness:** Entries track recall count and last-recalled timestamps. Entries not recalled in 90+ days are flagged ⚠️ stale. Stale entries can be auto-archived.
 
 **Maintenance:** Use \`memory_update\` to correct outdated entries and \`memory_delete\` to remove stale ones. Entries marked ⚠️ stale below haven't been relevant in 90+ days — consider updating or removing them.
 
@@ -637,9 +642,9 @@ You have persistent, categorized memory that survives across conversations. Memo
 ### Current Memory
 ${opts.memory}`;
   } else if (autoMemory) {
-    prompt += `\n\n## Your Memory (v2 — Structured & Categorized)
+    prompt += `\n\n## Your Memory (v2 — Smart Retrieval & Temporal Awareness)
 
-You have persistent, categorized memory that survives across conversations. **You MUST actively use memory** — it is a core part of how you work.
+You have persistent, categorized memory with **TF-IDF smart search**, **temporal relevance scoring**, and **branch-scoped** entries. **You MUST actively use memory** — it is a core part of how you work.
 
 No memories saved yet — start building your knowledge immediately. Use \`memory_save\` with a category:
 - \`global\` scope + \`preference\` category for user preferences and workflow
@@ -647,11 +652,11 @@ No memories saved yet — start building your knowledge immediately. Use \`memor
 - \`project\` scope + \`convention\` category for coding conventions and style rules
 - \`project\` scope + \`bug-fix\` category for issues and their solutions
 
-Save proactively after every meaningful interaction. Don't wait to be asked. Categories: pattern, preference, architecture, bug-fix, convention, tool-config, decision, person, general.`;
+Save proactively after every meaningful interaction. Don't wait to be asked. Categories: pattern, preference, architecture, bug-fix, convention, tool-config, decision, person, general. Use \`branch\` parameter for experimental work.`;
   } else {
-    prompt += `\n\n## Your Memory (v2 — Structured & Categorized)
+    prompt += `\n\n## Your Memory (v2 — Smart Retrieval & Temporal Awareness)
 
-You have persistent, categorized memory that survives across conversations. Auto-memory is **disabled** — only save memories when the user explicitly asks you to remember something. Categories: pattern, preference, architecture, bug-fix, convention, tool-config, decision, person, general.`;
+You have persistent, categorized memory with TF-IDF smart search and temporal relevance scoring. Auto-memory is **disabled** — only save memories when the user explicitly asks you to remember something. Categories: pattern, preference, architecture, bug-fix, convention, tool-config, decision, person, general.`;
   }
 
   // Self-reference: so Ava can guide users about its own features

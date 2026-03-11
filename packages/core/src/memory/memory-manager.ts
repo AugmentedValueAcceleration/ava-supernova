@@ -1,6 +1,7 @@
 import { readFile, writeFile, rename, mkdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { TfIdfIndex } from './tfidf.js';
 import type { PlatformMemorySync, SemanticMatch } from './platform-sync.js';
 import type {
   MemoryEntry,
@@ -10,6 +11,7 @@ import type {
   MemoryRecallOptions,
   MemoryRecallResult,
   MemoryStoreSummary,
+  MemoryConsolidationGroup,
 } from './types.js';
 import { MEMORY_CATEGORIES, createEmptyStore } from './types.js';
 
@@ -19,6 +21,20 @@ const MEMORY_FILENAME_V2 = 'memory.json';
 /** Number of days without recall before a memory is considered stale. */
 const STALE_THRESHOLD_DAYS = 90;
 
+/** TF-IDF similarity threshold for conflict detection (higher = stricter). */
+const CONFLICT_TFIDF_THRESHOLD = 0.45;
+
+/** TF-IDF similarity threshold for consolidation grouping. */
+const CONSOLIDATION_THRESHOLD = 0.35;
+
+/** Minimum TF-IDF score to include in recall results. */
+const RECALL_TFIDF_THRESHOLD = 0.15;
+
+// ── Relevance scoring weights ────────────────────────────────────────────────
+const W_TFIDF = 0.55;     // TF-IDF match quality
+const W_RECENCY = 0.25;   // How recently updated/recalled
+const W_FREQUENCY = 0.20; // How often recalled
+
 export class MemoryManager {
   private readonly globalDir: string;
   private readonly projectDir: string | null;
@@ -27,6 +43,10 @@ export class MemoryManager {
   // In-memory caches — loaded lazily, written through on save
   private globalStore: MemoryStore | null = null;
   private projectStore: MemoryStore | null = null;
+
+  // TF-IDF indexes — one per scope, rebuilt on load
+  private globalIndex: TfIdfIndex = new TfIdfIndex();
+  private projectIndex: TfIdfIndex = new TfIdfIndex();
 
   constructor(opts: { globalDir: string; projectRoot?: string; sync?: PlatformMemorySync }) {
     this.globalDir = opts.globalDir;
@@ -40,6 +60,7 @@ export class MemoryManager {
   async loadGlobalStore(): Promise<MemoryStore> {
     if (this.globalStore) return this.globalStore;
     this.globalStore = await this.loadStore(this.globalDir, 'global');
+    this.rebuildIndex(this.globalStore, this.globalIndex);
     return this.globalStore;
   }
 
@@ -48,11 +69,12 @@ export class MemoryManager {
     if (!this.projectDir) return null;
     if (this.projectStore) return this.projectStore;
     this.projectStore = await this.loadStore(this.projectDir, 'project');
+    this.rebuildIndex(this.projectStore, this.projectIndex);
     return this.projectStore;
   }
 
   /** Load both stores and format for system prompt injection. */
-  async loadAll(context?: string): Promise<string> {
+  async loadAll(context?: string, branch?: string): Promise<string> {
     const [globalStore, projectStore, episodic] = await Promise.all([
       this.loadGlobalStore(),
       this.loadProjectStore(),
@@ -61,11 +83,15 @@ export class MemoryManager {
 
     const sections: string[] = [];
 
-    if (globalStore.entries.length > 0) {
-      sections.push(`### Global Memory\n${this.formatEntriesForPrompt(globalStore.entries)}`);
+    // Filter to active (non-archived) entries, respecting branch scope
+    const globalEntries = this.filterActive(globalStore.entries, branch);
+    const projectEntries = projectStore ? this.filterActive(projectStore.entries, branch) : [];
+
+    if (globalEntries.length > 0) {
+      sections.push(`### Global Memory\n${this.formatEntriesForPrompt(globalEntries)}`);
     }
-    if (projectStore && projectStore.entries.length > 0) {
-      sections.push(`### Project Memory\n${this.formatEntriesForPrompt(projectStore.entries)}`);
+    if (projectEntries.length > 0) {
+      sections.push(`### Project Memory\n${this.formatEntriesForPrompt(projectEntries)}`);
     }
     if (episodic.length > 0) {
       const items = episodic
@@ -99,6 +125,7 @@ export class MemoryManager {
     store.entries = this.markdownToEntries(content);
     store.lastModified = new Date().toISOString();
     this.globalStore = store;
+    this.rebuildIndex(store, this.globalIndex);
     await this.persistStore(this.globalDir, store);
     this.syncPush('global', 'memory.json', JSON.stringify(store));
   }
@@ -111,6 +138,7 @@ export class MemoryManager {
     store.entries = this.markdownToEntries(content);
     store.lastModified = new Date().toISOString();
     this.projectStore = store;
+    this.rebuildIndex(store, this.projectIndex);
     await this.persistStore(this.projectDir, store);
     this.syncPush('project', 'memory.json', JSON.stringify(store));
   }
@@ -119,7 +147,7 @@ export class MemoryManager {
   async appendGlobal(entry: string): Promise<void> {
     await this.saveEntry({
       scope: 'global',
-      content: entry.replace(/^####\s*\d{4}-\d{2}-\d{2}\n/, ''), // strip v1 date header
+      content: entry.replace(/^####\s*\d{4}-\d{2}-\d{2}\n/, ''),
       category: 'general',
     });
   }
@@ -135,7 +163,7 @@ export class MemoryManager {
 
   // ── Public API — v2 Structured Operations ──────────────────────────────────
 
-  /** Save a new memory entry with conflict detection. Returns the saved entry. */
+  /** Save a new memory entry with TF-IDF conflict detection. Returns the saved entry. */
   async saveEntry(opts: MemorySaveOptions): Promise<MemoryEntry> {
     const store = opts.scope === 'global'
       ? await this.loadGlobalStore()
@@ -145,8 +173,10 @@ export class MemoryManager {
       await mkdir(this.projectDir, { recursive: true });
     }
 
-    // Conflict detection — find existing entry with high similarity
-    const conflict = this.findConflict(store, opts.content, opts.category);
+    const index = opts.scope === 'global' ? this.globalIndex : this.projectIndex;
+
+    // Conflict detection — TF-IDF similarity + first-line fallback
+    const conflict = this.findConflict(store, index, opts.content, opts.category);
 
     let entry: MemoryEntry;
 
@@ -156,7 +186,14 @@ export class MemoryManager {
       conflict.updatedAt = new Date().toISOString();
       conflict.category = opts.category ?? conflict.category;
       if (opts.tags) conflict.tags = opts.tags;
+      if (opts.branch !== undefined) conflict.branch = opts.branch;
+      if (opts.directoryScope !== undefined) conflict.directoryScope = opts.directoryScope;
+      // Unarchive if it was archived
+      conflict.archived = false;
+      conflict.archivedAt = null;
       entry = conflict;
+      // Update index
+      index.addDocument(entry.id, entry.content);
     } else {
       // Create new entry
       entry = {
@@ -169,8 +206,13 @@ export class MemoryManager {
         recallCount: 0,
         sourceConversationId: opts.sourceConversationId,
         tags: opts.tags,
+        archived: false,
+        branch: opts.branch ?? null,
+        directoryScope: opts.directoryScope ?? null,
       };
       store.entries.push(entry);
+      // Add to index
+      index.addDocument(entry.id, entry.content);
     }
 
     store.lastModified = new Date().toISOString();
@@ -189,7 +231,7 @@ export class MemoryManager {
   }
 
   /** Update an existing memory entry by ID. */
-  async updateEntry(scope: 'global' | 'project', id: string, updates: Partial<Pick<MemoryEntry, 'content' | 'category' | 'tags'>>): Promise<MemoryEntry | null> {
+  async updateEntry(scope: 'global' | 'project', id: string, updates: Partial<Pick<MemoryEntry, 'content' | 'category' | 'tags' | 'branch' | 'directoryScope'>>): Promise<MemoryEntry | null> {
     const store = scope === 'global'
       ? await this.loadGlobalStore()
       : await this.loadProjectStore();
@@ -201,8 +243,16 @@ export class MemoryManager {
     if (updates.content !== undefined) entry.content = updates.content;
     if (updates.category !== undefined) entry.category = updates.category;
     if (updates.tags !== undefined) entry.tags = updates.tags;
+    if (updates.branch !== undefined) entry.branch = updates.branch;
+    if (updates.directoryScope !== undefined) entry.directoryScope = updates.directoryScope;
     entry.updatedAt = new Date().toISOString();
     store.lastModified = new Date().toISOString();
+
+    // Update TF-IDF index if content changed
+    if (updates.content !== undefined) {
+      const index = scope === 'global' ? this.globalIndex : this.projectIndex;
+      index.addDocument(id, entry.content);
+    }
 
     if (scope === 'global') {
       this.globalStore = store;
@@ -228,6 +278,10 @@ export class MemoryManager {
     store.entries.splice(idx, 1);
     store.lastModified = new Date().toISOString();
 
+    // Remove from TF-IDF index
+    const index = scope === 'global' ? this.globalIndex : this.projectIndex;
+    index.removeDocument(id);
+
     if (scope === 'global') {
       this.globalStore = store;
       await this.persistStore(this.globalDir, store);
@@ -239,46 +293,71 @@ export class MemoryManager {
     return true;
   }
 
-  /** Search memories with optional category filter. Updates recallCount. */
+  /**
+   * Search memories with TF-IDF ranking + temporal relevance scoring.
+   * Falls back to substring for exact matches, then semantic via platform.
+   */
   async recall(opts: MemoryRecallOptions): Promise<MemoryRecallResult[]> {
     const results: MemoryRecallResult[] = [];
     const lowerQuery = opts.query.toLowerCase();
     const limit = opts.limit ?? 10;
+    const includeArchived = opts.includeArchived ?? false;
 
-    const searchStore = async (store: MemoryStore, scope: 'global' | 'project') => {
+    const searchStore = (store: MemoryStore, scope: 'global' | 'project', index: TfIdfIndex) => {
+      // Phase 1: Exact substring matches (highest priority)
+      const substringMatches = new Set<string>();
       for (const entry of store.entries) {
-        // Category filter
+        if (!includeArchived && entry.archived) continue;
         if (opts.category && entry.category !== opts.category) continue;
+        if (opts.branch && entry.branch && entry.branch !== opts.branch) continue;
 
-        // Substring match
         if (entry.content.toLowerCase().includes(lowerQuery) ||
             entry.tags?.some(t => t.toLowerCase().includes(lowerQuery))) {
-          results.push({ entry, scope, relevance: 1.0, matchType: 'substring' });
+          const relevance = this.computeRelevance(1.0, entry);
+          results.push({ entry, scope, relevance, matchType: 'substring' });
+          substringMatches.add(entry.id);
 
           // Update recall stats
           entry.lastRecalledAt = new Date().toISOString();
           entry.recallCount++;
         }
       }
+
+      // Phase 2: TF-IDF search for semantic-ish matches
+      const tfidfResults = index.search(opts.query, limit * 2);
+      for (const { id, score } of tfidfResults) {
+        if (substringMatches.has(id)) continue; // already found via substring
+        if (score < RECALL_TFIDF_THRESHOLD) continue;
+
+        const entry = store.entries.find(e => e.id === id);
+        if (!entry) continue;
+        if (!includeArchived && entry.archived) continue;
+        if (opts.category && entry.category !== opts.category) continue;
+        if (opts.branch && entry.branch && entry.branch !== opts.branch) continue;
+
+        const relevance = this.computeRelevance(score, entry);
+        results.push({ entry, scope, relevance, matchType: 'tfidf' });
+
+        // Update recall stats
+        entry.lastRecalledAt = new Date().toISOString();
+        entry.recallCount++;
+      }
     };
 
     if (opts.scope !== 'project') {
       const globalStore = await this.loadGlobalStore();
-      await searchStore(globalStore, 'global');
+      searchStore(globalStore, 'global', this.globalIndex);
     }
 
     if (opts.scope !== 'global') {
       const projectStore = await this.loadProjectStore();
-      if (projectStore) await searchStore(projectStore, 'project');
+      if (projectStore) searchStore(projectStore, 'project', this.projectIndex);
     }
 
-    // Sort by relevance then recency
-    results.sort((a, b) => {
-      if (a.relevance !== b.relevance) return b.relevance - a.relevance;
-      return new Date(b.entry.updatedAt).getTime() - new Date(a.entry.updatedAt).getTime();
-    });
+    // Sort by composite relevance score
+    results.sort((a, b) => b.relevance - a.relevance);
 
-    // If no substring matches, try semantic search via platform
+    // If no local matches, try semantic search via platform
     if (results.length === 0 && this.sync) {
       const semantic = await this.loadRelevantMemories(opts.query, limit);
       for (const m of semantic) {
@@ -300,7 +379,7 @@ export class MemoryManager {
     }
 
     // Persist updated recall stats
-    if (results.some(r => r.matchType === 'substring')) {
+    if (results.some(r => r.matchType === 'substring' || r.matchType === 'tfidf')) {
       await Promise.all([
         this.globalStore ? this.persistStore(this.globalDir, this.globalStore) : Promise.resolve(),
         this.projectStore && this.projectDir ? this.persistStore(this.projectDir, this.projectStore) : Promise.resolve(),
@@ -308,6 +387,153 @@ export class MemoryManager {
     }
 
     return results.slice(0, limit);
+  }
+
+  // ── Public API — Phase 3: Temporal & Scope ──────────────────────────────────
+
+  /**
+   * Archive stale entries (not recalled in 90+ days).
+   * Returns the number of entries archived.
+   */
+  async archiveStaleEntries(scope: 'global' | 'project'): Promise<number> {
+    const store = scope === 'global'
+      ? await this.loadGlobalStore()
+      : await this.loadProjectStore();
+    if (!store) return 0;
+
+    let count = 0;
+    const now = new Date().toISOString();
+
+    for (const entry of store.entries) {
+      if (entry.archived) continue;
+      if (this.isStale(entry)) {
+        entry.archived = true;
+        entry.archivedAt = now;
+        count++;
+      }
+    }
+
+    if (count > 0) {
+      store.lastModified = now;
+      if (scope === 'global') {
+        await this.persistStore(this.globalDir, store);
+      } else if (this.projectDir) {
+        await this.persistStore(this.projectDir, store);
+      }
+    }
+
+    return count;
+  }
+
+  /**
+   * Restore an archived entry back to active status.
+   */
+  async restoreEntry(scope: 'global' | 'project', id: string): Promise<boolean> {
+    const store = scope === 'global'
+      ? await this.loadGlobalStore()
+      : await this.loadProjectStore();
+    if (!store) return false;
+
+    const entry = store.entries.find(e => e.id === id);
+    if (!entry || !entry.archived) return false;
+
+    entry.archived = false;
+    entry.archivedAt = null;
+    entry.updatedAt = new Date().toISOString();
+    store.lastModified = new Date().toISOString();
+
+    if (scope === 'global') {
+      await this.persistStore(this.globalDir, store);
+    } else if (this.projectDir) {
+      await this.persistStore(this.projectDir, store);
+    }
+
+    return true;
+  }
+
+  /**
+   * Find groups of related entries that could be consolidated.
+   * Uses TF-IDF similarity to cluster entries within the same category.
+   * Returns groups sorted by number of related entries (largest first).
+   */
+  findConsolidationGroups(scope: 'global' | 'project'): MemoryConsolidationGroup[] {
+    const store = scope === 'global' ? this.globalStore : this.projectStore;
+    if (!store || store.entries.length < 2) return [];
+
+    const index = scope === 'global' ? this.globalIndex : this.projectIndex;
+    const activeEntries = store.entries.filter(e => !e.archived);
+
+    // Group by category first — only consolidate within same category
+    const byCategory = new Map<MemoryCategory, MemoryEntry[]>();
+    for (const entry of activeEntries) {
+      const list = byCategory.get(entry.category) ?? [];
+      list.push(entry);
+      byCategory.set(entry.category, list);
+    }
+
+    const groups: MemoryConsolidationGroup[] = [];
+    const claimed = new Set<string>(); // entries already in a group
+
+    for (const [, categoryEntries] of byCategory) {
+      if (categoryEntries.length < 2) continue;
+
+      for (const entry of categoryEntries) {
+        if (claimed.has(entry.id)) continue;
+
+        // Find similar entries using TF-IDF
+        const similar = index.findSimilar(entry.id, CONSOLIDATION_THRESHOLD)
+          .filter(s => {
+            if (claimed.has(s.id)) return false;
+            const other = categoryEntries.find(e => e.id === s.id);
+            return other && !other.archived;
+          });
+
+        if (similar.length === 0) continue;
+
+        const related = similar.map(s => categoryEntries.find(e => e.id === s.id)!);
+        const avgSimilarity = similar.reduce((sum, s) => sum + s.score, 0) / similar.length;
+
+        // Primary = entry with highest recall count
+        const allInGroup = [entry, ...related];
+        allInGroup.sort((a, b) => b.recallCount - a.recallCount);
+
+        groups.push({
+          primary: allInGroup[0],
+          related: allInGroup.slice(1),
+          avgSimilarity,
+        });
+
+        for (const e of allInGroup) claimed.add(e.id);
+      }
+    }
+
+    // Sort by group size (most consolidation potential first)
+    groups.sort((a, b) => b.related.length - a.related.length);
+    return groups;
+  }
+
+  /**
+   * Get stale entries for a scope (for dashboard review).
+   */
+  async getStaleEntries(scope: 'global' | 'project'): Promise<MemoryEntry[]> {
+    const store = scope === 'global'
+      ? await this.loadGlobalStore()
+      : await this.loadProjectStore();
+    if (!store) return [];
+
+    return store.entries.filter(e => !e.archived && this.isStale(e));
+  }
+
+  /**
+   * Get archived entries for a scope.
+   */
+  async getArchivedEntries(scope: 'global' | 'project'): Promise<MemoryEntry[]> {
+    const store = scope === 'global'
+      ? await this.loadGlobalStore()
+      : await this.loadProjectStore();
+    if (!store) return [];
+
+    return store.entries.filter(e => e.archived);
   }
 
   /** Get summary statistics for a store. */
@@ -321,14 +547,23 @@ export class MemoryManager {
 
     const now = Date.now();
     let staleCount = 0;
+    let archivedCount = 0;
+    let branchScoped = 0;
     let oldest: string | null = null;
     let newest: string | null = null;
 
     for (const entry of store.entries) {
+      if (entry.archived) {
+        archivedCount++;
+        continue; // don't count archived in category/stale stats
+      }
+
       byCategory[entry.category] = (byCategory[entry.category] ?? 0) + 1;
 
       if (!oldest || entry.createdAt < oldest) oldest = entry.createdAt;
       if (!newest || entry.createdAt > newest) newest = entry.createdAt;
+
+      if (entry.branch) branchScoped++;
 
       const lastActivity = entry.lastRecalledAt ?? entry.updatedAt ?? entry.createdAt;
       const daysSince = (now - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24);
@@ -336,11 +571,13 @@ export class MemoryManager {
     }
 
     return {
-      totalEntries: store.entries.length,
+      totalEntries: store.entries.filter(e => !e.archived).length,
       byCategory,
       oldestEntry: oldest,
       newestEntry: newest,
       staleCount,
+      archivedCount,
+      branchScoped,
     };
   }
 
@@ -358,10 +595,12 @@ export class MemoryManager {
     return this.projectDir ? join(this.projectDir, MEMORY_FILENAME_V2) : null;
   }
 
-  /** Invalidate cached stores (e.g. after external edit). */
+  /** Invalidate cached stores and TF-IDF indexes. */
   clearCache(): void {
     this.globalStore = null;
     this.projectStore = null;
+    this.globalIndex.clear();
+    this.projectIndex.clear();
   }
 
   // ── Semantic search (platform) ─────────────────────────────────────────────
@@ -395,7 +634,6 @@ export class MemoryManager {
       const v1Content = await readFile(v1Path, 'utf-8');
       if (v1Content?.trim()) {
         const store = this.migrateFromV1(v1Content);
-        // Persist the migrated store
         await mkdir(dir, { recursive: true });
         await this.persistStore(dir, store);
         return store;
@@ -425,10 +663,43 @@ export class MemoryManager {
     const content = JSON.stringify(store, null, 2);
     await this.writeSafe(path, content);
 
-    // Also write a human-readable markdown mirror
+    // Also write a human-readable markdown mirror (active entries only)
     const mdPath = join(dir, MEMORY_FILENAME_V1);
-    const markdown = this.formatEntriesAsMarkdown(store.entries);
+    const activeEntries = store.entries.filter(e => !e.archived);
+    const markdown = this.formatEntriesAsMarkdown(activeEntries);
     await this.writeSafe(mdPath, markdown);
+  }
+
+  // ── Private — TF-IDF Index ─────────────────────────────────────────────────
+
+  /** Rebuild TF-IDF index from a store's entries. */
+  private rebuildIndex(store: MemoryStore, index: TfIdfIndex): void {
+    index.clear();
+    for (const entry of store.entries) {
+      if (!entry.archived) {
+        index.addDocument(entry.id, entry.content);
+      }
+    }
+  }
+
+  // ── Private — Relevance Scoring ────────────────────────────────────────────
+
+  /**
+   * Compute composite relevance score combining TF-IDF match quality,
+   * recency, and recall frequency. Returns 0–1.
+   */
+  private computeRelevance(tfidfScore: number, entry: MemoryEntry): number {
+    // Recency score: exponential decay, half-life of 30 days
+    const lastActivity = entry.lastRecalledAt ?? entry.updatedAt ?? entry.createdAt;
+    const daysSince = (Date.now() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24);
+    const recencyScore = Math.exp(-daysSince / 30);
+
+    // Frequency score: logarithmic — diminishing returns after many recalls
+    const frequencyScore = entry.recallCount > 0
+      ? Math.min(1, Math.log(1 + entry.recallCount) / Math.log(20))
+      : 0;
+
+    return (tfidfScore * W_TFIDF) + (recencyScore * W_RECENCY) + (frequencyScore * W_FREQUENCY);
   }
 
   // ── Private — Migration ────────────────────────────────────────────────────
@@ -452,7 +723,6 @@ export class MemoryManager {
       const trimmed = section.trim();
       if (!trimmed) continue;
 
-      // Try to extract date from #### header
       const dateMatch = trimmed.match(/^####\s*(\d{4}-\d{2}-\d{2})\s*\n([\s\S]*)$/);
       const createdAt = dateMatch ? new Date(dateMatch[1]).toISOString() : new Date().toISOString();
       const content = dateMatch ? dateMatch[2].trim() : trimmed;
@@ -467,6 +737,7 @@ export class MemoryManager {
         updatedAt: createdAt,
         lastRecalledAt: null,
         recallCount: 0,
+        archived: false,
       });
     }
 
@@ -480,6 +751,7 @@ export class MemoryManager {
         updatedAt: new Date().toISOString(),
         lastRecalledAt: null,
         recallCount: 0,
+        archived: false,
       });
     }
 
@@ -499,42 +771,44 @@ export class MemoryManager {
     return 'general';
   }
 
-  // ── Private — Conflict Detection ───────────────────────────────────────────
+  // ── Private — Conflict Detection (TF-IDF enhanced) ─────────────────────────
 
-  /** Find an existing entry that conflicts with new content. */
-  private findConflict(store: MemoryStore, newContent: string, category?: MemoryCategory): MemoryEntry | null {
-    const newLower = newContent.toLowerCase();
-    const newWords = new Set(newLower.split(/\s+/).filter(w => w.length > 3));
-
+  /** Find an existing entry that conflicts with new content using TF-IDF similarity. */
+  private findConflict(store: MemoryStore, index: TfIdfIndex, newContent: string, category?: MemoryCategory): MemoryEntry | null {
+    // Only check active entries in the same category
     for (const entry of store.entries) {
-      // Must be same category (or new has no category)
+      if (entry.archived) continue;
       if (category && entry.category !== category) continue;
 
-      const existingLower = entry.content.toLowerCase();
-      const existingWords = new Set(existingLower.split(/\s+/).filter(w => w.length > 3));
+      // TF-IDF similarity check
+      const similarity = index.similarityToText(entry.id, newContent);
+      if (similarity > CONFLICT_TFIDF_THRESHOLD) return entry;
 
-      // Calculate Jaccard similarity of significant words
-      const intersection = [...newWords].filter(w => existingWords.has(w)).length;
-      const union = new Set([...newWords, ...existingWords]).size;
-      const similarity = union > 0 ? intersection / union : 0;
-
-      // High overlap = likely the same topic, update instead of duplicate
-      if (similarity > 0.6) return entry;
-
-      // Also check if the first line (likely the "title") matches
-      const newFirstLine = newLower.split('\n')[0].trim();
-      const existingFirstLine = existingLower.split('\n')[0].trim();
+      // First-line exact match fallback (catches renamed/reformatted entries)
+      const newFirstLine = newContent.toLowerCase().split('\n')[0].trim();
+      const existingFirstLine = entry.content.toLowerCase().split('\n')[0].trim();
       if (newFirstLine.length > 10 && newFirstLine === existingFirstLine) return entry;
     }
 
     return null;
   }
 
+  // ── Private — Filtering ────────────────────────────────────────────────────
+
+  /** Filter entries to active (non-archived), optionally respecting branch scope. */
+  private filterActive(entries: MemoryEntry[], branch?: string): MemoryEntry[] {
+    return entries.filter(e => {
+      if (e.archived) return false;
+      // If entry is branch-scoped, only include if branch matches
+      if (e.branch && branch && e.branch !== branch) return false;
+      return true;
+    });
+  }
+
   // ── Private — Formatting ───────────────────────────────────────────────────
 
   /** Format entries for system prompt (compact, category-grouped). */
   private formatEntriesForPrompt(entries: MemoryEntry[]): string {
-    // Group by category
     const grouped = new Map<MemoryCategory, MemoryEntry[]>();
     for (const entry of entries) {
       const list = grouped.get(entry.category) ?? [];
@@ -547,7 +821,8 @@ export class MemoryManager {
       const label = category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ');
       const items = categoryEntries.map(e => {
         const stale = this.isStale(e) ? ' ⚠️ stale' : '';
-        return `- ${e.content}${stale}`;
+        const branchTag = e.branch ? ` [${e.branch}]` : '';
+        return `- ${e.content}${branchTag}${stale}`;
       }).join('\n');
       parts.push(`**${label}:**\n${items}`);
     }
@@ -559,7 +834,8 @@ export class MemoryManager {
   private formatEntriesAsMarkdown(entries: MemoryEntry[]): string {
     return entries.map(e => {
       const date = e.createdAt.split('T')[0];
-      return `#### ${date}\n${e.content}`;
+      const branchTag = e.branch ? ` [branch: ${e.branch}]` : '';
+      return `#### ${date}${branchTag}\n${e.content}`;
     }).join('\n\n');
   }
 

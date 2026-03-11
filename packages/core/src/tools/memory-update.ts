@@ -42,6 +42,10 @@ export class MemoryUpdateTool implements Tool {
           items: { type: 'string' },
           description: 'New tags for this entry (optional, replaces existing tags).',
         },
+        branch: {
+          type: 'string',
+          description: 'Scope this memory to a specific git branch, or null to remove branch scoping.',
+        },
       },
       required: ['scope', 'id'],
     },
@@ -53,6 +57,7 @@ export class MemoryUpdateTool implements Tool {
     const content = args.content as string | undefined;
     const category = args.category as MemoryCategory | undefined;
     const tags = args.tags as string[] | undefined;
+    const branch = args.branch as string | undefined;
 
     if (!scope || !id) {
       return { success: false, output: 'Both scope and id are required.' };
@@ -62,8 +67,8 @@ export class MemoryUpdateTool implements Tool {
       return { success: false, output: `Invalid category. Must be one of: ${MEMORY_CATEGORIES.join(', ')}` };
     }
 
-    if (!content && !category && !tags) {
-      return { success: false, output: 'At least one of content, category, or tags must be provided.' };
+    if (!content && !category && !tags && branch === undefined) {
+      return { success: false, output: 'At least one of content, category, tags, or branch must be provided.' };
     }
 
     const memoryManager = context.sharedState?.memoryManager as MemoryManager | undefined;
@@ -76,6 +81,7 @@ export class MemoryUpdateTool implements Tool {
         ...(content !== undefined ? { content } : {}),
         ...(category !== undefined ? { category } : {}),
         ...(tags !== undefined ? { tags } : {}),
+        ...(branch !== undefined ? { branch } : {}),
       });
 
       if (!updated) {

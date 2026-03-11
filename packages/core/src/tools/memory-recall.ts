@@ -6,25 +6,26 @@ import { MEMORY_CATEGORIES } from '../memory/types.js';
 
 export class MemoryRecallTool implements Tool {
   readonly name = 'memory_recall';
-  readonly description = 'Search persistent memory for specific information';
+  readonly description = 'Search persistent memory using smart TF-IDF ranking';
   readonly riskLevel: ToolRiskLevel = 'safe';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'memory_recall',
     description:
-      'Search your saved memories by keyword, with optional category filtering. ' +
+      'Search your saved memories using smart TF-IDF ranking. Results are scored by ' +
+      'a combination of content relevance, recency, and recall frequency. ' +
       'Use this when you need to find specific stored knowledge — user preferences, ' +
       'past decisions, project patterns, bug fixes. ' +
-      'Results show category, relevance, and when the memory was last updated. ' +
-      'Memory is also shown in your system prompt, but this tool lets you search ' +
-      'for specific entries when memory grows large.',
+      'Results show category, relevance score, match type (substring/tfidf/semantic), ' +
+      'and temporal metadata. Memory is also shown in your system prompt, but this ' +
+      'tool lets you search for specific entries when memory grows large.',
     parameters: {
       type: 'object',
       properties: {
         query: {
           type: 'string',
-          description: 'Text to search for in memories (case-insensitive). Searches content and tags.',
+          description: 'Text to search for in memories. TF-IDF ranking finds relevant results even without exact substring matches.',
         },
         scope: {
           type: 'string',
@@ -40,6 +41,10 @@ export class MemoryRecallTool implements Tool {
           type: 'number',
           description: 'Maximum number of results to return (default: 10).',
         },
+        include_archived: {
+          type: 'boolean',
+          description: 'Include archived (stale) entries in results. Default: false.',
+        },
       },
       required: ['query'],
     },
@@ -50,6 +55,7 @@ export class MemoryRecallTool implements Tool {
     const scope = (args.scope as 'global' | 'project' | 'all') ?? 'all';
     const category = args.category as MemoryCategory | undefined;
     const limit = (args.limit as number) ?? 10;
+    const includeArchived = (args.include_archived as boolean) ?? false;
 
     if (!query) {
       return { success: false, output: 'Query is required.' };
@@ -65,7 +71,7 @@ export class MemoryRecallTool implements Tool {
     }
 
     try {
-      const results = await memoryManager.recall({ query, scope, category, limit });
+      const results = await memoryManager.recall({ query, scope, category, limit, includeArchived });
 
       if (results.length === 0) {
         return {
@@ -79,9 +85,12 @@ export class MemoryRecallTool implements Tool {
         const date = e.updatedAt ? e.updatedAt.split('T')[0] : 'unknown';
         const recalls = e.recallCount > 0 ? `, recalled ${e.recallCount}x` : '';
         const tags = e.tags?.length ? ` [${e.tags.join(', ')}]` : '';
-        const matchInfo = r.matchType === 'semantic' ? ` (${Math.round(r.relevance * 100)}% match)` : '';
+        const score = `${Math.round(r.relevance * 100)}%`;
+        const archived = e.archived ? ' 📦 archived' : '';
+        const branch = e.branch ? ` [${e.branch}]` : '';
+        const matchLabel = r.matchType === 'tfidf' ? 'TF-IDF' : r.matchType;
 
-        return `**${i + 1}. [${e.category}]** (${r.scope}, ${date}${recalls})${matchInfo}${tags}\n${e.content}`;
+        return `**${i + 1}. [${e.category}]** (${r.scope}, ${date}${recalls}) — ${score} relevance (${matchLabel})${tags}${branch}${archived}\n${e.content}`;
       }).join('\n\n---\n\n');
 
       return {

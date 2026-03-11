@@ -55,8 +55,10 @@ export type {
   MemoryRecallOptions,
   MemoryRecallResult,
   MemoryStoreSummary,
+  MemoryConsolidationGroup,
 } from './memory/types.js';
 export { MEMORY_CATEGORIES, createEmptyStore } from './memory/types.js';
+export { TfIdfIndex, tokenize, cosineSimilarity } from './memory/tfidf.js';
 
 // Checkpoint
 export { CheckpointManager } from './checkpoint/checkpoint-manager.js';

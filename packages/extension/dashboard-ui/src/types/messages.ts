@@ -31,6 +31,10 @@ export interface MemoryEntry {
   last_recalled_at?: string | null;
   recall_count?: number;
   tags?: string[];
+  archived?: boolean;
+  archived_at?: string | null;
+  branch?: string | null;
+  directory_scope?: string | null;
 }
 
 export interface ConnectionStatus {

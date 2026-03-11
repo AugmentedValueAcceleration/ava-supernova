@@ -37,6 +37,16 @@ export interface MemoryEntry {
   sourceConversationId?: string;
   /** Optional tags for additional filtering. */
   tags?: string[];
+
+  // ── Phase 3 fields ────────────────────────────────────────────────────
+  /** Whether this entry has been archived (stale, auto-archived). */
+  archived?: boolean;
+  /** When this entry was archived (ISO 8601 or null). */
+  archivedAt?: string | null;
+  /** Git branch this memory is scoped to (null = all branches). */
+  branch?: string | null;
+  /** Directory scope within the project (null = whole project). */
+  directoryScope?: string | null;
 }
 
 /** The full structured memory store persisted as JSON. */
@@ -56,6 +66,10 @@ export interface MemorySaveOptions {
   category?: MemoryCategory;
   tags?: string[];
   sourceConversationId?: string;
+  /** Scope this memory to a specific git branch. */
+  branch?: string | null;
+  /** Scope this memory to a specific directory within the project. */
+  directoryScope?: string | null;
 }
 
 /** Options for searching/recalling memories. */
@@ -64,16 +78,32 @@ export interface MemoryRecallOptions {
   scope?: 'global' | 'project' | 'all';
   category?: MemoryCategory;
   limit?: number;
+  /** Only return memories scoped to this branch (or unscoped). */
+  branch?: string | null;
+  /** Include archived entries in results. Default: false. */
+  includeArchived?: boolean;
 }
 
 /** A recall result with relevance info. */
 export interface MemoryRecallResult {
   entry: MemoryEntry;
   scope: 'global' | 'project';
-  /** How relevant this result is (0–1). For substring matches, 1.0. */
+  /** How relevant this result is (0–1). Combines TF-IDF, recency, and frequency. */
   relevance: number;
   /** How the match was found. */
-  matchType: 'exact' | 'substring' | 'semantic';
+  matchType: 'exact' | 'substring' | 'tfidf' | 'semantic';
+}
+
+/** A group of related memory entries (for consolidation). */
+export interface MemoryConsolidationGroup {
+  /** Representative entry (highest recall count). */
+  primary: MemoryEntry;
+  /** Related entries that could be merged. */
+  related: MemoryEntry[];
+  /** Average pairwise similarity within the group. */
+  avgSimilarity: number;
+  /** Suggested consolidated content (null until model generates it). */
+  suggestedContent?: string | null;
 }
 
 /** Summary of a memory store for display. */
@@ -83,6 +113,8 @@ export interface MemoryStoreSummary {
   oldestEntry: string | null;
   newestEntry: string | null;
   staleCount: number; // entries not recalled in 90+ days
+  archivedCount: number; // entries that have been auto-archived
+  branchScoped: number; // entries scoped to a specific branch
 }
 
 /** All valid categories as an array (for validation). */
