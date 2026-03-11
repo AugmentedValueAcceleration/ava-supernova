@@ -544,11 +544,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     // Detect if workspace is the Ava monorepo — let Ava read her own source
     let sourceRoot: string | undefined;
-    if (isAdmin) {
-      const join = require('node:path').join;
-      if (existsSync(join(cwd, 'packages/core/src/agent/agent.ts'))) {
-        sourceRoot = cwd;
-      }
+    const join = require('node:path').join;
+    if (existsSync(join(cwd, 'packages/core/src/agent/agent.ts'))) {
+      sourceRoot = cwd;
     }
 
     return buildSystemPrompt({
