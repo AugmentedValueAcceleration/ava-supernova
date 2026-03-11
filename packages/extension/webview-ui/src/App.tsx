@@ -599,6 +599,7 @@ export function App() {
         onOpenMemory={handleOpenMemory}
         onOpenDocs={handleOpenDocs}
         onNewChat={handleNewChat}
+        accountConnected={state.platformStatus?.connected === true}
       />
 
       <ChatContainer
