@@ -89,6 +89,17 @@ export class DashboardPanel {
       this.disposables,
     );
 
+    // Re-fetch account data when the panel becomes visible again
+    this.panel.onDidChangeViewState(
+      () => {
+        if (this.panel.visible) {
+          this.refreshAccount();
+        }
+      },
+      null,
+      this.disposables,
+    );
+
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
   }
 
@@ -232,6 +243,15 @@ export class DashboardPanel {
       return res.data as AccountInfo;
     } catch {
       return null;
+    }
+  }
+
+  private async refreshAccount(): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+    const account = await this.fetchAccount(platformKey);
+    if (account) {
+      this.post({ type: 'account_updated', account });
     }
   }
 

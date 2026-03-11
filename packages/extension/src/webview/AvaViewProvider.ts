@@ -494,7 +494,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       model,
       toolRegistry: this.toolRegistry,
       cwd,
-      sharedState: { memoryManager: this.memoryManager },
+      sharedState: {
+        memoryManager: this.memoryManager,
+        platformKey: await this.context.secrets.get('ava-supernova.platformKey'),
+      },
     });
   }
 
@@ -565,6 +568,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       autoMemory: cfg.get<boolean>('preferences.autoMemory') ?? true,
       language: this.currentLocale,
       userName: this.cachedAccount?.name || this.cachedAccount?.email?.split('@')[0],
+      userEmail: this.cachedAccount?.email,
       isAdmin,
       sourceRoot,
     });

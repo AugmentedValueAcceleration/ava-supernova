@@ -98,7 +98,7 @@ async function main(): Promise<void> {
     }),
   );
 
-  const sharedState = { memoryManager };
+  const sharedState = { memoryManager, platformKey: appConfig.platformKey };
 
   const agent = new Agent({
     provider: resolved.provider,
