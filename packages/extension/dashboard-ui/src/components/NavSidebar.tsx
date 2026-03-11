@@ -13,7 +13,7 @@ interface NavSidebarProps {
 const NAV_ITEMS: Array<{ page: Page; label: string; icon: React.FC<{ className?: string }>; platformOnly?: boolean; comingSoon?: boolean }> = [
   { page: 'overview', label: 'Overview', icon: BoltIcon, platformOnly: true },
   { page: 'usage', label: 'Usage', icon: ChartBarIcon, platformOnly: true },
-  { page: 'memory', label: 'Memory', icon: SparklesIcon, platformOnly: true, comingSoon: true },
+  { page: 'memory', label: 'Memory', icon: SparklesIcon, platformOnly: true },
   { page: 'connections', label: 'Connections', icon: LinkIcon, platformOnly: true, comingSoon: true },
   { page: 'billing', label: 'Billing', icon: CreditCardIcon, platformOnly: true },
   { page: 'settings', label: 'Settings', icon: CogIcon },
