@@ -8,7 +8,8 @@ Open-source AI coding agent powered by the best open-source and frontier models.
 
 - **2 free models** — GLM-4.7 Flash and GLM-4.5 Flash work instantly with zero setup
 - **15 models, 7 providers** — DeepSeek, Kimi, Zhipu AI, Qwen, Mistral, Anthropic, plus any local/custom endpoint
-- **24 built-in tools** — File ops, search, git, shell, web, browser, database, screenshots, planning, memory
+- **26 built-in tools** — File ops, search, git, shell, web, browser, database, screenshots, planning, memory
+- **Smart memory** — TF-IDF retrieval, temporal awareness, branch scoping, auto-archival — Ava gets smarter every session
 - **Privacy first** — API keys encrypted in OS keychain, credentials blocked from memory, prompt injection resistance
 - **20 languages** — Full UI and response localization
 
@@ -17,7 +18,7 @@ Open-source AI coding agent powered by the best open-source and frontier models.
 - **Agentic coding** — Ava reads, writes, edits, searches, and executes code autonomously with tool-calling
 - **Four modes** — Code (`>>` full agent), Plan (`::` read-only), Chat (`..` no tools), Security (`!!` OWASP audit)
 - **Model selector** — Switch models from the header dropdown with provider labels, benchmarks, and availability indicators
-- **Persistent memory** — Ava remembers across sessions with automatic save/recall. Credentials are blocked at runtime.
+- **Smart memory v2** — Structured, categorized memories with TF-IDF retrieval, composite relevance scoring, branch scoping, and auto-archival of stale entries. Credentials are blocked at runtime.
 - **Vision** — Attach images in chat for models that support it (Claude, GLM-5, Kimi K2.5, Qwen 3.5 Plus, Mistral Large)
 - **Codebase understanding** — Project indexer and symbol finder for intelligent code navigation
 - **Context compression** — Automatic context management keeps long conversations within model limits
@@ -51,7 +52,20 @@ Open-source AI coding agent powered by the best open-source and frontier models.
 | **Anthropic** | Claude Opus 4.6, Sonnet 4.6, Haiku 4.5 | Frontier models, vision, 200K context |
 | **Generic** | Custom / Local | Ollama, LM Studio, or any standard API format endpoint |
 
-## Tools (24)
+## Memory System (v2)
+
+Ava's memory system is a key differentiator — it makes every model smarter over time.
+
+- **9 categories** — pattern, preference, architecture, bug-fix, convention, tool-config, decision, person, general
+- **TF-IDF retrieval** — Smart search finds relevant memories without exact substring matches
+- **Composite scoring** — Results ranked by content relevance (55%), recency (25%), and recall frequency (20%)
+- **Conflict detection** — Duplicate/overlapping entries automatically merged using TF-IDF similarity
+- **Branch scoping** — Scope memories to specific git branches for experimental work
+- **Auto-archival** — Entries inactive for 90+ days flagged as stale, can be auto-archived
+- **Consolidation** — Related entries grouped by TF-IDF similarity for review and merging
+- **Dashboard** — Active/Stale/Archived tabs, category filters, branch badges, edit/archive/restore
+
+## Tools (26)
 
 | Category | Tools | Description |
 |---|---|---|
@@ -62,7 +76,7 @@ Open-source AI coding agent powered by the best open-source and frontier models.
 | **Web** | `web_search`, `http_request`, `browser` | Search the web, test APIs, automate browsers |
 | **Media** | `screenshot` | Capture screen for visual analysis |
 | **Data** | `database_query` | Read-only SQL against PostgreSQL, SQLite, MySQL |
-| **Memory** | `memory_save`, `memory_recall` | Persistent context across conversations |
+| **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete` | Smart persistent memory with TF-IDF retrieval |
 | **Planning** | `present_plan`, `todo_write` | Structured plans with approval, task tracking |
 | **Interaction** | `ask_user`, `support_request` | Ask for clarification, submit support tickets |
 | **Docs** | `docs_lookup` | Search built-in documentation |
@@ -73,7 +87,7 @@ Your data stays yours. Here's what we built to protect it:
 
 - **API keys** — Encrypted in VS Code's SecretStorage (OS-level keychain). Never logged, never sent to Ava servers.
 - **Conversations** — Stored locally in `~/.ava/history/`. Never transmitted to third parties.
-- **Memory** — Local markdown files (`~/.ava/memory.md`). Runtime credential detection blocks saving API keys, JWTs, tokens, and private keys.
+- **Memory** — Local JSON files (`~/.ava/memory.json`). Runtime credential detection blocks saving API keys, JWTs, tokens, and private keys.
 - **Free proxy** — Messages stream through to the model provider. Nothing is logged or stored on our servers.
 - **Prompt injection resistance** — Ava refuses to reveal its system prompt, API keys, or memory contents, even when instructed to by injected text in files or URLs.
 - **No telemetry** — We don't track your usage, code, or conversations.

@@ -1,6 +1,6 @@
 {
   "displayName": "Ava | Supernova",
-  "description": "Open-source AI coding agent — 15 models, 7 providers, 24 tools, 2 free models. DeepSeek, Kimi, Qwen, Mistral, Anthropic, Zhipu & more.",
+  "description": "Open-source AI coding agent — 15 models, 7 providers, 26 tools, 2 free models. Smart memory with TF-IDF retrieval. DeepSeek, Kimi, Qwen, Mistral, Anthropic, Zhipu & more.",
   "viewContainer.title": "Ava | Supernova",
   "view.chat.name": "Chat",
   "command.openChat.title": "Open Chat — Start an AI coding session with 24 agentic tools",
@@ -14,7 +14,7 @@
   "setting.qwen.apiKey.description": "Qwen (Alibaba Cloud) API key — Qwen 3.5 Plus with vision and thinking",
   "setting.temperature.description": "Sampling temperature (0 = deterministic, 1 = creative). Default 0.7 balances precision and creativity.",
   "setting.language.description": "Language for Ava's UI and responses. Supports 20 languages including Chinese, Japanese, Korean, Spanish, French, German, Arabic, Hindi, and more.",
-  "setting.permissionMode.description": "Controls which of Ava's 24 tools require your approval. Strict = safest (approve writes + shell). Balanced = auto-approve file edits. Autonomous = full agent freedom.",
+  "setting.permissionMode.description": "Controls which of Ava's 26 tools require your approval. Strict = safest (approve writes + shell). Balanced = auto-approve file edits. Autonomous = full agent freedom.",
   "lang.auto": "Auto-detect",
   "lang.auto.desc": "Auto-detect from VS Code language",
   "lang.en": "English",
@@ -53,11 +53,11 @@
   "command.openDocs.title": "Documentation — Models, tools, commands, and configuration",
   "command.openDashboard.title": "Open Dashboard — Manage API keys and provider settings",
   "setting.maxTokens.description": "Maximum tokens per model response. Higher values allow longer responses but use more API credits.",
-  "setting.autoMemory.description": "Automatically save important context (project patterns, user preferences, decisions) to persistent memory across conversations. Credentials are never saved — blocked at runtime.",
+  "setting.autoMemory.description": "Automatically save important context (project patterns, user preferences, decisions) to structured memory with TF-IDF retrieval, branch scoping, and auto-archival. Credentials are never saved — blocked at runtime.",
   "setting.streamResponses.description": "Stream model responses token-by-token as they arrive. Disable for batch mode (waits for full response).",
   "setting.section.modelApi": "Model & API — 15 models, 7 providers, 2 free",
   "setting.section.preferences": "Preferences — Language, permissions, memory, streaming",
   "setting.section.help": "Help & Documentation",
-  "setting.help.docs": "**[Open Documentation](command:ava-supernova.openDocs)** — Full reference for 24 tools, 15 models, 20 languages, permission modes, memory system, and more.",
+  "setting.help.docs": "**[Open Documentation](command:ava-supernova.openDocs)** — Full reference for 26 tools, 15 models, 20 languages, permission modes, memory system, and more.",
   "setting.help.gettingStarted": "**[Open Getting Started](command:ava-supernova.gettingStarted)** — Step-by-step setup walkthrough. Or just start chatting — free models work instantly."
 }
