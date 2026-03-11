@@ -172,6 +172,10 @@ export class DashboardPanel {
         }
         break;
       }
+
+      case 'run_onboarding':
+        vscode.commands.executeCommand('workbench.action.openWalkthrough', 'augmentedvalueacceleration.ava-supernova#ava-supernova.gettingStarted', true);
+        break;
     }
   }
 

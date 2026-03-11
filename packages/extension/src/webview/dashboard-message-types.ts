@@ -106,4 +106,5 @@ export type DashboardToExtMessage =
   | { type: 'open_portal' }
   | { type: 'save_settings'; settings: DashboardSettings }
   | { type: 'open_chat' }
-  | { type: 'open_url'; url: string };
+  | { type: 'open_url'; url: string }
+  | { type: 'run_onboarding' };

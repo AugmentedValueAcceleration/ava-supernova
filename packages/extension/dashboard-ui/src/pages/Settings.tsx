@@ -296,6 +296,21 @@ export function Settings({ settings, onSettingsChange, providerKeys, showProvide
                     label={local.autoMemory ? 'On' : 'Off'}
                   />
                 </div>
+
+                <div className="my-5 border-t border-[var(--border-card)]" />
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">Onboarding</p>
+                    <p className="mt-0.5 text-xs text-[var(--text-muted)]">Re-run the welcome walkthrough and setup guide.</p>
+                  </div>
+                  <button
+                    onClick={() => post({ type: 'run_onboarding' })}
+                    className="rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-4 py-2 text-xs font-semibold text-[var(--accent)] transition hover:bg-[var(--accent)]/20"
+                  >
+                    Run Onboarding
+                  </button>
+                </div>
               </div>
             </SectionGroup>
           </div>
