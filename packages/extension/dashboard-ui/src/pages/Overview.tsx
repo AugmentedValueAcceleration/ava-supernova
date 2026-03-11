@@ -2,7 +2,7 @@ import { TierBadge } from '../components/TierBadge';
 import { UsageBar } from '../components/UsageBar';
 import { SectionGroup } from '../components/SectionGroup';
 import { post } from '../App';
-import { BoltIcon, ChartBarIcon, SparklesIcon, LinkIcon } from '../components/Icons';
+import { BoltIcon, ChartBarIcon, LinkIcon } from '../components/Icons';
 import type { AccountInfo, ConnectionStatus, Page } from '../types/messages';
 
 interface OverviewProps {
@@ -162,15 +162,6 @@ export function Overview({ account, connections: _connections, onNavigate }: Ove
       <div className="mb-10">
         <SectionGroup label="Coming Soon">
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-dashed border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-              <div className="mb-3 flex items-center gap-2">
-                <SparklesIcon className="h-4 w-4 text-[var(--text-muted)]" />
-                <p className="text-sm font-semibold text-[var(--text-secondary)]">Memory Sync</p>
-              </div>
-              <p className="text-xs text-[var(--text-muted)]">
-                Memory sync between the extension and your account is on the way.
-              </p>
-            </div>
             <div className="rounded-xl border border-dashed border-[var(--border-card)] bg-[var(--bg-card)] p-5">
               <div className="mb-3 flex items-center gap-2">
                 <LinkIcon className="h-4 w-4 text-[var(--text-muted)]" />
