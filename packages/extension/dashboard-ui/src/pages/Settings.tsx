@@ -297,20 +297,6 @@ export function Settings({ settings, onSettingsChange, providerKeys, showProvide
                   />
                 </div>
 
-                <div className="my-5 border-t border-[var(--border-card)]" />
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold">Welcome Screen</p>
-                    <p className="mt-0.5 text-xs text-[var(--text-muted)]">Show capabilities, modes, and quick start suggestions.</p>
-                  </div>
-                  <button
-                    onClick={() => post({ type: 'run_onboarding' })}
-                    className="rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-4 py-2 text-xs font-semibold text-[var(--accent)] transition hover:bg-[var(--accent)]/20"
-                  >
-                    Show Welcome
-                  </button>
-                </div>
               </div>
             </SectionGroup>
           </div>

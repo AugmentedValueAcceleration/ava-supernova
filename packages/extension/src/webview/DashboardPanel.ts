@@ -173,12 +173,6 @@ export class DashboardPanel {
         break;
       }
 
-      case 'run_onboarding':
-        // Focus the chat sidebar and start a new chat to show the welcome screen
-        vscode.commands.executeCommand('ava-supernova.chatView.focus').then(() => {
-          vscode.commands.executeCommand('ava-supernova.newChat');
-        });
-        break;
     }
   }
 

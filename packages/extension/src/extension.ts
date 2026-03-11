@@ -27,9 +27,6 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('ava-supernova.showHistory', () => viewProvider!.showHistory()),
     vscode.commands.registerCommand('ava-supernova.openDocs', () => DocsPanel.show(context.extensionUri)),
     vscode.commands.registerCommand('ava-supernova.openDashboard', () => DashboardPanel.show(context.extensionUri, context)),
-    vscode.commands.registerCommand('ava-supernova.gettingStarted', () => {
-      vscode.commands.executeCommand('workbench.action.openWalkthrough', 'augmentedvalueacceleration.ava-supernova#ava-supernova.gettingStarted', false);
-    }),
   );
 
   // Restore panel if it was open in the previous session (default: open on first install)

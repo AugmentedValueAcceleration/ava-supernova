@@ -2,7 +2,7 @@
   "name": "ava-supernova",
   "displayName": "Ava | Supernova",
   "description": "%description%",
-  "version": "0.4.31",
+  "version": "0.4.32",
   "publisher": "augmentedvalueacceleration",
   "license": "Apache-2.0",
   "repository": {
@@ -92,13 +92,7 @@
         "shortTitle": "History",
         "category": "Ava"
       },
-      {
-        "command": "ava-supernova.gettingStarted",
-        "title": "%command.gettingStarted.title%",
-        "shortTitle": "Get Started",
-        "category": "Ava"
-      },
-      {
+{
         "command": "ava-supernova.openDocs",
         "title": "%command.openDocs.title%",
         "shortTitle": "Docs",
@@ -112,64 +106,7 @@
         "icon": "$(account)"
       }
     ],
-    "walkthroughs": [
-      {
-        "id": "ava-supernova.gettingStarted",
-        "title": "%walkthrough.title%",
-        "description": "%walkthrough.description%",
-        "steps": [
-          {
-            "id": "addApiKey",
-            "title": "%walkthrough.step.apiKey.title%",
-            "description": "%walkthrough.step.apiKey.description%",
-            "media": {
-              "markdown": "media/walkthrough/api-key.md"
-            },
-            "completionEvents": [
-              "onSettingChanged:ava-supernova.providers.deepseek.apiKey"
-            ]
-          },
-          {
-            "id": "selectModel",
-            "title": "%walkthrough.step.model.title%",
-            "description": "%walkthrough.step.model.description%",
-            "media": {
-              "markdown": "media/walkthrough/select-model.md"
-            },
-            "completionEvents": [
-              "onSettingChanged:ava-supernova.activeModel"
-            ]
-          },
-          {
-            "id": "setLanguage",
-            "title": "%walkthrough.step.language.title%",
-            "description": "%walkthrough.step.language.description%",
-            "media": {
-              "markdown": "media/walkthrough/language.md"
-            }
-          },
-          {
-            "id": "permissions",
-            "title": "%walkthrough.step.permissions.title%",
-            "description": "%walkthrough.step.permissions.description%",
-            "media": {
-              "markdown": "media/walkthrough/permissions.md"
-            }
-          },
-          {
-            "id": "startChatting",
-            "title": "%walkthrough.step.start.title%",
-            "description": "%walkthrough.step.start.description%",
-            "media": {
-              "markdown": "media/walkthrough/start.md"
-            },
-            "completionEvents": [
-              "onCommand:ava-supernova.openChat"
-            ]
-          }
-        ]
-      }
-    ],
+    "walkthroughs": [],
     "configuration": [
       {
         "title": "%setting.section.modelApi%",
@@ -344,11 +281,6 @@
             "type": "null",
             "order": 1,
             "markdownDescription": "%setting.help.docs%"
-          },
-          "ava-supernova.help.gettingStarted": {
-            "type": "null",
-            "order": 2,
-            "markdownDescription": "%setting.help.gettingStarted%"
           }
         }
       }
