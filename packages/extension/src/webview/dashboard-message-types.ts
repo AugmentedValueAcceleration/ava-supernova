@@ -97,6 +97,8 @@ export type DashboardToExtMessage =
   | { type: 'load_memories' }
   | { type: 'delete_memory'; id: string }
   | { type: 'upsert_memory'; id?: string; scope?: 'global' | 'project'; key?: string; content: string; category?: string | null }
+  | { type: 'archive_memory'; id: string }
+  | { type: 'restore_memory'; id: string }
   | { type: 'save_connection'; service: 'github' | 'email' | 'slack' | 'discord'; credentials: Record<string, string> }
   | { type: 'remove_connection'; service: string }
   | { type: 'test_connection'; service: string }

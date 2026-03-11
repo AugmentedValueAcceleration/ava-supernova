@@ -133,6 +133,14 @@ export class DashboardPanel {
         await this.upsertMemory(msg);
         break;
 
+      case 'archive_memory':
+        await this.archiveMemory(msg.id, true);
+        break;
+
+      case 'restore_memory':
+        await this.archiveMemory(msg.id, false);
+        break;
+
       case 'save_connection':
         await this.saveConnection(msg.service, msg.credentials);
         break;
@@ -274,6 +282,22 @@ export class DashboardPanel {
       }
     } catch {
       this.post({ type: 'error', message: 'Failed to save memory.' });
+    }
+  }
+
+  private async archiveMemory(id: string, archived: boolean): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+
+    try {
+      const res = await apiFetch(`/memories/${id}`, { method: 'PATCH', body: { archived }, platformKey });
+      if (res.ok) {
+        this.post({ type: 'memory_upserted', memory: res.data as never });
+      } else {
+        this.post({ type: 'error', message: `Failed to ${archived ? 'archive' : 'restore'} memory.` });
+      }
+    } catch {
+      this.post({ type: 'error', message: `Failed to ${archived ? 'archive' : 'restore'} memory.` });
     }
   }
 
