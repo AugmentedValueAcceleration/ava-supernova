@@ -2,7 +2,40 @@
 export const enStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
-  'welcome.subtitle': 'Ask anything about your code.',
+  'welcome.subtitle': 'Your open-source agentic coding assistant.',
+  'welcome.tagline': '24 tools \u00B7 7 providers \u00B7 2 free models \u00B7 20 languages',
+
+  // Welcome — Setup
+  'welcome.setup_title': 'Get Started — Add an API Key',
+  'welcome.setup_desc': 'Add a provider API key to unlock Ava. GLM-4.5 Flash and Codestral are completely free — no credit card needed.',
+  'welcome.setup_cta': 'Open Settings',
+  'welcome.ready_with': 'Ready with',
+
+  // Welcome — Sections
+  'welcome.quick_start': 'Quick Start',
+  'welcome.capabilities': 'What Ava Can Do',
+  'welcome.modes': 'Modes',
+  'welcome.footer': 'Open source \u00B7 Your keys, your data \u00B7 Privacy first',
+
+  // Welcome — Capabilities
+  'welcome.cap.files': 'Read & Write Files',
+  'welcome.cap.files_desc': 'Create, edit, and manage any file in your project',
+  'welcome.cap.search': 'Search & Navigate',
+  'welcome.cap.search_desc': 'Find files, symbols, and grep across your codebase',
+  'welcome.cap.terminal': 'Run Commands',
+  'welcome.cap.terminal_desc': 'Execute shell commands and scripts directly',
+  'welcome.cap.web': 'Web & APIs',
+  'welcome.cap.web_desc': 'Search the web, make HTTP requests, browse pages',
+  'welcome.cap.security': 'Security Audit',
+  'welcome.cap.security_desc': 'Scan for vulnerabilities and security issues',
+  'welcome.cap.memory': 'Persistent Memory',
+  'welcome.cap.memory_desc': 'Remembers context across conversations',
+
+  // Welcome — Modes
+  'welcome.mode.code_desc': 'Full agent with all tools',
+  'welcome.mode.plan_desc': 'Architecture & planning',
+  'welcome.mode.chat_desc': 'Discussion only',
+  'welcome.mode.security_desc': 'Security scanning',
 
   // Input Area
   'input.placeholder.code': 'What do you want to build?',

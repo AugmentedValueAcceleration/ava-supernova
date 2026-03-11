@@ -585,6 +585,10 @@ export function App() {
         onContinue={handleContinue}
         onSuggestion={handleSuggestion}
         chatEndRef={chatEndRef}
+        needsSetup={state.needsSetup}
+        onOpenDashboard={handleOpenDashboard}
+        activeModel={state.activeModel}
+        models={state.models}
       />
 
       <ContextBar
