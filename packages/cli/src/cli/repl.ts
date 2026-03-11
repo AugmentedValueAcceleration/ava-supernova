@@ -21,6 +21,7 @@ export class Repl {
   private inMultiline = false;
   private lastUserInput = '';
   private historyManager: HistoryManager;
+  private runAbortController?: AbortController;
 
   constructor(opts: {
     agent: Agent;
@@ -293,6 +294,70 @@ export class Repl {
     this.prompt();
   }
 
+  /**
+   * Start listening for Escape (cancel) and typed lines (interjection)
+   * while the agent is running. Returns a cleanup function.
+   */
+  private startRunInputListener(): () => void {
+    if (!stdin.isTTY) return () => {};
+
+    let lineBuffer = '';
+    const wasRaw = stdin.isRaw;
+
+    stdin.setRawMode(true);
+    // Pause the readline so it doesn't compete for stdin
+    this.rl.pause();
+
+    const onData = (data: Buffer) => {
+      const str = data.toString();
+
+      for (const ch of str) {
+        // Escape or Ctrl+C → cancel
+        if (ch === '\x1b' || ch === '\x03') {
+          if (this.runAbortController) {
+            this.spinner.stop();
+            console.log(chalk.yellow('\n  ' + t('cli.cancelled')));
+            this.runAbortController.abort();
+          }
+          return;
+        }
+
+        // Enter → inject interjection
+        if (ch === '\r' || ch === '\n') {
+          const text = lineBuffer.trim();
+          lineBuffer = '';
+          if (text) {
+            this.agent.inject(text);
+            this.conversation.addUserMessage(text);
+            console.log(chalk.hex(THEME.accent)(`\n  [interjection] `) + chalk.dim(text));
+          }
+          return;
+        }
+
+        // Backspace
+        if (ch === '\x7f' || ch === '\b') {
+          lineBuffer = lineBuffer.slice(0, -1);
+          return;
+        }
+
+        // Regular character — accumulate
+        if (ch >= ' ') {
+          lineBuffer += ch;
+        }
+      }
+    };
+
+    stdin.on('data', onData);
+
+    return () => {
+      stdin.removeListener('data', onData);
+      if (stdin.isTTY) {
+        stdin.setRawMode(wasRaw ?? false);
+      }
+      this.rl.resume();
+    };
+  }
+
   private async processUserMessage(input: string): Promise<void> {
     this.lastUserInput = input;
     this.conversation.addUserMessage(input);
@@ -342,21 +407,37 @@ export class Repl {
             );
           }
           break;
+        case 'interjection':
+          // Already printed by the input listener
+          break;
         case 'done':
           break;
       }
     };
 
     this.spinner.start(t('cli.thinking'));
+    this.runAbortController = new AbortController();
+    const cleanupListener = this.startRunInputListener();
 
     try {
-      const updatedMessages = await this.agent.run(this.conversation.getMessages(), onEvent);
+      const updatedMessages = await this.agent.run(
+        this.conversation.getMessages(),
+        onEvent,
+        this.runAbortController.signal,
+      );
       this.conversation.setMessages(updatedMessages);
       // Auto-save after each completed turn (protects against crashes)
       await this.historyManager.saveConversation(this.conversation);
     } catch (error) {
       this.spinner.stop();
-      this.renderer.printError(error instanceof Error ? error : new Error(String(error)));
+      // Don't print abort errors — they're from user cancellation
+      const isAbort = error instanceof DOMException && error.name === 'AbortError';
+      if (!isAbort) {
+        this.renderer.printError(error instanceof Error ? error : new Error(String(error)));
+      }
+    } finally {
+      cleanupListener();
+      this.runAbortController = undefined;
     }
   }
 }

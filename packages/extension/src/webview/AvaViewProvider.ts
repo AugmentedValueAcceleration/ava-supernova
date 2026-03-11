@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as crypto from 'node:crypto';
+import { existsSync } from 'node:fs';
 import {
   Agent,
   Conversation,
@@ -539,6 +540,17 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private buildCurrentSystemPrompt(): string {
     const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
     const cfg = vscode.workspace.getConfiguration('ava-supernova');
+    const isAdmin = this.cachedAccount?.tier === 'admin';
+
+    // Detect if workspace is the Ava monorepo — let Ava read her own source
+    let sourceRoot: string | undefined;
+    if (isAdmin) {
+      const join = require('node:path').join;
+      if (existsSync(join(cwd, 'packages/core/src/agent/agent.ts'))) {
+        sourceRoot = cwd;
+      }
+    }
+
     return buildSystemPrompt({
       cwd,
       platform: process.platform,
@@ -550,7 +562,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       autoMemory: cfg.get<boolean>('preferences.autoMemory') ?? true,
       language: this.currentLocale,
       userName: this.cachedAccount?.name || this.cachedAccount?.email?.split('@')[0],
-      isAdmin: this.cachedAccount?.tier === 'admin',
+      isAdmin,
+      sourceRoot,
     });
   }
 
@@ -882,13 +895,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
 
     if (this.isRunning) {
-      this.log('handleUserMessage: blocked — already running');
-      this.postMessage({
-        type: 'error',
-        message: 'Ava is still working on the previous message.',
-        code: 'busy',
-        suggestion: 'Wait for the current response to finish, or reload the window to reset.',
-      });
+      // Inject as mid-run interjection instead of rejecting
+      if (this.agent) {
+        this.log(`handleUserMessage: injecting interjection — "${text.slice(0, 80)}"`);
+        this.agent.inject(text);
+        this.conversation?.addUserMessage(text);
+        this.postMessage({ type: 'interjection_ack', content: text });
+      }
       return;
     }
     this.isRunning = true;
@@ -992,6 +1005,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             originalTokens: event.originalTokens,
             compressedTokens: event.compressedTokens,
           });
+          break;
+        case 'interjection':
+          this.log(`Interjection processed: "${event.content.slice(0, 80)}"`);
           break;
         case 'done':
           this.postMessage({ type: 'done' });

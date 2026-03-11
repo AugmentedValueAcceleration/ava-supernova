@@ -37,6 +37,7 @@ export type AgentEvent =
   | { type: 'context_compression_start' }
   | { type: 'context_compression_end'; originalTokens: number; compressedTokens: number }
   | { type: 'context_truncated'; droppedCount: number }
+  | { type: 'interjection'; content: string }
   | { type: 'done'; finalMessage: AssistantMessage };
 
 export type AgentEventHandler = (event: AgentEvent) => void;
@@ -48,6 +49,7 @@ export class Agent {
   private readonly model: ModelDefinition;
   private readonly toolRegistry: ToolRegistry;
   private readonly toolContext: ToolExecutionContext;
+  private readonly pendingInterjections: string[] = [];
 
   constructor(opts: {
     provider: Provider;
@@ -63,6 +65,15 @@ export class Agent {
       cwd: opts.cwd,
       sharedState: opts.sharedState,
     };
+  }
+
+  /**
+   * Inject a user message mid-run. The message will be appended to the
+   * conversation between the current and next agent iteration, allowing
+   * the user to steer, add context, or redirect without cancelling.
+   */
+  inject(message: string): void {
+    this.pendingInterjections.push(message);
   }
 
   async run(messages: Message[], onEvent: AgentEventHandler, signal?: AbortSignal): Promise<Message[]> {
@@ -99,6 +110,16 @@ export class Agent {
       if (signal?.aborted) {
         onEvent({ type: 'done', finalMessage: { role: 'assistant', content: null } });
         return messages;
+      }
+
+      // Check for user interjections — messages injected mid-run
+      while (this.pendingInterjections.length > 0) {
+        const interjection = this.pendingInterjections.shift()!;
+        messages = [
+          ...messages,
+          { role: 'user' as const, content: `[User interjection]: ${interjection}` },
+        ];
+        onEvent({ type: 'interjection', content: interjection });
       }
 
       iterations++;

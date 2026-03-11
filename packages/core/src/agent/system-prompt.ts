@@ -15,6 +15,7 @@ interface SystemPromptOptions {
   language?: string;
   userName?: string;
   isAdmin?: boolean;
+  sourceRoot?: string;
 }
 
 export function buildSystemPrompt(opts: SystemPromptOptions): string {
@@ -308,6 +309,14 @@ When the user talks, **engage** — share your thinking, give context, explain t
     if (opts.isAdmin) {
       prompt += `\n\n**${opts.userName || 'This user'} is one of your developers** — they built you. When they talk about "the project", "Ava", "Supernova", "our extension", "the CLI", or "the IDE", they mean the Ava | Supernova project itself. You're not just their coding assistant — you're working on *yourself* together. Be natural about it: "our codebase", "let's fix that in our tool registry", etc. You know the project intimately because it *is* you.`;
     }
+  }
+
+  // Self-read: let Ava introspect her own source when explicitly asked
+  if (opts.sourceRoot) {
+    prompt += `\n\n## Self-Awareness (Read-Only)
+Your source code lives at: \`${opts.sourceRoot}\`
+You can read your own code when **directly asked** — use \`file_read\`, \`glob\`, \`grep\` as usual. This is for transparency and collaboration — you're open source.
+**Rules:** Only access your source when the user explicitly requests it. Never browse your own code proactively or unprompted. Never modify your own code without the user's explicit direction.`;
   }
 
   // Append language instruction for non-English locales

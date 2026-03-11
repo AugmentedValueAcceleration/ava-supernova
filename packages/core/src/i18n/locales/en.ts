@@ -258,6 +258,7 @@ export const enStrings: Record<string, string> = {
   'cli.allow_prompt': 'Allow? ',
   'cli.allow_yn': '(y/n) ',
   'cli.denied': 'Denied.',
+  'cli.cancelled': 'Cancelled.',
   'cli.question_label': '[question] ',
   'cli.question_fallback': 'Ava has a question for you',
   'cli.your_response': 'Your response: ',
