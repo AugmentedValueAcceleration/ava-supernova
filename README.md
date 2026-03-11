@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">Ava | Supernova</h1>
   <p align="center">
-    <strong>Open-source AI coding agent — 15 models, 7 providers, 24 tools, 2 free models that work instantly.</strong>
+    <strong>Open-source AI coding agent — 15 models, 7 providers, 26 tools, 2 free models that work instantly.</strong>
   </p>
   <p align="center">
     <a href="#supported-models">Models</a> &middot;
@@ -97,7 +97,8 @@ Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/item
 - **Agentic coding** — Ava reads, writes, edits, searches, and executes code autonomously
 - **Four modes** — Code (`>>` full agent), Plan (`::` read-only), Chat (`..` no tools), Security (`!!` OWASP audit)
 - **Model selector** — Switch models from the header dropdown with provider labels and availability indicators
-- **Persistent memory** — Ava remembers across sessions with automatic save/recall (credentials blocked at runtime)
+- **Persistent memory** — Ava remembers across sessions with structured entries, TF-IDF retrieval, branch scoping, and auto-archival (credentials blocked at runtime)
+- **Mid-task interjection** — Type while Ava is working to add context, corrections, or redirect — true collaborative flow
 - **Vision** — Attach images in chat for models that support it
 - **Codebase understanding** — Project indexer and symbol finder for intelligent code navigation
 - **Context compression** — Automatic context management keeps long conversations within model limits
@@ -118,7 +119,7 @@ The IDE includes everything in the extension plus:
 - Monaco editor (same engine as VS Code)
 - `@ava/core` runs directly in the Node.js backend — no sidecar needed
 
-## Tools (24)
+## Tools (26)
 
 | Category | Tools | Description |
 |---|---|---|
@@ -129,7 +130,7 @@ The IDE includes everything in the extension plus:
 | **Web** | `web_search`, `http_request`, `browser` | Search the web, test APIs, automate browsers |
 | **Media** | `screenshot` | Capture screen for visual analysis |
 | **Data** | `database_query` | Read-only SQL against PostgreSQL, SQLite, MySQL |
-| **Memory** | `memory_save`, `memory_recall` | Persistent context across conversations |
+| **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete` | Smart persistent memory with TF-IDF retrieval |
 | **Planning** | `present_plan`, `todo_write` | Structured plans with approval, task tracking |
 | **Interaction** | `ask_user`, `support_request` | Ask for clarification, submit support tickets |
 | **Docs** | `docs_lookup` | Search built-in documentation |
@@ -308,9 +309,10 @@ cd packages/extension && pnpm build
 - [x] Terminal CLI with full agent loop
 - [x] VS Code extension with chat UI
 - [x] Standalone IDE (Eclipse Theia)
-- [x] 24 built-in tools (file ops, search, bash, git, web, browser, database, memory, planning)
+- [x] 26 built-in tools (file ops, search, bash, git, web, browser, database, memory, planning, docs)
 - [x] 15 models from 7 providers, including 2 free models
-- [x] Persistent memory system with credential blocking
+- [x] Smart memory v2 — structured entries, TF-IDF retrieval, branch scoping, auto-archival, credential blocking
+- [x] Mid-task interjection — type while Ava is working to add context or redirect
 - [x] Privacy guardrails — prompt injection resistance, credential redaction
 - [x] Conversation history with search, pin, rename, export
 - [x] Vision support (image attachments)

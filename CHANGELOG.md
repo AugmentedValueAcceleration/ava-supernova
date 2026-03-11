@@ -2,6 +2,65 @@
 
 All notable changes to Ava | Supernova will be documented in this file.
 
+## [0.5.4] - 2026-03-11
+
+### Mid-Task Interjection
+
+- **Type while Ava is working** — send additional context, corrections, or new instructions without waiting for the current task to finish
+- Works across all hosts: VS Code extension, CLI, and standalone IDE
+- Messages are injected between agent loop iterations for natural, collaborative flow
+- CLI: type and press Enter to inject; press Escape or Ctrl+C to cancel the current task
+
+### Self-Read Awareness
+
+- Ava can now read her own source code when directly asked (admin/developer mode only)
+- Auto-detects when the workspace is the ava-supernova monorepo
+- Read-only access — Ava never browses or modifies her own code unprompted
+
+### CLI Cancel Support
+
+- Press **Escape** or **Ctrl+C** to cancel the current agent run in the CLI
+- Clean abort — no error output, just returns to the prompt
+
+---
+
+## [0.5.3] - 2026-03-10
+
+### System Prompt Optimization
+
+- Deduplicated and trimmed system prompt for lower token overhead
+- Added context-aware sections that only appear when relevant
+
+---
+
+## [0.5.2] - 2026-03-09
+
+### Memory Panel v2
+
+- Structured memory entries with categories (pattern, preference, architecture, bug-fix, convention, tool-config, decision, person, general)
+- TF-IDF retrieval with composite relevance scoring (content 55%, recency 25%, recall frequency 20%)
+- Conflict detection and automatic merging of duplicate/overlapping entries
+- Branch scoping — scope memories to specific git branches
+- Auto-archival of entries inactive for 90+ days
+- Active / Stale / Archived tabs with category filters and branch badges
+- Edit, archive, and restore actions in the Dashboard memory panel
+
+---
+
+## [0.5.0] - 2026-03-08
+
+### Memory v2
+
+- Complete rewrite of the memory system with structured, categorized entries
+- 9 memory categories for organized knowledge storage
+- TF-IDF-based semantic search replaces simple substring matching
+- Temporal awareness — recent memories weighted higher
+- Branch-scoped memories for experimental work
+- Consolidation engine groups related entries by similarity
+- Runtime credential detection blocks saving API keys, JWTs, tokens, and private keys
+
+---
+
 ## [0.2.0] - 2026-03-02
 
 ### Security Mode
