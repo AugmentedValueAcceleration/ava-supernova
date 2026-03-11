@@ -82,11 +82,10 @@ export function NavSidebar({ currentPage, onNavigate, mode, email, onConnectAcco
           <>
             <p className="mb-2 text-[10px] text-[var(--text-muted)]">Using your own API keys</p>
             <button
-              disabled
-              className="w-full cursor-not-allowed rounded-lg border border-[var(--border-input)] bg-transparent px-3 py-1.5 text-xs text-[var(--text-muted)] opacity-60"
+              onClick={onConnectAccount}
+              className="w-full rounded-lg border border-[var(--accent)]/40 bg-transparent px-3 py-1.5 text-xs text-[var(--accent)] transition hover:bg-[var(--accent)]/10"
             >
               Connect Account
-              <span className="ml-1.5 rounded bg-[var(--bg-input)] px-1.5 py-0.5 text-[9px]">Soon</span>
             </button>
           </>
         )}
