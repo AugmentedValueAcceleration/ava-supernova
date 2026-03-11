@@ -432,7 +432,7 @@ export function Memory({ memories }: MemoryProps) {
                     </div>
 
                     {/* Content */}
-                    <p className="text-sm leading-relaxed">{m.content}</p>
+                    <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">{m.content}</div>
 
                     {/* Footer metadata */}
                     <div className="mt-2 flex items-center gap-3 text-[10px] text-[var(--text-muted)]">
