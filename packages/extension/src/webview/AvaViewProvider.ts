@@ -1081,8 +1081,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.postMessage({ type: 'compression_start' });
     try {
       const messages = this.conversation.getMessages();
+      let compressedTokenCount = 0;
       const compressed = await this.agent.compressContext(messages, (event) => {
         if (event.type === 'context_compression_end') {
+          compressedTokenCount = event.compressedTokens;
           this.postMessage({
             type: 'compression_end',
             originalTokens: event.originalTokens,
@@ -1092,6 +1094,17 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       });
       this.conversation.setMessages(compressed);
       this.log('Context compressed successfully');
+
+      // Update the context bar with post-compression token count
+      const limit = this.activeModelDef?.contextWindow ?? 128000;
+      const used = compressedTokenCount || 0;
+      const percent = limit > 0 ? Math.round((used / limit) * 100) : 0;
+      this.postMessage({
+        type: 'context_usage',
+        used,
+        limit,
+        percent: Math.min(percent, 100),
+      });
     } catch (err) {
       this.postMessage({
         type: 'compression_end',
