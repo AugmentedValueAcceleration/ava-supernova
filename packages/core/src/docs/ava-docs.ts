@@ -388,7 +388,7 @@ Open the Dashboard (Ctrl+Shift+D) to configure providers, preferences, and your 
 | Anthropic (Claude) | sk-ant-... | console.anthropic.com |
 | DeepSeek | sk-... | platform.deepseek.com |
 | Kimi (Moonshot) | sk-... | platform.moonshot.cn |
-| GLM (Zhipu AI) | (varies) | open.bigmodel.cn |
+| GLM (Zhipu AI / Z.AI) | (varies) | z.ai |
 | Qwen (Alibaba) | sk-... | dashscope.console.aliyun.com |
 | Mistral AI | (varies) | console.mistral.ai |
 

@@ -12,7 +12,7 @@ export class ZhipuProvider extends BaseProvider {
   readonly displayName = 'Zhipu AI';
 
   protected getDefaultBaseUrl(): string {
-    return 'https://open.bigmodel.cn/api/paas/v4';
+    return 'https://api.z.ai/api/paas/v4';
   }
 
   listModels(): ModelDefinition[] {
