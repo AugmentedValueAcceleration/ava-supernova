@@ -149,7 +149,7 @@ export function App() {
     switch (page) {
       case 'overview':
         if (account) {
-          return <Overview account={account} connections={connections} onNavigate={setPage} />;
+          return <Overview account={account} connections={connections} onNavigate={setPage} logs={usageLogs} />;
         }
         return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
       case 'usage':

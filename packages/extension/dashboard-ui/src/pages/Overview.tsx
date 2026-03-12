@@ -1,21 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { TierBadge } from '../components/TierBadge';
 import { UsageBar } from '../components/UsageBar';
 import { SectionGroup } from '../components/SectionGroup';
 import { post } from '../App';
 import { BoltIcon, ChartBarIcon, LinkIcon } from '../components/Icons';
-import type { AccountInfo, ConnectionStatus, Page } from '../types/messages';
+import type { AccountInfo, ConnectionStatus, Page, UsageLogEntry } from '../types/messages';
 
 interface OverviewProps {
   account: AccountInfo;
   connections: ConnectionStatus;
   onNavigate: (page: Page) => void;
+  logs: UsageLogEntry[];
 }
 
-export function Overview({ account, connections: _connections, onNavigate }: OverviewProps) {
+export function Overview({ account, connections: _connections, onNavigate, logs }: OverviewProps) {
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(account.name ?? '');
   const [refreshing, setRefreshing] = useState(false);
+
+  // Load usage logs on mount so we have fallback stats
+  useEffect(() => {
+    if (logs.length === 0) {
+      post({ type: 'load_usage_logs', period: '30d' });
+    }
+  }, []);
 
   const saveName = () => {
     const trimmed = nameValue.trim();
@@ -33,6 +41,13 @@ export function Overview({ account, connections: _connections, onNavigate }: Ove
     free_tokens_used: 0,
     free_tokens_limit: 500_000,
   };
+
+  // Derive stats from logs as fallback when account.usage is stale/empty
+  const logsTotal = useMemo(() => {
+    let total = 0;
+    for (const log of logs) { total += log.input_tokens + log.output_tokens; }
+    return { total, count: logs.length };
+  }, [logs]);
 
   return (
     <div className="mx-auto w-full max-w-4xl">
@@ -93,13 +108,13 @@ export function Overview({ account, connections: _connections, onNavigate }: Ove
           <div className="grid grid-cols-2 gap-3">
             <StatCard
               icon={<ChartBarIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
-              value={formatNumber(usage.tokens_used)}
+              value={formatNumber(usage.tokens_used || logsTotal.total)}
               label="Tokens Used"
-              subtext={usage.period_start ? `Since ${new Date(usage.period_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : undefined}
+              subtext={usage.period_start ? `Since ${new Date(usage.period_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : (logsTotal.count > 0 ? `from ${logsTotal.count} requests` : undefined)}
             />
             <StatCard
               icon={<BoltIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
-              value={String(usage.requests_count)}
+              value={String(usage.requests_count || logsTotal.count)}
               label="Requests"
               subtext="This period"
             />
