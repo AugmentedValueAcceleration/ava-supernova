@@ -35,12 +35,12 @@ export function Overview({ account, connections: _connections, onNavigate }: Ove
   };
 
   return (
-    <div className="max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl">
       {/* Page Header */}
-      <div className="mb-10 flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Overview</h1>
-          <div className="mt-1 flex items-center gap-2">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl font-bold">Overview</h1>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
             {editingName ? (
               <input
                 autoFocus
@@ -71,8 +71,8 @@ export function Overview({ account, connections: _connections, onNavigate }: Ove
       </div>
 
       {/* ── Statistics ─────────────────────────────────────────── */}
-      <div className="mb-10">
-        <div className="mb-4 flex items-center justify-between">
+      <div className="mb-6">
+        <div className="mb-3 flex items-center justify-between">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Statistics</h2>
           <button
             onClick={() => {
@@ -90,7 +90,7 @@ export function Overview({ account, connections: _connections, onNavigate }: Ove
           </button>
         </div>
         <div className="flex flex-col gap-3">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3">
             <StatCard
               icon={<ChartBarIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
               value={formatNumber(usage.tokens_used)}
@@ -108,7 +108,7 @@ export function Overview({ account, connections: _connections, onNavigate }: Ove
       </div>
 
       {/* ── Token Credits ──────────────────────────────────────── */}
-      <div className="mb-10">
+      <div className="mb-6">
         <SectionGroup label="Token Credits">
           <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
             {/* Free Token Pool */}
@@ -213,9 +213,9 @@ export function Overview({ account, connections: _connections, onNavigate }: Ove
       </div>
 
       {/* ── Coming Soon ────────────────────────────────────────── */}
-      <div className="mb-10">
+      <div className="mb-6">
         <SectionGroup label="Coming Soon">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3">
             <div className="rounded-xl border border-dashed border-[var(--border-card)] bg-[var(--bg-card)] p-5">
               <div className="mb-3 flex items-center gap-2">
                 <LinkIcon className="h-4 w-4 text-[var(--text-muted)]" />
@@ -231,7 +231,7 @@ export function Overview({ account, connections: _connections, onNavigate }: Ove
 
       {/* ── Quick Actions ──────────────────────────────────────── */}
       <SectionGroup label="Quick Actions">
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-3">
           <ActionCard label="Manage Billing" onClick={() => onNavigate('billing')} />
           <ActionCard label="Open Chat" onClick={() => post({ type: 'open_chat' })} />
         </div>
@@ -242,13 +242,13 @@ export function Overview({ account, connections: _connections, onNavigate }: Ove
 
 function StatCard({ icon, value, label, subtext }: { icon: React.ReactNode; value: string; label: string; subtext?: string }) {
   return (
-    <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--bg-input)]">
+    <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
+      <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--bg-input)]">
         {icon}
       </div>
-      <div className="text-2xl font-bold">{value}</div>
-      <div className="text-sm text-[var(--text-secondary)]">{label}</div>
-      {subtext && <div className="mt-0.5 text-xs text-[var(--text-muted)]">{subtext}</div>}
+      <div className="text-xl font-bold">{value}</div>
+      <div className="text-xs text-[var(--text-secondary)]">{label}</div>
+      {subtext && <div className="mt-0.5 text-[10px] text-[var(--text-muted)]">{subtext}</div>}
     </div>
   );
 }
