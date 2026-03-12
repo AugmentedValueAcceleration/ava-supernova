@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { post } from '../App';
 import { UsageBar } from '../components/UsageBar';
 import { SectionGroup } from '../components/SectionGroup';
@@ -16,6 +16,8 @@ interface ModelBreakdown {
   count: number;
 }
 
+const PAGE_SIZE = 15;
+
 export function Usage({ account, logs }: UsageProps) {
   const usage = account.usage ?? {
     tokens_used: 0,
@@ -27,9 +29,11 @@ export function Usage({ account, logs }: UsageProps) {
     free_tokens_limit: 500_000,
   };
   const [period, setPeriod] = useState<'7d' | '30d' | 'all'>('30d');
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     post({ type: 'load_usage_logs', period });
+    setPage(0);
   }, [period]);
 
   // Build model breakdown from logs
@@ -45,40 +49,51 @@ export function Usage({ account, logs }: UsageProps) {
   const breakdown = Object.values(modelMap).sort((a, b) => (b.input + b.output) - (a.input + a.output));
   const maxTotal = breakdown.length > 0 ? breakdown[0].input + breakdown[0].output : 1;
 
+  // Derive summary from logs when account.usage is missing/stale
+  const logsTotal = useMemo(() => {
+    let input = 0, output = 0;
+    for (const log of logs) { input += log.input_tokens; output += log.output_tokens; }
+    return { input, output, total: input + output, count: logs.length };
+  }, [logs]);
+
   const periodLabel = usage.period_start
     ? `${new Date(usage.period_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} — ${new Date(usage.period_end!).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
     : 'No active period';
 
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(logs.length / PAGE_SIZE));
+  const pagedLogs = logs.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
   return (
-    <div className="max-w-4xl">
-      <div className="mb-10">
-        <h1 className="text-2xl font-bold">Usage</h1>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">
+    <div className="mx-auto w-full max-w-4xl">
+      <div className="mb-6">
+        <h1 className="text-xl font-bold">Usage</h1>
+        <p className="mt-1 text-xs text-[var(--text-secondary)]">
           Track your token usage and request history.
         </p>
       </div>
 
       {/* Period Summary */}
-      <div className="mb-10">
+      <div className="mb-6">
       <SectionGroup label="Summary">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3">
         <SummaryCard
-          label="Free Tokens"
-          value={formatNumber(Math.max(0, usage.free_tokens_limit - usage.free_tokens_used))}
-          sub={`of ${formatNumber(usage.free_tokens_limit)} remaining`}
-        />
-        <SummaryCard
-          label="Plan Tokens"
-          value={formatNumber(usage.tokens_used)}
-          sub={usage.tokens_limit ? `of ${formatNumber(usage.tokens_limit)} limit` : 'used this period'}
+          label="Tokens Used"
+          value={formatNumber(usage.tokens_used || logsTotal.total)}
+          sub={usage.tokens_used ? (usage.tokens_limit ? `of ${formatNumber(usage.tokens_limit)} limit` : 'this period') : `from ${logsTotal.count} requests`}
         />
         <SummaryCard
           label="Requests"
-          value={String(usage.requests_count)}
+          value={String(usage.requests_count || logsTotal.count)}
           sub="this period"
         />
         <SummaryCard
-          label="Current Period"
+          label="Free Tokens"
+          value={formatNumber(Math.max(0, usage.free_tokens_limit - usage.free_tokens_used))}
+          sub={`of ${formatNumber(usage.free_tokens_limit)}`}
+        />
+        <SummaryCard
+          label="Period"
           value={periodLabel}
           isText
         />
@@ -87,7 +102,7 @@ export function Usage({ account, logs }: UsageProps) {
       </div>
 
       {/* Token Bars */}
-      <div className="mb-10">
+      <div className="mb-6">
       <SectionGroup label="Token Pools">
       <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
           {/* Free Pool */}
@@ -145,7 +160,7 @@ export function Usage({ account, logs }: UsageProps) {
       </div>
 
       {/* Model Breakdown */}
-      <div className="mb-10">
+      <div className="mb-6">
         <SectionGroup label="Usage by Model">
         {breakdown.length > 0 ? (
           <div className="space-y-3">
@@ -153,11 +168,11 @@ export function Usage({ account, logs }: UsageProps) {
               const total = m.input + m.output;
               const pct = (total / maxTotal) * 100;
               return (
-                <div key={m.model} className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+                <div key={m.model} className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm font-medium">{m.model}</span>
-                    <span className="text-xs text-[var(--text-muted)]">
-                      {m.count} {m.count === 1 ? 'request' : 'requests'}
+                    <span className="text-xs font-medium">{m.model}</span>
+                    <span className="text-[10px] text-[var(--text-muted)]">
+                      {m.count} {m.count === 1 ? 'req' : 'reqs'}
                     </span>
                   </div>
                   <div className="mb-2 h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
@@ -166,9 +181,9 @@ export function Usage({ account, logs }: UsageProps) {
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <div className="flex gap-4 text-xs text-[var(--text-muted)]">
-                    <span>Input: {formatNumber(m.input)}</span>
-                    <span>Output: {formatNumber(m.output)}</span>
+                  <div className="flex flex-wrap gap-3 text-[10px] text-[var(--text-muted)]">
+                    <span>In: {formatNumber(m.input)}</span>
+                    <span>Out: {formatNumber(m.output)}</span>
                     <span>Total: {formatNumber(total)}</span>
                   </div>
                 </div>
@@ -176,15 +191,15 @@ export function Usage({ account, logs }: UsageProps) {
             })}
           </div>
         ) : (
-          <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-8 text-center">
-            <p className="text-sm text-[var(--text-muted)]">No usage data for this period.</p>
+          <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-6 text-center">
+            <p className="text-xs text-[var(--text-muted)]">No usage data for this period.</p>
           </div>
         )}
         </SectionGroup>
       </div>
 
       {/* Recent Requests */}
-      <div>
+      <div className="mb-6">
         <SectionGroup label="Recent Requests">
         <div className="flex items-center justify-end">
           <div className="flex gap-1 rounded-lg bg-[var(--bg-input)] p-1">
@@ -192,46 +207,74 @@ export function Usage({ account, logs }: UsageProps) {
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
-                className={`rounded-md px-3 py-1 text-xs font-medium transition ${
+                className={`rounded-md px-2.5 py-1 text-[10px] font-medium transition ${
                   period === p
                     ? 'bg-[var(--accent)] text-white'
                     : 'text-[var(--text-muted)] hover:text-white'
                 }`}
               >
-                {p === '7d' ? '7 Days' : p === '30d' ? '30 Days' : 'All'}
+                {p === '7d' ? '7D' : p === '30d' ? '30D' : 'All'}
               </button>
             ))}
           </div>
         </div>
 
         {logs.length > 0 ? (
-          <div className="overflow-hidden rounded-xl border border-[var(--border-card)]">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-[var(--border-card)] bg-[var(--bg-card)]">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">Model</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">Provider</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-[var(--text-muted)]">Input</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-[var(--text-muted)]">Output</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-[var(--text-muted)]">Time</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border-card)]">
-                {logs.map((log) => (
-                  <tr key={log.id} className="bg-[var(--bg-card)]/50">
-                    <td className="px-4 py-3 text-sm font-medium">{log.model}</td>
-                    <td className="px-4 py-3 text-sm text-[var(--text-secondary)]">{log.provider}</td>
-                    <td className="px-4 py-3 text-right font-mono text-sm text-[var(--text-secondary)]">{log.input_tokens.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right font-mono text-sm text-[var(--text-secondary)]">{log.output_tokens.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right text-xs text-[var(--text-muted)]">{formatDate(log.timestamp)}</td>
+          <>
+            <div className="overflow-x-auto rounded-xl border border-[var(--border-card)]">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-[var(--border-card)] bg-[var(--bg-card)]">
+                    <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)]">Model</th>
+                    <th className="px-3 py-2 text-right text-[10px] font-medium text-[var(--text-muted)]">In</th>
+                    <th className="px-3 py-2 text-right text-[10px] font-medium text-[var(--text-muted)]">Out</th>
+                    <th className="px-3 py-2 text-right text-[10px] font-medium text-[var(--text-muted)]">Time</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-[var(--border-card)]">
+                  {pagedLogs.map((log) => (
+                    <tr key={log.id} className="bg-[var(--bg-card)]/50">
+                      <td className="px-3 py-2 text-xs font-medium">{log.model}</td>
+                      <td className="px-3 py-2 text-right font-mono text-xs text-[var(--text-secondary)]">{log.input_tokens.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right font-mono text-xs text-[var(--text-secondary)]">{log.output_tokens.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right text-[10px] text-[var(--text-muted)]">{formatDate(log.timestamp)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-[10px] text-[var(--text-muted)]">
+                  {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, logs.length)} of {logs.length}
+                </span>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setPage(p => Math.max(0, p - 1))}
+                    disabled={page === 0}
+                    className="rounded-md px-2 py-1 text-[10px] text-[var(--text-muted)] transition hover:bg-[var(--bg-input)] hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
+                  >
+                    Prev
+                  </button>
+                  <span className="flex items-center px-2 text-[10px] text-[var(--text-muted)]">
+                    {page + 1}/{totalPages}
+                  </span>
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                    disabled={page >= totalPages - 1}
+                    className="rounded-md px-2 py-1 text-[10px] text-[var(--text-muted)] transition hover:bg-[var(--bg-input)] hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         ) : (
-          <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-8 text-center">
-            <p className="text-sm text-[var(--text-muted)]">No requests logged yet.</p>
+          <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-6 text-center">
+            <p className="text-xs text-[var(--text-muted)]">No requests logged yet.</p>
           </div>
         )}
         </SectionGroup>
@@ -242,10 +285,10 @@ export function Usage({ account, logs }: UsageProps) {
 
 function SummaryCard({ label, value, sub, isText }: { label: string; value: string; sub?: string; isText?: boolean }) {
   return (
-    <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-      <p className="text-xs text-[var(--text-muted)]">{label}</p>
-      <p className={`mt-1 ${isText ? 'text-sm font-medium' : 'text-2xl font-bold'}`}>{value}</p>
-      {sub && <p className="mt-1 text-xs text-[var(--text-muted)]">{sub}</p>}
+    <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
+      <p className="text-[10px] text-[var(--text-muted)]">{label}</p>
+      <p className={`mt-1 ${isText ? 'text-xs font-medium' : 'text-lg font-bold'}`}>{value}</p>
+      {sub && <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{sub}</p>}
     </div>
   );
 }
