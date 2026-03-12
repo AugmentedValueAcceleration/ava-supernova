@@ -25,71 +25,66 @@ export function NavSidebar({ currentPage, onNavigate, mode, email, onConnectAcco
     : NAV_ITEMS;
 
   return (
-    <nav className="flex w-56 shrink-0 flex-col border-r border-[var(--border-card)] bg-[var(--bg-card)] p-4">
+    <nav className="flex shrink-0 items-center gap-1 border-b border-[var(--border-card)] bg-[var(--bg-card)] px-3 py-2">
       {/* Logo */}
-      <div className="mb-4 border-b border-[var(--border-card)] px-3 pb-4">
-        <span className="bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] bg-clip-text text-sm font-semibold text-transparent">
-          Ava | Supernova
-        </span>
-      </div>
+      <span className="mr-2 bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] bg-clip-text text-xs font-semibold text-transparent">
+        Ava
+      </span>
 
-      <div className="flex flex-1 flex-col gap-1">
-        {visibleItems.map(({ page, label, icon: Icon, comingSoon }) => {
-          if (comingSoon) {
-            return (
-              <div
-                key={page}
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-[var(--text-muted)] cursor-not-allowed"
-              >
-                <Icon className="h-4 w-4" />
-                <span>{label}</span>
-                <span className="ml-auto rounded bg-[var(--bg-input)] px-1.5 py-0.5 text-[10px]">Soon</span>
-              </div>
-            );
-          }
-          const isActive = currentPage === page;
+      {/* Tab icons */}
+      {visibleItems.map(({ page, label, icon: Icon, comingSoon }) => {
+        if (comingSoon) {
           return (
-            <button
+            <div
               key={page}
-              onClick={() => onNavigate(page)}
-              className={`flex items-center gap-3 rounded-lg border-none px-3 py-2 text-left text-sm transition ${
-                isActive
-                  ? 'bg-[var(--bg-input)] font-medium text-white'
-                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-input)] hover:text-white'
-              }`}
+              className="relative flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-lg text-[var(--text-muted)]"
+              title={`${label} (Coming Soon)`}
             >
               <Icon className="h-4 w-4" />
-              <span>{label}</span>
-            </button>
+            </div>
           );
-        })}
-      </div>
+        }
+        const isActive = currentPage === page;
+        return (
+          <button
+            key={page}
+            onClick={() => onNavigate(page)}
+            className={`flex h-8 w-8 items-center justify-center rounded-lg border-none transition ${
+              isActive
+                ? 'bg-[var(--bg-input)] text-white'
+                : 'text-[var(--text-secondary)] hover:bg-[var(--bg-input)] hover:text-white'
+            }`}
+            title={label}
+          >
+            <Icon className="h-4 w-4" />
+          </button>
+        );
+      })}
 
-      <div className="border-t border-[var(--border-card)] px-3 pt-3">
-        {mode === 'platform' ? (
-          <>
-            {email && (
-              <p className="mb-2 truncate text-[10px] text-[var(--text-muted)]">{email}</p>
-            )}
-            <button
-              onClick={() => post({ type: 'disconnect_account' })}
-              className="w-full rounded-lg border border-red-500/30 bg-transparent px-3 py-1.5 text-xs text-red-400 transition hover:bg-red-500/10"
-            >
-              Disconnect Account
-            </button>
-          </>
-        ) : (
-          <>
-            <p className="mb-2 text-[10px] text-[var(--text-muted)]">Using your own API keys</p>
-            <button
-              onClick={onConnectAccount}
-              className="w-full rounded-lg border border-[var(--accent)]/40 bg-transparent px-3 py-1.5 text-xs text-[var(--accent)] transition hover:bg-[var(--accent)]/10"
-            >
-              Connect Account
-            </button>
-          </>
-        )}
-      </div>
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Account section */}
+      {mode === 'platform' ? (
+        <div className="flex items-center gap-2">
+          {email && (
+            <span className="truncate text-[10px] text-[var(--text-muted)]" style={{ maxWidth: '120px' }}>{email}</span>
+          )}
+          <button
+            onClick={() => post({ type: 'disconnect_account' })}
+            className="rounded-md border border-red-500/30 bg-transparent px-2 py-1 text-[10px] text-red-400 transition hover:bg-red-500/10"
+          >
+            Disconnect
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={onConnectAccount}
+          className="rounded-md border border-[var(--accent)]/40 bg-transparent px-2 py-1 text-[10px] text-[var(--accent)] transition hover:bg-[var(--accent)]/10"
+        >
+          Connect
+        </button>
+      )}
     </nav>
   );
 }

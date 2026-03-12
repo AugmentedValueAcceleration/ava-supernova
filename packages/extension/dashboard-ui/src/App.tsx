@@ -169,10 +169,10 @@ export function App() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden text-sm">
+    <div className="flex h-screen flex-col overflow-hidden text-sm">
       {hasAccess && <NavSidebar currentPage={page} onNavigate={setPage} mode={account ? 'platform' : 'byok'} email={account?.email} onConnectAccount={handleConnectAccount} />}
 
-      <main className="flex-1 overflow-y-auto p-8">
+      <main className="flex-1 overflow-y-auto p-6">
         {errorMsg && (
           <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-400">
             {errorMsg}
