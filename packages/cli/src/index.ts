@@ -12,6 +12,8 @@ import {
   HistoryManager,
   MemoryManager,
   PlatformMemorySync,
+  ProviderHealthTracker,
+  ResilientProvider,
   AVA_HOME,
   detectProjectRoot,
   loadProjectInstructions,
@@ -100,8 +102,24 @@ async function main(): Promise<void> {
 
   const sharedState = { memoryManager, platformKey: appConfig.platformKey };
 
+  // Build resilient provider with automatic failover
+  const healthTracker = new ProviderHealthTracker();
+  const fallbackChain = providerRegistry.buildFallbackChain(appConfig.activeModel);
+  const provider = fallbackChain && fallbackChain.length > 1
+    ? new ResilientProvider({
+        primary: fallbackChain[0],
+        fallbacks: fallbackChain.slice(1),
+        healthTracker,
+        onFallback: (from, to, err) => {
+          console.warn(
+            `\n⚡ Provider failover: ${from.provider.displayName} → ${to.provider.displayName} (${err.message})\n`,
+          );
+        },
+      })
+    : resolved.provider;
+
   const agent = new Agent({
-    provider: resolved.provider,
+    provider,
     model: resolved.model,
     toolRegistry,
     cwd,

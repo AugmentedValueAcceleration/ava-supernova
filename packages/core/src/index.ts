@@ -37,6 +37,10 @@ export { BaseProvider } from './providers/base-provider.js';
 export { ProviderRegistry } from './providers/provider-registry.js';
 export { PlatformProvider } from './providers/platform/index.js';
 export { AvaFreeProvider } from './providers/ava-free/index.js';
+export { ProviderHealthTracker } from './providers/health-tracker.js';
+export type { ProviderHealthSnapshot } from './providers/health-tracker.js';
+export { ResilientProvider } from './providers/resilient-provider.js';
+export type { FallbackEntry, ResilientProviderOptions } from './providers/resilient-provider.js';
 
 // Tools
 export { ToolRegistry } from './tools/tool-registry.js';

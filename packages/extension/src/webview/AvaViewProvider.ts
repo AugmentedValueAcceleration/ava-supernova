@@ -10,6 +10,8 @@ import {
   HistoryManager,
   MemoryManager,
   PlatformMemorySync,
+  ProviderHealthTracker,
+  ResilientProvider,
   AVA_HOME,
   ProviderError,
   buildSystemPrompt,
@@ -36,6 +38,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private conversation?: Conversation;
   private toolRegistry?: ToolRegistry;
   private providerRegistry: ProviderRegistry;
+  private healthTracker: ProviderHealthTracker;
   private historyManager!: HistoryManager;
   private isRunning = false;
   private runAbortController?: AbortController;
@@ -59,6 +62,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     private readonly context: vscode.ExtensionContext,
   ) {
     this.providerRegistry = new ProviderRegistry();
+    this.healthTracker = new ProviderHealthTracker();
     this.outputChannel = vscode.window.createOutputChannel('Ava | Supernova');
     this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     this.statusBarItem.command = 'ava-supernova.switchModel';
@@ -491,8 +495,28 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
     this.conversation.setSystemPrompt(this.buildCurrentSystemPrompt());
 
+    // Build resilient provider with automatic failover
+    const activeModelId = `${provider.name}:${model.id}`;
+    const fallbackChain = this.providerRegistry.buildFallbackChain(activeModelId);
+    const resilientProvider = fallbackChain && fallbackChain.length > 1
+      ? new ResilientProvider({
+          primary: fallbackChain[0],
+          fallbacks: fallbackChain.slice(1),
+          healthTracker: this.healthTracker,
+          onFallback: (from, to, err) => {
+            this.outputChannel.appendLine(
+              `[failover] ${from.provider.displayName} → ${to.provider.displayName}: ${err.message}`,
+            );
+            this.postMessage({
+              type: 'system_message',
+              content: `⚡ Provider failover: ${from.provider.displayName} → ${to.provider.displayName}`,
+            } as ExtToWebviewMessage);
+          },
+        })
+      : provider;
+
     this.agent = new Agent({
-      provider,
+      provider: resilientProvider,
       model,
       toolRegistry: this.toolRegistry,
       cwd,

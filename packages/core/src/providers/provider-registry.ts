@@ -1,5 +1,6 @@
 import type { Provider, ProviderConfig } from './types.js';
 import type { ModelDefinition } from '../core/types.js';
+import type { FallbackEntry } from './resilient-provider.js';
 import { DeepSeekProvider } from './deepseek/index.js';
 import { KimiProvider } from './kimi/index.js';
 import { QwenProvider } from './qwen/index.js';
@@ -88,6 +89,54 @@ export class ProviderRegistry {
       models.push(...provider.listModels());
     }
     return models;
+  }
+
+  /**
+   * Build a fallback chain for a given model. Returns the primary entry plus
+   * compatible fallbacks from other registered providers, sorted by capability
+   * match, context window, and pricing. Capped at 3 fallbacks.
+   *
+   * Returns undefined if the primary model cannot be resolved.
+   */
+  buildFallbackChain(qualifiedId: string): FallbackEntry[] | undefined {
+    const primary = this.resolveModel(qualifiedId);
+    if (!primary) return undefined;
+
+    const candidates: Array<FallbackEntry & { score: number }> = [];
+    const primaryModel = primary.model;
+
+    for (const [name, provider] of this.providers) {
+      if (provider === primary.provider) continue; // skip primary's own provider
+
+      for (const model of provider.listModels()) {
+        // Must support tool calls if primary does
+        if (primaryModel.supportsToolCalls && !model.supportsToolCalls) continue;
+        // Must support streaming if primary does
+        if (primaryModel.supportsStreaming && !model.supportsStreaming) continue;
+
+        // Score: higher is better
+        let score = 0;
+
+        // Prefer matching thinking capability
+        if (primaryModel.supportsThinking && model.supportsThinking) score += 10;
+        // Prefer matching vision capability
+        if (primaryModel.supportsVision && model.supportsVision) score += 5;
+        // Larger context window is better
+        score += Math.min(model.contextWindow / 10_000, 20);
+        // Cheaper is better (if pricing available on both)
+        if (primaryModel.pricing && model.pricing) {
+          if (model.pricing.inputPerMillion < primaryModel.pricing.inputPerMillion) score += 3;
+        }
+
+        candidates.push({ provider, model, score });
+      }
+    }
+
+    // Sort by score descending, take top 3
+    candidates.sort((a, b) => b.score - a.score);
+    const fallbacks = candidates.slice(0, 3).map(({ provider, model }) => ({ provider, model }));
+
+    return [{ provider: primary.provider, model: primary.model }, ...fallbacks];
   }
 
   /**
