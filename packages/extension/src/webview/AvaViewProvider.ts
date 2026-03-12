@@ -134,7 +134,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     try {
       const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
       if (!platformKey) return;
-      if (this.providerSource !== 'platform') return;
+
+      const isByok = this.providerSource !== 'platform';
 
       const res = await apiFetch('/usage', {
         method: 'POST',
@@ -144,6 +145,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           provider: this.activeModelDef?.provider ?? 'unknown',
           input_tokens: usage.prompt_tokens,
           output_tokens: usage.completion_tokens,
+          byok: isByok,
         },
       });
 
