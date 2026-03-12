@@ -119,4 +119,5 @@ export type DashboardToExtMessage =
   | { type: 'save_settings'; settings: DashboardSettings }
   | { type: 'open_chat' }
   | { type: 'open_url'; url: string }
-  | { type: 'update_name'; name: string };
+  | { type: 'update_name'; name: string }
+  | { type: 'refresh_account' };

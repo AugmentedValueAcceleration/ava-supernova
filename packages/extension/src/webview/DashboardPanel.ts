@@ -196,6 +196,10 @@ export class DashboardPanel {
         await this.updateName(msg.name);
         break;
 
+      case 'refresh_account':
+        await this.refreshAccount();
+        break;
+
     }
   }
 

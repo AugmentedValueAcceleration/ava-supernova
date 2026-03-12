@@ -15,6 +15,7 @@ interface OverviewProps {
 export function Overview({ account, connections: _connections, onNavigate }: OverviewProps) {
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(account.name ?? '');
+  const [refreshing, setRefreshing] = useState(false);
 
   const saveName = () => {
     const trimmed = nameValue.trim();
@@ -71,7 +72,24 @@ export function Overview({ account, connections: _connections, onNavigate }: Ove
 
       {/* ── Statistics ─────────────────────────────────────────── */}
       <div className="mb-10">
-        <SectionGroup label="Statistics">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Statistics</h2>
+          <button
+            onClick={() => {
+              setRefreshing(true);
+              post({ type: 'refresh_account' });
+              setTimeout(() => setRefreshing(false), 1500);
+            }}
+            title="Refresh stats"
+            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] text-[var(--text-muted)] transition hover:bg-[var(--bg-input)] hover:text-white"
+          >
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className={refreshing ? 'animate-spin' : ''}>
+              <path d="M13.507 12.324a7 7 0 0 0 .065-8.56A7 7 0 0 0 2 4.393V2H1v3.5l.5.5H5V5H2.811a6.008 6.008 0 1 1-.135 5.77l-.887.462a7 7 0 0 0 11.718 1.092zM8 4h1v4.28l3.35 2.01-.51.858L8 8.72V4z"/>
+            </svg>
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
+        <div className="flex flex-col gap-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <StatCard
               icon={<ChartBarIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
@@ -86,7 +104,7 @@ export function Overview({ account, connections: _connections, onNavigate }: Ove
               subtext="This period"
             />
           </div>
-        </SectionGroup>
+        </div>
       </div>
 
       {/* ── Token Credits ──────────────────────────────────────── */}
