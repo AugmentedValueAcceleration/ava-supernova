@@ -73,6 +73,35 @@ export interface UsageLogEntry {
   timestamp: string;
 }
 
+export interface ConversationEntry {
+  id: string;
+  title: string | null;
+  project_id: string | null;
+  pinned: boolean;
+  messages: { role: string; content: string }[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  email: string;
+  name: string | null;
+  subject: string;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  source: 'tool' | 'dashboard' | 'website';
+  created_at: string;
+  updated_at: string;
+  support_messages: {
+    id: string;
+    sender_type: 'user' | 'admin';
+    sender_name: string;
+    body: string;
+    created_at: string;
+  }[];
+}
+
 export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'connections' | 'history' | 'support' | 'billing' | 'settings';
 
 // Extension Host → Dashboard
@@ -94,6 +123,12 @@ export type ExtToDashboardMessage =
   | { type: 'connection_saved'; service: string }
   | { type: 'connection_removed'; service: string }
   | { type: 'usage_logs_loaded'; logs: UsageLogEntry[] }
+  | { type: 'conversations_loaded'; conversations: ConversationEntry[] }
+  | { type: 'conversation_deleted'; id: string }
+  | { type: 'conversation_pinned'; id: string; pinned: boolean }
+  | { type: 'tickets_loaded'; tickets: SupportTicket[] }
+  | { type: 'ticket_created'; ticket: SupportTicket }
+  | { type: 'ticket_reply_sent'; ticketId: string }
   | { type: 'error'; message: string };
 
 // Dashboard → Extension Host
@@ -120,4 +155,10 @@ export type DashboardToExtMessage =
   | { type: 'open_chat' }
   | { type: 'open_url'; url: string }
   | { type: 'update_name'; name: string }
-  | { type: 'refresh_account' };
+  | { type: 'refresh_account' }
+  | { type: 'load_conversations' }
+  | { type: 'delete_conversation'; id: string }
+  | { type: 'toggle_pin_conversation'; id: string }
+  | { type: 'load_tickets' }
+  | { type: 'create_support_ticket'; subject: string; message: string }
+  | { type: 'reply_support_ticket'; ticketId: string; message: string };

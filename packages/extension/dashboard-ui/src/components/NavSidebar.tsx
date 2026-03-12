@@ -17,8 +17,8 @@ const NAV_ITEMS: Array<{ page: Page; label: string; icon: React.FC<{ className?:
   { page: 'usage', label: 'Usage', icon: ChartBarIcon, platformOnly: true },
   { page: 'memory', label: 'Memory', icon: SparklesIcon, platformOnly: true },
   { page: 'connections', label: 'Connections', icon: LinkIcon, platformOnly: true, comingSoon: true },
-  { page: 'history', label: 'History', icon: ClockIcon, platformOnly: true, comingSoon: true },
-  { page: 'support', label: 'Support', icon: HelpCircleIcon, platformOnly: true, comingSoon: true },
+  { page: 'history', label: 'History', icon: ClockIcon, platformOnly: true },
+  { page: 'support', label: 'Support', icon: HelpCircleIcon, platformOnly: true },
   { page: 'billing', label: 'Plans & Billing', icon: CreditCardIcon, platformOnly: true },
   { page: 'settings', label: 'Settings', icon: CogIcon },
 ];

@@ -200,6 +200,30 @@ export class DashboardPanel {
         await this.refreshAccount();
         break;
 
+      case 'load_conversations':
+        await this.loadConversations();
+        break;
+
+      case 'delete_conversation':
+        await this.deleteConversation(msg.id);
+        break;
+
+      case 'toggle_pin_conversation':
+        await this.togglePinConversation(msg.id);
+        break;
+
+      case 'load_tickets':
+        await this.loadTickets();
+        break;
+
+      case 'create_support_ticket':
+        await this.createSupportTicket(msg.subject, msg.message);
+        break;
+
+      case 'reply_support_ticket':
+        await this.replySupportTicket(msg.ticketId, msg.message);
+        break;
+
     }
   }
 
@@ -504,6 +528,109 @@ export class DashboardPanel {
       await this.secrets.delete(secretKey);
     }
     this.post({ type: 'provider_keys_updated', providerKeys: await this.getProviderKeyStatus() });
+  }
+
+  // ─── Conversations (History) ────────────────────────────────────────────────
+
+  private async loadConversations(): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+
+    try {
+      const res = await apiFetch('/conversations', { platformKey });
+      if (res.ok) {
+        this.post({ type: 'conversations_loaded', conversations: res.data as never[] });
+      }
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  private async deleteConversation(id: string): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+
+    try {
+      const res = await apiFetch(`/conversations/${id}`, { method: 'DELETE', platformKey });
+      if (res.ok) {
+        this.post({ type: 'conversation_deleted', id });
+      } else {
+        this.post({ type: 'error', message: 'Failed to delete conversation.' });
+      }
+    } catch {
+      this.post({ type: 'error', message: 'Failed to delete conversation.' });
+    }
+  }
+
+  private async togglePinConversation(id: string): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+
+    try {
+      const res = await apiFetch(`/conversations/${id}/pin`, { method: 'POST', platformKey });
+      if (res.ok) {
+        const data = res.data as { pinned: boolean };
+        this.post({ type: 'conversation_pinned', id, pinned: data.pinned });
+      }
+    } catch {
+      this.post({ type: 'error', message: 'Failed to update conversation.' });
+    }
+  }
+
+  // ─── Support Tickets ──────────────────────────────────────────────────────
+
+  private async loadTickets(): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+
+    try {
+      const res = await apiFetch('/support', { platformKey });
+      if (res.ok) {
+        this.post({ type: 'tickets_loaded', tickets: res.data as never[] });
+      }
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  private async createSupportTicket(subject: string, message: string): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+
+    try {
+      const res = await apiFetch('/support', {
+        method: 'POST',
+        body: { subject, message, source: 'dashboard' },
+        platformKey,
+      });
+      if (res.ok) {
+        this.post({ type: 'ticket_created', ticket: res.data as never });
+      } else {
+        this.post({ type: 'error', message: 'Failed to create ticket.' });
+      }
+    } catch {
+      this.post({ type: 'error', message: 'Failed to create ticket.' });
+    }
+  }
+
+  private async replySupportTicket(ticketId: string, message: string): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+
+    try {
+      const res = await apiFetch(`/support/${ticketId}/reply`, {
+        method: 'POST',
+        body: { message },
+        platformKey,
+      });
+      if (res.ok) {
+        this.post({ type: 'ticket_reply_sent', ticketId });
+      } else {
+        this.post({ type: 'error', message: 'Failed to send reply.' });
+      }
+    } catch {
+      this.post({ type: 'error', message: 'Failed to send reply.' });
+    }
   }
 
   // ─── Settings ──────────────────────────────────────────────────────────────

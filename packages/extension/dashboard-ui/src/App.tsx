@@ -5,12 +5,16 @@ import { Overview } from './pages/Overview';
 import { Usage } from './pages/Usage';
 import { Memory } from './pages/Memory';
 import { Connections } from './pages/Connections';
+import { History } from './pages/History';
+import { Support } from './pages/Support';
 import { Billing } from './pages/Billing';
 import { Settings } from './pages/Settings';
 import type {
   Page,
   AccountInfo,
   ConnectionStatus,
+  ConversationEntry,
+  SupportTicket,
   DashboardSettings,
   MemoryEntry,
   ProviderKeyStatus,
@@ -22,21 +26,6 @@ import type {
 declare function acquireVsCodeApi(): {
   postMessage: (msg: DashboardToExtMessage) => void;
 };
-
-function ComingSoon({ page }: { page: string }) {
-  const label = page.charAt(0).toUpperCase() + page.slice(1);
-  return (
-    <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
-      <div className="rounded-full bg-[var(--bg-input)] p-4">
-        <svg className="h-8 w-8 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      </div>
-      <h2 className="text-lg font-medium text-white">{label}</h2>
-      <p className="text-sm text-[var(--text-muted)]">This feature is coming soon.</p>
-    </div>
-  );
-}
 
 const vscode = acquireVsCodeApi();
 
@@ -68,6 +57,10 @@ export function App() {
     anthropic: false, deepseek: false, kimi: false, glm: false, qwen: false, mistral: false,
   });
   const [usageLogs, setUsageLogs] = useState<UsageLogEntry[]>([]);
+  const [conversations, setConversations] = useState<ConversationEntry[]>([]);
+  const [conversationsLoading, setConversationsLoading] = useState(false);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
   const [byokMode, setByokMode] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -123,6 +116,27 @@ export function App() {
       case 'usage_logs_loaded':
         setUsageLogs(msg.logs);
         break;
+      case 'conversations_loaded':
+        setConversations(msg.conversations);
+        setConversationsLoading(false);
+        break;
+      case 'conversation_deleted':
+        setConversations((prev) => prev.filter((c) => c.id !== msg.id));
+        break;
+      case 'conversation_pinned':
+        setConversations((prev) => prev.map((c) => c.id === msg.id ? { ...c, pinned: msg.pinned } : c));
+        break;
+      case 'tickets_loaded':
+        setTickets(msg.tickets);
+        setTicketsLoading(false);
+        break;
+      case 'ticket_created':
+        setTickets((prev) => [msg.ticket, ...prev]);
+        break;
+      case 'ticket_reply_sent':
+        // Reload tickets to get updated messages
+        post({ type: 'load_tickets' });
+        break;
       case 'error':
         setErrorMsg(msg.message);
         setTimeout(() => setErrorMsg(null), 5000);
@@ -135,6 +149,18 @@ export function App() {
     post({ type: 'webview_ready' });
     return () => window.removeEventListener('message', handleMessage);
   }, [handleMessage]);
+
+  // Load data when navigating to history or support
+  useEffect(() => {
+    if (page === 'history' && conversations.length === 0 && !conversationsLoading) {
+      setConversationsLoading(true);
+      post({ type: 'load_conversations' });
+    }
+    if (page === 'support' && tickets.length === 0 && !ticketsLoading) {
+      setTicketsLoading(true);
+      post({ type: 'load_tickets' });
+    }
+  }, [page]);
 
   if (!initialized) {
     return (
@@ -179,8 +205,9 @@ export function App() {
       case 'connections':
         return <Connections connections={connections} />;
       case 'history':
+        return <History conversations={conversations} loading={conversationsLoading} />;
       case 'support':
-        return <ComingSoon page={page} />;
+        return <Support tickets={tickets} loading={ticketsLoading} />;
       case 'billing':
         return account ? <Billing account={account} /> : <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
       case 'settings':
