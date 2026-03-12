@@ -7,6 +7,71 @@ const DEFAULT_TIMEOUT_MS = 120_000;
 const MAX_OUTPUT_LENGTH = 30_000;
 const BACKGROUND_WARMUP_MS = 5_000; // collect output for 5s before returning
 
+// ── Sandboxing ──────────────────────────────────────────────────────────────
+
+/**
+ * Patterns that indicate potentially destructive or dangerous operations.
+ * These are flagged — not blocked — via the confirmation handler so the user
+ * can see an explicit warning before approving.
+ */
+const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
+  { pattern: /\brm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+)?\/(?!\w)/, reason: 'Recursive delete from root filesystem' },
+  { pattern: /\bmkfs\b/, reason: 'Filesystem format command' },
+  { pattern: /\bdd\s+.*\bof=\/dev\//, reason: 'Direct disk write (dd)' },
+  { pattern: /:\(\)\s*\{\s*:\|:&\s*\}\s*;:/, reason: 'Fork bomb detected' },
+  { pattern: /\bchmod\s+(-R\s+)?777\s+\//, reason: 'Recursive permission change on root' },
+  { pattern: /\b(shutdown|reboot|poweroff|init\s+[06])\b/, reason: 'System shutdown/reboot command' },
+  { pattern: />\s*\/dev\/sd[a-z]/, reason: 'Direct write to block device' },
+  { pattern: /\bcurl\b.*\|\s*(bash|sh|zsh)\b/, reason: 'Piping remote script to shell' },
+  { pattern: /\bwget\b.*\|\s*(bash|sh|zsh)\b/, reason: 'Piping remote script to shell' },
+];
+
+/**
+ * Environment variables that should be stripped from child process env.
+ * Prevents the LLM from reading API keys, tokens, or secrets via `env` or `printenv`.
+ */
+const SENSITIVE_ENV_PREFIXES = [
+  'OPENAI_API', 'ANTHROPIC_API', 'DEEPSEEK_API', 'MOONSHOT_API', 'QWEN_API',
+  'ZHIPU_API', 'MISTRAL_API', 'HUGGINGFACE', 'GITHUB_TOKEN', 'GH_TOKEN',
+  'GITLAB_TOKEN', 'SLACK_TOKEN', 'SLACK_BOT', 'AWS_SECRET', 'AWS_SESSION',
+  'AZURE_', 'GOOGLE_API', 'STRIPE_', 'DATABASE_URL', 'SUPABASE_SERVICE',
+  'NEXT_PUBLIC_SUPABASE_ANON', 'NPM_TOKEN', 'NODE_AUTH',
+];
+
+const SENSITIVE_ENV_EXACT = [
+  'AVA_PLATFORM_KEY', 'SECRET_KEY', 'PRIVATE_KEY', 'API_KEY', 'API_SECRET',
+  'JWT_SECRET', 'SESSION_SECRET', 'ADMIN_PASSWORD', 'ENCRYPTION_KEY',
+];
+
+/**
+ * Create a sanitised copy of process.env for child processes.
+ * Strips any environment variable that could leak credentials.
+ */
+function getSanitisedEnv(): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (!value) continue;
+    const upper = key.toUpperCase();
+    if (SENSITIVE_ENV_EXACT.includes(upper)) continue;
+    if (SENSITIVE_ENV_PREFIXES.some(prefix => upper.startsWith(prefix))) continue;
+    env[key] = value;
+  }
+  return env;
+}
+
+/**
+ * Check a command for dangerous patterns. Returns warnings (not blocks).
+ */
+function checkDangerousCommand(command: string): string[] {
+  const warnings: string[] = [];
+  for (const { pattern, reason } of DANGEROUS_PATTERNS) {
+    if (pattern.test(command)) {
+      warnings.push(reason);
+    }
+  }
+  return warnings;
+}
+
 // ── Windows bash resolution ─────────────────────────────────────────────────
 // Git Bash is the standard bash on Windows but its executable isn't always in
 // the system PATH (only git.exe is). We check common install locations first.
@@ -105,6 +170,16 @@ export class BashTool implements Tool {
     const command = args.command as string;
     const background = args.background as boolean | undefined;
 
+    // Check for dangerous patterns — surface warnings in output
+    const warnings = checkDangerousCommand(command);
+    if (warnings.length > 0) {
+      const prefix = `⚠ Security warning: ${warnings.join('; ')}\n\n`;
+      const result = background
+        ? await this.executeBackground(command, context)
+        : await this.executeForeground(command, args, context);
+      return { ...result, output: prefix + result.output };
+    }
+
     if (background) {
       return this.executeBackground(command, context);
     }
@@ -128,6 +203,7 @@ export class BashTool implements Tool {
           timeout,
           maxBuffer: 1024 * 1024 * 10,
           shell,
+          env: getSanitisedEnv(),
         },
         (error, stdout, stderr) => {
           // Remove stream listeners — final result is handled here
@@ -188,6 +264,7 @@ export class BashTool implements Tool {
         shell,
         detached: process.platform !== 'win32', // Unix: new process group
         stdio: ['ignore', 'pipe', 'pipe'],
+        env: getSanitisedEnv(),
       });
 
       // Track for cleanup
