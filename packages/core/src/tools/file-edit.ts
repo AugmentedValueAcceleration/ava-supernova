@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
-import { resolve, isAbsolute } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
+import { validatePath } from './security.js';
 
 export class FileEditTool implements Tool {
   readonly name = 'file_edit';
@@ -44,7 +44,12 @@ export class FileEditTool implements Tool {
     const newString = args.new_string as string;
     const replaceAll = (args.replace_all as boolean) ?? false;
 
-    const absolutePath = isAbsolute(filePath) ? filePath : resolve(context.cwd, filePath);
+    let absolutePath: string;
+    try {
+      absolutePath = validatePath(filePath, context.cwd);
+    } catch (err) {
+      return { success: false, output: (err as Error).message };
+    }
 
     try {
       const content = await readFile(absolutePath, 'utf-8');

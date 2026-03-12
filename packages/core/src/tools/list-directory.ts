@@ -1,7 +1,8 @@
 import { readdir, stat } from 'node:fs/promises';
-import { resolve, isAbsolute, join } from 'node:path';
+import { join } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
+import { validatePath } from './security.js';
 
 const MAX_ENTRIES = 200;
 
@@ -37,7 +38,12 @@ export class ListDirectoryTool implements Tool {
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const rawPath = args.path as string;
-    const dirPath = isAbsolute(rawPath) ? rawPath : resolve(context.cwd, rawPath);
+    let dirPath: string;
+    try {
+      dirPath = validatePath(rawPath, context.cwd);
+    } catch (err) {
+      return { success: false, output: (err as Error).message };
+    }
 
     try {
       const entries = await readdir(dirPath, { withFileTypes: true });

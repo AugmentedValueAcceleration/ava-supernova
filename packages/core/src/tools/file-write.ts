@@ -1,7 +1,8 @@
 import { writeFile, mkdir } from 'node:fs/promises';
-import { resolve, isAbsolute, dirname } from 'node:path';
+import { dirname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
+import { validatePath } from './security.js';
 
 export class FileWriteTool implements Tool {
   readonly name = 'file_write';
@@ -34,7 +35,12 @@ export class FileWriteTool implements Tool {
     const filePath = args.file_path as string;
     const content = args.content as string;
 
-    const absolutePath = isAbsolute(filePath) ? filePath : resolve(context.cwd, filePath);
+    let absolutePath: string;
+    try {
+      absolutePath = validatePath(filePath, context.cwd);
+    } catch (err) {
+      return { success: false, output: (err as Error).message };
+    }
 
     try {
       await mkdir(dirname(absolutePath), { recursive: true });

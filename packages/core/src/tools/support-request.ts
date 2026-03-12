@@ -1,5 +1,6 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
+import { containsCredentials } from './security.js';
 
 export class SupportRequestTool implements Tool {
   readonly name = 'support_request';
@@ -67,6 +68,15 @@ export class SupportRequestTool implements Tool {
 
     if (message.length > 10_000) {
       return { success: false, output: 'Message must be 10,000 characters or fewer.' };
+    }
+
+    // Block credential submission
+    if (containsCredentials(subject) || containsCredentials(message)) {
+      return {
+        success: false,
+        output: 'Blocked: the message appears to contain API keys, tokens, or credentials. ' +
+          'Please remove sensitive data before submitting a support ticket.',
+      };
     }
 
     // Get the API base URL — prefer platform config, fall back to default

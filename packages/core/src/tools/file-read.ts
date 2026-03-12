@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
-import { resolve, isAbsolute } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
+import { validatePath } from './security.js';
 
 export class FileReadTool implements Tool {
   readonly name = 'file_read';
@@ -39,7 +39,12 @@ export class FileReadTool implements Tool {
     const offset = (args.offset as number) ?? 1;
     const limit = (args.limit as number) ?? 2000;
 
-    const absolutePath = isAbsolute(filePath) ? filePath : resolve(context.cwd, filePath);
+    let absolutePath: string;
+    try {
+      absolutePath = validatePath(filePath, context.cwd);
+    } catch (err) {
+      return { success: false, output: (err as Error).message };
+    }
 
     try {
       const content = await readFile(absolutePath, 'utf-8');

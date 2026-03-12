@@ -1,7 +1,7 @@
 import { glob } from 'glob';
-import { resolve, isAbsolute } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
+import { validateSearchPath } from './security.js';
 
 export class GlobTool implements Tool {
   readonly name = 'glob';
@@ -34,11 +34,12 @@ export class GlobTool implements Tool {
     const pattern = args.pattern as string;
     const searchPath = args.path as string | undefined;
 
-    const cwd = searchPath
-      ? isAbsolute(searchPath)
-        ? searchPath
-        : resolve(context.cwd, searchPath)
-      : context.cwd;
+    let cwd: string;
+    try {
+      cwd = validateSearchPath(searchPath, context.cwd);
+    } catch (err) {
+      return { success: false, output: (err as Error).message };
+    }
 
     try {
       const matches = await glob(pattern, {

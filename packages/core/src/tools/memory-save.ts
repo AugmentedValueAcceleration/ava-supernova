@@ -3,6 +3,7 @@ import type { FunctionSchema } from '../providers/types.js';
 import type { MemoryManager } from '../memory/memory-manager.js';
 import type { MemoryCategory } from '../memory/types.js';
 import { MEMORY_CATEGORIES } from '../memory/types.js';
+import { containsCredentials } from './security.js';
 
 export class MemorySaveTool implements Tool {
   readonly name = 'memory_save';
@@ -81,24 +82,12 @@ export class MemorySaveTool implements Tool {
     }
 
     // Block saving of credentials/secrets
-    const secretPatterns = [
-      /sk[-_](?:live|test|ant|proj)[_-]\S{10,}/i,
-      /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}/,
-      /\bglpat-[A-Za-z0-9\-_]{20,}/,
-      /\bxox[baprs]-[A-Za-z0-9\-]{20,}/,
-      /\beyJ[A-Za-z0-9\-_]{50,}\.[A-Za-z0-9\-_]{50,}/,
-      /\b(?:AKIA|ABIA|ACCA|ASIA)[A-Z0-9]{16}\b/,
-      /\bAIza[A-Za-z0-9\-_]{30,}/,
-      /-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----/,
-    ];
-    for (const pattern of secretPatterns) {
-      if (pattern.test(content)) {
-        return {
-          success: false,
-          output: 'Blocked: content appears to contain API keys, tokens, or credentials. ' +
-            'Store credentials in environment variables or a secure vault instead.',
-        };
-      }
+    if (containsCredentials(content)) {
+      return {
+        success: false,
+        output: 'Blocked: content appears to contain API keys, tokens, or credentials. ' +
+          'Store credentials in environment variables or a secure vault instead.',
+      };
     }
 
     const memoryManager = context.sharedState?.memoryManager as MemoryManager | undefined;

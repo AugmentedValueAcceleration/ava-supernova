@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { glob } from 'glob';
-import { resolve, isAbsolute } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
+import { validateSearchPath } from './security.js';
 
 const MAX_RESULTS = 200;
 
@@ -47,13 +47,19 @@ export class GrepTool implements Tool {
     const filePattern = (args.file_pattern as string) ?? '**/*';
     const caseInsensitive = (args.case_insensitive as boolean) ?? false;
 
-    const cwd = searchPath
-      ? isAbsolute(searchPath)
-        ? searchPath
-        : resolve(context.cwd, searchPath)
-      : context.cwd;
+    let cwd: string;
+    try {
+      cwd = validateSearchPath(searchPath, context.cwd);
+    } catch (err) {
+      return { success: false, output: (err as Error).message };
+    }
 
     try {
+      // Guard against ReDoS — reject overly complex patterns
+      if (pattern.length > 500) {
+        return { success: false, output: 'Regex pattern is too long (max 500 characters).' };
+      }
+
       const regex = new RegExp(pattern, caseInsensitive ? 'i' : '');
 
       const files = await glob(filePattern, {
