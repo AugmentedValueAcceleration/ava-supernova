@@ -1231,38 +1231,36 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       const msg = error.humanMessage;
       switch (error.statusCode) {
         case 400: {
-          // Check both the error message and the raw response body for context-length keywords
           const raw400 = `${error.message} ${typeof error.responseBody === 'string' ? error.responseBody : ''}`.toLowerCase();
           if (raw400.includes('context') || raw400.includes('token') || raw400.includes('length') || raw400.includes('too long') || raw400.includes('maximum')) {
-            return { message: msg, code: 'bad_request', suggestion: 'The conversation is too long for this model. Start a new chat (click + in the header).' };
+            return { message: msg, code: 'context_truncated', suggestion: 'This conversation has gotten too long for the model. Click the + button to start a fresh chat.' };
           }
-          return { message: msg, code: 'bad_request', suggestion: 'The request format may be incompatible with this model. Try starting a new chat or switching models.' };
+          return { message: msg, code: 'bad_request', suggestion: 'Try starting a new chat or switching to a different model.' };
         }
         case 401:
-          return { message: msg, code: 'auth', suggestion: 'Open Settings and check your API key for this provider.' };
+          return { message: msg, code: 'auth', suggestion: 'Go to the Dashboard and check that your API key is correct and hasn\'t expired.' };
         case 402:
-          return { message: msg, code: 'credits', suggestion: 'Top up your account balance with the provider.' };
+          return { message: msg, code: 'credits', suggestion: 'Add credits to your provider account, or switch to a free model like GLM-4.5 Flash.' };
         case 403:
-          return { message: msg, code: 'forbidden', suggestion: 'Check that your API key has the required permissions.' };
+          return { message: msg, code: 'forbidden', suggestion: 'Your API key may not have the right permissions. Check your provider dashboard.' };
         case 404:
-          return { message: msg, code: 'model_not_found', suggestion: 'The model ID may have changed. Try switching to a different model.' };
+          return { message: msg, code: 'model_not_found', suggestion: 'Click the model name in the header to switch to a different model.' };
         case 429:
-          return { message: msg, code: 'rate_limit', suggestion: 'Wait a moment and try again, or switch to a different provider.' };
+          return { message: msg, code: 'rate_limit', suggestion: 'Wait about 30 seconds and try again, or switch to a different provider.' };
         case 500: case 502: case 503:
-          return { message: msg, code: 'server_error', suggestion: 'The provider is having issues. Wait a few minutes or try another provider.' };
+          return { message: msg, code: 'server_error', suggestion: 'This is on the provider\'s side, not yours. Wait a few minutes and try again, or switch providers.' };
         default: {
-          // No status code — check the raw message for patterns
           const raw = error.message.toLowerCase();
           if (raw.includes('timed out') || raw.includes('timeout')) {
-            return { message: msg, code: 'timeout', suggestion: 'The provider took too long to respond. Check your connection or try again.' };
+            return { message: msg, code: 'timeout', suggestion: 'The AI took too long to respond. This can happen with complex requests — try again or simplify your message.' };
           }
           if (raw.includes('stream stalled')) {
-            return { message: msg, code: 'stream_stall', suggestion: 'The response stream stopped unexpectedly. Try sending your message again.' };
+            return { message: msg, code: 'stream_stall', suggestion: 'The connection to the AI was interrupted. Click Try Again to resend your message.' };
           }
           if (raw.includes('network error') || raw.includes('fetch failed') || raw.includes('econnrefused')) {
-            return { message: msg, code: 'network', suggestion: 'Check your internet connection. If using a custom endpoint, verify the URL in Settings.' };
+            return { message: msg, code: 'network', suggestion: 'Check your internet connection. If you\'re using a local model, make sure the server is running.' };
           }
-          return { message: msg, code: 'provider_error', suggestion: 'Check Output > "Ava | Supernova" for details.' };
+          return { message: msg, code: 'provider_error', suggestion: 'Something unexpected happened. Try again, or check Output > "Ava | Supernova" for technical details.' };
         }
       }
     }
@@ -1271,10 +1269,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const errorCode = error instanceof Error ? (error as Error & { code?: string }).code : undefined;
 
     if (errorCode === 'iterations_exceeded') {
-      return { message: rawMsg, code: 'iterations_exceeded', suggestion: 'Click Continue to let Ava keep working, or start a new message with more specific instructions.' };
+      return { message: rawMsg, code: 'iterations_exceeded', suggestion: 'Click Try Again to let Ava keep working, or break the task into smaller pieces.' };
     }
 
-    return { message: rawMsg, code: 'unknown', suggestion: 'An unexpected error occurred. Check Output > "Ava | Supernova" for details.' };
+    return { message: rawMsg, code: 'unknown', suggestion: 'Something unexpected happened. Try again, or check Output > "Ava | Supernova" for technical details.' };
   }
 
   private formatToolSummary(toolName: string, args: Record<string, unknown>): string {

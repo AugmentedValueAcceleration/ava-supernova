@@ -55,8 +55,7 @@ export class ProviderError extends AvaError {
       case 404:
         return t('error.msg.model_not_found', { provider: this.provider });
       case 429:
-        return t('error.msg.rate_limit', { provider: this.provider })
-          + ' Retries exhausted — the provider may have very strict rate limits on this model.';
+        return t('error.msg.rate_limit', { provider: this.provider });
       case 500:
       case 502:
       case 503: {
