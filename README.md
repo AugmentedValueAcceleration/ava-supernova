@@ -10,6 +10,7 @@
     <a href="#ide">IDE</a> &middot;
     <a href="#tools-24">Tools</a> &middot;
     <a href="#privacy--security">Privacy</a> &middot;
+    <a href="#sponsors">Sponsors</a> &middot;
     <a href="#contributing">Contributing</a>
   </p>
   <p align="center">
@@ -326,6 +327,18 @@ cd packages/extension && pnpm build
 - [ ] Plugin system for community-contributed tools
 - [ ] Productivity tools (email, Slack, Discord)
 - [ ] Settings/history sync across machines
+
+## Sponsors
+
+Ava | Supernova is funded by the community. Sponsors keep this project free and open source.
+
+### Champions
+
+<!-- $50+/mo sponsors — name/logo + link appear here -->
+
+*[Become a sponsor](https://github.com/sponsors/AugmentedValueAcceleration) to have your name or logo featured here.*
+
+See all sponsors in [SPONSORS.md](SPONSORS.md).
 
 ## Contributing
 
