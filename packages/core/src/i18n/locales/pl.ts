@@ -270,6 +270,7 @@ export const plStrings: Record<string, string> = {
   'cli.ok': 'OK',
   'cli.fail': 'BŁĄD',
   'cli.more_lines': '... ({count} więcej linii)',
+  'cli.cancelled': 'Anulowano.',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
   'setup.welcome': 'Witaj w Ava | Supernova',

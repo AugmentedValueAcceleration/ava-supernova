@@ -270,6 +270,7 @@ export const jaStrings: Record<string, string> = {
   'cli.ok': 'OK',
   'cli.fail': '失敗',
   'cli.more_lines': '...（残り {count} 行）',
+  'cli.cancelled': 'キャンセルされました。',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
   'setup.welcome': 'Ava | Supernova へようこそ',

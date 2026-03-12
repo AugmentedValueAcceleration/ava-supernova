@@ -3,6 +3,39 @@ export const koStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': '코드에 대해 무엇이든 물어보세요.',
+  'welcome.tagline': '24개 도구 · 7개 공급자 · 2개 무료 모델 · 20개 언어',
+
+  // Welcome — Setup
+  'welcome.setup_title': '시작하기 — API 키 추가',
+  'welcome.setup_desc': '공급자 API 키를 추가하여 Ava를 활성화하세요. GLM-4.5 Flash와 Codestral은 완전 무료입니다 — 신용카드 불필요.',
+  'welcome.setup_cta': '설정 열기',
+  'welcome.ready_with': '준비 완료:',
+
+  // Welcome — Sections
+  'welcome.quick_start': '빠른 시작',
+  'welcome.capabilities': 'Ava가 할 수 있는 것',
+  'welcome.modes': '모드',
+  'welcome.footer': '오픈 소스 · 당신의 키, 당신의 데이터 · 개인정보 보호 최우선',
+
+  // Welcome — Capabilities
+  'welcome.cap.files': '파일 읽기 및 쓰기',
+  'welcome.cap.files_desc': '프로젝트의 모든 파일을 생성, 편집, 관리',
+  'welcome.cap.search': '검색 및 탐색',
+  'welcome.cap.search_desc': '파일, 심볼 검색 및 코드베이스 전체 grep',
+  'welcome.cap.terminal': '명령 실행',
+  'welcome.cap.terminal_desc': '셸 명령과 스크립트를 직접 실행',
+  'welcome.cap.web': '웹 & API',
+  'welcome.cap.web_desc': '웹 검색, HTTP 요청, 페이지 탐색',
+  'welcome.cap.security': '보안 감사',
+  'welcome.cap.security_desc': '취약점 및 보안 문제 스캔',
+  'welcome.cap.memory': '영구 메모리',
+  'welcome.cap.memory_desc': '대화 간 컨텍스트를 기억',
+
+  // Welcome — Modes
+  'welcome.mode.code_desc': '모든 도구를 갖춘 전체 에이전트',
+  'welcome.mode.plan_desc': '아키텍처 및 계획',
+  'welcome.mode.chat_desc': '토론만',
+  'welcome.mode.security_desc': '보안 스캔',
 
   // Input Area
   'input.placeholder.code': '무엇을 만들고 싶으신가요?',

@@ -270,6 +270,7 @@ export const arStrings: Record<string, string> = {
   'cli.ok': 'موافق',
   'cli.fail': 'فشل',
   'cli.more_lines': '... ({count} سطر إضافي)',
+  'cli.cancelled': 'تم الإلغاء.',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
   'setup.welcome': 'مرحباً بك في Ava | Supernova',

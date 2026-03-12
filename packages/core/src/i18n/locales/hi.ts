@@ -270,6 +270,7 @@ export const hiStrings: Record<string, string> = {
   'cli.ok': 'ठीक',
   'cli.fail': 'विफल',
   'cli.more_lines': '... ({count} और पंक्तियाँ)',
+  'cli.cancelled': 'रद्द किया गया।',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
   'setup.welcome': 'Ava | Supernova में आपका स्वागत है',

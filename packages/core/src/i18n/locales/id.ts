@@ -270,6 +270,7 @@ export const idStrings: Record<string, string> = {
   'cli.ok': 'OK',
   'cli.fail': 'GAGAL',
   'cli.more_lines': '... ({count} baris lagi)',
+  'cli.cancelled': 'Dibatalkan.',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
   'setup.welcome': 'Selamat datang di Ava | Supernova',

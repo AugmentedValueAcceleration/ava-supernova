@@ -3,6 +3,39 @@ export const frStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Posez n\u2019importe quelle question sur votre code.',
+  'welcome.tagline': '24 outils \u00b7 7 fournisseurs \u00b7 2 mod\u00e8les gratuits \u00b7 20 langues',
+
+  // Welcome — Setup
+  'welcome.setup_title': 'D\u00e9marrer \u2014 Ajouter une cl\u00e9 API',
+  'welcome.setup_desc': 'Ajoutez une cl\u00e9 API de fournisseur pour d\u00e9bloquer Ava. GLM-4.5 Flash et Codestral sont enti\u00e8rement gratuits \u2014 aucune carte de cr\u00e9dit requise.',
+  'welcome.setup_cta': 'Ouvrir les param\u00e8tres',
+  'welcome.ready_with': 'Pr\u00eat avec',
+
+  // Welcome — Sections
+  'welcome.quick_start': 'D\u00e9marrage rapide',
+  'welcome.capabilities': 'Ce qu\u2019Ava peut faire',
+  'welcome.modes': 'Modes',
+  'welcome.footer': 'Open source \u00b7 Vos cl\u00e9s, vos donn\u00e9es \u00b7 Confidentialit\u00e9 d\u2019abord',
+
+  // Welcome — Capabilities
+  'welcome.cap.files': 'Lire et \u00e9crire des fichiers',
+  'welcome.cap.files_desc': 'Cr\u00e9ez, modifiez et g\u00e9rez n\u2019importe quel fichier de votre projet',
+  'welcome.cap.search': 'Rechercher et naviguer',
+  'welcome.cap.search_desc': 'Trouvez des fichiers, des symboles et recherchez dans votre code',
+  'welcome.cap.terminal': 'Ex\u00e9cuter des commandes',
+  'welcome.cap.terminal_desc': 'Ex\u00e9cutez des commandes shell et des scripts directement',
+  'welcome.cap.web': 'Web et APIs',
+  'welcome.cap.web_desc': 'Recherchez sur le web, effectuez des requ\u00eates HTTP, parcourez des pages',
+  'welcome.cap.security': 'Audit de s\u00e9curit\u00e9',
+  'welcome.cap.security_desc': 'D\u00e9tectez les vuln\u00e9rabilit\u00e9s et les probl\u00e8mes de s\u00e9curit\u00e9',
+  'welcome.cap.memory': 'M\u00e9moire persistante',
+  'welcome.cap.memory_desc': 'Retient le contexte entre les conversations',
+
+  // Welcome — Modes
+  'welcome.mode.code_desc': 'Agent complet avec tous les outils',
+  'welcome.mode.plan_desc': 'Architecture et planification',
+  'welcome.mode.chat_desc': 'Discussion uniquement',
+  'welcome.mode.security_desc': 'Analyse de s\u00e9curit\u00e9',
 
   // Input Area
   'input.placeholder.code': 'Que voulez-vous construire ?',

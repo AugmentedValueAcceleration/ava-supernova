@@ -270,6 +270,7 @@ export const thStrings: Record<string, string> = {
   'cli.ok': 'สำเร็จ',
   'cli.fail': 'ล้มเหลว',
   'cli.more_lines': '... (อีก {count} บรรทัด)',
+  'cli.cancelled': 'ยกเลิกแล้ว',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
   'setup.welcome': 'ยินดีต้อนรับสู่ Ava | Supernova',

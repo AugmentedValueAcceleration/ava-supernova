@@ -3,6 +3,39 @@ export const viStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Hỏi bất kỳ điều gì về mã nguồn của bạn.',
+  'welcome.tagline': '24 công cụ · 7 nhà cung cấp · 2 mô hình miễn phí · 20 ngôn ngữ',
+
+  // Welcome — Setup
+  'welcome.setup_title': 'Bắt đầu — Thêm khóa API',
+  'welcome.setup_desc': 'Thêm khóa API của nhà cung cấp để mở khóa Ava. GLM-4.5 Flash và Codestral hoàn toàn miễn phí — không cần thẻ tín dụng.',
+  'welcome.setup_cta': 'Mở cài đặt',
+  'welcome.ready_with': 'Sẵn sàng với',
+
+  // Welcome — Sections
+  'welcome.quick_start': 'Bắt đầu nhanh',
+  'welcome.capabilities': 'Ava có thể làm gì',
+  'welcome.modes': 'Chế độ',
+  'welcome.footer': 'Mã nguồn mở · Khóa của bạn, dữ liệu của bạn · Quyền riêng tư là trên hết',
+
+  // Welcome — Capabilities
+  'welcome.cap.files': 'Đọc & ghi tệp',
+  'welcome.cap.files_desc': 'Tạo, chỉnh sửa và quản lý bất kỳ tệp nào trong dự án',
+  'welcome.cap.search': 'Tìm kiếm & điều hướng',
+  'welcome.cap.search_desc': 'Tìm tệp, ký hiệu và grep trong toàn bộ codebase',
+  'welcome.cap.terminal': 'Chạy lệnh',
+  'welcome.cap.terminal_desc': 'Thực thi lệnh shell và script trực tiếp',
+  'welcome.cap.web': 'Web & API',
+  'welcome.cap.web_desc': 'Tìm kiếm web, gửi yêu cầu HTTP, duyệt trang',
+  'welcome.cap.security': 'Kiểm tra bảo mật',
+  'welcome.cap.security_desc': 'Quét lỗ hổng và vấn đề bảo mật',
+  'welcome.cap.memory': 'Bộ nhớ bền vững',
+  'welcome.cap.memory_desc': 'Ghi nhớ ngữ cảnh giữa các cuộc trò chuyện',
+
+  // Welcome — Modes
+  'welcome.mode.code_desc': 'Agent đầy đủ với tất cả công cụ',
+  'welcome.mode.plan_desc': 'Kiến trúc & lập kế hoạch',
+  'welcome.mode.chat_desc': 'Chỉ thảo luận',
+  'welcome.mode.security_desc': 'Quét bảo mật',
 
   // Input Area
   'input.placeholder.code': 'Bạn muốn xây dựng gì?',

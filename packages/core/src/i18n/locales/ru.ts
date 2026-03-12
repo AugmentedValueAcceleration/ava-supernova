@@ -270,6 +270,7 @@ export const ruStrings: Record<string, string> = {
   'cli.ok': 'ОК',
   'cli.fail': 'ОШИБКА',
   'cli.more_lines': '... (ещё {count} строк)',
+  'cli.cancelled': 'Отменено.',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
   'setup.welcome': 'Добро пожаловать в Ava | Supernova',

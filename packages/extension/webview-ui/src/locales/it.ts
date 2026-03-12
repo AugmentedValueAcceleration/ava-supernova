@@ -3,6 +3,39 @@ export const itStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Chiedi qualsiasi cosa sul tuo codice.',
+  'welcome.tagline': '24 strumenti \u00b7 7 provider \u00b7 2 modelli gratuiti \u00b7 20 lingue',
+
+  // Welcome — Setup
+  'welcome.setup_title': 'Inizia \u2014 Aggiungi una chiave API',
+  'welcome.setup_desc': 'Aggiungi una chiave API del provider per sbloccare Ava. GLM-4.5 Flash e Codestral sono completamente gratuiti \u2014 nessuna carta di credito richiesta.',
+  'welcome.setup_cta': 'Apri impostazioni',
+  'welcome.ready_with': 'Pronto con',
+
+  // Welcome — Sections
+  'welcome.quick_start': 'Avvio rapido',
+  'welcome.capabilities': 'Cosa pu\u00f2 fare Ava',
+  'welcome.modes': 'Modalit\u00e0',
+  'welcome.footer': 'Open source \u00b7 Le tue chiavi, i tuoi dati \u00b7 Privacy prima di tutto',
+
+  // Welcome — Capabilities
+  'welcome.cap.files': 'Leggi e scrivi file',
+  'welcome.cap.files_desc': 'Crea, modifica e gestisci qualsiasi file nel tuo progetto',
+  'welcome.cap.search': 'Cerca e naviga',
+  'welcome.cap.search_desc': 'Trova file, simboli e cerca nel tuo codice',
+  'welcome.cap.terminal': 'Esegui comandi',
+  'welcome.cap.terminal_desc': 'Esegui comandi shell e script direttamente',
+  'welcome.cap.web': 'Web e API',
+  'welcome.cap.web_desc': 'Cerca sul web, effettua richieste HTTP, naviga pagine',
+  'welcome.cap.security': 'Audit di sicurezza',
+  'welcome.cap.security_desc': 'Scansiona vulnerabilit\u00e0 e problemi di sicurezza',
+  'welcome.cap.memory': 'Memoria persistente',
+  'welcome.cap.memory_desc': 'Ricorda il contesto tra le conversazioni',
+
+  // Welcome — Modes
+  'welcome.mode.code_desc': 'Agente completo con tutti gli strumenti',
+  'welcome.mode.plan_desc': 'Architettura e pianificazione',
+  'welcome.mode.chat_desc': 'Solo discussione',
+  'welcome.mode.security_desc': 'Scansione di sicurezza',
 
   // Input Area
   'input.placeholder.code': 'Cosa vuoi costruire?',

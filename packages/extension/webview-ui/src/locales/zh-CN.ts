@@ -3,6 +3,39 @@ export const zhCNStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': '关于你的代码，随便问。',
+  'welcome.tagline': '24 个工具 · 7 个服务商 · 2 个免费模型 · 20 种语言',
+
+  // Welcome — Setup
+  'welcome.setup_title': '开始使用 — 添加 API 密钥',
+  'welcome.setup_desc': '添加服务商 API 密钥以解锁 Ava。GLM-4.5 Flash 和 Codestral 完全免费 — 无需信用卡。',
+  'welcome.setup_cta': '打开设置',
+  'welcome.ready_with': '已就绪：',
+
+  // Welcome — Sections
+  'welcome.quick_start': '快速开始',
+  'welcome.capabilities': 'Ava 能做什么',
+  'welcome.modes': '模式',
+  'welcome.footer': '开源 · 你的密钥，你的数据 · 隐私优先',
+
+  // Welcome — Capabilities
+  'welcome.cap.files': '读写文件',
+  'welcome.cap.files_desc': '创建、编辑和管理项目中的任何文件',
+  'welcome.cap.search': '搜索与导航',
+  'welcome.cap.search_desc': '查找文件、符号，在整个代码库中进行 grep',
+  'welcome.cap.terminal': '运行命令',
+  'welcome.cap.terminal_desc': '直接执行 shell 命令和脚本',
+  'welcome.cap.web': 'Web 与 API',
+  'welcome.cap.web_desc': '搜索网页、发送 HTTP 请求、浏览页面',
+  'welcome.cap.security': '安全审计',
+  'welcome.cap.security_desc': '扫描漏洞和安全问题',
+  'welcome.cap.memory': '持久记忆',
+  'welcome.cap.memory_desc': '跨对话记住上下文',
+
+  // Welcome — Modes
+  'welcome.mode.code_desc': '全功能代理，包含所有工具',
+  'welcome.mode.plan_desc': '架构与规划',
+  'welcome.mode.chat_desc': '仅讨论',
+  'welcome.mode.security_desc': '安全扫描',
 
   // Input Area
   'input.placeholder.code': '你想构建什么？',

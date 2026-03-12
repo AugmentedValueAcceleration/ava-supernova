@@ -270,6 +270,7 @@ export const deStrings: Record<string, string> = {
   'cli.ok': 'OK',
   'cli.fail': 'FEHLER',
   'cli.more_lines': '... ({count} weitere Zeilen)',
+  'cli.cancelled': 'Abgebrochen.',
 
   // \u2500\u2500 Setup Wizard \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   'setup.welcome': 'Willkommen bei Ava | Supernova',

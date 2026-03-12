@@ -3,6 +3,39 @@ export const idStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Tanyakan apa saja tentang kode Anda.',
+  'welcome.tagline': '24 alat · 7 provider · 2 model gratis · 20 bahasa',
+
+  // Welcome — Setup
+  'welcome.setup_title': 'Mulai — Tambahkan Kunci API',
+  'welcome.setup_desc': 'Tambahkan kunci API provider untuk membuka Ava. GLM-4.5 Flash dan Codestral sepenuhnya gratis — tanpa kartu kredit.',
+  'welcome.setup_cta': 'Buka Pengaturan',
+  'welcome.ready_with': 'Siap dengan',
+
+  // Welcome — Sections
+  'welcome.quick_start': 'Mulai Cepat',
+  'welcome.capabilities': 'Yang Bisa Dilakukan Ava',
+  'welcome.modes': 'Mode',
+  'welcome.footer': 'Open source · Kunci Anda, data Anda · Privasi utama',
+
+  // Welcome — Capabilities
+  'welcome.cap.files': 'Baca & Tulis File',
+  'welcome.cap.files_desc': 'Buat, edit, dan kelola file apa pun di proyek Anda',
+  'welcome.cap.search': 'Cari & Navigasi',
+  'welcome.cap.search_desc': 'Temukan file, simbol, dan grep di seluruh codebase',
+  'welcome.cap.terminal': 'Jalankan Perintah',
+  'welcome.cap.terminal_desc': 'Jalankan perintah shell dan skrip secara langsung',
+  'welcome.cap.web': 'Web & API',
+  'welcome.cap.web_desc': 'Cari di web, buat permintaan HTTP, jelajahi halaman',
+  'welcome.cap.security': 'Audit Keamanan',
+  'welcome.cap.security_desc': 'Pindai kerentanan dan masalah keamanan',
+  'welcome.cap.memory': 'Memori Persisten',
+  'welcome.cap.memory_desc': 'Mengingat konteks antar percakapan',
+
+  // Welcome — Modes
+  'welcome.mode.code_desc': 'Agen lengkap dengan semua alat',
+  'welcome.mode.plan_desc': 'Arsitektur & perencanaan',
+  'welcome.mode.chat_desc': 'Hanya diskusi',
+  'welcome.mode.security_desc': 'Pemindaian keamanan',
 
   // Input Area
   'input.placeholder.code': 'Apa yang ingin Anda buat?',

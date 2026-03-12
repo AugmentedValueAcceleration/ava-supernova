@@ -3,6 +3,39 @@ export const arStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'اسأل أي شيء عن الكود الخاص بك.',
+  'welcome.tagline': '24 أداة · 7 مزوّدين · 2 نموذج مجاني · 20 لغة',
+
+  // Welcome — Setup
+  'welcome.setup_title': 'ابدأ — أضف مفتاح API',
+  'welcome.setup_desc': 'أضف مفتاح API لمزوّد لتفعيل Ava. نموذجا GLM-4.5 Flash و Codestral مجانيان تمامًا — لا حاجة لبطاقة ائتمان.',
+  'welcome.setup_cta': 'فتح الإعدادات',
+  'welcome.ready_with': 'جاهز مع',
+
+  // Welcome — Sections
+  'welcome.quick_start': 'بداية سريعة',
+  'welcome.capabilities': 'ما يمكن لـ Ava فعله',
+  'welcome.modes': 'الأوضاع',
+  'welcome.footer': 'مفتوح المصدر · مفاتيحك، بياناتك · الخصوصية أولاً',
+
+  // Welcome — Capabilities
+  'welcome.cap.files': 'قراءة وكتابة الملفات',
+  'welcome.cap.files_desc': 'إنشاء وتعديل وإدارة أي ملف في مشروعك',
+  'welcome.cap.search': 'البحث والتنقل',
+  'welcome.cap.search_desc': 'البحث عن الملفات والرموز والنصوص عبر قاعدة الكود',
+  'welcome.cap.terminal': 'تشغيل الأوامر',
+  'welcome.cap.terminal_desc': 'تنفيذ أوامر وسكربتات الشل مباشرة',
+  'welcome.cap.web': 'الويب والـ APIs',
+  'welcome.cap.web_desc': 'البحث في الويب، وإرسال طلبات HTTP، وتصفح الصفحات',
+  'welcome.cap.security': 'تدقيق الأمان',
+  'welcome.cap.security_desc': 'فحص الثغرات ومشكلات الأمان',
+  'welcome.cap.memory': 'ذاكرة دائمة',
+  'welcome.cap.memory_desc': 'تتذكر السياق عبر المحادثات',
+
+  // Welcome — Modes
+  'welcome.mode.code_desc': 'وكيل كامل مع جميع الأدوات',
+  'welcome.mode.plan_desc': 'الهندسة والتخطيط',
+  'welcome.mode.chat_desc': 'نقاش فقط',
+  'welcome.mode.security_desc': 'فحص الأمان',
 
   // Input Area
   'input.placeholder.code': 'ماذا تريد أن تبني؟',

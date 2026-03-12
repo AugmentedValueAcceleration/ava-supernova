@@ -270,6 +270,7 @@ export const trStrings: Record<string, string> = {
   'cli.ok': 'Tamam',
   'cli.fail': 'Başarısız',
   'cli.more_lines': '... ({count} satır daha)',
+  'cli.cancelled': 'İptal edildi.',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
   'setup.welcome': "Ava | Supernova'ya hoş geldiniz",

@@ -3,6 +3,39 @@ export const hiStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'अपने कोड के बारे में कुछ भी पूछें।',
+  'welcome.tagline': '24 टूल · 7 प्रोवाइडर · 2 मुफ़्त मॉडल · 20 भाषाएँ',
+
+  // Welcome — Setup
+  'welcome.setup_title': 'शुरू करें — API कुंजी जोड़ें',
+  'welcome.setup_desc': 'Ava को अनलॉक करने के लिए एक प्रोवाइडर API कुंजी जोड़ें। GLM-4.5 Flash और Codestral पूरी तरह मुफ़्त हैं — क्रेडिट कार्ड की ज़रूरत नहीं।',
+  'welcome.setup_cta': 'सेटिंग्स खोलें',
+  'welcome.ready_with': 'तैयार है',
+
+  // Welcome — Sections
+  'welcome.quick_start': 'त्वरित शुरुआत',
+  'welcome.capabilities': 'Ava क्या कर सकती है',
+  'welcome.modes': 'मोड',
+  'welcome.footer': 'ओपन सोर्स · आपकी कुंजियाँ, आपका डेटा · गोपनीयता पहले',
+
+  // Welcome — Capabilities
+  'welcome.cap.files': 'फ़ाइलें पढ़ें और लिखें',
+  'welcome.cap.files_desc': 'अपने प्रोजेक्ट में कोई भी फ़ाइल बनाएँ, संपादित करें और प्रबंधित करें',
+  'welcome.cap.search': 'खोजें और नेविगेट करें',
+  'welcome.cap.search_desc': 'फ़ाइलें, सिंबल खोजें और अपने कोडबेस में grep करें',
+  'welcome.cap.terminal': 'कमांड चलाएँ',
+  'welcome.cap.terminal_desc': 'शेल कमांड और स्क्रिप्ट सीधे चलाएँ',
+  'welcome.cap.web': 'वेब और APIs',
+  'welcome.cap.web_desc': 'वेब पर खोजें, HTTP अनुरोध करें, पेज ब्राउज़ करें',
+  'welcome.cap.security': 'सुरक्षा ऑडिट',
+  'welcome.cap.security_desc': 'कमज़ोरियों और सुरक्षा समस्याओं को स्कैन करें',
+  'welcome.cap.memory': 'स्थायी मेमोरी',
+  'welcome.cap.memory_desc': 'बातचीत के बीच संदर्भ याद रखती है',
+
+  // Welcome — Modes
+  'welcome.mode.code_desc': 'सभी टूल के साथ पूर्ण एजेंट',
+  'welcome.mode.plan_desc': 'आर्किटेक्चर और प्लानिंग',
+  'welcome.mode.chat_desc': 'केवल चर्चा',
+  'welcome.mode.security_desc': 'सुरक्षा स्कैनिंग',
 
   // Input Area
   'input.placeholder.code': 'आप क्या बनाना चाहते हैं?',

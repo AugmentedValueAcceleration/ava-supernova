@@ -270,6 +270,7 @@ export const zhCNStrings: Record<string, string> = {
   'cli.ok': '成功',
   'cli.fail': '失败',
   'cli.more_lines': '...（还有 {count} 行）',
+  'cli.cancelled': '已取消。',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
   'setup.welcome': '欢迎使用 Ava | Supernova',

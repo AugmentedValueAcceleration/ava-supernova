@@ -270,6 +270,7 @@ export const viStrings: Record<string, string> = {
   'cli.ok': 'OK',
   'cli.fail': 'LỖI',
   'cli.more_lines': '... ({count} dòng nữa)',
+  'cli.cancelled': 'Đã huỷ.',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
   'setup.welcome': 'Chào mừng đến với Ava | Supernova',

@@ -3,6 +3,39 @@ export const ruStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Задайте любой вопрос о вашем коде.',
+  'welcome.tagline': '24 инструмента · 7 провайдеров · 2 бесплатные модели · 20 языков',
+
+  // Welcome — Setup
+  'welcome.setup_title': 'Начать — Добавить API-ключ',
+  'welcome.setup_desc': 'Добавьте API-ключ провайдера, чтобы разблокировать Ava. GLM-4.5 Flash и Codestral полностью бесплатны — банковская карта не нужна.',
+  'welcome.setup_cta': 'Открыть настройки',
+  'welcome.ready_with': 'Готов к работе с',
+
+  // Welcome — Sections
+  'welcome.quick_start': 'Быстрый старт',
+  'welcome.capabilities': 'Что умеет Ava',
+  'welcome.modes': 'Режимы',
+  'welcome.footer': 'Открытый исходный код · Ваши ключи, ваши данные · Конфиденциальность прежде всего',
+
+  // Welcome — Capabilities
+  'welcome.cap.files': 'Чтение и запись файлов',
+  'welcome.cap.files_desc': 'Создавайте, редактируйте и управляйте любыми файлами в проекте',
+  'welcome.cap.search': 'Поиск и навигация',
+  'welcome.cap.search_desc': 'Находите файлы, символы и ищите по всей кодовой базе',
+  'welcome.cap.terminal': 'Запуск команд',
+  'welcome.cap.terminal_desc': 'Выполняйте команды оболочки и скрипты напрямую',
+  'welcome.cap.web': 'Веб и API',
+  'welcome.cap.web_desc': 'Поиск в интернете, HTTP-запросы, просмотр страниц',
+  'welcome.cap.security': 'Аудит безопасности',
+  'welcome.cap.security_desc': 'Сканирование уязвимостей и проблем безопасности',
+  'welcome.cap.memory': 'Постоянная память',
+  'welcome.cap.memory_desc': 'Запоминает контекст между разговорами',
+
+  // Welcome — Modes
+  'welcome.mode.code_desc': 'Полный агент со всеми инструментами',
+  'welcome.mode.plan_desc': 'Архитектура и планирование',
+  'welcome.mode.chat_desc': 'Только обсуждение',
+  'welcome.mode.security_desc': 'Сканирование безопасности',
 
   // Input Area
   'input.placeholder.code': 'Что вы хотите создать?',

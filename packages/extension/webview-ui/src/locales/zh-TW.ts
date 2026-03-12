@@ -3,6 +3,39 @@ export const zhTWStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': '關於你的程式碼，隨時提問。',
+  'welcome.tagline': '24 個工具 · 7 個供應商 · 2 個免費模型 · 20 種語言',
+
+  // Welcome — Setup
+  'welcome.setup_title': '開始使用 — 新增 API 金鑰',
+  'welcome.setup_desc': '新增供應商 API 金鑰以解鎖 Ava。GLM-4.5 Flash 和 Codestral 完全免費 — 無需信用卡。',
+  'welcome.setup_cta': '開啟設定',
+  'welcome.ready_with': '已就緒：',
+
+  // Welcome — Sections
+  'welcome.quick_start': '快速開始',
+  'welcome.capabilities': 'Ava 能做什麼',
+  'welcome.modes': '模式',
+  'welcome.footer': '開源 · 你的金鑰，你的資料 · 隱私優先',
+
+  // Welcome — Capabilities
+  'welcome.cap.files': '讀寫檔案',
+  'welcome.cap.files_desc': '建立、編輯和管理專案中的任何檔案',
+  'welcome.cap.search': '搜尋與導覽',
+  'welcome.cap.search_desc': '尋找檔案、符號，在整個程式碼庫中進行 grep',
+  'welcome.cap.terminal': '執行命令',
+  'welcome.cap.terminal_desc': '直接執行 shell 命令和腳本',
+  'welcome.cap.web': 'Web 與 API',
+  'welcome.cap.web_desc': '搜尋網頁、傳送 HTTP 請求、瀏覽頁面',
+  'welcome.cap.security': '安全稽核',
+  'welcome.cap.security_desc': '掃描漏洞和安全問題',
+  'welcome.cap.memory': '持久記憶',
+  'welcome.cap.memory_desc': '跨對話記住上下文',
+
+  // Welcome — Modes
+  'welcome.mode.code_desc': '全功能代理，包含所有工具',
+  'welcome.mode.plan_desc': '架構與規劃',
+  'welcome.mode.chat_desc': '僅討論',
+  'welcome.mode.security_desc': '安全掃描',
 
   // Input Area
   'input.placeholder.code': '你想建構什麼？',

@@ -270,6 +270,7 @@ export const ukStrings: Record<string, string> = {
   'cli.ok': 'ОК',
   'cli.fail': 'ПОМИЛКА',
   'cli.more_lines': '... (ще {count} рядків)',
+  'cli.cancelled': 'Скасовано.',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
   'setup.welcome': 'Ласкаво просимо до Ava | Supernova',

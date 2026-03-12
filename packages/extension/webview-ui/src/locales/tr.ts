@@ -3,6 +3,39 @@ export const trStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Kodunuz hakkında her şeyi sorun.',
+  'welcome.tagline': '24 araç · 7 sağlayıcı · 2 ücretsiz model · 20 dil',
+
+  // Welcome — Setup
+  'welcome.setup_title': 'Başlayın — API Anahtarı Ekleyin',
+  'welcome.setup_desc': 'Ava\'yı etkinleştirmek için bir sağlayıcı API anahtarı ekleyin. GLM-4.5 Flash ve Codestral tamamen ücretsizdir — kredi kartı gerekmez.',
+  'welcome.setup_cta': 'Ayarları Aç',
+  'welcome.ready_with': 'Hazır:',
+
+  // Welcome — Sections
+  'welcome.quick_start': 'Hızlı Başlangıç',
+  'welcome.capabilities': 'Ava Neler Yapabilir',
+  'welcome.modes': 'Modlar',
+  'welcome.footer': 'Açık kaynak · Anahtarlarınız, verileriniz · Gizlilik öncelikli',
+
+  // Welcome — Capabilities
+  'welcome.cap.files': 'Dosya Okuma ve Yazma',
+  'welcome.cap.files_desc': 'Projenizdeki herhangi bir dosyayı oluşturun, düzenleyin ve yönetin',
+  'welcome.cap.search': 'Arama ve Gezinme',
+  'welcome.cap.search_desc': 'Dosyaları, sembolleri bulun ve kod tabanınızda grep yapın',
+  'welcome.cap.terminal': 'Komut Çalıştırma',
+  'welcome.cap.terminal_desc': 'Shell komutlarını ve betikleri doğrudan çalıştırın',
+  'welcome.cap.web': 'Web ve API\'ler',
+  'welcome.cap.web_desc': 'Web\'de arama yapın, HTTP istekleri gönderin, sayfaları gezin',
+  'welcome.cap.security': 'Güvenlik Denetimi',
+  'welcome.cap.security_desc': 'Güvenlik açıklarını ve sorunlarını tarayın',
+  'welcome.cap.memory': 'Kalıcı Bellek',
+  'welcome.cap.memory_desc': 'Sohbetler arasında bağlamı hatırlar',
+
+  // Welcome — Modes
+  'welcome.mode.code_desc': 'Tüm araçlara sahip tam ajan',
+  'welcome.mode.plan_desc': 'Mimari ve planlama',
+  'welcome.mode.chat_desc': 'Yalnızca tartışma',
+  'welcome.mode.security_desc': 'Güvenlik taraması',
 
   // Input Area
   'input.placeholder.code': 'Ne oluşturmak istiyorsunuz?',

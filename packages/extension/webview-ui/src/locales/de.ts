@@ -3,6 +3,39 @@ export const deStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Stell jede Frage zu deinem Code.',
+  'welcome.tagline': '24 Tools · 7 Anbieter · 2 kostenlose Modelle · 20 Sprachen',
+
+  // Welcome — Setup
+  'welcome.setup_title': 'Erste Schritte — API-Schlüssel hinzufügen',
+  'welcome.setup_desc': 'Füge einen API-Schlüssel hinzu, um Ava freizuschalten. GLM-4.5 Flash und Codestral sind komplett kostenlos — keine Kreditkarte nötig.',
+  'welcome.setup_cta': 'Einstellungen öffnen',
+  'welcome.ready_with': 'Bereit mit',
+
+  // Welcome — Sections
+  'welcome.quick_start': 'Schnellstart',
+  'welcome.capabilities': 'Was Ava kann',
+  'welcome.modes': 'Modi',
+  'welcome.footer': 'Open Source · Deine Schlüssel, deine Daten · Datenschutz zuerst',
+
+  // Welcome — Capabilities
+  'welcome.cap.files': 'Dateien lesen & schreiben',
+  'welcome.cap.files_desc': 'Erstelle, bearbeite und verwalte beliebige Dateien in deinem Projekt',
+  'welcome.cap.search': 'Suchen & Navigieren',
+  'welcome.cap.search_desc': 'Finde Dateien, Symbole und durchsuche deine Codebasis',
+  'welcome.cap.terminal': 'Befehle ausführen',
+  'welcome.cap.terminal_desc': 'Führe Shell-Befehle und Skripte direkt aus',
+  'welcome.cap.web': 'Web & APIs',
+  'welcome.cap.web_desc': 'Web durchsuchen, HTTP-Anfragen senden, Seiten durchstöbern',
+  'welcome.cap.security': 'Sicherheitsaudit',
+  'welcome.cap.security_desc': 'Schwachstellen und Sicherheitsprobleme scannen',
+  'welcome.cap.memory': 'Persistenter Speicher',
+  'welcome.cap.memory_desc': 'Merkt sich Kontext über Gespräche hinweg',
+
+  // Welcome — Modes
+  'welcome.mode.code_desc': 'Vollständiger Agent mit allen Tools',
+  'welcome.mode.plan_desc': 'Architektur & Planung',
+  'welcome.mode.chat_desc': 'Nur Diskussion',
+  'welcome.mode.security_desc': 'Sicherheitsscan',
 
   // Input Area
   'input.placeholder.code': 'Was m\u00f6chtest du bauen?',

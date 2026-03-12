@@ -3,6 +3,39 @@ export const nlStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Stel een vraag over je code.',
+  'welcome.tagline': '24 tools \u00b7 7 providers \u00b7 2 gratis modellen \u00b7 20 talen',
+
+  // Welcome — Setup
+  'welcome.setup_title': 'Aan de slag \u2014 Voeg een API-sleutel toe',
+  'welcome.setup_desc': 'Voeg een provider API-sleutel toe om Ava te ontgrendelen. GLM-4.5 Flash en Codestral zijn volledig gratis \u2014 geen creditcard nodig.',
+  'welcome.setup_cta': 'Instellingen openen',
+  'welcome.ready_with': 'Klaar met',
+
+  // Welcome — Sections
+  'welcome.quick_start': 'Snelstart',
+  'welcome.capabilities': 'Wat Ava kan',
+  'welcome.modes': 'Modi',
+  'welcome.footer': 'Open source \u00b7 Jouw sleutels, jouw gegevens \u00b7 Privacy eerst',
+
+  // Welcome — Capabilities
+  'welcome.cap.files': 'Bestanden lezen & schrijven',
+  'welcome.cap.files_desc': 'Maak, bewerk en beheer elk bestand in je project',
+  'welcome.cap.search': 'Zoeken & navigeren',
+  'welcome.cap.search_desc': 'Vind bestanden, symbolen en doorzoek je codebase',
+  'welcome.cap.terminal': 'Opdrachten uitvoeren',
+  'welcome.cap.terminal_desc': 'Voer shell-opdrachten en scripts direct uit',
+  'welcome.cap.web': 'Web & APIs',
+  'welcome.cap.web_desc': 'Zoek op het web, doe HTTP-verzoeken, blader door pagina\u2019s',
+  'welcome.cap.security': 'Beveiligingsaudit',
+  'welcome.cap.security_desc': 'Scan op kwetsbaarheden en beveiligingsproblemen',
+  'welcome.cap.memory': 'Permanent geheugen',
+  'welcome.cap.memory_desc': 'Onthoudt context over gesprekken heen',
+
+  // Welcome — Modes
+  'welcome.mode.code_desc': 'Volledige agent met alle tools',
+  'welcome.mode.plan_desc': 'Architectuur & planning',
+  'welcome.mode.chat_desc': 'Alleen discussie',
+  'welcome.mode.security_desc': 'Beveiligingsscan',
 
   // Input Area
   'input.placeholder.code': 'Wat wil je bouwen?',

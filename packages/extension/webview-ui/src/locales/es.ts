@@ -3,6 +3,39 @@ export const esStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Pregunta lo que quieras sobre tu c\u00f3digo.',
+  'welcome.tagline': '24 herramientas \u00b7 7 proveedores \u00b7 2 modelos gratuitos \u00b7 20 idiomas',
+
+  // Welcome \u2014 Setup
+  'welcome.setup_title': 'Comenzar \u2014 Agregar una clave API',
+  'welcome.setup_desc': 'Agrega una clave API de proveedor para desbloquear Ava. GLM-4.5 Flash y Codestral son completamente gratuitos \u2014 sin tarjeta de cr\u00e9dito.',
+  'welcome.setup_cta': 'Abrir configuraci\u00f3n',
+  'welcome.ready_with': 'Listo con',
+
+  // Welcome \u2014 Sections
+  'welcome.quick_start': 'Inicio r\u00e1pido',
+  'welcome.capabilities': 'Lo que Ava puede hacer',
+  'welcome.modes': 'Modos',
+  'welcome.footer': 'C\u00f3digo abierto \u00b7 Tus claves, tus datos \u00b7 Privacidad primero',
+
+  // Welcome \u2014 Capabilities
+  'welcome.cap.files': 'Leer y escribir archivos',
+  'welcome.cap.files_desc': 'Crea, edita y administra cualquier archivo en tu proyecto',
+  'welcome.cap.search': 'Buscar y navegar',
+  'welcome.cap.search_desc': 'Encuentra archivos, s\u00edmbolos y busca en tu c\u00f3digo fuente',
+  'welcome.cap.terminal': 'Ejecutar comandos',
+  'welcome.cap.terminal_desc': 'Ejecuta comandos y scripts de shell directamente',
+  'welcome.cap.web': 'Web y APIs',
+  'welcome.cap.web_desc': 'Busca en la web, realiza peticiones HTTP, navega p\u00e1ginas',
+  'welcome.cap.security': 'Auditor\u00eda de seguridad',
+  'welcome.cap.security_desc': 'Escanea vulnerabilidades y problemas de seguridad',
+  'welcome.cap.memory': 'Memoria persistente',
+  'welcome.cap.memory_desc': 'Recuerda el contexto entre conversaciones',
+
+  // Welcome \u2014 Modes
+  'welcome.mode.code_desc': 'Agente completo con todas las herramientas',
+  'welcome.mode.plan_desc': 'Arquitectura y planificaci\u00f3n',
+  'welcome.mode.chat_desc': 'Solo discusi\u00f3n',
+  'welcome.mode.security_desc': 'Escaneo de seguridad',
 
   // Input Area
   'input.placeholder.code': '\u00bfQu\u00e9 quieres construir?',

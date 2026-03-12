@@ -270,6 +270,7 @@ export const nlStrings: Record<string, string> = {
   'cli.ok': 'OK',
   'cli.fail': 'FOUT',
   'cli.more_lines': '... ({count} meer regels)',
+  'cli.cancelled': 'Geannuleerd.',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
   'setup.welcome': 'Welkom bij Ava | Supernova',

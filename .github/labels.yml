@@ -1,0 +1,128 @@
+# Issue Labels — use with https://github.com/marketplace/actions/label-sync
+# or apply manually via GitHub Settings → Labels
+
+# ── Type ─────────────────────────────────────────────────────────────────────
+
+- name: bug
+  color: "d73a4a"
+  description: Something isn't working
+
+- name: feature
+  color: "a2eeef"
+  description: New feature request
+
+- name: enhancement
+  color: "84b6eb"
+  description: Improvement to existing functionality
+
+- name: docs
+  color: "0075ca"
+  description: Documentation improvements
+
+- name: question
+  color: "d876e3"
+  description: Further information is requested
+
+- name: security
+  color: "e4e669"
+  description: Security-related issue
+
+# ── Priority ─────────────────────────────────────────────────────────────────
+
+- name: "priority: critical"
+  color: "b60205"
+  description: Must fix immediately — blocks users or data loss
+
+- name: "priority: high"
+  color: "d93f0b"
+  description: Should fix in current milestone
+
+- name: "priority: medium"
+  color: "fbca04"
+  description: Plan for upcoming milestone
+
+- name: "priority: low"
+  color: "0e8a16"
+  description: Nice to have, fix when convenient
+
+# ── Package / Area ───────────────────────────────────────────────────────────
+
+- name: "area: core"
+  color: "c5def5"
+  description: "@ava/core — agent, providers, tools"
+
+- name: "area: cli"
+  color: "c5def5"
+  description: "@ava/cli — terminal interface"
+
+- name: "area: extension"
+  color: "c5def5"
+  description: VS Code extension
+
+- name: "area: ide"
+  color: "c5def5"
+  description: Standalone Eclipse Theia IDE
+
+- name: "area: web"
+  color: "c5def5"
+  description: Web platform (Next.js)
+
+- name: "area: i18n"
+  color: "c5def5"
+  description: Internationalisation and translations
+
+# ── Status ───────────────────────────────────────────────────────────────────
+
+- name: needs-triage
+  color: "ededed"
+  description: Awaiting maintainer review
+
+- name: confirmed
+  color: "0e8a16"
+  description: Verified and accepted
+
+- name: wontfix
+  color: "ffffff"
+  description: Will not be addressed
+
+- name: duplicate
+  color: "cfd3d7"
+  description: Duplicate of another issue
+
+- name: good-first-issue
+  color: "7057ff"
+  description: Good for newcomers
+
+- name: help-wanted
+  color: "008672"
+  description: Extra attention is needed
+
+# ── Provider ─────────────────────────────────────────────────────────────────
+
+- name: "provider: deepseek"
+  color: "bfdadc"
+  description: DeepSeek provider
+
+- name: "provider: anthropic"
+  color: "bfdadc"
+  description: Anthropic (Claude) provider
+
+- name: "provider: zhipu"
+  color: "bfdadc"
+  description: Zhipu AI (GLM) provider
+
+- name: "provider: kimi"
+  color: "bfdadc"
+  description: Moonshot AI (Kimi) provider
+
+- name: "provider: qwen"
+  color: "bfdadc"
+  description: Alibaba Cloud (Qwen) provider
+
+- name: "provider: mistral"
+  color: "bfdadc"
+  description: Mistral AI provider
+
+- name: "provider: generic"
+  color: "bfdadc"
+  description: Generic/local model provider

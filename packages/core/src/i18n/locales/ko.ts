@@ -270,6 +270,7 @@ export const koStrings: Record<string, string> = {
   'cli.ok': '성공',
   'cli.fail': '실패',
   'cli.more_lines': '... ({count}줄 더)',
+  'cli.cancelled': '취소되었습니다.',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
   'setup.welcome': 'Ava | Supernova에 오신 것을 환영합니다',

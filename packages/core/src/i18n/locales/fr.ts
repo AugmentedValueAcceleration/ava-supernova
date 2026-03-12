@@ -268,6 +268,7 @@ export const frStrings: Record<string, string> = {
   'cli.list_path': 'lister {path}',
   'cli.search_query': 'rechercher \u00ab {query} \u00bb',
   'cli.ok': 'OK',
+  'cli.cancelled': 'Annulé.',
   'cli.fail': '\u00c9CHEC',
   'cli.more_lines': '... ({count} lignes suppl\u00e9mentaires)',
 

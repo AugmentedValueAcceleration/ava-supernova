@@ -3,6 +3,39 @@ export const thStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'ถามอะไรก็ได้เกี่ยวกับโค้ดของคุณ',
+  'welcome.tagline': '24 เครื่องมือ · 7 ผู้ให้บริการ · 2 โมเดลฟรี · 20 ภาษา',
+
+  // Welcome — Setup
+  'welcome.setup_title': 'เริ่มต้น — เพิ่มคีย์ API',
+  'welcome.setup_desc': 'เพิ่มคีย์ API ของผู้ให้บริการเพื่อปลดล็อก Ava GLM-4.5 Flash และ Codestral ฟรีทั้งหมด — ไม่ต้องใช้บัตรเครดิต',
+  'welcome.setup_cta': 'เปิดการตั้งค่า',
+  'welcome.ready_with': 'พร้อมใช้งานกับ',
+
+  // Welcome — Sections
+  'welcome.quick_start': 'เริ่มต้นอย่างรวดเร็ว',
+  'welcome.capabilities': 'สิ่งที่ Ava ทำได้',
+  'welcome.modes': 'โหมด',
+  'welcome.footer': 'โอเพนซอร์ส · คีย์ของคุณ ข้อมูลของคุณ · ความเป็นส่วนตัวมาก่อน',
+
+  // Welcome — Capabilities
+  'welcome.cap.files': 'อ่านและเขียนไฟล์',
+  'welcome.cap.files_desc': 'สร้าง แก้ไข และจัดการไฟล์ใดก็ได้ในโปรเจกต์ของคุณ',
+  'welcome.cap.search': 'ค้นหาและนำทาง',
+  'welcome.cap.search_desc': 'ค้นหาไฟล์ สัญลักษณ์ และ grep ทั่วทั้งโค้ดเบส',
+  'welcome.cap.terminal': 'รันคำสั่ง',
+  'welcome.cap.terminal_desc': 'รันคำสั่ง shell และสคริปต์โดยตรง',
+  'welcome.cap.web': 'เว็บและ API',
+  'welcome.cap.web_desc': 'ค้นหาเว็บ ส่งคำขอ HTTP เรียกดูหน้าเว็บ',
+  'welcome.cap.security': 'ตรวจสอบความปลอดภัย',
+  'welcome.cap.security_desc': 'สแกนหาช่องโหว่และปัญหาด้านความปลอดภัย',
+  'welcome.cap.memory': 'หน่วยความจำถาวร',
+  'welcome.cap.memory_desc': 'จดจำบริบทข้ามบทสนทนา',
+
+  // Welcome — Modes
+  'welcome.mode.code_desc': 'เอเจนต์เต็มรูปแบบพร้อมเครื่องมือทั้งหมด',
+  'welcome.mode.plan_desc': 'สถาปัตยกรรมและการวางแผน',
+  'welcome.mode.chat_desc': 'สนทนาเท่านั้น',
+  'welcome.mode.security_desc': 'สแกนความปลอดภัย',
 
   // Input Area
   'input.placeholder.code': 'คุณต้องการสร้างอะไร?',

@@ -3,6 +3,39 @@ export const ptStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Pergunte qualquer coisa sobre o seu c\u00f3digo.',
+  'welcome.tagline': '24 ferramentas \u00b7 7 provedores \u00b7 2 modelos gratuitos \u00b7 20 idiomas',
+
+  // Welcome \u2014 Setup
+  'welcome.setup_title': 'Come\u00e7ar \u2014 Adicionar uma chave API',
+  'welcome.setup_desc': 'Adicione uma chave API de provedor para desbloquear Ava. GLM-4.5 Flash e Codestral s\u00e3o totalmente gratuitos \u2014 sem cart\u00e3o de cr\u00e9dito.',
+  'welcome.setup_cta': 'Abrir configura\u00e7\u00f5es',
+  'welcome.ready_with': 'Pronto com',
+
+  // Welcome \u2014 Sections
+  'welcome.quick_start': 'In\u00edcio r\u00e1pido',
+  'welcome.capabilities': 'O que Ava pode fazer',
+  'welcome.modes': 'Modos',
+  'welcome.footer': 'Open source \u00b7 Suas chaves, seus dados \u00b7 Privacidade em primeiro lugar',
+
+  // Welcome \u2014 Capabilities
+  'welcome.cap.files': 'Ler e escrever arquivos',
+  'welcome.cap.files_desc': 'Crie, edite e gerencie qualquer arquivo do seu projeto',
+  'welcome.cap.search': 'Pesquisar e navegar',
+  'welcome.cap.search_desc': 'Encontre arquivos, s\u00edmbolos e pesquise em todo o c\u00f3digo',
+  'welcome.cap.terminal': 'Executar comandos',
+  'welcome.cap.terminal_desc': 'Execute comandos shell e scripts diretamente',
+  'welcome.cap.web': 'Web e APIs',
+  'welcome.cap.web_desc': 'Pesquise na web, fa\u00e7a requisi\u00e7\u00f5es HTTP, navegue em p\u00e1ginas',
+  'welcome.cap.security': 'Auditoria de seguran\u00e7a',
+  'welcome.cap.security_desc': 'Escaneie vulnerabilidades e problemas de seguran\u00e7a',
+  'welcome.cap.memory': 'Mem\u00f3ria persistente',
+  'welcome.cap.memory_desc': 'Lembra o contexto entre conversas',
+
+  // Welcome \u2014 Modes
+  'welcome.mode.code_desc': 'Agente completo com todas as ferramentas',
+  'welcome.mode.plan_desc': 'Arquitetura e planejamento',
+  'welcome.mode.chat_desc': 'Apenas discuss\u00e3o',
+  'welcome.mode.security_desc': 'Varredura de seguran\u00e7a',
 
   // Input Area
   'input.placeholder.code': 'O que voc\u00ea quer construir?',
