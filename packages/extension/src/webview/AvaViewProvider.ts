@@ -523,6 +523,20 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       modelId,
       modelName: resolved.model.name,
     });
+
+    // Recalculate context bar with new model's context window
+    if (this.agent && this.conversation) {
+      const messages = this.conversation.getMessages();
+      const used = this.agent.estimateTokenCount(messages);
+      const limit = resolved.model.contextWindow;
+      const percent = limit > 0 ? Math.round((used / limit) * 100) : 0;
+      this.postMessage({
+        type: 'context_usage',
+        used,
+        limit,
+        percent: Math.min(percent, 100),
+      });
+    }
   }
 
   private getModelList(): Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }> {
