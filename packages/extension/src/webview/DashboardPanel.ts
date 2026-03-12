@@ -534,15 +534,16 @@ export class DashboardPanel {
 
   private async loadConversations(): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
+    if (!platformKey) {
+      this.post({ type: 'conversations_loaded', conversations: [] });
+      return;
+    }
 
     try {
       const res = await apiFetch('/conversations', { platformKey });
-      if (res.ok) {
-        this.post({ type: 'conversations_loaded', conversations: res.data as never[] });
-      }
+      this.post({ type: 'conversations_loaded', conversations: res.ok ? (res.data as never[]) : [] });
     } catch {
-      // Non-fatal
+      this.post({ type: 'conversations_loaded', conversations: [] });
     }
   }
 
@@ -581,15 +582,16 @@ export class DashboardPanel {
 
   private async loadTickets(): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
+    if (!platformKey) {
+      this.post({ type: 'tickets_loaded', tickets: [] });
+      return;
+    }
 
     try {
       const res = await apiFetch('/support', { platformKey });
-      if (res.ok) {
-        this.post({ type: 'tickets_loaded', tickets: res.data as never[] });
-      }
+      this.post({ type: 'tickets_loaded', tickets: res.ok ? (res.data as never[]) : [] });
     } catch {
-      // Non-fatal
+      this.post({ type: 'tickets_loaded', tickets: [] });
     }
   }
 
