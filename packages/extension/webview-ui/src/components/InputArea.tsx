@@ -263,6 +263,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
 
         {/* Textarea */}
         <textarea
+          id="chat-input"
           ref={textareaRef}
           value={text}
           onChange={(e) => {

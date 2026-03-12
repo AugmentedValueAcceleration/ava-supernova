@@ -77,7 +77,10 @@ export type ExtToWebviewMessage =
   | { type: 'context_usage'; used: number; limit: number; percent: number }
   | { type: 'compression_start' }
   | { type: 'compression_end'; originalTokens: number; compressedTokens: number }
-  | { type: 'memory_content'; global: MemoryEntryUI[]; project: MemoryEntryUI[] };
+  | { type: 'memory_content'; global: MemoryEntryUI[]; project: MemoryEntryUI[] }
+  | { type: 'system_message'; content: string }
+  | { type: 'ping' }
+  | { type: 'interjection_ack'; content: string };
 
 /** Structured memory entry for webview display. */
 export interface MemoryEntryUI {
@@ -122,4 +125,5 @@ export type WebviewToExtMessage =
   | { type: 'clear_memory'; scope: 'global' | 'project' }
   | { type: 'archive_memory'; scope: 'global' | 'project'; id: string }
   | { type: 'restore_memory'; scope: 'global' | 'project'; id: string }
-  | { type: 'delete_memory_entry'; scope: 'global' | 'project'; id: string };
+  | { type: 'delete_memory_entry'; scope: 'global' | 'project'; id: string }
+  | { type: 'pong' };

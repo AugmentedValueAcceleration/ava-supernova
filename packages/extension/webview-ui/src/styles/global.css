@@ -85,3 +85,52 @@ code {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--vscode-scrollbarSlider-hoverBackground);
 }
+
+/* ── Accessibility ─────────────────────────────────────────────────────────── */
+
+/* Keyboard focus indicators */
+:focus-visible {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+
+/* Screen reader only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast / forced-colors */
+@media (forced-colors: active) {
+  button {
+    border: 1px solid ButtonText;
+  }
+
+  .tool-result {
+    border: 1px solid Highlight;
+  }
+
+  input,
+  textarea {
+    border: 1px solid ButtonText;
+  }
+}

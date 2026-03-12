@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import type { MemoryEntryUI } from '../types/messages';
 
 interface MemoryPanelProps {
@@ -96,6 +96,8 @@ export function MemoryPanel({
     }
   };
 
+  const panelRef = useRef<HTMLDivElement>(null);
+
   const handleAdd = () => {
     if (newContent.trim()) {
       onSave(scopeTab, newContent.trim());
@@ -104,8 +106,49 @@ export function MemoryPanel({
     }
   };
 
+  // Focus trap: Tab/Shift+Tab cycle within panel, Escape closes
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key !== 'Tab' || !panelRef.current) return;
+
+      const focusable = panelRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    },
+    [onClose],
+  );
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    panelRef.current?.focus();
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
   return (
-    <div className="absolute inset-0 z-50 flex flex-col bg-[var(--vscode-sideBar-background)]">
+    <div
+      ref={panelRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Memory"
+      tabIndex={-1}
+      className="absolute inset-0 z-50 flex flex-col bg-[var(--vscode-sideBar-background)] outline-none"
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--vscode-panel-border)]">
         <span className="text-xs font-semibold uppercase tracking-wider opacity-70">

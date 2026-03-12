@@ -105,7 +105,7 @@ export class ProviderRegistry {
     const candidates: Array<FallbackEntry & { score: number }> = [];
     const primaryModel = primary.model;
 
-    for (const [name, provider] of this.providers) {
+    for (const [, provider] of this.providers) {
       if (provider === primary.provider) continue; // skip primary's own provider
 
       for (const model of provider.listModels()) {

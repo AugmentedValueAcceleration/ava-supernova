@@ -56,6 +56,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private panelStateCallback?: (isOpen: boolean) => void;
   private cachedAccount: AccountInfo | null = null;
   private providerSource: ProviderSource = 'byok';
+  private heartbeatInterval?: ReturnType<typeof setInterval>;
+  private missedPongs = 0;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -110,6 +112,24 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   private async onWorkspaceChanged(): Promise<void> {
+    // Cancel any in-progress agent run
+    if (this.isRunning && this.runAbortController) {
+      this.log('Workspace change: aborting current run');
+      this.runAbortController.abort();
+      killBackgroundProcesses();
+    }
+
+    // Reject pending tool confirmations so the agent loop unblocks
+    for (const [id, pending] of this.pendingConfirmations) {
+      pending.resolve(false);
+      this.pendingConfirmations.delete(id);
+    }
+
+    // Clear session tool allow-list (new workspace = new trust boundary)
+    this.sessionAllowedTools.clear();
+    this.sessionAllowAll = false;
+    this.context.workspaceState.update('ava.toolAllowList', []);
+
     // Save current conversation before switching
     if (this.conversation) {
       await this.historyManager.saveConversation(this.conversation);
@@ -122,6 +142,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.conversation.setSystemPrompt(this.buildCurrentSystemPrompt());
     this.setLastConversationId(undefined);
     this.postMessage({ type: 'chat_cleared' });
+
+    // Notify user of workspace switch
+    const folderName = vscode.workspace.workspaceFolders?.[0]?.name ?? 'unknown';
+    this.postMessage({
+      type: 'system_message',
+      content: `Workspace changed to ${folderName} — previous session ended`,
+    } as ExtToWebviewMessage);
 
     // Re-initialize the agent with new project context
     await this.initializeSession();
@@ -199,13 +226,19 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.onDidChangeVisibility(async () => {
       if (webviewView.visible) {
+        this.startHeartbeat();
         await this.initializeSession();
+      } else {
+        this.stopHeartbeat();
       }
     });
 
     webviewView.onDidDispose(() => {
+      this.stopHeartbeat();
       this.view = undefined;
     });
+
+    this.startHeartbeat();
 
     this.ensureSettingsListener();
   }
@@ -318,11 +351,36 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   dispose(): void {
+    this.stopHeartbeat();
     killBackgroundProcesses();
     this.settingsListener?.dispose();
     this.statusBarItem.dispose();
     this.panel?.dispose();
     this.outputChannel.dispose();
+  }
+
+  private startHeartbeat(): void {
+    this.stopHeartbeat();
+    this.missedPongs = 0;
+    this.heartbeatInterval = setInterval(() => {
+      this.missedPongs++;
+      this.postMessage({ type: 'ping' } as ExtToWebviewMessage);
+
+      if (this.missedPongs >= 3) {
+        this.log(`Heartbeat: ${this.missedPongs} consecutive pings missed — webview may be unresponsive`);
+      }
+    }, 30_000);
+  }
+
+  private stopHeartbeat(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = undefined;
+    }
+  }
+
+  private handlePong(): void {
+    this.missedPongs = 0;
   }
 
   private updateStatusBar(state: 'ready' | 'busy' | 'error' = 'ready'): void {
@@ -469,6 +527,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   private async setupAgent(provider: Provider, model: ModelDefinition): Promise<void> {
+    // Restore persisted tool allow-list from workspace state
+    const savedAllowList = this.context.workspaceState.get<string[]>('ava.toolAllowList', []);
+    if (savedAllowList.length > 0 && this.sessionAllowedTools.size === 0) {
+      for (const tool of savedAllowList) {
+        this.sessionAllowedTools.add(tool);
+      }
+      this.log(`Restored tool allow-list: ${savedAllowList.join(', ')}`);
+    }
+
     this.toolRegistry = new ToolRegistry();
     this.toolRegistry.registerBuiltins();
 
@@ -826,6 +893,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       case 'webview_ready':
         await this.initializeSession();
         await this.restoreLastConversation();
+        break;
+
+      case 'pong':
+        this.handlePong();
         break;
 
       case 'send_message':
@@ -1237,6 +1308,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
       if (approved && alwaysAllow) {
         this.sessionAllowedTools.add(pending.toolName);
+        this.context.workspaceState.update('ava.toolAllowList', [...this.sessionAllowedTools]);
         this.log(`Session allow: ${pending.toolName}`);
       }
       if (approved && allowAll) {

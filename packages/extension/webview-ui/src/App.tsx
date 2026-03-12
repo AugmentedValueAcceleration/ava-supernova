@@ -271,6 +271,19 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'close_memory':
       return { ...state, memoryOpen: false };
 
+    // ── System messages ──────────────────────────────────────────────────
+
+    case 'system_message': {
+      const sysMsg: UIMessage = {
+        id: nextId(),
+        role: 'system',
+        content: action.content,
+        toolCalls: [],
+        isStreaming: false,
+      };
+      return { ...state, messages: [...state.messages, sysMsg] };
+    }
+
     // ── Context usage & compression ─────────────────────────────────────
 
     case 'context_usage':
@@ -374,6 +387,12 @@ export function App() {
       // Only accept messages from the VSCode webview host
       if (event.origin && !event.origin.startsWith('vscode-webview://')) return;
       const msg = event.data;
+
+      // Respond to heartbeat pings immediately
+      if (msg.type === 'ping') {
+        postMessage({ type: 'pong' });
+        return;
+      }
 
       // Buffer stream + thinking deltas for smooth typing
       if (msg.type === 'stream_delta' || msg.type === 'thinking_delta') {
@@ -587,8 +606,27 @@ export function App() {
     [postMessage],
   );
 
+  // Track last error for ARIA announcements
+  const lastError = state.messages.filter(m => m.role === 'error').at(-1);
+
   return (
     <div className="relative flex flex-col h-screen">
+      {/* Skip navigation link — visible on focus for keyboard users */}
+      <a
+        href="#chat-input"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-1 focus:left-1
+                   focus:px-3 focus:py-1.5 focus:rounded-lg focus:text-xs focus:font-medium
+                   focus:text-white focus:no-underline"
+        style={{ background: '#A855F7' }}
+      >
+        Skip to chat input
+      </a>
+
+      {/* ARIA live region for error announcements */}
+      <div aria-live="assertive" aria-atomic="true" className="sr-only">
+        {lastError?.content ?? ''}
+      </div>
+
       <Header
         models={state.models}
         activeModel={state.activeModel}

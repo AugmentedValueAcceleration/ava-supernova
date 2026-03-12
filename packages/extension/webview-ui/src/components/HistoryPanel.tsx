@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { t } from '../i18n';
 
 interface HistoryPanelProps {
@@ -52,6 +52,8 @@ export function HistoryPanel({
     ...conversations.filter((c) => !c.pinned),
   ];
 
+  const panelRef = useRef<HTMLDivElement>(null);
+
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
@@ -60,8 +62,50 @@ export function HistoryPanel({
     }, 300);
   };
 
+  // Focus trap: Tab/Shift+Tab cycle within panel, Escape closes
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key !== 'Tab' || !panelRef.current) return;
+
+      const focusable = panelRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    },
+    [onClose],
+  );
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    // Auto-focus the panel on mount
+    panelRef.current?.focus();
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
   return (
-    <div className="absolute inset-0 z-50 flex flex-col" style={{
+    <div
+      ref={panelRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('history.title')}
+      tabIndex={-1}
+      className="absolute inset-0 z-50 flex flex-col outline-none"
+      style={{
       background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(168, 85, 247, 0.06) 0%, transparent 70%), var(--vscode-sideBar-background)',
     }}>
       {/* Header */}
