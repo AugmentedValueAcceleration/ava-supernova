@@ -29,8 +29,8 @@ export class MemoryRecallTool implements Tool {
         },
         scope: {
           type: 'string',
-          enum: ['global', 'project', 'all'],
-          description: 'Where to search: "global", "project", or "all" (default).',
+          enum: ['global', 'project', 'all', 'all_projects'],
+          description: 'Where to search: "global", "project", "all" (global+current project, default), or "all_projects" (searches every project you\'ve worked in — use when looking for patterns or solutions from other projects).',
         },
         category: {
           type: 'string',
@@ -52,7 +52,7 @@ export class MemoryRecallTool implements Tool {
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const query = (args.query as string)?.trim();
-    const scope = (args.scope as 'global' | 'project' | 'all') ?? 'all';
+    const scope = (args.scope as 'global' | 'project' | 'all' | 'all_projects') ?? 'all';
     const category = args.category as MemoryCategory | undefined;
     const limit = (args.limit as number) ?? 10;
     const includeArchived = (args.include_archived as boolean) ?? false;

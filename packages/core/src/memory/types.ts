@@ -75,7 +75,8 @@ export interface MemorySaveOptions {
 /** Options for searching/recalling memories. */
 export interface MemoryRecallOptions {
   query: string;
-  scope?: 'global' | 'project' | 'all';
+  /** Where to search: "global", "project", "all" (global+current), or "all_projects" (global+every known project). */
+  scope?: 'global' | 'project' | 'all' | 'all_projects';
   category?: MemoryCategory;
   limit?: number;
   /** Only return memories scoped to this branch (or unscoped). */
@@ -87,7 +88,8 @@ export interface MemoryRecallOptions {
 /** A recall result with relevance info. */
 export interface MemoryRecallResult {
   entry: MemoryEntry;
-  scope: 'global' | 'project';
+  /** Scope label — 'global', 'project', or a project name for cross-project results. */
+  scope: 'global' | 'project' | string;
   /** How relevant this result is (0–1). Combines TF-IDF, recency, and frequency. */
   relevance: number;
   /** How the match was found. */

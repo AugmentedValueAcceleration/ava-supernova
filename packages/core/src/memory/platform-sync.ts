@@ -76,10 +76,13 @@ export class PlatformMemorySync {
     }
   }
 
-  /** Semantic search across memories using vector similarity. */
+  /**
+   * Semantic search across memories using vector similarity.
+   * Pass `allProjects: true` to search across every project the user has worked in.
+   */
   async semanticSearch(
     query: string,
-    opts?: { scope?: 'global' | 'project'; threshold?: number; limit?: number },
+    opts?: { scope?: 'global' | 'project'; threshold?: number; limit?: number; allProjects?: boolean },
   ): Promise<SemanticMatch[]> {
     try {
       const res = await fetch(`${this.apiBase}/memories/search`, {
@@ -87,8 +90,9 @@ export class PlatformMemorySync {
         headers: this.headers(),
         body: JSON.stringify({
           query,
-          scope: opts?.scope || null,
-          project_id: opts?.scope === 'project' ? this.projectId : null,
+          scope: opts?.allProjects ? null : (opts?.scope || null),
+          project_id: opts?.allProjects ? null : (opts?.scope === 'project' ? this.projectId : null),
+          all_projects: opts?.allProjects ?? false,
           threshold: opts?.threshold ?? 0.7,
           limit: opts?.limit ?? 10,
         }),

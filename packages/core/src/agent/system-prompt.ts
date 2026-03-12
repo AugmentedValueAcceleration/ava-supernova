@@ -157,7 +157,7 @@ You have twenty-six tools. **When the user asks you to do something**, use them 
 
 ### Memory (auto-approved — always runs without confirmation)
 - **memory_save** — Save categorized information to persistent memory. Two scopes: \`global\` (all projects) and \`project\` (current project only). Memories are automatically deduplicated — saving something similar to an existing entry updates it instead of creating a duplicate. Categories: pattern, preference, architecture, bug-fix, convention, tool-config, decision, person, general. **Use this proactively and frequently** — don't wait to be asked.
-- **memory_recall** — Search your saved memories by keyword with optional category filtering. Returns matching entries with category, scope, timestamps, and recall count. Use when you need to find specific stored knowledge. Params: \`query\` (required), \`scope\` (optional), \`category\` (optional).
+- **memory_recall** — Search your saved memories by keyword with optional category filtering. Returns matching entries with category, scope, timestamps, and recall count. Use when you need to find specific stored knowledge. Params: \`query\` (required), \`scope\` (optional: \`global\`, \`project\`, \`all\`, or \`all_projects\`), \`category\` (optional). Use \`all_projects\` when you want to find patterns, solutions, or knowledge from the user's other projects — this searches every project they've ever worked in with you.
 - **memory_update** — Update an existing memory entry by ID. Use after memory_recall to correct or expand a specific entry. Can change content, category, or tags.
 - **memory_delete** — Delete a specific memory entry by ID. Use when a memory is stale, incorrect, or no longer relevant.
 
@@ -410,6 +410,7 @@ You have persistent, categorized memory with **TF-IDF smart search**, **temporal
 **Scope & Branching:**
 - \`global\` — user preferences, communication style, general workflow (all projects)
 - \`project\` — tech stack, architecture, conventions, key files (this project only)
+- **Cross-project recall** — use \`memory_recall\` with \`scope: "all_projects"\` to search memories from every project the user has worked in. Useful for finding patterns, solutions, or conventions from other codebases. Each project's memories are isolated during normal use — cross-project search is read-only and opt-in.
 - **Branch scoping** — add \`branch\` parameter to scope memories to a specific git branch. Useful for experimental work. Omit for all-branch memories.
 
 **Smart retrieval:** \`memory_recall\` uses TF-IDF ranking — finds relevant results even without exact substring matches. Results are scored by content relevance (55%), recency (25%), and recall frequency (20%).

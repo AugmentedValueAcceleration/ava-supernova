@@ -1,5 +1,6 @@
 import { readFile, writeFile, rename, mkdir, unlink } from 'node:fs/promises';
-import { join } from 'node:path';
+import { existsSync } from 'node:fs';
+import { join, basename } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { TfIdfIndex } from './tfidf.js';
 import type { PlatformMemorySync, SemanticMatch } from './platform-sync.js';
@@ -17,6 +18,13 @@ import { MEMORY_CATEGORIES, createEmptyStore } from './types.js';
 
 const MEMORY_FILENAME_V1 = 'memory.md';
 const MEMORY_FILENAME_V2 = 'memory.json';
+const PROJECTS_REGISTRY = 'projects.json';
+
+interface ProjectRegistryEntry {
+  path: string;
+  name: string;
+  lastUsed: string;
+}
 
 /** Number of days without recall before a memory is considered stale. */
 const STALE_THRESHOLD_DAYS = 90;
@@ -52,6 +60,11 @@ export class MemoryManager {
     this.globalDir = opts.globalDir;
     this.projectDir = opts.projectRoot ? join(opts.projectRoot, '.ava') : null;
     this.sync = opts.sync;
+
+    // Auto-register this project in the global registry (fire-and-forget)
+    if (opts.projectRoot) {
+      this.registerProject(opts.projectRoot).catch(() => {});
+    }
   }
 
   // ── Public API — Load ──────────────────────────────────────────────────────
@@ -303,7 +316,7 @@ export class MemoryManager {
     const limit = opts.limit ?? 10;
     const includeArchived = opts.includeArchived ?? false;
 
-    const searchStore = (store: MemoryStore, scope: 'global' | 'project', index: TfIdfIndex) => {
+    const searchStore = (store: MemoryStore, scope: string, index: TfIdfIndex) => {
       // Phase 1: Exact substring matches (highest priority)
       const substringMatches = new Set<string>();
       for (const entry of store.entries) {
@@ -349,6 +362,28 @@ export class MemoryManager {
       searchStore(globalStore, 'global', this.globalIndex);
     }
 
+    if (opts.scope === 'all_projects') {
+      // Search every known project (including current)
+      const projects = await this.loadProjectRegistry();
+      for (const proj of projects) {
+        const projAvaDir = join(proj.path, '.ava');
+        // Skip the current project — it's searched via 'project' scope below
+        if (this.projectDir && projAvaDir === this.projectDir) continue;
+        // Only search projects that still exist on disk
+        if (!existsSync(join(projAvaDir, MEMORY_FILENAME_V2))) continue;
+
+        try {
+          const storeData = await readFile(join(projAvaDir, MEMORY_FILENAME_V2), 'utf-8');
+          const store = JSON.parse(storeData) as MemoryStore;
+          const tempIndex = new TfIdfIndex();
+          this.rebuildIndex(store, tempIndex);
+          searchStore(store, `project:${proj.name}`, tempIndex);
+        } catch {
+          // Skip unreadable project stores
+        }
+      }
+    }
+
     if (opts.scope !== 'global') {
       const projectStore = await this.loadProjectStore();
       if (projectStore) searchStore(projectStore, 'project', this.projectIndex);
@@ -359,7 +394,9 @@ export class MemoryManager {
 
     // If no local matches, try semantic search via platform
     if (results.length === 0 && this.sync) {
-      const semantic = await this.loadRelevantMemories(opts.query, limit);
+      const semantic = opts.scope === 'all_projects'
+        ? await this.sync.semanticSearch(opts.query, { allProjects: true, threshold: 0.65, limit }).catch(() => [] as SemanticMatch[])
+        : await this.loadRelevantMemories(opts.query, limit);
       for (const m of semantic) {
         results.push({
           entry: {
@@ -892,5 +929,46 @@ export class MemoryManager {
     this.sync.push(scope, key, content).catch(() => {
       /* platform unavailable — local is source of truth */
     });
+  }
+
+  // ── Project Registry ────────────────────────────────────────────────────────
+
+  /** Register the current project in the global project registry. */
+  private async registerProject(projectRoot: string): Promise<void> {
+    const registryPath = join(this.globalDir, PROJECTS_REGISTRY);
+    let registry: ProjectRegistryEntry[] = [];
+
+    try {
+      const data = await readFile(registryPath, 'utf-8');
+      registry = JSON.parse(data);
+    } catch {
+      // No registry yet or corrupt — start fresh
+    }
+
+    const existing = registry.findIndex(p => p.path === projectRoot);
+    const entry: ProjectRegistryEntry = {
+      path: projectRoot,
+      name: basename(projectRoot),
+      lastUsed: new Date().toISOString(),
+    };
+
+    if (existing >= 0) {
+      registry[existing] = entry;
+    } else {
+      registry.push(entry);
+    }
+
+    await mkdir(this.globalDir, { recursive: true });
+    await this.writeSafe(registryPath, JSON.stringify(registry, null, 2));
+  }
+
+  /** Load the project registry — all known project paths. */
+  private async loadProjectRegistry(): Promise<ProjectRegistryEntry[]> {
+    try {
+      const data = await readFile(join(this.globalDir, PROJECTS_REGISTRY), 'utf-8');
+      return JSON.parse(data);
+    } catch {
+      return [];
+    }
   }
 }
