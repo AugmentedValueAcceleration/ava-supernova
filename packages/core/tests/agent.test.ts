@@ -114,7 +114,7 @@ describe('Agent', () => {
 
     const errorEvents = events.filter((e) => e.type === 'error');
     expect(errorEvents.length).toBe(1);
-    expect((errorEvents[0] as { type: 'error'; error: Error }).error.message).toContain('empty response');
+    expect((errorEvents[0] as { type: 'error'; error: Error }).error.message).toContain('didn\'t send a response');
   });
 
   it('stops when abort signal is triggered', async () => {

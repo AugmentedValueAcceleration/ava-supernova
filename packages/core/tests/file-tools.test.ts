@@ -8,6 +8,15 @@ vi.mock('node:fs/promises', () => ({
   mkdir: vi.fn(async () => undefined),
 }));
 
+// Mock security — tests use fake paths outside cwd
+vi.mock('../src/tools/security.js', () => ({
+  validatePath: vi.fn((rawPath: string, cwd: string) => {
+    if (rawPath.startsWith('/') || rawPath.startsWith('C:')) return rawPath;
+    return `${cwd}/${rawPath}`;
+  }),
+  containsCredentials: vi.fn(() => false),
+}));
+
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 
 const mockReadFile = readFile as unknown as ReturnType<typeof vi.fn>;

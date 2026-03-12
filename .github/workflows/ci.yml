@@ -8,11 +8,12 @@ on:
 
 jobs:
   check:
-    name: Typecheck, Lint, Test, Build
-    runs-on: ubuntu-latest
+    name: Typecheck, Lint, Test, Build (${{ matrix.os }}, Node ${{ matrix.node-version }})
+    runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         node-version: [20, 22]
 
     steps:

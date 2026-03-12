@@ -21,8 +21,14 @@ const ctx = { cwd: '/test/project' };
 /** Helper: make exec call its callback with given stdout/stderr/error */
 function setupExec(stdout: string, stderr = '', error: (Error & { killed?: boolean; code?: string }) | null = null) {
   mockExec.mockImplementation((_cmd: string, _opts: unknown, callback: Function) => {
-    callback(error, stdout, stderr);
-    return { kill: vi.fn() };
+    const child = {
+      kill: vi.fn(),
+      stdout: { on: vi.fn(), removeAllListeners: vi.fn() },
+      stderr: { on: vi.fn(), removeAllListeners: vi.fn() },
+    };
+    // Defer callback so `const child = exec(...)` assignment completes first
+    Promise.resolve().then(() => callback(error, stdout, stderr));
+    return child;
   });
 }
 

@@ -99,17 +99,23 @@ describe('ProviderRegistry', () => {
   });
 
   describe('listAllModels', () => {
-    it('aggregates models from all registered providers', () => {
+    it('aggregates models from all registered providers including built-ins', () => {
+      const baseCount = registry.listAllModels().length;
       registry.registerCustom('a', createMockProvider('a', [makeModel('m1', 'a')]));
       registry.registerCustom('b', createMockProvider('b', [makeModel('m2', 'b'), makeModel('m3', 'b')]));
 
       const all = registry.listAllModels();
-      expect(all).toHaveLength(3);
-      expect(all.map((m) => m.id)).toEqual(['m1', 'm2', 'm3']);
+      expect(all).toHaveLength(baseCount + 3);
+      const ids = all.map((m) => m.id);
+      expect(ids).toContain('m1');
+      expect(ids).toContain('m2');
+      expect(ids).toContain('m3');
     });
 
-    it('returns empty array when no providers registered', () => {
-      expect(registry.listAllModels()).toEqual([]);
+    it('includes built-in free models even with no custom providers', () => {
+      const models = registry.listAllModels();
+      // Registry comes with free tier models pre-registered
+      expect(models.length).toBeGreaterThan(0);
     });
   });
 });

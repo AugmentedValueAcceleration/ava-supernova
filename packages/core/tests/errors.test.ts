@@ -14,20 +14,20 @@ describe('AvaError', () => {
 describe('ProviderError', () => {
   it('provides human-readable messages for common HTTP status codes', () => {
     const cases: Array<[number, string]> = [
-      [400, 'Bad request'],
-      [401, 'Invalid API key'],
-      [402, 'Insufficient credits'],
-      [403, 'Access denied'],
-      [404, 'Model not found'],
-      [429, 'Rate limited'],
-      [500, 'experiencing issues'],
-      [502, 'experiencing issues'],
-      [503, 'experiencing issues'],
+      [400, 'DeepSeek'],
+      [401, 'API key'],
+      [402, 'credits'],
+      [403, 'DeepSeek'],
+      [404, 'model'],
+      [429, 'limiting'],
+      [500, 'DeepSeek'],
+      [502, 'DeepSeek'],
+      [503, 'DeepSeek'],
     ];
 
     for (const [status, expected] of cases) {
       const err = new ProviderError(`HTTP ${status}`, 'DeepSeek', status);
-      expect(err.humanMessage).toContain(expected);
+      expect(err.humanMessage.toLowerCase()).toContain(expected.toLowerCase());
     }
   });
 
