@@ -14,6 +14,8 @@ import { MAX_TOOL_CALL_ITERATIONS, ITERATION_WARNING_THRESHOLD } from '../core/c
 import { t } from '../i18n/index.js';
 import { logger } from '../core/logger.js';
 import { buildToolPrompt, parseToolCalls, formatToolResult } from './text-tool-parser.js';
+import { autoExtractAndSave } from '../memory/auto-extract.js';
+import type { MemoryManager } from '../memory/memory-manager.js';
 
 // ─── Event system ────────────────────────────────────────────────────────────
 
@@ -270,6 +272,12 @@ export class Agent {
             error: new Error(t('error.msg.empty_response')),
           });
         }
+        // Auto-extract memories from the conversation (fire-and-forget)
+        const mm = runContext.sharedState?.memoryManager as MemoryManager | undefined;
+        if (mm) {
+          autoExtractAndSave(messages, mm).catch(() => {});
+        }
+
         onEvent({ type: 'done', finalMessage: assistantMessage });
         return messages;
       }
