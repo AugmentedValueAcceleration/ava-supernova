@@ -217,7 +217,7 @@ export function App() {
 
   return (
     <div className="flex h-screen overflow-hidden text-sm">
-      {hasAccess && <NavSidebar currentPage={page} onNavigate={setPage} mode={account ? 'platform' : 'byok'} email={account?.email} isAdmin={account?.tier === 'admin'} onConnectAccount={handleConnectAccount} />}
+      {hasAccess && <NavSidebar currentPage={page} onNavigate={setPage} mode={account ? 'platform' : 'byok'} email={account?.email} onConnectAccount={handleConnectAccount} />}
 
       <main className="flex-1 overflow-y-auto p-8">
         {errorMsg && (

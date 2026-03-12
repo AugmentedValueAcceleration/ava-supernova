@@ -7,7 +7,6 @@ interface NavSidebarProps {
   onNavigate: (page: Page) => void;
   mode: 'platform' | 'byok';
   email?: string | null;
-  isAdmin?: boolean;
   onConnectAccount?: () => void;
 }
 
@@ -23,7 +22,7 @@ const NAV_ITEMS: Array<{ page: Page; label: string; icon: React.FC<{ className?:
   { page: 'settings', label: 'Settings', icon: CogIcon },
 ];
 
-export function NavSidebar({ currentPage, onNavigate, mode, email, isAdmin, onConnectAccount }: NavSidebarProps) {
+export function NavSidebar({ currentPage, onNavigate, mode, email, onConnectAccount }: NavSidebarProps) {
   const visibleItems = mode === 'byok'
     ? NAV_ITEMS.filter(item => !item.platformOnly)
     : NAV_ITEMS;
@@ -69,23 +68,6 @@ export function NavSidebar({ currentPage, onNavigate, mode, email, isAdmin, onCo
           );
         })}
 
-        {isAdmin && (
-          <>
-            <div className="my-2 border-t border-[var(--border-card)]" />
-            <button
-              onClick={() => post({ type: 'open_url', url: '/admin' })}
-              className="flex items-center gap-3 rounded-lg border-none px-3 py-2 text-left text-sm text-red-400 transition hover:bg-[var(--bg-input)] hover:text-red-300"
-            >
-              <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
-              <span>Admin</span>
-              <span className="ml-auto rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] font-bold text-red-400">
-                ADMIN
-              </span>
-            </button>
-          </>
-        )}
       </div>
 
       {/* Account section */}
