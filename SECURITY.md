@@ -6,7 +6,7 @@ If you discover a security vulnerability in Ava | Supernova, please report it re
 
 **Do NOT open a public issue for security vulnerabilities.**
 
-Instead, email the maintainers or use [GitHub's private vulnerability reporting](https://github.com/AugmentedValueAcceleration/ava-supernova/security/advisories/new).
+Instead, email **security@ava-supernova.com** or use [GitHub's private vulnerability reporting](https://github.com/AugmentedValueAcceleration/ava-supernova/security/advisories/new).
 
 ### What to Include
 
