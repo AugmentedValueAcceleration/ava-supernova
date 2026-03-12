@@ -23,6 +23,21 @@ declare function acquireVsCodeApi(): {
   postMessage: (msg: DashboardToExtMessage) => void;
 };
 
+function ComingSoon({ page }: { page: string }) {
+  const label = page.charAt(0).toUpperCase() + page.slice(1);
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+      <div className="rounded-full bg-[var(--bg-input)] p-4">
+        <svg className="h-8 w-8 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <h2 className="text-lg font-medium text-white">{label}</h2>
+      <p className="text-sm text-[var(--text-muted)]">This feature is coming soon.</p>
+    </div>
+  );
+}
+
 const vscode = acquireVsCodeApi();
 
 export function post(msg: DashboardToExtMessage): void {
@@ -152,6 +167,8 @@ export function App() {
           return <Overview account={account} connections={connections} onNavigate={setPage} logs={usageLogs} />;
         }
         return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
+      case 'keys':
+        return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
       case 'usage':
         if (account) {
           return <Usage account={account} logs={usageLogs} />;
@@ -161,6 +178,9 @@ export function App() {
         return <Memory memories={memories} />;
       case 'connections':
         return <Connections connections={connections} />;
+      case 'history':
+      case 'support':
+        return <ComingSoon page={page} />;
       case 'billing':
         return account ? <Billing account={account} /> : <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
       case 'settings':
@@ -169,10 +189,10 @@ export function App() {
   };
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden text-sm">
-      {hasAccess && <NavSidebar currentPage={page} onNavigate={setPage} mode={account ? 'platform' : 'byok'} email={account?.email} onConnectAccount={handleConnectAccount} />}
+    <div className="flex h-screen overflow-hidden text-sm">
+      {hasAccess && <NavSidebar currentPage={page} onNavigate={setPage} mode={account ? 'platform' : 'byok'} email={account?.email} isAdmin={account?.tier === 'admin'} onConnectAccount={handleConnectAccount} />}
 
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-8">
         {errorMsg && (
           <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-400">
             {errorMsg}

@@ -123,6 +123,25 @@ export function TrashIcon({ className = 'h-4 w-4' }: IconProps) {
   );
 }
 
+export function ClockIcon({ className = 'h-5 w-5' }: IconProps) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points="12 6 12 12 16 14" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function HelpCircleIcon({ className = 'h-5 w-5' }: IconProps) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 17h.01" />
+    </svg>
+  );
+}
+
 export function ChevronDownIcon({ className = 'h-4 w-4' }: IconProps) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">

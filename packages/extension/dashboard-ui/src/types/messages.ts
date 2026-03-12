@@ -73,7 +73,7 @@ export interface UsageLogEntry {
   timestamp: string;
 }
 
-export type Page = 'overview' | 'usage' | 'memory' | 'connections' | 'billing' | 'settings';
+export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'connections' | 'history' | 'support' | 'billing' | 'settings';
 
 // Extension Host → Dashboard
 export type ExtToDashboardMessage =

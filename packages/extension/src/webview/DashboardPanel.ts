@@ -47,7 +47,7 @@ export class DashboardPanel {
   // ─── Static factory ────────────────────────────────────────────────────────
 
   public static show(extensionUri: vscode.Uri, context: vscode.ExtensionContext): void {
-    const column = vscode.ViewColumn.Two;
+    const column = vscode.ViewColumn.One;
 
     if (DashboardPanel.currentPanel) {
       DashboardPanel.currentPanel.panel.reveal(column);
