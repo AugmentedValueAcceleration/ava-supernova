@@ -4,16 +4,21 @@ import { UsageBar } from '../components/UsageBar';
 import { SectionGroup } from '../components/SectionGroup';
 import { post } from '../App';
 import { BoltIcon, ChartBarIcon, LinkIcon } from '../components/Icons';
-import type { AccountInfo, ConnectionStatus, Page, UsageLogEntry } from '../types/messages';
+import type { AccountInfo, ConnectionStatus, Page, SessionStats, UsageLogEntry } from '../types/messages';
 
 interface OverviewProps {
-  account: AccountInfo;
+  account: AccountInfo | null;
   connections: ConnectionStatus;
   onNavigate: (page: Page) => void;
   logs: UsageLogEntry[];
+  sessionStats?: SessionStats | null;
+  mode: 'platform' | 'byok';
 }
 
-export function Overview({ account, connections: _connections, onNavigate, logs }: OverviewProps) {
+export function Overview({ account, connections: _connections, onNavigate, logs, sessionStats: stats, mode }: OverviewProps) {
+  if (mode === 'byok' || !account) {
+    return <ByokOverview stats={stats} onNavigate={onNavigate} />;
+  }
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(account.name ?? '');
   const [refreshing, setRefreshing] = useState(false);
@@ -277,6 +282,113 @@ function ActionCard({ label, onClick }: { label: string; onClick: () => void }) 
       {label}
     </button>
   );
+}
+
+function ByokOverview({ stats, onNavigate }: { stats?: SessionStats | null; onNavigate: (page: Page) => void }) {
+  const totalTokens = stats ? stats.total_input_tokens + stats.total_output_tokens : 0;
+  const sessionDuration = stats ? timeSince(stats.session_start) : '—';
+
+  return (
+    <div className="mx-auto w-full max-w-4xl">
+      <div className="mb-6">
+        <h1 className="text-xl font-bold">Overview</h1>
+        <p className="mt-1 text-xs text-[var(--text-secondary)]">
+          Your session at a glance.
+        </p>
+      </div>
+
+      {/* Session Stats */}
+      <div className="mb-6">
+        <SectionGroup label="Session Stats">
+          <div className="grid grid-cols-2 gap-3">
+            <StatCard
+              icon={<BoltIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
+              value={String(stats?.messages ?? 0)}
+              label="Messages"
+              subtext="This session"
+            />
+            <StatCard
+              icon={<ChartBarIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
+              value={formatNumber(totalTokens)}
+              label="Tokens Used"
+              subtext={`In: ${formatNumber(stats?.total_input_tokens ?? 0)} / Out: ${formatNumber(stats?.total_output_tokens ?? 0)}`}
+            />
+            <StatCard
+              icon={<BoltIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
+              value={String(stats?.tool_calls ?? 0)}
+              label="Tool Calls"
+              subtext="This session"
+            />
+            <StatCard
+              icon={<ChartBarIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
+              value={sessionDuration}
+              label="Session Duration"
+              subtext={stats ? `Since ${new Date(stats.session_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : undefined}
+            />
+          </div>
+        </SectionGroup>
+      </div>
+
+      {/* Upgrade Comparison */}
+      <div className="mb-6">
+        <SectionGroup label="Get More from Ava">
+          <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-6">
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">What you have</h3>
+                <ul className="space-y-2 text-xs text-[var(--text-secondary)]">
+                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> Local memory storage</li>
+                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> Session-based usage stats</li>
+                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> Your own API keys</li>
+                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> All 28 tools</li>
+                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> 2 free models</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--gradient-start)]">With a connected account (free)</h3>
+                <ul className="space-y-2 text-xs text-[var(--text-secondary)]">
+                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> Memory sync across devices</li>
+                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> Full usage history</li>
+                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> Priority support with ticket tracking</li>
+                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> 500K free tokens every month</li>
+                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> Conversation history & backup</li>
+                </ul>
+              </div>
+            </div>
+            <div className="mt-5 border-t border-[var(--border-card)] pt-4 text-center">
+              <p className="mb-3 text-xs text-[var(--text-muted)]">
+                Keep using your own API keys — a connected account just adds sync, history, and support.
+              </p>
+              <button
+                onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/signup' })}
+                className="rounded-lg bg-[var(--accent)] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover)]"
+              >
+                Connect Account — Free
+              </button>
+            </div>
+          </div>
+        </SectionGroup>
+      </div>
+
+      {/* Quick Actions */}
+      <SectionGroup label="Quick Actions">
+        <div className="grid grid-cols-2 gap-3">
+          <ActionCard label="Open Chat" onClick={() => post({ type: 'open_chat' })} />
+          <ActionCard label="Manage API Keys" onClick={() => onNavigate('keys')} />
+        </div>
+      </SectionGroup>
+    </div>
+  );
+}
+
+function timeSince(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return '<1m';
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  const remaining = mins % 60;
+  return `${hours}h ${remaining}m`;
 }
 
 function formatNumber(n: number): string {

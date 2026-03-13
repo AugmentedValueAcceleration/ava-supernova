@@ -156,9 +156,11 @@ function RestoreIcon({ className }: { className?: string }) {
 
 interface MemoryProps {
   memories: MemoryEntry[];
+  mode?: 'platform' | 'byok';
 }
 
-export function Memory({ memories }: MemoryProps) {
+export function Memory({ memories, mode = 'platform' }: MemoryProps) {
+  const isLocal = mode === 'byok';
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -233,22 +235,22 @@ export function Memory({ memories }: MemoryProps) {
 
   function saveEdit(m: MemoryEntry) {
     if (editText.trim() && editText !== m.content) {
-      post({ type: 'upsert_memory', id: m.id, content: editText.trim() });
+      post({ type: isLocal ? 'upsert_local_memory' : 'upsert_memory', id: m.id, content: editText.trim() });
     }
     setEditingId(null);
   }
 
   function confirmDelete(id: string) {
-    post({ type: 'delete_memory', id });
+    post({ type: isLocal ? 'delete_local_memory' : 'delete_memory', id });
     setConfirmDeleteId(null);
   }
 
   function archiveEntry(id: string) {
-    post({ type: 'archive_memory', id });
+    post({ type: isLocal ? 'archive_local_memory' : 'archive_memory', id });
   }
 
   function restoreEntry(id: string) {
-    post({ type: 'restore_memory', id });
+    post({ type: isLocal ? 'restore_local_memory' : 'restore_memory', id });
   }
 
   return (
@@ -260,6 +262,12 @@ export function Memory({ memories }: MemoryProps) {
           Smart, structured knowledge Ava remembers — powered by TF-IDF retrieval and temporal scoring.
         </p>
       </div>
+
+      {isLocal && (
+        <div className="mb-6 rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] px-4 py-3 text-xs text-[var(--text-muted)]">
+          Memories stored locally — connect an account to sync across devices.
+        </div>
+      )}
 
       {/* Stats Bar */}
       {memories.length > 0 && (

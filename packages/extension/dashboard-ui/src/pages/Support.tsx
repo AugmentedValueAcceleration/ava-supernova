@@ -40,9 +40,13 @@ const SOURCE_LABELS: Record<string, string> = {
 interface SupportProps {
   tickets: Ticket[];
   loading: boolean;
+  mode?: 'platform' | 'byok';
 }
 
-export function Support({ tickets, loading }: SupportProps) {
+export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
+  if (mode === 'byok') {
+    return <ByokSupport />;
+  }
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [replyText, setReplyText] = useState('');
@@ -303,6 +307,91 @@ export function Support({ tickets, loading }: SupportProps) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function ByokSupport() {
+  const [email, setEmail] = useState('');
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [sent, setSent] = useState(false);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim() || !subject.trim() || !message.trim()) return;
+    post({ type: 'send_byok_support', email: email.trim(), subject: subject.trim(), message: message.trim() });
+    setSent(true);
+    setTimeout(() => setSent(false), 3000);
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-4xl">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Support</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">
+          Get help from the Ava team.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="mb-6 space-y-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-6">
+        <div>
+          <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">Your Email</label>
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none focus:border-[var(--accent)]"
+            placeholder="you@example.com"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">Subject</label>
+          <input
+            type="text"
+            required
+            maxLength={500}
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none focus:border-[var(--accent)]"
+            placeholder="Brief description of your issue"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">Message</label>
+          <textarea
+            required
+            rows={5}
+            maxLength={10000}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            className="w-full resize-y rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none focus:border-[var(--accent)]"
+            placeholder="Describe your issue..."
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            className="rounded-lg bg-[var(--accent)] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover,#6d28d9)]"
+          >
+            Send Message
+          </button>
+          {sent && <span className="text-xs text-green-400">Opening your email client...</span>}
+        </div>
+      </form>
+
+      <div className="rounded-xl border border-dashed border-[var(--border-card)] bg-[var(--bg-card)] p-5 text-center">
+        <p className="mb-2 text-xs text-[var(--text-muted)]">
+          Connected account holders get priority support and ticket tracking.
+        </p>
+        <p className="text-xs text-[var(--text-muted)]">
+          You can also open an issue on{' '}
+          <button onClick={() => post({ type: 'open_url', url: 'https://github.com/AugmentedValueAcceleration/ava-supernova/issues' })} className="text-[var(--gradient-start)] hover:underline">
+            GitHub
+          </button>.
+        </p>
+      </div>
     </div>
   );
 }

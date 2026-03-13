@@ -2,11 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { post } from '../App';
 import { UsageBar } from '../components/UsageBar';
 import { SectionGroup } from '../components/SectionGroup';
-import type { AccountInfo, UsageLogEntry } from '../types/messages';
+import type { AccountInfo, SessionStats, UsageLogEntry } from '../types/messages';
 
 interface UsageProps {
-  account: AccountInfo;
+  account: AccountInfo | null;
   logs: UsageLogEntry[];
+  sessionStats?: SessionStats | null;
+  mode: 'platform' | 'byok';
 }
 
 interface ModelBreakdown {
@@ -18,7 +20,10 @@ interface ModelBreakdown {
 
 const PAGE_SIZE = 15;
 
-export function Usage({ account, logs }: UsageProps) {
+export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
+  if (mode === 'byok' || !account) {
+    return <ByokUsage stats={sessionStats} />;
+  }
   const usage = account.usage ?? {
     tokens_used: 0,
     tokens_limit: null as number | null,
@@ -301,4 +306,91 @@ function formatNumber(n: number): string {
 
 function formatDate(d: string): string {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function ByokUsage({ stats }: { stats?: SessionStats | null }) {
+  const totalTokens = stats ? stats.total_input_tokens + stats.total_output_tokens : 0;
+  const breakdown = stats?.model_breakdown ?? [];
+  const maxTotal = breakdown.length > 0 ? Math.max(...breakdown.map(m => m.input_tokens + m.output_tokens)) : 1;
+
+  const sessionDuration = stats ? timeSince(stats.session_start) : '—';
+
+  return (
+    <div className="mx-auto w-full max-w-4xl">
+      <div className="mb-6">
+        <h1 className="text-xl font-bold">Session Usage</h1>
+        <p className="mt-1 text-xs text-[var(--text-secondary)]">
+          Stats since you opened VS Code. Connect an account for historical tracking.
+        </p>
+      </div>
+
+      {/* Summary */}
+      <div className="mb-6">
+        <SectionGroup label="Summary">
+          <div className="grid grid-cols-2 gap-3">
+            <SummaryCard label="Total Tokens" value={formatNumber(totalTokens)} sub={`In: ${formatNumber(stats?.total_input_tokens ?? 0)} / Out: ${formatNumber(stats?.total_output_tokens ?? 0)}`} />
+            <SummaryCard label="Requests" value={String(stats?.messages ?? 0)} sub="this session" />
+            <SummaryCard label="Tool Calls" value={String(stats?.tool_calls ?? 0)} sub="this session" />
+            <SummaryCard label="Session Duration" value={sessionDuration} isText sub={stats ? `Since ${new Date(stats.session_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : undefined} />
+          </div>
+        </SectionGroup>
+      </div>
+
+      {/* Model Breakdown */}
+      <div className="mb-6">
+        <SectionGroup label="Usage by Model">
+          {breakdown.length > 0 ? (
+            <div className="space-y-3">
+              {breakdown.map((m) => {
+                const total = m.input_tokens + m.output_tokens;
+                const pct = (total / maxTotal) * 100;
+                return (
+                  <div key={`${m.provider}:${m.model}`} className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-medium">{m.model}</span>
+                      <span className="text-[10px] text-[var(--text-muted)]">
+                        {m.requests} {m.requests === 1 ? 'req' : 'reqs'}
+                      </span>
+                    </div>
+                    <div className="mb-2 h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-3 text-[10px] text-[var(--text-muted)]">
+                      <span>In: {formatNumber(m.input_tokens)}</span>
+                      <span>Out: {formatNumber(m.output_tokens)}</span>
+                      <span>Total: {formatNumber(total)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-6 text-center">
+              <p className="text-xs text-[var(--text-muted)]">No usage this session yet. Start chatting with Ava!</p>
+            </div>
+          )}
+        </SectionGroup>
+      </div>
+
+      {/* CTA */}
+      <div className="rounded-xl border border-dashed border-[var(--border-card)] bg-[var(--bg-card)] p-5 text-center">
+        <p className="text-xs text-[var(--text-muted)]">
+          Connect an account to track usage across sessions and see historical trends.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function timeSince(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return '<1m';
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  const remaining = mins % 60;
+  return `${hours}h ${remaining}m`;
 }

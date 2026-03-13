@@ -92,6 +92,21 @@ export interface SupportTicket {
   }[];
 }
 
+export interface SessionStats {
+  messages: number;
+  tool_calls: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  model_breakdown: Array<{
+    model: string;
+    provider: string;
+    requests: number;
+    input_tokens: number;
+    output_tokens: number;
+  }>;
+  session_start: string;
+}
+
 export interface AdminToolProposal {
   id: string;
   user_email: string;
@@ -140,6 +155,12 @@ export type ExtToDashboardMessage =
   | { type: 'admin_tickets_loaded'; tickets: SupportTicket[]; total: number }
   | { type: 'admin_proposals_loaded'; proposals: AdminToolProposal[]; total: number }
   | { type: 'admin_proposal_updated' }
+  // BYOK messages
+  | { type: 'local_memories_loaded'; memories: MemoryEntry[] }
+  | { type: 'local_memory_deleted'; id: string }
+  | { type: 'local_memory_upserted'; memory: MemoryEntry }
+  | { type: 'session_stats_loaded'; stats: SessionStats }
+  | { type: 'byok_support_sent'; success: boolean; message: string }
   | { type: 'error'; message: string };
 
 // ─── Dashboard Webview → Extension Host ──────────────────────────────────────
@@ -179,4 +200,12 @@ export type DashboardToExtMessage =
   | { type: 'admin_reply_ticket'; ticketId: string; message: string }
   | { type: 'admin_update_ticket'; ticketId: string; status: string }
   | { type: 'load_admin_proposals'; status?: string }
-  | { type: 'admin_update_proposal'; id: string; status: string; reviewer_notes?: string; reward_tokens?: number };
+  | { type: 'admin_update_proposal'; id: string; status: string; reviewer_notes?: string; reward_tokens?: number }
+  // BYOK messages
+  | { type: 'load_local_memories' }
+  | { type: 'delete_local_memory'; id: string }
+  | { type: 'upsert_local_memory'; id?: string; content: string; category?: string | null }
+  | { type: 'archive_local_memory'; id: string }
+  | { type: 'restore_local_memory'; id: string }
+  | { type: 'load_session_stats' }
+  | { type: 'send_byok_support'; email: string; subject: string; message: string };

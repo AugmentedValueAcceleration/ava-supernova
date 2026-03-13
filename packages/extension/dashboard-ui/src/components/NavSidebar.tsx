@@ -12,13 +12,13 @@ interface NavSidebarProps {
 }
 
 const NAV_ITEMS: Array<{ page: Page; label: string; icon: React.FC<{ className?: string }>; platformOnly?: boolean; adminOnly?: boolean; comingSoon?: boolean }> = [
-  { page: 'overview', label: 'Overview', icon: BoltIcon, platformOnly: true },
+  { page: 'overview', label: 'Overview', icon: BoltIcon },
   { page: 'keys', label: 'API Keys', icon: KeyIcon },
-  { page: 'usage', label: 'Usage', icon: ChartBarIcon, platformOnly: true },
-  { page: 'memory', label: 'Memory', icon: SparklesIcon, platformOnly: true },
+  { page: 'usage', label: 'Usage', icon: ChartBarIcon },
+  { page: 'memory', label: 'Memory', icon: SparklesIcon },
   { page: 'connections', label: 'Connections', icon: LinkIcon, platformOnly: true, comingSoon: true },
   { page: 'history', label: 'History', icon: ClockIcon, platformOnly: true },
-  { page: 'support', label: 'Support', icon: HelpCircleIcon, platformOnly: true },
+  { page: 'support', label: 'Support', icon: HelpCircleIcon },
   { page: 'billing', label: 'Plans & Billing', icon: CreditCardIcon, platformOnly: true },
   { page: 'settings', label: 'Settings', icon: CogIcon },
   // Admin pages

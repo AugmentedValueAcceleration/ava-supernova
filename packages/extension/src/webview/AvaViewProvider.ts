@@ -27,6 +27,7 @@ import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource,
 import type { AccountInfo } from './dashboard-message-types.js';
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
+import { sessionStats } from '../session-stats.js';
 
 export class AvaViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'ava-supernova.chatView';
@@ -1024,6 +1025,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
     this.isRunning = true;
     this.runAbortController = new AbortController();
+    sessionStats.recordMessage();
     this.updateStatusBar('busy');
 
     const userText = this.applyModePrefix(text, mode);
@@ -1083,6 +1085,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             });
           }
           this.log(`Tool call: ${event.toolCall.function.name}`);
+          sessionStats.recordToolCall();
           break;
         }
         case 'tool_call_end': {
@@ -1106,6 +1109,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             contextWindow: this.activeModelDef?.contextWindow,
           });
           this.log(`Usage: ${event.usage.prompt_tokens}+${event.usage.completion_tokens} tokens${event.cost ? ` ($${event.cost.toFixed(4)})` : ''}`);
+          // Track session stats
+          sessionStats.recordUsage(
+            this.activeModelDef?.id ?? 'unknown',
+            this.activeModelDef?.provider ?? 'unknown',
+            event.usage.prompt_tokens,
+            event.usage.completion_tokens,
+          );
           // Report usage to platform (fire-and-forget)
           this.reportUsageToPlatform(event.usage);
           break;

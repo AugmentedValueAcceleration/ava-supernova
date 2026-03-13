@@ -1,6 +1,11 @@
 import * as vscode from 'vscode';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import { MemoryManager, AVA_HOME } from '@ava/core';
+import type { MemoryEntry as CoreMemoryEntry } from '@ava/core';
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
+import { sessionStats } from '../session-stats.js';
 import type {
   ExtToDashboardMessage,
   DashboardToExtMessage,
@@ -8,6 +13,7 @@ import type {
   AccountInfo,
   ConnectionStatus,
   ProviderKeyStatus,
+  MemoryEntry,
   UsageLogEntry,
 } from './dashboard-message-types.js';
 
@@ -43,6 +49,7 @@ export class DashboardPanel {
   private readonly extensionUri: vscode.Uri;
   private readonly secrets: vscode.SecretStorage;
   private disposables: vscode.Disposable[] = [];
+  private memoryManager?: MemoryManager;
 
   // ─── Static factory ────────────────────────────────────────────────────────
 
@@ -246,6 +253,39 @@ export class DashboardPanel {
         await this.adminUpdateProposal(msg.id, msg.status, msg.reviewer_notes, msg.reward_tokens);
         break;
 
+      // ─── BYOK messages ──────────────────────────────────────────────────────
+
+      case 'load_local_memories':
+        await this.loadLocalMemories();
+        break;
+
+      case 'delete_local_memory':
+        await this.deleteLocalMemory(msg.id);
+        break;
+
+      case 'upsert_local_memory':
+        await this.upsertLocalMemory(msg);
+        break;
+
+      case 'archive_local_memory':
+        await this.archiveLocalMemory(msg.id, true);
+        break;
+
+      case 'restore_local_memory':
+        await this.archiveLocalMemory(msg.id, false);
+        break;
+
+      case 'load_session_stats':
+        this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats() });
+        break;
+
+      case 'send_byok_support': {
+        const mailto = `mailto:support@ava-supernova.com?subject=${encodeURIComponent(msg.subject)}&body=${encodeURIComponent(msg.message + '\n\nFrom: ' + msg.email)}`;
+        await vscode.env.openExternal(vscode.Uri.parse(mailto));
+        this.post({ type: 'byok_support_sent', success: true, message: 'Opening your email client...' });
+        break;
+      }
+
     }
   }
 
@@ -261,9 +301,13 @@ export class DashboardPanel {
 
     this.post({ type: 'init', account, connections, settings, providerKeys, locale });
 
-    // Auto-load memories if signed in
     if (account) {
+      // Platform user — load memories from API
       await this.loadMemories();
+    } else {
+      // BYOK user — load local memories and session stats
+      await this.loadLocalMemories();
+      this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats() });
     }
   }
 
@@ -757,6 +801,122 @@ export class DashboardPanel {
       }
     } catch {
       this.post({ type: 'error', message: 'Failed to update proposal.' });
+    }
+  }
+
+  // ─── Local Memories (BYOK) ──────────────────────────────────────────────────
+
+  private getMemoryManager(): MemoryManager {
+    if (!this.memoryManager) {
+      const globalDir = AVA_HOME ?? path.join(os.homedir(), '.ava');
+      const projectRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      this.memoryManager = new MemoryManager({ globalDir, projectRoot });
+    }
+    return this.memoryManager;
+  }
+
+  private coreToDisplayEntry(entry: CoreMemoryEntry, scope: 'global' | 'project'): MemoryEntry {
+    return {
+      id: entry.id,
+      scope,
+      project_id: null,
+      key: entry.content.slice(0, 50).replace(/\n/g, ' '),
+      content: entry.content,
+      category: entry.category,
+      created_at: entry.createdAt,
+      updated_at: entry.updatedAt,
+      last_recalled_at: entry.lastRecalledAt ?? null,
+      recall_count: entry.recallCount,
+      tags: entry.tags,
+      archived: entry.archived,
+      archived_at: entry.archivedAt ?? null,
+      branch: entry.branch ?? null,
+      directory_scope: entry.directoryScope ?? null,
+    };
+  }
+
+  private async loadLocalMemories(): Promise<void> {
+    try {
+      const mgr = this.getMemoryManager();
+      const globalStore = await mgr.loadGlobalStore();
+      const projectStore = await mgr.loadProjectStore();
+
+      const memories: MemoryEntry[] = [
+        ...globalStore.entries.map(e => this.coreToDisplayEntry(e, 'global')),
+        ...(projectStore?.entries ?? []).map(e => this.coreToDisplayEntry(e, 'project')),
+      ];
+
+      this.post({ type: 'local_memories_loaded', memories });
+    } catch {
+      this.post({ type: 'local_memories_loaded', memories: [] });
+    }
+  }
+
+  private async deleteLocalMemory(id: string): Promise<void> {
+    try {
+      const mgr = this.getMemoryManager();
+      // Try global first, then project
+      const deleted = await mgr.deleteEntry('global', id) || await mgr.deleteEntry('project', id);
+      if (deleted) {
+        this.post({ type: 'local_memory_deleted', id });
+      } else {
+        this.post({ type: 'error', message: 'Memory not found.' });
+      }
+    } catch {
+      this.post({ type: 'error', message: 'Failed to delete memory.' });
+    }
+  }
+
+  private async upsertLocalMemory(msg: { id?: string; content: string; category?: string | null }): Promise<void> {
+    try {
+      const mgr = this.getMemoryManager();
+      if (msg.id) {
+        const updated = await mgr.updateEntry('global', msg.id, { content: msg.content })
+          ?? await mgr.updateEntry('project', msg.id, { content: msg.content });
+        if (updated) {
+          this.post({ type: 'local_memory_upserted', memory: this.coreToDisplayEntry(updated, 'global') });
+        } else {
+          this.post({ type: 'error', message: 'Memory not found.' });
+        }
+      } else {
+        const entry = await mgr.saveEntry({
+          scope: 'global',
+          content: msg.content,
+          category: (msg.category as CoreMemoryEntry['category']) ?? 'general',
+        });
+        this.post({ type: 'local_memory_upserted', memory: this.coreToDisplayEntry(entry, 'global') });
+      }
+    } catch {
+      this.post({ type: 'error', message: 'Failed to save memory.' });
+    }
+  }
+
+  private async archiveLocalMemory(id: string, archived: boolean): Promise<void> {
+    try {
+      const mgr = this.getMemoryManager();
+      // Load stores and find the entry
+      const globalStore = await mgr.loadGlobalStore();
+      let entry = globalStore.entries.find(e => e.id === id);
+      let scope: 'global' | 'project' = 'global';
+
+      if (!entry) {
+        const projectStore = await mgr.loadProjectStore();
+        entry = projectStore?.entries.find(e => e.id === id);
+        scope = 'project';
+      }
+
+      if (!entry) {
+        this.post({ type: 'error', message: 'Memory not found.' });
+        return;
+      }
+
+      // Toggle archived state and trigger save via updateEntry
+      entry.archived = archived;
+      entry.archivedAt = archived ? new Date().toISOString() : null;
+      await mgr.updateEntry(scope, id, { content: entry.content });
+      this.post({ type: 'local_memory_upserted', memory: this.coreToDisplayEntry(entry, scope) });
+    } catch {
+      this.post({ type: 'error', message: `Failed to ${archived ? 'archive' : 'restore'} memory.` });
     }
   }
 

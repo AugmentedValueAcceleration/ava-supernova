@@ -17,6 +17,7 @@ import type {
   AdminToolProposal,
   ConnectionStatus,
   ConversationEntry,
+  SessionStats,
   SupportTicket,
   DashboardSettings,
   MemoryEntry,
@@ -65,6 +66,8 @@ export function App() {
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [byokMode, setByokMode] = useState(false);
+  const [localMemories, setLocalMemories] = useState<MemoryEntry[]>([]);
+  const [sessionStatsData, setSessionStatsData] = useState<SessionStats | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // Admin state
   const [adminTickets, setAdminTickets] = useState<SupportTicket[]>([]);
@@ -86,7 +89,7 @@ export function App() {
         setProviderKeys(msg.providerKeys);
         if (!msg.account && Object.values(msg.providerKeys).some(Boolean)) {
           setByokMode(true);
-          setPage('settings');
+          setPage('overview');
         }
         setInitialized(true);
         break;
@@ -94,7 +97,7 @@ export function App() {
         setAccount(msg.account);
         if (!msg.account && Object.values(providerKeys).some(Boolean)) {
           setByokMode(true);
-          setPage('settings');
+          setPage('overview');
         }
         break;
       case 'provider_keys_updated':
@@ -162,6 +165,30 @@ export function App() {
         // Reload proposals
         post({ type: 'load_admin_proposals' });
         break;
+      // BYOK messages
+      case 'local_memories_loaded':
+        setLocalMemories(msg.memories);
+        break;
+      case 'local_memory_deleted':
+        setLocalMemories((prev) => prev.filter((m) => m.id !== msg.id));
+        break;
+      case 'local_memory_upserted':
+        setLocalMemories((prev) => {
+          const idx = prev.findIndex((m) => m.id === msg.memory.id);
+          if (idx >= 0) {
+            const updated = [...prev];
+            updated[idx] = msg.memory;
+            return updated;
+          }
+          return [msg.memory, ...prev];
+        });
+        break;
+      case 'session_stats_loaded':
+        setSessionStatsData(msg.stats);
+        break;
+      case 'byok_support_sent':
+        // Handled by Support page directly
+        break;
       case 'error':
         setErrorMsg(msg.message);
         setTimeout(() => setErrorMsg(null), 5000);
@@ -175,13 +202,13 @@ export function App() {
     return () => window.removeEventListener('message', handleMessage);
   }, [handleMessage]);
 
-  // Load data when navigating to history or support
+  // Load data when navigating to pages
   useEffect(() => {
     if (page === 'history' && conversations.length === 0 && !conversationsLoading) {
       setConversationsLoading(true);
       post({ type: 'load_conversations' });
     }
-    if (page === 'support' && tickets.length === 0 && !ticketsLoading) {
+    if (page === 'support' && tickets.length === 0 && !ticketsLoading && account) {
       setTicketsLoading(true);
       post({ type: 'load_tickets' });
     }
@@ -192,6 +219,10 @@ export function App() {
     if (page === 'admin_proposals' && adminProposals.length === 0 && !adminProposalsLoading) {
       setAdminProposalsLoading(true);
       post({ type: 'load_admin_proposals' });
+    }
+    // BYOK: refresh session stats when viewing usage or overview
+    if ((page === 'usage' || page === 'overview') && byokMode && !account) {
+      post({ type: 'load_session_stats' });
     }
   }, [page]);
 
@@ -207,7 +238,7 @@ export function App() {
 
   function handleSkipAccount() {
     setByokMode(true);
-    setPage('settings');
+    setPage('overview');
     post({ type: 'skip_account' });
   }
 
@@ -220,27 +251,22 @@ export function App() {
     if (!hasAccess) {
       return <ConnectAccount onSkipAccount={handleSkipAccount} />;
     }
+    const mode = account ? 'platform' as const : 'byok' as const;
     switch (page) {
       case 'overview':
-        if (account) {
-          return <Overview account={account} connections={connections} onNavigate={setPage} logs={usageLogs} />;
-        }
-        return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
+        return <Overview account={account} connections={connections} onNavigate={setPage} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} />;
       case 'keys':
         return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
       case 'usage':
-        if (account) {
-          return <Usage account={account} logs={usageLogs} />;
-        }
-        return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
+        return <Usage account={account} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} />;
       case 'memory':
-        return <Memory memories={memories} />;
+        return <Memory memories={account ? memories : localMemories} mode={mode} />;
       case 'connections':
         return <Connections connections={connections} />;
       case 'history':
         return <History conversations={conversations} loading={conversationsLoading} />;
       case 'support':
-        return <Support tickets={tickets} loading={ticketsLoading} />;
+        return <Support tickets={tickets} loading={ticketsLoading} mode={mode} />;
       case 'billing':
         return account ? <Billing account={account} /> : <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
       case 'settings':
