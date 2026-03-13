@@ -116,11 +116,10 @@ export class PlatformMemorySync {
     }
 
     // Clean up: delete remote entries that no longer exist locally
+    // Also delete legacy 'memory.json' blob records from old sync format
     const localIds = new Set(entries.map((e) => e.id));
     for (const remote of existing) {
-      // Only clean up entries keyed by UUID (skip legacy 'memory.json' key)
-      if (remote.key === 'memory.json') continue;
-      if (!localIds.has(remote.key)) {
+      if (remote.key === 'memory.json' || !localIds.has(remote.key)) {
         await this.delete(remote.id);
       }
     }
