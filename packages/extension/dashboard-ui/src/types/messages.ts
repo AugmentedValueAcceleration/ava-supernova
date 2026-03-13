@@ -102,7 +102,25 @@ export interface SupportTicket {
   }[];
 }
 
-export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'connections' | 'history' | 'support' | 'billing' | 'settings';
+export interface AdminToolProposal {
+  id: string;
+  user_email: string;
+  user_name: string | null;
+  tool_name: string;
+  description: string;
+  proposed_schema: Record<string, unknown>;
+  risk_level: 'safe' | 'write' | 'dangerous';
+  justification: string;
+  task_context: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'implemented';
+  reviewer_notes: string | null;
+  vote_count: number;
+  reward_granted: boolean;
+  reward_tokens: number;
+  created_at: string;
+}
+
+export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals';
 
 // Extension Host → Dashboard
 export type ExtToDashboardMessage =
@@ -129,6 +147,10 @@ export type ExtToDashboardMessage =
   | { type: 'tickets_loaded'; tickets: SupportTicket[] }
   | { type: 'ticket_created'; ticket: SupportTicket }
   | { type: 'ticket_reply_sent'; ticketId: string }
+  // Admin messages
+  | { type: 'admin_tickets_loaded'; tickets: SupportTicket[]; total: number }
+  | { type: 'admin_proposals_loaded'; proposals: AdminToolProposal[]; total: number }
+  | { type: 'admin_proposal_updated' }
   | { type: 'error'; message: string };
 
 // Dashboard → Extension Host
@@ -161,4 +183,10 @@ export type DashboardToExtMessage =
   | { type: 'toggle_pin_conversation'; id: string }
   | { type: 'load_tickets' }
   | { type: 'create_support_ticket'; subject: string; message: string }
-  | { type: 'reply_support_ticket'; ticketId: string; message: string };
+  | { type: 'reply_support_ticket'; ticketId: string; message: string }
+  // Admin messages
+  | { type: 'load_admin_tickets'; status?: string }
+  | { type: 'admin_reply_ticket'; ticketId: string; message: string }
+  | { type: 'admin_update_ticket'; ticketId: string; status: string }
+  | { type: 'load_admin_proposals'; status?: string }
+  | { type: 'admin_update_proposal'; id: string; status: string; reviewer_notes?: string; reward_tokens?: number };

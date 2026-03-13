@@ -224,6 +224,28 @@ export class DashboardPanel {
         await this.replySupportTicket(msg.ticketId, msg.message);
         break;
 
+      // ─── Admin messages ──────────────────────────────────────────────────────
+
+      case 'load_admin_tickets':
+        await this.loadAdminTickets(msg.status);
+        break;
+
+      case 'admin_reply_ticket':
+        await this.adminReplyTicket(msg.ticketId, msg.message);
+        break;
+
+      case 'admin_update_ticket':
+        await this.adminUpdateTicket(msg.ticketId, msg.status);
+        break;
+
+      case 'load_admin_proposals':
+        await this.loadAdminProposals(msg.status);
+        break;
+
+      case 'admin_update_proposal':
+        await this.adminUpdateProposal(msg.id, msg.status, msg.reviewer_notes, msg.reward_tokens);
+        break;
+
     }
   }
 
@@ -638,6 +660,103 @@ export class DashboardPanel {
       }
     } catch {
       this.post({ type: 'error', message: 'Failed to send reply.' });
+    }
+  }
+
+  // ─── Admin ────────────────────────────────────────────────────────────────
+
+  private async loadAdminTickets(status?: string): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) {
+      this.post({ type: 'admin_tickets_loaded', tickets: [], total: 0 });
+      return;
+    }
+
+    try {
+      const params = status ? `?status=${status}` : '';
+      const res = await apiFetch(`/admin/support${params}`, { platformKey });
+      if (res.ok) {
+        const data = res.data as { tickets: never[]; total: number };
+        this.post({ type: 'admin_tickets_loaded', tickets: data.tickets || [], total: data.total || 0 });
+      } else {
+        this.post({ type: 'admin_tickets_loaded', tickets: [], total: 0 });
+      }
+    } catch {
+      this.post({ type: 'admin_tickets_loaded', tickets: [], total: 0 });
+    }
+  }
+
+  private async adminReplyTicket(ticketId: string, message: string): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+
+    try {
+      const res = await apiFetch(`/admin/support/${ticketId}/reply`, {
+        method: 'POST',
+        body: { message },
+        platformKey,
+      });
+      if (!res.ok) {
+        this.post({ type: 'error', message: 'Failed to send admin reply.' });
+      }
+    } catch {
+      this.post({ type: 'error', message: 'Failed to send admin reply.' });
+    }
+  }
+
+  private async adminUpdateTicket(ticketId: string, status: string): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+
+    try {
+      await apiFetch(`/admin/support/${ticketId}`, {
+        method: 'PATCH',
+        body: { status },
+        platformKey,
+      });
+    } catch {
+      this.post({ type: 'error', message: 'Failed to update ticket.' });
+    }
+  }
+
+  private async loadAdminProposals(status?: string): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) {
+      this.post({ type: 'admin_proposals_loaded', proposals: [], total: 0 });
+      return;
+    }
+
+    try {
+      const params = status ? `?status=${status}` : '';
+      const res = await apiFetch(`/admin/tool-proposals${params}`, { platformKey });
+      if (res.ok) {
+        const data = res.data as { proposals: never[]; total: number };
+        this.post({ type: 'admin_proposals_loaded', proposals: data.proposals || [], total: data.total || 0 });
+      } else {
+        this.post({ type: 'admin_proposals_loaded', proposals: [], total: 0 });
+      }
+    } catch {
+      this.post({ type: 'admin_proposals_loaded', proposals: [], total: 0 });
+    }
+  }
+
+  private async adminUpdateProposal(id: string, status: string, reviewerNotes?: string, rewardTokens?: number): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+
+    try {
+      const res = await apiFetch('/admin/tool-proposals', {
+        method: 'PATCH',
+        body: { id, status, reviewer_notes: reviewerNotes, reward_tokens: rewardTokens },
+        platformKey,
+      });
+      if (res.ok) {
+        this.post({ type: 'admin_proposal_updated' });
+      } else {
+        this.post({ type: 'error', message: 'Failed to update proposal.' });
+      }
+    } catch {
+      this.post({ type: 'error', message: 'Failed to update proposal.' });
     }
   }
 

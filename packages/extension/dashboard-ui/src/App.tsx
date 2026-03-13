@@ -9,9 +9,12 @@ import { History } from './pages/History';
 import { Support } from './pages/Support';
 import { Billing } from './pages/Billing';
 import { Settings } from './pages/Settings';
+import { AdminSupport } from './pages/AdminSupport';
+import { AdminProposals } from './pages/AdminProposals';
 import type {
   Page,
   AccountInfo,
+  AdminToolProposal,
   ConnectionStatus,
   ConversationEntry,
   SupportTicket,
@@ -63,6 +66,13 @@ export function App() {
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [byokMode, setByokMode] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // Admin state
+  const [adminTickets, setAdminTickets] = useState<SupportTicket[]>([]);
+  const [adminTicketsTotal, setAdminTicketsTotal] = useState(0);
+  const [adminTicketsLoading, setAdminTicketsLoading] = useState(false);
+  const [adminProposals, setAdminProposals] = useState<AdminToolProposal[]>([]);
+  const [adminProposalsTotal, setAdminProposalsTotal] = useState(0);
+  const [adminProposalsLoading, setAdminProposalsLoading] = useState(false);
 
   const handleMessage = useCallback((event: MessageEvent) => {
     // Only accept messages from the VSCode webview host
@@ -137,6 +147,21 @@ export function App() {
         // Reload tickets to get updated messages
         post({ type: 'load_tickets' });
         break;
+      // Admin messages
+      case 'admin_tickets_loaded':
+        setAdminTickets(msg.tickets);
+        setAdminTicketsTotal(msg.total);
+        setAdminTicketsLoading(false);
+        break;
+      case 'admin_proposals_loaded':
+        setAdminProposals(msg.proposals);
+        setAdminProposalsTotal(msg.total);
+        setAdminProposalsLoading(false);
+        break;
+      case 'admin_proposal_updated':
+        // Reload proposals
+        post({ type: 'load_admin_proposals' });
+        break;
       case 'error':
         setErrorMsg(msg.message);
         setTimeout(() => setErrorMsg(null), 5000);
@@ -159,6 +184,14 @@ export function App() {
     if (page === 'support' && tickets.length === 0 && !ticketsLoading) {
       setTicketsLoading(true);
       post({ type: 'load_tickets' });
+    }
+    if (page === 'admin_support' && adminTickets.length === 0 && !adminTicketsLoading) {
+      setAdminTicketsLoading(true);
+      post({ type: 'load_admin_tickets' });
+    }
+    if (page === 'admin_proposals' && adminProposals.length === 0 && !adminProposalsLoading) {
+      setAdminProposalsLoading(true);
+      post({ type: 'load_admin_proposals' });
     }
   }, [page]);
 
@@ -212,12 +245,16 @@ export function App() {
         return account ? <Billing account={account} /> : <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
       case 'settings':
         return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys={!account} />;
+      case 'admin_support':
+        return <AdminSupport tickets={adminTickets} total={adminTicketsTotal} loading={adminTicketsLoading} />;
+      case 'admin_proposals':
+        return <AdminProposals proposals={adminProposals} total={adminProposalsTotal} loading={adminProposalsLoading} />;
     }
   };
 
   return (
     <div className="flex h-screen overflow-hidden text-sm">
-      {hasAccess && <NavSidebar currentPage={page} onNavigate={setPage} mode={account ? 'platform' : 'byok'} email={account?.email} onConnectAccount={handleConnectAccount} />}
+      {hasAccess && <NavSidebar currentPage={page} onNavigate={setPage} mode={account ? 'platform' : 'byok'} email={account?.email} isAdmin={account?.tier === 'admin'} onConnectAccount={handleConnectAccount} />}
 
       <main className="flex-1 overflow-y-auto p-8">
         {errorMsg && (
