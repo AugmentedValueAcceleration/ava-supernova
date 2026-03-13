@@ -688,6 +688,11 @@ export class MemoryManager {
       const raw = await readFile(v2Path, 'utf-8');
       const parsed = JSON.parse(raw) as MemoryStore;
       if (parsed.version === 2 && Array.isArray(parsed.entries)) {
+        // Fix corrupt entries whose content is a JSON store blob
+        const cleaned = this.cleanBlobEntries(parsed);
+        if (cleaned) {
+          await this.persistStore(dir, parsed);
+        }
         return parsed;
       }
     } catch { /* v2 doesn't exist or is corrupt */ }
@@ -807,7 +812,21 @@ export class MemoryManager {
 
   /** Parse markdown content into structured entries. */
   private markdownToEntries(markdown: string): MemoryEntry[] {
-    const sections = markdown.split(/(?=^####\s)/m);
+    const trimmedInput = markdown.trim();
+    if (!trimmedInput) return [];
+
+    // Detect JSON input — if it's a v2 store blob, extract entries directly
+    if (trimmedInput.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmedInput);
+        if (parsed.version === 2 && Array.isArray(parsed.entries)) {
+          // It's a full MemoryStore — return the entries as-is
+          return parsed.entries;
+        }
+      } catch { /* not valid JSON — fall through to markdown parsing */ }
+    }
+
+    const sections = trimmedInput.split(/(?=^####\s)/m);
     const entries: MemoryEntry[] = [];
 
     for (const section of sections) {
@@ -833,11 +852,11 @@ export class MemoryManager {
     }
 
     // If no #### sections found, treat the whole thing as one entry
-    if (entries.length === 0 && markdown.trim()) {
+    if (entries.length === 0 && trimmedInput) {
       entries.push({
         id: randomUUID(),
-        category: this.inferCategory(markdown),
-        content: markdown.trim(),
+        category: this.inferCategory(trimmedInput),
+        content: trimmedInput,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         lastRecalledAt: null,
@@ -847,6 +866,50 @@ export class MemoryManager {
     }
 
     return entries;
+  }
+
+  /**
+   * Fix corrupt entries where content is a JSON store blob.
+   * Replaces them with the actual entries from inside the blob.
+   * Returns true if any entries were fixed.
+   */
+  private cleanBlobEntries(store: MemoryStore): boolean {
+    let changed = false;
+    const toRemove: number[] = [];
+    const toAdd: MemoryEntry[] = [];
+
+    for (let i = 0; i < store.entries.length; i++) {
+      const entry = store.entries[i];
+      if (entry.content.startsWith('{"version":')) {
+        try {
+          const blob = JSON.parse(entry.content);
+          if (blob.version === 2 && Array.isArray(blob.entries)) {
+            toRemove.push(i);
+            // Extract real entries, skip duplicates already in store
+            const existingIds = new Set(store.entries.map(e => e.id));
+            for (const blobEntry of blob.entries as MemoryEntry[]) {
+              if (!existingIds.has(blobEntry.id)) {
+                toAdd.push(blobEntry);
+                existingIds.add(blobEntry.id);
+              }
+            }
+            changed = true;
+          }
+        } catch { /* not JSON — leave it */ }
+      }
+    }
+
+    // Remove corrupt entries (reverse order to preserve indices)
+    for (const idx of toRemove.reverse()) {
+      store.entries.splice(idx, 1);
+    }
+    // Add extracted entries
+    store.entries.push(...toAdd);
+
+    if (changed) {
+      store.lastModified = new Date().toISOString();
+    }
+    return changed;
   }
 
   /** Infer a category from content using keyword heuristics. */
