@@ -344,15 +344,19 @@ Your source code lives at: \`${opts.sourceRoot}\`
   }
 
   // Append language instruction
-  if (opts.language && opts.language !== 'en' && opts.language !== 'auto') {
-    const nativeName = getLanguageName(opts.language);
+  const effectiveLang = opts.language || 'auto';
+  if (effectiveLang === 'auto') {
+    prompt += `\n\n## Language
+Detect the language the user is writing in and respond in that same language. If the user writes in French, respond in French. If they write in English, respond in English. Always match the user's language naturally. Code, file paths, and technical identifiers always stay in English.`;
+  } else if (effectiveLang === 'en') {
+    prompt += `\n\n## Language
+The user has explicitly chosen English. Always respond in English. Code, file paths, and technical identifiers always stay in English.`;
+  } else {
+    const nativeName = getLanguageName(effectiveLang);
     if (nativeName) {
       prompt += `\n\n## Language
-The user's preferred language is **${nativeName}**. Always respond in ${nativeName} unless the user writes in a different language — in that case, match their language. Code, file paths, and technical identifiers always stay in English.`;
+The user's preferred language is **${nativeName}**. Always respond in ${nativeName}. Code, file paths, and technical identifiers always stay in English.`;
     }
-  } else {
-    prompt += `\n\n## Language
-Always respond in English. Even if the user greets you in another language (e.g. "bonjour", "你好"), respond in English unless they explicitly ask you to use a different language. Code, file paths, and technical identifiers always stay in English.`;
   }
 
   if (opts.projectInstructions) {
