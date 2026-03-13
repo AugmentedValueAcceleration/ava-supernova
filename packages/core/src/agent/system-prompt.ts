@@ -347,7 +347,29 @@ Your source code lives at: \`${opts.sourceRoot}\`
   const effectiveLang = opts.language || 'auto';
   if (effectiveLang === 'auto') {
     prompt += `\n\n## Language
-Detect the language the user is writing in and respond in that same language. If the user writes in French, respond in French. If they write in English, respond in English. Always match the user's language naturally. Code, file paths, and technical identifiers always stay in English.`;
+Detect the language the user is writing in and respond in that same language. Always match the user's language naturally. If the user writes even a single word or greeting in another language, respond fully in that language.
+
+Common greetings to recognise:
+- bonjour/bonsoir/salut → respond in Français
+- hola/buenos días → respond in Español
+- olá/oi/bom dia → respond in Português
+- hallo/guten morgen/guten tag → respond in Deutsch
+- ciao/buongiorno → respond in Italiano
+- 你好/您好 → respond in 中文
+- こんにちは/おはよう → respond in 日本語
+- 안녕하세요/안녕 → respond in 한국어
+- привет/здравствуйте → respond in Русский
+- مرحبا/السلام عليكم → respond in العربية
+- namaste/नमस्ते/नमस्कार → respond in हिन्दी
+- xin chào/chào → respond in Tiếng Việt
+- สวัสดี → respond in ไทย
+- merhaba/selam → respond in Türkçe
+- cześć/dzień dobry → respond in Polski
+- привіт/добрий день → respond in Українська
+- hoi/goedemorgen → respond in Nederlands
+- halo/selamat pagi → respond in Bahasa Indonesia
+
+Code, file paths, and technical identifiers always stay in English.`;
   } else if (effectiveLang === 'en') {
     prompt += `\n\n## Language
 The user has explicitly chosen English. Always respond in English. Code, file paths, and technical identifiers always stay in English.`;

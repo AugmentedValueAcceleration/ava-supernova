@@ -62,6 +62,68 @@ export function getLanguageName(locale: string): string {
 }
 
 /**
+ * Common greetings/phrases mapped to language names.
+ * Used for auto-detection when the user writes in another language.
+ */
+const GREETING_MAP: Record<string, string> = {
+  // Chinese (Simplified)
+  '你好': '中文（简体）', '您好': '中文（简体）', '早上好': '中文（简体）', '晚上好': '中文（简体）',
+  // Chinese (Traditional)
+  '早安': '中文（繁體）',
+  // Japanese
+  'こんにちは': '日本語', 'おはよう': '日本語', 'こんばんは': '日本語', 'おはようございます': '日本語',
+  // Korean
+  '안녕하세요': '한국어', '안녕': '한국어',
+  // Spanish
+  'hola': 'Español', 'buenos días': 'Español', 'buenas tardes': 'Español', 'buenas noches': 'Español',
+  // Portuguese
+  'olá': 'Português', 'oi': 'Português', 'bom dia': 'Português', 'boa tarde': 'Português', 'boa noite': 'Português',
+  // French
+  'bonjour': 'Français', 'bonsoir': 'Français', 'salut': 'Français',
+  // German
+  'hallo': 'Deutsch', 'guten morgen': 'Deutsch', 'guten tag': 'Deutsch', 'guten abend': 'Deutsch',
+  // Russian
+  'привет': 'Русский', 'здравствуйте': 'Русский', 'добрый день': 'Русский',
+  // Arabic
+  'مرحبا': 'العربية', 'السلام عليكم': 'العربية', 'أهلا': 'العربية',
+  // Hindi
+  'नमस्ते': 'हिन्दी', 'नमस्कार': 'हिन्दी',
+  // Nepali (responds in Hindi — closest supported)
+  'namaste': 'हिन्दी',
+  // Vietnamese
+  'xin chào': 'Tiếng Việt', 'chào': 'Tiếng Việt',
+  // Thai
+  'สวัสดี': 'ไทย', 'สวัสดีครับ': 'ไทย', 'สวัสดีค่ะ': 'ไทย',
+  // Turkish
+  'merhaba': 'Türkçe', 'selam': 'Türkçe', 'günaydın': 'Türkçe',
+  // Italian
+  'ciao': 'Italiano', 'buongiorno': 'Italiano', 'buonasera': 'Italiano',
+  // Polish
+  'cześć': 'Polski', 'dzień dobry': 'Polski',
+  // Ukrainian
+  'привіт': 'Українська', 'добрий день': 'Українська',
+  // Dutch
+  'hoi': 'Nederlands', 'goedemorgen': 'Nederlands', 'goedendag': 'Nederlands',
+  // Indonesian
+  'halo': 'Bahasa Indonesia', 'selamat pagi': 'Bahasa Indonesia', 'selamat siang': 'Bahasa Indonesia',
+};
+
+/**
+ * Detect language from common greetings/phrases in user input.
+ * Returns the native language name or null if no match.
+ */
+export function detectLanguageFromGreeting(input: string): string | null {
+  const trimmed = input.trim().toLowerCase();
+  // Check exact match first, then check if input starts with a greeting
+  for (const [greeting, lang] of Object.entries(GREETING_MAP)) {
+    if (trimmed === greeting.toLowerCase() || trimmed.startsWith(greeting.toLowerCase() + ' ')) {
+      return lang;
+    }
+  }
+  return null;
+}
+
+/**
  * Translate a key with optional interpolation.
  *
  * @example
