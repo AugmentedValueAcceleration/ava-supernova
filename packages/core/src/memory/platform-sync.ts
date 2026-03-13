@@ -76,6 +76,56 @@ export class PlatformMemorySync {
     }
   }
 
+  /** Push individual memory entries to the platform (one Supabase row per entry). */
+  async pushEntries(
+    scope: 'global' | 'project',
+    entries: Array<{ id: string; content: string; category?: string; tags?: string[]; archived?: boolean }>,
+  ): Promise<void> {
+    // Pull existing to map local IDs → remote IDs
+    const existing = await this.pull(scope);
+    const remoteByKey = new Map(existing.map((m) => [m.key, m]));
+
+    for (const entry of entries) {
+      const remote = remoteByKey.get(entry.id);
+
+      if (remote) {
+        // Update existing
+        await fetch(`${this.apiBase}/memories/${remote.id}`, {
+          method: 'PATCH',
+          headers: this.headers(),
+          body: JSON.stringify({
+            content: entry.content,
+            category: entry.category ?? null,
+            archived: entry.archived ?? false,
+          }),
+        });
+      } else {
+        // Create new — use the local entry ID as the key for dedup
+        await fetch(`${this.apiBase}/memories`, {
+          method: 'POST',
+          headers: this.headers(),
+          body: JSON.stringify({
+            key: entry.id,
+            content: entry.content,
+            scope,
+            project_id: scope === 'project' ? this.projectId : null,
+            category: entry.category ?? null,
+          }),
+        });
+      }
+    }
+
+    // Clean up: delete remote entries that no longer exist locally
+    const localIds = new Set(entries.map((e) => e.id));
+    for (const remote of existing) {
+      // Only clean up entries keyed by UUID (skip legacy 'memory.json' key)
+      if (remote.key === 'memory.json') continue;
+      if (!localIds.has(remote.key)) {
+        await this.delete(remote.id);
+      }
+    }
+  }
+
   /**
    * Semantic search across memories using vector similarity.
    * Pass `allProjects: true` to search across every project the user has worked in.

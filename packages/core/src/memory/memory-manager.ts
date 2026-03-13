@@ -140,7 +140,7 @@ export class MemoryManager {
     this.globalStore = store;
     this.rebuildIndex(store, this.globalIndex);
     await this.persistStore(this.globalDir, store);
-    this.syncPush('global', 'memory.json', JSON.stringify(store));
+    this.syncEntries('global', store.entries);
   }
 
   /** Overwrite project memory with raw markdown (v1 compat — used by dashboard). */
@@ -153,7 +153,7 @@ export class MemoryManager {
     this.projectStore = store;
     this.rebuildIndex(store, this.projectIndex);
     await this.persistStore(this.projectDir, store);
-    this.syncPush('project', 'memory.json', JSON.stringify(store));
+    this.syncEntries('project', store.entries);
   }
 
   /** Append raw markdown entry (v1 compat). */
@@ -239,7 +239,7 @@ export class MemoryManager {
       if (this.projectDir) await this.persistStore(this.projectDir, store);
     }
 
-    this.syncPush(opts.scope, 'memory.json', JSON.stringify(store));
+    this.syncEntries(opts.scope, store.entries);
     return entry;
   }
 
@@ -708,11 +708,39 @@ export class MemoryManager {
       try {
         const remote = await this.sync.pull(scope);
         if (remote.length > 0) {
-          const content = remote.map((m) => m.content).join('\n\n');
-          const store = this.migrateFromV1(content);
-          await mkdir(dir, { recursive: true });
-          await this.persistStore(dir, store);
-          return store;
+          // Build store from individual remote entries
+          const entries: MemoryEntry[] = remote
+            .filter((m) => m.key !== 'memory.json') // Skip legacy blob records
+            .map((m) => ({
+              id: m.key, // Local entry ID was used as the key
+              category: this.inferCategory(m.content),
+              content: m.content,
+              createdAt: m.updated_at,
+              updatedAt: m.updated_at,
+              lastRecalledAt: null,
+              recallCount: 0,
+              archived: false,
+            }));
+
+          if (entries.length > 0) {
+            const store: MemoryStore = {
+              version: 2,
+              lastModified: new Date().toISOString(),
+              entries,
+            };
+            await mkdir(dir, { recursive: true });
+            await this.persistStore(dir, store);
+            return store;
+          }
+
+          // Fallback: if only legacy blob records exist, migrate them
+          const legacyContent = remote.map((m) => m.content).join('\n\n');
+          if (legacyContent.trim()) {
+            const store = this.migrateFromV1(legacyContent);
+            await mkdir(dir, { recursive: true });
+            await this.persistStore(dir, store);
+            return store;
+          }
         }
       } catch { /* platform unavailable */ }
     }
@@ -923,10 +951,19 @@ export class MemoryManager {
     }
   }
 
-  /** Fire-and-forget push to platform. Never throws. */
-  private syncPush(scope: 'global' | 'project', key: string, content: string): void {
+  /** Fire-and-forget sync entries to platform. Never throws. */
+  private syncEntries(scope: 'global' | 'project', entries: MemoryEntry[]): void {
     if (!this.sync) return;
-    this.sync.push(scope, key, content).catch(() => {
+    this.sync.pushEntries(
+      scope,
+      entries.map((e) => ({
+        id: e.id,
+        content: e.content,
+        category: e.category,
+        tags: e.tags,
+        archived: e.archived,
+      })),
+    ).catch(() => {
       /* platform unavailable — local is source of truth */
     });
   }
