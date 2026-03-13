@@ -1,5 +1,4 @@
 import * as https from 'node:https';
-import * as http from 'node:http';
 
 const PLATFORM_API = 'https://ava-supernova.com/api';
 
@@ -11,13 +10,13 @@ export async function apiFetch(
 ): Promise<{ ok: boolean; status: number; data: unknown }> {
   return new Promise((resolve) => {
     const url = new URL(PLATFORM_API + path);
+    if (url.protocol !== 'https:') { resolve({ ok: false, status: 0, data: 'HTTPS required' }); return; }
     const body = options.body ? JSON.stringify(options.body) : undefined;
-    const mod = url.protocol === 'https:' ? https : http;
 
-    const req = mod.request(
+    const req = https.request(
       {
         hostname: url.hostname,
-        port: url.port || (url.protocol === 'https:' ? 443 : 80),
+        port: url.port || 443,
         path: url.pathname + url.search,
         method: options.method ?? 'GET',
         headers: {

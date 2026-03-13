@@ -385,7 +385,7 @@ export function App() {
   useEffect(() => {
     const handler = (event: MessageEvent<ExtToWebviewMessage>) => {
       // Only accept messages from the VSCode webview host
-      if (event.origin && !event.origin.startsWith('vscode-webview://')) return;
+      if (!event.origin || !event.origin.startsWith('vscode-webview://')) return;
       const msg = event.data;
 
       // Respond to heartbeat pings immediately

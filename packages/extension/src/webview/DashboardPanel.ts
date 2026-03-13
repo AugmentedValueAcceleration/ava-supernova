@@ -449,7 +449,9 @@ export class DashboardPanel {
     try {
       const res = await apiFetch('/billing/checkout', { method: 'POST', body: { plan }, platformKey });
       if (res.ok && typeof res.data === 'object' && res.data && 'url' in res.data) {
-        vscode.env.openExternal(vscode.Uri.parse((res.data as { url: string }).url));
+        const uri = vscode.Uri.parse((res.data as { url: string }).url);
+        if (uri.scheme !== 'https') { this.post({ type: 'error', message: 'Invalid checkout URL.' }); return; }
+        vscode.env.openExternal(uri);
       } else {
         this.post({ type: 'error', message: 'Failed to create checkout session.' });
       }
@@ -468,7 +470,9 @@ export class DashboardPanel {
     try {
       const res = await apiFetch('/billing/topup', { method: 'POST', body: { package: pkg }, platformKey });
       if (res.ok && typeof res.data === 'object' && res.data && 'url' in res.data) {
-        vscode.env.openExternal(vscode.Uri.parse((res.data as { url: string }).url));
+        const uri = vscode.Uri.parse((res.data as { url: string }).url);
+        if (uri.scheme !== 'https') { this.post({ type: 'error', message: 'Invalid top-up URL.' }); return; }
+        vscode.env.openExternal(uri);
       } else {
         this.post({ type: 'error', message: 'Failed to create top-up session.' });
       }
@@ -487,7 +491,9 @@ export class DashboardPanel {
     try {
       const res = await apiFetch('/billing/portal', { method: 'POST', platformKey });
       if (res.ok && typeof res.data === 'object' && res.data && 'url' in res.data) {
-        vscode.env.openExternal(vscode.Uri.parse((res.data as { url: string }).url));
+        const uri = vscode.Uri.parse((res.data as { url: string }).url);
+        if (uri.scheme !== 'https') { this.post({ type: 'error', message: 'Invalid portal URL.' }); return; }
+        vscode.env.openExternal(uri);
       } else {
         this.post({ type: 'error', message: 'Failed to open billing portal.' });
       }

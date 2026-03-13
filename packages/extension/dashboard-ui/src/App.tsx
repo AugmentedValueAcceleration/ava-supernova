@@ -66,7 +66,7 @@ export function App() {
 
   const handleMessage = useCallback((event: MessageEvent) => {
     // Only accept messages from the VSCode webview host
-    if (event.origin && !event.origin.startsWith('vscode-webview://')) return;
+    if (!event.origin || !event.origin.startsWith('vscode-webview://')) return;
     const msg = event.data as ExtToDashboardMessage;
     switch (msg.type) {
       case 'init':
