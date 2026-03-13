@@ -42,6 +42,77 @@ function BranchBadge({ branch }: { branch: string }) {
   );
 }
 
+/** Parse and render memory content — handles raw JSON store blobs gracefully */
+function MemoryContent({ content }: { content: string }) {
+  try {
+    const parsed = JSON.parse(content);
+
+    if (parsed.entries && Array.isArray(parsed.entries)) {
+      return (
+        <div className="space-y-2">
+          {parsed.entries.map((entry: Record<string, unknown>, i: number) => (
+            <div key={String(entry.id ?? i)} className="rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] p-3">
+              <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                {String(entry.content ?? '')}
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-[var(--text-muted)]">
+                {entry.category ? (
+                  <span className={`rounded-full border px-2 py-0.5 font-medium ${
+                    CATEGORY_COLORS[String(entry.category)] ?? CATEGORY_COLORS.general
+                  }`}>
+                    {String(entry.category)}
+                  </span>
+                ) : null}
+                {Array.isArray(entry.tags) && entry.tags.map((tag: unknown, ti: number) => (
+                  <span key={ti} className="rounded bg-white/5 px-1.5 py-0.5">{String(tag)}</span>
+                ))}
+                {entry.recallCount != null && Number(entry.recallCount) > 0 && (
+                  <span>Recalled {String(entry.recallCount)}x</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (typeof parsed.content === 'string') {
+      return (
+        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+          {parsed.content}
+        </p>
+      );
+    }
+
+    // Some other JSON — format nicely
+    return (
+      <pre className="text-sm leading-relaxed whitespace-pre-wrap break-words font-mono text-xs">
+        {JSON.stringify(parsed, null, 2)}
+      </pre>
+    );
+  } catch {
+    // Not JSON — render as plain text
+    return (
+      <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">{content}</div>
+    );
+  }
+}
+
+/** Extract readable text from JSON blob content for editing */
+function getEditableContent(content: string): string {
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed.entries && Array.isArray(parsed.entries)) {
+      return parsed.entries
+        .map((e: Record<string, unknown>) => String(e.content ?? ''))
+        .filter(Boolean)
+        .join('\n\n');
+    }
+    if (typeof parsed.content === 'string') return parsed.content;
+  } catch { /* not JSON */ }
+  return content;
+}
+
 function formatDate(dateStr: string | null | undefined): string {
   if (!dateStr) return '';
   return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -157,7 +228,7 @@ export function Memory({ memories }: MemoryProps) {
 
   function startEdit(m: MemoryEntry) {
     setEditingId(m.id);
-    setEditText(m.content);
+    setEditText(getEditableContent(m.content));
   }
 
   function saveEdit(m: MemoryEntry) {
@@ -432,7 +503,7 @@ export function Memory({ memories }: MemoryProps) {
                     </div>
 
                     {/* Content */}
-                    <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">{m.content}</div>
+                    <MemoryContent content={m.content} />
 
                     {/* Footer metadata */}
                     <div className="mt-2 flex items-center gap-3 text-[10px] text-[var(--text-muted)]">
