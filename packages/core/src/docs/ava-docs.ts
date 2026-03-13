@@ -66,39 +66,36 @@ All models work on every plan. Use the managed service or bring your own API key
 |-------|-----------|-------------------|
 | Claude Opus 4.6 | Most capable, vision, 200K context | $15.00 in / $75.00 out |
 | Claude Sonnet 4.6 | Best balance of speed and capability | $3.00 in / $15.00 out |
-| Claude Haiku 4.5 | Fast and affordable, vision | $0.80 in / $4.00 out |
+| Claude Haiku 4.5 | Fast and affordable, vision | $1.00 in / $5.00 out |
 
 ## Provider: DeepSeek
 | Model | Highlights | Cost / 1M tokens |
 |-------|-----------|-------------------|
-| DeepSeek V3 | Best price/performance ratio | $0.14 in / $0.28 out |
-| DeepSeek R1 | Extended thinking, reasoning | $0.14 in / $2.19 out |
+| DeepSeek V3.2 | Best price/performance ratio | $0.28 in / $0.42 out |
+| DeepSeek Reasoner | Extended thinking, reasoning | $0.28 in / $0.42 out |
 
 ## Provider: Moonshot AI (Kimi)
 | Model | Highlights | Cost / 1M tokens |
 |-------|-----------|-------------------|
-| Kimi K2.5 | Best multi-step tool calling (76.8% SWE-Bench) | $0.60 in / $2.00 out |
-| Moonshot V1 128K | Long context | $2.00 in / $5.00 out |
+| Kimi K2.5 | Best multi-step tool calling (76.8% SWE-Bench) | $0.60 in / $3.00 out |
 
 ## Provider: Zhipu AI (GLM)
 | Model | Highlights | Cost / 1M tokens |
 |-------|-----------|-------------------|
-| GLM-5 | Best tool-call reliability, vision (77.8% SWE-Bench) | $0.70 in / $0.70 out |
-| GLM-4.7 | Fast, affordable coding | $0.25 in / $0.25 out |
-| GLM-4 Flash | Free tier available | Free |
+| GLM-5 | Best tool-call reliability, vision (77.8% SWE-Bench) | $1.00 in / $3.20 out |
+| GLM-4.5 Flash | Free tier available | Free |
 
 ## Provider: Alibaba (Qwen)
 | Model | Highlights | Cost / 1M tokens |
 |-------|-----------|-------------------|
-| Qwen 3.5 Plus | Vision, thinking, 256K context | $0.40 in / $1.20 out |
-| Qwen Turbo | Fast, up to 1M context | $0.05 in / $0.20 out |
+| Qwen 3.5 Plus | Vision, thinking, 256K context | $0.40 in / $2.40 out |
 
 ## Provider: Mistral AI
 | Model | Highlights | Cost / 1M tokens |
 |-------|-----------|-------------------|
-| Mistral Large 3 | Flagship general-purpose | $2.00 in / $6.00 out |
+| Mistral Large | Flagship general-purpose, vision, 262K | $2.00 in / $6.00 out |
 | Codestral | Code-focused, 256K context | $0.30 in / $0.90 out |
-| Devstral 2 | Agentic coding specialist | $0.10 in / $0.30 out |
+| Devstral 2 | Agentic coding specialist, 262K | $0.40 in / $2.00 out |
 
 ## Local Models (Ollama / LM Studio)
 You can connect any locally hosted model by adding a custom \`baseUrl\` in your provider settings:
