@@ -88,7 +88,7 @@ All models work on every plan. Use the managed service or bring your own API key
 ## Provider: Alibaba (Qwen)
 | Model | Highlights | Cost / 1M tokens |
 |-------|-----------|-------------------|
-| Qwen 3.5 Plus | Vision, thinking, 256K context | $0.40 in / $2.40 out |
+| Qwen 3.5 Plus | Vision, thinking, 256K context | $0.20 in / $1.20 out |
 
 ## Provider: Mistral AI
 | Model | Highlights | Cost / 1M tokens |
