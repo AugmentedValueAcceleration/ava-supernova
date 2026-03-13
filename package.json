@@ -35,7 +35,10 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild"
-    ]
+    ],
+    "overrides": {
+      "rollup": ">=4.59.0"
+    }
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
