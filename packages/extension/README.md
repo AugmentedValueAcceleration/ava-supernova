@@ -7,8 +7,8 @@ Open-source AI coding agent powered by the best open-source and frontier models.
 ## Highlights
 
 - **2 free models** — GLM-4.7 Flash and GLM-4.5 Flash work instantly with zero setup
-- **15 models, 7 providers** — DeepSeek, Kimi, Zhipu AI, Qwen, Mistral, Anthropic, plus any local/custom endpoint
-- **26 built-in tools** — File ops, search, git, shell, web, browser, database, screenshots, planning, memory
+- **14 models, 7 providers** — DeepSeek, Kimi, Zhipu AI, Qwen, Mistral, Anthropic, plus any local/custom endpoint
+- **28 built-in tools** — File ops, search, git, shell, web, browser, database, screenshots, planning, memory
 - **Smart memory** — TF-IDF retrieval, temporal awareness, branch scoping, auto-archival — Ava gets smarter every session
 - **Privacy first** — API keys encrypted in OS keychain, credentials blocked from memory, prompt injection resistance
 - **20 languages** — Full UI and response localization
@@ -48,7 +48,7 @@ Open-source AI coding agent powered by the best open-source and frontier models.
 | **Zhipu AI** | GLM-5 | 77.8% SWE-Bench, vision, best tool-call reliability |
 | **Moonshot AI** | Kimi K2.5 | 76.8% SWE-Bench, best tool calling, vision, 256K context |
 | **DeepSeek** | V3.2, Reasoner | Best value ($0.28/M input), Reasoner has chain-of-thought |
-| **Alibaba Cloud** | Qwen 3.5 Plus | Thinking + vision, 256K context, $0.40/M input |
+| **Alibaba Cloud** | Qwen 3.5 Plus | Thinking + vision, 256K context, $0.20/M input (partnership) |
 | **Mistral** | Large, Codestral, Devstral 2 | European provider, code-specialized, up to 262K context |
 | **Anthropic** | Claude Opus 4.6, Sonnet 4.6, Haiku 4.5 | Frontier models, vision, 200K context |
 | **Generic** | Custom / Local | Ollama, LM Studio, or any standard API format endpoint |
@@ -66,7 +66,7 @@ Ava's memory system is a key differentiator — it makes every model smarter ove
 - **Consolidation** — Related entries grouped by TF-IDF similarity for review and merging
 - **Dashboard** — Active/Stale/Archived tabs, category filters, branch badges, edit/archive/restore
 
-## Tools (26)
+## Tools (28)
 
 | Category | Tools | Description |
 |---|---|---|
@@ -81,6 +81,7 @@ Ava's memory system is a key differentiator — it makes every model smarter ove
 | **Planning** | `present_plan`, `todo_write` | Structured plans with approval, task tracking |
 | **Interaction** | `ask_user`, `support_request` | Ask for clarification, submit support tickets |
 | **Docs** | `docs_lookup` | Search built-in documentation |
+| **Meta** | `propose_tool`, `get_datetime` | Agent self-improvement proposals, time awareness |
 
 ## Privacy & Security
 
@@ -99,7 +100,7 @@ Open **Settings** (`Ctrl+,`) and search `ava-supernova` to configure:
 
 | Setting | Description |
 |---|---|
-| **Active Model** | Select from 15 models across 7 providers (2 free) |
+| **Active Model** | Select from 14 models across 7 providers (2 free) |
 | **Temperature** | Sampling temperature — 0 = deterministic, 1 = creative (default: 0.7) |
 | **Language** | UI and response language (20 languages + auto-detect) |
 | **Permission Mode** | Strict, Balanced, or Autonomous |
@@ -134,7 +135,7 @@ Free models require no keys. For premium models:
 |---|---|---|
 | **Ava: Open Chat** | `Ctrl+Shift+A` | Start an AI coding session |
 | **Ava: New Chat** | — | Fresh conversation with context reset |
-| **Ava: Switch Model** | — | Choose from 15 models |
+| **Ava: Switch Model** | — | Choose from 14 models |
 | **Ava: Chat History** | — | Browse and resume previous conversations |
 | **Ava: Open Dashboard** | — | Manage API keys and providers |
 | **Ava: Documentation** | — | Built-in reference guide |
