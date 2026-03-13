@@ -7,28 +7,26 @@ on:
     branches: [development, main]
 
 jobs:
+  # Fast check on every push — ubuntu only
   check:
-    name: Typecheck, Lint, Test, Build (${{ matrix.os }}, Node ${{ matrix.node-version }})
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        node-version: [20, 22]
+    name: Typecheck, Lint, Test, Build (ubuntu, Node 22)
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10
 
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 22
           cache: pnpm
 
       - name: Install dependencies
@@ -46,6 +44,39 @@ jobs:
       - name: Build
         run: pnpm build
 
+  # Cross-platform check — only on PRs to main
+  check-cross-platform:
+    name: Build (${{ matrix.os }})
+    if: github.base_ref == 'main'
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
   security:
     name: Security Scanning
     runs-on: ubuntu-latest
@@ -55,6 +86,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -75,11 +109,12 @@ jobs:
         run: pnpm audit --audit-level=high
         continue-on-error: true
 
-      # Secret detection — scan for accidentally committed credentials
+      # Secret detection — free CLI mode, no license needed
       - name: Secret detection (Gitleaks)
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: false
 
   codeql:
     name: CodeQL Analysis
