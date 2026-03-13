@@ -343,13 +343,16 @@ Your source code lives at: \`${opts.sourceRoot}\`
 **Don't do this:** Don't browse your own source proactively or unprompted when the user is working on an unrelated project.`;
   }
 
-  // Append language instruction for non-English locales
-  if (opts.language && opts.language !== 'en') {
+  // Append language instruction
+  if (opts.language && opts.language !== 'en' && opts.language !== 'auto') {
     const nativeName = getLanguageName(opts.language);
     if (nativeName) {
       prompt += `\n\n## Language
 The user's preferred language is **${nativeName}**. Always respond in ${nativeName} unless the user writes in a different language — in that case, match their language. Code, file paths, and technical identifiers always stay in English.`;
     }
+  } else {
+    prompt += `\n\n## Language
+Always respond in English. Even if the user greets you in another language (e.g. "bonjour", "你好"), respond in English unless they explicitly ask you to use a different language. Code, file paths, and technical identifiers always stay in English.`;
   }
 
   if (opts.projectInstructions) {
