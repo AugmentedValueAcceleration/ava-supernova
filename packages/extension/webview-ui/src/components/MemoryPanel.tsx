@@ -308,6 +308,23 @@ export function MemoryPanel({
 
 // ── Individual Entry Card ─────────────────────────────────────────────────────
 
+/** Extract readable text from content — handles JSON store blobs */
+function getDisplayContent(content: string): string {
+  if (content.startsWith('{"version":') || content.startsWith('{"entries":')) {
+    try {
+      const parsed = JSON.parse(content);
+      if (parsed.entries && Array.isArray(parsed.entries)) {
+        return parsed.entries
+          .map((e: Record<string, unknown>) => String(e.content ?? ''))
+          .filter(Boolean)
+          .join('\n\n');
+      }
+      if (typeof parsed.content === 'string') return parsed.content;
+    } catch { /* not valid JSON */ }
+  }
+  return content;
+}
+
 function MemoryEntryCard({
   entry,
   scope,
@@ -327,7 +344,8 @@ function MemoryEntryCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const categoryColor = CATEGORY_COLORS[entry.category] ?? '#6b7280';
-  const isLong = entry.content.length > 120;
+  const displayContent = getDisplayContent(entry.content);
+  const isLong = displayContent.length > 120;
 
   return (
     <div className="px-3 py-2 hover:bg-[var(--vscode-list-hoverBackground)]">
@@ -362,7 +380,7 @@ function MemoryEntryCard({
         onClick={() => isLong && setExpanded(!expanded)}
       >
         <pre className="whitespace-pre-wrap font-mono m-0 text-xs">
-          {isLong && !expanded ? entry.content.slice(0, 120) + '...' : entry.content}
+          {isLong && !expanded ? displayContent.slice(0, 120) + '...' : displayContent}
         </pre>
       </div>
 
