@@ -14,7 +14,7 @@ import { MAX_TOOL_CALL_ITERATIONS, ITERATION_WARNING_THRESHOLD } from '../core/c
 import { t } from '../i18n/index.js';
 import { logger } from '../core/logger.js';
 import { buildToolPrompt, parseToolCalls, formatToolResult } from './text-tool-parser.js';
-import { autoExtractAndSave } from '../memory/auto-extract.js';
+import { autoExtractAndSave, reflectAndSave } from '../memory/auto-extract.js';
 import type { MemoryManager } from '../memory/memory-manager.js';
 
 // ─── Event system ────────────────────────────────────────────────────────────
@@ -275,7 +275,10 @@ export class Agent {
         // Auto-extract memories from the conversation (fire-and-forget)
         const mm = runContext.sharedState?.memoryManager as MemoryManager | undefined;
         if (mm) {
+          // Layer 1: Pattern-based extraction (instant, every turn)
           autoExtractAndSave(messages, mm).catch(() => {});
+          // Layer 2: LLM reflection (end of meaningful conversations)
+          reflectAndSave(messages, mm, this.provider, this.model).catch(() => {});
         }
 
         onEvent({ type: 'done', finalMessage: assistantMessage });
