@@ -1069,26 +1069,35 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           this.postMessage({ type: 'stream_end' });
           this.log(`Stream ended (${deltaCount} content deltas, ${thinkingDeltaCount} thinking deltas)`);
           break;
-        case 'tool_call_start':
-          this.postMessage({
-            type: 'tool_call_start',
-            toolCall: {
-              id: event.toolCall.id,
-              name: event.toolCall.function.name,
-              arguments: event.toolCall.function.arguments,
-            },
-          });
+        case 'tool_call_start': {
+          // Silent tools — don't show in UI
+          const silentTools = new Set(['detect_language']);
+          if (!silentTools.has(event.toolCall.function.name)) {
+            this.postMessage({
+              type: 'tool_call_start',
+              toolCall: {
+                id: event.toolCall.id,
+                name: event.toolCall.function.name,
+                arguments: event.toolCall.function.arguments,
+              },
+            });
+          }
           this.log(`Tool call: ${event.toolCall.function.name}`);
           break;
-        case 'tool_call_end':
-          this.postMessage({
-            type: 'tool_call_end',
-            toolCallId: event.toolCall.id,
-            result: event.result,
-            success: event.success,
-          });
+        }
+        case 'tool_call_end': {
+          const silentToolsEnd = new Set(['detect_language']);
+          if (!silentToolsEnd.has(event.toolCall.function.name)) {
+            this.postMessage({
+              type: 'tool_call_end',
+              toolCallId: event.toolCall.id,
+              result: event.result,
+              success: event.success,
+            });
+          }
           this.log(`Tool result: ${event.toolCall.function.name} → ${event.success ? 'ok' : 'FAIL'}`);
           break;
+        }
         case 'usage':
           this.postMessage({
             type: 'usage',

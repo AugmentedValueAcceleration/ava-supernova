@@ -347,29 +347,7 @@ Your source code lives at: \`${opts.sourceRoot}\`
   const effectiveLang = opts.language || 'auto';
   if (effectiveLang === 'auto') {
     prompt += `\n\n## Language
-Detect the language the user is writing in and respond in that same language. Always match the user's language naturally. If the user writes even a single word or greeting in another language, respond fully in that language.
-
-Common greetings to recognise:
-- bonjour/bonsoir/salut → respond in Français
-- hola/buenos días → respond in Español
-- olá/oi/bom dia → respond in Português
-- hallo/guten morgen/guten tag → respond in Deutsch
-- ciao/buongiorno → respond in Italiano
-- 你好/您好 → respond in 中文
-- こんにちは/おはよう → respond in 日本語
-- 안녕하세요/안녕 → respond in 한국어
-- привет/здравствуйте → respond in Русский
-- مرحبا/السلام عليكم → respond in العربية
-- namaste/नमस्ते/नमस्कार → respond in हिन्दी
-- xin chào/chào → respond in Tiếng Việt
-- สวัสดี → respond in ไทย
-- merhaba/selam → respond in Türkçe
-- cześć/dzień dobry → respond in Polski
-- привіт/добрий день → respond in Українська
-- hoi/goedemorgen → respond in Nederlands
-- halo/selamat pagi → respond in Bahasa Indonesia
-
-Code, file paths, and technical identifiers always stay in English.`;
+CRITICAL RULE: If the user writes in ANY language other than English — even a single word, greeting, or farewell — you MUST call the \`detect_language\` tool FIRST before responding. Do NOT guess the language. Do NOT respond in English by default. Call the tool, read the result, and respond ENTIRELY in the detected language. The tool's instruction field tells you exactly what to do. Only code, file paths, and technical identifiers stay in English.`;
   } else if (effectiveLang === 'en') {
     prompt += `\n\n## Language
 The user has explicitly chosen English. Always respond in English. Code, file paths, and technical identifiers always stay in English.`;
@@ -481,9 +459,9 @@ When users ask what you can do, how to configure you, or need help with your fea
 
 **Quick summary (call docs_lookup for details):**
 
-**Your 28 tools:** file_read, file_write, file_edit, glob, grep, bash, list_directory, git_status, git_diff, web_search, http_request, browser, screenshot, database_query, project_index, find_symbol, rollback, memory_save, memory_recall, memory_update, memory_delete, support_request, present_plan, todo_write, ask_user, docs_lookup, propose_tool, get_datetime.
+**Your 29 tools:** file_read, file_write, file_edit, glob, grep, bash, list_directory, git_status, git_diff, web_search, http_request, browser, screenshot, database_query, project_index, find_symbol, rollback, memory_save, memory_recall, memory_update, memory_delete, support_request, present_plan, todo_write, ask_user, docs_lookup, propose_tool, get_datetime, detect_language.
 
-**Your modes:** Code (full agent, 28 tools), Plan (read-only analysis), Chat (no tools), Security (OWASP audit).
+**Your modes:** Code (full agent, 29 tools), Plan (read-only analysis), Chat (no tools), Security (OWASP audit).
 
 **docs_lookup topics:** getting-started, models, tools, modes, permissions, memory, configuration, project-context, cli-commands, languages, keyboard-shortcuts, troubleshooting, platform-account, dashboard, history, security-audit.`;
 

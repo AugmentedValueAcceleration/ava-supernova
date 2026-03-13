@@ -28,6 +28,7 @@ import { DocsLookupTool } from './docs-lookup.js';
 import { SupportRequestTool } from './support-request.js';
 import { ProposeToolTool } from './propose-tool.js';
 import { GetDateTimeTool } from './get-datetime.js';
+import { DetectLanguageTool } from './detect-language.js';
 
 // Which risk levels require confirmation under each permission mode
 const CONFIRMATION_MATRIX: Record<PermissionMode, Set<ToolRiskLevel>> = {
@@ -83,6 +84,7 @@ export class ToolRegistry {
       new SupportRequestTool(),
       new ProposeToolTool(),
       new GetDateTimeTool(),
+      new DetectLanguageTool(),
     ];
     for (const tool of builtins) {
       this.tools.set(tool.name, tool);
