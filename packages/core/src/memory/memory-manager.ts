@@ -275,6 +275,7 @@ export class MemoryManager {
       await this.persistStore(this.projectDir, store);
     }
 
+    this.syncEntries(scope, store.entries);
     return entry;
   }
 
@@ -303,6 +304,7 @@ export class MemoryManager {
       await this.persistStore(this.projectDir, store);
     }
 
+    this.syncEntries(scope, store.entries);
     return true;
   }
 
@@ -415,12 +417,14 @@ export class MemoryManager {
       }
     }
 
-    // Persist updated recall stats
+    // Persist updated recall stats and sync
     if (results.some(r => r.matchType === 'substring' || r.matchType === 'tfidf')) {
       await Promise.all([
         this.globalStore ? this.persistStore(this.globalDir, this.globalStore) : Promise.resolve(),
         this.projectStore && this.projectDir ? this.persistStore(this.projectDir, this.projectStore) : Promise.resolve(),
       ]);
+      if (this.globalStore) this.syncEntries('global', this.globalStore.entries);
+      if (this.projectStore) this.syncEntries('project', this.projectStore.entries);
     }
 
     return results.slice(0, limit);
@@ -457,6 +461,7 @@ export class MemoryManager {
       } else if (this.projectDir) {
         await this.persistStore(this.projectDir, store);
       }
+      this.syncEntries(scope, store.entries);
     }
 
     return count;
@@ -485,6 +490,7 @@ export class MemoryManager {
       await this.persistStore(this.projectDir, store);
     }
 
+    this.syncEntries(scope, store.entries);
     return true;
   }
 
@@ -511,6 +517,7 @@ export class MemoryManager {
       await this.persistStore(this.projectDir, store);
     }
 
+    this.syncEntries(scope, store.entries);
     return true;
   }
 
