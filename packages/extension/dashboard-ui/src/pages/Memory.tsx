@@ -252,7 +252,7 @@ export function Memory({ memories }: MemoryProps) {
   }
 
   return (
-    <div className="max-w-3xl">
+    <div className="mx-auto w-full max-w-4xl">
       {/* Page Header */}
       <div className="mb-10">
         <h1 className="text-2xl font-bold">Memory</h1>
