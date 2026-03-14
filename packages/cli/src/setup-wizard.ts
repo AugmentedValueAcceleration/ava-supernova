@@ -39,13 +39,20 @@ const PROVIDERS = [
     displayName: 'Mistral AI',
     description: 'European provider, 256K context, Codestral',
     keyUrl: 'https://console.mistral.ai/api-keys',
-    live: false,
+    live: true,
   },
   {
     key: 'anthropic',
     displayName: 'Anthropic (Claude)',
     description: 'Claude Opus 4.6, Sonnet 4.6, Haiku 4.5',
     keyUrl: 'https://console.anthropic.com/settings/keys',
+    live: true,
+  },
+  {
+    key: 'generic',
+    displayName: 'Custom / Local (Ollama, LMStudio, etc.)',
+    description: 'Any standard API format endpoint',
+    keyUrl: '',
     live: true,
   },
 ];
@@ -104,6 +111,43 @@ export async function runSetupWizard(
   }
 
   const selected = liveProviders[choiceIdx];
+
+  // Generic provider needs base URL + model name, others need API key
+  if (selected.key === 'generic') {
+    console.log('');
+    console.log(dim('  Enter the base URL of your API endpoint (e.g. http://localhost:11434/v1)'));
+    const baseUrl = await rl.question(accent('  > ') + 'Base URL: ');
+    if (!baseUrl.trim()) {
+      console.log(chalk.hex(THEME.error)('  No URL provided.'));
+      rl.close();
+      return;
+    }
+
+    const apiKey = await rl.question(accent('  > ') + 'API Key (leave empty if not required): ');
+    const modelId = await rl.question(accent('  > ') + 'Model name (e.g. llama3, codellama): ');
+    if (!modelId.trim()) {
+      console.log(chalk.hex(THEME.error)('  No model name provided.'));
+      rl.close();
+      return;
+    }
+
+    const settings: ProviderSettings = {
+      apiKey: apiKey.trim() || 'none',
+      baseUrl: baseUrl.trim(),
+    };
+
+    const providers = await config.get('providers');
+    (providers as Record<string, ProviderSettings>)[selected.key] = settings;
+    await config.set('providers', providers);
+    await config.set('activeModel', `generic:${modelId.trim()}`);
+
+    console.log('');
+    console.log(chalk.hex(THEME.success)(`  \u2713 Configured ${modelId.trim()} at ${baseUrl.trim()}`));
+    console.log(dim('  Use /model to switch models.'));
+    console.log('');
+    rl.close();
+    return;
+  }
 
   console.log('');
   console.log(dim('  ' + t('setup.key_url', { url: selected.keyUrl })));

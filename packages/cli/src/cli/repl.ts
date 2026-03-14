@@ -8,6 +8,8 @@ import { CommandHandler } from './commands.js';
 import { Spinner } from './spinner.js';
 import { THEME } from './theme.js';
 
+const SILENT_TOOLS = new Set(['detect_language']);
+
 export class Repl {
   private rl: readline.Interface;
   private renderer: Renderer;
@@ -377,7 +379,6 @@ export class Repl {
           this.renderer.endStream();
           break;
         case 'tool_call_start': {
-          const SILENT_TOOLS = new Set(['detect_language']);
           if (!SILENT_TOOLS.has(event.toolCall.function.name)) {
             this.renderer.printToolCallStart(event.toolCall);
             this.spinner.startForTool(event.toolCall.function.name);
@@ -385,8 +386,7 @@ export class Repl {
           break;
         }
         case 'tool_call_end': {
-          const SILENT_TOOLS_END = new Set(['detect_language']);
-          if (!SILENT_TOOLS_END.has(event.toolCall.function.name)) {
+          if (!SILENT_TOOLS.has(event.toolCall.function.name)) {
             this.spinner.stop();
             this.renderer.printToolCallResult(event.toolCall, event.result, event.success, event.metadata);
           }
