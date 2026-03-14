@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import { AvaViewProvider } from './webview/AvaViewProvider.js';
 import { DocsPanel } from './webview/DocsPanel.js';
 import { DashboardPanel } from './webview/DashboardPanel.js';
-import { killBackgroundProcesses, TaskManager, AVA_HOME } from '@ava/core';
+import { killBackgroundProcesses, TaskManager, JournalManager, AVA_HOME } from '@ava/core';
 
 let viewProvider: AvaViewProvider | undefined;
 
@@ -26,8 +26,12 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
   );
 
-  // Pass task manager to view provider for session task updates
+  // Journal Manager (shared instance)
+  const journalManager = new JournalManager({ globalDir, projectRoot });
+
+  // Pass managers to view provider
   viewProvider.setTaskManager(taskManager);
+  viewProvider.setJournalManager(journalManager);
 
   context.subscriptions.push(
     vscode.commands.registerCommand('ava-supernova.openChat', () => viewProvider!.openInEditor()),

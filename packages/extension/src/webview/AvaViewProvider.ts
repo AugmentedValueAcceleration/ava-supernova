@@ -12,6 +12,8 @@ import {
   TaskManager,
   PlatformMemorySync,
   PlatformTaskSyncImpl,
+  JournalManager,
+  PlatformJournalSyncImpl,
   ProviderHealthTracker,
   ResilientProvider,
   AVA_HOME,
@@ -55,6 +57,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private projectInstructions?: string;
   private memoryManager?: MemoryManager;
   private taskManager?: TaskManager;
+  private journalManager?: JournalManager;
   private cachedMemory?: string;
   private currentLocale = 'en';
   private panelStateCallback?: (isOpen: boolean) => void;
@@ -115,6 +118,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       taskSync = new PlatformTaskSyncImpl('https://ava-supernova.com/api', platformKey);
     }
     this.taskManager = new TaskManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync: taskSync });
+    // Set up journal with optional platform sync
+    let journalSync: PlatformJournalSyncImpl | undefined;
+    if (platformKey) {
+      journalSync = new PlatformJournalSyncImpl('https://ava-supernova.com/api', platformKey);
+    }
+    this.journalManager = new JournalManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync: journalSync });
 
     this.projectInstructions = this.projectRoot
       ? (await loadProjectInstructions(this.projectRoot)) ?? undefined
@@ -263,6 +272,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   /** Set the shared TaskManager instance. */
   setTaskManager(manager: TaskManager): void {
     this.taskManager = manager;
+  }
+
+  /** Set the shared JournalManager instance. */
+  setJournalManager(manager: JournalManager): void {
+    this.journalManager = manager;
   }
 
   openInEditor(): void {
@@ -606,6 +620,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       sharedState: {
         memoryManager: this.memoryManager,
         taskManager: this.taskManager,
+        journalManager: this.journalManager,
         platformKey: await this.context.secrets.get('ava-supernova.platformKey'),
       },
     });
@@ -723,6 +738,27 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       } catch { /* ignore — tasks are optional context */ }
     }
 
+    // Load recent journal entries for context (last 3 days)
+    let journalContext: string | undefined;
+    if (this.journalManager) {
+      try {
+        const recent = await this.journalManager.getRecentDays(3);
+        if (recent.length > 0) {
+          journalContext = recent.map(d => {
+            const parts = [`### ${d.date}`];
+            if (d.userEntry) {
+              parts.push(`**User:** ${d.userEntry.content.slice(0, 300)}`);
+              if (d.userEntry.mood) parts.push(`(mood: ${d.userEntry.mood}/5)`);
+            }
+            if (d.avaEntry) {
+              parts.push(`**Ava:** ${d.avaEntry.content.slice(0, 300)}`);
+            }
+            return parts.join('\n');
+          }).join('\n\n');
+        }
+      } catch { /* ignore — journal is optional context */ }
+    }
+
     return buildSystemPrompt({
       cwd,
       platform: process.platform,
@@ -733,6 +769,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       memory: this.cachedMemory,
       autoMemory: cfg.get<boolean>('preferences.autoMemory') ?? true,
       activeTasks,
+      journalContext,
       language: this.currentLocale,
       userName: this.cachedAccount?.name || this.cachedAccount?.email?.split('@')[0],
       userEmail: this.cachedAccount?.email,
@@ -1351,6 +1388,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         this.sendTodayTasks();
         this.sendAllTasks();
         this.sendAvaCompletedTasks();
+      }
+      // Auto-journal: Ava writes a brief session note (non-blocking)
+      if (this.journalManager) {
+        const today = new Date().toISOString().slice(0, 10);
+        const summary = `Session completed. Worked on tasks in this project.`;
+        this.journalManager.appendAvaEntry(today, summary).catch(() => {});
       }
       // Always send done to guarantee the UI resets
       this.postMessage({ type: 'done' });

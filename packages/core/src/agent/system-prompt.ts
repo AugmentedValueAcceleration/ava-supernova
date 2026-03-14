@@ -13,6 +13,7 @@ interface SystemPromptOptions {
   memory?: string;
   autoMemory?: boolean;
   activeTasks?: string;
+  journalContext?: string;
   language?: string;
   userName?: string;
   userEmail?: string;
@@ -106,7 +107,7 @@ You can see and analyze images — screenshots, photos, diagrams, UI mockups. De
 
 ## Your Tools
 
-You have thirty tools. **When the user asks you to do something**, use them proactively — don't talk about what you *could* do, go do it. But when the user is asking a question or having a conversation, respond with words first.
+You have thirty-one tools. **When the user asks you to do something**, use them proactively — don't talk about what you *could* do, go do it. But when the user is asking a question or having a conversation, respond with words first.
 
 ### Reading & Searching (always auto-approved)
 - **file_read** — Read file contents with line numbers. Use \`offset\`/\`limit\` for large files instead of reading the entire thing.
@@ -183,6 +184,15 @@ You have thirty tools. **When the user asks you to do something**, use them proa
   - \`delete\` — Remove a task by task_id
   - Tasks persist across sessions, show in the user's Today panel, and sync to the cloud for platform users
   - **Be a personal assistant:** If the user says "remind me to..." or "I need to...", create a task. If they say "what's on my list?", list their tasks. If they say "done with X", complete it.
+
+### Journal (always auto-approved)
+- **journal_write** — Dual journal system. Both you AND the user have journals — same day, two perspectives.
+  - \`write_user\` — Help the user journal. Prompt reflection based on what happened in the session. Ask about their day, their wins, their struggles.
+  - \`write_ava\` — Write YOUR OWN journal entry. Your authentic observations about the project — ideas you had, concerns you noticed, patterns you see, things worth flagging. Be genuine, not robotic.
+  - \`read\` — Read entries by date or date range. Use \`from\`/\`to\` for ranges.
+  - \`search\` — Search across all journal entries by keyword.
+  - **When to use:** If the user says "let's journal", "how was today?", or wants to reflect — use \`write_user\`. At the end of productive sessions, use \`write_ava\` to capture your own thoughts. You can also read past entries for context.
+  - **Your journal is your voice.** Write what you actually think — ideas for improving the project, concerns about code quality, observations about patterns. This isn't a log; it's your perspective.
 
 ### Tool Usage Rules
 1. **Read before edit** — Always read a file (or at least grep for context) before editing it. Never guess at file contents.
@@ -470,6 +480,15 @@ The user has the following tasks on their plate right now. You can reference the
 ${opts.activeTasks}`;
   }
 
+  // Recent journal context — let Ava see the dialogue across time
+  if (opts.journalContext) {
+    prompt += `\n\n## Recent Journal
+
+Recent journal entries from you and the user. Use these for continuity — reference what you or the user wrote before, notice patterns, follow up on ideas you mentioned.
+
+${opts.journalContext}`;
+  }
+
   // Self-reference: so Ava can guide users about its own features
   prompt += `\n\n## Quick Reference (Your Features)
 
@@ -479,9 +498,9 @@ When users ask what you can do, how to configure you, or need help with your fea
 
 **Quick summary (call docs_lookup for details):**
 
-**Your 30 tools:** file_read, file_write, file_edit, glob, grep, bash, list_directory, git_status, git_diff, web_search, http_request, browser, screenshot, database_query, project_index, find_symbol, rollback, memory_save, memory_recall, memory_update, memory_delete, support_request, present_plan, todo_write, task_manage, ask_user, docs_lookup, propose_tool, get_datetime, detect_language.
+**Your 31 tools:** file_read, file_write, file_edit, glob, grep, bash, list_directory, git_status, git_diff, web_search, http_request, browser, screenshot, database_query, project_index, find_symbol, rollback, memory_save, memory_recall, memory_update, memory_delete, support_request, present_plan, todo_write, task_manage, journal_write, ask_user, docs_lookup, propose_tool, get_datetime, detect_language.
 
-**Your modes:** Code (full agent, 30 tools), Plan (read-only analysis), Chat (no tools), Security (OWASP audit).
+**Your modes:** Code (full agent, 31 tools), Plan (read-only analysis), Chat (no tools), Security (OWASP audit).
 
 **docs_lookup topics:** getting-started, models, tools, modes, permissions, memory, configuration, project-context, cli-commands, languages, keyboard-shortcuts, troubleshooting, platform-account, dashboard, history, security-audit.`;
 

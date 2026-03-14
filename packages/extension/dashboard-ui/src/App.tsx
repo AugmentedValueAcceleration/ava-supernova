@@ -12,6 +12,7 @@ import { Settings } from './pages/Settings';
 import { AdminSupport } from './pages/AdminSupport';
 import { AdminProposals } from './pages/AdminProposals';
 import { Tasks } from './pages/Tasks';
+import { Journal } from './pages/Journal';
 import type {
   Page,
   AccountInfo,
@@ -19,6 +20,8 @@ import type {
   ConnectionStatus,
   ConversationEntry,
   DashboardTaskEntry,
+  DashboardJournalDay,
+  DashboardJournalDaySummary,
   SessionStats,
   SupportTicket,
   DashboardSettings,
@@ -70,6 +73,8 @@ export function App() {
   const [byokMode, setByokMode] = useState(false);
   const [localMemories, setLocalMemories] = useState<MemoryEntry[]>([]);
   const [tasks, setTasks] = useState<DashboardTaskEntry[]>([]);
+  const [journalDay, setJournalDay] = useState<DashboardJournalDay | null>(null);
+  const [journalSummaries, setJournalSummaries] = useState<DashboardJournalDaySummary[]>([]);
   const [sessionStatsData, setSessionStatsData] = useState<SessionStats | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // Admin state
@@ -207,6 +212,13 @@ export function App() {
       case 'task_deleted':
         setTasks((prev) => prev.filter((t) => t.id !== msg.id));
         break;
+      case 'journal_day_loaded':
+      case 'journal_day_updated':
+        setJournalDay(msg.day);
+        break;
+      case 'journal_summaries_loaded':
+        setJournalSummaries(msg.summaries);
+        break;
       case 'byok_support_sent':
         // Handled by Support page directly
         break;
@@ -244,6 +256,17 @@ export function App() {
     // Load tasks when navigating to tasks page
     if (page === 'tasks' && tasks.length === 0) {
       post({ type: 'load_tasks' });
+    }
+    // Load journal when navigating to journal page
+    if (page === 'journal') {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = now.getMonth();
+      const from = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+      const last = new Date(y, m + 1, 0).getDate();
+      const to = `${y}-${String(m + 1).padStart(2, '0')}-${String(last).padStart(2, '0')}`;
+      post({ type: 'load_journal_summaries', from, to });
+      post({ type: 'load_journal_day', date: now.toISOString().slice(0, 10) });
     }
     // BYOK: refresh session stats when viewing usage or overview
     if ((page === 'usage' || page === 'overview') && byokMode && !account) {
@@ -288,6 +311,16 @@ export function App() {
         return <Memory memories={account ? memories : localMemories} mode={mode} />;
       case 'tasks':
         return <Tasks tasks={tasks} />;
+      case 'journal':
+        return (
+          <Journal
+            day={journalDay}
+            summaries={journalSummaries}
+            onLoadDay={(date) => post({ type: 'load_journal_day', date })}
+            onLoadSummaries={(from, to) => post({ type: 'load_journal_summaries', from, to })}
+            onSaveUserEntry={(date, content, mood, tags) => post({ type: 'save_journal_user_entry', date, content, mood, tags })}
+          />
+        );
       case 'connections':
         return <Connections connections={connections} />;
       case 'history':

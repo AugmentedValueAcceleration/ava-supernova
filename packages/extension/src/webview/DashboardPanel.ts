@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { MemoryManager, TaskManager, AVA_HOME } from '@ava/core';
-import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry } from '@ava/core';
+import { MemoryManager, TaskManager, JournalManager, AVA_HOME } from '@ava/core';
+import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, JournalDay } from '@ava/core';
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
 import { sessionStats } from '../session-stats.js';
@@ -52,6 +52,7 @@ export class DashboardPanel {
   private disposables: vscode.Disposable[] = [];
   private memoryManager?: MemoryManager;
   private taskManager?: TaskManager;
+  private journalManager?: JournalManager;
 
   // ─── Static factory ────────────────────────────────────────────────────────
 
@@ -316,6 +317,20 @@ export class DashboardPanel {
 
       case 'restore_task':
         await this.restoreTaskEntry(msg.id);
+        break;
+
+      // ─── Journal messages ────────────────────────────────────────────────────
+
+      case 'load_journal_day':
+        await this.loadJournalDay(msg.date);
+        break;
+
+      case 'load_journal_summaries':
+        await this.loadJournalSummaries(msg.from, msg.to);
+        break;
+
+      case 'save_journal_user_entry':
+        await this.saveJournalUserEntry(msg.date, msg.content, msg.mood, msg.tags);
         break;
 
     }
@@ -1087,6 +1102,79 @@ export class DashboardPanel {
       }
     } catch {
       this.post({ type: 'error', message: 'Failed to restore task.' });
+    }
+  }
+
+  // ─── Journal ───────────────────────────────────────────────────────────────
+
+  private getJournalManager(): JournalManager {
+    if (!this.journalManager) {
+      const globalDir = AVA_HOME ?? path.join(os.homedir(), '.ava');
+      const projectRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      this.journalManager = new JournalManager({ globalDir, projectRoot });
+    }
+    return this.journalManager;
+  }
+
+  private coreToDisplayDay(day: JournalDay) {
+    return {
+      date: day.date,
+      user_entry: day.userEntry ? {
+        content: day.userEntry.content,
+        mood: day.userEntry.mood,
+        tags: day.userEntry.tags,
+        created_at: day.userEntry.createdAt,
+        updated_at: day.userEntry.updatedAt,
+      } : null,
+      ava_entry: day.avaEntry ? {
+        content: day.avaEntry.content,
+        mood: day.avaEntry.mood,
+        tags: day.avaEntry.tags,
+        created_at: day.avaEntry.createdAt,
+        updated_at: day.avaEntry.updatedAt,
+      } : null,
+    };
+  }
+
+  private async loadJournalDay(date: string): Promise<void> {
+    try {
+      const mgr = this.getJournalManager();
+      const day = await mgr.getDay(date);
+      if (day) {
+        this.post({ type: 'journal_day_loaded', day: this.coreToDisplayDay(day) });
+      } else {
+        this.post({ type: 'journal_day_loaded', day: { date, user_entry: null, ava_entry: null } });
+      }
+    } catch {
+      this.post({ type: 'journal_day_loaded', day: { date, user_entry: null, ava_entry: null } });
+    }
+  }
+
+  private async loadJournalSummaries(from: string, to: string): Promise<void> {
+    try {
+      const mgr = this.getJournalManager();
+      const summaries = await mgr.getDaySummaries(from, to);
+      this.post({
+        type: 'journal_summaries_loaded',
+        summaries: summaries.map(s => ({
+          date: s.date,
+          has_user_entry: s.hasUserEntry,
+          has_ava_entry: s.hasAvaEntry,
+          mood: s.mood,
+        })),
+      });
+    } catch {
+      this.post({ type: 'journal_summaries_loaded', summaries: [] });
+    }
+  }
+
+  private async saveJournalUserEntry(date: string, content: string, mood?: number, tags?: string[]): Promise<void> {
+    try {
+      const mgr = this.getJournalManager();
+      const day = await mgr.writeUserEntry(date, content, mood as 1 | 2 | 3 | 4 | 5 | undefined, tags);
+      this.post({ type: 'journal_day_updated', day: this.coreToDisplayDay(day) });
+    } catch {
+      this.post({ type: 'error', message: 'Failed to save journal entry.' });
     }
   }
 

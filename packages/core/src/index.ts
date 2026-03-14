@@ -81,6 +81,13 @@ export type {
 export { TASK_PRIORITIES, TASK_CATEGORIES, createEmptyTaskStore } from './tasks/types.js';
 export { PlatformTaskSyncImpl } from './tasks/platform-sync.js';
 
+// Journal
+export { JournalManager } from './journal/journal-manager.js';
+export type { PlatformJournalSync } from './journal/journal-manager.js';
+export type { JournalEntry, JournalDay, JournalDaySummary, JournalMood } from './journal/types.js';
+export { createEmptyJournalDay } from './journal/types.js';
+export { PlatformJournalSyncImpl } from './journal/platform-sync.js';
+
 // Checkpoint
 export { CheckpointManager } from './checkpoint/checkpoint-manager.js';
 

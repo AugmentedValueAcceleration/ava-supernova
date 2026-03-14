@@ -145,6 +145,29 @@ export interface DashboardTaskEntry {
   completed_at?: string;
 }
 
+// ─── Journal Types ───────────────────────────────────────────────────────────
+
+export interface DashboardJournalEntry {
+  content: string;
+  mood?: number;
+  tags?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DashboardJournalDay {
+  date: string;
+  user_entry: DashboardJournalEntry | null;
+  ava_entry: DashboardJournalEntry | null;
+}
+
+export interface DashboardJournalDaySummary {
+  date: string;
+  has_user_entry: boolean;
+  has_ava_entry: boolean;
+  mood?: number;
+}
+
 // ─── Extension Host → Dashboard Webview ──────────────────────────────────────
 
 export type ExtToDashboardMessage =
@@ -185,6 +208,10 @@ export type ExtToDashboardMessage =
   | { type: 'tasks_loaded'; tasks: DashboardTaskEntry[] }
   | { type: 'task_upserted'; task: DashboardTaskEntry }
   | { type: 'task_deleted'; id: string }
+  // Journal messages
+  | { type: 'journal_day_loaded'; day: DashboardJournalDay }
+  | { type: 'journal_summaries_loaded'; summaries: DashboardJournalDaySummary[] }
+  | { type: 'journal_day_updated'; day: DashboardJournalDay }
   | { type: 'error'; message: string };
 
 // ─── Dashboard Webview → Extension Host ──────────────────────────────────────
@@ -240,4 +267,8 @@ export type DashboardToExtMessage =
   | { type: 'delete_task'; id: string }
   | { type: 'complete_task'; id: string }
   | { type: 'archive_task'; id: string }
-  | { type: 'restore_task'; id: string };
+  | { type: 'restore_task'; id: string }
+  // Journal messages
+  | { type: 'load_journal_day'; date: string }
+  | { type: 'load_journal_summaries'; from: string; to: string }
+  | { type: 'save_journal_user_entry'; date: string; content: string; mood?: number; tags?: string[] };

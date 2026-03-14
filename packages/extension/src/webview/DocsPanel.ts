@@ -743,7 +743,7 @@ export class DocsPanel {
       <div class="card-grid">
         <div class="card">
           <h4>Code Mode</h4>
-          <p>Full agent with all 30 tools. Ava reads, writes, searches, and executes across your codebase.</p>
+          <p>Full agent with all 31 tools. Ava reads, writes, searches, and executes across your codebase.</p>
         </div>
         <div class="card">
           <h4>Plan Mode</h4>
