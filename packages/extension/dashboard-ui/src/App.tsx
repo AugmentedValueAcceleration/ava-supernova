@@ -11,12 +11,14 @@ import { Billing } from './pages/Billing';
 import { Settings } from './pages/Settings';
 import { AdminSupport } from './pages/AdminSupport';
 import { AdminProposals } from './pages/AdminProposals';
+import { Tasks } from './pages/Tasks';
 import type {
   Page,
   AccountInfo,
   AdminToolProposal,
   ConnectionStatus,
   ConversationEntry,
+  DashboardTaskEntry,
   SessionStats,
   SupportTicket,
   DashboardSettings,
@@ -67,6 +69,7 @@ export function App() {
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [byokMode, setByokMode] = useState(false);
   const [localMemories, setLocalMemories] = useState<MemoryEntry[]>([]);
+  const [tasks, setTasks] = useState<DashboardTaskEntry[]>([]);
   const [sessionStatsData, setSessionStatsData] = useState<SessionStats | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // Admin state
@@ -186,6 +189,24 @@ export function App() {
       case 'session_stats_loaded':
         setSessionStatsData(msg.stats);
         break;
+      // Task messages
+      case 'tasks_loaded':
+        setTasks(msg.tasks);
+        break;
+      case 'task_upserted':
+        setTasks((prev) => {
+          const idx = prev.findIndex((t) => t.id === msg.task.id);
+          if (idx >= 0) {
+            const updated = [...prev];
+            updated[idx] = msg.task;
+            return updated;
+          }
+          return [msg.task, ...prev];
+        });
+        break;
+      case 'task_deleted':
+        setTasks((prev) => prev.filter((t) => t.id !== msg.id));
+        break;
       case 'byok_support_sent':
         // Handled by Support page directly
         break;
@@ -219,6 +240,10 @@ export function App() {
     if (page === 'admin_proposals' && adminProposals.length === 0 && !adminProposalsLoading) {
       setAdminProposalsLoading(true);
       post({ type: 'load_admin_proposals' });
+    }
+    // Load tasks when navigating to tasks page
+    if (page === 'tasks' && tasks.length === 0) {
+      post({ type: 'load_tasks' });
     }
     // BYOK: refresh session stats when viewing usage or overview
     if ((page === 'usage' || page === 'overview') && byokMode && !account) {
@@ -261,6 +286,8 @@ export function App() {
         return <Usage account={account} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} />;
       case 'memory':
         return <Memory memories={account ? memories : localMemories} mode={mode} />;
+      case 'tasks':
+        return <Tasks tasks={tasks} />;
       case 'connections':
         return <Connections connections={connections} />;
       case 'history':

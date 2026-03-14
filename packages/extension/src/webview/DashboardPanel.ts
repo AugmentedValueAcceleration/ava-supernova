@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { MemoryManager, AVA_HOME } from '@ava/core';
-import type { MemoryEntry as CoreMemoryEntry } from '@ava/core';
+import { MemoryManager, TaskManager, AVA_HOME } from '@ava/core';
+import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry } from '@ava/core';
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
 import { sessionStats } from '../session-stats.js';
@@ -15,6 +15,7 @@ import type {
   ProviderKeyStatus,
   MemoryEntry,
   UsageLogEntry,
+  DashboardTaskEntry,
 } from './dashboard-message-types.js';
 
 // ─── Platform API ─────────────────────────────────────────────────────────────
@@ -50,6 +51,7 @@ export class DashboardPanel {
   private readonly secrets: vscode.SecretStorage;
   private disposables: vscode.Disposable[] = [];
   private memoryManager?: MemoryManager;
+  private taskManager?: TaskManager;
 
   // ─── Static factory ────────────────────────────────────────────────────────
 
@@ -285,6 +287,36 @@ export class DashboardPanel {
         this.post({ type: 'byok_support_sent', success: true, message: 'Opening your email client...' });
         break;
       }
+
+      // ─── Task messages ──────────────────────────────────────────────────────
+
+      case 'load_tasks':
+        await this.loadTasks();
+        break;
+
+      case 'create_task':
+        await this.createTask(msg);
+        break;
+
+      case 'update_task':
+        await this.updateTaskEntry(msg);
+        break;
+
+      case 'delete_task':
+        await this.deleteTaskEntry(msg.id);
+        break;
+
+      case 'complete_task':
+        await this.completeTaskEntry(msg.id);
+        break;
+
+      case 'archive_task':
+        await this.archiveTaskEntry(msg.id);
+        break;
+
+      case 'restore_task':
+        await this.restoreTaskEntry(msg.id);
+        break;
 
     }
   }
@@ -917,6 +949,144 @@ export class DashboardPanel {
       this.post({ type: 'local_memory_upserted', memory: this.coreToDisplayEntry(entry, scope) });
     } catch {
       this.post({ type: 'error', message: `Failed to ${archived ? 'archive' : 'restore'} memory.` });
+    }
+  }
+
+  // ─── Tasks ─────────────────────────────────────────────────────────────────
+
+  private getTaskManager(): TaskManager {
+    if (!this.taskManager) {
+      const globalDir = AVA_HOME ?? path.join(os.homedir(), '.ava');
+      const projectRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      this.taskManager = new TaskManager({ globalDir, projectRoot });
+    }
+    return this.taskManager;
+  }
+
+  private coreToDisplayTask(entry: CoreTaskEntry): DashboardTaskEntry {
+    return {
+      id: entry.id,
+      title: entry.title,
+      description: entry.description,
+      priority: entry.priority,
+      status: entry.status,
+      due_date: entry.dueDate,
+      category: entry.category,
+      source: entry.source,
+      project: entry.project,
+      recurrence: entry.recurrence,
+      subtasks: entry.subtasks,
+      created_at: entry.createdAt,
+      updated_at: entry.updatedAt,
+      completed_at: entry.completedAt,
+    };
+  }
+
+  private async loadTasks(): Promise<void> {
+    try {
+      const mgr = this.getTaskManager();
+      const tasks = await mgr.listTasks({ includeArchived: true });
+      this.post({ type: 'tasks_loaded', tasks: tasks.map(t => this.coreToDisplayTask(t)) });
+    } catch {
+      this.post({ type: 'tasks_loaded', tasks: [] });
+    }
+  }
+
+  private async createTask(msg: { title: string; description?: string; priority?: string; category?: string; due_date?: string; recurrence?: string }): Promise<void> {
+    try {
+      const mgr = this.getTaskManager();
+      const entry = await mgr.addTask({
+        title: msg.title,
+        description: msg.description,
+        priority: (msg.priority as CoreTaskEntry['priority']) ?? 'medium',
+        category: (msg.category as CoreTaskEntry['category']) ?? 'coding',
+        dueDate: msg.due_date,
+        recurrence: (msg.recurrence as CoreTaskEntry['recurrence']) ?? 'none',
+        scope: 'project',
+      });
+      this.post({ type: 'task_upserted', task: this.coreToDisplayTask(entry) });
+    } catch {
+      this.post({ type: 'error', message: 'Failed to create task.' });
+    }
+  }
+
+  private async updateTaskEntry(msg: { id: string; title?: string; description?: string; priority?: string; status?: string; category?: string; due_date?: string; recurrence?: string; subtasks?: { id: string; title: string; done: boolean }[] }): Promise<void> {
+    try {
+      const mgr = this.getTaskManager();
+      const updates: Record<string, unknown> = {};
+      if (msg.title !== undefined) updates.title = msg.title;
+      if (msg.description !== undefined) updates.description = msg.description;
+      if (msg.priority !== undefined) updates.priority = msg.priority;
+      if (msg.status !== undefined) updates.status = msg.status;
+      if (msg.category !== undefined) updates.category = msg.category;
+      if (msg.due_date !== undefined) updates.dueDate = msg.due_date;
+      if (msg.recurrence !== undefined) updates.recurrence = msg.recurrence;
+      if (msg.subtasks !== undefined) updates.subtasks = msg.subtasks;
+
+      const entry = await mgr.updateTask(msg.id, updates as Parameters<TaskManager['updateTask']>[1]);
+      if (entry) {
+        this.post({ type: 'task_upserted', task: this.coreToDisplayTask(entry) });
+      } else {
+        this.post({ type: 'error', message: 'Task not found.' });
+      }
+    } catch {
+      this.post({ type: 'error', message: 'Failed to update task.' });
+    }
+  }
+
+  private async deleteTaskEntry(id: string): Promise<void> {
+    try {
+      const mgr = this.getTaskManager();
+      const deleted = await mgr.deleteTask(id);
+      if (deleted) {
+        this.post({ type: 'task_deleted', id });
+      } else {
+        this.post({ type: 'error', message: 'Task not found.' });
+      }
+    } catch {
+      this.post({ type: 'error', message: 'Failed to delete task.' });
+    }
+  }
+
+  private async completeTaskEntry(id: string): Promise<void> {
+    try {
+      const mgr = this.getTaskManager();
+      const entry = await mgr.completeTask(id);
+      if (entry) {
+        this.post({ type: 'task_upserted', task: this.coreToDisplayTask(entry) });
+      } else {
+        this.post({ type: 'error', message: 'Task not found.' });
+      }
+    } catch {
+      this.post({ type: 'error', message: 'Failed to complete task.' });
+    }
+  }
+
+  private async archiveTaskEntry(id: string): Promise<void> {
+    try {
+      const mgr = this.getTaskManager();
+      const entry = await mgr.archiveTask(id);
+      if (entry) {
+        this.post({ type: 'task_upserted', task: this.coreToDisplayTask(entry) });
+      } else {
+        this.post({ type: 'error', message: 'Task not found.' });
+      }
+    } catch {
+      this.post({ type: 'error', message: 'Failed to archive task.' });
+    }
+  }
+
+  private async restoreTaskEntry(id: string): Promise<void> {
+    try {
+      const mgr = this.getTaskManager();
+      const entry = await mgr.restoreTask(id);
+      if (entry) {
+        this.post({ type: 'task_upserted', task: this.coreToDisplayTask(entry) });
+      } else {
+        this.post({ type: 'error', message: 'Task not found.' });
+      }
+    } catch {
+      this.post({ type: 'error', message: 'Failed to restore task.' });
     }
   }
 

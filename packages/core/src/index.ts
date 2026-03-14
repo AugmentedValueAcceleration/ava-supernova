@@ -64,6 +64,22 @@ export type {
 export { MEMORY_CATEGORIES, createEmptyStore } from './memory/types.js';
 export { TfIdfIndex, tokenize, cosineSimilarity } from './memory/tfidf.js';
 
+// Tasks
+export { TaskManager } from './tasks/task-manager.js';
+export type { PlatformTaskSync, TaskCreateOptions, TaskUpdateOptions } from './tasks/task-manager.js';
+export type {
+  TaskEntry,
+  TaskStore,
+  TaskStatus,
+  TaskPriority,
+  TaskCategory,
+  TaskRecurrence,
+  TaskSource,
+  TaskSubtask,
+  TaskListOptions,
+} from './tasks/types.js';
+export { TASK_PRIORITIES, TASK_CATEGORIES, createEmptyTaskStore } from './tasks/types.js';
+
 // Checkpoint
 export { CheckpointManager } from './checkpoint/checkpoint-manager.js';
 

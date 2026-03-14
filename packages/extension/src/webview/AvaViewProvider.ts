@@ -9,6 +9,7 @@ import {
   PlatformProvider,
   HistoryManager,
   MemoryManager,
+  TaskManager,
   PlatformMemorySync,
   ProviderHealthTracker,
   ResilientProvider,
@@ -28,6 +29,7 @@ import type { AccountInfo } from './dashboard-message-types.js';
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
 import { sessionStats } from '../session-stats.js';
+import type { TasksPanel } from './TasksPanel.js';
 
 export class AvaViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'ava-supernova.chatView';
@@ -52,9 +54,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private projectRoot?: string;
   private projectInstructions?: string;
   private memoryManager?: MemoryManager;
+  private taskManager?: TaskManager;
   private cachedMemory?: string;
   private currentLocale = 'en';
   private panelStateCallback?: (isOpen: boolean) => void;
+  private tasksPanel?: TasksPanel;
   private cachedAccount: AccountInfo | null = null;
   private providerSource: ProviderSource = 'byok';
   private heartbeatInterval?: ReturnType<typeof setInterval>;
@@ -106,6 +110,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
     const memoryLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? false;
     this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly });
+    this.taskManager = new TaskManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot });
 
     this.projectInstructions = this.projectRoot
       ? (await loadProjectInstructions(this.projectRoot)) ?? undefined
@@ -249,6 +254,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   onPanelStateChange(callback: (isOpen: boolean) => void): void {
     this.panelStateCallback = callback;
+  }
+
+  /** Set the Today panel reference for session task updates. */
+  setTasksPanel(panel: TasksPanel): void {
+    this.tasksPanel = panel;
   }
 
   openInEditor(): void {
@@ -591,6 +601,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       cwd,
       sharedState: {
         memoryManager: this.memoryManager,
+        taskManager: this.taskManager,
         platformKey: await this.context.secrets.get('ava-supernova.platformKey'),
       },
     });
@@ -1099,6 +1110,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
               success: event.success,
             });
           }
+          // Push session tasks to Today panel when todo_write fires
+          if (event.toolCall.function.name === 'todo_write' && this.tasksPanel && this.taskManager) {
+            const sessionTasks = this.taskManager.getSessionTasks();
+            this.tasksPanel.updateSessionTasks(
+              sessionTasks.map(t => ({ id: t.id, title: t.title, status: t.status }))
+            );
+          }
           this.log(`Tool result: ${event.toolCall.function.name} → ${event.success ? 'ok' : 'FAIL'}`);
           break;
         }
@@ -1194,6 +1212,16 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       this.isRunning = false;
       this.runAbortController = undefined;
       this.updateStatusBar('ready');
+      // Flush session tasks from todo_write to persistent storage
+      if (this.taskManager) {
+        this.taskManager.flushSessionTasks().catch(() => {});
+        this.taskManager.clearSessionTasks();
+      }
+      // Refresh Today panel
+      if (this.tasksPanel) {
+        this.tasksPanel.clearSessionTasks();
+        this.tasksPanel.refreshTodayTasks();
+      }
       // Always send done to guarantee the UI resets
       this.postMessage({ type: 'done' });
       this.log('handleUserMessage finished — isRunning=false');

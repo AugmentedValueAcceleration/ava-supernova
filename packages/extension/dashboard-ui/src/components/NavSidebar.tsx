@@ -1,6 +1,6 @@
 import { post } from '../App';
 import type { Page } from '../types/messages';
-import { BoltIcon, KeyIcon, ChartBarIcon, SparklesIcon, LinkIcon, ClockIcon, HelpCircleIcon, CreditCardIcon, CogIcon, ShieldIcon, WrenchIcon } from './Icons';
+import { BoltIcon, KeyIcon, ChartBarIcon, SparklesIcon, ChecklistIcon, LinkIcon, ClockIcon, HelpCircleIcon, CreditCardIcon, CogIcon, ShieldIcon, WrenchIcon } from './Icons';
 
 interface NavSidebarProps {
   currentPage: Page;
@@ -16,6 +16,7 @@ const NAV_ITEMS: Array<{ page: Page; label: string; icon: React.FC<{ className?:
   { page: 'keys', label: 'API Keys', icon: KeyIcon },
   { page: 'usage', label: 'Usage', icon: ChartBarIcon },
   { page: 'memory', label: 'Memory', icon: SparklesIcon },
+  { page: 'tasks', label: 'Tasks', icon: ChecklistIcon },
   { page: 'connections', label: 'Connections', icon: LinkIcon, platformOnly: true, comingSoon: true },
   { page: 'history', label: 'History', icon: ClockIcon, platformOnly: true },
   { page: 'support', label: 'Support', icon: HelpCircleIcon },

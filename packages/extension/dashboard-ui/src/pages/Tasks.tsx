@@ -1,0 +1,510 @@
+import { useState, useMemo } from 'react';
+import { post } from '../App';
+import { SectionGroup } from '../components/SectionGroup';
+import { SearchIcon, TrashIcon, PencilIcon, PlusIcon, CalendarIcon, CheckIcon } from '../components/Icons';
+import type { DashboardTaskEntry } from '../types/messages';
+
+// ── Constants ────────────────────────────────────────────────────────────────
+
+const PRIORITY_COLORS: Record<string, string> = {
+  low: 'bg-green-500/15 text-green-400 border-green-500/20',
+  medium: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
+  high: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
+  urgent: 'bg-red-500/15 text-red-400 border-red-500/20',
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  coding: 'bg-violet-500/15 text-violet-400 border-violet-500/20',
+  personal: 'bg-pink-500/15 text-pink-400 border-pink-500/20',
+  admin: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/20',
+  meeting: 'bg-orange-500/15 text-orange-400 border-orange-500/20',
+  custom: 'bg-gray-500/15 text-gray-400 border-gray-500/20',
+};
+
+const STATUS_ICONS: Record<string, string> = {
+  todo: '○',
+  'in-progress': '⟳',
+  done: '✓',
+  archived: '▫',
+};
+
+type ViewTab = 'active' | 'done' | 'archived';
+type PriorityFilter = 'all' | 'low' | 'medium' | 'high' | 'urgent';
+type CategoryFilter = 'all' | 'coding' | 'personal' | 'admin' | 'meeting' | 'custom';
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatDate(dateStr: string | undefined): string {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function isOverdue(task: DashboardTaskEntry): boolean {
+  if (!task.due_date || task.status === 'done' || task.status === 'archived') return false;
+  return task.due_date < new Date().toISOString().slice(0, 10);
+}
+
+function isDueToday(task: DashboardTaskEntry): boolean {
+  if (!task.due_date) return false;
+  return task.due_date === new Date().toISOString().slice(0, 10);
+}
+
+// ── Sub-components ───────────────────────────────────────────────────────────
+
+function PriorityBadge({ priority }: { priority: string }) {
+  const colors = PRIORITY_COLORS[priority] ?? PRIORITY_COLORS.medium;
+  return (
+    <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${colors}`}>
+      {priority.charAt(0).toUpperCase() + priority.slice(1)}
+    </span>
+  );
+}
+
+function CategoryBadge({ category }: { category: string }) {
+  const colors = CATEGORY_COLORS[category] ?? CATEGORY_COLORS.custom;
+  return (
+    <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${colors}`}>
+      {category.charAt(0).toUpperCase() + category.slice(1)}
+    </span>
+  );
+}
+
+function SubtaskProgress({ subtasks }: { subtasks: { done: boolean }[] }) {
+  if (subtasks.length === 0) return null;
+  const done = subtasks.filter(s => s.done).length;
+  const pct = Math.round((done / subtasks.length) * 100);
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-1.5 w-20 rounded-full bg-white/10 overflow-hidden">
+        <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-[10px] text-[var(--text-muted)]">{done}/{subtasks.length}</span>
+    </div>
+  );
+}
+
+// ── Main Component ───────────────────────────────────────────────────────────
+
+interface TasksProps {
+  tasks: DashboardTaskEntry[];
+}
+
+export function Tasks({ tasks }: TasksProps) {
+  const [viewTab, setViewTab] = useState<ViewTab>('active');
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
+  const [search, setSearch] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  // Form state
+  const [formTitle, setFormTitle] = useState('');
+  const [formDesc, setFormDesc] = useState('');
+  const [formPriority, setFormPriority] = useState<string>('medium');
+  const [formCategory, setFormCategory] = useState<string>('coding');
+  const [formDueDate, setFormDueDate] = useState('');
+  const [formRecurrence, setFormRecurrence] = useState<string>('none');
+
+  // Stats
+  const stats = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return {
+      active: tasks.filter(t => t.status === 'todo' || t.status === 'in-progress').length,
+      today: tasks.filter(t => (t.due_date === today && t.status !== 'done' && t.status !== 'archived') || t.status === 'in-progress').length,
+      overdue: tasks.filter(t => isOverdue(t)).length,
+      completed: tasks.filter(t => t.status === 'done').length,
+    };
+  }, [tasks]);
+
+  // Filtered tasks
+  const filtered = useMemo(() => {
+    let list = tasks;
+
+    // Tab filter
+    if (viewTab === 'active') {
+      list = list.filter(t => t.status === 'todo' || t.status === 'in-progress');
+    } else if (viewTab === 'done') {
+      list = list.filter(t => t.status === 'done');
+    } else {
+      list = list.filter(t => t.status === 'archived');
+    }
+
+    // Priority filter
+    if (priorityFilter !== 'all') {
+      list = list.filter(t => t.priority === priorityFilter);
+    }
+
+    // Category filter
+    if (categoryFilter !== 'all') {
+      list = list.filter(t => t.category === categoryFilter);
+    }
+
+    // Search
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(t =>
+        t.title.toLowerCase().includes(q) ||
+        (t.description && t.description.toLowerCase().includes(q))
+      );
+    }
+
+    return list;
+  }, [tasks, viewTab, priorityFilter, categoryFilter, search]);
+
+  function resetForm() {
+    setFormTitle('');
+    setFormDesc('');
+    setFormPriority('medium');
+    setFormCategory('coding');
+    setFormDueDate('');
+    setFormRecurrence('none');
+    setShowForm(false);
+    setEditingId(null);
+  }
+
+  function handleSubmitTask() {
+    if (!formTitle.trim()) return;
+
+    if (editingId) {
+      post({
+        type: 'update_task',
+        id: editingId,
+        title: formTitle.trim(),
+        description: formDesc.trim() || undefined,
+        priority: formPriority,
+        category: formCategory,
+        due_date: formDueDate || undefined,
+        recurrence: formRecurrence,
+      });
+    } else {
+      post({
+        type: 'create_task',
+        title: formTitle.trim(),
+        description: formDesc.trim() || undefined,
+        priority: formPriority,
+        category: formCategory,
+        due_date: formDueDate || undefined,
+        recurrence: formRecurrence,
+      });
+    }
+    resetForm();
+  }
+
+  function startEdit(task: DashboardTaskEntry) {
+    setEditingId(task.id);
+    setFormTitle(task.title);
+    setFormDesc(task.description ?? '');
+    setFormPriority(task.priority);
+    setFormCategory(task.category);
+    setFormDueDate(task.due_date ?? '');
+    setFormRecurrence(task.recurrence);
+    setShowForm(true);
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold text-white">Tasks</h1>
+          <p className="mt-0.5 text-xs text-[var(--text-muted)]">Manage your tasks and track Ava's progress</p>
+        </div>
+        <button
+          onClick={() => { resetForm(); setShowForm(!showForm); }}
+          className="flex items-center gap-1.5 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] transition hover:bg-[var(--accent)]/20"
+        >
+          <PlusIcon className="h-3.5 w-3.5" />
+          New Task
+        </button>
+      </div>
+
+      {/* Stats bar */}
+      <div className="grid grid-cols-4 gap-3">
+        {[
+          { label: 'Active', value: stats.active, color: 'text-blue-400' },
+          { label: 'Today', value: stats.today, color: 'text-amber-400' },
+          { label: 'Overdue', value: stats.overdue, color: stats.overdue > 0 ? 'text-red-400' : 'text-[var(--text-muted)]' },
+          { label: 'Completed', value: stats.completed, color: 'text-emerald-400' },
+        ].map(({ label, value, color }) => (
+          <div key={label} className="rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] p-3 text-center">
+            <p className={`text-lg font-semibold ${color}`}>{value}</p>
+            <p className="text-[10px] text-[var(--text-muted)]">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Add/Edit Form */}
+      {showForm && (
+        <div className="rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] p-4 space-y-3">
+          <p className="text-xs font-medium text-white">{editingId ? 'Edit Task' : 'New Task'}</p>
+          <input
+            type="text"
+            placeholder="Task title..."
+            value={formTitle}
+            onChange={e => setFormTitle(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSubmitTask()}
+            className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]/50"
+            autoFocus
+          />
+          <textarea
+            placeholder="Description (optional)..."
+            value={formDesc}
+            onChange={e => setFormDesc(e.target.value)}
+            rows={2}
+            className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]/50 resize-none"
+          />
+          <div className="flex flex-wrap gap-3">
+            {/* Priority */}
+            <div className="flex-1 min-w-[120px]">
+              <label className="mb-1 block text-[10px] text-[var(--text-muted)]">Priority</label>
+              <select value={formPriority} onChange={e => setFormPriority(e.target.value)} className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-2 py-1.5 text-xs text-white outline-none">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+            {/* Category */}
+            <div className="flex-1 min-w-[120px]">
+              <label className="mb-1 block text-[10px] text-[var(--text-muted)]">Category</label>
+              <select value={formCategory} onChange={e => setFormCategory(e.target.value)} className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-2 py-1.5 text-xs text-white outline-none">
+                <option value="coding">Coding</option>
+                <option value="personal">Personal</option>
+                <option value="admin">Admin</option>
+                <option value="meeting">Meeting</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            {/* Due date */}
+            <div className="flex-1 min-w-[140px]">
+              <label className="mb-1 block text-[10px] text-[var(--text-muted)]">Due Date</label>
+              <input
+                type="date"
+                value={formDueDate}
+                onChange={e => setFormDueDate(e.target.value)}
+                className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-2 py-1.5 text-xs text-white outline-none"
+              />
+            </div>
+            {/* Recurrence */}
+            <div className="flex-1 min-w-[120px]">
+              <label className="mb-1 block text-[10px] text-[var(--text-muted)]">Recurrence</label>
+              <select value={formRecurrence} onChange={e => setFormRecurrence(e.target.value)} className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-2 py-1.5 text-xs text-white outline-none">
+                <option value="none">None</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleSubmitTask}
+              disabled={!formTitle.trim()}
+              className="rounded-lg bg-[var(--accent)] px-4 py-1.5 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-40"
+            >
+              {editingId ? 'Save Changes' : 'Add Task'}
+            </button>
+            <button
+              onClick={resetForm}
+              className="rounded-lg border border-[var(--border-card)] bg-transparent px-4 py-1.5 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)]"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* View tabs */}
+      <div className="flex items-center gap-4 border-b border-[var(--border-card)] pb-px">
+        {(['active', 'done', 'archived'] as ViewTab[]).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setViewTab(tab)}
+            className={`pb-2 text-xs font-medium transition ${
+              viewTab === tab
+                ? 'border-b-2 border-[var(--accent)] text-white'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+            }`}
+          >
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[200px]">
+          <SearchIcon className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]" />
+          <input
+            type="text"
+            placeholder="Search tasks..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] py-1.5 pl-8 pr-3 text-xs text-white placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]/50"
+          />
+        </div>
+
+        {/* Priority pills */}
+        <div className="flex gap-1">
+          {(['all', 'urgent', 'high', 'medium', 'low'] as PriorityFilter[]).map(p => (
+            <button
+              key={p}
+              onClick={() => setPriorityFilter(p)}
+              className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition ${
+                priorityFilter === p
+                  ? p === 'all' ? 'bg-white/15 text-white' : PRIORITY_COLORS[p]
+                  : 'text-[var(--text-muted)] hover:bg-white/5'
+              }`}
+            >
+              {p === 'all' ? 'All' : p.charAt(0).toUpperCase() + p.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* Category pills */}
+        <div className="flex gap-1">
+          {(['all', 'coding', 'personal', 'admin', 'meeting', 'custom'] as CategoryFilter[]).map(c => (
+            <button
+              key={c}
+              onClick={() => setCategoryFilter(c)}
+              className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition ${
+                categoryFilter === c
+                  ? c === 'all' ? 'bg-white/15 text-white' : CATEGORY_COLORS[c]
+                  : 'text-[var(--text-muted)] hover:bg-white/5'
+              }`}
+            >
+              {c === 'all' ? 'All' : c.charAt(0).toUpperCase() + c.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Task list */}
+      <SectionGroup label={`${viewTab} tasks`} count={`${filtered.length} task${filtered.length !== 1 ? 's' : ''}`}>
+        {filtered.length === 0 ? (
+          <div className="rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] p-8 text-center">
+            <p className="text-sm text-[var(--text-muted)]">
+              {search ? 'No tasks match your search.' : viewTab === 'active' ? 'No active tasks. Create one to get started!' : `No ${viewTab} tasks.`}
+            </p>
+          </div>
+        ) : (
+          filtered.map(task => (
+            <div
+              key={task.id}
+              className={`group rounded-lg border bg-[var(--bg-card)] p-4 transition hover:border-[var(--accent)]/30 ${
+                isOverdue(task)
+                  ? 'border-red-500/30'
+                  : isDueToday(task)
+                    ? 'border-amber-500/20'
+                    : 'border-[var(--border-card)]'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                {/* Status indicator / Complete button */}
+                {task.status !== 'done' && task.status !== 'archived' ? (
+                  <button
+                    onClick={() => post({ type: 'complete_task', id: task.id })}
+                    className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[var(--border-card)] text-[var(--text-muted)] transition hover:border-emerald-500 hover:text-emerald-400"
+                    title="Complete task"
+                  >
+                    <span className="text-xs">{STATUS_ICONS[task.status]}</span>
+                  </button>
+                ) : (
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 text-xs">
+                    {STATUS_ICONS[task.status]}
+                  </span>
+                )}
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className={`text-sm font-medium ${task.status === 'done' ? 'text-[var(--text-muted)] line-through' : 'text-white'}`}>
+                      {task.title}
+                    </p>
+                    {task.source === 'ava' && (
+                      <span className="rounded bg-violet-500/15 px-1.5 py-0.5 text-[9px] font-medium text-violet-400 border border-violet-500/20">
+                        Ava
+                      </span>
+                    )}
+                    {task.recurrence !== 'none' && (
+                      <span className="text-[10px] text-[var(--text-muted)]" title={`Repeats ${task.recurrence}`}>
+                        ↻ {task.recurrence}
+                      </span>
+                    )}
+                  </div>
+
+                  {task.description && (
+                    <p className="mt-1 text-xs text-[var(--text-secondary)] line-clamp-2">{task.description}</p>
+                  )}
+
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <PriorityBadge priority={task.priority} />
+                    <CategoryBadge category={task.category} />
+
+                    {task.due_date && (
+                      <span className={`flex items-center gap-1 text-[10px] ${
+                        isOverdue(task) ? 'text-red-400 font-medium' :
+                        isDueToday(task) ? 'text-amber-400' : 'text-[var(--text-muted)]'
+                      }`}>
+                        <CalendarIcon className="h-3 w-3" />
+                        {isOverdue(task) ? 'Overdue: ' : isDueToday(task) ? 'Today' : ''}{formatDate(task.due_date)}
+                      </span>
+                    )}
+
+                    <SubtaskProgress subtasks={task.subtasks} />
+
+                    {task.completed_at && (
+                      <span className="text-[10px] text-[var(--text-muted)]">
+                        Done {formatDate(task.completed_at)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
+                  {task.status !== 'archived' && task.status !== 'done' && (
+                    <button onClick={() => startEdit(task)} className="rounded p-1 text-[var(--text-muted)] hover:bg-white/5 hover:text-white" title="Edit">
+                      <PencilIcon className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  {task.status === 'done' && (
+                    <button onClick={() => post({ type: 'archive_task', id: task.id })} className="rounded p-1 text-[var(--text-muted)] hover:bg-white/5 hover:text-white" title="Archive">
+                      <span className="text-xs">▫</span>
+                    </button>
+                  )}
+                  {task.status === 'archived' && (
+                    <button onClick={() => post({ type: 'restore_task', id: task.id })} className="rounded p-1 text-[var(--text-muted)] hover:bg-white/5 hover:text-emerald-400" title="Restore">
+                      <span className="text-xs">↩</span>
+                    </button>
+                  )}
+                  {confirmDelete === task.id ? (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => { post({ type: 'delete_task', id: task.id }); setConfirmDelete(null); }}
+                        className="rounded bg-red-500/20 px-2 py-0.5 text-[10px] font-medium text-red-400 hover:bg-red-500/30"
+                      >
+                        Delete
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(null)}
+                        className="rounded bg-white/5 px-2 py-0.5 text-[10px] text-[var(--text-muted)] hover:bg-white/10"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmDelete(task.id)} className="rounded p-1 text-[var(--text-muted)] hover:bg-white/5 hover:text-red-400" title="Delete">
+                      <TrashIcon className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </SectionGroup>
+    </div>
+  );
+}

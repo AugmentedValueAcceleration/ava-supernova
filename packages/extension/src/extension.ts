@@ -1,8 +1,11 @@
 import * as vscode from 'vscode';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import { AvaViewProvider } from './webview/AvaViewProvider.js';
 import { DocsPanel } from './webview/DocsPanel.js';
 import { DashboardPanel } from './webview/DashboardPanel.js';
-import { killBackgroundProcesses } from '@ava/core';
+import { TasksPanel } from './webview/TasksPanel.js';
+import { killBackgroundProcesses, TaskManager, AVA_HOME } from '@ava/core';
 
 let viewProvider: AvaViewProvider | undefined;
 
@@ -11,13 +14,28 @@ const PANEL_STATE_KEY = 'avaSupernova.panelOpen';
 export function activate(context: vscode.ExtensionContext): void {
   viewProvider = new AvaViewProvider(context.extensionUri, context);
 
+  // Task Manager (shared instance)
+  const globalDir = AVA_HOME ?? path.join(os.homedir(), '.ava');
+  const projectRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  const taskManager = new TaskManager({ globalDir, projectRoot });
+
+  // Today panel
+  const tasksPanel = new TasksPanel(context.extensionUri, taskManager);
+
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
       AvaViewProvider.viewType,
       viewProvider,
       { webviewOptions: { retainContextWhenHidden: true } },
     ),
+    vscode.window.registerWebviewViewProvider(
+      TasksPanel.viewType,
+      tasksPanel,
+    ),
   );
+
+  // Make tasks panel accessible to the view provider for session task updates
+  viewProvider.setTasksPanel(tasksPanel);
 
   context.subscriptions.push(
     vscode.commands.registerCommand('ava-supernova.openChat', () => viewProvider!.openInEditor()),

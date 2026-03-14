@@ -126,6 +126,25 @@ export interface AdminToolProposal {
   created_at: string;
 }
 
+// ─── Task Management ─────────────────────────────────────────────────────────
+
+export interface DashboardTaskEntry {
+  id: string;
+  title: string;
+  description?: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: 'todo' | 'in-progress' | 'done' | 'archived';
+  due_date?: string;
+  category: 'coding' | 'personal' | 'admin' | 'meeting' | 'custom';
+  source: 'user' | 'ava';
+  project: string;
+  recurrence: 'none' | 'daily' | 'weekly';
+  subtasks: { id: string; title: string; done: boolean }[];
+  created_at: string;
+  updated_at: string;
+  completed_at?: string;
+}
+
 // ─── Extension Host → Dashboard Webview ──────────────────────────────────────
 
 export type ExtToDashboardMessage =
@@ -162,6 +181,10 @@ export type ExtToDashboardMessage =
   | { type: 'local_memory_upserted'; memory: MemoryEntry }
   | { type: 'session_stats_loaded'; stats: SessionStats }
   | { type: 'byok_support_sent'; success: boolean; message: string }
+  // Task messages
+  | { type: 'tasks_loaded'; tasks: DashboardTaskEntry[] }
+  | { type: 'task_upserted'; task: DashboardTaskEntry }
+  | { type: 'task_deleted'; id: string }
   | { type: 'error'; message: string };
 
 // ─── Dashboard Webview → Extension Host ──────────────────────────────────────
@@ -209,4 +232,12 @@ export type DashboardToExtMessage =
   | { type: 'archive_local_memory'; id: string }
   | { type: 'restore_local_memory'; id: string }
   | { type: 'load_session_stats' }
-  | { type: 'send_byok_support'; email: string; subject: string; message: string };
+  | { type: 'send_byok_support'; email: string; subject: string; message: string }
+  // Task messages
+  | { type: 'load_tasks' }
+  | { type: 'create_task'; title: string; description?: string; priority?: string; category?: string; due_date?: string; recurrence?: string }
+  | { type: 'update_task'; id: string; title?: string; description?: string; priority?: string; status?: string; category?: string; due_date?: string; recurrence?: string; subtasks?: { id: string; title: string; done: boolean }[] }
+  | { type: 'delete_task'; id: string }
+  | { type: 'complete_task'; id: string }
+  | { type: 'archive_task'; id: string }
+  | { type: 'restore_task'; id: string };
