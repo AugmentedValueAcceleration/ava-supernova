@@ -28,7 +28,9 @@ Open-source AI coding agent powered by the best open-source and frontier models.
 - **Project context** — Create `.ava/instructions.md` to give Ava persistent knowledge about your codebase
 - **Tool approval** — Review every action before Ava executes it, or grant autonomy with permission modes
 - **Security scanning** — AI-powered OWASP-aligned security audit using existing tools
-- **Dashboard panel** — Provider configuration, model selection, memory management, and settings inside VS Code
+- **Task management** — Full life-management system with dashboard, collapsible chat panel (Personal + Ava tabs), recurrence, priorities, categories, and platform sync
+- **Session transparency** — When Ava works on complex tasks, her step-by-step progress shows in the Ava tab with a live progress bar
+- **Dashboard panel** — Provider configuration, model selection, task management, memory management, and settings inside VS Code
 - **Documentation viewer** — Built-in docs panel for quick reference without leaving the editor
 
 ## Quick Start
@@ -65,6 +67,23 @@ Ava's memory system is a key differentiator — it makes every model smarter ove
 - **Auto-archival** — Entries inactive for 90+ days flagged as stale, can be auto-archived
 - **Consolidation** — Related entries grouped by TF-IDF similarity for review and merging
 - **Dashboard** — Active/Stale/Archived tabs, category filters, branch badges, edit/archive/restore
+
+## Task Management
+
+Built-in life management — not just coding tasks, but everything. Three integrated surfaces:
+
+- **Dashboard** — Full CRUD task manager with stats, filters by priority and category, search, recurrence, and subtask tracking
+- **Chat Panel** — Collapsible right-side panel in the chat view with **Personal** and **Ava** tabs — your today tasks and Ava's live session progress with a visual progress bar
+- **Chat Integration** — Tell Ava to manage tasks naturally. Session tasks from `todo_write` persist and show in real-time
+
+Key features:
+
+- **Local-first** — JSON storage at `~/.ava/tasks.json` (global) and `.ava/tasks.json` (per project). Works offline.
+- **4 priorities** — Low, medium, high, urgent with color-coded badges
+- **5 categories** — Coding, personal, admin, meeting, custom
+- **Recurrence** — Daily or weekly auto-regeneration of completed tasks
+- **Platform sync** — Connected users get tasks synced to the cloud automatically
+- **Ava context** — Active tasks injected into Ava's system prompt so she knows what you're working on
 
 ## Tools (28)
 

@@ -11,6 +11,7 @@ import {
   MemoryManager,
   TaskManager,
   PlatformMemorySync,
+  PlatformTaskSyncImpl,
   ProviderHealthTracker,
   ResilientProvider,
   AVA_HOME,
@@ -29,7 +30,6 @@ import type { AccountInfo } from './dashboard-message-types.js';
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
 import { sessionStats } from '../session-stats.js';
-import type { TasksPanel } from './TasksPanel.js';
 
 export class AvaViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'ava-supernova.chatView';
@@ -58,7 +58,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private cachedMemory?: string;
   private currentLocale = 'en';
   private panelStateCallback?: (isOpen: boolean) => void;
-  private tasksPanel?: TasksPanel;
   private cachedAccount: AccountInfo | null = null;
   private providerSource: ProviderSource = 'byok';
   private heartbeatInterval?: ReturnType<typeof setInterval>;
@@ -110,7 +109,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
     const memoryLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? false;
     this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly });
-    this.taskManager = new TaskManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot });
+    // Set up tasks with optional platform sync (same pattern as memory)
+    let taskSync: PlatformTaskSyncImpl | undefined;
+    if (platformKey) {
+      taskSync = new PlatformTaskSyncImpl('https://ava-supernova.com/api', platformKey);
+    }
+    this.taskManager = new TaskManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync: taskSync });
 
     this.projectInstructions = this.projectRoot
       ? (await loadProjectInstructions(this.projectRoot)) ?? undefined
@@ -146,7 +150,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     // Start fresh for the new project
     this.conversation = new Conversation();
-    this.conversation.setSystemPrompt(this.buildCurrentSystemPrompt());
+    this.conversation.setSystemPrompt(await this.buildCurrentSystemPrompt());
     this.setLastConversationId(undefined);
     this.postMessage({ type: 'chat_cleared' });
 
@@ -256,9 +260,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.panelStateCallback = callback;
   }
 
-  /** Set the Today panel reference for session task updates. */
-  setTasksPanel(panel: TasksPanel): void {
-    this.tasksPanel = panel;
+  /** Set the shared TaskManager instance. */
+  setTaskManager(manager: TaskManager): void {
+    this.taskManager = manager;
   }
 
   openInEditor(): void {
@@ -329,7 +333,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
 
     this.conversation = new Conversation();
-    this.conversation.setSystemPrompt(this.buildCurrentSystemPrompt());
+    this.conversation.setSystemPrompt(await this.buildCurrentSystemPrompt());
     this.setLastConversationId(undefined);
     this.postMessage({ type: 'chat_cleared' });
     this.postMessage({ type: 'init', models: this.getModelList(), activeModel: this.getActiveModelId(), needsSetup: !this.agent, locale: this.currentLocale });
@@ -572,7 +576,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     if (!this.conversation) {
       this.conversation = new Conversation();
     }
-    this.conversation.setSystemPrompt(this.buildCurrentSystemPrompt());
+    this.conversation.setSystemPrompt(await this.buildCurrentSystemPrompt());
 
     // Build resilient provider with automatic failover
     const activeModelId = `${provider.name}:${model.id}`;
@@ -663,7 +667,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     return config.get<string>('activeModel') || null;
   }
 
-  private buildCurrentSystemPrompt(): string {
+  private async buildCurrentSystemPrompt(): Promise<string> {
     const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
     const cfg = vscode.workspace.getConfiguration('ava-supernova');
     const isAdmin = this.cachedAccount?.tier === 'admin';
@@ -677,6 +681,31 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     this.log(`System prompt build — userName: ${this.cachedAccount?.name || this.cachedAccount?.email?.split('@')[0] || 'none'}, isAdmin: ${isAdmin}, sourceRoot: ${sourceRoot || 'none'}`);
 
+    // Load active tasks for context (max 10, capped to avoid bloating prompt)
+    let activeTasks: string | undefined;
+    if (this.taskManager) {
+      try {
+        const today = await this.taskManager.getTodayTasks();
+        const all = await this.taskManager.listTasks({ status: ['todo', 'in-progress'] });
+        // Merge: today tasks first, then other active ones, dedup by id, cap at 10
+        const seen = new Set<string>();
+        const merged: Array<{ title: string; priority: string; status: string; dueDate?: string; category: string }> = [];
+        for (const t of [...today, ...all]) {
+          if (seen.has(t.id) || merged.length >= 10) continue;
+          seen.add(t.id);
+          merged.push({ title: t.title, priority: t.priority, status: t.status, dueDate: t.dueDate, category: t.category });
+        }
+        if (merged.length > 0) {
+          activeTasks = merged.map(t => {
+            const parts = [`- [${t.status === 'in-progress' ? 'IN PROGRESS' : 'TODO'}] ${t.title}`];
+            if (t.priority === 'urgent' || t.priority === 'high') parts.push(`(${t.priority})`);
+            if (t.dueDate) parts.push(`— due ${t.dueDate}`);
+            return parts.join(' ');
+          }).join('\n');
+        }
+      } catch { /* ignore — tasks are optional context */ }
+    }
+
     return buildSystemPrompt({
       cwd,
       platform: process.platform,
@@ -686,6 +715,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       projectInstructions: this.projectInstructions,
       memory: this.cachedMemory,
       autoMemory: cfg.get<boolean>('preferences.autoMemory') ?? true,
+      activeTasks,
       language: this.currentLocale,
       userName: this.cachedAccount?.name || this.cachedAccount?.email?.split('@')[0],
       userEmail: this.cachedAccount?.email,
@@ -737,7 +767,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     if (messages.length > 0 && messages[0].role === 'system') {
       messages[0] = {
         role: 'system' as const,
-        content: this.buildCurrentSystemPrompt(),
+        content: await this.buildCurrentSystemPrompt(),
       };
     }
     this.conversation.setMessages(messages);
@@ -770,7 +800,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     if (messages.length > 0 && messages[0].role === 'system') {
       messages[0] = {
         role: 'system' as const,
-        content: this.buildCurrentSystemPrompt(),
+        content: await this.buildCurrentSystemPrompt(),
       };
     }
     this.conversation.setMessages(messages);
@@ -838,6 +868,26 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       global: globalEntries as never[],
       project: projectEntries as never[],
     });
+  }
+
+  private async sendTodayTasks(): Promise<void> {
+    if (!this.taskManager) return;
+    try {
+      const todayTasks = await this.taskManager.getTodayTasks();
+      this.postMessage({
+        type: 'today_tasks',
+        tasks: todayTasks.map(t => ({
+          id: t.id,
+          title: t.title,
+          priority: t.priority,
+          status: t.status === 'archived' ? 'done' as const : t.status,
+          dueDate: t.dueDate,
+          category: t.category,
+        })),
+      });
+    } catch {
+      this.postMessage({ type: 'today_tasks', tasks: [] });
+    }
   }
 
   private async saveMemory(scope: 'global' | 'project', content: string): Promise<void> {
@@ -1006,6 +1056,17 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       case 'delete_memory_entry':
         await this.deleteMemoryEntry(message.scope, message.id);
         break;
+
+      case 'request_today_tasks':
+        await this.sendTodayTasks();
+        break;
+
+      case 'toggle_task':
+        if (this.taskManager && message.taskId) {
+          await this.taskManager.completeTask(message.taskId);
+          await this.sendTodayTasks();
+        }
+        break;
     }
   }
 
@@ -1110,12 +1171,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
               success: event.success,
             });
           }
-          // Push session tasks to Today panel when todo_write fires
-          if (event.toolCall.function.name === 'todo_write' && this.tasksPanel && this.taskManager) {
+          // Push session tasks to chat webview when todo_write fires
+          if (event.toolCall.function.name === 'todo_write' && this.taskManager) {
             const sessionTasks = this.taskManager.getSessionTasks();
-            this.tasksPanel.updateSessionTasks(
-              sessionTasks.map(t => ({ id: t.id, title: t.title, status: t.status }))
-            );
+            this.postMessage({
+              type: 'session_tasks',
+              tasks: sessionTasks.map(t => ({ id: t.id, title: t.title, status: t.status })),
+            });
           }
           this.log(`Tool result: ${event.toolCall.function.name} → ${event.success ? 'ok' : 'FAIL'}`);
           break;
@@ -1216,11 +1278,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       if (this.taskManager) {
         this.taskManager.flushSessionTasks().catch(() => {});
         this.taskManager.clearSessionTasks();
-      }
-      // Refresh Today panel
-      if (this.tasksPanel) {
-        this.tasksPanel.clearSessionTasks();
-        this.tasksPanel.refreshTodayTasks();
+        // Clear session tasks and refresh today tasks in chat webview
+        this.postMessage({ type: 'session_tasks', tasks: [] });
+        this.sendTodayTasks();
       }
       // Always send done to guarantee the UI resets
       this.postMessage({ type: 'done' });

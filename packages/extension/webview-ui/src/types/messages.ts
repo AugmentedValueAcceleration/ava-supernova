@@ -76,7 +76,26 @@ export type ExtToWebviewMessage =
   | { type: 'memory_content'; global: MemoryEntryUI[]; project: MemoryEntryUI[] }
   | { type: 'system_message'; content: string }
   | { type: 'ping' }
-  | { type: 'interjection_ack'; content: string };
+  | { type: 'interjection_ack'; content: string }
+  | { type: 'today_tasks'; tasks: TodayTaskUI[] }
+  | { type: 'session_tasks'; tasks: SessionTaskUI[] };
+
+/** Task entry for today panel display. */
+export interface TodayTaskUI {
+  id: string;
+  title: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: 'todo' | 'in-progress' | 'done';
+  dueDate?: string;
+  category: string;
+}
+
+/** Session task from Ava's active work. */
+export interface SessionTaskUI {
+  id: string;
+  title: string;
+  status: 'pending' | 'in_progress' | 'completed';
+}
 
 /** Structured memory entry for webview display. */
 export interface MemoryEntryUI {
@@ -120,7 +139,9 @@ export type WebviewToExtMessage =
   | { type: 'archive_memory'; scope: 'global' | 'project'; id: string }
   | { type: 'restore_memory'; scope: 'global' | 'project'; id: string }
   | { type: 'delete_memory_entry'; scope: 'global' | 'project'; id: string }
-  | { type: 'pong' };
+  | { type: 'pong' }
+  | { type: 'request_today_tasks' }
+  | { type: 'toggle_task'; taskId: string };
 
 // UI state types
 
@@ -177,4 +198,7 @@ export interface ChatState {
   memoryOpen: boolean;
   memoryGlobal: MemoryEntryUI[];
   memoryProject: MemoryEntryUI[];
+  tasksOpen: boolean;
+  todayTasks: TodayTaskUI[];
+  sessionTasks: SessionTaskUI[];
 }

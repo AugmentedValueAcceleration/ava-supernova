@@ -322,6 +322,7 @@ export class DocsPanel {
       <button class="tab-btn" data-tab="models">Models</button>
       <button class="tab-btn" data-tab="tools">Tools</button>
       <button class="tab-btn" data-tab="memory">Memory</button>
+      <button class="tab-btn" data-tab="tasks">Tasks</button>
       <button class="tab-btn" data-tab="commands">Commands</button>
       <button class="tab-btn" data-tab="modes">Modes</button>
       <button class="tab-btn" data-tab="permissions">Permissions</button>
@@ -645,6 +646,56 @@ export class DocsPanel {
           <li>Use <code>memory_recall</code> to search stored knowledge mid-conversation</li>
           <li>You have full control &mdash; view, edit, and delete memories in the Dashboard or locally</li>
         </ul>
+      </div>
+    </section>
+
+    <!-- Task Management -->
+    <section class="docs-section" id="tasks">
+      <h2>Task Management</h2>
+      <p>A full life-management task system built into Ava. Manage daily tasks, track Ava&rsquo;s session progress, and sync across devices.</p>
+
+      <h3>Three Surfaces</h3>
+      <div class="card-grid">
+        <div class="card">
+          <h4>Dashboard</h4>
+          <p>Full CRUD task manager with stats, filters by priority and category, search, recurrence, and subtask tracking.</p>
+        </div>
+        <div class="card">
+          <h4>Chat Panel</h4>
+          <p>Collapsible right-side panel in the chat view with <strong>Personal</strong> and <strong>Ava</strong> tabs &mdash; your today tasks and Ava&rsquo;s live progress.</p>
+        </div>
+        <div class="card">
+          <h4>Chat Integration</h4>
+          <p>Tell Ava to manage tasks in conversation. The <code>todo_write</code> tool persists session tasks that appear in real-time.</p>
+        </div>
+      </div>
+
+      <h3>Features</h3>
+      <div class="card-grid">
+        <div class="card">
+          <h4>Local-First Storage</h4>
+          <p>Tasks stored as JSON at <code>~/.ava/tasks.json</code> (global) and <code>.ava/tasks.json</code> (per project). Works offline.</p>
+        </div>
+        <div class="card">
+          <h4>Priority &amp; Categories</h4>
+          <p>Four priorities (low, medium, high, urgent) with color-coded badges. Five categories: coding, personal, admin, meeting, custom.</p>
+        </div>
+        <div class="card">
+          <h4>Recurrence</h4>
+          <p>Set tasks to repeat daily or weekly. Completed recurring tasks auto-generate the next instance.</p>
+        </div>
+        <div class="card">
+          <h4>Platform Sync</h4>
+          <p>Connected users get tasks synced to the cloud. Access your tasks from any machine.</p>
+        </div>
+        <div class="card">
+          <h4>Ava Context</h4>
+          <p>Active tasks are injected into Ava&rsquo;s system prompt &mdash; she knows what you&rsquo;re working on and can proactively help.</p>
+        </div>
+        <div class="card">
+          <h4>Session Transparency</h4>
+          <p>When Ava works on a complex task, her step-by-step progress shows in the Ava tab with a live progress bar.</p>
+        </div>
       </div>
     </section>
 

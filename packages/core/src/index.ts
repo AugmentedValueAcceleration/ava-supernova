@@ -79,6 +79,7 @@ export type {
   TaskListOptions,
 } from './tasks/types.js';
 export { TASK_PRIORITIES, TASK_CATEGORIES, createEmptyTaskStore } from './tasks/types.js';
+export { PlatformTaskSyncImpl } from './tasks/platform-sync.js';
 
 // Checkpoint
 export { CheckpointManager } from './checkpoint/checkpoint-manager.js';

@@ -12,6 +12,7 @@ interface SystemPromptOptions {
   projectSummary?: string;
   memory?: string;
   autoMemory?: boolean;
+  activeTasks?: string;
   language?: string;
   userName?: string;
   userEmail?: string;
@@ -448,6 +449,15 @@ Save proactively after every meaningful interaction. Don't wait to be asked. Cat
     prompt += `\n\n## Your Memory (v2 — Smart Retrieval & Temporal Awareness)
 
 You have persistent, categorized memory with TF-IDF smart search and temporal relevance scoring. Auto-memory is **disabled** — only save memories when the user explicitly asks you to remember something. Categories: pattern, preference, architecture, bug-fix, convention, tool-config, decision, person, general.`;
+  }
+
+  // Active tasks injection — let Ava know what the user is working on
+  if (opts.activeTasks) {
+    prompt += `\n\n## Active Tasks
+
+The user has the following tasks on their plate right now. You can reference these naturally — if you see a task related to what they're asking, mention it. If you finish something that matches a task, let them know. Don't be pushy about it — just be aware.
+
+${opts.activeTasks}`;
   }
 
   // Self-reference: so Ava can guide users about its own features

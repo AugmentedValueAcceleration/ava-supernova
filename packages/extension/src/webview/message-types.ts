@@ -80,7 +80,9 @@ export type ExtToWebviewMessage =
   | { type: 'memory_content'; global: MemoryEntryUI[]; project: MemoryEntryUI[] }
   | { type: 'system_message'; content: string }
   | { type: 'ping' }
-  | { type: 'interjection_ack'; content: string };
+  | { type: 'interjection_ack'; content: string }
+  | { type: 'today_tasks'; tasks: Array<{ id: string; title: string; priority: string; status: string; dueDate?: string; category: string }> }
+  | { type: 'session_tasks'; tasks: Array<{ id: string; title: string; status: string }> };
 
 /** Structured memory entry for webview display. */
 export interface MemoryEntryUI {
@@ -126,4 +128,6 @@ export type WebviewToExtMessage =
   | { type: 'archive_memory'; scope: 'global' | 'project'; id: string }
   | { type: 'restore_memory'; scope: 'global' | 'project'; id: string }
   | { type: 'delete_memory_entry'; scope: 'global' | 'project'; id: string }
-  | { type: 'pong' };
+  | { type: 'pong' }
+  | { type: 'request_today_tasks' }
+  | { type: 'toggle_task'; taskId: string };

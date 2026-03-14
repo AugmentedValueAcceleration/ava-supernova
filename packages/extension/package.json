@@ -2,7 +2,7 @@
   "name": "ava-supernova",
   "displayName": "Ava | Supernova",
   "description": "%description%",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "publisher": "augmentedvalueacceleration",
   "license": "Apache-2.0",
   "repository": {
@@ -46,11 +46,6 @@
           "id": "ava-supernova",
           "title": "Ava | Supernova",
           "icon": "media/icon.svg"
-        },
-        {
-          "id": "ava-tasks",
-          "title": "Ava Tasks",
-          "icon": "media/icon.svg"
         }
       ]
     },
@@ -60,13 +55,6 @@
           "type": "webview",
           "id": "ava-supernova.chatView",
           "name": "%view.chat.name%"
-        }
-      ],
-      "ava-tasks": [
-        {
-          "type": "webview",
-          "id": "ava-supernova.todayView",
-          "name": "Today"
         }
       ]
     },

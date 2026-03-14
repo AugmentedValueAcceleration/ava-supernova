@@ -6,6 +6,7 @@ import { InputArea } from './components/InputArea';
 import { Header } from './components/Header';
 import { HistoryPanel } from './components/HistoryPanel';
 import { MemoryPanel } from './components/MemoryPanel';
+import { TasksPanel } from './components/TasksPanel';
 import { ContextBar } from './components/ContextBar';
 import type { AvaMode, ImageAttachment } from './components/InputArea';
 import { t, setLocale, loadStrings } from './i18n';
@@ -13,7 +14,9 @@ import { t, setLocale, loadStrings } from './i18n';
 type ChatAction =
   | ExtToWebviewMessage
   | { type: 'close_history' }
-  | { type: 'close_memory' };
+  | { type: 'close_memory' }
+  | { type: 'toggle_tasks' }
+  | { type: 'close_tasks' };
 
 let messageIdCounter = 0;
 function nextId(): string {
@@ -271,6 +274,20 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'close_memory':
       return { ...state, memoryOpen: false };
 
+    // ── Tasks ─────────────────────────────────────────────────────────────
+
+    case 'today_tasks':
+      return { ...state, todayTasks: action.tasks };
+
+    case 'session_tasks':
+      return { ...state, sessionTasks: action.tasks };
+
+    case 'toggle_tasks':
+      return { ...state, tasksOpen: !state.tasksOpen };
+
+    case 'close_tasks':
+      return { ...state, tasksOpen: false };
+
     // ── System messages ──────────────────────────────────────────────────
 
     case 'system_message': {
@@ -333,6 +350,9 @@ const initialState: ChatState = {
   memoryOpen: false,
   memoryGlobal: [],
   memoryProject: [],
+  tasksOpen: false,
+  todayTasks: [],
+  sessionTasks: [],
 };
 
 // ── Typing speed config ─────────────────────────────────────────────────────
@@ -571,6 +591,24 @@ export function App() {
     dispatch({ type: 'close_memory' });
   }, []);
 
+  const handleToggleTasks = useCallback(() => {
+    if (!state.tasksOpen) {
+      postMessage({ type: 'request_today_tasks' });
+    }
+    dispatch({ type: 'toggle_tasks' });
+  }, [state.tasksOpen, postMessage]);
+
+  const handleCloseTasks = useCallback(() => {
+    dispatch({ type: 'close_tasks' });
+  }, []);
+
+  const handleToggleTask = useCallback(
+    (taskId: string) => {
+      postMessage({ type: 'toggle_task', taskId });
+    },
+    [postMessage],
+  );
+
   const handleSaveMemory = useCallback(
     (scope: 'global' | 'project', content: string) => {
       postMessage({ type: 'save_memory', scope, content });
@@ -610,94 +648,106 @@ export function App() {
   const lastError = state.messages.filter(m => m.role === 'error').at(-1);
 
   return (
-    <div className="relative flex flex-col h-screen">
-      {/* Skip navigation link — visible on focus for keyboard users */}
-      <a
-        href="#chat-input"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-1 focus:left-1
-                   focus:px-3 focus:py-1.5 focus:rounded-lg focus:text-xs focus:font-medium
-                   focus:text-white focus:no-underline"
-        style={{ background: '#A855F7' }}
-      >
-        Skip to chat input
-      </a>
+    <div className="relative flex flex-row h-screen">
+      {/* Main chat column */}
+      <div className="relative flex flex-col flex-1 min-w-0 h-full">
+        {/* Skip navigation link — visible on focus for keyboard users */}
+        <a
+          href="#chat-input"
+          className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-1 focus:left-1
+                     focus:px-3 focus:py-1.5 focus:rounded-lg focus:text-xs focus:font-medium
+                     focus:text-white focus:no-underline"
+          style={{ background: '#A855F7' }}
+        >
+          Skip to chat input
+        </a>
 
-      {/* ARIA live region for error announcements */}
-      <div aria-live="assertive" aria-atomic="true" className="sr-only">
-        {lastError?.content ?? ''}
+        {/* ARIA live region for error announcements */}
+        <div aria-live="assertive" aria-atomic="true" className="sr-only">
+          {lastError?.content ?? ''}
+        </div>
+
+        <Header
+          models={state.models}
+          activeModel={state.activeModel}
+          needsSetup={state.needsSetup}
+          onSwitch={handleModelSwitch}
+          onOpenDashboard={handleOpenDashboard}
+          onOpenHistory={handleOpenHistory}
+          onNewChat={handleNewChat}
+          onToggleTasks={handleToggleTasks}
+          tasksOpen={state.tasksOpen}
+        />
+
+        <ChatContainer
+          messages={state.messages}
+          isThinking={state.isThinking}
+          onConfirmation={handleConfirmation}
+          onContinue={handleContinue}
+          onSuggestion={handleSuggestion}
+          chatEndRef={chatEndRef}
+          needsSetup={state.needsSetup}
+          initialized={state.initialized}
+          onOpenDashboard={handleOpenDashboard}
+          activeModel={state.activeModel}
+          models={state.models}
+        />
+
+        <ContextBar
+          contextUsage={state.contextUsage}
+          isCompressing={state.isCompressing ?? false}
+          onCompress={handleCompress}
+          disabled={state.needsSetup || state.isStreaming}
+        />
+
+        <InputArea
+          onSend={handleSend}
+          onCancel={handleCancel}
+          isStreaming={state.isStreaming}
+          disabled={state.needsSetup}
+          usage={state.lastUsage}
+          isCompressing={state.isCompressing}
+          onCompress={handleCompress}
+          providerSource={state.providerSource}
+          platformStatus={state.platformStatus}
+          onProviderSourceChange={handleProviderSourceChange}
+        />
+
+        {state.historyOpen && (
+          <HistoryPanel
+            conversations={state.historyList}
+            onClose={handleCloseHistory}
+            onSelect={handleLoadConversation}
+            onDelete={handleDeleteConversation}
+            onNewChat={handleNewChat}
+            onSearch={handleSearchHistory}
+            onRename={handleRenameConversation}
+            onPin={handlePinConversation}
+            onExport={handleExportConversation}
+          />
+        )}
+
+        {state.memoryOpen && (
+          <MemoryPanel
+            globalEntries={state.memoryGlobal}
+            projectEntries={state.memoryProject}
+            onClose={handleCloseMemory}
+            onSave={handleSaveMemory}
+            onClear={handleClearMemory}
+            onArchive={handleArchiveMemory}
+            onRestore={handleRestoreMemory}
+            onDelete={handleDeleteMemoryEntry}
+          />
+        )}
       </div>
 
-      <Header
-        models={state.models}
-        activeModel={state.activeModel}
-        needsSetup={state.needsSetup}
-        onSwitch={handleModelSwitch}
-        onOpenDashboard={handleOpenDashboard}
-        onOpenHistory={handleOpenHistory}
-        onOpenMemory={handleOpenMemory}
-        onOpenDocs={handleOpenDocs}
-        onNewChat={handleNewChat}
-        accountConnected={state.platformStatus?.connected === true}
-      />
-
-      <ChatContainer
-        messages={state.messages}
-        isThinking={state.isThinking}
-        onConfirmation={handleConfirmation}
-        onContinue={handleContinue}
-        onSuggestion={handleSuggestion}
-        chatEndRef={chatEndRef}
-        needsSetup={state.needsSetup}
-        initialized={state.initialized}
-        onOpenDashboard={handleOpenDashboard}
-        activeModel={state.activeModel}
-        models={state.models}
-      />
-
-      <ContextBar
-        contextUsage={state.contextUsage}
-        isCompressing={state.isCompressing ?? false}
-        onCompress={handleCompress}
-        disabled={state.needsSetup || state.isStreaming}
-      />
-
-      <InputArea
-        onSend={handleSend}
-        onCancel={handleCancel}
-        isStreaming={state.isStreaming}
-        disabled={state.needsSetup}
-        usage={state.lastUsage}
-        isCompressing={state.isCompressing}
-        onCompress={handleCompress}
-        providerSource={state.providerSource}
-        platformStatus={state.platformStatus}
-        onProviderSourceChange={handleProviderSourceChange}
-      />
-
-      {state.historyOpen && (
-        <HistoryPanel
-          conversations={state.historyList}
-          onClose={handleCloseHistory}
-          onSelect={handleLoadConversation}
-          onDelete={handleDeleteConversation}
-          onNewChat={handleNewChat}
-          onSearch={handleSearchHistory}
-          onRename={handleRenameConversation}
-          onPin={handlePinConversation}
-          onExport={handleExportConversation}
-        />
-      )}
-
-      {state.memoryOpen && (
-        <MemoryPanel
-          globalEntries={state.memoryGlobal}
-          projectEntries={state.memoryProject}
-          onClose={handleCloseMemory}
-          onSave={handleSaveMemory}
-          onClear={handleClearMemory}
-          onArchive={handleArchiveMemory}
-          onRestore={handleRestoreMemory}
-          onDelete={handleDeleteMemoryEntry}
+      {/* Tasks side panel — collapsible on the right */}
+      {state.tasksOpen && (
+        <TasksPanel
+          todayTasks={state.todayTasks}
+          sessionTasks={state.sessionTasks}
+          onClose={handleCloseTasks}
+          onToggleTask={handleToggleTask}
         />
       )}
     </div>
