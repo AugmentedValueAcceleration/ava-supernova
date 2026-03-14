@@ -78,6 +78,7 @@ export type ExtToWebviewMessage =
   | { type: 'ping' }
   | { type: 'interjection_ack'; content: string }
   | { type: 'today_tasks'; tasks: TodayTaskUI[] }
+  | { type: 'all_tasks'; tasks: TodayTaskUI[] }
   | { type: 'session_tasks'; tasks: SessionTaskUI[] }
   | { type: 'ava_completed_tasks'; tasks: AvaCompletedTaskUI[] };
 
@@ -149,6 +150,7 @@ export type WebviewToExtMessage =
   | { type: 'delete_memory_entry'; scope: 'global' | 'project'; id: string }
   | { type: 'pong' }
   | { type: 'request_today_tasks' }
+  | { type: 'request_all_tasks' }
   | { type: 'toggle_task'; taskId: string };
 
 // UI state types
@@ -208,6 +210,7 @@ export interface ChatState {
   memoryProject: MemoryEntryUI[];
   tasksOpen: boolean;
   todayTasks: TodayTaskUI[];
+  allTasks: TodayTaskUI[];
   sessionTasks: SessionTaskUI[];
   avaCompletedTasks: AvaCompletedTaskUI[];
   tasksPanelWidth: number;

@@ -82,6 +82,7 @@ export type ExtToWebviewMessage =
   | { type: 'ping' }
   | { type: 'interjection_ack'; content: string }
   | { type: 'today_tasks'; tasks: Array<{ id: string; title: string; priority: string; status: string; dueDate?: string; category: string }> }
+  | { type: 'all_tasks'; tasks: Array<{ id: string; title: string; priority: string; status: string; dueDate?: string; category: string }> }
   | { type: 'session_tasks'; tasks: Array<{ id: string; title: string; status: string }> }
   | { type: 'ava_completed_tasks'; tasks: Array<{ id: string; title: string; completedAt: string }> };
 
@@ -131,4 +132,5 @@ export type WebviewToExtMessage =
   | { type: 'delete_memory_entry'; scope: 'global' | 'project'; id: string }
   | { type: 'pong' }
   | { type: 'request_today_tasks' }
+  | { type: 'request_all_tasks' }
   | { type: 'toggle_task'; taskId: string };

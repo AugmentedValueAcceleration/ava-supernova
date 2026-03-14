@@ -144,7 +144,7 @@ export class TaskManageTool implements Tool {
       description: args.description as string | undefined,
       priority: (args.priority as TaskCreateOptions['priority']) ?? 'medium',
       category: (args.category as TaskCreateOptions['category']) ?? 'coding',
-      dueDate: args.due_date as string | undefined,
+      dueDate: (args.due_date as string | undefined) ?? new Date().toISOString().slice(0, 10),
       recurrence: (args.recurrence as TaskCreateOptions['recurrence']) ?? 'none',
       scope: (args.scope as 'project' | 'global') ?? 'project',
       source: 'ava',

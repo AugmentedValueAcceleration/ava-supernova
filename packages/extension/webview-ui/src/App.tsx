@@ -280,6 +280,9 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'today_tasks':
       return { ...state, todayTasks: action.tasks };
 
+    case 'all_tasks':
+      return { ...state, allTasks: action.tasks };
+
     case 'session_tasks':
       return { ...state, sessionTasks: action.tasks };
 
@@ -359,6 +362,7 @@ const initialState: ChatState = {
   memoryProject: [],
   tasksOpen: false,
   todayTasks: [],
+  allTasks: [],
   sessionTasks: [],
   avaCompletedTasks: [],
   tasksPanelWidth: DEFAULT_WIDTH,
@@ -786,6 +790,7 @@ export function App() {
       {state.tasksOpen && (
         <TasksPanel
           todayTasks={state.todayTasks}
+          allTasks={state.allTasks}
           sessionTasks={state.sessionTasks}
           avaCompletedTasks={state.avaCompletedTasks}
           onClose={handleCloseTasks}

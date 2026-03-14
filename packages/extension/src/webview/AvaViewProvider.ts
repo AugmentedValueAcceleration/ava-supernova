@@ -907,6 +907,27 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  /** Send all active tasks (todo + in-progress) for the "All" toggle. */
+  private async sendAllTasks(): Promise<void> {
+    if (!this.taskManager) return;
+    try {
+      const all = await this.taskManager.listTasks({ status: ['todo', 'in-progress'] });
+      this.postMessage({
+        type: 'all_tasks',
+        tasks: all.map(t => ({
+          id: t.id,
+          title: t.title,
+          priority: t.priority,
+          status: t.status === 'archived' ? 'done' as const : t.status,
+          dueDate: t.dueDate,
+          category: t.category,
+        })),
+      });
+    } catch {
+      this.postMessage({ type: 'all_tasks', tasks: [] });
+    }
+  }
+
   /** Send completed Ava tasks from this project's store. */
   private async sendAvaCompletedTasks(): Promise<void> {
     if (!this.taskManager) return;
@@ -1099,13 +1120,19 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
       case 'request_today_tasks':
         await this.sendTodayTasks();
+        await this.sendAllTasks();
         await this.sendAvaCompletedTasks();
+        break;
+
+      case 'request_all_tasks':
+        await this.sendAllTasks();
         break;
 
       case 'toggle_task':
         if (this.taskManager && message.taskId) {
           await this.taskManager.completeTask(message.taskId);
           await this.sendTodayTasks();
+          await this.sendAllTasks();
         }
         break;
     }
@@ -1319,9 +1346,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       if (this.taskManager) {
         this.taskManager.flushSessionTasks().catch(() => {});
         this.taskManager.clearSessionTasks();
-        // Clear session tasks and refresh today tasks + completed in chat webview
+        // Clear session tasks and refresh all task lists in chat webview
         this.postMessage({ type: 'session_tasks', tasks: [] });
         this.sendTodayTasks();
+        this.sendAllTasks();
         this.sendAvaCompletedTasks();
       }
       // Always send done to guarantee the UI resets

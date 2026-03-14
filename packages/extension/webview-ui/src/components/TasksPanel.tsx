@@ -9,6 +9,7 @@ const DEFAULT_WIDTH = 260;
 
 interface TasksPanelProps {
   todayTasks: TodayTaskUI[];
+  allTasks: TodayTaskUI[];
   sessionTasks: SessionTaskUI[];
   avaCompletedTasks: AvaCompletedTaskUI[];
   onClose: () => void;
@@ -19,6 +20,7 @@ interface TasksPanelProps {
 
 export function TasksPanel({
   todayTasks,
+  allTasks,
   sessionTasks,
   avaCompletedTasks,
   onClose,
@@ -104,8 +106,6 @@ export function TasksPanel({
     };
   }, [onWidthChange]);
 
-  const activeTasks = todayTasks.filter(t => t.status !== 'done');
-  const doneTasks = todayTasks.filter(t => t.status === 'done');
   const completedSession = sessionTasks.filter(t => t.status === 'completed').length;
 
   return (
@@ -167,9 +167,9 @@ export function TasksPanel({
           }}
         >
           Personal
-          {todayTasks.length > 0 && (
+          {allTasks.length > 0 && (
             <span className="ml-1.5 text-[9px] opacity-50">
-              {activeTasks.length}
+              {allTasks.filter(t => t.status !== 'done').length}
             </span>
           )}
         </button>
@@ -198,8 +198,8 @@ export function TasksPanel({
       <div className="flex-1 overflow-y-auto">
         {tab === 'personal' ? (
           <PersonalTab
-            activeTasks={activeTasks}
-            doneTasks={doneTasks}
+            todayTasks={todayTasks}
+            allTasks={allTasks}
             onToggleTask={onToggleTask}
           />
         ) : (
@@ -216,51 +216,81 @@ export function TasksPanel({
 
 // ── Personal Tab ──────────────────────────────────────────────────────────────
 
+type PersonalFilter = 'today' | 'all';
+
 function PersonalTab({
-  activeTasks,
-  doneTasks,
+  todayTasks,
+  allTasks,
   onToggleTask,
 }: {
-  activeTasks: TodayTaskUI[];
-  doneTasks: TodayTaskUI[];
+  todayTasks: TodayTaskUI[];
+  allTasks: TodayTaskUI[];
   onToggleTask: (id: string) => void;
 }) {
-  if (activeTasks.length === 0 && doneTasks.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full opacity-30 text-xs gap-2 px-4 text-center">
-        <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor" className="opacity-40">
-          <path d="M3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 3.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 7.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 11.5h8v1H6v-1z"/>
-        </svg>
-        <span>No tasks for today</span>
-        <span className="text-[10px] opacity-60">Add tasks in the dashboard</span>
-      </div>
-    );
-  }
+  const [filter, setFilter] = useState<PersonalFilter>('today');
+
+  const tasks = filter === 'today' ? todayTasks : allTasks;
+  const activeTasks = tasks.filter(t => t.status !== 'done');
+  const doneTasks = tasks.filter(t => t.status === 'done');
 
   return (
-    <div className="px-2 pt-2 pb-3">
-      {activeTasks.length > 0 && (
-        <div className="flex flex-col gap-0.5">
-          {activeTasks.map(task => (
-            <TaskItem key={task.id} task={task} onToggle={() => onToggleTask(task.id)} />
-          ))}
-        </div>
-      )}
+    <div className="flex flex-col h-full">
+      {/* Toggle */}
+      <div className="flex items-center gap-1 px-3 pt-2 pb-1">
+        {(['today', 'all'] as const).map(f => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`px-2.5 py-1 rounded-md text-[10px] font-medium border-none cursor-pointer transition-all
+              ${filter === f
+                ? 'text-white'
+                : 'text-[var(--vscode-foreground)] opacity-40 hover:opacity-60 bg-transparent'
+              }`}
+            style={filter === f ? { background: '#A855F7' } : undefined}
+          >
+            {f === 'today' ? 'Today' : 'All'}
+            <span className="ml-1 opacity-60">
+              {f === 'today' ? todayTasks.filter(t => t.status !== 'done').length : allTasks.filter(t => t.status !== 'done').length}
+            </span>
+          </button>
+        ))}
+      </div>
 
-      {doneTasks.length > 0 && (
-        <>
+      {/* Tasks */}
+      {activeTasks.length === 0 && doneTasks.length === 0 ? (
+        <div className="flex flex-col items-center justify-center flex-1 opacity-30 text-xs gap-2 px-4 text-center">
+          <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor" className="opacity-40">
+            <path d="M3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 3.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 7.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 11.5h8v1H6v-1z"/>
+          </svg>
+          <span>{filter === 'today' ? 'No tasks for today' : 'No active tasks'}</span>
+          <span className="text-[10px] opacity-60">Add tasks in the dashboard or ask Ava</span>
+        </div>
+      ) : (
+        <div className="px-2 pt-1 pb-3 flex-1 overflow-y-auto">
           {activeTasks.length > 0 && (
-            <div className="mx-1 my-2" style={{ borderTop: '1px solid rgba(168, 85, 247, 0.06)' }} />
+            <div className="flex flex-col gap-0.5">
+              {activeTasks.map(task => (
+                <TaskItem key={task.id} task={task} onToggle={() => onToggleTask(task.id)} />
+              ))}
+            </div>
           )}
-          <div className="text-[9px] uppercase tracking-wider opacity-25 px-2 mb-1">
-            Completed
-          </div>
-          <div className="flex flex-col gap-0.5">
-            {doneTasks.map(task => (
-              <TaskItem key={task.id} task={task} onToggle={() => onToggleTask(task.id)} done />
-            ))}
-          </div>
-        </>
+
+          {doneTasks.length > 0 && (
+            <>
+              {activeTasks.length > 0 && (
+                <div className="mx-1 my-2" style={{ borderTop: '1px solid rgba(168, 85, 247, 0.06)' }} />
+              )}
+              <div className="text-[9px] uppercase tracking-wider opacity-25 px-2 mb-1">
+                Completed
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {doneTasks.map(task => (
+                  <TaskItem key={task.id} task={task} onToggle={() => onToggleTask(task.id)} done />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       )}
     </div>
   );
