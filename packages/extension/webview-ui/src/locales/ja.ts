@@ -43,7 +43,7 @@ export const jaStrings: Record<string, string> = {
   'input.placeholder.chat': '質問をするか、議論を始めましょう...',
   'input.placeholder.disabled': 'まずプロバイダーを設定してください...',
   'input.placeholder.security': 'スキャン対象を記述するか、Enter を押してフルオーディットを実行...',
-  'input.mode.code': 'コード',
+  'input.mode.code': 'ワーク',
   'input.mode.plan': '計画',
   'input.mode.chat': 'チャット',
   'input.mode.security': 'セキュリティ',

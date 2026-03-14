@@ -43,7 +43,7 @@ export const zhCNStrings: Record<string, string> = {
   'input.placeholder.chat': '提一个问题或开始讨论...',
   'input.placeholder.disabled': '请先配置服务商...',
   'input.placeholder.security': '描述要扫描的内容，或直接按 Enter 进行全面审计...',
-  'input.mode.code': '编码',
+  'input.mode.code': '工作',
   'input.mode.plan': '规划',
   'input.mode.chat': '聊天',
   'input.mode.security': '安全',

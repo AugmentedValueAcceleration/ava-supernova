@@ -35,7 +35,7 @@ const CAPABILITIES = [
 ];
 
 const MODE_INFO = [
-  { icon: '>>', label: 'Code', desc: 'welcome.mode.code_desc' },
+  { icon: '>>', label: 'Work', desc: 'welcome.mode.code_desc' },
   { icon: '::', label: 'Plan', desc: 'welcome.mode.plan_desc' },
   { icon: '..', label: 'Chat', desc: 'welcome.mode.chat_desc' },
   { icon: '!!', label: 'Security', desc: 'welcome.mode.security_desc' },

@@ -43,7 +43,7 @@ export const arStrings: Record<string, string> = {
   'input.placeholder.chat': 'اطرح سؤالاً أو ابدأ نقاشاً...',
   'input.placeholder.disabled': 'قم بإعداد مزوّد للبدء...',
   'input.placeholder.security': 'صِف ما تريد فحصه، أو اضغط Enter لتدقيق كامل...',
-  'input.mode.code': 'كود',
+  'input.mode.code': 'عمل',
   'input.mode.plan': 'خطة',
   'input.mode.chat': 'محادثة',
   'input.mode.security': 'أمان',

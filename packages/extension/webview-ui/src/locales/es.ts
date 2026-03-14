@@ -43,7 +43,7 @@ export const esStrings: Record<string, string> = {
   'input.placeholder.chat': 'Haz una pregunta o inicia una conversaci\u00f3n...',
   'input.placeholder.disabled': 'Configura un proveedor para comenzar...',
   'input.placeholder.security': 'Describe qu\u00e9 escanear, o simplemente presiona Enter para una auditor\u00eda completa...',
-  'input.mode.code': 'C\u00f3digo',
+  'input.mode.code': 'Trabajo',
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Chat',
   'input.mode.security': 'Seguridad',

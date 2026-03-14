@@ -43,7 +43,7 @@ export const hiStrings: Record<string, string> = {
   'input.placeholder.chat': 'कोई सवाल पूछें या चर्चा शुरू करें...',
   'input.placeholder.disabled': 'शुरू करने के लिए एक प्रोवाइडर कॉन्फ़िगर करें...',
   'input.placeholder.security': 'बताएँ कि क्या स्कैन करना है, या पूर्ण ऑडिट के लिए Enter दबाएँ...',
-  'input.mode.code': 'कोड',
+  'input.mode.code': 'कार्य',
   'input.mode.plan': 'प्लान',
   'input.mode.chat': 'चैट',
   'input.mode.security': 'सुरक्षा',

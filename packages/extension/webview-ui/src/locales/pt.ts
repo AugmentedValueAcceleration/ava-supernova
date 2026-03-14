@@ -43,7 +43,7 @@ export const ptStrings: Record<string, string> = {
   'input.placeholder.chat': 'Fa\u00e7a uma pergunta ou inicie uma conversa...',
   'input.placeholder.disabled': 'Configure um provedor para come\u00e7ar...',
   'input.placeholder.security': 'Descreva o que deseja escanear, ou pressione Enter para uma auditoria completa...',
-  'input.mode.code': 'C\u00f3digo',
+  'input.mode.code': 'Trabalho',
   'input.mode.plan': 'Plano',
   'input.mode.chat': 'Chat',
   'input.mode.security': 'Seguran\u00e7a',

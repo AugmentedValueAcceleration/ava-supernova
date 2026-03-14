@@ -43,7 +43,7 @@ export const thStrings: Record<string, string> = {
   'input.placeholder.chat': 'ถามคำถามหรือเริ่มพูดคุย...',
   'input.placeholder.disabled': 'ตั้งค่าผู้ให้บริการเพื่อเริ่มต้น...',
   'input.placeholder.security': 'อธิบายสิ่งที่ต้องการสแกน หรือกด Enter เพื่อตรวจสอบทั้งหมด...',
-  'input.mode.code': 'โค้ด',
+  'input.mode.code': 'งาน',
   'input.mode.plan': 'แผน',
   'input.mode.chat': 'แชท',
   'input.mode.security': 'ความปลอดภัย',

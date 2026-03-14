@@ -43,7 +43,7 @@ export const zhTWStrings: Record<string, string> = {
   'input.placeholder.chat': '提一個問題或開始討論...',
   'input.placeholder.disabled': '請先設定服務供應商...',
   'input.placeholder.security': '描述要掃描的內容，或直接按 Enter 進行完整稽核...',
-  'input.mode.code': '程式碼',
+  'input.mode.code': '工作',
   'input.mode.plan': '規劃',
   'input.mode.chat': '聊天',
   'input.mode.security': '安全',

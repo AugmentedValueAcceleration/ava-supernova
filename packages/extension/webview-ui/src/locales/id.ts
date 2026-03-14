@@ -43,7 +43,7 @@ export const idStrings: Record<string, string> = {
   'input.placeholder.chat': 'Ajukan pertanyaan atau mulai diskusi...',
   'input.placeholder.disabled': 'Konfigurasikan provider untuk memulai...',
   'input.placeholder.security': 'Jelaskan apa yang ingin dipindai, atau tekan Enter untuk audit penuh...',
-  'input.mode.code': 'Kode',
+  'input.mode.code': 'Kerja',
   'input.mode.plan': 'Rencana',
   'input.mode.chat': 'Obrolan',
   'input.mode.security': 'Keamanan',

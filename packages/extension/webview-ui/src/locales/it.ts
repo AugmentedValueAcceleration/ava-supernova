@@ -43,7 +43,7 @@ export const itStrings: Record<string, string> = {
   'input.placeholder.chat': 'Fai una domanda o avvia una discussione...',
   'input.placeholder.disabled': 'Configura un provider per iniziare...',
   'input.placeholder.security': 'Descrivi cosa analizzare, oppure premi Invio per un audit completo...',
-  'input.mode.code': 'Codice',
+  'input.mode.code': 'Lavoro',
   'input.mode.plan': 'Piano',
   'input.mode.chat': 'Chat',
   'input.mode.security': 'Sicurezza',

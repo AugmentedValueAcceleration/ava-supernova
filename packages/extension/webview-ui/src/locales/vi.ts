@@ -43,7 +43,7 @@ export const viStrings: Record<string, string> = {
   'input.placeholder.chat': 'Đặt câu hỏi hoặc bắt đầu thảo luận...',
   'input.placeholder.disabled': 'Hãy cấu hình nhà cung cấp trước...',
   'input.placeholder.security': 'Mô tả nội dung cần quét, hoặc nhấn Enter để kiểm tra toàn bộ...',
-  'input.mode.code': 'Code',
+  'input.mode.code': 'Công việc',
   'input.mode.plan': 'Kế hoạch',
   'input.mode.chat': 'Trò chuyện',
   'input.mode.security': 'Bảo mật',

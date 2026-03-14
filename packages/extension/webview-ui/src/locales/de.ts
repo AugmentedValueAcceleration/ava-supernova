@@ -43,7 +43,7 @@ export const deStrings: Record<string, string> = {
   'input.placeholder.chat': 'Stelle eine Frage oder starte eine Diskussion...',
   'input.placeholder.disabled': 'Konfiguriere einen Anbieter, um zu beginnen...',
   'input.placeholder.security': 'Beschreibe, was gescannt werden soll, oder dr\u00fccke Enter f\u00fcr ein vollst\u00e4ndiges Audit...',
-  'input.mode.code': 'Code',
+  'input.mode.code': 'Arbeit',
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Chat',
   'input.mode.security': 'Sicherheit',

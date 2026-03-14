@@ -43,7 +43,7 @@ export const nlStrings: Record<string, string> = {
   'input.placeholder.chat': 'Stel een vraag of begin een gesprek...',
   'input.placeholder.disabled': 'Configureer een provider om te beginnen...',
   'input.placeholder.security': 'Beschrijf wat gescand moet worden, of druk op Enter voor een volledige audit...',
-  'input.mode.code': 'Code',
+  'input.mode.code': 'Werk',
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Chat',
   'input.mode.security': 'Beveiliging',

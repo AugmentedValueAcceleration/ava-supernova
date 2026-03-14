@@ -17,7 +17,7 @@ Open-source AI coding agent powered by the best open-source and frontier models.
 
 - **Agentic coding** — Ava reads, writes, edits, searches, and executes code autonomously with tool-calling
 - **Mid-task interjection** — Type while Ava is working to add context, corrections, or redirect without waiting — true collaborative flow
-- **Four modes** — Code (`>>` full agent), Plan (`::` read-only), Chat (`..` no tools), Security (`!!` OWASP audit)
+- **Four modes** — Work (`>>` full agent), Plan (`::` read-only), Chat (`..` no tools), Security (`!!` OWASP audit)
 - **Model selector** — Switch models from the header dropdown with provider labels, benchmarks, and availability indicators
 - **Smart memory v2** — Structured, categorized memories with TF-IDF retrieval, composite relevance scoring, branch scoping, and auto-archival of stale entries. Credentials are blocked at runtime.
 - **Vision** — Attach images in chat for models that support it (Claude, GLM-5, Kimi K2.5, Qwen 3.5 Plus, Mistral Large)

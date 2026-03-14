@@ -43,7 +43,7 @@ export const enStrings: Record<string, string> = {
   'input.placeholder.chat': 'Ask a question or start a discussion...',
   'input.placeholder.disabled': 'Configure a provider to start...',
   'input.placeholder.security': 'Describe what to scan, or just hit Enter for a full audit...',
-  'input.mode.code': 'Code',
+  'input.mode.code': 'Work',
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Chat',
   'input.mode.security': 'Security',

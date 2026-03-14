@@ -43,7 +43,7 @@ export const frStrings: Record<string, string> = {
   'input.placeholder.chat': 'Posez une question ou lancez une discussion...',
   'input.placeholder.disabled': 'Configurez un fournisseur pour commencer...',
   'input.placeholder.security': 'D\u00e9crivez ce qu\u2019il faut analyser, ou appuyez sur Entr\u00e9e pour un audit complet...',
-  'input.mode.code': 'Code',
+  'input.mode.code': 'Travail',
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Chat',
   'input.mode.security': 'S\u00e9curit\u00e9',

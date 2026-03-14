@@ -43,7 +43,7 @@ export const ruStrings: Record<string, string> = {
   'input.placeholder.chat': 'Задайте вопрос или начните обсуждение...',
   'input.placeholder.disabled': 'Настройте провайдера для начала работы...',
   'input.placeholder.security': 'Опишите, что нужно проверить, или нажмите Enter для полного аудита...',
-  'input.mode.code': 'Код',
+  'input.mode.code': 'Работа',
   'input.mode.plan': 'План',
   'input.mode.chat': 'Чат',
   'input.mode.security': 'Безопасность',

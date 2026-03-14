@@ -43,7 +43,7 @@ export const trStrings: Record<string, string> = {
   'input.placeholder.chat': 'Bir soru sorun veya sohbet başlatın...',
   'input.placeholder.disabled': 'Başlamak için bir sağlayıcı yapılandırın...',
   'input.placeholder.security': 'Neyin taranacağını açıklayın veya tam denetim için Enter tuşuna basın...',
-  'input.mode.code': 'Kod',
+  'input.mode.code': 'Çalışma',
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Sohbet',
   'input.mode.security': 'Güvenlik',
