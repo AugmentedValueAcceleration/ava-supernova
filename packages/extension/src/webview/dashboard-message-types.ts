@@ -41,6 +41,7 @@ export interface DashboardSettings {
   maxTokens: number;
   activeModel: string;
   autoMemory: boolean;
+  memoryLocalOnly: boolean;
   streamResponses: boolean;
 }
 

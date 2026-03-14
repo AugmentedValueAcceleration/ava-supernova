@@ -104,7 +104,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         : undefined;
       sync = new PlatformMemorySync('https://ava-supernova.com/api', platformKey, projectId);
     }
-    this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync });
+    const memoryLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? false;
+    this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly });
 
     this.projectInstructions = this.projectRoot
       ? (await loadProjectInstructions(this.projectRoot)) ?? undefined

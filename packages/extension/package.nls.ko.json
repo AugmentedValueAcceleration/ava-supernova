@@ -59,5 +59,6 @@
   "setting.section.preferences": "환경 설정",
   "setting.section.help": "도움말 및 문서",
   "setting.help.docs": "**[문서 열기](command:ava-supernova.openDocs)** — 모델, 도구, 명령어 및 설정에 대한 전체 참조 가이드.",
-  "setting.help.gettingStarted": "**[시작하기 열기](command:ava-supernova.gettingStarted)** — 신규 사용자를 위한 단계별 설정 안내."
+  "setting.help.gettingStarted": "**[시작하기 열기](command:ava-supernova.gettingStarted)** — 신규 사용자를 위한 단계별 설정 안내.",
+  "setting.memoryLocalOnly.description": "Keep all memories stored locally only. When enabled, memories will not sync to the Ava platform even with a connected account."
 }

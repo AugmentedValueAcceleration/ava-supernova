@@ -931,6 +931,7 @@ export class DashboardPanel {
       maxTokens: cfg.get<number>('preferences.maxTokens') ?? 8192,
       activeModel: cfg.get<string>('activeModel') ?? '',
       autoMemory: cfg.get<boolean>('preferences.autoMemory') ?? true,
+      memoryLocalOnly: cfg.get<boolean>('preferences.memoryLocalOnly') ?? false,
       streamResponses: cfg.get<boolean>('preferences.streamResponses') ?? true,
     };
   }
@@ -943,6 +944,7 @@ export class DashboardPanel {
     cfg.update('preferences.maxTokens', settings.maxTokens, vscode.ConfigurationTarget.Global);
     cfg.update('activeModel', settings.activeModel, vscode.ConfigurationTarget.Global);
     cfg.update('preferences.autoMemory', settings.autoMemory, vscode.ConfigurationTarget.Global);
+    cfg.update('preferences.memoryLocalOnly', settings.memoryLocalOnly, vscode.ConfigurationTarget.Global);
     cfg.update('preferences.streamResponses', settings.streamResponses, vscode.ConfigurationTarget.Global);
   }
 

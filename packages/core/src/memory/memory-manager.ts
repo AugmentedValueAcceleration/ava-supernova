@@ -56,10 +56,14 @@ export class MemoryManager {
   private globalIndex: TfIdfIndex = new TfIdfIndex();
   private projectIndex: TfIdfIndex = new TfIdfIndex();
 
-  constructor(opts: { globalDir: string; projectRoot?: string; sync?: PlatformMemorySync }) {
+  /** When true, skip all platform sync — memories stay on disk only. */
+  private localOnly = false;
+
+  constructor(opts: { globalDir: string; projectRoot?: string; sync?: PlatformMemorySync; localOnly?: boolean }) {
     this.globalDir = opts.globalDir;
     this.projectDir = opts.projectRoot ? join(opts.projectRoot, '.ava') : null;
     this.sync = opts.sync;
+    this.localOnly = opts.localOnly ?? false;
 
     // Auto-register this project in the global registry (fire-and-forget)
     if (opts.projectRoot) {
@@ -1021,9 +1025,14 @@ export class MemoryManager {
     }
   }
 
+  /** Set the localOnly flag at runtime (e.g. when user toggles the setting). */
+  setLocalOnly(value: boolean): void {
+    this.localOnly = value;
+  }
+
   /** Fire-and-forget sync entries to platform. Never throws. */
   private syncEntries(scope: 'global' | 'project', entries: MemoryEntry[]): void {
-    if (!this.sync) return;
+    if (!this.sync || this.localOnly) return;
     this.sync.pushEntries(
       scope,
       entries.map((e) => ({

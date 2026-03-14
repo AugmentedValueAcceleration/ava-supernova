@@ -59,5 +59,6 @@
   "setting.section.preferences": "偏好设置",
   "setting.section.help": "帮助与文档",
   "setting.help.docs": "**[打开文档](command:ava-supernova.openDocs)** — 模型、工具、命令和配置的完整参考指南。",
-  "setting.help.gettingStarted": "**[打开快速入门](command:ava-supernova.gettingStarted)** — 面向新用户的逐步设置指南。"
+  "setting.help.gettingStarted": "**[打开快速入门](command:ava-supernova.gettingStarted)** — 面向新用户的逐步设置指南。",
+  "setting.memoryLocalOnly.description": "Keep all memories stored locally only. When enabled, memories will not sync to the Ava platform even with a connected account."
 }

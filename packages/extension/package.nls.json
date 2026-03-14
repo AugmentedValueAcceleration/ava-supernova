@@ -54,6 +54,7 @@
   "command.openDashboard.title": "Open Dashboard — Manage API keys and provider settings",
   "setting.maxTokens.description": "Maximum tokens per model response. Higher values allow longer responses but use more API credits.",
   "setting.autoMemory.description": "Automatically save important context (project patterns, user preferences, decisions) to structured memory with TF-IDF retrieval, branch scoping, and auto-archival. Credentials are never saved — blocked at runtime.",
+  "setting.memoryLocalOnly.description": "Keep all memories stored locally only. When enabled, memories will not sync to the Ava platform even with a connected account. Your data stays on your machine.",
   "setting.streamResponses.description": "Stream model responses token-by-token as they arrive. Disable for batch mode (waits for full response).",
   "setting.section.modelApi": "Model & API — 14 models, 7 providers, 2 free",
   "setting.section.preferences": "Preferences — Language, permissions, memory, streaming",

@@ -297,6 +297,25 @@ export function Settings({ settings, onSettingsChange, providerKeys, showProvide
                   />
                 </div>
 
+                <div className="my-5 border-t border-[var(--border-card)]" />
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">Local Only Memory</p>
+                    <p className="mt-0.5 text-xs text-[var(--text-muted)]">Keep memories on your machine only — no platform sync.</p>
+                  </div>
+                  <ToggleSwitch
+                    value={local.memoryLocalOnly}
+                    onChange={v => update('memoryLocalOnly', v)}
+                    label={local.memoryLocalOnly ? 'On' : 'Off'}
+                  />
+                </div>
+                {local.memoryLocalOnly && (
+                  <p className="mt-2 text-xs text-amber-400">
+                    Memories won't sync across devices. Connect an account and disable this to enable sync.
+                  </p>
+                )}
+
               </div>
             </SectionGroup>
           </div>

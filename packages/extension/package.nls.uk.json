@@ -59,5 +59,6 @@
   "setting.section.preferences": "Налаштування",
   "setting.section.help": "Довідка та документація",
   "setting.help.docs": "**[Відкрити документацію](command:ava-supernova.openDocs)** — Повний довідковий посібник з моделей, інструментів, команд та конфігурації.",
-  "setting.help.gettingStarted": "**[Відкрити початок роботи](command:ava-supernova.gettingStarted)** — Покрокове керівництво з налаштування для нових користувачів."
+  "setting.help.gettingStarted": "**[Відкрити початок роботи](command:ava-supernova.gettingStarted)** — Покрокове керівництво з налаштування для нових користувачів.",
+  "setting.memoryLocalOnly.description": "Keep all memories stored locally only. When enabled, memories will not sync to the Ava platform even with a connected account."
 }

@@ -59,5 +59,6 @@
   "setting.section.preferences": "Tùy chọn",
   "setting.section.help": "Trợ giúp & Tài liệu",
   "setting.help.docs": "**[Mở tài liệu](command:ava-supernova.openDocs)** — Hướng dẫn tham khảo đầy đủ về mô hình, công cụ, lệnh và cấu hình.",
-  "setting.help.gettingStarted": "**[Mở hướng dẫn bắt đầu](command:ava-supernova.gettingStarted)** — Hướng dẫn thiết lập từng bước cho người dùng mới."
+  "setting.help.gettingStarted": "**[Mở hướng dẫn bắt đầu](command:ava-supernova.gettingStarted)** — Hướng dẫn thiết lập từng bước cho người dùng mới.",
+  "setting.memoryLocalOnly.description": "Keep all memories stored locally only. When enabled, memories will not sync to the Ava platform even with a connected account."
 }

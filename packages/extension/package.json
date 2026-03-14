@@ -2,7 +2,7 @@
   "name": "ava-supernova",
   "displayName": "Ava | Supernova",
   "description": "%description%",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "publisher": "augmentedvalueacceleration",
   "license": "Apache-2.0",
   "repository": {
@@ -266,10 +266,16 @@
             "order": 5,
             "description": "%setting.autoMemory.description%"
           },
+          "ava-supernova.preferences.memoryLocalOnly": {
+            "type": "boolean",
+            "default": false,
+            "order": 6,
+            "description": "%setting.memoryLocalOnly.description%"
+          },
           "ava-supernova.preferences.streamResponses": {
             "type": "boolean",
             "default": true,
-            "order": 6,
+            "order": 7,
             "description": "%setting.streamResponses.description%"
           }
         }
