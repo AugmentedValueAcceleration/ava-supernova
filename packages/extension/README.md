@@ -8,7 +8,7 @@ Open-source AI coding agent powered by the best open-source and frontier models.
 
 - **2 free models** — GLM-4.7 Flash and GLM-4.5 Flash work instantly with zero setup
 - **14 models, 7 providers** — DeepSeek, Kimi, Zhipu AI, Qwen, Mistral, Anthropic, plus any local/custom endpoint
-- **29 built-in tools** — File ops, search, git, shell, web, browser, database, screenshots, planning, memory
+- **30 built-in tools** — File ops, search, git, shell, web, browser, database, screenshots, planning, memory
 - **Smart memory** — TF-IDF retrieval, temporal awareness, branch scoping, auto-archival — Ava gets smarter every session
 - **Privacy first** — API keys encrypted in OS keychain, credentials blocked from memory, prompt injection resistance
 - **20 languages** — Full UI and response localization
@@ -85,7 +85,7 @@ Key features:
 - **Platform sync** — Connected users get tasks synced to the cloud automatically
 - **Ava context** — Active tasks injected into Ava's system prompt so she knows what you're working on
 
-## Tools (29)
+## Tools (30)
 
 | Category | Tools | Description |
 |---|---|---|
@@ -97,10 +97,11 @@ Key features:
 | **Media** | `screenshot` | Capture screen for visual analysis |
 | **Data** | `database_query` | Read-only SQL against PostgreSQL, SQLite, MySQL |
 | **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete` | Smart persistent memory with TF-IDF retrieval |
-| **Planning** | `present_plan`, `todo_write` | Structured plans with approval, task tracking |
+| **Tasks** | `task_manage` | List, create, complete, update, delete user tasks — life management |
+| **Planning** | `present_plan`, `todo_write` | Structured plans with approval, session progress tracking |
 | **Interaction** | `ask_user`, `support_request` | Ask for clarification, submit support tickets |
 | **Docs** | `docs_lookup` | Search built-in documentation |
-| **Meta** | `propose_tool`, `get_datetime` | Agent self-improvement proposals, time awareness |
+| **Meta** | `propose_tool`, `get_datetime`, `detect_language` | Self-improvement, time awareness, i18n detection |
 
 ## Privacy & Security
 

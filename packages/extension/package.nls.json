@@ -1,6 +1,6 @@
 {
   "displayName": "Ava | Supernova",
-  "description": "Open-source AI coding agent — 14 models, 7 providers, 29 tools, 2 free models. Smart memory with TF-IDF retrieval. DeepSeek, Kimi, Qwen, Mistral, Anthropic, Zhipu & more.",
+  "description": "Open-source AI coding agent — 14 models, 7 providers, 30 tools, 2 free models. Smart memory with TF-IDF retrieval. DeepSeek, Kimi, Qwen, Mistral, Anthropic, Zhipu & more.",
   "viewContainer.title": "Ava | Supernova",
   "view.chat.name": "Chat",
   "command.openChat.title": "Open Chat — Start an AI coding session with 28 agentic tools",
@@ -14,7 +14,7 @@
   "setting.qwen.apiKey.description": "Qwen (Alibaba Cloud) API key — Qwen 3.5 Plus with vision and thinking",
   "setting.temperature.description": "Sampling temperature (0 = deterministic, 1 = creative). Default 0.7 balances precision and creativity.",
   "setting.language.description": "Language for Ava's UI and responses. Supports 20 languages including Chinese, Japanese, Korean, Spanish, French, German, Arabic, Hindi, and more.",
-  "setting.permissionMode.description": "Controls which of Ava's 29 tools require your approval. Strict = safest (approve writes + shell). Balanced = auto-approve file edits. Autonomous = full agent freedom.",
+  "setting.permissionMode.description": "Controls which of Ava's 30 tools require your approval. Strict = safest (approve writes + shell). Balanced = auto-approve file edits. Autonomous = full agent freedom.",
   "lang.auto": "Auto-detect",
   "lang.auto.desc": "Auto-detect from VS Code language",
   "lang.en": "English",
@@ -59,6 +59,6 @@
   "setting.section.modelApi": "Model & API — 14 models, 7 providers, 2 free",
   "setting.section.preferences": "Preferences — Language, permissions, memory, streaming",
   "setting.section.help": "Help & Documentation",
-  "setting.help.docs": "**[Open Documentation](command:ava-supernova.openDocs)** — Full reference for 29 tools, 14 models, 20 languages, permission modes, memory system, and more.",
+  "setting.help.docs": "**[Open Documentation](command:ava-supernova.openDocs)** — Full reference for 30 tools, 14 models, 20 languages, permission modes, memory system, and more.",
   "setting.help.gettingStarted": "**[Open Getting Started](command:ava-supernova.gettingStarted)** — Step-by-step setup walkthrough. Or just start chatting — free models work instantly."
 }
