@@ -6,7 +6,7 @@ import { InputArea } from './components/InputArea';
 import { Header } from './components/Header';
 import { HistoryPanel } from './components/HistoryPanel';
 import { MemoryPanel } from './components/MemoryPanel';
-import { TasksPanel } from './components/TasksPanel';
+import { TasksPanel, DEFAULT_WIDTH } from './components/TasksPanel';
 import { ContextBar } from './components/ContextBar';
 import type { AvaMode, ImageAttachment } from './components/InputArea';
 import { t, setLocale, loadStrings } from './i18n';
@@ -16,7 +16,8 @@ type ChatAction =
   | { type: 'close_history' }
   | { type: 'close_memory' }
   | { type: 'toggle_tasks' }
-  | { type: 'close_tasks' };
+  | { type: 'close_tasks' }
+  | { type: 'set_tasks_width'; width: number };
 
 let messageIdCounter = 0;
 function nextId(): string {
@@ -282,11 +283,17 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'session_tasks':
       return { ...state, sessionTasks: action.tasks };
 
+    case 'ava_completed_tasks':
+      return { ...state, avaCompletedTasks: action.tasks };
+
     case 'toggle_tasks':
       return { ...state, tasksOpen: !state.tasksOpen };
 
     case 'close_tasks':
       return { ...state, tasksOpen: false };
+
+    case 'set_tasks_width':
+      return { ...state, tasksPanelWidth: action.width };
 
     // ── System messages ──────────────────────────────────────────────────
 
@@ -353,14 +360,35 @@ const initialState: ChatState = {
   tasksOpen: false,
   todayTasks: [],
   sessionTasks: [],
+  avaCompletedTasks: [],
+  tasksPanelWidth: DEFAULT_WIDTH,
 };
 
 // ── Typing speed config ─────────────────────────────────────────────────────
 const DELTA_FLUSH_INTERVAL_MS = 30; // ~33fps — smooth typing feel
 
 export function App() {
-  const [state, dispatch] = useReducer(chatReducer, initialState);
-  const { postMessage } = useVSCodeApi();
+  const { postMessage, getState, setState } = useVSCodeApi();
+
+  // Restore persisted panel state from vscode
+  const [state, dispatch] = useReducer(chatReducer, initialState, (init) => {
+    const saved = getState() as { tasksOpen?: boolean; tasksPanelWidth?: number } | null;
+    if (saved) {
+      return {
+        ...init,
+        tasksOpen: saved.tasksOpen ?? init.tasksOpen,
+        tasksPanelWidth: saved.tasksPanelWidth ?? init.tasksPanelWidth,
+      };
+    }
+    return init;
+  });
+
+  // Persist tasks panel state to vscode when it changes
+  useEffect(() => {
+    const prev = getState() as Record<string, unknown> | null;
+    setState({ ...prev, tasksOpen: state.tasksOpen, tasksPanelWidth: state.tasksPanelWidth });
+  }, [state.tasksOpen, state.tasksPanelWidth, getState, setState]);
+
   const chatEndRef = useRef<HTMLDivElement>(null);
   const justLoadedRef = useRef(false);
 
@@ -437,6 +465,12 @@ export function App() {
 
     // Signal webview is ready
     postMessage({ type: 'webview_ready' });
+
+    // If tasks panel was persisted as open, request today tasks
+    const saved = getState() as { tasksOpen?: boolean } | null;
+    if (saved?.tasksOpen) {
+      postMessage({ type: 'request_today_tasks' });
+    }
 
     return () => {
       window.removeEventListener('message', handler);
@@ -609,6 +643,13 @@ export function App() {
     [postMessage],
   );
 
+  const handleTasksWidthChange = useCallback(
+    (width: number) => {
+      dispatch({ type: 'set_tasks_width', width });
+    },
+    [],
+  );
+
   const handleSaveMemory = useCallback(
     (scope: 'global' | 'project', content: string) => {
       postMessage({ type: 'save_memory', scope, content });
@@ -746,8 +787,11 @@ export function App() {
         <TasksPanel
           todayTasks={state.todayTasks}
           sessionTasks={state.sessionTasks}
+          avaCompletedTasks={state.avaCompletedTasks}
           onClose={handleCloseTasks}
           onToggleTask={handleToggleTask}
+          width={state.tasksPanelWidth}
+          onWidthChange={handleTasksWidthChange}
         />
       )}
     </div>

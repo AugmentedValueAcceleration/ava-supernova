@@ -78,7 +78,8 @@ export type ExtToWebviewMessage =
   | { type: 'ping' }
   | { type: 'interjection_ack'; content: string }
   | { type: 'today_tasks'; tasks: TodayTaskUI[] }
-  | { type: 'session_tasks'; tasks: SessionTaskUI[] };
+  | { type: 'session_tasks'; tasks: SessionTaskUI[] }
+  | { type: 'ava_completed_tasks'; tasks: AvaCompletedTaskUI[] };
 
 /** Task entry for today panel display. */
 export interface TodayTaskUI {
@@ -95,6 +96,13 @@ export interface SessionTaskUI {
   id: string;
   title: string;
   status: 'pending' | 'in_progress' | 'completed';
+}
+
+/** Completed task from Ava's past sessions in this project. */
+export interface AvaCompletedTaskUI {
+  id: string;
+  title: string;
+  completedAt: string;
 }
 
 /** Structured memory entry for webview display. */
@@ -201,4 +209,6 @@ export interface ChatState {
   tasksOpen: boolean;
   todayTasks: TodayTaskUI[];
   sessionTasks: SessionTaskUI[];
+  avaCompletedTasks: AvaCompletedTaskUI[];
+  tasksPanelWidth: number;
 }

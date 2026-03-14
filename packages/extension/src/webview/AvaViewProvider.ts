@@ -695,13 +695,30 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           seen.add(t.id);
           merged.push({ title: t.title, priority: t.priority, status: t.status, dueDate: t.dueDate, category: t.category });
         }
+        const lines: string[] = [];
         if (merged.length > 0) {
-          activeTasks = merged.map(t => {
+          for (const t of merged) {
             const parts = [`- [${t.status === 'in-progress' ? 'IN PROGRESS' : 'TODO'}] ${t.title}`];
             if (t.priority === 'urgent' || t.priority === 'high') parts.push(`(${t.priority})`);
             if (t.dueDate) parts.push(`— due ${t.dueDate}`);
-            return parts.join(' ');
-          }).join('\n');
+            lines.push(parts.join(' '));
+          }
+        }
+        // Add recently completed Ava tasks so you know what you've already done
+        const completed = await this.taskManager.listTasks({ status: ['done'], source: 'ava', includeArchived: false });
+        const recent = completed
+          .filter(t => t.completedAt)
+          .sort((a, b) => new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime())
+          .slice(0, 10);
+        if (recent.length > 0) {
+          lines.push('');
+          lines.push('Recently completed by you (Ava):');
+          for (const t of recent) {
+            lines.push(`- [DONE] ${t.title}`);
+          }
+        }
+        if (lines.length > 0) {
+          activeTasks = lines.join('\n');
         }
       } catch { /* ignore — tasks are optional context */ }
     }
@@ -890,6 +907,29 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  /** Send completed Ava tasks from this project's store. */
+  private async sendAvaCompletedTasks(): Promise<void> {
+    if (!this.taskManager) return;
+    try {
+      const all = await this.taskManager.listTasks({ status: ['done'], source: 'ava', includeArchived: false });
+      // Sort newest first, cap at 50
+      const sorted = all
+        .filter(t => t.completedAt)
+        .sort((a, b) => new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime())
+        .slice(0, 50);
+      this.postMessage({
+        type: 'ava_completed_tasks',
+        tasks: sorted.map(t => ({
+          id: t.id,
+          title: t.title,
+          completedAt: t.completedAt!,
+        })),
+      });
+    } catch {
+      this.postMessage({ type: 'ava_completed_tasks', tasks: [] });
+    }
+  }
+
   private async saveMemory(scope: 'global' | 'project', content: string): Promise<void> {
     if (!this.memoryManager) return;
     if (scope === 'global') {
@@ -1059,6 +1099,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
       case 'request_today_tasks':
         await this.sendTodayTasks();
+        await this.sendAvaCompletedTasks();
         break;
 
       case 'toggle_task':
@@ -1278,9 +1319,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       if (this.taskManager) {
         this.taskManager.flushSessionTasks().catch(() => {});
         this.taskManager.clearSessionTasks();
-        // Clear session tasks and refresh today tasks in chat webview
+        // Clear session tasks and refresh today tasks + completed in chat webview
         this.postMessage({ type: 'session_tasks', tasks: [] });
         this.sendTodayTasks();
+        this.sendAvaCompletedTasks();
       }
       // Always send done to guarantee the UI resets
       this.postMessage({ type: 'done' });

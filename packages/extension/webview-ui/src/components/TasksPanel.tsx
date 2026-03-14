@@ -1,24 +1,44 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { TodayTaskUI, SessionTaskUI } from '../types/messages';
+import type { TodayTaskUI, SessionTaskUI, AvaCompletedTaskUI } from '../types/messages';
 
 type Tab = 'personal' | 'ava';
+
+const MIN_WIDTH = 200;
+const MAX_WIDTH = 500;
+const DEFAULT_WIDTH = 260;
 
 interface TasksPanelProps {
   todayTasks: TodayTaskUI[];
   sessionTasks: SessionTaskUI[];
+  avaCompletedTasks: AvaCompletedTaskUI[];
   onClose: () => void;
   onToggleTask: (taskId: string) => void;
+  width: number;
+  onWidthChange: (width: number) => void;
 }
 
 export function TasksPanel({
   todayTasks,
   sessionTasks,
+  avaCompletedTasks,
   onClose,
   onToggleTask,
+  width,
+  onWidthChange,
 }: TasksPanelProps) {
   const [tab, setTab] = useState<Tab>('personal');
   const panelRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const startWidth = useRef(width);
+  const [liveWidth, setLiveWidth] = useState(width);
+  const liveWidthRef = useRef(liveWidth);
+  const rafRef = useRef<number | null>(null);
 
+  // Sync liveWidth when prop changes (e.g. restored from state)
+  useEffect(() => { if (!isDragging.current) { setLiveWidth(width); liveWidthRef.current = width; } }, [width]);
+
+  // ── Escape to close ──────────────────────────────────────────────────
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -31,12 +51,58 @@ export function TasksPanel({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  // Auto-switch to Ava tab when session tasks appear
+  // ── Auto-switch to Ava tab ───────────────────────────────────────────
   useEffect(() => {
     if (sessionTasks.length > 0 && tab === 'personal' && todayTasks.length === 0) {
       setTab('ava');
     }
   }, [sessionTasks.length, tab, todayTasks.length]);
+
+  // ── Drag resize — smooth with rAF, commit on mouseup ────────────────
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    startX.current = e.clientX;
+    startWidth.current = liveWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [liveWidth]);
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      if (rafRef.current !== null) return; // throttle to 1 rAF
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        const delta = startX.current - e.clientX;
+        const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth.current + delta));
+        liveWidthRef.current = newWidth;
+        setLiveWidth(newWidth);
+      });
+    };
+
+    const onMouseUp = () => {
+      if (isDragging.current) {
+        isDragging.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        if (rafRef.current !== null) {
+          cancelAnimationFrame(rafRef.current);
+          rafRef.current = null;
+        }
+        // Commit final width to parent (triggers persist)
+        onWidthChange(liveWidthRef.current);
+      }
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [onWidthChange]);
 
   const activeTasks = todayTasks.filter(t => t.status !== 'done');
   const doneTasks = todayTasks.filter(t => t.status === 'done');
@@ -45,15 +111,22 @@ export function TasksPanel({
   return (
     <div
       ref={panelRef}
-      className="flex flex-col h-full"
+      className="relative flex flex-col h-full"
       style={{
-        minWidth: 230,
-        maxWidth: 280,
-        width: 260,
+        width: liveWidth,
+        minWidth: MIN_WIDTH,
+        maxWidth: MAX_WIDTH,
         borderLeft: '1px solid rgba(168, 85, 247, 0.12)',
         background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(168, 85, 247, 0.04) 0%, transparent 70%), var(--vscode-sideBar-background)',
       }}
     >
+      {/* Drag handle — left edge */}
+      <div
+        onMouseDown={onMouseDown}
+        className="absolute left-0 top-0 bottom-0 z-10 hover:bg-[#A855F7]/20 transition-colors"
+        style={{ width: 4, cursor: 'col-resize' }}
+      />
+
       {/* Header */}
       <div
         className="flex items-center justify-between px-3 py-2.5 flex-shrink-0"
@@ -89,7 +162,7 @@ export function TasksPanel({
               : 'text-[var(--vscode-foreground)] opacity-40 hover:opacity-60 bg-transparent'
             }`}
           style={{
-            background: tab === 'personal' ? 'transparent' : 'transparent',
+            background: 'transparent',
             borderBottom: tab === 'personal' ? '2px solid #A855F7' : '2px solid transparent',
           }}
         >
@@ -133,6 +206,7 @@ export function TasksPanel({
           <AvaTab
             sessionTasks={sessionTasks}
             completedSession={completedSession}
+            avaCompletedTasks={avaCompletedTasks}
           />
         )}
       </div>
@@ -197,53 +271,152 @@ function PersonalTab({
 function AvaTab({
   sessionTasks,
   completedSession,
+  avaCompletedTasks,
 }: {
   sessionTasks: SessionTaskUI[];
   completedSession: number;
+  avaCompletedTasks: AvaCompletedTaskUI[];
 }) {
-  if (sessionTasks.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full opacity-30 text-xs gap-2 px-4 text-center">
-        <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor" className="opacity-40">
-          <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 13A6 6 0 1 1 8 2a6 6 0 0 1 0 12zm1-9H7v4.414l2.293 2.293.707-.707L8.5 9V5z"/>
-        </svg>
-        <span>No active session</span>
-        <span className="text-[10px] opacity-60">Ava's progress shows here while working</span>
-      </div>
-    );
-  }
+  const [currentOpen, setCurrentOpen] = useState(true);
+  const [completedOpen, setCompletedOpen] = useState(false);
 
-  const allDone = completedSession === sessionTasks.length;
+  const hasSession = sessionTasks.length > 0;
+  const allDone = hasSession && completedSession === sessionTasks.length;
 
   return (
-    <div className="px-2 pt-2 pb-3">
-      {/* Progress bar */}
-      <div className="px-2 mb-3">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] opacity-40">
-            {allDone ? 'All tasks complete' : `Step ${completedSession + 1} of ${sessionTasks.length}`}
-          </span>
-          <span className="text-[10px] opacity-30">
-            {Math.round((completedSession / sessionTasks.length) * 100)}%
-          </span>
-        </div>
-        <div className="w-full h-1.5 rounded-full" style={{ background: 'rgba(168, 85, 247, 0.1)' }}>
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${(completedSession / sessionTasks.length) * 100}%`,
-              background: allDone ? '#34d399' : '#A855F7',
-            }}
-          />
-        </div>
-      </div>
+    <div className="pb-3">
+      {/* ── Current section ─────────────────────────────────────────── */}
+      <CollapsibleSection
+        title="Current"
+        count={hasSession ? `${completedSession}/${sessionTasks.length}` : undefined}
+        open={currentOpen}
+        onToggle={() => setCurrentOpen(!currentOpen)}
+      >
+        {hasSession ? (
+          <>
+            {/* Progress bar */}
+            <div className="px-2 mb-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] opacity-40">
+                  {allDone ? 'All tasks complete' : `Step ${completedSession + 1} of ${sessionTasks.length}`}
+                </span>
+                <span className="text-[10px] opacity-30">
+                  {Math.round((completedSession / sessionTasks.length) * 100)}%
+                </span>
+              </div>
+              <div className="w-full h-1.5 rounded-full" style={{ background: 'rgba(168, 85, 247, 0.1)' }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${(completedSession / sessionTasks.length) * 100}%`,
+                    background: allDone ? '#34d399' : '#A855F7',
+                  }}
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              {sessionTasks.map(task => (
+                <SessionItem key={task.id} task={task} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="text-[11px] opacity-30 italic px-2 m-0">No active session</p>
+        )}
+      </CollapsibleSection>
 
-      {/* Task list */}
-      <div className="flex flex-col gap-0.5">
-        {sessionTasks.map(task => (
-          <SessionItem key={task.id} task={task} />
-        ))}
-      </div>
+      {/* ── Completed section ───────────────────────────────────────── */}
+      <CollapsibleSection
+        title="Completed"
+        count={avaCompletedTasks.length > 0 ? String(avaCompletedTasks.length) : undefined}
+        open={completedOpen}
+        onToggle={() => setCompletedOpen(!completedOpen)}
+      >
+        {avaCompletedTasks.length > 0 ? (
+          <div className="flex flex-col gap-0.5">
+            {avaCompletedTasks.map(task => (
+              <CompletedItem key={task.id} task={task} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-[11px] opacity-30 italic px-2 m-0">No completed tasks yet</p>
+        )}
+      </CollapsibleSection>
+    </div>
+  );
+}
+
+// ── Collapsible Section ───────────────────────────────────────────────────────
+
+function CollapsibleSection({
+  title,
+  count,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  count?: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ borderBottom: '1px solid rgba(168, 85, 247, 0.06)' }}>
+      <button
+        onClick={onToggle}
+        className="flex items-center gap-1.5 w-full px-3 py-2 text-left bg-transparent border-none cursor-pointer
+                   hover:bg-white/[0.03] transition"
+      >
+        <svg
+          width="10" height="10" viewBox="0 0 16 16" fill="currentColor"
+          className="opacity-40 transition-transform flex-shrink-0"
+          style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}
+        >
+          <path d="M6 4l4 4-4 4V4z"/>
+        </svg>
+        <span className="text-[10px] font-semibold uppercase tracking-wider opacity-50">
+          {title}
+        </span>
+        {count && (
+          <span className="text-[9px] opacity-30 ml-auto">{count}</span>
+        )}
+      </button>
+      {open && (
+        <div className="px-2 pb-2">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Completed Item ────────────────────────────────────────────────────────────
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(diff / 3600000);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(diff / 86400000);
+  if (days < 30) return `${days}d ago`;
+  return `${Math.floor(days / 30)}mo ago`;
+}
+
+function CompletedItem({ task }: { task: AvaCompletedTaskUI }) {
+  return (
+    <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition">
+      <span className="flex items-center justify-center w-4 h-4 flex-shrink-0 text-[11px] text-emerald-400">
+        ✓
+      </span>
+      <span className="text-xs flex-1 truncate line-through opacity-30">
+        {task.title}
+      </span>
+      <span className="text-[9px] opacity-20 flex-shrink-0">
+        {timeAgo(task.completedAt)}
+      </span>
     </div>
   );
 }
@@ -315,3 +488,5 @@ function SessionItem({ task }: { task: SessionTaskUI }) {
     </div>
   );
 }
+
+export { DEFAULT_WIDTH };
