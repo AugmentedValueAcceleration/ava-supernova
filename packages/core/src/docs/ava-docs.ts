@@ -208,7 +208,7 @@ Ava has 24 built-in tools organized by category. Tool availability depends on th
 Ava has four modes that control what tools are available and how she behaves.
 
 ## Code Mode (default)
-Full agent with all 31 tools. Ava reads, writes, searches, and executes across your codebase. This is the primary working mode.
+Full agent with all 32 tools. Ava reads, writes, searches, and executes across your codebase. This is the primary working mode.
 
 ## Plan Mode
 Read-only analysis. Ava reads your code and creates plans without modifying anything. Use this when you want Ava to analyze and propose changes before committing to them.

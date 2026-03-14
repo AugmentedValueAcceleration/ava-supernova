@@ -31,6 +31,7 @@ import { GetDateTimeTool } from './get-datetime.js';
 import { DetectLanguageTool } from './detect-language.js';
 import { TaskManageTool } from './task-manage.js';
 import { JournalWriteTool } from './journal.js';
+import { DocumentManageTool } from './document-manage.js';
 
 // Which risk levels require confirmation under each permission mode
 const CONFIRMATION_MATRIX: Record<PermissionMode, Set<ToolRiskLevel>> = {
@@ -89,6 +90,7 @@ export class ToolRegistry {
       new DetectLanguageTool(),
       new TaskManageTool(),
       new JournalWriteTool(),
+      new DocumentManageTool(),
     ];
     for (const tool of builtins) {
       this.tools.set(tool.name, tool);
