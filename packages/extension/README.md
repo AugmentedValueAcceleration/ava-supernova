@@ -8,7 +8,7 @@ Open-source AI coding agent powered by the best open-source and frontier models.
 
 - **2 free models** — GLM-4.7 Flash and GLM-4.5 Flash work instantly with zero setup
 - **14 models, 7 providers** — DeepSeek, Kimi, Zhipu AI, Qwen, Mistral, Anthropic, plus any local/custom endpoint
-- **28 built-in tools** — File ops, search, git, shell, web, browser, database, screenshots, planning, memory
+- **29 built-in tools** — File ops, search, git, shell, web, browser, database, screenshots, planning, memory
 - **Smart memory** — TF-IDF retrieval, temporal awareness, branch scoping, auto-archival — Ava gets smarter every session
 - **Privacy first** — API keys encrypted in OS keychain, credentials blocked from memory, prompt injection resistance
 - **20 languages** — Full UI and response localization
@@ -85,7 +85,7 @@ Key features:
 - **Platform sync** — Connected users get tasks synced to the cloud automatically
 - **Ava context** — Active tasks injected into Ava's system prompt so she knows what you're working on
 
-## Tools (28)
+## Tools (29)
 
 | Category | Tools | Description |
 |---|---|---|
