@@ -30,7 +30,8 @@ Open-source AI coding agent powered by the best open-source and frontier models.
 - **Security scanning** — AI-powered OWASP-aligned security audit using existing tools
 - **Task management** — Full life-management system with dashboard, collapsible chat panel (Personal + Ava tabs), recurrence, priorities, categories, and platform sync
 - **Session transparency** — When Ava works on complex tasks, her step-by-step progress shows in the Ava tab with a live progress bar
-- **Dashboard panel** — Provider configuration, model selection, task management, memory management, and settings inside VS Code
+- **Dual journal** — Your reflections and Ava's observations, side by side. Auto-journaling, mood tracking, calendar navigation, context awareness
+- **Dashboard panel** — Provider configuration, model selection, task management, journal, memory management, and settings inside VS Code
 - **Documentation viewer** — Built-in docs panel for quick reference without leaving the editor
 
 ## Quick Start
@@ -84,6 +85,18 @@ Key features:
 - **Recurrence** — Daily or weekly auto-regeneration of completed tasks
 - **Platform sync** — Connected users get tasks synced to the cloud automatically
 - **Ava context** — Active tasks injected into Ava's system prompt so she knows what you're working on
+
+## Dual Journal
+
+Two journals, one day — your thoughts and Ava's observations, side by side.
+
+- **Your journal** — Personal reflection with optional mood tracking (1-5), tags, and markdown
+- **Ava's journal** — Her authentic observations — ideas, concerns, patterns. Written automatically at session end
+- **Calendar navigation** — Mini calendar in the dashboard sidebar with dot indicators (white = you, purple = Ava)
+- **Tabbed view** — Full-width tabs for each journal. Yours is editable, Ava's is read-only
+- **Auto-journaling** — Ava writes session summaries automatically (duration, messages, tools, model used)
+- **Context awareness** — Last 3 days of journal entries in Ava's system prompt for continuity
+- **Platform sync** — Connected users get journal entries synced to the cloud
 
 ## Tools (31)
 

@@ -1,310 +1,281 @@
-import { useState, useMemo } from 'react';
-import type { DashboardJournalDay, DashboardJournalDaySummary } from '../types/messages';
+import { useState } from 'react';
+import type { DashboardJournalDay } from '../types/messages';
+
+type JournalTab = 'user' | 'ava';
 
 interface JournalProps {
   day: DashboardJournalDay | null;
-  summaries: DashboardJournalDaySummary[];
-  onLoadDay: (date: string) => void;
-  onLoadSummaries: (from: string, to: string) => void;
+  selectedDate: string;
+  userName: string | null;
   onSaveUserEntry: (date: string, content: string, mood?: number, tags?: string[]) => void;
 }
 
 const MOOD_LABELS = ['', 'Rough', 'Low', 'Okay', 'Good', 'Great'];
 const MOOD_COLORS = ['', '#ef4444', '#f59e0b', '#6b7280', '#3b82f6', '#34d399'];
 
-function getToday(): string {
-  return new Date().toISOString().slice(0, 10);
+function formatDate(iso: string): string {
+  if (!iso || !iso.includes('-')) return iso || '';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
 }
 
-function getMonthRange(year: number, month: number): { from: string; to: string } {
-  const from = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-  const last = new Date(year, month + 1, 0).getDate();
-  const to = `${year}-${String(month + 1).padStart(2, '0')}-${String(last).padStart(2, '0')}`;
-  return { from, to };
-}
-
-const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const DAY_HEADERS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-
-export function Journal({ day, summaries, onLoadDay, onLoadSummaries, onSaveUserEntry }: JournalProps) {
-  const today = getToday();
-  const [selectedDate, setSelectedDate] = useState(today);
-  const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
-  const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
-
-  // Editing state
+export function Journal({ day, selectedDate, userName, onSaveUserEntry }: JournalProps) {
+  const [tab, setTab] = useState<JournalTab>('user');
   const [editContent, setEditContent] = useState('');
   const [editMood, setEditMood] = useState<number | undefined>(undefined);
   const [editing, setEditing] = useState(false);
 
-  // When day loads, sync editor
-  const dayDate = day?.date;
-  const dayContent = day?.user_entry?.content;
-  const dayMood = day?.user_entry?.mood;
-
-  // Select a date
-  const handleSelectDate = (date: string) => {
-    setSelectedDate(date);
-    setEditing(false);
-    onLoadDay(date);
-  };
-
-  // Navigate months
-  const handlePrevMonth = () => {
-    const m = viewMonth === 0 ? 11 : viewMonth - 1;
-    const y = viewMonth === 0 ? viewYear - 1 : viewYear;
-    setViewMonth(m);
-    setViewYear(y);
-    const range = getMonthRange(y, m);
-    onLoadSummaries(range.from, range.to);
-  };
-
-  const handleNextMonth = () => {
-    const m = viewMonth === 11 ? 0 : viewMonth + 1;
-    const y = viewMonth === 11 ? viewYear + 1 : viewYear;
-    setViewMonth(m);
-    setViewYear(y);
-    const range = getMonthRange(y, m);
-    onLoadSummaries(range.from, range.to);
-  };
-
-  // Start editing
   const handleStartEdit = () => {
-    setEditContent(dayContent ?? '');
-    setEditMood(dayMood);
+    setEditContent(day?.user_entry?.content ?? '');
+    setEditMood(day?.user_entry?.mood);
     setEditing(true);
   };
 
-  // Save
   const handleSave = () => {
     onSaveUserEntry(selectedDate, editContent, editMood);
     setEditing(false);
   };
 
-  // Build calendar grid
-  const calendarDays = useMemo(() => {
-    const firstDay = new Date(viewYear, viewMonth, 1);
-    const startDow = (firstDay.getDay() + 6) % 7; // Monday=0
-    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-
-    const summaryMap = new Map(summaries.map(s => [s.date, s]));
-    const cells: Array<{ date: string; day: number; summary?: DashboardJournalDaySummary } | null> = [];
-
-    for (let i = 0; i < startDow; i++) cells.push(null);
-    for (let d = 1; d <= daysInMonth; d++) {
-      const date = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      cells.push({ date, day: d, summary: summaryMap.get(date) });
-    }
-
-    return cells;
-  }, [viewYear, viewMonth, summaries]);
+  const userTitle = userName ? `${userName}'s Journal` : 'Your Journal';
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-white">Journal</h1>
-        <p className="text-sm text-[var(--text-secondary)] mt-1">Your thoughts and Ava's observations — side by side</p>
+    <div className="flex flex-col h-full">
+      {/* Tabs */}
+      <div className="flex border-b border-[var(--border-card)] mb-4">
+        <button
+          onClick={() => { setTab('user'); setEditing(false); }}
+          className={`px-5 py-2.5 text-sm font-medium border-none cursor-pointer transition-all
+            ${tab === 'user'
+              ? 'text-white'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] bg-transparent'
+            }`}
+          style={{ borderBottom: tab === 'user' ? '2px solid #A855F7' : '2px solid transparent', background: 'transparent' }}
+        >
+          {userTitle}
+          {day?.user_entry && (
+            <span className="ml-2 w-1.5 h-1.5 rounded-full bg-white inline-block align-middle" />
+          )}
+        </button>
+        <button
+          onClick={() => { setTab('ava'); setEditing(false); }}
+          className={`px-5 py-2.5 text-sm font-medium border-none cursor-pointer transition-all
+            ${tab === 'ava'
+              ? ''
+              : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] bg-transparent'
+            }`}
+          style={{
+            borderBottom: tab === 'ava' ? '2px solid #A855F7' : '2px solid transparent',
+            background: 'transparent',
+            color: tab === 'ava' ? '#A855F7' : undefined,
+          }}
+        >
+          Ava's Journal
+          {day?.ava_entry && (
+            <span className="ml-2 w-1.5 h-1.5 rounded-full bg-[#A855F7] inline-block align-middle" />
+          )}
+        </button>
+        <div className="flex-1" />
+        <span className="self-center text-[11px] text-[var(--text-muted)] pr-2">{formatDate(selectedDate)}</span>
       </div>
 
-      {/* Mini Calendar */}
-      <div className="mb-6 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
-        {/* Month nav */}
+      {/* Content */}
+      <div className="flex-1 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] flex flex-col overflow-hidden"
+        style={tab === 'ava' ? { borderColor: 'rgba(168, 85, 247, 0.2)' } : undefined}
+      >
+        {tab === 'user' ? (
+          <UserJournal
+            entry={day?.user_entry ?? null}
+            editing={editing}
+            editContent={editContent}
+            editMood={editMood}
+            dateLabel={formatDate(selectedDate)}
+            onStartEdit={handleStartEdit}
+            onSave={handleSave}
+            onCancel={() => setEditing(false)}
+            onContentChange={setEditContent}
+            onMoodChange={setEditMood}
+          />
+        ) : (
+          <AvaJournal entry={day?.ava_entry ?? null} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── User Journal Pane ─────────────────────────────────────────────────────────
+
+interface UserEntry {
+  content: string;
+  mood?: number;
+  tags?: string[];
+}
+
+function UserJournal({
+  entry,
+  editing,
+  editContent,
+  editMood,
+  dateLabel,
+  onStartEdit,
+  onSave,
+  onCancel,
+  onContentChange,
+  onMoodChange,
+}: {
+  entry: UserEntry | null;
+  editing: boolean;
+  editContent: string;
+  editMood: number | undefined;
+  dateLabel: string;
+  onStartEdit: () => void;
+  onSave: () => void;
+  onCancel: () => void;
+  onContentChange: (v: string) => void;
+  onMoodChange: (m: number | undefined) => void;
+}) {
+  if (editing) {
+    return (
+      <div className="flex-1 p-5 flex flex-col">
+        {/* Date indicator */}
         <div className="flex items-center justify-between mb-3">
-          <button onClick={handlePrevMonth} className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-input)] hover:text-white bg-transparent border-none cursor-pointer transition">
-            &lt;
-          </button>
-          <span className="text-sm font-semibold text-white">{MONTH_NAMES[viewMonth]} {viewYear}</span>
-          <button onClick={handleNextMonth} className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-input)] hover:text-white bg-transparent border-none cursor-pointer transition">
-            &gt;
-          </button>
+          <span className="text-[11px] font-medium text-[var(--text-secondary)]">Writing entry for <span className="text-white font-semibold">{dateLabel}</span></span>
         </div>
 
-        {/* Day headers */}
-        <div className="grid grid-cols-7 gap-1 mb-1">
-          {DAY_HEADERS.map(h => (
-            <div key={h} className="text-center text-[10px] font-semibold text-[var(--text-muted)] py-1">{h}</div>
+        {/* Mood selector */}
+        <div className="flex items-center gap-1 mb-3">
+          <span className="text-[10px] text-[var(--text-muted)] mr-2">Mood:</span>
+          {[1, 2, 3, 4, 5].map(m => (
+            <button
+              key={m}
+              onClick={() => onMoodChange(editMood === m ? undefined : m)}
+              className={`w-8 h-8 rounded-full border-none cursor-pointer text-xs font-bold transition
+                ${editMood === m ? 'text-white' : 'text-[var(--text-muted)] hover:text-white'}`}
+              style={{ background: editMood === m ? MOOD_COLORS[m] : 'var(--bg-input)' }}
+              title={MOOD_LABELS[m]}
+            >
+              {m}
+            </button>
           ))}
         </div>
 
-        {/* Day cells */}
-        <div className="grid grid-cols-7 gap-1">
-          {calendarDays.map((cell, i) => {
-            if (!cell) return <div key={`empty-${i}`} />;
+        <textarea
+          value={editContent}
+          onChange={(e) => onContentChange(e.target.value)}
+          placeholder="How are you feeling? What happened today? Write freely..."
+          className="flex-1 w-full p-4 text-sm rounded-lg resize-none outline-none"
+          style={{
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(168, 85, 247, 0.15)',
+            color: 'var(--text-primary, var(--vscode-foreground, #e5e5e5))',
+          }}
+        />
 
-            const isSelected = cell.date === selectedDate;
-            const isToday = cell.date === today;
-            const hasUser = cell.summary?.has_user_entry;
-            const hasAva = cell.summary?.has_ava_entry;
-
-            return (
-              <button
-                key={cell.date}
-                onClick={() => handleSelectDate(cell.date)}
-                className={`relative flex flex-col items-center justify-center py-1.5 rounded-lg text-xs border-none cursor-pointer transition
-                  ${isSelected
-                    ? 'bg-[#A855F7] text-white'
-                    : isToday
-                      ? 'bg-[var(--bg-input)] text-white'
-                      : 'bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-input)]'
-                  }`}
-              >
-                {cell.day}
-                {/* Dot indicators */}
-                {(hasUser || hasAva) && (
-                  <div className="flex gap-0.5 mt-0.5">
-                    {hasUser && <span className="w-1 h-1 rounded-full bg-white" />}
-                    {hasAva && <span className="w-1 h-1 rounded-full bg-[#A855F7]" />}
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Legend */}
-        <div className="flex items-center gap-4 mt-3 justify-center">
-          <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)]">
-            <span className="w-1.5 h-1.5 rounded-full bg-white" /> You
-          </div>
-          <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#A855F7]" /> Ava
-          </div>
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={onSave}
+            className="px-5 py-2 rounded-lg text-xs font-semibold text-white border-none cursor-pointer transition"
+            style={{ background: '#A855F7' }}
+          >
+            Save Entry
+          </button>
+          <button
+            onClick={onCancel}
+            className="px-5 py-2 rounded-lg text-xs text-[var(--text-secondary)] bg-transparent border border-[var(--border-card)] cursor-pointer hover:bg-[var(--bg-input)] transition"
+          >
+            Cancel
+          </button>
         </div>
       </div>
+    );
+  }
 
-      {/* Split View */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* User Journal — Left */}
-        <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-bold text-white">Your Journal</h2>
-            <span className="text-[10px] text-[var(--text-muted)]">{selectedDate}</span>
+  if (entry) {
+    return (
+      <div className="flex-1 p-5 overflow-y-auto">
+        {entry.mood && (
+          <div className="mb-4">
+            <span
+              className="px-3 py-1 rounded-full text-xs font-bold text-white"
+              style={{ background: MOOD_COLORS[entry.mood] }}
+            >
+              {MOOD_LABELS[entry.mood]} ({entry.mood}/5)
+            </span>
           </div>
-
-          {editing ? (
-            <>
-              {/* Mood selector */}
-              <div className="flex items-center gap-1 mb-3">
-                <span className="text-[10px] text-[var(--text-muted)] mr-2">Mood:</span>
-                {[1, 2, 3, 4, 5].map(m => (
-                  <button
-                    key={m}
-                    onClick={() => setEditMood(editMood === m ? undefined : m)}
-                    className={`w-7 h-7 rounded-full border-none cursor-pointer text-xs font-bold transition
-                      ${editMood === m ? 'text-white' : 'text-[var(--text-muted)] hover:text-white'}`}
-                    style={{
-                      background: editMood === m ? MOOD_COLORS[m] : 'var(--bg-input)',
-                    }}
-                    title={MOOD_LABELS[m]}
-                  >
-                    {m}
-                  </button>
-                ))}
-              </div>
-
-              {/* Editor */}
-              <textarea
-                value={editContent}
-                onChange={e => setEditContent(e.target.value)}
-                placeholder="How are you feeling? What happened today? Write freely..."
-                className="w-full min-h-[200px] p-3 text-sm font-mono rounded-lg resize-y
-                           bg-[var(--bg-input)] text-[var(--text-primary,var(--vscode-foreground))]
-                           border border-[var(--border-card)]
-                           outline-none focus:border-[#A855F7]/50 transition"
-              />
-
-              <div className="flex gap-2 mt-3">
-                <button
-                  onClick={handleSave}
-                  className="px-4 py-1.5 rounded-lg text-xs font-semibold text-white border-none cursor-pointer transition"
-                  style={{ background: '#A855F7' }}
-                >
-                  Save
-                </button>
-                <button
-                  onClick={() => setEditing(false)}
-                  className="px-4 py-1.5 rounded-lg text-xs text-[var(--text-secondary)] bg-transparent border border-[var(--border-card)] cursor-pointer hover:bg-[var(--bg-input)] transition"
-                >
-                  Cancel
-                </button>
-              </div>
-            </>
-          ) : day?.user_entry ? (
-            <>
-              {day.user_entry.mood && (
-                <div className="flex items-center gap-2 mb-3">
-                  <span
-                    className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
-                    style={{ background: MOOD_COLORS[day.user_entry.mood] }}
-                  >
-                    {MOOD_LABELS[day.user_entry.mood]} ({day.user_entry.mood}/5)
-                  </span>
-                </div>
-              )}
-              <div className="text-sm leading-relaxed text-[var(--text-secondary)] whitespace-pre-wrap">
-                {day.user_entry.content}
-              </div>
-              {day.user_entry.tags && day.user_entry.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-3">
-                  {day.user_entry.tags.map(tag => (
-                    <span key={tag} className="px-2 py-0.5 rounded-full text-[10px] bg-[var(--bg-input)] text-[var(--text-muted)]">
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-              <button
-                onClick={handleStartEdit}
-                className="mt-3 px-3 py-1 rounded-lg text-[10px] text-[var(--text-muted)] bg-transparent border border-[var(--border-card)] cursor-pointer hover:bg-[var(--bg-input)] hover:text-white transition"
-              >
-                Edit
-              </button>
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <p className="text-sm text-[var(--text-muted)] mb-3">No entry for this day</p>
-              <button
-                onClick={handleStartEdit}
-                className="px-4 py-2 rounded-lg text-xs font-semibold text-white border-none cursor-pointer transition"
-                style={{ background: '#A855F7' }}
-              >
-                Write Entry
-              </button>
-            </div>
-          )}
+        )}
+        <div className="text-sm leading-relaxed text-[var(--text-secondary)] whitespace-pre-wrap">
+          {entry.content}
         </div>
-
-        {/* Ava Journal — Right (read-only) */}
-        <div className="rounded-xl border border-[#A855F7]/20 bg-[var(--bg-card)] p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-bold" style={{ color: '#A855F7' }}>Ava's Journal</h2>
-            <span className="text-[10px] text-[var(--text-muted)]">{selectedDate}</span>
+        {entry.tags && entry.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-4">
+            {entry.tags.map(tag => (
+              <span key={tag} className="px-2 py-0.5 rounded-full text-[10px] bg-[var(--bg-input)] text-[var(--text-muted)]">
+                #{tag}
+              </span>
+            ))}
           </div>
-
-          {day?.ava_entry ? (
-            <>
-              <div className="text-sm leading-relaxed text-[var(--text-secondary)] whitespace-pre-wrap">
-                {day.ava_entry.content}
-              </div>
-              {day.ava_entry.tags && day.ava_entry.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-3">
-                  {day.ava_entry.tags.map(tag => (
-                    <span key={tag} className="px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ background: 'rgba(168,85,247,0.1)', color: '#A855F7' }}>
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <p className="text-sm text-[var(--text-muted)]">Ava hasn't written anything for this day</p>
-              <p className="text-[11px] text-[var(--text-muted)] mt-1 opacity-60">Ava writes her thoughts at the end of sessions</p>
-            </div>
-          )}
-        </div>
+        )}
+        <button
+          onClick={onStartEdit}
+          className="mt-4 px-4 py-1.5 rounded-lg text-xs text-[var(--text-muted)] bg-transparent border border-[var(--border-card)] cursor-pointer hover:bg-[var(--bg-input)] hover:text-white transition"
+        >
+          Edit Entry
+        </button>
       </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="text-[var(--text-muted)] opacity-30 mb-3">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+      </svg>
+      <p className="text-sm text-[var(--text-muted)] mb-4">No entry for this day</p>
+      <button
+        onClick={onStartEdit}
+        className="px-6 py-2.5 rounded-lg text-sm font-semibold text-white border-none cursor-pointer transition"
+        style={{ background: '#A855F7' }}
+      >
+        Write Entry
+      </button>
+    </div>
+  );
+}
+
+// ── Ava Journal Pane ──────────────────────────────────────────────────────────
+
+interface AvaEntry {
+  content: string;
+  tags?: string[];
+}
+
+function AvaJournal({ entry }: { entry: AvaEntry | null }) {
+  if (entry) {
+    return (
+      <div className="flex-1 p-5 overflow-y-auto">
+        <div className="text-sm leading-relaxed text-[var(--text-secondary)] whitespace-pre-wrap">
+          {entry.content}
+        </div>
+        {entry.tags && entry.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-4">
+            {entry.tags.map(tag => (
+              <span key={tag} className="px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ background: 'rgba(168,85,247,0.1)', color: '#A855F7' }}>
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#A855F7" strokeWidth={1.5} className="opacity-30 mb-3">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+      </svg>
+      <p className="text-sm text-[var(--text-muted)]">Ava hasn't written anything for this day</p>
+      <p className="text-[11px] text-[var(--text-muted)] mt-1 opacity-60">Ava writes her thoughts at the end of sessions</p>
     </div>
   );
 }

@@ -1212,6 +1212,11 @@ export class DashboardPanel {
     this.panel.webview.postMessage(msg);
   }
 
+  /** Notify dashboard that journal data changed (called from AvaViewProvider). */
+  public notifyJournalUpdated(date: string): void {
+    this.loadJournalDay(date);
+  }
+
   private dispose(): void {
     DashboardPanel.currentPanel = undefined;
     this.panel.dispose();

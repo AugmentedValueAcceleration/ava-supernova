@@ -29,6 +29,7 @@ import {
 import type { AgentEvent, Provider, ModelDefinition, Message, ContentPart, PermissionMode } from '@ava/core';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus } from './message-types.js';
 import type { AccountInfo } from './dashboard-message-types.js';
+import { DashboardPanel } from './DashboardPanel.js';
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
 import { sessionStats } from '../session-stats.js';
@@ -1284,6 +1285,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
               tasks: sessionTasks.map(t => ({ id: t.id, title: t.title, status: t.status })),
             });
           }
+          // Refresh dashboard journal when journal_write fires
+          if (event.toolCall.function.name === 'journal_write' && DashboardPanel.currentPanel) {
+            const today = new Date().toISOString().slice(0, 10);
+            DashboardPanel.currentPanel.notifyJournalUpdated(today);
+          }
           this.log(`Tool result: ${event.toolCall.function.name} → ${event.success ? 'ok' : 'FAIL'}`);
           break;
         }
@@ -1389,11 +1395,25 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         this.sendAllTasks();
         this.sendAvaCompletedTasks();
       }
-      // Auto-journal: Ava writes a brief session note (non-blocking)
+      // Auto-journal: Ava writes a session summary (non-blocking)
       if (this.journalManager) {
         const today = new Date().toISOString().slice(0, 10);
-        const summary = `Session completed. Worked on tasks in this project.`;
+        const stats = sessionStats.getStats();
+        const duration = Math.round((Date.now() - new Date(stats.session_start).getTime()) / 60000);
+        const parts: string[] = [];
+        if (duration > 0) parts.push(`**${duration}min session**`);
+        parts.push(`${stats.messages} messages, ${stats.tool_calls} tool calls`);
+        if (stats.total_input_tokens + stats.total_output_tokens > 0) {
+          parts.push(`${(stats.total_input_tokens + stats.total_output_tokens).toLocaleString()} tokens`);
+        }
+        const model = this.activeModelDef?.name || 'unknown model';
+        parts.push(`using ${model}`);
+        const summary = parts.join(' · ');
         this.journalManager.appendAvaEntry(today, summary).catch(() => {});
+        // Notify dashboard if open
+        if (DashboardPanel.currentPanel) {
+          DashboardPanel.currentPanel.notifyJournalUpdated(today);
+        }
       }
       // Always send done to guarantee the UI resets
       this.postMessage({ type: 'done' });

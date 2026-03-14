@@ -323,6 +323,7 @@ export class DocsPanel {
       <button class="tab-btn" data-tab="tools">Tools</button>
       <button class="tab-btn" data-tab="memory">Memory</button>
       <button class="tab-btn" data-tab="tasks">Tasks</button>
+      <button class="tab-btn" data-tab="journal">Journal</button>
       <button class="tab-btn" data-tab="commands">Commands</button>
       <button class="tab-btn" data-tab="modes">Modes</button>
       <button class="tab-btn" data-tab="permissions">Permissions</button>
@@ -695,6 +696,44 @@ export class DocsPanel {
         <div class="card">
           <h4>Session Transparency</h4>
           <p>When Ava works on a complex task, her step-by-step progress shows in the Ava tab with a live progress bar.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Journal System -->
+    <section class="docs-section" id="journal">
+      <h2>Journal System</h2>
+      <p>A dual-journal system &mdash; your thoughts and Ava&rsquo;s observations, side by side. Same day, two perspectives.</p>
+
+      <h3>Two Perspectives</h3>
+      <div class="card-grid">
+        <div class="card">
+          <h4>Your Journal</h4>
+          <p>Personal reflection with optional mood tracking (1-5), tags, and markdown. Private and local-first.</p>
+        </div>
+        <div class="card">
+          <h4>Ava&rsquo;s Journal</h4>
+          <p>Ava&rsquo;s authentic observations &mdash; ideas, concerns, patterns. Written automatically at session end. Read-only.</p>
+        </div>
+      </div>
+
+      <h3>Features</h3>
+      <div class="card-grid">
+        <div class="card">
+          <h4>Calendar Navigation</h4>
+          <p>Mini calendar in the sidebar with dot indicators &mdash; white for your entries, purple for Ava&rsquo;s.</p>
+        </div>
+        <div class="card">
+          <h4>Auto-Journaling</h4>
+          <p>Ava writes session summaries automatically &mdash; duration, messages, tool calls, model used.</p>
+        </div>
+        <div class="card">
+          <h4>Mood Tracking</h4>
+          <p>Optional 1-5 mood scale. Track how you&rsquo;re feeling over time &mdash; Ava can notice patterns.</p>
+        </div>
+        <div class="card">
+          <h4>Context Awareness</h4>
+          <p>Last 3 days of journal entries injected into Ava&rsquo;s system prompt for continuity.</p>
         </div>
       </div>
     </section>

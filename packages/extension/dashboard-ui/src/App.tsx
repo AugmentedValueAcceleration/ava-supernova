@@ -75,6 +75,7 @@ export function App() {
   const [tasks, setTasks] = useState<DashboardTaskEntry[]>([]);
   const [journalDay, setJournalDay] = useState<DashboardJournalDay | null>(null);
   const [journalSummaries, setJournalSummaries] = useState<DashboardJournalDaySummary[]>([]);
+  const [selectedJournalDate, setSelectedJournalDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [sessionStatsData, setSessionStatsData] = useState<SessionStats | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // Admin state
@@ -315,9 +316,8 @@ export function App() {
         return (
           <Journal
             day={journalDay}
-            summaries={journalSummaries}
-            onLoadDay={(date) => post({ type: 'load_journal_day', date })}
-            onLoadSummaries={(from, to) => post({ type: 'load_journal_summaries', from, to })}
+            selectedDate={selectedJournalDate}
+            userName={account?.name?.split(' ')[0] ?? null}
             onSaveUserEntry={(date, content, mood, tags) => post({ type: 'save_journal_user_entry', date, content, mood, tags })}
           />
         );
@@ -340,7 +340,23 @@ export function App() {
 
   return (
     <div className="flex h-screen overflow-hidden text-sm">
-      {hasAccess && <NavSidebar currentPage={page} onNavigate={setPage} mode={account ? 'platform' : 'byok'} email={account?.email} isAdmin={account?.tier === 'admin'} onConnectAccount={handleConnectAccount} />}
+      {hasAccess && (
+        <NavSidebar
+          currentPage={page}
+          onNavigate={setPage}
+          mode={account ? 'platform' : 'byok'}
+          email={account?.email}
+          isAdmin={account?.tier === 'admin'}
+          onConnectAccount={handleConnectAccount}
+          journalSummaries={journalSummaries}
+          selectedJournalDate={selectedJournalDate}
+          onSelectJournalDate={(date) => {
+            setSelectedJournalDate(date);
+            post({ type: 'load_journal_day', date });
+          }}
+          onLoadJournalSummaries={(from, to) => post({ type: 'load_journal_summaries', from, to })}
+        />
+      )}
 
       <main className="flex-1 overflow-y-auto p-8">
         {errorMsg && (
