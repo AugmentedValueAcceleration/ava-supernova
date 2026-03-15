@@ -42,6 +42,7 @@ import { AuditDependenciesTool } from './audit-dependencies.js';
 import { BenchmarkTool } from './benchmark.js';
 import { ApplyPlanTool } from './apply-plan.js';
 import { DebugLogsTool } from './debug-logs.js';
+import { LearningCreateTool, LearningTeachTool, LearningProgressTool } from './learning.js';
 
 // Which risk levels require confirmation under each permission mode
 const CONFIRMATION_MATRIX: Record<PermissionMode, Set<ToolRiskLevel>> = {
@@ -111,6 +112,9 @@ export class ToolRegistry {
       new BenchmarkTool(),
       new ApplyPlanTool(),
       new DebugLogsTool(),
+      new LearningCreateTool(),
+      new LearningTeachTool(),
+      new LearningProgressTool(),
     ];
     for (const tool of builtins) {
       this.tools.set(tool.name, tool);

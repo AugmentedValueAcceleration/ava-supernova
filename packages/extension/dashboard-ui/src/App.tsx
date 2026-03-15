@@ -13,6 +13,7 @@ import { AdminSupport } from './pages/AdminSupport';
 import { AdminProposals } from './pages/AdminProposals';
 import { Tasks } from './pages/Tasks';
 import { Journal } from './pages/Journal';
+import { Learning } from './pages/Learning';
 import type {
   Page,
   AccountInfo,
@@ -321,6 +322,8 @@ export function App() {
             onSaveUserEntry={(date, content, mood, tags) => post({ type: 'save_journal_user_entry', date, content, mood, tags })}
           />
         );
+      case 'learning':
+        return <Learning />;
       case 'connections':
         return <Connections connections={connections} />;
       case 'history':

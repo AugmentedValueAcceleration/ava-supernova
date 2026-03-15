@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { post } from '../App';
 import type { Page, DashboardJournalDaySummary } from '../types/messages';
-import { BoltIcon, KeyIcon, ChartBarIcon, SparklesIcon, ChecklistIcon, BookIcon, ClockIcon, HelpCircleIcon, CogIcon, ShieldIcon, WrenchIcon } from './Icons';
+import { BoltIcon, KeyIcon, ChartBarIcon, SparklesIcon, ChecklistIcon, BookIcon, GraduationCapIcon, ClockIcon, HelpCircleIcon, CogIcon, ShieldIcon, WrenchIcon } from './Icons';
 
 interface NavSidebarProps {
   currentPage: Page;
@@ -47,6 +47,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { page: 'tasks', label: 'Tasks', icon: ChecklistIcon },
       { page: 'journal', label: 'Journal', icon: BookIcon },
+      { page: 'learning', label: 'Learning', icon: GraduationCapIcon },
     ],
   },
   {

@@ -198,6 +198,15 @@ export function PlusIcon({ className = 'h-4 w-4' }: IconProps) {
   );
 }
 
+export function GraduationCapIcon({ className = 'h-5 w-5' }: IconProps) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M22 10v6M2 10l10-5 10 5-10 5z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 12v5c0 1.657 2.686 3 6 3s6-1.343 6-3v-5" />
+    </svg>
+  );
+}
+
 export function CalendarIcon({ className = 'h-4 w-4' }: IconProps) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">

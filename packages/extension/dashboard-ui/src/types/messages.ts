@@ -176,7 +176,7 @@ export interface DashboardJournalDaySummary {
   mood?: number;
 }
 
-export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals';
+export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals';
 
 // Extension Host → Dashboard
 export type ExtToDashboardMessage =
