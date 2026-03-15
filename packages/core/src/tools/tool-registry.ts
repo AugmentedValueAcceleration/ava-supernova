@@ -32,6 +32,16 @@ import { DetectLanguageTool } from './detect-language.js';
 import { TaskManageTool } from './task-manage.js';
 import { JournalWriteTool } from './journal.js';
 import { DocumentManageTool } from './document-manage.js';
+import { GitCommitTool } from './git-commit.js';
+import { GitCreatePrTool } from './git-create-pr.js';
+import { TestRunTool } from './test-run.js';
+import { TestGenerateTool } from './test-generate.js';
+import { AnalyzeArchitectureTool } from './analyze-architecture.js';
+import { DocGenerateTool } from './doc-generate.js';
+import { AuditDependenciesTool } from './audit-dependencies.js';
+import { BenchmarkTool } from './benchmark.js';
+import { ApplyPlanTool } from './apply-plan.js';
+import { DebugLogsTool } from './debug-logs.js';
 
 // Which risk levels require confirmation under each permission mode
 const CONFIRMATION_MATRIX: Record<PermissionMode, Set<ToolRiskLevel>> = {
@@ -91,6 +101,16 @@ export class ToolRegistry {
       new TaskManageTool(),
       new JournalWriteTool(),
       new DocumentManageTool(),
+      new GitCommitTool(),
+      new GitCreatePrTool(),
+      new TestRunTool(),
+      new TestGenerateTool(),
+      new AnalyzeArchitectureTool(),
+      new DocGenerateTool(),
+      new AuditDependenciesTool(),
+      new BenchmarkTool(),
+      new ApplyPlanTool(),
+      new DebugLogsTool(),
     ];
     for (const tool of builtins) {
       this.tools.set(tool.name, tool);
