@@ -1,6 +1,7 @@
 import * as esbuild from 'esbuild';
 
 const isWatch = process.argv.includes('--watch');
+const isProduction = process.argv.includes('--production') || process.env.NODE_ENV === 'production';
 
 const ctx = await esbuild.context({
   entryPoints: ['src/extension.ts'],
@@ -9,8 +10,8 @@ const ctx = await esbuild.context({
   external: ['vscode', 'playwright', 'playwright-core', 'chromium-bidi', 'docx', 'exceljs', 'pdfkit', 'pdf-parse', 'mammoth'],
   format: 'cjs',
   platform: 'node',
-  sourcemap: true,
-  minify: false,
+  sourcemap: !isProduction,
+  minify: isProduction,
 });
 
 if (isWatch) {
