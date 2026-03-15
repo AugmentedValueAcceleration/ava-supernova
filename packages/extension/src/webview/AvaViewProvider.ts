@@ -88,10 +88,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     });
 
     // Re-initialize when platform key is added or removed (dashboard connect/disconnect)
-    this.context.secrets.onDidChange((e) => {
+    this.context.secrets.onDidChange(async (e) => {
       if (e.key === 'ava-supernova.platformKey') {
         this.cachedAccount = null;
-        this.initializeSession();
+        await this.initializeSession();
+        // Pull latest memories from cloud after sign-in
+        if (this.memoryManager) {
+          this.memoryManager.pullLatest('global').catch(() => {});
+          this.memoryManager.pullLatest('project').catch(() => {});
+        }
       }
     });
   }

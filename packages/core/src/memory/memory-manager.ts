@@ -669,6 +669,64 @@ export class MemoryManager {
     return this.projectDir ? join(this.projectDir, MEMORY_FILENAME_V2) : null;
   }
 
+  /**
+   * Pull latest memories from the platform and merge into local store.
+   * Remote entries win conflicts (by updatedAt). Returns count of new/updated entries.
+   */
+  async pullLatest(scope: 'global' | 'project'): Promise<number> {
+    if (!this.sync || this.localOnly) return 0;
+
+    try {
+      const remote = await this.sync.pull(scope);
+      if (remote.length === 0) return 0;
+
+      const store = scope === 'global'
+        ? await this.loadGlobalStore()
+        : await this.loadProjectStore() ?? { version: 2 as const, lastModified: new Date().toISOString(), entries: [] };
+
+      let updated = 0;
+      for (const r of remote) {
+        if (r.key === 'memory.json') continue; // Skip legacy blob records
+        const existing = store.entries.find(e => e.id === r.key);
+        if (existing) {
+          // Remote wins if newer
+          if (r.updated_at > existing.updatedAt) {
+            existing.content = r.content;
+            existing.updatedAt = r.updated_at;
+            existing.category = this.inferCategory(r.content);
+            updated++;
+          }
+        } else {
+          // New entry from remote
+          store.entries.push({
+            id: r.key,
+            category: this.inferCategory(r.content),
+            content: r.content,
+            createdAt: r.updated_at,
+            updatedAt: r.updated_at,
+            lastRecalledAt: null,
+            recallCount: 0,
+            archived: false,
+          });
+          updated++;
+        }
+      }
+
+      if (updated > 0) {
+        store.lastModified = new Date().toISOString();
+        const dir = scope === 'global' ? this.globalDir : this.projectDir;
+        if (dir) {
+          await this.persistStore(dir, store);
+          this.clearCache();
+        }
+      }
+
+      return updated;
+    } catch {
+      return 0;
+    }
+  }
+
   /** Invalidate cached stores and TF-IDF indexes. */
   clearCache(): void {
     this.globalStore = null;
