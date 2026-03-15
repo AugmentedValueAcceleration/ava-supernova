@@ -6,3 +6,7 @@
 	path = packages/ide
 	url = https://github.com/AugmentedValueAcceleration/ava-supernova-ide.git
 	branch = development
+[submodule "packages/mobile"]
+	path = packages/mobile
+	url = https://github.com/AugmentedValueAcceleration/ava-supernova-companion.git
+	branch = development
