@@ -162,6 +162,80 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
 
   // ── Drag & drop support ───────────────────────────────────────────────────
 
+  // Voice input
+  const [isListening, setIsListening] = useState(false);
+  const [micPermission, setMicPermission] = useState<'prompt' | 'granted' | 'denied'>(() => {
+    const saved = localStorage.getItem('ava-mic-consent');
+    return saved === 'granted' ? 'granted' : saved === 'denied' ? 'denied' : 'prompt';
+  });
+  const [showMicPrompt, setShowMicPrompt] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  const startListening = useCallback(() => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+
+    const recognition = new SR();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = navigator.language || 'en-US';
+
+    let finalTranscript = '';
+
+    recognition.onresult = (e: any) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const transcript = e.results[i][0].transcript;
+        if (e.results[i].isFinal) {
+          finalTranscript += transcript + ' ';
+        } else {
+          interim = transcript;
+        }
+      }
+      setText(prev => {
+        const base = prev.replace(/\u200B.*$/, '').trimEnd();
+        return (base ? base + ' ' : '') + finalTranscript + interim;
+      });
+      handleInput();
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      recognitionRef.current = null;
+      textareaRef.current?.focus();
+    };
+
+    recognition.onerror = (e: any) => {
+      setIsListening(false);
+      recognitionRef.current = null;
+      if (e.error === 'not-allowed') {
+        setMicPermission('denied');
+        localStorage.setItem('ava-mic-consent', 'denied');
+      }
+    };
+
+    recognitionRef.current = recognition;
+    finalTranscript = '';
+    recognition.start();
+    setIsListening(true);
+    localStorage.setItem('ava-mic-consent', 'granted');
+    setMicPermission('granted');
+  }, [handleInput]);
+
+  const toggleVoice = useCallback(() => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+    if (micPermission === 'prompt' && !localStorage.getItem('ava-mic-consent')) {
+      setShowMicPrompt(true);
+      return;
+    }
+    if (micPermission === 'denied') return;
+    startListening();
+  }, [isListening, micPermission, startListening]);
+
   const [isDragOver, setIsDragOver] = useState(false);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -430,6 +504,32 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
               </svg>
             </button>
 
+            {/* Voice input button */}
+            <button
+              onClick={toggleVoice}
+              disabled={disabled || micPermission === 'denied'}
+              title={micPermission === 'denied' ? 'Microphone denied — check browser settings' : isListening ? 'Stop listening' : 'Voice input'}
+              aria-label={isListening ? 'Stop listening' : 'Voice input'}
+              className={`flex items-center justify-center w-9 h-9 rounded-lg
+                         cursor-pointer transition-all duration-200
+                         ${isListening
+                           ? 'text-white border border-red-500/50'
+                           : micPermission === 'denied'
+                           ? 'text-[var(--vscode-foreground)] opacity-15 cursor-not-allowed border border-[rgba(168,85,247,0.08)]'
+                           : 'text-[var(--vscode-foreground)] opacity-50 hover:opacity-90 border border-[rgba(168,85,247,0.15)] hover:border-[rgba(168,85,247,0.4)] hover:bg-[rgba(168,85,247,0.1)]'
+                         }
+                         disabled:opacity-15 disabled:cursor-not-allowed`}
+              style={isListening ? {
+                background: 'linear-gradient(135deg, #e53935, #c62828)',
+                boxShadow: '0 2px 8px rgba(229, 57, 53, 0.35)',
+                animation: 'pulse 1.5s infinite',
+              } : { background: 'rgba(168, 85, 247, 0.05)' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+              </svg>
+            </button>
+
             {isStreaming ? (
               <button
                 onClick={onCancel}
@@ -473,6 +573,43 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
           </div>
         </div>
       </div>
+      {/* Mic consent prompt */}
+      {showMicPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }}>
+          <div className="w-80 rounded-xl p-5 space-y-3" style={{ background: 'var(--vscode-editor-background)', border: '1px solid var(--vscode-panel-border)' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'rgba(168,85,247,0.2)' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A855F7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+                </svg>
+              </div>
+              <div>
+                <div className="text-sm font-semibold" style={{ color: 'var(--vscode-foreground)' }}>Voice Input</div>
+                <div className="text-[11px]" style={{ color: 'var(--vscode-descriptionForeground)' }}>Speak instead of typing</div>
+              </div>
+            </div>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--vscode-foreground)' }}>
+              Ava can listen to your voice and convert it to text. Audio is processed entirely by your browser — <strong>nothing is recorded, stored, or sent to any server</strong>.
+            </p>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => { setShowMicPrompt(false); startListening(); }}
+                className="flex-1 py-2 rounded-lg text-sm font-medium text-white cursor-pointer border-none"
+                style={{ background: 'linear-gradient(135deg, #A855F7, #7C3AED)' }}
+              >
+                Allow
+              </button>
+              <button
+                onClick={() => { setShowMicPrompt(false); localStorage.setItem('ava-mic-consent', 'denied'); setMicPermission('denied'); }}
+                className="flex-1 py-2 rounded-lg text-sm font-medium cursor-pointer"
+                style={{ background: 'var(--vscode-button-secondaryBackground)', color: 'var(--vscode-button-secondaryForeground)', border: 'none' }}
+              >
+                No Thanks
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
