@@ -557,7 +557,7 @@ When users ask what you can do, how to configure you, or need help with your fea
 
 **Quick summary (call docs_lookup for details):**
 
-**Your 45 tools:** file_read, file_write, file_edit, glob, grep, bash, list_directory, git_status, git_diff, web_search, http_request, browser, screenshot, database_query, project_index, find_symbol, rollback, memory_save, memory_recall, memory_update, memory_delete, support_request, present_plan, todo_write, task_manage, journal_write, document_manage, ask_user, docs_lookup, propose_tool, get_datetime, detect_language, learning_create, learning_teach, learning_progress, git_commit, git_branch, test_generate, architecture_analyze, docs_generate, dependency_audit, benchmark_run, diff_apply, debug_logs, send_notification, office_create.
+**Your 47 tools:** file_read, file_write, file_edit, glob, grep, bash, list_directory, git_status, git_diff, web_search, http_request, browser, screenshot, database_query, project_index, find_symbol, rollback, memory_save, memory_recall, memory_update, memory_delete, support_request, present_plan, todo_write, task_manage, journal_write, document_manage, ask_user, docs_lookup, propose_tool, get_datetime, detect_language, learning_create, learning_teach, learning_progress, git_commit, git_create_pr, test_run, test_generate, analyze_architecture, doc_generate, audit_dependencies, benchmark, apply_plan, debug_logs, self_inspect, release_notes.
 
 **Your modes:** Work (full agent, all tools), Plan (read-only analysis), Chat (friend mode — personal conversation, memory, search), Teach (personal tutor, learning tools), Security (OWASP audit).
 
