@@ -11,6 +11,27 @@ import { ContextBar } from './components/ContextBar';
 import type { AvaMode, ImageAttachment } from './components/InputArea';
 import { t, setLocale, loadStrings } from './i18n';
 
+/** Strip mode prefix from user messages so internal prompts don't show in the UI */
+function stripModePrefix(content: string): string {
+  if (typeof content !== 'string') return content;
+  const prefixes = ['[Chat Mode]', '[Teach Mode]', '[Plan Mode]', '[Security Mode]'];
+  for (const p of prefixes) {
+    if (content.startsWith(p)) {
+      // The user's actual message is after the last line of the prefix
+      // Find the user's text which was appended at the end
+      const lines = content.split('\n');
+      // The actual user text is the last non-empty line(s) after the prefix block
+      // Mode prefixes end with a blank line before the user text
+      const lastBlankIdx = content.lastIndexOf('\n\n');
+      if (lastBlankIdx > 0) {
+        return content.slice(lastBlankIdx + 2).trim();
+      }
+      return content;
+    }
+  }
+  return content;
+}
+
 type ChatAction =
   | ExtToWebviewMessage
   | { type: 'close_history' }
@@ -239,7 +260,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       const restoredMessages: UIMessage[] = action.messages.map((m) => ({
         id: nextId(),
         role: m.role,
-        content: m.content,
+        content: m.role === 'user' ? stripModePrefix(m.content) : m.content,
         toolCalls: [],
         isStreaming: false,
       }));
