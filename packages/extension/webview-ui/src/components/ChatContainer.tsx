@@ -2,11 +2,21 @@ import type { RefObject } from 'react';
 import type { UIMessage } from '../types/messages';
 import { MessageBubble } from './MessageBubble';
 import { ThinkingIndicator } from './ThinkingIndicator';
+import { PersonaStatus } from './PersonaStatus';
 import { t } from '../i18n';
+
+interface PersonaInfo {
+  id: string;
+  phase: 'active' | 'complete' | 'error';
+  description?: string;
+}
 
 interface ChatContainerProps {
   messages: UIMessage[];
   isThinking: boolean;
+  conductorActive?: boolean;
+  conductorMode?: string;
+  activePersonas?: PersonaInfo[];
   onConfirmation: (confirmationId: string, approved: boolean, alwaysAllow?: boolean, allowAll?: boolean, planSelection?: string, userResponse?: string) => void;
   onContinue: () => void;
   onSuggestion: (prompt: string) => void;
@@ -41,7 +51,7 @@ const MODE_INFO = [
   { icon: '!!', label: 'Security', desc: 'welcome.mode.security_desc' },
 ];
 
-export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onSuggestion, chatEndRef, needsSetup, initialized, onOpenDashboard, activeModel, models }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onSuggestion, chatEndRef, needsSetup, initialized, onOpenDashboard, activeModel, models, conductorActive, conductorMode, activePersonas }: ChatContainerProps) {
   // Don't render welcome screen until init message arrives — prevents setup banner flash
   if (!initialized && messages.length === 0) {
     return <div className="flex-1" />;
@@ -211,6 +221,13 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
           onContinue={msg.role === 'error' && i === messages.length - 1 ? onContinue : undefined}
         />
       ))}
+      {(conductorActive || (activePersonas && activePersonas.length > 0)) && (
+        <PersonaStatus
+          active={conductorActive || false}
+          mode={conductorMode}
+          personas={activePersonas || []}
+        />
+      )}
       {isThinking && <ThinkingIndicator />}
       <div ref={chatEndRef} />
     </div>

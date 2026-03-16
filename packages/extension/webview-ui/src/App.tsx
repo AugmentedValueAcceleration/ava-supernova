@@ -228,7 +228,23 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     }
 
     case 'done':
-      return { ...state, isStreaming: false, isThinking: false };
+      return { ...state, isStreaming: false, isThinking: false, conductorActive: false, activePersonas: [] };
+
+    case 'conductor_status':
+      return {
+        ...state,
+        conductorActive: action.active,
+        conductorMode: action.mode,
+        ...(!action.active ? { activePersonas: state.activePersonas } : {}),
+      };
+
+    case 'persona_status': {
+      const existing = state.activePersonas.filter(p => p.id !== action.persona);
+      return {
+        ...state,
+        activePersonas: [...existing, { id: action.persona, phase: action.phase, description: action.description }],
+      };
+    }
 
     case 'model_switched': {
       const switchMsg: UIMessage = {
@@ -387,6 +403,9 @@ const initialState: ChatState = {
   sessionTasks: [],
   avaCompletedTasks: [],
   tasksPanelWidth: DEFAULT_WIDTH,
+  conductorActive: false,
+  conductorMode: undefined as string | undefined,
+  activePersonas: [] as Array<{ id: string; phase: 'active' | 'complete' | 'error'; description?: string }>,
 };
 
 // ── Typing speed config ─────────────────────────────────────────────────────
@@ -757,6 +776,9 @@ export function App() {
           onOpenDashboard={handleOpenDashboard}
           activeModel={state.activeModel}
           models={state.models}
+          conductorActive={state.conductorActive}
+          conductorMode={state.conductorMode}
+          activePersonas={state.activePersonas}
         />
 
         <ContextBar

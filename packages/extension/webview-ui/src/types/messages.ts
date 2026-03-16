@@ -80,7 +80,9 @@ export type ExtToWebviewMessage =
   | { type: 'today_tasks'; tasks: TodayTaskUI[] }
   | { type: 'all_tasks'; tasks: TodayTaskUI[] }
   | { type: 'session_tasks'; tasks: SessionTaskUI[] }
-  | { type: 'ava_completed_tasks'; tasks: AvaCompletedTaskUI[] };
+  | { type: 'ava_completed_tasks'; tasks: AvaCompletedTaskUI[] }
+  | { type: 'conductor_status'; active: boolean; mode?: string }
+  | { type: 'persona_status'; persona: string; phase: 'active' | 'complete' | 'error'; description?: string };
 
 /** Task entry for today panel display. */
 export interface TodayTaskUI {
