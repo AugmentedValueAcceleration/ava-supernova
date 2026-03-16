@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { post } from '../App';
+import { Select } from '../components/Select';
 
 interface SupportMessage {
   id: string;
@@ -38,6 +39,16 @@ const SOURCE_LABELS: Record<string, string> = {
   website: 'Website',
 };
 
+const CATEGORY_OPTIONS = [
+  { value: 'bug', label: 'Bug Report' },
+  { value: 'feature', label: 'Feature Request' },
+  { value: 'question', label: 'Question' },
+  { value: 'account', label: 'Account / Billing' },
+  { value: 'feedback', label: 'Feedback' },
+  { value: 'teach', label: 'Teach Mode' },
+  { value: 'other', label: 'Other' },
+];
+
 const CATEGORY_COLORS: Record<string, string> = {
   bug: 'bg-red-500/15 text-red-300',
   feature: 'bg-purple-500/15 text-purple-300',
@@ -64,7 +75,6 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
   const [sending, setSending] = useState(false);
 
   const [showNew, setShowNew] = useState(false);
-  const [newSubject, setNewSubject] = useState('');
   const [newMessage, setNewMessage] = useState('');
   const [newCategory, setNewCategory] = useState('other');
   const [creating, setCreating] = useState(false);
@@ -73,12 +83,12 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
 
   function handleCreateTicket(e: React.FormEvent) {
     e.preventDefault();
-    if (!newSubject.trim() || !newMessage.trim()) return;
+    if (!newMessage.trim()) return;
     setCreating(true);
-    post({ type: 'create_support_ticket', subject: newSubject, message: newMessage, category: newCategory });
+    const subject = newMessage.trim().slice(0, 80) + (newMessage.trim().length > 80 ? '...' : '');
+    post({ type: 'create_support_ticket', subject, message: newMessage, category: newCategory });
     setTimeout(() => {
       setShowNew(false);
-      setNewSubject('');
       setNewMessage('');
       setNewCategory('other');
       setCreating(false);
@@ -202,32 +212,8 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
       {showNew && (
         <form onSubmit={handleCreateTicket} className="mb-6 space-y-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
           <div>
-            <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">Subject</label>
-            <input
-              type="text"
-              required
-              maxLength={500}
-              value={newSubject}
-              onChange={(e) => setNewSubject(e.target.value)}
-              className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none focus:border-[var(--accent)]"
-              placeholder="Brief description of your issue"
-            />
-          </div>
-          <div>
             <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">Category</label>
-            <select
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-              className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none focus:border-[var(--accent)]"
-            >
-              <option value="bug">Bug Report</option>
-              <option value="feature">Feature Request</option>
-              <option value="question">Question</option>
-              <option value="account">Account / Billing</option>
-              <option value="feedback">Feedback</option>
-              <option value="teach">Teach Mode</option>
-              <option value="other">Other</option>
-            </select>
+            <Select value={newCategory} onChange={setNewCategory} options={CATEGORY_OPTIONS} />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">Message</label>
@@ -347,15 +333,15 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
 
 function ByokSupport() {
   const [email, setEmail] = useState('');
-  const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [category, setCategory] = useState('other');
   const [sent, setSent] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim() || !subject.trim() || !message.trim()) return;
-    post({ type: 'send_byok_support', email: email.trim(), subject: subject.trim(), message: message.trim(), category });
+    if (!email.trim() || !message.trim()) return;
+    const subject = message.trim().slice(0, 80) + (message.trim().length > 80 ? '...' : '');
+    post({ type: 'send_byok_support', email: email.trim(), subject, message: message.trim(), category });
     setSent(true);
     setTimeout(() => setSent(false), 3000);
   }
@@ -382,32 +368,8 @@ function ByokSupport() {
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">Subject</label>
-          <input
-            type="text"
-            required
-            maxLength={500}
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none focus:border-[var(--accent)]"
-            placeholder="Brief description of your issue"
-          />
-        </div>
-        <div>
           <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">Category</label>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none focus:border-[var(--accent)]"
-          >
-            <option value="bug">Bug Report</option>
-            <option value="feature">Feature Request</option>
-            <option value="question">Question</option>
-            <option value="account">Account / Billing</option>
-            <option value="feedback">Feedback</option>
-            <option value="teach">Teach Mode</option>
-            <option value="other">Other</option>
-          </select>
+          <Select value={category} onChange={setCategory} options={CATEGORY_OPTIONS} />
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">Message</label>

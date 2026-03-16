@@ -32,7 +32,7 @@ export class SupportRequestTool implements Tool {
         subject: {
           type: 'string',
           description:
-            'A short summary of the issue (max 500 chars). Be clear and specific.',
+            'Optional short summary. If omitted, auto-generated from the first line of the message.',
         },
         message: {
           type: 'string',
@@ -50,31 +50,23 @@ export class SupportRequestTool implements Tool {
             'teach (Teach mode specific), other (anything else).',
         },
       },
-      required: ['email', 'subject', 'message', 'category'],
+      required: ['email', 'message', 'category'],
     },
   };
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const email = (args.email as string)?.trim();
     const name = (args.name as string)?.trim() || undefined;
-    const subject = (args.subject as string)?.trim();
     const message = (args.message as string)?.trim();
     const category = (args.category as string)?.trim() || 'other';
+    const subject = (args.subject as string)?.trim() || (message ? message.slice(0, 80) + (message.length > 80 ? '...' : '') : '');
 
     if (!email || !email.includes('@')) {
       return { success: false, output: 'A valid email address is required.' };
     }
 
-    if (!subject) {
-      return { success: false, output: 'Subject is required.' };
-    }
-
     if (!message) {
       return { success: false, output: 'Message is required.' };
-    }
-
-    if (subject.length > 500) {
-      return { success: false, output: 'Subject must be 500 characters or fewer.' };
     }
 
     if (message.length > 10_000) {
