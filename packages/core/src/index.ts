@@ -127,6 +127,25 @@ export { t, setLocale, setLocaleSync, loadLocaleStrings, getLocale, getSupported
 export type { SupportedLocale } from './i18n/types.js';
 export { SUPPORTED_LOCALES, LANGUAGE_NAMES } from './i18n/types.js';
 
+// Personas
+export { Conductor } from './personas/index.js';
+export type {
+  PersonaId,
+  PersonaPhase,
+  PersonaDefinition,
+  PersonaState,
+  ContextPool,
+  ConductorEvent,
+  ConductorEventHandler,
+  ConductorConfig,
+} from './personas/index.js';
+export {
+  SCOUT, ARCHITECT, VERIFIER, SEQUENCER, CHALLENGER, BUILDER,
+  RESEARCHER, CONTENT_WRITER, QUIZ_MASTER, TUTOR,
+  WORK_PERSONAS, PLAN_PERSONAS, TEACH_PERSONAS, SECURITY_PERSONAS,
+  MODE_PERSONAS,
+} from './personas/index.js';
+
 // Constants & Errors
 export {
   APP_NAME,
