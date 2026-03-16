@@ -153,6 +153,40 @@ export interface DashboardTaskEntry {
   completed_at?: string;
 }
 
+// ─── Learning Types ─────────────────────────────────────────────────────────
+
+export interface DashboardLearningLesson {
+  id: string;
+  title: string;
+  type: string;
+  status: string;
+  score: number | null;
+}
+
+export interface DashboardLearningModule {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  progress_percent: number;
+  lessons: DashboardLearningLesson[];
+}
+
+export interface DashboardLearningCurriculum {
+  id: string;
+  title: string;
+  description: string | null;
+  subject: string;
+  level: string;
+  goal: string | null;
+  estimated_hours: number | null;
+  status: string;
+  progress_percent: number;
+  modules: DashboardLearningModule[];
+  created_at: string;
+  updated_at: string;
+}
+
 // ─── Journal Types ───────────────────────────────────────────────────────────
 
 export interface DashboardJournalEntry {
@@ -221,6 +255,8 @@ export type ExtToDashboardMessage =
   | { type: 'journal_day_loaded'; day: DashboardJournalDay }
   | { type: 'journal_summaries_loaded'; summaries: DashboardJournalDaySummary[] }
   | { type: 'journal_day_updated'; day: DashboardJournalDay }
+  // Learning messages
+  | { type: 'learning_loaded'; curriculums: DashboardLearningCurriculum[] }
   | { type: 'error'; message: string };
 
 // Dashboard → Extension Host
@@ -279,4 +315,6 @@ export type DashboardToExtMessage =
   // Journal messages
   | { type: 'load_journal_day'; date: string }
   | { type: 'load_journal_summaries'; from: string; to: string }
-  | { type: 'save_journal_user_entry'; date: string; content: string; mood?: number; tags?: string[] };
+  | { type: 'save_journal_user_entry'; date: string; content: string; mood?: number; tags?: string[] }
+  // Learning messages
+  | { type: 'load_learning' };

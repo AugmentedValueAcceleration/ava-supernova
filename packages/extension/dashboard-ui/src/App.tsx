@@ -31,6 +31,7 @@ import type {
   UsageLogEntry,
   ExtToDashboardMessage,
   DashboardToExtMessage,
+  DashboardLearningCurriculum,
 } from './types/messages';
 
 declare function acquireVsCodeApi(): {
@@ -78,6 +79,7 @@ export function App() {
   const [journalSummaries, setJournalSummaries] = useState<DashboardJournalDaySummary[]>([]);
   const [selectedJournalDate, setSelectedJournalDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [sessionStatsData, setSessionStatsData] = useState<SessionStats | null>(null);
+  const [learningCurriculums, setLearningCurriculums] = useState<DashboardLearningCurriculum[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // Admin state
   const [adminTickets, setAdminTickets] = useState<SupportTicket[]>([]);
@@ -224,6 +226,9 @@ export function App() {
       case 'byok_support_sent':
         // Handled by Support page directly
         break;
+      case 'learning_loaded':
+        setLearningCurriculums(msg.curriculums);
+        break;
       case 'error':
         setErrorMsg(msg.message);
         setTimeout(() => setErrorMsg(null), 5000);
@@ -254,6 +259,10 @@ export function App() {
     if (page === 'admin_proposals' && adminProposals.length === 0 && !adminProposalsLoading) {
       setAdminProposalsLoading(true);
       post({ type: 'load_admin_proposals' });
+    }
+    // Load learning when navigating to learning page
+    if (page === 'learning') {
+      post({ type: 'load_learning' });
     }
     // Load tasks when navigating to tasks page
     if (page === 'tasks' && tasks.length === 0) {
@@ -323,7 +332,7 @@ export function App() {
           />
         );
       case 'learning':
-        return <Learning />;
+        return <Learning curriculums={learningCurriculums} />;
       case 'connections':
         return <Connections connections={connections} />;
       case 'history':

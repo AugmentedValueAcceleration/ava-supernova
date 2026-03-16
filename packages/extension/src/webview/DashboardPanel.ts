@@ -333,6 +333,12 @@ export class DashboardPanel {
         await this.saveJournalUserEntry(msg.date, msg.content, msg.mood, msg.tags);
         break;
 
+      // ─── Learning messages ─────────────────────────────────────────────────
+
+      case 'load_learning':
+        await this.loadLearning();
+        break;
+
     }
   }
 
@@ -1004,6 +1010,18 @@ export class DashboardPanel {
       this.post({ type: 'tasks_loaded', tasks: tasks.map(t => this.coreToDisplayTask(t)) });
     } catch {
       this.post({ type: 'tasks_loaded', tasks: [] });
+    }
+  }
+
+  private async loadLearning(): Promise<void> {
+    try {
+      const fs = await import('node:fs/promises');
+      const learningPath = path.join(AVA_HOME, 'learning.json');
+      const raw = await fs.readFile(learningPath, 'utf-8');
+      const store = JSON.parse(raw);
+      this.post({ type: 'learning_loaded', curriculums: store.curriculums || [] });
+    } catch {
+      this.post({ type: 'learning_loaded', curriculums: [] });
     }
   }
 
