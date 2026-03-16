@@ -28,8 +28,9 @@ import {
   loadProjectInstructions,
   setLocaleSync,
   resolveLocale,
+  Conductor,
 } from '@ava/core';
-import type { AgentEvent, Provider, ModelDefinition, Message, ContentPart, PermissionMode } from '@ava/core';
+import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, Message, ContentPart, PermissionMode } from '@ava/core';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus } from './message-types.js';
 import type { AccountInfo } from './dashboard-message-types.js';
 import { DashboardPanel } from './DashboardPanel.js';
@@ -62,6 +63,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private memoryManager?: MemoryManager;
   private taskManager?: TaskManager;
   private journalManager?: JournalManager;
+  private conductor?: Conductor;
   private cachedMemory?: string;
   private currentLocale = 'en';
   private panelStateCallback?: (isOpen: boolean) => void;
@@ -621,17 +623,27 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         })
       : provider;
 
+    const sharedState = {
+      memoryManager: this.memoryManager,
+      taskManager: this.taskManager,
+      journalManager: this.journalManager,
+      platformKey: await this.context.secrets.get('ava-supernova.platformKey'),
+    };
+
     this.agent = new Agent({
       provider: resilientProvider,
       model,
       toolRegistry: this.toolRegistry,
       cwd,
-      sharedState: {
-        memoryManager: this.memoryManager,
-        taskManager: this.taskManager,
-        journalManager: this.journalManager,
-        platformKey: await this.context.secrets.get('ava-supernova.platformKey'),
-      },
+      sharedState,
+    });
+
+    this.conductor = new Conductor({
+      provider: resilientProvider,
+      model,
+      toolRegistry: this.toolRegistry,
+      cwd,
+      sharedState,
     });
   }
 
@@ -1354,6 +1366,59 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     };
 
     try {
+      // ── Conductor: run persona team for complex tasks ──────────────────
+      const modeMap: Record<string, string> = { code: 'work', plan: 'plan', chat: 'chat', teach: 'teach', security: 'security' };
+      const conductorMode = modeMap[mode] || 'work';
+
+      if (this.conductor && this.conductor.needsOrchestration(text, conductorMode)) {
+        this.log(`Conductor: orchestrating ${conductorMode} team for: "${text.slice(0, 60)}"`);
+        this.postMessage({ type: 'conductor_status', active: true, mode: conductorMode });
+
+        const onConductorEvent = (event: ConductorEvent): void => {
+          switch (event.type) {
+            case 'persona_start':
+              this.postMessage({ type: 'persona_status', persona: event.persona, phase: 'active', description: event.description });
+              this.log(`Persona ${event.persona}: started`);
+              break;
+            case 'persona_tool_call':
+              this.log(`Persona ${event.persona}: tool ${event.tool}`);
+              break;
+            case 'persona_complete':
+              this.postMessage({ type: 'persona_status', persona: event.persona, phase: 'complete' });
+              this.log(`Persona ${event.persona}: complete`);
+              break;
+            case 'persona_error':
+              this.postMessage({ type: 'persona_status', persona: event.persona, phase: 'error' });
+              this.log(`Persona ${event.persona}: error — ${event.error}`);
+              break;
+            case 'conductor_done':
+              this.postMessage({ type: 'conductor_status', active: false });
+              this.log(`Conductor: done (${event.totalPersonas} personas, ${event.totalTime}ms)`);
+              break;
+          }
+        };
+
+        try {
+          const { synthesisPrompt } = await this.conductor.orchestrate(
+            text,
+            conductorMode,
+            this.conversation.getMessages(),
+            onConductorEvent,
+            this.runAbortController.signal,
+          );
+
+          // Inject synthesis as context for the main Agent
+          if (synthesisPrompt) {
+            const messages = this.conversation.getMessages();
+            messages.push({ role: 'user', content: `[Internal Planning — from Ava's persona team]\n\n${synthesisPrompt}` });
+            this.conversation.setMessages(messages);
+          }
+        } catch (err) {
+          this.log(`Conductor error: ${err instanceof Error ? err.message : String(err)}`);
+          // Non-fatal — Agent runs without persona context
+        }
+      }
+
       this.log(`Calling agent.run() with ${this.conversation.getMessages().length} messages`);
       const updatedMessages = await this.agent.run(
         this.conversation.getMessages(),

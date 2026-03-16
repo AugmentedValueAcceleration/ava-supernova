@@ -84,7 +84,9 @@ export type ExtToWebviewMessage =
   | { type: 'today_tasks'; tasks: Array<{ id: string; title: string; priority: string; status: string; dueDate?: string; category: string }> }
   | { type: 'all_tasks'; tasks: Array<{ id: string; title: string; priority: string; status: string; dueDate?: string; category: string }> }
   | { type: 'session_tasks'; tasks: Array<{ id: string; title: string; status: string }> }
-  | { type: 'ava_completed_tasks'; tasks: Array<{ id: string; title: string; completedAt: string }> };
+  | { type: 'ava_completed_tasks'; tasks: Array<{ id: string; title: string; completedAt: string }> }
+  | { type: 'conductor_status'; active: boolean; mode?: string }
+  | { type: 'persona_status'; persona: string; phase: 'active' | 'complete' | 'error'; description?: string };
 
 /** Structured memory entry for webview display. */
 export interface MemoryEntryUI {
