@@ -11,33 +11,23 @@ function getMonthKey(dateStr: string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-export function Releases() {
-  const [releases, setReleases] = useState<ReleaseNote[]>([]);
-  const [loading, setLoading] = useState(true);
+export function Releases({ releases }: { releases: ReleaseNote[] }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
 
+  // Request data on mount
   useEffect(() => {
     post({ type: 'load_releases' });
-
-    const handler = (e: MessageEvent) => {
-      const msg = e.data;
-      if (msg.type === 'releases_loaded') {
-        const items = Array.isArray(msg.releases) ? msg.releases : [];
-        setReleases(items);
-        if (items.length > 0) {
-          setExpanded(items[0].id);
-          // Default to the month of the latest release
-          setSelectedMonth(getMonthKey(items[0].published_at));
-        }
-        setLoading(false);
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
   }, []);
 
-  // Get unique months from releases, sorted newest first
+  // Auto-expand latest and default to its month
+  useEffect(() => {
+    if (releases.length > 0 && !expanded) {
+      setExpanded(releases[0].id);
+      setSelectedMonth(getMonthKey(releases[0].published_at));
+    }
+  }, [releases, expanded]);
+
   const months = useMemo(() => {
     const seen = new Map<string, string>();
     for (const r of releases) {
@@ -49,24 +39,15 @@ export function Releases() {
     return Array.from(seen.entries()).sort((a, b) => b[0].localeCompare(a[0]));
   }, [releases]);
 
-  // Filter releases by selected month
   const filtered = useMemo(() => {
     if (!selectedMonth) return releases;
     return releases.filter(r => getMonthKey(r.published_at) === selectedMonth);
   }, [releases, selectedMonth]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-40 text-sm text-[var(--text-muted)]">
-        Loading release notes...
-      </div>
-    );
-  }
-
   if (releases.length === 0) {
     return (
       <div className="flex items-center justify-center h-40 text-sm text-[var(--text-muted)]">
-        No release notes yet.
+        Loading release notes...
       </div>
     );
   }
@@ -81,7 +62,6 @@ export function Releases() {
           </p>
         </div>
 
-        {/* Month filter dropdown */}
         <select
           value={selectedMonth}
           onChange={(e) => setSelectedMonth(e.target.value)}

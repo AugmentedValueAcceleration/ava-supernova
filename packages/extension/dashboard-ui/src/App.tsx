@@ -35,6 +35,7 @@ import type {
   DashboardToExtMessage,
   DashboardLearningCurriculum,
   SyncStatus,
+  ReleaseNote,
 } from './types/messages';
 
 declare function acquireVsCodeApi(): {
@@ -95,6 +96,8 @@ export function App() {
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [syncingTypes, setSyncingTypes] = useState<Set<string>>(new Set());
   const [syncResults, setSyncResults] = useState<Record<string, { success: boolean; count?: number; error?: string }>>({});
+  // Release notes state
+  const [releases, setReleases] = useState<ReleaseNote[]>([]);
 
   const handleMessage = useCallback((event: MessageEvent) => {
     // Only accept messages from the VSCode webview host
@@ -252,6 +255,9 @@ export function App() {
         setSyncingTypes(prev => { const next = new Set(prev); next.delete(msg.dataType); return next; });
         setSyncResults(prev => ({ ...prev, [msg.dataType]: { success: false, error: msg.message } }));
         break;
+      case 'releases_loaded':
+        setReleases(msg.releases);
+        break;
       case 'error':
         setErrorMsg(msg.message);
         setTimeout(() => setErrorMsg(null), 5000);
@@ -363,7 +369,7 @@ export function App() {
       case 'sync':
         return <Sync syncStatus={syncStatus} syncingTypes={syncingTypes} syncResults={syncResults} isConnected={!!account} />;
       case 'releases':
-        return <Releases />;
+        return <Releases releases={releases} />;
       case 'connections':
         return <Connections connections={connections} />;
       case 'history':

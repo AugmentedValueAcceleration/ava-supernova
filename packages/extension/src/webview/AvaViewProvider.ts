@@ -238,8 +238,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           });
         }
       }
-    } catch {
-      // Silent fail — usage reporting should never block the user
+    } catch (err) {
+      this.log(`Usage reporting failed (non-blocking): ${err}`);
     }
   }
 
@@ -744,7 +744,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         if (lines.length > 0) {
           activeTasks = lines.join('\n');
         }
-      } catch { /* ignore — tasks are optional context */ }
+      } catch (err) { this.log(`Tasks context load failed: ${err}`); }
     }
 
     // Load recent journal entries for context (last 3 days)
@@ -765,7 +765,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             return parts.join('\n');
           }).join('\n\n');
         }
-      } catch { /* ignore — journal is optional context */ }
+      } catch (err) { this.log(`Journal context load failed: ${err}`); }
     }
 
     return buildSystemPrompt({

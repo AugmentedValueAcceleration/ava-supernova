@@ -99,8 +99,7 @@ async function checkForReleaseNotes(context: vscode.ExtensionContext): Promise<v
       showReleaseNotesPanel(context, release);
     }
   } catch {
-    // Network error — update stored version silently
-    await context.globalState.update(LAST_VERSION_KEY, currentVersion);
+    // Network error — don't update stored version so we retry next activation
   }
 }
 
@@ -115,12 +114,15 @@ function showReleaseNotesPanel(
     { enableScripts: false },
   );
 
+  // Escape HTML to prevent XSS from API data
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
   const highlights = release.highlights
-    .map((h: string) => `<li>${h}</li>`)
+    .map((h: string) => `<li>${esc(h)}</li>`)
     .join('');
 
-  // Convert markdown-ish body to HTML (basic)
-  const bodyHtml = release.body
+  // Convert markdown-ish body to HTML (basic, after escaping)
+  const bodyHtml = esc(release.body)
     .replace(/\n\n/g, '</p><p>')
     .replace(/\n/g, '<br>')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -173,8 +175,8 @@ function showReleaseNotesPanel(
   </style>
 </head>
 <body>
-  <h1>${release.title} <span class="tool-count">${release.tool_count} tools</span></h1>
-  <div class="version">v${release.version}</div>
+  <h1>${esc(release.title)} <span class="tool-count">${release.tool_count} tools</span></h1>
+  <div class="version">v${esc(release.version)}</div>
 
   <div class="highlights">
     <h3>Highlights</h3>

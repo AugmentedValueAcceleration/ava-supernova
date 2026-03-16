@@ -1,4 +1,5 @@
 // ─── Shared type definitions ─────────────────────────────────────────────────
+// IMPORTANT: Keep in sync with dashboard-ui/src/types/messages.ts
 
 export interface AccountInfo {
   id: string;
@@ -16,15 +17,24 @@ export interface AccountInfo {
   } | null;
 }
 
+export type MemoryCategory = 'pattern' | 'preference' | 'architecture' | 'bug-fix' | 'convention' | 'tool-config' | 'decision' | 'person' | 'general';
+
 export interface MemoryEntry {
   id: string;
   scope: 'global' | 'project';
   project_id: string | null;
   key: string;
   content: string;
-  category: string | null;
+  category: MemoryCategory | string | null;
   created_at: string;
   updated_at: string;
+  last_recalled_at?: string | null;
+  recall_count?: number;
+  tags?: string[];
+  archived?: boolean;
+  archived_at?: string | null;
+  branch?: string | null;
+  directory_scope?: string | null;
 }
 
 export interface ConnectionStatus {
@@ -81,6 +91,7 @@ export interface SupportTicket {
   subject: string;
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
   priority: 'low' | 'normal' | 'high' | 'urgent';
+  category: 'bug' | 'feature' | 'question' | 'account' | 'feedback' | 'teach' | 'other';
   source: 'tool' | 'dashboard' | 'website';
   created_at: string;
   updated_at: string;
@@ -168,6 +179,64 @@ export interface DashboardJournalDaySummary {
   mood?: number;
 }
 
+// ─── Learning Types ─────────────────────────────────────────────────────────
+
+export interface DashboardLearningLesson {
+  id: string;
+  title: string;
+  type: string;
+  status: string;
+  score: number | null;
+}
+
+export interface DashboardLearningModule {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  progress_percent: number;
+  lessons: DashboardLearningLesson[];
+}
+
+export interface DashboardLearningCurriculum {
+  id: string;
+  title: string;
+  description: string | null;
+  subject: string;
+  level: string;
+  goal: string | null;
+  estimated_hours: number | null;
+  status: string;
+  progress_percent: number;
+  modules: DashboardLearningModule[];
+  created_at: string;
+  updated_at: string;
+}
+
+// ─── Release Notes ──────────────────────────────────────────────────────────
+
+export interface ReleaseNote {
+  id: string;
+  version: string;
+  title: string;
+  body: string;
+  highlights: string[];
+  tool_count: number;
+  published_at: string;
+}
+
+// ─── Sync Types ─────────────────────────────────────────────────────────────
+
+export interface SyncDataStatus {
+  available: boolean;
+  lastSynced: string | null;
+  localCount: number;
+}
+
+export type SyncStatus = Record<string, SyncDataStatus>;
+
+export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'sync' | 'releases' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals';
+
 // ─── Extension Host → Dashboard Webview ──────────────────────────────────────
 
 export type ExtToDashboardMessage =
@@ -212,12 +281,16 @@ export type ExtToDashboardMessage =
   | { type: 'journal_day_loaded'; day: DashboardJournalDay }
   | { type: 'journal_summaries_loaded'; summaries: DashboardJournalDaySummary[] }
   | { type: 'journal_day_updated'; day: DashboardJournalDay }
-  | { type: 'error'; message: string }
+  // Learning messages
+  | { type: 'learning_loaded'; curriculums: DashboardLearningCurriculum[] }
   // Sync messages
-  | { type: 'sync_status'; data: Record<string, { available: boolean; lastSynced: string | null; localCount: number }> }
+  | { type: 'sync_status'; data: SyncStatus }
   | { type: 'sync_started'; dataType: string }
   | { type: 'sync_completed'; dataType: string; count: number }
-  | { type: 'sync_error'; dataType: string; message: string };
+  | { type: 'sync_error'; dataType: string; message: string }
+  // Release notes
+  | { type: 'releases_loaded'; releases: ReleaseNote[] }
+  | { type: 'error'; message: string };
 
 // ─── Dashboard Webview → Extension Host ──────────────────────────────────────
 
@@ -249,7 +322,7 @@ export type DashboardToExtMessage =
   | { type: 'delete_conversation'; id: string }
   | { type: 'toggle_pin_conversation'; id: string }
   | { type: 'load_tickets' }
-  | { type: 'create_support_ticket'; subject: string; message: string }
+  | { type: 'create_support_ticket'; subject: string; message: string; category?: string }
   | { type: 'reply_support_ticket'; ticketId: string; message: string }
   // Admin messages
   | { type: 'load_admin_tickets'; status?: string }
@@ -277,6 +350,8 @@ export type DashboardToExtMessage =
   | { type: 'load_journal_day'; date: string }
   | { type: 'load_journal_summaries'; from: string; to: string }
   | { type: 'save_journal_user_entry'; date: string; content: string; mood?: number; tags?: string[] }
+  // Learning messages
+  | { type: 'load_learning' }
   // Sync messages
   | { type: 'load_sync_status' }
   | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' }
