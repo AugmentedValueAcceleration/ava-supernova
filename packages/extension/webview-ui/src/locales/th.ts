@@ -3,7 +3,7 @@ export const thStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'ถามอะไรก็ได้เกี่ยวกับโค้ดของคุณ',
-  'welcome.tagline': '24 เครื่องมือ · 7 ผู้ให้บริการ · 2 โมเดลฟรี · 20 ภาษา',
+  'welcome.tagline': '45 เครื่องมือ · 7 ผู้ให้บริการ · 2 โมเดลฟรี · 20 ภาษา',
 
   // Welcome — Setup
   'welcome.setup_title': 'เริ่มต้น — เพิ่มคีย์ API',

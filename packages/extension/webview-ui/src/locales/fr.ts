@@ -3,7 +3,7 @@ export const frStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Posez n\u2019importe quelle question sur votre code.',
-  'welcome.tagline': '24 outils \u00b7 7 fournisseurs \u00b7 2 mod\u00e8les gratuits \u00b7 20 langues',
+  'welcome.tagline': '45 outils \u00b7 7 fournisseurs \u00b7 2 mod\u00e8les gratuits \u00b7 20 langues',
 
   // Welcome — Setup
   'welcome.setup_title': 'D\u00e9marrer \u2014 Ajouter une cl\u00e9 API',

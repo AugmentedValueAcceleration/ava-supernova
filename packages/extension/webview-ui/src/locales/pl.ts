@@ -3,7 +3,7 @@ export const plStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Zapytaj o cokolwiek dotyczącego Twojego kodu.',
-  'welcome.tagline': '24 narzędzia · 7 dostawców · 2 darmowe modele · 20 języków',
+  'welcome.tagline': '45 narzędzi · 7 dostawców · 2 darmowe modele · 20 języków',
 
   // Welcome — Setup
   'welcome.setup_title': 'Rozpocznij — Dodaj klucz API',

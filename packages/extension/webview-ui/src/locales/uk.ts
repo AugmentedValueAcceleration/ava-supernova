@@ -3,7 +3,7 @@ export const ukStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Запитайте будь-що про ваш код.',
-  'welcome.tagline': '24 інструменти · 7 провайдерів · 2 безкоштовні моделі · 20 мов',
+  'welcome.tagline': '45 інструментів · 7 провайдерів · 2 безкоштовні моделі · 20 мов',
 
   // Welcome — Setup
   'welcome.setup_title': 'Почати — Додати API-ключ',

@@ -3,7 +3,7 @@ export const itStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Chiedi qualsiasi cosa sul tuo codice.',
-  'welcome.tagline': '24 strumenti \u00b7 7 provider \u00b7 2 modelli gratuiti \u00b7 20 lingue',
+  'welcome.tagline': '45 strumenti \u00b7 7 provider \u00b7 2 modelli gratuiti \u00b7 20 lingue',
 
   // Welcome — Setup
   'welcome.setup_title': 'Inizia \u2014 Aggiungi una chiave API',

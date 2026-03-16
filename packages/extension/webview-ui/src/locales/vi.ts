@@ -3,7 +3,7 @@ export const viStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Hỏi bất kỳ điều gì về mã nguồn của bạn.',
-  'welcome.tagline': '24 công cụ · 7 nhà cung cấp · 2 mô hình miễn phí · 20 ngôn ngữ',
+  'welcome.tagline': '45 công cụ · 7 nhà cung cấp · 2 mô hình miễn phí · 20 ngôn ngữ',
 
   // Welcome — Setup
   'welcome.setup_title': 'Bắt đầu — Thêm khóa API',

@@ -3,7 +3,7 @@ export const zhTWStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': '關於你的程式碼，隨時提問。',
-  'welcome.tagline': '24 個工具 · 7 個供應商 · 2 個免費模型 · 20 種語言',
+  'welcome.tagline': '45 個工具 · 7 個供應商 · 2 個免費模型 · 20 種語言',
 
   // Welcome — Setup
   'welcome.setup_title': '開始使用 — 新增 API 金鑰',

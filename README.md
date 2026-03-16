@@ -1,14 +1,14 @@
 <p align="center">
   <h1 align="center">Ava | Supernova</h1>
   <p align="center">
-    <strong>Open-source AI coding agent — 15 models, 7 providers, 26 tools, 2 free models that work instantly.</strong>
+    <strong>Open-source AI coding agent — 15 models, 7 providers, 45 tools, 2 free models that work instantly.</strong>
   </p>
   <p align="center">
     <a href="#supported-models">Models</a> &middot;
     <a href="#getting-started">Getting Started</a> &middot;
     <a href="#vscode-extension">Extension</a> &middot;
     <a href="#ide">IDE</a> &middot;
-    <a href="#tools-24">Tools</a> &middot;
+    <a href="#tools-45">Tools</a> &middot;
     <a href="#privacy--security">Privacy</a> &middot;
     <a href="#sponsors">Sponsors</a> &middot;
     <a href="#contributing">Contributing</a>
@@ -120,7 +120,7 @@ The IDE includes everything in the extension plus:
 - Monaco editor (same engine as VS Code)
 - `@ava/core` runs directly in the Node.js backend — no sidecar needed
 
-## Tools (26)
+## Tools (45)
 
 | Category | Tools | Description |
 |---|---|---|
@@ -256,7 +256,7 @@ packages/
 ├── core/                  # @ava/core — shared agent engine
 │   ├── agent/             #   Agentic loop, system prompt, events
 │   ├── providers/         #   LLM provider adapters (7 providers)
-│   ├── tools/             #   24 built-in tool implementations
+│   ├── tools/             #   45 built-in tool implementations
 │   ├── memory/            #   Persistent memory system
 │   ├── config/            #   Configuration management
 │   └── history/           #   Conversation persistence
@@ -310,7 +310,7 @@ cd packages/extension && pnpm build
 - [x] Terminal CLI with full agent loop
 - [x] VS Code extension with chat UI
 - [x] Standalone IDE (Eclipse Theia)
-- [x] 26 built-in tools (file ops, search, bash, git, web, browser, database, memory, planning, docs)
+- [x] 45 built-in tools (file ops, search, bash, git, web, browser, database, memory, planning, docs)
 - [x] 15 models from 7 providers, including 2 free models
 - [x] Smart memory v2 — structured entries, TF-IDF retrieval, branch scoping, auto-archival, credential blocking
 - [x] Mid-task interjection — type while Ava is working to add context or redirect

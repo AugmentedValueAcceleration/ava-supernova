@@ -128,9 +128,9 @@ This works with Ollama, LM Studio, vLLM, or any OpenAI-compatible API endpoint.
     topic: 'tools',
     keywords: ['tool', 'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'bash', 'web_search', 'browser', 'screenshot', 'database', 'git', 'memory_save', 'memory_recall', 'memory_update', 'memory_delete', 'present_plan', 'todo_write', 'ask_user', 'rollback', 'http_request', 'project_index', 'find_symbol', 'list_directory', 'docs_lookup', 'support_request', 'task_manage', 'journal_write', 'document_manage', 'propose_tool', 'get_datetime', 'detect_language', 'learning_create', 'learning_teach', 'learning_progress'],
     title: 'Built-in Tools',
-    content: `# Built-in Tools (32)
+    content: `# Built-in Tools (45)
 
-Ava has 32 built-in tools organized by category. Tool availability depends on the current mode and permission settings.
+Ava has 45 built-in tools organized by category. Tool availability depends on the current mode and permission settings.
 
 ## Reading & Searching (always auto-approved)
 | Tool | Description |
@@ -235,7 +235,7 @@ Ava has 32 built-in tools organized by category. Tool availability depends on th
 Ava has five modes. Each mode is a distinct state of mind — it changes how Ava thinks, not just what tools she has access to.
 
 ## Work Mode (\`>>\`) — Builder
-Full agent with all 32 tools. Ava reads, writes, searches, executes, manages tasks, journals, and creates documents. This is the primary working mode for building features, fixing bugs, and shipping code.
+Full agent with all 45 tools. Ava reads, writes, searches, executes, manages tasks, journals, and creates documents. This is the primary working mode for building features, fixing bugs, and shipping code.
 
 ## Plan Mode (\`::\`) — Architect
 Read-only analysis. Ava reads your code and creates plans without modifying anything. Use this when you want Ava to analyse and propose changes before committing to them.
@@ -632,7 +632,7 @@ On macOS, use Cmd instead of Ctrl.`,
 
 ### Free Tier
 - Bring your own API keys — no account needed
-- All 23 tools, all modes, all features
+- All 45 tools, all modes, all features
 - Local memory and history
 - Full open-source experience
 

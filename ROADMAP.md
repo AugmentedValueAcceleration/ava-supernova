@@ -10,7 +10,7 @@ This roadmap is a living document. Priorities shift based on community feedback,
 
 - **20-language i18n** — Full internationalisation across core (241 keys), webview (144 keys), and extension UI (62 keys)
 - **7 provider integrations** — Zhipu, Moonshot/Kimi, DeepSeek, Alibaba/Qwen, Mistral, Anthropic, Generic/local
-- **24 built-in tools** — File ops, search, shell, git, web, media, data, memory, planning
+- **45 built-in tools** — File ops, search, shell, git, web, media, data, memory, planning
 - **Memory v2** — Global + project-scoped memory with categories, archiving, recall tracking
 - **Provider resilience** — Circuit breaker failover, automatic retry, graceful degradation
 - **Multi-platform stability** — Extension stability (workspace switch cleanup, heartbeat, error boundaries), accessibility (WCAG 2.1 AA)

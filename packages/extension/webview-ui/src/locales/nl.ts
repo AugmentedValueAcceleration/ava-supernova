@@ -3,7 +3,7 @@ export const nlStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Stel een vraag over je code.',
-  'welcome.tagline': '24 tools \u00b7 7 providers \u00b7 2 gratis modellen \u00b7 20 talen',
+  'welcome.tagline': '45 tools \u00b7 7 providers \u00b7 2 gratis modellen \u00b7 20 talen',
 
   // Welcome — Setup
   'welcome.setup_title': 'Aan de slag \u2014 Voeg een API-sleutel toe',

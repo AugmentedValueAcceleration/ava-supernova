@@ -3,7 +3,7 @@ export const ruStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Задайте любой вопрос о вашем коде.',
-  'welcome.tagline': '24 инструмента · 7 провайдеров · 2 бесплатные модели · 20 языков',
+  'welcome.tagline': '45 инструментов · 7 провайдеров · 2 бесплатные модели · 20 языков',
 
   // Welcome — Setup
   'welcome.setup_title': 'Начать — Добавить API-ключ',

@@ -3,7 +3,7 @@ export const hiStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'अपने कोड के बारे में कुछ भी पूछें।',
-  'welcome.tagline': '24 टूल · 7 प्रोवाइडर · 2 मुफ़्त मॉडल · 20 भाषाएँ',
+  'welcome.tagline': '45 टूल · 7 प्रोवाइडर · 2 मुफ़्त मॉडल · 20 भाषाएँ',
 
   // Welcome — Setup
   'welcome.setup_title': 'शुरू करें — API कुंजी जोड़ें',
