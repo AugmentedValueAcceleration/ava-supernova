@@ -14,6 +14,7 @@ export class SupportRequestTool implements Tool {
       'Submit a support ticket to the Ava team. Use this when the user needs help with something ' +
       'you cannot resolve — bugs, account issues, feature requests, billing questions, or any problem ' +
       'that requires human support. You MUST confirm the details with the user before sending. ' +
+      'Always categorise the ticket based on the issue type. ' +
       'The user\'s email is required so the team can reply. If the user has a platform account, ' +
       'their email may already be available in shared state.',
     parameters: {
@@ -39,8 +40,17 @@ export class SupportRequestTool implements Tool {
             'Detailed description of the issue, including relevant context like ' +
             'error messages, steps to reproduce, environment info, etc. (max 10,000 chars).',
         },
+        category: {
+          type: 'string',
+          enum: ['bug', 'feature', 'question', 'account', 'feedback', 'teach', 'other'],
+          description:
+            'The type of support request. Categorise based on what the user is reporting: ' +
+            'bug (something broken), feature (feature request), question (how do I...), ' +
+            'account (billing/login/API keys), feedback (general feedback), ' +
+            'teach (Teach mode specific), other (anything else).',
+        },
       },
-      required: ['email', 'subject', 'message'],
+      required: ['email', 'subject', 'message', 'category'],
     },
   };
 
@@ -49,6 +59,7 @@ export class SupportRequestTool implements Tool {
     const name = (args.name as string)?.trim() || undefined;
     const subject = (args.subject as string)?.trim();
     const message = (args.message as string)?.trim();
+    const category = (args.category as string)?.trim() || 'other';
 
     if (!email || !email.includes('@')) {
       return { success: false, output: 'A valid email address is required.' };
@@ -101,6 +112,7 @@ export class SupportRequestTool implements Tool {
           subject,
           message,
           source: 'tool',
+          category,
         }),
       });
 

@@ -9,6 +9,16 @@ const STATUS_COLORS: Record<string, string> = {
   closed: 'bg-[var(--bg-input)] text-[var(--text-muted)]',
 };
 
+const CATEGORY_COLORS: Record<string, string> = {
+  bug: 'bg-red-500/15 text-red-300',
+  feature: 'bg-purple-500/15 text-purple-300',
+  question: 'bg-cyan-500/15 text-cyan-300',
+  account: 'bg-amber-500/15 text-amber-300',
+  feedback: 'bg-green-500/15 text-green-300',
+  teach: 'bg-pink-500/15 text-pink-300',
+  other: 'bg-[var(--bg-input)] text-[var(--text-muted)]',
+};
+
 interface AdminSupportProps {
   tickets: SupportTicket[];
   total: number;
@@ -17,6 +27,7 @@ interface AdminSupportProps {
 
 export function AdminSupport({ tickets, total, loading }: AdminSupportProps) {
   const [filter, setFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [selected, setSelected] = useState<SupportTicket | null>(null);
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
@@ -68,6 +79,11 @@ export function AdminSupport({ tickets, total, loading }: AdminSupportProps) {
             <span className={`rounded-full px-2 py-0.5 font-medium ${STATUS_COLORS[selected.status]}`}>
               {selected.status.replace('_', ' ')}
             </span>
+            {selected.category && (
+              <span className={`rounded-full px-2 py-0.5 font-medium ${CATEGORY_COLORS[selected.category] || CATEGORY_COLORS.other}`}>
+                {selected.category}
+              </span>
+            )}
             <span className="text-[var(--text-muted)]">{selected.email}</span>
             <span className="text-[var(--text-muted)]">{selected.source}</span>
           </div>
@@ -149,8 +165,8 @@ export function AdminSupport({ tickets, total, loading }: AdminSupportProps) {
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="mb-4 flex gap-1">
+      {/* Status filter */}
+      <div className="mb-2 flex gap-1">
         {['all', 'open', 'in_progress', 'resolved', 'closed'].map((s) => (
           <button
             key={s}
@@ -166,6 +182,23 @@ export function AdminSupport({ tickets, total, loading }: AdminSupportProps) {
         ))}
       </div>
 
+      {/* Category filter */}
+      <div className="mb-4 flex gap-1">
+        {['all', 'bug', 'feature', 'question', 'account', 'feedback', 'teach', 'other'].map((c) => (
+          <button
+            key={c}
+            onClick={() => setCategoryFilter(c)}
+            className={`rounded px-2.5 py-1 text-[10px] font-medium transition ${
+              categoryFilter === c
+                ? CATEGORY_COLORS[c] || 'bg-[var(--bg-input)] text-white'
+                : 'text-[var(--text-muted)] hover:text-white'
+            }`}
+          >
+            {c}
+          </button>
+        ))}
+      </div>
+
       {loading && (
         <div className="flex items-center justify-center py-8">
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--border-card)] border-t-[var(--accent)]" />
@@ -176,30 +209,44 @@ export function AdminSupport({ tickets, total, loading }: AdminSupportProps) {
         <p className="py-8 text-center text-xs text-[var(--text-muted)]">No tickets</p>
       )}
 
-      {!loading && tickets.length > 0 && (
-        <div className="space-y-2">
-          {tickets.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setSelected(t)}
-              className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] p-3 text-left transition hover:border-[var(--accent)]/30"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium">{t.subject}</span>
-                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${STATUS_COLORS[t.status]}`}>
-                  {t.status.replace('_', ' ')}
-                </span>
-              </div>
-              <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--text-muted)]">
-                <span>{t.email}</span>
-                <span>{t.source}</span>
-                <span>{new Date(t.created_at).toLocaleDateString()}</span>
-                <span>{t.support_messages?.length || 0} msgs</span>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
+      {!loading && tickets.length > 0 && (() => {
+        const filtered = categoryFilter === 'all'
+          ? tickets
+          : tickets.filter((t) => t.category === categoryFilter);
+        return filtered.length === 0 ? (
+          <p className="py-8 text-center text-xs text-[var(--text-muted)]">No tickets in this category</p>
+        ) : (
+          <div className="space-y-2">
+            {filtered.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setSelected(t)}
+                className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] p-3 text-left transition hover:border-[var(--accent)]/30"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium">{t.subject}</span>
+                    {t.category && (
+                      <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${CATEGORY_COLORS[t.category] || CATEGORY_COLORS.other}`}>
+                        {t.category}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${STATUS_COLORS[t.status]}`}>
+                    {t.status.replace('_', ' ')}
+                  </span>
+                </div>
+                <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--text-muted)]">
+                  <span>{t.email}</span>
+                  <span>{t.source}</span>
+                  <span>{new Date(t.created_at).toLocaleDateString()}</span>
+                  <span>{t.support_messages?.length || 0} msgs</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        );
+      })()}
     </div>
   );
 }

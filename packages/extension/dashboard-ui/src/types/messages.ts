@@ -91,6 +91,7 @@ export interface SupportTicket {
   subject: string;
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
   priority: 'low' | 'normal' | 'high' | 'urgent';
+  category: 'bug' | 'feature' | 'question' | 'account' | 'feedback' | 'teach' | 'other';
   source: 'tool' | 'dashboard' | 'website';
   created_at: string;
   updated_at: string;
