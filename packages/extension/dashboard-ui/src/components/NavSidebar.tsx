@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { post } from '../App';
 import type { Page, DashboardJournalDaySummary } from '../types/messages';
-import { BoltIcon, KeyIcon, ChartBarIcon, SparklesIcon, ChecklistIcon, BookIcon, GraduationCapIcon, CloudUpIcon, ClockIcon, HelpCircleIcon, CogIcon, ShieldIcon, WrenchIcon } from './Icons';
+import { BoltIcon, KeyIcon, ChartBarIcon, SparklesIcon, ChecklistIcon, BookIcon, GraduationCapIcon, CloudUpIcon, MegaphoneIcon, ClockIcon, HelpCircleIcon, CogIcon, ShieldIcon, WrenchIcon } from './Icons';
 
 interface NavSidebarProps {
   currentPage: Page;
@@ -56,6 +56,7 @@ const NAV_GROUPS: NavGroup[] = [
       { page: 'memory', label: 'Memory', icon: SparklesIcon },
       { page: 'usage', label: 'Usage', icon: ChartBarIcon },
       { page: 'history', label: 'History', icon: ClockIcon, platformOnly: true },
+      { page: 'releases', label: 'Release Notes', icon: MegaphoneIcon },
       { page: 'sync', label: 'Cloud Sync', icon: CloudUpIcon, platformOnly: true },
     ],
   },

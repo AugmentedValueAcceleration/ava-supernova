@@ -211,7 +211,17 @@ export interface DashboardJournalDaySummary {
   mood?: number;
 }
 
-export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'sync' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals';
+export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'sync' | 'releases' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals';
+
+export interface ReleaseNote {
+  id: string;
+  version: string;
+  title: string;
+  body: string;
+  highlights: string[];
+  tool_count: number;
+  published_at: string;
+}
 
 // Sync types
 export interface SyncDataStatus {

@@ -15,6 +15,7 @@ import { Tasks } from './pages/Tasks';
 import { Journal } from './pages/Journal';
 import { Learning } from './pages/Learning';
 import { Sync } from './pages/Sync';
+import { Releases } from './pages/Releases';
 import type {
   Page,
   AccountInfo,
@@ -361,6 +362,8 @@ export function App() {
         return <Learning curriculums={learningCurriculums} />;
       case 'sync':
         return <Sync syncStatus={syncStatus} syncingTypes={syncingTypes} syncResults={syncResults} isConnected={!!account} />;
+      case 'releases':
+        return <Releases />;
       case 'connections':
         return <Connections connections={connections} />;
       case 'history':
