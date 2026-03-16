@@ -22,6 +22,7 @@ import {
   getChatModePrefix,
   getTeachModePrefix,
   getSecurityModePrefix,
+  getPlanModePrefix,
   killBackgroundProcesses,
   detectProjectRoot,
   loadProjectInstructions,
@@ -1504,7 +1505,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private applyModePrefix(text: string, mode: AvaMode): string {
     switch (mode) {
       case 'plan':
-        return `[Plan Mode] Analyze the codebase and create a structured plan for the following request. You may read files and search the codebase to understand context. Do NOT write files, edit files, or execute commands — only output a detailed plan.\n\n${text}`;
+        return getPlanModePrefix(text || 'What should we focus on next?');
       case 'chat':
         return getChatModePrefix(text);
       case 'teach':

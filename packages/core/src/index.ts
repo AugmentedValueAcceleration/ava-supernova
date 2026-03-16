@@ -2,7 +2,7 @@
 export { Agent } from './agent/agent.js';
 export type { AgentEvent, AgentEventHandler, ContextUsage } from './agent/agent.js';
 export { Conversation } from './agent/conversation.js';
-export { buildSystemPrompt, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix } from './agent/system-prompt.js';
+export { buildSystemPrompt, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix } from './agent/system-prompt.js';
 
 // Core types
 export type {
