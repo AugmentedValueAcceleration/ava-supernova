@@ -345,6 +345,10 @@ export class DashboardPanel {
         await this.loadSyncStatus();
         break;
 
+      case 'load_releases':
+        await this.loadReleases();
+        break;
+
       case 'push_to_cloud':
         await this.pushToCloud(msg.dataType);
         break;
@@ -1208,6 +1212,29 @@ export class DashboardPanel {
 
   // ─── Cloud Sync (user-initiated push) ──────────────────────────────────────
 
+  private async loadReleases(): Promise<void> {
+    try {
+      const https = await import('node:https');
+      const releases = await new Promise<unknown[]>((resolve) => {
+        https.get('https://ava-supernova.com/api/releases', (res) => {
+          let raw = '';
+          res.on('data', (chunk: string) => (raw += chunk));
+          res.on('end', () => {
+            try {
+              const data = JSON.parse(raw);
+              resolve(Array.isArray(data) ? data : []);
+            } catch {
+              resolve([]);
+            }
+          });
+        }).on('error', () => resolve([]));
+      });
+      this.post({ type: 'releases_loaded', releases });
+    } catch {
+      this.post({ type: 'releases_loaded', releases: [] });
+    }
+  }
+
   private async loadSyncStatus(): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
     const fs = await import('node:fs/promises');
@@ -1218,7 +1245,7 @@ export class DashboardPanel {
     for (const t of types) {
       let localCount = 0;
       try {
-        const filePath = t === 'memory' ? path.join(AVA_HOME, 'memory-v2.json')
+        const filePath = t === 'memory' ? path.join(AVA_HOME, 'memory.json')
           : t === 'tasks' ? path.join(AVA_HOME, 'tasks.json')
           : t === 'journal' ? path.join(AVA_HOME, 'journal')
           : t === 'learning' ? path.join(AVA_HOME, 'learning.json')
@@ -1228,11 +1255,11 @@ export class DashboardPanel {
         if (t === 'journal' || t === 'history') {
           // Count files in directory
           const entries = await fs.readdir(filePath).catch(() => []);
-          localCount = entries.length;
+          localCount = entries.filter((f: string) => f.endsWith('.json')).length;
         } else {
           const raw = await fs.readFile(filePath, 'utf-8');
           const parsed = JSON.parse(raw);
-          if (t === 'memory') localCount = (parsed.global?.length ?? 0) + (parsed.project?.length ?? 0);
+          if (t === 'memory') localCount = parsed.entries?.length ?? 0;
           else if (t === 'tasks') localCount = parsed.tasks?.length ?? 0;
           else if (t === 'learning') localCount = parsed.curriculums?.length ?? 0;
           else localCount = 1; // settings is a single file
@@ -1264,13 +1291,11 @@ export class DashboardPanel {
         case 'memory': {
           const { PlatformMemorySync } = await import('@ava/core');
           const sync = new PlatformMemorySync('https://ava-supernova.com/api', platformKey);
-          const raw = await fs.readFile(path.join(AVA_HOME, 'memory-v2.json'), 'utf-8');
+          const raw = await fs.readFile(path.join(AVA_HOME, 'memory.json'), 'utf-8');
           const store = JSON.parse(raw);
-          const globalEntries = store.global || [];
-          const projectEntries = store.project || [];
-          await sync.pushEntries('global', globalEntries);
-          if (projectEntries.length > 0) await sync.pushEntries('project', projectEntries);
-          this.post({ type: 'sync_completed', dataType, count: globalEntries.length + projectEntries.length });
+          const entries = store.entries || [];
+          await sync.pushEntries('global', entries);
+          this.post({ type: 'sync_completed', dataType, count: entries.length });
           break;
         }
 
@@ -1281,7 +1306,7 @@ export class DashboardPanel {
           const res = await apiFetch('/tasks/sync', {
             platformKey,
             method: 'POST',
-            body: JSON.stringify({ tasks }),
+            body: { tasks },
           });
           if (!res.ok) throw new Error('Failed to sync tasks');
           this.post({ type: 'sync_completed', dataType, count: tasks.length });
@@ -1300,14 +1325,14 @@ export class DashboardPanel {
               await apiFetch('/journal', {
                 platformKey,
                 method: 'POST',
-                body: JSON.stringify({
+                body: {
                   date: day.date,
                   user_content: day.userEntry?.content ?? null,
                   user_mood: day.userEntry?.mood ?? null,
                   user_tags: day.userEntry?.tags ?? [],
                   ava_content: day.avaEntry?.content ?? null,
                   ava_tags: day.avaEntry?.tags ?? [],
-                }),
+                },
               });
               count++;
             } catch { /* skip malformed */ }
@@ -1323,7 +1348,7 @@ export class DashboardPanel {
           const res = await apiFetch('/learning/sync', {
             platformKey,
             method: 'POST',
-            body: JSON.stringify({ curriculums }),
+            body: { curriculums },
           });
           if (!res.ok) throw new Error('Failed to sync learning data');
           this.post({ type: 'sync_completed', dataType, count: curriculums.length });
@@ -1344,7 +1369,7 @@ export class DashboardPanel {
           const res = await apiFetch('/history/sync', {
             platformKey,
             method: 'POST',
-            body: JSON.stringify({ conversations }),
+            body: { conversations },
           });
           if (!res.ok) throw new Error('Failed to sync chat history');
           this.post({ type: 'sync_completed', dataType, count: conversations.length });
@@ -1356,7 +1381,7 @@ export class DashboardPanel {
           const res = await apiFetch('/settings/sync', {
             platformKey,
             method: 'POST',
-            body: JSON.stringify({ settings }),
+            body: { settings },
           });
           if (!res.ok) throw new Error('Failed to sync settings');
           this.post({ type: 'sync_completed', dataType, count: 1 });

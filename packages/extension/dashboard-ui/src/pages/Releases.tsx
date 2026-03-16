@@ -1,21 +1,30 @@
 import { useState, useEffect } from 'react';
 import type { ReleaseNote } from '../types/messages';
 
+declare function acquireVsCodeApi(): { postMessage: (msg: unknown) => void };
+const vscode = (window as { vscodeApi?: ReturnType<typeof acquireVsCodeApi> }).vscodeApi;
+
 export function Releases() {
   const [releases, setReleases] = useState<ReleaseNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('https://ava-supernova.com/api/releases')
-      .then(res => res.json())
-      .then(data => {
-        setReleases(Array.isArray(data) ? data : []);
-        // Auto-expand the latest
-        if (Array.isArray(data) && data.length > 0) setExpanded(data[0].id);
-      })
-      .catch(() => setReleases([]))
-      .finally(() => setLoading(false));
+    // Request releases from extension host (avoids CORS)
+    vscode?.postMessage({ type: 'load_releases' });
+
+    const handler = (e: MessageEvent) => {
+      const msg = e.data;
+      if (msg.type === 'releases_loaded') {
+        setReleases(Array.isArray(msg.releases) ? msg.releases : []);
+        if (Array.isArray(msg.releases) && msg.releases.length > 0) {
+          setExpanded(msg.releases[0].id);
+        }
+        setLoading(false);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
   }, []);
 
   if (loading) {
@@ -55,7 +64,7 @@ export function Releases() {
                 isLatest ? 'border-[var(--accent)]/30' : 'border-[var(--border-card)]'
               }`}
             >
-              {/* Header — always visible */}
+              {/* Header */}
               <button
                 onClick={() => setExpanded(isExpanded ? null : release.id)}
                 className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-[var(--bg-input)] transition"
@@ -85,10 +94,9 @@ export function Releases() {
                 </div>
               </button>
 
-              {/* Body — expanded */}
+              {/* Body */}
               {isExpanded && (
                 <div className="px-4 pb-4 border-t border-[var(--border-card)]">
-                  {/* Highlights */}
                   {release.highlights.length > 0 && (
                     <div className="mt-3 mb-4 rounded-lg bg-[var(--bg-input)] p-3">
                       <h3 className="text-xs font-semibold text-white mb-2">Highlights</h3>
@@ -103,7 +111,6 @@ export function Releases() {
                     </div>
                   )}
 
-                  {/* Body */}
                   <div className="text-xs text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">
                     {release.body}
                   </div>
