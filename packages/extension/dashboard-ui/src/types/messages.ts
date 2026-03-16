@@ -282,6 +282,8 @@ export type ExtToDashboardMessage =
   | { type: 'sync_started'; dataType: string }
   | { type: 'sync_completed'; dataType: string; count: number }
   | { type: 'sync_error'; dataType: string; message: string }
+  // Release notes
+  | { type: 'releases_loaded'; releases: ReleaseNote[] }
   | { type: 'error'; message: string };
 
 // Dashboard → Extension Host
@@ -345,4 +347,6 @@ export type DashboardToExtMessage =
   | { type: 'load_learning' }
   // Sync messages
   | { type: 'load_sync_status' }
-  | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' };
+  | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' }
+  // Release notes
+  | { type: 'load_releases' };

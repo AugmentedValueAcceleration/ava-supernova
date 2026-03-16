@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
+import { post } from '../App';
 import type { ReleaseNote } from '../types/messages';
-
-declare function acquireVsCodeApi(): { postMessage: (msg: unknown) => void };
-const vscode = (window as { vscodeApi?: ReturnType<typeof acquireVsCodeApi> }).vscodeApi;
 
 export function Releases() {
   const [releases, setReleases] = useState<ReleaseNote[]>([]);
@@ -10,8 +8,7 @@ export function Releases() {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
-    // Request releases from extension host (avoids CORS)
-    vscode?.postMessage({ type: 'load_releases' });
+    post({ type: 'load_releases' });
 
     const handler = (e: MessageEvent) => {
       const msg = e.data;
@@ -64,7 +61,6 @@ export function Releases() {
                 isLatest ? 'border-[var(--accent)]/30' : 'border-[var(--border-card)]'
               }`}
             >
-              {/* Header */}
               <button
                 onClick={() => setExpanded(isExpanded ? null : release.id)}
                 className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-[var(--bg-input)] transition"
@@ -94,7 +90,6 @@ export function Releases() {
                 </div>
               </button>
 
-              {/* Body */}
               {isExpanded && (
                 <div className="px-4 pb-4 border-t border-[var(--border-card)]">
                   {release.highlights.length > 0 && (

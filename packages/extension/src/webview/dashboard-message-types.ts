@@ -279,4 +279,6 @@ export type DashboardToExtMessage =
   | { type: 'save_journal_user_entry'; date: string; content: string; mood?: number; tags?: string[] }
   // Sync messages
   | { type: 'load_sync_status' }
-  | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' };
+  | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' }
+  // Release notes
+  | { type: 'load_releases' };
