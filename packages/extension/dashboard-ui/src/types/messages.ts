@@ -211,7 +211,16 @@ export interface DashboardJournalDaySummary {
   mood?: number;
 }
 
-export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals';
+export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'sync' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals';
+
+// Sync types
+export interface SyncDataStatus {
+  available: boolean;
+  lastSynced: string | null;
+  localCount: number;
+}
+
+export type SyncStatus = Record<string, SyncDataStatus>;
 
 // Extension Host → Dashboard
 export type ExtToDashboardMessage =
@@ -258,6 +267,11 @@ export type ExtToDashboardMessage =
   | { type: 'journal_day_updated'; day: DashboardJournalDay }
   // Learning messages
   | { type: 'learning_loaded'; curriculums: DashboardLearningCurriculum[] }
+  // Sync messages
+  | { type: 'sync_status'; data: SyncStatus }
+  | { type: 'sync_started'; dataType: string }
+  | { type: 'sync_completed'; dataType: string; count: number }
+  | { type: 'sync_error'; dataType: string; message: string }
   | { type: 'error'; message: string };
 
 // Dashboard → Extension Host
@@ -318,4 +332,7 @@ export type DashboardToExtMessage =
   | { type: 'load_journal_summaries'; from: string; to: string }
   | { type: 'save_journal_user_entry'; date: string; content: string; mood?: number; tags?: string[] }
   // Learning messages
-  | { type: 'load_learning' };
+  | { type: 'load_learning' }
+  // Sync messages
+  | { type: 'load_sync_status' }
+  | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' };

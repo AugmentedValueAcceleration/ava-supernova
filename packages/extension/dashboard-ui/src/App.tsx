@@ -14,6 +14,7 @@ import { AdminProposals } from './pages/AdminProposals';
 import { Tasks } from './pages/Tasks';
 import { Journal } from './pages/Journal';
 import { Learning } from './pages/Learning';
+import { Sync } from './pages/Sync';
 import type {
   Page,
   AccountInfo,
@@ -32,6 +33,7 @@ import type {
   ExtToDashboardMessage,
   DashboardToExtMessage,
   DashboardLearningCurriculum,
+  SyncStatus,
 } from './types/messages';
 
 declare function acquireVsCodeApi(): {
@@ -88,6 +90,10 @@ export function App() {
   const [adminProposals, setAdminProposals] = useState<AdminToolProposal[]>([]);
   const [adminProposalsTotal, setAdminProposalsTotal] = useState(0);
   const [adminProposalsLoading, setAdminProposalsLoading] = useState(false);
+  // Sync state
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
+  const [syncingTypes, setSyncingTypes] = useState<Set<string>>(new Set());
+  const [syncResults, setSyncResults] = useState<Record<string, { success: boolean; count?: number; error?: string }>>({});
 
   const handleMessage = useCallback((event: MessageEvent) => {
     // Only accept messages from the VSCode webview host
@@ -229,6 +235,22 @@ export function App() {
       case 'learning_loaded':
         setLearningCurriculums(msg.curriculums);
         break;
+      // Sync messages
+      case 'sync_status':
+        setSyncStatus(msg.data);
+        break;
+      case 'sync_started':
+        setSyncingTypes(prev => new Set([...prev, msg.dataType]));
+        setSyncResults(prev => { const next = { ...prev }; delete next[msg.dataType]; return next; });
+        break;
+      case 'sync_completed':
+        setSyncingTypes(prev => { const next = new Set(prev); next.delete(msg.dataType); return next; });
+        setSyncResults(prev => ({ ...prev, [msg.dataType]: { success: true, count: msg.count } }));
+        break;
+      case 'sync_error':
+        setSyncingTypes(prev => { const next = new Set(prev); next.delete(msg.dataType); return next; });
+        setSyncResults(prev => ({ ...prev, [msg.dataType]: { success: false, error: msg.message } }));
+        break;
       case 'error':
         setErrorMsg(msg.message);
         setTimeout(() => setErrorMsg(null), 5000);
@@ -278,6 +300,10 @@ export function App() {
       const to = `${y}-${String(m + 1).padStart(2, '0')}-${String(last).padStart(2, '0')}`;
       post({ type: 'load_journal_summaries', from, to });
       post({ type: 'load_journal_day', date: now.toISOString().slice(0, 10) });
+    }
+    // Load sync status when navigating to sync page
+    if (page === 'sync') {
+      post({ type: 'load_sync_status' });
     }
     // BYOK: refresh session stats when viewing usage or overview
     if ((page === 'usage' || page === 'overview') && byokMode && !account) {
@@ -333,6 +359,8 @@ export function App() {
         );
       case 'learning':
         return <Learning curriculums={learningCurriculums} />;
+      case 'sync':
+        return <Sync syncStatus={syncStatus} syncingTypes={syncingTypes} syncResults={syncResults} isConnected={!!account} />;
       case 'connections':
         return <Connections connections={connections} />;
       case 'history':
