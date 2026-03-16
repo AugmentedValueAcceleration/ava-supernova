@@ -36,6 +36,8 @@ export const itStrings: Record<string, string> = {
   'welcome.mode.plan_desc': 'Architettura e pianificazione',
   'welcome.mode.chat_desc': 'Solo discussione',
   'welcome.mode.security_desc': 'Scansione di sicurezza',
+  'welcome.mode.teach': 'Imparare',
+  'welcome.mode.teach_desc': 'Ava diventa il tuo tutor personale',
 
   // Input Area
   'input.placeholder.code': 'Cosa vuoi costruire?',
@@ -43,9 +45,11 @@ export const itStrings: Record<string, string> = {
   'input.placeholder.chat': 'Fai una domanda o avvia una discussione...',
   'input.placeholder.disabled': 'Configura un provider per iniziare...',
   'input.placeholder.security': 'Descrivi cosa analizzare, oppure premi Invio per un audit completo...',
+  'input.placeholder.teach': 'Cosa vuoi imparare?',
   'input.mode.code': 'Lavoro',
   'input.mode.plan': 'Piano',
   'input.mode.chat': 'Chat',
+  'input.mode.teach': 'Imparare',
   'input.mode.security': 'Sicurezza',
   'input.send': 'Invia (Invio)',
   'input.send_aria': 'Invia messaggio',

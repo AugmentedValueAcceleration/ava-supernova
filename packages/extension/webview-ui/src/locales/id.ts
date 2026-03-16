@@ -36,6 +36,8 @@ export const idStrings: Record<string, string> = {
   'welcome.mode.plan_desc': 'Arsitektur & perencanaan',
   'welcome.mode.chat_desc': 'Hanya diskusi',
   'welcome.mode.security_desc': 'Pemindaian keamanan',
+  'welcome.mode.teach': 'Belajar',
+  'welcome.mode.teach_desc': 'Ava menjadi tutor pribadi Anda',
 
   // Input Area
   'input.placeholder.code': 'Apa yang ingin Anda buat?',
@@ -43,9 +45,11 @@ export const idStrings: Record<string, string> = {
   'input.placeholder.chat': 'Ajukan pertanyaan atau mulai diskusi...',
   'input.placeholder.disabled': 'Konfigurasikan provider untuk memulai...',
   'input.placeholder.security': 'Jelaskan apa yang ingin dipindai, atau tekan Enter untuk audit penuh...',
+  'input.placeholder.teach': 'Apa yang ingin kamu pelajari?',
   'input.mode.code': 'Kerja',
   'input.mode.plan': 'Rencana',
   'input.mode.chat': 'Obrolan',
+  'input.mode.teach': 'Belajar',
   'input.mode.security': 'Keamanan',
   'input.send': 'Kirim (Enter)',
   'input.send_aria': 'Kirim pesan',

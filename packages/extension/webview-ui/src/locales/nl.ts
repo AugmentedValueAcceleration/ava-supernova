@@ -36,6 +36,8 @@ export const nlStrings: Record<string, string> = {
   'welcome.mode.plan_desc': 'Architectuur & planning',
   'welcome.mode.chat_desc': 'Alleen discussie',
   'welcome.mode.security_desc': 'Beveiligingsscan',
+  'welcome.mode.teach': 'Leren',
+  'welcome.mode.teach_desc': 'Ava wordt je persoonlijke tutor',
 
   // Input Area
   'input.placeholder.code': 'Wat wil je bouwen?',
@@ -43,9 +45,11 @@ export const nlStrings: Record<string, string> = {
   'input.placeholder.chat': 'Stel een vraag of begin een gesprek...',
   'input.placeholder.disabled': 'Configureer een provider om te beginnen...',
   'input.placeholder.security': 'Beschrijf wat gescand moet worden, of druk op Enter voor een volledige audit...',
+  'input.placeholder.teach': 'Wat wil je leren?',
   'input.mode.code': 'Werk',
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Chat',
+  'input.mode.teach': 'Leren',
   'input.mode.security': 'Beveiliging',
   'input.send': 'Versturen (Enter)',
   'input.send_aria': 'Bericht versturen',

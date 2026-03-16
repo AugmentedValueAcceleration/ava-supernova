@@ -36,6 +36,8 @@ export const ruStrings: Record<string, string> = {
   'welcome.mode.plan_desc': 'Архитектура и планирование',
   'welcome.mode.chat_desc': 'Только обсуждение',
   'welcome.mode.security_desc': 'Сканирование безопасности',
+  'welcome.mode.teach': 'Учёба',
+  'welcome.mode.teach_desc': 'Ava становится вашим личным репетитором',
 
   // Input Area
   'input.placeholder.code': 'Что вы хотите создать?',
@@ -43,9 +45,11 @@ export const ruStrings: Record<string, string> = {
   'input.placeholder.chat': 'Задайте вопрос или начните обсуждение...',
   'input.placeholder.disabled': 'Настройте провайдера для начала работы...',
   'input.placeholder.security': 'Опишите, что нужно проверить, или нажмите Enter для полного аудита...',
+  'input.placeholder.teach': 'Что вы хотите изучить?',
   'input.mode.code': 'Работа',
   'input.mode.plan': 'План',
   'input.mode.chat': 'Чат',
+  'input.mode.teach': 'Учёба',
   'input.mode.security': 'Безопасность',
   'input.send': 'Отправить (Enter)',
   'input.send_aria': 'Отправить сообщение',

@@ -103,7 +103,7 @@ export interface MemoryEntryUI {
 
 // ─── Webview → Extension Host ────────────────────────────────────────────────
 
-export type AvaMode = 'code' | 'plan' | 'chat' | 'security';
+export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security';
 
 export type WebviewToExtMessage =
   | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }> }

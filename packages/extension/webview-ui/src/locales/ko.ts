@@ -36,6 +36,8 @@ export const koStrings: Record<string, string> = {
   'welcome.mode.plan_desc': '아키텍처 및 계획',
   'welcome.mode.chat_desc': '토론만',
   'welcome.mode.security_desc': '보안 스캔',
+  'welcome.mode.teach': '학습',
+  'welcome.mode.teach_desc': 'Ava가 개인 튜터가 됩니다',
 
   // Input Area
   'input.placeholder.code': '무엇을 만들고 싶으신가요?',
@@ -43,9 +45,11 @@ export const koStrings: Record<string, string> = {
   'input.placeholder.chat': '질문하거나 토론을 시작하세요...',
   'input.placeholder.disabled': '먼저 공급자를 설정해 주세요...',
   'input.placeholder.security': '스캔할 내용을 설명하거나, Enter를 눌러 전체 감사를 실행하세요...',
+  'input.placeholder.teach': '무엇을 배우고 싶으세요?',
   'input.mode.code': '작업',
   'input.mode.plan': '계획',
   'input.mode.chat': '채팅',
+  'input.mode.teach': '학습',
   'input.mode.security': '보안',
   'input.send': '전송 (Enter)',
   'input.send_aria': '메시지 전송',

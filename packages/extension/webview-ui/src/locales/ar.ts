@@ -36,6 +36,8 @@ export const arStrings: Record<string, string> = {
   'welcome.mode.plan_desc': 'الهندسة والتخطيط',
   'welcome.mode.chat_desc': 'نقاش فقط',
   'welcome.mode.security_desc': 'فحص الأمان',
+  'welcome.mode.teach': 'تعلّم',
+  'welcome.mode.teach_desc': 'Ava تصبح معلّمك الشخصي',
 
   // Input Area
   'input.placeholder.code': 'ماذا تريد أن تبني؟',
@@ -43,9 +45,11 @@ export const arStrings: Record<string, string> = {
   'input.placeholder.chat': 'اطرح سؤالاً أو ابدأ نقاشاً...',
   'input.placeholder.disabled': 'قم بإعداد مزوّد للبدء...',
   'input.placeholder.security': 'صِف ما تريد فحصه، أو اضغط Enter لتدقيق كامل...',
+  'input.placeholder.teach': 'ماذا تريد أن تتعلم؟',
   'input.mode.code': 'عمل',
   'input.mode.plan': 'خطة',
   'input.mode.chat': 'محادثة',
+  'input.mode.teach': 'تعلّم',
   'input.mode.security': 'أمان',
   'input.send': 'إرسال (Enter)',
   'input.send_aria': 'إرسال الرسالة',

@@ -36,6 +36,8 @@ export const thStrings: Record<string, string> = {
   'welcome.mode.plan_desc': 'สถาปัตยกรรมและการวางแผน',
   'welcome.mode.chat_desc': 'สนทนาเท่านั้น',
   'welcome.mode.security_desc': 'สแกนความปลอดภัย',
+  'welcome.mode.teach': 'เรียนรู้',
+  'welcome.mode.teach_desc': 'Ava กลายเป็นติวเตอร์ส่วนตัวของคุณ',
 
   // Input Area
   'input.placeholder.code': 'คุณต้องการสร้างอะไร?',
@@ -43,9 +45,11 @@ export const thStrings: Record<string, string> = {
   'input.placeholder.chat': 'ถามคำถามหรือเริ่มพูดคุย...',
   'input.placeholder.disabled': 'ตั้งค่าผู้ให้บริการเพื่อเริ่มต้น...',
   'input.placeholder.security': 'อธิบายสิ่งที่ต้องการสแกน หรือกด Enter เพื่อตรวจสอบทั้งหมด...',
+  'input.placeholder.teach': 'คุณอยากเรียนรู้อะไร?',
   'input.mode.code': 'งาน',
   'input.mode.plan': 'แผน',
   'input.mode.chat': 'แชท',
+  'input.mode.teach': 'เรียนรู้',
   'input.mode.security': 'ความปลอดภัย',
   'input.send': 'ส่ง (Enter)',
   'input.send_aria': 'ส่งข้อความ',

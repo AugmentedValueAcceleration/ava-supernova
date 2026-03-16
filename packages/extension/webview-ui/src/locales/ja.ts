@@ -36,6 +36,8 @@ export const jaStrings: Record<string, string> = {
   'welcome.mode.plan_desc': 'アーキテクチャと計画',
   'welcome.mode.chat_desc': 'ディスカッションのみ',
   'welcome.mode.security_desc': 'セキュリティスキャン',
+  'welcome.mode.teach': '学習',
+  'welcome.mode.teach_desc': 'Ava があなた専属のチューターになります',
 
   // Input Area
   'input.placeholder.code': '何を作りたいですか？',
@@ -43,9 +45,11 @@ export const jaStrings: Record<string, string> = {
   'input.placeholder.chat': '質問をするか、議論を始めましょう...',
   'input.placeholder.disabled': 'まずプロバイダーを設定してください...',
   'input.placeholder.security': 'スキャン対象を記述するか、Enter を押してフルオーディットを実行...',
+  'input.placeholder.teach': '何を学びたいですか？',
   'input.mode.code': 'ワーク',
   'input.mode.plan': '計画',
   'input.mode.chat': 'チャット',
+  'input.mode.teach': '学習',
   'input.mode.security': 'セキュリティ',
   'input.send': '送信 (Enter)',
   'input.send_aria': 'メッセージを送信',

@@ -36,6 +36,8 @@ export const zhCNStrings: Record<string, string> = {
   'welcome.mode.plan_desc': '架构与规划',
   'welcome.mode.chat_desc': '仅讨论',
   'welcome.mode.security_desc': '安全扫描',
+  'welcome.mode.teach': '学习',
+  'welcome.mode.teach_desc': 'Ava 成为你的私人导师',
 
   // Input Area
   'input.placeholder.code': '你想构建什么？',
@@ -43,9 +45,11 @@ export const zhCNStrings: Record<string, string> = {
   'input.placeholder.chat': '提一个问题或开始讨论...',
   'input.placeholder.disabled': '请先配置服务商...',
   'input.placeholder.security': '描述要扫描的内容，或直接按 Enter 进行全面审计...',
+  'input.placeholder.teach': '你想学什么？',
   'input.mode.code': '工作',
   'input.mode.plan': '规划',
   'input.mode.chat': '聊天',
+  'input.mode.teach': '学习',
   'input.mode.security': '安全',
   'input.send': '发送 (Enter)',
   'input.send_aria': '发送消息',

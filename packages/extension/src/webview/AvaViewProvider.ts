@@ -19,6 +19,8 @@ import {
   AVA_HOME,
   ProviderError,
   buildSystemPrompt,
+  getChatModePrefix,
+  getTeachModePrefix,
   getSecurityModePrefix,
   killBackgroundProcesses,
   detectProjectRoot,
@@ -1504,11 +1506,33 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       case 'plan':
         return `[Plan Mode] Analyze the codebase and create a structured plan for the following request. You may read files and search the codebase to understand context. Do NOT write files, edit files, or execute commands — only output a detailed plan.\n\n${text}`;
       case 'chat':
-        return `[Chat Mode] Respond conversationally. Do not use any tools — just discuss, explain, or brainstorm.\n\n${text}`;
+        return getChatModePrefix(text);
+      case 'teach':
+        return getTeachModePrefix(text || 'What would you like to learn?', this.getLearningContext());
       case 'security':
         return getSecurityModePrefix(text || 'Perform a comprehensive security audit of this project.');
       default:
         return text;
+    }
+  }
+
+  private getLearningContext(): string | undefined {
+    try {
+      const fs = require('node:fs');
+      const learningPath = require('node:path').join(AVA_HOME, 'learning.json');
+      if (!fs.existsSync(learningPath)) return undefined;
+      const store = JSON.parse(fs.readFileSync(learningPath, 'utf-8'));
+      const active = (store.curriculums || []).filter((c: { status: string }) => c.status === 'active');
+      if (active.length === 0) return undefined;
+      return active.map((c: { title: string; subject: string; level: string; progress_percent: number; modules: Array<{ title: string; status: string; lessons: Array<{ title: string; status: string; type: string }> }> }) => {
+        const currentModule = c.modules.find((m: { status: string }) => m.status === 'in_progress' || m.status === 'available');
+        const nextLesson = currentModule?.lessons.find((l: { status: string }) => l.status === 'not_started' || l.status === 'in_progress');
+        return `**${c.title}** (${c.subject}, ${c.level}, ${Math.round(c.progress_percent)}% complete)\n` +
+          (currentModule ? `  Current module: ${currentModule.title}\n` : '') +
+          (nextLesson ? `  Next lesson: ${nextLesson.title} (${nextLesson.type})` : '  All lessons in current module complete — ready to unlock next module');
+      }).join('\n\n');
+    } catch {
+      return undefined;
     }
   }
 

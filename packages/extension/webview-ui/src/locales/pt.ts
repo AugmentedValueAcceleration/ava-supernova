@@ -36,6 +36,8 @@ export const ptStrings: Record<string, string> = {
   'welcome.mode.plan_desc': 'Arquitetura e planejamento',
   'welcome.mode.chat_desc': 'Apenas discuss\u00e3o',
   'welcome.mode.security_desc': 'Varredura de seguran\u00e7a',
+  'welcome.mode.teach': 'Aprender',
+  'welcome.mode.teach_desc': 'Ava se torna seu tutor pessoal',
 
   // Input Area
   'input.placeholder.code': 'O que voc\u00ea quer construir?',
@@ -43,9 +45,11 @@ export const ptStrings: Record<string, string> = {
   'input.placeholder.chat': 'Fa\u00e7a uma pergunta ou inicie uma conversa...',
   'input.placeholder.disabled': 'Configure um provedor para come\u00e7ar...',
   'input.placeholder.security': 'Descreva o que deseja escanear, ou pressione Enter para uma auditoria completa...',
+  'input.placeholder.teach': 'O que você quer aprender?',
   'input.mode.code': 'Trabalho',
   'input.mode.plan': 'Plano',
   'input.mode.chat': 'Chat',
+  'input.mode.teach': 'Aprender',
   'input.mode.security': 'Seguran\u00e7a',
   'input.send': 'Enviar (Enter)',
   'input.send_aria': 'Enviar mensagem',

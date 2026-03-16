@@ -36,6 +36,8 @@ export const trStrings: Record<string, string> = {
   'welcome.mode.plan_desc': 'Mimari ve planlama',
   'welcome.mode.chat_desc': 'Yalnızca tartışma',
   'welcome.mode.security_desc': 'Güvenlik taraması',
+  'welcome.mode.teach': 'Öğren',
+  'welcome.mode.teach_desc': 'Ava kişisel öğretmeniniz olur',
 
   // Input Area
   'input.placeholder.code': 'Ne oluşturmak istiyorsunuz?',
@@ -43,9 +45,11 @@ export const trStrings: Record<string, string> = {
   'input.placeholder.chat': 'Bir soru sorun veya sohbet başlatın...',
   'input.placeholder.disabled': 'Başlamak için bir sağlayıcı yapılandırın...',
   'input.placeholder.security': 'Neyin taranacağını açıklayın veya tam denetim için Enter tuşuna basın...',
+  'input.placeholder.teach': 'Ne öğrenmek istiyorsun?',
   'input.mode.code': 'Çalışma',
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Sohbet',
+  'input.mode.teach': 'Öğren',
   'input.mode.security': 'Güvenlik',
   'input.send': 'Gönder (Enter)',
   'input.send_aria': 'Mesaj gönder',

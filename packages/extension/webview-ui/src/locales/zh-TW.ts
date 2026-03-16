@@ -36,6 +36,8 @@ export const zhTWStrings: Record<string, string> = {
   'welcome.mode.plan_desc': '架構與規劃',
   'welcome.mode.chat_desc': '僅討論',
   'welcome.mode.security_desc': '安全掃描',
+  'welcome.mode.teach': '學習',
+  'welcome.mode.teach_desc': 'Ava 成為你的私人導師',
 
   // Input Area
   'input.placeholder.code': '你想建構什麼？',
@@ -43,9 +45,11 @@ export const zhTWStrings: Record<string, string> = {
   'input.placeholder.chat': '提一個問題或開始討論...',
   'input.placeholder.disabled': '請先設定服務供應商...',
   'input.placeholder.security': '描述要掃描的內容，或直接按 Enter 進行完整稽核...',
+  'input.placeholder.teach': '你想學什麼？',
   'input.mode.code': '工作',
   'input.mode.plan': '規劃',
   'input.mode.chat': '聊天',
+  'input.mode.teach': '學習',
   'input.mode.security': '安全',
   'input.send': '傳送 (Enter)',
   'input.send_aria': '傳送訊息',

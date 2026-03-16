@@ -36,6 +36,8 @@ export const ukStrings: Record<string, string> = {
   'welcome.mode.plan_desc': 'Архітектура та планування',
   'welcome.mode.chat_desc': 'Тільки обговорення',
   'welcome.mode.security_desc': 'Сканування безпеки',
+  'welcome.mode.teach': 'Навчання',
+  'welcome.mode.teach_desc': 'Ava стає вашим особистим репетитором',
 
   // Input Area
   'input.placeholder.code': 'Що ви хочете створити?',
@@ -43,9 +45,11 @@ export const ukStrings: Record<string, string> = {
   'input.placeholder.chat': 'Задайте питання або почніть обговорення...',
   'input.placeholder.disabled': 'Налаштуйте провайдера, щоб почати...',
   'input.placeholder.security': 'Опишіть, що потрібно перевірити, або натисніть Enter для повного аудиту...',
+  'input.placeholder.teach': 'Що ви хочете вивчити?',
   'input.mode.code': 'Робота',
   'input.mode.plan': 'План',
   'input.mode.chat': 'Чат',
+  'input.mode.teach': 'Навчання',
   'input.mode.security': 'Безпека',
   'input.send': 'Надіслати (Enter)',
   'input.send_aria': 'Надіслати повідомлення',

@@ -36,6 +36,8 @@ export const enStrings: Record<string, string> = {
   'welcome.mode.plan_desc': 'Architecture & planning',
   'welcome.mode.chat_desc': 'Discussion only',
   'welcome.mode.security_desc': 'Security scanning',
+  'welcome.mode.teach': 'Teach',
+  'welcome.mode.teach_desc': 'Ava becomes your personal tutor',
 
   // Input Area
   'input.placeholder.code': 'What do you want to build?',
@@ -43,9 +45,11 @@ export const enStrings: Record<string, string> = {
   'input.placeholder.chat': 'Ask a question or start a discussion...',
   'input.placeholder.disabled': 'Configure a provider to start...',
   'input.placeholder.security': 'Describe what to scan, or just hit Enter for a full audit...',
+  'input.placeholder.teach': 'What do you want to learn?',
   'input.mode.code': 'Work',
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Chat',
+  'input.mode.teach': 'Teach',
   'input.mode.security': 'Security',
   'input.send': 'Send (Enter)',
   'input.send_aria': 'Send message',

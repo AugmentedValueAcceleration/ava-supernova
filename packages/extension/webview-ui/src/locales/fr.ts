@@ -36,6 +36,8 @@ export const frStrings: Record<string, string> = {
   'welcome.mode.plan_desc': 'Architecture et planification',
   'welcome.mode.chat_desc': 'Discussion uniquement',
   'welcome.mode.security_desc': 'Analyse de s\u00e9curit\u00e9',
+  'welcome.mode.teach': 'Apprendre',
+  'welcome.mode.teach_desc': 'Ava devient votre tuteur personnel',
 
   // Input Area
   'input.placeholder.code': 'Que voulez-vous construire ?',
@@ -43,9 +45,11 @@ export const frStrings: Record<string, string> = {
   'input.placeholder.chat': 'Posez une question ou lancez une discussion...',
   'input.placeholder.disabled': 'Configurez un fournisseur pour commencer...',
   'input.placeholder.security': 'D\u00e9crivez ce qu\u2019il faut analyser, ou appuyez sur Entr\u00e9e pour un audit complet...',
+  'input.placeholder.teach': 'Que voulez-vous apprendre ?',
   'input.mode.code': 'Travail',
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Chat',
+  'input.mode.teach': 'Apprendre',
   'input.mode.security': 'S\u00e9curit\u00e9',
   'input.send': 'Envoyer (Entr\u00e9e)',
   'input.send_aria': 'Envoyer le message',

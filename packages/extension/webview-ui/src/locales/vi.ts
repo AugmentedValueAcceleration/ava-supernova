@@ -36,6 +36,8 @@ export const viStrings: Record<string, string> = {
   'welcome.mode.plan_desc': 'Kiến trúc & lập kế hoạch',
   'welcome.mode.chat_desc': 'Chỉ thảo luận',
   'welcome.mode.security_desc': 'Quét bảo mật',
+  'welcome.mode.teach': 'Học',
+  'welcome.mode.teach_desc': 'Ava trở thành gia sư riêng của bạn',
 
   // Input Area
   'input.placeholder.code': 'Bạn muốn xây dựng gì?',
@@ -43,9 +45,11 @@ export const viStrings: Record<string, string> = {
   'input.placeholder.chat': 'Đặt câu hỏi hoặc bắt đầu thảo luận...',
   'input.placeholder.disabled': 'Hãy cấu hình nhà cung cấp trước...',
   'input.placeholder.security': 'Mô tả nội dung cần quét, hoặc nhấn Enter để kiểm tra toàn bộ...',
+  'input.placeholder.teach': 'Bạn muốn học gì?',
   'input.mode.code': 'Công việc',
   'input.mode.plan': 'Kế hoạch',
   'input.mode.chat': 'Trò chuyện',
+  'input.mode.teach': 'Học',
   'input.mode.security': 'Bảo mật',
   'input.send': 'Gửi (Enter)',
   'input.send_aria': 'Gửi tin nhắn',

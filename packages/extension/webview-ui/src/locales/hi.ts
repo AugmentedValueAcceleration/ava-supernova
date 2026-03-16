@@ -36,6 +36,8 @@ export const hiStrings: Record<string, string> = {
   'welcome.mode.plan_desc': 'आर्किटेक्चर और प्लानिंग',
   'welcome.mode.chat_desc': 'केवल चर्चा',
   'welcome.mode.security_desc': 'सुरक्षा स्कैनिंग',
+  'welcome.mode.teach': 'सीखें',
+  'welcome.mode.teach_desc': 'Ava आपकी निजी शिक्षक बन जाती है',
 
   // Input Area
   'input.placeholder.code': 'आप क्या बनाना चाहते हैं?',
@@ -43,9 +45,11 @@ export const hiStrings: Record<string, string> = {
   'input.placeholder.chat': 'कोई सवाल पूछें या चर्चा शुरू करें...',
   'input.placeholder.disabled': 'शुरू करने के लिए एक प्रोवाइडर कॉन्फ़िगर करें...',
   'input.placeholder.security': 'बताएँ कि क्या स्कैन करना है, या पूर्ण ऑडिट के लिए Enter दबाएँ...',
+  'input.placeholder.teach': 'आप क्या सीखना चाहते हैं?',
   'input.mode.code': 'कार्य',
   'input.mode.plan': 'प्लान',
   'input.mode.chat': 'चैट',
+  'input.mode.teach': 'सीखें',
   'input.mode.security': 'सुरक्षा',
   'input.send': 'भेजें (Enter)',
   'input.send_aria': 'संदेश भेजें',
