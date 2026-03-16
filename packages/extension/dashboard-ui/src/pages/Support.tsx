@@ -16,6 +16,7 @@ export interface Ticket {
   subject: string;
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
   priority: 'low' | 'normal' | 'high' | 'urgent';
+  category?: 'bug' | 'feature' | 'question' | 'account' | 'feedback' | 'teach' | 'other';
   source: 'tool' | 'dashboard' | 'website';
   created_at: string;
   updated_at: string;
@@ -37,6 +38,16 @@ const SOURCE_LABELS: Record<string, string> = {
   website: 'Website',
 };
 
+const CATEGORY_COLORS: Record<string, string> = {
+  bug: 'bg-red-500/15 text-red-300',
+  feature: 'bg-purple-500/15 text-purple-300',
+  question: 'bg-cyan-500/15 text-cyan-300',
+  account: 'bg-amber-500/15 text-amber-300',
+  feedback: 'bg-green-500/15 text-green-300',
+  teach: 'bg-pink-500/15 text-pink-300',
+  other: 'bg-[var(--bg-input)] text-[var(--text-muted)]',
+};
+
 interface SupportProps {
   tickets: Ticket[];
   loading: boolean;
@@ -55,6 +66,7 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
   const [showNew, setShowNew] = useState(false);
   const [newSubject, setNewSubject] = useState('');
   const [newMessage, setNewMessage] = useState('');
+  const [newCategory, setNewCategory] = useState('other');
   const [creating, setCreating] = useState(false);
 
   const filtered = filter === 'all' ? tickets : tickets.filter((t) => t.status === filter);
@@ -63,11 +75,12 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
     e.preventDefault();
     if (!newSubject.trim() || !newMessage.trim()) return;
     setCreating(true);
-    post({ type: 'create_support_ticket', subject: newSubject, message: newMessage });
+    post({ type: 'create_support_ticket', subject: newSubject, message: newMessage, category: newCategory });
     setTimeout(() => {
       setShowNew(false);
       setNewSubject('');
       setNewMessage('');
+      setNewCategory('other');
       setCreating(false);
     }, 1000);
   }
@@ -201,6 +214,22 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
             />
           </div>
           <div>
+            <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">Category</label>
+            <select
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none focus:border-[var(--accent)]"
+            >
+              <option value="bug">Bug Report</option>
+              <option value="feature">Feature Request</option>
+              <option value="question">Question</option>
+              <option value="account">Account / Billing</option>
+              <option value="feedback">Feedback</option>
+              <option value="teach">Teach Mode</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div>
             <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">Message</label>
             <textarea
               required
@@ -288,6 +317,11 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
                     <span className={`rounded-full px-2 py-0.5 font-medium ${STATUS_COLORS[ticket.status]}`}>
                       {ticket.status.replace('_', ' ')}
                     </span>
+                    {ticket.category && (
+                      <span className={`rounded-full px-2 py-0.5 font-medium ${CATEGORY_COLORS[ticket.category] || CATEGORY_COLORS.other}`}>
+                        {ticket.category}
+                      </span>
+                    )}
                     <span className="text-[var(--text-muted)]">via {SOURCE_LABELS[ticket.source] ?? ticket.source}</span>
                     <span className="text-[var(--text-muted)]">
                       {new Date(ticket.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
@@ -315,12 +349,13 @@ function ByokSupport() {
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
+  const [category, setCategory] = useState('other');
   const [sent, setSent] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim() || !subject.trim() || !message.trim()) return;
-    post({ type: 'send_byok_support', email: email.trim(), subject: subject.trim(), message: message.trim() });
+    post({ type: 'send_byok_support', email: email.trim(), subject: subject.trim(), message: message.trim(), category });
     setSent(true);
     setTimeout(() => setSent(false), 3000);
   }
@@ -357,6 +392,22 @@ function ByokSupport() {
             className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none focus:border-[var(--accent)]"
             placeholder="Brief description of your issue"
           />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">Category</label>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none focus:border-[var(--accent)]"
+          >
+            <option value="bug">Bug Report</option>
+            <option value="feature">Feature Request</option>
+            <option value="question">Question</option>
+            <option value="account">Account / Billing</option>
+            <option value="feedback">Feedback</option>
+            <option value="teach">Teach Mode</option>
+            <option value="other">Other</option>
+          </select>
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">Message</label>
