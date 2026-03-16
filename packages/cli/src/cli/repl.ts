@@ -1,8 +1,8 @@
 import * as readline from 'node:readline';
 import { stdin, stdout } from 'node:process';
 import chalk from 'chalk';
-import { t, getSecurityModePrefix } from '@ava/core';
-import type { Agent, AgentEvent, Conversation, ToolRegistry, HistoryManager } from '@ava/core';
+import { t, getSecurityModePrefix, Conductor } from '@ava/core';
+import type { Agent, AgentEvent, ConductorEvent, Conversation, ToolRegistry, HistoryManager } from '@ava/core';
 import { Renderer } from './renderer.js';
 import { CommandHandler } from './commands.js';
 import { Spinner } from './spinner.js';
@@ -16,6 +16,7 @@ export class Repl {
   private commands!: CommandHandler;
   private spinner: Spinner;
   private agent: Agent;
+  private conductor?: Conductor;
   private conversation: Conversation;
   private closed = false;
   private modelLabel: string;
@@ -27,12 +28,14 @@ export class Repl {
 
   constructor(opts: {
     agent: Agent;
+    conductor?: Conductor;
     conversation: Conversation;
     toolRegistry: ToolRegistry;
     historyManager: HistoryManager;
     modelLabel: string;
   }) {
     this.agent = opts.agent;
+    this.conductor = opts.conductor;
     this.conversation = opts.conversation;
     this.historyManager = opts.historyManager;
     this.renderer = new Renderer();
@@ -151,6 +154,10 @@ export class Repl {
 
   setAgent(agent: Agent): void {
     this.agent = agent;
+  }
+
+  setConductor(conductor: Conductor): void {
+    this.conductor = conductor;
   }
 
   setCommands(commands: CommandHandler): void {
@@ -428,6 +435,49 @@ export class Repl {
     const cleanupListener = this.startRunInputListener();
 
     try {
+      // ── Conductor: run persona team for complex tasks ──────────────
+      if (this.conductor && this.conductor.needsOrchestration(this.lastUserInput, 'work')) {
+        this.spinner.stop();
+        console.log(chalk.hex(THEME.accent)('  Planning...'));
+
+        const onConductorEvent = (event: ConductorEvent): void => {
+          switch (event.type) {
+            case 'persona_start':
+              console.log(chalk.dim(`    ${event.persona} — ${event.description}`));
+              break;
+            case 'persona_complete':
+              console.log(chalk.green(`    ${event.persona} ✓`));
+              break;
+            case 'persona_error':
+              console.log(chalk.red(`    ${event.persona} ✗ ${event.error}`));
+              break;
+            case 'conductor_done':
+              console.log(chalk.hex(THEME.accent)(`  Planning complete (${event.totalPersonas} personas, ${event.totalTime}ms)`));
+              break;
+          }
+        };
+
+        try {
+          const { synthesisPrompt } = await this.conductor.orchestrate(
+            this.lastUserInput,
+            'work',
+            this.conversation.getMessages(),
+            onConductorEvent,
+            this.runAbortController.signal,
+          );
+
+          if (synthesisPrompt) {
+            const messages = this.conversation.getMessages();
+            messages.push({ role: 'user', content: `[Internal Planning — from Ava's persona team]\n\n${synthesisPrompt}` });
+            this.conversation.setMessages(messages);
+          }
+        } catch {
+          // Non-fatal — Agent runs without persona context
+        }
+
+        this.spinner.start(t('cli.thinking'));
+      }
+
       const updatedMessages = await this.agent.run(
         this.conversation.getMessages(),
         onEvent,

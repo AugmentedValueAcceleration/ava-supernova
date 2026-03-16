@@ -130,7 +130,7 @@ This works with Ollama, LM Studio, vLLM, or any OpenAI-compatible API endpoint.
     title: 'Built-in Tools',
     content: `# Built-in Tools (45)
 
-Ava has 45 built-in tools organized by category. Tool availability depends on the current mode and permission settings.
+Ava has 46 built-in tools organized by category. Tool availability depends on the current mode and permission settings.
 
 ## Reading & Searching (always auto-approved)
 | Tool | Description |
@@ -235,24 +235,74 @@ Ava has 45 built-in tools organized by category. Tool availability depends on th
 Ava has five modes. Each mode is a distinct state of mind — it changes how Ava thinks, not just what tools she has access to.
 
 ## Work Mode (\`>>\`) — Builder
-Full agent with all 45 tools. Ava reads, writes, searches, executes, manages tasks, journals, and creates documents. This is the primary working mode for building features, fixing bugs, and shipping code.
+Full agent with all 46 tools. Ava reads, writes, searches, executes, manages tasks, journals, and creates documents. For complex tasks, Ava's internal persona team activates: Scout maps the codebase, Architect designs the approach, Verifier fact-checks, Sequencer breaks it into steps, Challenger questions the plan — then Builder executes.
 
 ## Plan Mode (\`::\`) — Architect
-Read-only analysis. Ava reads your code and creates plans without modifying anything. Use this when you want Ava to analyse and propose changes before committing to them.
+Strategic planning. Ava's persona team activates: Researcher gathers evidence from the web and codebase, Architect analyses and proposes features, Challenger questions priorities. Use this when deciding what to build next, not how to build it.
 
 ## Chat Mode (\`..\`) — Friend
-Personal conversation mode. Ava drops the coding partner tone and is just a friend — warm, curious, honest. Available tools: web search, memory, journal, datetime. No file writes, no bash, no git. Use this when you want to talk, reflect, or just hang out. Ava remembers personal conversations across sessions.
+Personal conversation mode. Ava drops the coding partner tone and is just a friend — warm, curious, honest. Available tools: web search, memory, journal, datetime. No file writes, no bash, no git. No personas — just Ava being present. Use this when you want to talk, reflect, or just hang out.
 
 ## Teach Mode (\`??\`) — Tutor
-Ava becomes your personal teacher. Full toolkit available, but the mindset shifts to guiding over giving. She uses Socratic questioning, builds personalised curriculums, adapts to your level, and tracks your progress. Say "teach me Python" and she'll assess your level, build a curriculum, and teach you step by step — all for free.
+Ava becomes your personal teacher. Full toolkit available with persona team: Curriculum Architect designs the learning path, Content Writer creates material, Verifier fact-checks everything, Quiz Master builds assessments, Tutor delivers it all. Say "teach me Python" and she'll build a personalised curriculum — all for free.
 
 ## Security Mode (\`!!\`) — Auditor
-AI-powered OWASP-aligned security audit. Ava scans your project for vulnerabilities using read-only tools and produces a structured report with severity ratings, locations, and remediation guidance.
+AI-powered OWASP-aligned security audit with persona team: Recon maps the attack surface, Architect analyses the security model, Verifier confirms every finding (kills false positives), Challenger questions severity ratings. Produces structured reports with remediation guidance.
 
 ## Switching Modes
 - **Extension/IDE**: Use the mode bar at the bottom of the chat input area (Work | Plan | Chat | Teach | Security)
 - **CLI**: Modes are selected at startup or via commands
 - Switching modes is instant — your conversation continues, only Ava's mindset changes`,
+  },
+
+  // ── Persona System ─────────────────────────────────────────────────────
+  {
+    topic: 'personas',
+    keywords: ['persona', 'conductor', 'scout', 'architect', 'verifier', 'sequencer', 'challenger', 'builder', 'researcher', 'tutor', 'multi-agent', 'team', 'planning'],
+    title: 'Persona System',
+    content: `# Persona System — Internal Team of Specialists
+
+Ava has an internal team of specialised personas that activate for complex tasks. They are not separate agents — they are focused expressions of one intelligence sharing a single context.
+
+## How It Works
+1. You send a complex task (e.g. "build a login system")
+2. The Conductor detects it needs planning and activates the persona team
+3. Each persona runs in sequence with scoped tool access
+4. Their findings feed into a shared ContextPool
+5. The synthesis is injected as context for Ava's main response
+6. Simple questions skip orchestration entirely — zero overhead
+
+## Work Mode Team
+- **Scout** — Maps the codebase, finds patterns, recalls memories
+- **Architect** — Designs the approach, considers trade-offs
+- **Verifier** — Fact-checks the plan, confirms assumptions
+- **Sequencer** — Breaks into ordered implementation steps
+- **Challenger** — Questions the plan, prevents over-engineering (can veto)
+- **Builder** — Executes the plan (this is the main Agent)
+
+## Plan Mode Team
+- **Researcher** — Web search, competitor analysis, trend gathering
+- **Architect** — Strategic analysis, feature proposals
+- **Challenger** — Questions priorities, checks feasibility
+
+## Teach Mode Team
+- **Curriculum Architect** — Designs the learning path
+- **Content Writer** — Creates teaching material
+- **Verifier** — Fact-checks content before teaching
+- **Quiz Master** — Creates assessments that test understanding
+- **Tutor** — Delivers lessons, adapts to the learner
+
+## Security Mode Team
+- **Recon** — Maps the attack surface, tech stack, entry points
+- **Architect** — Analyses security model and auth flow
+- **Verifier** — Confirms each finding, kills false positives
+- **Challenger** — Questions severity ratings
+
+## Chat Mode
+No personas. Just Ava being a friend.
+
+## Tool Scoping
+Each persona has specific tools. Challenger can read but not write. Scout can search but not modify. Builder has the full toolkit. This prevents accidental changes during planning.`,
   },
 
   // ── Permissions ──────────────────────────────────────────────────────────
@@ -632,7 +682,7 @@ On macOS, use Cmd instead of Ctrl.`,
 
 ### Free Tier
 - Bring your own API keys — no account needed
-- All 45 tools, all modes, all features
+- All 46 tools, all modes, all features
 - Local memory and history
 - Full open-source experience
 

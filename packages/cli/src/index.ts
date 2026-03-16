@@ -14,6 +14,7 @@ import {
   PlatformMemorySync,
   ProviderHealthTracker,
   ResilientProvider,
+  Conductor,
   AVA_HOME,
   detectProjectRoot,
   loadProjectInstructions,
@@ -126,9 +127,17 @@ async function main(): Promise<void> {
     sharedState,
   });
 
+  const conductor = new Conductor({
+    provider,
+    model: resolved.model,
+    toolRegistry,
+    cwd,
+    sharedState,
+  });
+
   // Set up REPL
   const modelLabel = `${resolved.provider.name}:${resolved.model.id}`;
-  const repl = new Repl({ agent, conversation, toolRegistry, historyManager, modelLabel });
+  const repl = new Repl({ agent, conductor, conversation, toolRegistry, historyManager, modelLabel });
 
   // Set up commands with live model switching
   const commands = new CommandHandler({
@@ -140,6 +149,9 @@ async function main(): Promise<void> {
     onModelSwitch: (provider, model) => {
       repl.setAgent(
         new Agent({ provider, model, toolRegistry, cwd, sharedState }),
+      );
+      repl.setConductor(
+        new Conductor({ provider, model, toolRegistry, cwd, sharedState }),
       );
       repl.setModelLabel(`${provider.name}:${model.id}`);
     },
