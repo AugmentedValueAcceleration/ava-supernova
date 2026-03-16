@@ -1,11 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { post } from '../App';
 import type { ReleaseNote } from '../types/messages';
+
+function formatMonth(date: Date): string {
+  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+function getMonthKey(dateStr: string): string {
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
 
 export function Releases() {
   const [releases, setReleases] = useState<ReleaseNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
 
   useEffect(() => {
     post({ type: 'load_releases' });
@@ -13,9 +23,12 @@ export function Releases() {
     const handler = (e: MessageEvent) => {
       const msg = e.data;
       if (msg.type === 'releases_loaded') {
-        setReleases(Array.isArray(msg.releases) ? msg.releases : []);
-        if (Array.isArray(msg.releases) && msg.releases.length > 0) {
-          setExpanded(msg.releases[0].id);
+        const items = Array.isArray(msg.releases) ? msg.releases : [];
+        setReleases(items);
+        if (items.length > 0) {
+          setExpanded(items[0].id);
+          // Default to the month of the latest release
+          setSelectedMonth(getMonthKey(items[0].published_at));
         }
         setLoading(false);
       }
@@ -23,6 +36,24 @@ export function Releases() {
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, []);
+
+  // Get unique months from releases, sorted newest first
+  const months = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const r of releases) {
+      const key = getMonthKey(r.published_at);
+      if (!seen.has(key)) {
+        seen.set(key, formatMonth(new Date(r.published_at)));
+      }
+    }
+    return Array.from(seen.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [releases]);
+
+  // Filter releases by selected month
+  const filtered = useMemo(() => {
+    if (!selectedMonth) return releases;
+    return releases.filter(r => getMonthKey(r.published_at) === selectedMonth);
+  }, [releases, selectedMonth]);
 
   if (loading) {
     return (
@@ -42,15 +73,29 @@ export function Releases() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-white">Release Notes</h1>
-        <p className="text-xs text-[var(--text-muted)] mt-1">
-          What&apos;s new in each version of Ava | Supernova
-        </p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-xl font-bold text-white">Release Notes</h1>
+          <p className="text-xs text-[var(--text-muted)] mt-1">
+            What&apos;s new in each version of Ava | Supernova
+          </p>
+        </div>
+
+        {/* Month filter dropdown */}
+        <select
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(e.target.value)}
+          className="text-xs bg-[var(--bg-input)] border border-[var(--border-card)] text-white rounded-lg px-3 py-2 outline-none focus:border-[var(--accent)] transition"
+        >
+          <option value="">All releases</option>
+          {months.map(([key, label]) => (
+            <option key={key} value={key}>{label}</option>
+          ))}
+        </select>
       </div>
 
       <div className="space-y-3">
-        {releases.map((release) => {
+        {filtered.map((release) => {
           const isExpanded = expanded === release.id;
           const isLatest = release.id === releases[0]?.id;
 
@@ -114,6 +159,12 @@ export function Releases() {
             </div>
           );
         })}
+
+        {filtered.length === 0 && (
+          <div className="text-center text-sm text-[var(--text-muted)] py-8">
+            No releases for this month.
+          </div>
+        )}
       </div>
     </div>
   );
