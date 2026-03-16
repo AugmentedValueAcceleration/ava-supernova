@@ -126,11 +126,11 @@ This works with Ollama, LM Studio, vLLM, or any OpenAI-compatible API endpoint.
   // ── Tools ─────────────────────────────────────────────────────────────────
   {
     topic: 'tools',
-    keywords: ['tool', 'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'bash', 'web_search', 'browser', 'screenshot', 'database', 'git', 'memory_save', 'memory_recall', 'present_plan', 'todo_write', 'ask_user', 'rollback', 'http_request', 'project_index', 'find_symbol', 'list_directory', 'docs_lookup', 'support_request', 'support'],
+    keywords: ['tool', 'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'bash', 'web_search', 'browser', 'screenshot', 'database', 'git', 'memory_save', 'memory_recall', 'memory_update', 'memory_delete', 'present_plan', 'todo_write', 'ask_user', 'rollback', 'http_request', 'project_index', 'find_symbol', 'list_directory', 'docs_lookup', 'support_request', 'task_manage', 'journal_write', 'document_manage', 'propose_tool', 'get_datetime', 'detect_language', 'learning_create', 'learning_teach', 'learning_progress'],
     title: 'Built-in Tools',
-    content: `# Built-in Tools (24)
+    content: `# Built-in Tools (32)
 
-Ava has 24 built-in tools organized by category. Tool availability depends on the current mode and permission settings.
+Ava has 32 built-in tools organized by category. Tool availability depends on the current mode and permission settings.
 
 ## Reading & Searching (always auto-approved)
 | Tool | Description |
@@ -152,7 +152,7 @@ Ava has 24 built-in tools organized by category. Tool availability depends on th
 | browser | Automate browser interactions using Playwright (navigate, click, fill, screenshot). |
 | screenshot | Capture a screenshot of the user's screen for visual analysis. |
 | database_query | Run read-only SQL queries against PostgreSQL, SQLite, or MySQL. |
-| docs_lookup | **This is your tool.** Search your own documentation to answer user questions about features, setup, configuration, and troubleshooting. When a user asks "how do I…" or "what is…" about you, call \`docs_lookup\` with a query or topic. |
+| docs_lookup | Search your own documentation to answer user questions about features, setup, and troubleshooting. |
 
 ## Writing & Editing (permission mode dependent)
 | Tool | Description |
@@ -165,11 +165,36 @@ Ava has 24 built-in tools organized by category. Tool availability depends on th
 |------|-------------|
 | bash | Execute shell commands with configurable timeout. Use background: true for dev servers. |
 
-## Memory
+## Memory (always auto-approved)
 | Tool | Description |
 |------|-------------|
-| memory_save | Save information to persistent memory (global or project scope). |
-| memory_recall | Search saved memories by keyword. |
+| memory_save | Save categorised information to persistent memory (global or project scope). |
+| memory_recall | Search saved memories by keyword with TF-IDF ranking. |
+| memory_update | Update an existing memory entry by ID. |
+| memory_delete | Delete a specific memory entry by ID. |
+
+## Task Management (always auto-approved)
+| Tool | Description |
+|------|-------------|
+| todo_write | Create and update a visual task list to track progress. |
+| task_manage | Manage the user's personal task list — create, complete, update, delete tasks with priority, due dates, and categories. |
+
+## Journal (always auto-approved)
+| Tool | Description |
+|------|-------------|
+| journal_write | Dual journal system — both you and the user have journals. Write entries, read by date, search across all entries. |
+
+## Documents (permission mode dependent)
+| Tool | Description |
+|------|-------------|
+| document_manage | Create, read, edit, and export documents. Formats: Word, Excel, PDF, CSV, Markdown. Built-in templates for proposals, reports, invoices, and more. |
+
+## Learning (always auto-approved)
+| Tool | Description |
+|------|-------------|
+| learning_create | Build a personalised curriculum when the user wants to learn something new. |
+| learning_teach | Deliver lesson content, update lesson status, provide feedback. |
+| learning_progress | Update progress, complete lessons, unlock modules. |
 
 ## Collaboration (always requires approval)
 | Tool | Description |
@@ -177,20 +202,22 @@ Ava has 24 built-in tools organized by category. Tool availability depends on th
 | present_plan | Present a structured plan with steps for user approval. |
 | ask_user | Ask the user a question and wait for their response. |
 
-## Task Tracking (always auto-approved)
-| Tool | Description |
-|------|-------------|
-| todo_write | Create and update a visual task list to track progress. |
-
 ## Support
 | Tool | Description |
 |------|-------------|
-| support_request | Submit a support ticket to the Ava team. Use when the user has an issue you can't resolve — bugs, account problems, feature requests, billing questions. Requires email, subject, and message. The team replies via email. |
+| support_request | Submit a support ticket to the Ava team. |
 
 ## Safety
 | Tool | Description |
 |------|-------------|
 | rollback | Restore, discard, or check the status of a git checkpoint. |
+
+## Utility (always auto-approved)
+| Tool | Description |
+|------|-------------|
+| get_datetime | Get the current date and time for time-aware responses. |
+| detect_language | Detect the language of user input for multilingual support. |
+| propose_tool | Propose a new tool idea for self-improvement. |
 
 ## Risk Levels
 - **safe** — Read-only operations. Always auto-approved.
@@ -201,27 +228,31 @@ Ava has 24 built-in tools organized by category. Tool availability depends on th
   // ── Modes ─────────────────────────────────────────────────────────────────
   {
     topic: 'modes',
-    keywords: ['mode', 'code', 'plan', 'chat', 'security', 'audit', 'owasp', 'read-only'],
+    keywords: ['mode', 'code', 'plan', 'chat', 'teach', 'learn', 'security', 'audit', 'owasp', 'read-only', 'tutor', 'friend'],
     title: 'Modes',
-    content: `# Modes
+    content: `# Modes — States of Thought
 
-Ava has four modes that control what tools are available and how she behaves.
+Ava has five modes. Each mode is a distinct state of mind — it changes how Ava thinks, not just what tools she has access to.
 
-## Work Mode (default)
-Full agent with all 32 tools. Ava reads, writes, searches, executes, manages tasks, journals, and creates documents. This is the primary working mode.
+## Work Mode (\`>>\`) — Builder
+Full agent with all 32 tools. Ava reads, writes, searches, executes, manages tasks, journals, and creates documents. This is the primary working mode for building features, fixing bugs, and shipping code.
 
-## Plan Mode
-Read-only analysis. Ava reads your code and creates plans without modifying anything. Use this when you want Ava to analyze and propose changes before committing to them.
+## Plan Mode (\`::\`) — Architect
+Read-only analysis. Ava reads your code and creates plans without modifying anything. Use this when you want Ava to analyse and propose changes before committing to them.
 
-## Chat Mode
-Conversation only. No tools available — just discussion about code, architecture, ideas, or anything else. Use this for brainstorming, Q&A, or when you just want to talk.
+## Chat Mode (\`..\`) — Friend
+Personal conversation mode. Ava drops the coding partner tone and is just a friend — warm, curious, honest. Available tools: web search, memory, journal, datetime. No file writes, no bash, no git. Use this when you want to talk, reflect, or just hang out. Ava remembers personal conversations across sessions.
 
-## Security Mode
-AI-powered OWASP-aligned security audit. Ava scans your project for vulnerabilities using read-only tools and produces a structured report with severity ratings, locations, and remediation guidance. Categories include: injection, auth, secrets, XSS, CSRF, misconfigurations, dependencies, crypto, SSRF, deserialization, and logging.
+## Teach Mode (\`??\`) — Tutor
+Ava becomes your personal teacher. Full toolkit available, but the mindset shifts to guiding over giving. She uses Socratic questioning, builds personalised curriculums, adapts to your level, and tracks your progress. Say "teach me Python" and she'll assess your level, build a curriculum, and teach you step by step — all for free.
+
+## Security Mode (\`!!\`) — Auditor
+AI-powered OWASP-aligned security audit. Ava scans your project for vulnerabilities using read-only tools and produces a structured report with severity ratings, locations, and remediation guidance.
 
 ## Switching Modes
-- **Extension/IDE**: Use the mode bar at the bottom of the chat input area (Code | Plan | Chat | Security)
-- **CLI**: Modes are selected at startup or via commands`,
+- **Extension/IDE**: Use the mode bar at the bottom of the chat input area (Work | Plan | Chat | Teach | Security)
+- **CLI**: Modes are selected at startup or via commands
+- Switching modes is instant — your conversation continues, only Ava's mindset changes`,
   },
 
   // ── Permissions ──────────────────────────────────────────────────────────
