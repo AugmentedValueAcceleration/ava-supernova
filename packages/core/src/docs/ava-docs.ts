@@ -192,9 +192,9 @@ Ava has 45 built-in tools organized by category. Tool availability depends on th
 ## Learning (always auto-approved)
 | Tool | Description |
 |------|-------------|
-| learning_create | Build a personalised curriculum when the user wants to learn something new. |
-| learning_teach | Deliver lesson content, update lesson status, provide feedback. |
-| learning_progress | Update progress, complete lessons, unlock modules. |
+| learning_create | Build a personalised curriculum. Every lesson requires content. Supports difficulty (easy/medium/hard), estimated_minutes, learning_objectives, prerequisites, resources, quiz_questions (structured Q&A), and tags. |
+| learning_teach | Deliver lessons and assess understanding. Actions: teach (deliver content), quiz (auto-graded, 70% pass threshold), review (spaced repetition). Feedback supports pass/fail — passed: false marks lesson as needs_review for retry. |
+| learning_progress | Track and query learning data. Actions: progress (mark complete/unlock), search (by keyword or tag), stats (completion rate, avg score, time spent), needs_review (spaced repetition schedule). |
 
 ## Collaboration (always requires approval)
 | Tool | Description |
