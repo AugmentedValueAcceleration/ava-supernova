@@ -171,93 +171,39 @@ export class LearningCreateTool implements Tool {
   readonly schema: FunctionSchema = {
     name: 'learning_create',
     description:
-      'Create a learning curriculum after assessing the user\'s level and goals through conversation. ' +
-      'You should ask the user what they want to learn, their current level, and their goals BEFORE ' +
-      'calling this tool. Build a structured curriculum with modules and lessons. ' +
-      'IMPORTANT: Every lesson MUST have content — never create empty lessons. ' +
-      'Include learning objectives, estimated time, difficulty, and at least one quiz per module.',
+      'Create a learning curriculum skeleton. Ask the user what they want to learn, their level, and goals FIRST. ' +
+      'Keep the tool call SMALL — just titles, types, and difficulty for each lesson. ' +
+      'Do NOT include lesson content here — use learning_teach with action "write_content" to add content per-lesson after creation. ' +
+      'This keeps the response fast and avoids timeouts.',
     parameters: {
       type: 'object',
       properties: {
         title: { type: 'string', description: 'Curriculum title (e.g., "Python Fundamentals")' },
-        description: { type: 'string', description: 'Brief description of what the curriculum covers' },
-        subject: { type: 'string', description: 'Subject area (e.g., "Python", "Machine Learning")' },
-        level: { type: 'string', enum: ['beginner', 'intermediate', 'advanced', 'mixed'], description: 'Difficulty level' },
-        goal: { type: 'string', description: 'What the user wants to achieve by the end' },
-        estimated_hours: { type: 'number', description: 'Estimated total hours to complete' },
-        tags: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Tags for categorisation and search (e.g., ["python", "programming", "backend"])',
-        },
+        description: { type: 'string', description: 'Brief description' },
+        subject: { type: 'string', description: 'Subject area' },
+        level: { type: 'string', enum: ['beginner', 'intermediate', 'advanced', 'mixed'] },
+        goal: { type: 'string', description: 'What the user wants to achieve' },
+        estimated_hours: { type: 'number', description: 'Estimated total hours' },
+        tags: { type: 'array', items: { type: 'string' } },
         modules: {
           type: 'array',
-          description: 'Ordered list of modules, each with lessons. Build a logical progression — each module should build on the previous.',
+          description: 'Ordered modules. Keep lessons lightweight — title, type, difficulty only. Content is added later via learning_teach.',
           items: {
             type: 'object',
             properties: {
               title: { type: 'string' },
-              description: { type: 'string', description: 'What this module covers and why it matters' },
-              learning_objectives: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'What the learner will be able to do after completing this module',
-              },
+              description: { type: 'string' },
               lessons: {
                 type: 'array',
-                description: 'Mix of types: start with concept, follow with exercise, include a project or challenge, end with quiz and recap',
                 items: {
                   type: 'object',
                   properties: {
                     title: { type: 'string' },
                     type: { type: 'string', enum: ['concept', 'exercise', 'project', 'quiz', 'recap', 'challenge'] },
-                    content: { type: 'string', description: 'REQUIRED — teaching content in markdown. For concepts: explain clearly with examples. For exercises: describe the task. For quizzes: include questions. Never leave empty.' },
-                    difficulty: { type: 'string', enum: ['easy', 'medium', 'hard'], description: 'Difficulty within the module — ramp up gradually' },
-                    estimated_minutes: { type: 'number', description: 'How long this lesson takes (5-60 mins typically)' },
-                    learning_objectives: {
-                      type: 'array',
-                      items: { type: 'string' },
-                      description: 'What the learner will know/do after this lesson',
-                    },
-                    prerequisites: {
-                      type: 'array',
-                      items: { type: 'string' },
-                      description: 'Lesson titles that should be completed first (within the same module)',
-                    },
-                    resources: {
-                      type: 'array',
-                      items: {
-                        type: 'object',
-                        properties: {
-                          title: { type: 'string' },
-                          url: { type: 'string' },
-                          type: { type: 'string', enum: ['doc', 'video', 'article', 'tool'] },
-                        },
-                        required: ['title', 'type'],
-                      },
-                      description: 'Reference materials — docs, videos, articles, tools',
-                    },
-                    quiz_questions: {
-                      type: 'array',
-                      description: 'For quiz-type lessons — structured questions with answers',
-                      items: {
-                        type: 'object',
-                        properties: {
-                          question: { type: 'string' },
-                          options: { type: 'array', items: { type: 'string' }, description: 'Multiple choice options (optional — omit for open-ended)' },
-                          correct_answer: { type: 'string' },
-                          explanation: { type: 'string', description: 'Why this is the correct answer — shown after answering' },
-                        },
-                        required: ['question', 'correct_answer'],
-                      },
-                    },
-                    tags: {
-                      type: 'array',
-                      items: { type: 'string' },
-                      description: 'Tags for this lesson (e.g., ["variables", "data-types"])',
-                    },
+                    difficulty: { type: 'string', enum: ['easy', 'medium', 'hard'] },
+                    estimated_minutes: { type: 'number' },
                   },
-                  required: ['title', 'type', 'content'],
+                  required: ['title', 'type'],
                 },
               },
             },
@@ -302,19 +248,10 @@ export class LearningCreateTool implements Tool {
           status: 'not_started' as const,
           difficulty: (lesson.difficulty as Lesson['difficulty']) || 'medium',
           estimated_minutes: (lesson.estimated_minutes as number) ?? null,
-          learning_objectives: (lesson.learning_objectives as string[]) ?? [],
-          prerequisites: (lesson.prerequisites as string[]) ?? [],
-          resources: ((lesson.resources as Array<Record<string, unknown>>) || []).map(r => ({
-            title: r.title as string,
-            url: (r.url as string) ?? undefined,
-            type: (r.type as 'doc' | 'video' | 'article' | 'tool') || 'doc',
-          })),
-          quiz_questions: ((lesson.quiz_questions as Array<Record<string, unknown>>) || []).map(q => ({
-            question: q.question as string,
-            options: (q.options as string[]) ?? undefined,
-            correct_answer: q.correct_answer as string,
-            explanation: (q.explanation as string) ?? undefined,
-          })),
+          learning_objectives: [],
+          prerequisites: [],
+          resources: [],
+          quiz_questions: [],
           score: null,
           attempts: 0,
           best_score: null,
@@ -322,7 +259,7 @@ export class LearningCreateTool implements Tool {
           completed_at: null,
           last_reviewed_at: null,
           review_count: 0,
-          tags: (lesson.tags as string[]) ?? [],
+          tags: [],
         })),
       })),
     };
@@ -352,8 +289,9 @@ export class LearningCreateTool implements Tool {
           const time = m.estimated_minutes ? ` (~${m.estimated_minutes}m)` : '';
           return `  ${i + 1}. ${m.title} (${m.lessons.length} lessons${time})`;
         }).join('\n')}` +
-        `\n\nThe first module is unlocked and ready. Tell the user they can start whenever they're ready, ` +
-        `and give them a preview of what they'll learn in Module 1.`,
+        `\n\nThe first module is unlocked. Now use learning_teach with action "write_content" to add ` +
+        `teaching content to the first lesson, then deliver it. Build content as the user progresses — ` +
+        `don't try to write all lessons at once.`,
       metadata: { id: curriculum.id, modules: curriculum.modules.length, lessons: totalLessons },
     };
   }
