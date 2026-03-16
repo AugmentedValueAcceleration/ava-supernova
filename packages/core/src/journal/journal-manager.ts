@@ -26,7 +26,7 @@ export class JournalManager {
     this.globalDir = join(opts.globalDir, JOURNAL_DIR);
     this.projectDir = opts.projectRoot ? join(opts.projectRoot, '.ava', JOURNAL_DIR) : null;
     this.sync = opts.sync;
-    this.localOnly = opts.localOnly ?? false;
+    this.localOnly = opts.localOnly ?? true;
   }
 
   // ── Public API — Write ─────────────────────────────────────────────────────

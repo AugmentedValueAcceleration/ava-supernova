@@ -339,6 +339,16 @@ export class DashboardPanel {
         await this.loadLearning();
         break;
 
+      // ─── Sync messages ──────────────────────────────────────────────────
+
+      case 'load_sync_status':
+        await this.loadSyncStatus();
+        break;
+
+      case 'push_to_cloud':
+        await this.pushToCloud(msg.dataType);
+        break;
+
     }
   }
 
@@ -1193,6 +1203,171 @@ export class DashboardPanel {
       this.post({ type: 'journal_day_updated', day: this.coreToDisplayDay(day) });
     } catch {
       this.post({ type: 'error', message: 'Failed to save journal entry.' });
+    }
+  }
+
+  // ─── Cloud Sync (user-initiated push) ──────────────────────────────────────
+
+  private async loadSyncStatus(): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    const fs = await import('node:fs/promises');
+    const data: Record<string, { available: boolean; lastSynced: string | null; localCount: number }> = {};
+
+    // Check each data type's local file for counts
+    const types = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings'] as const;
+    for (const t of types) {
+      let localCount = 0;
+      try {
+        const filePath = t === 'memory' ? path.join(AVA_HOME, 'memory-v2.json')
+          : t === 'tasks' ? path.join(AVA_HOME, 'tasks.json')
+          : t === 'journal' ? path.join(AVA_HOME, 'journal')
+          : t === 'learning' ? path.join(AVA_HOME, 'learning.json')
+          : t === 'history' ? path.join(AVA_HOME, 'history')
+          : path.join(AVA_HOME, 'config.json');
+
+        if (t === 'journal' || t === 'history') {
+          // Count files in directory
+          const entries = await fs.readdir(filePath).catch(() => []);
+          localCount = entries.length;
+        } else {
+          const raw = await fs.readFile(filePath, 'utf-8');
+          const parsed = JSON.parse(raw);
+          if (t === 'memory') localCount = (parsed.global?.length ?? 0) + (parsed.project?.length ?? 0);
+          else if (t === 'tasks') localCount = parsed.tasks?.length ?? 0;
+          else if (t === 'learning') localCount = parsed.curriculums?.length ?? 0;
+          else localCount = 1; // settings is a single file
+        }
+      } catch { /* file doesn't exist yet */ }
+
+      data[t] = {
+        available: !!platformKey,
+        lastSynced: null, // TODO: track per-type last sync timestamp
+        localCount,
+      };
+    }
+
+    this.post({ type: 'sync_status', data });
+  }
+
+  private async pushToCloud(dataType: string): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) {
+      this.post({ type: 'sync_error', dataType, message: 'No platform account connected. Connect an account first.' });
+      return;
+    }
+
+    this.post({ type: 'sync_started', dataType });
+    const fs = await import('node:fs/promises');
+
+    try {
+      switch (dataType) {
+        case 'memory': {
+          const { PlatformMemorySync } = await import('@ava/core');
+          const sync = new PlatformMemorySync('https://ava-supernova.com/api', platformKey);
+          const raw = await fs.readFile(path.join(AVA_HOME, 'memory-v2.json'), 'utf-8');
+          const store = JSON.parse(raw);
+          const globalEntries = store.global || [];
+          const projectEntries = store.project || [];
+          await sync.pushEntries('global', globalEntries);
+          if (projectEntries.length > 0) await sync.pushEntries('project', projectEntries);
+          this.post({ type: 'sync_completed', dataType, count: globalEntries.length + projectEntries.length });
+          break;
+        }
+
+        case 'tasks': {
+          const raw = await fs.readFile(path.join(AVA_HOME, 'tasks.json'), 'utf-8');
+          const store = JSON.parse(raw);
+          const tasks = store.tasks || [];
+          const res = await apiFetch('/tasks/sync', {
+            platformKey,
+            method: 'POST',
+            body: JSON.stringify({ tasks }),
+          });
+          if (!res.ok) throw new Error('Failed to sync tasks');
+          this.post({ type: 'sync_completed', dataType, count: tasks.length });
+          break;
+        }
+
+        case 'journal': {
+          const journalDir = path.join(AVA_HOME, 'journal');
+          const files = await fs.readdir(journalDir).catch(() => []);
+          let count = 0;
+          for (const file of files) {
+            if (!file.endsWith('.json')) continue;
+            try {
+              const raw = await fs.readFile(path.join(journalDir, file), 'utf-8');
+              const day = JSON.parse(raw);
+              await apiFetch('/journal', {
+                platformKey,
+                method: 'POST',
+                body: JSON.stringify({
+                  date: day.date,
+                  user_content: day.userEntry?.content ?? null,
+                  user_mood: day.userEntry?.mood ?? null,
+                  user_tags: day.userEntry?.tags ?? [],
+                  ava_content: day.avaEntry?.content ?? null,
+                  ava_tags: day.avaEntry?.tags ?? [],
+                }),
+              });
+              count++;
+            } catch { /* skip malformed */ }
+          }
+          this.post({ type: 'sync_completed', dataType, count });
+          break;
+        }
+
+        case 'learning': {
+          const raw = await fs.readFile(path.join(AVA_HOME, 'learning.json'), 'utf-8');
+          const store = JSON.parse(raw);
+          const curriculums = store.curriculums || [];
+          const res = await apiFetch('/learning/sync', {
+            platformKey,
+            method: 'POST',
+            body: JSON.stringify({ curriculums }),
+          });
+          if (!res.ok) throw new Error('Failed to sync learning data');
+          this.post({ type: 'sync_completed', dataType, count: curriculums.length });
+          break;
+        }
+
+        case 'history': {
+          const historyDir = path.join(AVA_HOME, 'history');
+          const files = await fs.readdir(historyDir).catch(() => []);
+          const conversations = [];
+          for (const file of files) {
+            if (!file.endsWith('.json')) continue;
+            try {
+              const raw = await fs.readFile(path.join(historyDir, file), 'utf-8');
+              conversations.push(JSON.parse(raw));
+            } catch { /* skip */ }
+          }
+          const res = await apiFetch('/history/sync', {
+            platformKey,
+            method: 'POST',
+            body: JSON.stringify({ conversations }),
+          });
+          if (!res.ok) throw new Error('Failed to sync chat history');
+          this.post({ type: 'sync_completed', dataType, count: conversations.length });
+          break;
+        }
+
+        case 'settings': {
+          const settings = this.readSettings();
+          const res = await apiFetch('/settings/sync', {
+            platformKey,
+            method: 'POST',
+            body: JSON.stringify({ settings }),
+          });
+          if (!res.ok) throw new Error('Failed to sync settings');
+          this.post({ type: 'sync_completed', dataType, count: 1 });
+          break;
+        }
+
+        default:
+          this.post({ type: 'sync_error', dataType, message: `Unknown data type: ${dataType}` });
+      }
+    } catch (err) {
+      this.post({ type: 'sync_error', dataType, message: err instanceof Error ? err.message : String(err) });
     }
   }
 

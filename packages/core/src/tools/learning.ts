@@ -275,9 +275,6 @@ export class LearningCreateTool implements Tool {
     const totalMinutes = curriculum.modules.reduce((sum, m) =>
       sum + m.lessons.reduce((s, l) => s + (l.estimated_minutes || 0), 0), 0);
 
-    // Sync to platform if connected
-    await this.syncToPlatform(context, curriculum);
-
     return {
       success: true,
       output: `Created curriculum: "${curriculum.title}"\n` +
@@ -296,30 +293,6 @@ export class LearningCreateTool implements Tool {
     };
   }
 
-  private async syncToPlatform(context: ToolExecutionContext, curriculum: Curriculum): Promise<void> {
-    const platformKey = context.sharedState?.platformKey as string | undefined;
-    if (!platformKey) return;
-    try {
-      const res = await fetch('https://ava-supernova.com/api/learning', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${platformKey}` },
-        body: JSON.stringify({
-          title: curriculum.title,
-          description: curriculum.description,
-          subject: curriculum.subject,
-          level: curriculum.level,
-          goal: curriculum.goal,
-          estimated_hours: curriculum.estimated_hours,
-          modules: curriculum.modules.map(m => ({
-            title: m.title,
-            description: m.description,
-            lessons: m.lessons.map(l => ({ title: l.title, type: l.type, content: l.content })),
-          })),
-        }),
-      });
-      if (!res.ok) { /* fire and forget */ }
-    } catch { /* ignore */ }
-  }
 }
 
 // ══════════════════════════════════════════════════════════════════════

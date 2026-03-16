@@ -212,7 +212,12 @@ export type ExtToDashboardMessage =
   | { type: 'journal_day_loaded'; day: DashboardJournalDay }
   | { type: 'journal_summaries_loaded'; summaries: DashboardJournalDaySummary[] }
   | { type: 'journal_day_updated'; day: DashboardJournalDay }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string }
+  // Sync messages
+  | { type: 'sync_status'; data: Record<string, { available: boolean; lastSynced: string | null; localCount: number }> }
+  | { type: 'sync_started'; dataType: string }
+  | { type: 'sync_completed'; dataType: string; count: number }
+  | { type: 'sync_error'; dataType: string; message: string };
 
 // ─── Dashboard Webview → Extension Host ──────────────────────────────────────
 
@@ -271,4 +276,7 @@ export type DashboardToExtMessage =
   // Journal messages
   | { type: 'load_journal_day'; date: string }
   | { type: 'load_journal_summaries'; from: string; to: string }
-  | { type: 'save_journal_user_entry'; date: string; content: string; mood?: number; tags?: string[] };
+  | { type: 'save_journal_user_entry'; date: string; content: string; mood?: number; tags?: string[] }
+  // Sync messages
+  | { type: 'load_sync_status' }
+  | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' };

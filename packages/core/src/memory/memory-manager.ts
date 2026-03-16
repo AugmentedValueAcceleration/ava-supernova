@@ -56,14 +56,14 @@ export class MemoryManager {
   private globalIndex: TfIdfIndex = new TfIdfIndex();
   private projectIndex: TfIdfIndex = new TfIdfIndex();
 
-  /** When true, skip all platform sync — memories stay on disk only. */
-  private localOnly = false;
+  /** When true, skip all platform sync — memories stay on disk only. Default: true (local-first). */
+  private localOnly = true;
 
   constructor(opts: { globalDir: string; projectRoot?: string; sync?: PlatformMemorySync; localOnly?: boolean }) {
     this.globalDir = opts.globalDir;
     this.projectDir = opts.projectRoot ? join(opts.projectRoot, '.ava') : null;
     this.sync = opts.sync;
-    this.localOnly = opts.localOnly ?? false;
+    this.localOnly = opts.localOnly ?? true;
 
     // Auto-register this project in the global registry (fire-and-forget)
     if (opts.projectRoot) {

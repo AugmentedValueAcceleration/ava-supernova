@@ -59,8 +59,8 @@ export class TaskManager {
   private globalStore: TaskStore | null = null;
   private projectStore: TaskStore | null = null;
 
-  /** When true, skip all platform sync. */
-  private localOnly = false;
+  /** When true, skip all platform sync. Default: true (local-first). */
+  private localOnly = true;
 
   // Session tasks — in-memory only until flushed
   private sessionTasks: TaskEntry[] = [];
@@ -69,7 +69,7 @@ export class TaskManager {
     this.globalDir = opts.globalDir;
     this.projectDir = opts.projectRoot ? join(opts.projectRoot, '.ava') : null;
     this.sync = opts.sync;
-    this.localOnly = opts.localOnly ?? false;
+    this.localOnly = opts.localOnly ?? true;
   }
 
   // ── Public API — Load ──────────────────────────────────────────────────────
