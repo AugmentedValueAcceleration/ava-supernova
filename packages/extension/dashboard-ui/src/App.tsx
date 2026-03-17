@@ -312,6 +312,17 @@ export function App() {
     if (page === 'sync') {
       post({ type: 'load_sync_status' });
     }
+    // Load overview widget data
+    if (page === 'overview') {
+      post({ type: 'load_tasks' });
+      post({ type: 'load_learning' });
+      post({ type: 'load_journal_day', date: new Date().toISOString().slice(0, 10) });
+      if (account) {
+        post({ type: 'load_memories' });
+      } else {
+        post({ type: 'load_local_memories' });
+      }
+    }
     // BYOK: refresh session stats when viewing usage or overview
     if ((page === 'usage' || page === 'overview') && byokMode && !account) {
       post({ type: 'load_session_stats' });
@@ -346,7 +357,7 @@ export function App() {
     const mode = account ? 'platform' as const : 'byok' as const;
     switch (page) {
       case 'overview':
-        return <Overview account={account} connections={connections} onNavigate={setPage} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} />;
+        return <Overview account={account} connections={connections} onNavigate={setPage} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} />;
       case 'keys':
         return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
       case 'usage':
