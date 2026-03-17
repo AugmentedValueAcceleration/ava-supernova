@@ -49,12 +49,21 @@ export function activate(context: vscode.ExtensionContext): void {
         const uris = await vscode.window.showOpenDialog({
           canSelectFiles: true,
           canSelectMany: false,
-          filters: { 'Documents': ['md', 'txt', 'csv', 'html'] },
+          filters: { 'Documents': ['md', 'txt', 'csv', 'html', 'docx', 'xlsx', 'pdf'] },
           openLabel: 'Preview',
         });
         if (!uris || uris.length === 0) return;
         uri = uris[0];
       }
+      const ext = uri.fsPath.split('.').pop()?.toLowerCase();
+
+      // Binary formats — open with OS default (Word, Excel, PDF viewer)
+      if (ext === 'docx' || ext === 'xlsx' || ext === 'pdf' || ext === 'pptx') {
+        vscode.env.openExternal(uri);
+        return;
+      }
+
+      // Text-based formats — render in our preview panel
       const content = await vscode.workspace.fs.readFile(uri);
       const text = Buffer.from(content).toString('utf-8');
       const fileName = uri.fsPath.split(/[/\\]/).pop() || 'Document';
