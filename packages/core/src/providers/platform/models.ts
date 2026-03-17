@@ -1,42 +1,12 @@
 import type { ModelDefinition } from '../../core/types.js';
 
+/**
+ * Platform models — available on managed plans.
+ * Powered by Qwen (enterprise partnership) + free GLM models.
+ * All other models available via BYOK on any plan.
+ */
 export const PLATFORM_MODELS: ModelDefinition[] = [
-  // DeepSeek
-  {
-    id: 'deepseek-chat',
-    name: 'DeepSeek V3.2',
-    provider: 'platform',
-    contextWindow: 128000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    pricing: { inputPerMillion: 0.28, outputPerMillion: 0.42 },
-  },
-  {
-    id: 'deepseek-reasoner',
-    name: 'DeepSeek V3.2 Reasoner',
-    provider: 'platform',
-    contextWindow: 128000,
-    maxOutputTokens: 64000,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsThinking: true,
-    pricing: { inputPerMillion: 0.28, outputPerMillion: 0.42 },
-  },
-  // Kimi
-  {
-    id: 'kimi-k2.5',
-    name: 'Kimi K2.5',
-    provider: 'platform',
-    contextWindow: 256000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsThinking: true,
-    supportsVision: true,
-    pricing: { inputPerMillion: 0.60, outputPerMillion: 3.00 },
-  },
-  // Qwen
+  // Qwen — official partner
   {
     id: 'qwen3.5-plus',
     name: 'Qwen 3.5 Plus',
@@ -47,21 +17,9 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
-    pricing: { inputPerMillion: 0.40, outputPerMillion: 2.40 },
+    pricing: { inputPerMillion: 0.10, outputPerMillion: 0.60 },
   },
-  // Zhipu / GLM
-  {
-    id: 'glm-5',
-    name: 'GLM-5',
-    provider: 'platform',
-    contextWindow: 200000,
-    maxOutputTokens: 128000,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsThinking: true,
-    supportsVision: true,
-    pricing: { inputPerMillion: 1.00, outputPerMillion: 3.20 },
-  },
+  // Free models — always available
   {
     id: 'glm-4.7-flash',
     name: 'GLM-4.7 Flash (Free)',
@@ -81,70 +39,5 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsToolCalls: true,
     supportsStreaming: true,
     pricing: { inputPerMillion: 0, outputPerMillion: 0 },
-  },
-  // Mistral
-  {
-    id: 'mistral-large-latest',
-    name: 'Mistral Large',
-    provider: 'platform',
-    contextWindow: 256000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    pricing: { inputPerMillion: 0.50, outputPerMillion: 1.50 },
-  },
-  {
-    id: 'codestral-latest',
-    name: 'Codestral',
-    provider: 'platform',
-    contextWindow: 256000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    pricing: { inputPerMillion: 0.30, outputPerMillion: 0.90 },
-  },
-  {
-    id: 'devstral-latest',
-    name: 'Devstral 2',
-    provider: 'platform',
-    contextWindow: 256000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    pricing: { inputPerMillion: 0.40, outputPerMillion: 2.00 },
-  },
-  // Claude — available to admin/pro/ultra tiers via platform proxy
-  {
-    id: 'claude-opus-4-6',
-    name: 'Claude Opus 4.6',
-    provider: 'platform',
-    contextWindow: 200000,
-    maxOutputTokens: 32768,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsVision: true,
-    pricing: { inputPerMillion: 5, outputPerMillion: 25 },
-  },
-  {
-    id: 'claude-sonnet-4-6',
-    name: 'Claude Sonnet 4.6',
-    provider: 'platform',
-    contextWindow: 200000,
-    maxOutputTokens: 16384,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsVision: true,
-    pricing: { inputPerMillion: 3, outputPerMillion: 15 },
-  },
-  {
-    id: 'claude-haiku-4-5-20251001',
-    name: 'Claude Haiku 4.5',
-    provider: 'platform',
-    contextWindow: 200000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsVision: true,
-    pricing: { inputPerMillion: 1, outputPerMillion: 5 },
   },
 ];
