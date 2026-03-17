@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import { AvaViewProvider } from './webview/AvaViewProvider.js';
 import { DocsPanel } from './webview/DocsPanel.js';
 import { DashboardPanel } from './webview/DashboardPanel.js';
+import { DocumentPreviewPanel } from './webview/DocumentPreviewPanel.js';
 import { killBackgroundProcesses, TaskManager, JournalManager, AVA_HOME } from '@ava/core';
 
 let viewProvider: AvaViewProvider | undefined;
@@ -41,6 +42,36 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('ava-supernova.showHistory', () => viewProvider!.showHistory()),
     vscode.commands.registerCommand('ava-supernova.openDocs', () => DocsPanel.show(context.extensionUri)),
     vscode.commands.registerCommand('ava-supernova.openDashboard', () => DashboardPanel.show(context.extensionUri, context)),
+    vscode.commands.registerCommand('ava-supernova.previewDocument', async (resourceUri?: vscode.Uri) => {
+      // Accept URI from explorer context menu, editor title bar, or let user pick
+      let uri = resourceUri ?? vscode.window.activeTextEditor?.document.uri;
+      if (!uri) {
+        const uris = await vscode.window.showOpenDialog({
+          canSelectFiles: true,
+          canSelectMany: false,
+          filters: { 'Documents': ['md', 'txt', 'csv', 'html'] },
+          openLabel: 'Preview',
+        });
+        if (!uris || uris.length === 0) return;
+        uri = uris[0];
+      }
+      const content = await vscode.workspace.fs.readFile(uri);
+      const text = Buffer.from(content).toString('utf-8');
+      const fileName = uri.fsPath.split(/[/\\]/).pop() || 'Document';
+
+      // Detect type from content
+      let type: 'presentation' | 'email' | 'report' | 'markdown' = 'markdown';
+      if (text.includes('marp: true') || text.includes('\n---\n')) type = 'presentation';
+      else if (text.includes('**To:**') || text.includes('**Subject:**')) type = 'email';
+      else if (text.includes('Weekly Status Report') || text.includes('Sprint Review') || text.includes('Board Brief')) type = 'report';
+
+      DocumentPreviewPanel.show(context.extensionUri, {
+        title: fileName,
+        type,
+        content: text,
+        filePath: uri.fsPath,
+      });
+    }),
   );
 
   // Restore panel if it was open in the previous session (default: open on first install)

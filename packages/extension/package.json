@@ -2,7 +2,7 @@
   "name": "ava-supernova",
   "displayName": "Ava | Supernova",
   "description": "%description%",
-  "version": "0.15.3",
+  "version": "0.15.4",
   "publisher": "augmentedvalueacceleration",
   "license": "Apache-2.0",
   "repository": {
@@ -105,6 +105,13 @@
         "shortTitle": "Dashboard",
         "category": "Ava",
         "icon": "$(account)"
+      },
+      {
+        "command": "ava-supernova.previewDocument",
+        "title": "Preview Document",
+        "shortTitle": "Preview",
+        "category": "Ava",
+        "icon": "$(open-preview)"
       }
     ],
     "walkthroughs": [],
@@ -296,6 +303,18 @@
       "editor/title": [
         {
           "command": "ava-supernova.openChat",
+          "group": "navigation"
+        },
+        {
+          "command": "ava-supernova.previewDocument",
+          "when": "resourceExtname =~ /\\.(md|txt|csv|html)$/",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "ava-supernova.previewDocument",
+          "when": "resourceExtname =~ /\\.(md|txt|csv|html)$/",
           "group": "navigation"
         }
       ]
