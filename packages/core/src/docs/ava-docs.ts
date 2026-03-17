@@ -249,7 +249,7 @@ Personal conversation mode. Ava drops the coding partner tone and is just a frie
 Ava becomes your personal teacher. Full toolkit available with persona team: Curriculum Architect designs the learning path, Content Writer creates material, Verifier fact-checks everything, Quiz Master builds assessments, Tutor delivers it all. Say "teach me Python" and she'll build a personalised curriculum — all for free.
 
 ## Security Mode (\`!!\`) — Auditor
-AI-powered OWASP-aligned security audit with persona team: Recon maps the attack surface, Architect analyses the security model, Verifier confirms every finding (kills false positives), Challenger questions severity ratings. Produces structured reports with remediation guidance.
+AI-powered OWASP-aligned security audit with 5-phase flow: Recon maps the attack surface, Scanner works through each OWASP category, Researcher checks for known CVEs via web search, Verifier confirms every finding (kills false positives), Reporter structures results by severity. Produces actionable reports with remediation guidance.
 
 ## Switching Modes
 - **Extension/IDE**: Use the mode bar at the bottom of the chat input area (Work | Plan | Chat | Teach | Security)
@@ -294,11 +294,12 @@ Ava has an internal team of specialised personas that activate for complex tasks
 - **Quiz Master** — Creates assessments that test understanding
 - **Tutor** — Delivers lessons, adapts to the learner
 
-## Security Mode Team
+## Security Mode Team (5-phase audit)
 - **Recon** — Maps the attack surface, tech stack, entry points
-- **Architect** — Analyses security model and auth flow
+- **Scanner** — Works through each OWASP category methodically
+- **Researcher** — Checks for known CVEs, verifies patterns via web search
 - **Verifier** — Confirms each finding, kills false positives
-- **Challenger** — Questions severity ratings
+- **Reporter** — Structures results by severity with remediation guidance
 
 ## Chat Mode
 No personas. Just Ava being a friend.
