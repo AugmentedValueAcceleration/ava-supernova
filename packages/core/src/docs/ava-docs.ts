@@ -232,11 +232,11 @@ Ava has 52 built-in tools organized by category. Tool availability depends on th
   // ── Modes ─────────────────────────────────────────────────────────────────
   {
     topic: 'modes',
-    keywords: ['mode', 'code', 'plan', 'chat', 'teach', 'learn', 'security', 'audit', 'owasp', 'read-only', 'tutor', 'friend'],
+    keywords: ['mode', 'code', 'plan', 'chat', 'teach', 'learn', 'security', 'audit', 'owasp', 'read-only', 'tutor', 'friend', 'brainstorm', 'ideation', 'ideas'],
     title: 'Modes',
     content: `# Modes — States of Thought
 
-Ava has five modes. Each mode is a distinct state of mind — it changes how Ava thinks, not just what tools she has access to.
+Ava has six modes. Each mode is a distinct state of mind — it changes how Ava thinks, not just what tools she has access to.
 
 ## Work Mode (\`>>\`) — Builder
 Full agent with all 52 tools. Ava reads, writes, searches, executes, manages tasks, journals, and creates documents. For complex tasks, Ava's internal persona team activates: Scout maps the codebase, Architect designs the approach, Verifier fact-checks, Sequencer breaks it into steps, Challenger questions the plan — then Builder executes.
@@ -253,8 +253,11 @@ Ava becomes your personal teacher. Full toolkit available with persona team: Cur
 ## Security Mode (\`!!\`) — Auditor
 AI-powered OWASP-aligned security audit with 5-phase flow: Recon maps the attack surface, Scanner works through each OWASP category, Researcher checks for known CVEs via web search, Verifier confirms every finding (kills false positives), Reporter structures results by severity. Produces actionable reports with remediation guidance.
 
+## Brainstorm Mode (\`**\`) — Ideator
+Ideation mindset — business ideas, feature brainstorming, creative problem solving. Ava helps you explore possibilities, challenge assumptions, and develop concepts without jumping to implementation.
+
 ## Switching Modes
-- **Extension/IDE**: Use the mode bar at the bottom of the chat input area (Work | Plan | Chat | Teach | Security)
+- **Extension/IDE**: Use the mode bar at the bottom of the chat input area (Work | Plan | Chat | Teach | Security | Brainstorm)
 - **CLI**: Modes are selected at startup or via commands
 - Switching modes is instant — your conversation continues, only Ava's mindset changes`,
   },

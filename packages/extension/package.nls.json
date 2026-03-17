@@ -1,9 +1,9 @@
 {
   "displayName": "Ava | Supernova",
-  "description": "Open-source AI coding agent + personal tutor — 14 models, 7 providers, 52 tools, 5 modes (Work, Plan, Chat, Teach, Security), 2 free models. Smart memory, spaced repetition learning, task management, dual journal. DeepSeek, Kimi, Qwen, Mistral, Anthropic, Zhipu & more.",
+  "description": "Open-source AI coding agent + personal tutor — 14 models, 7 providers, 52 tools, 6 modes (Work, Plan, Chat, Teach, Security, Brainstorm), 2 free models. Smart memory, spaced repetition learning, task management, dual journal. DeepSeek, Kimi, Qwen, Mistral, Anthropic, Zhipu & more.",
   "viewContainer.title": "Ava | Supernova",
   "view.chat.name": "Chat",
-  "command.openChat.title": "Open Chat — Start an AI coding session with 52 tools and 5 modes",
+  "command.openChat.title": "Open Chat — Start an AI coding session with 52 tools and 6 modes",
   "command.newChat.title": "New Chat — Fresh conversation with full context reset",
   "command.clearChat.title": "Clear Chat — Remove all messages from the current session",
   "command.switchModel.title": "Switch Model — Choose from 14 models across 7 providers",

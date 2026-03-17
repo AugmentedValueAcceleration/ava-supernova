@@ -96,7 +96,7 @@ Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/item
 ### Extension Features
 
 - **Agentic coding** — Ava reads, writes, edits, searches, and executes code autonomously
-- **Four modes** — Code (`>>` full agent), Plan (`::` read-only), Chat (`..` no tools), Security (`!!` OWASP audit)
+- **Six modes** — Work (`>>` full agent), Plan (`::` read-only), Chat (`..` friend), Teach (`??` personal tutor), Security (`!!` OWASP audit), Brainstorm (`**` ideation)
 - **Model selector** — Switch models from the header dropdown with provider labels and availability indicators
 - **Persistent memory** — Ava remembers across sessions with structured entries, TF-IDF retrieval, branch scoping, and auto-archival (credentials blocked at runtime)
 - **Mid-task interjection** — Type while Ava is working to add context, corrections, or redirect — true collaborative flow
