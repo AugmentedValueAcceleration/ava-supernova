@@ -21,6 +21,7 @@ const DEFAULT_CONFIG: Required<ConductorConfig> = {
   maxPersonas: 6,
   personaTimeout: 30000,
   parallel: false,
+  maxParallel: 3,
   challengerCanVeto: true,
 };
 
@@ -112,24 +113,85 @@ export class Conductor {
     // Skip the Builder persona — that's the main Agent's job
     const planningTeam = sortedTeam.filter(p => p.id !== 'builder');
 
-    for (const persona of planningTeam) {
-      if (signal?.aborted) break;
-      if (personaStates.length >= this.config.maxPersonas) break;
+    if (this.config.parallel) {
+      // ── Wave-based parallel execution ─────────────────────────────────
+      // Group personas into waves based on dependency graph.
+      // Within each wave, personas run in parallel (up to maxParallel).
+      const completed = new Set<PersonaId>();
+      let vetoed = false;
 
-      const state = await this.runPersona(persona, contextPool, conversationHistory, onEvent, signal);
-      personaStates.push(state);
+      while (!vetoed && personaStates.length < (this.config.maxPersonas ?? 6)) {
+        if (signal?.aborted) break;
 
-      // Update context pool based on persona output
-      if (state.output) {
-        this.updatePool(contextPool, persona.id, state.output);
+        // Find personas whose dependencies are all complete
+        const wave = planningTeam.filter(p =>
+          !completed.has(p.id) &&
+          (p.dependsOn ?? []).every(dep => completed.has(dep))
+        );
+
+        if (wave.length === 0) break; // No more runnable personas
+
+        // Run wave with concurrency limit
+        const maxP = this.config.maxParallel ?? 3;
+        for (let i = 0; i < wave.length; i += maxP) {
+          if (signal?.aborted || vetoed) break;
+          const batch = wave.slice(i, i + maxP);
+
+          const results = await Promise.allSettled(
+            batch.map(persona =>
+              this.runPersona(persona, contextPool, conversationHistory, onEvent, signal)
+            )
+          );
+
+          for (let j = 0; j < results.length; j++) {
+            const result = results[j];
+            const persona = batch[j];
+
+            if (result.status === 'fulfilled') {
+              const state = result.value;
+              personaStates.push(state);
+              completed.add(persona.id);
+
+              if (state.output) {
+                this.updatePool(contextPool, persona.id, state.output);
+              }
+
+              // Check for Challenger veto
+              if (persona.id === 'challenger' && this.config.challengerCanVeto && state.output) {
+                if (/\b(veto|stop|don'?t proceed|abort|reject)\b/i.test(state.output)) {
+                  logger.debug('[conductor] Challenger vetoed the plan');
+                  vetoed = true;
+                }
+              }
+            } else {
+              // Failed — mark as complete to unblock dependents, but log error
+              completed.add(persona.id);
+              logger.debug(`[conductor] Persona ${persona.id} failed in parallel: ${result.reason}`);
+            }
+          }
+        }
       }
+    } else {
+      // ── Sequential execution (original behaviour) ─────────────────────
+      for (const persona of planningTeam) {
+        if (signal?.aborted) break;
+        if (personaStates.length >= (this.config.maxPersonas ?? 6)) break;
 
-      // If Challenger vetoes and config allows it, stop here
-      if (persona.id === 'challenger' && this.config.challengerCanVeto && state.output) {
-        const isVeto = /\b(veto|stop|don'?t proceed|abort|reject)\b/i.test(state.output);
-        if (isVeto) {
-          logger.debug('[conductor] Challenger vetoed the plan');
-          break;
+        const state = await this.runPersona(persona, contextPool, conversationHistory, onEvent, signal);
+        personaStates.push(state);
+
+        // Update context pool based on persona output
+        if (state.output) {
+          this.updatePool(contextPool, persona.id, state.output);
+        }
+
+        // If Challenger vetoes and config allows it, stop here
+        if (persona.id === 'challenger' && this.config.challengerCanVeto && state.output) {
+          const isVeto = /\b(veto|stop|don'?t proceed|abort|reject)\b/i.test(state.output);
+          if (isVeto) {
+            logger.debug('[conductor] Challenger vetoed the plan');
+            break;
+          }
         }
       }
     }

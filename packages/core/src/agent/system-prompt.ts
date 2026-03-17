@@ -19,6 +19,7 @@ interface SystemPromptOptions {
   userEmail?: string;
   isAdmin?: boolean;
   sourceRoot?: string;
+  knowledgeContext?: string;
 }
 
 export function buildSystemPrompt(opts: SystemPromptOptions): string {
@@ -456,6 +457,11 @@ Use \`project_index refresh\` if the project has changed significantly. Use \`fi
     prompt += `\n\n## Project Overview
 
 No project index available yet. When starting a task, use \`project_index scan\` to build a structural map of the codebase. This gives you a bird's-eye view of frameworks, languages, entry points, test setup, and directory structure — much faster than exploring manually.`;
+  }
+
+  // Knowledge pack injection
+  if (opts.knowledgeContext) {
+    prompt += `\n\n${opts.knowledgeContext}`;
   }
 
   // Memory injection

@@ -32,6 +32,9 @@ export interface AvaConfig {
     language?: string;
     autoMemory?: boolean;
   };
+  knowledgePacks?: {
+    enabled?: string[];
+  };
 }
 
 export const DEFAULT_CONFIG: AvaConfig = {

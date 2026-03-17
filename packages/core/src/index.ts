@@ -100,6 +100,10 @@ export type { Briefing, BriefingData, BriefingState, TimeOfDay } from './briefin
 export { EventDetector } from './events/index.js';
 export type { AvaEvent, AvaEventHandler, AvaEventType, EventDetectorState } from './events/index.js';
 
+// Knowledge Packs
+export { KnowledgePackManager, BUILTIN_PACKS, KNOWLEDGE_DOMAINS } from './knowledge/index.js';
+export type { KnowledgePack, KnowledgePackMeta, KnowledgeDomain } from './knowledge/index.js';
+
 // Workflows
 export { WorkflowManager } from './workflows/index.js';
 export type { WorkflowPlan, Workflow, WorkflowStep, WorkflowEvent, WorkflowEventHandler } from './workflows/index.js';

@@ -38,6 +38,9 @@ import { TestRunTool } from './test-run.js';
 import { TestGenerateTool } from './test-generate.js';
 import { AnalyzeArchitectureTool } from './analyze-architecture.js';
 import { DocGenerateTool } from './doc-generate.js';
+import { PresentationCreateTool } from './presentation-create.js';
+import { EmailDraftTool } from './email-draft.js';
+import { ReportGenerateTool } from './report-generate.js';
 import { AuditDependenciesTool } from './audit-dependencies.js';
 import { BenchmarkTool } from './benchmark.js';
 import { ApplyPlanTool } from './apply-plan.js';
@@ -123,6 +126,9 @@ export class ToolRegistry {
       new ReleaseNotesTool(),
       new WeatherTool(),
       new NewsTool(),
+      new PresentationCreateTool(),
+      new EmailDraftTool(),
+      new ReportGenerateTool(),
     ];
     for (const tool of builtins) {
       this.tools.set(tool.name, tool);

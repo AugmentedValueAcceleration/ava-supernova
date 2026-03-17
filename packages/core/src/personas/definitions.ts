@@ -37,6 +37,7 @@ Your focus:
 You do NOT design, build, or judge. You gather facts. Be thorough but fast.`,
   allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, 'git_status', 'git_diff'],
   priority: 1,
+  dependsOn: [], // No dependencies — runs first
 };
 
 export const ARCHITECT: PersonaDefinition = {
@@ -55,6 +56,7 @@ Your focus:
 You do NOT write code. You design. Keep it concrete and actionable.`,
   allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS, ...PLANNING_TOOLS, 'analyze_architecture'],
   priority: 2,
+  dependsOn: ['scout'], // Needs Scout findings first
 };
 
 export const VERIFIER: PersonaDefinition = {
@@ -74,6 +76,7 @@ You are the quality gate. Nothing gets built unless it passes your check.
 Be specific — "this file doesn't exist" is useful, "seems risky" is not.`,
   allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS, 'bash'],
   priority: 3,
+  dependsOn: ['architect'], // Verifies the Architect's plan
 };
 
 export const SEQUENCER: PersonaDefinition = {
@@ -93,6 +96,7 @@ Your focus:
 Keep it practical. 3 clear steps beat 15 vague ones.`,
   allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...PLANNING_TOOLS],
   priority: 4,
+  dependsOn: ['verifier'], // Sequences the verified plan
 };
 
 export const CHALLENGER: PersonaDefinition = {
@@ -114,6 +118,7 @@ If you find a real issue, be specific about the problem AND suggest an alternati
 One strong objection with a solution beats five weak concerns.`,
   allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS],
   priority: 5,
+  dependsOn: ['architect'], // Challenges the Architect's decisions
 };
 
 export const BUILDER: PersonaDefinition = {
@@ -140,6 +145,7 @@ Build what was planned, build it well, build it fast.`,
     'task_manage', 'journal_write', 'document_manage',
   ],
   priority: 6,
+  dependsOn: ['sequencer', 'challenger'], // Builds only after plan is sequenced and challenged
 };
 
 // ── Plan Mode Personas ─────────────────────────────────────────────────────
@@ -160,6 +166,7 @@ Your focus:
 You do NOT recommend. You gather. Let the Strategist make the call.`,
   allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS],
   priority: 1,
+  dependsOn: [],
 };
 
 // Re-use ARCHITECT as Analyst in Plan mode (same skills, different context)
@@ -245,6 +252,7 @@ Your focus:
 Be thorough. Every entry point you miss is one the Scanner won't check.`,
   allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SECURITY_TOOLS, 'bash'],
   priority: 1,
+  dependsOn: [],
 };
 
 // ── Persona collections per mode ───────────────────────────────────────────

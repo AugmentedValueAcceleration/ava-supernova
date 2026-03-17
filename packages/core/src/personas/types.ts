@@ -18,6 +18,8 @@ export interface PersonaDefinition {
   readonly deniedTools?: string[];
   /** Priority order — lower runs first when multiple personas activate */
   readonly priority: number;
+  /** Persona IDs that must complete before this one starts (for parallel execution). */
+  readonly dependsOn?: PersonaId[];
 }
 
 export interface PersonaState {
@@ -73,8 +75,10 @@ export interface ConductorConfig {
   maxPersonas?: number;
   /** Max time per persona in ms (default 30000) */
   personaTimeout?: number;
-  /** Whether to allow parallel persona execution (default false for v1) */
+  /** Whether to allow parallel persona execution (default false — set true for wave-based parallel) */
   parallel?: boolean;
+  /** Maximum concurrent personas when parallel=true (default 3) */
+  maxParallel?: number;
   /** Whether the Challenger can veto the plan (default true) */
   challengerCanVeto?: boolean;
 }
