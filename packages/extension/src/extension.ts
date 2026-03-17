@@ -56,17 +56,114 @@ export function activate(context: vscode.ExtensionContext): void {
         uri = uris[0];
       }
       const ext = uri.fsPath.split('.').pop()?.toLowerCase();
+      const fileName = uri.fsPath.split(/[/\\]/).pop() || 'Document';
 
-      // Binary formats — open with OS default (Word, Excel, PDF viewer)
-      if (ext === 'docx' || ext === 'xlsx' || ext === 'pdf' || ext === 'pptx') {
-        vscode.env.openExternal(uri);
+      // Binary formats — extract text and render in preview panel
+      if (ext === 'docx') {
+        try {
+          const mammoth = require('mammoth');
+          const result = await mammoth.convertToHtml({ path: uri.fsPath });
+          DocumentPreviewPanel.show(context.extensionUri, {
+            title: fileName,
+            type: 'document',
+            content: result.value || 'Empty document',
+            filePath: uri.fsPath,
+            metadata: { rawHtml: true },
+          });
+        } catch {
+          DocumentPreviewPanel.show(context.extensionUri, {
+            title: fileName,
+            type: 'document',
+            content: `# ${fileName}\n\nWord document preview requires the mammoth package.\n\nRun: \`npm install mammoth\` in the extension directory, or ask Ava to read the file with the \`document_manage\` tool.`,
+            filePath: uri.fsPath,
+          });
+        }
         return;
       }
 
-      // Text-based formats — render in our preview panel
+      if (ext === 'xlsx' || ext === 'csv') {
+        try {
+          if (ext === 'csv') {
+            const raw = Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf-8');
+            const lines = raw.split('\n').filter(l => l.trim());
+            const headers = lines[0]?.split(',').map(h => h.trim()) || [];
+            const rows = lines.slice(1).map(l => l.split(',').map(c => c.trim()));
+            let table = `| ${headers.join(' | ')} |\n| ${headers.map(() => '---').join(' | ')} |\n`;
+            for (const row of rows.slice(0, 100)) {
+              table += `| ${row.join(' | ')} |\n`;
+            }
+            if (rows.length > 100) table += `\n*...and ${rows.length - 100} more rows*`;
+            DocumentPreviewPanel.show(context.extensionUri, {
+              title: fileName,
+              type: 'document',
+              content: `# ${fileName}\n\n${table}`,
+              filePath: uri.fsPath,
+            });
+          } else {
+            const ExcelJS = require('exceljs');
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.readFile(uri.fsPath);
+            const parts: string[] = [`# ${fileName}\n`];
+            workbook.eachSheet((sheet: any) => {
+              parts.push(`## ${sheet.name}\n`);
+              const rows: string[][] = [];
+              sheet.eachRow((row: any) => {
+                rows.push(row.values.slice(1).map((v: any) => String(v ?? '')));
+              });
+              if (rows.length > 0) {
+                const headers = rows[0];
+                parts.push(`| ${headers.join(' | ')} |`);
+                parts.push(`| ${headers.map(() => '---').join(' | ')} |`);
+                for (const row of rows.slice(1, 101)) {
+                  parts.push(`| ${row.join(' | ')} |`);
+                }
+                if (rows.length > 101) parts.push(`\n*...and ${rows.length - 101} more rows*`);
+              }
+              parts.push('');
+            });
+            DocumentPreviewPanel.show(context.extensionUri, {
+              title: fileName,
+              type: 'document',
+              content: parts.join('\n'),
+              filePath: uri.fsPath,
+            });
+          }
+        } catch {
+          DocumentPreviewPanel.show(context.extensionUri, {
+            title: fileName,
+            type: 'document',
+            content: `# ${fileName}\n\nExcel preview requires the exceljs package.\n\nRun: \`npm install exceljs\` in the extension directory, or ask Ava to read the file with the \`document_manage\` tool.`,
+            filePath: uri.fsPath,
+          });
+        }
+        return;
+      }
+
+      if (ext === 'pdf') {
+        try {
+          const pdfParse = require('pdf-parse');
+          const buffer = Buffer.from(await vscode.workspace.fs.readFile(uri));
+          const data = await pdfParse(buffer);
+          DocumentPreviewPanel.show(context.extensionUri, {
+            title: fileName,
+            type: 'document',
+            content: `# ${fileName}\n\n*${data.numpages} pages*\n\n${data.text}`,
+            filePath: uri.fsPath,
+          });
+        } catch {
+          DocumentPreviewPanel.show(context.extensionUri, {
+            title: fileName,
+            type: 'document',
+            content: `# ${fileName}\n\nPDF preview requires the pdf-parse package.\n\nRun: \`npm install pdf-parse\` in the extension directory, or ask Ava to read the file with the \`document_manage\` tool.`,
+            filePath: uri.fsPath,
+          });
+        }
+        return;
+      }
+
+      // Text-based formats — render directly in preview panel
       const content = await vscode.workspace.fs.readFile(uri);
       const text = Buffer.from(content).toString('utf-8');
-      const fileName = uri.fsPath.split(/[/\\]/).pop() || 'Document';
 
       // Detect type from content
       let type: 'presentation' | 'email' | 'report' | 'markdown' = 'markdown';

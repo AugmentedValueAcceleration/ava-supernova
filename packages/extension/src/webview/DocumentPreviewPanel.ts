@@ -336,6 +336,9 @@ export class DocumentPreviewPanel {
   // ── Content Renderers ───────────────────────────────────────────────────────
 
   private renderDocument(doc: DocumentPreview): string {
+    // If content is already HTML (e.g. from mammoth docx conversion), render directly
+    if (doc.metadata?.rawHtml) return doc.content;
+
     switch (doc.type) {
       case 'presentation': return this.renderPresentation(doc.content);
       case 'email': return this.renderEmail(doc.content);
