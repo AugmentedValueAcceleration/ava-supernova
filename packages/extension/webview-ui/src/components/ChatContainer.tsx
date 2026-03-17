@@ -9,6 +9,8 @@ interface PersonaInfo {
   id: string;
   phase: 'active' | 'complete' | 'error';
   description?: string;
+  output?: string;
+  tools?: Array<{ name: string; done: boolean; success?: boolean }>;
 }
 
 interface ChatContainerProps {

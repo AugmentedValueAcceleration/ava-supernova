@@ -82,7 +82,9 @@ export type ExtToWebviewMessage =
   | { type: 'session_tasks'; tasks: SessionTaskUI[] }
   | { type: 'ava_completed_tasks'; tasks: AvaCompletedTaskUI[] }
   | { type: 'conductor_status'; active: boolean; mode?: string }
-  | { type: 'persona_status'; persona: string; phase: 'active' | 'complete' | 'error'; description?: string };
+  | { type: 'persona_status'; persona: string; phase: 'active' | 'complete' | 'error'; description?: string; output?: string }
+  | { type: 'persona_tool_call'; persona: string; tool: string }
+  | { type: 'persona_tool_result'; persona: string; tool: string; success: boolean };
 
 /** Task entry for today panel display. */
 export interface TodayTaskUI {

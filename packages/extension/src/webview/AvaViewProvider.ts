@@ -1381,10 +1381,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
               this.log(`Persona ${event.persona}: started`);
               break;
             case 'persona_tool_call':
+              this.postMessage({ type: 'persona_tool_call', persona: event.persona, tool: event.tool });
               this.log(`Persona ${event.persona}: tool ${event.tool}`);
               break;
+            case 'persona_tool_result':
+              this.postMessage({ type: 'persona_tool_result', persona: event.persona, tool: event.tool, success: event.success });
+              this.log(`Persona ${event.persona}: tool ${event.tool} → ${event.success ? 'ok' : 'fail'}`);
+              break;
             case 'persona_complete':
-              this.postMessage({ type: 'persona_status', persona: event.persona, phase: 'complete' });
+              this.postMessage({ type: 'persona_status', persona: event.persona, phase: 'complete', output: event.output?.slice(0, 200) });
               this.log(`Persona ${event.persona}: complete`);
               break;
             case 'persona_error':

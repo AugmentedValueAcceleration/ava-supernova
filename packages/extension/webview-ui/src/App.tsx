@@ -240,9 +240,42 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 
     case 'persona_status': {
       const existing = state.activePersonas.filter(p => p.id !== action.persona);
+      const prev = state.activePersonas.find(p => p.id === action.persona);
       return {
         ...state,
-        activePersonas: [...existing, { id: action.persona, phase: action.phase, description: action.description }],
+        activePersonas: [...existing, {
+          id: action.persona,
+          phase: action.phase,
+          description: action.description || prev?.description,
+          output: action.output || prev?.output,
+          tools: prev?.tools || [],
+        }],
+      };
+    }
+
+    case 'persona_tool_call': {
+      const persona = state.activePersonas.find(p => p.id === action.persona);
+      if (!persona) return state;
+      const others = state.activePersonas.filter(p => p.id !== action.persona);
+      return {
+        ...state,
+        activePersonas: [...others, {
+          ...persona,
+          tools: [...(persona.tools || []), { name: action.tool, done: false }],
+        }],
+      };
+    }
+
+    case 'persona_tool_result': {
+      const persona = state.activePersonas.find(p => p.id === action.persona);
+      if (!persona) return state;
+      const others = state.activePersonas.filter(p => p.id !== action.persona);
+      const updatedTools = (persona.tools || []).map(t =>
+        t.name === action.tool && !t.done ? { ...t, done: true, success: action.success } : t
+      );
+      return {
+        ...state,
+        activePersonas: [...others, { ...persona, tools: updatedTools }],
       };
     }
 
@@ -405,7 +438,7 @@ const initialState: ChatState = {
   tasksPanelWidth: DEFAULT_WIDTH,
   conductorActive: false,
   conductorMode: undefined as string | undefined,
-  activePersonas: [] as Array<{ id: string; phase: 'active' | 'complete' | 'error'; description?: string }>,
+  activePersonas: [] as Array<{ id: string; phase: 'active' | 'complete' | 'error'; description?: string; output?: string; tools?: Array<{ name: string; done: boolean; success?: boolean }> }>,
 };
 
 // ── Typing speed config ─────────────────────────────────────────────────────
