@@ -29,6 +29,8 @@ import {
   setLocaleSync,
   resolveLocale,
   Conductor,
+  BriefingEngine,
+  EventDetector,
 } from '@ava/core';
 import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, Message, ContentPart, PermissionMode } from '@ava/core';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus } from './message-types.js';
@@ -64,6 +66,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private taskManager?: TaskManager;
   private journalManager?: JournalManager;
   private conductor?: Conductor;
+  private briefingEngine?: BriefingEngine;
+  private eventDetector?: EventDetector;
   private cachedMemory?: string;
   private currentLocale = 'en';
   private panelStateCallback?: (isOpen: boolean) => void;
@@ -565,6 +569,74 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       providerSource: this.providerSource,
       platformStatus,
     });
+
+    // Daily briefing — proactive greeting (fire-and-forget)
+    this.checkAndSendBriefing().catch(() => {});
+  }
+
+  /** Check if a daily briefing should be shown and send it to the webview. */
+  private async checkAndSendBriefing(): Promise<void> {
+    if (!this.taskManager || !this.journalManager || !this.memoryManager) return;
+
+    const globalDir = AVA_HOME ?? require('node:path').join(require('node:os').homedir(), '.ava');
+    if (!this.briefingEngine) {
+      this.briefingEngine = new BriefingEngine({ globalDir });
+    }
+
+    const shouldShow = await this.briefingEngine.shouldShowBriefing();
+    if (!shouldShow) return;
+
+    try {
+      const briefing = await this.briefingEngine.generateBriefing(
+        this.taskManager,
+        this.journalManager,
+        this.memoryManager,
+      );
+
+      this.postMessage({
+        type: 'briefing',
+        text: briefing.text,
+        todayTasks: briefing.data.todayTasks.length,
+        overdueTasks: briefing.data.overdueTasks.length,
+        totalActive: briefing.data.totalActiveTasks,
+      } as ExtToWebviewMessage);
+
+      this.log(`Daily briefing sent (${briefing.data.todayTasks.length} today, ${briefing.data.overdueTasks.length} overdue)`);
+    } catch (err) {
+      this.log(`Briefing generation failed: ${err}`);
+    }
+
+    // Event detection — check for overdue tasks, streaks, stale memory
+    await this.runEventDetection();
+  }
+
+  /** Run event detectors and show VS Code notifications for important events. */
+  private async runEventDetection(): Promise<void> {
+    if (!this.taskManager || !this.journalManager || !this.memoryManager) return;
+
+    if (!this.eventDetector) {
+      this.eventDetector = new EventDetector();
+    }
+
+    try {
+      const events = await this.eventDetector.detect({
+        taskManager: this.taskManager,
+        journalManager: this.journalManager,
+        memoryManager: this.memoryManager,
+      });
+
+      for (const event of events) {
+        if (event.severity === 'urgent') {
+          vscode.window.showWarningMessage(`Ava: ${event.message}`);
+        } else if (event.severity === 'warning') {
+          vscode.window.showInformationMessage(`Ava: ${event.message}`);
+        }
+        // 'info' events go to output channel only
+        this.log(`[event] ${event.type}: ${event.message}`);
+      }
+    } catch (err) {
+      this.log(`Event detection failed: ${err}`);
+    }
   }
 
   private async setupAgent(provider: Provider, model: ModelDefinition): Promise<void> {

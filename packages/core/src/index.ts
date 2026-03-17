@@ -63,6 +63,10 @@ export type {
 } from './memory/types.js';
 export { MEMORY_CATEGORIES, createEmptyStore } from './memory/types.js';
 export { TfIdfIndex, tokenize, cosineSimilarity } from './memory/tfidf.js';
+export { detectPatterns, trackAndLearn } from './memory/patterns.js';
+export type { DetectedPattern, PatternState } from './memory/patterns.js';
+export { generateInsights, analyseAndSave } from './memory/insights.js';
+export type { MemoryInsight } from './memory/insights.js';
 
 // Tasks
 export { TaskManager } from './tasks/task-manager.js';
@@ -87,6 +91,18 @@ export type { PlatformJournalSync } from './journal/journal-manager.js';
 export type { JournalEntry, JournalDay, JournalDaySummary, JournalMood } from './journal/types.js';
 export { createEmptyJournalDay } from './journal/types.js';
 export { PlatformJournalSyncImpl } from './journal/platform-sync.js';
+
+// Briefing
+export { BriefingEngine } from './briefing/index.js';
+export type { Briefing, BriefingData, BriefingState, TimeOfDay } from './briefing/index.js';
+
+// Events
+export { EventDetector } from './events/index.js';
+export type { AvaEvent, AvaEventHandler, AvaEventType, EventDetectorState } from './events/index.js';
+
+// Workflows
+export { WorkflowManager } from './workflows/index.js';
+export type { WorkflowPlan, Workflow, WorkflowStep, WorkflowEvent, WorkflowEventHandler } from './workflows/index.js';
 
 // Checkpoint
 export { CheckpointManager } from './checkpoint/checkpoint-manager.js';

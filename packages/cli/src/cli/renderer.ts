@@ -52,6 +52,25 @@ export class Renderer {
     console.log('');
   }
 
+  printBriefing(text: string): void {
+    const accent = chalk.hex(THEME.accent);
+    console.log(accent.dim('     ─── Daily Briefing ───'));
+    console.log('');
+    // Render each line with indentation
+    for (const line of text.split('\n')) {
+      if (line.startsWith('**') && line.endsWith('**')) {
+        console.log('     ' + chalk.bold(line.replace(/\*\*/g, '')));
+      } else if (line.startsWith('- ')) {
+        console.log('     ' + chalk.dim('•') + ' ' + line.slice(2));
+      } else {
+        console.log('     ' + line);
+      }
+    }
+    console.log('');
+    console.log(accent.dim('     ─────────────────────'));
+    console.log('');
+  }
+
   streamThinking(delta: string): void {
     if (!this.isThinking) {
       this.isThinking = true;

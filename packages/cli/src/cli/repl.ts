@@ -164,6 +164,11 @@ export class Repl {
     this.commands = commands;
   }
 
+  /** Display the daily briefing before the first prompt. */
+  printBriefing(text: string): void {
+    this.renderer.printBriefing(text);
+  }
+
   private prompt(): void {
     if (!this.closed) {
       this.rl.prompt();

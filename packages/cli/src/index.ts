@@ -11,10 +11,13 @@ import {
   buildSystemPrompt,
   HistoryManager,
   MemoryManager,
+  TaskManager,
+  JournalManager,
   PlatformMemorySync,
   ProviderHealthTracker,
   ResilientProvider,
   Conductor,
+  BriefingEngine,
   AVA_HOME,
   detectProjectRoot,
   loadProjectInstructions,
@@ -163,6 +166,20 @@ async function main(): Promise<void> {
   });
 
   repl.setCommands(commands);
+
+  // Daily briefing — proactive greeting
+  try {
+    const taskManager = new TaskManager({ globalDir: AVA_HOME, projectRoot });
+    const journalManager = new JournalManager({ globalDir: AVA_HOME, projectRoot });
+    const briefingEngine = new BriefingEngine({ globalDir: AVA_HOME });
+
+    if (await briefingEngine.shouldShowBriefing()) {
+      const briefing = await briefingEngine.generateBriefing(taskManager, journalManager, memoryManager);
+      repl.printBriefing(briefing.text);
+    }
+  } catch {
+    // Briefing is non-critical — don't block startup
+  }
 
   // Save conversation on exit
   process.on('SIGINT', () => {

@@ -88,7 +88,8 @@ export type ExtToWebviewMessage =
   | { type: 'conductor_status'; active: boolean; mode?: string }
   | { type: 'persona_status'; persona: string; phase: 'active' | 'complete' | 'error'; description?: string; output?: string }
   | { type: 'persona_tool_call'; persona: string; tool: string }
-  | { type: 'persona_tool_result'; persona: string; tool: string; success: boolean };
+  | { type: 'persona_tool_result'; persona: string; tool: string; success: boolean }
+  | { type: 'briefing'; text: string; todayTasks: number; overdueTasks: number; totalActive: number };
 
 /** Structured memory entry for webview display. */
 export interface MemoryEntryUI {

@@ -381,6 +381,17 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return { ...state, messages: [...state.messages, sysMsg] };
     }
 
+    case 'briefing': {
+      const briefMsg: UIMessage = {
+        id: nextId(),
+        role: 'assistant',
+        content: action.text,
+        toolCalls: [],
+        isStreaming: false,
+      };
+      return { ...state, messages: [briefMsg, ...state.messages] };
+    }
+
     // ── Context usage & compression ─────────────────────────────────────
 
     case 'context_usage':

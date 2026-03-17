@@ -15,6 +15,8 @@ import { t } from '../i18n/index.js';
 import { logger } from '../core/logger.js';
 import { buildToolPrompt, parseToolCalls, formatToolResult } from './text-tool-parser.js';
 import { autoExtractAndSave, reflectAndSave } from '../memory/auto-extract.js';
+import { trackAndLearn } from '../memory/patterns.js';
+import { analyseAndSave } from '../memory/insights.js';
 import type { MemoryManager } from '../memory/memory-manager.js';
 
 // ─── Event system ────────────────────────────────────────────────────────────
@@ -279,6 +281,13 @@ export class Agent {
           autoExtractAndSave(messages, mm).catch(() => {});
           // Layer 2: LLM reflection (end of meaningful conversations)
           reflectAndSave(messages, mm, this.provider, this.model).catch(() => {});
+          // Layer 3: Pattern detection (tracks corrections, style, workflow preferences)
+          trackAndLearn(messages, mm).catch(() => {});
+          // Layer 4: Cross-memory insights (only for longer conversations, 6+ user turns)
+          const userTurns = messages.filter(m => m.role === 'user').length;
+          if (userTurns >= 6) {
+            analyseAndSave(mm, this.provider, this.model).catch(() => {});
+          }
         }
 
         onEvent({ type: 'done', finalMessage: assistantMessage });
