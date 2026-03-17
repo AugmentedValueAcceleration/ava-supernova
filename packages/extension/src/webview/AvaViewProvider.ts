@@ -37,6 +37,7 @@ import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, Message, Co
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus } from './message-types.js';
 import type { AccountInfo } from './dashboard-message-types.js';
 import { DashboardPanel } from './DashboardPanel.js';
+import { DocumentPreviewPanel } from './DocumentPreviewPanel.js';
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
 import { sessionStats } from '../session-stats.js';
@@ -1397,6 +1398,29 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           if (event.toolCall.function.name === 'journal_write' && DashboardPanel.currentPanel) {
             const today = new Date().toISOString().slice(0, 10);
             DashboardPanel.currentPanel.notifyJournalUpdated(today);
+          }
+          // Auto-open document preview for office suite tools
+          if (event.success) {
+            const docTools: Record<string, string> = {
+              presentation_create: 'presentation',
+              email_draft: 'email',
+              report_generate: 'report',
+              document_manage: 'document',
+              doc_generate: 'document',
+            };
+            const docType = docTools[event.toolCall.function.name];
+            if (docType) {
+              try {
+                const meta = typeof event.metadata === 'object' && event.metadata ? event.metadata as Record<string, unknown> : {};
+                DocumentPreviewPanel.show(this.extensionUri, {
+                  title: (meta.path as string)?.split(/[/\\]/).pop() || event.toolCall.function.name,
+                  type: docType as 'presentation' | 'email' | 'report' | 'document',
+                  content: event.result || '',
+                  filePath: meta.path as string | undefined,
+                  metadata: meta,
+                });
+              } catch { /* preview is non-critical */ }
+            }
           }
           this.log(`Tool result: ${event.toolCall.function.name} → ${event.success ? 'ok' : 'FAIL'}`);
           break;
