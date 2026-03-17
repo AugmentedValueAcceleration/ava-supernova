@@ -199,6 +199,11 @@ export class Conductor {
 
       while (iterations < maxIterations) {
         if (signal?.aborted) break;
+        // Enforce persona timeout
+        if (Date.now() - state.startedAt! > this.config.personaTimeout) {
+          logger.debug(`[conductor] Persona ${persona.id} timed out after ${this.config.personaTimeout}ms`);
+          break;
+        }
         iterations++;
 
         const request: ChatCompletionRequest = {
@@ -301,6 +306,9 @@ Be concise and specific. Focus only on YOUR responsibility.`;
   private updatePool(pool: ContextPool, personaId: PersonaId, output: string): void {
     switch (personaId) {
       case 'scout':
+        pool.findings.push(output);
+        break;
+      case 'recon':
         pool.findings.push(output);
         break;
       case 'researcher':

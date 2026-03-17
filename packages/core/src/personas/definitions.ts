@@ -8,7 +8,7 @@ import type { PersonaDefinition } from './types.js';
 const READ_TOOLS = [
   'file_read', 'glob', 'grep', 'list_directory', 'find_symbol',
   'project_index', 'git_status', 'git_diff', 'docs_lookup',
-  'self_inspect', 'detect_language', 'get_datetime',
+  'self_inspect', 'release_notes', 'detect_language', 'get_datetime',
 ];
 
 const MEMORY_TOOLS = ['memory_save', 'memory_recall', 'memory_update', 'memory_delete'];
@@ -88,9 +88,10 @@ Your focus:
 - Identify what can be parallelised
 - Each step should be specific enough that the Builder can execute without ambiguity
 - Use todo_write to create the task list
+- Recall memories to check if similar work was sequenced before
 
 Keep it practical. 3 clear steps beat 15 vague ones.`,
-  allowedTools: [...READ_TOOLS, ...PLANNING_TOOLS],
+  allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...PLANNING_TOOLS],
   priority: 4,
 };
 
@@ -221,7 +222,7 @@ without making them feel bad. Celebrate progress genuinely.`,
   allowedTools: [
     ...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS,
     ...WRITE_TOOLS, ...LEARNING_TOOLS, ...PLANNING_TOOLS,
-    'bash', 'test_run',
+    ...TESTING_TOOLS,
   ],
   priority: 5,
 };
@@ -229,7 +230,7 @@ without making them feel bad. Celebrate progress genuinely.`,
 // ── Security Mode Personas ─────────────────────────────────────────────────
 
 export const RECON: PersonaDefinition = {
-  id: 'scout', // Reuses scout ID — same skillset, security context
+  id: 'recon',
   name: 'Recon',
   description: 'Maps the attack surface. Identifies entry points, tech stack, frameworks.',
   prompt: `You are Ava's Recon specialist — you map the attack surface before the audit begins.

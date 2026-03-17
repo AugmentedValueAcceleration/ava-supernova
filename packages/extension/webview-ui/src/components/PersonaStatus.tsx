@@ -20,6 +20,7 @@ interface PersonaStatusProps {
 
 const PERSONA_ICONS: Record<string, string> = {
   scout: '🔍',
+  recon: '🛡️',
   researcher: '🔬',
   architect: '📐',
   verifier: '✅',
@@ -33,6 +34,7 @@ const PERSONA_ICONS: Record<string, string> = {
 
 const PERSONA_LABELS: Record<string, string> = {
   scout: 'Scout',
+  recon: 'Recon',
   researcher: 'Researcher',
   architect: 'Architect',
   verifier: 'Verifier',
@@ -46,6 +48,7 @@ const PERSONA_LABELS: Record<string, string> = {
 
 const PERSONA_VERBS: Record<string, string> = {
   scout: 'Mapping the codebase',
+  recon: 'Scanning the attack surface',
   researcher: 'Researching',
   architect: 'Designing the approach',
   verifier: 'Fact-checking the plan',
