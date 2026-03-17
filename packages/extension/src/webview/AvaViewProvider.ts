@@ -68,6 +68,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private conductor?: Conductor;
   private briefingEngine?: BriefingEngine;
   private eventDetector?: EventDetector;
+  private projectContextReady?: Promise<void>;
   private cachedMemory?: string;
   private currentLocale = 'en';
   private panelStateCallback?: (isOpen: boolean) => void;
@@ -89,7 +90,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.statusBarItem.show();
 
     // Detect project and load instructions (also creates historyManager)
-    this.refreshProjectContext();
+    // Store the promise so initializeSession can await it before using managers
+    this.projectContextReady = this.refreshProjectContext();
 
     // Re-detect project when workspace folders change
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
@@ -446,6 +448,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   // ── Private Methods ────────────────────────────────────────────────────────
 
   private async initializeSession(): Promise<void> {
+    // Ensure project context (memory, tasks, journal) is ready before proceeding
+    if (this.projectContextReady) {
+      await this.projectContextReady;
+    }
+
     const config = vscode.workspace.getConfiguration('ava-supernova');
     this.providerRegistry = new ProviderRegistry();
 
@@ -502,10 +509,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           this.log(`Platform provider registered (tier: ${this.cachedAccount.tier}, email: ${this.cachedAccount.email})`);
         } else {
           this.log('Platform key present but account verification failed');
+          this.postMessage({
+            type: 'system_message',
+            content: 'Platform account verification failed. Your API key may be invalid or expired. Go to Dashboard → Account to reconnect.',
+          } as ExtToWebviewMessage);
         }
       }
     } catch (err) {
       this.log(`Platform account check failed: ${err}`);
+      this.postMessage({
+        type: 'system_message',
+        content: 'Could not reach the Ava platform. Platform features are unavailable. Your local API keys still work.',
+      } as ExtToWebviewMessage);
     }
 
     // Resolve provider source (persisted preference)

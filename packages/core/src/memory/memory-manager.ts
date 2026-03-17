@@ -1071,16 +1071,19 @@ export class MemoryManager {
 
   // ── Private — File I/O ─────────────────────────────────────────────────────
 
-  /** Atomic write: temp file → rename. */
+  /** Atomic write with lock: acquire lock → temp file → rename → release. */
   private async writeSafe(path: string, content: string): Promise<void> {
-    const tmpPath = path + '.tmp';
-    await writeFile(tmpPath, content, 'utf-8');
-    try {
-      await rename(tmpPath, path);
-    } catch (err) {
-      await unlink(tmpPath).catch(() => {});
-      throw err;
-    }
+    const { withLock } = await import('../core/file-lock.js');
+    await withLock(path, async () => {
+      const tmpPath = path + '.tmp';
+      await writeFile(tmpPath, content, 'utf-8');
+      try {
+        await rename(tmpPath, path);
+      } catch (err) {
+        await unlink(tmpPath).catch(() => {});
+        throw err;
+      }
+    });
   }
 
   /** Set the localOnly flag at runtime (e.g. when user toggles the setting). */

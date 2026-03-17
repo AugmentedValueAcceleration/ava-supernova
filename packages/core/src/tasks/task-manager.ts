@@ -411,14 +411,17 @@ export class TaskManager {
   }
 
   private async writeSafe(path: string, content: string): Promise<void> {
-    const tmpPath = path + '.tmp';
-    await writeFile(tmpPath, content, 'utf-8');
-    try {
-      await rename(tmpPath, path);
-    } catch (err) {
-      await unlink(tmpPath).catch(() => {});
-      throw err;
-    }
+    const { withLock } = await import('../core/file-lock.js');
+    await withLock(path, async () => {
+      const tmpPath = path + '.tmp';
+      await writeFile(tmpPath, content, 'utf-8');
+      try {
+        await rename(tmpPath, path);
+      } catch (err) {
+        await unlink(tmpPath).catch(() => {});
+        throw err;
+      }
+    });
   }
 
   private async ensureProjectStore(): Promise<TaskStore> {

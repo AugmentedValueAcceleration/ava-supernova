@@ -210,21 +210,31 @@ export class WorkflowManager {
     conversation.addUserMessage(instruction);
 
     try {
-      // Run the agent for this step
-      const messages = await agent.run(
-        conversation.getMessages(),
-        (event) => {
-          // Forward stream content as step progress
-          if (event.type === 'stream_delta') {
-            this.emit({
-              type: 'step_progress',
-              workflowId: workflow.id,
-              stepId: step.id,
-              content: event.content,
-            });
-          }
-        },
-      );
+      // Per-step timeout (default 5 minutes)
+      const stepTimeout = 300000;
+      const stepAbort = new AbortController();
+      const timer = setTimeout(() => stepAbort.abort(), stepTimeout);
+
+      // Run the agent for this step with timeout
+      let messages;
+      try {
+        messages = await agent.run(
+          conversation.getMessages(),
+          (event) => {
+            if (event.type === 'stream_delta') {
+              this.emit({
+                type: 'step_progress',
+                workflowId: workflow.id,
+                stepId: step.id,
+                content: event.content,
+              });
+            }
+          },
+          stepAbort.signal,
+        );
+      } finally {
+        clearTimeout(timer);
+      }
 
       // Extract the final assistant response
       const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
@@ -247,9 +257,10 @@ export class WorkflowManager {
       const errorMsg = err instanceof Error ? err.message : String(err);
 
       if (step.retries < step.maxRetries) {
-        // Retry
+        // Retry with a fresh conversation (previous one may be corrupted)
         step.retries++;
         step.status = 'pending';
+        step.startedAt = undefined;
         logger.warn(`[workflow] Step "${step.title}" failed, retry ${step.retries}/${step.maxRetries}: ${errorMsg}`);
 
         this.emit({

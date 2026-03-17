@@ -35,15 +35,17 @@ export class HistoryStorage {
     const tmpPath = join(HISTORY_DIR, `.${record.id}.tmp`);
     const data = JSON.stringify(record, null, 2);
 
-    // Atomic write — temp file then rename
-    await writeFile(tmpPath, data, 'utf-8');
-    try {
-      await rename(tmpPath, path);
-    } catch (err) {
-      // Clean up temp file if rename fails (disk full, permissions, etc.)
-      await unlink(tmpPath).catch(() => {});
-      throw err;
-    }
+    // Atomic write with lock — prevents concurrent corruption
+    const { withLock } = await import('../core/file-lock.js');
+    await withLock(path, async () => {
+      await writeFile(tmpPath, data, 'utf-8');
+      try {
+        await rename(tmpPath, path);
+      } catch (err) {
+        await unlink(tmpPath).catch(() => {});
+        throw err;
+      }
+    });
   }
 
   /** Validate that parsed JSON has the required ConversationRecord shape. */

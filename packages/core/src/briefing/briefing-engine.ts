@@ -316,7 +316,15 @@ export class BriefingEngine {
 
     try {
       const raw = await readFile(filePath, 'utf-8');
-      this.state = JSON.parse(raw) as BriefingState;
+      const parsed = JSON.parse(raw);
+      // Validate shape — don't trust corrupted state
+      if (typeof parsed === 'object' && parsed !== null &&
+          (parsed.lastBriefingDate === null || typeof parsed.lastBriefingDate === 'string')) {
+        this.state = parsed as BriefingState;
+        return this.state;
+      }
+      // Invalid shape — reset
+      this.state = { lastBriefingDate: null, lastBriefingAt: null };
       return this.state;
     } catch {
       this.state = { lastBriefingDate: null, lastBriefingAt: null };
@@ -336,6 +344,13 @@ export class BriefingEngine {
   private async saveState(state: BriefingState): Promise<void> {
     await mkdir(this.globalDir, { recursive: true });
     const filePath = join(this.globalDir, BRIEFING_STATE_FILE);
-    await writeFile(filePath, JSON.stringify(state, null, 2), 'utf-8');
+    // Atomic write with lock — prevents race between show and persist
+    const { withLock } = await import('../core/file-lock.js');
+    await withLock(filePath, async () => {
+      const tmpPath = filePath + '.tmp';
+      await writeFile(tmpPath, JSON.stringify(state, null, 2), 'utf-8');
+      const { rename } = await import('node:fs/promises');
+      await rename(tmpPath, filePath);
+    });
   }
 }

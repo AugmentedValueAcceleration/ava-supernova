@@ -127,7 +127,38 @@ export class ResilientProvider implements Provider {
 
         if (!first.done) {
           yield first.value;
-          yield* gen;
+
+          // Wrap mid-stream yield to catch failures after connection established
+          try {
+            yield* gen;
+          } catch (midStreamErr) {
+            // Mid-stream failure — record and attempt fallback with remaining chain
+            const msError = midStreamErr as Error;
+            this.healthTracker.recordFailure(entry.provider.name, msError);
+
+            if (midStreamErr instanceof ProviderError && !midStreamErr.retryable) {
+              throw midStreamErr;
+            }
+
+            lastError = msError;
+
+            // Signal the mid-stream failure so the caller can decide
+            // We can't restart the stream (already yielded data), so throw
+            // with a clear message that partial data was received
+            if (i >= chain.length - 1) {
+              throw new ProviderError(
+                `Stream interrupted after partial response: ${msError.message}`,
+                entry.provider.name,
+                502,
+              );
+            }
+
+            // Notify about failover
+            if (this.onFallback) {
+              this.onFallback(entry, chain[i + 1], msError);
+            }
+            continue; // Try next provider (caller gets a fresh stream)
+          }
         }
         return;
       } catch (err) {

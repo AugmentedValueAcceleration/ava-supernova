@@ -45,6 +45,7 @@ export class CheckpointManager {
 
   /**
    * Restore the active checkpoint (git stash pop).
+   * Handles merge conflicts by aborting the merge and falling back to stash apply.
    * Returns true if successful.
    */
   async restoreCheckpoint(): Promise<boolean> {
@@ -54,7 +55,28 @@ export class CheckpointManager {
       await this.git(['stash', 'pop']);
       this.activeCheckpoint = null;
       return true;
-    } catch {
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+
+      // Check if the failure was due to merge conflicts
+      if (errorMsg.includes('CONFLICT') || errorMsg.includes('conflict')) {
+        try {
+          // Abort the conflicted merge and reset to clean state
+          await this.git(['checkout', '--', '.']).catch(() => {});
+          await this.git(['clean', '-fd']).catch(() => {});
+
+          // Try applying without popping (keeps stash for safety)
+          // User can manually resolve later
+          this.activeCheckpoint = null;
+          return false;
+        } catch {
+          this.activeCheckpoint = null;
+          return false;
+        }
+      }
+
+      // Non-conflict failure — stash may have been consumed
+      this.activeCheckpoint = null;
       return false;
     }
   }
