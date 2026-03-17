@@ -21,7 +21,7 @@ const REPOS: Record<string, string> = {
 };
 
 const REPO_DESCRIPTIONS: Record<string, string> = {
-  core: 'Main monorepo — packages/core (agent engine, providers, 47 tools, memory), packages/cli (REPL), packages/extension (VS Code), packages/plugins',
+  core: 'Main monorepo — packages/core (agent engine, providers, 52 tools, memory), packages/cli (REPL), packages/extension (VS Code), packages/plugins',
   platform: 'Web platform (Next.js) — admin panel, workspace, public site, dashboard, API routes, Supabase migrations',
   companion: 'Companion web app (Next.js) — mobile-first chat, tasks, memory, journal, learning, BYOK support',
   ide: 'Standalone desktop IDE (Electron/Theia) — deferred until revenue',

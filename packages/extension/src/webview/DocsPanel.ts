@@ -544,7 +544,7 @@ export class DocsPanel {
 
     <!-- Tools -->
     <section class="docs-section" id="tools">
-      <h2>Built-in Tools (45)</h2>
+      <h2>Built-in Tools (52)</h2>
 
       <h3>Reading &amp; Searching</h3>
       <table>
@@ -782,7 +782,7 @@ export class DocsPanel {
       <div class="card-grid">
         <div class="card">
           <h4>Work Mode</h4>
-          <p>Full agent with all 45 tools. Ava reads, writes, searches, executes, manages tasks, journals, and creates documents.</p>
+          <p>Full agent with all 52 tools. Ava reads, writes, searches, executes, manages tasks, journals, and creates documents.</p>
         </div>
         <div class="card">
           <h4>Plan Mode</h4>

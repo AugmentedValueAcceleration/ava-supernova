@@ -931,7 +931,7 @@ function ByokOverview({
                   <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> Local memory storage</li>
                   <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> Session-based usage stats</li>
                   <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> Your own API keys</li>
-                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> All 45 tools</li>
+                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> All 52 tools</li>
                   <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> 2 free models</li>
                 </ul>
               </div>

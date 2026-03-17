@@ -128,9 +128,9 @@ This works with Ollama, LM Studio, vLLM, or any OpenAI-compatible API endpoint.
     topic: 'tools',
     keywords: ['tool', 'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'bash', 'web_search', 'browser', 'screenshot', 'database', 'git', 'memory_save', 'memory_recall', 'memory_update', 'memory_delete', 'present_plan', 'todo_write', 'ask_user', 'rollback', 'http_request', 'project_index', 'find_symbol', 'list_directory', 'docs_lookup', 'support_request', 'task_manage', 'journal_write', 'document_manage', 'propose_tool', 'get_datetime', 'detect_language', 'learning_create', 'learning_teach', 'learning_progress', 'weather', 'news'],
     title: 'Built-in Tools',
-    content: `# Built-in Tools (49)
+    content: `# Built-in Tools (52)
 
-Ava has 49 built-in tools organized by category. Tool availability depends on the current mode and permission settings.
+Ava has 52 built-in tools organized by category. Tool availability depends on the current mode and permission settings.
 
 ## Reading & Searching (always auto-approved)
 | Tool | Description |
@@ -239,7 +239,7 @@ Ava has 49 built-in tools organized by category. Tool availability depends on th
 Ava has five modes. Each mode is a distinct state of mind — it changes how Ava thinks, not just what tools she has access to.
 
 ## Work Mode (\`>>\`) — Builder
-Full agent with all 49 tools. Ava reads, writes, searches, executes, manages tasks, journals, and creates documents. For complex tasks, Ava's internal persona team activates: Scout maps the codebase, Architect designs the approach, Verifier fact-checks, Sequencer breaks it into steps, Challenger questions the plan — then Builder executes.
+Full agent with all 52 tools. Ava reads, writes, searches, executes, manages tasks, journals, and creates documents. For complex tasks, Ava's internal persona team activates: Scout maps the codebase, Architect designs the approach, Verifier fact-checks, Sequencer breaks it into steps, Challenger questions the plan — then Builder executes.
 
 ## Plan Mode (\`::\`) — Architect
 Strategic planning. Ava's persona team activates: Researcher gathers evidence from the web and codebase, Architect analyses and proposes features, Challenger questions priorities. Use this when deciding what to build next, not how to build it.
@@ -687,7 +687,7 @@ On macOS, use Cmd instead of Ctrl.`,
 
 ### Free Tier
 - Bring your own API keys — no account needed
-- All 49 tools, all modes, all features
+- All 52 tools, all modes, all features
 - Local memory and history
 - Full open-source experience
 

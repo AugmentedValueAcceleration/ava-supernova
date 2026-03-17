@@ -1,9 +1,9 @@
 {
   "displayName": "Ava | Supernova",
-  "description": "Open-source AI coding agent + personal tutor — 14 models, 7 providers, 45 tools, 5 modes (Work, Plan, Chat, Teach, Security), 2 free models. Smart memory, spaced repetition learning, task management, dual journal. DeepSeek, Kimi, Qwen, Mistral, Anthropic, Zhipu & more.",
+  "description": "Open-source AI coding agent + personal tutor — 14 models, 7 providers, 52 tools, 5 modes (Work, Plan, Chat, Teach, Security), 2 free models. Smart memory, spaced repetition learning, task management, dual journal. DeepSeek, Kimi, Qwen, Mistral, Anthropic, Zhipu & more.",
   "viewContainer.title": "Ava | Supernova",
   "view.chat.name": "Chat",
-  "command.openChat.title": "Open Chat — Start an AI coding session with 45 tools and 5 modes",
+  "command.openChat.title": "Open Chat — Start an AI coding session with 52 tools and 5 modes",
   "command.newChat.title": "New Chat — Fresh conversation with full context reset",
   "command.clearChat.title": "Clear Chat — Remove all messages from the current session",
   "command.switchModel.title": "Switch Model — Choose from 14 models across 7 providers",
@@ -14,7 +14,7 @@
   "setting.qwen.apiKey.description": "Qwen (Alibaba Cloud) API key — Qwen 3.5 Plus with vision and thinking",
   "setting.temperature.description": "Sampling temperature (0 = deterministic, 1 = creative). Default 0.7 balances precision and creativity.",
   "setting.language.description": "Language for Ava's UI and responses. Supports 20 languages including Chinese, Japanese, Korean, Spanish, French, German, Arabic, Hindi, and more.",
-  "setting.permissionMode.description": "Controls which of Ava's 45 tools require your approval. Strict = safest (approve writes + shell). Balanced = auto-approve file edits. Autonomous = full agent freedom.",
+  "setting.permissionMode.description": "Controls which of Ava's 52 tools require your approval. Strict = safest (approve writes + shell). Balanced = auto-approve file edits. Autonomous = full agent freedom.",
   "lang.auto": "Auto-detect",
   "lang.auto.desc": "Auto-detect from VS Code language",
   "lang.en": "English",
@@ -59,6 +59,6 @@
   "setting.section.modelApi": "Model & API — 14 models, 7 providers, 2 free",
   "setting.section.preferences": "Preferences — Language, permissions, memory, streaming",
   "setting.section.help": "Help & Documentation",
-  "setting.help.docs": "**[Open Documentation](command:ava-supernova.openDocs)** — Full reference for 45 tools, 14 models, 20 languages, permission modes, memory system, and more.",
+  "setting.help.docs": "**[Open Documentation](command:ava-supernova.openDocs)** — Full reference for 52 tools, 14 models, 20 languages, permission modes, memory system, and more.",
   "setting.help.gettingStarted": "**[Open Getting Started](command:ava-supernova.gettingStarted)** — Step-by-step setup walkthrough. Or just start chatting — free models work instantly."
 }
