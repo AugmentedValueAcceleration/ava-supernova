@@ -45,8 +45,8 @@ export class ReleaseNotesTool implements Tool {
         return { success: false, output: `Failed to fetch release notes: HTTP ${res.status}` };
       }
 
-      const data = await res.json() as { releases?: unknown[] };
-      const releases = (data.releases || []) as Array<Record<string, unknown>>;
+      const data: unknown = await res.json();
+      const releases = (Array.isArray(data) ? data : (data as Record<string, unknown>).releases || []) as Array<Record<string, unknown>>;
 
       if (!releases || releases.length === 0) {
         return { success: true, output: version ? `No release notes found for v${version}` : 'No release notes found.' };
