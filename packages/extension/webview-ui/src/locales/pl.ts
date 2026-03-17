@@ -50,6 +50,8 @@ export const plStrings: Record<string, string> = {
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Czat',
   'input.mode.teach': 'Nauka',
+  'input.mode.brainstorm': 'Burza mózgów',
+  'input.placeholder.brainstorm': 'Co chcesz zbadać?',
   'input.mode.security': 'Bezpieczeństwo',
   'input.send': 'Wyślij (Enter)',
   'input.send_aria': 'Wyślij wiadomość',

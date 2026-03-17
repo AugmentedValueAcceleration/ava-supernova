@@ -50,6 +50,8 @@ export const ptStrings: Record<string, string> = {
   'input.mode.plan': 'Plano',
   'input.mode.chat': 'Chat',
   'input.mode.teach': 'Aprender',
+  'input.mode.brainstorm': 'Brainstorming',
+  'input.placeholder.brainstorm': 'O que voc\u00ea quer explorar?',
   'input.mode.security': 'Seguran\u00e7a',
   'input.send': 'Enviar (Enter)',
   'input.send_aria': 'Enviar mensagem',

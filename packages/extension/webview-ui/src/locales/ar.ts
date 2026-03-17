@@ -50,6 +50,8 @@ export const arStrings: Record<string, string> = {
   'input.mode.plan': 'خطة',
   'input.mode.chat': 'محادثة',
   'input.mode.teach': 'تعلّم',
+  'input.mode.brainstorm': 'عصف ذهني',
+  'input.placeholder.brainstorm': 'ماذا تريد أن تستكشف؟',
   'input.mode.security': 'أمان',
   'input.send': 'إرسال (Enter)',
   'input.send_aria': 'إرسال الرسالة',

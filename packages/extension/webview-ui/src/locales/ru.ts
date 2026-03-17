@@ -50,6 +50,8 @@ export const ruStrings: Record<string, string> = {
   'input.mode.plan': 'План',
   'input.mode.chat': 'Чат',
   'input.mode.teach': 'Учёба',
+  'input.mode.brainstorm': 'Мозговой штурм',
+  'input.placeholder.brainstorm': 'Что вы хотите исследовать?',
   'input.mode.security': 'Безопасность',
   'input.send': 'Отправить (Enter)',
   'input.send_aria': 'Отправить сообщение',

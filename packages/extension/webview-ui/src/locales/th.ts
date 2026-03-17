@@ -50,6 +50,8 @@ export const thStrings: Record<string, string> = {
   'input.mode.plan': 'แผน',
   'input.mode.chat': 'แชท',
   'input.mode.teach': 'เรียนรู้',
+  'input.mode.brainstorm': 'ระดมสมอง',
+  'input.placeholder.brainstorm': 'คุณต้องการสำรวจอะไร?',
   'input.mode.security': 'ความปลอดภัย',
   'input.send': 'ส่ง (Enter)',
   'input.send_aria': 'ส่งข้อความ',

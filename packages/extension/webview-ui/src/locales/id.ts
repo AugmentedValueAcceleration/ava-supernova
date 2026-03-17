@@ -50,6 +50,8 @@ export const idStrings: Record<string, string> = {
   'input.mode.plan': 'Rencana',
   'input.mode.chat': 'Obrolan',
   'input.mode.teach': 'Belajar',
+  'input.mode.brainstorm': 'Brainstorming',
+  'input.placeholder.brainstorm': 'Apa yang ingin Anda jelajahi?',
   'input.mode.security': 'Keamanan',
   'input.send': 'Kirim (Enter)',
   'input.send_aria': 'Kirim pesan',

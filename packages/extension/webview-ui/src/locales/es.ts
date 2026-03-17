@@ -50,6 +50,8 @@ export const esStrings: Record<string, string> = {
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Chat',
   'input.mode.teach': 'Aprender',
+  'input.mode.brainstorm': 'Lluvia de ideas',
+  'input.placeholder.brainstorm': '¿Qué quieres explorar?',
   'input.mode.security': 'Seguridad',
   'input.send': 'Enviar (Enter)',
   'input.send_aria': 'Enviar mensaje',

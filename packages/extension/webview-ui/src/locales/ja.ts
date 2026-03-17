@@ -50,6 +50,8 @@ export const jaStrings: Record<string, string> = {
   'input.mode.plan': '計画',
   'input.mode.chat': 'チャット',
   'input.mode.teach': '学習',
+  'input.mode.brainstorm': 'ブレインストーム',
+  'input.placeholder.brainstorm': '何を探求したいですか？',
   'input.mode.security': 'セキュリティ',
   'input.send': '送信 (Enter)',
   'input.send_aria': 'メッセージを送信',

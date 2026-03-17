@@ -50,6 +50,8 @@ export const zhCNStrings: Record<string, string> = {
   'input.mode.plan': '规划',
   'input.mode.chat': '聊天',
   'input.mode.teach': '学习',
+  'input.mode.brainstorm': '头脑风暴',
+  'input.placeholder.brainstorm': '你想探索什么？',
   'input.mode.security': '安全',
   'input.send': '发送 (Enter)',
   'input.send_aria': '发送消息',

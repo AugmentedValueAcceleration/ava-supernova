@@ -50,6 +50,8 @@ export const ukStrings: Record<string, string> = {
   'input.mode.plan': 'План',
   'input.mode.chat': 'Чат',
   'input.mode.teach': 'Навчання',
+  'input.mode.brainstorm': 'Мозковий штурм',
+  'input.placeholder.brainstorm': 'Що ви хочете дослідити?',
   'input.mode.security': 'Безпека',
   'input.send': 'Надіслати (Enter)',
   'input.send_aria': 'Надіслати повідомлення',

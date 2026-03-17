@@ -50,6 +50,8 @@ export const koStrings: Record<string, string> = {
   'input.mode.plan': '계획',
   'input.mode.chat': '채팅',
   'input.mode.teach': '학습',
+  'input.mode.brainstorm': '브레인스토밍',
+  'input.placeholder.brainstorm': '무엇을 탐구하고 싶으세요?',
   'input.mode.security': '보안',
   'input.send': '전송 (Enter)',
   'input.send_aria': '메시지 전송',

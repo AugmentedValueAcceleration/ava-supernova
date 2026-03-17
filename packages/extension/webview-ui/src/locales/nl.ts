@@ -50,6 +50,8 @@ export const nlStrings: Record<string, string> = {
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Chat',
   'input.mode.teach': 'Leren',
+  'input.mode.brainstorm': 'Brainstorm',
+  'input.placeholder.brainstorm': 'Wat wil je verkennen?',
   'input.mode.security': 'Beveiliging',
   'input.send': 'Versturen (Enter)',
   'input.send_aria': 'Bericht versturen',

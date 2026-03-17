@@ -50,6 +50,8 @@ export const deStrings: Record<string, string> = {
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Chat',
   'input.mode.teach': 'Lernen',
+  'input.mode.brainstorm': 'Brainstorming',
+  'input.placeholder.brainstorm': 'Was möchten Sie erkunden?',
   'input.mode.security': 'Sicherheit',
   'input.send': 'Senden (Enter)',
   'input.send_aria': 'Nachricht senden',

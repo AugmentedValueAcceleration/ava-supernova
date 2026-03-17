@@ -50,6 +50,8 @@ export const zhTWStrings: Record<string, string> = {
   'input.mode.plan': '規劃',
   'input.mode.chat': '聊天',
   'input.mode.teach': '學習',
+  'input.mode.brainstorm': '腦力激盪',
+  'input.placeholder.brainstorm': '你想探索什麼？',
   'input.mode.security': '安全',
   'input.send': '傳送 (Enter)',
   'input.send_aria': '傳送訊息',

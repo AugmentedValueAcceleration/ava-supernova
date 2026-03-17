@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { t } from '../i18n';
 import type { ProviderSource } from '../types/messages';
 
-export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security';
+export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm';
 
 export interface ImageAttachment {
   type: 'image';
@@ -37,6 +37,7 @@ interface InputAreaProps {
 const MODES: { id: AvaMode; labelKey: string; icon: string }[] = [
   { id: 'code', labelKey: 'input.mode.code', icon: '>>' },
   { id: 'plan', labelKey: 'input.mode.plan', icon: '::' },
+  { id: 'brainstorm', labelKey: 'input.mode.brainstorm', icon: '**' },
   { id: 'chat', labelKey: 'input.mode.chat', icon: '..' },
   { id: 'teach', labelKey: 'input.mode.teach', icon: '??' },
   { id: 'security', labelKey: 'input.mode.security', icon: '!!' },
@@ -50,6 +51,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   chat: 'input.placeholder.chat',
   teach: 'input.placeholder.teach',
   security: 'input.placeholder.security',
+  brainstorm: 'input.placeholder.brainstorm',
 };
 
 export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCompressing, onCompress, providerSource, platformStatus, onProviderSourceChange }: InputAreaProps) {

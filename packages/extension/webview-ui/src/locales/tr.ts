@@ -50,6 +50,8 @@ export const trStrings: Record<string, string> = {
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Sohbet',
   'input.mode.teach': 'Öğren',
+  'input.mode.brainstorm': 'Beyin Fırtınası',
+  'input.placeholder.brainstorm': 'Ne keşfetmek istiyorsunuz?',
   'input.mode.security': 'Güvenlik',
   'input.send': 'Gönder (Enter)',
   'input.send_aria': 'Mesaj gönder',

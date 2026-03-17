@@ -50,6 +50,8 @@ export const frStrings: Record<string, string> = {
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Chat',
   'input.mode.teach': 'Apprendre',
+  'input.mode.brainstorm': 'Brainstorming',
+  'input.placeholder.brainstorm': 'Que voulez-vous explorer ?',
   'input.mode.security': 'S\u00e9curit\u00e9',
   'input.send': 'Envoyer (Entr\u00e9e)',
   'input.send_aria': 'Envoyer le message',

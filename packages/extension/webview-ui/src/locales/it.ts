@@ -50,6 +50,8 @@ export const itStrings: Record<string, string> = {
   'input.mode.plan': 'Piano',
   'input.mode.chat': 'Chat',
   'input.mode.teach': 'Imparare',
+  'input.mode.brainstorm': 'Brainstorming',
+  'input.placeholder.brainstorm': 'Cosa vuoi esplorare?',
   'input.mode.security': 'Sicurezza',
   'input.send': 'Invia (Invio)',
   'input.send_aria': 'Invia messaggio',

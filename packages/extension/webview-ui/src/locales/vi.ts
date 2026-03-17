@@ -50,6 +50,8 @@ export const viStrings: Record<string, string> = {
   'input.mode.plan': 'Kế hoạch',
   'input.mode.chat': 'Trò chuyện',
   'input.mode.teach': 'Học',
+  'input.mode.brainstorm': 'Động não',
+  'input.placeholder.brainstorm': 'Bạn muốn khám phá gì?',
   'input.mode.security': 'Bảo mật',
   'input.send': 'Gửi (Enter)',
   'input.send_aria': 'Gửi tin nhắn',

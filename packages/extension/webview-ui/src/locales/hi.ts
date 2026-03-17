@@ -50,6 +50,8 @@ export const hiStrings: Record<string, string> = {
   'input.mode.plan': 'प्लान',
   'input.mode.chat': 'चैट',
   'input.mode.teach': 'सीखें',
+  'input.mode.brainstorm': 'विचार-मंथन',
+  'input.placeholder.brainstorm': 'आप क्या खोजना चाहते हैं?',
   'input.mode.security': 'सुरक्षा',
   'input.send': 'भेजें (Enter)',
   'input.send_aria': 'संदेश भेजें',
