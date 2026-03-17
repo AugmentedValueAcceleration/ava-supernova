@@ -1460,6 +1460,7 @@ export class DashboardPanel {
         content="default-src 'none';
                  style-src ${webview.cspSource} 'unsafe-inline';
                  script-src 'nonce-${nonce}';
+                 connect-src https://wttr.in https://ava-supernova.com;
                  img-src ${webview.cspSource} data:;">
   <link rel="stylesheet" href="${styleUri}">
   <title>Ava | Dashboard</title>

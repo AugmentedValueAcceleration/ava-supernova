@@ -73,32 +73,32 @@ const PRIORITY_DOT: Record<string, string> = {
 };
 
 const MOOD_EMOJI: Record<number, string> = {
-  1: '\u{1F614}', // pensive
-  2: '\u{1F615}', // confused
-  3: '\u{1F610}', // neutral
-  4: '\u{1F60A}', // blush
-  5: '\u{1F604}', // grin
+  1: '😔',
+  2: '😕',
+  3: '😐',
+  4: '😊',
+  5: '😄',
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function weatherEmoji(code: string, desc: string): string {
   const d = desc.toLowerCase();
-  if (d.includes('thunder')) return '\u26C8\uFE0F';
-  if (d.includes('snow') || d.includes('blizzard') || d.includes('sleet')) return '\u2744\uFE0F';
-  if (d.includes('rain') || d.includes('drizzle') || d.includes('shower')) return '\u{1F327}\uFE0F';
-  if (d.includes('fog') || d.includes('mist') || d.includes('haze')) return '\u{1F32B}\uFE0F';
-  if (d.includes('overcast')) return '\u2601\uFE0F';
-  if (d.includes('cloud') || d.includes('partly')) return '\u26C5';
-  if (d.includes('sun') || d.includes('clear')) return '\u2600\uFE0F';
+  if (d.includes('thunder')) return '⛈️';
+  if (d.includes('snow') || d.includes('blizzard') || d.includes('sleet')) return '❄️';
+  if (d.includes('rain') || d.includes('drizzle') || d.includes('shower')) return '🌧️';
+  if (d.includes('fog') || d.includes('mist') || d.includes('haze')) return '🌫️';
+  if (d.includes('overcast')) return '☁️';
+  if (d.includes('cloud') || d.includes('partly')) return '⛅';
+  if (d.includes('sun') || d.includes('clear')) return '☀️';
   // Fallback by code ranges
   const c = parseInt(code, 10);
-  if (c <= 113) return '\u2600\uFE0F';
-  if (c <= 176) return '\u26C5';
-  if (c <= 248) return '\u2601\uFE0F';
-  if (c <= 299) return '\u{1F327}\uFE0F';
-  if (c <= 338) return '\u2744\uFE0F';
-  return '\u2601\uFE0F';
+  if (c <= 113) return '☀️';
+  if (c <= 176) return '⛅';
+  if (c <= 248) return '☁️';
+  if (c <= 299) return '🌧️';
+  if (c <= 338) return '❄️';
+  return '☁️';
 }
 
 function formatRelativeDate(dateStr: string): string {
@@ -337,7 +337,7 @@ function WeatherWidget() {
 
   if (loading) {
     return (
-      <WidgetCard title="Weather" icon="\u{1F324}\uFE0F">
+      <WidgetCard title="Weather" icon="🌤️">
         <div className="flex items-center gap-2 py-4 text-xs text-[var(--text-muted)]">
           <span className="animate-pulse">Loading weather...</span>
         </div>
@@ -347,7 +347,7 @@ function WeatherWidget() {
 
   if (error || !weather || !weather.current_condition?.[0]) {
     return (
-      <WidgetCard title="Weather" icon="\u{1F324}\uFE0F">
+      <WidgetCard title="Weather" icon="🌤️">
         <p className="py-2 text-xs text-[var(--text-muted)]">Unable to load weather data.</p>
       </WidgetCard>
     );
@@ -363,7 +363,7 @@ function WeatherWidget() {
   const forecast = weather.weather?.slice(0, 3) ?? [];
 
   return (
-    <WidgetCard title="Weather" icon="\u{1F324}\uFE0F" subtitle={location}>
+    <WidgetCard title="Weather" icon="🌤️" subtitle={location}>
       {/* Current conditions */}
       <div className="flex items-center gap-4">
         <span className="text-3xl">{emoji}</span>
@@ -426,7 +426,7 @@ function NewsWidget() {
   }, []);
 
   return (
-    <WidgetCard title="Latest News" icon="\u{1F4F0}">
+    <WidgetCard title="Latest News" icon="📰">
       {loading ? (
         <p className="py-4 text-xs text-[var(--text-muted)] animate-pulse">Loading news...</p>
       ) : articles.length === 0 ? (
@@ -487,12 +487,12 @@ function TasksWidget({ tasks, onNavigate }: { tasks: DashboardTaskEntry[]; onNav
   return (
     <WidgetCard
       title="Today's Tasks"
-      icon="\u2705"
+      icon="✅"
       action={tasks.length > 0 ? { label: 'View all', onClick: () => onNavigate('tasks') } : undefined}
     >
       {todayTasks.length === 0 ? (
         <div className="flex flex-col items-center py-6 text-center">
-          <span className="mb-2 text-2xl opacity-30">{'\u{1F389}'}</span>
+          <span className="mb-2 text-2xl opacity-30">{'🎉'}</span>
           <p className="text-xs text-[var(--text-muted)]">No tasks today. Enjoy the clear board!</p>
         </div>
       ) : (
@@ -548,12 +548,12 @@ function JournalWidget({ journalDay, onNavigate }: { journalDay: DashboardJourna
   return (
     <WidgetCard
       title="Today's Journal"
-      icon="\u{1F4D3}"
+      icon="📓"
       action={{ label: hasContent ? 'Open journal' : 'Write entry', onClick: () => onNavigate('journal') }}
     >
       {!hasContent ? (
         <div className="flex flex-col items-center py-4 text-center">
-          <span className="mb-2 text-2xl opacity-30">{'\u{1F4DD}'}</span>
+          <span className="mb-2 text-2xl opacity-30">{'📝'}</span>
           <p className="text-xs text-[var(--text-muted)]">No journal entries today.</p>
           <p className="text-[10px] text-[var(--text-muted)] mt-1">Take a moment to reflect.</p>
         </div>
@@ -598,12 +598,12 @@ function LearningWidget({ curriculums, onNavigate }: { curriculums: DashboardLea
   return (
     <WidgetCard
       title="Learning"
-      icon="\u{1F393}"
+      icon="🎓"
       action={curriculums.length > 0 ? { label: 'Continue learning', onClick: () => onNavigate('learning') } : undefined}
     >
       {active.length === 0 ? (
         <div className="flex flex-col items-center py-4 text-center">
-          <span className="mb-2 text-2xl opacity-30">{'\u{1F4DA}'}</span>
+          <span className="mb-2 text-2xl opacity-30">{'📚'}</span>
           <p className="text-xs text-[var(--text-muted)]">No active learning paths.</p>
           <p className="text-[10px] text-[var(--text-muted)] mt-1">Tell Ava what you want to learn.</p>
         </div>
@@ -650,7 +650,7 @@ function MemoryWidget({ memories, onNavigate }: { memories: MemoryEntry[]; onNav
   return (
     <WidgetCard
       title="Memory"
-      icon="\u{1F9E0}"
+      icon="🧠"
       action={{ label: 'View all', onClick: () => onNavigate('memory') }}
     >
       <div className="space-y-3">
@@ -699,7 +699,7 @@ function ReleaseWidget() {
   }, []);
 
   return (
-    <WidgetCard title="Latest Release" icon="\u{1F680}">
+    <WidgetCard title="Latest Release" icon="🚀">
       {loading ? (
         <p className="py-4 text-xs text-[var(--text-muted)] animate-pulse">Checking releases...</p>
       ) : !release ? (
