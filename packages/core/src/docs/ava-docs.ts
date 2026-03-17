@@ -126,7 +126,7 @@ This works with Ollama, LM Studio, vLLM, or any OpenAI-compatible API endpoint.
   // ── Tools ─────────────────────────────────────────────────────────────────
   {
     topic: 'tools',
-    keywords: ['tool', 'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'bash', 'web_search', 'browser', 'screenshot', 'database', 'git', 'memory_save', 'memory_recall', 'memory_update', 'memory_delete', 'present_plan', 'todo_write', 'ask_user', 'rollback', 'http_request', 'project_index', 'find_symbol', 'list_directory', 'docs_lookup', 'support_request', 'task_manage', 'journal_write', 'document_manage', 'propose_tool', 'get_datetime', 'detect_language', 'learning_create', 'learning_teach', 'learning_progress', 'weather', 'news'],
+    keywords: ['tool', 'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'bash', 'web_search', 'browser', 'screenshot', 'database', 'git', 'memory_save', 'memory_recall', 'memory_update', 'memory_delete', 'present_plan', 'todo_write', 'ask_user', 'rollback', 'http_request', 'project_index', 'find_symbol', 'list_directory', 'docs_lookup', 'support_request', 'task_manage', 'journal_write', 'document_manage', 'propose_tool', 'get_datetime', 'detect_language', 'learning_create', 'learning_teach', 'learning_progress', 'weather', 'news', 'self_inspect', 'release_notes', 'presentation_create', 'email_draft', 'report_generate'],
     title: 'Built-in Tools',
     content: `# Built-in Tools (52)
 
@@ -202,6 +202,13 @@ Ava has 52 built-in tools organized by category. Tool availability depends on th
 | present_plan | Present a structured plan with steps for user approval. |
 | ask_user | Ask the user a question and wait for their response. |
 
+## Office Suite (permission mode dependent)
+| Tool | Description |
+|------|-------------|
+| presentation_create | Create slide decks from structured content. Supports themes, layouts, and speaker notes. |
+| email_draft | Draft emails with tone control (formal, friendly, assertive, concise). Supports recipients, CC, subject, and body. |
+| report_generate | Generate reports from tasks, journal entries, and memory. Formats: board brief, sprint review, progress report. |
+
 ## Support
 | Tool | Description |
 |------|-------------|
@@ -212,16 +219,24 @@ Ava has 52 built-in tools organized by category. Tool availability depends on th
 |------|-------------|
 | rollback | Restore, discard, or check the status of a git checkpoint. |
 
+## Real-World (always auto-approved)
+| Tool | Description |
+|------|-------------|
+| weather | Get current weather and 3-day forecast for any location. Auto-detects by IP. |
+| news | Get latest tech and AI news from the Ava platform. Filter by category or search. |
+
+## Self (always auto-approved)
+| Tool | Description |
+|------|-------------|
+| self_inspect | Read Ava's own source code from GitHub. Explain how she works, point contributors to files, reference her own architecture. |
+| release_notes | Fetch published release notes. See what's been shipped, reference specific versions, know what users see when they update. |
+
 ## Utility (always auto-approved)
 | Tool | Description |
 |------|-------------|
 | get_datetime | Get the current date and time for time-aware responses. |
 | detect_language | Detect the language of user input for multilingual support. |
-| weather | Get current weather and 3-day forecast for any location. Auto-detects by IP. |
-| news | Get latest tech and AI news from the Ava platform. Filter by category or search. |
 | propose_tool | Propose a new tool idea for self-improvement. |
-| self_inspect | Read Ava's own source code from GitHub. Explain how she works, point contributors to files, reference her own architecture. |
-| release_notes | Fetch published release notes. See what's been shipped, reference specific versions, know what users see when they update. |
 
 ## Risk Levels
 - **safe** — Read-only operations. Always auto-approved.
@@ -254,7 +269,7 @@ Ava becomes your personal teacher. Full toolkit available with persona team: Cur
 AI-powered OWASP-aligned security audit with 5-phase flow: Recon maps the attack surface, Scanner works through each OWASP category, Researcher checks for known CVEs via web search, Verifier confirms every finding (kills false positives), Reporter structures results by severity. Produces actionable reports with remediation guidance.
 
 ## Brainstorm Mode (\`**\`) — Ideator
-Ideation mindset — business ideas, feature brainstorming, creative problem solving. Ava helps you explore possibilities, challenge assumptions, and develop concepts without jumping to implementation.
+Ideation mindset — business ideas, feature brainstorming, creative problem solving. Ava's persona team activates: Explorer maps the problem space, Researcher gathers evidence and precedents, Ideator generates possibilities, Challenger stress-tests ideas, Refiner distils the best concepts into actionable proposals. Ava helps you explore without jumping to implementation.
 
 ## Switching Modes
 - **Extension/IDE**: Use the mode bar at the bottom of the chat input area (Work | Plan | Chat | Teach | Security | Brainstorm)
@@ -386,8 +401,22 @@ Ava has persistent memory that survives across sessions. She remembers what matt
 - Stored at \`.ava/memory.md\` in the project root
 - Good for: project architecture, conventions, key decisions, team patterns
 
+## 4-Layer Memory System
+
+### Layer 1: Pattern-Based Extraction (instant, every turn)
+Runs on every message. Extracts preferences, corrections, decisions, and facts using lightweight pattern matching. Zero latency — happens inline.
+
+### Layer 2: LLM Reflection (end of meaningful conversations)
+At the end of conversations with substance, Ava reflects on the session and distils durable insights — things worth remembering long-term that pattern matching might miss.
+
+### Layer 3: Pattern Detection
+Tracks recurring corrections, naming conventions, style preferences, and workflow habits over time. Builds a behavioural model of how you work so Ava adapts to you, not the other way around.
+
+### Layer 4: Cross-Memory Insights
+Periodically analyses the full memory store to find themes, contradictions, and consolidation opportunities. Keeps memory clean and coherent as it grows.
+
 ## How It Works
-1. **Automatic**: When you tell Ava something important, she saves it via \`memory_save\`
+1. **Automatic**: Layers 1-4 run without intervention — Ava saves what matters via \`memory_save\`
 2. **Session start**: Memories are loaded into Ava's context at the start of each conversation
 3. **Search**: Use \`memory_recall\` mid-conversation to search specific stored knowledge
 4. **Manual editing**: You can directly edit the memory files, or use the Memory page in the Dashboard
@@ -398,6 +427,8 @@ Ava has persistent memory that survives across sessions. She remembers what matt
 - Solutions to recurring problems
 - Corrections and feedback you give her
 - Key technical decisions and their rationale
+- Naming conventions and style preferences (Layer 3)
+- Cross-cutting themes and consolidated insights (Layer 4)
 
 ## What Ava Doesn't Remember
 - Session-specific details (what you're working on right now)
@@ -847,5 +878,129 @@ Each finding includes:
 - Use todo_write tracking to monitor scan progress
 - Findings are grouped by severity (CRITICAL first)
 - A summary with total findings and risk rating is provided at the end`,
+  },
+
+  // ── Knowledge Packs ──────────────────────────────────────────────────────
+  {
+    topic: 'knowledge-packs',
+    keywords: ['knowledge', 'packs', 'domain', 'expertise', 'marketing', 'finance', 'legal', 'product', 'devops', 'data science'],
+    title: 'Knowledge Packs',
+    content: `# Knowledge Packs
+
+Knowledge Packs give Ava domain expertise. Each pack injects specialised knowledge, terminology, and best practices into Ava's context so she can work fluently in that domain.
+
+## Built-in Packs
+| Pack | Domain |
+|------|--------|
+| Marketing | Campaign strategy, SEO, content marketing, analytics, funnel optimisation |
+| Finance | Financial modelling, accounting, budgeting, reporting, compliance |
+| Legal | Contract review, policy drafting, regulatory awareness, risk assessment |
+| Product | Product management, roadmaps, user stories, prioritisation frameworks |
+| DevOps | CI/CD, infrastructure as code, monitoring, incident response, cloud platforms |
+| Data Science | Statistics, ML pipelines, data cleaning, visualisation, experiment design |
+
+## Enabling / Disabling Packs
+- **Extension/IDE**: Dashboard > Settings > Knowledge Packs — toggle packs on or off
+- **CLI**: \`/packs\` to list, \`/packs enable <name>\`, \`/packs disable <name>\`
+- Active packs are loaded into Ava's system context at session start
+
+## Custom Packs
+Create your own knowledge packs by adding a \`.ava/packs/\` directory with markdown files:
+\`\`\`
+.ava/packs/
+  my-domain.md    # One file per pack
+  internal-api.md
+\`\`\`
+Each file should contain the domain knowledge, terminology, and conventions you want Ava to know. Custom packs appear alongside built-in packs in the settings UI.`,
+  },
+
+  // ── Daily Briefing ────────────────────────────────────────────────────────
+  {
+    topic: 'daily-briefing',
+    keywords: ['briefing', 'morning', 'greeting', 'events', 'notifications', 'overdue', 'proactive'],
+    title: 'Daily Briefing & Events',
+    content: `# Daily Briefing & Events
+
+Ava greets you with a personalised daily briefing when you start your first session of the day.
+
+## How It Works
+- Triggers **once per day** on activation (first message or panel open)
+- Pulls data from your tasks, journal, memory, and local time
+- Presented as a concise summary — not a wall of text
+
+## What the Briefing Shows
+- **Tasks**: Open tasks, upcoming due dates, what's next
+- **Overdue**: Any tasks past their due date, flagged for attention
+- **Journal**: Recent journal entries and reflections
+- **Memory**: Relevant memories surfaced for the day (e.g. reminders, patterns)
+- **Time**: Current date, time, and a contextual greeting based on your local clock
+
+## Event Detection
+Ava proactively detects and surfaces events throughout the day:
+- **Overdue tasks** — Flags tasks past their due date with nudges to act
+- **Streaks** — Tracks consistency (e.g. daily journaling, task completion) and celebrates milestones
+- **Errors** — Detects repeated failures or blockers and suggests next steps
+
+## Configuration
+The daily briefing is enabled by default. Disable it in Dashboard > Settings if you prefer a quiet start.`,
+  },
+
+  // ── Office Suite ──────────────────────────────────────────────────────────
+  {
+    topic: 'office-suite',
+    keywords: ['office', 'presentation', 'slides', 'email', 'report', 'board brief', 'sprint review'],
+    title: 'Office Suite',
+    content: `# Office Suite
+
+Ava can create presentations, draft emails, and generate reports — bringing office productivity into the agent workflow.
+
+## presentation_create
+Create slide decks from structured content.
+- Supports themes, layouts, and speaker notes
+- Output as \`.pptx\` or Markdown-based slides
+- Use in Work Mode: "Create a 10-slide deck on our Q1 results"
+
+## email_draft
+Draft emails with tone control.
+- Tones: formal, friendly, assertive, concise
+- Supports recipients, CC, subject, and body
+- Use in Work Mode: "Draft a formal email to the client about the delay"
+
+## report_generate
+Generate reports from your tasks, journal entries, and memory.
+- Formats: board brief, sprint review, progress report
+- Pulls data from task_manage, journal_write, and memory_recall automatically
+- Use in Work Mode: "Generate a sprint review for this week"
+
+## Permissions
+Office Suite tools follow your permission mode. In Strict mode, file creation requires approval. In Balanced or Autonomous mode, Ava creates files directly.`,
+  },
+
+  // ── Workflows ─────────────────────────────────────────────────────────────
+  {
+    topic: 'workflows',
+    keywords: ['workflow', 'autonomous', 'multi-step', 'dependency', 'retry'],
+    title: 'Workflow Engine',
+    content: `# Workflow Engine
+
+The Workflow Engine lets Ava execute multi-step autonomous tasks with dependency management, scoped tool access, and built-in resilience.
+
+## How It Works
+1. A task is decomposed into discrete **steps**
+2. Steps are arranged in a **dependency graph** — each step declares what it depends on
+3. Steps with no unmet dependencies run as soon as possible
+4. Each step has **scoped tool access** — only the tools it needs
+5. Failed steps are retried with configurable **retry count** and **timeout**
+6. The workflow completes when all steps succeed, or halts on unrecoverable failure
+
+## Features
+- **Dependency graph**: Steps run in the correct order. Independent steps can run in parallel.
+- **Scoped steps**: Each step declares which tools it uses. Prevents accidental side effects.
+- **Retry**: Failed steps retry automatically (default: 2 retries). Configurable per step.
+- **Timeout**: Each step has a timeout to prevent infinite hangs (default: 5 minutes).
+- **Progress tracking**: Workflow progress is visible via todo_write — see which steps are pending, running, complete, or failed.
+
+## When It Activates
+The Workflow Engine activates automatically for complex multi-step requests in Work Mode. Simple tasks skip it entirely — zero overhead for quick questions.`,
   },
 ];
