@@ -142,10 +142,10 @@ export function NavSidebar({
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto p-3">
-        {/* Overview — standalone */}
+        {/* Command Centre — standalone */}
         <NavButton
           page="overview"
-          label="Overview"
+          label="Command Centre"
           icon={BoltIcon}
           isActive={currentPage === 'overview'}
           onClick={() => handleNavigate('overview')}
