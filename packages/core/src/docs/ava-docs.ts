@@ -126,11 +126,11 @@ This works with Ollama, LM Studio, vLLM, or any OpenAI-compatible API endpoint.
   // ── Tools ─────────────────────────────────────────────────────────────────
   {
     topic: 'tools',
-    keywords: ['tool', 'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'bash', 'web_search', 'browser', 'screenshot', 'database', 'git', 'memory_save', 'memory_recall', 'memory_update', 'memory_delete', 'present_plan', 'todo_write', 'ask_user', 'rollback', 'http_request', 'project_index', 'find_symbol', 'list_directory', 'docs_lookup', 'support_request', 'task_manage', 'journal_write', 'document_manage', 'propose_tool', 'get_datetime', 'detect_language', 'learning_create', 'learning_teach', 'learning_progress'],
+    keywords: ['tool', 'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'bash', 'web_search', 'browser', 'screenshot', 'database', 'git', 'memory_save', 'memory_recall', 'memory_update', 'memory_delete', 'present_plan', 'todo_write', 'ask_user', 'rollback', 'http_request', 'project_index', 'find_symbol', 'list_directory', 'docs_lookup', 'support_request', 'task_manage', 'journal_write', 'document_manage', 'propose_tool', 'get_datetime', 'detect_language', 'learning_create', 'learning_teach', 'learning_progress', 'weather', 'news'],
     title: 'Built-in Tools',
-    content: `# Built-in Tools (45)
+    content: `# Built-in Tools (49)
 
-Ava has 47 built-in tools organized by category. Tool availability depends on the current mode and permission settings.
+Ava has 49 built-in tools organized by category. Tool availability depends on the current mode and permission settings.
 
 ## Reading & Searching (always auto-approved)
 | Tool | Description |
@@ -217,6 +217,8 @@ Ava has 47 built-in tools organized by category. Tool availability depends on th
 |------|-------------|
 | get_datetime | Get the current date and time for time-aware responses. |
 | detect_language | Detect the language of user input for multilingual support. |
+| weather | Get current weather and 3-day forecast for any location. Auto-detects by IP. |
+| news | Get latest tech and AI news from the Ava platform. Filter by category or search. |
 | propose_tool | Propose a new tool idea for self-improvement. |
 | self_inspect | Read Ava's own source code from GitHub. Explain how she works, point contributors to files, reference her own architecture. |
 | release_notes | Fetch published release notes. See what's been shipped, reference specific versions, know what users see when they update. |
@@ -237,13 +239,13 @@ Ava has 47 built-in tools organized by category. Tool availability depends on th
 Ava has five modes. Each mode is a distinct state of mind — it changes how Ava thinks, not just what tools she has access to.
 
 ## Work Mode (\`>>\`) — Builder
-Full agent with all 47 tools. Ava reads, writes, searches, executes, manages tasks, journals, and creates documents. For complex tasks, Ava's internal persona team activates: Scout maps the codebase, Architect designs the approach, Verifier fact-checks, Sequencer breaks it into steps, Challenger questions the plan — then Builder executes.
+Full agent with all 49 tools. Ava reads, writes, searches, executes, manages tasks, journals, and creates documents. For complex tasks, Ava's internal persona team activates: Scout maps the codebase, Architect designs the approach, Verifier fact-checks, Sequencer breaks it into steps, Challenger questions the plan — then Builder executes.
 
 ## Plan Mode (\`::\`) — Architect
 Strategic planning. Ava's persona team activates: Researcher gathers evidence from the web and codebase, Architect analyses and proposes features, Challenger questions priorities. Use this when deciding what to build next, not how to build it.
 
 ## Chat Mode (\`..\`) — Friend
-Personal conversation mode. Ava drops the coding partner tone and is just a friend — warm, curious, honest. Available tools: web search, memory, journal, datetime. No file writes, no bash, no git. No personas — just Ava being present. Use this when you want to talk, reflect, or just hang out.
+Personal conversation mode. Ava drops the coding partner tone and is just a friend — warm, curious, honest. Available tools: web search, memory, journal, datetime, weather, news. No file writes, no bash, no git. No personas — just Ava being present. Use this when you want to talk, reflect, or just hang out.
 
 ## Teach Mode (\`??\`) — Tutor
 Ava becomes your personal teacher. Full toolkit available with persona team: Curriculum Architect designs the learning path, Content Writer creates material, Verifier fact-checks everything, Quiz Master builds assessments, Tutor delivers it all. Say "teach me Python" and she'll build a personalised curriculum — all for free.
@@ -685,7 +687,7 @@ On macOS, use Cmd instead of Ctrl.`,
 
 ### Free Tier
 - Bring your own API keys — no account needed
-- All 47 tools, all modes, all features
+- All 49 tools, all modes, all features
 - Local memory and history
 - Full open-source experience
 

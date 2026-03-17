@@ -45,6 +45,8 @@ import { DebugLogsTool } from './debug-logs.js';
 import { LearningCreateTool, LearningTeachTool, LearningProgressTool } from './learning.js';
 import { SelfInspectTool } from './self-inspect.js';
 import { ReleaseNotesTool } from './release-notes.js';
+import { WeatherTool } from './weather.js';
+import { NewsTool } from './news.js';
 
 // Which risk levels require confirmation under each permission mode
 const CONFIRMATION_MATRIX: Record<PermissionMode, Set<ToolRiskLevel>> = {
@@ -119,6 +121,8 @@ export class ToolRegistry {
       new LearningProgressTool(),
       new SelfInspectTool(),
       new ReleaseNotesTool(),
+      new WeatherTool(),
+      new NewsTool(),
     ];
     for (const tool of builtins) {
       this.tools.set(tool.name, tool);

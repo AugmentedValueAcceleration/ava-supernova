@@ -405,28 +405,80 @@ function WeatherWidget() {
 
 // ── News Widget ──────────────────────────────────────────────────────────────
 
+const NEWS_CATEGORIES = [
+  'ai-agents', 'models', 'dev-tools', 'open-source', 'education',
+  'productivity', 'companions', 'health', 'enterprise', 'industry',
+] as const;
+
+function formatCategoryLabel(slug: string): string {
+  return slug
+    .split('-')
+    .map(word => {
+      if (word === 'ai') return 'AI';
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(' ');
+}
+
 function NewsWidget() {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('https://ava-supernova.com/api/news?limit=5&featured=true')
+    setLoading(true);
+    const params = new URLSearchParams({ limit: '5' });
+    if (selectedCategory) params.set('category', selectedCategory);
+    else params.set('featured', 'true');
+
+    fetch(`https://ava-supernova.com/api/news?${params}`)
       .then(res => {
         if (!res.ok) throw new Error('News fetch failed');
         return res.json();
       })
-      .then((data: { articles?: NewsArticle[] } | NewsArticle[]) => {
-        const list = Array.isArray(data) ? data : (data.articles ?? []);
+      .then((data: { posts?: NewsArticle[]; articles?: NewsArticle[] } | NewsArticle[]) => {
+        const list = Array.isArray(data) ? data : (data.posts ?? data.articles ?? []);
         setArticles(list);
         setLoading(false);
       })
       .catch(() => {
         setLoading(false);
       });
-  }, []);
+  }, [selectedCategory]);
 
   return (
     <WidgetCard title="Latest News" icon="📰">
+      {/* Category carousel */}
+      <div
+        className="news-carousel mb-3 flex gap-1.5 overflow-x-auto pb-1"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        <style>{`.news-carousel::-webkit-scrollbar { display: none; }`}</style>
+        <button
+          onClick={() => setSelectedCategory(null)}
+          className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium transition ${
+            selectedCategory === null
+              ? 'bg-[var(--accent)] text-white'
+              : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+          }`}
+        >
+          All
+        </button>
+        {NEWS_CATEGORIES.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium transition ${
+              selectedCategory === cat
+                ? 'bg-[var(--accent)] text-white'
+                : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+            }`}
+          >
+            {formatCategoryLabel(cat)}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <p className="py-4 text-xs text-[var(--text-muted)] animate-pulse">Loading news...</p>
       ) : articles.length === 0 ? (
@@ -442,7 +494,7 @@ function NewsWidget() {
               <div className="flex items-center gap-2 mb-1">
                 {article.category && (
                   <span className="rounded-full bg-[var(--accent)]/15 px-2 py-0.5 text-[9px] font-medium text-[var(--accent)]">
-                    {article.category}
+                    {formatCategoryLabel(article.category)}
                   </span>
                 )}
                 {article.reading_time > 0 && (
