@@ -126,7 +126,7 @@ export interface MemoryEntryUI {
   branch?: string | null;
 }
 
-export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security';
+export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm';
 
 export type WebviewToExtMessage =
   | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }> }

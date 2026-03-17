@@ -1,7 +1,7 @@
 import * as readline from 'node:readline';
 import { stdin, stdout } from 'node:process';
 import chalk from 'chalk';
-import { t, getSecurityModePrefix, Conductor } from '@ava/core';
+import { t, getSecurityModePrefix, getBrainstormModePrefix, Conductor } from '@ava/core';
 import type { Agent, AgentEvent, ConductorEvent, Conversation, ToolRegistry, HistoryManager } from '@ava/core';
 import { Renderer } from './renderer.js';
 import { CommandHandler } from './commands.js';
@@ -304,6 +304,13 @@ export class Repl {
   async securityScan(focus: string): Promise<void> {
     const userText = focus || 'Perform a comprehensive security audit of this project.';
     const prefixed = getSecurityModePrefix(userText);
+    await this.processUserMessage(prefixed);
+    this.prompt();
+  }
+
+  async brainstorm(topic: string): Promise<void> {
+    const userText = topic || 'Help me brainstorm ideas.';
+    const prefixed = getBrainstormModePrefix(userText);
     await this.processUserMessage(prefixed);
     this.prompt();
   }

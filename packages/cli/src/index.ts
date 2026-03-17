@@ -163,6 +163,7 @@ async function main(): Promise<void> {
     },
     onCompact: () => repl.compact(),
     onSecurity: (focus: string) => repl.securityScan(focus),
+    onBrainstorm: (topic: string) => repl.brainstorm(topic),
   });
 
   repl.setCommands(commands);

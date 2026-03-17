@@ -23,6 +23,7 @@ import {
   getTeachModePrefix,
   getSecurityModePrefix,
   getPlanModePrefix,
+  getBrainstormModePrefix,
   killBackgroundProcesses,
   detectProjectRoot,
   loadProjectInstructions,
@@ -1669,6 +1670,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         return getTeachModePrefix(text || 'What would you like to learn?', this.getLearningContext());
       case 'security':
         return getSecurityModePrefix(text || 'Perform a comprehensive security audit of this project.');
+      case 'brainstorm':
+        return getBrainstormModePrefix(text || 'Help me brainstorm ideas.');
       default:
         return text;
     }

@@ -25,6 +25,7 @@ export type ModelSwitchHandler = (provider: Provider, model: ModelDefinition) =>
 export type RetryHandler = () => void;
 export type CompactHandler = () => Promise<void>;
 export type SecurityHandler = (focus: string) => Promise<void>;
+export type BrainstormHandler = (topic: string) => Promise<void>;
 
 export class CommandHandler {
   private commands: Map<string, Command> = new Map();
@@ -39,6 +40,7 @@ export class CommandHandler {
     onRetry?: RetryHandler;
     onCompact?: CompactHandler;
     onSecurity?: SecurityHandler;
+    onBrainstorm?: BrainstormHandler;
   }) {
     this.registerCommand({
       name: 'help',
@@ -532,6 +534,22 @@ export class CommandHandler {
           await opts.onSecurity(args.trim());
         } else {
           console.log(`  ${t('cmd.security.desc')}`);
+        }
+        return true;
+      },
+    });
+
+    // ── Brainstorm ──────────────────────────────────────────────────────
+
+    this.registerCommand({
+      name: 'brainstorm',
+      aliases: ['idea', 'ideas'],
+      description: 'Start a brainstorm session — ideas grounded in your context',
+      execute: async (args) => {
+        if (opts.onBrainstorm) {
+          await opts.onBrainstorm(args.trim());
+        } else {
+          console.log('  Brainstorm mode — start an idea generation session');
         }
         return true;
       },

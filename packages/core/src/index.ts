@@ -2,7 +2,7 @@
 export { Agent } from './agent/agent.js';
 export type { AgentEvent, AgentEventHandler, ContextUsage } from './agent/agent.js';
 export { Conversation } from './agent/conversation.js';
-export { buildSystemPrompt, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix } from './agent/system-prompt.js';
+export { buildSystemPrompt, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix } from './agent/system-prompt.js';
 
 // Core types
 export type {
@@ -162,7 +162,8 @@ export type {
 export {
   SCOUT, ARCHITECT, VERIFIER, SEQUENCER, CHALLENGER, BUILDER,
   RESEARCHER, CONTENT_WRITER, QUIZ_MASTER, TUTOR,
-  WORK_PERSONAS, PLAN_PERSONAS, TEACH_PERSONAS, SECURITY_PERSONAS,
+  EXPLORER, IDEATOR, REFINER,
+  WORK_PERSONAS, PLAN_PERSONAS, TEACH_PERSONAS, SECURITY_PERSONAS, BRAINSTORM_PERSONAS,
   MODE_PERSONAS,
 } from './personas/index.js';
 
