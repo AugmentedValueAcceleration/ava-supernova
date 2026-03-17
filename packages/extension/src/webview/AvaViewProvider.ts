@@ -1455,7 +1455,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     try {
       // ── Conductor: run persona team for complex tasks ──────────────────
-      const modeMap: Record<string, string> = { code: 'work', plan: 'plan', chat: 'chat', teach: 'teach', security: 'security' };
+      const modeMap: Record<string, string> = { code: 'work', plan: 'plan', chat: 'chat', teach: 'teach', security: 'security', brainstorm: 'brainstorm' };
       const conductorMode = modeMap[mode] || 'work';
 
       if (this.conductor && this.conductor.needsOrchestration(text, conductorMode)) {

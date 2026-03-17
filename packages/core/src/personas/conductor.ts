@@ -19,7 +19,7 @@ import { logger } from '../core/logger.js';
 
 const DEFAULT_CONFIG: Required<ConductorConfig> = {
   maxPersonas: 6,
-  personaTimeout: 30000,
+  personaTimeout: 15000,
   parallel: false,
   maxParallel: 3,
   challengerCanVeto: true,
@@ -53,24 +53,48 @@ export class Conductor {
   /**
    * Determine if a task needs the full persona team or can be handled directly.
    * Simple questions, short tasks, and conversational messages skip orchestration.
+   *
+   * The key insight: "create a test document" is simple, but
+   * "create a microservices architecture with auth and rate limiting" is complex.
+   * We check for complexity DEPTH, not just trigger words.
    */
   needsOrchestration(userMessage: string, mode: string): boolean {
     // Chat mode never uses personas
     if (mode === 'chat') return false;
 
-    // Short messages are usually conversational
-    if (userMessage.length < 50) return false;
+    // Short messages are usually conversational or simple commands
+    if (userMessage.length < 80) return false;
 
-    // Check for signals that indicate a complex task
-    const complexSignals = [
-      /\bbuild\b/i, /\bcreate\b/i, /\bimplement\b/i, /\badd\b/i,
-      /\brefactor\b/i, /\bfix\b/i, /\baudit\b/i, /\banalyze\b/i,
-      /\bplan\b/i, /\bdesign\b/i, /\bteach me\b/i, /\blearn\b/i,
-      /\bsecurity\b/i, /\bvulnerab/i, /\btest\b/i,
-      /\bmigrat/i, /\bupgrade\b/i, /\bintegrat/i,
+    // Simple task signals — skip orchestration even if trigger words match
+    const simpleSignals = [
+      /\b(?:create|make|write|generate)\s+(?:a|an|the)\s+(?:test|sample|example|quick|simple|basic)\b/i,
+      /\b(?:just|quickly|simply|can you)\b/i,
+      /\b(?:show me|list|what is|what are|how do|how to|explain|tell me)\b/i,
+      /\b(?:rename|delete|remove|move|copy)\s/i,
+      /\b(?:run|execute|install|update|upgrade)\s+(?:the|this|npm|pnpm|yarn|pip)\b/i,
+      /\b(?:commit|push|pull|merge|checkout|branch)\b/i,
+      /\b(?:read|open|check|look at)\b/i,
     ];
 
-    return complexSignals.some(re => re.test(userMessage));
+    if (simpleSignals.some(re => re.test(userMessage))) return false;
+
+    // Complex task signals — these indicate multi-step work
+    const complexSignals = [
+      /\bbuild\s+(?:a|an|the)\s+\w+\s+(?:with|that|which|using|for)\b/i,  // "build a X with Y"
+      /\bimplement\b/i,
+      /\brefactor\b/i,
+      /\baudit\b/i, /\banalyze\b/i,
+      /\bdesign\b/i,
+      /\bteach me\b/i, /\blearn\b/i,
+      /\bsecurity\b/i, /\bvulnerab/i,
+      /\bmigrat/i, /\bintegrat/i,
+      /\bmultiple files\b/i, /\bacross\b/i,
+      /\barchitecture\b/i, /\bsystem\b/i,
+      /\bend.to.end\b/i, /\bfull\b.*\bstack\b/i,
+    ];
+
+    // Need at least one complex signal AND message should be substantial
+    return userMessage.length >= 100 && complexSignals.some(re => re.test(userMessage));
   }
 
   /**
