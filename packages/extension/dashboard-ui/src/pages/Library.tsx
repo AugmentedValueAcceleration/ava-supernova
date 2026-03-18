@@ -117,7 +117,7 @@ export function Library({ images, projectRoot, hasImagesFolder = true }: Props) 
               }`}
             >
               <img
-                src={`vscode-resource:${projectRoot}/${img.path}`}
+                src={img.dataUri || `${projectRoot}/${img.path}`}
                 alt={img.name}
                 className="w-full h-full object-cover"
                 loading="lazy"
@@ -143,7 +143,7 @@ export function Library({ images, projectRoot, hasImagesFolder = true }: Props) 
               } ${selectedPath === img.path ? 'bg-[var(--accent)]/5' : ''}`}
             >
               <img
-                src={`vscode-resource:${projectRoot}/${img.path}`}
+                src={img.dataUri || `${projectRoot}/${img.path}`}
                 alt={img.name}
                 className="w-10 h-10 rounded-lg object-cover border border-[var(--border)]"
                 loading="lazy"
@@ -163,10 +163,14 @@ export function Library({ images, projectRoot, hasImagesFolder = true }: Props) 
 
       {/* Selected image detail */}
       {selected && (
-        <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
+        <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 relative">
+          <button
+            onClick={() => setSelectedPath(null)}
+            className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white text-xs"
+          >✕</button>
           <div className="flex gap-4">
             <img
-              src={`vscode-resource:${projectRoot}/${selected.path}`}
+              src={selected.dataUri || `${projectRoot}/${selected.path}`}
               alt={selected.name}
               className="w-48 h-48 rounded-lg object-contain bg-black/20 border border-[var(--border)]"
             />

@@ -1284,14 +1284,26 @@ export class DashboardPanel {
             if (IMAGE_EXTENSIONS.has(ext)) {
               const stat = await fs.stat(fullPath).catch(() => null);
               if (!stat) continue;
+              // Skip files larger than 5MB to avoid memory issues
+              if (stat.size > 5 * 1024 * 1024) continue;
               const relativePath = path.relative(projectRoot, fullPath).replace(/\\/g, '/');
               const relativeFolder = path.relative(projectRoot, dir).replace(/\\/g, '/');
+              // Read file and convert to base64 data URI
+              const fileBuffer = await fs.readFile(fullPath);
+              const mimeTypes: Record<string, string> = {
+                '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+                '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml',
+                '.ico': 'image/x-icon', '.bmp': 'image/bmp',
+              };
+              const mime = mimeTypes[ext] || 'image/png';
+              const dataUri = `data:${mime};base64,${fileBuffer.toString('base64')}`;
               images.push({
                 path: relativePath,
                 name: entry.name,
                 folder: relativeFolder || 'images',
                 size: stat.size,
                 modified: stat.mtime.toISOString(),
+                dataUri,
               });
             }
           }
@@ -1558,7 +1570,7 @@ export class DashboardPanel {
                  style-src ${webview.cspSource} 'unsafe-inline';
                  script-src 'nonce-${nonce}';
                  connect-src https://wttr.in https://ava-supernova.com;
-                 img-src ${webview.cspSource} data: vscode-resource:;">
+                 img-src ${webview.cspSource} data: https: vscode-resource:;">
   <link rel="stylesheet" href="${styleUri}">
   <title>Ava | Dashboard</title>
 </head>

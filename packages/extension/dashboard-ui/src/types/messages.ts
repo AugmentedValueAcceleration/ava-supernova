@@ -221,6 +221,7 @@ export interface LibraryImage {
   size: number;         // File size in bytes
   modified: string;     // ISO date string
   dimensions?: string;  // "1024x1024" if detectable
+  dataUri?: string;     // Base64 data URI for display in webview
 }
 
 export interface ReleaseNote {
