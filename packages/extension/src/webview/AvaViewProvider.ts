@@ -712,8 +712,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         })
       : provider;
 
-    const config = vscode.workspace.getConfiguration('ava-supernova');
-    const qwenApiKey = config.get<string>('provider.qwen.apiKey') || process.env.QWEN_API_KEY;
+    const qwenApiKey = await this.context.secrets.get('ava-supernova.provider.qwen.apiKey') || process.env.QWEN_API_KEY;
 
     const sharedState = {
       memoryManager: this.memoryManager,
