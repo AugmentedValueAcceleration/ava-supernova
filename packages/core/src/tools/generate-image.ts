@@ -4,26 +4,22 @@ import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './ty
 import type { FunctionSchema } from '../providers/types.js';
 
 /**
- * Generate an AI image via DashScope (Qwen WanX) and save it to the project.
+ * Generate an AI image via DashScope Wan2.6 and save it to the project.
  *
- * - BYOK users need image credits (uses our Qwen API)
- * - Paid plan users deduct from their token balance
- * - Images are saved to the project's images/ folder with sensible names
+ * Uses the new multimodal-generation endpoint with messages format.
+ * Model: wan2.6-image
  */
 
 const DASHSCOPE_BASE = 'https://dashscope-intl.aliyuncs.com';
-const SUBMIT_URL = `${DASHSCOPE_BASE}/api/v1/services/aigc/text2image/image-synthesis`;
-const POLL_URL = `${DASHSCOPE_BASE}/api/v1/tasks`;
-const MAX_POLLS = 30;
-const POLL_INTERVAL_MS = 2000;
+const API_URL = `${DASHSCOPE_BASE}/api/v1/services/aigc/multimodal-generation/generation`;
 
 const SIZE_MAP: Record<string, string> = {
-  'square':    '1024*1024',
-  'portrait':  '720*1280',
-  'landscape': '1280*720',
-  '1024x1024': '1024*1024',
-  '720x1280':  '720*1280',
-  '1280x720':  '1280*720',
+  'square':    '1280*1280',
+  'portrait':  '768*1280',
+  'landscape': '1280*768',
+  '1024x1024': '1280*1280',
+  '720x1280':  '768*1280',
+  '1280x720':  '1280*768',
 };
 
 export class GenerateImageTool implements Tool {
@@ -35,10 +31,10 @@ export class GenerateImageTool implements Tool {
   readonly schema: FunctionSchema = {
     name: 'generate_image',
     description:
-      'Generate an AI image using text-to-image and save it to the project. ' +
+      'Generate an AI image using Wan2.6 text-to-image and save it to the project. ' +
       'Use for custom icons, illustrations, backgrounds, promotional graphics, or any visual asset. ' +
       'Images are saved to the project\'s images/ folder. Provide a descriptive prompt and a meaningful filename. ' +
-      'Supports square (1024x1024), portrait (720x1280), and landscape (1280x720) sizes.',
+      'Supports square (1280x1280), portrait (768x1280), and landscape (1280x768) sizes.',
     parameters: {
       type: 'object',
       properties: {
@@ -53,11 +49,7 @@ export class GenerateImageTool implements Tool {
         size: {
           type: 'string',
           enum: ['square', 'portrait', 'landscape'],
-          description: 'Image size: square (1024x1024), portrait (720x1280), landscape (1280x720). Default: square.',
-        },
-        negative_prompt: {
-          type: 'string',
-          description: 'What to avoid in the image (e.g. "blurry, low quality, text, watermark").',
+          description: 'Image size: square (1280x1280), portrait (768x1280), landscape (1280x768). Default: square.',
         },
       },
       required: ['prompt', 'filename'],
@@ -66,11 +58,9 @@ export class GenerateImageTool implements Tool {
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const prompt = args.prompt as string;
-    const rawFilename = (args.filename as string).replace(/\.\w+$/, ''); // strip extension if given
-    const size = SIZE_MAP[(args.size as string) || 'square'] || '1024*1024';
-    const negativePrompt = (args.negative_prompt as string) || '';
+    const rawFilename = (args.filename as string).replace(/\.\w+$/, '');
+    const size = SIZE_MAP[(args.size as string) || 'square'] || '1280*1280';
 
-    // Get API key from shared state or env
     const apiKey = this.getApiKey(context);
     if (!apiKey) {
       return {
@@ -79,11 +69,10 @@ export class GenerateImageTool implements Tool {
       };
     }
 
-    context.onOutput?.('Submitting image generation request...\n');
+    context.onOutput?.('Generating image with Wan2.6...\n');
 
     try {
-      // Step 1: Submit async task
-      const submitRes = await fetch(SUBMIT_URL, {
+      const res = await fetch(API_URL, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -91,35 +80,50 @@ export class GenerateImageTool implements Tool {
           'X-DashScope-Async': 'enable',
         },
         body: JSON.stringify({
-          model: 'wanx2.1-t2i-turbo',
+          model: 'wan2.6-image',
           input: {
-            prompt,
-            ...(negativePrompt && { negative_prompt: negativePrompt }),
+            messages: [
+              {
+                role: 'user',
+                content: [{ type: 'text', text: prompt }],
+              },
+            ],
           },
-          parameters: { size, n: 1 },
+          parameters: {
+            size,
+            n: 1,
+          },
         }),
       });
 
-      if (!submitRes.ok) {
-        const errText = await submitRes.text();
+      if (!res.ok) {
+        const errText = await res.text();
         return { success: false, output: `Image generation failed: ${errText}` };
       }
 
-      const submitData = await submitRes.json() as { output?: { task_id?: string } };
-      const taskId = submitData.output?.task_id;
-      if (!taskId) {
-        return { success: false, output: 'No task ID returned from image service' };
+      const data = await res.json() as { output?: { task_id?: string; task_status?: string; results?: Array<{ url?: string }> } };
+
+      // If synchronous response (no async)
+      if (data.output?.task_status === 'SUCCEEDED' && data.output?.results?.[0]?.url) {
+        return this.downloadAndSave(data.output.results[0].url, rawFilename, size, prompt, context);
       }
 
-      // Step 2: Poll for completion
-      context.onOutput?.('Generating image');
-      let imageUrl: string | null = null;
+      // Async — poll for result
+      const taskId = data.output?.task_id;
+      if (!taskId) {
+        return { success: false, output: `No task ID returned. Response: ${JSON.stringify(data)}` };
+      }
 
-      for (let poll = 0; poll < MAX_POLLS; poll++) {
-        await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+      context.onOutput?.('Waiting for image');
+      const pollUrl = `${DASHSCOPE_BASE}/api/v1/tasks/${taskId}`;
+      const maxPolls = 60;
+      const pollInterval = 2000;
+
+      for (let i = 0; i < maxPolls; i++) {
+        await new Promise(r => setTimeout(r, pollInterval));
         context.onOutput?.('.');
 
-        const pollRes = await fetch(`${POLL_URL}/${taskId}`, {
+        const pollRes = await fetch(pollUrl, {
           headers: { 'Authorization': `Bearer ${apiKey}` },
         });
         if (!pollRes.ok) continue;
@@ -130,56 +134,63 @@ export class GenerateImageTool implements Tool {
         const status = pollData.output?.task_status;
 
         if (status === 'SUCCEEDED') {
-          imageUrl = pollData.output?.results?.[0]?.url || null;
-          break;
+          const imageUrl = pollData.output?.results?.[0]?.url;
+          if (!imageUrl) {
+            return { success: false, output: 'Image generated but no URL returned' };
+          }
+          context.onOutput?.('\n');
+          return this.downloadAndSave(imageUrl, rawFilename, size, prompt, context);
         }
+
         if (status === 'FAILED') {
           return { success: false, output: `Image generation failed: ${pollData.output?.message || 'Unknown error'}` };
         }
       }
 
-      context.onOutput?.('\n');
-
-      if (!imageUrl) {
-        return { success: false, output: 'Image generation timed out after 60 seconds' };
-      }
-
-      // Step 3: Download the image
-      context.onOutput?.('Downloading image...\n');
-      const imageRes = await fetch(imageUrl);
-      if (!imageRes.ok) {
-        return { success: false, output: `Failed to download generated image: HTTP ${imageRes.status}` };
-      }
-      const imageBuffer = Buffer.from(await imageRes.arrayBuffer());
-
-      // Step 4: Save to project images/ folder
-      const filename = `${rawFilename}.png`;
-      const savePath = join(context.cwd, 'images', filename);
-      await mkdir(dirname(savePath), { recursive: true });
-      await writeFile(savePath, imageBuffer);
-
-      const relativePath = `images/${filename}`;
-      const sizeKb = (imageBuffer.length / 1024).toFixed(1);
-
-      context.onOutput?.(`Image saved: ${relativePath} (${sizeKb} KB)\n`);
-
-      return {
-        success: true,
-        output: `Generated and saved image to ${relativePath} (${sizeKb} KB, ${size.replace('*', 'x')})\n\nPrompt: ${prompt}`,
-        metadata: {
-          path: relativePath,
-          absolutePath: savePath,
-          size: imageBuffer.length,
-          dimensions: size.replace('*', 'x'),
-          prompt,
-        },
-      };
+      return { success: false, output: 'Image generation timed out after 2 minutes' };
     } catch (err) {
       return {
         success: false,
         output: `Image generation error: ${err instanceof Error ? err.message : String(err)}`,
       };
     }
+  }
+
+  private async downloadAndSave(
+    imageUrl: string,
+    rawFilename: string,
+    size: string,
+    prompt: string,
+    context: ToolExecutionContext,
+  ): Promise<ToolResult> {
+    context.onOutput?.('Downloading image...\n');
+    const imageRes = await fetch(imageUrl);
+    if (!imageRes.ok) {
+      return { success: false, output: `Failed to download generated image: HTTP ${imageRes.status}` };
+    }
+    const imageBuffer = Buffer.from(await imageRes.arrayBuffer());
+
+    const filename = `${rawFilename}.png`;
+    const savePath = join(context.cwd, 'images', filename);
+    await mkdir(dirname(savePath), { recursive: true });
+    await writeFile(savePath, imageBuffer);
+
+    const relativePath = `images/${filename}`;
+    const sizeKb = (imageBuffer.length / 1024).toFixed(1);
+
+    context.onOutput?.(`Image saved: ${relativePath} (${sizeKb} KB)\n`);
+
+    return {
+      success: true,
+      output: `Generated and saved image to ${relativePath} (${sizeKb} KB, ${size.replace('*', 'x')})\n\nPrompt: ${prompt}`,
+      metadata: {
+        path: relativePath,
+        absolutePath: savePath,
+        size: imageBuffer.length,
+        dimensions: size.replace('*', 'x'),
+        prompt,
+      },
+    };
   }
 
   private getApiKey(context: ToolExecutionContext): string | undefined {
