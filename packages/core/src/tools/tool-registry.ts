@@ -41,6 +41,7 @@ import { DocGenerateTool } from './doc-generate.js';
 import { PresentationCreateTool } from './presentation-create.js';
 import { EmailDraftTool } from './email-draft.js';
 import { ReportGenerateTool } from './report-generate.js';
+import { GenerateImageTool } from './generate-image.js';
 import { AuditDependenciesTool } from './audit-dependencies.js';
 import { BenchmarkTool } from './benchmark.js';
 import { ApplyPlanTool } from './apply-plan.js';
@@ -129,6 +130,7 @@ export class ToolRegistry {
       new PresentationCreateTool(),
       new EmailDraftTool(),
       new ReportGenerateTool(),
+      new GenerateImageTool(),
     ];
     for (const tool of builtins) {
       this.tools.set(tool.name, tool);

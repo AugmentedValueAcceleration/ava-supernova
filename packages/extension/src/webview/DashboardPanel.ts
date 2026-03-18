@@ -353,6 +353,18 @@ export class DashboardPanel {
         await this.pushToCloud(msg.dataType);
         break;
 
+      case 'load_library':
+        await this.loadLibraryImages();
+        break;
+
+      case 'delete_library_image':
+        await this.deleteLibraryImage(msg.path);
+        break;
+
+      case 'open_library_image':
+        await this.openLibraryImage(msg.path);
+        break;
+
     }
   }
 
@@ -1235,6 +1247,91 @@ export class DashboardPanel {
     }
   }
 
+  // ─── Library (project images) ───────────────────────────────────────────────
+
+  private async loadLibraryImages(): Promise<void> {
+    try {
+      const fs = await import('node:fs/promises');
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders || workspaceFolders.length === 0) {
+        this.post({ type: 'library_loaded', images: [], projectRoot: '' });
+        return;
+      }
+
+      const projectRoot = workspaceFolders[0].uri.fsPath;
+      const imagesDir = path.join(projectRoot, 'images');
+      const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.ico', '.bmp']);
+
+      const images: Array<{ path: string; name: string; folder: string; size: number; modified: string }> = [];
+
+      // Recursive scan
+      const scan = async (dir: string) => {
+        let entries;
+        try {
+          entries = await fs.readdir(dir, { withFileTypes: true });
+        } catch {
+          return; // Directory doesn't exist or not readable
+        }
+
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            // Skip node_modules, .git, etc.
+            if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+            await scan(fullPath);
+          } else if (entry.isFile()) {
+            const ext = path.extname(entry.name).toLowerCase();
+            if (IMAGE_EXTENSIONS.has(ext)) {
+              const stat = await fs.stat(fullPath).catch(() => null);
+              if (!stat) continue;
+              const relativePath = path.relative(projectRoot, fullPath).replace(/\\/g, '/');
+              const relativeFolder = path.relative(projectRoot, dir).replace(/\\/g, '/');
+              images.push({
+                path: relativePath,
+                name: entry.name,
+                folder: relativeFolder || 'images',
+                size: stat.size,
+                modified: stat.mtime.toISOString(),
+              });
+            }
+          }
+        }
+      };
+
+      await scan(imagesDir);
+
+      // Sort newest first
+      images.sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime());
+
+      this.post({ type: 'library_loaded', images, projectRoot });
+    } catch {
+      this.post({ type: 'library_loaded', images: [], projectRoot: '' });
+    }
+  }
+
+  private async deleteLibraryImage(relativePath: string): Promise<void> {
+    try {
+      const fs = await import('node:fs/promises');
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (!workspaceFolders) return;
+
+      const fullPath = path.join(workspaceFolders[0].uri.fsPath, relativePath);
+      await fs.unlink(fullPath);
+      this.post({ type: 'library_image_deleted', path: relativePath });
+    } catch (err) {
+      this.post({ type: 'error', message: `Failed to delete image: ${err instanceof Error ? err.message : String(err)}` });
+    }
+  }
+
+  private async openLibraryImage(relativePath: string): Promise<void> {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) return;
+
+    const fullPath = path.join(workspaceFolders[0].uri.fsPath, relativePath);
+    const uri = vscode.Uri.file(fullPath);
+    await vscode.commands.executeCommand('vscode.open', uri);
+  }
+
   private async loadSyncStatus(): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
     const fs = await import('node:fs/promises');
@@ -1461,7 +1558,7 @@ export class DashboardPanel {
                  style-src ${webview.cspSource} 'unsafe-inline';
                  script-src 'nonce-${nonce}';
                  connect-src https://wttr.in https://ava-supernova.com;
-                 img-src ${webview.cspSource} data:;">
+                 img-src ${webview.cspSource} data: vscode-resource:;">
   <link rel="stylesheet" href="${styleUri}">
   <title>Ava | Dashboard</title>
 </head>

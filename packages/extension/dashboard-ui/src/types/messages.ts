@@ -211,7 +211,17 @@ export interface DashboardJournalDaySummary {
   mood?: number;
 }
 
-export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'sync' | 'releases' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals';
+export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'library' | 'sync' | 'releases' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals';
+
+// Library (project images)
+export interface LibraryImage {
+  path: string;         // Relative path from project root (e.g. "images/icons/settings.png")
+  name: string;         // Filename
+  folder: string;       // Parent folder (e.g. "images/icons")
+  size: number;         // File size in bytes
+  modified: string;     // ISO date string
+  dimensions?: string;  // "1024x1024" if detectable
+}
 
 export interface ReleaseNote {
   id: string;
@@ -284,6 +294,9 @@ export type ExtToDashboardMessage =
   | { type: 'sync_error'; dataType: string; message: string }
   // Release notes
   | { type: 'releases_loaded'; releases: ReleaseNote[] }
+  // Library
+  | { type: 'library_loaded'; images: LibraryImage[]; projectRoot: string }
+  | { type: 'library_image_deleted'; path: string }
   | { type: 'error'; message: string };
 
 // Dashboard → Extension Host
@@ -349,4 +362,8 @@ export type DashboardToExtMessage =
   | { type: 'load_sync_status' }
   | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' }
   // Release notes
-  | { type: 'load_releases' };
+  | { type: 'load_releases' }
+  // Library
+  | { type: 'load_library' }
+  | { type: 'delete_library_image'; path: string }
+  | { type: 'open_library_image'; path: string };

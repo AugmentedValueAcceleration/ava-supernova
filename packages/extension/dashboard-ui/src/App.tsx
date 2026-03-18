@@ -16,6 +16,7 @@ import { Journal } from './pages/Journal';
 import { Learning } from './pages/Learning';
 import { Sync } from './pages/Sync';
 import { Releases } from './pages/Releases';
+import { Library } from './pages/Library';
 import type {
   Page,
   AccountInfo,
@@ -36,6 +37,7 @@ import type {
   DashboardLearningCurriculum,
   SyncStatus,
   ReleaseNote,
+  LibraryImage,
 } from './types/messages';
 
 declare function acquireVsCodeApi(): {
@@ -98,6 +100,9 @@ export function App() {
   const [syncResults, setSyncResults] = useState<Record<string, { success: boolean; count?: number; error?: string }>>({});
   // Release notes state
   const [releases, setReleases] = useState<ReleaseNote[]>([]);
+  // Library state
+  const [libraryImages, setLibraryImages] = useState<LibraryImage[]>([]);
+  const [libraryProjectRoot, setLibraryProjectRoot] = useState('');
 
   const handleMessage = useCallback((event: MessageEvent) => {
     // Only accept messages from the VSCode webview host
@@ -258,6 +263,13 @@ export function App() {
       case 'releases_loaded':
         setReleases(msg.releases);
         break;
+      case 'library_loaded':
+        setLibraryImages(msg.images);
+        setLibraryProjectRoot(msg.projectRoot);
+        break;
+      case 'library_image_deleted':
+        setLibraryImages(prev => prev.filter(i => i.path !== msg.path));
+        break;
       case 'error':
         setErrorMsg(msg.message);
         setTimeout(() => setErrorMsg(null), 5000);
@@ -327,6 +339,10 @@ export function App() {
     if ((page === 'usage' || page === 'overview') && byokMode && !account) {
       post({ type: 'load_session_stats' });
     }
+    // Load library images when navigating to library page
+    if (page === 'library') {
+      post({ type: 'load_library' });
+    }
   }, [page]);
 
   if (!initialized) {
@@ -381,6 +397,8 @@ export function App() {
         return <Sync syncStatus={syncStatus} syncingTypes={syncingTypes} syncResults={syncResults} isConnected={!!account} />;
       case 'releases':
         return <Releases releases={releases} />;
+      case 'library':
+        return <Library images={libraryImages} projectRoot={libraryProjectRoot} />;
       case 'connections':
         return <Connections connections={connections} />;
       case 'history':
