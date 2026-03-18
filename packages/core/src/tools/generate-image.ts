@@ -183,11 +183,13 @@ export class GenerateImageTool implements Tool {
   }
 
   private getApiKey(context: ToolExecutionContext): string | undefined {
-    // Check shared state (from extension config)
-    const fromState = (context.sharedState as Record<string, unknown>)?.qwenApiKey as string | undefined;
+    const state = context.sharedState as Record<string, unknown> | undefined;
+
+    // Check shared state (from extension config — provider.qwen.apiKey)
+    const fromState = state?.qwenApiKey as string | undefined;
     if (fromState) return fromState;
 
     // Fallback to environment
-    return process.env.QWEN_API_KEY;
+    return process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY;
   }
 }
