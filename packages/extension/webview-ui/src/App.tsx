@@ -14,7 +14,7 @@ import { t, setLocale, loadStrings } from './i18n';
 /** Strip mode prefix from user messages so internal prompts don't show in the UI */
 function stripModePrefix(content: string): string {
   if (typeof content !== 'string') return content;
-  const prefixes = ['[Chat Mode]', '[Teach Mode]', '[Plan Mode]', '[Security Mode]'];
+  const prefixes = ['[Chat Mode]', '[Teach Mode]', '[Plan Mode]', '[Security Mode]', '[Brainstorm Mode]', '[Work Mode]'];
   for (const p of prefixes) {
     if (content.startsWith(p)) {
       // The user's actual message is after the last line of the prefix

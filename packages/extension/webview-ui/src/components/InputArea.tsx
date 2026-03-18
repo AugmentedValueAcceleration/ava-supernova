@@ -366,11 +366,11 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
 
         {/* Bottom toolbar */}
         <div
-          className="flex items-center justify-between px-3 pb-2.5 pt-2 mx-2 mt-0.5"
+          className="flex items-center justify-between flex-wrap gap-2 px-3 pb-2.5 pt-2 mx-2 mt-0.5"
           style={{ borderTop: '1px solid rgba(168, 85, 247, 0.4)' }}
         >
           {/* Mode selector */}
-          <div className="flex items-center gap-1" role="radiogroup" aria-label="Input mode">
+          <div className="flex items-center gap-1 flex-wrap" role="radiogroup" aria-label="Input mode">
             {MODES.map((m) => (
               <button
                 key={m.id}
