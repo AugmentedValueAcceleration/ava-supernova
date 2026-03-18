@@ -52,7 +52,15 @@ export function post(msg: DashboardToExtMessage): void {
 
 export function App() {
   const [initialized, setInitialized] = useState(false);
-  const [page, setPage] = useState<Page>('overview');
+  const [page, setPage] = useState<Page>(() => {
+    const saved = localStorage.getItem('ava-dashboard-page');
+    return (saved as Page) || 'overview';
+  });
+  // Persist active page
+  const setPagePersist = (p: Page) => {
+    setPage(p);
+    localStorage.setItem('ava-dashboard-page', p);
+  };
   const [account, setAccount] = useState<AccountInfo | null>(null);
   const [connections, setConnections] = useState<ConnectionStatus>({
     github: false,
@@ -116,7 +124,7 @@ export function App() {
         setProviderKeys(msg.providerKeys);
         if (!msg.account && Object.values(msg.providerKeys).some(Boolean)) {
           setByokMode(true);
-          setPage('overview');
+          setPagePersist('overview');
         }
         setInitialized(true);
         break;
@@ -124,7 +132,7 @@ export function App() {
         setAccount(msg.account);
         if (!msg.account && Object.values(providerKeys).some(Boolean)) {
           setByokMode(true);
-          setPage('overview');
+          setPagePersist('overview');
         }
         break;
       case 'provider_keys_updated':
@@ -357,13 +365,13 @@ export function App() {
 
   function handleSkipAccount() {
     setByokMode(true);
-    setPage('overview');
+    setPagePersist('overview');
     post({ type: 'skip_account' });
   }
 
   function handleConnectAccount() {
     setByokMode(false);
-    setPage('overview');
+    setPagePersist('overview');
   }
 
   const renderPage = () => {
@@ -373,7 +381,7 @@ export function App() {
     const mode = account ? 'platform' as const : 'byok' as const;
     switch (page) {
       case 'overview':
-        return <Overview account={account} connections={connections} onNavigate={setPage} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} />;
+        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} />;
       case 'keys':
         return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
       case 'usage':
@@ -421,7 +429,7 @@ export function App() {
       {hasAccess && (
         <NavSidebar
           currentPage={page}
-          onNavigate={setPage}
+          onNavigate={setPagePersist}
           mode={account ? 'platform' : 'byok'}
           email={account?.email}
           isAdmin={account?.tier === 'admin'}

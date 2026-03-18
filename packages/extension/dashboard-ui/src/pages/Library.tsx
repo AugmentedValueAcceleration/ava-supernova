@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
 import { post } from '../App';
+import { Select } from '../components/Select';
 import type { LibraryImage } from '../types/messages';
 
 interface Props {
   images: LibraryImage[];
   projectRoot: string;
+  hasImagesFolder?: boolean;
 }
 
 function formatSize(bytes: number): string {
@@ -13,7 +15,7 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function Library({ images, projectRoot }: Props) {
+export function Library({ images, projectRoot, hasImagesFolder = true }: Props) {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [filterFolder, setFilterFolder] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -53,17 +55,16 @@ export function Library({ images, projectRoot }: Props) {
       {/* Toolbar */}
       <div className="mb-4 flex items-center gap-3">
         {/* Folder filter */}
-        <select
-          value={filterFolder}
-          onChange={e => setFilterFolder(e.target.value)}
-          className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-1.5 text-xs text-[var(--text-primary)]"
-        >
-          {folders.map(f => (
-            <option key={f} value={f}>
-              {f === 'all' ? `All folders (${images.length})` : `${f} (${images.filter(i => i.folder === f).length})`}
-            </option>
-          ))}
-        </select>
+        <div className="w-52">
+          <Select
+            value={filterFolder}
+            onChange={setFilterFolder}
+            options={folders.map(f => ({
+              value: f,
+              label: f === 'all' ? `All folders (${images.length})` : `${f} (${images.filter(i => i.folder === f).length})`,
+            }))}
+          />
+        </div>
 
         {/* View toggle */}
         <div className="ml-auto flex rounded-lg border border-[var(--border)] overflow-hidden">
@@ -89,10 +90,14 @@ export function Library({ images, projectRoot }: Props) {
       {/* Empty state */}
       {images.length === 0 && (
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
-          <div className="text-4xl mb-3">🎨</div>
-          <p className="text-sm font-medium text-[var(--text-primary)]">No images found</p>
+          <div className="text-4xl mb-3">{hasImagesFolder ? '🎨' : '📁'}</div>
+          <p className="text-sm font-medium text-[var(--text-primary)]">
+            {hasImagesFolder ? 'No images found' : 'No images/ folder found'}
+          </p>
           <p className="mt-1 text-xs text-[var(--text-secondary)]">
-            Ask Ava to generate an image and it will appear here.
+            {hasImagesFolder
+              ? 'Ask Ava to generate an image and it will appear here.'
+              : 'This project doesn\'t have an images/ folder yet. Ask Ava to generate an image and she\'ll create it for you.'}
           </p>
           <p className="mt-3 text-xs text-[var(--text-muted)]">
             Scans: images/ folder and all subfolders
