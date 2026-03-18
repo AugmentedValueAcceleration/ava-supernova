@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { post } from '../App';
 import type { Page, DashboardJournalDaySummary } from '../types/messages';
-import { BoltIcon, KeyIcon, ChartBarIcon, SparklesIcon, ChecklistIcon, BookIcon, GraduationCapIcon, CloudUpIcon, MegaphoneIcon, ClockIcon, HelpCircleIcon, CogIcon, ShieldIcon, WrenchIcon, PhotoIcon } from './Icons';
+import { BoltIcon, KeyIcon, ChartBarIcon, SparklesIcon, ChecklistIcon, BookIcon, GraduationCapIcon, CloudUpIcon, MegaphoneIcon, ClockIcon, HelpCircleIcon, CogIcon, ShieldIcon, WrenchIcon, PhotoIcon, UserCircleIcon } from './Icons';
 
 interface NavSidebarProps {
   currentPage: Page;
@@ -10,6 +10,7 @@ interface NavSidebarProps {
   email?: string | null;
   isAdmin?: boolean;
   onConnectAccount?: () => void;
+  aiName?: string;
   // Journal calendar
   journalSummaries?: DashboardJournalDaySummary[];
   selectedJournalDate?: string;
@@ -35,6 +36,12 @@ interface NavItem {
 }
 
 const NAV_GROUPS: NavGroup[] = [
+  {
+    label: 'Personal',
+    items: [
+      { page: 'personality', label: 'Personality', icon: UserCircleIcon },
+    ],
+  },
   {
     label: 'Configuration',
     items: [
@@ -100,6 +107,7 @@ export function NavSidebar({
   email,
   isAdmin,
   onConnectAccount,
+  aiName,
   journalSummaries = [],
   selectedJournalDate,
   onSelectJournalDate,
@@ -142,7 +150,7 @@ export function NavSidebar({
       {/* Logo */}
       <div className="border-b border-[var(--border-card)] px-6 py-4">
         <span className="bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] bg-clip-text text-sm font-semibold text-transparent">
-          Ava | Supernova
+          {aiName || 'Ava'} | Supernova
         </span>
       </div>
 

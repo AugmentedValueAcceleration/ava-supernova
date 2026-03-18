@@ -79,12 +79,12 @@ export class GenerateImageTool implements Tool {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'wan2.6-image',
+          model: 'wan2.6-t2i',
           input: {
             messages: [
               {
                 role: 'user',
-                content: [{ type: 'text', text: prompt }],
+                content: [{ text: prompt }],
               },
             ],
           },
@@ -100,53 +100,15 @@ export class GenerateImageTool implements Tool {
         return { success: false, output: `Image generation failed: ${errText}` };
       }
 
-      const data = await res.json() as { output?: { task_id?: string; task_status?: string; results?: Array<{ url?: string }> } };
+      // Synchronous JSON response — takes 1-2 minutes
+      const data = await res.json() as Record<string, unknown>;
+      const imageUrl = this.findImageUrl(data);
 
-      // If synchronous response (no async)
-      if (data.output?.task_status === 'SUCCEEDED' && data.output?.results?.[0]?.url) {
-        return this.downloadAndSave(data.output.results[0].url, rawFilename, size, prompt, context);
+      if (!imageUrl) {
+        return { success: false, output: `No image URL found. Response: ${JSON.stringify(data).slice(0, 1000)}` };
       }
 
-      // Async — poll for result
-      const taskId = data.output?.task_id;
-      if (!taskId) {
-        return { success: false, output: `No task ID returned. Response: ${JSON.stringify(data)}` };
-      }
-
-      context.onOutput?.('Waiting for image');
-      const pollUrl = `${DASHSCOPE_BASE}/api/v1/tasks/${taskId}`;
-      const maxPolls = 60;
-      const pollInterval = 2000;
-
-      for (let i = 0; i < maxPolls; i++) {
-        await new Promise(r => setTimeout(r, pollInterval));
-        context.onOutput?.('.');
-
-        const pollRes = await fetch(pollUrl, {
-          headers: { 'Authorization': `Bearer ${apiKey}` },
-        });
-        if (!pollRes.ok) continue;
-
-        const pollData = await pollRes.json() as {
-          output?: { task_status?: string; results?: Array<{ url?: string }>; message?: string };
-        };
-        const status = pollData.output?.task_status;
-
-        if (status === 'SUCCEEDED') {
-          const imageUrl = pollData.output?.results?.[0]?.url;
-          if (!imageUrl) {
-            return { success: false, output: 'Image generated but no URL returned' };
-          }
-          context.onOutput?.('\n');
-          return this.downloadAndSave(imageUrl, rawFilename, size, prompt, context);
-        }
-
-        if (status === 'FAILED') {
-          return { success: false, output: `Image generation failed: ${pollData.output?.message || 'Unknown error'}` };
-        }
-      }
-
-      return { success: false, output: 'Image generation timed out after 2 minutes' };
+      return this.downloadAndSave(imageUrl, rawFilename, size, prompt, context);
     } catch (err) {
       return {
         success: false,
@@ -190,6 +152,32 @@ export class GenerateImageTool implements Tool {
         prompt,
       },
     };
+  }
+
+  private findImageUrl(obj: Record<string, unknown>): string | null {
+    // output.choices[].message.content[].image
+    const choices = (obj as any)?.output?.choices;
+    if (Array.isArray(choices)) {
+      for (const choice of choices) {
+        const content = choice?.message?.content;
+        if (Array.isArray(content)) {
+          for (const item of content) {
+            if (item?.type === 'image' && item?.image) return item.image;
+            if (typeof item?.image === 'string') return item.image;
+          }
+        }
+      }
+    }
+    // output.results[].url (old format)
+    const results = (obj as any)?.output?.results;
+    if (Array.isArray(results)) {
+      for (const r of results) {
+        if (r?.url) return r.url;
+      }
+    }
+    // Direct URL field
+    if (typeof (obj as any)?.output?.url === 'string') return (obj as any).output.url;
+    return null;
   }
 
   private getApiKey(context: ToolExecutionContext): string | undefined {

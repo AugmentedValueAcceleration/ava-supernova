@@ -4,6 +4,10 @@ export type { AgentEvent, AgentEventHandler, ContextUsage } from './agent/agent.
 export { Conversation } from './agent/conversation.js';
 export { buildSystemPrompt, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix } from './agent/system-prompt.js';
 
+// Personality
+export type { Personality } from './config/personality.js';
+export { DEFAULT_PERSONALITY, loadPersonality, savePersonality, resetPersonality, buildPersonalityPrefix } from './config/personality.js';
+
 // Core types
 export type {
   Message,

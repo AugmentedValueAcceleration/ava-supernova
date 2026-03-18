@@ -17,6 +17,7 @@ import { Learning } from './pages/Learning';
 import { Sync } from './pages/Sync';
 import { Releases } from './pages/Releases';
 import { Library } from './pages/Library';
+import { Personality } from './pages/Personality';
 import type {
   Page,
   AccountInfo,
@@ -38,6 +39,7 @@ import type {
   SyncStatus,
   ReleaseNote,
   LibraryImage,
+  PersonalityData,
 } from './types/messages';
 
 declare function acquireVsCodeApi(): {
@@ -111,6 +113,8 @@ export function App() {
   // Library state
   const [libraryImages, setLibraryImages] = useState<LibraryImage[]>([]);
   const [libraryProjectRoot, setLibraryProjectRoot] = useState('');
+  // Personality state
+  const [personalityData, setPersonalityData] = useState<PersonalityData | null>(null);
 
   const handleMessage = useCallback((event: MessageEvent) => {
     // Only accept messages from the VSCode webview host
@@ -278,6 +282,17 @@ export function App() {
       case 'library_image_deleted':
         setLibraryImages(prev => prev.filter(i => i.path !== msg.path));
         break;
+      // Personality messages
+      case 'personality_loaded':
+        setPersonalityData(msg.personality);
+        break;
+      case 'personality_saved':
+        // Reload personality so sidebar header updates
+        post({ type: 'load_personality' });
+        break;
+      case 'personality_reset':
+        setPersonalityData(msg.personality);
+        break;
       case 'error':
         setErrorMsg(msg.message);
         setTimeout(() => setErrorMsg(null), 5000);
@@ -351,6 +366,10 @@ export function App() {
     if (page === 'library') {
       post({ type: 'load_library' });
     }
+    // Load personality when navigating to personality page
+    if (page === 'personality') {
+      post({ type: 'load_personality' });
+    }
   }, [page]);
 
   if (!initialized) {
@@ -407,6 +426,8 @@ export function App() {
         return <Releases releases={releases} />;
       case 'library':
         return <Library images={libraryImages} projectRoot={libraryProjectRoot} />;
+      case 'personality':
+        return <Personality personality={personalityData} />;
       case 'connections':
         return <Connections connections={connections} />;
       case 'history':
@@ -434,6 +455,7 @@ export function App() {
           email={account?.email}
           isAdmin={account?.tier === 'admin'}
           onConnectAccount={handleConnectAccount}
+          aiName={personalityData?.name}
           journalSummaries={journalSummaries}
           selectedJournalDate={selectedJournalDate}
           onSelectJournalDate={(date) => {

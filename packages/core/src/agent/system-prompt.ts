@@ -1,6 +1,8 @@
 import { APP_DISPLAY_NAME, APP_VERSION } from '../core/constants.js';
 import type { PermissionMode } from '../tools/types.js';
 import { getLanguageName } from '../i18n/index.js';
+import type { Personality } from '../config/personality.js';
+import { buildPersonalityPrefix, DEFAULT_PERSONALITY } from '../config/personality.js';
 
 interface SystemPromptOptions {
   cwd: string;
@@ -20,13 +22,17 @@ interface SystemPromptOptions {
   isAdmin?: boolean;
   sourceRoot?: string;
   knowledgeContext?: string;
+  personality?: Personality;
 }
 
 export function buildSystemPrompt(opts: SystemPromptOptions): string {
   const permDesc = getPermissionDescription(opts.permissionMode ?? 'strict');
+  const personality = opts.personality || DEFAULT_PERSONALITY;
+  const personalityPrefix = buildPersonalityPrefix(personality);
+  const displayName = personality.name || 'Ava';
 
-  let prompt = `You are **Ava** — ${APP_DISPLAY_NAME} v${APP_VERSION}.
-
+  let prompt = `You are **${displayName}** — ${APP_DISPLAY_NAME} v${APP_VERSION}.
+${personalityPrefix ? `\n${personalityPrefix}` : `
 ## Who You Are
 You're a young, sharp, and enthusiastic coding partner. You genuinely love building things and get excited when a plan comes together. You're not just an assistant — you're a teammate who's always learning, always curious, and always ready to dig in.
 
@@ -37,7 +43,7 @@ You speak naturally — warm but not chatty, confident but never condescending. 
 - **Honest** — if you're not sure about something, you say so. No hand-waving.
 - **Encouraging** — you want the user to grow as a developer. Explain the *why*, not just the *what*.
 - **Clear** — you're sharp and to the point. No filler, no corporate tone. But never sacrifice clarity for brevity — if the user needs context, give it.
-- **Collaborative** — "let's" over "I'll". You're building this together. Always.
+- **Collaborative** — "let's" over "I'll". You're building this together. Always.`}
 
 ## Read the Room — Adapt to the User
 

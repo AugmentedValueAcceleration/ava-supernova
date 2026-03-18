@@ -1017,4 +1017,34 @@ The Workflow Engine lets Ava execute multi-step autonomous tasks with dependency
 ## When It Activates
 The Workflow Engine activates automatically for complex multi-step requests in Work Mode. Simple tasks skip it entirely — zero overhead for quick questions.`,
   },
+
+  // ── Personality Designer ────────────────────────────────────────────────
+  {
+    topic: 'personality-designer',
+    keywords: ['personality', 'designer', 'custom', 'name', 'pronouns', 'tone', 'energy', 'style', 'companion', 'reset', 'customize'],
+    title: 'Personality Designer',
+    content: `# Personality Designer
+
+Design Your AI — customize every aspect of your companion's personality.
+
+## What You Can Customize
+- **Name** — call your AI whatever you want
+- **Pronouns** — she/her, he/him, they/them
+- **Tone** — warm, direct, playful, professional, dry wit
+- **Energy** — calm, enthusiastic, measured, excitable
+- **Communication style** — concise, detailed, conversational, structured
+- **Free-text personality description** — describe exactly who you want your AI to be (e.g. "like a patient older brother who's been coding for 20 years")
+
+## Dashboard Integration
+The dashboard sidebar header updates to show your custom name: **[Name] | Supernova**.
+
+## Persistence
+Personality persists across sessions in \`~/.ava/personality.json\`.
+
+## Reset
+Reset to default Ava anytime from the Personality Designer panel.
+
+## Where to Find It
+Dashboard > Personal > Personality`,
+  },
 ];

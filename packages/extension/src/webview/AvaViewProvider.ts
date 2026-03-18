@@ -32,6 +32,7 @@ import {
   Conductor,
   BriefingEngine,
   EventDetector,
+  loadPersonality,
 } from '@ava/core';
 import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, Message, ContentPart, PermissionMode } from '@ava/core';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus } from './message-types.js';
@@ -872,6 +873,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       } catch (err) { this.log(`Journal context load failed: ${err}`); }
     }
 
+    // Load personality from ~/.ava/personality.json
+    let personality;
+    try {
+      personality = await loadPersonality(AVA_HOME);
+    } catch {
+      // Non-fatal — will use default personality
+    }
+
     return buildSystemPrompt({
       cwd,
       platform: process.platform,
@@ -888,6 +897,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       userEmail: this.cachedAccount?.email,
       isAdmin,
       sourceRoot,
+      personality,
     });
   }
 

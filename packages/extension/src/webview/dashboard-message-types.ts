@@ -235,7 +235,16 @@ export interface SyncDataStatus {
 
 export type SyncStatus = Record<string, SyncDataStatus>;
 
-export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'library' | 'sync' | 'releases' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals';
+export interface PersonalityData {
+  name: string;
+  pronouns: string;
+  tone: string;
+  energy: string;
+  style: string;
+  description: string;
+}
+
+export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'library' | 'personality' | 'sync' | 'releases' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals';
 
 // Library (project images)
 export interface LibraryImage {
@@ -303,6 +312,10 @@ export type ExtToDashboardMessage =
   // Library
   | { type: 'library_loaded'; images: LibraryImage[]; projectRoot: string }
   | { type: 'library_image_deleted'; path: string }
+  // Personality
+  | { type: 'personality_loaded'; personality: PersonalityData }
+  | { type: 'personality_saved' }
+  | { type: 'personality_reset'; personality: PersonalityData }
   | { type: 'error'; message: string };
 
 // ─── Dashboard Webview → Extension Host ──────────────────────────────────────
@@ -373,4 +386,8 @@ export type DashboardToExtMessage =
   // Library
   | { type: 'load_library' }
   | { type: 'delete_library_image'; path: string }
-  | { type: 'open_library_image'; path: string };
+  | { type: 'open_library_image'; path: string }
+  // Personality
+  | { type: 'load_personality' }
+  | { type: 'save_personality'; personality: PersonalityData }
+  | { type: 'reset_personality' };

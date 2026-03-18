@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { MemoryManager, TaskManager, JournalManager, AVA_HOME } from '@ava/core';
+import { MemoryManager, TaskManager, JournalManager, AVA_HOME, loadPersonality, savePersonality, resetPersonality } from '@ava/core';
+import type { Personality } from '@ava/core';
 import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, JournalDay } from '@ava/core';
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
@@ -363,6 +364,20 @@ export class DashboardPanel {
 
       case 'open_library_image':
         await this.openLibraryImage(msg.path);
+        break;
+
+      // ─── Personality messages ──────────────────────────────────────────────────
+
+      case 'load_personality':
+        await this.handleLoadPersonality();
+        break;
+
+      case 'save_personality':
+        await this.handleSavePersonality(msg.personality as Personality);
+        break;
+
+      case 'reset_personality':
+        await this.handleResetPersonality();
         break;
 
     }
@@ -1342,6 +1357,58 @@ export class DashboardPanel {
     const fullPath = path.join(workspaceFolders[0].uri.fsPath, relativePath);
     const uri = vscode.Uri.file(fullPath);
     await vscode.commands.executeCommand('vscode.open', uri);
+  }
+
+  // ─── Personality ──────────────────────────────────────────────────────────
+
+  private async handleLoadPersonality(): Promise<void> {
+    try {
+      const avaDir = path.join(os.homedir(), '.ava');
+      const personality = await loadPersonality(avaDir);
+      this.post({
+        type: 'personality_loaded',
+        personality: {
+          name: personality.name,
+          pronouns: personality.pronouns,
+          tone: personality.tone,
+          energy: personality.energy,
+          style: personality.style,
+          description: personality.description || '',
+        },
+      });
+    } catch {
+      this.post({ type: 'error', message: 'Failed to load personality.' });
+    }
+  }
+
+  private async handleSavePersonality(data: Personality): Promise<void> {
+    try {
+      const avaDir = path.join(os.homedir(), '.ava');
+      await savePersonality(avaDir, data);
+      this.post({ type: 'personality_saved' });
+    } catch {
+      this.post({ type: 'error', message: 'Failed to save personality.' });
+    }
+  }
+
+  private async handleResetPersonality(): Promise<void> {
+    try {
+      const avaDir = path.join(os.homedir(), '.ava');
+      const personality = await resetPersonality(avaDir);
+      this.post({
+        type: 'personality_reset',
+        personality: {
+          name: personality.name,
+          pronouns: personality.pronouns,
+          tone: personality.tone,
+          energy: personality.energy,
+          style: personality.style,
+          description: personality.description || '',
+        },
+      });
+    } catch {
+      this.post({ type: 'error', message: 'Failed to reset personality.' });
+    }
   }
 
   private async loadSyncStatus(): Promise<void> {
