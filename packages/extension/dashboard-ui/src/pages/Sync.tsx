@@ -40,6 +40,9 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
           const syncing = syncingTypes.has(key);
           const result = syncResults[key];
           const localCount = status?.localCount ?? 0;
+          const newCount = status?.newCount ?? localCount;
+          const isUpToDate = newCount === 0 && localCount > 0 && status?.lastSynced;
+          const lastSynced = status?.lastSynced;
 
           return (
             <div
@@ -54,8 +57,21 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
                     <span className="text-[10px] text-[var(--text-muted)] bg-[var(--bg-input)] px-1.5 py-0.5 rounded">
                       {localCount} {localCount === 1 ? 'item' : 'items'}
                     </span>
+                    {isUpToDate && (
+                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                        ✓ Up to date
+                      </span>
+                    )}
+                    {!isUpToDate && newCount > 0 && newCount < localCount && (
+                      <span className="text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                        {newCount} new
+                      </span>
+                    )}
                   </div>
-                  <p className="text-[11px] text-[var(--text-muted)] truncate">{description}</p>
+                  <p className="text-[11px] text-[var(--text-muted)] truncate">
+                    {description}
+                    {lastSynced && <span className="ml-1 opacity-60">· Last synced {new Date(lastSynced).toLocaleDateString()}</span>}
+                  </p>
                 </div>
               </div>
 
@@ -70,7 +86,7 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
                 {/* Push button */}
                 <button
                   onClick={() => post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' })}
-                  disabled={!isConnected || syncing || localCount === 0}
+                  disabled={!isConnected || syncing || localCount === 0 || (isUpToDate && !syncing)}
                   className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   {syncing ? (
@@ -78,12 +94,19 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
                       <div className="h-3 w-3 animate-spin rounded-full border border-white/30 border-t-white" />
                       Pushing...
                     </>
+                  ) : isUpToDate ? (
+                    <>
+                      <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                      Synced
+                    </>
                   ) : (
                     <>
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
                       </svg>
-                      Push to Cloud
+                      {newCount > 0 && newCount < localCount ? `Push ${newCount} new` : 'Push to Cloud'}
                     </>
                   )}
                 </button>

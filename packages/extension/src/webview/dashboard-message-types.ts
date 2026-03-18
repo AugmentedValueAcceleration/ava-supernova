@@ -231,6 +231,8 @@ export interface SyncDataStatus {
   available: boolean;
   lastSynced: string | null;
   localCount: number;
+  syncedCount: number;
+  newCount: number;
 }
 
 export type SyncStatus = Record<string, SyncDataStatus>;

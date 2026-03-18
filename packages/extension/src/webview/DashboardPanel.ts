@@ -1446,12 +1446,27 @@ export class DashboardPanel {
     }
   }
 
+  private async loadSyncState(): Promise<Record<string, { syncedCount: number; syncedAt: string }>> {
+    const fs = await import('node:fs/promises');
+    try {
+      const raw = await fs.readFile(path.join(AVA_HOME, 'sync-state.json'), 'utf-8');
+      return JSON.parse(raw);
+    } catch { return {}; }
+  }
+
+  private async saveSyncState(dataType: string, count: number): Promise<void> {
+    const fs = await import('node:fs/promises');
+    const state = await this.loadSyncState();
+    state[dataType] = { syncedCount: count, syncedAt: new Date().toISOString() };
+    await fs.writeFile(path.join(AVA_HOME, 'sync-state.json'), JSON.stringify(state, null, 2));
+  }
+
   private async loadSyncStatus(): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
     const fs = await import('node:fs/promises');
-    const data: Record<string, { available: boolean; lastSynced: string | null; localCount: number }> = {};
+    const syncState = await this.loadSyncState();
+    const data: Record<string, { available: boolean; lastSynced: string | null; localCount: number; syncedCount: number; newCount: number }> = {};
 
-    // Check each data type's local file for counts
     const types = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings', 'personality'] as const;
     for (const t of types) {
       let localCount = 0;
@@ -1465,7 +1480,6 @@ export class DashboardPanel {
           : path.join(AVA_HOME, 'config.json');
 
         if (t === 'journal' || t === 'history') {
-          // Count files in directory
           const entries = await fs.readdir(filePath).catch(() => []);
           localCount = entries.filter((f: string) => f.endsWith('.json')).length;
         } else {
@@ -1474,14 +1488,20 @@ export class DashboardPanel {
           if (t === 'memory') localCount = parsed.entries?.length ?? 0;
           else if (t === 'tasks') localCount = parsed.tasks?.length ?? 0;
           else if (t === 'learning') localCount = parsed.curriculums?.length ?? 0;
-          else localCount = 1; // settings is a single file
+          else localCount = 1;
         }
       } catch { /* file doesn't exist yet */ }
 
+      const synced = syncState[t];
+      const syncedCount = synced?.syncedCount ?? 0;
+      const newCount = Math.max(0, localCount - syncedCount);
+
       data[t] = {
         available: !!platformKey,
-        lastSynced: null, // TODO: track per-type last sync timestamp
+        lastSynced: synced?.syncedAt ?? null,
         localCount,
+        syncedCount,
+        newCount,
       };
     }
 
@@ -1507,7 +1527,9 @@ export class DashboardPanel {
           const store = JSON.parse(raw);
           const entries = store.entries || [];
           await sync.pushEntries('global', entries);
+          await this.saveSyncState('memory', entries.length);
           this.post({ type: 'sync_completed', dataType, count: entries.length });
+          await this.loadSyncStatus();
           break;
         }
 
@@ -1521,7 +1543,9 @@ export class DashboardPanel {
             body: { tasks },
           });
           if (!res.ok) throw new Error('Failed to sync tasks');
+          await this.saveSyncState('tasks', tasks.length);
           this.post({ type: 'sync_completed', dataType, count: tasks.length });
+          await this.loadSyncStatus();
           break;
         }
 
@@ -1549,7 +1573,9 @@ export class DashboardPanel {
               count++;
             } catch { /* skip malformed */ }
           }
+          await this.saveSyncState('journal', count);
           this.post({ type: 'sync_completed', dataType, count });
+          await this.loadSyncStatus();
           break;
         }
 
@@ -1563,7 +1589,9 @@ export class DashboardPanel {
             body: { curriculums },
           });
           if (!res.ok) throw new Error('Failed to sync learning data');
+          await this.saveSyncState('learning', curriculums.length);
           this.post({ type: 'sync_completed', dataType, count: curriculums.length });
+          await this.loadSyncStatus();
           break;
         }
 
@@ -1584,7 +1612,9 @@ export class DashboardPanel {
             body: { conversations },
           });
           if (!res.ok) throw new Error('Failed to sync chat history');
+          await this.saveSyncState('history', conversations.length);
           this.post({ type: 'sync_completed', dataType, count: conversations.length });
+          await this.loadSyncStatus();
           break;
         }
 
@@ -1596,7 +1626,9 @@ export class DashboardPanel {
             body: { settings },
           });
           if (!res.ok) throw new Error('Failed to sync settings');
+          await this.saveSyncState('settings', 1);
           this.post({ type: 'sync_completed', dataType, count: 1 });
+          await this.loadSyncStatus();
           break;
         }
 
@@ -1609,7 +1641,9 @@ export class DashboardPanel {
             body: { settings: { personality } },
           });
           if (!res.ok) throw new Error('Failed to sync personality');
+          await this.saveSyncState('personality', 1);
           this.post({ type: 'sync_completed', dataType, count: 1 });
+          await this.loadSyncStatus();
           break;
         }
 
