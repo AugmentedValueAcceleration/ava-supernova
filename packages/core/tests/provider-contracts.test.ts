@@ -488,7 +488,7 @@ describe('Anthropic contract', () => {
       stop_reason: 'end_turn',
       usage: { input_tokens: 10, output_tokens: 5 },
     }));
-    const p = new AnthropicProvider({ apiKey: 'sk-ant-test' });
+    const p = new AnthropicProvider({ apiKey: 'sk-ant-FAKE-TEST-KEY' });
     await p.createCompletion({ ...baseRequest, model: 'claude-sonnet-4-6-20250514' });
     expect(lastFetchUrl()).toBe('https://api.anthropic.com/v1/messages');
   });
@@ -499,10 +499,10 @@ describe('Anthropic contract', () => {
       content: [{ type: 'text', text: 'Hi' }],
       stop_reason: 'end_turn', usage: { input_tokens: 5, output_tokens: 3 },
     }));
-    const p = new AnthropicProvider({ apiKey: 'sk-ant-secret' });
+    const p = new AnthropicProvider({ apiKey: 'sk-ant-FAKE-TEST-KEY-2' });
     await p.createCompletion({ ...baseRequest, model: 'claude-sonnet-4-6-20250514' });
     const headers = lastFetchHeaders();
-    expect(headers['x-api-key']).toBe('sk-ant-secret');
+    expect(headers['x-api-key']).toBe('sk-ant-FAKE-TEST-KEY-2');
     expect(headers['anthropic-version']).toBe('2023-06-01');
     expect(headers.Authorization).toBeUndefined();
   });

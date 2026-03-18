@@ -1753,13 +1753,13 @@ export class DashboardPanel {
     }
 
     try {
-      // Step 1: Get location from IP (ip-api.com — free, HTTP, no key, no rate limit issues)
-      const geo = await httpGetJson('http://ip-api.com/json/') as { lat: number; lon: number; city: string; country: string; status: string };
-      if (geo.status !== 'success' || !geo.lat) { this.post({ type: 'weather_loaded', data: null }); return; }
+      // Step 1: Get location from IP (ipwho.is — free, HTTPS, no key)
+      const geo = await httpGetJson('https://ipwho.is/') as { latitude: number; longitude: number; city: string; country: string; success: boolean };
+      if (!geo.success || !geo.latitude) { this.post({ type: 'weather_loaded', data: null }); return; }
 
       // Step 2: Fetch weather from Open-Meteo
-      const lat = geo.lat;
-      const lon = geo.lon;
+      const lat = geo.latitude;
+      const lon = geo.longitude;
       const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3`;
       const weather = await httpGetJson(weatherUrl) as {
         current: { temperature_2m: number; relative_humidity_2m: number; wind_speed_10m: number; weather_code: number };
