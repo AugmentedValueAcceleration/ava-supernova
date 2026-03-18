@@ -65,7 +65,7 @@ export class GenerateImageTool implements Tool {
     if (!apiKey) {
       return {
         success: false,
-        output: 'Image generation requires a Qwen API key. Add QWEN_API_KEY to your environment or configure it in Ava settings.',
+        output: 'Image generation requires a Qwen API key. Configure it in Ava settings (Provider Keys > Qwen).',
       };
     }
 
@@ -77,7 +77,6 @@ export class GenerateImageTool implements Tool {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
-          'X-DashScope-Async': 'enable',
         },
         body: JSON.stringify({
           model: 'wan2.6-image',
