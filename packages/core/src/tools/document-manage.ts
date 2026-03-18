@@ -498,18 +498,35 @@ export class DocumentManageTool implements Tool {
     const workbook = new (ExcelJS.default?.Workbook || ExcelJS.Workbook)();
     let totalRows = 0;
 
-    for (const sheet of content?.sheets ?? [{ name: 'Sheet1', headers: [], rows: [] }]) {
+    // If no structured content provided, try to parse plain text content from args
+    const sheets = content?.sheets ?? this.parseTextToSheets(content as unknown as string);
+
+    for (const sheet of sheets) {
       const ws = workbook.addWorksheet(sheet.name);
       if (sheet.headers.length > 0) {
         const headerRow = ws.addRow(sheet.headers);
-        headerRow.font = { bold: true };
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.eachCell((cell: any) => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+          cell.border = {
+            bottom: { style: 'thin', color: { argb: 'FF2F5496' } },
+          };
+        });
       }
       for (const row of sheet.rows) {
         ws.addRow(row);
         totalRows++;
       }
-      // Auto-width columns
-      ws.columns?.forEach((col: any) => { if (col) col.width = 15; });
+      // Auto-width columns based on content
+      ws.columns?.forEach((col: any) => {
+        if (!col) return;
+        let maxLen = 10;
+        col.eachCell?.({ includeEmpty: false }, (cell: any) => {
+          const len = String(cell.value ?? '').length;
+          if (len > maxLen) maxLen = len;
+        });
+        col.width = Math.min(maxLen + 2, 50);
+      });
     }
 
     await workbook.xlsx.writeFile(filePath);
@@ -638,7 +655,7 @@ export class DocumentManageTool implements Tool {
     let pdfParse: any;
     try {
       // @ts-ignore — pdf-parse is an optional peer dependency
-      const mod = await import('pdf-parse');
+      const mod = await import('pdf-parse') as any;
       pdfParse = mod.default || mod;
     } catch {
       const raw = await readFile(filePath);
@@ -663,5 +680,23 @@ export class DocumentManageTool implements Tool {
   private resolvePath(filePath: string, cwd: string): string {
     if (filePath.startsWith('/') || /^[A-Za-z]:/.test(filePath)) return filePath;
     return `${cwd}/${filePath}`;
+  }
+
+  /**
+   * Parse plain text content into spreadsheet sheets.
+   * Splits by newlines for rows and commas/tabs for columns.
+   * First row is treated as headers.
+   */
+  private parseTextToSheets(rawContent: unknown): Array<{ name: string; headers: string[]; rows: string[][] }> {
+    if (typeof rawContent === 'string' && rawContent.trim()) {
+      const lines = rawContent.trim().split('\n').map(l => l.trim()).filter(Boolean);
+      if (lines.length === 0) return [{ name: 'Sheet1', headers: [], rows: [] }];
+      const delimiter = lines[0].includes('\t') ? '\t' : ',';
+      const parsed = lines.map(line => line.split(delimiter).map(cell => cell.trim()));
+      const headers = parsed[0];
+      const rows = parsed.slice(1);
+      return [{ name: 'Sheet1', headers, rows }];
+    }
+    return [{ name: 'Sheet1', headers: [], rows: [] }];
   }
 }

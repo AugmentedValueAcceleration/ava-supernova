@@ -248,7 +248,9 @@ export interface PersonalityData {
 
 export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'library' | 'personality' | 'sync' | 'releases' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals';
 
-// Library (project images)
+// Library (project files — images, documents, spreadsheets, presentations)
+export type LibraryFileType = 'image' | 'document' | 'spreadsheet' | 'presentation';
+
 export interface LibraryImage {
   path: string;
   name: string;
@@ -256,6 +258,8 @@ export interface LibraryImage {
   size: number;
   modified: string;
   dimensions?: string;
+  fileType?: LibraryFileType;
+  dataUri?: string;
 }
 
 // ─── Extension Host → Dashboard Webview ──────────────────────────────────────
@@ -312,7 +316,7 @@ export type ExtToDashboardMessage =
   // Release notes
   | { type: 'releases_loaded'; releases: ReleaseNote[] }
   // Library
-  | { type: 'library_loaded'; images: LibraryImage[]; projectRoot: string }
+  | { type: 'library_loaded'; images: LibraryImage[]; projectRoot: string; hasFolder?: boolean }
   | { type: 'library_image_deleted'; path: string }
   // Personality
   | { type: 'personality_loaded'; personality: PersonalityData }
@@ -393,6 +397,7 @@ export type DashboardToExtMessage =
   | { type: 'load_library' }
   | { type: 'delete_library_image'; path: string }
   | { type: 'open_library_image'; path: string }
+  | { type: 'open_external'; path: string }
   // Personality
   | { type: 'load_personality' }
   | { type: 'save_personality'; personality: PersonalityData }

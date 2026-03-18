@@ -17,7 +17,7 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
-    pricing: { inputPerMillion: 0.10, outputPerMillion: 0.60 },
+    pricing: { inputPerMillion: 0.20, outputPerMillion: 1.20 },
   },
   // Free models — always available
   {

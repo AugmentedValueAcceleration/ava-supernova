@@ -40,11 +40,6 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Personal',
     items: [
       { page: 'personality', label: 'Personality', icon: UserCircleIcon },
-    ],
-  },
-  {
-    label: 'Configuration',
-    items: [
       { page: 'settings', label: 'Settings', icon: CogIcon },
     ],
   },
@@ -63,18 +58,23 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: 'Knowledge',
+    label: 'Memory',
     items: [
       { page: 'memory', label: 'Memory', icon: SparklesIcon },
-      { page: 'usage', label: 'Usage', icon: ChartBarIcon },
       { page: 'history', label: 'History', icon: ClockIcon, platformOnly: true },
-      { page: 'releases', label: 'Release Notes', icon: MegaphoneIcon },
+    ],
+  },
+  {
+    label: 'Account',
+    items: [
+      { page: 'usage', label: 'Usage', icon: ChartBarIcon },
       { page: 'sync', label: 'Cloud Sync', icon: CloudUpIcon, platformOnly: true },
     ],
   },
   {
-    label: 'Help',
+    label: 'About',
     items: [
+      { page: 'releases', label: 'Release Notes', icon: MegaphoneIcon },
       { page: 'support', label: 'Support', icon: HelpCircleIcon },
     ],
   },

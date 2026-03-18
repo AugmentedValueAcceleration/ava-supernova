@@ -376,7 +376,7 @@ export class DashboardPanel {
         break;
 
       case 'load_library':
-        await this.loadLibraryImages();
+        await this.loadLibraryFiles();
         break;
 
       case 'delete_library_image':
@@ -385,6 +385,10 @@ export class DashboardPanel {
 
       case 'open_library_image':
         await this.openLibraryImage(msg.path);
+        break;
+
+      case 'open_external':
+        await vscode.env.openExternal(vscode.Uri.file(msg.path));
         break;
 
       // ─── Personality messages ──────────────────────────────────────────────────
@@ -1297,9 +1301,9 @@ export class DashboardPanel {
     }
   }
 
-  // ─── Library (project images) ───────────────────────────────────────────────
+  // ─── Library (project files — images, documents, spreadsheets, presentations) ─
 
-  private async loadLibraryImages(): Promise<void> {
+  private async loadLibraryFiles(): Promise<void> {
     try {
       const fs = await import('node:fs/promises');
       const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -1310,9 +1314,26 @@ export class DashboardPanel {
 
       const projectRoot = workspaceFolders[0].uri.fsPath;
       const imagesDir = path.join(projectRoot, 'images');
-      const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.ico', '.bmp']);
+      const docsDir = path.join(projectRoot, 'documents');
 
-      const images: Array<{ path: string; name: string; folder: string; size: number; modified: string }> = [];
+      const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.ico', '.bmp']);
+      const DOCUMENT_EXTENSIONS = new Set(['.docx', '.doc', '.pdf', '.txt', '.md', '.rtf']);
+      const SPREADSHEET_EXTENSIONS = new Set(['.xlsx', '.xls', '.csv']);
+      const PRESENTATION_EXTENSIONS = new Set(['.pptx', '.ppt']);
+
+      type FileType = 'image' | 'document' | 'spreadsheet' | 'presentation';
+
+      const getFileType = (ext: string): FileType | null => {
+        if (IMAGE_EXTENSIONS.has(ext)) return 'image';
+        if (DOCUMENT_EXTENSIONS.has(ext)) return 'document';
+        if (SPREADSHEET_EXTENSIONS.has(ext)) return 'spreadsheet';
+        if (PRESENTATION_EXTENSIONS.has(ext)) return 'presentation';
+        return null;
+      };
+
+      const ALL_EXTENSIONS = new Set([...IMAGE_EXTENSIONS, ...DOCUMENT_EXTENSIONS, ...SPREADSHEET_EXTENSIONS, ...PRESENTATION_EXTENSIONS]);
+
+      const files: Array<{ path: string; name: string; folder: string; size: number; modified: string; fileType: FileType; dataUri?: string }> = [];
 
       // Recursive scan
       const scan = async (dir: string) => {
@@ -1331,14 +1352,29 @@ export class DashboardPanel {
             await scan(fullPath);
           } else if (entry.isFile()) {
             const ext = path.extname(entry.name).toLowerCase();
-            if (IMAGE_EXTENSIONS.has(ext)) {
-              const stat = await fs.stat(fullPath).catch(() => null);
-              if (!stat) continue;
-              // Skip files larger than 5MB to avoid memory issues
+            if (!ALL_EXTENSIONS.has(ext)) continue;
+
+            const fileType = getFileType(ext);
+            if (!fileType) continue;
+
+            const stat = await fs.stat(fullPath).catch(() => null);
+            if (!stat) continue;
+
+            const relativePath = path.relative(projectRoot, fullPath).replace(/\\/g, '/');
+            const relativeFolder = path.relative(projectRoot, dir).replace(/\\/g, '/');
+
+            const item: typeof files[number] = {
+              path: relativePath,
+              name: entry.name,
+              folder: relativeFolder || (dir === imagesDir ? 'images' : 'documents'),
+              size: stat.size,
+              modified: stat.mtime.toISOString(),
+              fileType,
+            };
+
+            // Only send base64 data for images (with 5MB limit)
+            if (fileType === 'image') {
               if (stat.size > 5 * 1024 * 1024) continue;
-              const relativePath = path.relative(projectRoot, fullPath).replace(/\\/g, '/');
-              const relativeFolder = path.relative(projectRoot, dir).replace(/\\/g, '/');
-              // Read file and convert to base64 data URI
               const fileBuffer = await fs.readFile(fullPath);
               const mimeTypes: Record<string, string> = {
                 '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
@@ -1346,26 +1382,27 @@ export class DashboardPanel {
                 '.ico': 'image/x-icon', '.bmp': 'image/bmp',
               };
               const mime = mimeTypes[ext] || 'image/png';
-              const dataUri = `data:${mime};base64,${fileBuffer.toString('base64')}`;
-              images.push({
-                path: relativePath,
-                name: entry.name,
-                folder: relativeFolder || 'images',
-                size: stat.size,
-                modified: stat.mtime.toISOString(),
-                dataUri,
-              });
+              item.dataUri = `data:${mime};base64,${fileBuffer.toString('base64')}`;
             }
+
+            files.push(item);
           }
         }
       };
 
+      // Check if folders exist
+      const imagesDirExists = await fs.access(imagesDir).then(() => true).catch(() => false);
+      const docsDirExists = await fs.access(docsDir).then(() => true).catch(() => false);
+      const hasFolders = imagesDirExists || docsDirExists;
+
+      // Scan both images/ and documents/ directories
       await scan(imagesDir);
+      await scan(docsDir);
 
       // Sort newest first
-      images.sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime());
+      files.sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime());
 
-      this.post({ type: 'library_loaded', images, projectRoot });
+      this.post({ type: 'library_loaded', images: files, projectRoot, hasFolder: hasFolders });
     } catch {
       this.post({ type: 'library_loaded', images: [], projectRoot: '' });
     }

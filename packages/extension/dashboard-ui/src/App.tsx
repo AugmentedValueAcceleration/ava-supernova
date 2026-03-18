@@ -113,6 +113,7 @@ export function App() {
   // Library state
   const [libraryImages, setLibraryImages] = useState<LibraryImage[]>([]);
   const [libraryProjectRoot, setLibraryProjectRoot] = useState('');
+  const [libraryHasFolder, setLibraryHasFolder] = useState(true);
   // Personality state
   const [personalityData, setPersonalityData] = useState<PersonalityData | null>(null);
   // Overview widget state
@@ -282,6 +283,7 @@ export function App() {
       case 'library_loaded':
         setLibraryImages(msg.images);
         setLibraryProjectRoot(msg.projectRoot);
+        setLibraryHasFolder(msg.hasFolder ?? true);
         break;
       case 'library_image_deleted':
         setLibraryImages(prev => prev.filter(i => i.path !== msg.path));
@@ -440,7 +442,7 @@ export function App() {
       case 'releases':
         return <Releases releases={releases} />;
       case 'library':
-        return <Library images={libraryImages} projectRoot={libraryProjectRoot} />;
+        return <Library images={libraryImages} projectRoot={libraryProjectRoot} hasImagesFolder={libraryHasFolder} />;
       case 'personality':
         return <Personality personality={personalityData} />;
       case 'connections':

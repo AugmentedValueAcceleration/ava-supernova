@@ -222,7 +222,9 @@ export interface PersonalityData {
 
 export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'library' | 'personality' | 'sync' | 'releases' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals';
 
-// Library (project images)
+// Library (project files — images, documents, spreadsheets, presentations)
+export type LibraryFileType = 'image' | 'document' | 'spreadsheet' | 'presentation';
+
 export interface LibraryImage {
   path: string;         // Relative path from project root (e.g. "images/icons/settings.png")
   name: string;         // Filename
@@ -231,6 +233,7 @@ export interface LibraryImage {
   modified: string;     // ISO date string
   dimensions?: string;  // "1024x1024" if detectable
   dataUri?: string;     // Base64 data URI for display in webview
+  fileType?: LibraryFileType;  // File category (defaults to 'image' for backwards compat)
 }
 
 export interface ReleaseNote {
@@ -307,7 +310,7 @@ export type ExtToDashboardMessage =
   // Release notes
   | { type: 'releases_loaded'; releases: ReleaseNote[] }
   // Library
-  | { type: 'library_loaded'; images: LibraryImage[]; projectRoot: string }
+  | { type: 'library_loaded'; images: LibraryImage[]; projectRoot: string; hasFolder?: boolean }
   | { type: 'library_image_deleted'; path: string }
   // Personality
   | { type: 'personality_loaded'; personality: PersonalityData }
@@ -387,6 +390,7 @@ export type DashboardToExtMessage =
   | { type: 'load_library' }
   | { type: 'delete_library_image'; path: string }
   | { type: 'open_library_image'; path: string }
+  | { type: 'open_external'; path: string }
   // Personality
   | { type: 'load_personality' }
   | { type: 'save_personality'; personality: PersonalityData }
