@@ -40,6 +40,7 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
           const syncing = syncingTypes.has(key);
           const result = syncResults[key];
           const localCount = status?.localCount ?? 0;
+          const syncedCount = status?.syncedCount ?? 0;
           const newCount = status?.newCount ?? localCount;
           const isUpToDate = newCount === 0 && localCount > 0 && status?.lastSynced;
           const lastSynced = status?.lastSynced;
@@ -54,9 +55,6 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-white">{label}</span>
-                    <span className="text-[10px] text-[var(--text-muted)] bg-[var(--bg-input)] px-1.5 py-0.5 rounded">
-                      {localCount} {localCount === 1 ? 'item' : 'items'}
-                    </span>
                     {isUpToDate && (
                       <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
                         ✓ Up to date
@@ -64,11 +62,19 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
                     )}
                     {!isUpToDate && newCount > 0 && newCount < localCount && (
                       <span className="text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
-                        {newCount} new
+                        {newCount} new since last sync
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-[var(--text-muted)] truncate">
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-[10px] text-[var(--text-muted)] bg-[var(--bg-input)] px-1.5 py-0.5 rounded">
+                      Your device: {localCount}
+                    </span>
+                    <span className="text-[10px] text-[var(--text-muted)] bg-[var(--bg-input)] px-1.5 py-0.5 rounded">
+                      Cloud: {syncedCount}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[var(--text-muted)] truncate mt-1">
                     {description}
                     {lastSynced && <span className="ml-1 opacity-60">· Last synced {new Date(lastSynced).toLocaleDateString()}</span>}
                   </p>
