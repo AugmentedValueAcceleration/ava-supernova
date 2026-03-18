@@ -188,7 +188,7 @@ Ava has 53 built-in tools organized by category. Tool availability depends on th
 ## Documents (permission mode dependent)
 | Tool | Description |
 |------|-------------|
-| document_manage | Create, read, edit, and export documents. Formats: Word, Excel, PDF, CSV, Markdown. Built-in templates for proposals, reports, invoices, and more. |
+| document_manage | Create, read, edit, and export documents. Formats: Word, Excel (.xlsx with styled headers and auto-width columns via exceljs), PDF (.pdf with headings and formatted sections via pdfkit), CSV, Markdown. Built-in templates for proposals, reports, invoices, and more. |
 
 ## Learning (always auto-approved)
 | Tool | Description |
@@ -206,9 +206,9 @@ Ava has 53 built-in tools organized by category. Tool availability depends on th
 ## Office Suite (permission mode dependent)
 | Tool | Description |
 |------|-------------|
-| presentation_create | Create slide decks from structured content. Supports themes, layouts, and speaker notes. |
-| email_draft | Draft emails with tone control (formal, friendly, assertive, concise). Supports recipients, CC, subject, and body. |
-| report_generate | Generate reports from tasks, journal entries, and memory. Formats: board brief, sprint review, progress report. |
+| presentation_create | Create native .pptx slide decks with branded slides, speaker notes, and accent colours (via pptxgenjs). Supports themes and layouts. |
+| email_draft | Draft emails as native .docx files with tone-aware fonts — serif for formal, sans-serif for casual. Supports recipients, CC, subject, and body. |
+| report_generate | Generate reports as native .docx files from tasks, journal entries, and memory. Includes title page, task tables, journal sections, and decision bullets. Formats: board brief, sprint review, progress report. |
 
 ## Support
 | Tool | Description |
@@ -769,41 +769,40 @@ Connect a platform account for additional benefits:
     title: 'Dashboard',
     content: `# Dashboard
 
-The Dashboard is your control center for Ava. It has 6 pages accessible from the sidebar navigation.
+The Dashboard is your control center for Ava. Pages are organised into 6 sidebar groups.
 
-## Pages
+## Sidebar Groups
 
-### Overview
-Quick summary of your account status, active model, usage statistics, and quick actions.
+### Personal
+- **Personality** — Personality Designer (name, tone, style, persona traits)
+- **Settings** — Provider keys, language, permission mode, temperature, max tokens, auto memory, stream responses
 
-### Usage
-Detailed token usage breakdown by period (7 days, 30 days, all time) and by provider/model. Available with platform accounts.
+### Productivity
+- **Tasks** — View and manage tasks
+- **Journal** — Browse journal entries
+- **Learning** — Curricula, lessons, and progress
+
+### Creative
+- **Library** — All generated files (images, documents, spreadsheets, presentations) with filter tabs
 
 ### Memory
-View, edit, and delete your saved memories. Shows both global and project-scoped entries.
+- **Memory** — View, edit, and delete saved memories (global and project scope)
+- **History** — Session history, pinned conversations
 
-### Connections
-Connect external services for enhanced capabilities:
-- **GitHub** — Repository access
-- **Email** — Email integration
-- **Slack** — Team communication
-- **Discord** — Community integration
+### Account
+- **Usage** — Token consumption by period and provider
+- **Cloud Sync** — Sync settings and data across devices
 
-### Billing
-Manage your subscription plan, view invoices, and purchase token top-ups. Options: Pro plan, Ultra plan, or token packs (Starter, Standard, Pro Pack).
-
-### Settings
-Configure providers, preferences, and API keys:
-- API provider keys (Anthropic, DeepSeek, Kimi, GLM, Qwen, Mistral)
-- Language, permission mode, temperature, max tokens
-- Auto memory, stream responses
+### About
+- **Release Notes** — Version history and changelogs
+- **Support** — Submit feedback or support requests
 
 ## Access
 - **Extension**: Command palette > "Ava: Open Dashboard", or the dashboard icon in the sidebar
 - **IDE**: Ctrl+Shift+D, or the Dashboard tab in the Ava panel
 
 ## Library Panel
-The Library panel scans the project \`images/\` folder and displays generated images in a grid or list view. Features: image preview, open in editor, copy path, and delete. Use generate_image in Work Mode to create images, then manage them from the Library.
+The Library shows everything Ava creates — images, documents, spreadsheets, and presentations. Filter tabs: All, Images, Documents, Spreadsheets, Presentations — each with count badges. Non-image files show type icons. Grid or list view. Features: image preview, open in editor, copy path, delete, and "Open Externally" to launch files in your default app (LibreOffice recommended for full editing). Scan button shows spinner and completion feedback.
 
 ## Document Preview
 Preview generated documents (Word, Excel, PDF, Markdown) directly in the Dashboard without leaving VS Code. Click any document from the Library or file explorer to open a rich preview.
@@ -969,22 +968,27 @@ The daily briefing is enabled by default. Disable it in Dashboard > Settings if 
 Ava can create presentations, draft emails, and generate reports — bringing office productivity into the agent workflow.
 
 ## presentation_create
-Create slide decks from structured content.
+Create native .pptx slide decks with branded slides, speaker notes, and accent colours (via pptxgenjs).
 - Supports themes, layouts, and speaker notes
-- Output as \`.pptx\` or Markdown-based slides
+- Output as native \`.pptx\` — no more Marp markdown
 - Use in Work Mode: "Create a 10-slide deck on our Q1 results"
 
 ## email_draft
-Draft emails with tone control.
+Draft emails as native .docx files with tone-aware fonts.
+- Serif fonts for formal tone, sans-serif for casual
 - Tones: formal, friendly, assertive, concise
 - Supports recipients, CC, subject, and body
 - Use in Work Mode: "Draft a formal email to the client about the delay"
 
 ## report_generate
-Generate reports from your tasks, journal entries, and memory.
+Generate reports as native .docx files from your tasks, journal entries, and memory.
+- Includes title page, task tables, journal sections, and decision bullets
 - Formats: board brief, sprint review, progress report
 - Pulls data from task_manage, journal_write, and memory_recall automatically
 - Use in Work Mode: "Generate a sprint review for this week"
+
+## document_manage — Native File Creation
+document_manage now supports creating native .xlsx spreadsheets (styled headers, auto-width columns via exceljs) and .pdf documents (headings and formatted sections via pdfkit). All Office Suite tools fall back to markdown gracefully if native libraries aren't installed.
 
 ## Permissions
 Office Suite tools follow your permission mode. In Strict mode, file creation requires approval. In Balanced or Autonomous mode, Ava creates files directly.`,
