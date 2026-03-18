@@ -59,8 +59,10 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
   const [mode, setMode] = useState<AvaMode>('code');
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
   const [isFocused, setIsFocused] = useState(false);
+  const [modesExpanded, setModesExpanded] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const modeMenuRef = useRef<HTMLDivElement>(null);
   const wasStreamingRef = useRef(false);
 
   // Auto-focus textarea when streaming ends
@@ -72,6 +74,34 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
       textareaRef.current?.focus();
     }
   }, [isStreaming]);
+
+  // Keyboard shortcuts for mode switching: Ctrl+Shift+1-6
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey) {
+        const idx = parseInt(e.key) - 1;
+        if (idx >= 0 && idx < MODES.length) {
+          e.preventDefault();
+          setMode(MODES[idx].id);
+          setModesExpanded(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  // Close mode menu when clicking outside
+  useEffect(() => {
+    if (!modesExpanded) return;
+    const handler = (e: MouseEvent) => {
+      if (modeMenuRef.current && !modeMenuRef.current.contains(e.target as Node)) {
+        setModesExpanded(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [modesExpanded]);
 
   const handleSend = useCallback(() => {
     const trimmed = text.trim();
@@ -275,7 +305,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
   return (
     <div className="px-3 pb-3 pt-1">
       <div
-        className="rounded-xl overflow-hidden relative transition-all duration-200"
+        className="rounded-xl overflow-visible relative transition-all duration-200"
         style={{
           border: isDragOver
             ? '1.5px dashed #A855F7'
@@ -366,35 +396,71 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
 
         {/* Bottom toolbar */}
         <div
-          className="flex items-center justify-between flex-wrap gap-2 px-3 pb-2.5 pt-2 mx-2 mt-0.5"
-          style={{ borderTop: '1px solid rgba(168, 85, 247, 0.4)' }}
+          className="flex items-center justify-between gap-2 px-3 pb-2.5 pt-2 mx-2 mt-0.5"
+          style={{ borderTop: '1px solid rgba(168, 85, 247, 0.4)', overflow: 'visible' }}
         >
-          {/* Mode selector */}
-          <div className="flex items-center gap-1 flex-wrap" role="radiogroup" aria-label="Input mode">
-            {MODES.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setMode(m.id)}
-                role="radio"
-                aria-checked={mode === m.id}
-                aria-label={`${t(m.labelKey)} mode`}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
-                            cursor-pointer transition-all duration-200
-                  ${mode === m.id
-                    ? 'text-white border border-[rgba(168,85,247,0.6)]'
-                    : 'text-[var(--vscode-foreground)] opacity-40 hover:opacity-80 border border-transparent hover:border-[rgba(168,85,247,0.3)] hover:bg-[rgba(168,85,247,0.08)]'
-                  }`}
-                style={mode === m.id ? {
-                  background: 'linear-gradient(135deg, #A855F7, #7C3AED)',
-                  boxShadow: '0 2px 8px rgba(168, 85, 247, 0.4), 0 0 12px rgba(168, 85, 247, 0.15)',
-                } : undefined}
+          {/* Mode selector — collapsible */}
+          <div className="relative" ref={modeMenuRef}>
+            {/* Active mode button (always visible) */}
+            <button
+              onClick={() => setModesExpanded(!modesExpanded)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
+                         text-white cursor-pointer transition-all duration-200
+                         border border-[rgba(168,85,247,0.6)]"
+              style={{
+                background: 'linear-gradient(135deg, #A855F7, #7C3AED)',
+                boxShadow: '0 2px 8px rgba(168, 85, 247, 0.4), 0 0 12px rgba(168, 85, 247, 0.15)',
+              }}
+              title="Click to switch mode (Ctrl+Shift+1-6)"
+            >
+              <span className="font-mono text-[10px] opacity-70" aria-hidden="true">
+                {MODES.find(m => m.id === mode)?.icon}
+              </span>
+              {t(MODES.find(m => m.id === mode)?.labelKey || '')}
+              <svg className={`w-3 h-3 ml-0.5 transition-transform duration-200 ${modesExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+              </svg>
+            </button>
+
+            {/* Dropdown menu */}
+            {modesExpanded && (
+              <div
+                className="absolute left-0 rounded-lg border border-[rgba(168,85,247,0.2)] p-1 min-w-[200px] shadow-xl"
+                style={{
+                  background: 'var(--vscode-dropdown-background, var(--vscode-editor-background))',
+                  bottom: '100%',
+                  marginBottom: '6px',
+                  zIndex: 9999,
+                }}
+                role="radiogroup"
+                aria-label="Input mode"
               >
-                <span className="font-mono text-[10px] opacity-70" aria-hidden="true">{m.icon}</span>
-                {t(m.labelKey)}
-              </button>
-            ))}
+                {MODES.map((m, idx) => (
+                  <button
+                    key={m.id}
+                    onClick={() => { setMode(m.id); setModesExpanded(false); }}
+                    role="radio"
+                    aria-checked={mode === m.id}
+                    className={`flex items-center justify-between w-full px-3 py-2 rounded-md text-xs font-medium
+                                cursor-pointer transition-all duration-150 border-none
+                      ${mode === m.id
+                        ? 'text-white bg-[rgba(168,85,247,0.2)]'
+                        : 'text-[var(--vscode-foreground)] opacity-70 hover:opacity-100 hover:bg-[rgba(168,85,247,0.1)]'
+                      }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="font-mono text-[10px] opacity-60 w-4 text-center">{m.icon}</span>
+                      {t(m.labelKey)}
+                    </span>
+                    <span className="text-[9px] opacity-40 font-mono">Ctrl+Shift+{idx + 1}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
+          {/* Right side: provider toggle + actions */}
+          <div className="flex items-center gap-2 shrink-0">
           {/* Provider source toggle */}
           {platformStatus?.connected && onProviderSourceChange && (
             <div className="flex items-center gap-0.5 rounded-lg bg-[rgba(168,85,247,0.06)] p-0.5 border border-[rgba(168,85,247,0.1)]">
@@ -575,6 +641,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
               </button>
             )}
           </div>
+          </div>{/* close second row */}
         </div>
       </div>
       {/* Mic consent prompt */}

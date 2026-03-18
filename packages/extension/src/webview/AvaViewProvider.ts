@@ -705,10 +705,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             this.outputChannel.appendLine(
               `[failover] ${from.provider.displayName} → ${to.provider.displayName}: ${err.message}`,
             );
-            this.postMessage({
-              type: 'system_message',
-              content: `⚡ Provider failover: ${from.provider.displayName} → ${to.provider.displayName}`,
-            } as ExtToWebviewMessage);
           },
         })
       : provider;
