@@ -3,7 +3,7 @@ import { homedir } from 'node:os';
 
 export const APP_NAME = 'ava';
 export const APP_DISPLAY_NAME = 'Ava | Supernova';
-export const APP_VERSION = '0.14.0';
+export const APP_VERSION = '0.16.0';
 
 export const AVA_HOME = join(homedir(), '.ava');
 export const CONFIG_PATH = join(AVA_HOME, 'config.json');
