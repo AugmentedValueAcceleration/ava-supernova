@@ -7,7 +7,8 @@ const DATA_TYPES = [
   { key: 'journal',  label: 'Journal',       icon: '📖', description: 'Daily entries — your reflections and Ava\'s observations' },
   { key: 'learning', label: 'Learning',      icon: '🎓', description: 'Curriculums, lesson progress, quiz scores' },
   { key: 'history',  label: 'Chat History',  icon: '💬', description: 'Conversation history with Ava' },
-  { key: 'settings', label: 'Settings',      icon: '⚙',  description: 'Preferences, model selection, permission mode' },
+  { key: 'settings',    label: 'Settings',      icon: '⚙',  description: 'Preferences, model selection, permission mode' },
+  { key: 'personality', label: 'Personality',   icon: '🎭', description: 'Custom AI name, tone, energy, communication style' },
 ] as const;
 
 interface Props {

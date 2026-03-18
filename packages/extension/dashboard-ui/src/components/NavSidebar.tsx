@@ -45,7 +45,6 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Configuration',
     items: [
-      { page: 'keys', label: 'API Keys', icon: KeyIcon },
       { page: 'settings', label: 'Settings', icon: CogIcon },
     ],
   },

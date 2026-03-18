@@ -15,55 +15,37 @@ import type {
   UsageLogEntry,
 } from '../types/messages';
 
-// ── Weather types ────────────────────────────────────────────────────────────
-
-interface WeatherCondition {
-  temp_C: string;
-  temp_F: string;
-  humidity: string;
-  windspeedKmph: string;
-  weatherDesc: { value: string }[];
-  weatherCode: string;
-}
-
-interface WeatherForecast {
-  date: string;
-  maxtempC: string;
-  mintempC: string;
-  hourly: { weatherCode: string; weatherDesc: { value: string }[] }[];
-}
+// ── Weather data (from extension host via Open-Meteo) ────────────────────────
 
 interface WeatherData {
-  current_condition: WeatherCondition[];
-  nearest_area: { areaName: { value: string }[]; country: { value: string }[] }[];
-  weather: WeatherForecast[];
+  location: string;
+  temp_c: number;
+  condition: string;
+  emoji: string;
+  humidity: number;
+  wind_kmph: number;
+  forecast: Array<{ date: string; day: string; max_c: number; min_c: number; condition: string; emoji: string }>;
 }
 
-// ── News types ───────────────────────────────────────────────────────────────
+// ── News article (from extension host) ───────────────────────────────────────
 
 interface NewsArticle {
-  id: string;
   title: string;
   slug: string;
   category: string;
   reading_time: number;
-  published_at: string;
-  excerpt?: string;
+  date: string;
 }
 
-// ── Release types ────────────────────────────────────────────────────────────
+// ── Release info (from extension host) ───────────────────────────────────────
 
 interface ReleaseInfo {
-  id: string;
   version: string;
   title: string;
   published_at: string;
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
-
-const WEATHER_CACHE_KEY = 'ava_weather_cache';
-const WEATHER_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 const PRIORITY_DOT: Record<string, string> = {
   low: 'bg-green-400',
@@ -81,25 +63,6 @@ const MOOD_EMOJI: Record<number, string> = {
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-function weatherEmoji(code: string, desc: string): string {
-  const d = desc.toLowerCase();
-  if (d.includes('thunder')) return '⛈️';
-  if (d.includes('snow') || d.includes('blizzard') || d.includes('sleet')) return '❄️';
-  if (d.includes('rain') || d.includes('drizzle') || d.includes('shower')) return '🌧️';
-  if (d.includes('fog') || d.includes('mist') || d.includes('haze')) return '🌫️';
-  if (d.includes('overcast')) return '☁️';
-  if (d.includes('cloud') || d.includes('partly')) return '⛅';
-  if (d.includes('sun') || d.includes('clear')) return '☀️';
-  // Fallback by code ranges
-  const c = parseInt(code, 10);
-  if (c <= 113) return '☀️';
-  if (c <= 176) return '⛅';
-  if (c <= 248) return '☁️';
-  if (c <= 299) return '🌧️';
-  if (c <= 338) return '❄️';
-  return '☁️';
-}
 
 function formatRelativeDate(dateStr: string): string {
   if (!dateStr) return '';
@@ -131,6 +94,9 @@ interface OverviewProps {
   journalDay: DashboardJournalDay | null;
   learningCurriculums: DashboardLearningCurriculum[];
   memories: MemoryEntry[];
+  weatherData: WeatherData | null;
+  newsArticles: NewsArticle[];
+  latestRelease: ReleaseInfo | null;
 }
 
 // ── Main Component ───────────────────────────────────────────────────────────
@@ -146,6 +112,9 @@ export function Overview({
   journalDay,
   learningCurriculums,
   memories,
+  weatherData,
+  newsArticles,
+  latestRelease,
 }: OverviewProps) {
   if (mode === 'byok' || !account) {
     return (
@@ -156,6 +125,9 @@ export function Overview({
         journalDay={journalDay}
         learningCurriculums={learningCurriculums}
         memories={memories}
+        weatherData={weatherData}
+        newsArticles={newsArticles}
+        latestRelease={latestRelease}
       />
     );
   }
@@ -233,7 +205,7 @@ export function Overview({
 
       {/* ── Weather (full width) ──────────────────────────────────────── */}
       <div className="mb-4">
-        <WeatherWidget />
+        <WeatherWidget weather={weatherData} />
       </div>
 
       {/* ── Statistics Row ────────────────────────────────────────────── */}
@@ -273,7 +245,7 @@ export function Overview({
 
       {/* ── News + Tasks (2-col) ──────────────────────────────────────── */}
       <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <NewsWidget />
+        <NewsWidget articles={newsArticles} />
         <TasksWidget tasks={tasks} onNavigate={onNavigate} />
       </div>
 
@@ -282,7 +254,7 @@ export function Overview({
         <JournalWidget journalDay={journalDay} onNavigate={onNavigate} />
         <LearningWidget curriculums={learningCurriculums} onNavigate={onNavigate} />
         <MemoryWidget memories={memories} onNavigate={onNavigate} />
-        <ReleaseWidget />
+        <ReleaseWidget release={latestRelease} />
       </div>
 
       {/* ── Quick Actions ──────────────────────────────────────────── */}
@@ -298,44 +270,8 @@ export function Overview({
 
 // ── Weather Widget ───────────────────────────────────────────────────────────
 
-function WeatherWidget() {
-  const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    // Check cache first
-    try {
-      const cached = localStorage.getItem(WEATHER_CACHE_KEY);
-      if (cached) {
-        const { data, timestamp } = JSON.parse(cached);
-        if (Date.now() - timestamp < WEATHER_CACHE_TTL) {
-          setWeather(data);
-          setLoading(false);
-          return;
-        }
-      }
-    } catch { /* ignore corrupt cache */ }
-
-    fetch('https://wttr.in/?format=j1')
-      .then(res => {
-        if (!res.ok) throw new Error('Weather fetch failed');
-        return res.json();
-      })
-      .then((data: WeatherData) => {
-        setWeather(data);
-        setLoading(false);
-        try {
-          localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
-        } catch { /* storage full */ }
-      })
-      .catch(() => {
-        setLoading(false);
-        setError(true);
-      });
-  }, []);
-
-  if (loading) {
+function WeatherWidget({ weather }: { weather: WeatherData | null }) {
+  if (weather === undefined) {
     return (
       <WidgetCard title="Weather" icon="🌤️">
         <div className="flex items-center gap-2 py-4 text-xs text-[var(--text-muted)]">
@@ -345,7 +281,7 @@ function WeatherWidget() {
     );
   }
 
-  if (error || !weather || !weather.current_condition?.[0]) {
+  if (!weather) {
     return (
       <WidgetCard title="Weather" icon="🌤️">
         <p className="py-2 text-xs text-[var(--text-muted)]">Unable to load weather data.</p>
@@ -353,50 +289,36 @@ function WeatherWidget() {
     );
   }
 
-  const current = weather.current_condition[0];
-  const area = weather.nearest_area?.[0];
-  const location = area
-    ? `${area.areaName?.[0]?.value ?? ''}, ${area.country?.[0]?.value ?? ''}`
-    : 'Unknown location';
-  const desc = current.weatherDesc?.[0]?.value ?? 'Unknown';
-  const emoji = weatherEmoji(current.weatherCode, desc);
-  const forecast = weather.weather?.slice(0, 3) ?? [];
-
   return (
-    <WidgetCard title="Weather" icon="🌤️" subtitle={location}>
+    <WidgetCard title="Weather" icon="🌤️" subtitle={weather.location}>
       {/* Current conditions */}
       <div className="flex items-center gap-4">
-        <span className="text-3xl">{emoji}</span>
+        <span className="text-3xl">{weather.emoji}</span>
         <div>
-          <div className="text-2xl font-bold">{current.temp_C}&deg;C</div>
-          <div className="text-xs text-[var(--text-secondary)]">{desc}</div>
+          <div className="text-2xl font-bold">{weather.temp_c}&deg;C</div>
+          <div className="text-xs text-[var(--text-secondary)]">{weather.condition}</div>
         </div>
         <div className="ml-auto grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-[var(--text-muted)]">
           <span>Humidity</span>
-          <span className="text-[var(--text-secondary)]">{current.humidity}%</span>
+          <span className="text-[var(--text-secondary)]">{weather.humidity}%</span>
           <span>Wind</span>
-          <span className="text-[var(--text-secondary)]">{current.windspeedKmph} km/h</span>
+          <span className="text-[var(--text-secondary)]">{weather.wind_kmph} km/h</span>
         </div>
       </div>
 
       {/* 3-day forecast */}
-      {forecast.length > 0 && (
+      {weather.forecast.length > 0 && (
         <div className="mt-3 flex gap-3 border-t border-[var(--border-card)] pt-3">
-          {forecast.map((day, i) => {
-            const dayDesc = day.hourly?.[4]?.weatherDesc?.[0]?.value ?? '';
-            const dayCode = day.hourly?.[4]?.weatherCode ?? '116';
-            const dayName = i === 0 ? 'Today' : new Date(day.date).toLocaleDateString('en', { weekday: 'short' });
-            return (
-              <div key={day.date} className="flex-1 text-center">
-                <div className="text-[10px] text-[var(--text-muted)]">{dayName}</div>
-                <div className="text-lg">{weatherEmoji(dayCode, dayDesc)}</div>
-                <div className="text-[10px]">
-                  <span className="text-white">{day.maxtempC}&deg;</span>
-                  <span className="text-[var(--text-muted)]"> / {day.mintempC}&deg;</span>
-                </div>
+          {weather.forecast.map(day => (
+            <div key={day.date} className="flex-1 text-center">
+              <div className="text-[10px] text-[var(--text-muted)]">{day.day}</div>
+              <div className="text-lg">{day.emoji}</div>
+              <div className="text-[10px]">
+                <span className="text-white">{day.max_c}&deg;</span>
+                <span className="text-[var(--text-muted)]"> / {day.min_c}&deg;</span>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
     </WidgetCard>
@@ -420,31 +342,17 @@ function formatCategoryLabel(slug: string): string {
     .join(' ');
 }
 
-function NewsWidget() {
-  const [articles, setArticles] = useState<NewsArticle[]>([]);
-  const [loading, setLoading] = useState(true);
+function NewsWidget({ articles }: { articles: NewsArticle[] }) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  useEffect(() => {
-    setLoading(true);
-    const params = new URLSearchParams({ limit: '5' });
-    if (selectedCategory) params.set('category', selectedCategory);
-    else params.set('featured', 'true');
-
-    fetch(`https://ava-supernova.com/api/news?${params}`)
-      .then(res => {
-        if (!res.ok) throw new Error('News fetch failed');
-        return res.json();
-      })
-      .then((data: { posts?: NewsArticle[]; articles?: NewsArticle[] } | NewsArticle[]) => {
-        const list = Array.isArray(data) ? data : (data.posts ?? data.articles ?? []);
-        setArticles(list);
-        setLoading(false);
-      })
-      .catch(() => {
-        setLoading(false);
-      });
-  }, [selectedCategory]);
+  const handleCategoryChange = (cat: string | null) => {
+    setSelectedCategory(cat);
+    if (cat) {
+      post({ type: 'load_news', category: cat });
+    } else {
+      post({ type: 'load_news' });
+    }
+  };
 
   return (
     <WidgetCard title="Latest News" icon="📰">
@@ -455,7 +363,7 @@ function NewsWidget() {
       >
         <style>{`.news-carousel::-webkit-scrollbar { display: none; }`}</style>
         <button
-          onClick={() => setSelectedCategory(null)}
+          onClick={() => handleCategoryChange(null)}
           className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium transition ${
             selectedCategory === null
               ? 'bg-[var(--accent)] text-white'
@@ -467,7 +375,7 @@ function NewsWidget() {
         {NEWS_CATEGORIES.map(cat => (
           <button
             key={cat}
-            onClick={() => setSelectedCategory(cat)}
+            onClick={() => handleCategoryChange(cat)}
             className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium transition ${
               selectedCategory === cat
                 ? 'bg-[var(--accent)] text-white'
@@ -479,15 +387,13 @@ function NewsWidget() {
         ))}
       </div>
 
-      {loading ? (
-        <p className="py-4 text-xs text-[var(--text-muted)] animate-pulse">Loading news...</p>
-      ) : articles.length === 0 ? (
+      {articles.length === 0 ? (
         <p className="py-4 text-xs text-[var(--text-muted)]">No news articles available.</p>
       ) : (
         <div className="space-y-2">
-          {articles.map(article => (
+          {articles.map((article, idx) => (
             <button
-              key={article.id}
+              key={article.slug || idx}
               onClick={() => post({ type: 'open_url', url: `https://ava-supernova.com/news/${article.slug}` })}
               className="block w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)]/30 p-3 text-left transition hover:border-[var(--accent)]/30"
             >
@@ -502,7 +408,7 @@ function NewsWidget() {
                 )}
               </div>
               <p className="text-xs font-medium text-white leading-snug">{article.title}</p>
-              <p className="mt-1 text-[10px] text-[var(--text-muted)]">{formatRelativeDate(article.published_at)}</p>
+              <p className="mt-1 text-[10px] text-[var(--text-muted)]">{formatRelativeDate(article.date)}</p>
             </button>
           ))}
         </div>
@@ -730,31 +636,10 @@ function MemoryWidget({ memories, onNavigate }: { memories: MemoryEntry[]; onNav
 
 // ── Release Widget ───────────────────────────────────────────────────────────
 
-function ReleaseWidget() {
-  const [release, setRelease] = useState<ReleaseInfo | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch('https://ava-supernova.com/api/releases?limit=1')
-      .then(res => {
-        if (!res.ok) throw new Error('Releases fetch failed');
-        return res.json();
-      })
-      .then((data: { releases?: ReleaseInfo[] } | ReleaseInfo[]) => {
-        const list = Array.isArray(data) ? data : (data.releases ?? []);
-        if (list.length > 0) setRelease(list[0]);
-        setLoading(false);
-      })
-      .catch(() => {
-        setLoading(false);
-      });
-  }, []);
-
+function ReleaseWidget({ release }: { release: ReleaseInfo | null }) {
   return (
     <WidgetCard title="Latest Release" icon="🚀">
-      {loading ? (
-        <p className="py-4 text-xs text-[var(--text-muted)] animate-pulse">Checking releases...</p>
-      ) : !release ? (
+      {!release ? (
         <p className="py-4 text-xs text-[var(--text-muted)]">No release info available.</p>
       ) : (
         <div className="space-y-2">
@@ -849,6 +734,9 @@ function ByokOverview({
   journalDay,
   learningCurriculums,
   memories,
+  weatherData,
+  newsArticles,
+  latestRelease,
 }: {
   stats?: SessionStats | null;
   onNavigate: (page: Page) => void;
@@ -856,6 +744,9 @@ function ByokOverview({
   journalDay: DashboardJournalDay | null;
   learningCurriculums: DashboardLearningCurriculum[];
   memories: MemoryEntry[];
+  weatherData: WeatherData | null;
+  newsArticles: NewsArticle[];
+  latestRelease: ReleaseInfo | null;
 }) {
   const totalTokens = stats ? stats.total_input_tokens + stats.total_output_tokens : 0;
   const sessionDuration = stats ? timeSince(stats.session_start) : '\u2014';
@@ -871,7 +762,7 @@ function ByokOverview({
 
       {/* ── Weather (full width) ──────────────────────────────────────── */}
       <div className="mb-4">
-        <WeatherWidget />
+        <WeatherWidget weather={weatherData} />
       </div>
 
       {/* Session Stats */}
@@ -908,7 +799,7 @@ function ByokOverview({
 
       {/* ── News + Tasks (2-col) ──────────────────────────────────────── */}
       <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <NewsWidget />
+        <NewsWidget articles={newsArticles} />
         <TasksWidget tasks={tasks} onNavigate={onNavigate} />
       </div>
 
@@ -917,7 +808,7 @@ function ByokOverview({
         <JournalWidget journalDay={journalDay} onNavigate={onNavigate} />
         <LearningWidget curriculums={learningCurriculums} onNavigate={onNavigate} />
         <MemoryWidget memories={memories} onNavigate={onNavigate} />
-        <ReleaseWidget />
+        <ReleaseWidget release={latestRelease} />
       </div>
 
       {/* Upgrade Comparison */}

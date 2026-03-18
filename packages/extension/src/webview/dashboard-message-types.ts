@@ -316,6 +316,10 @@ export type ExtToDashboardMessage =
   | { type: 'personality_loaded'; personality: PersonalityData }
   | { type: 'personality_saved' }
   | { type: 'personality_reset'; personality: PersonalityData }
+  // Overview widget data
+  | { type: 'weather_loaded'; data: { location: string; temp_c: number; condition: string; emoji: string; humidity: number; wind_kmph: number; forecast: Array<{ date: string; day: string; max_c: number; min_c: number; condition: string; emoji: string }> } | null }
+  | { type: 'news_loaded'; articles: Array<{ title: string; category: string; reading_time: number; slug: string; date: string }> }
+  | { type: 'latest_release_loaded'; release: { version: string; title: string; published_at: string } | null }
   | { type: 'error'; message: string };
 
 // ─── Dashboard Webview → Extension Host ──────────────────────────────────────
@@ -380,7 +384,7 @@ export type DashboardToExtMessage =
   | { type: 'load_learning' }
   // Sync messages
   | { type: 'load_sync_status' }
-  | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' }
+  | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' }
   // Release notes
   | { type: 'load_releases' }
   // Library
@@ -390,4 +394,8 @@ export type DashboardToExtMessage =
   // Personality
   | { type: 'load_personality' }
   | { type: 'save_personality'; personality: PersonalityData }
-  | { type: 'reset_personality' };
+  | { type: 'reset_personality' }
+  // Overview widgets (routed through extension host)
+  | { type: 'load_weather' }
+  | { type: 'load_news'; category?: string }
+  | { type: 'load_latest_release' };

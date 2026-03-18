@@ -1,6 +1,23 @@
 import * as vscode from 'vscode';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import * as https from 'node:https';
+import * as http from 'node:http';
+
+/** Simple JSON GET for use in extension host (no global fetch in Electron) */
+function httpGetJson(url: string): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const mod = url.startsWith('https') ? https : http;
+    mod.get(url, (res) => {
+      let raw = '';
+      res.on('data', (c: string) => (raw += c));
+      res.on('end', () => {
+        try { resolve(JSON.parse(raw)); }
+        catch { reject(new Error(`Invalid JSON from ${url}`)); }
+      });
+    }).on('error', reject);
+  });
+}
 import { MemoryManager, TaskManager, JournalManager, AVA_HOME, loadPersonality, savePersonality, resetPersonality } from '@ava/core';
 import type { Personality } from '@ava/core';
 import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, JournalDay } from '@ava/core';
@@ -54,6 +71,10 @@ export class DashboardPanel {
   private memoryManager?: MemoryManager;
   private taskManager?: TaskManager;
   private journalManager?: JournalManager;
+
+  // Weather cache (30 minutes)
+  private weatherCache: { data: ExtToDashboardMessage & { type: 'weather_loaded' }; timestamp: number } | null = null;
+  private static readonly WEATHER_CACHE_TTL = 30 * 60 * 1000;
 
   // ─── Static factory ────────────────────────────────────────────────────────
 
@@ -378,6 +399,20 @@ export class DashboardPanel {
 
       case 'reset_personality':
         await this.handleResetPersonality();
+        break;
+
+      // ─── Overview widget messages ───────────────────────────────────────────────
+
+      case 'load_weather':
+        await this.handleLoadWeather();
+        break;
+
+      case 'load_news':
+        await this.handleLoadNews(msg.category);
+        break;
+
+      case 'load_latest_release':
+        await this.handleLoadLatestRelease();
         break;
 
     }
@@ -1417,7 +1452,7 @@ export class DashboardPanel {
     const data: Record<string, { available: boolean; lastSynced: string | null; localCount: number }> = {};
 
     // Check each data type's local file for counts
-    const types = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings'] as const;
+    const types = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings', 'personality'] as const;
     for (const t of types) {
       let localCount = 0;
       try {
@@ -1426,6 +1461,7 @@ export class DashboardPanel {
           : t === 'journal' ? path.join(AVA_HOME, 'journal')
           : t === 'learning' ? path.join(AVA_HOME, 'learning.json')
           : t === 'history' ? path.join(AVA_HOME, 'history')
+          : t === 'personality' ? path.join(AVA_HOME, 'personality.json')
           : path.join(AVA_HOME, 'config.json');
 
         if (t === 'journal' || t === 'history') {
@@ -1564,6 +1600,19 @@ export class DashboardPanel {
           break;
         }
 
+        case 'personality': {
+          const avaDir = path.join(os.homedir(), '.ava');
+          const personality = await loadPersonality(avaDir);
+          const res = await apiFetch('/settings/sync', {
+            platformKey,
+            method: 'POST',
+            body: { settings: { personality } },
+          });
+          if (!res.ok) throw new Error('Failed to sync personality');
+          this.post({ type: 'sync_completed', dataType, count: 1 });
+          break;
+        }
+
         default:
           this.post({ type: 'sync_error', dataType, message: `Unknown data type: ${dataType}` });
       }
@@ -1611,6 +1660,119 @@ export class DashboardPanel {
     this.loadJournalDay(date);
   }
 
+  // ─── Overview Widgets (Weather, News, Release) ─────────────────────────────
+
+  private static mapWmoCondition(code: number): { condition: string; emoji: string } {
+    if (code === 0) return { condition: 'Clear', emoji: '\u2600\uFE0F' };
+    if (code >= 1 && code <= 3) return { condition: 'Partly Cloudy', emoji: '\u26C5' };
+    if (code >= 45 && code <= 48) return { condition: 'Foggy', emoji: '\uD83C\uDF2B\uFE0F' };
+    if (code >= 51 && code <= 57) return { condition: 'Drizzle', emoji: '\uD83C\uDF27\uFE0F' };
+    if (code >= 61 && code <= 67) return { condition: 'Rain', emoji: '\uD83C\uDF27\uFE0F' };
+    if (code >= 71 && code <= 77) return { condition: 'Snow', emoji: '\u2744\uFE0F' };
+    if (code >= 80 && code <= 82) return { condition: 'Showers', emoji: '\uD83C\uDF26\uFE0F' };
+    if (code >= 95 && code <= 99) return { condition: 'Thunderstorm', emoji: '\u26C8\uFE0F' };
+    return { condition: 'Cloudy', emoji: '\u2601\uFE0F' };
+  }
+
+  private async handleLoadWeather(): Promise<void> {
+    // Return cached data if fresh
+    if (this.weatherCache && Date.now() - this.weatherCache.timestamp < DashboardPanel.WEATHER_CACHE_TTL) {
+      this.post(this.weatherCache.data);
+      return;
+    }
+
+    try {
+      // Step 1: Get location from IP (ip-api.com — free, HTTP, no key, no rate limit issues)
+      const geo = await httpGetJson('http://ip-api.com/json/') as { lat: number; lon: number; city: string; country: string; status: string };
+      if (geo.status !== 'success' || !geo.lat) { this.post({ type: 'weather_loaded', data: null }); return; }
+
+      // Step 2: Fetch weather from Open-Meteo
+      const lat = geo.lat;
+      const lon = geo.lon;
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3`;
+      const weather = await httpGetJson(weatherUrl) as {
+        current: { temperature_2m: number; relative_humidity_2m: number; wind_speed_10m: number; weather_code: number };
+        daily: { time: string[]; weather_code: number[]; temperature_2m_max: number[]; temperature_2m_min: number[] };
+      };
+
+      const currentCondition = DashboardPanel.mapWmoCondition(weather.current.weather_code);
+      const location = `${geo.city}, ${geo.country}`;
+
+      const forecast = weather.daily.time.map((date, i) => {
+        const d = new Date(date + 'T00:00:00');
+        const dayCondition = DashboardPanel.mapWmoCondition(weather.daily.weather_code[i]);
+        return {
+          date,
+          day: i === 0 ? 'Today' : d.toLocaleDateString('en', { weekday: 'short' }),
+          max_c: Math.round(weather.daily.temperature_2m_max[i]),
+          min_c: Math.round(weather.daily.temperature_2m_min[i]),
+          condition: dayCondition.condition,
+          emoji: dayCondition.emoji,
+        };
+      });
+
+      const msg: ExtToDashboardMessage & { type: 'weather_loaded' } = {
+        type: 'weather_loaded',
+        data: {
+          location,
+          temp_c: Math.round(weather.current.temperature_2m),
+          condition: currentCondition.condition,
+          emoji: currentCondition.emoji,
+          humidity: weather.current.relative_humidity_2m,
+          wind_kmph: Math.round(weather.current.wind_speed_10m),
+          forecast,
+        },
+      };
+
+      this.weatherCache = { data: msg, timestamp: Date.now() };
+      this.post(msg);
+    } catch (err) {
+      console.error('[Dashboard] Weather fetch failed:', err);
+      this.post({ type: 'weather_loaded', data: null });
+    }
+  }
+
+  private async handleLoadNews(category?: string): Promise<void> {
+    try {
+      const params = new URLSearchParams({ limit: '5' });
+      if (category) params.set('category', category);
+
+      const data = await httpGetJson(`https://ava-supernova.com/api/news?${params}`) as
+        { posts?: Array<Record<string, unknown>>; articles?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>;
+      const list = (Array.isArray(data) ? data : ((data as any).posts ?? (data as any).articles ?? [])) as Array<{
+        title?: string; category?: string; reading_time?: number; slug?: string; published_at?: string;
+      }>;
+
+      this.post({
+        type: 'news_loaded',
+        articles: list.map(a => ({
+          title: a.title ?? '',
+          category: a.category ?? '',
+          reading_time: a.reading_time ?? 0,
+          slug: a.slug ?? '',
+          date: a.published_at ?? '',
+        })),
+      });
+    } catch {
+      this.post({ type: 'news_loaded', articles: [] });
+    }
+  }
+
+  private async handleLoadLatestRelease(): Promise<void> {
+    try {
+      const data = await httpGetJson('https://ava-supernova.com/api/releases?limit=1') as
+        { releases?: Array<{ version: string; title: string; published_at: string }> } | Array<{ version: string; title: string; published_at: string }>;
+      const list = Array.isArray(data) ? data : ((data as any).releases ?? []);
+
+      this.post({
+        type: 'latest_release_loaded',
+        release: list.length > 0 ? { version: list[0].version, title: list[0].title, published_at: list[0].published_at } : null,
+      });
+    } catch {
+      this.post({ type: 'latest_release_loaded', release: null });
+    }
+  }
+
   private dispose(): void {
     DashboardPanel.currentPanel = undefined;
     this.panel.dispose();
@@ -1636,7 +1798,7 @@ export class DashboardPanel {
         content="default-src 'none';
                  style-src ${webview.cspSource} 'unsafe-inline';
                  script-src 'nonce-${nonce}';
-                 connect-src https://wttr.in https://ava-supernova.com;
+                 connect-src https: http:;
                  img-src ${webview.cspSource} data: https: vscode-resource:;">
   <link rel="stylesheet" href="${styleUri}">
   <title>Ava | Dashboard</title>

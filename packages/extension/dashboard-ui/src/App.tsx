@@ -115,6 +115,10 @@ export function App() {
   const [libraryProjectRoot, setLibraryProjectRoot] = useState('');
   // Personality state
   const [personalityData, setPersonalityData] = useState<PersonalityData | null>(null);
+  // Overview widget state
+  const [weatherData, setWeatherData] = useState<{ location: string; temp_c: number; condition: string; emoji: string; humidity: number; wind_kmph: number; forecast: Array<{ date: string; day: string; max_c: number; min_c: number; condition: string; emoji: string }> } | null>(null);
+  const [newsArticles, setNewsArticles] = useState<Array<{ title: string; category: string; reading_time: number; slug: string; date: string }>>([]);
+  const [latestRelease, setLatestRelease] = useState<{ version: string; title: string; published_at: string } | null>(null);
 
   const handleMessage = useCallback((event: MessageEvent) => {
     // Only accept messages from the VSCode webview host
@@ -293,6 +297,16 @@ export function App() {
       case 'personality_reset':
         setPersonalityData(msg.personality);
         break;
+      // Overview widget messages
+      case 'weather_loaded':
+        setWeatherData(msg.data);
+        break;
+      case 'news_loaded':
+        setNewsArticles(msg.articles);
+        break;
+      case 'latest_release_loaded':
+        setLatestRelease(msg.release);
+        break;
       case 'error':
         setErrorMsg(msg.message);
         setTimeout(() => setErrorMsg(null), 5000);
@@ -352,6 +366,9 @@ export function App() {
       post({ type: 'load_tasks' });
       post({ type: 'load_learning' });
       post({ type: 'load_journal_day', date: new Date().toISOString().slice(0, 10) });
+      post({ type: 'load_weather' });
+      post({ type: 'load_news' });
+      post({ type: 'load_latest_release' });
       if (account) {
         post({ type: 'load_memories' });
       } else {
@@ -400,9 +417,7 @@ export function App() {
     const mode = account ? 'platform' as const : 'byok' as const;
     switch (page) {
       case 'overview':
-        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} />;
-      case 'keys':
-        return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
+        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} />;
       case 'usage':
         return <Usage account={account} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} />;
       case 'memory':
@@ -436,8 +451,9 @@ export function App() {
         return <Support tickets={tickets} loading={ticketsLoading} mode={mode} />;
       case 'billing':
         return account ? <Billing account={account} /> : <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
+      case 'keys':
       case 'settings':
-        return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys={!account} />;
+        return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
       case 'admin_support':
         return <AdminSupport tickets={adminTickets} total={adminTicketsTotal} loading={adminTicketsLoading} />;
       case 'admin_proposals':
