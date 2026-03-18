@@ -128,9 +128,9 @@ This works with Ollama, LM Studio, vLLM, or any OpenAI-compatible API endpoint.
     topic: 'tools',
     keywords: ['tool', 'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'bash', 'web_search', 'browser', 'screenshot', 'database', 'git', 'memory_save', 'memory_recall', 'memory_update', 'memory_delete', 'present_plan', 'todo_write', 'ask_user', 'rollback', 'http_request', 'project_index', 'find_symbol', 'list_directory', 'docs_lookup', 'support_request', 'task_manage', 'journal_write', 'document_manage', 'propose_tool', 'get_datetime', 'detect_language', 'learning_create', 'learning_teach', 'learning_progress', 'weather', 'news', 'self_inspect', 'release_notes', 'presentation_create', 'email_draft', 'report_generate'],
     title: 'Built-in Tools',
-    content: `# Built-in Tools (52)
+    content: `# Built-in Tools (53)
 
-Ava has 52 built-in tools organized by category. Tool availability depends on the current mode and permission settings.
+Ava has 53 built-in tools organized by category. Tool availability depends on the current mode and permission settings.
 
 ## Reading & Searching (always auto-approved)
 | Tool | Description |
@@ -151,6 +151,7 @@ Ava has 52 built-in tools organized by category. Tool availability depends on th
 | http_request | Make HTTP requests (GET, POST, PUT, DELETE) with auth, assertions, timing. |
 | browser | Automate browser interactions using Playwright (navigate, click, fill, screenshot). |
 | screenshot | Capture a screenshot of the user's screen for visual analysis. |
+| generate_image | Generate AI images from text prompts via Wan2.6. Saves to project images/ folder. |
 | database_query | Run read-only SQL queries against PostgreSQL, SQLite, or MySQL. |
 | docs_lookup | Search your own documentation to answer user questions about features, setup, and troubleshooting. |
 
@@ -254,7 +255,7 @@ Ava has 52 built-in tools organized by category. Tool availability depends on th
 Ava has six modes. Each mode is a distinct state of mind — it changes how Ava thinks, not just what tools she has access to.
 
 ## Work Mode (\`>>\`) — Builder
-Full agent with all 52 tools. Ava reads, writes, searches, executes, manages tasks, journals, and creates documents. For complex tasks, Ava's internal persona team activates: Scout maps the codebase, Architect designs the approach, Verifier fact-checks, Sequencer breaks it into steps, Challenger questions the plan — then Builder executes.
+Full agent with all 53 tools. Ava reads, writes, searches, executes, manages tasks, journals, and creates documents. For complex tasks, Ava's internal persona team activates: Scout maps the codebase, Architect designs the approach, Verifier fact-checks, Sequencer breaks it into steps, Challenger questions the plan — then Builder executes.
 
 ## Plan Mode (\`::\`) — Architect
 Strategic planning. Ava's persona team activates: Researcher gathers evidence from the web and codebase, Architect analyses and proposes features, Challenger questions priorities. Use this when deciding what to build next, not how to build it.
@@ -280,7 +281,7 @@ Ideation mindset — business ideas, feature brainstorming, creative problem sol
   // ── Persona System ─────────────────────────────────────────────────────
   {
     topic: 'personas',
-    keywords: ['persona', 'conductor', 'scout', 'architect', 'verifier', 'sequencer', 'challenger', 'builder', 'researcher', 'tutor', 'multi-agent', 'team', 'planning'],
+    keywords: ['persona', 'conductor', 'scout', 'architect', 'verifier', 'sequencer', 'challenger', 'builder', 'researcher', 'tutor', 'multi-agent', 'team', 'planning', 'brainstorm', 'explorer', 'ideator', 'refiner'],
     title: 'Persona System',
     content: `# Persona System — Internal Team of Specialists
 
@@ -320,6 +321,13 @@ Ava has an internal team of specialised personas that activate for complex tasks
 - **Researcher** — Checks for known CVEs, verifies patterns via web search
 - **Verifier** — Confirms each finding, kills false positives
 - **Reporter** — Structures results by severity with remediation guidance
+
+## Brainstorm Mode Team
+- **Explorer** — Maps the problem space, diverges into possibilities
+- **Researcher** — Gathers evidence, precedents, and market context
+- **Ideator** — Generates specific, grounded ideas from research
+- **Challenger** — Stress-tests ideas, finds weaknesses
+- **Refiner** — Distils the best concepts into actionable proposals
 
 ## Chat Mode
 No personas. Just Ava being a friend.
@@ -721,7 +729,7 @@ On macOS, use Cmd instead of Ctrl.`,
 
 ### Free Tier
 - Bring your own API keys — no account needed
-- All 52 tools, all modes, all features
+- All 53 tools, all modes, all features
 - Local memory and history
 - Full open-source experience
 
@@ -793,6 +801,12 @@ Configure providers, preferences, and API keys:
 ## Access
 - **Extension**: Command palette > "Ava: Open Dashboard", or the dashboard icon in the sidebar
 - **IDE**: Ctrl+Shift+D, or the Dashboard tab in the Ava panel
+
+## Library Panel
+The Library panel scans the project \`images/\` folder and displays generated images in a grid or list view. Features: image preview, open in editor, copy path, and delete. Use generate_image in Work Mode to create images, then manage them from the Library.
+
+## Document Preview
+Preview generated documents (Word, Excel, PDF, Markdown) directly in the Dashboard without leaving VS Code. Click any document from the Library or file explorer to open a rich preview.
 
 ## Platform vs BYOK
 - **Platform accounts** see all 6 pages
