@@ -832,7 +832,7 @@ function ByokOverview({
                   <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> Memory sync across devices</li>
                   <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> Full usage history</li>
                   <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> Priority support with ticket tracking</li>
-                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> 500K free tokens every month</li>
+                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> 3M free Qwen tokens</li>
                   <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> Conversation history & backup</li>
                 </ul>
               </div>

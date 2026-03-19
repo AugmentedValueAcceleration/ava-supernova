@@ -131,7 +131,7 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
             <UsageBar used={usage.free_tokens_used} limit={usage.free_tokens_limit} />
           )}
           <p className="mt-2 mb-5 text-[10px] text-[var(--text-muted)]">
-            {account.tier === 'admin' ? 'No metering — admin tier' : '500K free tokens included every month. Resets monthly.'}
+            {account.tier === 'admin' ? 'No metering — admin tier' : '3M free Qwen tokens included. Resets monthly.'}
           </p>
 
           {/* Subscription Pool */}
