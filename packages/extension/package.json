@@ -76,6 +76,12 @@
         "category": "Ava"
       },
       {
+        "command": "ava-supernova.focusInput",
+        "title": "Focus Chat Input",
+        "shortTitle": "Focus Input",
+        "category": "Ava"
+      },
+      {
         "command": "ava-supernova.clearChat",
         "title": "%command.clearChat.title%",
         "shortTitle": "Clear",
@@ -93,7 +99,7 @@
         "shortTitle": "History",
         "category": "Ava"
       },
-{
+      {
         "command": "ava-supernova.openDocs",
         "title": "%command.openDocs.title%",
         "shortTitle": "Docs",
@@ -324,6 +330,11 @@
         "command": "ava-supernova.openChat",
         "key": "ctrl+shift+a",
         "mac": "cmd+shift+a"
+      },
+      {
+        "command": "ava-supernova.focusInput",
+        "key": "ctrl+escape",
+        "mac": "ctrl+escape"
       }
     ]
   },
@@ -343,8 +354,9 @@
     "@ava/core": "workspace:*"
   },
   "devDependencies": {
-    "@types/vscode": "^1.85.0",
     "@types/node": "^25.3.0",
+    "@types/pngjs": "^6.0.5",
+    "@types/vscode": "^1.85.0",
     "esbuild": "^0.25.0",
     "typescript": "^5.9.3"
   }

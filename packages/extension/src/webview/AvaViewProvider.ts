@@ -373,6 +373,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.postMessage({ type: 'init', models: this.getModelList(), activeModel: this.getActiveModelId(), needsSetup: !this.agent, locale: this.currentLocale });
   }
 
+  focusInput(): void {
+    // Show the panel if hidden, then tell webview to focus the input
+    this.openInEditor();
+    this.postMessage({ type: 'focus_input' });
+  }
+
   clearChat(): void {
     this.conversation?.clear();
     this.postMessage({ type: 'chat_cleared' });

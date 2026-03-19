@@ -2,7 +2,7 @@
 
 The open-source AI coding agent that remembers you.
 
-53 tools. 6 modes. 14 personas. Memory that persists. A personal tutor that teaches for free. Custom personality. Command centre dashboard. Image generation. Office suite. 14 models from 7 providers — **two free models that work instantly, no API key required**.
+54 tools. 6 modes. 14 personas. Memory that persists. A personal tutor that teaches for free. Custom personality. Command centre dashboard. Image generation. Office suite. 14 models from 7 providers — **two free models that work instantly, no API key required**.
 
 > **Install, open, go.** No account. No credit card. No trial. Just start.
 
@@ -20,7 +20,7 @@ Modes aren't tool restrictions — they're states of mind.
 
 | Mode | Prefix | Purpose |
 |---|---|---|
-| **Work** | `>>` | Builder mindset — full 53-tool agent |
+| **Work** | `>>` | Builder mindset — full 54-tool agent |
 | **Plan** | `::` | Architect mindset — read-only analysis and strategic planning |
 | **Brainstorm** | `**` | Ideation mindset — research, generate, challenge, refine ideas |
 | **Chat** | `..` | Friend mindset — personal conversation, memory, journal |

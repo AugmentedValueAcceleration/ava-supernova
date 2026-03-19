@@ -547,6 +547,12 @@ export function App() {
         justLoadedRef.current = true;
       }
 
+      // Focus input shortcut (Ctrl+Escape)
+      if (msg.type === 'focus_input') {
+        setTimeout(() => document.getElementById('chat-input')?.focus(), 100);
+        return;
+      }
+
       dispatch(msg);
     };
     window.addEventListener('message', handler);

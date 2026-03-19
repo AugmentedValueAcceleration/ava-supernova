@@ -128,9 +128,9 @@ This works with Ollama, LM Studio, vLLM, or any OpenAI-compatible API endpoint.
     topic: 'tools',
     keywords: ['tool', 'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'bash', 'web_search', 'browser', 'screenshot', 'database', 'git', 'memory_save', 'memory_recall', 'memory_update', 'memory_delete', 'present_plan', 'todo_write', 'ask_user', 'rollback', 'http_request', 'project_index', 'find_symbol', 'list_directory', 'docs_lookup', 'support_request', 'task_manage', 'journal_write', 'document_manage', 'propose_tool', 'get_datetime', 'detect_language', 'learning_create', 'learning_teach', 'learning_progress', 'weather', 'news', 'self_inspect', 'release_notes', 'presentation_create', 'email_draft', 'report_generate'],
     title: 'Built-in Tools',
-    content: `# Built-in Tools (53)
+    content: `# Built-in Tools (54)
 
-Ava has 53 built-in tools organized by category. Tool availability depends on the current mode and permission settings.
+Ava has 54 built-in tools organized by category. Tool availability depends on the current mode and permission settings.
 
 ## Reading & Searching (always auto-approved)
 | Tool | Description |
@@ -151,7 +151,8 @@ Ava has 53 built-in tools organized by category. Tool availability depends on th
 | http_request | Make HTTP requests (GET, POST, PUT, DELETE) with auth, assertions, timing. |
 | browser | Automate browser interactions using Playwright (navigate, click, fill, screenshot). |
 | screenshot | Capture a screenshot of the user's screen for visual analysis. |
-| generate_image | Generate AI images from text prompts via Wan2.6. Saves to project images/ folder. |
+| generate_image | Generate AI images from text prompts via Wan2.6. Supports purpose parameter (icon/ui-element/logo/illustration/background/promotional/avatar), automatic transparent backgrounds for icons (white bg then bg removal), vision verification via Qwen VL, and retry loop. Saves to project images/ folder. |
+| remove_background | Remove white/light backgrounds from images — makes icons, logos, UI elements transparent. Configurable threshold and edge softness. |
 | database_query | Run read-only SQL queries against PostgreSQL, SQLite, or MySQL. |
 | docs_lookup | Search your own documentation to answer user questions about features, setup, and troubleshooting. |
 
@@ -255,7 +256,7 @@ Ava has 53 built-in tools organized by category. Tool availability depends on th
 Ava has six modes. Each mode is a distinct state of mind — it changes how Ava thinks, not just what tools she has access to.
 
 ## Work Mode (\`>>\`) — Builder
-Full agent with all 53 tools. Ava reads, writes, searches, executes, manages tasks, journals, and creates documents. For complex tasks, Ava's internal persona team activates: Scout maps the codebase, Architect designs the approach, Verifier fact-checks, Sequencer breaks it into steps, Challenger questions the plan — then Builder executes.
+Full agent with all 54 tools. Ava reads, writes, searches, executes, manages tasks, journals, and creates documents. For complex tasks, Ava's internal persona team activates: Scout maps the codebase, Architect designs the approach, Verifier fact-checks, Sequencer breaks it into steps, Challenger questions the plan — then Builder executes.
 
 ## Plan Mode (\`::\`) — Architect
 Strategic planning. Ava's persona team activates: Researcher gathers evidence from the web and codebase, Architect analyses and proposes features, Challenger questions priorities. Use this when deciding what to build next, not how to build it.
@@ -729,7 +730,7 @@ On macOS, use Cmd instead of Ctrl.`,
 
 ### Free Tier
 - Bring your own API keys — no account needed
-- All 53 tools, all modes, all features
+- All 54 tools, all modes, all features
 - Local memory and history
 - Full open-source experience
 

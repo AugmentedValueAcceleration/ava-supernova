@@ -305,7 +305,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
   return (
     <div className="px-3 pb-3 pt-1">
       <div
-        className="rounded-xl overflow-visible relative transition-all duration-200"
+        className="rounded-xl overflow-visible relative transition-all duration-200 outline-none focus-within:outline-none"
         style={{
           border: isDragOver
             ? '1.5px dashed #A855F7'

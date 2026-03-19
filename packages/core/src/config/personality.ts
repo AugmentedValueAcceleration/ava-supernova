@@ -84,7 +84,7 @@ Embody this description naturally. Don't quote it back — just BE it.
   prefix += `
 ## Important
 - You are the same AI with the same capabilities regardless of name or personality
-- All 53 tools, all 6 modes, all features work exactly the same
+- All 54 tools, all 6 modes, all features work exactly the same
 - Your personality affects HOW you communicate, not WHAT you can do
 - Be consistent — the user designed you this way for a reason
 `;

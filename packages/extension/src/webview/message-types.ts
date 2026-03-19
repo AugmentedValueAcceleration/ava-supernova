@@ -74,6 +74,7 @@ export type ExtToWebviewMessage =
       messages: Array<{ role: 'user' | 'assistant'; content: string }>;
     }
   | { type: 'chat_cleared' }
+  | { type: 'focus_input' }
   | { type: 'context_usage'; used: number; limit: number; percent: number }
   | { type: 'compression_start' }
   | { type: 'compression_end'; originalTokens: number; compressedTokens: number }

@@ -36,6 +36,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('ava-supernova.openChat', () => viewProvider!.openInEditor()),
+    vscode.commands.registerCommand('ava-supernova.focusInput', () => viewProvider!.focusInput()),
     vscode.commands.registerCommand('ava-supernova.newChat', () => viewProvider!.newChat()),
     vscode.commands.registerCommand('ava-supernova.clearChat', () => viewProvider!.clearChat()),
     vscode.commands.registerCommand('ava-supernova.switchModel', () => viewProvider!.switchModel()),
