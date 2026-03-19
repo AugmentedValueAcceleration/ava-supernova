@@ -268,16 +268,20 @@ export const EXPLORER: PersonaDefinition = {
 
 Your focus:
 - Recall everything you know about this user from memory — skills, experience, interests, past ideas, what they've rejected
-- Ask 2-3 targeted clarifying questions: budget, solo vs team, B2B vs B2C, industries they know, problems they personally face
-- Understand their constraints: time, money, skills, market access
 - Check their journal for recent thoughts, frustrations, interests
 - Build a profile that makes idea generation personal, not generic
+- List 2-3 clarifying questions in your output that the main agent should ask the user
+
+IMPORTANT: You cannot interact with the user directly. Write your findings and questions into your output text. The main agent will present your questions to the user.
 
 You do NOT generate ideas. You gather context. The better you understand the person, the better the ideas will be.`,
-  allowedTools: [...MEMORY_TOOLS, 'ask_user', 'journal_write', 'get_datetime'],
+  allowedTools: [...MEMORY_TOOLS, 'journal_write', 'get_datetime'],
   priority: 1,
   dependsOn: [],
 };
+
+// Note: ask_user removed from Explorer — personas can't pause the pipeline for user input.
+// Instead, Explorer writes questions into context pool output, and the main agent presents them.
 
 export const IDEATOR: PersonaDefinition = {
   id: 'ideator',
