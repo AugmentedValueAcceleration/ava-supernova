@@ -499,10 +499,23 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
 
           {/* Right side: attach + usage + send/stop */}
           <div className="flex items-center gap-2">
-            {/* Free token balance */}
+            {/* Token balance */}
             {providerSource === 'platform' && platformStatus?.connected && (() => {
-              const remaining = Math.max(0, platformStatus.freeTokensLimit - platformStatus.freeTokensUsed);
-              const isLow = remaining <= 100_000;
+              // Admin/unlimited accounts
+              if (platformStatus.freeTokensLimit >= 999_999_999) {
+                return (
+                  <span className="text-[10px] tabular-nums opacity-30" title="Unlimited tokens">
+                    ∞
+                  </span>
+                );
+              }
+              // Paid plan: show sub tokens if they have a subscription limit
+              const isSub = platformStatus.subTokensLimit && platformStatus.subTokensLimit > 0;
+              const used = isSub ? platformStatus.subTokensUsed : platformStatus.freeTokensUsed;
+              const limit = isSub ? platformStatus.subTokensLimit! : platformStatus.freeTokensLimit;
+              const remaining = Math.max(0, limit - used);
+              const isLow = remaining <= 500_000;
+              const label = isSub ? '' : ' free';
               return (
                 <span
                   className={`text-[10px] tabular-nums ${
@@ -510,9 +523,9 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                       ? 'text-[var(--vscode-editorWarning-foreground,#cca700)] opacity-80'
                       : 'opacity-30'
                   }`}
-                  title={`${remaining.toLocaleString()} / ${platformStatus.freeTokensLimit.toLocaleString()} free tokens remaining`}
+                  title={`${remaining.toLocaleString()} / ${limit.toLocaleString()} tokens remaining`}
                 >
-                  {remaining >= 1000 ? `${Math.round(remaining / 1000)}K` : remaining} free
+                  {remaining >= 1_000_000 ? `${(remaining / 1_000_000).toFixed(1)}M` : remaining >= 1000 ? `${Math.round(remaining / 1000)}K` : remaining}{label}
                 </span>
               );
             })()}
