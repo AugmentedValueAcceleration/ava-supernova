@@ -163,7 +163,7 @@ export function MessageBubble({ message, onConfirmation, onContinue }: MessageBu
   if (message.role === 'user') {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] px-3 py-2 rounded-lg bg-[var(--vscode-input-background)] text-[var(--vscode-foreground)] text-sm whitespace-pre-wrap">
+        <div className="max-w-[85%] px-4 py-3 rounded-2xl rounded-br-sm bg-[var(--color-accent,#a855f7)] text-white text-sm whitespace-pre-wrap">
           {message.images && message.images.length > 0 && (
             <div className="flex gap-1.5 flex-wrap mb-1.5">
               {message.images.map((src, i) => (
@@ -177,6 +177,9 @@ export function MessageBubble({ message, onConfirmation, onContinue }: MessageBu
             </div>
           )}
           {message.content}
+          <div className="text-[11px] opacity-60 mt-1 text-right">
+            {message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+          </div>
         </div>
       </div>
     );
@@ -188,31 +191,41 @@ export function MessageBubble({ message, onConfirmation, onContinue }: MessageBu
   const getContent = useCallback(() => message.content, [message.content]);
 
   return (
-    <div className="space-y-2">
-      {hasThinking && (
-        <ThinkingBlock
-          content={message.thinking!}
-          isStreaming={message.isStreaming && isThinkingOnly}
-        />
-      )}
+    <div className="flex justify-start">
+      <div className="max-w-[90%] rounded-2xl rounded-bl-sm bg-[var(--vscode-input-background)] border border-[var(--vscode-panel-border)] px-4 py-3 space-y-2">
+        {/* Name badge */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-[var(--vscode-foreground)]">Ava</span>
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider"
+                style={{ color: 'var(--color-accent, #a855f7)', backgroundColor: 'rgba(168, 85, 247, 0.15)' }}>
+            SUPERNOVA
+          </span>
+        </div>
 
-      {message.content && (
-        <div className="relative group">
-          <div className="text-sm leading-relaxed">
-            <MarkdownRenderer content={message.content} />
-            {message.isStreaming && (
-              <span className="inline-block w-2 h-4 bg-[var(--vscode-foreground)] opacity-60 animate-pulse ml-0.5" />
+        {hasThinking && (
+          <ThinkingBlock
+            content={message.thinking!}
+            isStreaming={message.isStreaming && isThinkingOnly}
+          />
+        )}
+
+        {message.content && (
+          <div className="relative group">
+            <div className="text-sm leading-relaxed">
+              <MarkdownRenderer content={message.content} />
+              {message.isStreaming && (
+                <span className="inline-block w-2 h-4 animate-pulse ml-0.5" style={{ backgroundColor: 'var(--color-accent, #a855f7)' }} />
+              )}
+            </div>
+            {!message.isStreaming && (
+              <CopyButton
+                getText={getContent}
+                className="absolute top-0 right-0 w-6 h-6
+                           opacity-0 group-hover:opacity-50 hover:!opacity-100"
+              />
             )}
           </div>
-          {!message.isStreaming && (
-            <CopyButton
-              getText={getContent}
-              className="absolute top-0 right-0 w-6 h-6
-                         opacity-0 group-hover:opacity-50 hover:!opacity-100"
-            />
-          )}
-        </div>
-      )}
+        )}
 
       {(() => {
         // Find the last todo_write index so only the most recent one is expanded
@@ -231,6 +244,14 @@ export function MessageBubble({ message, onConfirmation, onContinue }: MessageBu
           ),
         );
       })()}
+
+        {/* Timestamp */}
+        {!message.isStreaming && message.timestamp && (
+          <div className="text-[11px] opacity-40 mt-1 text-right">
+            {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -181,6 +181,7 @@ export interface UIMessage {
   isStreaming: boolean;
   errorCode?: string;
   errorSuggestion?: string;
+  timestamp?: number;
 }
 
 export interface ChatState {

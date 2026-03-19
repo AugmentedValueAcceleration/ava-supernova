@@ -80,6 +80,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...(action.images?.length ? { images: action.images } : {}),
         toolCalls: [],
         isStreaming: false,
+        timestamp: Date.now(),
       };
       // Mark agent as running immediately so the Stop button appears
       return { ...state, messages: [...state.messages, msg], isStreaming: true };
@@ -92,6 +93,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         content: '',
         toolCalls: [],
         isStreaming: true,
+        timestamp: Date.now(),
       };
       return {
         ...state,

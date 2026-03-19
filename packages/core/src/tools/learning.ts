@@ -37,6 +37,16 @@ interface Lesson {
   last_reviewed_at: string | null;
   review_count: number;
   tags: string[];
+  // v0.18 — Time tracking
+  time_spent_minutes: number;
+  started_at: string | null;
+}
+
+interface Milestone {
+  title: string;
+  at_percent: number;
+  reached: boolean;
+  reached_at: string | null;
 }
 
 interface Module {
@@ -64,10 +74,23 @@ interface Curriculum {
   tags: string[];
   created_at: string;
   updated_at: string;
+  // v0.18 — Enhanced fields
+  completed_at: string | null;
+  adaptive_level: 'easy' | 'medium' | 'hard' | null;
+  milestones: Milestone[];
+  curriculum_learning_objectives: string[];
+  curriculum_prerequisites: string;
+  target_audience: string;
 }
 
 interface LearningStore {
   curriculums: Curriculum[];
+  // v0.18 — Learning streaks
+  streaks: {
+    current: number;
+    longest: number;
+    lastActiveDate: string | null;
+  };
 }
 
 // ── Storage helpers ──────────────────────────────────────────────────
@@ -77,12 +100,37 @@ import { join } from 'node:path';
 
 const LEARNING_FILENAME = 'learning.json';
 
+const DEFAULT_MILESTONES: Milestone[] = [
+  { title: 'Quarter way!', at_percent: 25, reached: false, reached_at: null },
+  { title: 'Halfway!', at_percent: 50, reached: false, reached_at: null },
+  { title: 'Almost there!', at_percent: 75, reached: false, reached_at: null },
+  { title: 'Complete!', at_percent: 100, reached: false, reached_at: null },
+];
+
 async function loadStore(globalDir: string): Promise<LearningStore> {
   try {
     const raw = await readFile(join(globalDir, LEARNING_FILENAME), 'utf-8');
-    return JSON.parse(raw);
+    const store = JSON.parse(raw) as LearningStore;
+    // Migrate: add streaks if missing
+    if (!store.streaks) store.streaks = { current: 0, longest: 0, lastActiveDate: null };
+    // Migrate: add new fields to existing curriculums
+    for (const c of store.curriculums) {
+      if (!c.completed_at) c.completed_at = c.status === 'completed' ? c.updated_at : null;
+      if (!c.adaptive_level) c.adaptive_level = null;
+      if (!c.milestones) c.milestones = DEFAULT_MILESTONES.map(m => ({ ...m }));
+      if (!c.curriculum_learning_objectives) c.curriculum_learning_objectives = [];
+      if (!c.curriculum_prerequisites) c.curriculum_prerequisites = '';
+      if (!c.target_audience) c.target_audience = '';
+      for (const mod of c.modules) {
+        for (const l of mod.lessons) {
+          if (l.time_spent_minutes === undefined) l.time_spent_minutes = 0;
+          if (l.started_at === undefined) l.started_at = null;
+        }
+      }
+    }
+    return store;
   } catch {
-    return { curriculums: [] };
+    return { curriculums: [], streaks: { current: 0, longest: 0, lastActiveDate: null } };
   }
 }
 
@@ -123,6 +171,115 @@ function recalculateProgress(curriculum: Curriculum): void {
       curriculum.modules[i + 1].status = 'available';
     }
   }
+}
+
+/** Check milestones and return any newly reached ones */
+function checkMilestones(curriculum: Curriculum): string[] {
+  const reached: string[] = [];
+  for (const m of curriculum.milestones) {
+    if (!m.reached && curriculum.progress_percent >= m.at_percent) {
+      m.reached = true;
+      m.reached_at = new Date().toISOString();
+      reached.push(m.title);
+    }
+  }
+  return reached;
+}
+
+/** Get adaptive difficulty based on recent performance */
+function getAdaptiveDifficulty(curriculum: Curriculum): 'easy' | 'medium' | 'hard' {
+  const scored: number[] = [];
+  for (const mod of curriculum.modules) {
+    for (const l of mod.lessons) {
+      if (l.best_score !== null) scored.push(l.best_score);
+    }
+  }
+  const recent = scored.slice(-3);
+  if (recent.length === 0) return 'medium';
+  const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
+  if (avg >= 90) return 'hard';
+  if (avg >= 70) return 'medium';
+  return 'easy';
+}
+
+/** Update learning streak */
+function updateStreak(store: LearningStore): void {
+  const today = new Date().toISOString().split('T')[0];
+  if (store.streaks.lastActiveDate === today) return;
+
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  if (store.streaks.lastActiveDate === yesterday) {
+    store.streaks.current++;
+  } else {
+    store.streaks.current = 1;
+  }
+  store.streaks.longest = Math.max(store.streaks.longest, store.streaks.current);
+  store.streaks.lastActiveDate = today;
+}
+
+/** Track time spent on a lesson */
+function trackTime(lesson: Lesson): void {
+  if (lesson.started_at) {
+    const elapsed = (Date.now() - new Date(lesson.started_at).getTime()) / 60000;
+    lesson.time_spent_minutes += Math.min(elapsed, 120); // Cap at 2 hours
+    lesson.started_at = null;
+  }
+}
+
+/** Generate recommendations based on completed curriculums */
+function generateRecommendations(store: LearningStore): string[] {
+  const recs: string[] = [];
+  const completed = store.curriculums.filter(c => c.status === 'completed');
+  const active = store.curriculums.filter(c => c.status === 'active');
+
+  // Suggest next level for completed curriculums
+  for (const c of completed) {
+    if (c.level === 'beginner') recs.push(`You completed "${c.title}" (beginner). Consider an intermediate ${c.subject} curriculum.`);
+    if (c.level === 'intermediate') recs.push(`You completed "${c.title}" (intermediate). Ready for advanced ${c.subject}?`);
+  }
+
+  // Find weak areas from quizzes
+  for (const c of [...completed, ...active]) {
+    for (const mod of c.modules) {
+      for (const l of mod.lessons) {
+        if (l.type === 'quiz' && l.best_score !== null && l.best_score < 70) {
+          recs.push(`You scored ${l.best_score}% on "${l.title}" in ${c.title}. A focused review might help.`);
+        }
+      }
+    }
+  }
+
+  // Suggest related topics based on tags
+  const allTags = new Set(store.curriculums.flatMap(c => c.tags));
+  if (allTags.has('python') && !allTags.has('data-science')) recs.push('You know Python — consider learning Data Science or Machine Learning.');
+  if (allTags.has('javascript') && !allTags.has('typescript')) recs.push('You know JavaScript — TypeScript would be a natural next step.');
+  if (allTags.has('react') && !allTags.has('nextjs')) recs.push('You know React — Next.js would expand your full-stack skills.');
+
+  return recs.slice(0, 5);
+}
+
+/** Generate a completion certificate */
+function generateCertificate(curriculum: Curriculum): string {
+  const totalLessons = curriculum.modules.reduce((s, m) => s + m.lessons.length, 0);
+  const totalQuizzes = curriculum.modules.reduce((s, m) => s + m.lessons.filter(l => l.type === 'quiz').length, 0);
+  const totalTime = curriculum.modules.reduce((s, m) => s + m.lessons.reduce((ls, l) => ls + l.time_spent_minutes, 0), 0);
+  const scores = curriculum.modules.flatMap(m => m.lessons.filter(l => l.best_score !== null).map(l => l.best_score!));
+  const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+  const hours = Math.floor(totalTime / 60);
+  const mins = Math.round(totalTime % 60);
+
+  return `# 🎓 Certificate of Completion\n\nThis certifies that you have successfully completed:\n\n` +
+    `## **${curriculum.title}**\n\n` +
+    `| | |\n|---|---|\n` +
+    `| **Subject** | ${curriculum.subject} |\n` +
+    `| **Level** | ${curriculum.level} |\n` +
+    `| **Modules** | ${curriculum.modules.length} |\n` +
+    `| **Lessons** | ${totalLessons} |\n` +
+    `| **Quizzes** | ${totalQuizzes} |\n` +
+    `| **Average Score** | ${avgScore}% |\n` +
+    `| **Time Spent** | ${hours}h ${mins}m |\n` +
+    `| **Completed** | ${curriculum.completed_at || new Date().toISOString()} |\n\n` +
+    `---\n\n*Awarded by **Ava | Supernova** — Your AI learning companion*`;
 }
 
 // Find lessons due for spaced repetition review
@@ -185,6 +342,9 @@ export class LearningCreateTool implements Tool {
         goal: { type: 'string', description: 'What the user wants to achieve' },
         estimated_hours: { type: 'number', description: 'Estimated total hours' },
         tags: { type: 'array', items: { type: 'string' } },
+        learning_objectives: { type: 'array', items: { type: 'string' }, description: 'What the user will learn overall' },
+        prerequisites: { type: 'string', description: 'What the user should already know' },
+        target_audience: { type: 'string', description: 'Who this curriculum is designed for' },
         modules: {
           type: 'array',
           description: 'Ordered modules. Keep lessons lightweight — title, type, difficulty only. Content is added later via learning_teach.',
@@ -232,6 +392,12 @@ export class LearningCreateTool implements Tool {
       tags: (args.tags as string[]) ?? [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      completed_at: null,
+      adaptive_level: null,
+      milestones: DEFAULT_MILESTONES.map(m => ({ ...m })),
+      curriculum_learning_objectives: (args.learning_objectives as string[]) ?? [],
+      curriculum_prerequisites: (args.prerequisites as string) ?? '',
+      target_audience: (args.target_audience as string) ?? '',
       modules: ((args.modules as Array<Record<string, unknown>>) || []).map((mod, mi) => ({
         id: generateId(),
         title: mod.title as string,
@@ -260,9 +426,39 @@ export class LearningCreateTool implements Tool {
           last_reviewed_at: null,
           review_count: 0,
           tags: [],
+          time_spent_minutes: 0,
+          started_at: null,
         })),
       })),
     };
+
+    // Auto difficulty progression within modules
+    for (const mod of curriculum.modules) {
+      const lessonCount = mod.lessons.length;
+      if (lessonCount >= 3) {
+        mod.lessons.forEach((l, i) => {
+          if (!l.difficulty || l.difficulty === 'medium') {
+            const position = i / (lessonCount - 1);
+            if (position < 0.33) l.difficulty = 'easy';
+            else if (position < 0.67) l.difficulty = 'medium';
+            else l.difficulty = 'hard';
+          }
+        });
+      }
+    }
+
+    // Auto-calculate estimated_hours from lesson minutes if not provided
+    if (!curriculum.estimated_hours) {
+      const totalMins = curriculum.modules.reduce((s, m) =>
+        s + m.lessons.reduce((ls, l) => ls + (l.estimated_minutes || 15), 0), 0);
+      curriculum.estimated_hours = Math.round(totalMins / 60 * 10) / 10;
+    }
+
+    // Check prior curriculums for adaptive difficulty
+    if (store.curriculums.length > 0) {
+      const priorLevel = getAdaptiveDifficulty(store.curriculums[0]);
+      curriculum.adaptive_level = priorLevel;
+    }
 
     // Recalculate module estimated times
     recalculateProgress(curriculum);
@@ -310,8 +506,8 @@ export class LearningTeachTool implements Tool {
     description:
       'Teach the user by delivering lesson content, providing feedback, running quizzes, or triggering reviews. ' +
       'Use this after the user says they want to continue learning or asks about a specific topic. ' +
-      'Actions: deliver (present lesson), write_content (update lesson content), feedback (give feedback — ' +
-      'pass or fail), quiz (run quiz questions and grade), review (spaced repetition review of completed lessons).',
+      'Actions: assess (diagnostic before creating curriculum), deliver (present lesson), write_content (update lesson content — follow the content template for the lesson type), ' +
+      'feedback (give feedback — pass or fail), quiz (run quiz questions and grade), review (spaced repetition review of completed lessons).',
     parameters: {
       type: 'object',
       properties: {
@@ -319,9 +515,11 @@ export class LearningTeachTool implements Tool {
         lesson_id: { type: 'string', description: 'ID of the lesson to teach or update' },
         action: {
           type: 'string',
-          enum: ['deliver', 'feedback', 'write_content', 'quiz', 'review'],
-          description: 'deliver = present the lesson, feedback = pass/fail with feedback, write_content = update content, quiz = run quiz questions, review = spaced repetition review',
+          enum: ['assess', 'deliver', 'feedback', 'write_content', 'quiz', 'review'],
+          description: 'assess = diagnostic quiz before curriculum creation (curriculum_id can be empty), deliver = present lesson, feedback = pass/fail, write_content = update content (follow content template), quiz = run quiz, review = spaced repetition',
         },
+        subject: { type: 'string', description: 'For assess: the subject to assess knowledge in' },
+        assessment_level: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'], description: 'For assess: claimed level to verify' },
         content: { type: 'string', description: 'For write_content: markdown teaching content. For feedback: Ava\'s feedback text.' },
         passed: { type: 'boolean', description: 'For feedback: did the user pass? true = completed, false = needs_review (retry)' },
         score: { type: 'number', description: 'For feedback/quiz: score 0-100' },
@@ -359,9 +557,60 @@ export class LearningTeachTool implements Tool {
     if (!lesson || !parentModule) return { success: false, output: `Lesson not found: ${lessonId}` };
 
     switch (action) {
+      case 'assess': {
+        const subject = args.subject as string || 'general';
+        const claimedLevel = args.assessment_level as string || 'beginner';
+
+        const assessmentQuestions: Record<string, { beginner: string[]; intermediate: string[]; advanced: string[] }> = {
+          default: {
+            beginner: [
+              'What experience do you have with this topic?',
+              'Have you built anything with it before?',
+              'What do you want to be able to do after learning this?',
+            ],
+            intermediate: [
+              'Describe a project you\'ve built with this technology.',
+              'What concepts do you find most challenging?',
+              'What specific area do you want to deepen?',
+            ],
+            advanced: [
+              'What\'s your experience with advanced patterns in this area?',
+              'Have you contributed to open source projects using this?',
+              'What specific edge cases or performance issues have you encountered?',
+            ],
+          },
+        };
+
+        const questions = assessmentQuestions.default[claimedLevel as keyof typeof assessmentQuestions.default] || assessmentQuestions.default.beginner;
+
+        return {
+          success: true,
+          output: `**Assessment: ${subject}** (claimed level: ${claimedLevel})\n\n` +
+            `Before creating a curriculum, I need to understand where you are. Please answer these:\n\n` +
+            questions.map((q, i) => `${i + 1}. ${q}`).join('\n') +
+            `\n\nBased on your answers, I'll create a curriculum that starts at the right level — ` +
+            `not too easy (boring), not too hard (frustrating). If you're a complete beginner, that's perfectly fine.` +
+            `\n\nAfter assessing, use learning_create to build the curriculum at the appropriate level.`,
+        };
+      }
+
       case 'deliver': {
+        // Check prerequisites
+        if (lesson.prerequisites.length > 0) {
+          const allLessons = curriculum.modules.flatMap(m => m.lessons);
+          const unmet = lesson.prerequisites.filter(pre => {
+            const prereq = allLessons.find(l => l.title.toLowerCase() === pre.toLowerCase());
+            return !prereq || prereq.status !== 'completed';
+          });
+          if (unmet.length > 0) {
+            return { success: false, output: `Prerequisites not met: ${unmet.join(', ')}. Complete these first.` };
+          }
+        }
+
         lesson.status = 'in_progress';
+        lesson.started_at = new Date().toISOString();
         curriculum.updated_at = new Date().toISOString();
+        updateStreak(store);
         recalculateProgress(curriculum);
         await saveStore(globalDir, store);
 
@@ -400,10 +649,37 @@ export class LearningTeachTool implements Tool {
 
       case 'write_content': {
         if (!content) return { success: false, output: 'Content is required for write_content action' };
+
+        // Content quality guidance based on lesson type
+        const contentTemplates: Record<string, string> = {
+          concept: '**Template: Concept Lesson**\n1. Explain the concept clearly\n2. Give 2-3 concrete examples\n3. Show a common mistake and how to avoid it\n4. Summarise the key takeaway',
+          exercise: '**Template: Exercise**\n1. Describe the problem clearly\n2. State the expected input/output\n3. Give a hint (not the answer)\n4. Provide acceptance criteria',
+          project: '**Template: Project**\n1. Project requirements (what to build)\n2. Starter code or setup steps\n3. Milestones to work through\n4. Acceptance criteria for completion',
+          quiz: '**Template: Quiz**\nQuiz content is set via quiz_questions, not write_content. Use feedback action after grading.',
+          recap: '**Template: Recap**\n1. Summary of key concepts from previous lessons\n2. How they connect together\n3. Quick self-check questions',
+          challenge: '**Template: Challenge**\n1. Advanced problem combining multiple concepts\n2. Constraints that make it harder\n3. No hints — the user should apply what they\'ve learned\n4. Bonus criteria for excellence',
+        };
+
+        // Check content quality
+        const warnings: string[] = [];
+        if (content.length < 100 && lesson.type !== 'quiz') warnings.push('Content seems short. Good lessons have depth — examples, explanations, edge cases.');
+        if (lesson.type === 'concept' && !content.includes('example') && !content.includes('Example') && !content.includes('```')) {
+          warnings.push('Concept lessons should include examples. Add code samples or real-world analogies.');
+        }
+        if (lesson.type === 'exercise' && !content.includes('expected') && !content.includes('output') && !content.includes('should')) {
+          warnings.push('Exercises should have clear expected outcomes. What should the result look like?');
+        }
+
         lesson.content = content;
         curriculum.updated_at = new Date().toISOString();
         await saveStore(globalDir, store);
-        return { success: true, output: `Updated content for "${lesson.title}" (${content.length} chars)` };
+
+        let out = `Updated content for "${lesson.title}" (${content.length} chars)`;
+        if (warnings.length > 0) {
+          out += `\n\n⚠️ Quality notes:\n${warnings.map(w => `- ${w}`).join('\n')}`;
+          out += `\n\nReference template for ${lesson.type} lessons:\n${contentTemplates[lesson.type] || ''}`;
+        }
+        return { success: true, output: out };
       }
 
       case 'feedback': {
@@ -413,19 +689,23 @@ export class LearningTeachTool implements Tool {
           lesson.best_score = Math.max(lesson.best_score ?? 0, score);
         }
         lesson.attempts++;
+        trackTime(lesson);
+        updateStreak(store);
 
         if (passed === false) {
-          // User needs to retry
           lesson.status = 'needs_review';
           curriculum.updated_at = new Date().toISOString();
+          curriculum.adaptive_level = getAdaptiveDifficulty(curriculum);
           recalculateProgress(curriculum);
           await saveStore(globalDir, store);
           return {
             success: true,
             output: `"${lesson.title}" — needs more work.` +
               (score !== undefined ? ` Score: ${score}% (attempt ${lesson.attempts})` : '') +
+              (lesson.time_spent_minutes > 0 ? ` Time: ${Math.round(lesson.time_spent_minutes)}m` : '') +
               `\n${content || 'Review the material and try again when ready.'}` +
-              `\nThe lesson stays unlocked — tell the user they can retry anytime.`,
+              `\nThe lesson stays unlocked — tell the user they can retry anytime.` +
+              (store.streaks.current > 1 ? `\n🔥 Learning streak: ${store.streaks.current} days!` : ''),
           };
         }
 
@@ -433,16 +713,24 @@ export class LearningTeachTool implements Tool {
         lesson.status = 'completed';
         lesson.completed_at = new Date().toISOString();
         curriculum.updated_at = new Date().toISOString();
+        curriculum.adaptive_level = getAdaptiveDifficulty(curriculum);
         recalculateProgress(curriculum);
+        const newMilestones = checkMilestones(curriculum);
+        if (curriculum.progress_percent === 100 && !curriculum.completed_at) {
+          curriculum.completed_at = new Date().toISOString();
+          curriculum.status = 'completed';
+        }
         await saveStore(globalDir, store);
-        return {
-          success: true,
-          output: `"${lesson.title}" — completed!` +
-            (score !== undefined ? ` Score: ${score}%` : '') +
-            (lesson.attempts > 1 ? ` (${lesson.attempts} attempts)` : '') +
-            `\nCurriculum progress: ${curriculum.progress_percent}%` +
-            (content ? `\n\n${content}` : ''),
-        };
+
+        let feedbackOut = `"${lesson.title}" — completed!` +
+          (score !== undefined ? ` Score: ${score}%` : '') +
+          (lesson.attempts > 1 ? ` (${lesson.attempts} attempts)` : '') +
+          (lesson.time_spent_minutes > 0 ? ` Time: ${Math.round(lesson.time_spent_minutes)}m` : '') +
+          `\nCurriculum progress: ${curriculum.progress_percent}%`;
+        if (newMilestones.length > 0) feedbackOut += `\n🎯 Milestone: ${newMilestones.join(', ')}`;
+        if (store.streaks.current > 1) feedbackOut += `\n🔥 Learning streak: ${store.streaks.current} days!`;
+        if (content) feedbackOut += `\n\n${content}`;
+        return { success: true, output: feedbackOut };
       }
 
       case 'quiz': {
@@ -572,8 +860,8 @@ export class LearningProgressTool implements Tool {
       properties: {
         action: {
           type: 'string',
-          enum: ['list', 'detail', 'next_lesson', 'needs_review', 'search', 'stats'],
-          description: 'list = all curriculums, detail = specific curriculum, next_lesson = next available, needs_review = spaced repetition due, search = keyword/tag search, stats = learning statistics',
+          enum: ['list', 'detail', 'next_lesson', 'needs_review', 'search', 'stats', 'recommend', 'certificate'],
+          description: 'list = all curriculums, detail = specific curriculum, next_lesson = next available, needs_review = spaced repetition due, search = keyword/tag search, stats = learning statistics, recommend = suggest what to learn next, certificate = completion certificate',
         },
         curriculum_id: { type: 'string', description: 'For detail/next_lesson: which curriculum' },
         query: { type: 'string', description: 'For search: keyword or tag to search for' },
@@ -750,6 +1038,17 @@ export class LearningProgressTool implements Tool {
           }
         }
 
+        let totalTimeSpent = 0;
+        for (const curr of store.curriculums) {
+          for (const mod of curr.modules) {
+            for (const lesson of mod.lessons) {
+              totalTimeSpent += lesson.time_spent_minutes;
+            }
+          }
+        }
+        const spentH = Math.floor(totalTimeSpent / 60);
+        const spentM = Math.round(totalTimeSpent % 60);
+
         return {
           success: true,
           output: `**Learning Statistics:**\n` +
@@ -757,8 +1056,28 @@ export class LearningProgressTool implements Tool {
             `Lessons: ${completedLessons}/${totalLessons} completed\n` +
             `Quizzes: ${totalQuizzes} (avg score: ${scoredQuizzes > 0 ? Math.round(totalScore / scoredQuizzes) : 'N/A'}%)\n` +
             `Estimated time: ~${Math.round(totalMinutesEstimated / 60)}h ${totalMinutesEstimated % 60}m\n` +
-            `Reviews completed: ${totalReviews}`,
+            `Actual time spent: ${spentH}h ${spentM}m\n` +
+            `Reviews completed: ${totalReviews}\n` +
+            `Current streak: ${store.streaks.current} days (longest: ${store.streaks.longest})`,
         };
+      }
+
+      case 'recommend': {
+        const recs = generateRecommendations(store);
+        if (recs.length === 0) {
+          return { success: true, output: 'No recommendations yet. Complete some lessons and I\'ll suggest what to learn next.' };
+        }
+        return { success: true, output: `**Recommendations:**\n${recs.map((r, i) => `${i + 1}. ${r}`).join('\n')}` };
+      }
+
+      case 'certificate': {
+        if (!currId) return { success: false, output: 'curriculum_id is required for certificate action' };
+        const cert = store.curriculums.find(c => c.id === currId);
+        if (!cert) return { success: false, output: `Curriculum not found: ${currId}` };
+        if (cert.progress_percent < 100) {
+          return { success: false, output: `Curriculum is ${Math.round(cert.progress_percent)}% complete. Finish all lessons to earn your certificate.` };
+        }
+        return { success: true, output: generateCertificate(cert) };
       }
 
       default:
