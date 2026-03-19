@@ -4,11 +4,13 @@
  * Layer 1: Rule-based pattern matching (instant, zero cost)
  *   Runs after EVERY agent turn. Catches explicit signals like
  *   "I prefer", "remember that", corrections, decisions, etc.
+ *   Distills raw messages into concise, standalone summaries.
  *
  * Layer 2: LLM-powered reflection (smart, one cheap API call)
- *   Runs at END of meaningful conversations (>= 4 user turns).
+ *   Runs at END of meaningful conversations (>= 2 user turns).
  *   Asks the model to reflect on what was learned and extract
- *   structured memories. Catches nuance, solutions, context.
+ *   structured memories. Catches nuance, solutions, context,
+ *   and emotional context for future approach adjustments.
  *
  * Together: fast pattern matching catches the obvious stuff instantly,
  * LLM reflection catches everything the regex missed.
@@ -128,9 +130,102 @@ const ASSISTANT_PATTERN_GROUPS: PatternGroup[] = [
   { patterns: DISCOVERY_PATTERNS, category: 'bug-fix', scope: 'project', tags: ['auto-extracted', 'discovery'] },
 ];
 
+/** Category labels used as prefixes in distilled memories. */
+const CATEGORY_PREFIXES: Record<string, string> = {
+  preference: 'Preference',
+  convention: 'Correction',
+  decision: 'Decision',
+  architecture: 'Stack',
+  person: 'Personal',
+  general: 'Note',
+  'bug-fix': 'Discovery',
+};
+
+/**
+ * Distill a raw message into a concise, standalone memory summary.
+ *
+ * Instead of saving `text.slice(0, 500)`, this extracts the key fact
+ * around the matched pattern and cleans it into a useful statement.
+ */
+function distillMemory(text: string, matchedPattern: RegExp, group: PatternGroup): string {
+  const match = matchedPattern.exec(text);
+  const prefix = CATEGORY_PREFIXES[group.category] ?? 'Note';
+
+  if (!match) {
+    // Fallback: clean the first 150 chars
+    return `${prefix}: ${cleanSentence(text.slice(0, 150))}`;
+  }
+
+  // Extract a window of ~100 chars around the match
+  const matchStart = match.index;
+  const matchEnd = matchStart + match[0].length;
+
+  // Expand window to capture surrounding context
+  const windowStart = Math.max(0, matchStart - 20);
+  const windowEnd = Math.min(text.length, matchEnd + 80);
+
+  let window = text.slice(windowStart, windowEnd).trim();
+
+  // Clean up: remove leading/trailing partial words if we sliced mid-word
+  if (windowStart > 0) {
+    const firstSpace = window.indexOf(' ');
+    if (firstSpace > 0 && firstSpace < 15) {
+      window = window.slice(firstSpace + 1);
+    }
+  }
+  if (windowEnd < text.length) {
+    const lastSpace = window.lastIndexOf(' ');
+    if (lastSpace > window.length - 15 && lastSpace > 0) {
+      window = window.slice(0, lastSpace);
+    }
+  }
+
+  // For explicit remember patterns, keep as-is but trim
+  if (group.tags.includes('explicit')) {
+    return `${prefix}: ${cleanSentence(window)}`;
+  }
+
+  // For knowledge/discovery, extract the key finding
+  if (group.tags.includes('knowledge') || group.tags.includes('discovery')) {
+    return `${prefix}: ${cleanSentence(window)}`;
+  }
+
+  return `${prefix}: ${cleanSentence(window)}`;
+}
+
+/** Clean a sentence fragment into a concise statement. */
+function cleanSentence(text: string): string {
+  let cleaned = text
+    // Remove leading conjunctions, filler
+    .replace(/^(?:well,?\s*|so,?\s*|ok(?:ay)?,?\s*|yeah?,?\s*|um+,?\s*)/i, '')
+    // Collapse whitespace
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Remove trailing incomplete sentence fragments (no period at end)
+  if (cleaned.length > 10 && !cleaned.endsWith('.') && !cleaned.endsWith('!') && !cleaned.endsWith('?')) {
+    // Try to end at the last complete sentence
+    const lastPeriod = cleaned.lastIndexOf('.');
+    const lastBang = cleaned.lastIndexOf('!');
+    const lastQ = cleaned.lastIndexOf('?');
+    const lastEnd = Math.max(lastPeriod, lastBang, lastQ);
+    if (lastEnd > cleaned.length * 0.4) {
+      cleaned = cleaned.slice(0, lastEnd + 1);
+    }
+  }
+
+  // Capitalize first letter
+  if (cleaned.length > 0) {
+    cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  }
+
+  return cleaned;
+}
+
 /**
  * Layer 1: Extract memorable information from recent messages using regex patterns.
  * Scans both user AND assistant messages for signals worth remembering.
+ * Distills raw messages into concise, standalone summaries.
  */
 export function extractMemories(messages: Message[]): ExtractedMemory[] {
   const results: ExtractedMemory[] = [];
@@ -156,7 +251,7 @@ export function extractMemories(messages: Message[]): ExtractedMemory[] {
       for (const pattern of group.patterns) {
         if (pattern.test(text)) {
           results.push({
-            content: text.slice(0, 500),
+            content: distillMemory(text, pattern, group),
             category: group.category,
             scope: group.scope,
             tags: [...group.tags],
@@ -183,6 +278,7 @@ const REFLECTION_PROMPT = `You are a memory extraction assistant. Analyze this c
 5. **Personal info** — name, role, team, expertise level
 6. **Solutions** — bugs that were fixed and how, tricky problems and their solutions
 7. **Patterns** — recurring workflows or conventions discovered during the conversation
+8. **Emotional context** — if the user was frustrated, excited, or stressed during this conversation, note what caused it and how it was resolved. This helps adjust approach in future sessions.
 
 Respond ONLY with a JSON array of memory objects. Each object must have:
 - "content": A concise, standalone summary (not the raw message — distill the key insight)
@@ -195,7 +291,7 @@ Rules:
 - Do NOT extract trivial things like greetings or acknowledgments
 - Do NOT extract anything already obvious from the codebase itself
 - If nothing worth remembering happened, return an empty array: []
-- Maximum 5 memories per conversation — only the most important
+- Maximum 7 memories per conversation — only the most important
 
 Respond with ONLY the JSON array, no other text.`;
 
@@ -212,24 +308,25 @@ const VALID_CATEGORIES: MemoryCategory[] = [
 
 /**
  * Layer 2: Use the LLM to reflect on the conversation and extract structured memories.
- * Only runs for meaningful conversations (>= 4 user turns).
+ * Only runs for meaningful conversations (>= 2 user turns).
+ * Even short sessions can contain critical decisions or corrections.
  */
 export async function reflectAndExtract(
   messages: Message[],
   provider: Provider,
   model: ModelDefinition,
 ): Promise<ExtractedMemory[]> {
-  // Only reflect on meaningful conversations
+  // Only reflect on meaningful conversations (lowered from 4 — even 2-turn sessions can have critical decisions)
   const userMsgCount = messages.filter((m) => m.role === 'user').length;
-  if (userMsgCount < 4) return [];
+  if (userMsgCount < 2) return [];
 
   // Build a condensed transcript (skip system prompt, limit length)
   const transcript = messages
     .filter((m) => m.role !== 'system')
     .map((m) => {
       const text = getTextContent(m.content);
-      // Truncate individual messages to keep the reflection prompt manageable
-      const truncated = text.length > 300 ? text.slice(0, 300) + '...' : text;
+      // Truncate individual messages to keep the reflection prompt manageable (500 chars for more context)
+      const truncated = text.length > 500 ? text.slice(0, 500) + '...' : text;
       return `[${m.role}]: ${truncated}`;
     })
     .join('\n');
@@ -248,7 +345,7 @@ export async function reflectAndExtract(
         { role: 'user', content: trimmedTranscript } as Message,
       ],
       temperature: 0.1,
-      max_tokens: 800,
+      max_tokens: 1200,
     });
 
     const content = response.choices?.[0]?.message?.content;
@@ -271,7 +368,7 @@ export async function reflectAndExtract(
         VALID_CATEGORIES.includes(m.category) &&
         (m.scope === 'global' || m.scope === 'project')
       )
-      .slice(0, 5) // Hard cap
+      .slice(0, 7) // Hard cap (increased from 5 for richer extraction)
       .map((m) => ({
         content: m.content.slice(0, 500),
         category: m.category,

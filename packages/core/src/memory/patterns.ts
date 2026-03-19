@@ -7,6 +7,8 @@
  * This is the "Smarter Memory" pillar — Ava learns your patterns, not just your words.
  */
 
+import { readFile, writeFile, rename, unlink, mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import type { Message } from '../core/types.js';
 import { getTextContent } from '../core/types.js';
 import type { MemoryManager } from './memory-manager.js';
@@ -35,6 +37,211 @@ export interface PatternState {
   version: 1;
   accumulators: PatternAccumulator[];
   lastProcessed: string;
+}
+
+/** Maximum age (in days) before a stale accumulator entry is pruned. */
+const ACCUMULATOR_STALE_DAYS = 30;
+
+/** Number of occurrences needed to promote a medium-confidence pattern to memory. */
+const PROMOTION_THRESHOLD = 2;
+
+/**
+ * Manages the pattern accumulator — persists medium-confidence patterns to disk
+ * and promotes them to memory when seen enough times across sessions.
+ *
+ * This enables cross-session pattern detection: a signal seen in session 1
+ * can be matched against a similar signal in session 3, and if they overlap
+ * enough, the pattern is promoted to a real memory.
+ */
+export class PatternAccumulatorManager {
+  private state: PatternState;
+  private readonly filePath: string;
+
+  constructor(avaHome: string) {
+    this.filePath = join(avaHome, 'pattern-accumulator.json');
+    this.state = this.load();
+  }
+
+  /** Load state from disk, returning a default if not found. */
+  private load(): PatternState {
+    try {
+      // Synchronous-style: we read on construction. For async contexts,
+      // callers should use loadAsync() instead.
+      // We'll store a cached version and load async in accumulate().
+      return {
+        version: 1,
+        accumulators: [],
+        lastProcessed: new Date().toISOString(),
+      };
+    } catch {
+      return {
+        version: 1,
+        accumulators: [],
+        lastProcessed: new Date().toISOString(),
+      };
+    }
+  }
+
+  /** Load state from disk asynchronously. */
+  async loadAsync(): Promise<void> {
+    try {
+      const data = await readFile(this.filePath, 'utf-8');
+      const parsed = JSON.parse(data) as PatternState;
+      if (parsed.version === 1 && Array.isArray(parsed.accumulators)) {
+        this.state = parsed;
+      }
+    } catch {
+      // File doesn't exist or is corrupt — use default state
+    }
+  }
+
+  /** Save state to disk using atomic write. */
+  private async save(): Promise<void> {
+    try {
+      const dir = join(this.filePath, '..');
+      await mkdir(dir, { recursive: true });
+
+      const content = JSON.stringify(this.state, null, 2);
+      const tmpPath = this.filePath + '.tmp';
+      await writeFile(tmpPath, content, 'utf-8');
+      try {
+        await rename(tmpPath, this.filePath);
+      } catch {
+        await unlink(tmpPath).catch(() => {});
+      }
+    } catch (err) {
+      logger.debug(`[patterns] Failed to save accumulator: ${err}`);
+    }
+  }
+
+  /**
+   * Normalize a signal string into a stable key for matching across sessions.
+   * Lowercase, trimmed, first 100 chars.
+   */
+  private normalizeKey(signal: string): string {
+    return signal
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 100);
+  }
+
+  /**
+   * Check if two normalized signals are similar enough to be the same pattern.
+   * Uses word overlap: if >60% of words in either signal appear in the other, they match.
+   */
+  private isSimilar(a: string, b: string): boolean {
+    const wordsA = new Set(a.split(' ').filter(w => w.length > 1));
+    const wordsB = new Set(b.split(' ').filter(w => w.length > 1));
+
+    if (wordsA.size === 0 || wordsB.size === 0) return false;
+
+    let overlapCount = 0;
+    for (const word of wordsA) {
+      if (wordsB.has(word)) overlapCount++;
+    }
+
+    const overlapRatioA = overlapCount / wordsA.size;
+    const overlapRatioB = overlapCount / wordsB.size;
+
+    // Match if >60% overlap in either direction
+    return overlapRatioA > 0.6 || overlapRatioB > 0.6;
+  }
+
+  /**
+   * Record a medium-confidence pattern. If seen 2+ times (possibly across sessions),
+   * promote to a real memory and remove from the accumulator.
+   *
+   * Returns true if the pattern was promoted to memory.
+   */
+  async accumulate(
+    pattern: DetectedPattern,
+    memoryManager: MemoryManager,
+    conversationId?: string,
+  ): Promise<boolean> {
+    await this.loadAsync();
+
+    const normalizedSignal = this.normalizeKey(pattern.signal);
+
+    // Find an existing accumulator entry that matches this signal
+    let existing = this.state.accumulators.find(
+      acc => acc.category === this.patternTypeToCategory(pattern.type) &&
+             this.isSimilar(this.normalizeKey(acc.pattern), normalizedSignal)
+    );
+
+    if (existing) {
+      existing.count++;
+      existing.lastSeen = new Date().toISOString();
+      if (existing.examples.length < 5) {
+        existing.examples.push(pattern.signal.slice(0, 200));
+      }
+    } else {
+      existing = {
+        pattern: pattern.signal.slice(0, 300),
+        category: this.patternTypeToCategory(pattern.type),
+        count: 1,
+        lastSeen: new Date().toISOString(),
+        examples: [pattern.signal.slice(0, 200)],
+      };
+      this.state.accumulators.push(existing);
+    }
+
+    // Check if we should promote
+    if (existing.count >= PROMOTION_THRESHOLD) {
+      try {
+        await memoryManager.saveEntry({
+          scope: existing.category === 'preference' ? 'global' : 'project',
+          content: `[Cross-session pattern — ${existing.category}] ${existing.pattern}`,
+          category: existing.category,
+          tags: ['auto-learned', 'pattern-detection', 'cross-session'],
+          sourceConversationId: conversationId,
+        });
+
+        // Remove from accumulator after promotion
+        const idx = this.state.accumulators.indexOf(existing);
+        if (idx >= 0) this.state.accumulators.splice(idx, 1);
+
+        logger.info(`[patterns] Promoted cross-session pattern to memory: ${existing.pattern.slice(0, 60)}...`);
+
+        this.state.lastProcessed = new Date().toISOString();
+        await this.save();
+        return true;
+      } catch {
+        // Dedup rejection or write error — keep accumulating
+      }
+    }
+
+    this.state.lastProcessed = new Date().toISOString();
+    await this.save();
+    return false;
+  }
+
+  /** Map pattern detection type to memory category. */
+  private patternTypeToCategory(type: DetectedPattern['type']): MemoryCategory {
+    switch (type) {
+      case 'correction': return 'convention';
+      case 'naming-convention': return 'convention';
+      case 'style-preference': return 'preference';
+      case 'workflow': return 'preference';
+      case 'rejection': return 'general';
+      default: return 'general';
+    }
+  }
+
+  /** Clean up old accumulators that haven't been seen in 30+ days. */
+  prune(): void {
+    const now = Date.now();
+    this.state.accumulators = this.state.accumulators.filter(acc => {
+      const daysSince = (now - new Date(acc.lastSeen).getTime()) / (1000 * 60 * 60 * 24);
+      return daysSince <= ACCUMULATOR_STALE_DAYS;
+    });
+  }
+
+  /** Get current accumulator state (for debugging/inspection). */
+  getState(): PatternState {
+    return this.state;
+  }
 }
 
 // ── Detection Patterns ──────────────────────────────────────────────────────
@@ -180,14 +387,18 @@ export function detectPatterns(messages: Message[]): DetectedPattern[] {
 /**
  * Track detected patterns and auto-save when confidence threshold is met.
  *
- * The accumulator tracks how many times a similar pattern appears.
- * After 2+ occurrences of the same type of correction, it's saved as
- * a high-confidence preference memory.
+ * High-confidence patterns (>= 0.8) save immediately.
+ * Medium-confidence patterns (0.5-0.8) are accumulated across sessions
+ * and promoted to memory after 2+ occurrences.
+ *
+ * @param accumulator — optional PatternAccumulatorManager for cross-session learning.
+ *   If not provided, medium-confidence patterns are logged but not persisted.
  */
 export async function trackAndLearn(
   messages: Message[],
   memoryManager: MemoryManager,
   conversationId?: string,
+  accumulator?: PatternAccumulatorManager,
 ): Promise<number> {
   try {
     const patterns = detectPatterns(messages);
@@ -219,10 +430,18 @@ export async function trackAndLearn(
         }
       }
 
-      // Medium-confidence patterns get logged for now
-      // (Phase 2: accumulator-based learning with persistence)
+      // Medium-confidence patterns accumulate across sessions
       if (pattern.confidence >= 0.5 && pattern.confidence < 0.8) {
-        logger.debug(`[patterns] Detected ${pattern.type} (confidence: ${pattern.confidence}): ${pattern.signal.slice(0, 60)}...`);
+        if (accumulator) {
+          try {
+            const promoted = await accumulator.accumulate(pattern, memoryManager, conversationId);
+            if (promoted) saved++;
+          } catch {
+            logger.debug(`[patterns] Accumulator failed for ${pattern.type}: ${pattern.signal.slice(0, 60)}...`);
+          }
+        } else {
+          logger.debug(`[patterns] Detected ${pattern.type} (confidence: ${pattern.confidence}): ${pattern.signal.slice(0, 60)}...`);
+        }
       }
     }
 
