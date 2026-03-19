@@ -7,7 +7,7 @@ export const esStrings: Record<string, string> = {
 
   // Welcome \u2014 Setup
   'welcome.setup_title': 'Comenzar \u2014 Agregar una clave API',
-  'welcome.setup_desc': 'Agrega una clave API de proveedor para desbloquear Ava. GLM-4.5 Flash y Codestral son completamente gratuitos \u2014 sin tarjeta de cr\u00e9dito.',
+  'welcome.setup_desc': 'Reg\u00edstrate para obtener 3M de tokens Qwen gratis, o a\u00f1ade tu propia clave API de cualquier proveedor.',
   'welcome.setup_cta': 'Abrir configuraci\u00f3n',
   'welcome.ready_with': 'Listo con',
 

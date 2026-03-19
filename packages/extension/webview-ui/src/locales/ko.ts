@@ -7,7 +7,7 @@ export const koStrings: Record<string, string> = {
 
   // Welcome — Setup
   'welcome.setup_title': '시작하기 — API 키 추가',
-  'welcome.setup_desc': '공급자 API 키를 추가하여 Ava를 활성화하세요. GLM-4.5 Flash와 Codestral은 완전 무료입니다 — 신용카드 불필요.',
+  'welcome.setup_desc': 'Qwen 무료 토큰 300만 개에 가입하거나, 원하는 공급자의 API 키를 추가하세요.',
   'welcome.setup_cta': '설정 열기',
   'welcome.ready_with': '준비 완료:',
 

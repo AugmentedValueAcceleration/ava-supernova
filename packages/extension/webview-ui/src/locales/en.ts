@@ -7,7 +7,7 @@ export const enStrings: Record<string, string> = {
 
   // Welcome — Setup
   'welcome.setup_title': 'Get Started — Add an API Key',
-  'welcome.setup_desc': 'Add a provider API key to unlock Ava. GLM-4.5 Flash and Codestral are completely free — no credit card needed.',
+  'welcome.setup_desc': 'Sign up for 3M free Qwen tokens, or add your own API key from any provider.',
   'welcome.setup_cta': 'Open Settings',
   'welcome.ready_with': 'Ready with',
 

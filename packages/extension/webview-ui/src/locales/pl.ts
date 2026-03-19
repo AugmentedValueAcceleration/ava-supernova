@@ -7,7 +7,7 @@ export const plStrings: Record<string, string> = {
 
   // Welcome — Setup
   'welcome.setup_title': 'Rozpocznij — Dodaj klucz API',
-  'welcome.setup_desc': 'Dodaj klucz API dostawcy, aby odblokować Avę. GLM-4.5 Flash i Codestral są całkowicie darmowe — karta kredytowa nie jest wymagana.',
+  'welcome.setup_desc': 'Zarejestruj się po 3 mln darmowych tokenów Qwen lub dodaj własny klucz API od dowolnego dostawcy.',
   'welcome.setup_cta': 'Otwórz ustawienia',
   'welcome.ready_with': 'Gotowe z',
 

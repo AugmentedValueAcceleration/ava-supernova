@@ -7,7 +7,7 @@ export const trStrings: Record<string, string> = {
 
   // Welcome — Setup
   'welcome.setup_title': 'Başlayın — API Anahtarı Ekleyin',
-  'welcome.setup_desc': 'Ava\'yı etkinleştirmek için bir sağlayıcı API anahtarı ekleyin. GLM-4.5 Flash ve Codestral tamamen ücretsizdir — kredi kartı gerekmez.',
+  'welcome.setup_desc': '3 milyon ücretsiz Qwen tokeni için kaydolun veya herhangi bir sağlayıcıdan kendi API anahtarınızı ekleyin.',
   'welcome.setup_cta': 'Ayarları Aç',
   'welcome.ready_with': 'Hazır:',
 

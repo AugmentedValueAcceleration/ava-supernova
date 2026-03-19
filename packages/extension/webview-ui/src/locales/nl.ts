@@ -7,7 +7,7 @@ export const nlStrings: Record<string, string> = {
 
   // Welcome — Setup
   'welcome.setup_title': 'Aan de slag \u2014 Voeg een API-sleutel toe',
-  'welcome.setup_desc': 'Voeg een provider API-sleutel toe om Ava te ontgrendelen. GLM-4.5 Flash en Codestral zijn volledig gratis \u2014 geen creditcard nodig.',
+  'welcome.setup_desc': 'Meld je aan voor 3M gratis Qwen-tokens, of voeg je eigen API-sleutel toe van een willekeurige provider.',
   'welcome.setup_cta': 'Instellingen openen',
   'welcome.ready_with': 'Klaar met',
 

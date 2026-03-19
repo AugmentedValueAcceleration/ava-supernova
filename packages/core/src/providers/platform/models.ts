@@ -1,43 +1,34 @@
 import type { ModelDefinition } from '../../core/types.js';
 
 /**
- * Platform models — available on managed plans.
- * Powered by Qwen (enterprise partnership) + free GLM models.
- * All other models available via BYOK on any plan.
+ * Platform models — available on managed plans + free accounts.
+ * Powered by Qwen (enterprise partnership).
+ * Free accounts: 3M tokens, default to Qwen Flash.
+ * Paid plans: default to Qwen 3.5 Plus.
  */
 export const PLATFORM_MODELS: ModelDefinition[] = [
-  // Qwen — official partner
+  // Qwen 3.5 Plus — premium model for paid plans (default for paid)
   {
     id: 'qwen3.5-plus',
     name: 'Qwen 3.5 Plus',
     provider: 'platform',
-    contextWindow: 256000,
-    maxOutputTokens: 16384,
+    contextWindow: 1000000,
+    maxOutputTokens: 128000,
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
     pricing: { inputPerMillion: 0.20, outputPerMillion: 1.20 },
   },
-  // Free models — always available
+  // Qwen Flash — fast, cheap, default for free accounts
   {
-    id: 'glm-4.7-flash',
-    name: 'GLM-4.7 Flash (Free)',
+    id: 'qwen-flash',
+    name: 'Qwen Flash',
     provider: 'platform',
-    contextWindow: 128000,
-    maxOutputTokens: 4096,
+    contextWindow: 256000,
+    maxOutputTokens: 8192,
     supportsToolCalls: true,
     supportsStreaming: true,
-    pricing: { inputPerMillion: 0, outputPerMillion: 0 },
-  },
-  {
-    id: 'glm-4.5-flash',
-    name: 'GLM-4.5 Flash (Free)',
-    provider: 'platform',
-    contextWindow: 128000,
-    maxOutputTokens: 4096,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    pricing: { inputPerMillion: 0, outputPerMillion: 0 },
+    pricing: { inputPerMillion: 0.05, outputPerMillion: 0.40 },
   },
 ];

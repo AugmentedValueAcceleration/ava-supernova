@@ -3,11 +3,12 @@ import type { ChatCompletionRequest } from '../types.js';
 import type { CompletionResponse, ModelDefinition, StreamChunk } from '../../core/types.js';
 import { AVA_FREE_MODELS } from './models.js';
 
-const ALLOWED_FREE_MODELS = new Set(['glm-4.5-flash', 'glm-4.7-flash']);
+const ALLOWED_FREE_MODELS = new Set(['qwen-flash', 'qwen3.5-plus']);
 
 /**
- * Ava Free provider — routes through the Ava platform proxy to free Zhipu models.
- * No API key required. Always available for all users.
+ * Ava Free provider — routes through the Ava platform proxy to Qwen models.
+ * Free account users get 3M tokens. Default model: qwen-flash.
+ * Both qwen-flash and qwen3.5-plus available (3.5-plus uses tokens faster).
  */
 export class AvaFreeProvider extends BaseProvider {
   readonly name = 'ava-free';
@@ -27,7 +28,7 @@ export class AvaFreeProvider extends BaseProvider {
   }
 
   protected getAuthHeaders(): Record<string, string> {
-    // No auth — this is the unauthenticated free tier
+    // No auth — this is the free tier
     return { 'Content-Type': 'application/json' };
   }
 
@@ -36,12 +37,11 @@ export class AvaFreeProvider extends BaseProvider {
   }
 
   protected transformRequest(request: ChatCompletionRequest): Record<string, unknown> {
-    // Only allow free models — default to glm-4.7-flash
-    const model = ALLOWED_FREE_MODELS.has(request.model) ? request.model : 'glm-4.7-flash';
+    // Only allow Qwen models — default to qwen-flash
+    const model = ALLOWED_FREE_MODELS.has(request.model) ? request.model : 'qwen-flash';
     return { ...request, model };
   }
 
-  // Zhipu sometimes returns tool_call arguments as objects instead of strings
   protected normalizeResponse(raw: unknown): CompletionResponse {
     const response = raw as CompletionResponse;
     for (const choice of response.choices) {

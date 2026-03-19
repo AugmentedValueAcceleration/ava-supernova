@@ -7,7 +7,7 @@ export const hiStrings: Record<string, string> = {
 
   // Welcome — Setup
   'welcome.setup_title': 'शुरू करें — API कुंजी जोड़ें',
-  'welcome.setup_desc': 'Ava को अनलॉक करने के लिए एक प्रोवाइडर API कुंजी जोड़ें। GLM-4.5 Flash और Codestral पूरी तरह मुफ़्त हैं — क्रेडिट कार्ड की ज़रूरत नहीं।',
+  'welcome.setup_desc': '30 लाख मुफ़्त Qwen टोकन के लिए साइन अप करें, या किसी भी प्रोवाइडर की अपनी API कुंजी जोड़ें।',
   'welcome.setup_cta': 'सेटिंग्स खोलें',
   'welcome.ready_with': 'तैयार है',
 

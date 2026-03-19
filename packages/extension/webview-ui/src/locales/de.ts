@@ -7,7 +7,7 @@ export const deStrings: Record<string, string> = {
 
   // Welcome — Setup
   'welcome.setup_title': 'Erste Schritte — API-Schlüssel hinzufügen',
-  'welcome.setup_desc': 'Füge einen API-Schlüssel hinzu, um Ava freizuschalten. GLM-4.5 Flash und Codestral sind komplett kostenlos — keine Kreditkarte nötig.',
+  'welcome.setup_desc': 'Registriere dich für 3 Mio. kostenlose Qwen-Tokens oder füge deinen eigenen API-Schlüssel von einem beliebigen Anbieter hinzu.',
   'welcome.setup_cta': 'Einstellungen öffnen',
   'welcome.ready_with': 'Bereit mit',
 

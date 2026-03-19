@@ -7,7 +7,7 @@ export const zhCNStrings: Record<string, string> = {
 
   // Welcome — Setup
   'welcome.setup_title': '开始使用 — 添加 API 密钥',
-  'welcome.setup_desc': '添加服务商 API 密钥以解锁 Ava。GLM-4.5 Flash 和 Codestral 完全免费 — 无需信用卡。',
+  'welcome.setup_desc': '注册即可获得 300 万免费 Qwen 令牌，或添加任意服务商的 API 密钥。',
   'welcome.setup_cta': '打开设置',
   'welcome.ready_with': '已就绪：',
 

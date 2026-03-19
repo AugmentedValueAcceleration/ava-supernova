@@ -7,7 +7,7 @@ export const zhTWStrings: Record<string, string> = {
 
   // Welcome — Setup
   'welcome.setup_title': '開始使用 — 新增 API 金鑰',
-  'welcome.setup_desc': '新增供應商 API 金鑰以解鎖 Ava。GLM-4.5 Flash 和 Codestral 完全免費 — 無需信用卡。',
+  'welcome.setup_desc': '註冊即可獲得 300 萬免費 Qwen 令牌，或新增任意供應商的 API 金鑰。',
   'welcome.setup_cta': '開啟設定',
   'welcome.ready_with': '已就緒：',
 

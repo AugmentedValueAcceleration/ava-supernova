@@ -84,6 +84,7 @@ All models work on every plan. Use the managed service or bring your own API key
 |-------|-----------|-------------------|
 | GLM-5 | Best tool-call reliability, vision (77.8% SWE-Bench) | $1.00 in / $3.20 out |
 | GLM-4.5 Flash | Free tier available | Free |
+| Qwen Flash | Free with account (3M tokens) | Free |
 
 ## Provider: Alibaba (Qwen)
 | Model | Highlights | Cost / 1M tokens |
@@ -119,7 +120,7 @@ This works with Ollama, LM Studio, vLLM, or any OpenAI-compatible API endpoint.
 - **Best overall value**: DeepSeek V3 — extremely capable at a fraction of frontier pricing
 - **Best tool calling**: Kimi K2.5 or GLM-5 — most reliable for multi-step agentic tasks
 - **Best reasoning**: DeepSeek R1 or Claude Opus 4.6 — for complex problem solving
-- **Best for free**: GLM-4 Flash — free tier from Zhipu AI
+- **Best for free**: Qwen Flash — 3M free tokens with a Qwen account
 - **Best code completion**: Codestral or Devstral 2 — Mistral's code-focused models`,
   },
 

@@ -7,7 +7,7 @@ export const viStrings: Record<string, string> = {
 
   // Welcome — Setup
   'welcome.setup_title': 'Bắt đầu — Thêm khóa API',
-  'welcome.setup_desc': 'Thêm khóa API của nhà cung cấp để mở khóa Ava. GLM-4.5 Flash và Codestral hoàn toàn miễn phí — không cần thẻ tín dụng.',
+  'welcome.setup_desc': 'Đăng ký nhận 3 triệu token Qwen miễn phí, hoặc thêm khóa API của bạn từ bất kỳ nhà cung cấp nào.',
   'welcome.setup_cta': 'Mở cài đặt',
   'welcome.ready_with': 'Sẵn sàng với',
 

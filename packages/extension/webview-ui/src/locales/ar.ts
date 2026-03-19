@@ -7,7 +7,7 @@ export const arStrings: Record<string, string> = {
 
   // Welcome — Setup
   'welcome.setup_title': 'ابدأ — أضف مفتاح API',
-  'welcome.setup_desc': 'أضف مفتاح API لمزوّد لتفعيل Ava. نموذجا GLM-4.5 Flash و Codestral مجانيان تمامًا — لا حاجة لبطاقة ائتمان.',
+  'welcome.setup_desc': 'سجّل للحصول على 3 ملايين رمز Qwen مجانًا، أو أضف مفتاح API الخاص بك من أي مزوّد.',
   'welcome.setup_cta': 'فتح الإعدادات',
   'welcome.ready_with': 'جاهز مع',
 

@@ -7,7 +7,7 @@ export const thStrings: Record<string, string> = {
 
   // Welcome — Setup
   'welcome.setup_title': 'เริ่มต้น — เพิ่มคีย์ API',
-  'welcome.setup_desc': 'เพิ่มคีย์ API ของผู้ให้บริการเพื่อปลดล็อก Ava GLM-4.5 Flash และ Codestral ฟรีทั้งหมด — ไม่ต้องใช้บัตรเครดิต',
+  'welcome.setup_desc': 'สมัครรับโทเค็น Qwen ฟรี 3 ล้านโทเค็น หรือเพิ่มคีย์ API ของคุณจากผู้ให้บริการใดก็ได้',
   'welcome.setup_cta': 'เปิดการตั้งค่า',
   'welcome.ready_with': 'พร้อมใช้งานกับ',
 

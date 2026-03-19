@@ -7,7 +7,7 @@ export const itStrings: Record<string, string> = {
 
   // Welcome — Setup
   'welcome.setup_title': 'Inizia \u2014 Aggiungi una chiave API',
-  'welcome.setup_desc': 'Aggiungi una chiave API del provider per sbloccare Ava. GLM-4.5 Flash e Codestral sono completamente gratuiti \u2014 nessuna carta di credito richiesta.',
+  'welcome.setup_desc': 'Registrati per 3M di token Qwen gratuiti, oppure aggiungi la tua chiave API da qualsiasi provider.',
   'welcome.setup_cta': 'Apri impostazioni',
   'welcome.ready_with': 'Pronto con',
 

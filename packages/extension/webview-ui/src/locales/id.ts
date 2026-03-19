@@ -7,7 +7,7 @@ export const idStrings: Record<string, string> = {
 
   // Welcome — Setup
   'welcome.setup_title': 'Mulai — Tambahkan Kunci API',
-  'welcome.setup_desc': 'Tambahkan kunci API provider untuk membuka Ava. GLM-4.5 Flash dan Codestral sepenuhnya gratis — tanpa kartu kredit.',
+  'welcome.setup_desc': 'Daftar untuk 3 juta token Qwen gratis, atau tambahkan kunci API Anda sendiri dari provider mana pun.',
   'welcome.setup_cta': 'Buka Pengaturan',
   'welcome.ready_with': 'Siap dengan',
 

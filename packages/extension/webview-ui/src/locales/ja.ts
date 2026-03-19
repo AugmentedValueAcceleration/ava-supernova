@@ -7,7 +7,7 @@ export const jaStrings: Record<string, string> = {
 
   // Welcome — Setup
   'welcome.setup_title': 'はじめに — API キーを追加',
-  'welcome.setup_desc': 'プロバイダーの API キーを追加して Ava を有効にしましょう。GLM-4.5 Flash と Codestral は完全無料 — クレジットカード不要です。',
+  'welcome.setup_desc': 'Qwen の無料トークン300万分に登録するか、任意のプロバイダーの API キーを追加してください。',
   'welcome.setup_cta': '設定を開く',
   'welcome.ready_with': '準備完了：',
 

@@ -7,7 +7,7 @@ export const ptStrings: Record<string, string> = {
 
   // Welcome \u2014 Setup
   'welcome.setup_title': 'Come\u00e7ar \u2014 Adicionar uma chave API',
-  'welcome.setup_desc': 'Adicione uma chave API de provedor para desbloquear Ava. GLM-4.5 Flash e Codestral s\u00e3o totalmente gratuitos \u2014 sem cart\u00e3o de cr\u00e9dito.',
+  'welcome.setup_desc': 'Cadastre-se para 3M de tokens Qwen gratuitos, ou adicione sua pr\u00f3pria chave API de qualquer provedor.',
   'welcome.setup_cta': 'Abrir configura\u00e7\u00f5es',
   'welcome.ready_with': 'Pronto com',
 

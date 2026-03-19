@@ -441,8 +441,8 @@ export class DocsPanel {
             <p style="margin-top: 6px;"><strong>$0.14 / $0.28</strong> per 1M tokens</p>
           </div>
           <div class="card">
-            <h4>GLM-4.5 Flash</h4>
-            <p>Free tier available. Fast and capable for straightforward coding and Q&amp;A tasks. Zero cost to get started.</p>
+            <h4>Qwen Flash</h4>
+            <p>Free with account. Fast and capable for straightforward coding and Q&amp;A tasks. 3M free tokens to get started.</p>
             <p style="margin-top: 6px;"><strong>Free</strong></p>
           </div>
         </div>
@@ -530,7 +530,7 @@ export class DocsPanel {
           <tr><td>Moonshot AI</td><td>Moonshot V1 128K</td><td>Long context</td><td>$2.00 in / $5.00 out</td></tr>
           <tr><td>Zhipu AI</td><td>GLM-5</td><td>Best tool-call reliability, vision</td><td>$0.70 in / $0.70 out</td></tr>
           <tr><td>Zhipu AI</td><td>GLM-4.7</td><td>Fast, affordable coding</td><td>$0.25 in / $0.25 out</td></tr>
-          <tr><td>Zhipu AI</td><td>GLM-4 Flash</td><td>Free tier available</td><td>Free</td></tr>
+          <tr><td>Qwen</td><td>Qwen Flash</td><td>Free with account</td><td>Free</td></tr>
           <tr><td>Alibaba</td><td>Qwen 3.5 Plus</td><td>Vision, thinking, 256K context</td><td>$0.40 in / $1.20 out</td></tr>
           <tr><td>Alibaba</td><td>Qwen Turbo</td><td>Fast, up to 1M context</td><td>$0.05 in / $0.20 out</td></tr>
           <tr><td>Mistral AI</td><td>Mistral Large 3</td><td>Flagship general-purpose</td><td>$2.00 in / $6.00 out</td></tr>

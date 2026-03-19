@@ -7,7 +7,7 @@ export const ruStrings: Record<string, string> = {
 
   // Welcome — Setup
   'welcome.setup_title': 'Начать — Добавить API-ключ',
-  'welcome.setup_desc': 'Добавьте API-ключ провайдера, чтобы разблокировать Ava. GLM-4.5 Flash и Codestral полностью бесплатны — банковская карта не нужна.',
+  'welcome.setup_desc': 'Зарегистрируйтесь и получите 3 млн бесплатных токенов Qwen или добавьте собственный API-ключ любого провайдера.',
   'welcome.setup_cta': 'Открыть настройки',
   'welcome.ready_with': 'Готов к работе с',
 
