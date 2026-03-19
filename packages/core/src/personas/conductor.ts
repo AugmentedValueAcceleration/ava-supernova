@@ -19,7 +19,7 @@ import { logger } from '../core/logger.js';
 
 const DEFAULT_CONFIG: Required<ConductorConfig> = {
   maxPersonas: 6,
-  personaTimeout: 15000,
+  personaTimeout: 30000,
   parallel: false,
   maxParallel: 3,
   challengerCanVeto: true,
@@ -249,7 +249,7 @@ export class Conductor {
 
       // Run the model with tool support
       let iterations = 0;
-      const maxIterations = 5; // Personas should be focused — 5 tool calls max
+      const maxIterations = 8; // Personas get up to 8 tool calls (brainstorm needs more for research)
 
       while (iterations < maxIterations) {
         if (signal?.aborted) break;
