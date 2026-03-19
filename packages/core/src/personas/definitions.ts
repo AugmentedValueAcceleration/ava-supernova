@@ -14,7 +14,8 @@ const READ_TOOLS = [
 const MEMORY_TOOLS = ['memory_save', 'memory_recall', 'memory_update', 'memory_delete'];
 const SEARCH_TOOLS = ['web_search', 'http_request', 'browser'];
 const WRITE_TOOLS = ['file_write', 'file_edit', 'bash', 'git_commit', 'git_create_pr'];
-const PLANNING_TOOLS = ['present_plan', 'todo_write', 'ask_user'];
+const PLANNING_TOOLS = ['present_plan', 'todo_write'];
+// ask_user removed — personas can't pause the pipeline for user input
 const TESTING_TOOLS = ['test_run', 'test_generate', 'benchmark'];
 const SECURITY_TOOLS = ['audit_dependencies', 'analyze_architecture'];
 const LEARNING_TOOLS = ['learning_create', 'learning_teach', 'learning_progress'];
@@ -258,7 +259,7 @@ Be thorough. Every entry point you miss is one the Scanner won't check.`,
 // ── Brainstorm Mode Personas ──────────────────────────────────────────────
 
 const BRAINSTORM_TOOLS = ['web_search', 'http_request', 'browser', 'news'];
-const IDEATION_TOOLS = [...MEMORY_TOOLS, ...BRAINSTORM_TOOLS, ...PLANNING_TOOLS, 'ask_user', 'get_datetime', 'journal_write'];
+const IDEATION_TOOLS = [...MEMORY_TOOLS, ...BRAINSTORM_TOOLS, ...PLANNING_TOOLS, 'get_datetime', 'journal_write'];
 
 export const EXPLORER: PersonaDefinition = {
   id: 'explorer',
