@@ -2,7 +2,7 @@
 // Personas are specialized expressions of Ava's intelligence.
 // Not separate agents — focused mindsets with scoped tool access.
 
-export type PersonaId = 'researcher' | 'architect' | 'builder' | 'recon' | 'scout' | 'verifier' | 'sequencer' | 'challenger' | 'tutor' | 'quiz_master' | 'content_writer' | 'explorer' | 'ideator' | 'refiner' | 'curriculum_architect' | 'fact_checker';
+export type PersonaId = 'researcher' | 'architect' | 'builder' | 'recon' | 'scout' | 'verifier' | 'sequencer' | 'challenger' | 'tutor' | 'quiz_master' | 'content_writer' | 'explorer' | 'ideator' | 'refiner' | 'curriculum_architect' | 'fact_checker' | 'scanner';
 
 export type PersonaPhase = 'idle' | 'active' | 'complete' | 'error';
 
