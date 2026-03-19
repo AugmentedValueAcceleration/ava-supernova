@@ -102,6 +102,9 @@ importers:
       playwright:
         specifier: '>=1.40.0'
         version: 1.58.2
+      pngjs:
+        specifier: ^7.0.0
+        version: 7.0.0
       pptxgenjs:
         specifier: ^4.0.1
         version: 4.0.1
@@ -115,6 +118,9 @@ importers:
       '@types/node':
         specifier: ^25.3.0
         version: 25.3.0
+      '@types/pngjs':
+        specifier: ^6.0.5
+        version: 6.0.5
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -128,6 +134,9 @@ importers:
       '@types/node':
         specifier: ^25.3.0
         version: 25.3.0
+      '@types/pngjs':
+        specifier: ^6.0.5
+        version: 6.0.5
       '@types/vscode':
         specifier: ^1.85.0
         version: 1.109.0
@@ -1770,6 +1779,9 @@ packages:
 
   '@types/phoenix@1.6.7':
     resolution: {integrity: sha512-oN9ive//QSBkf19rfDv45M7eZPi0eEXylht2OLEXicu5b4KoQ1OzXIw+xDSGWxSxe1JmepRR/ZH283vsu518/Q==}
+
+  '@types/pngjs@6.0.5':
+    resolution: {integrity: sha512-0k5eKfrA83JOZPppLtS2C7OUtyNAl2wKNxfyYl9Q5g9lPkgBl/9hNyAu6HuEH2J4XmIv2znEpkDd0SaZVxW6iQ==}
 
   '@types/react-dom@19.2.3':
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
@@ -4522,6 +4534,10 @@ packages:
   png-js@1.0.0:
     resolution: {integrity: sha512-k+YsbhpA9e+EFfKjTCH3VW6aoKlyNYI6NYdTfDL4CIvFnvsuO84ttonmZE7rc+v23SLTH8XX+5w/Ak9v0xGY4g==}
 
+  pngjs@7.0.0:
+    resolution: {integrity: sha512-LKWqWJRhstyYo9pGvgor/ivk2w94eSjE3RGVuzLGlr3NmD8bf7RcYGze1mNdEHRP6TRP6rMuDHk5t44hnTRyow==}
+    engines: {node: '>=14.19.0'}
+
   postcss-import@15.1.0:
     resolution: {integrity: sha512-hpr+J05B2FVYUAXHeK1YyI267J/dDDhMU6B6civm8hSY1jYJnBXxzKDKDswzJmtLHryrjhnDjqqp/49t8FALew==}
     engines: {node: '>=14.0.0'}
@@ -6897,6 +6913,10 @@ snapshots:
   '@types/normalize-package-data@2.4.4': {}
 
   '@types/phoenix@1.6.7': {}
+
+  '@types/pngjs@6.0.5':
+    dependencies:
+      '@types/node': 25.3.0
 
   '@types/react-dom@19.2.3(@types/react@19.2.14)':
     dependencies:
@@ -10181,6 +10201,8 @@ snapshots:
       fsevents: 2.3.2
 
   png-js@1.0.0: {}
+
+  pngjs@7.0.0: {}
 
   postcss-import@15.1.0(postcss@8.5.6):
     dependencies:
