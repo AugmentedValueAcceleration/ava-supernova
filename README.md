@@ -1,14 +1,14 @@
 <p align="center">
   <h1 align="center">Ava | Supernova</h1>
   <p align="center">
-    <strong>Open-source AI coding agent — 15 models, 7 providers, 52 tools, 2 free models that work instantly.</strong>
+    <strong>Open-source AI coding agent — 54 tools, 6 modes, 24 specialist personas, 14 models from 7 providers. 3M free Qwen tokens with an account, or bring your own API keys.</strong>
   </p>
   <p align="center">
     <a href="#supported-models">Models</a> &middot;
     <a href="#getting-started">Getting Started</a> &middot;
     <a href="#vscode-extension">Extension</a> &middot;
     <a href="#ide">IDE</a> &middot;
-    <a href="#tools-52">Tools</a> &middot;
+    <a href="#tools-54">Tools</a> &middot;
     <a href="#privacy--security">Privacy</a> &middot;
     <a href="#sponsors">Sponsors</a> &middot;
     <a href="#contributing">Contributing</a>
@@ -23,9 +23,9 @@
 
 ---
 
-Ava | Supernova is an open-source AI coding agent that brings full agentic coding to every developer — as a **VS Code extension**, a **standalone IDE**, and a **terminal CLI**. Two free models work instantly with zero setup. Add your own API keys for 13 more models from 7 providers.
+Ava | Supernova is an open-source AI coding agent that brings full agentic coding to every developer — as a **VS Code extension**, a **standalone IDE**, a **terminal CLI**, and a **companion app**. She remembers you across sessions, teaches for free, and thinks before she builds with 24 specialist personas across 6 modes.
 
-> **Start coding with AI in 30 seconds.** Install, open, go. No account, no credit card, no trial expiry.
+> **Start coding with AI in 30 seconds.** Install, open, go. Sign up for 3M free Qwen tokens, or bring your own API keys.
 
 ## Why Ava?
 
@@ -35,20 +35,54 @@ Agentic coding shouldn't be a luxury. The open-source model ecosystem delivers n
 |---|---|---|
 | GLM-5 (Zhipu AI) | 77.8% | $1.00/M |
 | Kimi K2.5 (Moonshot) | 76.8% | $0.60/M |
-| Qwen 3.5 Plus (Alibaba) | ~76% | $0.40/M |
+| Qwen 3.5 Plus (Alibaba) | ~76% | $0.20/M |
 | DeepSeek V3.2 | ~66% | $0.28/M |
-| **GLM-4.7 Flash** | — | **FREE** |
-| **GLM-4.5 Flash** | — | **FREE** |
+| **Qwen Flash** | — | **FREE (3M tokens)** |
+
+## What Makes Ava Different
+
+- **She remembers you** — 5-layer memory system that learns your coding style, decisions, conventions, and preferences. Every session she's better at helping you specifically.
+- **She thinks before she builds** — 24 specialist personas across 5 modes plan before executing. Complex tasks get proper analysis, not just code generation.
+- **She teaches for free** — Switch to Teach mode, say "teach me Python", and she builds a personalised curriculum with spaced repetition. Education shouldn't have a price tag.
+- **She's yours to design** — Name her. Choose the tone, energy, and communication style. Same brain, your personality.
+- **She explains herself** — Ask "how does your memory work?" and she reads her own source code and explains it. The only AI that can.
+
+## 6 Modes — States of Thought
+
+Modes aren't tool restrictions — they're states of mind.
+
+| Mode | Prefix | Purpose |
+|---|---|---|
+| **Work** | `>>` | Builder mindset — full 54-tool agent |
+| **Plan** | `::` | Architect mindset — read-only analysis and strategic planning |
+| **Brainstorm** | `**` | Ideation mindset — research, generate, challenge, refine ideas |
+| **Chat** | `..` | Friend mindset — personal conversation, memory, journal |
+| **Teach** | `??` | Tutor mindset — personalised learning with spaced repetition |
+| **Security** | `!!` | Auditor mindset — OWASP-aligned security scanning |
+
+Switch modes with the dropdown or keyboard shortcuts `Ctrl+Shift+1` through `Ctrl+Shift+6`.
+
+## Personas — Internal Specialist Team
+
+When Ava takes on a complex task, her internal team activates:
+
+**Work:** Scout → Architect → Verifier → Sequencer → Challenger → Builder
+**Plan:** Researcher → Architect → Challenger
+**Teach:** Curriculum Architect → Content Writer → Fact Checker → Quiz Master → Tutor
+**Security:** Recon → Scanner → CVE Researcher → Verifier → Reporter
+**Brainstorm:** Explorer → Researcher → Ideator → Challenger → Refiner
+
+Each persona has scoped tool access. Challenger can read but never write. Simple questions skip orchestration — zero overhead.
 
 ## Supported Models
 
 | Provider | Models | Highlights |
 |---|---|---|
-| **Ava Free** | GLM-4.7 Flash, GLM-4.5 Flash | **FREE — no API key needed**, instant access |
+| **Ava Free** | Qwen Flash | **FREE — 3M tokens** with account |
+| **Alibaba Cloud** | Qwen 3.5 Plus | Vision, thinking, 256K context, $0.20/M input, $1.20/M output |
 | **Zhipu AI** | GLM-5 | 77.8% SWE-Bench, vision, best tool-call reliability |
 | **Moonshot AI** | Kimi K2.5 | 76.8% SWE-Bench, best tool calling, vision, 256K context |
 | **DeepSeek** | V3.2, Reasoner | Best value ($0.28/M input), Reasoner has chain-of-thought |
-| **Alibaba Cloud** | Qwen 3.5 Plus | Thinking + vision, 256K context |
 | **Mistral** | Large, Codestral, Devstral 2 | European provider, code-specialized, up to 262K context |
 | **Anthropic** | Claude Opus 4.6, Sonnet 4.6, Haiku 4.5 | Frontier models, vision, 200K context |
 | **Generic** | Custom / Local | Ollama, LM Studio, or any standard API format endpoint |
@@ -59,7 +93,7 @@ Agentic coding shouldn't be a luxury. The open-source model ecosystem delivers n
 
 - [Node.js](https://nodejs.org) v20.0.0 or later
 - [pnpm](https://pnpm.io) package manager
-- An API key from any supported provider — **or use the free models with no keys at all**
+- An API key from any supported provider — **or sign up for 3M free Qwen tokens**
 
 ### Installation
 
@@ -80,7 +114,7 @@ cd packages/cli && npm link
 ava
 ```
 
-On first launch, Ava guides you through an interactive setup wizard. Choose a provider, paste your API key, and you're ready — or skip setup entirely and use a free model.
+On first launch, Ava guides you through an interactive setup wizard. Choose a provider, paste your API key, and you're ready — or sign up for free tokens and start immediately.
 
 ## VS Code Extension
 
@@ -90,25 +124,49 @@ Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/item
 
 1. Install the extension
 2. Click the Ava icon in the activity bar (or press `Ctrl+Shift+A`)
-3. **Start coding immediately** — free models work with zero configuration
-4. Optionally add API keys for premium models via the Dashboard
+3. Sign up for 3M free Qwen tokens, or add your own API keys in Settings
+4. Start coding
 
 ### Extension Features
 
 - **Agentic coding** — Ava reads, writes, edits, searches, and executes code autonomously
-- **Six modes** — Work (`>>` full agent), Plan (`::` read-only), Chat (`..` friend), Teach (`??` personal tutor), Security (`!!` OWASP audit), Brainstorm (`**` ideation)
+- **Six modes** — Work (`>>` full agent), Plan (`::` read-only), Brainstorm (`**` ideation), Chat (`..` friend), Teach (`??` personal tutor), Security (`!!` OWASP audit)
+- **24 specialist personas** — Internal team orchestrated by Conductor across 5 modes
+- **5-layer memory** — Pattern extraction, LLM reflection, habit detection, cross-memory insights, cloud sync with semantic search
+- **Custom personality** — Name, pronouns, tone, energy, communication style — design your own AI companion
+- **Command centre dashboard** — Weather, news, tasks, journal, learning, memory, session stats, library, settings, sync, and more
+- **Image generation** — Create icons, illustrations, backgrounds via Alibaba Wan2.6, browse in dashboard library
+- **Background removal** — Remove image backgrounds directly in chat
+- **Office suite** — Native .pptx presentations, .docx emails/reports, .xlsx spreadsheets, .pdf generation
+- **Daily briefing** — Morning summary with tasks, calendar events, journal prompts, and priorities
+- **Knowledge packs** — Curated learning content for languages, frameworks, and tools
+- **Workflow engine** — Automate multi-step processes with triggers and conditions
+- **Usage analytics** — Token consumption, cost tracking, and usage patterns
+- **Cloud sync** — Delta tracking, selective sync per data type, full transparency
 - **Model selector** — Switch models from the header dropdown with provider labels and availability indicators
-- **Persistent memory** — Ava remembers across sessions with structured entries, TF-IDF retrieval, branch scoping, and auto-archival (credentials blocked at runtime)
-- **Mid-task interjection** — Type while Ava is working to add context, corrections, or redirect — true collaborative flow
+- **Mid-task interjection** — Type while Ava is working to add context, corrections, or redirect
 - **Vision** — Attach images in chat for models that support it
 - **Codebase understanding** — Project indexer and symbol finder for intelligent code navigation
 - **Context compression** — Automatic context management keeps long conversations within model limits
 - **Conversation history** — Auto-saved per project, searchable, with quick access from the header
 - **Project context** — Create `.ava/instructions.md` to give Ava persistent knowledge about your codebase
 - **Tool approval** — Review every action before Ava executes it, or grant autonomy with permission modes
-- **Security scanning** — AI-powered OWASP-aligned security audit using existing tools
-- **Dashboard panel** — Provider configuration, model selection, memory management, and settings
 - **20 languages** — Full UI and response localization
+
+## Command Centre Dashboard
+
+Open the dashboard and everything's right there:
+
+- **Live weather** — auto-detected location, 3-day forecast
+- **Latest news** — tech articles with category filtering
+- **Today's tasks** — due today and overdue, complete from the overview
+- **Journal** — your entry and Ava's, with mood tracking
+- **Learning progress** — active curriculums with progress bars
+- **Memory count** — what Ava remembers
+- **Latest release** — current version at a glance
+- **Session stats** — messages, tokens, tool calls, duration
+
+Plus dedicated pages for Tasks, Journal, Memory, Learning, Library, Settings, Sync, Releases, Support, and more.
 
 ## IDE
 
@@ -120,23 +178,120 @@ The IDE includes everything in the extension plus:
 - Monaco editor (same engine as VS Code)
 - `@ava/core` runs directly in the Node.js backend — no sidecar needed
 
-## Tools (52)
+## Companion App
+
+Ava on the go. The companion web app gives you access to Ava from your phone or tablet — chat, tasks, journal, memory, and learning progress.
+
+- [companion.ava-supernova.com](https://companion.ava-supernova.com)
+
+## Tools (54)
 
 | Category | Tools | Description |
 |---|---|---|
 | **File ops** | `file_read`, `file_write`, `file_edit` | Read, create, and surgically edit files |
 | **Search** | `glob`, `grep`, `list_directory`, `find_symbol`, `project_index` | Find files, search content, navigate symbols |
 | **Shell** | `bash` | Execute commands, run builds, start servers |
-| **Git** | `git_status`, `git_diff`, `rollback` | Check repo state, view diffs, undo changes |
+| **Git** | `git_status`, `git_diff`, `rollback`, `git_commit`, `git_create_pr` | Check repo state, view diffs, undo changes, commit, create PRs |
 | **Web** | `web_search`, `http_request`, `browser` | Search the web, test APIs, automate browsers |
-| **Media** | `screenshot` | Capture screen for visual analysis |
+| **Media** | `screenshot`, `generate_image`, `remove_background` | Capture screen, create images, remove backgrounds |
 | **Data** | `database_query` | Read-only SQL against PostgreSQL, SQLite, MySQL |
 | **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete` | Smart persistent memory with TF-IDF retrieval |
+| **Tasks** | `task_manage` | Create, update, complete, and track tasks |
+| **Journal** | `journal_write` | Daily journal entries with mood tracking |
+| **Documents** | `document_manage` | Manage structured documents |
+| **Learning** | `learning_create`, `learning_teach`, `learning_progress` | Personalised curricula with spaced repetition |
+| **Testing** | `test_run`, `test_generate` | Run tests and generate test suites |
+| **Architecture** | `analyze_architecture` | Analyze project structure and dependencies |
+| **Docs** | `doc_generate` | Generate documentation from code |
+| **Security** | `audit_dependencies` | Scan dependencies for vulnerabilities |
+| **Performance** | `benchmark` | Run performance benchmarks |
+| **Batch** | `apply_plan` | Execute multi-step plans |
+| **Debug** | `debug_logs` | Access and analyze debug logs |
+| **Office** | `presentation_create`, `email_draft`, `report_generate` | Native .pptx, .docx, and .xlsx generation |
 | **Planning** | `present_plan`, `todo_write` | Structured plans with approval, task tracking |
 | **Interaction** | `ask_user`, `support_request` | Ask for clarification, submit support tickets |
-| **Docs** | `docs_lookup` | Search built-in documentation |
+| **Self** | `docs_lookup`, `propose_tool`, `self_inspect`, `release_notes` | Self-inspection, docs, tool proposals |
+| **Utility** | `get_datetime`, `detect_language`, `weather`, `news` | Date/time, language detection, weather, news |
 
 The agent automatically decides which tools to use, executes them, reads the results, and continues reasoning — up to 50 iterations per request.
+
+## Image Generation
+
+Ask Ava to create icons, illustrations, backgrounds, or any visual asset. Powered by Alibaba's Wan2.6 model. Images save directly to your project's `images/` folder with sensible names.
+
+Browse generated images in the **Dashboard Library** — grid or list view, filter by subfolder, preview, open in editor, copy path.
+
+## Office Suite
+
+- **presentation_create** — Native .pptx slide decks with branded slides, speaker notes, and accent colours
+- **email_draft** — Native .docx emails with tone-aware fonts — serif for formal, sans-serif for casual
+- **report_generate** — Native .docx reports (board briefs, sprint reviews, weekly status) from your tasks, journal, memory, and git data
+
+## Custom Personality
+
+Design your own AI companion:
+
+- **Name** — call her Ava, or name her anything you want
+- **Pronouns** — she/her, he/him, they/them
+- **Tone** — warm, direct, playful, professional, dry wit
+- **Energy** — calm, enthusiastic, measured, excitable
+- **Style** — concise, detailed, conversational, structured
+- **Free-text description** — describe exactly who you want
+
+The dashboard header updates to show your AI's name. Reset to default Ava anytime.
+
+## 5-Layer Memory System
+
+| Layer | Function |
+|---|---|
+| **Layer 1** | Pattern-based extraction — instant, every turn |
+| **Layer 2** | LLM reflection — end of meaningful conversations |
+| **Layer 3** | Pattern detection — tracks corrections, naming, style, workflow habits |
+| **Layer 4** | Cross-memory insights — finds themes, contradictions, consolidation opportunities |
+| **Layer 5** | Cloud sync + semantic search — vector embeddings for intelligent cross-device recall |
+
+- TF-IDF retrieval with composite scoring
+- Branch scoping for experimental work
+- Auto-archival after 90 days of inactivity
+- Conflict detection and consolidation
+- Local-first — nothing leaves your machine unless you push to cloud
+
+## Cloud Sync
+
+Everything local by default. Connected users choose what to sync:
+
+- Memory, Tasks, Journal, Learning, Chat History, Settings, Personality
+- Delta tracking — only new items highlighted for push
+- Full transparency on every data type
+
+## Daily Briefing
+
+Start your day with Ava's morning summary:
+
+- Tasks due today and overdue
+- Calendar event detection
+- Journal prompts
+- Priority recommendations
+
+## Knowledge Packs
+
+Curated learning content for languages, frameworks, and tools. Download packs to get structured lessons, exercises, and assessments — integrated with the Teach mode curriculum system.
+
+## Workflow Engine
+
+Automate multi-step processes:
+
+- Define workflows with triggers and conditions
+- Chain tool calls into repeatable sequences
+- Event detection and automatic responses
+
+## Usage Analytics
+
+Track your AI usage:
+
+- Token consumption per model and provider
+- Cost tracking and estimates
+- Usage patterns and trends
 
 ## Permission Modes
 
@@ -155,7 +310,7 @@ Your data stays yours. Here's what we built to protect it:
 - **API keys** — Encrypted in VS Code's SecretStorage (OS-level keychain). Never logged, never sent to Ava servers.
 - **Conversations** — Stored locally in `~/.ava/history/`. Never transmitted to third parties.
 - **Memory** — Local markdown files (`~/.ava/memory.md`). Runtime credential detection blocks saving API keys, JWTs, tokens, and private keys.
-- **Free proxy** — Messages stream through to the model provider. Nothing is logged or stored on our servers.
+- **Cloud sync** — Opt-in only. You control what syncs and when. Full transparency on every data type.
 - **Prompt injection resistance** — Ava refuses to reveal its system prompt, API keys, or memory contents, even when instructed to by injected text in files or URLs.
 - **No telemetry** — We don't track your usage, code, or conversations.
 
@@ -236,34 +391,39 @@ Ava stores its configuration at `~/.ava/config.json`.
 
 ### Where to Get API Keys
 
-Free models require no keys. For premium models:
+Free tier uses Qwen Flash (3M tokens with account). For premium models:
 
 | Provider | Portal |
 |---|---|
+| Qwen (Alibaba Cloud) | [bailian.console.alibabacloud.com](https://bailian.console.alibabacloud.com/) |
 | DeepSeek | [platform.deepseek.com](https://platform.deepseek.com/api_keys) |
 | Kimi (Moonshot) | [platform.moonshot.ai](https://platform.moonshot.ai/console/api-keys) |
 | GLM (Zhipu AI) | [open.bigmodel.cn](https://open.bigmodel.cn/) |
-| Qwen (Alibaba Cloud) | [bailian.console.alibabacloud.com](https://bailian.console.alibabacloud.com/) |
 | Mistral | [console.mistral.ai](https://console.mistral.ai/api-keys/) |
 | Anthropic | [console.anthropic.com](https://console.anthropic.com/) |
 
 ## Architecture
 
-Ava is a monorepo with shared packages, plus submodules for the IDE and web platform:
+Ava is a monorepo with shared packages, plus submodules for the IDE, web platform, and companion app:
 
 ```
 packages/
 ├── core/                  # @ava/core — shared agent engine
 │   ├── agent/             #   Agentic loop, system prompt, events
 │   ├── providers/         #   LLM provider adapters (7 providers)
-│   ├── tools/             #   52 built-in tool implementations
-│   ├── memory/            #   Persistent memory system
+│   ├── tools/             #   54 built-in tool implementations
+│   ├── personas/          #   24 specialist personas + Conductor
+│   ├── memory/            #   5-layer persistent memory system
+│   ├── briefing/          #   Daily briefing + event detection
+│   ├── workflows/         #   Workflow engine
+│   ├── knowledge/         #   Knowledge packs
 │   ├── config/            #   Configuration management
 │   └── history/           #   Conversation persistence
 ├── cli/                   # @ava/cli — terminal REPL interface
 ├── extension/             # ava-supernova — VS Code extension host
 │   ├── webview-ui/        #   React + Tailwind chat interface
-│   └── dashboard-ui/      #   Provider config and settings panel
+│   └── dashboard-ui/      #   Command centre dashboard panel
+├── mobile/                # Companion app (git submodule → ava-supernova-companion)
 ├── ide/                   # Standalone IDE (Eclipse Theia, git submodule)
 └── web/                   # Platform website (git submodule)
 ```
@@ -272,11 +432,13 @@ packages/
 
 - **Monorepo with shared core** — CLI, extension, and IDE share the same agent engine, tools, and providers via `@ava/core`. Zero duplication.
 - **Event-driven agent** — The agent emits typed events (`stream_delta`, `tool_call_start`, `done`, etc.) that all host environments subscribe to.
+- **Conductor orchestration** — Complex tasks activate specialist personas in sequence. Simple tasks go direct — zero overhead.
 - **Injectable confirmation handler** — `ToolRegistry` accepts a `setConfirmationHandler()` callback, letting each UI implement its own approval flow.
 - **Self-contained tools** — Each tool carries its own JSON schema and execution handler. Adding a tool is one file and one line in the registry.
 - **No external SDKs** — All provider communication uses Node's native `fetch`. Zero dependency on any provider SDK.
 - **Permission matrix** — Risk levels (`safe`, `write`, `dangerous`) combined with permission modes determine what requires user approval.
 - **Privacy by design** — Runtime credential detection, system prompt guardrails, local-only storage, no telemetry.
+- **Local-first sync** — Everything works offline. Cloud sync is opt-in with delta tracking and full transparency.
 
 ## Development
 
@@ -310,9 +472,20 @@ cd packages/extension && pnpm build
 - [x] Terminal CLI with full agent loop
 - [x] VS Code extension with chat UI
 - [x] Standalone IDE (Eclipse Theia)
-- [x] 52 built-in tools (file ops, search, bash, git, web, browser, database, memory, planning, docs)
-- [x] 15 models from 7 providers, including 2 free models
-- [x] Smart memory v2 — structured entries, TF-IDF retrieval, branch scoping, auto-archival, credential blocking
+- [x] 54 built-in tools (file ops, search, bash, git, web, browser, database, memory, media, office, planning, docs)
+- [x] 14 models from 7 providers with free Qwen tier
+- [x] 6 modes — Work, Plan, Brainstorm, Chat, Teach, Security
+- [x] 24 specialist personas with Conductor orchestration
+- [x] 5-layer memory — pattern extraction, LLM reflection, habit detection, cross-memory insights, cloud sync
+- [x] Custom personality designer
+- [x] Command centre dashboard
+- [x] Image generation and background removal
+- [x] Office suite — native .pptx, .docx, .xlsx generation
+- [x] Daily briefing with event detection
+- [x] Knowledge packs for structured learning
+- [x] Workflow engine with triggers and conditions
+- [x] Usage analytics and cost tracking
+- [x] Cloud sync with delta tracking
 - [x] Mid-task interjection — type while Ava is working to add context or redirect
 - [x] Privacy guardrails — prompt injection resistance, credential redaction
 - [x] Conversation history with search, pin, rename, export
@@ -322,11 +495,19 @@ cd packages/extension && pnpm build
 - [x] Context compression and management
 - [x] Error recovery and resilience
 - [x] i18n — 20 languages
-- [x] Security scanning mode — OWASP-aligned audits
-- [ ] Memory system improvements — platform sync, embeddings
+- [x] Companion app (mobile)
+- [ ] Memory embeddings and vector search improvements
 - [ ] Plugin system for community-contributed tools
-- [ ] Productivity tools (email, Slack, Discord)
-- [ ] Settings/history sync across machines
+- [ ] Productivity integrations (email, Slack, Discord)
+
+## Links
+
+- [Website](https://ava-supernova.com)
+- [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=augmentedvalueacceleration.ava-supernova)
+- [GitHub](https://github.com/AugmentedValueAcceleration/ava-supernova)
+- [Companion App](https://companion.ava-supernova.com)
+- [YouTube](https://youtube.com/@AugmentedValueAcceleration)
+- [Release Notes](https://ava-supernova.com/releases)
 
 ## Sponsors
 
