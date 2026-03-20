@@ -251,8 +251,16 @@ export function App() {
         setTasks((prev) => prev.filter((t) => t.id !== msg.id));
         break;
       case 'journal_day_loaded':
+        setJournalDay(msg.day);
+        break;
       case 'journal_day_updated':
         setJournalDay(msg.day);
+        // Refresh calendar summaries after update/delete
+        { const d = new Date(selectedJournalDate);
+          const from = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+          const to = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-31`;
+          post({ type: 'load_journal_summaries', from, to });
+        }
         break;
       case 'journal_summaries_loaded':
         setJournalSummaries(msg.summaries);
@@ -439,6 +447,8 @@ export function App() {
             selectedDate={selectedJournalDate}
             userName={account?.name?.split(' ')[0] ?? null}
             onSaveUserEntry={(date, content, mood, tags) => post({ type: 'save_journal_user_entry', date, content, mood, tags })}
+            onDeleteUserEntry={(date) => post({ type: 'delete_journal_user_entry', date })}
+            onDeleteAvaEntry={(date) => post({ type: 'delete_journal_ava_entry', date })}
           />
         );
       case 'learning':

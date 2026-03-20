@@ -359,6 +359,14 @@ export class DashboardPanel {
         await this.saveJournalUserEntry(msg.date, msg.content, msg.mood, msg.tags);
         break;
 
+      case 'delete_journal_user_entry':
+        await this.deleteJournalEntry(msg.date, 'user');
+        break;
+
+      case 'delete_journal_ava_entry':
+        await this.deleteJournalEntry(msg.date, 'ava');
+        break;
+
       // ─── Learning messages ─────────────────────────────────────────────────
 
       case 'load_learning':
@@ -1398,6 +1406,18 @@ export class DashboardPanel {
       this.post({ type: 'journal_day_updated', day: this.coreToDisplayDay(day) });
     } catch {
       this.post({ type: 'error', message: 'Failed to save journal entry.' });
+    }
+  }
+
+  private async deleteJournalEntry(date: string, target: 'user' | 'ava'): Promise<void> {
+    try {
+      const mgr = this.getJournalManager();
+      const day = target === 'user'
+        ? await mgr.deleteUserEntry(date)
+        : await mgr.deleteAvaEntry(date);
+      this.post({ type: 'journal_day_updated', day: this.coreToDisplayDay(day) });
+    } catch {
+      this.post({ type: 'error', message: `Failed to delete ${target} journal entry.` });
     }
   }
 

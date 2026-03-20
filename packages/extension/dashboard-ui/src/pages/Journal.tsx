@@ -8,6 +8,8 @@ interface JournalProps {
   selectedDate: string;
   userName: string | null;
   onSaveUserEntry: (date: string, content: string, mood?: number, tags?: string[]) => void;
+  onDeleteUserEntry?: (date: string) => void;
+  onDeleteAvaEntry?: (date: string) => void;
 }
 
 const MOOD_LABELS = ['', 'Rough', 'Low', 'Okay', 'Good', 'Great'];
@@ -19,11 +21,12 @@ function formatDate(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
-export function Journal({ day, selectedDate, userName, onSaveUserEntry }: JournalProps) {
+export function Journal({ day, selectedDate, userName, onSaveUserEntry, onDeleteUserEntry, onDeleteAvaEntry }: JournalProps) {
   const [tab, setTab] = useState<JournalTab>('user');
   const [editContent, setEditContent] = useState('');
   const [editMood, setEditMood] = useState<number | undefined>(undefined);
   const [editing, setEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<'user' | 'ava' | null>(null);
 
   const handleStartEdit = () => {
     setEditContent(day?.user_entry?.content ?? '');
@@ -75,6 +78,39 @@ export function Journal({ day, selectedDate, userName, onSaveUserEntry }: Journa
           )}
         </button>
         <div className="flex-1" />
+        {/* Delete buttons */}
+        {tab === 'user' && day?.user_entry && onDeleteUserEntry && !editing && (
+          confirmDelete === 'user' ? (
+            <div className="self-center flex items-center gap-1.5 pr-2">
+              <span className="text-[11px] text-red-400">Delete your entry?</span>
+              <button onClick={() => { onDeleteUserEntry(selectedDate); setConfirmDelete(null); }}
+                className="text-[11px] px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 cursor-pointer">Yes</button>
+              <button onClick={() => setConfirmDelete(null)}
+                className="text-[11px] px-2 py-0.5 rounded bg-[var(--bg-input)] text-[var(--text-muted)] border border-[var(--border-card)] hover:text-white cursor-pointer">No</button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmDelete('user')} title="Delete your entry"
+              className="self-center mr-2 text-[var(--text-muted)] hover:text-red-400 cursor-pointer bg-transparent border-none transition-colors">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+            </button>
+          )
+        )}
+        {tab === 'ava' && day?.ava_entry && onDeleteAvaEntry && (
+          confirmDelete === 'ava' ? (
+            <div className="self-center flex items-center gap-1.5 pr-2">
+              <span className="text-[11px] text-red-400">Delete Ava's entry?</span>
+              <button onClick={() => { onDeleteAvaEntry(selectedDate); setConfirmDelete(null); }}
+                className="text-[11px] px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 cursor-pointer">Yes</button>
+              <button onClick={() => setConfirmDelete(null)}
+                className="text-[11px] px-2 py-0.5 rounded bg-[var(--bg-input)] text-[var(--text-muted)] border border-[var(--border-card)] hover:text-white cursor-pointer">No</button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmDelete('ava')} title="Delete Ava's entry"
+              className="self-center mr-2 text-[var(--text-muted)] hover:text-red-400 cursor-pointer bg-transparent border-none transition-colors">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+            </button>
+          )
+        )}
         <span className="self-center text-[11px] text-[var(--text-muted)] pr-2">{formatDate(selectedDate)}</span>
       </div>
 

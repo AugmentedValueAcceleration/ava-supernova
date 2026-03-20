@@ -401,6 +401,8 @@ export type DashboardToExtMessage =
   | { type: 'load_journal_day'; date: string }
   | { type: 'load_journal_summaries'; from: string; to: string }
   | { type: 'save_journal_user_entry'; date: string; content: string; mood?: number; tags?: string[] }
+  | { type: 'delete_journal_user_entry'; date: string }
+  | { type: 'delete_journal_ava_entry'; date: string }
   // Learning messages
   | { type: 'load_learning' }
   // Sync messages

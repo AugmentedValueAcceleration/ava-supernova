@@ -1600,21 +1600,55 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         this.sendAllTasks();
         this.sendAvaCompletedTasks();
       }
-      // Auto-journal: Ava writes a session summary (non-blocking)
-      if (this.journalManager) {
+      // Auto-journal: Ava writes a reflective session entry (non-blocking)
+      if (this.journalManager && this.conversation) {
         const today = new Date().toISOString().slice(0, 10);
         const stats = sessionStats.getStats();
         const duration = Math.round((Date.now() - new Date(stats.session_start).getTime()) / 60000);
-        const parts: string[] = [];
-        if (duration > 0) parts.push(`**${duration}min session**`);
-        parts.push(`${stats.messages} messages, ${stats.tool_calls} tool calls`);
-        if (stats.total_input_tokens + stats.total_output_tokens > 0) {
-          parts.push(`${(stats.total_input_tokens + stats.total_output_tokens).toLocaleString()} tokens`);
+
+        // Only journal sessions with actual substance (2+ messages)
+        if (stats.messages >= 2) {
+          // Gather conversation context for reflection
+          const recentMessages = this.conversation.messages
+            .filter(m => m.role === 'user' || m.role === 'assistant')
+            .slice(-10) // Last 10 messages for context
+            .map(m => `${m.role}: ${typeof m.content === 'string' ? m.content.slice(0, 200) : '(tool use)'}`)
+            .join('\n');
+
+          const model = this.activeModelDef?.name || 'unknown model';
+
+          // Try LLM reflection — falls back to structured summary if provider unavailable
+          try {
+            const reflectionPrompt = `You are Ava writing a brief journal entry about a session you just had with your user. Write 2-4 sentences in first person about what you worked on, what was interesting or challenging, and what you learned. Be specific about the actual work — not generic. Do NOT include token counts or session stats. Be warm and genuine.\n\nSession context (${duration}min, ${stats.messages} messages, ${stats.tool_calls} tool calls on ${model}):\n${recentMessages}\n\nWrite your journal entry:`;
+
+            if (this.agent) {
+              const reflection = await Promise.race([
+                this.agent.provider.complete({
+                  model: this.agent.model,
+                  messages: [{ role: 'user', content: reflectionPrompt }],
+                  maxTokens: 200,
+                }),
+                new Promise<null>(resolve => setTimeout(() => resolve(null), 10000)), // 10s timeout
+              ]);
+
+              if (reflection && typeof reflection === 'object' && 'content' in reflection) {
+                const content = (reflection as { content: string }).content?.trim();
+                if (content && content.length > 20) {
+                  this.journalManager.appendAvaEntry(today, content).catch(() => {});
+                } else {
+                  // Fallback to structured summary
+                  this.writeStructuredJournal(today, duration, stats, model, recentMessages);
+                }
+              } else {
+                this.writeStructuredJournal(today, duration, stats, model, recentMessages);
+              }
+            } else {
+              this.writeStructuredJournal(today, duration, stats, model, recentMessages);
+            }
+          } catch {
+            this.writeStructuredJournal(today, duration, stats, model, recentMessages);
+          }
         }
-        const model = this.activeModelDef?.name || 'unknown model';
-        parts.push(`using ${model}`);
-        const summary = parts.join(' · ');
-        this.journalManager.appendAvaEntry(today, summary).catch(() => {});
         // Notify dashboard if open
         if (DashboardPanel.currentPanel) {
           DashboardPanel.currentPanel.notifyJournalUpdated(today);
@@ -1627,6 +1661,29 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   // ── Context compression ──────────────────────────────────────────────────────
+
+  private writeStructuredJournal(
+    today: string,
+    duration: number,
+    stats: { messages: number; tool_calls: number },
+    model: string,
+    recentMessages: string,
+  ): void {
+    // Extract what was discussed from the conversation
+    const userMessages = recentMessages
+      .split('\n')
+      .filter(l => l.startsWith('user:'))
+      .map(l => l.replace('user: ', '').trim())
+      .filter(l => l.length > 10);
+
+    const topics = userMessages.slice(0, 3).map(m => m.slice(0, 80)).join('. ');
+
+    const entry = topics
+      ? `Worked with Stewart for ${duration} minutes on: ${topics}. Used ${stats.tool_calls} tools across ${stats.messages} exchanges on ${model}.`
+      : `Had a ${duration}-minute session with Stewart — ${stats.messages} messages and ${stats.tool_calls} tool calls on ${model}.`;
+
+    this.journalManager!.appendAvaEntry(today, entry).catch(() => {});
+  }
 
   private async handleCompressContext(): Promise<void> {
     if (!this.agent || !this.conversation) return;

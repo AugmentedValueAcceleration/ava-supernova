@@ -50,6 +50,22 @@ export class JournalManager {
     return day;
   }
 
+  /** Delete the user's journal entry for a date. */
+  async deleteUserEntry(date: string): Promise<JournalDay> {
+    const day = await this.loadOrCreate(this.globalDir, date);
+    day.userEntry = null;
+    await this.persistDay(this.globalDir, day);
+    return day;
+  }
+
+  /** Delete Ava's journal entry for a date. */
+  async deleteAvaEntry(date: string): Promise<JournalDay> {
+    const day = await this.loadOrCreate(this.globalDir, date);
+    day.avaEntry = null;
+    await this.persistDay(this.globalDir, day);
+    return day;
+  }
+
   /** Write or update Ava's journal entry for a date. */
   async writeAvaEntry(date: string, content: string, tags?: string[], scope: 'global' | 'project' = 'global'): Promise<JournalDay> {
     const dir = scope === 'project' && this.projectDir ? this.projectDir : this.globalDir;
