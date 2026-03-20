@@ -1541,6 +1541,16 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
               type: 'session_tasks',
               tasks: sessionTasks.map(t => ({ id: t.id, title: t.title, status: t.status })),
             });
+            // Also notify dashboard so Tasks page updates in real time
+            if (DashboardPanel.currentPanel) {
+              DashboardPanel.currentPanel.notifySessionTasksUpdated(
+                sessionTasks.map(t => ({
+                  id: t.id,
+                  title: t.title,
+                  status: t.status === 'done' ? 'completed' as const : t.status === 'in-progress' ? 'in_progress' as const : 'pending' as const,
+                })),
+              );
+            }
           }
           // Refresh dashboard journal when journal_write fires
           if (event.toolCall.function.name === 'journal_write' && DashboardPanel.currentPanel) {

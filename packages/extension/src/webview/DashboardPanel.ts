@@ -1895,6 +1895,11 @@ export class DashboardPanel {
     this.loadJournalDay(date);
   }
 
+  /** Notify dashboard that session tasks changed (called from AvaViewProvider after todo_write). */
+  public notifySessionTasksUpdated(tasks: Array<{ id: string; title: string; status: 'pending' | 'in_progress' | 'completed' }>): void {
+    this.post({ type: 'session_tasks_updated', tasks });
+  }
+
   // ─── Overview Widgets (Weather, News, Release) ─────────────────────────────
 
   private static mapWmoCondition(code: number): { condition: string; emoji: string } {

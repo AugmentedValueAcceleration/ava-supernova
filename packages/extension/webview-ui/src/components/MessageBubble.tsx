@@ -234,16 +234,60 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
         const lastTodoIdx = message.toolCalls.reduce(
           (acc, tc, i) => (tc.name === 'todo_write' ? i : acc), -1,
         );
-        return message.toolCalls.map((tc, i) =>
-          tc.name === 'todo_write' ? (
-            <TodoCard key={tc.id} toolCall={tc} isLatest={i === lastTodoIdx} />
-          ) : tc.name === 'present_plan' ? (
-            <PlanCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />
-          ) : tc.name === 'ask_user' ? (
-            <AskUserCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />
-          ) : (
-            <ToolCallCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />
-          ),
+
+        // Separate tool calls into special cards and timeline-eligible calls
+        const specialCards: React.ReactNode[] = [];
+        const timelineCalls: Array<{ tc: typeof message.toolCalls[0]; idx: number }> = [];
+
+        message.toolCalls.forEach((tc, i) => {
+          if (tc.name === 'todo_write') {
+            specialCards.push(<TodoCard key={tc.id} toolCall={tc} isLatest={i === lastTodoIdx} />);
+          } else if (tc.name === 'present_plan') {
+            specialCards.push(<PlanCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />);
+          } else if (tc.name === 'ask_user') {
+            specialCards.push(<AskUserCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />);
+          } else {
+            timelineCalls.push({ tc, idx: i });
+          }
+        });
+
+        // Timeline header: show count + running status
+        const totalTimeline = timelineCalls.length;
+        const runningCount = timelineCalls.filter(({ tc }) => tc.status === 'running').length;
+        const completedCount = timelineCalls.filter(({ tc }) => tc.status === 'success').length;
+        const failedCount = timelineCalls.filter(({ tc }) => tc.status === 'failed').length;
+
+        let headerText = '';
+        if (totalTimeline > 0) {
+          if (runningCount > 0) {
+            headerText = `Running ${completedCount + runningCount} of ${totalTimeline}...`;
+          } else {
+            const parts: string[] = [];
+            parts.push(`${totalTimeline} tool call${totalTimeline !== 1 ? 's' : ''}`);
+            if (failedCount > 0) parts.push(`${failedCount} failed`);
+            headerText = parts.join(' \u00B7 ');
+          }
+        }
+
+        return (
+          <>
+            {/* Timeline block for regular tool calls */}
+            {totalTimeline > 0 && (
+              <div
+                className="mt-1"
+                style={{ borderLeft: '2px solid rgba(168, 85, 247, 0.3)', paddingLeft: '8px' }}
+              >
+                <div className="text-[10px] opacity-40 mb-0.5 select-none">
+                  {headerText}
+                </div>
+                {timelineCalls.map(({ tc }) => (
+                  <ToolCallCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />
+                ))}
+              </div>
+            )}
+            {/* Special cards rendered outside the timeline */}
+            {specialCards}
+          </>
         );
       })()}
 

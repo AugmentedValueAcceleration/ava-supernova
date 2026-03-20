@@ -10,7 +10,7 @@ interface ToolCallCardProps {
 
 // ─── Human-readable tool descriptions ──────────────────────────────────────
 
-function getToolLabel(name: string, argsJson: string): { icon: string; label: string } {
+function getToolLabel(name: string, argsJson: string): { label: string } {
   let args: Record<string, unknown> = {};
   try {
     args = JSON.parse(argsJson);
@@ -24,29 +24,29 @@ function getToolLabel(name: string, argsJson: string): { icon: string; label: st
 
   switch (name) {
     case 'file_read':
-      return { icon: '\uD83D\uDCC4', label: t('tool.read', { file: filePath || 'file' }) };
+      return { label: t('tool.read', { file: filePath || 'file' }) };
     case 'file_write':
-      return { icon: '\uD83D\uDCDD', label: t('tool.write', { file: filePath || 'file' }) };
+      return { label: t('tool.write', { file: filePath || 'file' }) };
     case 'file_edit':
-      return { icon: '\u270F\uFE0F', label: t('tool.edit', { file: filePath || 'file' }) };
+      return { label: t('tool.edit', { file: filePath || 'file' }) };
     case 'glob':
-      return { icon: '\uD83D\uDD0D', label: t('tool.find_files', { pattern: pattern || '...' }) };
+      return { label: t('tool.find_files', { pattern: pattern || '...' }) };
     case 'grep':
-      return { icon: '\uD83D\uDD0E', label: t('tool.search', { pattern: pattern ? `/${pattern}/` : '...' }) };
+      return { label: t('tool.search', { pattern: pattern ? `/${pattern}/` : '...' }) };
     case 'bash':
-      return { icon: '\uD83D\uDCBB', label: t('tool.run', { command: truncate(command || '...', 60) }) };
+      return { label: t('tool.run', { command: truncate(command || '...', 60) }) };
     case 'list_directory':
-      return { icon: '\uD83D\uDCC1', label: t('tool.list_dir', { path: shortenPath(args.path as string | undefined) || 'directory' }) };
+      return { label: t('tool.list_dir', { path: shortenPath(args.path as string | undefined) || 'directory' }) };
     case 'web_search':
-      return { icon: '\uD83C\uDF10', label: t('tool.web_search', { query: truncate((args.query as string) || '...', 50) }) };
+      return { label: t('tool.web_search', { query: truncate((args.query as string) || '...', 50) }) };
     case 'ask_user':
-      return { icon: '\uD83D\uDCAC', label: t('tool.ask_user') };
+      return { label: t('tool.ask_user') };
     case 'git_status':
-      return { icon: '\uD83D\uDD00', label: t('tool.git', { command: (args.command as string) || 'status' }) };
+      return { label: t('tool.git', { command: (args.command as string) || 'status' }) };
     case 'http_request':
-      return { icon: '\uD83D\uDD17', label: t('tool.http', { method: (args.method as string) || 'GET', url: truncate((args.url as string) || '...', 50) }) };
+      return { label: t('tool.http', { method: (args.method as string) || 'GET', url: truncate((args.url as string) || '...', 50) }) };
     default:
-      return { icon: '\u2699\uFE0F', label: name };
+      return { label: name };
   }
 }
 
@@ -60,73 +60,77 @@ function truncate(s: string, max: number): string {
   return s.length > max ? s.slice(0, max) + '...' : s;
 }
 
-// ─── Status styling ────────────────────────────────────────────────────────
+// ─── Status icon components ───────────────────────────────────────────────
 
-const STATUS_COLORS: Record<ToolCallDisplay['status'], string> = {
-  pending_confirmation: 'var(--vscode-editorWarning-foreground, #ff9800)',
-  running: 'var(--vscode-textLink-foreground, #3794ff)',
-  success: 'var(--vscode-testing-iconPassed, #4caf50)',
-  failed: 'var(--vscode-testing-iconFailed, #f44336)',
-};
+function StatusIcon({ status }: { status: ToolCallDisplay['status'] }) {
+  if (status === 'running') {
+    return (
+      <span
+        className="inline-block w-3 h-3 border-[1.5px] border-t-transparent rounded-full animate-spin flex-shrink-0"
+        style={{ borderColor: 'var(--vscode-textLink-foreground, #3794ff)', borderTopColor: 'transparent' }}
+      />
+    );
+  }
+  if (status === 'success') {
+    return (
+      <span className="text-[11px] flex-shrink-0 leading-none" style={{ color: 'var(--vscode-testing-iconPassed, #4caf50)' }}>
+        {'\u2713'}
+      </span>
+    );
+  }
+  if (status === 'failed') {
+    return (
+      <span className="text-[11px] flex-shrink-0 leading-none" style={{ color: 'var(--vscode-testing-iconFailed, #f44336)' }}>
+        {'\u2717'}
+      </span>
+    );
+  }
+  // pending_confirmation or any other
+  return (
+    <span className="text-[11px] flex-shrink-0 leading-none opacity-40">
+      {'\u25CB'}
+    </span>
+  );
+}
 
-// ─── Component ─────────────────────────────────────────────────────────────
+// ─── Single timeline row ──────────────────────────────────────────────────
 
 export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
   const [expanded, setExpanded] = useState(
     toolCall.status === 'failed' || toolCall.status === 'pending_confirmation',
   );
-  const { icon, label } = getToolLabel(toolCall.name, toolCall.arguments);
+  const { label } = getToolLabel(toolCall.name, toolCall.arguments);
   const getResult = useCallback(() => toolCall.result || '', [toolCall.result]);
-  const isRunning = toolCall.status === 'running';
-  const isSuccess = toolCall.status === 'success';
   const isFailed = toolCall.status === 'failed';
+  const isPending = toolCall.status === 'pending_confirmation';
 
   return (
-    <div
-      className="rounded-md text-xs overflow-hidden"
-      style={{
-        border: '1px solid rgba(168, 85, 247, 0.15)',
-        background: 'rgba(168, 85, 247, 0.04)',
-      }}
-    >
-      {/* Header */}
+    <div>
+      {/* Clickable row — single line */}
       <button
         aria-expanded={expanded}
         aria-label={`${label} — ${toolCall.status}`}
-        className="w-full flex items-center gap-2 px-3 py-1.5 text-left
+        className="w-full flex items-center gap-1.5 py-[3px] text-left
                    hover:bg-[var(--vscode-list-hoverBackground)]
                    transition-colors border-none bg-transparent cursor-pointer
-                   text-[var(--vscode-foreground)]"
+                   text-[var(--vscode-foreground)] text-[11px] leading-tight px-0"
         onClick={() => setExpanded(!expanded)}
       >
-        {/* Status indicator */}
-        {isRunning ? (
-          <span className="inline-block w-3.5 h-3.5 border-2 border-t-transparent rounded-full animate-spin"
-                style={{ borderColor: STATUS_COLORS.running, borderTopColor: 'transparent' }} />
-        ) : (
-          <span className="text-xs" style={{ color: STATUS_COLORS[toolCall.status] }}>
-            {isSuccess ? '\u2713' : isFailed ? '\u2717' : '\u26A0'}
-          </span>
-        )}
-
-        {/* Tool icon + label */}
-        <span className="opacity-70">{icon}</span>
-        <span className={`font-medium ${isRunning ? 'opacity-80' : ''}`}>
+        <StatusIcon status={toolCall.status} />
+        <span className={`font-medium truncate ${toolCall.status === 'running' ? 'opacity-80' : ''}`}>
           {label}
         </span>
-
-        {/* Expand chevron */}
-        <span className="ml-auto opacity-30 text-[10px]">
-          {expanded ? '\u25B2' : '\u25BC'}
-        </span>
+        {(toolCall.result || isPending) && (
+          <span className="ml-auto opacity-20 text-[9px] flex-shrink-0">
+            {expanded ? '\u25B2' : '\u25BC'}
+          </span>
+        )}
       </button>
 
-      {/* Confirmation bar */}
-      {toolCall.status === 'pending_confirmation' && toolCall.confirmationId && (
-        <div className="px-3 py-2 border-t space-y-2"
-             style={{ borderColor: STATUS_COLORS.pending_confirmation + '30',
-                      backgroundColor: STATUS_COLORS.pending_confirmation + '10' }}>
-          <span className="opacity-70 block">
+      {/* Confirmation bar — always visible for pending_confirmation */}
+      {isPending && toolCall.confirmationId && (
+        <div className="pl-[18px] py-1.5 space-y-1.5">
+          <span className="opacity-70 block text-[11px]">
             {toolCall.summary || t('tool.allow_prompt', { tool: toolCall.name })}
           </span>
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -173,15 +177,15 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
         </div>
       )}
 
-      {/* Expanded details */}
-      {expanded && toolCall.status !== 'pending_confirmation' && (
-        <div className="px-3 py-2 border-t border-[var(--vscode-panel-border)] space-y-2">
+      {/* Expanded details — arguments + result */}
+      {expanded && !isPending && (toolCall.arguments || toolCall.result) && (
+        <div className="pl-[18px] py-1 space-y-1.5">
           {toolCall.arguments && (
             <details className="group">
               <summary className="opacity-40 cursor-pointer hover:opacity-60 text-[10px] uppercase tracking-wide">
                 {t('tool.arguments')}
               </summary>
-              <pre className="mt-1 text-xs overflow-x-auto whitespace-pre-wrap opacity-70 max-h-32 overflow-y-auto">
+              <pre className="mt-1 text-[10px] overflow-x-auto whitespace-pre-wrap opacity-70 max-h-32 overflow-y-auto">
                 {formatArgs(toolCall.arguments)}
               </pre>
             </details>
@@ -192,7 +196,7 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
                 {isFailed ? t('tool.error') : t('tool.output')}
               </summary>
               <div className="relative group/output">
-                <pre className={`mt-1 text-xs overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto
+                <pre className={`mt-1 text-[10px] overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto
                                 ${isFailed ? 'text-[var(--vscode-errorForeground)]' : 'opacity-70'}`}>
                   {toolCall.result.slice(0, 2000)}
                   {toolCall.result.length > 2000 && `\n${t('tool.truncated')}`}
