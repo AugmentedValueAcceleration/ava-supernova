@@ -873,6 +873,7 @@ export function App() {
           providerSource={state.providerSource}
           platformStatus={state.platformStatus}
           onProviderSourceChange={handleProviderSourceChange}
+          contextUsage={state.contextUsage}
         />
 
         {state.historyOpen && (

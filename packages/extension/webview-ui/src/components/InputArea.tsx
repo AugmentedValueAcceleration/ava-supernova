@@ -25,6 +25,7 @@ interface InputAreaProps {
   isCompressing?: boolean;
   onCompress?: () => void;
   providerSource?: ProviderSource;
+  contextUsage?: { used: number; limit: number; percent: number } | null;
   platformStatus?: {
     connected: boolean;
     tier: string | null;
@@ -54,7 +55,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   brainstorm: 'input.placeholder.brainstorm',
 };
 
-export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCompressing, onCompress, providerSource, platformStatus, onProviderSourceChange }: InputAreaProps) {
+export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCompressing, onCompress, providerSource, platformStatus, onProviderSourceChange, contextUsage }: InputAreaProps) {
   const [text, setText] = useState('');
   const [mode, setMode] = useState<AvaMode>('code');
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
@@ -529,40 +530,40 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                 </span>
               );
             })()}
-            {usage && (() => {
-              const pct = usage.contextWindow
-                ? Math.round((usage.total_tokens / usage.contextWindow) * 100)
-                : 0;
+            {/* Circular context usage indicator */}
+            {(() => {
+              const pct = contextUsage?.percent ?? (usage?.contextWindow ? Math.round((usage.total_tokens / usage.contextWindow) * 100) : 0);
+              if (pct <= 0) return null;
               const isWarning = pct >= 80;
               const isCritical = pct >= 90;
+              const radius = 10;
+              const stroke = 2.5;
+              const circumference = 2 * Math.PI * radius;
+              const dashOffset = circumference - (pct / 100) * circumference;
+              const color = isCritical ? '#ef4444' : isWarning ? '#eab308' : '#A855F7';
               return (
                 <button
                   onClick={onCompress}
                   disabled={isCompressing || disabled || isStreaming}
-                  className={`text-[10px] tabular-nums bg-transparent border-none cursor-pointer
-                              hover:underline transition-opacity disabled:cursor-default disabled:no-underline ${
-                    isCritical
-                      ? 'text-[var(--vscode-errorForeground)] opacity-90'
-                      : isWarning
-                        ? 'text-[var(--vscode-editorWarning-foreground,#cca700)] opacity-80'
-                        : 'opacity-30 hover:opacity-50'
-                  }`}
-                  title={isCompressing
-                    ? t('input.compressing')
-                    : isCritical
-                      ? t('input.compress_click')
-                      : isWarning
-                        ? t('input.compress_click')
-                        : t('input.compress_usage')}
+                  className="relative flex items-center justify-center w-7 h-7 bg-transparent border-none cursor-pointer transition-opacity hover:opacity-80 disabled:cursor-default"
+                  title={isCompressing ? t('input.compressing') : `Context: ${pct}%${isCritical ? ' — click to compress' : ''}`}
                 >
-                  {isCompressing ? t('input.compressing') : (
-                    <>
-                      {usage.prompt_tokens.toLocaleString()}/{usage.completion_tokens.toLocaleString()}
-                      {pct > 0 && ` \u00B7 ${pct}%`}
-                      {usage.cost !== undefined && usage.cost > 0 && ` \u00B7 $${usage.cost.toFixed(4)}`}
-                      {isCritical && ' \u26A0'}
-                    </>
-                  )}
+                  <svg width="24" height="24" viewBox="0 0 24 24" className="transform -rotate-90">
+                    {/* Background circle */}
+                    <circle cx="12" cy="12" r={radius} fill="none" stroke="currentColor" strokeWidth={stroke} opacity={0.1} />
+                    {/* Progress circle */}
+                    <circle
+                      cx="12" cy="12" r={radius}
+                      fill="none"
+                      stroke={color}
+                      strokeWidth={stroke}
+                      strokeLinecap="round"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={dashOffset}
+                      style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+                    />
+                  </svg>
+                  <span className="absolute text-[7px] font-bold tabular-nums" style={{ color }}>{pct}</span>
                 </button>
               );
             })()}

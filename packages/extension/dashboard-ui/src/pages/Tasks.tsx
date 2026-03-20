@@ -227,44 +227,71 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
       </div>
 
       {/* Ava's Progress — live session tasks */}
-      {sessionTasks.length > 0 && (
-        <div className="rounded-xl border border-[#A855F7]/20 bg-[#A855F7]/5 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-sm">⚡</span>
-            <h2 className="text-sm font-semibold text-[#A855F7]">Ava's Progress</h2>
-            <span className="text-[10px] text-[var(--text-muted)]">
-              {sessionTasks.filter(t => t.status === 'completed').length}/{sessionTasks.length} completed
-            </span>
-            {/* Progress bar */}
-            <div className="flex-1 h-1.5 rounded-full bg-[var(--bg-input)] overflow-hidden ml-2">
-              <div
-                className="h-full rounded-full bg-[#A855F7] transition-all duration-500"
-                style={{ width: `${sessionTasks.length > 0 ? (sessionTasks.filter(t => t.status === 'completed').length / sessionTasks.length) * 100 : 0}%` }}
-              />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            {sessionTasks.map(task => (
-              <div key={task.id} className="flex items-center gap-2 text-xs">
-                <span className={`w-4 text-center ${
-                  task.status === 'completed' ? 'text-emerald-400' :
-                  task.status === 'in_progress' ? 'text-[#A855F7] animate-pulse' :
-                  'text-[var(--text-muted)]'
-                }`}>
-                  {task.status === 'completed' ? '✓' : task.status === 'in_progress' ? '⟳' : '○'}
-                </span>
-                <span className={
-                  task.status === 'completed' ? 'text-[var(--text-muted)] line-through' :
-                  task.status === 'in_progress' ? 'text-white font-medium' :
-                  'text-[var(--text-secondary)]'
-                }>
-                  {task.title}
-                </span>
+      {sessionTasks.length > 0 && (() => {
+        const active = sessionTasks.filter(t => t.status !== 'completed');
+        const completed = sessionTasks.filter(t => t.status === 'completed');
+        const allDone = active.length === 0 && completed.length > 0;
+        const completedCount = completed.length;
+        const totalCount = sessionTasks.length;
+        const pct = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+        return (
+          <div className={`rounded-xl border p-4 ${allDone ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-[#A855F7]/20 bg-[#A855F7]/5'}`}>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-sm">{allDone ? '✅' : '⚡'}</span>
+              <h2 className={`text-sm font-semibold ${allDone ? 'text-emerald-400' : 'text-[#A855F7]'}`}>
+                {allDone ? 'All Tasks Complete' : "Ava's Progress"}
+              </h2>
+              <span className="text-[10px] text-[var(--text-muted)]">
+                {completedCount}/{totalCount} completed
+              </span>
+              <div className="flex-1 h-1.5 rounded-full bg-[var(--bg-input)] overflow-hidden ml-2">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${allDone ? 'bg-emerald-500' : 'bg-[#A855F7]'}`}
+                  style={{ width: `${pct}%` }}
+                />
               </div>
-            ))}
+            </div>
+
+            {/* Active tasks */}
+            {active.length > 0 && (
+              <div className="space-y-1.5">
+                {active.map(task => (
+                  <div key={task.id} className="flex items-center gap-2 text-xs">
+                    <span className={`w-4 text-center ${
+                      task.status === 'in_progress' ? 'text-[#A855F7] animate-pulse' : 'text-[var(--text-muted)]'
+                    }`}>
+                      {task.status === 'in_progress' ? '⟳' : '○'}
+                    </span>
+                    <span className={task.status === 'in_progress' ? 'text-white font-medium' : 'text-[var(--text-secondary)]'}>
+                      {task.title}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Completed tasks — collapsible */}
+            {completed.length > 0 && (
+              <div className={active.length > 0 ? 'mt-2 pt-2 border-t border-[var(--border-card)]' : ''}>
+                <details open={allDone}>
+                  <summary className="text-[10px] text-emerald-400 cursor-pointer select-none opacity-70 hover:opacity-100">
+                    {completedCount} completed
+                  </summary>
+                  <div className="space-y-1 mt-1.5">
+                    {completed.map(task => (
+                      <div key={task.id} className="flex items-center gap-2 text-xs">
+                        <span className="w-4 text-center text-emerald-400">✓</span>
+                        <span className="text-[var(--text-muted)] line-through">{task.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Stats bar */}
       <div className="grid grid-cols-4 gap-3">
