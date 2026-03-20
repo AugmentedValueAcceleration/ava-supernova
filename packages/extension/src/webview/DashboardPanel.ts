@@ -1969,8 +1969,15 @@ export class DashboardPanel {
     }
   }
 
+  private static onDisposeCallback: (() => void) | undefined;
+
+  static onDidDispose(callback: () => void): void {
+    DashboardPanel.onDisposeCallback = callback;
+  }
+
   private dispose(): void {
     DashboardPanel.currentPanel = undefined;
+    DashboardPanel.onDisposeCallback?.();
     this.panel.dispose();
     for (const d of this.disposables) d.dispose();
     this.disposables = [];

@@ -10,6 +10,7 @@ import { killBackgroundProcesses, TaskManager, JournalManager, AVA_HOME } from '
 let viewProvider: AvaViewProvider | undefined;
 
 const PANEL_STATE_KEY = 'avaSupernova.panelOpen';
+const DASHBOARD_STATE_KEY = 'avaSupernova.dashboardOpen';
 
 export function activate(context: vscode.ExtensionContext): void {
   viewProvider = new AvaViewProvider(context.extensionUri, context);
@@ -42,7 +43,10 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('ava-supernova.switchModel', () => viewProvider!.switchModel()),
     vscode.commands.registerCommand('ava-supernova.showHistory', () => viewProvider!.showHistory()),
     vscode.commands.registerCommand('ava-supernova.openDocs', () => DocsPanel.show(context.extensionUri)),
-    vscode.commands.registerCommand('ava-supernova.openDashboard', () => DashboardPanel.show(context.extensionUri, context)),
+    vscode.commands.registerCommand('ava-supernova.openDashboard', () => {
+      DashboardPanel.show(context.extensionUri, context);
+      context.globalState.update(DASHBOARD_STATE_KEY, true);
+    }),
     vscode.commands.registerCommand('ava-supernova.previewDocument', async (resourceUri?: vscode.Uri) => {
       // Accept URI from explorer context menu, editor title bar, or let user pick
       let uri = resourceUri ?? vscode.window.activeTextEditor?.document.uri;
@@ -181,16 +185,31 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
   );
 
-  // Restore panel if it was open in the previous session (default: open on first install)
-  const wasOpen = context.globalState.get<boolean>(PANEL_STATE_KEY, true);
-  if (wasOpen) {
-    viewProvider.openInEditor();
-  }
-
   // Track panel open/close state for persistence across restarts
   viewProvider.onPanelStateChange((isOpen) => {
     context.globalState.update(PANEL_STATE_KEY, isOpen);
   });
+
+  // Track dashboard close
+  DashboardPanel.onDidDispose(() => {
+    context.globalState.update(DASHBOARD_STATE_KEY, false);
+  });
+
+  // Restore panels after a short delay so VS Code's Welcome tab doesn't steal focus
+  const wasOpen = context.globalState.get<boolean>(PANEL_STATE_KEY, true);
+  const dashboardWasOpen = context.globalState.get<boolean>(DASHBOARD_STATE_KEY, false);
+
+  if (wasOpen || dashboardWasOpen) {
+    setTimeout(() => {
+      if (dashboardWasOpen) {
+        DashboardPanel.show(context.extensionUri, context);
+      }
+      if (wasOpen) {
+        viewProvider!.openInEditor();
+      }
+    }, 1500);
+  }
+
 
   // ── Release notes on version change ──────────────────────────────────────
   checkForReleaseNotes(context);
