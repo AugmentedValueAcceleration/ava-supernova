@@ -304,6 +304,10 @@ export class DashboardPanel {
         this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats() });
         break;
 
+      case 'load_usage_history':
+        await this.loadUsageHistory();
+        break;
+
       case 'send_byok_support': {
         const mailto = `mailto:support@ava-supernova.com?subject=${encodeURIComponent(msg.subject)}&body=${encodeURIComponent(msg.message + '\n\nFrom: ' + msg.email)}`;
         await vscode.env.openExternal(vscode.Uri.parse(mailto));
@@ -633,6 +637,127 @@ export class DashboardPanel {
       }
     } catch {
       this.post({ type: 'usage_logs_loaded', logs: [] });
+    }
+  }
+
+  // ─── Usage History (All-Time Analytics) ──────────────────────────────────────
+
+  private async loadUsageHistory(): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) {
+      this.post({ type: 'usage_history_loaded', data: null });
+      return;
+    }
+
+    try {
+      // Fetch account info for balance
+      const accountRes = await apiFetch('/account-info', { platformKey });
+      let balance: { used: number; limit: number; tier: string } | null = null;
+      if (accountRes.ok) {
+        const acc = accountRes.data as AccountInfo;
+        const usage = acc.usage;
+        if (usage) {
+          balance = {
+            used: usage.tokens_used + usage.free_tokens_used,
+            limit: (usage.tokens_limit ?? 0) + usage.free_tokens_limit,
+            tier: acc.tier,
+          };
+        }
+      }
+
+      // Fetch usage logs for current month and last month
+      const now = new Date();
+      const thisMonthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastMonthStart = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}-01`;
+      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+      const lastMonthEndStr = `${lastMonthEnd.getFullYear()}-${String(lastMonthEnd.getMonth() + 1).padStart(2, '0')}-${String(lastMonthEnd.getDate()).padStart(2, '0')}`;
+
+      // Fetch all logs (30d covers current + some of last month)
+      const logsRes = await apiFetch('/usage-logs?period=all', { platformKey });
+      const allLogs: UsageLogEntry[] = logsRes.ok && typeof logsRes.data === 'object' && logsRes.data && 'logs' in logsRes.data
+        ? (logsRes.data as { logs: UsageLogEntry[] }).logs
+        : [];
+
+      // Build daily usage for last 30 days
+      const dailyMap: Record<string, number> = {};
+      const modelMap: Record<string, number> = {};
+      let monthTotal = 0;
+      let lastMonthTotal = 0;
+
+      for (const log of allLogs) {
+        const date = log.timestamp.slice(0, 10);
+        const tokens = log.input_tokens + log.output_tokens;
+
+        // Daily
+        dailyMap[date] = (dailyMap[date] ?? 0) + tokens;
+
+        // Model
+        modelMap[log.model] = (modelMap[log.model] ?? 0) + tokens;
+
+        // Month totals
+        if (date >= thisMonthStart) {
+          monthTotal += tokens;
+        } else if (date >= lastMonthStart && date <= lastMonthEndStr) {
+          lastMonthTotal += tokens;
+        }
+      }
+
+      // Build daily array (last 14 days)
+      const daily: Array<{ date: string; tokens: number }> = [];
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().slice(0, 10);
+        daily.push({ date: dateStr, tokens: dailyMap[dateStr] ?? 0 });
+      }
+
+      // Top models sorted by usage
+      const topModels = Object.entries(modelMap)
+        .map(([model, tokens]) => ({ model, tokens }))
+        .sort((a, b) => b.tokens - a.tokens)
+        .slice(0, 10);
+
+      // Build session approximations from logs (group by hour blocks)
+      const sessionMap: Record<string, { date: string; tokens: number; messages: number; models: Record<string, number>; firstTs: number; lastTs: number }> = {};
+      for (const log of allLogs) {
+        const ts = new Date(log.timestamp).getTime();
+        const hourKey = log.timestamp.slice(0, 13); // YYYY-MM-DDTHH
+        if (!sessionMap[hourKey]) {
+          sessionMap[hourKey] = { date: log.timestamp.slice(0, 10), tokens: 0, messages: 0, models: {}, firstTs: ts, lastTs: ts };
+        }
+        const s = sessionMap[hourKey];
+        s.tokens += log.input_tokens + log.output_tokens;
+        s.messages++;
+        s.models[log.model] = (s.models[log.model] ?? 0) + log.input_tokens + log.output_tokens;
+        if (ts < s.firstTs) s.firstTs = ts;
+        if (ts > s.lastTs) s.lastTs = ts;
+      }
+
+      const sessions = Object.values(sessionMap)
+        .sort((a, b) => b.firstTs - a.firstTs)
+        .slice(0, 50)
+        .map(s => {
+          const durationMs = s.lastTs - s.firstTs;
+          const mins = Math.floor(durationMs / 60000);
+          const duration = mins < 1 ? '<1m' : mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
+          const primaryModel = Object.entries(s.models).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'unknown';
+          // Estimate cost (rough: $0.20/$1.20 per 1M for typical Qwen model)
+          const cost = (s.tokens / 1_000_000) * 0.70; // blended average
+
+          return { date: s.date, duration, messages: s.messages, tokens: s.tokens, model: primaryModel, cost: Math.round(cost * 1000) / 1000 };
+        });
+
+      const totalSessions = Object.keys(sessionMap).length;
+      const totalTokensAll = allLogs.reduce((sum, l) => sum + l.input_tokens + l.output_tokens, 0);
+      const avgPerSession = totalSessions > 0 ? Math.round(totalTokensAll / totalSessions) : 0;
+
+      this.post({
+        type: 'usage_history_loaded',
+        data: { balance, daily, sessions, monthTotal, lastMonthTotal, topModels, avgPerSession, totalSessions },
+      });
+    } catch {
+      this.post({ type: 'usage_history_loaded', data: null });
     }
   }
 

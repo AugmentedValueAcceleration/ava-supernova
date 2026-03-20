@@ -246,6 +246,19 @@ export interface PersonalityData {
   description: string;
 }
 
+// ─── Usage Analytics Types ───────────────────────────────────────────────────
+
+export interface UsageHistoryData {
+  balance: { used: number; limit: number; tier: string } | null;
+  daily: Array<{ date: string; tokens: number }>;
+  sessions: Array<{ date: string; duration: string; messages: number; tokens: number; model: string; cost: number }>;
+  monthTotal: number;
+  lastMonthTotal: number;
+  topModels: Array<{ model: string; tokens: number }>;
+  avgPerSession: number;
+  totalSessions: number;
+}
+
 export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'library' | 'personality' | 'sync' | 'releases' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals';
 
 // Library (project files — images, documents, spreadsheets, presentations)
@@ -297,6 +310,7 @@ export type ExtToDashboardMessage =
   | { type: 'local_memory_deleted'; id: string }
   | { type: 'local_memory_upserted'; memory: MemoryEntry }
   | { type: 'session_stats_loaded'; stats: SessionStats }
+  | { type: 'usage_history_loaded'; data: UsageHistoryData | null }
   | { type: 'byok_support_sent'; success: boolean; message: string }
   // Task messages
   | { type: 'tasks_loaded'; tasks: DashboardTaskEntry[] }
@@ -373,6 +387,7 @@ export type DashboardToExtMessage =
   | { type: 'archive_local_memory'; id: string }
   | { type: 'restore_local_memory'; id: string }
   | { type: 'load_session_stats' }
+  | { type: 'load_usage_history' }
   | { type: 'send_byok_support'; email: string; subject: string; message: string }
   // Task messages
   | { type: 'load_tasks' }

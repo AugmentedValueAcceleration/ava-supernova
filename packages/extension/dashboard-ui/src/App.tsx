@@ -28,6 +28,7 @@ import type {
   DashboardJournalDay,
   DashboardJournalDaySummary,
   SessionStats,
+  UsageHistoryData,
   SupportTicket,
   DashboardSettings,
   MemoryEntry,
@@ -95,6 +96,7 @@ export function App() {
   const [journalSummaries, setJournalSummaries] = useState<DashboardJournalDaySummary[]>([]);
   const [selectedJournalDate, setSelectedJournalDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [sessionStatsData, setSessionStatsData] = useState<SessionStats | null>(null);
+  const [usageHistoryData, setUsageHistoryData] = useState<UsageHistoryData | null>(null);
   const [learningCurriculums, setLearningCurriculums] = useState<DashboardLearningCurriculum[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // Admin state
@@ -230,6 +232,9 @@ export function App() {
       case 'session_stats_loaded':
         setSessionStatsData(msg.stats);
         break;
+      case 'usage_history_loaded':
+        setUsageHistoryData(msg.data);
+        break;
       // Task messages
       case 'tasks_loaded':
         setTasks(msg.tasks);
@@ -324,9 +329,13 @@ export function App() {
 
   // Load data when navigating to pages
   useEffect(() => {
-    if (page === 'history' && conversations.length === 0 && !conversationsLoading) {
-      setConversationsLoading(true);
-      post({ type: 'load_conversations' });
+    if (page === 'history') {
+      // Load session stats for everyone
+      post({ type: 'load_session_stats' });
+      // Load usage history for connected users
+      if (account) {
+        post({ type: 'load_usage_history' });
+      }
     }
     if (page === 'support' && tickets.length === 0 && !ticketsLoading && account) {
       setTicketsLoading(true);
@@ -448,7 +457,7 @@ export function App() {
       case 'connections':
         return <Connections connections={connections} />;
       case 'history':
-        return <History conversations={conversations} loading={conversationsLoading} />;
+        return <History sessionStats={sessionStatsData} usageHistory={usageHistoryData} mode={account ? 'platform' : 'byok'} account={account} />;
       case 'support':
         return <Support tickets={tickets} loading={ticketsLoading} mode={mode} />;
       case 'billing':
