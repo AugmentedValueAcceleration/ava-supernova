@@ -91,6 +91,7 @@ export function App() {
   const [byokMode, setByokMode] = useState(false);
   const [localMemories, setLocalMemories] = useState<MemoryEntry[]>([]);
   const [tasks, setTasks] = useState<DashboardTaskEntry[]>([]);
+  const [sessionTasks, setSessionTasks] = useState<Array<{ id: string; title: string; status: 'pending' | 'in_progress' | 'completed' }>>([]);
   const [journalDay, setJournalDay] = useState<DashboardJournalDay | null>(null);
   const [journalSummaries, setJournalSummaries] = useState<DashboardJournalDaySummary[]>([]);
   const [selectedJournalDate, setSelectedJournalDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -238,6 +239,9 @@ export function App() {
       case 'tasks_loaded':
         setTasks(msg.tasks);
         break;
+      case 'session_tasks_updated':
+        setSessionTasks(msg.tasks);
+        break;
       case 'task_upserted':
         setTasks((prev) => {
           const idx = prev.findIndex((t) => t.id === msg.task.id);
@@ -361,8 +365,9 @@ export function App() {
       post({ type: 'load_learning' });
     }
     // Load tasks when navigating to tasks page
-    if (page === 'tasks' && tasks.length === 0) {
-      post({ type: 'load_tasks' });
+    if (page === 'tasks') {
+      if (tasks.length === 0) post({ type: 'load_tasks' });
+      post({ type: 'load_session_tasks' });
     }
     // Load journal when navigating to journal page
     if (page === 'journal') {
@@ -441,7 +446,7 @@ export function App() {
       case 'memory':
         return <Memory memories={account ? memories : localMemories} mode={mode} />;
       case 'tasks':
-        return <Tasks tasks={tasks} />;
+        return <Tasks tasks={tasks} sessionTasks={sessionTasks} />;
       case 'journal':
         return (
           <Journal

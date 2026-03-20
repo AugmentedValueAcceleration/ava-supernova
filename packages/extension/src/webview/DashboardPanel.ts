@@ -304,6 +304,10 @@ export class DashboardPanel {
         this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats() });
         break;
 
+      case 'load_session_tasks':
+        this.post({ type: 'session_tasks_updated', tasks: this.getSessionTasks() });
+        break;
+
       case 'load_usage_history':
         await this.loadUsageHistory();
         break;
@@ -1187,6 +1191,19 @@ export class DashboardPanel {
   }
 
   // ─── Tasks ─────────────────────────────────────────────────────────────────
+
+  private getSessionTasks(): Array<{ id: string; title: string; status: 'pending' | 'in_progress' | 'completed' }> {
+    try {
+      const mgr = this.getTaskManager();
+      return mgr.getSessionTasks().map(t => ({
+        id: t.id,
+        title: t.title,
+        status: t.status === 'done' ? 'completed' as const : t.status === 'in-progress' ? 'in_progress' as const : 'pending' as const,
+      }));
+    } catch {
+      return [];
+    }
+  }
 
   private getTaskManager(): TaskManager {
     if (!this.taskManager) {

@@ -321,6 +321,8 @@ export type ExtToDashboardMessage =
   | { type: 'journal_day_loaded'; day: DashboardJournalDay }
   | { type: 'journal_summaries_loaded'; summaries: DashboardJournalDaySummary[] }
   | { type: 'journal_day_updated'; day: DashboardJournalDay }
+  // Session tasks (Ava's progress)
+  | { type: 'session_tasks_updated'; tasks: Array<{ id: string; title: string; status: 'pending' | 'in_progress' | 'completed' }> }
   // Learning messages
   | { type: 'learning_loaded'; curriculums: DashboardLearningCurriculum[] }
   // Sync messages
@@ -404,6 +406,8 @@ export type DashboardToExtMessage =
   | { type: 'save_journal_user_entry'; date: string; content: string; mood?: number; tags?: string[] }
   | { type: 'delete_journal_user_entry'; date: string }
   | { type: 'delete_journal_ava_entry'; date: string }
+  // Session tasks (Ava's progress)
+  | { type: 'load_session_tasks' }
   // Learning messages
   | { type: 'load_learning' }
   // Sync messages

@@ -2038,6 +2038,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           return { message: msg, code: 'credits', suggestion: 'Add credits to your provider account, or sign up for 3M free Qwen tokens, or add your own API key.' };
         case 403:
           return { message: msg, code: 'forbidden', suggestion: 'Your API key may not have the right permissions. Check your provider dashboard.' };
+        case 413:
+          return { message: 'Conversation too large to send.', code: 'payload_too_large', suggestion: 'Start a new chat with the + button. Your conversation history has grown too large for the API.' };
         case 404:
           return { message: msg, code: 'model_not_found', suggestion: 'Click the model name in the header to switch to a different model.' };
         case 429:

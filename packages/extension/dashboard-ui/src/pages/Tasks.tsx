@@ -85,11 +85,18 @@ function SubtaskProgress({ subtasks }: { subtasks: { done: boolean }[] }) {
 
 // ── Main Component ───────────────────────────────────────────────────────────
 
-interface TasksProps {
-  tasks: DashboardTaskEntry[];
+interface SessionTask {
+  id: string;
+  title: string;
+  status: 'pending' | 'in_progress' | 'completed';
 }
 
-export function Tasks({ tasks }: TasksProps) {
+interface TasksProps {
+  tasks: DashboardTaskEntry[];
+  sessionTasks?: SessionTask[];
+}
+
+export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
   const [viewTab, setViewTab] = useState<ViewTab>('active');
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
@@ -218,6 +225,46 @@ export function Tasks({ tasks }: TasksProps) {
           New Task
         </button>
       </div>
+
+      {/* Ava's Progress — live session tasks */}
+      {sessionTasks.length > 0 && (
+        <div className="rounded-xl border border-[#A855F7]/20 bg-[#A855F7]/5 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-sm">⚡</span>
+            <h2 className="text-sm font-semibold text-[#A855F7]">Ava's Progress</h2>
+            <span className="text-[10px] text-[var(--text-muted)]">
+              {sessionTasks.filter(t => t.status === 'completed').length}/{sessionTasks.length} completed
+            </span>
+            {/* Progress bar */}
+            <div className="flex-1 h-1.5 rounded-full bg-[var(--bg-input)] overflow-hidden ml-2">
+              <div
+                className="h-full rounded-full bg-[#A855F7] transition-all duration-500"
+                style={{ width: `${sessionTasks.length > 0 ? (sessionTasks.filter(t => t.status === 'completed').length / sessionTasks.length) * 100 : 0}%` }}
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            {sessionTasks.map(task => (
+              <div key={task.id} className="flex items-center gap-2 text-xs">
+                <span className={`w-4 text-center ${
+                  task.status === 'completed' ? 'text-emerald-400' :
+                  task.status === 'in_progress' ? 'text-[#A855F7] animate-pulse' :
+                  'text-[var(--text-muted)]'
+                }`}>
+                  {task.status === 'completed' ? '✓' : task.status === 'in_progress' ? '⟳' : '○'}
+                </span>
+                <span className={
+                  task.status === 'completed' ? 'text-[var(--text-muted)] line-through' :
+                  task.status === 'in_progress' ? 'text-white font-medium' :
+                  'text-[var(--text-secondary)]'
+                }>
+                  {task.title}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Stats bar */}
       <div className="grid grid-cols-4 gap-3">

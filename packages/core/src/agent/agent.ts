@@ -220,9 +220,54 @@ export class Agent {
         return msg;
       });
 
+      // Guard against 413: check estimated body size and truncate if too large
+      // Most APIs reject bodies over 4MB. Target 3MB to leave headroom.
+      const MAX_BODY_BYTES = 3 * 1024 * 1024;
+      let finalMessages = sanitizedMessages;
+      const estimatedSize = JSON.stringify(sanitizedMessages).length;
+      if (estimatedSize > MAX_BODY_BYTES) {
+        logger.warn(`[agent] Request body too large (${(estimatedSize / 1024 / 1024).toFixed(1)}MB). Truncating tool results and old messages.`);
+        // First pass: truncate large tool results (keep first 500 chars)
+        finalMessages = finalMessages.map(m => {
+          if (m.role === 'tool' && typeof m.content === 'string' && m.content.length > 500) {
+            return { ...m, content: m.content.slice(0, 500) + '\n\n[Output truncated — original was ' + m.content.length + ' chars]' };
+          }
+          return m;
+        });
+        // Second pass: if still too large, drop oldest messages (keep system + last 20)
+        if (JSON.stringify(finalMessages).length > MAX_BODY_BYTES) {
+          const systemMsg = finalMessages.find(m => m.role === 'system');
+          const nonSystem = finalMessages.filter(m => m.role !== 'system');
+          const dropped = nonSystem.slice(0, -20);
+          const kept = nonSystem.slice(-20);
+          finalMessages = systemMsg ? [systemMsg, ...kept] : kept;
+          logger.warn(`[agent] Aggressive truncation: kept system + last ${kept.length} messages, dropped ${dropped.length}`);
+
+          // Save dropped context to memory
+          try {
+            const mm = (this.toolContext.sharedState as Record<string, unknown> | undefined)?.memoryManager as { saveEntry?: (scope: string, entry: { key: string; content: string; category: string }) => Promise<void> } | undefined;
+            if (mm?.saveEntry && dropped.length > 0) {
+              const droppedSummary = dropped
+                .filter(m => m.role === 'user' || m.role === 'assistant')
+                .map(m => `[${m.role}]: ${typeof m.content === 'string' ? m.content.slice(0, 200) : '(tool use)'}`)
+                .join('\n');
+              if (droppedSummary.length > 50) {
+                const date = new Date().toISOString().slice(0, 10);
+                const time = new Date().toISOString().slice(11, 16);
+                await mm.saveEntry('global', {
+                  key: `truncated-context-${date}-${time}`,
+                  content: droppedSummary.slice(0, 2000),
+                  category: 'session',
+                });
+              }
+            }
+          } catch { /* non-critical */ }
+        }
+      }
+
       const request: ChatCompletionRequest = {
         model: this.model.id,
-        messages: sanitizedMessages,
+        messages: finalMessages,
         tools: toolSchemas.length > 0 ? toolSchemas : undefined,
         tool_choice: toolSchemas.length > 0 ? 'auto' : undefined,
         stream: true,
@@ -694,6 +739,23 @@ ${transcript}`;
 
       const summary = response.choices?.[0]?.message?.content || '';
       if (!summary) throw new Error('Empty compression response');
+
+      // Save compressed context to memory so nothing is lost
+      try {
+        const mm = (this.toolContext.sharedState as Record<string, unknown> | undefined)?.memoryManager as { saveEntry?: (scope: string, entry: { key: string; content: string; category: string }) => Promise<void> } | undefined;
+        if (mm?.saveEntry) {
+          const date = new Date().toISOString().slice(0, 10);
+          const time = new Date().toISOString().slice(11, 16);
+          await mm.saveEntry('global', {
+            key: `session-summary-${date}-${time}`,
+            content: summary,
+            category: 'session',
+          });
+          logger.debug('[agent] Saved compression summary to memory');
+        }
+      } catch {
+        // Memory save is non-critical — don't block compression
+      }
 
       const summaryMessage: Message = {
         role: 'user',
