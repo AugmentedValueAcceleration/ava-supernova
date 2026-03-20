@@ -177,7 +177,7 @@ export class Agent {
       const filteredMessages = !useNativeTools
         ? messages.filter((m) => m.role !== 'tool')  // Drop any stray tool messages in text mode
         : messages;
-      const sanitizedMessages = filteredMessages.map((m) => {
+      let sanitizedMessages = filteredMessages.map((m) => {
         let msg = m;
 
         // Strip image_url parts for non-vision models (DeepSeek, Mistral, etc.)
@@ -220,6 +220,9 @@ export class Agent {
         return msg;
       });
 
+      // Fix orphaned tool messages before sending — prevents 400 errors
+      sanitizedMessages = this.fixToolPairing(sanitizedMessages);
+
       // Guard against 413: check estimated body size and truncate if too large
       // Most APIs reject bodies over 4MB. Target 3MB to leave headroom.
       const MAX_BODY_BYTES = 3 * 1024 * 1024;
@@ -240,8 +243,10 @@ export class Agent {
           const nonSystem = finalMessages.filter(m => m.role !== 'system');
           const dropped = nonSystem.slice(0, -20);
           const kept = nonSystem.slice(-20);
-          finalMessages = systemMsg ? [systemMsg, ...kept] : kept;
-          logger.warn(`[agent] Aggressive truncation: kept system + last ${kept.length} messages, dropped ${dropped.length}`);
+          // Fix orphaned tool messages after truncation
+          const fixedKept = this.fixToolPairing(kept);
+          finalMessages = systemMsg ? [systemMsg, ...fixedKept] : fixedKept;
+          logger.warn(`[agent] Aggressive truncation: kept system + last ${fixedKept.length} messages, dropped ${dropped.length}`);
 
           // Save dropped context to memory
           try {
@@ -869,31 +874,50 @@ ${transcript}`;
     while (start < messages.length && messages[start].role === 'tool') {
       start++;
     }
-
     if (start === messages.length) return [];
     const trimmed = start > 0 ? messages.slice(start) : messages;
 
-    // 2. Check the first message — if it's an assistant with tool_calls,
-    //    verify all its tool results are present
-    const first = trimmed[0];
-    if (first.role === 'assistant') {
-      const toolCalls = (first as AssistantMessage).tool_calls;
-      if (toolCalls && toolCalls.length > 0) {
-        const expectedIds = new Set(toolCalls.map((tc) => tc.id));
-        // Collect tool_call_ids from the immediately following tool messages
-        let j = 1;
-        while (j < trimmed.length && trimmed[j].role === 'tool') {
-          const toolMsg = trimmed[j] as { tool_call_id?: string };
-          expectedIds.delete(toolMsg.tool_call_id ?? '');
-          j++;
-        }
-        // If any tool results are missing, drop this assistant + its partial results
-        if (expectedIds.size > 0) {
-          return trimmed.slice(j);
+    // 2. Scan ALL messages — remove any tool message whose parent assistant
+    //    (with matching tool_call_id) is not in the conversation
+    const assistantToolCallIds = new Set<string>();
+    for (const m of trimmed) {
+      if (m.role === 'assistant') {
+        const toolCalls = (m as AssistantMessage).tool_calls;
+        if (toolCalls) {
+          for (const tc of toolCalls) {
+            assistantToolCallIds.add(tc.id);
+          }
         }
       }
     }
 
-    return trimmed;
+    const fixed = trimmed.filter(m => {
+      if (m.role === 'tool') {
+        const toolMsg = m as { tool_call_id?: string };
+        return assistantToolCallIds.has(toolMsg.tool_call_id ?? '');
+      }
+      return true;
+    });
+
+    // 3. Check for assistant messages with tool_calls but missing ALL tool results
+    //    (incomplete pair) — remove them too
+    const toolResultIds = new Set<string>();
+    for (const m of fixed) {
+      if (m.role === 'tool') {
+        const toolMsg = m as { tool_call_id?: string };
+        if (toolMsg.tool_call_id) toolResultIds.add(toolMsg.tool_call_id);
+      }
+    }
+
+    return fixed.filter(m => {
+      if (m.role === 'assistant') {
+        const toolCalls = (m as AssistantMessage).tool_calls;
+        if (toolCalls && toolCalls.length > 0) {
+          // Keep only if at least one tool result exists
+          return toolCalls.some(tc => toolResultIds.has(tc.id));
+        }
+      }
+      return true;
+    });
   }
 }
