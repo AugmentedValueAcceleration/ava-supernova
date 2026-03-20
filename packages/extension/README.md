@@ -2,14 +2,14 @@
 
 The open-source AI coding agent that remembers you.
 
-54 tools. 6 modes. Specialist personas. Memory that persists. A personal tutor that teaches for free. Custom personality. Command centre dashboard. Image generation. Office suite. 14 models from 7 providers — **free models that work instantly, no API key required**.
+54 tools. 6 modes. 24 specialist personas. Memory that persists. A personal tutor that teaches for free. Custom personality. Command centre dashboard. Image generation. Office suite. 14 models from 7 providers — **3M free Qwen tokens with an account, or bring your own API keys**.
 
 > **Install, open, go.** No account. No credit card. No trial. Just start.
 
 ## What makes Ava different
 
 - **She remembers you** — 5-layer memory system that learns your coding style, decisions, conventions, and preferences. Every session she's better at helping you specifically.
-- **She thinks before she builds** — 14 internal personas (Scout, Architect, Verifier, Sequencer, Challenger, Builder) plan before executing. Complex tasks get proper analysis, not just code generation.
+- **She thinks before she builds** — 24 specialist personas across 5 modes plan before executing. Complex tasks get proper analysis, not just code generation.
 - **She teaches for free** — Switch to Teach mode, say "teach me Python", and she builds a personalised curriculum with spaced repetition. Education shouldn't have a price tag.
 - **She's yours to design** — Name her. Choose the tone, energy, and communication style. Same brain, your personality.
 - **She explains herself** — Ask "how does your memory work?" and she reads her own source code and explains it. The only AI that can.
@@ -152,8 +152,8 @@ Everything local by default. Connected users choose what to sync:
 
 1. Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=augmentedvalueacceleration.ava-supernova)
 2. Click the Ava icon in the activity bar (or `Ctrl+Shift+A`)
-3. Start coding — free models work with zero configuration
-4. Optionally add API keys for premium models via the Dashboard
+3. Sign up for 3M free Qwen tokens, or add your own API keys in Settings
+4. Start coding
 
 > No account. No credit card. No trial. Just install and go.
 
