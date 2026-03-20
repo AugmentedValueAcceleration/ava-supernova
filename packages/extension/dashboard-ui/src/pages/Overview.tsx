@@ -210,22 +210,8 @@ export function Overview({
 
       {/* ── Statistics Row ────────────────────────────────────────────── */}
       <div className="mb-4">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Statistics</h2>
-          <button
-            onClick={() => {
-              setRefreshing(true);
-              post({ type: 'refresh_account' });
-              setTimeout(() => setRefreshing(false), 1500);
-            }}
-            title="Refresh stats"
-            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] text-[var(--text-muted)] transition hover:bg-[var(--bg-input)] hover:text-white"
-          >
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className={refreshing ? 'animate-spin' : ''}>
-              <path d="M13.507 12.324a7 7 0 0 0 .065-8.56A7 7 0 0 0 2 4.393V2H1v3.5l.5.5H5V5H2.811a6.008 6.008 0 1 1-.135 5.77l-.887.462a7 7 0 0 0 11.718 1.092zM8 4h1v4.28l3.35 2.01-.51.858L8 8.72V4z"/>
-            </svg>
-            {refreshing ? 'Refreshing...' : 'Refresh'}
-          </button>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <StatCard
@@ -290,7 +276,7 @@ function WeatherWidget({ weather }: { weather: WeatherData | null }) {
   }
 
   return (
-    <WidgetCard title="Weather" icon="🌤️" subtitle={weather.location}>
+    <WidgetCard title="Weather" icon="🌤️" subtitle={weather.location} onRefresh={() => post({ type: 'load_weather' })}>
       {/* Current conditions */}
       <div className="flex items-center gap-4">
         <span className="text-3xl">{weather.emoji}</span>
@@ -355,7 +341,7 @@ function NewsWidget({ articles }: { articles: NewsArticle[] }) {
   };
 
   return (
-    <WidgetCard title="Latest News" icon="📰">
+    <WidgetCard title="Latest News" icon="📰" onRefresh={() => post({ type: 'load_news' })}>
       {/* Category carousel */}
       <div
         className="news-carousel mb-3 flex gap-1.5 overflow-x-auto pb-1"
@@ -447,6 +433,7 @@ function TasksWidget({ tasks, onNavigate }: { tasks: DashboardTaskEntry[]; onNav
       title="Today's Tasks"
       icon="✅"
       action={tasks.length > 0 ? { label: 'View all', onClick: () => onNavigate('tasks') } : undefined}
+      onRefresh={() => post({ type: 'load_tasks' })}
     >
       {todayTasks.length === 0 ? (
         <div className="flex flex-col items-center py-6 text-center">
@@ -508,6 +495,7 @@ function JournalWidget({ journalDay, onNavigate }: { journalDay: DashboardJourna
       title="Today's Journal"
       icon="📓"
       action={{ label: hasContent ? 'Open journal' : 'Write entry', onClick: () => onNavigate('journal') }}
+      onRefresh={() => post({ type: 'load_journal_day', date: new Date().toISOString().slice(0, 10) })}
     >
       {!hasContent ? (
         <div className="flex flex-col items-center py-4 text-center">
@@ -558,6 +546,7 @@ function LearningWidget({ curriculums, onNavigate }: { curriculums: DashboardLea
       title="Learning"
       icon="🎓"
       action={curriculums.length > 0 ? { label: 'Continue learning', onClick: () => onNavigate('learning') } : undefined}
+      onRefresh={() => post({ type: 'load_learning' })}
     >
       {active.length === 0 ? (
         <div className="flex flex-col items-center py-4 text-center">
@@ -610,6 +599,7 @@ function MemoryWidget({ memories, onNavigate }: { memories: MemoryEntry[]; onNav
       title="Memory"
       icon="🧠"
       action={{ label: 'View all', onClick: () => onNavigate('memory') }}
+      onRefresh={() => post({ type: 'load_memories' })}
     >
       <div className="space-y-3">
         <div className="flex items-center gap-4">
@@ -638,7 +628,7 @@ function MemoryWidget({ memories, onNavigate }: { memories: MemoryEntry[]; onNav
 
 function ReleaseWidget({ release }: { release: ReleaseInfo | null }) {
   return (
-    <WidgetCard title="Latest Release" icon="🚀">
+    <WidgetCard title="Latest Release" icon="🚀" onRefresh={() => post({ type: 'load_latest_release' })}>
       {!release ? (
         <p className="py-4 text-xs text-[var(--text-muted)]">No release info available.</p>
       ) : (
@@ -669,14 +659,23 @@ function WidgetCard({
   icon,
   subtitle,
   action,
+  onRefresh,
   children,
 }: {
   title: string;
   icon: string;
   subtitle?: string;
   action?: { label: string; onClick: () => void };
+  onRefresh?: () => void;
   children: React.ReactNode;
 }) {
+  const [spinning, setSpinning] = useState(false);
+  const handleRefresh = () => {
+    if (!onRefresh || spinning) return;
+    setSpinning(true);
+    onRefresh();
+    setTimeout(() => setSpinning(false), 1000);
+  };
   return (
     <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -687,6 +686,18 @@ function WidgetCard({
             <span className="text-[10px] text-[var(--text-muted)]">&middot; {subtitle}</span>
           )}
         </div>
+        <div className="flex items-center gap-2">
+          {onRefresh && (
+            <button
+              onClick={handleRefresh}
+              className="text-[var(--text-muted)] hover:text-[var(--accent)] transition"
+              title={`Refresh ${title.toLowerCase()}`}
+            >
+              <svg className={`w-3.5 h-3.5 ${spinning ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          )}
         {action && (
           <button
             onClick={action.onClick}
@@ -695,6 +706,7 @@ function WidgetCard({
             {action.label} &rarr;
           </button>
         )}
+        </div>
       </div>
       {children}
     </div>

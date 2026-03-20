@@ -55,10 +55,7 @@ export function post(msg: DashboardToExtMessage): void {
 
 export function App() {
   const [initialized, setInitialized] = useState(false);
-  const [page, setPage] = useState<Page>(() => {
-    const saved = localStorage.getItem('ava-dashboard-page');
-    return (saved as Page) || 'overview';
-  });
+  const [page, setPage] = useState<Page>('overview');
   // Persist active page
   const setPagePersist = (p: Page) => {
     setPage(p);
