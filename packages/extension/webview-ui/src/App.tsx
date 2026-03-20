@@ -7,7 +7,7 @@ import { Header } from './components/Header';
 import { HistoryPanel } from './components/HistoryPanel';
 import { MemoryPanel } from './components/MemoryPanel';
 import { TasksPanel, DEFAULT_WIDTH } from './components/TasksPanel';
-import { ContextBar } from './components/ContextBar';
+// ContextBar removed — replaced by circular indicator in InputArea
 import type { AvaMode, ImageAttachment } from './components/InputArea';
 import { t, setLocale, loadStrings } from './i18n';
 
@@ -853,13 +853,6 @@ export function App() {
           conductorActive={state.conductorActive}
           conductorMode={state.conductorMode}
           activePersonas={state.activePersonas}
-        />
-
-        <ContextBar
-          contextUsage={state.contextUsage}
-          isCompressing={state.isCompressing ?? false}
-          onCompress={handleCompress}
-          disabled={state.needsSetup || state.isStreaming}
         />
 
         <InputArea

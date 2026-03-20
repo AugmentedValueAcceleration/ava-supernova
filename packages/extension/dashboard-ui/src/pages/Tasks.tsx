@@ -401,8 +401,25 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
             }`}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {tab === 'done' && stats.completed > 0 && (
+              <span className="ml-1 text-[10px] opacity-50">{stats.completed}</span>
+            )}
           </button>
         ))}
+        <div className="flex-1" />
+        {viewTab === 'done' && stats.completed > 0 && (
+          <button
+            onClick={() => {
+              const doneTasks = tasks.filter(t => t.status === 'done');
+              for (const t of doneTasks) {
+                post({ type: 'archive_task', taskId: t.id });
+              }
+            }}
+            className="pb-2 text-[10px] text-red-400 opacity-60 hover:opacity-100 bg-transparent border-none cursor-pointer transition"
+          >
+            Clear completed
+          </button>
+        )}
       </div>
 
       {/* Filters */}
