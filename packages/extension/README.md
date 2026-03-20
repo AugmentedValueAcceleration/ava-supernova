@@ -2,13 +2,13 @@
 
 The open-source AI coding agent that remembers you.
 
-54 tools. 6 modes. 14 personas. Memory that persists. A personal tutor that teaches for free. Custom personality. Command centre dashboard. Image generation. Office suite. 14 models from 7 providers — **two free models that work instantly, no API key required**.
+54 tools. 6 modes. Specialist personas. Memory that persists. A personal tutor that teaches for free. Custom personality. Command centre dashboard. Image generation. Office suite. 14 models from 7 providers — **free models that work instantly, no API key required**.
 
 > **Install, open, go.** No account. No credit card. No trial. Just start.
 
 ## What makes Ava different
 
-- **She remembers you** — 4-layer memory system that learns your coding style, decisions, conventions, and preferences. Every session she's better at helping you specifically.
+- **She remembers you** — 5-layer memory system that learns your coding style, decisions, conventions, and preferences. Every session she's better at helping you specifically.
 - **She thinks before she builds** — 14 internal personas (Scout, Architect, Verifier, Sequencer, Challenger, Builder) plan before executing. Complex tasks get proper analysis, not just code generation.
 - **She teaches for free** — Switch to Teach mode, say "teach me Python", and she builds a personalised curriculum with spaced repetition. Education shouldn't have a price tag.
 - **She's yours to design** — Name her. Choose the tone, energy, and communication style. Same brain, your personality.
@@ -29,14 +29,14 @@ Modes aren't tool restrictions — they're states of mind.
 
 Switch modes with the dropdown or keyboard shortcuts `Ctrl+Shift+1` through `Ctrl+Shift+6`.
 
-## 14 Personas — Internal Specialist Team
+## Personas — Internal Specialist Team
 
 When Ava takes on a complex task, her internal team activates:
 
 **Work:** Scout → Architect → Verifier → Sequencer → Challenger → Builder
-**Plan:** Researcher → Analyst → Strategist → Challenger
-**Teach:** Curriculum Architect → Content Writer → Verifier → Quiz Master → Tutor
-**Security:** Recon → Scanner → Researcher → Verifier → Reporter
+**Plan:** Researcher → Architect → Challenger
+**Teach:** Curriculum Architect → Content Writer → Fact Checker → Quiz Master → Tutor
+**Security:** Recon → Scanner → CVE Researcher → Verifier → Reporter
 **Brainstorm:** Explorer → Researcher → Ideator → Challenger → Refiner
 
 Each persona has scoped tool access. Challenger can read but never write. Simple questions skip orchestration — zero overhead.
@@ -56,7 +56,7 @@ Open the dashboard and everything's right there:
 
 Plus dedicated pages for Tasks, Journal, Memory, Learning, Library, Settings, Sync, Releases, Support, and more.
 
-## 53 Tools
+## 54 Tools
 
 | Category | Tools |
 |---|---|
@@ -65,7 +65,7 @@ Plus dedicated pages for Tasks, Journal, Memory, Learning, Library, Settings, Sy
 | **Shell** | `bash` |
 | **Git** | `git_status`, `git_diff`, `rollback`, `git_commit`, `git_create_pr` |
 | **Web** | `web_search`, `http_request`, `browser` |
-| **Media** | `screenshot`, `generate_image` |
+| **Media** | `screenshot`, `generate_image`, `remove_background` |
 | **Data** | `database_query` |
 | **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete` |
 | **Tasks** | `task_manage` |
@@ -93,9 +93,9 @@ Browse generated images in the **Dashboard Library** — grid or list view, filt
 
 ## Office Suite
 
-- **presentation_create** — Marp-compatible slide decks with templates (pitch deck, sprint review, board brief)
-- **email_draft** — Professional emails with tone control (formal, casual, brief, friendly, assertive)
-- **report_generate** — Board briefs, sprint reviews, weekly status from your tasks, journal, memory, and git data
+- **presentation_create** — Native .pptx slide decks with branded slides, speaker notes, and accent colours (via pptxgenjs)
+- **email_draft** — Native .docx emails with tone-aware fonts — serif for formal, sans-serif for casual
+- **report_generate** — Native .docx reports (board briefs, sprint reviews, weekly status) from your tasks, journal, memory, and git data
 
 ## Custom Personality
 
@@ -110,7 +110,7 @@ Design your own AI companion:
 
 The dashboard header updates to show your AI's name. Reset to default Ava anytime.
 
-## 4-Layer Memory System
+## 5-Layer Memory System
 
 | Layer | Function |
 |---|---|
@@ -118,6 +118,7 @@ The dashboard header updates to show your AI's name. Reset to default Ava anytim
 | **Layer 2** | LLM reflection — end of meaningful conversations |
 | **Layer 3** | Pattern detection — tracks corrections, naming, style, workflow habits |
 | **Layer 4** | Cross-memory insights — finds themes, contradictions, consolidation opportunities |
+| **Layer 5** | Cloud sync + semantic search — vector embeddings for intelligent cross-device recall |
 
 - TF-IDF retrieval with composite scoring
 - Branch scoping for experimental work
@@ -138,7 +139,7 @@ Everything local by default. Connected users choose what to sync:
 
 | Provider | Models | Highlights |
 |---|---|---|
-| **Ava Free** | GLM-4.7 Flash, GLM-4.5 Flash | **FREE — no API key**, instant access |
+| **Ava Free** | Qwen Flash | **FREE — 3M tokens** with account |
 | **Alibaba Cloud** | Qwen 3.5 Plus | Vision, thinking, 256K context, $0.20/M input |
 | **Zhipu AI** | GLM-5 | 77.8% SWE-Bench, vision, best tool-call reliability |
 | **Moonshot AI** | Kimi K2.5 | 76.8% SWE-Bench, vision, 256K context |

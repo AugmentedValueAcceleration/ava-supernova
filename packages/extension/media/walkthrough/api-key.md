@@ -1,8 +1,8 @@
-# Add Your API Key (Optional)
+# Add Your API Key (or Use Free Qwen Tokens)
 
-**Two free models work instantly — no API key, no account, no setup.**
+**Qwen Flash is free — 3M tokens per month with a free account.**
 
-GLM-4.7 Flash and GLM-4.5 Flash are always available for every user. Just start chatting.
+Sign up at [ava-supernova.com](https://ava-supernova.com) for free managed tokens, or bring your own API key from any provider.
 
 ## Want more models?
 
@@ -13,8 +13,8 @@ Add an API key from any of our 7 providers:
 | **DeepSeek** | [platform.deepseek.com](https://platform.deepseek.com/api_keys) | ~$0.28/M tokens |
 | **Kimi (Moonshot)** | [platform.moonshot.ai](https://platform.moonshot.ai/console/api-keys) | ~$0.60/M tokens |
 | **GLM (Zhipu AI)** | [open.bigmodel.cn](https://open.bigmodel.cn/) | ~$1.00/M tokens |
-| **Qwen (Alibaba)** | [bailian.console.alibabacloud.com](https://bailian.console.alibabacloud.com/) | ~$0.40/M tokens |
-| **Mistral** | [console.mistral.ai](https://console.mistral.ai/api-keys/) | ~$0.15/M tokens |
+| **Qwen (Alibaba)** | [bailian.console.alibabacloud.com](https://bailian.console.alibabacloud.com/) | ~$0.20/M tokens |
+| **Mistral** | [console.mistral.ai](https://console.mistral.ai/api-keys/) | ~$0.30/M tokens |
 | **Anthropic** | [console.anthropic.com](https://console.anthropic.com/) | ~$3.00/M tokens |
 
 *Pricing is approximate and subject to change.

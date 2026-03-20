@@ -83,12 +83,11 @@ All models work on every plan. Use the managed service or bring your own API key
 | Model | Highlights | Cost / 1M tokens |
 |-------|-----------|-------------------|
 | GLM-5 | Best tool-call reliability, vision (77.8% SWE-Bench) | $1.00 in / $3.20 out |
-| GLM-4.5 Flash | Free tier available | Free |
-| Qwen Flash | Free with account (3M tokens) | Free |
 
 ## Provider: Alibaba (Qwen)
 | Model | Highlights | Cost / 1M tokens |
 |-------|-----------|-------------------|
+| Qwen Flash | Free with account (3M tokens) | Free |
 | Qwen 3.5 Plus | Vision, thinking, 256K context | $0.20 in / $1.20 out |
 
 ## Provider: Mistral AI
@@ -266,10 +265,10 @@ Strategic planning. Ava's persona team activates: Researcher gathers evidence fr
 Personal conversation mode. Ava drops the coding partner tone and is just a friend — warm, curious, honest. Available tools: web search, memory, journal, datetime, weather, news. No file writes, no bash, no git. No personas — just Ava being present. Use this when you want to talk, reflect, or just hang out.
 
 ## Teach Mode (\`??\`) — Tutor
-Ava becomes your personal teacher. Full toolkit available with persona team: Curriculum Architect designs the learning path, Content Writer creates material, Verifier fact-checks everything, Quiz Master builds assessments, Tutor delivers it all. Say "teach me Python" and she'll build a personalised curriculum — all for free.
+Ava becomes your personal teacher. Full toolkit available with persona team: Curriculum Architect designs the learning path, Content Writer creates material, Fact Checker fact-checks everything, Quiz Master builds assessments, Tutor delivers it all. Say "teach me Python" and she'll build a personalised curriculum — all for free.
 
 ## Security Mode (\`!!\`) — Auditor
-AI-powered OWASP-aligned security audit with 5-phase flow: Recon maps the attack surface, Scanner works through each OWASP category, Researcher checks for known CVEs via web search, Verifier confirms every finding (kills false positives), Reporter structures results by severity. Produces actionable reports with remediation guidance.
+AI-powered OWASP-aligned security audit with 5-phase flow: Recon maps the attack surface, Scanner works through each OWASP category, CVE Researcher checks for known CVEs via web search, Verifier confirms every finding (kills false positives), Reporter structures results by severity. Produces actionable reports with remediation guidance.
 
 ## Brainstorm Mode (\`**\`) — Ideator
 Ideation mindset — business ideas, feature brainstorming, creative problem solving. Ava's persona team activates: Explorer maps the problem space, Researcher gathers evidence and precedents, Ideator generates possibilities, Challenger stress-tests ideas, Refiner distils the best concepts into actionable proposals. Ava helps you explore without jumping to implementation.
@@ -313,14 +312,14 @@ Ava has an internal team of specialised personas that activate for complex tasks
 ## Teach Mode Team
 - **Curriculum Architect** — Designs the learning path
 - **Content Writer** — Creates teaching material
-- **Verifier** — Fact-checks content before teaching
+- **Fact Checker** — Fact-checks content before teaching
 - **Quiz Master** — Creates assessments that test understanding
 - **Tutor** — Delivers lessons, adapts to the learner
 
 ## Security Mode Team (5-phase audit)
 - **Recon** — Maps the attack surface, tech stack, entry points
 - **Scanner** — Works through each OWASP category methodically
-- **Researcher** — Checks for known CVEs, verifies patterns via web search
+- **CVE Researcher** — Checks for known CVEs, verifies patterns via web search
 - **Verifier** — Confirms each finding, kills false positives
 - **Reporter** — Structures results by severity with remediation guidance
 
@@ -411,7 +410,7 @@ Ava has persistent memory that survives across sessions. She remembers what matt
 - Stored at \`.ava/memory.md\` in the project root
 - Good for: project architecture, conventions, key decisions, team patterns
 
-## 4-Layer Memory System
+## 5-Layer Memory System
 
 ### Layer 1: Pattern-Based Extraction (instant, every turn)
 Runs on every message. Extracts preferences, corrections, decisions, and facts using lightweight pattern matching. Zero latency — happens inline.
@@ -424,6 +423,9 @@ Tracks recurring corrections, naming conventions, style preferences, and workflo
 
 ### Layer 4: Cross-Memory Insights
 Periodically analyses the full memory store to find themes, contradictions, and consolidation opportunities. Keeps memory clean and coherent as it grows.
+
+### Layer 5: Cloud Sync & Semantic Search
+With a platform account, memories sync to the cloud with vector embeddings for semantic search. Access memories across devices with intelligent recall that understands meaning, not just keywords.
 
 ## How It Works
 1. **Automatic**: Layers 1-4 run without intervention — Ava saves what matters via \`memory_save\`
@@ -771,9 +773,12 @@ Connect a platform account for additional benefits:
     title: 'Dashboard',
     content: `# Dashboard
 
-The Dashboard is your control center for Ava. Pages are organised into 6 sidebar groups.
+The Dashboard is your control center for Ava. Pages are organised into 7 sidebar groups.
 
 ## Sidebar Groups
+
+### Command Centre
+- **Command Centre** — Overview with live weather, news feed, today's tasks, journal, learning progress, memory count, latest release, and session stats
 
 ### Personal
 - **Personality** — Personality Designer (name, tone, style, persona traits)
@@ -789,10 +794,9 @@ The Dashboard is your control center for Ava. Pages are organised into 6 sidebar
 
 ### Memory
 - **Memory** — View, edit, and delete saved memories (global and project scope)
-- **History** — Session history, pinned conversations
 
 ### Account
-- **Usage** — Token consumption by period and provider
+- **Usage Analytics** — Token consumption by period and provider
 - **Cloud Sync** — Sync settings and data across devices
 
 ### About

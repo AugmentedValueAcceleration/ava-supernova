@@ -1,16 +1,15 @@
 # Choose Your Model
 
-Pick the model that fits your workflow. **Free models are marked — no API key needed.**
+Pick the model that fits your workflow. **Qwen Flash is free with a platform account (3M tokens/month).**
 
 | Model | Best For |
 |---|---|
-| **GLM-4.7 Flash** | **FREE** — Fast tool calling, 128K context |
-| **GLM-4.5 Flash** | **FREE** — Stable and reliable, great starting point |
+| **Qwen Flash** | **FREE** (3M tokens) — Fast and reliable |
 | **GLM-5** | Best tool-call reliability, vision, thinking (77.8% SWE-Bench) |
 | **Kimi K2.5** | Best tool calling, vision, 256K context (76.8% SWE-Bench) |
 | **DeepSeek V3.2** | Best value at $0.28/M, fast general-purpose coding |
 | **DeepSeek Reasoner** | Complex reasoning tasks with chain-of-thought |
-| **Qwen 3.5 Plus** | Vision + thinking, 256K context |
+| **Qwen 3.5 Plus** | Vision + thinking, 256K context, $0.20/M input |
 | **Mistral Large** | Vision, 262K context, strong European provider |
 | **Codestral** | Code-specialized, 256K context |
 | **Devstral 2** | Built for agentic coding, 262K context |

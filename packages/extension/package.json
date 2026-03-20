@@ -2,7 +2,7 @@
   "name": "ava-supernova",
   "displayName": "Ava | Supernova",
   "description": "%description%",
-  "version": "0.19.0",
+  "version": "0.19.1",
   "publisher": "augmentedvalueacceleration",
   "license": "Apache-2.0",
   "repository": {
@@ -147,14 +147,15 @@
               "anthropic:claude-haiku-4-5-20251001"
             ],
             "enumDescriptions": [
-              "No model selected — free models are always available",
+              "No model selected — sign up for 3M free Qwen tokens or bring your own keys",
+              "Qwen Flash — FREE (3M tokens with account), fast and reliable",
               "DeepSeek V3.2 — best value at $0.28/M input, fast general-purpose coding",
               "DeepSeek Reasoner — chain-of-thought reasoning for complex problems",
               "Kimi K2.5 — 76.8% SWE-Bench, best tool calling, vision, 256K context",
-              "Qwen 3.5 Plus — thinking + vision, 256K context, $0.40/M input",
+              "Qwen 3.5 Plus — thinking + vision, 256K context, $0.20/M input",
               "GLM-5 — 77.8% SWE-Bench, vision, best tool-call reliability",
-              "GLM-4.7 Flash — FREE, no API key needed, 30B MoE, 128K context, tool calling",
-              "GLM-4.5 Flash — FREE, no API key needed, stable and reliable",
+              "GLM-4.7 Flash — BYOK, 30B MoE, 128K context, tool calling",
+              "GLM-4.5 Flash — BYOK, stable and reliable",
               "Mistral Large — vision, 262K context, strong European model",
               "Codestral — code-specialized, 256K context, optimised for development",
               "Devstral 2 — 262K context, built for agentic coding workflows",
