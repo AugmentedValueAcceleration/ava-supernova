@@ -40,7 +40,6 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Personal',
     items: [
       { page: 'personality', label: 'Personality', icon: UserCircleIcon },
-      { page: 'settings', label: 'Settings', icon: CogIcon },
     ],
   },
   {
@@ -66,6 +65,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Account',
     items: [
+      { page: 'settings', label: 'Settings', icon: CogIcon },
       { page: 'history', label: 'Usage Analytics', icon: ChartBarIcon },
       { page: 'sync', label: 'Cloud Sync', icon: CloudUpIcon, platformOnly: true },
     ],

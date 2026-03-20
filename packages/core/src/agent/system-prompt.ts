@@ -23,6 +23,7 @@ interface SystemPromptOptions {
   sourceRoot?: string;
   knowledgeContext?: string;
   personality?: Personality;
+  selfImprovementContext?: string;
 }
 
 export function buildSystemPrompt(opts: SystemPromptOptions): string {
@@ -557,6 +558,11 @@ Save proactively after every meaningful interaction. Don't wait to be asked. Cat
     prompt += `\n\n## Your Memory (v2 — Smart Retrieval & Temporal Awareness)
 
 You have persistent, categorized memory with TF-IDF smart search and temporal relevance scoring. Auto-memory is **disabled** — only save memories when the user explicitly asks you to remember something. Categories: pattern, preference, architecture, bug-fix, convention, tool-config, decision, person, general.`;
+  }
+
+  // Self-improvement context — learnings from retries, errors, and user feedback
+  if (opts.selfImprovementContext) {
+    prompt += `\n\n${opts.selfImprovementContext}`;
   }
 
   // Active tasks injection — let Ava know what the user is working on

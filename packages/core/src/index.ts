@@ -73,6 +73,8 @@ export { generateInsights, analyseAndSave } from './memory/insights.js';
 export type { MemoryInsight } from './memory/insights.js';
 export { runConsolidation } from './memory/consolidation.js';
 export type { ConsolidationReport } from './memory/consolidation.js';
+export { loadStore as loadSelfImprovementStore, saveStore as saveSelfImprovementStore, addLearning, getRelevantLearnings, buildSelfImprovementPrompt } from './memory/self-improvement.js';
+export type { SelfImprovement, SelfImprovementStore } from './memory/self-improvement.js';
 
 // Tasks
 export { TaskManager } from './tasks/task-manager.js';

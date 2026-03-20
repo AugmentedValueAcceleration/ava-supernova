@@ -75,6 +75,8 @@ export function App() {
     maxTokens: 8192,
     activeModel: '',
     autoMemory: true,
+    memoryLocalOnly: false,
+    contributeSharedLearning: false,
     streamResponses: true,
   });
   const [memories, setMemories] = useState<MemoryEntry[]>([]);
@@ -468,10 +470,10 @@ export function App() {
       case 'support':
         return <Support tickets={tickets} loading={ticketsLoading} mode={mode} />;
       case 'billing':
-        return account ? <Billing account={account} /> : <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
+        return account ? <Billing account={account} /> : <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys onNavigate={setPagePersist} personality={personalityData} account={account} />;
       case 'keys':
       case 'settings':
-        return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys />;
+        return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys onNavigate={setPagePersist} personality={personalityData} account={account} />;
       case 'admin_support':
         return <AdminSupport tickets={adminTickets} total={adminTicketsTotal} loading={adminTicketsLoading} />;
       case 'admin_proposals':

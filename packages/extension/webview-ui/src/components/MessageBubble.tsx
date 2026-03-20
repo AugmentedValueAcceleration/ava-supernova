@@ -8,11 +8,13 @@ import { PlanCard } from './PlanCard';
 import { TodoCard } from './TodoCard';
 import { AskUserCard } from './AskUserCard';
 import { CopyButton } from './CopyButton';
+import { FeedbackButtons } from './FeedbackButtons';
 
 interface MessageBubbleProps {
   message: UIMessage;
   onConfirmation: (confirmationId: string, approved: boolean, alwaysAllow?: boolean, allowAll?: boolean, planSelection?: string, userResponse?: string) => void;
   onContinue?: () => void;
+  onRate?: (messageId: string, rating: 'up' | 'down', reason?: string) => void;
 }
 
 function getErrorLabel(code: string): string {
@@ -96,7 +98,7 @@ function ErrorIcon({ code }: { code: string }) {
   }
 }
 
-export function MessageBubble({ message, onConfirmation, onContinue }: MessageBubbleProps) {
+export function MessageBubble({ message, onConfirmation, onContinue, onRate }: MessageBubbleProps) {
   if (message.role === 'system') {
     return (
       <div className="flex justify-center py-1">
@@ -192,7 +194,7 @@ export function MessageBubble({ message, onConfirmation, onContinue }: MessageBu
 
   return (
     <div className="flex justify-start">
-      <div className="max-w-[90%] rounded-2xl rounded-bl-sm bg-[var(--vscode-input-background)] border border-[var(--vscode-panel-border)] px-4 py-3 space-y-2">
+      <div className="group max-w-[90%] rounded-2xl rounded-bl-sm bg-[var(--vscode-input-background)] border border-[var(--vscode-panel-border)] px-4 py-3 space-y-2">
         {/* Name badge */}
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold text-[var(--vscode-foreground)]">Ava</span>
@@ -245,10 +247,21 @@ export function MessageBubble({ message, onConfirmation, onContinue }: MessageBu
         );
       })()}
 
-        {/* Timestamp */}
-        {!message.isStreaming && message.timestamp && (
-          <div className="text-[11px] opacity-40 mt-1 text-right">
-            {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        {/* Timestamp + Feedback */}
+        {!message.isStreaming && (
+          <div className="flex items-end justify-between mt-1">
+            {onRate && (
+              <FeedbackButtons
+                messageId={message.id}
+                rating={message.rating}
+                onRate={onRate}
+              />
+            )}
+            {message.timestamp && (
+              <div className="text-[11px] opacity-40 text-right flex-shrink-0 ml-auto">
+                {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            )}
           </div>
         )}
       </div>

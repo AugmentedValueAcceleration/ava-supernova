@@ -2,7 +2,7 @@
   "name": "ava-supernova",
   "displayName": "Ava | Supernova",
   "description": "%description%",
-  "version": "0.19.4",
+  "version": "0.20.0",
   "publisher": "augmentedvalueacceleration",
   "license": "Apache-2.0",
   "repository": {
@@ -291,6 +291,12 @@
             "default": true,
             "order": 7,
             "description": "%setting.streamResponses.description%"
+          },
+          "ava-supernova.contributeSharedLearning": {
+            "type": "boolean",
+            "default": false,
+            "order": 8,
+            "description": "Help improve Ava for everyone. When enabled, anonymised technical learnings (no personal data, no code) are shared with all users."
           }
         }
       },

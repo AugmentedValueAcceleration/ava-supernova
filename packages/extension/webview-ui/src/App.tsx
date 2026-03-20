@@ -38,7 +38,8 @@ type ChatAction =
   | { type: 'close_memory' }
   | { type: 'toggle_tasks' }
   | { type: 'close_tasks' }
-  | { type: 'set_tasks_width'; width: number };
+  | { type: 'set_tasks_width'; width: number }
+  | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string };
 
 let messageIdCounter = 0;
 function nextId(): string {
@@ -369,6 +370,18 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 
     case 'set_tasks_width':
       return { ...state, tasksPanelWidth: action.width };
+
+    // ── Feedback rating ──────────────────────────────────────────────────
+
+    case 'rate_message':
+      return {
+        ...state,
+        messages: state.messages.map((m) =>
+          m.id === action.messageId
+            ? { ...m, rating: action.rating, ratingReason: action.reason }
+            : m
+        ),
+      };
 
     // ── System messages ──────────────────────────────────────────────────
 
@@ -702,6 +715,14 @@ export function App() {
     postMessage({ type: 'compress_context' });
   }, [postMessage]);
 
+  const handleRate = useCallback(
+    (messageId: string, rating: 'up' | 'down', reason?: string) => {
+      dispatch({ type: 'rate_message', messageId, rating, reason });
+      postMessage({ type: 'rate_message', messageId, rating, reason });
+    },
+    [postMessage],
+  );
+
   const handleProviderSourceChange = useCallback(
     (source: 'platform' | 'byok') => {
       postMessage({ type: 'set_provider_source', source });
@@ -822,6 +843,7 @@ export function App() {
           onConfirmation={handleConfirmation}
           onContinue={handleContinue}
           onSuggestion={handleSuggestion}
+          onRate={handleRate}
           chatEndRef={chatEndRef}
           needsSetup={state.needsSetup}
           initialized={state.initialized}

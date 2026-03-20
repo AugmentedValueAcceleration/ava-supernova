@@ -9,6 +9,7 @@ const DATA_TYPES = [
   { key: 'history',  label: 'Chat History',  icon: '💬', description: 'Conversation history with Ava' },
   { key: 'settings',    label: 'Settings',      icon: '⚙',  description: 'Preferences, model selection, permission mode' },
   { key: 'personality', label: 'Personality',   icon: '🎭', description: 'Custom AI name, tone, energy, communication style' },
+  { key: 'learnings',  label: 'Shared Learnings', icon: '💡', description: 'Anonymised technical learnings shared with all users (opt-in via Settings)' },
 ] as const;
 
 interface Props {
@@ -91,7 +92,7 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
 
                 {/* Push button */}
                 <button
-                  onClick={() => post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' })}
+                  onClick={() => post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'learnings' })}
                   disabled={!isConnected || syncing || localCount === 0 || (isUpToDate && !syncing)}
                   className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-30 disabled:cursor-not-allowed"
                 >
@@ -130,7 +131,7 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
               for (const { key } of DATA_TYPES) {
                 const status = syncStatus?.[key];
                 if (status && status.localCount > 0) {
-                  post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' });
+                  post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'learnings' });
                 }
               }
             }}

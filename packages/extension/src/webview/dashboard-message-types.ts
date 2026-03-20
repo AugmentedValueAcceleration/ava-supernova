@@ -52,6 +52,7 @@ export interface DashboardSettings {
   activeModel: string;
   autoMemory: boolean;
   memoryLocalOnly: boolean;
+  contributeSharedLearning: boolean;
   streamResponses: boolean;
 }
 

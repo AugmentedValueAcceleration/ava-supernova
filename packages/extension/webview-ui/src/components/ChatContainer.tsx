@@ -22,6 +22,7 @@ interface ChatContainerProps {
   onConfirmation: (confirmationId: string, approved: boolean, alwaysAllow?: boolean, allowAll?: boolean, planSelection?: string, userResponse?: string) => void;
   onContinue: () => void;
   onSuggestion: (prompt: string) => void;
+  onRate?: (messageId: string, rating: 'up' | 'down', reason?: string) => void;
   chatEndRef: RefObject<HTMLDivElement | null>;
   needsSetup?: boolean;
   initialized?: boolean;
@@ -53,7 +54,7 @@ const MODE_INFO = [
   { icon: '!!', label: 'Security', desc: 'welcome.mode.security_desc' },
 ];
 
-export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onSuggestion, chatEndRef, needsSetup, initialized, onOpenDashboard, activeModel, models, conductorActive, conductorMode, activePersonas }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onSuggestion, onRate, chatEndRef, needsSetup, initialized, onOpenDashboard, activeModel, models, conductorActive, conductorMode, activePersonas }: ChatContainerProps) {
   // Don't render welcome screen until init message arrives — prevents setup banner flash
   if (!initialized && messages.length === 0) {
     return <div className="flex-1" />;
@@ -203,6 +204,15 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
             </div>
           </div>
 
+          {/* Shared learning info */}
+          <div className="mt-4 rounded-lg px-4 py-3" style={{ background: 'rgba(168, 85, 247, 0.05)', border: '1px solid rgba(168, 85, 247, 0.1)' }}>
+            <p className="text-[10px] font-semibold opacity-50 mb-1">💡 Shared Learning</p>
+            <p className="text-[9px] opacity-30 leading-relaxed">
+              Ava learns from every session. You can help improve her for everyone by enabling Shared Learning in Settings.
+              Only anonymised technical patterns are shared — never personal data, code, or preferences. Off by default.
+            </p>
+          </div>
+
           {/* Footer info */}
           <div className="text-center pt-2">
             <p className="text-[10px] opacity-20">{t('welcome.footer')}</p>
@@ -221,6 +231,7 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
           message={msg}
           onConfirmation={onConfirmation}
           onContinue={msg.role === 'error' && i === messages.length - 1 ? onContinue : undefined}
+          onRate={msg.role === 'assistant' ? onRate : undefined}
         />
       ))}
       {(conductorActive || (activePersonas && activePersonas.length > 0)) && (

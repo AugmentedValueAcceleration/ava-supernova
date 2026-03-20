@@ -33,6 +33,11 @@ import {
   BriefingEngine,
   EventDetector,
   loadPersonality,
+  buildSelfImprovementPrompt,
+  addLearning,
+  loadSelfImprovementStore,
+  saveSelfImprovementStore,
+  getRelevantLearnings,
 } from '@ava/core';
 import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, Message, ContentPart, PermissionMode } from '@ava/core';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus } from './message-types.js';
@@ -781,7 +786,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private getModelList(): Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }> {
     return this.providerRegistry.listAllPossibleModels()
       .filter((m) => {
-        if (this.providerSource === 'platform') return m.provider === 'platform';
+        if (this.providerSource === 'platform') {
+          // Show platform (managed) models + any BYOK models the user has keys for
+          return m.provider === 'platform' || m.available;
+        }
         return m.provider !== 'platform';
       })
       .map((m) => ({
@@ -883,6 +891,17 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // Non-fatal — will use default personality
     }
 
+    // Load self-improvement learnings
+    let selfImprovementContext: string | undefined;
+    try {
+      const conversationContext = this.projectRoot
+        ? `project:${require('node:path').basename(this.projectRoot)}`
+        : undefined;
+      selfImprovementContext = buildSelfImprovementPrompt(AVA_HOME, conversationContext) || undefined;
+    } catch {
+      // Non-fatal — self-improvement is optional
+    }
+
     return buildSystemPrompt({
       cwd,
       platform: process.platform,
@@ -900,6 +919,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       isAdmin,
       sourceRoot,
       personality,
+      selfImprovementContext,
     });
   }
 
@@ -1156,6 +1176,112 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     await this.sendMemoryContent();
   }
 
+  // ── Feedback Rating ──────────────────────────────────────────────────────────
+
+  private async handleRateMessage(message: {
+    messageId: string;
+    rating: 'up' | 'down';
+    reason?: string;
+    model?: string;
+    mode?: string;
+  }): Promise<void> {
+    const entry = {
+      messageId: message.messageId,
+      rating: message.rating,
+      reason: message.reason,
+      model: this.activeModelDef?.id ?? message.model ?? 'unknown',
+      mode: message.mode ?? 'code',
+      timestamp: new Date().toISOString(),
+      conversationId: this.conversation?.id ?? null,
+    };
+
+    // Save locally to ~/.ava/feedback.json
+    try {
+      const fs = require('node:fs');
+      const path = require('node:path');
+      const feedbackPath = path.join(AVA_HOME, 'feedback.json');
+      let existing: unknown[] = [];
+      if (fs.existsSync(feedbackPath)) {
+        try {
+          existing = JSON.parse(fs.readFileSync(feedbackPath, 'utf-8'));
+          if (!Array.isArray(existing)) existing = [];
+        } catch { existing = []; }
+      }
+      existing.push(entry);
+      fs.writeFileSync(feedbackPath, JSON.stringify(existing, null, 2), 'utf-8');
+      this.log(`Feedback saved: ${message.rating}${message.reason ? ` (${message.reason})` : ''}`);
+    } catch (err) {
+      this.log(`Failed to save feedback locally: ${err}`);
+    }
+
+    // POST to platform only if user has opted in to shared learning
+    try {
+      const config = vscode.workspace.getConfiguration('ava-supernova');
+      const contributeSharedLearning = config.get<boolean>('contributeSharedLearning', false);
+      if (contributeSharedLearning) {
+        const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
+        if (platformKey) {
+          await apiFetch('/feedback', {
+            method: 'POST',
+            platformKey,
+            body: entry,
+          });
+        }
+      }
+    } catch (err) {
+      this.log(`Failed to POST feedback to platform: ${err}`);
+    }
+
+    // Self-improvement: learn from negative feedback
+    try {
+      if (message.rating === 'down') {
+        const reasonMap: Record<string, string> = {
+          'Wrong': 'Response was factually incorrect or gave wrong code',
+          'Incomplete': 'Response was incomplete — missed parts of the task',
+          'Too verbose': 'Response was too verbose — user prefers concise answers',
+          "Didn't understand me": 'Misunderstood the user\'s intent',
+          'Off topic': 'Response went off topic from what was asked',
+        };
+        const typeMap: Record<string, 'preference' | 'pattern'> = {
+          'Too verbose': 'preference',
+          "Didn't understand me": 'pattern',
+        };
+        const learned = message.reason
+          ? reasonMap[message.reason] || `Negative feedback: ${message.reason}`
+          : 'Response quality issue flagged by user';
+        const learningType = message.reason
+          ? (typeMap[message.reason] || 'pattern')
+          : 'pattern';
+
+        addLearning(AVA_HOME, {
+          type: learningType,
+          category: 'general',
+          context: `mode:${entry.mode} model:${entry.model}`,
+          learned,
+          confidence: 0.4,
+          source: 'feedback-negative',
+        });
+      } else if (message.rating === 'up') {
+        // Reinforce existing relevant learnings
+        const relevant = getRelevantLearnings(AVA_HOME, `mode:${entry.mode} model:${entry.model}`, 3);
+        if (relevant.length > 0) {
+          const store = loadSelfImprovementStore(AVA_HOME);
+          for (const learning of relevant) {
+            const found = store.local.find(l => l.id === learning.id);
+            if (found) {
+              found.confirmations += 1;
+              found.confidence = Math.min(1, found.confidence + 0.05);
+              found.updatedAt = new Date().toISOString();
+            }
+          }
+          saveSelfImprovementStore(AVA_HOME, store);
+        }
+      }
+    } catch {
+      // Self-improvement is non-critical
+    }
+  }
+
   private buildUIMessages(messages: Message[]): Array<{ role: 'user' | 'assistant'; content: string }> {
     return messages
       .filter((m) =>
@@ -1297,6 +1423,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           await this.sendAllTasks();
         }
         break;
+
+      case 'rate_message':
+        await this.handleRateMessage(message);
+        break;
     }
   }
 
@@ -1352,6 +1482,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     let streamStarted = false;
     let deltaCount = 0;
     let thinkingDeltaCount = 0;
+
+    // Track tool call failures for auto-learning from retries
+    const toolFailures = new Map<string, { name: string; args: string; error: string }>();
 
     const onEvent = (event: AgentEvent): void => {
       switch (event.type) {
@@ -1437,6 +1570,31 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
               } catch { /* preview is non-critical */ }
             }
           }
+          // Auto-learn from retries: track failures, extract learnings on subsequent success
+          const toolKey = event.toolCall.function.name;
+          if (!event.success) {
+            toolFailures.set(toolKey, {
+              name: toolKey,
+              args: event.toolCall.function.arguments,
+              error: (event.result || '').slice(0, 200),
+            });
+          } else if (toolFailures.has(toolKey)) {
+            // Tool previously failed but now succeeded — learn from it
+            const prev = toolFailures.get(toolKey)!;
+            toolFailures.delete(toolKey);
+            try {
+              const learned = `For ${toolKey}: retry succeeded after failure. Previous error: "${prev.error.slice(0, 80)}"`;
+              addLearning(AVA_HOME, {
+                type: 'error-recovery' as const,
+                category: 'general',
+                context: toolKey,
+                learned,
+                confidence: 0.5,
+                source: 'retry-success' as const,
+              });
+            } catch { /* self-improvement is non-critical */ }
+          }
+
           this.log(`Tool result: ${event.toolCall.function.name} → ${event.success ? 'ok' : 'FAIL'}`);
           break;
         }

@@ -1849,6 +1849,7 @@ export class DashboardPanel {
       activeModel: cfg.get<string>('activeModel') ?? '',
       autoMemory: cfg.get<boolean>('preferences.autoMemory') ?? true,
       memoryLocalOnly: cfg.get<boolean>('preferences.memoryLocalOnly') ?? false,
+      contributeSharedLearning: cfg.get<boolean>('contributeSharedLearning') ?? false,
       streamResponses: cfg.get<boolean>('preferences.streamResponses') ?? true,
     };
   }
@@ -1862,6 +1863,7 @@ export class DashboardPanel {
     cfg.update('activeModel', settings.activeModel, vscode.ConfigurationTarget.Global);
     cfg.update('preferences.autoMemory', settings.autoMemory, vscode.ConfigurationTarget.Global);
     cfg.update('preferences.memoryLocalOnly', settings.memoryLocalOnly, vscode.ConfigurationTarget.Global);
+    cfg.update('contributeSharedLearning', settings.contributeSharedLearning, vscode.ConfigurationTarget.Global);
     cfg.update('preferences.streamResponses', settings.streamResponses, vscode.ConfigurationTarget.Global);
   }
 
