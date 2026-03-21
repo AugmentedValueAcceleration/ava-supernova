@@ -7,20 +7,17 @@ import { QwenProvider } from './qwen/index.js';
 import { ZhipuProvider } from './zhipu/index.js';
 import { MistralProvider } from './mistral/index.js';
 import { AnthropicProvider } from './anthropic/index.js';
-import { AvaFreeProvider } from './ava-free/index.js';
 import { DEEPSEEK_MODELS } from './deepseek/models.js';
 import { KIMI_MODELS } from './kimi/models.js';
 import { QWEN_MODELS } from './qwen/models.js';
 import { ZHIPU_MODELS } from './zhipu/models.js';
 import { MISTRAL_MODELS } from './mistral/models.js';
 import { ANTHROPIC_MODELS } from './anthropic/models.js';
-import { AVA_FREE_MODELS } from './ava-free/models.js';
 
 type ProviderFactory = (config: ProviderConfig) => Provider;
 
 /** Every model Ava supports, keyed by provider name. */
 const ALL_MODELS: Record<string, ModelDefinition[]> = {
-  'ava-free': AVA_FREE_MODELS,
   deepseek: DEEPSEEK_MODELS,
   kimi: KIMI_MODELS,
   qwen: QWEN_MODELS,
@@ -42,8 +39,7 @@ export class ProviderRegistry {
   private providers = new Map<string, Provider>();
 
   constructor() {
-    // Always register the free provider — available to all users without config
-    this.providers.set('ava-free', new AvaFreeProvider());
+    // No built-in free provider — free users get Qwen through the platform provider
   }
 
   register(name: string, config: ProviderConfig): void {

@@ -117,6 +117,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           this.memoryManager.pullLatest('project').catch(() => {});
         }
       }
+      // Refresh model list when any BYOK key changes
+      if (e.key.startsWith('ava-supernova.provider.')) {
+        await this.initializeSession();
+      }
     });
   }
 
@@ -794,21 +798,35 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   private getModelList(): Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }> {
-    return this.providerRegistry.listAllPossibleModels()
+    const allModels = this.providerRegistry.listAllPossibleModels()
       .filter((m) => {
         if (this.providerSource === 'platform') {
-          // Show platform (managed) models + any BYOK models the user has keys for
           return m.provider === 'platform' || m.available;
         }
         return m.provider !== 'platform';
-      })
-      .map((m) => ({
-        id: `${m.provider}:${m.id}`,
-        name: m.name,
-        provider: m.provider,
-        available: m.available,
-        ...(m.supportsVision ? { supportsVision: true } : {}),
-      }));
+      });
+
+    // Deduplicate: if platform has a model, skip the BYOK version with the same base ID
+    const seen = new Set<string>();
+    const deduped = allModels.filter((m) => {
+      const baseId = m.id; // e.g. 'qwen3.5-plus', 'qwen-flash'
+      if (m.provider === 'platform') {
+        seen.add(baseId);
+        return true;
+      }
+      // Skip BYOK model if platform already provides it
+      if (seen.has(baseId)) return false;
+      seen.add(baseId);
+      return true;
+    });
+
+    return deduped.map((m) => ({
+      id: `${m.provider}:${m.id}`,
+      name: m.name,
+      provider: m.provider,
+      available: m.available,
+      ...(m.supportsVision ? { supportsVision: true } : {}),
+    }));
   }
 
   private getActiveModelId(): string | null {

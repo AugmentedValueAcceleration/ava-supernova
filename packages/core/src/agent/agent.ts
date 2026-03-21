@@ -185,11 +185,11 @@ export class Agent {
         if (!this.model.supportsVision && Array.isArray(msg.content)) {
           const textParts = (msg.content as ContentPart[]).filter((p) => p.type === 'text');
           if (textParts.length === 0) {
-            // Message was image-only — replace with a note so the model has context
-            msg = { ...msg, content: t('error.msg.image_stripped') };
+            // Message was image-only — tell user to switch to a vision model
+            msg = { ...msg, content: 'Image received but your current model doesn\'t support vision. Switch to Qwen 3.5 Plus to analyse images.' };
           } else if (textParts.length < (msg.content as ContentPart[]).length) {
-            // Mixed text+image — keep only the text, collapsed to a plain string
-            msg = { ...msg, content: textParts.map((p) => p.text).join('\n') };
+            // Mixed text+image — keep text, add note about vision
+            msg = { ...msg, content: textParts.map((p) => p.text).join('\n') + '\n\n(Image attached but your current model doesn\'t support vision. Switch to Qwen 3.5 Plus to analyse images.)' };
           }
         }
 
