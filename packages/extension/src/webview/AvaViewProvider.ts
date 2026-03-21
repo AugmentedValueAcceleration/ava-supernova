@@ -525,8 +525,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           this.log('Platform key present but account verification failed');
           this.postMessage({
             type: 'system_message',
-            content: 'Platform account verification failed. Your API key may be invalid or expired. Go to Dashboard → Account to reconnect.',
+            content: 'Platform account verification failed. Your API key may be invalid or expired.',
           } as ExtToWebviewMessage);
+          // Show VS Code popup with action to open account page
+          const action = await vscode.window.showWarningMessage(
+            'Your Ava platform API key is no longer valid. Please reconnect your account.',
+            'Open Account'
+          );
+          if (action === 'Open Account') {
+            vscode.env.openExternal(vscode.Uri.parse('https://ava-supernova.com/dashboard'));
+          }
+          // Clear the invalid key
+          await this.context.secrets.delete('ava-supernova.platformKey');
         }
       }
     } catch (err) {

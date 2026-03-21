@@ -609,6 +609,8 @@ export function App() {
       });
     } else {
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      // Extra scroll after tool results render (present_plan, large outputs)
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
     }
   }, [state.messages, state.isThinking]);
 
