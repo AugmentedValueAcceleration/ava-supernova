@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabaseAuth } from '../lib/supabase';
-
-const PLATFORM_URL = 'https://ava-supernova.com';
+import { supabase, supabaseAuth } from '../lib/supabase';
 
 interface UsageSummary {
   period: {
@@ -50,16 +48,78 @@ export default function UserUsage() {
       setLoading(true);
       setError('');
       try {
-        const { data: { session } } = await supabaseAuth.auth.getSession();
-        if (!session?.access_token) { setError('Not signed in'); setLoading(false); return; }
+        const { data: { user } } = await supabaseAuth.auth.getUser();
+        if (!user?.id) { setError('Not signed in'); setLoading(false); return; }
+        const userId = user.id;
 
-        const res = await fetch(`${PLATFORM_URL}/api/usage/summary`, {
-          headers: { 'Authorization': `Bearer ${session.access_token}` },
+        // Get usage row
+        const { data: usageRow } = await supabase
+          .from('usage')
+          .select('*')
+          .eq('user_id', userId)
+          .order('period_start', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        // Get user tier
+        const { data: userRow } = await supabase
+          .from('users')
+          .select('tier')
+          .eq('id', userId)
+          .single();
+
+        const isAdmin = userRow?.tier === 'admin';
+        const isUnlimited = isAdmin || (usageRow?.free_tokens_limit ?? 0) >= 999999999;
+
+        // Get daily logs (14 days)
+        const fourteenDaysAgo = new Date();
+        fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+        const { data: logs } = await supabase
+          .from('usage_logs')
+          .select('timestamp, input_tokens, output_tokens, model')
+          .eq('user_id', userId)
+          .gte('timestamp', fourteenDaysAgo.toISOString())
+          .order('timestamp', { ascending: true });
+
+        // Aggregate
+        const dailyMap: Record<string, number> = {};
+        const modelMap: Record<string, { input: number; output: number; count: number }> = {};
+        for (const log of (logs || [])) {
+          const day = log.timestamp.slice(0, 10);
+          const total = (log.input_tokens || 0) + (log.output_tokens || 0);
+          dailyMap[day] = (dailyMap[day] || 0) + total;
+          const model = log.model || 'unknown';
+          if (!modelMap[model]) modelMap[model] = { input: 0, output: 0, count: 0 };
+          modelMap[model].input += log.input_tokens || 0;
+          modelMap[model].output += log.output_tokens || 0;
+          modelMap[model].count += 1;
+        }
+
+        setData({
+          period: {
+            start: usageRow?.period_start || null,
+            end: usageRow?.period_end || null,
+            tokens_used: usageRow?.tokens_used || 0,
+            tokens_limit: usageRow?.tokens_limit || null,
+            free_tokens_used: usageRow?.free_tokens_used || 0,
+            free_tokens_limit: usageRow?.free_tokens_limit || 3000000,
+            requests_count: usageRow?.requests_count || 0,
+          },
+          tier: userRow?.tier || 'free',
+          isAdmin,
+          isUnlimited,
+          daily: Object.entries(dailyMap).map(([date, tokens]) => ({ date, tokens })).sort((a, b) => a.date.localeCompare(b.date)),
+          models: Object.entries(modelMap).map(([model, s]) => ({
+            model, input_tokens: s.input, output_tokens: s.output,
+            total_tokens: s.input + s.output, request_count: s.count,
+          })).sort((a, b) => b.total_tokens - a.total_tokens),
+          totals: {
+            tokens: Object.values(dailyMap).reduce((sum, t) => sum + t, 0),
+            requests: (logs || []).length,
+            active_days: Object.keys(dailyMap).length,
+          },
         });
-
-        if (!res.ok) throw new Error(`API error: ${res.status}`);
-        const json = await res.json();
-        setData(json);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load usage');
       } finally {
