@@ -94,34 +94,34 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
 
   return (
     <div className="flex flex-col w-60 shrink-0 overflow-y-auto" style={{ background: 'var(--bg-sidebar)', borderRight: '1px solid var(--border-card)' }}>
-      <nav className="flex-1 py-3 px-2">
-        {NAV_SECTIONS.map((section) => (
-          <div key={section.title} className="mb-1">
+      <nav className="flex-1 py-4 px-3">
+        {NAV_SECTIONS.map((section, si) => (
+          <div key={section.title} className={si > 0 ? 'mt-4' : ''}>
             <button
               onClick={() => toggleSection(section.title)}
-              className="flex items-center justify-between w-full px-2 py-1.5 text-[10px] font-semibold tracking-[1.5px] uppercase cursor-pointer hover:bg-white/3 rounded transition-colors"
+              className="flex items-center gap-1.5 w-full px-1 mb-1.5 text-[10px] font-semibold tracking-[1.5px] uppercase cursor-pointer hover:opacity-80 transition-opacity"
               style={{ color: 'var(--text-muted)' }}
             >
-              {section.title}
               <ChevronIcon open={!collapsed[section.title]} />
+              <span>{section.title}</span>
             </button>
 
             {!collapsed[section.title] && (
-              <div className="mt-0.5">
+              <div className="space-y-0.5">
                 {section.items.map((item) => {
                   const isActive = activePage === item.id;
                   return (
                     <button
                       key={item.id}
                       onClick={() => onNavigate(item.id)}
-                      className={`flex items-center gap-2.5 w-full px-3 py-1.5 rounded-md text-[13px] transition-all cursor-pointer ${
+                      className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-[13px] transition-all cursor-pointer ${
                         isActive
                           ? 'font-medium'
-                          : 'hover:bg-white/3'
+                          : 'hover:bg-white/5'
                       }`}
                       style={{
                         color: isActive ? 'var(--ava-purple)' : 'var(--text-secondary)',
-                        background: isActive ? 'rgba(168, 85, 247, 0.08)' : undefined,
+                        background: isActive ? 'rgba(168, 85, 247, 0.1)' : undefined,
                         borderLeft: isActive ? '2px solid var(--ava-purple)' : '2px solid transparent',
                       }}
                     >

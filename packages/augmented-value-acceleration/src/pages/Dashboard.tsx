@@ -45,14 +45,12 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-4 gap-5 mb-10">
         {stats.map((s) => (
-          <div key={s.label} className="rounded-xl p-5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-card)' }}>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-lg">{s.icon}</span>
-            </div>
-            <div className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</div>
-            <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+          <div key={s.label} className="rounded-xl p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-card)' }}>
+            <div className="text-2xl mb-4">{s.icon}</div>
+            <div className="text-3xl font-bold mb-1" style={{ color: s.color }}>{s.value}</div>
+            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
               {s.label}
               {s.sub && <span className="ml-1 opacity-60">· {s.sub}</span>}
             </div>
@@ -61,17 +59,17 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       </div>
 
       {/* Quick Actions */}
-      <div className="mb-8">
-        <h2 className="text-xs font-semibold tracking-[1.5px] uppercase mb-3" style={{ color: 'var(--text-muted)' }}>Quick Actions</h2>
-        <div className="grid grid-cols-4 gap-3">
+      <div className="mb-10">
+        <h2 className="text-xs font-semibold tracking-[1.5px] uppercase mb-4" style={{ color: 'var(--text-muted)' }}>Quick Actions</h2>
+        <div className="grid grid-cols-4 gap-4">
           {quickActions.map((a) => (
             <button
               key={a.label}
               onClick={() => onNavigate(a.page)}
-              className="flex items-center gap-3 rounded-xl p-4 transition-all cursor-pointer hover:scale-[1.02]"
+              className="flex items-center gap-3 rounded-xl p-5 transition-all cursor-pointer hover:scale-[1.02] hover:border-[var(--ava-purple)]/30"
               style={{ background: 'var(--bg-card)', border: '1px solid var(--border-card)' }}
             >
-              <span className="text-xl">{a.icon}</span>
+              <span className="text-2xl">{a.icon}</span>
               <span className="text-sm font-medium">{a.label}</span>
             </button>
           ))}
@@ -79,13 +77,13 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       </div>
 
       {/* Recent Activity */}
-      <div>
-        <h2 className="text-xs font-semibold tracking-[1.5px] uppercase mb-3" style={{ color: 'var(--text-muted)' }}>Recent Activity</h2>
+      <div className="mb-8">
+        <h2 className="text-xs font-semibold tracking-[1.5px] uppercase mb-4" style={{ color: 'var(--text-muted)' }}>Recent Activity</h2>
         <div className="rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-card)' }}>
           {recentActivity.map((item, i) => (
             <div
               key={i}
-              className="flex items-center justify-between px-5 py-3"
+              className="flex items-center justify-between px-5 py-3.5"
               style={{ borderBottom: i < recentActivity.length - 1 ? '1px solid var(--border-card)' : 'none' }}
             >
               <span className="text-sm">{item.text}</span>
