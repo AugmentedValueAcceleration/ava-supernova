@@ -347,6 +347,12 @@ export function App() {
       if (account) {
         post({ type: 'load_usage_history' });
       }
+      // Auto-refresh every 15 seconds while on this page
+      const interval = setInterval(() => {
+        post({ type: 'load_session_stats' });
+        if (account) post({ type: 'load_usage_history' });
+      }, 15_000);
+      return () => clearInterval(interval);
     }
     if (page === 'support' && tickets.length === 0 && !ticketsLoading && account) {
       setTicketsLoading(true);

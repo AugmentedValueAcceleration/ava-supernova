@@ -944,7 +944,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       isAdmin,
       sourceRoot,
       personality,
-      selfImprovementContext,
+      // selfImprovementContext moved to on-demand via buildContextualInjection
     });
   }
 
