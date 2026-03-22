@@ -88,7 +88,7 @@ All models work on every plan. Use the managed service or bring your own API key
 | Model | Highlights | Cost / 1M tokens |
 |-------|-----------|-------------------|
 | Qwen Flash | Free with account (3M tokens) | Free |
-| Qwen 3.5 Plus | Vision, thinking, 256K context | $0.20 in / $1.20 out |
+| Qwen 3.5 Plus | Free with account (3M tokens), vision, thinking, 256K context | Free |
 
 ## Provider: Mistral AI
 | Model | Highlights | Cost / 1M tokens |
@@ -119,7 +119,7 @@ This works with Ollama, LM Studio, vLLM, or any OpenAI-compatible API endpoint.
 - **Best overall value**: DeepSeek V3 — extremely capable at a fraction of frontier pricing
 - **Best tool calling**: Kimi K2.5 or GLM-5 — most reliable for multi-step agentic tasks
 - **Best reasoning**: DeepSeek R1 or Claude Opus 4.6 — for complex problem solving
-- **Best for free**: Qwen Flash — 3M free tokens with a Qwen account
+- **Best for free**: Qwen Flash or Qwen 3.5 Plus — 3M free Qwen tokens with a platform account
 - **Best code completion**: Codestral or Devstral 2 — Mistral's code-focused models`,
   },
 
@@ -692,7 +692,7 @@ On macOS, use Cmd instead of Ctrl.`,
 
 ### Timeout errors
 - **Cause**: The model is taking too long to respond, or network issues
-- **Fix**: Try a faster model (e.g., Qwen Turbo, GLM-4 Flash). Check your internet connection. For bash commands, increase the timeout parameter.
+- **Fix**: Try a faster model (e.g., Qwen Flash). Check your internet connection. For bash commands, increase the timeout parameter.
 
 ### Tool denied / not approved
 - **Cause**: Permission mode requires approval for this tool type

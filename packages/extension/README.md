@@ -2,7 +2,7 @@
 
 The open-source AI coding agent that remembers you.
 
-54 tools. 6 modes. 24 specialist personas. Memory that persists. A personal tutor that teaches for free. Custom personality. Command centre dashboard. Image generation. Office suite. 14 models from 7 providers — **3M free Qwen tokens with an account, or bring your own API keys**.
+54 tools. 6 modes. 24 specialist personas. Memory that persists. A personal tutor that teaches for free. Custom personality. Command centre dashboard. Image generation. Office suite. 12 models from 7 providers — **3M free Qwen tokens with an account, or bring your own API keys**.
 
 > **Install, open, go.** No account. No credit card. No trial. Just start.
 
@@ -139,8 +139,7 @@ Everything local by default. Connected users choose what to sync:
 
 | Provider | Models | Highlights |
 |---|---|---|
-| **Ava Free** | Qwen Flash | **FREE — 3M tokens** with account |
-| **Alibaba Cloud** | Qwen 3.5 Plus | Vision, thinking, 256K context, $0.20/M input |
+| **Ava Free** | Qwen Flash, Qwen 3.5 Plus | **FREE — 3M Qwen tokens** with account |
 | **Zhipu AI** | GLM-5 | 77.8% SWE-Bench, vision, best tool-call reliability |
 | **Moonshot AI** | Kimi K2.5 | 76.8% SWE-Bench, vision, 256K context |
 | **DeepSeek** | V3.2, Reasoner | Best value ($0.28/M), chain-of-thought |
