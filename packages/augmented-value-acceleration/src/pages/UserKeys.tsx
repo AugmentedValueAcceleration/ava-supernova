@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 interface ApiKey {
   id: string;
@@ -123,13 +124,7 @@ export default function UserKeys() {
 
   return (
     <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: 0 }}>API Keys</h1>
-          <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>
-            {keys.length} key{keys.length !== 1 ? 's' : ''} created.
-          </p>
-        </div>
+      <PageHeader title="API Keys" subtitle={`${keys.length} key${keys.length !== 1 ? 's' : ''} created.`} onRefresh={fetchKeys}>
         <button
           onClick={() => { setShowCreate(true); setCreatedKey(null); }}
           style={{
@@ -139,7 +134,7 @@ export default function UserKeys() {
         >
           + Create Key
         </button>
-      </div>
+      </PageHeader>
 
       {/* Created Key Banner */}
       {createdKey && (

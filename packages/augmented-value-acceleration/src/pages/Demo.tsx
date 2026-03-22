@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PageHeader from '../components/PageHeader';
 
 interface Slide {
   title: string;
@@ -105,13 +106,7 @@ export default function Demo() {
 
   return (
     <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: 0 }}>Investor Demo</h1>
-          <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>
-            Slide {currentSlide + 1} of {SLIDES.length}
-          </p>
-        </div>
+      <PageHeader title="Investor Demo" subtitle={`Slide ${currentSlide + 1} of ${SLIDES.length}`}>
         <div style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={prev}
@@ -139,7 +134,7 @@ export default function Demo() {
             Next
           </button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Slide Progress */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 32 }}>

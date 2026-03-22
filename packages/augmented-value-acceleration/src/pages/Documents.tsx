@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 
@@ -164,26 +165,20 @@ export default function Documents() {
   return (
     <div style={{ padding: '40px 48px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: '#fff', margin: 0 }}>Documents</h1>
-          <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4 }}>File management and storage</p>
-        </div>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <label style={{
-            padding: '10px 24px', background: '#1f1f3a', color: '#9ca3af', border: 'none',
-            borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 8,
-          }}>
-            {uploading ? 'Uploading...' : '📤 Upload'}
-            <input type="file" style={{ display: 'none' }} onChange={handleUpload} disabled={uploading} />
-          </label>
-          <button onClick={() => setShowCreate(true)} style={{
-            padding: '10px 24px', background: '#a855f7', color: '#fff', border: 'none',
-            borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
-          }}>+ Add Document</button>
-        </div>
-      </div>
+      <PageHeader title="Documents" subtitle="File management and storage" onRefresh={fetchData}>
+        <label style={{
+          padding: '10px 24px', background: '#1f1f3a', color: '#9ca3af', border: 'none',
+          borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          {uploading ? 'Uploading...' : '📤 Upload'}
+          <input type="file" style={{ display: 'none' }} onChange={handleUpload} disabled={uploading} />
+        </label>
+        <button onClick={() => setShowCreate(true)} style={{
+          padding: '10px 24px', background: '#a855f7', color: '#fff', border: 'none',
+          borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+        }}>+ Add Document</button>
+      </PageHeader>
 
       {/* Breadcrumb */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, fontSize: 13, color: '#6b7280' }}>

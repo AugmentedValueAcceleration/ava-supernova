@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 
@@ -123,22 +124,16 @@ export default function Tasks() {
   return (
     <div style={{ padding: '40px 48px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: '#fff', margin: 0 }}>Tasks</h1>
-          <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4 }}>Kanban board for task management</p>
-        </div>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <select style={{ ...inputStyle, width: 'auto', minWidth: 160 }} value={projectFilter} onChange={e => setProjectFilter(e.target.value)}>
-            <option value="all">All Projects</option>
-            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-          <button onClick={() => setShowCreate(true)} style={{
-            padding: '10px 24px', background: '#a855f7', color: '#fff', border: 'none',
-            borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
-          }}>+ New Task</button>
-        </div>
-      </div>
+      <PageHeader title="Tasks" subtitle="Kanban board for task management" onRefresh={fetchData}>
+        <select style={{ ...inputStyle, width: 'auto', minWidth: 160 }} value={projectFilter} onChange={e => setProjectFilter(e.target.value)}>
+          <option value="all">All Projects</option>
+          {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        <button onClick={() => setShowCreate(true)} style={{
+          padding: '10px 24px', background: '#a855f7', color: '#fff', border: 'none',
+          borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+        }}>+ New Task</button>
+      </PageHeader>
 
       {/* Loading */}
       {loading && <div style={{ textAlign: 'center', color: '#6b7280', padding: 60 }}>Loading tasks...</div>}

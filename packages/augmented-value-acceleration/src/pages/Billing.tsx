@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PageHeader from '../components/PageHeader';
 
 const PLACEHOLDER_TRANSACTIONS = [
   { id: '1', user: 'john.doe@example.com', amount: 29, plan: 'Pro', date: '2026-03-20', status: 'succeeded' },
@@ -31,10 +32,7 @@ export default function Billing() {
 
   return (
     <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: 0 }}>Billing</h1>
-      <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4, marginBottom: 24 }}>
-        Revenue overview and subscription management.
-      </p>
+      <PageHeader title="Billing" subtitle="Revenue overview and subscription management." />
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, background: '#111127', border: '1px solid #1f1f3a', borderRadius: 10, padding: 4, marginBottom: 24 }}>

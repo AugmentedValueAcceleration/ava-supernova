@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 interface PlatformSetting {
   id: string;
@@ -108,11 +109,7 @@ export default function Settings() {
   return (
     <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: 0 }}>Platform Settings</h1>
-          <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>Configure platform-wide settings stored in Supabase.</p>
-        </div>
+      <PageHeader title="Platform Settings" subtitle="Configure platform-wide settings stored in Supabase." onRefresh={loadSettings}>
         {dirty.size > 0 && (
           <button
             onClick={saveAllSettings}
@@ -132,7 +129,7 @@ export default function Settings() {
             {saveAll ? 'Saving...' : `Save All (${dirty.size})`}
           </button>
         )}
-      </div>
+      </PageHeader>
 
       {/* Settings list */}
       <div style={{ maxWidth: 700 }}>

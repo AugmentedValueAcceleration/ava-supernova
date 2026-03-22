@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 
@@ -150,6 +151,8 @@ export default function Compliance() {
     });
   };
 
+  const refreshAll = () => { fetchStats(); fetchPolicies(); fetchAudit(); fetchActivity(); };
+
   /* ── Init ────────────────────────────────────────────────────────────── */
 
   useEffect(() => {
@@ -292,10 +295,7 @@ export default function Compliance() {
   return (
     <div style={{ padding: '40px 48px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
       {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#fff', margin: 0 }}>Compliance</h1>
-        <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4 }}>GDPR, audit trails, data management and retention</p>
-      </div>
+      <PageHeader title="Compliance" subtitle="GDPR, audit trails, data management and retention" onRefresh={refreshAll} />
 
       {/* Stats Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>

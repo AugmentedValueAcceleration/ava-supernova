@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 interface SupportMessage {
   id: string;
@@ -282,10 +283,7 @@ export default function Support() {
   return (
     <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
 
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: 0 }}>Support Tickets</h1>
-      <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4, marginBottom: 24 }}>
-        Manage support requests from users. Replies are sent via email.
-      </p>
+      <PageHeader title="Support Tickets" subtitle="Manage support requests from users. Replies are sent via email." onRefresh={loadTickets} />
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>

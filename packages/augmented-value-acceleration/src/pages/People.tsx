@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 
@@ -121,16 +122,12 @@ export default function People() {
   return (
     <div style={{ padding: '40px 48px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: '#fff', margin: 0 }}>People</h1>
-          <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4 }}>Your team directory</p>
-        </div>
+      <PageHeader title="People" subtitle="Your team directory" onRefresh={fetchData}>
         <button onClick={() => setShowCreate(true)} style={{
           padding: '10px 24px', background: '#a855f7', color: '#fff', border: 'none',
           borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
         }}>+ Add Person</button>
-      </div>
+      </PageHeader>
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>

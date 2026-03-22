@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { getPlugins, setPluginEnabled, getPluginCount } from '../lib/plugins';
+import PageHeader from '../components/PageHeader';
 import type { PluginRegistration } from '../lib/plugins';
 
 /* ── Component ──────────────────────────────────────────────────────────── */
@@ -49,12 +50,7 @@ export default function Plugins() {
   return (
     <div style={{ padding: '40px 48px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
-        <div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: '#fff', margin: 0 }}>Plugins</h1>
-          <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4 }}>Extend platform capabilities with plugins</p>
-        </div>
-      </div>
+      <PageHeader title="Plugins" subtitle="Extend platform capabilities with plugins" />
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>

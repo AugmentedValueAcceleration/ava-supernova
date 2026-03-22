@@ -1,5 +1,6 @@
 import { useEffect, useState, Fragment } from 'react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 interface User {
   id: string;
@@ -120,10 +121,7 @@ export default function Users() {
 
   return (
     <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: 0 }}>Users</h1>
-      <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4, marginBottom: 24 }}>
-        Manage platform users, tiers, and usage.
-      </p>
+      <PageHeader title="Users" subtitle="Manage platform users, tiers, and usage." onRefresh={fetchUsers} />
 
       {/* Stats Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>

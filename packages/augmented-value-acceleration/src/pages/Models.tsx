@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PageHeader from '../components/PageHeader';
 
 interface Model {
   id: string;
@@ -78,10 +79,7 @@ export default function Models() {
 
   return (
     <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: 0 }}>Models</h1>
-      <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4, marginBottom: 24 }}>
-        {models.length} models across {providers.length} providers. {models.filter(m => m.enabled).length} enabled.
-      </p>
+      <PageHeader title="Models" subtitle={`${models.length} models across ${providers.length} providers. ${models.filter(m => m.enabled).length} enabled.`} />
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>

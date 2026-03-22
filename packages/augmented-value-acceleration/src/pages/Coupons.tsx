@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, Fragment } from 'react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 interface Redemption {
   coupon_id: string;
@@ -233,10 +234,7 @@ export default function Coupons() {
   return (
     <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
 
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: 0 }}>Coupons</h1>
-      <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4, marginBottom: 24 }}>
-        Create and manage discount coupons for subscriptions.
-      </p>
+      <PageHeader title="Coupons" subtitle="Create and manage discount coupons for subscriptions." onRefresh={fetchCoupons} />
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, background: '#111127', border: '1px solid #1f1f3a', borderRadius: 10, padding: 4, marginBottom: 24 }}>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 
@@ -125,10 +126,7 @@ export default function AuditLog() {
   return (
     <div style={{ padding: '40px 48px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
       {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#fff', margin: 0 }}>Audit Log</h1>
-        <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4 }}>Track all system activity and changes</p>
-      </div>
+      <PageHeader title="Audit Log" subtitle="Track all system activity and changes" onRefresh={fetchData} />
 
       {/* Search + Filters */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>

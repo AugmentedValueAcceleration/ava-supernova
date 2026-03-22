@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -148,11 +149,7 @@ export default function Planner() {
 
         {/* Header */}
         <div style={{ padding: '24px 32px 16px', borderBottom: '1px solid #1f1f3a', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: 0 }}>Planner</h1>
-              <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>Plan features and manage the roadmap with Ava.</p>
-            </div>
+          <PageHeader title="Planner" subtitle="Plan features and manage the roadmap with Ava." onRefresh={loadRoadmap}>
             <button
               onClick={() => setShowRoadmap(!showRoadmap)}
               style={{
@@ -168,7 +165,7 @@ export default function Planner() {
             >
               {showRoadmap ? 'Hide Roadmap' : 'Show Roadmap'}
             </button>
-          </div>
+          </PageHeader>
 
           {/* Quick prompts */}
           <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>

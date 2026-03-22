@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 interface FeedbackEntry {
   id: string;
@@ -117,10 +118,7 @@ export default function Feedback() {
   return (
     <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
 
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: 0 }}>Feedback & Self-Improvement</h1>
-      <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4, marginBottom: 24 }}>
-        Message ratings, satisfaction analytics, and Ava's shared learning pool.
-      </p>
+      <PageHeader title="Feedback & Self-Improvement" subtitle="Message ratings, satisfaction analytics, and Ava's shared learning pool." onRefresh={loadData} />
 
       {/* Tab navigation */}
       <div style={{ display: 'flex', gap: 4, background: '#111127', border: '1px solid #1f1f3a', borderRadius: 10, padding: 4, marginBottom: 24 }}>

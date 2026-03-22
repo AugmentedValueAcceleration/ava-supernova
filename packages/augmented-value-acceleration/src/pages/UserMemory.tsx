@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 interface Memory {
   id: string;
@@ -73,10 +74,7 @@ export default function UserMemory() {
 
   return (
     <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: 0 }}>My Memory</h1>
-      <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4, marginBottom: 24 }}>
-        Ava's stored memories about you and your projects.
-      </p>
+      <PageHeader title="My Memory" subtitle="Ava's stored memories about you and your projects." onRefresh={fetchMemories} />
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>

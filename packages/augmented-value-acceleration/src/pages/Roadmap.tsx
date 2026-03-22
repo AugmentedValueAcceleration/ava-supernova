@@ -1,5 +1,6 @@
 import { useEffect, useState, Fragment } from 'react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 interface RoadmapItem {
   id: string;
@@ -146,13 +147,7 @@ export default function Roadmap() {
 
   return (
     <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: 0 }}>Roadmap</h1>
-          <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>
-            {items.length} items. {items.filter(i => i.status === 'shipped').length} shipped.
-          </p>
-        </div>
+      <PageHeader title="Roadmap" subtitle={`${items.length} items. ${items.filter(i => i.status === 'shipped').length} shipped.`} onRefresh={fetchItems}>
         <button
           onClick={openCreateForm}
           style={{
@@ -162,7 +157,7 @@ export default function Roadmap() {
         >
           + Add Item
         </button>
-      </div>
+      </PageHeader>
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 /* ── Categories ────────────────────────────────────────────────────── */
 
@@ -1283,11 +1284,7 @@ export default function News() {
       {renderEditor()}
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: C.text, margin: 0 }}>News</h1>
-          <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>Curate and publish AI news for the community</p>
-        </div>
+      <PageHeader title="News" subtitle="Curate and publish AI news for the community" onRefresh={loadPosts}>
         <button
           onClick={startCreate}
           style={s.btn('transparent', C.secondary, C.border)}
@@ -1296,7 +1293,7 @@ export default function News() {
         >
           New Post
         </button>
-      </div>
+      </PageHeader>
 
       {/* Stats row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 32 }}>

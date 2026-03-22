@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 interface ScanSummary {
   totalFindings: number;
@@ -232,10 +233,7 @@ export default function SecurityCentre() {
   return (
     <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
 
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: 0 }}>Security Scanner</h1>
-      <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4, marginBottom: 24 }}>
-        Automated vulnerability detection across repositories.
-      </p>
+      <PageHeader title="Security Scanner" subtitle="Automated vulnerability detection across repositories." onRefresh={loadHistory} />
 
       {/* Repo selector + Run */}
       <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 20, marginBottom: 24 }}>

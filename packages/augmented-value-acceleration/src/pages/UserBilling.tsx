@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PageHeader from '../components/PageHeader';
 
 const PLANS = [
   { tier: 'Free', price: '$0', period: '/month', tokens: '3M tokens', features: ['Qwen models', 'Basic tools', 'Community support'], color: '#9ca3af', current: true },
@@ -16,10 +17,7 @@ export default function UserBilling() {
 
   return (
     <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: 0 }}>My Plan</h1>
-      <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4, marginBottom: 24 }}>
-        Manage your subscription and billing.
-      </p>
+      <PageHeader title="My Plan" subtitle="Manage your subscription and billing." />
 
       {/* Current Plan Card */}
       <div style={{

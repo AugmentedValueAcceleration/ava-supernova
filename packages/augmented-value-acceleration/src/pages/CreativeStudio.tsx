@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 /* ══════════════════════════════════════════════════════════════════════
    Creative Studio — Augmented Value Acceleration Platform
@@ -604,6 +605,11 @@ export default function CreativeStudio() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 64px)', background: T.bg, color: T.text, overflow: 'hidden' }}>
+
+      {/* ── Page Header ───────────────────────────────────────────── */}
+      <div style={{ padding: '16px 20px 0', flexShrink: 0 }}>
+        <PageHeader title="Creative Studio" />
+      </div>
 
       {/* ── Header ──────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', borderBottom: `1px solid ${T.border}`, flexShrink: 0, background: T.bgCard }}>

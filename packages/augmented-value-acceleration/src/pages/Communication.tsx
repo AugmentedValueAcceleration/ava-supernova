@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 import {
   subscribeToTable,
   trackPresence,
@@ -251,7 +252,11 @@ export default function Communication() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100%', background: '#0a0a1a' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#0a0a1a' }}>
+      <div style={{ padding: '24px 28px 0', flexShrink: 0 }}>
+        <PageHeader title="Communication" subtitle="Team messaging and channels" onRefresh={fetchMessages} />
+      </div>
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
       {/* Sidebar — Channels */}
       <div style={{
         width: 240, borderRight: '1px solid #1f1f3a', display: 'flex', flexDirection: 'column',
@@ -476,6 +481,8 @@ export default function Communication() {
             opacity: saving || !newMessage.trim() ? 0.5 : 1, flexShrink: 0,
           }}>{saving ? '...' : 'Send'}</button>
         </div>
+      </div>
+
       </div>
 
       {/* Create Channel Modal */}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PageHeader from '../components/PageHeader';
 
 /* ── Research-backed constants ───────────────────────────────────────────── */
 
@@ -1350,12 +1351,7 @@ export default function Financials() {
     <div style={{ padding: '40px 48px', overflowY: 'auto', height: '100%', background: colors.pageBg }}>
 
       {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: colors.text, margin: 0 }}>Financials</h1>
-        <p style={{ fontSize: 13, color: colors.textSecondary, marginTop: 4 }}>
-          Revenue projections, real-time tracking, and strategic objectives
-        </p>
-      </div>
+      <PageHeader title="Financials" subtitle="Revenue projections, real-time tracking, and strategic objectives" />
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, background: colors.inputBg, borderRadius: 8, padding: 4, width: 'fit-content', marginBottom: 24 }}>

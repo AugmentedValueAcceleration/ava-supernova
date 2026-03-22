@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getStats, getRecentActivity } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 const getGreeting = () => {
   const h = new Date().getHours();
@@ -21,12 +22,19 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   const [activity, setActivity] = useState<Array<{ text: string; time: string }>>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    Promise.all([getStats(), getRecentActivity()])
-      .then(([s, a]) => { setStats(s); setActivity(a); })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [s, a] = await Promise.all([getStats(), getRecentActivity()]);
+      setStats(s);
+      setActivity(a);
+    } catch {
+      // silent
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const statCards = [
     { label: 'Total Users', value: loading ? '...' : stats.totalUsers.toLocaleString(), icon: '👥', color: '#a855f7' },
@@ -45,11 +53,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   return (
     <div style={{ padding: '40px 48px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
 
-      {/* Header */}
-      <div style={{ marginBottom: 40 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#fff', margin: 0 }}>{getGreeting()}, Stewart</h1>
-        <p style={{ fontSize: 14, color: '#6b7280', marginTop: 6 }}>{formatDate()}</p>
-      </div>
+      <PageHeader title={`${getGreeting()}, Stewart`} subtitle={formatDate()} onRefresh={fetchData} />
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, marginBottom: 48 }}>

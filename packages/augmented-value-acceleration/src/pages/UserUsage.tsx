@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase, supabaseAuth } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 interface UsageSummary {
   period: {
@@ -43,8 +44,7 @@ export default function UserUsage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    async function fetchUsage() {
+  const fetchUsage = async () => {
       setLoading(true);
       setError('');
       try {
@@ -136,9 +136,9 @@ export default function UserUsage() {
       } finally {
         setLoading(false);
       }
-    }
-    fetchUsage();
-  }, []);
+  };
+
+  useEffect(() => { fetchUsage(); }, []);
 
   const freePercent = data ? Math.min(100, (data.period.free_tokens_used / data.period.free_tokens_limit) * 100) : 0;
   const subPercent = data?.period.tokens_limit ? Math.min(100, (data.period.tokens_used / data.period.tokens_limit) * 100) : 0;
@@ -146,9 +146,11 @@ export default function UserUsage() {
 
   return (
     <div style={{ padding: '40px 48px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#fff', margin: 0 }}>My Usage</h1>
-        {data && (
+      <PageHeader
+        title="My Usage"
+        subtitle={data?.period.start && data?.period.end ? `Period: ${formatDate(data.period.start)} — ${formatDate(data.period.end)}` : 'Current period'}
+        onRefresh={fetchUsage}
+        badge={data ? (
           <span style={{
             padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
             background: `${TIER_COLORS[data.tier] || '#6b7280'}20`,
@@ -157,13 +159,8 @@ export default function UserUsage() {
           }}>
             {data.isAdmin ? '∞ Admin' : data.tier}
           </span>
-        )}
-      </div>
-      <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 32 }}>
-        {data?.period.start && data?.period.end
-          ? `Period: ${formatDate(data.period.start)} — ${formatDate(data.period.end)}`
-          : 'Current period'}
-      </p>
+        ) : undefined}
+      />
 
       {loading ? (
         <div style={{ color: '#6b7280', padding: 40, textAlign: 'center' }}>Loading usage data...</div>

@@ -1,5 +1,6 @@
 import { useEffect, useState, Fragment } from 'react';
 import { supabase } from '../lib/supabase';
+import PageHeader from '../components/PageHeader';
 
 interface Conversation {
   id: string;
@@ -89,10 +90,7 @@ export default function UserHistory() {
 
   return (
     <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: 0 }}>Chat History</h1>
-      <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4, marginBottom: 24 }}>
-        {conversations.length} conversation{conversations.length !== 1 ? 's' : ''} saved.
-      </p>
+      <PageHeader title="Chat History" subtitle={`${conversations.length} conversation${conversations.length !== 1 ? 's' : ''} saved.`} onRefresh={fetchConversations} />
 
       {/* Search */}
       <div style={{ marginBottom: 24 }}>
