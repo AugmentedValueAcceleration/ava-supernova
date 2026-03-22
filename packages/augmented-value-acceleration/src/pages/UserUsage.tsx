@@ -40,13 +40,11 @@ export default function UserUsage() {
         const userId = user?.id;
         if (!userId) { setLoading(false); return; }
 
-        // Get usage for current period
+        // Get latest usage row for this user
         const { data } = await supabase
           .from('usage')
           .select('*')
           .eq('user_id', userId)
-          .lte('period_start', new Date().toISOString().slice(0, 10))
-          .gte('period_end', new Date().toISOString().slice(0, 10))
           .order('period_start', { ascending: false })
           .limit(1)
           .maybeSingle();
