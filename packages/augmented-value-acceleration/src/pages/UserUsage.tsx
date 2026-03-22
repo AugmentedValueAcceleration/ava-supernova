@@ -110,7 +110,17 @@ export default function UserUsage() {
           tier: userRow?.tier || 'free',
           isAdmin,
           isUnlimited,
-          daily: Object.entries(dailyMap).map(([date, tokens]) => ({ date, tokens })).sort((a, b) => a.date.localeCompare(b.date)),
+          daily: (() => {
+            const padded: Array<{ date: string; tokens: number }> = [];
+            const now = new Date();
+            for (let i = 13; i >= 0; i--) {
+              const d = new Date(now);
+              d.setDate(d.getDate() - i);
+              const dateStr = d.toISOString().slice(0, 10);
+              padded.push({ date: dateStr, tokens: dailyMap[dateStr] || 0 });
+            }
+            return padded;
+          })(),
           models: Object.entries(modelMap).map(([model, s]) => ({
             model, input_tokens: s.input, output_tokens: s.output,
             total_tokens: s.input + s.output, request_count: s.count,
