@@ -252,18 +252,21 @@ export default function UserUsage() {
             {data.daily.length === 0 ? (
               <div style={{ color: '#6b7280', textAlign: 'center', padding: 24 }}>No usage data yet</div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 120 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 160, padding: '0 4px' }}>
                 {data.daily.map((d, i) => {
-                  const h = Math.max(4, (d.tokens / maxDaily) * 100);
+                  const barHeight = d.tokens > 0 ? Math.max(8, Math.round((d.tokens / maxDaily) * 140)) : 3;
                   const isToday = d.date === new Date().toISOString().slice(0, 10);
                   return (
-                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                      <div style={{ fontSize: 9, color: '#6b7280' }}>{formatNumber(d.tokens)}</div>
+                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', gap: 4 }}>
+                      <div style={{ fontSize: 9, color: d.tokens > 0 ? '#9ca3af' : '#4b5563', whiteSpace: 'nowrap' }}>
+                        {d.tokens > 0 ? formatNumber(d.tokens) : ''}
+                      </div>
                       <div style={{
-                        width: '100%', height: `${h}%`, borderRadius: 4,
-                        background: isToday ? '#a855f7' : '#2a2a4a',
+                        width: '100%', maxWidth: 40, height: barHeight, borderRadius: 4,
+                        background: isToday ? '#a855f7' : d.tokens > 0 ? '#3b3b6b' : '#1f1f3a',
+                        transition: 'height 0.3s',
                       }} />
-                      <div style={{ fontSize: 9, color: isToday ? '#a855f7' : '#4b5563' }}>
+                      <div style={{ fontSize: 9, fontWeight: isToday ? 600 : 400, color: isToday ? '#a855f7' : '#4b5563' }}>
                         {new Date(d.date).getDate()}
                       </div>
                     </div>
