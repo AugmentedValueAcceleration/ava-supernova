@@ -2,7 +2,9 @@ import { useState } from 'react';
 
 type Page = 'dashboard' | 'creative-studio' | 'news' | 'financials' | 'planner' |
   'projects' | 'tasks' | 'crm' | 'documents' | 'people' | 'communication' |
-  'learning' | 'security' | 'audit-log' | 'feedback' | 'support' | 'coupons' | 'settings';
+  'learning' | 'security' | 'audit-log' | 'feedback' | 'support' | 'coupons' | 'settings' |
+  'users' | 'admin-billing' | 'models' | 'demo' | 'roadmap' | 'tool-proposals' |
+  'user-billing' | 'user-history' | 'user-keys' | 'user-memory' | 'user-usage';
 
 interface SidebarProps {
   activePage: Page;
@@ -48,6 +50,12 @@ const NAV_SECTIONS: NavSection[] = [
       { id: 'financials', label: 'Financials', icon: <I d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /> },
       { id: 'planner', label: 'Planner', icon: <I d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /> },
       { id: 'feedback', label: 'Feedback', icon: <I d="M14 9V5a3 3 0 00-5.659-1.409L3 12h4v4a3 3 0 005.659 1.409L18 8h-4z" /> },
+      { id: 'users', label: 'Users', icon: <I d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /> },
+      { id: 'admin-billing', label: 'Billing', icon: <I d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /> },
+      { id: 'models', label: 'Models', icon: <I d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /> },
+      { id: 'demo', label: 'Demo', icon: <I d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" /> },
+      { id: 'roadmap', label: 'Roadmap', icon: <I d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /> },
+      { id: 'tool-proposals', label: 'Tool Proposals', icon: <I d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" /> },
     ],
   },
   {
@@ -72,6 +80,16 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { id: 'security', label: 'Security Centre', icon: <I d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /> },
       { id: 'audit-log', label: 'Audit Log', icon: <I d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /> },
+    ],
+  },
+  {
+    title: 'MY ACCOUNT',
+    items: [
+      { id: 'user-billing', label: 'My Plan', icon: <I d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15A2.25 2.25 0 002.25 6.75v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" /> },
+      { id: 'user-history', label: 'Chat History', icon: <I d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /> },
+      { id: 'user-keys', label: 'API Keys', icon: <I d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /> },
+      { id: 'user-memory', label: 'My Memory', icon: <I d="M4.871 4A17.926 17.926 0 003 12c0 2.874.673 5.59 1.871 8m14.13 0A17.926 17.926 0 0021 12a17.926 17.926 0 00-2.999-8M9 9h.01M15 9h.01M9.75 17c.97.97 2.073 1.5 3.25 1.5s2.28-.53 3.25-1.5" /> },
+      { id: 'user-usage', label: 'My Usage', icon: <I d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /> },
     ],
   },
   {

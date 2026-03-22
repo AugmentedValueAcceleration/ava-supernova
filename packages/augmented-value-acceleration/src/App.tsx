@@ -20,6 +20,17 @@ import AuditLog from './pages/AuditLog';
 import Support from './pages/Support';
 import Coupons from './pages/Coupons';
 import Settings from './pages/Settings';
+import Users from './pages/Users';
+import Billing from './pages/Billing';
+import Models from './pages/Models';
+import Demo from './pages/Demo';
+import Roadmap from './pages/Roadmap';
+import ToolProposals from './pages/ToolProposals';
+import UserBilling from './pages/UserBilling';
+import UserHistory from './pages/UserHistory';
+import UserKeys from './pages/UserKeys';
+import UserMemory from './pages/UserMemory';
+import UserUsage from './pages/UserUsage';
 
 const PAGE_MAP: Record<Page, React.ComponentType<{ onNavigate?: (page: string) => void }>> = {
   'dashboard': Dashboard,
@@ -40,6 +51,17 @@ const PAGE_MAP: Record<Page, React.ComponentType<{ onNavigate?: (page: string) =
   'support': Support,
   'coupons': Coupons,
   'settings': Settings,
+  'users': Users,
+  'admin-billing': Billing,
+  'models': Models,
+  'demo': Demo,
+  'roadmap': Roadmap,
+  'tool-proposals': ToolProposals,
+  'user-billing': UserBilling,
+  'user-history': UserHistory,
+  'user-keys': UserKeys,
+  'user-memory': UserMemory,
+  'user-usage': UserUsage,
 };
 
 export default function App() {
