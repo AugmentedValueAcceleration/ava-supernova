@@ -80,7 +80,8 @@ export default function UserUsage() {
           .select('timestamp, input_tokens, output_tokens, model')
           .eq('user_id', userId)
           .gte('timestamp', fourteenDaysAgo.toISOString())
-          .order('timestamp', { ascending: true });
+          .order('timestamp', { ascending: true })
+          .limit(10000);
 
         // Aggregate
         const dailyMap: Record<string, number> = {};
