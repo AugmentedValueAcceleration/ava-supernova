@@ -141,6 +141,9 @@ export class Agent {
         ];
       }
 
+      // Trim old tool results to save tokens — after 4 messages, collapse to summary
+      messages = this.trimOldToolResults(messages);
+
       // Auto-truncate to fit context window (reserve 30% for output + safety margin)
       // The 30% buffer accounts for: model output tokens, estimation inaccuracy,
       // and tool call overhead that's hard to predict.
@@ -154,8 +157,10 @@ export class Agent {
         context: { used: estimatedTotal, limit: this.model.contextWindow, percent: contextPercent },
       });
 
-      // Auto-compress at 80% of context window (before it's too late)
-      if (estimatedTotal > maxInputTokens && messages.length >= 6) {
+      // Auto-compress: either at 80% of context OR when messages exceed 50K tokens
+      // (for large context models like Qwen 1M, 80% never triggers — 50K cap prevents token bleed)
+      const TOKEN_CAP = 50_000;
+      if ((estimatedTotal > maxInputTokens || estimatedTotal > TOKEN_CAP) && messages.length >= 6) {
         messages = await this.compressContext(messages, onEvent, signal);
       }
 
@@ -830,6 +835,35 @@ ${transcript}`;
   /** Estimate total token count across an array of messages. */
   estimateTokenCount(messages: Message[]): number {
     return messages.reduce((sum, m) => sum + this.estimateMessageTokens(m), 0);
+  }
+
+  // ── Tool result trimming ────────────────────────────────────────────────
+
+  /**
+   * Collapse old tool results to save tokens. Tool outputs older than
+   * KEEP_RECENT messages get trimmed to 200 chars + a note.
+   * This prevents token bleed from accumulated file reads, grep results, etc.
+   */
+  private trimOldToolResults(messages: Message[]): Message[] {
+    const KEEP_RECENT = 8; // Keep last 8 messages at full size
+    const MAX_OLD_TOOL_CHARS = 200;
+
+    if (messages.length <= KEEP_RECENT + 1) return messages; // +1 for system
+
+    const cutoff = messages.length - KEEP_RECENT;
+    return messages.map((m, i) => {
+      // Skip system prompt and recent messages
+      if (i === 0 || i >= cutoff) return m;
+      // Only trim tool result messages
+      if (m.role !== 'tool' || typeof m.content !== 'string') return m;
+      // Already short enough
+      if (m.content.length <= MAX_OLD_TOOL_CHARS) return m;
+      // Trim
+      return {
+        ...m,
+        content: m.content.slice(0, MAX_OLD_TOOL_CHARS) + `\n\n[Trimmed — original ${m.content.length} chars]`,
+      };
+    });
   }
 
   // ── Truncation ──────────────────────────────────────────────────────────

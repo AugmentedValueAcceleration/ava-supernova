@@ -157,7 +157,7 @@ export function Overview({
     period_start: null as string | null,
     period_end: null as string | null,
     free_tokens_used: 0,
-    free_tokens_limit: 500_000,
+    free_tokens_limit: 3_000_000,
   };
 
   // Derive stats from logs as fallback when account.usage is stale/empty
