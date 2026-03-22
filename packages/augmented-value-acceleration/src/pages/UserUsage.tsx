@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseAuth } from '../lib/supabase';
 
 interface UsageData {
   tokens_used: number;
@@ -35,9 +35,10 @@ export default function UserUsage() {
     async function fetchUsage() {
       setLoading(true);
       try {
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
+        // Get current user from auth client (has the session)
+        const { data: { user } } = await supabaseAuth.auth.getUser();
         const userId = user?.id;
+        if (!userId) { setLoading(false); return; }
 
         // Get usage for current period
         const { data } = await supabase
