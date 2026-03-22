@@ -1,9 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://znhqolmxbfmolatxcbph.supabase.co';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://dpxdjnpqaxhsydoeaogl.supabase.co';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuaHFvbG14YmZtb2xhdHhjYnBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk4MjA5MTUsImV4cCI6MjA1NTM5NjkxNX0.VR_lCUmSPb1VBvT7qVAkNgoOjaBj1DEavfc1k_cLDoo';
+const SUPABASE_SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_KEY || '';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Admin client (service role) — bypasses RLS for admin operations
+// Falls back to anon client if service key not set
+export const supabase = SUPABASE_SERVICE_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+  : createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Auth client — always uses anon key for user authentication
+export const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export async function getStats() {
   const [users, tickets, scans] = await Promise.all([
