@@ -1,5 +1,12 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import {
+  subscribeToTable,
+  trackPresence,
+  onPresenceChange,
+  unsubscribeChannel,
+} from '../lib/collaboration';
+import type { PresenceState } from '../lib/collaboration';
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 
@@ -34,20 +41,12 @@ export default function Communication() {
   const [channelName, setChannelName] = useState('');
   const [channelDesc, setChannelDesc] = useState('');
   const [saving, setSaving] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<PresenceState[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const pollRef = useRef<number | null>(null);
 
   /* ── Fetch Channels ────────────────────────────────────────────────── */
 
   const fetchChannels = async () => {
-    const { data } = await supabase.from('business_messages')
-      .select('channel_id')
-      .order('created_at', { ascending: false });
-
-    // Get unique channels from messages
-    const channelIds = [...new Set((data || []).map((m: any) => m.channel_id).filter(Boolean))];
-
-    // Also try to fetch from a channels table, fallback to deriving from messages
     const { data: channelData } = await supabase.from('business_channels').select('*').order('name');
 
     if (channelData && channelData.length > 0) {
@@ -56,13 +55,18 @@ export default function Communication() {
         setActiveChannel(channelData[0].id);
       }
     } else {
-      // Derive channels from messages
+      // Derive channels from messages or use defaults
+      const { data } = await supabase.from('business_messages')
+        .select('channel_id')
+        .order('created_at', { ascending: false });
+
+      const channelIds = [...new Set((data || []).map((m: any) => m.channel_id).filter(Boolean))];
       const derived: Channel[] = channelIds.map((id: string) => ({
         id,
         name: id,
         created_at: new Date().toISOString(),
       }));
-      // Add defaults if empty
+
       if (derived.length === 0) {
         derived.push(
           { id: 'general', name: 'general', created_at: new Date().toISOString() },
@@ -102,15 +106,63 @@ export default function Communication() {
     }
   }, [activeChannel, fetchMessages]);
 
-  /* ── Polling (10s) ─────────────────────────────────────────────────── */
+  /* ── Supabase Realtime (replaces polling) ───────────────────────────── */
 
   useEffect(() => {
     if (!activeChannel) return;
-    pollRef.current = window.setInterval(fetchMessages, 10000);
+
+    const realtimeChannel = `messages-${activeChannel}`;
+
+    // Subscribe to real-time inserts/updates/deletes on business_messages
+    subscribeToTable(
+      realtimeChannel,
+      'business_messages',
+      `channel_id=eq.${activeChannel}`,
+      (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setMessages(prev => [...prev, payload.new as Message]);
+        } else if (payload.eventType === 'UPDATE') {
+          setMessages(prev => prev.map(m => m.id === payload.new.id ? (payload.new as Message) : m));
+        } else if (payload.eventType === 'DELETE') {
+          setMessages(prev => prev.filter(m => m.id !== payload.old.id));
+        }
+      }
+    );
+
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+      unsubscribeChannel(realtimeChannel);
     };
-  }, [activeChannel, fetchMessages]);
+  }, [activeChannel]);
+
+  /* ── Presence Tracking ──────────────────────────────────────────────── */
+
+  useEffect(() => {
+    const presenceChannel = 'communication-presence';
+
+    // Track current user
+    trackPresence(presenceChannel, 'admin', {
+      user_name: 'Admin',
+      status: 'online',
+      current_page: 'communication',
+    });
+
+    // Listen for presence changes
+    onPresenceChange(presenceChannel, {
+      onSync: (state) => {
+        const users: PresenceState[] = [];
+        Object.values(state).forEach((presences: any[]) => {
+          presences.forEach((p: any) => {
+            users.push(p as PresenceState);
+          });
+        });
+        setOnlineUsers(users);
+      },
+    });
+
+    return () => {
+      unsubscribeChannel(presenceChannel);
+    };
+  }, []);
 
   /* ── Auto scroll ───────────────────────────────────────────────────── */
 
@@ -133,14 +185,14 @@ export default function Communication() {
     setNewMessage('');
     setReplyTo(null);
     setSaving(false);
-    fetchMessages();
+    // No manual fetch needed — Realtime will push the new message
   };
 
   /* ── Pin/Unpin ─────────────────────────────────────────────────────── */
 
   const togglePin = async (msg: Message) => {
     await supabase.from('business_messages').update({ pinned: !msg.pinned }).eq('id', msg.id);
-    fetchMessages();
+    // Realtime will handle the update
   };
 
   /* ── Create Channel ────────────────────────────────────────────────── */
@@ -150,7 +202,6 @@ export default function Communication() {
     setSaving(true);
     const id = channelName.trim().toLowerCase().replace(/\s+/g, '-');
 
-    // Try inserting into channels table
     await supabase.from('business_channels').insert({
       id,
       name: channelName.trim(),
@@ -169,7 +220,7 @@ export default function Communication() {
 
   const handleDelete = async (id: string) => {
     await supabase.from('business_messages').delete().eq('id', id);
-    fetchMessages();
+    // Realtime will handle the removal
   };
 
   /* ── Derived ───────────────────────────────────────────────────────── */
@@ -228,6 +279,35 @@ export default function Communication() {
             </button>
           ))}
         </div>
+
+        {/* Online Users — Presence */}
+        {onlineUsers.length > 0 && (
+          <div style={{ padding: '12px 16px', borderTop: '1px solid #1f1f3a' }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 10 }}>
+              Online — {onlineUsers.length}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {onlineUsers.map((u, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ position: 'relative' }}>
+                    <div style={{
+                      width: 24, height: 24, borderRadius: '50%', background: '#1f1f3a',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 9, fontWeight: 700, color: '#a855f7',
+                    }}>{getInitials(u.user_name || 'U')}</div>
+                    <div style={{
+                      position: 'absolute', bottom: -1, right: -1,
+                      width: 8, height: 8, borderRadius: '50%',
+                      background: u.status === 'online' ? '#22c55e' : u.status === 'away' ? '#f59e0b' : '#ef4444',
+                      border: '2px solid #0d0d22',
+                    }} />
+                  </div>
+                  <span style={{ fontSize: 12, color: '#9ca3af' }}>{u.user_name || 'Unknown'}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main Area */}
@@ -238,7 +318,22 @@ export default function Communication() {
             <h2 style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: 0 }}>
               # {channels.find(c => c.id === activeChannel)?.name || activeChannel || 'general'}
             </h2>
-            <p style={{ fontSize: 12, color: '#6b7280', margin: '2px 0 0' }}>{messages.length} messages{pinnedMessages.length > 0 ? ` · ${pinnedMessages.length} pinned` : ''}</p>
+            <p style={{ fontSize: 12, color: '#6b7280', margin: '2px 0 0' }}>
+              {messages.length} messages{pinnedMessages.length > 0 ? ` · ${pinnedMessages.length} pinned` : ''}
+              {onlineUsers.length > 0 && (
+                <span style={{ marginLeft: 8 }}>
+                  <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#22c55e', marginRight: 4, verticalAlign: 'middle' }} />
+                  {onlineUsers.length} online
+                </span>
+              )}
+            </p>
+          </div>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '4px 12px',
+            background: '#111127', borderRadius: 8, border: '1px solid #1f1f3a',
+          }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} />
+            <span style={{ fontSize: 11, color: '#6b7280' }}>Live</span>
           </div>
         </div>
 
@@ -260,7 +355,9 @@ export default function Communication() {
 
           {!loading && topMessages.length === 0 && (
             <div style={{ textAlign: 'center', padding: 80, color: '#6b7280' }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>💬</div>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16 }}>
+                <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
               <div style={{ fontSize: 16, fontWeight: 600, color: '#9ca3af', marginBottom: 8 }}>No messages yet</div>
               <div style={{ fontSize: 14 }}>Start the conversation!</div>
             </div>
@@ -282,18 +379,28 @@ export default function Communication() {
                   {msg.sender_avatar ? (
                     <img src={msg.sender_avatar} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                   ) : (
-                    <div style={{
-                      width: 36, height: 36, borderRadius: '50%', background: '#1f1f3a',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 13, fontWeight: 700, color: '#a855f7', flexShrink: 0,
-                    }}>{getInitials(msg.sender_name)}</div>
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                      <div style={{
+                        width: 36, height: 36, borderRadius: '50%', background: '#1f1f3a',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 13, fontWeight: 700, color: '#a855f7',
+                      }}>{getInitials(msg.sender_name)}</div>
+                      {/* Presence dot */}
+                      {onlineUsers.some(u => u.user_name === msg.sender_name) && (
+                        <div style={{
+                          position: 'absolute', bottom: 0, right: 0,
+                          width: 10, height: 10, borderRadius: '50%',
+                          background: '#22c55e', border: '2px solid #0a0a1a',
+                        }} />
+                      )}
+                    </div>
                   )}
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                       <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{msg.sender_name}</span>
                       <span style={{ fontSize: 11, color: '#4b5563' }}>{formatTime(msg.created_at)}</span>
-                      {msg.pinned && <span style={{ fontSize: 10, color: '#f59e0b' }}>📌 Pinned</span>}
+                      {msg.pinned && <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600 }}>Pinned</span>}
                     </div>
                     <div style={{ fontSize: 14, color: '#d1d5db', lineHeight: 1.5, wordBreak: 'break-word' }}>{msg.content}</div>
 

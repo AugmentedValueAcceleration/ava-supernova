@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from './lib/auth';
 import TitleBar from './components/TitleBar';
 import Sidebar, { type Page } from './components/Sidebar';
 import AvaChat from './components/AvaChat';
@@ -31,6 +32,9 @@ import UserHistory from './pages/UserHistory';
 import UserKeys from './pages/UserKeys';
 import UserMemory from './pages/UserMemory';
 import UserUsage from './pages/UserUsage';
+import Compliance from './pages/Compliance';
+import Plugins from './pages/Plugins';
+import Login from './pages/Login';
 
 const PAGE_MAP: Record<Page, React.ComponentType<{ onNavigate?: (page: string) => void }>> = {
   'dashboard': Dashboard,
@@ -62,10 +66,39 @@ const PAGE_MAP: Record<Page, React.ComponentType<{ onNavigate?: (page: string) =
   'user-keys': UserKeys,
   'user-memory': UserMemory,
   'user-usage': UserUsage,
+  'compliance': Compliance,
+  'plugins': Plugins,
 };
 
 export default function App() {
   const [activePage, setActivePage] = useState<Page>('dashboard');
+  const { isAuthenticated, loading } = useAuth();
+
+  // Show loading screen while checking auth state
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        height: '100vh', background: '#0a0a1a',
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 14, margin: '0 auto 16px',
+            background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 20, fontWeight: 800, color: '#fff',
+            animation: 'pulse 1.5s ease-in-out infinite',
+          }}>A</div>
+          <div style={{ fontSize: 14, color: '#6b7280' }}>Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Gate: unauthenticated users see only the login page
+  if (!isAuthenticated) {
+    return <Login />;
+  }
 
   const PageComponent = PAGE_MAP[activePage] || Dashboard;
 
