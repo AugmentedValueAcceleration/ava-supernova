@@ -84,11 +84,11 @@ export class GenerateImageTool implements Tool {
     const size = SIZE_MAP[(args.size as string) || 'square'] || '1280*1280';
     const purpose = (args.purpose as string) || 'general';
 
-    const apiKey = this.getApiKey(context);
-    if (!apiKey) {
+    const { apiKey, usePlatform, platformKey } = this.resolveApiKey(context);
+    if (!apiKey && !usePlatform) {
       return {
         success: false,
-        output: 'Image generation requires a Qwen API key. Configure it in Ava settings (Provider Keys > Qwen).',
+        output: 'Image generation requires either a platform account or a Qwen API key. Sign in to your account, or add a Qwen key in Settings > API Keys.',
       };
     }
 
@@ -111,7 +111,9 @@ export class GenerateImageTool implements Tool {
       }
 
       try {
-        const imageUrl = await this.generateImage(currentPrompt, size, apiKey);
+        const imageUrl = usePlatform
+          ? await this.generateViaPlatform(currentPrompt, size, platformKey!)
+          : await this.generateImage(currentPrompt, size, apiKey!);
         if (!imageUrl) {
           lastError = 'No image URL returned';
           continue;
@@ -139,7 +141,8 @@ export class GenerateImageTool implements Tool {
         // Vision verification (only if we have retries left)
         if (attempt < MAX_VISION_RETRIES) {
           context.onOutput?.('Verifying image quality with Qwen Vision...\n');
-          const review = await this.verifyWithVision(savePath, purpose, rawPrompt, apiKey);
+          const visionKey = apiKey || platformKey || '';
+          const review = await this.verifyWithVision(savePath, purpose, rawPrompt, visionKey);
 
           if (review.approved) {
             context.onOutput?.(`Vision check: approved ✓ — ${review.feedback}\n`);
@@ -370,10 +373,42 @@ export class GenerateImageTool implements Tool {
     return null;
   }
 
-  private getApiKey(context: ToolExecutionContext): string | undefined {
+  private resolveApiKey(context: ToolExecutionContext): { apiKey?: string; usePlatform: boolean; platformKey?: string } {
     const state = context.sharedState as Record<string, unknown> | undefined;
-    const fromState = state?.qwenApiKey as string | undefined;
-    if (fromState) return fromState;
-    return process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY;
+
+    // BYOK Qwen key — direct DashScope
+    const qwenKey = state?.qwenApiKey as string | undefined;
+    if (qwenKey) return { apiKey: qwenKey, usePlatform: false };
+
+    // Environment key
+    const envKey = process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY;
+    if (envKey) return { apiKey: envKey, usePlatform: false };
+
+    // Platform key — route through platform API
+    const platformKey = state?.platformKey as string | undefined;
+    if (platformKey) return { usePlatform: true, platformKey };
+
+    // No key at all
+    return { usePlatform: false };
+  }
+
+  private async generateViaPlatform(prompt: string, size: string, platformKey: string): Promise<string | null> {
+    const res = await fetch('https://ava-supernova.com/api/generate-image', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${platformKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prompt, size }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Platform image gen error: ${errText}`);
+    }
+
+    const data = await res.json() as { url?: string; error?: string };
+    if (data.error) throw new Error(data.error);
+    return data.url || null;
   }
 }
