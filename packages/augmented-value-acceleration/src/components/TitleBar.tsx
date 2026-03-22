@@ -34,14 +34,23 @@ export default function TitleBar() {
   return (
     <div
       data-tauri-drag-region
-      className="flex items-center justify-between h-10 px-4 select-none shrink-0"
-      style={{ background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border-card)' }}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        height: 48,
+        padding: '0 20px',
+        background: '#0d0d20',
+        borderBottom: '1px solid #1f1f3a',
+        userSelect: 'none',
+        flexShrink: 0,
+      }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-bold" style={{ color: 'var(--ava-purple)' }}>AVA</span>
-        <span className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>|</span>
-        <span className="text-[11px] font-medium tracking-wide" style={{ color: 'var(--text-secondary)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: 16, fontWeight: 800, color: '#a855f7' }}>AVA</span>
+        <span style={{ fontSize: 12, color: '#4b5563' }}>|</span>
+        <span style={{ fontSize: 13, fontWeight: 500, color: '#9ca3af', letterSpacing: '0.5px' }}>
           Augmented Value Acceleration
         </span>
       </div>

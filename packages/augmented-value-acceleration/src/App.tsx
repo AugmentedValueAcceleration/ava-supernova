@@ -45,11 +45,11 @@ export default function App() {
   const PageComponent = PAGE_MAP[activePage] || Dashboard;
 
   return (
-    <div className="flex flex-col h-screen">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <TitleBar />
-      <div className="flex flex-1 overflow-hidden">
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <Sidebar activePage={activePage} onNavigate={setActivePage} />
-        <main className="flex-1 overflow-hidden">
+        <main style={{ flex: 1, overflow: 'hidden' }}>
           <PageComponent onNavigate={(p) => setActivePage(p as Page)} />
         </main>
       </div>

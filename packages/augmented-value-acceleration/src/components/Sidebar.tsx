@@ -93,39 +93,61 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
   };
 
   return (
-    <div className="flex flex-col w-60 shrink-0 overflow-y-auto" style={{ background: 'var(--bg-sidebar)', borderRight: '1px solid var(--border-card)' }}>
-      <nav className="flex-1 py-4 px-3">
+    <div style={{ display: 'flex', flexDirection: 'column', width: 260, flexShrink: 0, overflowY: 'auto', background: '#0d0d20', borderRight: '1px solid #1f1f3a' }}>
+      <nav style={{ flex: 1, padding: '20px 16px' }}>
         {NAV_SECTIONS.map((section, si) => (
-          <div key={section.title} className={si > 0 ? 'mt-4' : ''}>
+          <div key={section.title} style={{ marginTop: si > 0 ? 24 : 0 }}>
             <button
               onClick={() => toggleSection(section.title)}
-              className="flex items-center gap-1.5 w-full px-1 mb-1.5 text-[10px] font-semibold tracking-[1.5px] uppercase cursor-pointer hover:opacity-80 transition-opacity"
-              style={{ color: 'var(--text-muted)' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                width: '100%',
+                padding: '4px 8px',
+                marginBottom: 8,
+                fontSize: 10,
+                fontWeight: 600,
+                letterSpacing: '1.5px',
+                textTransform: 'uppercase' as const,
+                color: '#6b7280',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+              }}
             >
               <ChevronIcon open={!collapsed[section.title]} />
               <span>{section.title}</span>
             </button>
 
             {!collapsed[section.title] && (
-              <div className="space-y-0.5">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {section.items.map((item) => {
                   const isActive = activePage === item.id;
                   return (
                     <button
                       key={item.id}
                       onClick={() => onNavigate(item.id)}
-                      className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-[13px] transition-all cursor-pointer ${
-                        isActive
-                          ? 'font-medium'
-                          : 'hover:bg-white/5'
-                      }`}
                       style={{
-                        color: isActive ? 'var(--ava-purple)' : 'var(--text-secondary)',
-                        background: isActive ? 'rgba(168, 85, 247, 0.1)' : undefined,
-                        borderLeft: isActive ? '2px solid var(--ava-purple)' : '2px solid transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: 10,
+                        fontSize: 13,
+                        fontWeight: isActive ? 500 : 400,
+                        color: isActive ? '#a855f7' : '#9ca3af',
+                        background: isActive ? 'rgba(168, 85, 247, 0.1)' : 'transparent',
+                        borderLeft: isActive ? '2px solid #a855f7' : '2px solid transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s',
                       }}
+                      onMouseOver={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+                      onMouseOut={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
                     >
-                      <span style={{ color: isActive ? 'var(--ava-purple)' : 'var(--text-muted)' }}>
+                      <span style={{ color: isActive ? '#a855f7' : '#6b7280' }}>
                         {item.icon}
                       </span>
                       {item.label}
@@ -139,14 +161,18 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
       </nav>
 
       {/* User */}
-      <div className="p-3 mt-auto" style={{ borderTop: '1px solid var(--border-card)' }}>
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold" style={{ background: 'var(--ava-purple)', color: '#fff' }}>
+      <div style={{ padding: '16px 20px', marginTop: 'auto', borderTop: '1px solid #1f1f3a' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 13, fontWeight: 700, background: '#a855f7', color: '#fff',
+          }}>
             SV
           </div>
           <div>
-            <div className="text-[12px] font-medium">Stewart Vincent</div>
-            <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Admin</div>
+            <div style={{ fontSize: 13, fontWeight: 500, color: '#fff' }}>Stewart Vincent</div>
+            <div style={{ fontSize: 11, color: '#6b7280' }}>Admin</div>
           </div>
         </div>
       </div>

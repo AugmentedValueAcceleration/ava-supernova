@@ -10,10 +10,10 @@ const formatDate = () => new Date().toLocaleDateString('en-GB', {
 });
 
 const stats = [
-  { label: 'Total Users', value: '1,234', icon: '👥', color: 'var(--ava-purple)' },
-  { label: 'Revenue', value: '$0', sub: 'Pre-launch', icon: '💰', color: 'var(--success)' },
-  { label: 'Active Projects', value: '3', icon: '📁', color: 'var(--warning)' },
-  { label: 'Open Tickets', value: '0', icon: '🎫', color: 'var(--danger)' },
+  { label: 'Total Users', value: '1,234', icon: '👥', color: '#a855f7' },
+  { label: 'Revenue', value: '$0', sub: 'Pre-launch', icon: '💰', color: '#10b981' },
+  { label: 'Active Projects', value: '3', icon: '📁', color: '#f59e0b' },
+  { label: 'Open Tickets', value: '0', icon: '🎫', color: '#ef4444' },
 ];
 
 const quickActions = [
@@ -37,57 +37,82 @@ interface DashboardProps {
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
   return (
-    <div className="p-8 overflow-y-auto h-full">
+    <div style={{ padding: '40px 48px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
+
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">{getGreeting()}, Stewart</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{formatDate()}</p>
+      <div style={{ marginBottom: 40 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: '#fff', margin: 0 }}>{getGreeting()}, Stewart</h1>
+        <p style={{ fontSize: 14, color: '#6b7280', marginTop: 6 }}>{formatDate()}</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-5 mb-10">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, marginBottom: 48 }}>
         {stats.map((s) => (
-          <div key={s.label} className="rounded-xl p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-card)' }}>
-            <div className="text-2xl mb-4">{s.icon}</div>
-            <div className="text-3xl font-bold mb-1" style={{ color: s.color }}>{s.value}</div>
-            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          <div key={s.label} style={{
+            background: '#111127',
+            border: '1px solid #1f1f3a',
+            borderRadius: 16,
+            padding: '28px 24px',
+          }}>
+            <div style={{ fontSize: 28, marginBottom: 16 }}>{s.icon}</div>
+            <div style={{ fontSize: 36, fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</div>
+            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 8 }}>
               {s.label}
-              {s.sub && <span className="ml-1 opacity-60">· {s.sub}</span>}
+              {s.sub && <span style={{ marginLeft: 6, opacity: 0.6 }}>· {s.sub}</span>}
             </div>
           </div>
         ))}
       </div>
 
       {/* Quick Actions */}
-      <div className="mb-10">
-        <h2 className="text-xs font-semibold tracking-[1.5px] uppercase mb-4" style={{ color: 'var(--text-muted)' }}>Quick Actions</h2>
-        <div className="grid grid-cols-4 gap-4">
+      <div style={{ marginBottom: 48 }}>
+        <h2 style={{ fontSize: 10, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: '#6b7280', marginBottom: 16 }}>Quick Actions</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           {quickActions.map((a) => (
             <button
               key={a.label}
               onClick={() => onNavigate(a.page)}
-              className="flex items-center gap-3 rounded-xl p-5 transition-all cursor-pointer hover:scale-[1.02] hover:border-[var(--ava-purple)]/30"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border-card)' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 14,
+                background: '#111127',
+                border: '1px solid #1f1f3a',
+                borderRadius: 16,
+                padding: '20px 24px',
+                cursor: 'pointer',
+                color: '#fff',
+                fontSize: 14,
+                fontWeight: 500,
+                transition: 'border-color 0.2s',
+              }}
+              onMouseOver={(e) => e.currentTarget.style.borderColor = '#a855f7'}
+              onMouseOut={(e) => e.currentTarget.style.borderColor = '#1f1f3a'}
             >
-              <span className="text-2xl">{a.icon}</span>
-              <span className="text-sm font-medium">{a.label}</span>
+              <span style={{ fontSize: 24 }}>{a.icon}</span>
+              <span>{a.label}</span>
             </button>
           ))}
         </div>
       </div>
 
       {/* Recent Activity */}
-      <div className="mb-8">
-        <h2 className="text-xs font-semibold tracking-[1.5px] uppercase mb-4" style={{ color: 'var(--text-muted)' }}>Recent Activity</h2>
-        <div className="rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-card)' }}>
+      <div style={{ marginBottom: 40 }}>
+        <h2 style={{ fontSize: 10, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: '#6b7280', marginBottom: 16 }}>Recent Activity</h2>
+        <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 16, overflow: 'hidden' }}>
           {recentActivity.map((item, i) => (
             <div
               key={i}
-              className="flex items-center justify-between px-5 py-3.5"
-              style={{ borderBottom: i < recentActivity.length - 1 ? '1px solid var(--border-card)' : 'none' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '16px 24px',
+                borderBottom: i < recentActivity.length - 1 ? '1px solid #1f1f3a' : 'none',
+              }}
             >
-              <span className="text-sm">{item.text}</span>
-              <span className="text-xs shrink-0 ml-4" style={{ color: 'var(--text-muted)' }}>{item.time}</span>
+              <span style={{ fontSize: 14, color: '#e5e7eb' }}>{item.text}</span>
+              <span style={{ fontSize: 12, color: '#6b7280', flexShrink: 0, marginLeft: 16 }}>{item.time}</span>
             </div>
           ))}
         </div>
