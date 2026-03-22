@@ -3,12 +3,10 @@ import { supabase } from '../lib/supabase';
 
 interface UsageData {
   tokens_used: number;
-  token_limit: number;
+  tokens_limit: number | null;
   free_tokens_used: number;
-  free_token_limit: number;
-  subscription_tokens_used: number;
-  subscription_token_limit: number;
-  request_count: number;
+  free_tokens_limit: number;
+  requests_count: number;
   period_start: string;
   period_end: string;
 }
@@ -28,216 +26,181 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
-const PLACEHOLDER_DAILY: DailyUsage[] = Array.from({ length: 14 }, (_, i) => {
-  const d = new Date();
-  d.setDate(d.getDate() - (13 - i));
-  return {
-    date: d.toISOString().slice(0, 10),
-    tokens: Math.floor(Math.random() * 200000) + 10000,
-  };
-});
-
 export default function UserUsage() {
   const [usage, setUsage] = useState<UsageData | null>(null);
-  const [daily, setDaily] = useState<DailyUsage[]>(PLACEHOLDER_DAILY);
+  const [daily, setDaily] = useState<DailyUsage[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchUsage() {
       setLoading(true);
       try {
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user?.id;
+
+        // Get usage for current period
         const { data } = await supabase
           .from('usage')
           .select('*')
+          .eq('user_id', userId)
+          .lte('period_start', new Date().toISOString().slice(0, 10))
+          .gte('period_end', new Date().toISOString().slice(0, 10))
           .order('period_start', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (data) {
           setUsage({
             tokens_used: data.tokens_used || 0,
-            token_limit: data.token_limit || 3000000,
+            tokens_limit: data.tokens_limit,
             free_tokens_used: data.free_tokens_used || 0,
-            free_token_limit: data.free_token_limit || 3000000,
-            subscription_tokens_used: data.subscription_tokens_used || 0,
-            subscription_token_limit: data.subscription_token_limit || 0,
-            request_count: data.request_count || 0,
-            period_start: data.period_start || new Date().toISOString(),
-            period_end: data.period_end || new Date().toISOString(),
+            free_tokens_limit: data.free_tokens_limit || 3000000,
+            requests_count: data.requests_count || 0,
+            period_start: data.period_start,
+            period_end: data.period_end,
           });
         } else {
           setUsage({
             tokens_used: 0,
-            token_limit: 3000000,
+            tokens_limit: null,
             free_tokens_used: 0,
-            free_token_limit: 3000000,
-            subscription_tokens_used: 0,
-            subscription_token_limit: 0,
-            request_count: 0,
-            period_start: new Date().toISOString(),
-            period_end: new Date().toISOString(),
+            free_tokens_limit: 3000000,
+            requests_count: 0,
+            period_start: new Date().toISOString().slice(0, 10),
+            period_end: new Date().toISOString().slice(0, 10),
           });
         }
 
-        // Try to fetch daily usage
-        const { data: dailyData } = await supabase
-          .from('usage_daily')
-          .select('date, tokens')
-          .order('date', { ascending: true })
-          .limit(14);
+        // Get daily usage from usage_logs
+        if (userId) {
+          const fourteenDaysAgo = new Date();
+          fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
 
-        if (dailyData && dailyData.length > 0) {
-          setDaily(dailyData);
+          const { data: logs } = await supabase
+            .from('usage_logs')
+            .select('timestamp, input_tokens, output_tokens')
+            .eq('user_id', userId)
+            .gte('timestamp', fourteenDaysAgo.toISOString())
+            .order('timestamp', { ascending: true });
+
+          if (logs && logs.length > 0) {
+            const byDay: Record<string, number> = {};
+            for (const log of logs) {
+              const day = log.timestamp.slice(0, 10);
+              byDay[day] = (byDay[day] || 0) + (log.input_tokens || 0) + (log.output_tokens || 0);
+            }
+            setDaily(Object.entries(byDay).map(([date, tokens]) => ({ date, tokens })));
+          }
         }
-      } catch {
-        setUsage({
-          tokens_used: 0,
-          token_limit: 3000000,
-          free_tokens_used: 0,
-          free_token_limit: 3000000,
-          subscription_tokens_used: 0,
-          subscription_token_limit: 0,
-          request_count: 0,
-          period_start: new Date().toISOString(),
-          period_end: new Date().toISOString(),
-        });
+      } catch (err) {
+        console.error('Failed to load usage:', err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     fetchUsage();
   }, []);
 
+  const freePercent = usage ? Math.min(100, (usage.free_tokens_used / usage.free_tokens_limit) * 100) : 0;
+  const subPercent = usage?.tokens_limit ? Math.min(100, (usage.tokens_used / usage.tokens_limit) * 100) : 0;
+  const freeRemaining = usage ? Math.max(0, usage.free_tokens_limit - usage.free_tokens_used) : 0;
+  const subRemaining = usage?.tokens_limit ? Math.max(0, usage.tokens_limit - usage.tokens_used) : 0;
   const maxDaily = Math.max(...daily.map(d => d.tokens), 1);
 
-  function progressBar(used: number, limit: number, color: string) {
-    const pct = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
-    return (
-      <div style={{ marginTop: 8 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6b7280', marginBottom: 4 }}>
-          <span>{formatNumber(used)} used</span>
-          <span>{formatNumber(limit)} limit</span>
-        </div>
-        <div style={{ width: '100%', height: 8, background: '#1a1a35', borderRadius: 4, overflow: 'hidden' }}>
-          <div style={{
-            width: `${pct}%`, height: '100%', borderRadius: 4,
-            background: pct > 90 ? '#f87171' : pct > 70 ? '#fbbf24' : color,
-            transition: 'width 0.3s',
-          }} />
-        </div>
-        <div style={{ fontSize: 10, color: '#4b5563', marginTop: 4, textAlign: 'right' }}>
-          {pct.toFixed(1)}%
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#0a0a1a' }}>
-        <div style={{ fontSize: 14, color: '#6b7280' }}>Loading usage data...</div>
-      </div>
-    );
-  }
-
-  const u = usage!;
-
   return (
-    <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: 0 }}>My Usage</h1>
-      <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4, marginBottom: 24 }}>
-        Token usage for the current billing period.
+    <div style={{ padding: '40px 48px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
+      <h1 style={{ fontSize: 24, fontWeight: 700, color: '#fff', margin: 0, marginBottom: 8 }}>My Usage</h1>
+      <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 32 }}>
+        {usage?.period_start && usage?.period_end
+          ? `Period: ${formatDate(usage.period_start)} — ${formatDate(usage.period_end)}`
+          : 'Current period'}
       </p>
 
-      {/* Main Usage Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
-        <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 24 }}>
-          <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280' }}>Total Tokens Used</div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: '#a855f7', marginTop: 8, lineHeight: 1 }}>
-            {formatNumber(u.tokens_used)}
-          </div>
-          {progressBar(u.tokens_used, u.token_limit, '#a855f7')}
-        </div>
-
-        <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 24 }}>
-          <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280' }}>Free Tokens</div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: '#4ade80', marginTop: 8, lineHeight: 1 }}>
-            {formatNumber(u.free_tokens_used)}
-          </div>
-          {progressBar(u.free_tokens_used, u.free_token_limit, '#4ade80')}
-        </div>
-
-        <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 24 }}>
-          <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280' }}>Subscription Tokens</div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: '#60a5fa', marginTop: 8, lineHeight: 1 }}>
-            {formatNumber(u.subscription_tokens_used)}
-          </div>
-          {progressBar(u.subscription_tokens_used, u.subscription_token_limit || 0, '#60a5fa')}
-        </div>
-      </div>
-
-      {/* Requests + Period */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 32 }}>
-        <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 20 }}>
-          <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280' }}>Requests This Period</div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', marginTop: 4 }}>{u.request_count.toLocaleString()}</div>
-        </div>
-        <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 20 }}>
-          <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280' }}>Period Start</div>
-          <div style={{ fontSize: 14, fontWeight: 500, color: '#fff', marginTop: 8 }}>{formatDate(u.period_start)}</div>
-        </div>
-        <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280' }}>Need more tokens?</div>
-            <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>Purchase a top-up pack</div>
-          </div>
-          <button style={{
-            background: '#a855f7', border: 'none', borderRadius: 8,
-            padding: '8px 16px', fontSize: 11, fontWeight: 600, color: '#fff', cursor: 'pointer',
-          }}>
-            Top Up
-          </button>
-        </div>
-      </div>
-
-      {/* Daily Usage Chart */}
-      <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 24 }}>
-        <h2 style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: '0 0 20px 0' }}>Daily Usage (Last 14 Days)</h2>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 160 }}>
-          {daily.map((d, i) => {
-            const height = (d.tokens / maxDaily) * 140;
-            return (
-              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                <div style={{ fontSize: 9, color: '#6b7280', opacity: 0 }}>{formatNumber(d.tokens)}</div>
-                <div
-                  style={{
-                    width: '100%', maxWidth: 40, height: Math.max(height, 2),
-                    background: 'linear-gradient(180deg, #a855f7, rgba(168, 85, 247, 0.3))',
-                    borderRadius: '4px 4px 0 0', transition: 'height 0.3s', cursor: 'pointer',
-                    position: 'relative',
-                  }}
-                  title={`${formatDate(d.date)}: ${formatNumber(d.tokens)} tokens`}
-                  onMouseOver={e => {
-                    const label = e.currentTarget.previousElementSibling as HTMLElement;
-                    if (label) label.style.opacity = '1';
-                    e.currentTarget.style.background = 'linear-gradient(180deg, #c084fc, rgba(168, 85, 247, 0.5))';
-                  }}
-                  onMouseOut={e => {
-                    const label = e.currentTarget.previousElementSibling as HTMLElement;
-                    if (label) label.style.opacity = '0';
-                    e.currentTarget.style.background = 'linear-gradient(180deg, #a855f7, rgba(168, 85, 247, 0.3))';
-                  }}
-                />
-                <div style={{ fontSize: 9, color: '#4b5563', transform: 'rotate(-45deg)', whiteSpace: 'nowrap' }}>
-                  {formatDate(d.date)}
-                </div>
+      {loading ? (
+        <div style={{ color: '#6b7280', padding: 40, textAlign: 'center' }}>Loading usage data...</div>
+      ) : (
+        <>
+          {/* Token bars */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 32 }}>
+            {/* Free tokens */}
+            <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 16, padding: 24 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#9ca3af', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '1px' }}>Free Tokens</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ fontSize: 24, fontWeight: 700, color: '#a855f7' }}>{formatNumber(usage?.free_tokens_used || 0)}</span>
+                <span style={{ fontSize: 14, color: '#6b7280', alignSelf: 'flex-end' }}>/ {formatNumber(usage?.free_tokens_limit || 3000000)}</span>
               </div>
-            );
-          })}
-        </div>
-        <div style={{ textAlign: 'center', marginTop: 8, fontSize: 10, color: '#4b5563' }}>
-          Hover bars for details. Data may be approximate.
-        </div>
-      </div>
+              <div style={{ height: 8, borderRadius: 4, background: '#1a1a35', overflow: 'hidden' }}>
+                <div style={{ height: '100%', borderRadius: 4, background: freePercent > 80 ? '#ef4444' : freePercent > 60 ? '#f59e0b' : '#a855f7', width: `${freePercent}%`, transition: 'width 0.5s' }} />
+              </div>
+              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>{formatNumber(freeRemaining)} remaining</div>
+            </div>
+
+            {/* Subscription tokens */}
+            <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 16, padding: 24 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#9ca3af', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '1px' }}>Plan Tokens</div>
+              {usage?.tokens_limit ? (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <span style={{ fontSize: 24, fontWeight: 700, color: '#10b981' }}>{formatNumber(usage.tokens_used)}</span>
+                    <span style={{ fontSize: 14, color: '#6b7280', alignSelf: 'flex-end' }}>/ {formatNumber(usage.tokens_limit)}</span>
+                  </div>
+                  <div style={{ height: 8, borderRadius: 4, background: '#1a1a35', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', borderRadius: 4, background: subPercent > 80 ? '#ef4444' : '#10b981', width: `${subPercent}%`, transition: 'width 0.5s' }} />
+                  </div>
+                  <div style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>{formatNumber(subRemaining)} remaining</div>
+                </>
+              ) : (
+                <div style={{ fontSize: 14, color: '#6b7280', paddingTop: 8 }}>No active plan — using free tier</div>
+              )}
+            </div>
+          </div>
+
+          {/* Stats row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 32 }}>
+            <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 16, padding: 24, textAlign: 'center' }}>
+              <div style={{ fontSize: 28, fontWeight: 700, color: '#fff' }}>{usage?.requests_count || 0}</div>
+              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>Requests</div>
+            </div>
+            <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 16, padding: 24, textAlign: 'center' }}>
+              <div style={{ fontSize: 28, fontWeight: 700, color: '#fff' }}>{formatNumber((usage?.free_tokens_used || 0) + (usage?.tokens_used || 0))}</div>
+              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>Total Tokens Used</div>
+            </div>
+            <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 16, padding: 24, textAlign: 'center' }}>
+              <div style={{ fontSize: 28, fontWeight: 700, color: '#fff' }}>{daily.length}</div>
+              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>Active Days (14d)</div>
+            </div>
+          </div>
+
+          {/* Daily chart */}
+          <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 16, padding: 24 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#9ca3af', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '1px' }}>Daily Usage (14 days)</div>
+            {daily.length === 0 ? (
+              <div style={{ color: '#6b7280', textAlign: 'center', padding: 24 }}>No usage data yet</div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 120 }}>
+                {daily.map((d, i) => {
+                  const h = Math.max(4, (d.tokens / maxDaily) * 100);
+                  const isToday = d.date === new Date().toISOString().slice(0, 10);
+                  return (
+                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                      <div style={{ fontSize: 9, color: '#6b7280' }}>{formatNumber(d.tokens)}</div>
+                      <div style={{
+                        width: '100%', height: `${h}%`, borderRadius: 4,
+                        background: isToday ? '#a855f7' : '#2a2a4a',
+                        transition: 'height 0.3s',
+                      }} />
+                      <div style={{ fontSize: 9, color: isToday ? '#a855f7' : '#4b5563' }}>
+                        {new Date(d.date).getDate()}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
