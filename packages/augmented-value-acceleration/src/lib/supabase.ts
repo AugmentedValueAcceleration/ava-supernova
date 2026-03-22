@@ -4,14 +4,14 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://dpxdjnpqaxhsy
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_ybkHcxMBrDDfho78Wz4v8w_qTBqP_f5';
 const SUPABASE_SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_KEY || '';
 
-// Admin client (service role) — bypasses RLS for admin operations
-// Falls back to anon client if service key not set
-export const supabase = SUPABASE_SERVICE_KEY
-  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-  : createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Auth client — always uses anon key for user authentication
+// Auth client — used for user authentication (anon key, single instance)
 export const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Admin client (service role) — bypasses RLS for admin operations
+// Falls back to auth client if service key not set
+export const supabase = SUPABASE_SERVICE_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } })
+  : supabaseAuth;
 
 export async function getStats() {
   const [users, tickets, scans] = await Promise.all([
