@@ -14,6 +14,7 @@ import People from './pages/People';
 import Communication from './pages/Communication';
 import Learning from './pages/Learning';
 import SecurityCentre from './pages/SecurityCentre';
+import Feedback from './pages/Feedback';
 import AuditLog from './pages/AuditLog';
 import Support from './pages/Support';
 import Coupons from './pages/Coupons';
@@ -33,6 +34,7 @@ const PAGE_MAP: Record<Page, React.ComponentType<{ onNavigate?: (page: string) =
   'communication': Communication,
   'learning': Learning,
   'security': SecurityCentre,
+  'feedback': Feedback,
   'audit-log': AuditLog,
   'support': Support,
   'coupons': Coupons,
