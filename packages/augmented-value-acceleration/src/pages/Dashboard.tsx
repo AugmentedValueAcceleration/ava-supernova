@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+import { getStats, getRecentActivity } from '../lib/supabase';
+
 const getGreeting = () => {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
@@ -9,33 +12,36 @@ const formatDate = () => new Date().toLocaleDateString('en-GB', {
   weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
 });
 
-const stats = [
-  { label: 'Total Users', value: '1,234', icon: '👥', color: '#a855f7' },
-  { label: 'Revenue', value: '$0', sub: 'Pre-launch', icon: '💰', color: '#10b981' },
-  { label: 'Active Projects', value: '3', icon: '📁', color: '#f59e0b' },
-  { label: 'Open Tickets', value: '0', icon: '🎫', color: '#ef4444' },
-];
-
-const quickActions = [
-  { label: 'Create Content', icon: '✏️', page: 'creative-studio' },
-  { label: 'Check News', icon: '📰', page: 'news' },
-  { label: 'View Financials', icon: '📊', page: 'financials' },
-  { label: 'Run Security Scan', icon: '🔒', page: 'security' },
-];
-
-const recentActivity = [
-  { text: 'Published v0.21.4 to VS Code Marketplace', time: '2h ago' },
-  { text: 'Nested system prompt architecture shipped', time: '4h ago' },
-  { text: 'FocusFlow app built live on stream', time: '6h ago' },
-  { text: '1,200 installs milestone reached', time: '8h ago' },
-  { text: 'Feedback + self-improvement system deployed', time: '12h ago' },
-];
-
 interface DashboardProps {
   onNavigate: (page: string) => void;
 }
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
+  const [stats, setStats] = useState({ totalUsers: 0, openTickets: 0, totalScans: 0 });
+  const [activity, setActivity] = useState<Array<{ text: string; time: string }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([getStats(), getRecentActivity()])
+      .then(([s, a]) => { setStats(s); setActivity(a); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const statCards = [
+    { label: 'Total Users', value: loading ? '...' : stats.totalUsers.toLocaleString(), icon: '👥', color: '#a855f7' },
+    { label: 'Revenue', value: '$0', sub: 'Pre-launch', icon: '💰', color: '#10b981' },
+    { label: 'Active Projects', value: '3', icon: '📁', color: '#f59e0b' },
+    { label: 'Open Tickets', value: loading ? '...' : String(stats.openTickets), icon: '🎫', color: '#ef4444' },
+  ];
+
+  const quickActions = [
+    { label: 'Create Content', icon: '✏️', page: 'creative-studio' },
+    { label: 'Check News', icon: '📰', page: 'news' },
+    { label: 'View Financials', icon: '📊', page: 'financials' },
+    { label: 'Run Security Scan', icon: '🔒', page: 'security' },
+  ];
+
   return (
     <div style={{ padding: '40px 48px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
 
@@ -47,7 +53,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, marginBottom: 48 }}>
-        {stats.map((s) => (
+        {statCards.map((s) => (
           <div key={s.label} style={{
             background: '#111127',
             border: '1px solid #1f1f3a',
@@ -66,8 +72,8 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
       {/* Quick Actions */}
       <div style={{ marginBottom: 48 }}>
-        <h2 style={{ fontSize: 10, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: '#6b7280', marginBottom: 16 }}>Quick Actions</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        <h2 style={{ fontSize: 10, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: '#6b7280', marginBottom: 16, margin: 0 }}>Quick Actions</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginTop: 16 }}>
           {quickActions.map((a) => (
             <button
               key={a.label}
@@ -98,23 +104,29 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
       {/* Recent Activity */}
       <div style={{ marginBottom: 40 }}>
-        <h2 style={{ fontSize: 10, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: '#6b7280', marginBottom: 16 }}>Recent Activity</h2>
-        <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 16, overflow: 'hidden' }}>
-          {recentActivity.map((item, i) => (
-            <div
-              key={i}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '16px 24px',
-                borderBottom: i < recentActivity.length - 1 ? '1px solid #1f1f3a' : 'none',
-              }}
-            >
-              <span style={{ fontSize: 14, color: '#e5e7eb' }}>{item.text}</span>
-              <span style={{ fontSize: 12, color: '#6b7280', flexShrink: 0, marginLeft: 16 }}>{item.time}</span>
-            </div>
-          ))}
+        <h2 style={{ fontSize: 10, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: '#6b7280', marginBottom: 16, margin: 0 }}>Recent Releases</h2>
+        <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 16, overflow: 'hidden', marginTop: 16 }}>
+          {loading ? (
+            <div style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>Loading...</div>
+          ) : activity.length === 0 ? (
+            <div style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>No recent activity</div>
+          ) : (
+            activity.map((item, i) => (
+              <div
+                key={i}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '16px 24px',
+                  borderBottom: i < activity.length - 1 ? '1px solid #1f1f3a' : 'none',
+                }}
+              >
+                <span style={{ fontSize: 14, color: '#e5e7eb' }}>{item.text}</span>
+                <span style={{ fontSize: 12, color: '#6b7280', flexShrink: 0, marginLeft: 16 }}>{item.time}</span>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
