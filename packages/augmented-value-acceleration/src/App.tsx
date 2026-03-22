@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import TitleBar from './components/TitleBar';
 import Sidebar, { type Page } from './components/Sidebar';
+import AvaChat from './components/AvaChat';
 import Dashboard from './pages/Dashboard';
 import CreativeStudio from './pages/CreativeStudio';
 import News from './pages/News';
@@ -55,6 +56,7 @@ export default function App() {
           <PageComponent onNavigate={(p) => setActivePage(p as Page)} />
         </main>
       </div>
+      <AvaChat />
     </div>
   );
 }
