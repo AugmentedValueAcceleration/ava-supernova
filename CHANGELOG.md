@@ -2,6 +2,49 @@
 
 All notable changes to Ava | Supernova will be documented in this file.
 
+## [0.22.2] - 2026-03-23
+
+### Platform-Tagged Release Notes
+- **Platform column** on `release_notes` table — core, extension, ide, companion
+- **Colour-coded tabs** on all surfaces — All, Core (blue), Extension (purple), IDE (green), Companion (orange)
+- **Compound unique constraint** — (version, platform) allows per-platform versioning
+- **API filter** — `?platform=core` or `?platform=core,ide` query param
+- **Core tool updated** — `release_notes` tool accepts `platform` parameter
+- Recategorised 14 existing releases as core, 4 as companion
+- Added 3 companion + 3 IDE release entries
+
+### IDE — Session Stats Sync
+- **Shared session stats store** in `api.ts` with real-time CustomEvent dispatching
+- Token usage, messages, tool calls tracked across Usage Analytics, Command Centre, and chat header
+- `trackTokenUsage()`, `trackMessage()`, `trackToolCall()` called on every event
+- Reset on New Chat
+
+### IDE — Collapsible Tasks Panel
+- **Two-tab sidebar** — Ava (session tasks from `todo_write`) and My Tasks (platform API)
+- **Live updates** — panel refreshes on `tool_call_start` so users watch tasks tick off
+- **Resizable** — drag left edge (200-500px), persisted to localStorage
+- **Auto-open** when Ava creates session tasks
+- **Inline TodoCard** — checklist renders inside chat messages with progress bar
+- **Escape to close**, badge count in header button
+
+### IDE — UI Polish
+- **Custom dropdowns** — replaced all 4 native `<select>` elements with styled `CustomSelect`
+- **Sidebar sections** — Workspace, Personalise, Account, Help with collapsible groups
+- **Active tab highlight** — purple left border + background
+- **40/60 news/tasks split** in Command Centre
+- **Tab icon fix** — no longer duplicates emoji
+- **Command Centre default** — opens on launch, Welcome page removed
+
+### API Fixes
+- **1000-row cap fix** — Supabase default limit removed from `/usage/summary` and `/memories` with pagination
+- **`totals.requests`** now uses `requests_count` from usage table, not capped log count
+
+### Documentation
+- IDE README rewritten from Tauri boilerplate to full feature documentation
+- CHANGELOG updated with v0.22.1 and v0.22.2
+
+---
+
 ## [0.22.0] - 2026-03-23
 
 ### IDE — Local AI Engine (Sidecar Integration)
