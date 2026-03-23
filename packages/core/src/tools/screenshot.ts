@@ -33,30 +33,30 @@ export class ScreenshotTool implements Tool {
   };
 
   async execute(args: Record<string, unknown>, _context: ToolExecutionContext): Promise<ToolResult> {
-    // Dynamic import — graceful error if not installed
-    let screenshotDesktop: (options?: { screen?: number }) => Promise<Buffer>;
     try {
-      // @ts-ignore — screenshot-desktop is an optional peer dependency, only loaded at runtime
-      const mod = await import('screenshot-desktop');
-      screenshotDesktop = (mod as any).default || mod;
-    } catch {
-      return {
-        success: false,
-        output:
-          'screenshot-desktop is not installed. Install it with:\n' +
-          '  npm install screenshot-desktop\n\n' +
-          'This package is an optional dependency for the screenshot tool.',
-      };
-    }
+      // Dynamic import — graceful error if not installed
+      let screenshotDesktop: (options?: { screen?: number }) => Promise<Buffer>;
+      try {
+        // @ts-ignore — screenshot-desktop is an optional peer dependency, only loaded at runtime
+        const mod = await import('screenshot-desktop');
+        screenshotDesktop = (mod as any).default || mod;
+      } catch {
+        return {
+          success: false,
+          output:
+            'The screenshot tool requires the screenshot-desktop package which is not available.\n\n' +
+            'If running from source, install it with: npm install screenshot-desktop\n' +
+            'In the bundled IDE, this tool is not yet supported — it requires a native binary that will be included in a future release.',
+        };
+      }
 
-    // Handle delay
-    const delayMs = Math.min(Math.max((args.delay_ms as number) || 0, 0), MAX_DELAY_MS);
-    if (delayMs > 0) {
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-    }
+      // Handle delay
+      const delayMs = Math.min(Math.max((args.delay_ms as number) || 0, 0), MAX_DELAY_MS);
+      if (delayMs > 0) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
 
-    // Capture screenshot
-    try {
+      // Capture screenshot
       const display = (args.display as number) ?? 0;
       const buffer: Buffer = await screenshotDesktop({ screen: display });
       const base64 = buffer.toString('base64');
@@ -74,6 +74,17 @@ export class ScreenshotTool implements Tool {
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
+      // Catch __dirname / ESM issues from native modules in bundled environments
+      if (message.includes('__dirname') || message.includes('not defined') || message.includes('MODULE_NOT_FOUND')) {
+        return {
+          success: false,
+          output:
+            'The screenshot tool is not available in this environment.\n\n' +
+            'This tool requires the screenshot-desktop native module which cannot run in the bundled IDE.\n' +
+            'It works in the VS Code extension and CLI where Node.js modules are fully available.\n' +
+            'Support for screenshots in the IDE will be added in a future release.',
+        };
+      }
       return { success: false, output: `Screenshot capture failed: ${message}` };
     }
   }
