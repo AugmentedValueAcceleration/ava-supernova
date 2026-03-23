@@ -2,6 +2,50 @@
 
 All notable changes to Ava | Supernova will be documented in this file.
 
+## [0.22.0] - 2026-03-23
+
+### IDE — Local AI Engine (Sidecar Integration)
+
+- **Node.js sidecar** — `@ava/core` runs as a local process inside the Tauri IDE, giving full 54-tool access without a browser or VS Code
+- **NDJSON protocol** — real-time bidirectional communication between React UI and sidecar over stdin/stdout
+- **Local & Cloud toggle** — switch between BYOK keys (local, full tools) and platform API (cloud) from the chat header
+- **Tool confirmation dialog** — visual approve/deny modal for dangerous tool calls (bash, file writes, git commits)
+- **Hot model switching** — change models without restarting the sidecar process
+- **Persona orchestration** — Conductor runs locally with all 24 specialists across 5 modes
+
+### IDE — Library Page
+
+- **File browser** for Ava-created content — images, documents, spreadsheets, presentations
+- **Grid and list views** with type filtering (Images, Docs, Sheets, Slides)
+- **File detail panel** — size, type, date, folder, quick open
+- **Type-coloured badges** and icons for visual identification
+
+### IDE — Image & File Sharing in Chat
+
+- **Inline images** — generated images, screenshots, and background removals display directly in chat messages with download buttons
+- **Created file cards** — documents, presentations, spreadsheets show as typed file cards with icons and open buttons
+- **Paste images** — Ctrl+V screenshots or images directly into the chat input
+- **Drag & drop** — drop images and files onto the input area
+- **File attach button** — click to browse and attach images, PDFs, documents, spreadsheets
+- **Attachment preview** — thumbnails above the input before sending, with remove buttons
+
+### IDE — Infrastructure
+
+- Registered Tauri shell plugin with scoped `node` command permissions
+- Fixed CORS for IDE dev server (localhost:1430) and Tauri origins
+- Platform API JSON response handling (non-SSE) for cloud mode
+- Memory loading timeout to prevent init hangs
+- Sidecar path resolution for Tauri's `src-tauri/` working directory
+
+### Documentation
+
+- Added Desktop IDE tab to Getting Started (web docs)
+- Added full Desktop IDE section to documentation page (architecture, features, sidecar protocol)
+- Updated README IDE section — Tauri v2 architecture, local/cloud modes, Library, image sharing
+- Updated CHANGELOG with v0.22.0 release notes
+
+---
+
 ## [0.5.4] - 2026-03-11
 
 ### Mid-Task Interjection

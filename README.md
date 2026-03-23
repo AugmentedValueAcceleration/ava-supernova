@@ -170,13 +170,17 @@ Plus dedicated pages for Tasks, Journal, Memory, Learning, Library, Settings, Sy
 
 ## IDE
 
-Ava | Supernova IDE is a standalone desktop application built on [Eclipse Theia](https://theia-ide.org/) with Ava deeply integrated. Download from [GitHub Releases](https://github.com/AugmentedValueAcceleration/ava-supernova-ide/releases) or from [ava-supernova.com](https://ava-supernova.com).
+Ava | Supernova IDE is a standalone desktop application built on [Tauri v2](https://v2.tauri.app/) (Rust + React) with Ava deeply integrated. A Node.js sidecar runs `@ava/core` locally, giving you the full 54-tool agent without a browser or VS Code.
 
-The IDE includes everything in the extension plus:
-- Full VS Code extension compatibility (via Open VSX)
-- Built-in terminal, file tree, Git, settings, keybindings
-- Monaco editor (same engine as VS Code)
-- `@ava/core` runs directly in the Node.js backend — no sidecar needed
+The IDE includes:
+- **Local AI engine** — `@ava/core` runs as a sidecar process with all 54 tools, personas, and memory
+- **Cloud & Local modes** — toggle between platform API (cloud) and your own BYOK keys (local)
+- **11 dashboard pages** — Command Centre, Chat, Memory, Tasks, Journal, Learning, Library, Personality, Cloud Sync, Usage, Settings
+- **Library** — browse images, documents, presentations, and spreadsheets created by Ava (grid + list views, type filtering)
+- **Image & file sharing** — paste/drag-drop images into chat, inline image display, file attachment support
+- **Tool confirmation UI** — approve or deny dangerous tool calls with a visual dialog
+- **VS Code-like layout** — activity bar, sidebar, editor area, terminal panel, status bar
+- **Cross-platform** — Windows, macOS, Linux (via Tauri)
 
 ## Companion App
 
