@@ -750,18 +750,30 @@ ${transcript}`;
       const summary = response.choices?.[0]?.message?.content || '';
       if (!summary) throw new Error('Empty compression response');
 
-      // Save compressed context to memory so nothing is lost
+      // ── Save compressed context to memory — nothing is lost ──────────
+      // Layer 2 reflection: extract structured memories from the messages
+      // being compressed (decisions, preferences, patterns, facts).
+      // These survive as project-scoped or global memories for future recall.
       try {
-        const mm = (this.toolContext.sharedState as Record<string, unknown> | undefined)?.memoryManager as { saveEntry?: (scope: string, entry: { key: string; content: string; category: string }) => Promise<void> } | undefined;
-        if (mm?.saveEntry) {
+        const mm = (this.toolContext.sharedState as Record<string, unknown> | undefined)?.memoryManager as MemoryManager | undefined;
+        if (mm) {
+          // Run Layer 2 reflection on the messages being compressed
+          const saved = await reflectAndSave(toCompress, mm, this.provider, this.model);
+          if (saved > 0) {
+            logger.info(`[compression] Extracted ${saved} memories from compressed context`);
+          }
+
+          // Also save the raw summary as a session memory for continuity
           const date = new Date().toISOString().slice(0, 10);
           const time = new Date().toISOString().slice(11, 16);
-          await mm.saveEntry('global', {
-            key: `session-summary-${date}-${time}`,
-            content: summary,
-            category: 'session',
+          await mm.saveEntry({
+            scope: 'project',
+            content: `[Session summary ${date} ${time}]\n${summary}`,
+            category: 'general',
+            tags: ['compression', 'summary'],
+            branch: null,
           });
-          logger.debug('[agent] Saved compression summary to memory');
+          logger.debug('[compression] Saved session summary to project memory');
         }
       } catch {
         // Memory save is non-critical — don't block compression
