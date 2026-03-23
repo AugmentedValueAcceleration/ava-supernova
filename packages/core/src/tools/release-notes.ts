@@ -19,6 +19,10 @@ export class ReleaseNotesTool implements Tool {
           type: 'string',
           description: 'Optional: fetch a specific version (e.g. "0.11.0")',
         },
+        platform: {
+          type: 'string',
+          description: 'Optional: filter by platform — core, extension, ide, companion',
+        },
         limit: {
           type: 'number',
           description: 'Max results to return (default 5)',
@@ -30,11 +34,13 @@ export class ReleaseNotesTool implements Tool {
   async execute(args: Record<string, unknown>, _context: ToolExecutionContext): Promise<ToolResult> {
     try {
       const version = args.version as string | undefined;
+      const platform = args.platform as string | undefined;
       const limit = Math.min((args.limit as number) || 5, 20);
 
-      const url = version
+      let url = version
         ? `${PLATFORM_URL}/api/releases?version=${encodeURIComponent(version)}`
         : `${PLATFORM_URL}/api/releases?limit=${limit}`;
+      if (platform && !version) url += `&platform=${encodeURIComponent(platform)}`;
 
       const res = await fetch(url, {
         headers: { 'Accept': 'application/json' },
@@ -54,7 +60,7 @@ export class ReleaseNotesTool implements Tool {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const formatted = releases.map((r: any) =>
-        `## v${r.version} — ${r.title}\n${r.body}\n\nHighlights: ${r.highlights.join(', ')}\nPublished: ${new Date(r.published_at).toLocaleDateString('en-GB')}`
+        `## v${r.version} — ${r.title} [${(r.platform || 'extension').toUpperCase()}]\n${r.body}\n\nHighlights: ${r.highlights.join(', ')}\nPublished: ${new Date(r.published_at).toLocaleDateString('en-GB')}`
       ).join('\n\n---\n\n');
 
       return { success: true, output: formatted };

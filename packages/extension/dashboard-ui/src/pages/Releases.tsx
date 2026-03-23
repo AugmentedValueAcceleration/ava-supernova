@@ -11,16 +11,16 @@ function getMonthKey(dateStr: string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+const PLAT_COLOURS: Record<string, string> = { core: '#89b4fa', extension: '#a855f7', ide: '#a6e3a1', companion: '#fab387' };
+const PLAT_LABELS: Record<string, string> = { core: 'Core', extension: 'Extension', ide: 'IDE', companion: 'Companion' };
+
 export function Releases({ releases }: { releases: ReleaseNote[] }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [platformTab, setPlatformTab] = useState('all');
 
-  // Request data on mount
-  useEffect(() => {
-    post({ type: 'load_releases' });
-  }, []);
+  useEffect(() => { post({ type: 'load_releases' }); }, []);
 
-  // Auto-expand latest and default to its month
   useEffect(() => {
     if (releases.length > 0 && !expanded) {
       setExpanded(releases[0].id);
@@ -32,17 +32,17 @@ export function Releases({ releases }: { releases: ReleaseNote[] }) {
     const seen = new Map<string, string>();
     for (const r of releases) {
       const key = getMonthKey(r.published_at);
-      if (!seen.has(key)) {
-        seen.set(key, formatMonth(new Date(r.published_at)));
-      }
+      if (!seen.has(key)) seen.set(key, formatMonth(new Date(r.published_at)));
     }
     return Array.from(seen.entries()).sort((a, b) => b[0].localeCompare(a[0]));
   }, [releases]);
 
   const filtered = useMemo(() => {
-    if (!selectedMonth) return releases;
-    return releases.filter(r => getMonthKey(r.published_at) === selectedMonth);
-  }, [releases, selectedMonth]);
+    let list = releases as any[];
+    if (platformTab !== 'all') list = list.filter(r => (r.platform || 'extension') === platformTab);
+    if (selectedMonth) list = list.filter(r => getMonthKey(r.published_at) === selectedMonth);
+    return list;
+  }, [releases, selectedMonth, platformTab]);
 
   if (releases.length === 0) {
     return (
@@ -54,11 +54,11 @@ export function Releases({ releases }: { releases: ReleaseNote[] }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-xl font-bold text-white">Release Notes</h1>
           <p className="text-xs text-[var(--text-muted)] mt-1">
-            What&apos;s new in each version of Ava | Supernova
+            What&apos;s new across the Ava | Supernova ecosystem
           </p>
         </div>
 
@@ -67,11 +67,28 @@ export function Releases({ releases }: { releases: ReleaseNote[] }) {
           onChange={(e) => setSelectedMonth(e.target.value)}
           className="text-xs bg-[var(--bg-input)] border border-[var(--border-card)] text-white rounded-lg px-3 py-2 outline-none focus:border-[var(--accent)] transition"
         >
-          <option value="">All releases</option>
+          <option value="">All months</option>
           {months.map(([key, label]) => (
             <option key={key} value={key}>{label}</option>
           ))}
         </select>
+      </div>
+
+      {/* Platform tabs */}
+      <div className="flex gap-1 mb-5 flex-wrap">
+        {['all', 'core', 'extension', 'ide', 'companion'].map(tab => (
+          <button
+            key={tab}
+            onClick={() => setPlatformTab(tab)}
+            className="px-3 py-1 rounded-full text-[11px] font-semibold border-none cursor-pointer transition"
+            style={{
+              background: platformTab === tab ? (tab === 'all' ? 'var(--accent)' : PLAT_COLOURS[tab]) : 'var(--bg-input)',
+              color: platformTab === tab ? (tab === 'core' || tab === 'extension' ? '#fff' : '#11111b') : 'var(--text-muted)',
+            }}
+          >
+            {tab === 'all' ? 'All' : PLAT_LABELS[tab]}
+          </button>
+        ))}
       </div>
 
       <div className="space-y-3">
@@ -92,6 +109,15 @@ export function Releases({ releases }: { releases: ReleaseNote[] }) {
               >
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-bold text-white">v{release.version}</span>
+                  <span
+                    className="text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wide uppercase"
+                    style={{
+                      color: PLAT_COLOURS[(release as any).platform || 'extension'] || '#6c7086',
+                      background: `${PLAT_COLOURS[(release as any).platform || 'extension'] || '#6c7086'}18`,
+                    }}
+                  >
+                    {PLAT_LABELS[(release as any).platform || 'extension'] || 'Extension'}
+                  </span>
                   {isLatest && (
                     <span className="text-[9px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 px-1.5 py-0.5 rounded tracking-wider">
                       LATEST
