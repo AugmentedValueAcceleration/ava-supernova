@@ -52,11 +52,32 @@ function isDueToday(task: DashboardTaskEntry): boolean {
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
+const PRIORITY_KEYS: Record<string, string> = {
+  low: 'dash.tasks.priority_low',
+  medium: 'dash.tasks.priority_medium',
+  high: 'dash.tasks.priority_high',
+  urgent: 'dash.tasks.priority_urgent',
+};
+
+const CATEGORY_KEYS: Record<string, string> = {
+  coding: 'dash.tasks.cat_coding',
+  personal: 'dash.tasks.cat_personal',
+  admin: 'dash.tasks.cat_admin',
+  meeting: 'dash.tasks.cat_meeting',
+  custom: 'dash.tasks.cat_custom',
+};
+
+const TAB_KEYS: Record<string, string> = {
+  active: 'dash.tasks.tab_active',
+  done: 'dash.tasks.tab_done',
+  archived: 'dash.tasks.tab_archived',
+};
+
 function PriorityBadge({ priority }: { priority: string }) {
   const colors = PRIORITY_COLORS[priority] ?? PRIORITY_COLORS.medium;
   return (
     <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${colors}`}>
-      {priority.charAt(0).toUpperCase() + priority.slice(1)}
+      {t(PRIORITY_KEYS[priority] ?? 'dash.tasks.priority_medium')}
     </span>
   );
 }
@@ -65,7 +86,7 @@ function CategoryBadge({ category }: { category: string }) {
   const colors = CATEGORY_COLORS[category] ?? CATEGORY_COLORS.custom;
   return (
     <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${colors}`}>
-      {category.charAt(0).toUpperCase() + category.slice(1)}
+      {t(CATEGORY_KEYS[category] ?? 'dash.tasks.cat_custom')}
     </span>
   );
 }
@@ -224,7 +245,7 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
           className="flex items-center gap-1.5 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] transition hover:bg-[var(--accent)]/20"
         >
           <PlusIcon className="h-3.5 w-3.5" />
-          New Task
+          {t('dash.tasks.new_task')}
         </button>
       </div>
 
@@ -242,10 +263,10 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
             <div className="flex items-center gap-2 mb-3">
               <span className="text-sm">{allDone ? '✅' : '⚡'}</span>
               <h2 className={`text-sm font-semibold ${allDone ? 'text-emerald-400' : 'text-[#A855F7]'}`}>
-                {allDone ? 'All Tasks Complete' : "Ava's Progress"}
+                {allDone ? t('dash.tasks.all_complete') : t('dash.tasks.ava_progress')}
               </h2>
               <span className="text-[10px] text-[var(--text-muted)]">
-                {completedCount}/{totalCount} completed
+                {t('dash.tasks.x_completed').replace('{done}', String(completedCount)).replace('{total}', String(totalCount))}
               </span>
               <div className="flex-1 h-1.5 rounded-full bg-[var(--bg-input)] overflow-hidden ml-2">
                 <div
@@ -278,7 +299,7 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
               <div className={active.length > 0 ? 'mt-2 pt-2 border-t border-[var(--border-card)]' : ''}>
                 <details open={allDone}>
                   <summary className="text-[10px] text-emerald-400 cursor-pointer select-none opacity-70 hover:opacity-100">
-                    {completedCount} completed
+                    {t('dash.tasks.n_completed').replace('{n}', String(completedCount))}
                   </summary>
                   <div className="space-y-1 mt-1.5">
                     {completed.map(task => (
@@ -313,10 +334,10 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
       {/* Add/Edit Form */}
       {showForm && (
         <div className="rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] p-4 space-y-3">
-          <p className="text-xs font-medium text-white">{editingId ? 'Edit Task' : 'New Task'}</p>
+          <p className="text-xs font-medium text-white">{editingId ? t('dash.tasks.edit_task') : t('dash.tasks.new_task')}</p>
           <input
             type="text"
-            placeholder="Task title..."
+            placeholder={t('dash.tasks.title_placeholder')}
             value={formTitle}
             onChange={e => setFormTitle(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSubmitTask()}
@@ -324,7 +345,7 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
             autoFocus
           />
           <textarea
-            placeholder="Description (optional)..."
+            placeholder={t('dash.tasks.desc_placeholder')}
             value={formDesc}
             onChange={e => setFormDesc(e.target.value)}
             rows={2}
@@ -333,28 +354,28 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
           <div className="flex flex-wrap gap-3">
             {/* Priority */}
             <div className="flex-1 min-w-[120px]">
-              <label className="mb-1 block text-[10px] text-[var(--text-muted)]">Priority</label>
+              <label className="mb-1 block text-[10px] text-[var(--text-muted)]">{t('dash.tasks.label_priority')}</label>
               <select value={formPriority} onChange={e => setFormPriority(e.target.value)} className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-2 py-1.5 text-xs text-white outline-none">
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
+                <option value="low">{t('dash.tasks.priority_low')}</option>
+                <option value="medium">{t('dash.tasks.priority_medium')}</option>
+                <option value="high">{t('dash.tasks.priority_high')}</option>
+                <option value="urgent">{t('dash.tasks.priority_urgent')}</option>
               </select>
             </div>
             {/* Category */}
             <div className="flex-1 min-w-[120px]">
-              <label className="mb-1 block text-[10px] text-[var(--text-muted)]">Category</label>
+              <label className="mb-1 block text-[10px] text-[var(--text-muted)]">{t('dash.tasks.label_category')}</label>
               <select value={formCategory} onChange={e => setFormCategory(e.target.value)} className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-2 py-1.5 text-xs text-white outline-none">
-                <option value="coding">Coding</option>
-                <option value="personal">Personal</option>
-                <option value="admin">Admin</option>
-                <option value="meeting">Meeting</option>
-                <option value="custom">Custom</option>
+                <option value="coding">{t('dash.tasks.cat_coding')}</option>
+                <option value="personal">{t('dash.tasks.cat_personal')}</option>
+                <option value="admin">{t('dash.tasks.cat_admin')}</option>
+                <option value="meeting">{t('dash.tasks.cat_meeting')}</option>
+                <option value="custom">{t('dash.tasks.cat_custom')}</option>
               </select>
             </div>
             {/* Due date */}
             <div className="flex-1 min-w-[140px]">
-              <label className="mb-1 block text-[10px] text-[var(--text-muted)]">Due Date</label>
+              <label className="mb-1 block text-[10px] text-[var(--text-muted)]">{t('dash.tasks.label_due_date')}</label>
               <input
                 type="date"
                 value={formDueDate}
@@ -364,11 +385,11 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
             </div>
             {/* Recurrence */}
             <div className="flex-1 min-w-[120px]">
-              <label className="mb-1 block text-[10px] text-[var(--text-muted)]">Recurrence</label>
+              <label className="mb-1 block text-[10px] text-[var(--text-muted)]">{t('dash.tasks.label_recurrence')}</label>
               <select value={formRecurrence} onChange={e => setFormRecurrence(e.target.value)} className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-2 py-1.5 text-xs text-white outline-none">
-                <option value="none">None</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
+                <option value="none">{t('dash.tasks.recurrence_none')}</option>
+                <option value="daily">{t('dash.tasks.recurrence_daily')}</option>
+                <option value="weekly">{t('dash.tasks.recurrence_weekly')}</option>
               </select>
             </div>
           </div>
@@ -378,13 +399,13 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
               disabled={!formTitle.trim()}
               className="rounded-lg bg-[var(--accent)] px-4 py-1.5 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-40"
             >
-              {editingId ? 'Save Changes' : 'Add Task'}
+              {editingId ? t('dash.tasks.save_changes') : t('dash.tasks.add_task')}
             </button>
             <button
               onClick={resetForm}
               className="rounded-lg border border-[var(--border-card)] bg-transparent px-4 py-1.5 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)]"
             >
-              Cancel
+              {t('dash.tasks.cancel')}
             </button>
           </div>
         </div>
@@ -402,7 +423,7 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
                 : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
             }`}
           >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {t(TAB_KEYS[tab])}
             {tab === 'done' && stats.completed > 0 && (
               <span className="ml-1 text-[10px] opacity-50">{stats.completed}</span>
             )}
@@ -419,7 +440,7 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
             }}
             className="pb-2 text-[10px] text-red-400 opacity-60 hover:opacity-100 bg-transparent border-none cursor-pointer transition"
           >
-            Clear completed
+            {t('dash.tasks.clear_completed')}
           </button>
         )}
       </div>
@@ -450,7 +471,7 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
                   : 'text-[var(--text-muted)] hover:bg-white/5'
               }`}
             >
-              {p === 'all' ? 'All' : p.charAt(0).toUpperCase() + p.slice(1)}
+              {p === 'all' ? t('dash.tasks.filter_all') : t(PRIORITY_KEYS[p] ?? 'dash.tasks.priority_medium')}
             </button>
           ))}
         </div>
@@ -467,18 +488,18 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
                   : 'text-[var(--text-muted)] hover:bg-white/5'
               }`}
             >
-              {c === 'all' ? 'All' : c.charAt(0).toUpperCase() + c.slice(1)}
+              {c === 'all' ? t('dash.tasks.filter_all') : t(CATEGORY_KEYS[c] ?? 'dash.tasks.cat_custom')}
             </button>
           ))}
         </div>
       </div>
 
       {/* Task list */}
-      <SectionGroup label={`${viewTab} tasks`} count={`${filtered.length} task${filtered.length !== 1 ? 's' : ''}`}>
+      <SectionGroup label={t('dash.tasks.section_label').replace('{tab}', t(TAB_KEYS[viewTab]))} count={t('dash.tasks.count_label').replace(/\{n\}/g, String(filtered.length))}>
         {filtered.length === 0 ? (
           <div className="rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] p-8 text-center">
             <p className="text-sm text-[var(--text-muted)]">
-              {search ? 'No tasks match your search.' : viewTab === 'active' ? 'No active tasks. Create one to get started!' : `No ${viewTab} tasks.`}
+              {search ? t('dash.tasks.empty_search') : viewTab === 'active' ? t('dash.tasks.empty_active') : t('dash.tasks.empty_tab').replace('{tab}', t(TAB_KEYS[viewTab]).toLowerCase())}
             </p>
           </div>
         ) : (
@@ -499,7 +520,7 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
                   <button
                     onClick={() => post({ type: 'complete_task', id: task.id })}
                     className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[var(--border-card)] text-[var(--text-muted)] transition hover:border-emerald-500 hover:text-emerald-400"
-                    title="Complete task"
+                    title={t('dash.tasks.complete_task')}
                   >
                     <span className="text-xs">{STATUS_ICONS[task.status]}</span>
                   </button>
@@ -521,7 +542,7 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
                       </span>
                     )}
                     {task.recurrence !== 'none' && (
-                      <span className="text-[10px] text-[var(--text-muted)]" title={`Repeats ${task.recurrence}`}>
+                      <span className="text-[10px] text-[var(--text-muted)]" title={t('dash.tasks.repeats').replace('{recurrence}', task.recurrence)}>
                         ↻ {task.recurrence}
                       </span>
                     )}
@@ -541,7 +562,7 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
                         isDueToday(task) ? 'text-amber-400' : 'text-[var(--text-muted)]'
                       }`}>
                         <CalendarIcon className="h-3 w-3" />
-                        {isOverdue(task) ? 'Overdue: ' : isDueToday(task) ? 'Today' : ''}{formatDate(task.due_date)}
+                        {isOverdue(task) ? t('dash.tasks.overdue_prefix') : isDueToday(task) ? t('dash.tasks.due_today') : ''}{formatDate(task.due_date)}
                       </span>
                     )}
 
@@ -549,7 +570,7 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
 
                     {task.completed_at && (
                       <span className="text-[10px] text-[var(--text-muted)]">
-                        Done {formatDate(task.completed_at)}
+                        {t('dash.tasks.done_on').replace('{date}', formatDate(task.completed_at))}
                       </span>
                     )}
                   </div>
@@ -558,17 +579,17 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
                 {/* Actions */}
                 <div className="flex shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
                   {task.status !== 'archived' && task.status !== 'done' && (
-                    <button onClick={() => startEdit(task)} className="rounded p-1 text-[var(--text-muted)] hover:bg-white/5 hover:text-white" title="Edit">
+                    <button onClick={() => startEdit(task)} className="rounded p-1 text-[var(--text-muted)] hover:bg-white/5 hover:text-white" title={t('dash.tasks.edit')}>
                       <PencilIcon className="h-3.5 w-3.5" />
                     </button>
                   )}
                   {task.status === 'done' && (
-                    <button onClick={() => post({ type: 'archive_task', id: task.id })} className="rounded p-1 text-[var(--text-muted)] hover:bg-white/5 hover:text-white" title="Archive">
+                    <button onClick={() => post({ type: 'archive_task', id: task.id })} className="rounded p-1 text-[var(--text-muted)] hover:bg-white/5 hover:text-white" title={t('dash.tasks.archive')}>
                       <span className="text-xs">▫</span>
                     </button>
                   )}
                   {task.status === 'archived' && (
-                    <button onClick={() => post({ type: 'restore_task', id: task.id })} className="rounded p-1 text-[var(--text-muted)] hover:bg-white/5 hover:text-emerald-400" title="Restore">
+                    <button onClick={() => post({ type: 'restore_task', id: task.id })} className="rounded p-1 text-[var(--text-muted)] hover:bg-white/5 hover:text-emerald-400" title={t('dash.tasks.restore')}>
                       <span className="text-xs">↩</span>
                     </button>
                   )}
@@ -578,17 +599,17 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
                         onClick={() => { post({ type: 'delete_task', id: task.id }); setConfirmDelete(null); }}
                         className="rounded bg-red-500/20 px-2 py-0.5 text-[10px] font-medium text-red-400 hover:bg-red-500/30"
                       >
-                        Delete
+                        {t('dash.tasks.delete')}
                       </button>
                       <button
                         onClick={() => setConfirmDelete(null)}
                         className="rounded bg-white/5 px-2 py-0.5 text-[10px] text-[var(--text-muted)] hover:bg-white/10"
                       >
-                        Cancel
+                        {t('dash.tasks.cancel')}
                       </button>
                     </div>
                   ) : (
-                    <button onClick={() => setConfirmDelete(task.id)} className="rounded p-1 text-[var(--text-muted)] hover:bg-white/5 hover:text-red-400" title="Delete">
+                    <button onClick={() => setConfirmDelete(task.id)} className="rounded p-1 text-[var(--text-muted)] hover:bg-white/5 hover:text-red-400" title={t('dash.tasks.delete')}>
                       <TrashIcon className="h-3.5 w-3.5" />
                     </button>
                   )}

@@ -3,9 +3,11 @@
  * English strings are bundled inline; other locales are auto-loaded from bundled files.
  */
 
+import { useState, useEffect } from 'react';
 import { enStrings } from './locales/en.js';
 
 let currentLocale = 'en';
+let localeVersion = 0;
 const translations: Record<string, Record<string, string>> = {
   en: enStrings,
 };
@@ -51,11 +53,27 @@ export async function setLocale(locale: string): Promise<void> {
       // Locale file not found — will fall back to English
     }
   }
+
+  localeVersion++;
+  window.dispatchEvent(new CustomEvent('ava-locale-changed'));
 }
 
 /** Load translated strings for a locale (sent from extension host via postMessage). */
 export function loadStrings(locale: string, strings: Record<string, string>): void {
   translations[locale] = strings;
+  localeVersion++;
+  window.dispatchEvent(new CustomEvent('ava-locale-changed'));
+}
+
+/** React hook — forces re-render when locale changes */
+export function useLocale(): string {
+  const [, setVersion] = useState(localeVersion);
+  useEffect(() => {
+    const handler = () => setVersion(++localeVersion);
+    window.addEventListener('ava-locale-changed', handler);
+    return () => window.removeEventListener('ava-locale-changed', handler);
+  }, []);
+  return currentLocale;
 }
 
 /** Translate a key with optional interpolation. Falls back to English, then to key. */

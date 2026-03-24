@@ -65,7 +65,7 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
 
   const periodLabel = usage.period_start
     ? `${new Date(usage.period_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} — ${new Date(usage.period_end!).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
-    : 'No active period';
+    : t('dash.usage.no_active_period');
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(logs.length / PAGE_SIZE));
@@ -82,25 +82,25 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
 
       {/* Period Summary */}
       <div className="mb-6">
-      <SectionGroup label="Summary">
+      <SectionGroup label={t('dash.usage.summary')}>
       <div className="grid grid-cols-2 gap-3">
         <SummaryCard
-          label="Tokens Used"
+          label={t('dash.usage.tokens_used')}
           value={formatNumber(usage.tokens_used || logsTotal.total)}
-          sub={usage.tokens_used ? (usage.tokens_limit ? `of ${formatNumber(usage.tokens_limit)} limit` : 'this period') : `from ${logsTotal.count} requests`}
+          sub={usage.tokens_used ? (usage.tokens_limit ? `of ${formatNumber(usage.tokens_limit)} limit` : t('dash.usage.this_period')) : t('dash.usage.from_requests', { count: logsTotal.count })}
         />
         <SummaryCard
-          label="Requests"
+          label={t('dash.usage.requests')}
           value={String(usage.requests_count || logsTotal.count)}
-          sub="this period"
+          sub={t('dash.usage.this_period')}
         />
         <SummaryCard
-          label="Free Tokens"
+          label={t('dash.usage.free_tokens')}
           value={formatNumber(Math.max(0, usage.free_tokens_limit - usage.free_tokens_used))}
           sub={`of ${formatNumber(usage.free_tokens_limit)}`}
         />
         <SummaryCard
-          label="Period"
+          label={t('dash.usage.period')}
           value={periodLabel}
           isText
         />
@@ -110,15 +110,15 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
 
       {/* Token Bars */}
       <div className="mb-6">
-      <SectionGroup label="Token Pools">
+      <SectionGroup label={t('dash.usage.token_pools')}>
       <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
           {/* Free Pool */}
           <div className="mb-2 flex justify-between text-xs">
             <span className="text-[var(--text-secondary)]">
-              Free Pool: {formatNumber(usage.free_tokens_used)} / {formatNumber(usage.free_tokens_limit)} tokens
+              {t('dash.usage.free_pool')}: {formatNumber(usage.free_tokens_used)} / {formatNumber(usage.free_tokens_limit)} tokens
             </span>
             {account.tier === 'admin' ? (
-              <span className="font-medium text-[var(--gradient-start)]">Unlimited</span>
+              <span className="font-medium text-[var(--gradient-start)]">{t('dash.usage.unlimited')}</span>
             ) : (
               <span className="text-[var(--text-muted)]">
                 {((usage.free_tokens_used / usage.free_tokens_limit) * 100).toFixed(1)}%
@@ -133,7 +133,7 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
             <UsageBar used={usage.free_tokens_used} limit={usage.free_tokens_limit} />
           )}
           <p className="mt-2 mb-5 text-[10px] text-[var(--text-muted)]">
-            {account.tier === 'admin' ? 'No metering — admin tier' : '3M free Qwen tokens included. Resets monthly.'}
+            {account.tier === 'admin' ? t('dash.usage.no_metering') : t('dash.usage.free_pool_desc')}
           </p>
 
           {/* Subscription Pool */}
@@ -144,13 +144,13 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
                   {account.tier.charAt(0).toUpperCase() + account.tier.slice(1)} Plan: {formatNumber(usage.tokens_used)}{usage.tokens_limit !== null ? ` / ${formatNumber(usage.tokens_limit)} tokens` : ' tokens'}
                 </span>
                 {account.tier === 'admin' ? (
-                  <span className="font-medium text-[var(--gradient-start)]">Unlimited</span>
+                  <span className="font-medium text-[var(--gradient-start)]">{t('dash.usage.unlimited')}</span>
                 ) : usage.tokens_limit !== null ? (
                   <span className="text-[var(--text-muted)]">
                     {((usage.tokens_used / usage.tokens_limit) * 100).toFixed(1)}%
                   </span>
                 ) : (
-                  <span className="text-[var(--text-muted)]">BYOK — no limit</span>
+                  <span className="text-[var(--text-muted)]">{t('dash.usage.byok_no_limit')}</span>
                 )}
               </div>
               {account.tier === 'admin' ? (
@@ -168,7 +168,7 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
 
       {/* Model Breakdown */}
       <div className="mb-6">
-        <SectionGroup label="Usage by Model">
+        <SectionGroup label={t('dash.usage.usage_by_model')}>
         {breakdown.length > 0 ? (
           <div className="space-y-3">
             {breakdown.map((m) => {
@@ -189,9 +189,9 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
                     />
                   </div>
                   <div className="flex flex-wrap gap-3 text-[10px] text-[var(--text-muted)]">
-                    <span>In: {formatNumber(m.input)}</span>
-                    <span>Out: {formatNumber(m.output)}</span>
-                    <span>Total: {formatNumber(total)}</span>
+                    <span>{t('status.in')}: {formatNumber(m.input)}</span>
+                    <span>{t('status.out')}: {formatNumber(m.output)}</span>
+                    <span>{t('status.total')}: {formatNumber(total)}</span>
                   </div>
                 </div>
               );
@@ -199,7 +199,7 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
           </div>
         ) : (
           <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-6 text-center">
-            <p className="text-xs text-[var(--text-muted)]">No usage data for this period.</p>
+            <p className="text-xs text-[var(--text-muted)]">{t('dash.usage.no_usage_period')}</p>
           </div>
         )}
         </SectionGroup>
@@ -207,7 +207,7 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
 
       {/* Recent Requests */}
       <div className="mb-6">
-        <SectionGroup label="Recent Requests">
+        <SectionGroup label={t('dash.usage.recent_requests')}>
         <div className="flex items-center justify-end">
           <div className="flex gap-1 rounded-lg bg-[var(--bg-input)] p-1">
             {(['7d', '30d', 'all'] as const).map((p) => (
@@ -232,10 +232,10 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-[var(--border-card)] bg-[var(--bg-card)]">
-                    <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)]">Model</th>
-                    <th className="px-3 py-2 text-right text-[10px] font-medium text-[var(--text-muted)]">In</th>
-                    <th className="px-3 py-2 text-right text-[10px] font-medium text-[var(--text-muted)]">Out</th>
-                    <th className="px-3 py-2 text-right text-[10px] font-medium text-[var(--text-muted)]">Time</th>
+                    <th className="px-3 py-2 text-left text-[10px] font-medium text-[var(--text-muted)]">{t('dash.usage.model')}</th>
+                    <th className="px-3 py-2 text-right text-[10px] font-medium text-[var(--text-muted)]">{t('status.in')}</th>
+                    <th className="px-3 py-2 text-right text-[10px] font-medium text-[var(--text-muted)]">{t('status.out')}</th>
+                    <th className="px-3 py-2 text-right text-[10px] font-medium text-[var(--text-muted)]">{t('dash.usage.date')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-card)]">
@@ -263,7 +263,7 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
                     disabled={page === 0}
                     className="rounded-md px-2 py-1 text-[10px] text-[var(--text-muted)] transition hover:bg-[var(--bg-input)] hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
                   >
-                    Prev
+                    {t('dash.usage.prev')}
                   </button>
                   <span className="flex items-center px-2 text-[10px] text-[var(--text-muted)]">
                     {page + 1}/{totalPages}
@@ -273,7 +273,7 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
                     disabled={page >= totalPages - 1}
                     className="rounded-md px-2 py-1 text-[10px] text-[var(--text-muted)] transition hover:bg-[var(--bg-input)] hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
                   >
-                    Next
+                    {t('dash.usage.next')}
                   </button>
                 </div>
               </div>
@@ -281,7 +281,7 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
           </>
         ) : (
           <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-6 text-center">
-            <p className="text-xs text-[var(--text-muted)]">No requests logged yet.</p>
+            <p className="text-xs text-[var(--text-muted)]">{t('dash.usage.no_requests')}</p>
           </div>
         )}
         </SectionGroup>
@@ -328,19 +328,19 @@ function ByokUsage({ stats }: { stats?: SessionStats | null }) {
 
       {/* Summary */}
       <div className="mb-6">
-        <SectionGroup label="Summary">
+        <SectionGroup label={t('dash.usage.summary')}>
           <div className="grid grid-cols-2 gap-3">
             <SummaryCard label={t('dash.usage.total_tokens')} value={formatNumber(totalTokens)} sub={`${t('dash.usage.input_tokens')}: ${formatNumber(stats?.total_input_tokens ?? 0)} / ${t('dash.usage.output_tokens')}: ${formatNumber(stats?.total_output_tokens ?? 0)}`} />
             <SummaryCard label={t('dash.usage.messages')} value={String(stats?.messages ?? 0)} sub={t('dash.usage.session')} />
             <SummaryCard label={t('dash.usage.tool_calls')} value={String(stats?.tool_calls ?? 0)} sub={t('dash.usage.session')} />
-            <SummaryCard label={t('dash.usage.session')} value={sessionDuration} isText sub={stats ? `Since ${new Date(stats.session_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : undefined} />
+            <SummaryCard label={t('dash.usage.session')} value={sessionDuration} isText sub={stats ? t('dash.usage.since', { time: new Date(stats.session_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }) : undefined} />
           </div>
         </SectionGroup>
       </div>
 
       {/* Model Breakdown */}
       <div className="mb-6">
-        <SectionGroup label="Usage by Model">
+        <SectionGroup label={t('dash.usage.usage_by_model')}>
           {breakdown.length > 0 ? (
             <div className="space-y-3">
               {breakdown.map((m) => {
@@ -361,9 +361,9 @@ function ByokUsage({ stats }: { stats?: SessionStats | null }) {
                       />
                     </div>
                     <div className="flex flex-wrap gap-3 text-[10px] text-[var(--text-muted)]">
-                      <span>In: {formatNumber(m.input_tokens)}</span>
-                      <span>Out: {formatNumber(m.output_tokens)}</span>
-                      <span>Total: {formatNumber(total)}</span>
+                      <span>{t('status.in')}: {formatNumber(m.input_tokens)}</span>
+                      <span>{t('status.out')}: {formatNumber(m.output_tokens)}</span>
+                      <span>{t('status.total')}: {formatNumber(total)}</span>
                     </div>
                   </div>
                 );
@@ -371,7 +371,7 @@ function ByokUsage({ stats }: { stats?: SessionStats | null }) {
             </div>
           ) : (
             <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-6 text-center">
-              <p className="text-xs text-[var(--text-muted)]">No usage this session yet. Start chatting with Ava!</p>
+              <p className="text-xs text-[var(--text-muted)]">{t('dash.usage.no_usage_session')}</p>
             </div>
           )}
         </SectionGroup>
@@ -380,7 +380,7 @@ function ByokUsage({ stats }: { stats?: SessionStats | null }) {
       {/* CTA */}
       <div className="rounded-xl border border-dashed border-[var(--border-card)] bg-[var(--bg-card)] p-5 text-center">
         <p className="text-xs text-[var(--text-muted)]">
-          Connect an account to track usage across sessions and see historical trends.
+          {t('dash.usage.connect_for_history')}
         </p>
       </div>
     </div>

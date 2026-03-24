@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 
 interface HistoryPanelProps {
   conversations: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }>;
@@ -39,6 +39,7 @@ export function HistoryPanel({
   onPin,
   onExport,
 }: HistoryPanelProps) {
+  useLocale();
   const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');

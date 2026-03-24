@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import type { ToolCallDisplay } from '../types/messages';
 import { CopyButton } from './CopyButton';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 
 interface ToolCallCardProps {
   toolCall: ToolCallDisplay;
@@ -96,6 +96,7 @@ function StatusIcon({ status }: { status: ToolCallDisplay['status'] }) {
 // ─── Single timeline row ──────────────────────────────────────────────────
 
 export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
+  useLocale();
   const [expanded, setExpanded] = useState(
     toolCall.status === 'failed' || toolCall.status === 'pending_confirmation',
   );

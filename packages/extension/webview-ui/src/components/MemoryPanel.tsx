@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { t, useLocale } from '../i18n';
 import type { MemoryEntryUI } from '../types/messages';
 
 interface MemoryPanelProps {
@@ -47,6 +48,7 @@ export function MemoryPanel({
   onRestore,
   onDelete,
 }: MemoryPanelProps) {
+  useLocale();
   const [scopeTab, setScopeTab] = useState<ScopeTab>('global');
   const [viewMode, setViewMode] = useState<ViewMode>('active');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -152,11 +154,11 @@ export function MemoryPanel({
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--vscode-panel-border)]">
         <span className="text-xs font-semibold uppercase tracking-wider opacity-70">
-          Memory v2
+          {t('memory.title')}
         </span>
         <button
           onClick={onClose}
-          title="Close"
+          title={t('memory.close')}
           className="flex items-center justify-center w-6 h-6 rounded
                      hover:bg-[var(--vscode-toolbar-hoverBackground)]
                      text-[var(--vscode-foreground)] opacity-70 hover:opacity-100
@@ -180,7 +182,7 @@ export function MemoryPanel({
                 : 'bg-transparent text-[var(--vscode-foreground)] opacity-60 hover:opacity-80'
               }`}
           >
-            {tab === 'global' ? 'Global' : 'Project'}
+            {tab === 'global' ? t('memory.global') : t('memory.project')}
             <span className="ml-1 opacity-50">
               ({(tab === 'global' ? globalEntries : projectEntries).filter(e => !e.archived).length})
             </span>
@@ -200,7 +202,7 @@ export function MemoryPanel({
                 : 'bg-transparent text-[var(--vscode-foreground)] opacity-50 hover:opacity-80'
               }`}
           >
-            {mode === 'active' ? `Active (${activeEntries.length})` : `Archived (${archivedEntries.length})`}
+            {mode === 'active' ? t('memory.active', { count: activeEntries.length }) : t('memory.archived', { count: archivedEntries.length })}
           </button>
         ))}
         <div className="flex-1" />
@@ -210,9 +212,9 @@ export function MemoryPanel({
             className="px-2 py-0.5 rounded text-[10px]
                        bg-transparent text-[var(--vscode-foreground)] opacity-50 hover:opacity-80
                        border-none cursor-pointer"
-            title="Add memory"
+            title={t('memory.add_title')}
           >
-            + Add
+            {t('memory.add')}
           </button>
         )}
       </div>
@@ -226,7 +228,7 @@ export function MemoryPanel({
               autoFocus
               value={newContent}
               onChange={e => setNewContent(e.target.value)}
-              placeholder="Enter memory content..."
+              placeholder={t('memory.placeholder')}
               className="w-full min-h-[80px] p-2 text-xs font-mono rounded resize-none
                          bg-[var(--vscode-input-background)]
                          text-[var(--vscode-input-foreground)]
@@ -242,7 +244,7 @@ export function MemoryPanel({
                            hover:bg-[var(--vscode-button-hoverBackground)]
                            border-none cursor-pointer"
               >
-                Save
+                {t('memory.save')}
               </button>
               <button
                 onClick={() => { setAdding(false); setNewContent(''); }}
@@ -251,7 +253,7 @@ export function MemoryPanel({
                            hover:bg-[var(--vscode-toolbar-hoverBackground)]
                            border border-[var(--vscode-panel-border)] cursor-pointer"
               >
-                Cancel
+                {t('memory.cancel')}
               </button>
             </div>
           </div>
@@ -260,10 +262,10 @@ export function MemoryPanel({
         {displayEntries.length === 0 ? (
           <div className="flex items-center justify-center h-32 opacity-50 text-xs">
             {viewMode === 'archived'
-              ? 'No archived memories.'
+              ? t('memory.no_archived')
               : scopeTab === 'global'
-                ? 'No global memories yet. Ava saves memories as you work together.'
-                : 'No project memories yet. Ava saves project-specific patterns here.'}
+                ? t('memory.no_global')
+                : t('memory.no_project')}
           </div>
         ) : (
           <div className="divide-y divide-[var(--vscode-panel-border)]">
@@ -294,7 +296,7 @@ export function MemoryPanel({
                 : 'bg-transparent text-[var(--vscode-foreground)] opacity-60 hover:opacity-100 hover:bg-[var(--vscode-toolbar-hoverBackground)]'
               }`}
           >
-            {confirmClear ? 'Confirm Clear All' : 'Clear All'}
+            {confirmClear ? t('memory.confirm_clear_all') : t('memory.clear_all')}
           </button>
         )}
         <div className="flex-1" />
@@ -387,11 +389,11 @@ function MemoryEntryCard({
       {/* Stats row */}
       <div className="flex items-center gap-3 mt-1.5">
         <span className="text-[10px] opacity-30">
-          recalled {entry.recallCount}x
+          {t('memory.recalled', { count: entry.recallCount })}
         </span>
         {entry.lastRecalledAt && (
           <span className="text-[10px] opacity-30">
-            last: {timeAgo(entry.lastRecalledAt)}
+            {t('memory.last_recalled', { time: timeAgo(entry.lastRecalledAt) })}
           </span>
         )}
         <div className="flex-1" />
@@ -401,46 +403,46 @@ function MemoryEntryCard({
           <>
             <button
               onClick={onRestore}
-              title="Restore"
+              title={t('memory.restore')}
               className="px-1.5 py-0.5 rounded text-[10px] bg-transparent
                          text-[var(--vscode-foreground)] opacity-40 hover:opacity-80
                          border-none cursor-pointer hover:bg-[var(--vscode-toolbar-hoverBackground)]"
             >
-              Restore
+              {t('memory.restore')}
             </button>
             <button
               onClick={onDelete}
-              title={confirmDelete ? 'Confirm delete' : 'Delete permanently'}
+              title={confirmDelete ? t('memory.confirm_delete') : t('memory.delete_permanently')}
               className={`px-1.5 py-0.5 rounded text-[10px] border-none cursor-pointer transition-all
                 ${confirmDelete
                   ? 'bg-[var(--vscode-errorForeground,#e53935)] text-white opacity-100'
                   : 'bg-transparent text-[var(--vscode-foreground)] opacity-40 hover:opacity-80 hover:bg-[var(--vscode-toolbar-hoverBackground)]'
                 }`}
             >
-              {confirmDelete ? 'Confirm' : 'Delete'}
+              {confirmDelete ? t('memory.confirm') : t('memory.delete')}
             </button>
           </>
         ) : (
           <>
             <button
               onClick={onArchive}
-              title="Archive"
+              title={t('memory.archive')}
               className="px-1.5 py-0.5 rounded text-[10px] bg-transparent
                          text-[var(--vscode-foreground)] opacity-40 hover:opacity-80
                          border-none cursor-pointer hover:bg-[var(--vscode-toolbar-hoverBackground)]"
             >
-              Archive
+              {t('memory.archive')}
             </button>
             <button
               onClick={onDelete}
-              title={confirmDelete ? 'Confirm delete' : 'Delete'}
+              title={confirmDelete ? t('memory.confirm_delete') : t('memory.delete')}
               className={`px-1.5 py-0.5 rounded text-[10px] border-none cursor-pointer transition-all
                 ${confirmDelete
                   ? 'bg-[var(--vscode-errorForeground,#e53935)] text-white opacity-100'
                   : 'bg-transparent text-[var(--vscode-foreground)] opacity-40 hover:opacity-80 hover:bg-[var(--vscode-toolbar-hoverBackground)]'
                 }`}
             >
-              {confirmDelete ? 'Confirm' : 'Delete'}
+              {confirmDelete ? t('memory.confirm') : t('memory.delete')}
             </button>
           </>
         )}

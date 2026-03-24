@@ -3,7 +3,7 @@ import type { UIMessage } from '../types/messages';
 import { MessageBubble } from './MessageBubble';
 import { ThinkingIndicator } from './ThinkingIndicator';
 import { PersonaStatus } from './PersonaStatus';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 
 interface PersonaInfo {
   id: string;
@@ -55,6 +55,7 @@ const MODE_INFO = [
 ];
 
 export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onSuggestion, onRate, chatEndRef, needsSetup, initialized, onOpenDashboard, activeModel, models, conductorActive, conductorMode, activePersonas }: ChatContainerProps) {
+  useLocale();
   // Don't render welcome screen until init message arrives — prevents setup banner flash
   if (!initialized && messages.length === 0) {
     return <div className="flex-1" />;

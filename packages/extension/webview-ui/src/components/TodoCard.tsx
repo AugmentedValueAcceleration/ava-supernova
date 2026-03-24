@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ToolCallDisplay } from '../types/messages';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 
 interface TodoCardProps {
   toolCall: ToolCallDisplay;
@@ -36,6 +36,7 @@ const CARD_COLORS = {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function TodoCard({ toolCall, isLatest = true }: TodoCardProps) {
+  useLocale();
   const todos = parseTodos(toolCall.arguments);
   const [expanded, setExpanded] = useState(isLatest);
 

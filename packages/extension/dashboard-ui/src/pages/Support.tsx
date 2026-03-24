@@ -34,21 +34,21 @@ const STATUS_COLORS: Record<string, string> = {
   closed: 'bg-[var(--bg-input)] text-[var(--text-muted)]',
 };
 
-const SOURCE_LABELS: Record<string, string> = {
-  tool: 'Ava',
-  dashboard: 'Dashboard',
-  website: 'Website',
-};
+function getSourceLabel(source: string): string {
+  return t(`dash.support.source.${source}`) || source;
+}
 
-const CATEGORY_OPTIONS = [
-  { value: 'bug', label: 'Bug Report' },
-  { value: 'feature', label: 'Feature Request' },
-  { value: 'question', label: 'Question' },
-  { value: 'account', label: 'Account / Billing' },
-  { value: 'feedback', label: 'Feedback' },
-  { value: 'teach', label: 'Teach Mode' },
-  { value: 'other', label: 'Other' },
-];
+function getCategoryOptions() {
+  return [
+    { value: 'bug', label: t('dash.support.category.bug') },
+    { value: 'feature', label: t('dash.support.category.feature') },
+    { value: 'question', label: t('dash.support.category.question') },
+    { value: 'account', label: t('dash.support.category.account') },
+    { value: 'feedback', label: t('dash.support.category.feedback') },
+    { value: 'teach', label: t('dash.support.category.teach') },
+    { value: 'other', label: t('dash.support.category.other') },
+  ];
+}
 
 const CATEGORY_COLORS: Record<string, string> = {
   bug: 'bg-red-500/15 text-red-300',
@@ -122,19 +122,19 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          Back to tickets
+          {t('dash.support.back_to_tickets')}
         </button>
 
         <div className="mb-6">
           <h1 className="text-xl font-bold text-white">{selectedTicket.subject}</h1>
           <div className="mt-2 flex items-center gap-2 text-xs">
             <span className={`rounded-full px-2 py-0.5 font-medium ${STATUS_COLORS[selectedTicket.status]}`}>
-              {selectedTicket.status.replace('_', ' ')}
+              {t(`dash.support.status.${selectedTicket.status}`)}
             </span>
             <span className="text-[var(--text-muted)]">
-              Opened {new Date(selectedTicket.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+              {t('dash.support.opened_date', { date: new Date(selectedTicket.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) })}
             </span>
-            <span className="text-[var(--text-muted)]">via {SOURCE_LABELS[selectedTicket.source] ?? selectedTicket.source}</span>
+            <span className="text-[var(--text-muted)]">{t('dash.support.via_source', { source: getSourceLabel(selectedTicket.source) })}</span>
           </div>
         </div>
 
@@ -154,7 +154,7 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
                   {msg.sender_name}
                   {msg.sender_type === 'admin' && (
                     <span className="ml-1.5 rounded bg-[var(--accent)]/20 px-1.5 py-0.5 text-[10px] text-[var(--accent)]">
-                      Support
+                      {t('dash.support.badge_support')}
                     </span>
                   )}
                 </span>
@@ -175,7 +175,7 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
               onChange={(e) => setReplyText(e.target.value)}
               rows={3}
               className="w-full resize-y rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none focus:border-[var(--accent)]"
-              placeholder="Write a reply..."
+              placeholder={t('dash.support.reply_placeholder')}
             />
             <div className="mt-3 flex justify-end">
               <button
@@ -183,7 +183,7 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
                 disabled={sending || !replyText.trim()}
                 className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover,#6d28d9)] disabled:opacity-50"
               >
-                {sending ? 'Sending...' : 'Send Reply'}
+                {sending ? t('dash.support.sending') : t('dash.support.send_reply')}
               </button>
             </div>
           </div>
@@ -215,7 +215,7 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
         <form onSubmit={handleCreateTicket} className="mb-6 space-y-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{t('dash.support.type')}</label>
-            <Select value={newCategory} onChange={setNewCategory} options={CATEGORY_OPTIONS} />
+            <Select value={newCategory} onChange={setNewCategory} options={getCategoryOptions()} />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{t('dash.support.description')}</label>
@@ -235,14 +235,14 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
               disabled={creating}
               className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover,#6d28d9)] disabled:opacity-50"
             >
-              {creating ? 'Submitting...' : t('dash.support.submit')}
+              {creating ? t('dash.support.submitting') : t('dash.support.submit')}
             </button>
             <button
               type="button"
               onClick={() => setShowNew(false)}
               className="rounded-lg px-4 py-2 text-xs text-[var(--text-muted)] hover:text-white"
             >
-              Cancel
+              {t('dash.support.cancel')}
             </button>
           </div>
         </form>
@@ -260,7 +260,7 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
                 : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
             }`}
           >
-            {f === 'in_progress' ? 'In Progress' : f.charAt(0).toUpperCase() + f.slice(1)}
+            {f === 'all' ? t('dash.support.filter_all') : t(`dash.support.status.${f}`)}
           </button>
         ))}
       </div>
@@ -282,9 +282,9 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 17h.01" />
             </svg>
           </div>
-          <h2 className="mb-2 text-lg font-semibold">No support tickets</h2>
+          <h2 className="mb-2 text-lg font-semibold">{t('dash.support.no_tickets')}</h2>
           <p className="text-sm text-[var(--text-muted)]">
-            Need help? Click &ldquo;New Ticket&rdquo; above, or ask Ava to submit one for you.
+            {t('dash.support.no_tickets_hint')}
           </p>
         </div>
       )}
@@ -303,14 +303,14 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
                   <h3 className="truncate text-sm font-semibold text-white">{ticket.subject}</h3>
                   <div className="mt-1.5 flex items-center gap-2 text-[10px]">
                     <span className={`rounded-full px-2 py-0.5 font-medium ${STATUS_COLORS[ticket.status]}`}>
-                      {ticket.status.replace('_', ' ')}
+                      {t(`dash.support.status.${ticket.status}`)}
                     </span>
                     {ticket.category && (
                       <span className={`rounded-full px-2 py-0.5 font-medium ${CATEGORY_COLORS[ticket.category] || CATEGORY_COLORS.other}`}>
-                        {ticket.category}
+                        {t(`dash.support.category.${ticket.category}`)}
                       </span>
                     )}
-                    <span className="text-[var(--text-muted)]">via {SOURCE_LABELS[ticket.source] ?? ticket.source}</span>
+                    <span className="text-[var(--text-muted)]">{t('dash.support.via_source', { source: getSourceLabel(ticket.source) })}</span>
                     <span className="text-[var(--text-muted)]">
                       {new Date(ticket.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                     </span>
@@ -318,7 +318,7 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
                 </div>
                 <div className="flex shrink-0 items-center gap-2 text-xs text-[var(--text-muted)]">
                   {ticket.support_messages?.length > 0 && (
-                    <span>{ticket.support_messages.length} message{ticket.support_messages.length !== 1 ? 's' : ''}</span>
+                    <span>{t(ticket.support_messages.length === 1 ? 'dash.support.message_count' : 'dash.support.messages_count', { count: ticket.support_messages.length })}</span>
                   )}
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -334,6 +334,7 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
 }
 
 function ByokSupport() {
+  useLocale();
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [category, setCategory] = useState('other');
@@ -359,7 +360,7 @@ function ByokSupport() {
 
       <form onSubmit={handleSubmit} className="mb-6 space-y-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-6">
         <div>
-          <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">Your Email</label>
+          <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{t('dash.support.your_email')}</label>
           <input
             type="email"
             required
@@ -370,11 +371,11 @@ function ByokSupport() {
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">Category</label>
-          <Select value={category} onChange={setCategory} options={CATEGORY_OPTIONS} />
+          <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{t('dash.support.category_label')}</label>
+          <Select value={category} onChange={setCategory} options={getCategoryOptions()} />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">Message</label>
+          <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{t('dash.support.message_label')}</label>
           <textarea
             required
             rows={5}
@@ -382,7 +383,7 @@ function ByokSupport() {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             className="w-full resize-y rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none focus:border-[var(--accent)]"
-            placeholder="Describe your issue..."
+            placeholder={t('dash.support.describe_issue')}
           />
         </div>
         <div className="flex items-center gap-3">
@@ -390,18 +391,18 @@ function ByokSupport() {
             type="submit"
             className="rounded-lg bg-[var(--accent)] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover,#6d28d9)]"
           >
-            Send Message
+            {t('dash.support.send_message')}
           </button>
-          {sent && <span className="text-xs text-green-400">Opening your email client...</span>}
+          {sent && <span className="text-xs text-green-400">{t('dash.support.email_opening')}</span>}
         </div>
       </form>
 
       <div className="rounded-xl border border-dashed border-[var(--border-card)] bg-[var(--bg-card)] p-5 text-center">
         <p className="mb-2 text-xs text-[var(--text-muted)]">
-          Connected account holders get priority support and ticket tracking.
+          {t('dash.support.priority_note')}
         </p>
         <p className="text-xs text-[var(--text-muted)]">
-          You can also open an issue on{' '}
+          {t('dash.support.github_issue')}{' '}
           <button onClick={() => post({ type: 'open_url', url: 'https://github.com/AugmentedValueAcceleration/ava-supernova/issues' })} className="text-[var(--gradient-start)] hover:underline">
             GitHub
           </button>.

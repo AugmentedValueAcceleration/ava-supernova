@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ToolCallDisplay } from '../types/messages';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 
 interface AskUserCardProps {
   toolCall: ToolCallDisplay;
@@ -8,6 +8,7 @@ interface AskUserCardProps {
 }
 
 export function AskUserCard({ toolCall, onConfirmation }: AskUserCardProps) {
+  useLocale();
   const [response, setResponse] = useState('');
 
   let question = t('ask.fallback');

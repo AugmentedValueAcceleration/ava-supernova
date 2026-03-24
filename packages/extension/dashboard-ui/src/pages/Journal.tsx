@@ -13,7 +13,7 @@ interface JournalProps {
   onDeleteAvaEntry?: (date: string) => void;
 }
 
-const MOOD_LABELS = ['', 'Rough', 'Low', 'Okay', 'Good', 'Great'];
+const MOOD_LABEL_KEYS = ['', 'dash.journal.mood_rough', 'dash.journal.mood_low', 'dash.journal.mood_okay', 'dash.journal.mood_good', 'dash.journal.mood_great'];
 const MOOD_COLORS = ['', '#ef4444', '#f59e0b', '#6b7280', '#3b82f6', '#34d399'];
 
 function formatDate(iso: string): string {
@@ -41,7 +41,7 @@ export function Journal({ day, selectedDate, userName, onSaveUserEntry, onDelete
     setEditing(false);
   };
 
-  const userTitle = userName ? `${userName}'s Journal` : 'Your Journal';
+  const userTitle = userName ? t('dash.journal.user_journal').replace('{name}', userName) : t('dash.journal.your_journal');
 
   return (
     <div className="flex flex-col h-full">
@@ -84,14 +84,14 @@ export function Journal({ day, selectedDate, userName, onSaveUserEntry, onDelete
         {tab === 'user' && day?.user_entry && onDeleteUserEntry && !editing && (
           confirmDelete === 'user' ? (
             <div className="self-center flex items-center gap-1.5 pr-2">
-              <span className="text-[11px] text-red-400">Delete your entry?</span>
+              <span className="text-[11px] text-red-400">{t('dash.journal.delete_your_entry')}</span>
               <button onClick={() => { onDeleteUserEntry(selectedDate); setConfirmDelete(null); }}
-                className="text-[11px] px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 cursor-pointer">Yes</button>
+                className="text-[11px] px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 cursor-pointer">{t('dash.journal.yes')}</button>
               <button onClick={() => setConfirmDelete(null)}
-                className="text-[11px] px-2 py-0.5 rounded bg-[var(--bg-input)] text-[var(--text-muted)] border border-[var(--border-card)] hover:text-white cursor-pointer">No</button>
+                className="text-[11px] px-2 py-0.5 rounded bg-[var(--bg-input)] text-[var(--text-muted)] border border-[var(--border-card)] hover:text-white cursor-pointer">{t('dash.journal.no')}</button>
             </div>
           ) : (
-            <button onClick={() => setConfirmDelete('user')} title="Delete your entry"
+            <button onClick={() => setConfirmDelete('user')} title={t('dash.journal.delete_your_entry')}
               className="self-center mr-2 text-[var(--text-muted)] hover:text-red-400 cursor-pointer bg-transparent border-none transition-colors">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
             </button>
@@ -100,14 +100,14 @@ export function Journal({ day, selectedDate, userName, onSaveUserEntry, onDelete
         {tab === 'ava' && day?.ava_entry && onDeleteAvaEntry && (
           confirmDelete === 'ava' ? (
             <div className="self-center flex items-center gap-1.5 pr-2">
-              <span className="text-[11px] text-red-400">Delete Ava's entry?</span>
+              <span className="text-[11px] text-red-400">{t('dash.journal.delete_ava_entry')}</span>
               <button onClick={() => { onDeleteAvaEntry(selectedDate); setConfirmDelete(null); }}
-                className="text-[11px] px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 cursor-pointer">Yes</button>
+                className="text-[11px] px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 cursor-pointer">{t('dash.journal.yes')}</button>
               <button onClick={() => setConfirmDelete(null)}
-                className="text-[11px] px-2 py-0.5 rounded bg-[var(--bg-input)] text-[var(--text-muted)] border border-[var(--border-card)] hover:text-white cursor-pointer">No</button>
+                className="text-[11px] px-2 py-0.5 rounded bg-[var(--bg-input)] text-[var(--text-muted)] border border-[var(--border-card)] hover:text-white cursor-pointer">{t('dash.journal.no')}</button>
             </div>
           ) : (
-            <button onClick={() => setConfirmDelete('ava')} title="Delete Ava's entry"
+            <button onClick={() => setConfirmDelete('ava')} title={t('dash.journal.delete_ava_entry')}
               className="self-center mr-2 text-[var(--text-muted)] hover:text-red-400 cursor-pointer bg-transparent border-none transition-colors">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
             </button>
@@ -177,12 +177,12 @@ function UserJournal({
       <div className="flex-1 p-5 flex flex-col">
         {/* Date indicator */}
         <div className="flex items-center justify-between mb-3">
-          <span className="text-[11px] font-medium text-[var(--text-secondary)]">Writing entry for <span className="text-white font-semibold">{dateLabel}</span></span>
+          <span className="text-[11px] font-medium text-[var(--text-secondary)]">{t('dash.journal.writing_for')} <span className="text-white font-semibold">{dateLabel}</span></span>
         </div>
 
         {/* Mood selector */}
         <div className="flex items-center gap-1 mb-3">
-          <span className="text-[10px] text-[var(--text-muted)] mr-2">Mood:</span>
+          <span className="text-[10px] text-[var(--text-muted)] mr-2">{t('dash.journal.mood')}</span>
           {[1, 2, 3, 4, 5].map(m => (
             <button
               key={m}
@@ -190,7 +190,7 @@ function UserJournal({
               className={`w-8 h-8 rounded-full border-none cursor-pointer text-xs font-bold transition
                 ${editMood === m ? 'text-white' : 'text-[var(--text-muted)] hover:text-white'}`}
               style={{ background: editMood === m ? MOOD_COLORS[m] : 'var(--bg-input)' }}
-              title={MOOD_LABELS[m]}
+              title={t(MOOD_LABEL_KEYS[m])}
             >
               {m}
             </button>
@@ -215,13 +215,13 @@ function UserJournal({
             className="px-5 py-2 rounded-lg text-xs font-semibold text-white border-none cursor-pointer transition"
             style={{ background: '#A855F7' }}
           >
-            Save Entry
+            {t('dash.journal.save_entry')}
           </button>
           <button
             onClick={onCancel}
             className="px-5 py-2 rounded-lg text-xs text-[var(--text-secondary)] bg-transparent border border-[var(--border-card)] cursor-pointer hover:bg-[var(--bg-input)] transition"
           >
-            Cancel
+            {t('dash.journal.cancel')}
           </button>
         </div>
       </div>
@@ -237,7 +237,7 @@ function UserJournal({
               className="px-3 py-1 rounded-full text-xs font-bold text-white"
               style={{ background: MOOD_COLORS[entry.mood] }}
             >
-              {MOOD_LABELS[entry.mood]} ({entry.mood}/5)
+              {t(MOOD_LABEL_KEYS[entry.mood])} ({entry.mood}/5)
             </span>
           </div>
         )}
@@ -257,7 +257,7 @@ function UserJournal({
           onClick={onStartEdit}
           className="mt-4 px-4 py-1.5 rounded-lg text-xs text-[var(--text-muted)] bg-transparent border border-[var(--border-card)] cursor-pointer hover:bg-[var(--bg-input)] hover:text-white transition"
         >
-          Edit Entry
+          {t('dash.journal.edit_entry')}
         </button>
       </div>
     );
@@ -274,7 +274,7 @@ function UserJournal({
         className="px-6 py-2.5 rounded-lg text-sm font-semibold text-white border-none cursor-pointer transition"
         style={{ background: '#A855F7' }}
       >
-        Write Entry
+        {t('dash.journal.write_entry')}
       </button>
     </div>
   );
@@ -313,7 +313,7 @@ function AvaJournal({ entry }: { entry: AvaEntry | null }) {
         <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
       </svg>
       <p className="text-sm text-[var(--text-muted)]">{t('dash.journal.no_entries')}</p>
-      <p className="text-[11px] text-[var(--text-muted)] mt-1 opacity-60">Ava writes her thoughts at the end of sessions</p>
+      <p className="text-[11px] text-[var(--text-muted)] mt-1 opacity-60">{t('dash.journal.ava_session_note')}</p>
     </div>
   );
 }

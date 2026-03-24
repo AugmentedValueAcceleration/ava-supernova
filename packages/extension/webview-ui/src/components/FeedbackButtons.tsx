@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
+import { t, useLocale } from '../i18n';
 
-const POSITIVE_REASONS = ['Perfect', 'Helpful', 'Creative', 'Good explanation'] as const;
-const NEGATIVE_REASONS = ['Wrong', 'Incomplete', 'Too verbose', "Didn't understand me", 'Off topic'] as const;
+const POSITIVE_REASON_KEYS = ['feedback.perfect', 'feedback.helpful', 'feedback.creative', 'feedback.good_explanation'] as const;
+const NEGATIVE_REASON_KEYS = ['feedback.wrong', 'feedback.incomplete', 'feedback.too_verbose', 'feedback.didnt_understand', 'feedback.off_topic'] as const;
 
 interface FeedbackButtonsProps {
   messageId: string;
@@ -11,6 +12,7 @@ interface FeedbackButtonsProps {
 }
 
 export function FeedbackButtons({ messageId, rating, onRate }: FeedbackButtonsProps) {
+  useLocale();
   const [showReasons, setShowReasons] = useState<'up' | 'down' | null>(null);
   const [submitted, setSubmitted] = useState(!!rating);
 
@@ -43,7 +45,7 @@ export function FeedbackButtons({ messageId, rating, onRate }: FeedbackButtonsPr
     return (
       <div className="flex items-center gap-1 mt-1">
         <span className="text-[10px] text-[var(--vscode-foreground)] opacity-40">
-          Thanks
+          {t('feedback.thanks')}
         </span>
         <svg className="w-3 h-3 text-green-400/60" viewBox="0 0 16 16" fill="currentColor">
           <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z"/>
@@ -59,7 +61,7 @@ export function FeedbackButtons({ messageId, rating, onRate }: FeedbackButtonsPr
         <button
           onClick={handleThumbsUp}
           onDoubleClick={handleQuickUp}
-          title="Good response"
+          title={t('feedback.good')}
           className="flex items-center justify-center w-5 h-5 rounded
                      border-none cursor-pointer transition-all
                      bg-transparent hover:bg-[var(--vscode-button-secondaryBackground)]
@@ -71,7 +73,7 @@ export function FeedbackButtons({ messageId, rating, onRate }: FeedbackButtonsPr
         </button>
         <button
           onClick={handleThumbsDown}
-          title="Bad response"
+          title={t('feedback.bad')}
           className="flex items-center justify-center w-5 h-5 rounded
                      border-none cursor-pointer transition-all
                      bg-transparent hover:bg-[var(--vscode-button-secondaryBackground)]
@@ -89,18 +91,18 @@ export function FeedbackButtons({ messageId, rating, onRate }: FeedbackButtonsPr
                         bg-[var(--vscode-input-background)] border border-[var(--vscode-panel-border)]
                         rounded-lg shadow-lg py-1 min-w-[160px]">
           <div className="px-2 py-1 text-[10px] font-medium text-[var(--vscode-foreground)] opacity-40 uppercase tracking-wider">
-            {showReasons === 'up' ? 'What was good?' : 'What went wrong?'}
+            {showReasons === 'up' ? t('feedback.what_good') : t('feedback.what_wrong')}
           </div>
-          {(showReasons === 'up' ? POSITIVE_REASONS : NEGATIVE_REASONS).map((reason) => (
+          {(showReasons === 'up' ? POSITIVE_REASON_KEYS : NEGATIVE_REASON_KEYS).map((key) => (
             <button
-              key={reason}
-              onClick={() => handleReasonClick(reason)}
+              key={key}
+              onClick={() => handleReasonClick(t(key))}
               className="block w-full text-left px-2.5 py-1.5 text-[11px]
                          border-none cursor-pointer transition-colors
                          bg-transparent hover:bg-[var(--vscode-list-hoverBackground)]
                          text-[var(--vscode-foreground)] opacity-80 hover:opacity-100"
             >
-              {reason}
+              {t(key)}
             </button>
           ))}
           {showReasons === 'up' && (
@@ -111,7 +113,7 @@ export function FeedbackButtons({ messageId, rating, onRate }: FeedbackButtonsPr
                          bg-transparent hover:bg-[var(--vscode-list-hoverBackground)]
                          text-[var(--vscode-foreground)] opacity-50 hover:opacity-80"
             >
-              Skip reason
+              {t('feedback.skip_reason')}
             </button>
           )}
           <button
@@ -122,7 +124,7 @@ export function FeedbackButtons({ messageId, rating, onRate }: FeedbackButtonsPr
                        text-[var(--vscode-foreground)] opacity-30 hover:opacity-60
                        border-t border-t-[var(--vscode-panel-border)] mt-0.5 pt-1"
           >
-            Cancel
+            {t('feedback.cancel')}
           </button>
         </div>
       )}

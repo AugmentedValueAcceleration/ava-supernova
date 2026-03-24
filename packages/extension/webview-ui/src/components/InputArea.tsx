@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 import type { ProviderSource } from '../types/messages';
 
 export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm';
@@ -57,6 +57,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
 };
 
 export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled, usage, isCompressing, onCompress, providerSource, platformStatus, onProviderSourceChange, contextUsage }: InputAreaProps) {
+  useLocale();
   const [text, setText] = useState('');
   const [mode, setMode] = useState<AvaMode>('code');
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
@@ -413,7 +414,7 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
                 background: 'linear-gradient(135deg, #A855F7, #7C3AED)',
                 boxShadow: '0 2px 8px rgba(168, 85, 247, 0.4), 0 0 12px rgba(168, 85, 247, 0.15)',
               }}
-              title="Click to switch mode (Ctrl+Shift+1-6)"
+              title={t('input.mode_switch_hint')}
             >
               <span className="font-mono text-[10px] opacity-70" aria-hidden="true">
                 {MODES.find(m => m.id === mode)?.icon}
@@ -480,10 +481,10 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
                     : 'bg-transparent text-[var(--vscode-foreground)] opacity-40 hover:opacity-70'
                   }`}
                 title={providerSource === 'platform'
-                  ? `${Math.max(0, platformStatus.freeTokensLimit - platformStatus.freeTokensUsed).toLocaleString()} free tokens remaining`
-                  : 'Switch to free/platform tokens'}
+                  ? t('input.tokens_remaining', { remaining: Math.max(0, platformStatus.freeTokensLimit - platformStatus.freeTokensUsed).toLocaleString() })
+                  : t('input.provider_switch_free')}
               >
-                {platformStatus.tier === 'free' ? 'Free' : 'Platform'}
+                {platformStatus.tier === 'free' ? t('input.provider_free') : t('input.provider_platform')}
               </button>
               <button
                 onClick={() => onProviderSourceChange('byok')}
@@ -492,9 +493,9 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
                     ? 'bg-[var(--color-accent,var(--vscode-button-background))] text-white shadow-sm'
                     : 'bg-transparent text-[var(--vscode-foreground)] opacity-40 hover:opacity-70'
                   }`}
-                title="Use your own API key"
+                title={t('input.provider_use_own_key')}
               >
-                API Key
+                {t('input.provider_api_key')}
               </button>
             </div>
           )}
@@ -506,7 +507,7 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
               // Admin/unlimited accounts
               if (platformStatus.freeTokensLimit >= 999_999_999) {
                 return (
-                  <span className="text-[10px] tabular-nums opacity-30" title="Unlimited tokens">
+                  <span className="text-[10px] tabular-nums opacity-30" title={t('input.tokens_unlimited')}>
                     ∞
                   </span>
                 );
@@ -593,8 +594,8 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
             <button
               onClick={toggleVoice}
               disabled={disabled || micPermission === 'denied'}
-              title={micPermission === 'denied' ? 'Microphone denied — check browser settings' : isListening ? 'Stop listening' : 'Voice input'}
-              aria-label={isListening ? 'Stop listening' : 'Voice input'}
+              title={micPermission === 'denied' ? t('input.voice_denied') : isListening ? t('input.voice_stop') : t('input.voice_input')}
+              aria-label={isListening ? t('input.voice_stop') : t('input.voice_input')}
               className={`flex items-center justify-center w-9 h-9 rounded-lg
                          cursor-pointer transition-all duration-200
                          ${isListening
@@ -623,8 +624,8 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
                   const up = () => { clearTimeout(timer); document.removeEventListener('mouseup', up); };
                   document.addEventListener('mouseup', up);
                 }}
-                title="Tap: pause & check in | Hold: hard stop"
-                aria-label="Pause"
+                title={t('input.pause_title')}
+                aria-label={t('input.pause_aria')}
                 className="flex items-center justify-center w-9 h-9 rounded-lg
                            text-white
                            hover:opacity-90
@@ -676,27 +677,25 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
                 </svg>
               </div>
               <div>
-                <div className="text-sm font-semibold" style={{ color: 'var(--vscode-foreground)' }}>Voice Input</div>
-                <div className="text-[11px]" style={{ color: 'var(--vscode-descriptionForeground)' }}>Speak instead of typing</div>
+                <div className="text-sm font-semibold" style={{ color: 'var(--vscode-foreground)' }}>{t('input.voice_title')}</div>
+                <div className="text-[11px]" style={{ color: 'var(--vscode-descriptionForeground)' }}>{t('input.voice_subtitle')}</div>
               </div>
             </div>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--vscode-foreground)' }}>
-              Ava can listen to your voice and convert it to text. Audio is processed entirely by your browser — <strong>nothing is recorded, stored, or sent to any server</strong>.
-            </p>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--vscode-foreground)' }} dangerouslySetInnerHTML={{ __html: t('input.voice_description') }} />
             <div className="flex gap-2 pt-1">
               <button
                 onClick={() => { setShowMicPrompt(false); startListening(); }}
                 className="flex-1 py-2 rounded-lg text-sm font-medium text-white cursor-pointer border-none"
                 style={{ background: 'linear-gradient(135deg, #A855F7, #7C3AED)' }}
               >
-                Allow
+                {t('input.voice_allow')}
               </button>
               <button
                 onClick={() => { setShowMicPrompt(false); localStorage.setItem('ava-mic-consent', 'denied'); setMicPermission('denied'); }}
                 className="flex-1 py-2 rounded-lg text-sm font-medium cursor-pointer"
                 style={{ background: 'var(--vscode-button-secondaryBackground)', color: 'var(--vscode-button-secondaryForeground)', border: 'none' }}
               >
-                No Thanks
+                {t('input.voice_deny')}
               </button>
             </div>
           </div>

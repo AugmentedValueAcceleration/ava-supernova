@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 
 interface ModelSelectorProps {
   models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;
@@ -10,6 +10,7 @@ interface ModelSelectorProps {
 }
 
 export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpenDashboard }: ModelSelectorProps) {
+  useLocale();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 

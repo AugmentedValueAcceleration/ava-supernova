@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { ToolCallDisplay } from '../types/messages';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 
 interface PlanCardProps {
   toolCall: ToolCallDisplay;
@@ -47,6 +47,7 @@ const STATUS_COLORS = {
 // ─── Component ────────────────────────────────────────────────────────────
 
 export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
+  useLocale();
   const plan = parsePlanArgs(toolCall.arguments);
   const isPending = toolCall.status === 'pending_confirmation';
   const isSuccess = toolCall.status === 'success';

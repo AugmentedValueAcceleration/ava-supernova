@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 
 interface ContextBarProps {
   contextUsage: { used: number; limit: number; percent: number } | null;
@@ -9,6 +9,7 @@ interface ContextBarProps {
 }
 
 export function ContextBar({ contextUsage, isCompressing, onCompress, disabled }: ContextBarProps) {
+  useLocale();
   if (!contextUsage || contextUsage.percent <= 0) return null;
 
   const { percent } = contextUsage;

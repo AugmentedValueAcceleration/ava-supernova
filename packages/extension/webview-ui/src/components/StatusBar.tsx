@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 
 interface StatusBarProps {
   usage: {
@@ -10,6 +10,7 @@ interface StatusBarProps {
 }
 
 export function StatusBar({ usage }: StatusBarProps) {
+  useLocale();
   return (
     <div className="px-3 py-1 text-[10px] opacity-40 border-t border-[var(--vscode-panel-border)]">
       {usage.prompt_tokens.toLocaleString()} {t('status.in')} / {usage.completion_tokens.toLocaleString()} {t('status.out')}

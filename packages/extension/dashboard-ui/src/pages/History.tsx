@@ -92,7 +92,7 @@ export function History({ sessionStats, usageHistory, mode, account }: HistoryPr
               : 'text-[var(--text-muted)] hover:text-white bg-transparent'
           }`}
         >
-          Session
+          {t('dash.usage.session')}
         </button>
         <button
           onClick={() => handleTabChange('alltime')}
@@ -102,7 +102,7 @@ export function History({ sessionStats, usageHistory, mode, account }: HistoryPr
               : 'text-[var(--text-muted)] hover:text-white bg-transparent'
           }`}
         >
-          All-Time
+          {t('dash.usage.all_time')}
         </button>
       </div>
 
@@ -132,30 +132,30 @@ function SessionView({ stats }: { stats: SessionStats | null }) {
     <>
       {/* Summary Cards */}
       <div className="mb-6">
-        <SectionGroup label="Session Summary">
+        <SectionGroup label={t('dash.usage.session_summary')}>
           <div className="grid grid-cols-3 gap-3">
-            <StatCard label="Input Tokens" value={formatNumber(stats?.total_input_tokens ?? 0)} />
-            <StatCard label="Output Tokens" value={formatNumber(stats?.total_output_tokens ?? 0)} />
-            <StatCard label="Total Tokens" value={formatNumber(totalTokens)} highlight />
-            <StatCard label="Messages" value={String(stats?.messages ?? 0)} />
-            <StatCard label="Tool Calls" value={String(stats?.tool_calls ?? 0)} />
-            <StatCard label="Duration" value={sessionDuration} sub={stats ? `Since ${new Date(stats.session_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : undefined} />
+            <StatCard label={t('dash.usage.input_tokens')} value={formatNumber(stats?.total_input_tokens ?? 0)} />
+            <StatCard label={t('dash.usage.output_tokens')} value={formatNumber(stats?.total_output_tokens ?? 0)} />
+            <StatCard label={t('dash.usage.total_tokens')} value={formatNumber(totalTokens)} highlight />
+            <StatCard label={t('dash.usage.messages')} value={String(stats?.messages ?? 0)} />
+            <StatCard label={t('dash.usage.tool_calls')} value={String(stats?.tool_calls ?? 0)} />
+            <StatCard label={t('dash.usage.duration')} value={sessionDuration} sub={stats ? t('dash.usage.since', { time: new Date(stats.session_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }) : undefined} />
           </div>
         </SectionGroup>
       </div>
 
       {/* Cost Estimate */}
       <div className="mb-6">
-        <SectionGroup label="Estimated Cost">
+        <SectionGroup label={t('dash.usage.estimated_cost')}>
           <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
             <div className="flex items-baseline gap-2">
               <span className={`text-2xl font-bold ${costColour(totalCost)}`}>
                 ${totalCost.toFixed(4)}
               </span>
-              <span className="text-xs text-[var(--text-muted)]">this session</span>
+              <span className="text-xs text-[var(--text-muted)]">{t('dash.usage.this_session')}</span>
             </div>
             <p className="mt-1 text-[10px] text-[var(--text-muted)]">
-              Based on model pricing. Actual costs may vary.
+              {t('dash.usage.cost_note')}
             </p>
           </div>
         </SectionGroup>
@@ -163,7 +163,7 @@ function SessionView({ stats }: { stats: SessionStats | null }) {
 
       {/* Model Breakdown */}
       <div className="mb-6">
-        <SectionGroup label="Models Used">
+        <SectionGroup label={t('dash.usage.models_used')}>
           {breakdown.length > 0 ? (
             <div className="space-y-2">
               {breakdown.map((m) => {
@@ -188,9 +188,9 @@ function SessionView({ stats }: { stats: SessionStats | null }) {
                       />
                     </div>
                     <div className="flex flex-wrap gap-3 text-[10px] text-[var(--text-muted)]">
-                      <span>In: {formatNumber(m.input_tokens)}</span>
-                      <span>Out: {formatNumber(m.output_tokens)}</span>
-                      <span>Total: {formatNumber(total)}</span>
+                      <span>{t('status.in')}: {formatNumber(m.input_tokens)}</span>
+                      <span>{t('status.out')}: {formatNumber(m.output_tokens)}</span>
+                      <span>{t('status.total')}: {formatNumber(total)}</span>
                     </div>
                   </div>
                 );
@@ -198,7 +198,7 @@ function SessionView({ stats }: { stats: SessionStats | null }) {
             </div>
           ) : (
             <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-6 text-center">
-              <p className="text-xs text-[var(--text-muted)]">No usage this session yet. Start chatting with Ava!</p>
+              <p className="text-xs text-[var(--text-muted)]">{t('dash.usage.no_usage_session')}</p>
             </div>
           )}
         </SectionGroup>
@@ -216,10 +216,10 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
     return (
       <div className="rounded-xl border border-dashed border-[var(--border-card)] bg-[var(--bg-card)] p-8 text-center">
         <p className="text-sm font-medium text-[var(--text-secondary)] mb-2">
-          Connect your account to see usage history across sessions.
+          {t('dash.usage.connect_hint')}
         </p>
         <p className="text-xs text-[var(--text-muted)]">
-          Your session data is shown in the Session tab above.
+          {t('dash.usage.session_tab_hint')}
         </p>
       </div>
     );
@@ -253,13 +253,13 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
       {/* Token Balance Bar */}
       {data.balance && (
         <div className="mb-6">
-          <SectionGroup label="Token Balance">
+          <SectionGroup label={t('dash.usage.token_balance')}>
             <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
               {data.balance.tier === 'admin' ? (
                 <>
                   <div className="mb-2 flex justify-between text-xs">
-                    <span className="text-[var(--text-secondary)]">Admin tier</span>
-                    <span className="font-medium text-[var(--gradient-start)]">Unlimited</span>
+                    <span className="text-[var(--text-secondary)]">{t('dash.usage.admin_tier')}</span>
+                    <span className="font-medium text-[var(--gradient-start)]">{t('dash.usage.unlimited')}</span>
                   </div>
                   <div className="h-3 overflow-hidden rounded-full bg-[var(--bg-input)]">
                     <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
@@ -280,7 +280,7 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
               )}
               {forecastDays !== null && data.balance.tier !== 'admin' && (
                 <p className="mt-2 text-[10px] text-[var(--text-muted)]">
-                  Estimated {forecastDays} {forecastDays === 1 ? 'day' : 'days'} remaining at current pace
+                  {t('dash.usage.estimated_remaining', { days: forecastDays, days_label: forecastDays === 1 ? t('dash.usage.day') : t('dash.usage.days') })}
                 </p>
               )}
             </div>
@@ -290,19 +290,19 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
 
       {/* Overview Stats */}
       <div className="mb-6">
-        <SectionGroup label="Overview">
+        <SectionGroup label={t('dash.usage.overview')}>
           <div className="grid grid-cols-4 gap-3">
-            <StatCard label="This Month" value={formatNumber(data.monthTotal)} sub={monthChange !== null ? `${Number(monthChange) >= 0 ? '+' : ''}${monthChange}% vs last` : 'first month'} />
-            <StatCard label="Last Month" value={formatNumber(data.lastMonthTotal)} />
-            <StatCard label="Avg / Session" value={formatNumber(data.avgPerSession)} />
-            <StatCard label="Total Sessions" value={String(data.totalSessions)} />
+            <StatCard label={t('dash.usage.this_month')} value={formatNumber(data.monthTotal)} sub={monthChange !== null ? `${Number(monthChange) >= 0 ? '+' : ''}${monthChange}% ${t('dash.usage.vs_last')}` : t('dash.usage.first_month')} />
+            <StatCard label={t('dash.usage.last_month')} value={formatNumber(data.lastMonthTotal)} />
+            <StatCard label={t('dash.usage.avg_session')} value={formatNumber(data.avgPerSession)} />
+            <StatCard label={t('dash.usage.total_sessions')} value={String(data.totalSessions)} />
           </div>
         </SectionGroup>
       </div>
 
       {/* Daily Usage Chart */}
       <div className="mb-6">
-        <SectionGroup label="Daily Usage (Last 14 Days)">
+        <SectionGroup label={t('dash.usage.daily_usage')}>
           <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
             <div className="flex items-end gap-1" style={{ height: 120 }}>
               {data.daily.map((d) => {
@@ -333,7 +333,7 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
             </div>
             <div className="mt-2 flex justify-between text-[8px] text-[var(--text-muted)]">
               <span>{data.daily[0]?.date ? new Date(data.daily[0].date + 'T00:00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' }) : ''}</span>
-              <span>Today</span>
+              <span>{t('dash.usage.today')}</span>
             </div>
           </div>
         </SectionGroup>
@@ -342,7 +342,7 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
       {/* Most Used Models */}
       {data.topModels.length > 0 && (
         <div className="mb-6">
-          <SectionGroup label="Most Used Models">
+          <SectionGroup label={t('dash.usage.most_used_models')}>
             <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 space-y-3">
               {data.topModels.map((m) => {
                 const pct = (m.tokens / data.topModels[0].tokens) * 100;
@@ -369,16 +369,16 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
       {/* Session History */}
       {data.sessions.length > 0 && (
         <div className="mb-6">
-          <SectionGroup label="Session History" count={`${data.sessions.length} sessions`}>
+          <SectionGroup label={t('dash.usage.session_history')} count={t('dash.usage.sessions_count', { count: data.sessions.length })}>
             <div className="rounded-xl border border-[var(--border-card)] overflow-hidden">
               {/* Header */}
               <div className="grid grid-cols-6 gap-2 bg-[var(--bg-card)] px-4 py-2 border-b border-[var(--border-card)]">
-                <span className="text-[10px] font-medium text-[var(--text-muted)]">Date</span>
-                <span className="text-[10px] font-medium text-[var(--text-muted)]">Duration</span>
-                <span className="text-[10px] font-medium text-[var(--text-muted)] text-right">Messages</span>
-                <span className="text-[10px] font-medium text-[var(--text-muted)] text-right">Tokens</span>
-                <span className="text-[10px] font-medium text-[var(--text-muted)]">Model</span>
-                <span className="text-[10px] font-medium text-[var(--text-muted)] text-right">Cost</span>
+                <span className="text-[10px] font-medium text-[var(--text-muted)]">{t('dash.usage.date')}</span>
+                <span className="text-[10px] font-medium text-[var(--text-muted)]">{t('dash.usage.duration')}</span>
+                <span className="text-[10px] font-medium text-[var(--text-muted)] text-right">{t('dash.usage.messages')}</span>
+                <span className="text-[10px] font-medium text-[var(--text-muted)] text-right">{t('dash.usage.tokens')}</span>
+                <span className="text-[10px] font-medium text-[var(--text-muted)]">{t('dash.usage.model')}</span>
+                <span className="text-[10px] font-medium text-[var(--text-muted)] text-right">{t('dash.usage.cost')}</span>
               </div>
 
               {/* Rows */}
@@ -402,27 +402,27 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
                       <div className="px-4 py-3 bg-[var(--bg-input)]/30 border-b border-[var(--border-card)]">
                         <div className="grid grid-cols-3 gap-3 text-[10px]">
                           <div>
-                            <span className="text-[var(--text-muted)]">Date: </span>
+                            <span className="text-[var(--text-muted)]">{t('dash.usage.date')}: </span>
                             <span className="text-[var(--text-secondary)]">{s.date}</span>
                           </div>
                           <div>
-                            <span className="text-[var(--text-muted)]">Duration: </span>
+                            <span className="text-[var(--text-muted)]">{t('dash.usage.duration')}: </span>
                             <span className="text-[var(--text-secondary)]">{s.duration}</span>
                           </div>
                           <div>
-                            <span className="text-[var(--text-muted)]">Primary Model: </span>
+                            <span className="text-[var(--text-muted)]">{t('dash.usage.primary_model')}: </span>
                             <span className="text-[var(--text-secondary)]">{s.model}</span>
                           </div>
                           <div>
-                            <span className="text-[var(--text-muted)]">Messages: </span>
+                            <span className="text-[var(--text-muted)]">{t('dash.usage.messages')}: </span>
                             <span className="text-[var(--text-secondary)]">{s.messages}</span>
                           </div>
                           <div>
-                            <span className="text-[var(--text-muted)]">Tokens: </span>
+                            <span className="text-[var(--text-muted)]">{t('dash.usage.tokens')}: </span>
                             <span className="text-[var(--text-secondary)]">{s.tokens.toLocaleString()}</span>
                           </div>
                           <div>
-                            <span className="text-[var(--text-muted)]">Est. Cost: </span>
+                            <span className="text-[var(--text-muted)]">{t('dash.usage.est_cost')}: </span>
                             <span className={costColour(s.cost)}>${s.cost.toFixed(4)}</span>
                           </div>
                         </div>

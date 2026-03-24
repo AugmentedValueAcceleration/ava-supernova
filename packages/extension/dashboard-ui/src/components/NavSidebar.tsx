@@ -46,7 +46,7 @@ function getNavGroups(): NavGroup[] {
       ],
     },
     {
-      label: 'Productivity',
+      label: t('dash.section.productivity'),
       items: [
         { page: 'tasks', label: t('dash.nav.tasks'), icon: ChecklistIcon },
         { page: 'journal', label: t('dash.nav.journal'), icon: BookIcon },
@@ -54,7 +54,7 @@ function getNavGroups(): NavGroup[] {
       ],
     },
     {
-      label: 'Creative',
+      label: t('dash.section.creative'),
       items: [
         { page: 'library', label: t('dash.nav.library'), icon: PhotoIcon },
       ],
@@ -81,11 +81,11 @@ function getNavGroups(): NavGroup[] {
       ],
     },
     {
-      label: 'Admin',
+      label: t('dash.section.admin'),
       adminOnly: true,
       items: [
         { page: 'admin_support', label: t('dash.nav.support'), icon: ShieldIcon, platformOnly: true, adminOnly: true },
-        { page: 'admin_proposals', label: 'Proposals', icon: WrenchIcon, platformOnly: true, adminOnly: true },
+        { page: 'admin_proposals', label: t('dash.nav.proposals'), icon: WrenchIcon, platformOnly: true, adminOnly: true },
       ],
     },
   ];
@@ -219,7 +219,7 @@ export function NavSidebar({
                         <div key={item.page} className="flex items-center gap-3 rounded-lg px-3 py-1.5 text-[12px] text-[var(--text-muted)] cursor-not-allowed">
                           <span className="w-4 shrink-0"><item.icon className="h-3.5 w-3.5" /></span>
                           <span>{item.label}</span>
-                          <span className="ml-auto rounded bg-[var(--bg-input)] px-1.5 py-0.5 text-[9px]">Soon</span>
+                          <span className="ml-auto rounded bg-[var(--bg-input)] px-1.5 py-0.5 text-[9px]">{t('dash.nav.coming_soon')}</span>
                         </div>
                       );
                     }
@@ -270,7 +270,7 @@ export function NavSidebar({
           </>
         ) : (
           <>
-            <p className="mb-2 px-3 text-[10px] text-[var(--text-muted)]">Using your own API keys</p>
+            <p className="mb-2 px-3 text-[10px] text-[var(--text-muted)]">{t('dash.auth.byok_hint')}</p>
             <button
               onClick={onConnectAccount}
               className="w-full rounded-lg border border-[var(--accent)]/40 bg-transparent px-3 py-1.5 text-xs text-[var(--accent)] transition hover:bg-[var(--accent)]/10"
@@ -430,10 +430,10 @@ function MiniCalendar({
       {/* Legend */}
       <div className="flex items-center gap-3 mt-2 justify-center">
         <div className="flex items-center gap-1 text-[8px] text-[var(--text-muted)]">
-          <span className="w-1 h-1 rounded-full bg-white" /> You
+          <span className="w-1 h-1 rounded-full bg-white" /> {t('dash.calendar.you')}
         </div>
         <div className="flex items-center gap-1 text-[8px] text-[var(--text-muted)]">
-          <span className="w-1 h-1 rounded-full bg-[#A855F7]" /> Ava
+          <span className="w-1 h-1 rounded-full bg-[#A855F7]" /> {t('dash.calendar.ava')}
         </div>
       </div>
     </div>

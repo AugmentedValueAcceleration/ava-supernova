@@ -10,6 +10,13 @@ const levelColors: Record<string, string> = {
   mixed: 'color: #a78bfa; background: rgba(167,139,250,0.1)',
 };
 
+const LEVEL_KEYS: Record<string, string> = {
+  beginner: 'dash.learning.level_beginner',
+  intermediate: 'dash.learning.level_intermediate',
+  advanced: 'dash.learning.level_advanced',
+  mixed: 'dash.learning.level_mixed',
+};
+
 const typeIcons: Record<string, string> = {
   concept: '📖', exercise: '💻', project: '🛠', quiz: '❓', recap: '🔄',
 };
@@ -41,7 +48,7 @@ export function Learning({ curriculums }: Props) {
           onClick={() => setSelectedId(null)}
           className="mb-4 text-xs text-[var(--text-muted)] hover:text-white transition bg-transparent border-none cursor-pointer"
         >
-          ← Back to Learning
+          ← {t('dash.learning.back')}
         </button>
 
         <div className="mb-4">
@@ -50,7 +57,7 @@ export function Learning({ curriculums }: Props) {
               className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase"
               style={levelColors[selected.level] ? { ...Object.fromEntries(levelColors[selected.level].split(';').map(s => s.trim().split(':').map(v => v.trim()))) } : {}}
             >
-              {selected.level}
+              {t(LEVEL_KEYS[selected.level] ?? 'dash.learning.level_mixed')}
             </span>
             {selected.estimated_hours && (
               <span className="text-[10px] text-[var(--text-muted)]">~{selected.estimated_hours}h</span>
@@ -64,7 +71,7 @@ export function Learning({ curriculums }: Props) {
           {/* Progress bar */}
           <div className="mt-3">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] text-[var(--text-muted)]">Progress</span>
+              <span className="text-[10px] text-[var(--text-muted)]">{t('dash.learning.progress')}</span>
               <span className="text-[10px] font-medium text-white">{Math.round(selected.progress_percent)}%</span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-[var(--bg-input)]">
@@ -160,7 +167,7 @@ export function Learning({ curriculums }: Props) {
                   className="rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase"
                   style={levelColors[curr.level] ? { ...Object.fromEntries(levelColors[curr.level].split(';').map(s => s.trim().split(':').map(v => v.trim()))) } : {}}
                 >
-                  {curr.level}
+                  {t(LEVEL_KEYS[curr.level] ?? 'dash.learning.level_mixed')}
                 </span>
                 <span className="text-[10px] text-[var(--text-muted)]">{curr.subject}</span>
               </div>
@@ -174,7 +181,7 @@ export function Learning({ curriculums }: Props) {
                   />
                 </div>
                 <span className="text-[9px] text-[var(--text-muted)] mt-1 block">
-                  {curr.status === 'completed' ? 'Completed' : `${Math.round(curr.progress_percent)}% complete`}
+                  {curr.status === 'completed' ? t('dash.learning.completed') : t('dash.learning.pct_complete').replace('{pct}', String(Math.round(curr.progress_percent)))}
                 </span>
               </div>
             </button>

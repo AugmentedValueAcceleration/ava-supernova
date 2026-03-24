@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 
 const MESSAGE_KEYS = ['thinking.0', 'thinking.1', 'thinking.2', 'thinking.3'];
 
 export function ThinkingIndicator() {
+  useLocale();
   const [index, setIndex] = useState(0);
 
   useEffect(() => {

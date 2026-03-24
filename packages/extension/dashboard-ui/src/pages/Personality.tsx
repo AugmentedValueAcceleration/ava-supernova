@@ -9,33 +9,41 @@ interface Props {
 
 // ── Option descriptors ─────────────────────────────────────────────────────
 
-const PRONOUNS = [
-  { value: 'she/her', label: 'she / her' },
-  { value: 'he/him', label: 'he / him' },
-  { value: 'they/them', label: 'they / them' },
-];
+function getPronouns() {
+  return [
+    { value: 'she/her', label: t('dash.personality.pronouns.she') },
+    { value: 'he/him', label: t('dash.personality.pronouns.he') },
+    { value: 'they/them', label: t('dash.personality.pronouns.they') },
+  ];
+}
 
-const TONES = [
-  { value: 'warm', label: 'Warm', desc: 'Warm and encouraging \u2014 celebrates wins, genuinely cares' },
-  { value: 'direct', label: 'Direct', desc: 'Direct and no-nonsense \u2014 straight to the point' },
-  { value: 'playful', label: 'Playful', desc: 'Playful and witty \u2014 uses humour naturally' },
-  { value: 'professional', label: 'Professional', desc: 'Professional and polished \u2014 clear, authoritative' },
-  { value: 'dry-wit', label: 'Dry Wit', desc: 'Dry wit \u2014 understated brilliance, bone dry humour' },
-];
+function getTones() {
+  return [
+    { value: 'warm', label: t('dash.personality.tone.warm'), desc: t('dash.personality.tone.warm_desc') },
+    { value: 'direct', label: t('dash.personality.tone.direct'), desc: t('dash.personality.tone.direct_desc') },
+    { value: 'playful', label: t('dash.personality.tone.playful'), desc: t('dash.personality.tone.playful_desc') },
+    { value: 'professional', label: t('dash.personality.tone.professional'), desc: t('dash.personality.tone.professional_desc') },
+    { value: 'dry-wit', label: t('dash.personality.tone.dry'), desc: t('dash.personality.tone.dry_desc') },
+  ];
+}
 
-const ENERGIES = [
-  { value: 'calm', label: 'Calm', desc: 'Calm and steady \u2014 reassuring, never rushes' },
-  { value: 'enthusiastic', label: 'Enthusiastic', desc: 'Enthusiastic \u2014 gets excited when plans come together' },
-  { value: 'measured', label: 'Measured', desc: 'Measured and deliberate \u2014 weighs every word' },
-  { value: 'excitable', label: 'Excitable', desc: 'Excitable \u2014 high energy, expressive, visibly excited' },
-];
+function getEnergies() {
+  return [
+    { value: 'calm', label: t('dash.personality.energy.calm'), desc: t('dash.personality.energy.calm_desc') },
+    { value: 'enthusiastic', label: t('dash.personality.energy.enthusiastic'), desc: t('dash.personality.energy.enthusiastic_desc') },
+    { value: 'measured', label: t('dash.personality.energy.measured'), desc: t('dash.personality.energy.measured_desc') },
+    { value: 'excitable', label: t('dash.personality.energy.excitable'), desc: t('dash.personality.energy.excitable_desc') },
+  ];
+}
 
-const STYLES = [
-  { value: 'concise', label: 'Concise', desc: 'Concise \u2014 sharp, no filler, one sentence over three' },
-  { value: 'detailed', label: 'Detailed', desc: 'Detailed \u2014 thorough, explains the why' },
-  { value: 'conversational', label: 'Conversational', desc: 'Conversational \u2014 natural, talks like a person' },
-  { value: 'structured', label: 'Structured', desc: 'Structured \u2014 headers, bullets, everything in its place' },
-];
+function getStyles() {
+  return [
+    { value: 'concise', label: t('dash.personality.style.concise'), desc: t('dash.personality.style.concise_desc') },
+    { value: 'detailed', label: t('dash.personality.style.detailed'), desc: t('dash.personality.style.detailed_desc') },
+    { value: 'conversational', label: t('dash.personality.style.conversational'), desc: t('dash.personality.style.conversational_desc') },
+    { value: 'structured', label: t('dash.personality.style.structured'), desc: t('dash.personality.style.structured_desc') },
+  ];
+}
 
 // ── Component ──────────────────────────────────────────────────────────────
 
@@ -79,9 +87,13 @@ export function Personality({ personality }: Props) {
     post({ type: 'reset_personality' });
   };
 
-  const toneLabel = TONES.find(t => t.value === tone)?.label?.toLowerCase() ?? tone;
-  const energyLabel = ENERGIES.find(e => e.value === energy)?.label?.toLowerCase() ?? energy;
-  const styleLabel = STYLES.find(s => s.value === style)?.label?.toLowerCase() ?? style;
+  const PRONOUNS = getPronouns();
+  const TONES = getTones();
+  const ENERGIES = getEnergies();
+  const STYLES = getStyles();
+  const toneLabel = TONES.find(x => x.value === tone)?.label?.toLowerCase() ?? tone;
+  const energyLabel = ENERGIES.find(x => x.value === energy)?.label?.toLowerCase() ?? energy;
+  const styleLabel = STYLES.find(x => x.value === style)?.label?.toLowerCase() ?? style;
 
   return (
     <div className="mx-auto w-full max-w-3xl">
@@ -169,25 +181,25 @@ export function Personality({ personality }: Props) {
       </Section>
 
       {/* Free-text description */}
-      <Section label="Description">
+      <Section label={t('dash.personality.description')}>
         <textarea
           value={description}
           onChange={e => setDescription(e.target.value)}
-          placeholder="e.g. Like a patient older brother who's been coding for 20 years"
+          placeholder={t('dash.personality.description_placeholder')}
           rows={3}
           className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-input)] px-4 py-2.5 text-sm text-white outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] resize-none"
         />
         <p className="mt-1.5 text-xs text-[var(--text-muted)]">
-          Optional. Describe the vibe in your own words and your AI will embody it.
+          {t('dash.personality.description_hint')}
         </p>
       </Section>
 
       {/* Live preview */}
       <div className="mb-8 rounded-xl border border-[var(--border)] bg-[var(--bg-input)] p-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">Preview</p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">{t('dash.personality.preview')}</p>
         <p className="text-sm text-white">
           <span className="font-semibold text-[var(--accent)]">{name || 'Ava'}</span>{' '}
-          will be {toneLabel}, {energyLabel}, and {styleLabel}.
+          {t('dash.personality.will_be', { name: '', tone: toneLabel, energy: energyLabel, style: styleLabel }).trim()}
         </p>
         {description && (
           <p className="mt-2 text-xs text-[var(--text-secondary)] italic">
@@ -202,13 +214,13 @@ export function Personality({ personality }: Props) {
           onClick={handleSave}
           className="rounded-lg bg-[var(--accent)] px-6 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 cursor-pointer"
         >
-          {saved ? 'Saved!' : 'Save Personality'}
+          {saved ? t('dash.personality.saved') : t('dash.personality.save')}
         </button>
         <button
           onClick={handleReset}
           className="rounded-lg border border-[var(--border)] bg-transparent px-5 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition hover:border-[var(--text-muted)] hover:text-white cursor-pointer"
         >
-          Reset to Default
+          {t('dash.personality.reset')}
         </button>
       </div>
     </div>

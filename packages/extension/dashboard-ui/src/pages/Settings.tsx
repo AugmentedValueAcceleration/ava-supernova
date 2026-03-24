@@ -181,7 +181,7 @@ export function Settings({
       </div>
 
       {/* ── 1. Your AI ──────────────────────────────────────────────────── */}
-      <SectionLabel>Your AI</SectionLabel>
+      <SectionLabel>{t('dash.settings.section.your_ai')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -193,7 +193,7 @@ export function Settings({
               <p className="text-xs text-[var(--text-muted)]">
                 {personality
                   ? `${personality.tone} / ${personality.energy} / ${personality.style}`
-                  : 'Default personality'}
+                  : t('dash.settings.default_personality')}
               </p>
             </div>
           </div>
@@ -202,14 +202,14 @@ export function Settings({
               onClick={() => onNavigate('personality')}
               className="text-xs font-medium text-purple-400 transition hover:text-purple-300"
             >
-              Customise &rarr;
+              {t('dash.settings.customise')} &rarr;
             </button>
           )}
         </div>
       </div>
 
       {/* ── 2. Model ────────────────────────────────────────────────────── */}
-      <SectionLabel>Model</SectionLabel>
+      <SectionLabel>{t('dash.settings.section.model')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <div className="mb-3">
           <p className="text-lg font-semibold">{modelLabel}</p>
@@ -223,13 +223,13 @@ export function Settings({
       </div>
 
       {/* ── 3. Privacy & Data ───────────────────────────────────────────── */}
-      <SectionLabel>Privacy & Data</SectionLabel>
+      <SectionLabel>{t('dash.settings.section.privacy')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         {/* Auto Memory */}
         <ToggleRow
           icon={<span className="text-base">&#x1f9e0;</span>}
-          title="Auto Memory"
-          description="Automatically save important details from conversations"
+          title={t('dash.settings.auto_memory')}
+          description={t('dash.settings.auto_memory_desc')}
           value={local.autoMemory}
           onChange={v => saveImmediate('autoMemory', v)}
         />
@@ -239,8 +239,8 @@ export function Settings({
         {/* Local Only */}
         <ToggleRow
           icon={<span className="text-base">&#x1f512;</span>}
-          title="Local Only"
-          description="Keep all data on your machine. Disable to enable cloud sync."
+          title={t('dash.settings.local_only')}
+          description={t('dash.settings.local_only_desc')}
           value={local.memoryLocalOnly}
           onChange={v => saveImmediate('memoryLocalOnly', v)}
         />
@@ -251,24 +251,24 @@ export function Settings({
         <div>
           <ToggleRow
             icon={<span className="text-base">&#x1f4a1;</span>}
-            title="Shared Learning"
-            description="Help improve Ava for everyone. Anonymised technical patterns only."
+            title={t('dash.settings.shared_learning')}
+            description={t('dash.settings.shared_learning_desc')}
             value={local.contributeSharedLearning}
             onChange={v => saveImmediate('contributeSharedLearning', v)}
           />
           <p className={`mt-2 pl-8 text-xs ${local.contributeSharedLearning ? 'text-emerald-400' : 'text-[var(--text-muted)]'}`}>
             {local.contributeSharedLearning
-              ? 'Contributing to shared learning'
-              : 'Off \u2014 your learnings stay local'}
+              ? t('dash.settings.contributing')
+              : t('dash.settings.learnings_local')}
           </p>
         </div>
       </div>
 
       {/* ── 4. Behavior ─────────────────────────────────────────────────── */}
-      <SectionLabel>Behavior</SectionLabel>
+      <SectionLabel>{t('dash.settings.section.behavior')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <p className="mb-1 text-sm font-semibold">{t('dash.settings.permission')}</p>
-        <p className="mb-3 text-xs text-[var(--text-muted)]">Controls when Ava asks before running tools.</p>
+        <p className="mb-3 text-xs text-[var(--text-muted)]">{t('dash.settings.permission_desc')}</p>
 
         <div className="mb-5 grid grid-cols-3 gap-2">
           <PermissionCard
@@ -298,8 +298,8 @@ export function Settings({
 
         <ToggleRow
           icon={null}
-          title="Stream Responses"
-          description="Show tokens as they arrive instead of waiting for completion."
+          title={t('dash.settings.stream_responses')}
+          description={t('dash.settings.stream_responses_desc')}
           value={local.streamResponses}
           onChange={v => saveImmediate('streamResponses', v)}
         />
@@ -328,8 +328,8 @@ export function Settings({
                 <p className="text-sm font-semibold">{t('dash.settings.provider_keys')}</p>
                 <p className="text-xs text-[var(--text-muted)]">
                   {configuredCount === 0
-                    ? 'No providers configured'
-                    : `${configuredCount}/${PROVIDERS.length} providers configured`}
+                    ? t('dash.settings.no_providers')
+                    : t('dash.settings.providers_configured', { count: configuredCount, total: PROVIDERS.length })}
                 </p>
               </div>
               <ChevronDownIcon
@@ -351,7 +351,7 @@ export function Settings({
                       {providerKeys[provider.id] ? (
                         <div className="flex items-center gap-3">
                           {savingProvider === provider.id ? (
-                            <span className="text-xs text-emerald-400">Saved</span>
+                            <span className="text-xs text-emerald-400">{t('dash.settings.saved')}</span>
                           ) : (
                             <>
                               <span className="font-mono text-xs text-[var(--text-muted)]">
@@ -361,7 +361,7 @@ export function Settings({
                                 onClick={() => handleRemoveProviderKey(provider.id)}
                                 className="rounded-md px-2 py-1 text-[10px] text-red-400 transition hover:bg-red-500/10"
                               >
-                                Remove
+                                {t('dash.settings.remove')}
                               </button>
                             </>
                           )}
@@ -386,7 +386,7 @@ export function Settings({
                             disabled={!providerInputs[provider.id]?.trim()}
                             className="rounded-md bg-[var(--accent)] px-3 py-1.5 text-[10px] font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
                           >
-                            Save
+                            {t('dash.settings.save')}
                           </button>
                           <button
                             onClick={() => {
@@ -395,17 +395,17 @@ export function Settings({
                             }}
                             className="rounded-md px-2 py-1.5 text-[10px] text-[var(--text-muted)] transition hover:text-white"
                           >
-                            Cancel
+                            {t('dash.settings.cancel')}
                           </button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-[var(--text-muted)]">Not set</span>
+                          <span className="text-xs text-[var(--text-muted)]">{t('dash.settings.not_set')}</span>
                           <button
                             onClick={() => setEditingProvider(provider.id)}
                             className="rounded-md border border-[var(--border-input)] px-3 py-1.5 text-[10px] font-medium text-[var(--text-secondary)] transition hover:border-[var(--accent)] hover:text-white"
                           >
-                            Edit
+                            {t('dash.settings.edit')}
                           </button>
                         </div>
                       )}
@@ -415,7 +415,7 @@ export function Settings({
                         href={provider.signupUrl}
                         className="text-[10px] text-[var(--gradient-start)] hover:underline"
                       >
-                        Get an API key &rarr;
+                        {t('dash.settings.get_api_key')} &rarr;
                       </a>
                     )}
                   </div>
@@ -427,15 +427,15 @@ export function Settings({
       )}
 
       {/* ── 7. Advanced (collapsible) ───────────────────────────────────── */}
-      <SectionLabel>Advanced</SectionLabel>
+      <SectionLabel>{t('dash.settings.section.advanced')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)]">
         <button
           onClick={() => setAdvancedOpen(!advancedOpen)}
           className="flex w-full items-center justify-between p-5 text-left"
         >
           <div>
-            <p className="text-sm font-semibold">Advanced Settings</p>
-            <p className="text-xs text-[var(--text-muted)]">Most users don't need to change these.</p>
+            <p className="text-sm font-semibold">{t('dash.settings.advanced_settings')}</p>
+            <p className="text-xs text-[var(--text-muted)]">{t('dash.settings.advanced_hint')}</p>
           </div>
           <ChevronDownIcon
             className={`h-4 w-4 text-[var(--text-muted)] transition-transform ${advancedOpen ? 'rotate-180' : ''}`}
@@ -447,13 +447,13 @@ export function Settings({
             {/* Temperature */}
             <div className="mb-5">
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-sm font-semibold">Temperature</p>
+                <p className="text-sm font-semibold">{t('dash.settings.temperature')}</p>
                 <span className="rounded-md bg-[var(--bg-input)] px-2 py-0.5 font-mono text-xs text-[var(--text-secondary)]">
                   {local.temperature.toFixed(1)}
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-[10px] text-[var(--text-muted)]">Precise</span>
+                <span className="text-[10px] text-[var(--text-muted)]">{t('dash.settings.precise')}</span>
                 <input
                   type="range"
                   min={0}
@@ -463,7 +463,7 @@ export function Settings({
                   onChange={e => saveImmediate('temperature', parseFloat(e.target.value))}
                   className="flex-1 accent-[var(--accent)]"
                 />
-                <span className="text-[10px] text-[var(--text-muted)]">Creative</span>
+                <span className="text-[10px] text-[var(--text-muted)]">{t('dash.settings.creative')}</span>
               </div>
             </div>
 
@@ -471,7 +471,7 @@ export function Settings({
 
             {/* Max Tokens */}
             <div className="mt-5">
-              <p className="mb-2 text-sm font-semibold">Max Response Tokens</p>
+              <p className="mb-2 text-sm font-semibold">{t('dash.settings.max_tokens')}</p>
               <input
                 type="number"
                 min={256}
@@ -494,20 +494,20 @@ export function Settings({
       {/* ── 8. Danger Zone ──────────────────────────────────────────────── */}
       {account && (
         <>
-          <SectionLabel>Danger Zone</SectionLabel>
+          <SectionLabel>{t('dash.settings.section.danger_zone')}</SectionLabel>
           <div className="mb-4 rounded-xl border border-red-500/30 bg-[var(--bg-card)] p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-red-400">Disconnect Account</p>
+                <p className="text-sm font-semibold text-red-400">{t('dash.settings.disconnect_account')}</p>
                 <p className="text-xs text-red-400/70">
-                  This will sign you out and remove your account connection from this device.
+                  {t('dash.settings.disconnect_desc')}
                 </p>
               </div>
               <button
                 onClick={() => post({ type: 'disconnect_account' })}
                 className="rounded-lg border border-red-500/40 px-4 py-2 text-xs font-semibold text-red-400 transition hover:bg-red-500/10"
               >
-                Disconnect
+                {t('dash.settings.disconnect')}
               </button>
             </div>
           </div>

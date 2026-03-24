@@ -1,5 +1,5 @@
 import { ModelSelector } from './ModelSelector';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 
 interface HeaderProps {
   models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;
@@ -24,6 +24,7 @@ export function Header({
   onToggleTasks,
   tasksOpen,
 }: HeaderProps) {
+  useLocale();
   const btnBase = `flex items-center justify-center w-7 h-7 rounded
                    hover:bg-[var(--vscode-toolbar-hoverBackground)]
                    text-[var(--vscode-foreground)] opacity-70 hover:opacity-100
@@ -57,8 +58,8 @@ export function Header({
       {/* Tasks — highlighted when open */}
       <button
         onClick={onToggleTasks}
-        title="Tasks"
-        aria-label="Tasks"
+        title={t('header.tasks')}
+        aria-label={t('header.tasks')}
         className={`flex items-center justify-center w-7 h-7 rounded
                    hover:bg-[var(--vscode-toolbar-hoverBackground)]
                    text-[var(--vscode-foreground)] ${tasksOpen ? 'opacity-100' : 'opacity-70'} hover:opacity-100
@@ -70,7 +71,7 @@ export function Header({
       </button>
 
       {/* Dashboard */}
-      <button onClick={onOpenDashboard} title="Dashboard" aria-label="Dashboard" className={btnBase}>
+      <button onClick={onOpenDashboard} title={t('header.dashboard')} aria-label={t('header.dashboard')} className={btnBase}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
           <path d="M8 1a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM2 13c0-3 2.69-4.5 6-4.5s6 1.5 6 4.5v1H2v-1z"/>
         </svg>

@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type { UIMessage } from '../types/messages';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ThinkingBlock } from './ThinkingBlock';
 import { ToolCallCard } from './ToolCallCard';
@@ -99,6 +99,7 @@ function ErrorIcon({ code }: { code: string }) {
 }
 
 export function MessageBubble({ message, onConfirmation, onContinue, onRate }: MessageBubbleProps) {
+  useLocale();
   if (message.role === 'system') {
     return (
       <div className="flex justify-center py-1">

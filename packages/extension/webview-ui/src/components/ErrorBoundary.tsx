@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import type { ReactNode, ErrorInfo, PropsWithChildren } from 'react';
+import { t } from '../i18n';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -31,9 +32,9 @@ export class ErrorBoundary extends Component<PropsWithChildren, ErrorBoundarySta
           <svg width="32" height="32" viewBox="0 0 16 16" fill="currentColor" className="opacity-40">
             <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 13A6 6 0 1 1 8 2a6 6 0 0 1 0 12zm-.5-3h1v1h-1v-1zm0-6h1v5h-1V5z" />
           </svg>
-          <p className="text-sm font-semibold opacity-70">Something went wrong</p>
+          <p className="text-sm font-semibold opacity-70">{t('error_boundary.title')}</p>
           <p className="text-xs opacity-40 max-w-[300px]">
-            {this.state.error?.message ?? 'An unexpected error occurred in the webview.'}
+            {this.state.error?.message ?? t('error_boundary.fallback')}
           </p>
           <button
             onClick={this.handleReset}
@@ -42,7 +43,7 @@ export class ErrorBoundary extends Component<PropsWithChildren, ErrorBoundarySta
             onMouseEnter={(e) => (e.currentTarget.style.background = '#9333EA')}
             onMouseLeave={(e) => (e.currentTarget.style.background = '#A855F7')}
           >
-            Reset
+            {t('error_boundary.reset')}
           </button>
         </div>
       );

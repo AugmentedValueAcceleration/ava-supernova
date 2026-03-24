@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { t, useLocale } from '../i18n';
 import type { TodayTaskUI, SessionTaskUI, AvaCompletedTaskUI } from '../types/messages';
 
 type Tab = 'personal' | 'ava';
@@ -28,6 +29,7 @@ export function TasksPanel({
   width,
   onWidthChange,
 }: TasksPanelProps) {
+  useLocale();
   const [tab, setTab] = useState<Tab>('personal');
   const panelRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -136,11 +138,11 @@ export function TasksPanel({
           <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" className="opacity-50">
             <path d="M3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 3.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 7.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 11.5h8v1H6v-1z"/>
           </svg>
-          <span className="text-xs font-semibold">Today</span>
+          <span className="text-xs font-semibold">{t('tasks.today')}</span>
         </div>
         <button
           onClick={onClose}
-          title="Close"
+          title={t('tasks.close')}
           className="flex items-center justify-center w-6 h-6 rounded-lg
                      hover:bg-white/[0.06]
                      text-[var(--vscode-foreground)] opacity-50 hover:opacity-100
@@ -166,7 +168,7 @@ export function TasksPanel({
             borderBottom: tab === 'personal' ? '2px solid #A855F7' : '2px solid transparent',
           }}
         >
-          Personal
+          {t('tasks.personal')}
           {allTasks.length > 0 && (
             <span className="ml-1.5 text-[9px] opacity-50">
               {allTasks.filter(t => t.status !== 'done').length}
@@ -185,7 +187,7 @@ export function TasksPanel({
             borderBottom: tab === 'ava' ? '2px solid #A855F7' : '2px solid transparent',
           }}
         >
-          Ava
+          {t('tasks.ava')}
           {sessionTasks.length > 0 && (
             <span className="ml-1.5 text-[9px] opacity-50">
               {completedSession}/{sessionTasks.length}
@@ -248,7 +250,7 @@ function PersonalTab({
               }`}
             style={filter === f ? { background: '#A855F7' } : undefined}
           >
-            {f === 'today' ? 'Today' : 'All'}
+            {f === 'today' ? t('tasks.filter_today') : t('tasks.filter_all')}
             <span className="ml-1 opacity-60">
               {f === 'today' ? todayTasks.filter(t => t.status !== 'done').length : allTasks.filter(t => t.status !== 'done').length}
             </span>
@@ -262,8 +264,8 @@ function PersonalTab({
           <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor" className="opacity-40">
             <path d="M3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 3.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 7.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 11.5h8v1H6v-1z"/>
           </svg>
-          <span>{filter === 'today' ? 'No tasks for today' : 'No active tasks'}</span>
-          <span className="text-[10px] opacity-60">Add tasks in the dashboard or ask Ava</span>
+          <span>{filter === 'today' ? t('tasks.no_tasks_today') : t('tasks.no_active_tasks')}</span>
+          <span className="text-[10px] opacity-60">{t('tasks.add_hint')}</span>
         </div>
       ) : (
         <div className="px-2 pt-1 pb-3 flex-1 overflow-y-auto">
@@ -281,7 +283,7 @@ function PersonalTab({
                 <div className="mx-1 my-2" style={{ borderTop: '1px solid rgba(168, 85, 247, 0.06)' }} />
               )}
               <div className="text-[9px] uppercase tracking-wider opacity-25 px-2 mb-1">
-                Completed
+                {t('tasks.completed')}
               </div>
               <div className="flex flex-col gap-0.5">
                 {doneTasks.map(task => (
@@ -317,7 +319,7 @@ function AvaTab({
     <div className="pb-3">
       {/* ── Current section ─────────────────────────────────────────── */}
       <CollapsibleSection
-        title="Current"
+        title={t('tasks.current')}
         count={hasSession ? `${completedSession}/${sessionTasks.length}` : undefined}
         open={currentOpen}
         onToggle={() => setCurrentOpen(!currentOpen)}
@@ -328,7 +330,7 @@ function AvaTab({
             <div className="px-2 mb-2">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] opacity-40">
-                  {allDone ? 'All tasks complete' : `Step ${completedSession + 1} of ${sessionTasks.length}`}
+                  {allDone ? t('tasks.all_complete') : t('tasks.step_of', { current: String(completedSession + 1), total: String(sessionTasks.length) })}
                 </span>
                 <span className="text-[10px] opacity-30">
                   {Math.round((completedSession / sessionTasks.length) * 100)}%
@@ -351,13 +353,13 @@ function AvaTab({
             </div>
           </>
         ) : (
-          <p className="text-[11px] opacity-30 italic px-2 m-0">No active session</p>
+          <p className="text-[11px] opacity-30 italic px-2 m-0">{t('tasks.no_active_session')}</p>
         )}
       </CollapsibleSection>
 
       {/* ── Completed section ───────────────────────────────────────── */}
       <CollapsibleSection
-        title="Completed"
+        title={t('tasks.completed')}
         count={avaCompletedTasks.length > 0 ? String(avaCompletedTasks.length) : undefined}
         open={completedOpen}
         onToggle={() => setCompletedOpen(!completedOpen)}
@@ -369,7 +371,7 @@ function AvaTab({
             ))}
           </div>
         ) : (
-          <p className="text-[11px] opacity-30 italic px-2 m-0">No completed tasks yet</p>
+          <p className="text-[11px] opacity-30 italic px-2 m-0">{t('tasks.no_completed_yet')}</p>
         )}
       </CollapsibleSection>
     </div>

@@ -71,9 +71,9 @@ function formatRelativeDate(dateStr: string): string {
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays === 0) return t('dash.tasks.today');
+  if (diffDays === 1) return t('dash.cc.yesterday');
+  if (diffDays < 7) return t('dash.cc.days_ago', { n: diffDays });
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
@@ -195,7 +195,7 @@ export function Overview({
                 className="text-sm text-[var(--text-secondary)] hover:text-white transition"
                 title="Click to edit name"
               >
-                {account.name || 'Set your name'}
+                {account.name || t('dash.cc.set_name')}
               </button>
             )}
             <span className="text-xs text-[var(--text-muted)]">&middot;</span>
@@ -221,7 +221,7 @@ export function Overview({
             icon={<ChartBarIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
             value={formatNumber(usage.tokens_used || logsTotal.total)}
             label={t('dash.cc.tokens_used')}
-            subtext={usage.period_start ? `Since ${new Date(usage.period_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : (logsTotal.count > 0 ? `from ${logsTotal.count} requests` : undefined)}
+            subtext={usage.period_start ? t('dash.cc.since', { date: new Date(usage.period_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) }) : (logsTotal.count > 0 ? t('dash.cc.from_requests', { count: logsTotal.count }) : undefined)}
           />
           <StatCard
             icon={<BoltIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
@@ -349,7 +349,7 @@ function WorkingHoursClock() {
         <div className="flex-1">
           <div className="text-sm font-semibold text-white mb-1">{fmt(start)} — {fmt(end)}</div>
           <div className={`text-xs mb-2 ${isWorking ? 'text-green-400' : 'text-[var(--text-muted)]'}`}>
-            {isWorking ? '\u25CF Currently working' : '\u25CB Outside working hours'}
+            {isWorking ? `\u25CF ${t('dash.cc.currently_working')}` : `\u25CB ${t('dash.cc.outside_hours')}`}
           </div>
           <div className="text-[10px] text-[var(--text-muted)] leading-relaxed">
             {t('dash.cc.working_hours_hint')}
@@ -363,9 +363,9 @@ function WorkingHoursClock() {
 function WeatherWidget({ weather }: { weather: WeatherData | null }) {
   if (weather === undefined) {
     return (
-      <WidgetCard title="Weather" icon="🌤️">
+      <WidgetCard title={t('dash.cc.weather')} icon="🌤️">
         <div className="flex items-center gap-2 py-4 text-xs text-[var(--text-muted)]">
-          <span className="animate-pulse">Loading...</span>
+          <span className="animate-pulse">{t('dash.cc.weather_loading')}</span>
         </div>
       </WidgetCard>
     );
@@ -373,14 +373,14 @@ function WeatherWidget({ weather }: { weather: WeatherData | null }) {
 
   if (!weather) {
     return (
-      <WidgetCard title="Weather" icon="🌤️">
-        <p className="py-2 text-xs text-[var(--text-muted)]">Unable to load weather data.</p>
+      <WidgetCard title={t('dash.cc.weather')} icon="🌤️">
+        <p className="py-2 text-xs text-[var(--text-muted)]">{t('dash.cc.weather_error')}</p>
       </WidgetCard>
     );
   }
 
   return (
-    <WidgetCard title="Weather" icon="🌤️" subtitle={weather.location} onRefresh={() => post({ type: 'load_weather' })}>
+    <WidgetCard title={t('dash.cc.weather')} icon="🌤️" subtitle={weather.location} onRefresh={() => post({ type: 'load_weather' })}>
       {/* Current conditions */}
       <div className="flex items-center gap-4">
         <span className="text-3xl">{weather.emoji}</span>
@@ -483,7 +483,7 @@ function NewsWidget({ articles }: { articles: NewsArticle[] }) {
       </div>
 
       {articles.length === 0 ? (
-        <p className="py-4 text-xs text-[var(--text-muted)]">No news articles available.</p>
+        <p className="py-4 text-xs text-[var(--text-muted)]">{t('dash.cc.no_news')}</p>
       ) : (
         <div className="space-y-2">
           {articles.map((article, idx) => (
@@ -716,12 +716,12 @@ function MemoryWidget({ memories, onNavigate }: { memories: MemoryEntry[]; onNav
           </div>
           <div className="ml-auto text-right">
             <div className="text-lg font-semibold text-[var(--text-secondary)]">{memories.length}</div>
-            <div className="text-[10px] text-[var(--text-muted)]">Total</div>
+            <div className="text-[10px] text-[var(--text-muted)]">{t('dash.memory.total')}</div>
           </div>
         </div>
         {lastMemory && (
           <div className="rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)]/30 p-2.5">
-            <p className="text-[10px] text-[var(--text-muted)] mb-0.5">Last saved</p>
+            <p className="text-[10px] text-[var(--text-muted)] mb-0.5">{t('dash.memory.last_saved')}</p>
             <p className="text-xs text-[var(--text-secondary)] truncate">{lastMemory.key || truncate(lastMemory.content, 60)}</p>
             <p className="text-[9px] text-[var(--text-muted)] mt-0.5">{formatRelativeDate(lastMemory.updated_at ?? lastMemory.created_at)}</p>
           </div>
@@ -887,7 +887,7 @@ function ByokOverview({
 
       {/* Session Stats */}
       <div className="mb-4">
-        <SectionGroup label="Session Stats">
+        <SectionGroup label={t('dash.cc.session_stats')}>
           <div className="grid grid-cols-2 gap-3">
             <StatCard
               icon={<BoltIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
@@ -911,7 +911,7 @@ function ByokOverview({
               icon={<ChartBarIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
               value={sessionDuration}
               label={t('dash.usage.session')}
-              subtext={stats ? `Since ${new Date(stats.session_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : undefined}
+              subtext={stats ? t('dash.usage.since', { time: new Date(stats.session_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }) : undefined}
             />
           </div>
         </SectionGroup>
@@ -933,39 +933,39 @@ function ByokOverview({
 
       {/* Upgrade Comparison */}
       <div className="mb-6">
-        <SectionGroup label="Get More from Ava">
+        <SectionGroup label={t('dash.cc.get_more')}>
           <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-6">
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">What you have</h3>
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{t('dash.cc.what_you_have')}</h3>
                 <ul className="space-y-2 text-xs text-[var(--text-secondary)]">
-                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> Local memory storage</li>
-                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> Session-based usage stats</li>
-                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> Your own API keys</li>
-                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> All 52 tools</li>
-                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> 2 free models</li>
+                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> {t('dash.cc.local_memory')}</li>
+                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> {t('dash.cc.session_usage')}</li>
+                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> {t('dash.cc.own_keys')}</li>
+                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> {t('dash.cc.all_tools')}</li>
+                  <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> {t('dash.cc.free_models')}</li>
                 </ul>
               </div>
               <div>
-                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--gradient-start)]">With a connected account (free)</h3>
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--gradient-start)]">{t('dash.cc.with_account')}</h3>
                 <ul className="space-y-2 text-xs text-[var(--text-secondary)]">
-                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> Memory sync across devices</li>
-                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> Full usage history</li>
-                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> Priority support with ticket tracking</li>
-                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> 3M free Qwen tokens</li>
-                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> Conversation history & backup</li>
+                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> {t('dash.cc.memory_sync')}</li>
+                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> {t('dash.cc.full_history')}</li>
+                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> {t('dash.cc.priority_support')}</li>
+                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> {t('dash.cc.free_tokens')}</li>
+                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> {t('dash.cc.conversation_backup')}</li>
                 </ul>
               </div>
             </div>
             <div className="mt-5 border-t border-[var(--border-card)] pt-4 text-center">
               <p className="mb-3 text-xs text-[var(--text-muted)]">
-                Keep using your own API keys &mdash; a connected account just adds sync, history, and support.
+                {t('dash.cc.upgrade_hint')}
               </p>
               <button
                 onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/signup' })}
                 className="rounded-lg bg-[var(--accent)] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover)]"
               >
-                Connect Account &mdash; Free
+                {t('dash.cc.connect_free')}
               </button>
             </div>
           </div>
@@ -973,7 +973,7 @@ function ByokOverview({
       </div>
 
       {/* Quick Actions */}
-      <SectionGroup label="Quick Actions">
+      <SectionGroup label={t('dash.cc.quick_actions')}>
         <div className="grid grid-cols-2 gap-3">
           <ActionCard label={t('dash.chat.new_chat')} onClick={() => post({ type: 'open_chat' })} />
           <ActionCard label={t('dash.settings.provider_keys')} onClick={() => onNavigate('keys')} />
