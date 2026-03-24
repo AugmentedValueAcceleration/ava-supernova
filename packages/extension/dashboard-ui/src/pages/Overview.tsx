@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { TierBadge } from '../components/TierBadge';
 import { SectionGroup } from '../components/SectionGroup';
 import { post } from '../App';
@@ -203,9 +203,10 @@ export function Overview({
         <TierBadge tier={account.tier} />
       </div>
 
-      {/* ── Weather (full width) ──────────────────────────────────────── */}
-      <div className="mb-4">
+      {/* ── Weather + Working Hours ──────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-4 mb-4">
         <WeatherWidget weather={weatherData} />
+        <WorkingHoursClock />
       </div>
 
       {/* ── Statistics Row ────────────────────────────────────────────── */}
@@ -255,6 +256,107 @@ export function Overview({
 }
 
 // ── Weather Widget ───────────────────────────────────────────────────────────
+
+function WorkingHoursClock() {
+  const [start, setStart] = useState<number>(() => {
+    try { return Number(localStorage.getItem('ava-work-start')) || 9; } catch { return 9; }
+  });
+  const [end, setEnd] = useState<number>(() => {
+    try { return Number(localStorage.getItem('ava-work-end')) || 17; } catch { return 17; }
+  });
+  const [dragging, setDragging] = useState<'start' | 'end' | null>(null);
+  const clockRef = useRef<SVGSVGElement>(null);
+
+  const save = useCallback((s: number, e: number) => {
+    try {
+      localStorage.setItem('ava-work-start', String(s));
+      localStorage.setItem('ava-work-end', String(e));
+    } catch {}
+    post({ type: 'set_working_hours', start: s, end: e });
+  }, []);
+
+  const angleForHour = (h: number) => ((h / 24) * 360 - 90) * (Math.PI / 180);
+  const hourFromAngle = (angleDeg: number) => {
+    let h = Math.round(((angleDeg + 90) / 360) * 24) % 24;
+    if (h < 0) h += 24;
+    return h;
+  };
+
+  const getAngleFromEvent = useCallback((e: MouseEvent) => {
+    if (!clockRef.current) return 0;
+    const rect = clockRef.current.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    return Math.atan2(e.clientY - cy, e.clientX - cx) * (180 / Math.PI);
+  }, []);
+
+  useEffect(() => {
+    if (!dragging) return;
+    const onMove = (e: MouseEvent) => {
+      const hour = hourFromAngle(getAngleFromEvent(e));
+      if (dragging === 'start') { setStart(hour); save(hour, end); }
+      else { setEnd(hour); save(start, hour); }
+    };
+    const onUp = () => setDragging(null);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+  }, [dragging, start, end, save, getAngleFromEvent]);
+
+  const size = 120;
+  const cx = size / 2, cy = size / 2, r = 46;
+  const pinPos = (h: number) => {
+    const a = angleForHour(h);
+    return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+  };
+  const startPos = pinPos(start);
+  const endPos = pinPos(end);
+
+  const arcPath = () => {
+    const a1 = angleForHour(start), a2 = angleForHour(end);
+    const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
+    const x2 = cx + r * Math.cos(a2), y2 = cy + r * Math.sin(a2);
+    const diff = ((end - start) % 24 + 24) % 24;
+    return `M ${x1} ${y1} A ${r} ${r} 0 ${diff > 12 ? 1 : 0} 1 ${x2} ${y2}`;
+  };
+
+  const fmt = (h: number) => `${String(h).padStart(2, '0')}:00`;
+  const now = new Date().getHours();
+  const isWorking = start <= end ? (now >= start && now < end) : (now >= start || now < end);
+
+  return (
+    <WidgetCard title="Working Hours" icon="🕐">
+      <div className="flex items-center gap-4">
+        <svg ref={clockRef} width={size} height={size} className="shrink-0">
+          <circle cx={cx} cy={cy} r={r + 6} fill="var(--bg-input)" stroke="var(--border-card)" strokeWidth={1} />
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border-card)" strokeWidth={1.5} />
+          {Array.from({ length: 24 }, (_, i) => {
+            const a = angleForHour(i);
+            const inner = r - (i % 6 === 0 ? 8 : 4);
+            return <line key={i} x1={cx + inner * Math.cos(a)} y1={cy + inner * Math.sin(a)} x2={cx + (r - 2) * Math.cos(a)} y2={cy + (r - 2) * Math.sin(a)} stroke={i % 6 === 0 ? 'var(--text-muted)' : 'var(--border-card)'} strokeWidth={i % 6 === 0 ? 1.2 : 0.6} />;
+          })}
+          {[0, 6, 12, 18].map(h => {
+            const a = angleForHour(h);
+            return <text key={h} x={cx + (r - 15) * Math.cos(a)} y={cy + (r - 15) * Math.sin(a) + 3} fontSize={8} fill="var(--text-muted)" textAnchor="middle">{h}</text>;
+          })}
+          <path d={arcPath()} fill="none" stroke="var(--accent)" strokeWidth={3} strokeLinecap="round" opacity={0.6} />
+          {(() => { const a = angleForHour(now); return <circle cx={cx + r * Math.cos(a)} cy={cy + r * Math.sin(a)} r={2.5} fill={isWorking ? '#a6e3a1' : 'var(--text-muted)'} />; })()}
+          <circle cx={startPos.x} cy={startPos.y} r={6} fill="var(--accent)" stroke="var(--bg-card)" strokeWidth={2} style={{ cursor: 'grab' }} onMouseDown={(e) => { e.preventDefault(); setDragging('start'); }} />
+          <circle cx={endPos.x} cy={endPos.y} r={6} fill="#f5c2e7" stroke="var(--bg-card)" strokeWidth={2} style={{ cursor: 'grab' }} onMouseDown={(e) => { e.preventDefault(); setDragging('end'); }} />
+        </svg>
+        <div className="flex-1">
+          <div className="text-sm font-semibold text-white mb-1">{fmt(start)} — {fmt(end)}</div>
+          <div className={`text-xs mb-2 ${isWorking ? 'text-green-400' : 'text-[var(--text-muted)]'}`}>
+            {isWorking ? '● Currently working' : '○ Outside working hours'}
+          </div>
+          <div className="text-[10px] text-[var(--text-muted)] leading-relaxed">
+            Drag the <span className="text-[var(--accent)]">●</span> start and <span className="text-pink-300">●</span> end pins. Ava will respect your schedule.
+          </div>
+        </div>
+      </div>
+    </WidgetCard>
+  );
+}
 
 function WeatherWidget({ weather }: { weather: WeatherData | null }) {
   if (weather === undefined) {
@@ -772,9 +874,10 @@ function ByokOverview({
         </p>
       </div>
 
-      {/* ── Weather (full width) ──────────────────────────────────────── */}
-      <div className="mb-4">
+      {/* ── Weather + Working Hours ──────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-4 mb-4">
         <WeatherWidget weather={weatherData} />
+        <WorkingHoursClock />
       </div>
 
       {/* Session Stats */}

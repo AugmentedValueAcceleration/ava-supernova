@@ -387,6 +387,11 @@ export class DashboardPanel {
         await this.loadReleases();
         break;
 
+      case 'set_working_hours':
+        // Save working hours to workspace state + globalState for the agent
+        this.context.globalState.update('ava.workingHours', { start: msg.start, end: msg.end });
+        break;
+
       case 'push_to_cloud':
         await this.pushToCloud(msg.dataType);
         break;
