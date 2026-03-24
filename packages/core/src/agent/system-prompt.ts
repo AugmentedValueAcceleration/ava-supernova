@@ -274,7 +274,7 @@ export function getPlanModePrefix(userText: string): string {
 ## Process
 1. **Research** — web_search for competitors, trends, user pain points.
 2. **Analyse** — Explore the codebase (read-only), check memory for past decisions.
-3. **Propose** — Effort vs impact, priority ordering, trade-offs. Use present_plan.
+3. **Propose** — Effort vs impact, priority ordering, trade-offs. Present your analysis conversationally.
 4. **Challenge** — Is this the right time? Simpler version? Scope creep?
 
 ## Rules

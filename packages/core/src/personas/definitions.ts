@@ -14,7 +14,8 @@ const READ_TOOLS = [
 const MEMORY_TOOLS = ['memory_save', 'memory_recall', 'memory_update', 'memory_delete'];
 const SEARCH_TOOLS = ['web_search', 'http_request', 'browser'];
 const WRITE_TOOLS = ['file_write', 'file_edit', 'bash', 'git_commit', 'git_create_pr'];
-const PLANNING_TOOLS = ['present_plan', 'todo_write'];
+const PLANNING_TOOLS = ['todo_write'];
+// present_plan removed — personas can't trigger user-facing confirmations during orchestration
 // ask_user removed — personas can't pause the pipeline for user input
 const TESTING_TOOLS = ['test_run', 'test_generate', 'benchmark'];
 const SECURITY_TOOLS = ['audit_dependencies', 'analyze_architecture'];

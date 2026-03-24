@@ -250,6 +250,8 @@ export class Conductor {
       // Run the model with tool support
       let iterations = 0;
       const maxIterations = 8; // Personas get up to 8 tool calls (brainstorm needs more for research)
+      let lastPersonaToolName: string | null = null;
+      let personaRepeatCount = 0;
 
       while (iterations < maxIterations) {
         if (signal?.aborted) break;
@@ -275,6 +277,20 @@ export class Conductor {
 
         // Handle tool calls
         if (msg.tool_calls && msg.tool_calls.length > 0) {
+          // Repeated tool-call detection for personas
+          const personaToolNames = msg.tool_calls.map((tc: any) => tc.function.name).sort().join(',');
+          if (personaToolNames === lastPersonaToolName) {
+            personaRepeatCount++;
+            if (personaRepeatCount >= 2) {
+              logger.debug(`[conductor] Persona ${persona.id} looping on ${personaToolNames} — breaking`);
+              state.output = msg.content || `[${persona.name} completed analysis]`;
+              break;
+            }
+          } else {
+            lastPersonaToolName = personaToolNames;
+            personaRepeatCount = 0;
+          }
+
           messages.push({
             role: 'assistant',
             content: msg.content || null,

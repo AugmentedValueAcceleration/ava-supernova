@@ -108,6 +108,9 @@ export class Agent {
 
     let iterations = 0;
     let warningInjected = false;
+    let lastToolName: string | null = null;
+    let repeatCount = 0;
+    const MAX_SAME_TOOL_REPEATS = 3;
 
     while (iterations < MAX_TOOL_CALL_ITERATIONS) {
       // Check for cancellation before each iteration
@@ -349,6 +352,24 @@ export class Agent {
         return messages;
       }
       logger.debug(`[agent] Got ${assistantMessage.tool_calls.length} tool_calls: ${assistantMessage.tool_calls.map((tc: ToolCall) => tc.function.name).join(', ')}`);
+
+      // ── Repeated tool-call detection ───────────────────────────────────────
+      // If the model calls the same tool 3+ times consecutively, break the loop.
+      const currentToolNames = assistantMessage.tool_calls.map((tc: ToolCall) => tc.function.name).sort().join(',');
+      if (currentToolNames === lastToolName) {
+        repeatCount++;
+        if (repeatCount >= MAX_SAME_TOOL_REPEATS) {
+          logger.warn(`[agent] Breaking loop: ${currentToolNames} called ${repeatCount + 1} times consecutively`);
+          messages = [
+            ...messages,
+            { role: 'system' as const, content: `You have called ${currentToolNames} ${repeatCount + 1} times in a row. Stop calling this tool and respond to the user conversationally with what you have so far.` },
+          ];
+          continue; // Skip tool execution, let the model respond with text
+        }
+      } else {
+        lastToolName = currentToolNames;
+        repeatCount = 0;
+      }
 
       // ── Parallel tool execution ──────────────────────────────────────────
       // Partition tool calls: confirmation-required run sequentially first,
