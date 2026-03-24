@@ -1,29 +1,20 @@
 /**
- * Dashboard i18n wrapper — loads locale strings from @ava/core at runtime.
- * Falls back to English if locale not found.
+ * Dashboard i18n wrapper — English loaded synchronously,
+ * other locales lazy-loaded. Dispatches event for React re-renders.
  */
+import { useState, useEffect } from 'react';
+
+// @ts-ignore — direct path import (Vite resolves in monorepo)
+import { enStrings } from '../../../core/dist/i18n/locales/en.js';
 
 let currentLocale = 'en';
-let enStrings: Record<string, string> = {};
-const translations: Record<string, Record<string, string>> = {};
+let localeVersion = 0;
+const translations: Record<string, Record<string, string>> = {
+  en: enStrings as Record<string, string>,
+};
 
-/** Set locale and load English + target translation strings from core dist */
+/** Load a non-English locale. Call on startup or language switch. */
 export async function initLocale(locale?: string): Promise<void> {
-  // Always load English as fallback
-  if (!translations['en']) {
-    try {
-      // @ts-ignore — dynamic import from core dist (relative path in monorepo)
-      const mod: Record<string, unknown> = await import('../../../core/dist/i18n/locales/en.js');
-      const exportName = Object.keys(mod).find((k: string) => k.endsWith('Strings'));
-      if (exportName && mod[exportName]) {
-        enStrings = mod[exportName] as Record<string, string>;
-        translations['en'] = enStrings;
-      }
-    } catch {
-      // Core not available — t() returns keys as-is
-    }
-  }
-
   const stored = locale || localStorage.getItem('ava-dashboard-language') || 'auto';
   const resolved = stored === 'auto' ? (navigator.language?.split('-')[0] || 'en') : stored;
   currentLocale = resolved;
@@ -32,7 +23,7 @@ export async function initLocale(locale?: string): Promise<void> {
     try {
       // @ts-ignore — dynamic import from core dist
       const mod = await import(`../../../core/dist/i18n/locales/${resolved}.js`);
-      const exportName = Object.keys(mod).find((k) => k.endsWith('Strings'));
+      const exportName = Object.keys(mod).find((k: string) => k.endsWith('Strings'));
       if (exportName && mod[exportName]) {
         translations[resolved] = mod[exportName];
       }
@@ -40,9 +31,12 @@ export async function initLocale(locale?: string): Promise<void> {
       // Locale not found — falls back to English
     }
   }
+
+  localeVersion++;
+  window.dispatchEvent(new CustomEvent('ava-locale-changed'));
 }
 
-/** Translate a key with optional interpolation. Falls back to English, then to key. */
+/** Translate a key with optional interpolation */
 export function t(key: string, params?: Record<string, string | number>): string {
   const str = translations[currentLocale]?.[key]
     ?? translations['en']?.[key]
@@ -52,6 +46,17 @@ export function t(key: string, params?: Record<string, string | number>): string
     const val = params[k];
     return val !== undefined ? String(val) : `{${k}}`;
   });
+}
+
+/** React hook — forces re-render when locale changes */
+export function useLocale(): string {
+  const [, setVersion] = useState(localeVersion);
+  useEffect(() => {
+    const handler = () => setVersion(++localeVersion);
+    window.addEventListener('ava-locale-changed', handler);
+    return () => window.removeEventListener('ava-locale-changed', handler);
+  }, []);
+  return currentLocale;
 }
 
 /** Get current locale code */

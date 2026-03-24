@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { initLocale } from './i18n';
+import { initLocale, useLocale } from './i18n';
 import { NavSidebar } from './components/NavSidebar';
 import { ConnectAccount } from './pages/ConnectAccount';
 import { Overview } from './pages/Overview';
@@ -55,6 +55,7 @@ export function post(msg: DashboardToExtMessage): void {
 }
 
 export function App() {
+  useLocale(); // re-render on language change
   const [initialized, setInitialized] = useState(false);
   const [page, setPage] = useState<Page>('overview');
   // Persist active page

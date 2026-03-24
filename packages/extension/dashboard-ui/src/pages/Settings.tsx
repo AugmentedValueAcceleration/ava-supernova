@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { t } from '../i18n';
+import { t, initLocale } from '../i18n';
 import { post } from '../App';
 import { Select } from '../components/Select';
 import { ChevronDownIcon } from '../components/Icons';
@@ -126,6 +126,10 @@ export function Settings({
     setLocal(updated);
     onSettingsChange(updated);
     post({ type: 'save_settings', settings: updated });
+    if (key === 'language') {
+      localStorage.setItem('ava-dashboard-language', value as string);
+      initLocale(value as string);
+    }
   }
 
   // ── Provider key handlers ────────────────────────────────────────────────
