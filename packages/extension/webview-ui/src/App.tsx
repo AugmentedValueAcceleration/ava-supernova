@@ -635,6 +635,10 @@ export function App() {
     [postMessage],
   );
 
+  const handleInterrupt = useCallback(() => {
+    postMessage({ type: 'interrupt' });
+  }, [postMessage]);
+
   const handleCancel = useCallback(() => {
     postMessage({ type: 'cancel' });
   }, [postMessage]);
@@ -860,6 +864,7 @@ export function App() {
         <InputArea
           onSend={handleSend}
           onCancel={handleCancel}
+          onInterrupt={handleInterrupt}
           isStreaming={state.isStreaming}
           disabled={state.needsSetup}
           usage={state.lastUsage}

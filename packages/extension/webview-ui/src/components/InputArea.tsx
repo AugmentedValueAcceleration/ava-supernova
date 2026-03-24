@@ -13,6 +13,7 @@ export interface ImageAttachment {
 interface InputAreaProps {
   onSend: (text: string, mode: AvaMode, attachments?: ImageAttachment[]) => void;
   onCancel: () => void;
+  onInterrupt?: () => void;
   isStreaming: boolean;
   disabled: boolean;
   usage?: {
@@ -55,7 +56,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   brainstorm: 'input.placeholder.brainstorm',
 };
 
-export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCompressing, onCompress, providerSource, platformStatus, onProviderSourceChange, contextUsage }: InputAreaProps) {
+export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled, usage, isCompressing, onCompress, providerSource, platformStatus, onProviderSourceChange, contextUsage }: InputAreaProps) {
   const [text, setText] = useState('');
   const [mode, setMode] = useState<AvaMode>('code');
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
@@ -616,20 +617,26 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
 
             {isStreaming ? (
               <button
-                onClick={onCancel}
-                title={t('input.stop')}
-                aria-label={t('input.stop')}
+                onClick={onInterrupt || onCancel}
+                onMouseDown={() => {
+                  const timer = setTimeout(onCancel, 800);
+                  const up = () => { clearTimeout(timer); document.removeEventListener('mouseup', up); };
+                  document.addEventListener('mouseup', up);
+                }}
+                title="Tap: pause & check in | Hold: hard stop"
+                aria-label="Pause"
                 className="flex items-center justify-center w-9 h-9 rounded-lg
                            text-white
                            hover:opacity-90
-                           border border-[rgba(229,57,53,0.5)] cursor-pointer transition-all duration-200"
+                           border border-[rgba(168,85,247,0.5)] cursor-pointer transition-all duration-200"
                 style={{
-                  background: 'linear-gradient(135deg, #e53935, #c62828)',
-                  boxShadow: '0 2px 8px rgba(229, 57, 53, 0.35), 0 0 12px rgba(229, 57, 53, 0.15)',
+                  background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                  boxShadow: '0 2px 8px rgba(168, 85, 247, 0.35), 0 0 12px rgba(168, 85, 247, 0.15)',
                 }}
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                  <rect x="3" y="3" width="10" height="10" rx="1.5" />
+                  <rect x="3" y="3" width="4" height="10" rx="1" />
+                  <rect x="9" y="3" width="4" height="10" rx="1" />
                 </svg>
               </button>
             ) : (

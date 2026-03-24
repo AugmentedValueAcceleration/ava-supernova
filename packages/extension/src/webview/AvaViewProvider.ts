@@ -1356,6 +1356,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         this.cancelRun();
         break;
 
+      case 'interrupt':
+        this.interruptRun();
+        break;
+
       case 'open_dashboard':
         vscode.commands.executeCommand('ava-supernova.openDashboard');
         break;
@@ -1944,6 +1948,44 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     for (const [id, pending] of this.pendingConfirmations) {
       pending.resolve(false);
       this.pendingConfirmations.delete(id);
+    }
+  }
+
+  /**
+   * Soft interrupt — stop current generation, then have Ava check in.
+   */
+  private async interruptRun(): Promise<void> {
+    if (!this.isRunning) return;
+
+    // Stop current generation
+    this.cancelRun();
+
+    // Wait for cancel to complete
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // Send a follow-up message so Ava acknowledges the interrupt
+    try {
+      this.conversation.addUserMessage('[User interrupted — wants your attention]');
+
+      const interruptSystemNote =
+        '\n\n[INTERRUPT: The user just interrupted you. They tapped the pause button to get your attention. ' +
+        'Stop what you were doing, acknowledge the interruption politely, and ask what they need. ' +
+        'Be warm — they interrupted because something is on their mind. Keep it brief — one or two sentences.]';
+
+      // Temporarily inject interrupt note into system prompt
+      const messages = this.conversation.getMessages();
+      const sysMsg = messages[0]?.role === 'system' ? String(messages[0].content) : '';
+      this.conversation.setSystemPrompt(sysMsg + interruptSystemNote);
+
+      // Run the agent for the interrupt response
+      await this.runAgent('[User interrupted — wants your attention]');
+
+      // Clean up interrupt note
+      const cleanMessages = this.conversation.getMessages();
+      const cleanSys = cleanMessages[0]?.role === 'system' ? String(cleanMessages[0].content) : '';
+      this.conversation.setSystemPrompt(cleanSys.replace(/\n\n\[INTERRUPT:[\s\S]*?\]/, ''));
+    } catch {
+      // Interrupt response failed — not critical
     }
   }
 
