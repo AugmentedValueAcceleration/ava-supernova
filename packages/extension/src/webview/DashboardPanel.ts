@@ -1795,6 +1795,42 @@ export class DashboardPanel {
           break;
         }
 
+        case 'learnings': {
+          // Push local self-improvement entries to the shared global pool
+          const siPath = path.join(this.avaHome, 'self-improvement.json');
+          if (!fs.existsSync(siPath)) {
+            this.post({ type: 'sync_completed', dataType, count: 0 });
+            break;
+          }
+          const siData = JSON.parse(fs.readFileSync(siPath, 'utf-8'));
+          const entries: any[] = Array.isArray(siData) ? siData : (siData.entries || []);
+          // Only share safe types (no preferences, no code)
+          const shareable = entries.filter((e: any) =>
+            ['technique', 'tool-fix', 'error-recovery', 'pattern'].includes(e.type) &&
+            e.confidence >= 0.5
+          );
+          let pushed = 0;
+          for (const entry of shareable) {
+            try {
+              const res = await this.platformFetch('/learnings', {
+                method: 'POST',
+                body: JSON.stringify({
+                  type: entry.type,
+                  category: entry.category,
+                  context: entry.context,
+                  learned: entry.learned?.slice(0, 1000),
+                  confidence: entry.confidence,
+                }),
+              });
+              if (res.ok) pushed++;
+            } catch { /* skip individual failures */ }
+          }
+          await this.saveSyncState('learnings', pushed);
+          this.post({ type: 'sync_completed', dataType, count: pushed });
+          await this.loadSyncStatus();
+          break;
+        }
+
         default:
           this.post({ type: 'sync_error', dataType, message: `Unknown data type: ${dataType}` });
       }

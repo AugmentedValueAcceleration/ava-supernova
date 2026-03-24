@@ -1,5 +1,19 @@
+import { useState, useEffect } from 'react';
 import { post } from '../App';
 import type { SyncStatus } from '../types/messages';
+
+const SYNC_PREFS_KEY = 'ava-sync-preferences';
+
+function loadSyncPrefs(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(SYNC_PREFS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function saveSyncPrefs(prefs: Record<string, boolean>) {
+  try { localStorage.setItem(SYNC_PREFS_KEY, JSON.stringify(prefs)); } catch {}
+}
 
 const DATA_TYPES = [
   { key: 'memory',   label: 'Memory',       icon: '🧠', description: 'Patterns, preferences, decisions, project knowledge' },
@@ -20,6 +34,18 @@ interface Props {
 }
 
 export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Props) {
+  const [syncPrefs, setSyncPrefs] = useState<Record<string, boolean>>(loadSyncPrefs);
+
+  const togglePref = (key: string) => {
+    setSyncPrefs(prev => {
+      const next = { ...prev, [key]: !(prev[key] ?? true) };
+      saveSyncPrefs(next);
+      return next;
+    });
+  };
+
+  const isSyncEnabled = (key: string) => syncPrefs[key] ?? (key === 'learnings' ? false : true); // Shared learnings default OFF
+
   return (
     <div>
       <div className="mb-6">
@@ -52,7 +78,18 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
               className="flex items-center justify-between rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] px-4 py-3"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <span className="text-lg shrink-0">{icon}</span>
+                {/* Sync toggle */}
+                <button
+                  onClick={() => togglePref(key)}
+                  className="shrink-0 relative w-8 h-[18px] rounded-full transition-colors duration-200"
+                  style={{ background: isSyncEnabled(key) ? 'var(--accent)' : 'var(--bg-input)' }}
+                  title={isSyncEnabled(key) ? `Disable ${label} sync` : `Enable ${label} sync`}
+                >
+                  <div className="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-all duration-200"
+                    style={{ left: isSyncEnabled(key) ? 14 : 2 }}
+                  />
+                </button>
+                <span className="text-lg shrink-0" style={{ opacity: isSyncEnabled(key) ? 1 : 0.3 }}>{icon}</span>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-white">{label}</span>
@@ -93,7 +130,7 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
                 {/* Push button */}
                 <button
                   onClick={() => post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'learnings' })}
-                  disabled={!isConnected || syncing || localCount === 0 || (isUpToDate && !syncing)}
+                  disabled={!isConnected || syncing || localCount === 0 || (isUpToDate && !syncing) || !isSyncEnabled(key)}
                   className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   {syncing ? (
@@ -129,6 +166,7 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
           <button
             onClick={() => {
               for (const { key } of DATA_TYPES) {
+                if (!isSyncEnabled(key)) continue; // Skip disabled sections
                 const status = syncStatus?.[key];
                 if (status && status.localCount > 0) {
                   post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'learnings' });
