@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import { KeyIcon } from '../components/Icons';
 
@@ -8,6 +8,7 @@ interface ConnectAccountProps {
 }
 
 export function ConnectAccount({ onSkipAccount }: ConnectAccountProps) {
+  useLocale();
   const [key, setKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import { Select } from '../components/Select';
 
@@ -67,6 +67,7 @@ interface SupportProps {
 }
 
 export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
+  useLocale();
   if (mode === 'byok') {
     return <ByokSupport />;
   }

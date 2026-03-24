@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
 import { SearchIcon, TrashIcon, PencilIcon, PlusIcon, CalendarIcon } from '../components/Icons';
@@ -98,6 +98,7 @@ interface TasksProps {
 }
 
 export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
+  useLocale();
   const [viewTab, setViewTab] = useState<ViewTab>('active');
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');

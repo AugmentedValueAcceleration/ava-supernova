@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { TierBadge } from '../components/TierBadge';
 import { SectionGroup } from '../components/SectionGroup';
 import { post } from '../App';
@@ -117,6 +117,7 @@ export function Overview({
   newsArticles,
   latestRelease,
 }: OverviewProps) {
+  useLocale();
   if (mode === 'byok' || !account) {
     return (
       <ByokOverview

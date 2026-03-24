@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { PersonalityData } from '../types/messages';
 
@@ -40,6 +40,7 @@ const STYLES = [
 // ── Component ──────────────────────────────────────────────────────────────
 
 export function Personality({ personality }: Props) {
+  useLocale();
   const [name, setName] = useState('Ava');
   const [pronouns, setPronouns] = useState('she/her');
   const [tone, setTone] = useState('warm');

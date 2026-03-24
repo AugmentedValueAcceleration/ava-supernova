@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import { GitHubIcon, EnvelopeIcon, ChatBubbleIcon, GameControllerIcon } from '../components/Icons';
 import type { ConnectionStatus } from '../types/messages';
@@ -54,6 +54,7 @@ const SERVICE_DEFS: Record<string, { icon: React.FC<{ className?: string }>; tit
 };
 
 export function Connections({ connections }: ConnectionsProps) {
+  useLocale();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, Record<string, string>>>({});
   const [saving, setSaving] = useState<string | null>(null);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 import type { DashboardJournalDay } from '../types/messages';
 
 type JournalTab = 'user' | 'ava';
@@ -23,6 +23,7 @@ function formatDate(iso: string): string {
 }
 
 export function Journal({ day, selectedDate, userName, onSaveUserEntry, onDeleteUserEntry, onDeleteAvaEntry }: JournalProps) {
+  useLocale();
   const [tab, setTab] = useState<JournalTab>('user');
   const [editContent, setEditContent] = useState('');
   const [editMood, setEditMood] = useState<number | undefined>(undefined);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { t, initLocale } from '../i18n';
+import { t, initLocale, useLocale } from '../i18n';
 import { post } from '../App';
 import { Select } from '../components/Select';
 import { ChevronDownIcon } from '../components/Icons';
@@ -110,6 +110,7 @@ export function Settings({
   personality,
   account,
 }: SettingsProps) {
+  useLocale();
   const [local, setLocal] = useState<DashboardSettings>(settings);
   const [providerInputs, setProviderInputs] = useState<Record<string, string>>({});
   const [editingProvider, setEditingProvider] = useState<string | null>(null);

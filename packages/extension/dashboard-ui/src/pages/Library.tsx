@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import { Select } from '../components/Select';
 import type { LibraryImage, LibraryFileType } from '../types/messages';
@@ -43,6 +43,7 @@ function isImageFile(item: LibraryImage): boolean {
 }
 
 export function Library({ images, projectRoot, hasImagesFolder = true }: Props) {
+  useLocale();
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [filterFolder, setFilterFolder] = useState<string>('all');
   const [filterType, setFilterType] = useState<FilterTab>('all');

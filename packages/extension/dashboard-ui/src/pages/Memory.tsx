@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
 import { SearchIcon, PencilIcon, TrashIcon } from '../components/Icons';
@@ -161,6 +161,7 @@ interface MemoryProps {
 }
 
 export function Memory({ memories, mode = 'platform' }: MemoryProps) {
+  useLocale();
   const isLocal = mode === 'byok';
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);

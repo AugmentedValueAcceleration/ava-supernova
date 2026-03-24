@@ -21,11 +21,14 @@ export async function initLocale(locale?: string): Promise<void> {
 
   if (resolved !== 'en' && !translations[resolved]) {
     try {
-      // @ts-ignore — dynamic import from core dist
-      const mod = await import(`../../../core/dist/i18n/locales/${resolved}.js`);
-      const exportName = Object.keys(mod).find((k: string) => k.endsWith('Strings'));
-      if (exportName && mod[exportName]) {
-        translations[resolved] = mod[exportName];
+      const localeModules = import.meta.glob('../../../core/dist/i18n/locales/*.js');
+      const modulePath = `../../../core/dist/i18n/locales/${resolved}.js`;
+      if (localeModules[modulePath]) {
+        const mod: any = await localeModules[modulePath]();
+        const exportName = Object.keys(mod).find((k: string) => k.endsWith('Strings'));
+        if (exportName && mod[exportName]) {
+          translations[resolved] = mod[exportName];
+        }
       }
     } catch {
       // Locale not found — falls back to English

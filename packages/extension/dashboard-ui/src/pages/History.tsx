@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
 import { UsageBar } from '../components/UsageBar';
@@ -59,6 +59,7 @@ interface HistoryProps {
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export function History({ sessionStats, usageHistory, mode, account }: HistoryProps) {
+  useLocale();
   const [activeTab, setActiveTab] = useState<'session' | 'alltime'>(() => {
     const saved = localStorage.getItem('ava-analytics-tab');
     return (saved === 'alltime' && mode === 'platform') ? 'alltime' : 'session';

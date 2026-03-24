@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { AccountInfo } from '../types/messages';
 import { UsageBar } from '../components/UsageBar';
@@ -34,6 +34,7 @@ const PLAN_FEATURES: Record<string, string[]> = {
 };
 
 export function Billing({ account }: BillingProps) {
+  useLocale();
   const usage = account.usage ?? {
     tokens_used: 0,
     tokens_limit: null as number | null,

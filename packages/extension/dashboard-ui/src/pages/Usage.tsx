@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import { UsageBar } from '../components/UsageBar';
 import { SectionGroup } from '../components/SectionGroup';
@@ -22,6 +22,7 @@ interface ModelBreakdown {
 const PAGE_SIZE = 15;
 
 export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
+  useLocale();
   if (mode === 'byok' || !account) {
     return <ByokUsage stats={sessionStats} />;
   }

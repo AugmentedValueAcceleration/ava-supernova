@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { Page, DashboardJournalDaySummary } from '../types/messages';
 import { BoltIcon, ChartBarIcon, SparklesIcon, ChecklistIcon, BookIcon, GraduationCapIcon, CloudUpIcon, MegaphoneIcon, HelpCircleIcon, CogIcon, ShieldIcon, WrenchIcon, PhotoIcon, UserCircleIcon } from './Icons';
@@ -115,6 +115,7 @@ export function NavSidebar({
   onSelectJournalDate,
   onLoadJournalSummaries,
 }: NavSidebarProps) {
+  useLocale();
   const NAV_GROUPS = getNavGroups();
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {

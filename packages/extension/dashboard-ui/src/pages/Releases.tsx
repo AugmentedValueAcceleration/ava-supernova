@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { ReleaseNote } from '../types/messages';
 
@@ -16,6 +16,7 @@ const PLAT_COLOURS: Record<string, string> = { core: '#89b4fa', extension: '#a85
 const PLAT_LABELS: Record<string, string> = { core: 'Core', extension: 'Extension', ide: 'IDE', companion: 'Companion' };
 
 export function Releases({ releases }: { releases: ReleaseNote[] }) {
+  useLocale();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [platformTab, setPlatformTab] = useState('all');

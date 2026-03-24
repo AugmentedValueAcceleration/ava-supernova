@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { t } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { SyncStatus } from '../types/messages';
 
@@ -37,6 +37,7 @@ interface Props {
 }
 
 export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Props) {
+  useLocale();
   const [syncPrefs, setSyncPrefs] = useState<Record<string, boolean>>(loadSyncPrefs);
 
   const togglePref = (key: string) => {
