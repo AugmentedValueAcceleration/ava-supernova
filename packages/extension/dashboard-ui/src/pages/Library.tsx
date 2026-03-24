@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { t } from '../i18n';
 import { post } from '../App';
 import { Select } from '../components/Select';
 import type { LibraryImage, LibraryFileType } from '../types/messages';
@@ -17,13 +18,15 @@ const FILE_TYPE_ICONS: Record<string, string> = {
   presentation: '\u{1F4BD}',
 };
 
-const FILE_TYPE_LABELS: Record<FilterTab, string> = {
-  all: 'All',
-  image: 'Images',
-  document: 'Documents',
-  spreadsheet: 'Spreadsheets',
-  presentation: 'Presentations',
-};
+function getFileTypeLabels(): Record<FilterTab, string> {
+  return {
+    all: t('dash.library.all'),
+    image: t('dash.library.images'),
+    document: t('dash.library.docs'),
+    spreadsheet: t('dash.library.sheets'),
+    presentation: t('dash.library.slides'),
+  };
+}
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -90,9 +93,9 @@ export function Library({ images, projectRoot, hasImagesFolder = true }: Props) 
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Library</h1>
+          <h1 className="text-2xl font-bold">{t('dash.library.title')}</h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Files in your project — images, documents, spreadsheets and more
+            {t('dash.library.subtitle')}
           </p>
         </div>
         <button
@@ -125,7 +128,9 @@ export function Library({ images, projectRoot, hasImagesFolder = true }: Props) 
 
       {/* File type filter tabs */}
       <div className="mb-4 flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-1 overflow-x-auto">
-        {(Object.keys(FILE_TYPE_LABELS) as FilterTab[]).map(tab => (
+        {(['all', 'image', 'document', 'spreadsheet', 'presentation'] as FilterTab[]).map(tab => {
+          const labels = getFileTypeLabels();
+          return (
           <button
             key={tab}
             onClick={() => setFilterType(tab)}
@@ -135,7 +140,7 @@ export function Library({ images, projectRoot, hasImagesFolder = true }: Props) 
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
             }`}
           >
-            {FILE_TYPE_LABELS[tab]}
+            {labels[tab]}
             <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full text-[10px] font-bold px-1 ${
               filterType === tab
                 ? 'bg-white/20 text-white'
@@ -144,7 +149,8 @@ export function Library({ images, projectRoot, hasImagesFolder = true }: Props) 
               {typeCounts[tab]}
             </span>
           </button>
-        ))}
+        );
+        })}
       </div>
 
       {/* Toolbar */}
@@ -187,12 +193,10 @@ export function Library({ images, projectRoot, hasImagesFolder = true }: Props) 
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
           <div className="text-4xl mb-3">{hasImagesFolder ? '\u{1F3A8}' : '\u{1F4C1}'}</div>
           <p className="text-sm font-medium text-[var(--text-primary)]">
-            {hasImagesFolder ? 'No files found' : 'No images/ or documents/ folder found'}
+            {hasImagesFolder ? t('dash.library.no_files') : t('dash.library.no_files')}
           </p>
           <p className="mt-1 text-xs text-[var(--text-secondary)]">
-            {hasImagesFolder
-              ? 'Ask Ava to generate an image or create a document and it will appear here.'
-              : 'This project doesn\'t have an images/ or documents/ folder yet. Ask Ava to create files and she\'ll set it up for you.'}
+            {t('dash.library.ask_ava')}
           </p>
           <p className="mt-3 text-xs text-[var(--text-muted)]">
             Scans: images/ and documents/ folders and all subfolders

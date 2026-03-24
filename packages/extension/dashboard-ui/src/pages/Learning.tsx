@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import type { DashboardLearningCurriculum, DashboardLearningModule } from '../types/messages';
+import { t } from '../i18n';
+import type { DashboardLearningCurriculum } from '../types/messages';
 import { SectionGroup } from '../components/SectionGroup';
 
 const levelColors: Record<string, string> = {
@@ -123,25 +124,25 @@ export function Learning({ curriculums }: Props) {
   // List view
   return (
     <div>
-      <h1 className="text-xl font-bold text-white mb-1">Learning</h1>
+      <h1 className="text-xl font-bold text-white mb-1">{t('dash.learning.title')}</h1>
       <p className="text-sm text-[var(--text-secondary)] mb-6">
-        Your learning paths, created by Ava through conversation.
+        {t('dash.learning.subtitle')}
       </p>
 
       {curriculums.length === 0 ? (
         <>
-          <SectionGroup title="How it works">
+          <SectionGroup label={t('dash.learning.how_it_works')}>
             <div className="space-y-3">
-              <Step icon="💬" title="Tell Ava what you want to learn" desc='Say "I want to learn Rust" or "Teach me system design" in the chat.' />
-              <Step icon="🧠" title="Ava assesses your level" desc="She'll ask about your background, goals, and available time." />
-              <Step icon="📚" title="She builds your curriculum" desc="Structured modules with concepts, exercises, projects, and quizzes." />
-              <Step icon="🎓" title="Learn at your pace" desc="Tell Ava when you're ready. She teaches, quizzes, and adapts." />
+              <Step icon="💬" title={t('dash.learning.step1')} desc={t('dash.learning.step1_desc')} />
+              <Step icon="🧠" title={t('dash.learning.step2')} desc={t('dash.learning.step2_desc')} />
+              <Step icon="📚" title={t('dash.learning.step3')} desc={t('dash.learning.step3_desc')} />
+              <Step icon="🎓" title={t('dash.learning.step4')} desc={t('dash.learning.step4_desc')} />
             </div>
           </SectionGroup>
 
           <div className="mt-4 rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)]/30 p-4 text-center">
             <p className="text-xs text-[var(--text-muted)]">
-              Your learning paths will appear here once Ava creates them.
+              {t('dash.learning.empty')}
             </p>
           </div>
         </>

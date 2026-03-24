@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { t } from '../i18n';
 import { TierBadge } from '../components/TierBadge';
 import { SectionGroup } from '../components/SectionGroup';
 import { post } from '../App';
@@ -172,7 +173,7 @@ export function Overview({
       {/* Page Header */}
       <div className="mb-6 flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-bold">Command Centre</h1>
+          <h1 className="text-xl font-bold">{t('dash.nav.command_centre')}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-2">
             {editingName ? (
               <input
@@ -212,20 +213,20 @@ export function Overview({
       {/* ── Statistics Row ────────────────────────────────────────────── */}
       <div className="mb-4">
         <div className="mb-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Statistics</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{t('dash.cc.statistics')}</h2>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <StatCard
             icon={<ChartBarIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
             value={formatNumber(usage.tokens_used || logsTotal.total)}
-            label="Tokens Used"
+            label={t('dash.cc.tokens_used')}
             subtext={usage.period_start ? `Since ${new Date(usage.period_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : (logsTotal.count > 0 ? `from ${logsTotal.count} requests` : undefined)}
           />
           <StatCard
             icon={<BoltIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
             value={String(usage.requests_count || logsTotal.count)}
-            label="Requests"
-            subtext="This period"
+            label={t('dash.cc.requests')}
+            subtext={t('dash.cc.this_period')}
           />
         </div>
       </div>
@@ -245,10 +246,10 @@ export function Overview({
       </div>
 
       {/* ── Quick Actions ──────────────────────────────────────────── */}
-      <SectionGroup label="Quick Actions">
+      <SectionGroup label={t('dash.nav.billing')}>
         <div className="grid grid-cols-2 gap-3">
-          <ActionCard label="Manage Billing" onClick={() => onNavigate('billing')} />
-          <ActionCard label="Open Chat" onClick={() => post({ type: 'open_chat' })} />
+          <ActionCard label={t('dash.nav.billing')} onClick={() => onNavigate('billing')} />
+          <ActionCard label={t('dash.chat.new_chat')} onClick={() => post({ type: 'open_chat' })} />
         </div>
       </SectionGroup>
     </div>
@@ -325,7 +326,7 @@ function WorkingHoursClock() {
   const isWorking = start <= end ? (now >= start && now < end) : (now >= start || now < end);
 
   return (
-    <WidgetCard title="Working Hours" icon="🕐">
+    <WidgetCard title={t('dash.cc.working_hours')} icon="🕐">
       <div className="flex items-center gap-4">
         <svg ref={clockRef} width={size} height={size} className="shrink-0">
           <circle cx={cx} cy={cy} r={r + 6} fill="var(--bg-input)" stroke="var(--border-card)" strokeWidth={1} />
@@ -347,10 +348,10 @@ function WorkingHoursClock() {
         <div className="flex-1">
           <div className="text-sm font-semibold text-white mb-1">{fmt(start)} — {fmt(end)}</div>
           <div className={`text-xs mb-2 ${isWorking ? 'text-green-400' : 'text-[var(--text-muted)]'}`}>
-            {isWorking ? '● Currently working' : '○ Outside working hours'}
+            {isWorking ? '\u25CF Currently working' : '\u25CB Outside working hours'}
           </div>
           <div className="text-[10px] text-[var(--text-muted)] leading-relaxed">
-            Drag the <span className="text-[var(--accent)]">●</span> start and <span className="text-pink-300">●</span> end pins. Ava will respect your schedule.
+            {t('dash.cc.working_hours_hint')}
           </div>
         </div>
       </div>
@@ -363,7 +364,7 @@ function WeatherWidget({ weather }: { weather: WeatherData | null }) {
     return (
       <WidgetCard title="Weather" icon="🌤️">
         <div className="flex items-center gap-2 py-4 text-xs text-[var(--text-muted)]">
-          <span className="animate-pulse">Loading weather...</span>
+          <span className="animate-pulse">Loading...</span>
         </div>
       </WidgetCard>
     );
@@ -387,9 +388,9 @@ function WeatherWidget({ weather }: { weather: WeatherData | null }) {
           <div className="text-xs text-[var(--text-secondary)]">{weather.condition}</div>
         </div>
         <div className="ml-auto grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-[var(--text-muted)]">
-          <span>Humidity</span>
+          <span>{t('weather.humidity')}</span>
           <span className="text-[var(--text-secondary)]">{weather.humidity}%</span>
-          <span>Wind</span>
+          <span>{t('weather.wind')}</span>
           <span className="text-[var(--text-secondary)]">{weather.wind_kmph} km/h</span>
         </div>
       </div>
@@ -421,6 +422,11 @@ const NEWS_CATEGORIES = [
 ] as const;
 
 function formatCategoryLabel(slug: string): string {
+  // Try i18n key first (e.g. 'ai-agents' → 'news.ai_agents')
+  const i18nKey = `news.${slug.replace(/-/g, '_')}`;
+  const translated = t(i18nKey);
+  if (translated !== i18nKey) return translated;
+  // Fallback: title-case
   return slug
     .split('-')
     .map(word => {
@@ -443,7 +449,7 @@ function NewsWidget({ articles }: { articles: NewsArticle[] }) {
   };
 
   return (
-    <WidgetCard title="Latest News" icon="📰" onRefresh={() => post({ type: 'load_news' })}>
+    <WidgetCard title={t('dash.cc.latest_news')} icon="📰" onRefresh={() => post({ type: 'load_news' })}>
       {/* Category carousel */}
       <div
         className="news-carousel mb-3 flex gap-1.5 overflow-x-auto pb-1"
@@ -458,7 +464,7 @@ function NewsWidget({ articles }: { articles: NewsArticle[] }) {
               : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
           }`}
         >
-          All
+          {t('news.all')}
         </button>
         {NEWS_CATEGORIES.map(cat => (
           <button
@@ -492,7 +498,7 @@ function NewsWidget({ articles }: { articles: NewsArticle[] }) {
                   </span>
                 )}
                 {article.reading_time > 0 && (
-                  <span className="text-[9px] text-[var(--text-muted)]">{article.reading_time} min read</span>
+                  <span className="text-[9px] text-[var(--text-muted)]">{t('news.min_read', { n: article.reading_time })}</span>
                 )}
               </div>
               <p className="text-xs font-medium text-white leading-snug">{article.title}</p>
@@ -532,15 +538,15 @@ function TasksWidget({ tasks, onNavigate }: { tasks: DashboardTaskEntry[]; onNav
 
   return (
     <WidgetCard
-      title="Today's Tasks"
+      title={t('dash.cc.todays_tasks')}
       icon="✅"
-      action={tasks.length > 0 ? { label: 'View all', onClick: () => onNavigate('tasks') } : undefined}
+      action={tasks.length > 0 ? { label: t('dash.cc.view_all'), onClick: () => onNavigate('tasks') } : undefined}
       onRefresh={() => post({ type: 'load_tasks' })}
     >
       {todayTasks.length === 0 ? (
         <div className="flex flex-col items-center py-6 text-center">
           <span className="mb-2 text-2xl opacity-30">{'🎉'}</span>
-          <p className="text-xs text-[var(--text-muted)]">No tasks today. Enjoy the clear board!</p>
+          <p className="text-xs text-[var(--text-muted)]">{t('dash.cc.no_tasks').replace('\n', ' ')}</p>
         </div>
       ) : (
         <div className="space-y-1.5">
@@ -572,7 +578,7 @@ function TasksWidget({ tasks, onNavigate }: { tasks: DashboardTaskEntry[]; onNav
                       {task.priority}
                     </span>
                     {isOverdue && (
-                      <span className="text-[9px] font-medium text-red-400">Overdue</span>
+                      <span className="text-[9px] font-medium text-red-400">{t('dash.tasks.overdue')}</span>
                     )}
                   </div>
                 </div>
@@ -594,23 +600,22 @@ function JournalWidget({ journalDay, onNavigate }: { journalDay: DashboardJourna
 
   return (
     <WidgetCard
-      title="Today's Journal"
+      title={t('dash.cc.todays_journal')}
       icon="📓"
-      action={{ label: hasContent ? 'Open journal' : 'Write entry', onClick: () => onNavigate('journal') }}
+      action={{ label: hasContent ? t('dash.cc.open_journal') : t('dash.cc.write_entry'), onClick: () => onNavigate('journal') }}
       onRefresh={() => post({ type: 'load_journal_day', date: new Date().toISOString().slice(0, 10) })}
     >
       {!hasContent ? (
         <div className="flex flex-col items-center py-4 text-center">
           <span className="mb-2 text-2xl opacity-30">{'📝'}</span>
-          <p className="text-xs text-[var(--text-muted)]">No journal entries today.</p>
-          <p className="text-[10px] text-[var(--text-muted)] mt-1">Take a moment to reflect.</p>
+          <p className="text-xs text-[var(--text-muted)]">{t('dash.cc.no_journal').replace('\n', ' ')}</p>
         </div>
       ) : (
         <div className="space-y-2.5">
           {userEntry && (
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-medium text-[var(--text-secondary)]">Your entry</span>
+                <span className="text-[10px] font-medium text-[var(--text-secondary)]">{t('dash.journal.your_entries')}</span>
                 {userEntry.mood && (
                   <span className="text-sm">{MOOD_EMOJI[userEntry.mood] ?? ''}</span>
                 )}
@@ -623,7 +628,7 @@ function JournalWidget({ journalDay, onNavigate }: { journalDay: DashboardJourna
           {avaEntry && (
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-medium" style={{ color: '#A855F7' }}>Ava's entry</span>
+                <span className="text-[10px] font-medium" style={{ color: '#A855F7' }}>{t('dash.journal.ava_entries')}</span>
               </div>
               <p className="text-xs text-[var(--text-muted)] leading-relaxed">
                 {truncate(avaEntry.content, 120)}
@@ -645,16 +650,15 @@ function LearningWidget({ curriculums, onNavigate }: { curriculums: DashboardLea
 
   return (
     <WidgetCard
-      title="Learning"
+      title={t('dash.cc.learning')}
       icon="🎓"
-      action={curriculums.length > 0 ? { label: 'Continue learning', onClick: () => onNavigate('learning') } : undefined}
+      action={curriculums.length > 0 ? { label: t('dash.cc.continue_learning'), onClick: () => onNavigate('learning') } : undefined}
       onRefresh={() => post({ type: 'load_learning' })}
     >
       {active.length === 0 ? (
         <div className="flex flex-col items-center py-4 text-center">
           <span className="mb-2 text-2xl opacity-30">{'📚'}</span>
-          <p className="text-xs text-[var(--text-muted)]">No active learning paths.</p>
-          <p className="text-[10px] text-[var(--text-muted)] mt-1">Tell Ava what you want to learn.</p>
+          <p className="text-xs text-[var(--text-muted)]">{t('dash.cc.no_learning').replace('\n', ' ')}</p>
         </div>
       ) : (
         <div className="space-y-2.5">
@@ -698,16 +702,16 @@ function MemoryWidget({ memories, onNavigate }: { memories: MemoryEntry[]; onNav
 
   return (
     <WidgetCard
-      title="Memory"
+      title={t('dash.cc.memory')}
       icon="🧠"
-      action={{ label: 'View all', onClick: () => onNavigate('memory') }}
+      action={{ label: t('dash.cc.view_all'), onClick: () => onNavigate('memory') }}
       onRefresh={() => post({ type: 'load_memories' })}
     >
       <div className="space-y-3">
         <div className="flex items-center gap-4">
           <div>
             <div className="text-2xl font-bold">{activeCount}</div>
-            <div className="text-[10px] text-[var(--text-muted)]">Active memories</div>
+            <div className="text-[10px] text-[var(--text-muted)]">{t('dash.memory.title')}</div>
           </div>
           <div className="ml-auto text-right">
             <div className="text-lg font-semibold text-[var(--text-secondary)]">{memories.length}</div>
@@ -730,9 +734,9 @@ function MemoryWidget({ memories, onNavigate }: { memories: MemoryEntry[]; onNav
 
 function ReleaseWidget({ release }: { release: ReleaseInfo | null }) {
   return (
-    <WidgetCard title="Latest Release" icon="🚀" onRefresh={() => post({ type: 'load_latest_release' })}>
+    <WidgetCard title={t('dash.cc.latest_release')} icon="🚀" onRefresh={() => post({ type: 'load_latest_release' })}>
       {!release ? (
-        <p className="py-4 text-xs text-[var(--text-muted)]">No release info available.</p>
+        <p className="py-4 text-xs text-[var(--text-muted)]">{t('dash.cc.no_release')}</p>
       ) : (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
@@ -746,7 +750,7 @@ function ReleaseWidget({ release }: { release: ReleaseInfo | null }) {
             onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/releases' })}
             className="text-[10px] text-[var(--accent)] hover:underline"
           >
-            View release notes &rarr;
+            {t('dash.nav.release_notes')} &rarr;
           </button>
         </div>
       )}
@@ -868,9 +872,9 @@ function ByokOverview({
   return (
     <div className="mx-auto w-full max-w-5xl">
       <div className="mb-6">
-        <h1 className="text-xl font-bold">Command Centre</h1>
+        <h1 className="text-xl font-bold">{t('dash.nav.command_centre')}</h1>
         <p className="mt-1 text-xs text-[var(--text-secondary)]">
-          Your personal dashboard at a glance.
+          {t('dash.nav.command_centre_desc')}
         </p>
       </div>
 
@@ -887,25 +891,25 @@ function ByokOverview({
             <StatCard
               icon={<BoltIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
               value={String(stats?.messages ?? 0)}
-              label="Messages"
-              subtext="This session"
+              label={t('dash.usage.messages')}
+              subtext={t('dash.usage.session')}
             />
             <StatCard
               icon={<ChartBarIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
               value={formatNumber(totalTokens)}
-              label="Tokens Used"
-              subtext={`In: ${formatNumber(stats?.total_input_tokens ?? 0)} / Out: ${formatNumber(stats?.total_output_tokens ?? 0)}`}
+              label={t('dash.cc.tokens_used')}
+              subtext={`${t('dash.usage.input_tokens')}: ${formatNumber(stats?.total_input_tokens ?? 0)} / ${t('dash.usage.output_tokens')}: ${formatNumber(stats?.total_output_tokens ?? 0)}`}
             />
             <StatCard
               icon={<BoltIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
               value={String(stats?.tool_calls ?? 0)}
-              label="Tool Calls"
-              subtext="This session"
+              label={t('dash.usage.tool_calls')}
+              subtext={t('dash.usage.session')}
             />
             <StatCard
               icon={<ChartBarIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
               value={sessionDuration}
-              label="Session Duration"
+              label={t('dash.usage.session')}
               subtext={stats ? `Since ${new Date(stats.session_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : undefined}
             />
           </div>
@@ -970,8 +974,8 @@ function ByokOverview({
       {/* Quick Actions */}
       <SectionGroup label="Quick Actions">
         <div className="grid grid-cols-2 gap-3">
-          <ActionCard label="Open Chat" onClick={() => post({ type: 'open_chat' })} />
-          <ActionCard label="Manage API Keys" onClick={() => onNavigate('keys')} />
+          <ActionCard label={t('dash.chat.new_chat')} onClick={() => post({ type: 'open_chat' })} />
+          <ActionCard label={t('dash.settings.provider_keys')} onClick={() => onNavigate('keys')} />
         </div>
       </SectionGroup>
     </div>

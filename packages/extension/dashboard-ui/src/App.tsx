@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { initLocale } from './i18n';
 import { NavSidebar } from './components/NavSidebar';
 import { ConnectAccount } from './pages/ConnectAccount';
 import { Overview } from './pages/Overview';
@@ -335,6 +336,8 @@ export function App() {
   useEffect(() => {
     window.addEventListener('message', handleMessage);
     post({ type: 'webview_ready' });
+    // Initialise i18n from core locale strings
+    initLocale().catch(() => {});
     return () => window.removeEventListener('message', handleMessage);
   }, [handleMessage]);
 

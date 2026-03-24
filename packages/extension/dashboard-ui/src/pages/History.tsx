@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { t } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
 import { UsageBar } from '../components/UsageBar';
@@ -74,9 +75,9 @@ export function History({ sessionStats, usageHistory, mode, account }: HistoryPr
   return (
     <div className="mx-auto w-full max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-xl font-bold">Usage Analytics</h1>
+        <h1 className="text-xl font-bold">{t('dash.usage.title')}</h1>
         <p className="mt-1 text-xs text-[var(--text-secondary)]">
-          Track token usage, costs, and model performance.
+          {t('dash.usage.subtitle')}
         </p>
       </div>
 

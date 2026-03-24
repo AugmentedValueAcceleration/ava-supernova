@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { t } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
 import { SearchIcon, PencilIcon, TrashIcon } from '../components/Icons';
@@ -257,9 +258,9 @@ export function Memory({ memories, mode = 'platform' }: MemoryProps) {
     <div className="mx-auto w-full max-w-4xl">
       {/* Page Header */}
       <div className="mb-10">
-        <h1 className="text-2xl font-bold">Memory</h1>
+        <h1 className="text-2xl font-bold">{t('dash.memory.title')}</h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          Smart, structured knowledge Ava remembers — powered by TF-IDF retrieval and temporal scoring.
+          {t('dash.memory.subtitle')}
         </p>
       </div>
 
@@ -360,7 +361,7 @@ export function Memory({ memories, mode = 'platform' }: MemoryProps) {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search memories, tags, and branches..."
+            placeholder={t('dash.memory.search')}
             className="w-full rounded-lg border border-[var(--border-input)] bg-[var(--bg-input)] py-2.5 pl-10 pr-4 text-sm text-white placeholder-[var(--text-muted)] outline-none transition focus:border-[var(--accent)]"
           />
         </div>

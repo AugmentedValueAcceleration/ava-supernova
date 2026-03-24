@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { post } from '../App';
 import type { AccountInfo } from '../types/messages';
 import { UsageBar } from '../components/UsageBar';
@@ -46,15 +47,15 @@ export function Billing({ account }: BillingProps) {
   return (
     <div className="mx-auto w-full max-w-4xl">
       <div className="mb-10">
-        <h1 className="text-2xl font-bold">Billing</h1>
+        <h1 className="text-2xl font-bold">{t('dash.billing.title')}</h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          Manage your subscription and token usage.
+          {t('dash.billing.subtitle')}
         </p>
       </div>
 
       {/* Current Plan */}
       <div className="mb-10">
-      <SectionGroup label="Current Plan">
+      <SectionGroup label={t('dash.billing.current_plan')}>
       <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <div className="mb-4 flex items-center justify-between">
           <TierBadge tier={account.tier} />

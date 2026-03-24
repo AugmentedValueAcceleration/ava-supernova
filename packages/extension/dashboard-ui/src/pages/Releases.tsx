@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { t } from '../i18n';
 import { post } from '../App';
 import type { ReleaseNote } from '../types/messages';
 
@@ -56,9 +57,9 @@ export function Releases({ releases }: { releases: ReleaseNote[] }) {
     <div>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-white">Release Notes</h1>
+          <h1 className="text-xl font-bold text-white">{t('dash.releases.title')}</h1>
           <p className="text-xs text-[var(--text-muted)] mt-1">
-            What&apos;s new across the Ava | Supernova ecosystem
+            {t('dash.releases.subtitle')}
           </p>
         </div>
 
@@ -86,7 +87,7 @@ export function Releases({ releases }: { releases: ReleaseNote[] }) {
               color: platformTab === tab ? (tab === 'core' || tab === 'extension' ? '#fff' : '#11111b') : 'var(--text-muted)',
             }}
           >
-            {tab === 'all' ? 'All' : PLAT_LABELS[tab]}
+            {tab === 'all' ? t('dash.releases.all') : PLAT_LABELS[tab]}
           </button>
         ))}
       </div>
@@ -147,7 +148,7 @@ export function Releases({ releases }: { releases: ReleaseNote[] }) {
                     <div className="mt-3 mb-4 rounded-lg bg-[var(--bg-input)] p-3">
                       <h3 className="text-xs font-semibold text-white mb-2">Highlights</h3>
                       <ul className="space-y-1">
-                        {release.highlights.map((h, i) => (
+                        {release.highlights.map((h: string, i: number) => (
                           <li key={i} className="flex items-start gap-2 text-xs text-[var(--text-secondary)]">
                             <span className="text-[var(--accent)] mt-0.5">•</span>
                             {h}

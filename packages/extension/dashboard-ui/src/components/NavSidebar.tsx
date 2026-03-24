@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
+import { t } from '../i18n';
 import { post } from '../App';
 import type { Page, DashboardJournalDaySummary } from '../types/messages';
-import { BoltIcon, KeyIcon, ChartBarIcon, SparklesIcon, ChecklistIcon, BookIcon, GraduationCapIcon, CloudUpIcon, MegaphoneIcon, HelpCircleIcon, CogIcon, ShieldIcon, WrenchIcon, PhotoIcon, UserCircleIcon } from './Icons';
+import { BoltIcon, ChartBarIcon, SparklesIcon, ChecklistIcon, BookIcon, GraduationCapIcon, CloudUpIcon, MegaphoneIcon, HelpCircleIcon, CogIcon, ShieldIcon, WrenchIcon, PhotoIcon, UserCircleIcon } from './Icons';
 
 interface NavSidebarProps {
   currentPage: Page;
@@ -35,57 +36,60 @@ interface NavItem {
   comingSoon?: boolean;
 }
 
-const NAV_GROUPS: NavGroup[] = [
-  {
-    label: 'Personal',
-    items: [
-      { page: 'personality', label: 'Personality', icon: UserCircleIcon },
-    ],
-  },
-  {
-    label: 'Productivity',
-    items: [
-      { page: 'tasks', label: 'Tasks', icon: ChecklistIcon },
-      { page: 'journal', label: 'Journal', icon: BookIcon },
-      { page: 'learning', label: 'Learning', icon: GraduationCapIcon },
-    ],
-  },
-  {
-    label: 'Creative',
-    items: [
-      { page: 'library', label: 'Library', icon: PhotoIcon },
-    ],
-  },
-  {
-    label: 'Memory',
-    items: [
-      { page: 'memory', label: 'Memory', icon: SparklesIcon },
-    ],
-  },
-  {
-    label: 'Account',
-    items: [
-      { page: 'settings', label: 'Settings', icon: CogIcon },
-      { page: 'history', label: 'Usage Analytics', icon: ChartBarIcon },
-      { page: 'sync', label: 'Cloud Sync', icon: CloudUpIcon, platformOnly: true },
-    ],
-  },
-  {
-    label: 'About',
-    items: [
-      { page: 'releases', label: 'Release Notes', icon: MegaphoneIcon },
-      { page: 'support', label: 'Support', icon: HelpCircleIcon },
-    ],
-  },
-  {
-    label: 'Admin',
-    adminOnly: true,
-    items: [
-      { page: 'admin_support', label: 'Support', icon: ShieldIcon, platformOnly: true, adminOnly: true },
-      { page: 'admin_proposals', label: 'Proposals', icon: WrenchIcon, platformOnly: true, adminOnly: true },
-    ],
-  },
-];
+/** Nav groups — labels resolved at render time via t() */
+function getNavGroups(): NavGroup[] {
+  return [
+    {
+      label: t('dash.section.personalise'),
+      items: [
+        { page: 'personality', label: t('dash.nav.personality'), icon: UserCircleIcon },
+      ],
+    },
+    {
+      label: 'Productivity',
+      items: [
+        { page: 'tasks', label: t('dash.nav.tasks'), icon: ChecklistIcon },
+        { page: 'journal', label: t('dash.nav.journal'), icon: BookIcon },
+        { page: 'learning', label: t('dash.nav.learning'), icon: GraduationCapIcon },
+      ],
+    },
+    {
+      label: 'Creative',
+      items: [
+        { page: 'library', label: t('dash.nav.library'), icon: PhotoIcon },
+      ],
+    },
+    {
+      label: t('dash.nav.memory'),
+      items: [
+        { page: 'memory', label: t('dash.nav.memory'), icon: SparklesIcon },
+      ],
+    },
+    {
+      label: t('dash.section.account'),
+      items: [
+        { page: 'settings', label: t('dash.nav.settings'), icon: CogIcon },
+        { page: 'history', label: t('dash.nav.usage'), icon: ChartBarIcon },
+        { page: 'sync', label: t('dash.nav.cloud_sync'), icon: CloudUpIcon, platformOnly: true },
+      ],
+    },
+    {
+      label: t('dash.section.help'),
+      items: [
+        { page: 'releases', label: t('dash.nav.release_notes'), icon: MegaphoneIcon },
+        { page: 'support', label: t('dash.nav.support'), icon: HelpCircleIcon },
+      ],
+    },
+    {
+      label: 'Admin',
+      adminOnly: true,
+      items: [
+        { page: 'admin_support', label: t('dash.nav.support'), icon: ShieldIcon, platformOnly: true, adminOnly: true },
+        { page: 'admin_proposals', label: 'Proposals', icon: WrenchIcon, platformOnly: true, adminOnly: true },
+      ],
+    },
+  ];
+}
 
 // ── Calendar helpers ─────────────────────────────────────────────────────────
 
@@ -111,6 +115,8 @@ export function NavSidebar({
   onSelectJournalDate,
   onLoadJournalSummaries,
 }: NavSidebarProps) {
+  const NAV_GROUPS = getNavGroups();
+
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
     // Auto-expand the group containing the current page
     const initial = new Set<string>();
@@ -157,7 +163,7 @@ export function NavSidebar({
         {/* Command Centre — standalone */}
         <NavButton
           page="overview"
-          label="Command Centre"
+          label={t('dash.nav.command_centre')}
           icon={BoltIcon}
           isActive={currentPage === 'overview'}
           onClick={() => handleNavigate('overview')}
@@ -258,7 +264,7 @@ export function NavSidebar({
               onClick={() => post({ type: 'disconnect_account' })}
               className="w-full rounded-lg border border-red-500/30 bg-transparent px-3 py-1.5 text-xs text-red-400 transition hover:bg-red-500/10"
             >
-              Disconnect Account
+              {t('dash.auth.disconnect')}
             </button>
           </>
         ) : (
@@ -268,7 +274,7 @@ export function NavSidebar({
               onClick={onConnectAccount}
               className="w-full rounded-lg border border-[var(--accent)]/40 bg-transparent px-3 py-1.5 text-xs text-[var(--accent)] transition hover:bg-[var(--accent)]/10"
             >
-              Connect Account
+              {t('dash.auth.connect')}
             </button>
           </>
         )}
@@ -280,7 +286,7 @@ export function NavSidebar({
 // ── NavButton ────────────────────────────────────────────────────────────────
 
 function NavButton({
-  page,
+  page: _page,
   label,
   icon: Icon,
   isActive,

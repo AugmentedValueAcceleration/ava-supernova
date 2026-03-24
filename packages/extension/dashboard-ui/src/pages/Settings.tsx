@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { t } from '../i18n';
 import { post } from '../App';
 import { Select } from '../components/Select';
 import { ChevronDownIcon } from '../components/Icons';
@@ -62,7 +63,7 @@ const PROVIDERS = [
 ];
 
 const LANGUAGES = [
-  { value: 'auto', label: 'Auto-detect' },
+  { value: 'auto', label: 'Auto-detect' }, // resolved at runtime via t('dash.settings.auto_detect') when i18n is loaded
   { value: 'en', label: 'English' },
   { value: 'zh-CN', label: '\u4e2d\u6587\uff08\u7b80\u4f53\uff09' },
   { value: 'zh-TW', label: '\u4e2d\u6587\uff08\u7e41\u9ad4\uff09' },
@@ -168,9 +169,9 @@ export function Settings({
     <div className="mx-auto max-w-2xl pb-12">
       {/* Page Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Settings</h1>
+        <h1 className="text-2xl font-bold">{t('dash.settings.title')}</h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          Preferences and configuration for Ava | Supernova.
+          {t('dash.settings.subtitle')}
         </p>
       </div>
 
@@ -261,28 +262,28 @@ export function Settings({
       {/* ── 4. Behavior ─────────────────────────────────────────────────── */}
       <SectionLabel>Behavior</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-        <p className="mb-1 text-sm font-semibold">Permission Mode</p>
+        <p className="mb-1 text-sm font-semibold">{t('dash.settings.permission')}</p>
         <p className="mb-3 text-xs text-[var(--text-muted)]">Controls when Ava asks before running tools.</p>
 
         <div className="mb-5 grid grid-cols-3 gap-2">
           <PermissionCard
             icon={<span className="text-lg">&#x1f6e1;&#xfe0f;</span>}
-            label="Strict"
-            description="Confirms before file writes, shell commands, and git operations"
+            label={t('dash.settings.permission.strict')}
+            description={t('dash.settings.permission.strict_desc')}
             selected={local.permissionMode === 'strict'}
             onClick={() => saveImmediate('permissionMode', 'strict')}
           />
           <PermissionCard
             icon={<span className="text-lg">&#x2696;&#xfe0f;</span>}
-            label="Balanced"
-            description="Confirms dangerous operations only. Recommended."
+            label={t('dash.settings.permission.balanced')}
+            description={t('dash.settings.permission.balanced_desc')}
             selected={local.permissionMode === 'balanced'}
             onClick={() => saveImmediate('permissionMode', 'balanced')}
           />
           <PermissionCard
             icon={<span className="text-lg">&#x1f680;</span>}
-            label="Autonomous"
-            description="Minimal confirmations. For experienced users."
+            label={t('dash.settings.permission.autonomous')}
+            description={t('dash.settings.permission.autonomous_desc')}
             selected={local.permissionMode === 'autonomous'}
             onClick={() => saveImmediate('permissionMode', 'autonomous')}
           />
@@ -300,7 +301,7 @@ export function Settings({
       </div>
 
       {/* ── 5. Language ──────────────────────────────────────────────────── */}
-      <SectionLabel>Language</SectionLabel>
+      <SectionLabel>{t('dash.settings.language')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <Select
           value={local.language}
@@ -312,14 +313,14 @@ export function Settings({
       {/* ── 6. API Keys (collapsible) ───────────────────────────────────── */}
       {showProviderKeys && (
         <>
-          <SectionLabel>API Keys</SectionLabel>
+          <SectionLabel>{t('dash.settings.provider_keys')}</SectionLabel>
           <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)]">
             <button
               onClick={() => setApiKeysOpen(!apiKeysOpen)}
               className="flex w-full items-center justify-between p-5 text-left"
             >
               <div>
-                <p className="text-sm font-semibold">Provider API Keys</p>
+                <p className="text-sm font-semibold">{t('dash.settings.provider_keys')}</p>
                 <p className="text-xs text-[var(--text-muted)]">
                   {configuredCount === 0
                     ? 'No providers configured'

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { t } from '../i18n';
 import { post } from '../App';
 import type { PersonalityData } from '../types/messages';
 
@@ -85,14 +86,14 @@ export function Personality({ personality }: Props) {
     <div className="mx-auto w-full max-w-3xl">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold">Design Your AI</h1>
+        <h1 className="text-2xl font-bold">{t('dash.personality.title')}</h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          Make it yours &mdash; choose a name, personality, and communication style
+          {t('dash.personality.subtitle')}
         </p>
       </div>
 
       {/* Name */}
-      <Section label="Name">
+      <Section label={t('dash.personality.name')}>
         <input
           type="text"
           value={name}
@@ -103,7 +104,7 @@ export function Personality({ personality }: Props) {
       </Section>
 
       {/* Pronouns */}
-      <Section label="Pronouns">
+      <Section label={t('dash.personality.pronouns')}>
         <div className="flex gap-2">
           {PRONOUNS.map(p => (
             <button
@@ -122,7 +123,7 @@ export function Personality({ personality }: Props) {
       </Section>
 
       {/* Tone */}
-      <Section label="Tone">
+      <Section label={t('dash.personality.tone')}>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {TONES.map(t => (
             <OptionCard
@@ -137,7 +138,7 @@ export function Personality({ personality }: Props) {
       </Section>
 
       {/* Energy */}
-      <Section label="Energy">
+      <Section label={t('dash.personality.energy')}>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {ENERGIES.map(e => (
             <OptionCard
@@ -152,7 +153,7 @@ export function Personality({ personality }: Props) {
       </Section>
 
       {/* Style */}
-      <Section label="Communication Style">
+      <Section label={t('dash.personality.style')}>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {STYLES.map(s => (
             <OptionCard

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { t } from '../i18n';
 import { post } from '../App';
 import { Select } from '../components/Select';
 
@@ -195,16 +196,16 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Support</h1>
+          <h1 className="text-2xl font-bold">{t('dash.support.title')}</h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            View your support tickets and contact the Ava team.
+            {t('dash.support.subtitle')}
           </p>
         </div>
         <button
           onClick={() => setShowNew(true)}
           className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover,#6d28d9)]"
         >
-          New Ticket
+          {t('dash.support.new_ticket')}
         </button>
       </div>
 
@@ -212,11 +213,11 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
       {showNew && (
         <form onSubmit={handleCreateTicket} className="mb-6 space-y-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
           <div>
-            <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">Category</label>
+            <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{t('dash.support.type')}</label>
             <Select value={newCategory} onChange={setNewCategory} options={CATEGORY_OPTIONS} />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">Message</label>
+            <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">{t('dash.support.description')}</label>
             <textarea
               required
               rows={4}
@@ -224,7 +225,7 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               className="w-full resize-y rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none focus:border-[var(--accent)]"
-              placeholder="Describe your issue in detail..."
+              placeholder={t('dash.support.description')}
             />
           </div>
           <div className="flex gap-2">
@@ -233,7 +234,7 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
               disabled={creating}
               className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover,#6d28d9)] disabled:opacity-50"
             >
-              {creating ? 'Submitting...' : 'Submit'}
+              {creating ? 'Submitting...' : t('dash.support.submit')}
             </button>
             <button
               type="button"
@@ -349,9 +350,9 @@ function ByokSupport() {
   return (
     <div className="mx-auto w-full max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Support</h1>
+        <h1 className="text-2xl font-bold">{t('dash.support.title')}</h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          Get help from the Ava team.
+          {t('dash.support.subtitle')}
         </p>
       </div>
 

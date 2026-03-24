@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
+import { t } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
-import { SearchIcon, TrashIcon, PencilIcon, PlusIcon, CalendarIcon, CheckIcon } from '../components/Icons';
+import { SearchIcon, TrashIcon, PencilIcon, PlusIcon, CalendarIcon } from '../components/Icons';
 import type { DashboardTaskEntry } from '../types/messages';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -214,8 +215,8 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-white">Tasks</h1>
-          <p className="mt-0.5 text-xs text-[var(--text-muted)]">Manage your tasks and track Ava's progress</p>
+          <h1 className="text-lg font-semibold text-white">{t('dash.tasks.title')}</h1>
+          <p className="mt-0.5 text-xs text-[var(--text-muted)]">{t('dash.tasks.subtitle')}</p>
         </div>
         <button
           onClick={() => { resetForm(); setShowForm(!showForm); }}
@@ -296,10 +297,10 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
       {/* Stats bar */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { label: 'Active', value: stats.active, color: 'text-blue-400' },
-          { label: 'Today', value: stats.today, color: 'text-amber-400' },
-          { label: 'Overdue', value: stats.overdue, color: stats.overdue > 0 ? 'text-red-400' : 'text-[var(--text-muted)]' },
-          { label: 'Completed', value: stats.completed, color: 'text-emerald-400' },
+          { label: t('dash.tasks.active'), value: stats.active, color: 'text-blue-400' },
+          { label: t('dash.tasks.today'), value: stats.today, color: 'text-amber-400' },
+          { label: t('dash.tasks.overdue'), value: stats.overdue, color: stats.overdue > 0 ? 'text-red-400' : 'text-[var(--text-muted)]' },
+          { label: t('dash.tasks.completed'), value: stats.completed, color: 'text-emerald-400' },
         ].map(({ label, value, color }) => (
           <div key={label} className="rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] p-3 text-center">
             <p className={`text-lg font-semibold ${color}`}>{value}</p>
@@ -429,7 +430,7 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
           <SearchIcon className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]" />
           <input
             type="text"
-            placeholder="Search tasks..."
+            placeholder={t('dash.tasks.add')}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] py-1.5 pl-8 pr-3 text-xs text-white placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]/50"

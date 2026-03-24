@@ -403,7 +403,7 @@ export type DashboardToExtMessage =
   | { type: 'load_learning' }
   // Sync messages
   | { type: 'load_sync_status' }
-  | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' }
+  | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' }
   // Release notes
   | { type: 'load_releases' }
   // Library

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { t } from '../i18n';
 import { post } from '../App';
 import { GitHubIcon, EnvelopeIcon, ChatBubbleIcon, GameControllerIcon } from '../components/Icons';
 import type { ConnectionStatus } from '../types/messages';
@@ -93,7 +94,7 @@ export function Connections({ connections }: ConnectionsProps) {
   return (
     <div className="mx-auto w-full max-w-4xl">
       <div className="mb-10">
-        <h1 className="text-2xl font-bold">Connections</h1>
+        <h1 className="text-2xl font-bold">{t('dash.connections.title')}</h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
           {connectedCount}/4 services connected. Credentials are stored securely in VS Code's secret storage.
         </p>

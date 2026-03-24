@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { t } from '../i18n';
 import { post } from '../App';
 import type { SyncStatus } from '../types/messages';
 
@@ -15,16 +16,18 @@ function saveSyncPrefs(prefs: Record<string, boolean>) {
   try { localStorage.setItem(SYNC_PREFS_KEY, JSON.stringify(prefs)); } catch {}
 }
 
-const DATA_TYPES = [
-  { key: 'memory',   label: 'Memory',       icon: '🧠', description: 'Patterns, preferences, decisions, project knowledge' },
-  { key: 'tasks',    label: 'Tasks',         icon: '✓',  description: 'Personal task list, priorities, due dates, subtasks' },
-  { key: 'journal',  label: 'Journal',       icon: '📖', description: 'Daily entries — your reflections and Ava\'s observations' },
-  { key: 'learning', label: 'Learning',      icon: '🎓', description: 'Curriculums, lesson progress, quiz scores' },
-  { key: 'history',  label: 'Chat History',  icon: '💬', description: 'Conversation history with Ava' },
-  { key: 'settings',    label: 'Settings',      icon: '⚙',  description: 'Preferences, model selection, permission mode' },
-  { key: 'personality', label: 'Personality',   icon: '🎭', description: 'Custom AI name, tone, energy, communication style' },
-  { key: 'learnings',  label: 'Shared Learnings', icon: '💡', description: 'Anonymised technical learnings shared with all users (opt-in via Settings)' },
-] as const;
+function getSyncDataTypes() {
+  return [
+    { key: 'memory',      label: t('dash.sync.memory'),           icon: '🧠', description: t('dash.sync.memory_desc') },
+    { key: 'tasks',       label: t('dash.sync.tasks'),            icon: '✓',  description: t('dash.sync.tasks_desc') },
+    { key: 'journal',     label: t('dash.sync.journal'),          icon: '📖', description: t('dash.sync.journal_desc') },
+    { key: 'learning',    label: t('dash.nav.learning'),          icon: '🎓', description: t('dash.nav.learning_desc') },
+    { key: 'history',     label: t('dash.sync.chat_history'),     icon: '💬', description: t('dash.sync.chat_history_desc') },
+    { key: 'settings',    label: t('dash.sync.settings'),         icon: '⚙',  description: t('dash.sync.settings_desc') },
+    { key: 'personality', label: t('dash.sync.personality'),       icon: '🎭', description: t('dash.sync.personality_desc') },
+    { key: 'learnings',   label: t('dash.sync.shared_learnings'), icon: '💡', description: t('dash.sync.shared_learnings_desc') },
+  ] as const;
+}
 
 interface Props {
   syncStatus: SyncStatus | null;
@@ -49,20 +52,20 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-white">Cloud Sync</h1>
+        <h1 className="text-xl font-bold text-white">{t('dash.sync.title')}</h1>
         <p className="text-xs text-[var(--text-muted)] mt-1">
-          Everything is stored locally by default. Push to cloud to access your data from the companion app and other devices.
+          {t('dash.sync.subtitle')}
         </p>
       </div>
 
       {!isConnected && (
         <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-400 mb-6">
-          Connect a platform account to enable cloud sync. Your data stays local until you choose to push it.
+          {t('dash.sync.connect_to_sync')}
         </div>
       )}
 
       <div className="grid gap-3">
-        {DATA_TYPES.map(({ key, label, icon, description }) => {
+        {getSyncDataTypes().map(({ key, label, icon, description }) => {
           const status = syncStatus?.[key];
           const syncing = syncingTypes.has(key);
           const result = syncResults[key];
@@ -129,7 +132,7 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
 
                 {/* Push button */}
                 <button
-                  onClick={() => post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'learnings' })}
+                  onClick={() => post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' })}
                   disabled={!isConnected || syncing || localCount === 0 || (isUpToDate && !syncing) || !isSyncEnabled(key)}
                   className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-30 disabled:cursor-not-allowed"
                 >
@@ -165,11 +168,11 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
         <div className="mt-6 flex justify-end">
           <button
             onClick={() => {
-              for (const { key } of DATA_TYPES) {
+              for (const { key } of getSyncDataTypes()) {
                 if (!isSyncEnabled(key)) continue; // Skip disabled sections
                 const status = syncStatus?.[key];
                 if (status && status.localCount > 0) {
-                  post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'learnings' });
+                  post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' });
                 }
               }
             }}

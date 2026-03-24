@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { t } from '../i18n';
 import { post } from '../App';
 import { UsageBar } from '../components/UsageBar';
 import { SectionGroup } from '../components/SectionGroup';
@@ -72,9 +73,9 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
   return (
     <div className="mx-auto w-full max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-xl font-bold">Usage</h1>
+        <h1 className="text-xl font-bold">{t('dash.usage.title')}</h1>
         <p className="mt-1 text-xs text-[var(--text-secondary)]">
-          Track your token usage and request history.
+          {t('dash.usage.subtitle')}
         </p>
       </div>
 
@@ -318,9 +319,9 @@ function ByokUsage({ stats }: { stats?: SessionStats | null }) {
   return (
     <div className="mx-auto w-full max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-xl font-bold">Session Usage</h1>
+        <h1 className="text-xl font-bold">{t('dash.usage.title')}</h1>
         <p className="mt-1 text-xs text-[var(--text-secondary)]">
-          Stats since you opened VS Code. Connect an account for historical tracking.
+          {t('dash.usage.subtitle')}
         </p>
       </div>
 
@@ -328,10 +329,10 @@ function ByokUsage({ stats }: { stats?: SessionStats | null }) {
       <div className="mb-6">
         <SectionGroup label="Summary">
           <div className="grid grid-cols-2 gap-3">
-            <SummaryCard label="Total Tokens" value={formatNumber(totalTokens)} sub={`In: ${formatNumber(stats?.total_input_tokens ?? 0)} / Out: ${formatNumber(stats?.total_output_tokens ?? 0)}`} />
-            <SummaryCard label="Requests" value={String(stats?.messages ?? 0)} sub="this session" />
-            <SummaryCard label="Tool Calls" value={String(stats?.tool_calls ?? 0)} sub="this session" />
-            <SummaryCard label="Session Duration" value={sessionDuration} isText sub={stats ? `Since ${new Date(stats.session_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : undefined} />
+            <SummaryCard label={t('dash.usage.total_tokens')} value={formatNumber(totalTokens)} sub={`${t('dash.usage.input_tokens')}: ${formatNumber(stats?.total_input_tokens ?? 0)} / ${t('dash.usage.output_tokens')}: ${formatNumber(stats?.total_output_tokens ?? 0)}`} />
+            <SummaryCard label={t('dash.usage.messages')} value={String(stats?.messages ?? 0)} sub={t('dash.usage.session')} />
+            <SummaryCard label={t('dash.usage.tool_calls')} value={String(stats?.tool_calls ?? 0)} sub={t('dash.usage.session')} />
+            <SummaryCard label={t('dash.usage.session')} value={sessionDuration} isText sub={stats ? `Since ${new Date(stats.session_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : undefined} />
           </div>
         </SectionGroup>
       </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { t } from '../i18n';
 import { post } from '../App';
 import { KeyIcon } from '../components/Icons';
 
@@ -63,7 +64,7 @@ export function ConnectAccount({ onSkipAccount }: ConnectAccountProps) {
             value={key}
             onChange={(e) => setKey(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleConnect()}
-            placeholder="sk-ava-..."
+            placeholder={t('dash.auth.enter_key')}
             className={`w-full rounded-lg border bg-[var(--bg-input)] py-2.5 pl-10 pr-4 font-mono text-sm text-white placeholder-[var(--text-muted)] outline-none transition ${
               error ? 'border-red-500' : 'border-[var(--border-input)] focus:border-[var(--accent)]'
             }`}
@@ -80,7 +81,7 @@ export function ConnectAccount({ onSkipAccount }: ConnectAccountProps) {
         disabled={loading || !key.trim()}
         className="w-full rounded-lg bg-[var(--accent)] py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {loading ? 'Connecting...' : 'Connect Account'}
+        {loading ? 'Connecting...' : t('dash.auth.connect')}
       </button>
 
       {/* Divider */}
