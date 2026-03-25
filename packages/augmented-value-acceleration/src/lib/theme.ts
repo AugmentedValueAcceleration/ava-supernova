@@ -57,8 +57,9 @@ export const pageStyle: React.CSSProperties = {
   padding: theme.pagePadding,
   overflowY: 'auto',
   height: '100%',
+  position: 'absolute',
+  inset: 0,
   background: theme.pageBg,
-  minHeight: '100vh',
 };
 
 export const cardStyle: React.CSSProperties = {

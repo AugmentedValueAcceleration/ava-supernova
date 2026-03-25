@@ -82,7 +82,7 @@ export default function Library() {
   const filtered = assets;
 
   return (
-    <div style={{ ...pageStyle, overflowY: 'auto', height: '100%' }}>
+    <div style={pageStyle}>
       <PageHeader title="Library" subtitle="Browse and manage creative assets" onRefresh={fetchAssets} />
 
       {/* Filter tabs + search */}

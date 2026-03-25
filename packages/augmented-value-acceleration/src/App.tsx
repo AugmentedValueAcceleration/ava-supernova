@@ -114,7 +114,7 @@ export default function App() {
       <TitleBar />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         <Sidebar activePage={activePage} onNavigate={setActivePage} onCollapsedChange={handleCollapsedChange} />
-        <main style={{ flex: 1, overflow: 'auto', transition: 'margin-left 200ms ease' }}>
+        <main style={{ flex: 1, overflow: 'hidden', position: 'relative', transition: 'margin-left 200ms ease' }}>
           <PageComponent onNavigate={(p) => setActivePage(p as Page)} />
         </main>
       </div>
