@@ -82,7 +82,7 @@ export default function Library() {
   const filtered = assets;
 
   return (
-    <div style={pageStyle}>
+    <div style={{ ...pageStyle, overflowY: 'auto', height: '100%' }}>
       <PageHeader title="Library" subtitle="Browse and manage creative assets" onRefresh={fetchAssets} />
 
       {/* Filter tabs + search */}
@@ -120,21 +120,8 @@ export default function Library() {
 
       {/* Loading */}
       {loading && (
-        <div style={{ textAlign: 'center', padding: '80px 40px' }}>
-          <div style={{ fontSize: 13, color: theme.textMuted }}>Loading assets...</div>
-        </div>
-      )}
-
-      {/* Empty state */}
-      {!loading && filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '80px 40px' }}>
-          <div style={{ fontSize: 32, marginBottom: 12, opacity: 0.4 }}>
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={theme.textMuted} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-            </svg>
-          </div>
-          <div style={{ fontSize: 14, color: theme.textSecondary, fontWeight: 300 }}>No assets found</div>
-          <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 4 }}>Create content in the Creative Studio to see it here</div>
+        <div style={{ padding: '40px 0', textAlign: 'center' }}>
+          <div style={{ fontSize: 12, color: theme.textMuted }}>Loading...</div>
         </div>
       )}
 
