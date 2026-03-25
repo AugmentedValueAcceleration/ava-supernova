@@ -1,6 +1,7 @@
 import { useEffect, useState, Fragment } from 'react';
 import { supabase } from '../lib/supabase';
 import PageHeader from '../components/PageHeader';
+import { theme, pageStyle, inputStyle as themeInputStyle, cardStyle, chipStyle, emptyStateStyle } from '../lib/theme';
 
 interface Conversation {
   id: string;
@@ -83,19 +84,14 @@ export default function UserHistory() {
       )
     : conversations;
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '10px 14px', background: '#1a1a35', border: '1px solid #1f1f3a',
-    borderRadius: 10, color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box',
-  };
-
   return (
-    <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
+    <div style={pageStyle}>
       <PageHeader title="Chat History" subtitle={`${conversations.length} conversation${conversations.length !== 1 ? 's' : ''} saved.`} onRefresh={fetchConversations} />
 
       {/* Search */}
       <div style={{ marginBottom: 24 }}>
         <input
-          style={inputStyle}
+          style={themeInputStyle}
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search conversations by title or model..."
@@ -103,14 +99,14 @@ export default function UserHistory() {
       </div>
 
       {/* Loading */}
-      {loading && <div style={{ textAlign: 'center', color: '#6b7280', padding: 60 }}>Loading conversations...</div>}
+      {loading && <div style={{ textAlign: 'center', color: theme.textMuted, padding: 60 }}>Loading conversations...</div>}
 
       {/* Empty */}
       {!loading && filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 80, color: '#6b7280' }}>
+        <div style={emptyStateStyle}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>&#128172;</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: '#9ca3af', marginBottom: 8 }}>No conversations yet</div>
-          <div style={{ fontSize: 14 }}>Chat history will appear here as you use Ava.</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: theme.textSecondary, marginBottom: 8 }}>No conversations yet</div>
+          <div style={{ fontSize: 14, color: theme.textMuted }}>Chat history will appear here as you use Ava.</div>
         </div>
       )}
 
@@ -125,82 +121,79 @@ export default function UserHistory() {
                 <div
                   onClick={() => { setExpandedId(isExpanded ? null : conv.id); if (!isExpanded) loadMessages(conv.id); }}
                   style={{
-                    background: '#111127', border: '1px solid #1f1f3a',
-                    borderRadius: isExpanded ? '14px 14px 0 0' : 14,
+                    ...cardStyle,
+                    borderRadius: isExpanded ? '12px 12px 0 0' : 12,
                     padding: '14px 20px', cursor: 'pointer',
                   }}
-                  onMouseOver={e => (e.currentTarget.style.borderColor = '#2f2f4a')}
-                  onMouseOut={e => (e.currentTarget.style.borderColor = '#1f1f3a')}
+                  onMouseOver={e => (e.currentTarget.style.borderColor = theme.accentBgStrong)}
+                  onMouseOut={e => (e.currentTarget.style.borderColor = theme.border)}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 500, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 14, fontWeight: 500, color: theme.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {conv.title || 'Untitled conversation'}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
-                        <span style={{ fontSize: 11, color: '#6b7280' }}>{formatDate(conv.created_at)}</span>
+                        <span style={{ fontSize: 11, color: theme.textMuted }}>{formatDate(conv.created_at)}</span>
                         {conv.model && (
-                          <span style={{
-                            fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 8,
-                            background: 'rgba(168, 85, 247, 0.12)', color: '#a855f7',
-                          }}>
+                          <span style={chipStyle(theme.accentBg, theme.accent)}>
                             {conv.model}
                           </span>
                         )}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: '#a855f7' }}>{conv.message_count}</div>
-                      <div style={{ fontSize: 10, color: '#6b7280' }}>messages</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: theme.accent }}>{conv.message_count}</div>
+                      <div style={{ fontSize: 10, color: theme.textMuted }}>messages</div>
                     </div>
                   </div>
                 </div>
 
                 {isExpanded && (
                   <div style={{
-                    background: '#0d0d22', border: '1px solid #1f1f3a', borderTop: 'none',
-                    borderRadius: '0 0 14px 14px', padding: '16px 20px',
+                    background: theme.surfaceBg, border: `1px solid ${theme.border}`, borderTop: 'none',
+                    borderRadius: '0 0 12px 12px', padding: '16px 20px',
                   }}>
                     {/* Messages */}
                     {loadingMessages === conv.id ? (
-                      <div style={{ textAlign: 'center', color: '#6b7280', padding: 20, fontSize: 12 }}>Loading messages...</div>
+                      <div style={{ textAlign: 'center', color: theme.textMuted, padding: 20, fontSize: 12 }}>Loading messages...</div>
                     ) : conv.messages && conv.messages.length > 0 ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 400, overflowY: 'auto', marginBottom: 12 }}>
                         {conv.messages.map((msg, i) => (
                           <div key={i} style={{
                             padding: '10px 14px', borderRadius: 10,
-                            background: msg.role === 'user' ? '#1a1a35' : '#111127',
-                            border: '1px solid #1f1f3a',
+                            background: msg.role === 'user' ? theme.inputBg : theme.cardBg,
+                            border: `1px solid ${theme.border}`,
                           }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                               <span style={{
                                 fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const,
-                                color: msg.role === 'user' ? '#60a5fa' : '#a855f7',
+                                color: msg.role === 'user' ? theme.blue : theme.accent,
                               }}>
                                 {msg.role}
                               </span>
-                              <span style={{ fontSize: 10, color: '#4b5563' }}>{formatDateTime(msg.created_at)}</span>
+                              <span style={{ fontSize: 10, color: theme.textMuted }}>{formatDateTime(msg.created_at)}</span>
                             </div>
-                            <div style={{ fontSize: 12, color: '#9ca3af', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                            <div style={{ fontSize: 12, color: theme.textSecondary, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                               {msg.content.length > 500 ? msg.content.slice(0, 500) + '...' : msg.content}
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div style={{ textAlign: 'center', color: '#6b7280', padding: 20, fontSize: 12 }}>No messages found.</div>
+                      <div style={{ textAlign: 'center', color: theme.textMuted, padding: 20, fontSize: 12 }}>No messages found.</div>
                     )}
 
                     {/* Actions */}
                     <div style={{ display: 'flex', gap: 8 }}>
                       {deleteConfirm === conv.id ? (
                         <>
-                          <span style={{ fontSize: 12, color: '#f87171', alignSelf: 'center' }}>Delete this conversation?</span>
+                          <span style={{ fontSize: 12, color: theme.red, alignSelf: 'center' }}>Delete this conversation?</span>
                           <button
                             onClick={(e) => { e.stopPropagation(); deleteConversation(conv.id); }}
                             style={{
-                              background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #f87171', borderRadius: 6,
-                              padding: '6px 12px', fontSize: 11, color: '#f87171', cursor: 'pointer',
+                              background: theme.redBg, border: `1px solid ${theme.red}`, borderRadius: 6,
+                              padding: '6px 12px', fontSize: 11, color: theme.red, cursor: 'pointer',
                             }}
                           >
                             Confirm Delete
@@ -208,8 +201,8 @@ export default function UserHistory() {
                           <button
                             onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null); }}
                             style={{
-                              background: 'none', border: '1px solid #1f1f3a', borderRadius: 6,
-                              padding: '6px 12px', fontSize: 11, color: '#9ca3af', cursor: 'pointer',
+                              background: 'none', border: `1px solid ${theme.border}`, borderRadius: 6,
+                              padding: '6px 12px', fontSize: 11, color: theme.textSecondary, cursor: 'pointer',
                             }}
                           >
                             Cancel
@@ -219,8 +212,8 @@ export default function UserHistory() {
                         <button
                           onClick={(e) => { e.stopPropagation(); setDeleteConfirm(conv.id); }}
                           style={{
-                            background: 'none', border: '1px solid #1f1f3a', borderRadius: 6,
-                            padding: '6px 12px', fontSize: 11, color: '#f87171', cursor: 'pointer',
+                            background: 'none', border: `1px solid ${theme.border}`, borderRadius: 6,
+                            padding: '6px 12px', fontSize: 11, color: theme.red, cursor: 'pointer',
                           }}
                         >
                           Delete

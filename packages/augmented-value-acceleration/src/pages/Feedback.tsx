@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import PageHeader from '../components/PageHeader';
+import { theme, pageStyle, cardStyle, statCardStyle, tableHeaderStyle, tableCellStyle, chipStyle } from '../lib/theme';
 
 interface FeedbackEntry {
   id: string;
@@ -97,8 +98,8 @@ export default function Feedback() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#0a0a1a' }}>
-        <div style={{ fontSize: 14, color: '#6b7280' }}>Loading feedback data...</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: theme.pageBg }}>
+        <div style={{ fontSize: 14, color: theme.textMuted }}>Loading feedback data...</div>
       </div>
     );
   }
@@ -108,20 +109,20 @@ export default function Feedback() {
     padding: '10px 14px',
     fontSize: 12,
     fontWeight: isActive ? 600 : 400,
-    color: isActive ? '#fff' : '#6b7280',
-    background: isActive ? '#a855f7' : 'transparent',
+    color: isActive ? '#fff' : theme.textMuted,
+    background: isActive ? theme.accent : 'transparent',
     border: 'none',
     borderRadius: 8,
     cursor: 'pointer' as const,
   });
 
   return (
-    <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
+    <div style={pageStyle}>
 
       <PageHeader title="Feedback & Self-Improvement" subtitle="Message ratings, satisfaction analytics, and Ava's shared learning pool." onRefresh={loadData} />
 
       {/* Tab navigation */}
-      <div style={{ display: 'flex', gap: 4, background: '#111127', border: '1px solid #1f1f3a', borderRadius: 10, padding: 4, marginBottom: 24 }}>
+      <div style={{ display: 'flex', gap: 4, background: theme.cardBg, border: `1px solid ${theme.border}`, borderRadius: 10, padding: 4, marginBottom: 24 }}>
         <button onClick={() => setTab('overview')} style={tabStyle(tab === 'overview')}>Overview</button>
         <button onClick={() => setTab('negative')} style={tabStyle(tab === 'negative')}>Negative Feedback</button>
         <button onClick={() => setTab('learnings')} style={tabStyle(tab === 'learnings')}>Shared Learnings</button>
@@ -139,27 +140,25 @@ export default function Feedback() {
 
           {/* By mode & model */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-            {/* By mode */}
-            <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 20 }}>
-              <h2 style={{ fontSize: 13, fontWeight: 600, color: '#9ca3af', marginBottom: 16, margin: '0 0 16px 0' }}>Satisfaction by Mode</h2>
+            <div style={cardStyle}>
+              <h2 style={{ fontSize: 13, fontWeight: 600, color: theme.textSecondary, margin: '0 0 16px 0' }}>Satisfaction by Mode</h2>
               {Object.entries(byMode).map(([mode, counts]) => {
                 const t = counts.up + counts.down;
                 const pct = t > 0 ? Math.round((counts.up / t) * 100) : 0;
                 return (
                   <div key={mode} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                    <span style={{ width: 70, fontSize: 12, fontWeight: 500, color: '#fff', textTransform: 'capitalize' }}>{mode}</span>
-                    <div style={{ flex: 1, height: 6, borderRadius: 3, background: '#1a1a35', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', borderRadius: 3, background: 'rgba(34, 197, 94, 0.5)', width: `${pct}%` }} />
+                    <span style={{ width: 70, fontSize: 12, fontWeight: 500, color: theme.text, textTransform: 'capitalize' }}>{mode}</span>
+                    <div style={{ flex: 1, height: 6, borderRadius: 3, background: theme.inputBg, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: 3, background: theme.greenBg.replace('0.12', '0.5'), width: `${pct}%` }} />
                     </div>
-                    <span style={{ width: 40, textAlign: 'right', fontSize: 10, color: '#6b7280' }}>{pct}%</span>
+                    <span style={{ width: 40, textAlign: 'right', fontSize: 10, color: theme.textMuted }}>{pct}%</span>
                   </div>
                 );
               })}
             </div>
 
-            {/* By model */}
-            <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 20 }}>
-              <h2 style={{ fontSize: 13, fontWeight: 600, color: '#9ca3af', marginBottom: 16, margin: '0 0 16px 0' }}>Satisfaction by Model</h2>
+            <div style={cardStyle}>
+              <h2 style={{ fontSize: 13, fontWeight: 600, color: theme.textSecondary, margin: '0 0 16px 0' }}>Satisfaction by Model</h2>
               {Object.entries(byModel)
                 .sort((a, b) => (b[1].up + b[1].down) - (a[1].up + a[1].down))
                 .slice(0, 8)
@@ -169,11 +168,11 @@ export default function Feedback() {
                   const shortModel = model.includes(':') ? model.split(':').pop()! : model;
                   return (
                     <div key={model} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                      <span style={{ width: 100, fontSize: 12, fontWeight: 500, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={model}>{shortModel}</span>
-                      <div style={{ flex: 1, height: 6, borderRadius: 3, background: '#1a1a35', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', borderRadius: 3, background: 'rgba(59, 130, 246, 0.5)', width: `${pct}%` }} />
+                      <span style={{ width: 100, fontSize: 12, fontWeight: 500, color: theme.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={model}>{shortModel}</span>
+                      <div style={{ flex: 1, height: 6, borderRadius: 3, background: theme.inputBg, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', borderRadius: 3, background: theme.blueBg.replace('0.12', '0.5'), width: `${pct}%` }} />
                       </div>
-                      <span style={{ width: 60, textAlign: 'right', fontSize: 10, color: '#6b7280' }}>{pct}% ({t})</span>
+                      <span style={{ width: 60, textAlign: 'right', fontSize: 10, color: theme.textMuted }}>{pct}% ({t})</span>
                     </div>
                   );
                 })}
@@ -181,22 +180,15 @@ export default function Feedback() {
           </div>
 
           {/* Common complaints */}
-          <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 20 }}>
-            <h2 style={{ fontSize: 13, fontWeight: 600, color: '#9ca3af', marginBottom: 16, margin: '0 0 16px 0' }}>Common Complaints</h2>
+          <div style={cardStyle}>
+            <h2 style={{ fontSize: 13, fontWeight: 600, color: theme.textSecondary, margin: '0 0 16px 0' }}>Common Complaints</h2>
             {complaints.length === 0 ? (
-              <p style={{ fontSize: 12, color: '#6b7280' }}>No complaints yet.</p>
+              <p style={{ fontSize: 12, color: theme.textMuted }}>No complaints yet.</p>
             ) : (
               complaints.map((c) => (
                 <div key={c.reason} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                  <span style={{ flex: 1, fontSize: 12, color: '#fff' }}>{c.reason}</span>
-                  <span style={{
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    color: '#f87171',
-                    fontSize: 10,
-                    fontWeight: 500,
-                    padding: '2px 8px',
-                    borderRadius: 10,
-                  }}>
+                  <span style={{ flex: 1, fontSize: 12, color: theme.text }}>{c.reason}</span>
+                  <span style={chipStyle(theme.redBg, theme.red)}>
                     {c.count}
                   </span>
                 </div>
@@ -207,40 +199,36 @@ export default function Feedback() {
       )}
 
       {tab === 'negative' && (
-        <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, overflow: 'hidden' }}>
+        <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #1f1f3a', background: '#1a1a35' }}>
-                <th style={{ ...thStyle }}>Date</th>
-                <th style={{ ...thStyle }}>Reason</th>
-                <th style={{ ...thStyle }}>Model</th>
-                <th style={{ ...thStyle }}>Mode</th>
+              <tr style={{ borderBottom: `1px solid ${theme.border}` }}>
+                <th style={tableHeaderStyle}>Date</th>
+                <th style={tableHeaderStyle}>Reason</th>
+                <th style={tableHeaderStyle}>Model</th>
+                <th style={tableHeaderStyle}>Mode</th>
               </tr>
             </thead>
             <tbody>
               {negativeFeedback.length === 0 ? (
                 <tr>
-                  <td colSpan={4} style={{ padding: '32px 16px', textAlign: 'center', color: '#6b7280' }}>
+                  <td colSpan={4} style={{ padding: '32px 16px', textAlign: 'center', color: theme.textMuted }}>
                     No negative feedback yet.
                   </td>
                 </tr>
               ) : (
                 negativeFeedback.map((f) => (
-                  <tr key={f.id} style={{ borderBottom: '1px solid #1f1f3a' }}>
-                    <td style={{ ...tdStyle, color: '#9ca3af' }}>{formatDate(f.created_at)}</td>
-                    <td style={{ ...tdStyle, color: '#fff' }}>{f.reason || '\u2014'}</td>
-                    <td style={{ ...tdStyle, color: '#6b7280' }}>
+                  <tr key={f.id} style={{ borderBottom: `1px solid ${theme.border}` }}
+                    onMouseOver={e => e.currentTarget.style.background = theme.inputBg}
+                    onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <td style={{ ...tableCellStyle, color: theme.textSecondary }}>{formatDate(f.created_at)}</td>
+                    <td style={{ ...tableCellStyle, color: theme.text }}>{f.reason || '\u2014'}</td>
+                    <td style={{ ...tableCellStyle, color: theme.textMuted }}>
                       {f.model ? (f.model.includes(':') ? f.model.split(':').pop() : f.model) : '\u2014'}
                     </td>
-                    <td style={{ ...tdStyle }}>
-                      <span style={{
-                        background: '#1a1a35',
-                        padding: '2px 8px',
-                        borderRadius: 10,
-                        fontSize: 10,
-                        textTransform: 'capitalize',
-                        color: '#9ca3af',
-                      }}>
+                    <td style={tableCellStyle}>
+                      <span style={chipStyle(theme.accentBg, theme.textSecondary)}>
                         {f.mode || '\u2014'}
                       </span>
                     </td>
@@ -255,71 +243,72 @@ export default function Feedback() {
       {tab === 'learnings' && (
         <div>
           {/* Learning summary */}
-          <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 20, marginBottom: 16 }}>
+          <div style={{ ...cardStyle, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h2 style={{ fontSize: 13, fontWeight: 600, color: '#9ca3af', margin: 0 }}>
+              <h2 style={{ fontSize: 13, fontWeight: 600, color: theme.textSecondary, margin: 0 }}>
                 Shared Learning Pool ({learnings.length})
               </h2>
-              <span style={{ fontSize: 10, color: '#6b7280' }}>
+              <span style={{ fontSize: 10, color: theme.textMuted }}>
                 {learnings.filter(l => l.confidence >= 0.5).length} visible to users
               </span>
             </div>
           </div>
 
           {/* Learning table */}
-          <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #1f1f3a', background: '#1a1a35' }}>
-                  <th style={{ ...thStyle }}>Type</th>
-                  <th style={{ ...thStyle }}>Category</th>
-                  <th style={{ ...thStyle }}>Learned</th>
-                  <th style={{ ...thStyle }}>Confidence</th>
-                  <th style={{ ...thStyle }}>Confirmations</th>
-                  <th style={{ ...thStyle }}>Updated</th>
+                <tr style={{ borderBottom: `1px solid ${theme.border}` }}>
+                  <th style={tableHeaderStyle}>Type</th>
+                  <th style={tableHeaderStyle}>Category</th>
+                  <th style={tableHeaderStyle}>Learned</th>
+                  <th style={tableHeaderStyle}>Confidence</th>
+                  <th style={tableHeaderStyle}>Confirmations</th>
+                  <th style={tableHeaderStyle}>Updated</th>
                 </tr>
               </thead>
               <tbody>
                 {learnings.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ padding: '32px 16px', textAlign: 'center', color: '#6b7280' }}>
+                    <td colSpan={6} style={{ padding: '32px 16px', textAlign: 'center', color: theme.textMuted }}>
                       No shared learnings yet.
                     </td>
                   </tr>
                 ) : (
                   learnings.map((l) => {
                     const typeColors: Record<string, { bg: string; text: string }> = {
-                      'tool-fix': { bg: 'rgba(59, 130, 246, 0.1)', text: '#60a5fa' },
-                      'error-recovery': { bg: 'rgba(249, 115, 22, 0.1)', text: '#fb923c' },
-                      'technique': { bg: 'rgba(34, 197, 94, 0.1)', text: '#4ade80' },
+                      'tool-fix': { bg: theme.blueBg, text: theme.blue },
+                      'error-recovery': { bg: theme.orangeBg, text: theme.orange },
+                      'technique': { bg: theme.greenBg, text: theme.green },
                     };
-                    const tc = typeColors[l.type] || { bg: 'rgba(168, 85, 247, 0.1)', text: '#a855f7' };
+                    const tc = typeColors[l.type] || { bg: theme.accentBg, text: theme.accent };
                     return (
-                      <tr key={l.id} style={{ borderBottom: '1px solid #1f1f3a' }}>
-                        <td style={{ ...tdStyle }}>
-                          <span style={{ background: tc.bg, color: tc.text, fontSize: 10, fontWeight: 500, padding: '2px 8px', borderRadius: 10 }}>
-                            {l.type}
-                          </span>
+                      <tr key={l.id} style={{ borderBottom: `1px solid ${theme.border}` }}
+                        onMouseOver={e => e.currentTarget.style.background = theme.inputBg}
+                        onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <td style={tableCellStyle}>
+                          <span style={chipStyle(tc.bg, tc.text)}>{l.type}</span>
                         </td>
-                        <td style={{ ...tdStyle, color: '#6b7280' }}>{l.category}</td>
-                        <td style={{ ...tdStyle, color: '#fff', maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={l.learned}>
+                        <td style={{ ...tableCellStyle, color: theme.textMuted }}>{l.category}</td>
+                        <td style={{ ...tableCellStyle, color: theme.text, maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={l.learned}>
                           {l.learned}
                         </td>
-                        <td style={{ ...tdStyle }}>
+                        <td style={tableCellStyle}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <div style={{ width: 48, height: 6, borderRadius: 3, background: '#1a1a35', overflow: 'hidden' }}>
+                            <div style={{ width: 48, height: 6, borderRadius: 3, background: theme.inputBg, overflow: 'hidden' }}>
                               <div style={{
                                 height: '100%',
                                 borderRadius: 3,
                                 width: `${l.confidence * 100}%`,
-                                background: l.confidence >= 0.7 ? '#4ade80' : l.confidence >= 0.5 ? '#facc15' : '#f87171',
+                                background: l.confidence >= 0.7 ? theme.green : l.confidence >= 0.5 ? theme.yellow : theme.red,
                               }} />
                             </div>
-                            <span style={{ fontSize: 10, color: '#6b7280' }}>{(l.confidence * 100).toFixed(0)}%</span>
+                            <span style={{ fontSize: 10, color: theme.textMuted }}>{(l.confidence * 100).toFixed(0)}%</span>
                           </div>
                         </td>
-                        <td style={{ ...tdStyle, textAlign: 'center', color: '#6b7280' }}>{l.confirmations}</td>
-                        <td style={{ ...tdStyle, color: '#6b7280' }}>{formatDate(l.updated_at)}</td>
+                        <td style={{ ...tableCellStyle, textAlign: 'center', color: theme.textMuted }}>{l.confirmations}</td>
+                        <td style={{ ...tableCellStyle, color: theme.textMuted }}>{formatDate(l.updated_at)}</td>
                       </tr>
                     );
                   })
@@ -335,24 +324,10 @@ export default function Feedback() {
 
 function StatCard({ label, value, sub, accent }: { label: string; value: string; sub: string; accent?: boolean }) {
   return (
-    <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 20 }}>
-      <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280' }}>{label}</div>
-      <div style={{ fontSize: 28, fontWeight: 700, color: accent ? '#4ade80' : '#fff', marginTop: 4, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
-      <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>{sub}</div>
+    <div style={statCardStyle}>
+      <div style={{ fontSize: 11, fontWeight: 500, color: theme.textMuted }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 700, color: accent ? theme.green : theme.text, marginTop: 4, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
+      <div style={{ fontSize: 11, color: theme.textSecondary, marginTop: 4 }}>{sub}</div>
     </div>
   );
 }
-
-const thStyle: React.CSSProperties = {
-  padding: '10px 16px',
-  textAlign: 'left',
-  fontWeight: 500,
-  color: '#6b7280',
-  fontSize: 11,
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: '10px 16px',
-  textAlign: 'left',
-  fontSize: 12,
-};

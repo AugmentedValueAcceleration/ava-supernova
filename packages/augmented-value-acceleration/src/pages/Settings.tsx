@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import PageHeader from '../components/PageHeader';
+import { theme, pageStyle, cardStyle, inputStyle as themeInputStyle, labelStyle, primaryBtnStyle } from '../lib/theme';
 
 interface PlatformSetting {
   id: string;
@@ -100,14 +101,14 @@ export default function Settings() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#0a0a1a' }}>
-        <div style={{ fontSize: 14, color: '#6b7280' }}>Loading settings...</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: theme.pageBg }}>
+        <div style={{ fontSize: 14, color: theme.textMuted }}>Loading settings...</div>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
+    <div style={pageStyle}>
 
       <PageHeader title="Platform Settings" subtitle="Configure platform-wide settings stored in Supabase." onRefresh={loadSettings}>
         {dirty.size > 0 && (
@@ -115,13 +116,7 @@ export default function Settings() {
             onClick={saveAllSettings}
             disabled={saveAll}
             style={{
-              background: '#a855f7',
-              border: 'none',
-              borderRadius: 10,
-              padding: '10px 24px',
-              fontSize: 13,
-              fontWeight: 600,
-              color: '#fff',
+              ...primaryBtnStyle,
               cursor: saveAll ? 'not-allowed' : 'pointer',
               opacity: saveAll ? 0.5 : 1,
             }}
@@ -142,34 +137,28 @@ export default function Settings() {
             <div
               key={config.key}
               style={{
-                background: '#111127',
-                border: isDirty ? '1px solid rgba(168, 85, 247, 0.4)' : '1px solid #1f1f3a',
-                borderRadius: 14,
-                padding: 20,
+                ...cardStyle,
+                border: isDirty ? `1px solid ${theme.accent}60` : `1px solid ${theme.border}`,
                 marginBottom: 12,
               }}
             >
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{config.label}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: theme.text }}>{config.label}</div>
                   {config.description && (
-                    <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{config.description}</div>
+                    <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 2 }}>{config.description}</div>
                   )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                  {isSuccess && <span style={{ fontSize: 11, color: '#4ade80' }}>Saved</span>}
+                  {isSuccess && <span style={{ fontSize: 11, color: theme.green }}>Saved</span>}
                   {isDirty && (
                     <button
                       onClick={() => saveSetting(config.key)}
                       disabled={isSaving}
                       style={{
-                        background: '#a855f7',
-                        border: 'none',
-                        borderRadius: 8,
+                        ...primaryBtnStyle,
                         padding: '6px 14px',
                         fontSize: 11,
-                        fontWeight: 600,
-                        color: '#fff',
                         cursor: isSaving ? 'not-allowed' : 'pointer',
                         opacity: isSaving ? 0.5 : 1,
                       }}
@@ -187,17 +176,9 @@ export default function Settings() {
                   rows={3}
                   placeholder={`Enter ${config.label.toLowerCase()}...`}
                   style={{
-                    width: '100%',
-                    background: '#1a1a35',
-                    border: '1px solid #1f1f3a',
-                    borderRadius: 8,
-                    padding: '10px 14px',
-                    fontSize: 13,
-                    color: '#fff',
-                    outline: 'none',
+                    ...themeInputStyle,
                     resize: 'vertical',
                     fontFamily: 'inherit',
-                    boxSizing: 'border-box',
                   }}
                 />
               ) : config.type === 'toggle' ? (
@@ -217,7 +198,7 @@ export default function Settings() {
                     width: 44,
                     height: 24,
                     borderRadius: 12,
-                    background: settings[config.key] === 'true' ? '#a855f7' : '#1f1f3a',
+                    background: settings[config.key] === 'true' ? theme.accent : theme.inputBg,
                     position: 'relative',
                     transition: 'background 0.2s',
                   }}>
@@ -232,7 +213,7 @@ export default function Settings() {
                       transition: 'left 0.2s',
                     }} />
                   </div>
-                  <span style={{ fontSize: 13, color: settings[config.key] === 'true' ? '#4ade80' : '#6b7280' }}>
+                  <span style={{ fontSize: 13, color: settings[config.key] === 'true' ? theme.green : theme.textMuted }}>
                     {settings[config.key] === 'true' ? 'Enabled' : 'Disabled'}
                   </span>
                 </button>
@@ -242,18 +223,7 @@ export default function Settings() {
                   value={settings[config.key] || ''}
                   onChange={(e) => updateSetting(config.key, e.target.value)}
                   placeholder={`Enter ${config.label.toLowerCase()}...`}
-                  style={{
-                    width: '100%',
-                    background: '#1a1a35',
-                    border: '1px solid #1f1f3a',
-                    borderRadius: 8,
-                    padding: '10px 14px',
-                    fontSize: 13,
-                    color: '#fff',
-                    outline: 'none',
-                    fontFamily: 'inherit',
-                    boxSizing: 'border-box',
-                  }}
+                  style={themeInputStyle}
                 />
               )}
             </div>
@@ -262,9 +232,9 @@ export default function Settings() {
       </div>
 
       {/* Footer info */}
-      <div style={{ marginTop: 24, padding: '16px 20px', background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, maxWidth: 700 }}>
-        <div style={{ fontSize: 11, color: '#6b7280' }}>
-          Settings are stored in the <code style={{ background: '#1a1a35', padding: '2px 6px', borderRadius: 4, fontSize: 10 }}>platform_settings</code> table in Supabase.
+      <div style={{ marginTop: 24, ...cardStyle, maxWidth: 700, padding: '16px 20px' }}>
+        <div style={{ fontSize: 11, color: theme.textMuted }}>
+          Settings are stored in the <code style={{ background: theme.inputBg, padding: '2px 6px', borderRadius: 4, fontSize: 10 }}>platform_settings</code> table in Supabase.
           Changes take effect immediately upon save. Toggle settings accept "true"/"false" string values.
         </div>
       </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import PageHeader from '../components/PageHeader';
+import { theme } from '../lib/theme';
 
 /* ── Categories ────────────────────────────────────────────────────── */
 
@@ -85,21 +86,21 @@ type SortOption = 'newest' | 'oldest' | 'most-viewed' | 'priority';
 /* ── Colours ───────────────────────────────────────────────────────── */
 
 const C = {
-  page:      '#0a0a1a',
-  card:      '#111127',
-  border:    '#1f1f3a',
-  input:     '#1a1a35',
-  purple:    '#a855f7',
-  purpleBg:  'rgba(168,85,247,0.15)',
-  text:      '#ffffff',
-  secondary: '#9ca3af',
-  muted:     '#6b7280',
-  green:     '#34d399',
-  greenBg:   'rgba(16,185,129,0.2)',
-  amber:     '#fbbf24',
-  amberBg:   'rgba(245,158,11,0.2)',
-  red:       '#f87171',
-  redBg:     'rgba(239,68,68,0.2)',
+  page:      theme.pageBg,
+  card:      theme.cardBg,
+  border:    theme.border,
+  input:     theme.inputBg,
+  purple:    theme.accent,
+  purpleBg:  theme.accentBg,
+  text:      theme.text,
+  secondary: theme.textSecondary,
+  muted:     theme.textMuted,
+  green:     theme.green,
+  greenBg:   theme.greenBg,
+  amber:     theme.yellow,
+  amberBg:   theme.yellowBg,
+  red:       theme.red,
+  redBg:     theme.redBg,
 };
 
 /* ── Shared styles ─────────────────────────────────────────────────── */

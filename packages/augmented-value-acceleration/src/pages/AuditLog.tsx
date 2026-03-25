@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import PageHeader from '../components/PageHeader';
+import { theme, pageStyle, inputStyle as themeInputStyle, sectionHeaderStyle } from '../lib/theme';
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 
@@ -16,16 +17,16 @@ interface AuditEntry {
 }
 
 const ACTION_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-  create: { bg: '#064e3b', text: '#6ee7b7', label: 'CREATE' },
-  created: { bg: '#064e3b', text: '#6ee7b7', label: 'CREATE' },
-  update: { bg: '#1e3a5f', text: '#60a5fa', label: 'UPDATE' },
-  updated: { bg: '#1e3a5f', text: '#60a5fa', label: 'UPDATE' },
-  delete: { bg: '#7f1d1d', text: '#fca5a5', label: 'DELETE' },
-  deleted: { bg: '#7f1d1d', text: '#fca5a5', label: 'DELETE' },
-  login: { bg: '#3f3f46', text: '#a1a1aa', label: 'LOGIN' },
-  logout: { bg: '#3f3f46', text: '#a1a1aa', label: 'LOGOUT' },
-  assign: { bg: '#78350f', text: '#fbbf24', label: 'ASSIGN' },
-  upload: { bg: '#1e3a5f', text: '#60a5fa', label: 'UPLOAD' },
+  create: { bg: theme.greenBg, text: theme.green, label: 'CREATE' },
+  created: { bg: theme.greenBg, text: theme.green, label: 'CREATE' },
+  update: { bg: theme.blueBg, text: theme.blue, label: 'UPDATE' },
+  updated: { bg: theme.blueBg, text: theme.blue, label: 'UPDATE' },
+  delete: { bg: theme.redBg, text: theme.red, label: 'DELETE' },
+  deleted: { bg: theme.redBg, text: theme.red, label: 'DELETE' },
+  login: { bg: theme.accentBg, text: theme.textSecondary, label: 'LOGIN' },
+  logout: { bg: theme.accentBg, text: theme.textSecondary, label: 'LOGOUT' },
+  assign: { bg: theme.yellowBg, text: theme.yellow, label: 'ASSIGN' },
+  upload: { bg: theme.blueBg, text: theme.blue, label: 'UPLOAD' },
 };
 
 const ACTION_ICONS: Record<string, string> = {
@@ -101,7 +102,7 @@ export default function AuditLog() {
 
   function getActionStyle(action: string): { bg: string; text: string; label: string } {
     const normalized = action?.toLowerCase() || '';
-    return ACTION_COLORS[normalized] || { bg: '#3f3f46', text: '#a1a1aa', label: action?.toUpperCase() || '—' };
+    return ACTION_COLORS[normalized] || { bg: theme.inputBg, text: theme.textSecondary, label: action?.toUpperCase() || '—' };
   }
 
   function getActionIcon(action: string): string {
@@ -118,33 +119,28 @@ export default function AuditLog() {
     grouped[dateKey].push(e);
   });
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '10px 14px', background: '#1a1a35', border: '1px solid #1f1f3a',
-    borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box',
-  };
-
   return (
-    <div style={{ padding: '40px 48px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
+    <div style={pageStyle}>
       {/* Header */}
       <PageHeader title="Audit Log" subtitle="Track all system activity and changes" onRefresh={fetchData} />
 
       {/* Search + Filters */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
         <input
-          style={{ ...inputStyle, flex: 1, minWidth: 200 }}
+          style={{ ...themeInputStyle, flex: 1, minWidth: 200 }}
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search actions, entities, users..."
         />
-        <select style={{ ...inputStyle, width: 'auto', minWidth: 140 }} value={userFilter} onChange={e => setUserFilter(e.target.value)}>
+        <select style={{ ...themeInputStyle, width: 'auto', minWidth: 140 }} value={userFilter} onChange={e => setUserFilter(e.target.value)}>
           <option value="all">All Users</option>
           {users.map(u => <option key={u} value={u}>{u}</option>)}
         </select>
-        <select style={{ ...inputStyle, width: 'auto', minWidth: 140 }} value={actionFilter} onChange={e => setActionFilter(e.target.value)}>
+        <select style={{ ...themeInputStyle, width: 'auto', minWidth: 140 }} value={actionFilter} onChange={e => setActionFilter(e.target.value)}>
           <option value="all">All Actions</option>
           {actions.map(a => <option key={a} value={a}>{a.charAt(0).toUpperCase() + a.slice(1)}</option>)}
         </select>
-        <select style={{ ...inputStyle, width: 'auto', minWidth: 140 }} value={entityFilter} onChange={e => setEntityFilter(e.target.value)}>
+        <select style={{ ...themeInputStyle, width: 'auto', minWidth: 140 }} value={entityFilter} onChange={e => setEntityFilter(e.target.value)}>
           <option value="all">All Entities</option>
           {entityTypes.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
@@ -152,27 +148,27 @@ export default function AuditLog() {
 
       {/* Date Range */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 32, alignItems: 'center' }}>
-        <span style={{ fontSize: 12, color: '#6b7280' }}>Date range:</span>
-        <input type="date" style={{ ...inputStyle, width: 'auto' }} value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-        <span style={{ color: '#6b7280' }}>to</span>
-        <input type="date" style={{ ...inputStyle, width: 'auto' }} value={dateTo} onChange={e => setDateTo(e.target.value)} />
+        <span style={{ fontSize: 12, color: theme.textMuted }}>Date range:</span>
+        <input type="date" style={{ ...themeInputStyle, width: 'auto' }} value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+        <span style={{ color: theme.textMuted }}>to</span>
+        <input type="date" style={{ ...themeInputStyle, width: 'auto' }} value={dateTo} onChange={e => setDateTo(e.target.value)} />
         {(dateFrom || dateTo) && (
           <button onClick={() => { setDateFrom(''); setDateTo(''); }} style={{
-            padding: '8px 16px', background: '#1f1f3a', color: '#9ca3af', border: 'none',
+            padding: '8px 16px', background: theme.inputBg, color: theme.textSecondary, border: 'none',
             borderRadius: 8, fontSize: 12, cursor: 'pointer',
           }}>Clear</button>
         )}
-        <span style={{ marginLeft: 'auto', fontSize: 13, color: '#6b7280' }}>{filtered.length} entries</span>
+        <span style={{ marginLeft: 'auto', fontSize: 13, color: theme.textMuted }}>{filtered.length} entries</span>
       </div>
 
       {/* Loading */}
-      {loading && <div style={{ textAlign: 'center', color: '#6b7280', padding: 60 }}>Loading audit log...</div>}
+      {loading && <div style={{ textAlign: 'center', color: theme.textMuted, padding: 60 }}>Loading audit log...</div>}
 
       {/* Empty */}
       {!loading && filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 80, color: '#6b7280' }}>
+        <div style={{ textAlign: 'center', padding: 80, color: theme.textMuted }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>📋</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: '#9ca3af', marginBottom: 8 }}>No audit entries found</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: theme.textSecondary, marginBottom: 8 }}>No audit entries found</div>
           <div style={{ fontSize: 14 }}>Activity will appear here as you use the system</div>
         </div>
       )}
@@ -184,8 +180,8 @@ export default function AuditLog() {
             <div key={dateLabel}>
               {/* Date header */}
               <div style={{
-                fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase',
-                letterSpacing: '1px', marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #1f1f3a',
+                ...sectionHeaderStyle,
+                marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${theme.border}`,
               }}>{dateLabel}</div>
 
               {/* Entries */}
@@ -198,14 +194,14 @@ export default function AuditLog() {
                   return (
                     <div key={entry.id} style={{
                       display: 'flex', alignItems: 'flex-start', gap: 14, padding: '12px 16px',
-                      borderRadius: 10, cursor: 'pointer', transition: 'background 0.15s',
+                      borderRadius: theme.radiusMd, cursor: 'pointer', transition: 'background 0.15s',
                     }}
                       onClick={() => setExpandedId(expanded ? null : entry.id)}
-                      onMouseOver={e => e.currentTarget.style.background = '#111127'}
+                      onMouseOver={e => e.currentTarget.style.background = theme.cardBg}
                       onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                     >
                       {/* Time */}
-                      <span style={{ fontSize: 12, color: '#4b5563', width: 70, flexShrink: 0, fontFamily: 'monospace' }}>
+                      <span style={{ fontSize: 12, color: theme.textMuted, width: 70, flexShrink: 0, fontFamily: 'monospace' }}>
                         {formatTime(entry.created_at)}
                       </span>
 
@@ -214,22 +210,22 @@ export default function AuditLog() {
                         <img src={entry.user_avatar} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                       ) : (
                         <div style={{
-                          width: 32, height: 32, borderRadius: '50%', background: '#1f1f3a',
+                          width: 32, height: 32, borderRadius: '50%', background: theme.inputBg,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 11, fontWeight: 700, color: '#a855f7', flexShrink: 0,
+                          fontSize: 11, fontWeight: 700, color: theme.accent, flexShrink: 0,
                         }}>{getInitials(entry.user_name)}</div>
                       )}
 
                       {/* Content */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{entry.user_name || 'System'}</span>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: theme.text }}>{entry.user_name || 'System'}</span>
                           <span style={{
                             padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700,
                             background: actionStyle.bg, color: actionStyle.text, letterSpacing: '0.5px',
                           }}>{icon} {actionStyle.label}</span>
-                          <span style={{ fontSize: 13, color: '#9ca3af' }}>
-                            {entry.entity_type && <span style={{ color: '#6b7280' }}>{entry.entity_type} </span>}
+                          <span style={{ fontSize: 13, color: theme.textSecondary }}>
+                            {entry.entity_type && <span style={{ color: theme.textMuted }}>{entry.entity_type} </span>}
                             {entry.entity_name && <span style={{ fontWeight: 500 }}>{entry.entity_name}</span>}
                           </span>
                         </div>
@@ -237,12 +233,12 @@ export default function AuditLog() {
                         {/* Expanded details */}
                         {expanded && entry.details && (
                           <div style={{
-                            marginTop: 10, padding: '12px 16px', background: '#0d0d22',
-                            borderRadius: 8, border: '1px solid #1f1f3a',
+                            marginTop: 10, padding: '12px 16px', background: theme.surfaceBg,
+                            borderRadius: 8, border: `1px solid ${theme.border}`,
                           }}>
-                            <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Details</div>
+                            <div style={{ ...sectionHeaderStyle, marginBottom: 6 }}>Details</div>
                             <pre style={{
-                              fontSize: 12, color: '#9ca3af', margin: 0, whiteSpace: 'pre-wrap',
+                              fontSize: 12, color: theme.textSecondary, margin: 0, whiteSpace: 'pre-wrap',
                               wordBreak: 'break-word', fontFamily: 'monospace', lineHeight: 1.6,
                             }}>{typeof entry.details === 'string' ? entry.details : JSON.stringify(entry.details, null, 2)}</pre>
                           </div>

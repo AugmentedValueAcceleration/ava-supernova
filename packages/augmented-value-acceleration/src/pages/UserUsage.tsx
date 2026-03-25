@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase, supabaseAuth } from '../lib/supabase';
 import PageHeader from '../components/PageHeader';
+import { theme, pageStyle, cardStyle, sectionHeaderStyle } from '../lib/theme';
 
 interface UsageSummary {
   period: {
@@ -32,11 +33,11 @@ function formatDate(iso: string | null): string {
 }
 
 const TIER_COLORS: Record<string, string> = {
-  admin: '#a855f7',
-  enterprise: '#f59e0b',
-  ultra: '#3b82f6',
-  pro: '#10b981',
-  free: '#6b7280',
+  admin: theme.accent,
+  enterprise: theme.yellow,
+  ultra: theme.blue,
+  pro: theme.green,
+  free: theme.textMuted,
 };
 
 export default function UserUsage() {
@@ -52,7 +53,6 @@ export default function UserUsage() {
         if (!user?.id) { setError('Not signed in'); setLoading(false); return; }
         const userId = user.id;
 
-        // Get usage row
         const { data: usageRow } = await supabase
           .from('usage')
           .select('*')
@@ -61,7 +61,6 @@ export default function UserUsage() {
           .limit(1)
           .maybeSingle();
 
-        // Get user tier
         const { data: userRow } = await supabase
           .from('users')
           .select('tier')
@@ -71,7 +70,6 @@ export default function UserUsage() {
         const isAdmin = userRow?.tier === 'admin';
         const isUnlimited = isAdmin || (usageRow?.free_tokens_limit ?? 0) >= 999999999;
 
-        // Get daily logs (14 days)
         const fourteenDaysAgo = new Date();
         fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
 
@@ -83,7 +81,6 @@ export default function UserUsage() {
           .order('timestamp', { ascending: true })
           .limit(10000);
 
-        // Aggregate
         const dailyMap: Record<string, number> = {};
         const modelMap: Record<string, { input: number; output: number; count: number }> = {};
         for (const log of (logs || [])) {
@@ -145,7 +142,7 @@ export default function UserUsage() {
   const maxDaily = data ? Math.max(...data.daily.map(d => d.tokens), 1) : 1;
 
   return (
-    <div style={{ padding: '40px 48px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
+    <div style={pageStyle}>
       <PageHeader
         title="My Usage"
         subtitle={data?.period.start && data?.period.end ? `Period: ${formatDate(data.period.start)} — ${formatDate(data.period.end)}` : 'Current period'}
@@ -153,8 +150,8 @@ export default function UserUsage() {
         badge={data ? (
           <span style={{
             padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-            background: `${TIER_COLORS[data.tier] || '#6b7280'}20`,
-            color: TIER_COLORS[data.tier] || '#6b7280',
+            background: `${TIER_COLORS[data.tier] || theme.textMuted}20`,
+            color: TIER_COLORS[data.tier] || theme.textMuted,
             textTransform: 'uppercase',
           }}>
             {data.isAdmin ? '∞ Admin' : data.tier}
@@ -163,80 +160,78 @@ export default function UserUsage() {
       />
 
       {loading ? (
-        <div style={{ color: '#6b7280', padding: 40, textAlign: 'center' }}>Loading usage data...</div>
+        <div style={{ color: theme.textMuted, padding: 40, textAlign: 'center' }}>Loading usage data...</div>
       ) : error ? (
-        <div style={{ color: '#ef4444', padding: 40, textAlign: 'center' }}>{error}</div>
+        <div style={{ color: theme.red, padding: 40, textAlign: 'center' }}>{error}</div>
       ) : data ? (
         <>
           {/* Token bars */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 32 }}>
-            <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 16, padding: 24 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#9ca3af', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '1px' }}>Free Tokens</div>
+            <div style={cardStyle}>
+              <div style={sectionHeaderStyle}>Free Tokens</div>
               {data.isUnlimited ? (
-                <div style={{ fontSize: 36, fontWeight: 800, color: '#a855f7' }}>∞</div>
+                <div style={{ fontSize: 36, fontWeight: 800, color: theme.accent, marginTop: 12 }}>∞</div>
               ) : (
                 <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontSize: 24, fontWeight: 700, color: '#a855f7' }}>{formatNumber(data.period.free_tokens_used)}</span>
-                    <span style={{ fontSize: 14, color: '#6b7280', alignSelf: 'flex-end' }}>/ {formatNumber(data.period.free_tokens_limit)}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, marginBottom: 8 }}>
+                    <span style={{ fontSize: 24, fontWeight: 700, color: theme.accent }}>{formatNumber(data.period.free_tokens_used)}</span>
+                    <span style={{ fontSize: 14, color: theme.textMuted, alignSelf: 'flex-end' }}>/ {formatNumber(data.period.free_tokens_limit)}</span>
                   </div>
-                  <div style={{ height: 8, borderRadius: 4, background: '#1a1a35', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', borderRadius: 4, background: freePercent > 80 ? '#ef4444' : freePercent > 60 ? '#f59e0b' : '#a855f7', width: `${freePercent}%`, transition: 'width 0.5s' }} />
+                  <div style={{ height: 8, borderRadius: 4, background: theme.inputBg, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', borderRadius: 4, background: freePercent > 80 ? theme.red : freePercent > 60 ? theme.yellow : theme.accent, width: `${freePercent}%`, transition: 'width 0.5s' }} />
                   </div>
-                  <div style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>{formatNumber(Math.max(0, data.period.free_tokens_limit - data.period.free_tokens_used))} remaining</div>
+                  <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 8 }}>{formatNumber(Math.max(0, data.period.free_tokens_limit - data.period.free_tokens_used))} remaining</div>
                 </>
               )}
             </div>
 
-            <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 16, padding: 24 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#9ca3af', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '1px' }}>Plan Tokens</div>
+            <div style={cardStyle}>
+              <div style={sectionHeaderStyle}>Plan Tokens</div>
               {data.period.tokens_limit ? (
                 <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontSize: 24, fontWeight: 700, color: '#10b981' }}>{formatNumber(data.period.tokens_used)}</span>
-                    <span style={{ fontSize: 14, color: '#6b7280', alignSelf: 'flex-end' }}>/ {formatNumber(data.period.tokens_limit)}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, marginBottom: 8 }}>
+                    <span style={{ fontSize: 24, fontWeight: 700, color: theme.green }}>{formatNumber(data.period.tokens_used)}</span>
+                    <span style={{ fontSize: 14, color: theme.textMuted, alignSelf: 'flex-end' }}>/ {formatNumber(data.period.tokens_limit)}</span>
                   </div>
-                  <div style={{ height: 8, borderRadius: 4, background: '#1a1a35', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', borderRadius: 4, background: subPercent > 80 ? '#ef4444' : '#10b981', width: `${subPercent}%`, transition: 'width 0.5s' }} />
+                  <div style={{ height: 8, borderRadius: 4, background: theme.inputBg, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', borderRadius: 4, background: subPercent > 80 ? theme.red : theme.green, width: `${subPercent}%`, transition: 'width 0.5s' }} />
                   </div>
-                  <div style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>{formatNumber(Math.max(0, data.period.tokens_limit - data.period.tokens_used))} remaining</div>
+                  <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 8 }}>{formatNumber(Math.max(0, data.period.tokens_limit - data.period.tokens_used))} remaining</div>
                 </>
               ) : (
-                <div style={{ fontSize: 14, color: '#6b7280', paddingTop: 8 }}>No active plan — using free tier</div>
+                <div style={{ fontSize: 14, color: theme.textMuted, paddingTop: 12 }}>No active plan — using free tier</div>
               )}
             </div>
           </div>
 
           {/* Stats row */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 32 }}>
-            <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 16, padding: 24, textAlign: 'center' }}>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#fff' }}>{data.totals.requests}</div>
-              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>Requests (14d)</div>
-            </div>
-            <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 16, padding: 24, textAlign: 'center' }}>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#fff' }}>{formatNumber(data.totals.tokens)}</div>
-              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>Tokens (14d)</div>
-            </div>
-            <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 16, padding: 24, textAlign: 'center' }}>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#fff' }}>{data.totals.active_days}</div>
-              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>Active Days</div>
-            </div>
+            {[
+              { label: 'Requests (14d)', value: data.totals.requests },
+              { label: 'Tokens (14d)', value: formatNumber(data.totals.tokens) },
+              { label: 'Active Days', value: data.totals.active_days },
+            ].map(s => (
+              <div key={s.label} style={{ ...cardStyle, textAlign: 'center' }}>
+                <div style={{ fontSize: 28, fontWeight: 700, color: theme.text }}>{s.value}</div>
+                <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 4 }}>{s.label}</div>
+              </div>
+            ))}
           </div>
 
           {/* Model breakdown */}
           {data.models.length > 0 && (
-            <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 16, padding: 24, marginBottom: 32 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#9ca3af', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '1px' }}>By Model</div>
+            <div style={{ ...cardStyle, marginBottom: 32 }}>
+              <div style={{ ...sectionHeaderStyle, marginBottom: 16 }}>By Model</div>
               {data.models.map((m) => {
                 const pct = data.totals.tokens > 0 ? (m.total_tokens / data.totals.tokens) * 100 : 0;
                 return (
                   <div key={m.model} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                    <div style={{ width: 140, fontSize: 13, color: '#e5e7eb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.model}</div>
-                    <div style={{ flex: 1, height: 8, borderRadius: 4, background: '#1a1a35', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', borderRadius: 4, background: '#a855f7', width: `${pct}%` }} />
+                    <div style={{ width: 140, fontSize: 13, color: theme.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.model}</div>
+                    <div style={{ flex: 1, height: 8, borderRadius: 4, background: theme.inputBg, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: 4, background: theme.accent, width: `${pct}%` }} />
                     </div>
-                    <div style={{ width: 80, fontSize: 12, color: '#6b7280', textAlign: 'right' }}>{formatNumber(m.total_tokens)}</div>
-                    <div style={{ width: 50, fontSize: 11, color: '#4b5563', textAlign: 'right' }}>{m.request_count}×</div>
+                    <div style={{ width: 80, fontSize: 12, color: theme.textMuted, textAlign: 'right' }}>{formatNumber(m.total_tokens)}</div>
+                    <div style={{ width: 50, fontSize: 11, color: theme.textMuted, textAlign: 'right' }}>{m.request_count}x</div>
                   </div>
                 );
               })}
@@ -244,10 +239,10 @@ export default function UserUsage() {
           )}
 
           {/* Daily chart */}
-          <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 16, padding: 24 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#9ca3af', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '1px' }}>Daily Usage (14 days)</div>
+          <div style={cardStyle}>
+            <div style={{ ...sectionHeaderStyle, marginBottom: 16 }}>Daily Usage (14 days)</div>
             {data.daily.length === 0 ? (
-              <div style={{ color: '#6b7280', textAlign: 'center', padding: 24 }}>No usage data yet</div>
+              <div style={{ color: theme.textMuted, textAlign: 'center', padding: 24 }}>No usage data yet</div>
             ) : (
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 160, padding: '0 4px' }}>
                 {data.daily.map((d, i) => {
@@ -255,15 +250,15 @@ export default function UserUsage() {
                   const isToday = d.date === new Date().toISOString().slice(0, 10);
                   return (
                     <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', gap: 4 }}>
-                      <div style={{ fontSize: 9, color: d.tokens > 0 ? '#9ca3af' : '#4b5563', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 9, color: d.tokens > 0 ? theme.textSecondary : theme.textMuted, whiteSpace: 'nowrap' }}>
                         {d.tokens > 0 ? formatNumber(d.tokens) : ''}
                       </div>
                       <div style={{
                         width: '100%', maxWidth: 40, height: barHeight, borderRadius: 4,
-                        background: isToday ? '#a855f7' : d.tokens > 0 ? '#3b3b6b' : '#1f1f3a',
+                        background: isToday ? theme.accent : d.tokens > 0 ? theme.accentBgStrong : theme.border,
                         transition: 'height 0.3s',
                       }} />
-                      <div style={{ fontSize: 9, fontWeight: isToday ? 600 : 400, color: isToday ? '#a855f7' : '#4b5563' }}>
+                      <div style={{ fontSize: 9, fontWeight: isToday ? 600 : 400, color: isToday ? theme.accent : theme.textMuted }}>
                         {new Date(d.date).getDate()}
                       </div>
                     </div>

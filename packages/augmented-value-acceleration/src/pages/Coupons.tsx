@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, Fragment } from 'react';
 import { supabase } from '../lib/supabase';
 import PageHeader from '../components/PageHeader';
+import { theme, pageStyle, inputStyle as themeInputStyle, cardStyle, statCardStyle, primaryBtnStyle, ghostBtnStyle, labelStyle, tableHeaderStyle, tableCellStyle, chipStyle } from '../lib/theme';
 
 interface Redemption {
   coupon_id: string;
@@ -210,7 +211,7 @@ export default function Coupons() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#0a0a1a' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: theme.pageBg }}>
         <div style={{ fontSize: 14, color: '#6b7280' }}>Loading coupons...</div>
       </div>
     );
@@ -224,20 +225,20 @@ export default function Coupons() {
     padding: '10px 14px',
     fontSize: 12,
     fontWeight: isActive ? 600 : 400,
-    color: isActive ? '#fff' : '#6b7280',
-    background: isActive ? '#a855f7' : 'transparent',
+    color: isActive ? '#fff' : theme.textMuted,
+    background: isActive ? theme.accent : 'transparent',
     border: 'none',
     borderRadius: 8,
     cursor: 'pointer' as const,
   });
 
   return (
-    <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
+    <div style={pageStyle}>
 
       <PageHeader title="Coupons" subtitle="Create and manage discount coupons for subscriptions." onRefresh={fetchCoupons} />
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, background: '#111127', border: '1px solid #1f1f3a', borderRadius: 10, padding: 4, marginBottom: 24 }}>
+      <div style={{ display: 'flex', gap: 4, background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 10, padding: 4, marginBottom: 24 }}>
         <button onClick={() => setTab('active')} style={tabStyle(tab === 'active')}>
           Active Coupons ({activeCoupons.length})
         </button>
@@ -249,27 +250,27 @@ export default function Coupons() {
         <div>
           {/* Stats */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
-            <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 20 }}>
+            <div style={{ background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 14, padding: 20 }}>
               <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280' }}>Active Coupons</div>
               <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', marginTop: 4 }}>{activeCoupons.length}</div>
             </div>
-            <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 20 }}>
+            <div style={{ background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 14, padding: 20 }}>
               <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280' }}>Total Redemptions</div>
               <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', marginTop: 4 }}>
                 {coupons.reduce((sum, c) => sum + c.times_redeemed, 0)}
               </div>
             </div>
-            <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 20 }}>
+            <div style={{ background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 14, padding: 20 }}>
               <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280' }}>Inactive / Expired</div>
               <div style={{ fontSize: 28, fontWeight: 700, color: '#6b7280', marginTop: 4 }}>{inactiveCoupons.length}</div>
             </div>
           </div>
 
           {/* Coupons table */}
-          <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 14, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #1f1f3a', background: '#111127' }}>
+                <tr style={{ borderBottom: '1px solid #1f1f3a', background: theme.cardBg }}>
                   {['Code', 'Type', 'Duration', 'Redeemed', 'Expires', 'Status', 'Actions'].map(h => (
                     <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500, color: '#6b7280', fontSize: 11 }}>{h}</th>
                   ))}
@@ -365,7 +366,7 @@ export default function Coupons() {
 
                         {/* Expanded redemption details */}
                         {isExpanded && (
-                          <tr style={{ borderBottom: '1px solid #1f1f3a', background: '#0a0a1a' }}>
+                          <tr style={{ borderBottom: '1px solid #1f1f3a', background: theme.pageBg }}>
                             <td colSpan={7} style={{ padding: '16px 24px' }}>
                               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 10, color: '#6b7280', marginBottom: 12 }}>
                                 <span>Created: {formatDateTime(coupon.created_at)}</span>
@@ -385,7 +386,7 @@ export default function Coupons() {
                                   redemptions[coupon.id].map((r, i) => (
                                     <div key={i} style={{
                                       display: 'flex', alignItems: 'center', gap: 16,
-                                      background: '#111127', borderRadius: 8, padding: '8px 12px', marginBottom: 4, fontSize: 10,
+                                      background: theme.cardBg, borderRadius: 8, padding: '8px 12px', marginBottom: 4, fontSize: 10,
                                     }}>
                                       <span style={{ color: '#fff' }}>{r.email || r.user_id}</span>
                                       {r.plan && (
@@ -414,7 +415,7 @@ export default function Coupons() {
       {/* Create tab */}
       {tab === 'create' && (
         <div style={{ maxWidth: 520, margin: '0 auto' }}>
-          <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 24 }}>
+          <div style={{ background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 14, padding: 24 }}>
             <h2 style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16, margin: '0 0 16px 0' }}>New Coupon</h2>
 
             {formError && (
@@ -510,28 +511,28 @@ export default function Coupons() {
 }
 
 function FormLabel({ text }: { text: string }) {
-  return <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280', marginBottom: 6 }}>{text}</div>;
+  return <div style={{ fontSize: 11, fontWeight: 500, color: theme.textMuted, marginBottom: 6 }}>{text}</div>;
 }
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: '#1a1a35',
-  border: '1px solid #1f1f3a',
+  background: theme.inputBg,
+  border: `1px solid ${theme.border}`,
   borderRadius: 8,
   padding: '10px 14px',
   fontSize: 12,
-  color: '#fff',
+  color: theme.text,
   outline: 'none',
   fontFamily: 'inherit',
   boxSizing: 'border-box',
 };
 
 const btnSecondary: React.CSSProperties = {
-  background: '#1a1a35',
-  border: '1px solid #1f1f3a',
+  background: theme.inputBg,
+  border: `1px solid ${theme.border}`,
   borderRadius: 8,
   padding: '10px 14px',
   fontSize: 12,
-  color: '#9ca3af',
+  color: theme.textSecondary,
   cursor: 'pointer',
 };

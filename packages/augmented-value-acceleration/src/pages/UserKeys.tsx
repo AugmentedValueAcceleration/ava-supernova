@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import PageHeader from '../components/PageHeader';
+import { theme, pageStyle, inputStyle as themeInputStyle, cardStyle, primaryBtnStyle, ghostBtnStyle, labelStyle, emptyStateStyle } from '../lib/theme';
 
 interface ApiKey {
   id: string;
@@ -74,7 +75,7 @@ export default function UserKeys() {
         .insert({
           name: newKeyName.trim(),
           key_prefix: prefix,
-          key_hash: fullKey, // In production this would be hashed
+          key_hash: fullKey,
         })
         .select()
         .single();
@@ -116,21 +117,17 @@ export default function UserKeys() {
     setTimeout(() => setCopiedId(null), 2000);
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '10px 14px', background: '#1a1a35', border: '1px solid #1f1f3a',
-    borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', boxSizing: 'border-box',
-    fontFamily: 'inherit',
-  };
+  const actionBtnStyle = (color: string): React.CSSProperties => ({
+    background: 'none', border: `1px solid ${theme.border}`, borderRadius: 6,
+    padding: '4px 10px', fontSize: 10, color, cursor: 'pointer',
+  });
 
   return (
-    <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
+    <div style={pageStyle}>
       <PageHeader title="API Keys" subtitle={`${keys.length} key${keys.length !== 1 ? 's' : ''} created.`} onRefresh={fetchKeys}>
         <button
           onClick={() => { setShowCreate(true); setCreatedKey(null); }}
-          style={{
-            background: '#a855f7', border: 'none', borderRadius: 10,
-            padding: '10px 20px', fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'pointer',
-          }}
+          style={primaryBtnStyle}
         >
           + Create Key
         </button>
@@ -139,16 +136,16 @@ export default function UserKeys() {
       {/* Created Key Banner */}
       {createdKey && (
         <div style={{
-          background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.3)',
-          borderRadius: 14, padding: 20, marginBottom: 24,
+          background: theme.greenBg, border: `1px solid ${theme.green}40`,
+          borderRadius: theme.radiusLg, padding: 20, marginBottom: 24,
         }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#4ade80', marginBottom: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: theme.green, marginBottom: 8 }}>
             Key created successfully. Copy it now — it will not be shown again.
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <code style={{
-              flex: 1, background: '#0a0a1a', padding: '10px 14px', borderRadius: 8,
-              fontSize: 12, color: '#fff', fontFamily: 'monospace', overflow: 'hidden',
+              flex: 1, background: theme.surfaceBg, padding: '10px 14px', borderRadius: 8,
+              fontSize: 12, color: theme.text, fontFamily: 'monospace', overflow: 'hidden',
               textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               {createdKey}
@@ -156,9 +153,9 @@ export default function UserKeys() {
             <button
               onClick={() => copyToClipboard(createdKey, 'new')}
               style={{
-                background: '#1a1a35', border: '1px solid #1f1f3a', borderRadius: 8,
-                padding: '10px 16px', fontSize: 11, color: copiedId === 'new' ? '#4ade80' : '#9ca3af',
-                cursor: 'pointer', flexShrink: 0,
+                ...ghostBtnStyle, padding: '10px 16px', fontSize: 11,
+                color: copiedId === 'new' ? theme.green : theme.textSecondary,
+                flexShrink: 0,
               }}
             >
               {copiedId === 'new' ? 'Copied!' : 'Copy'}
@@ -169,28 +166,24 @@ export default function UserKeys() {
 
       {/* Create Form */}
       {showCreate && !createdKey && (
-        <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 24, marginBottom: 24 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: '0 0 16px 0' }}>New API Key</h2>
+        <div style={{ ...cardStyle, marginBottom: 24 }}>
+          <h2 style={{ fontSize: 14, fontWeight: 600, color: theme.text, margin: '0 0 16px 0' }}>New API Key</h2>
           <form onSubmit={createKey}>
-            <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280', marginBottom: 6 }}>Key Name</div>
+            <div style={labelStyle}>Key Name</div>
             <input
               value={newKeyName}
               onChange={e => setNewKeyName(e.target.value)}
               placeholder="e.g. Development, Production, Testing"
-              style={{ ...inputStyle, marginBottom: 16 }}
+              style={{ ...themeInputStyle, marginBottom: 16 }}
             />
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="submit" disabled={creating || !newKeyName.trim()} style={{
-                background: '#a855f7', border: 'none', borderRadius: 8,
-                padding: '10px 20px', fontSize: 12, fontWeight: 600, color: '#fff',
+                ...primaryBtnStyle,
                 cursor: creating ? 'not-allowed' : 'pointer', opacity: creating ? 0.5 : 1,
               }}>
                 {creating ? 'Creating...' : 'Create'}
               </button>
-              <button type="button" onClick={() => setShowCreate(false)} style={{
-                background: '#1a1a35', border: '1px solid #1f1f3a', borderRadius: 8,
-                padding: '10px 20px', fontSize: 12, color: '#9ca3af', cursor: 'pointer',
-              }}>
+              <button type="button" onClick={() => setShowCreate(false)} style={ghostBtnStyle}>
                 Cancel
               </button>
             </div>
@@ -199,23 +192,21 @@ export default function UserKeys() {
       )}
 
       {/* Loading */}
-      {loading && <div style={{ textAlign: 'center', color: '#6b7280', padding: 60 }}>Loading keys...</div>}
+      {loading && <div style={{ textAlign: 'center', color: theme.textMuted, padding: 60 }}>Loading keys...</div>}
 
       {/* Keys List */}
       {!loading && keys.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 80, color: '#6b7280' }}>
+        <div style={emptyStateStyle}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>&#128273;</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: '#9ca3af', marginBottom: 8 }}>No API keys</div>
-          <div style={{ fontSize: 14 }}>Create a key to authenticate with the Ava API.</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: theme.textSecondary, marginBottom: 8 }}>No API keys</div>
+          <div style={{ fontSize: 14, color: theme.textMuted }}>Create a key to authenticate with the Ava API.</div>
         </div>
       )}
 
       {!loading && keys.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {keys.map(key => (
-            <div key={key.id} style={{
-              background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: '16px 20px',
-            }}>
+            <div key={key.id} style={{ ...cardStyle, padding: '16px 20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   {editingId === key.id ? (
@@ -224,18 +215,15 @@ export default function UserKeys() {
                         value={editName}
                         onChange={e => setEditName(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') renameKey(key.id); if (e.key === 'Escape') setEditingId(null); }}
-                        style={{ ...inputStyle, width: 200 }}
+                        style={{ ...themeInputStyle, width: 200 }}
                         autoFocus
                       />
-                      <button onClick={() => renameKey(key.id)} style={{
-                        background: '#1a1a35', border: '1px solid #1f1f3a', borderRadius: 6,
-                        padding: '4px 12px', fontSize: 10, color: '#4ade80', cursor: 'pointer',
-                      }}>Save</button>
+                      <button onClick={() => renameKey(key.id)} style={actionBtnStyle(theme.green)}>Save</button>
                     </div>
                   ) : (
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 500, color: '#fff', marginBottom: 4 }}>{key.name}</div>
-                      <code style={{ fontSize: 11, color: '#6b7280', fontFamily: 'monospace' }}>
+                      <div style={{ fontSize: 14, fontWeight: 500, color: theme.text, marginBottom: 4 }}>{key.name}</div>
+                      <code style={{ fontSize: 11, color: theme.textMuted, fontFamily: 'monospace' }}>
                         {revealedId === key.id ? key.key_hash : maskKey(key.key_prefix)}
                       </code>
                     </div>
@@ -243,69 +231,33 @@ export default function UserKeys() {
                 </div>
 
                 <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 100 }}>
-                  <div style={{ fontSize: 11, color: '#6b7280' }}>Created {formatDate(key.created_at)}</div>
-                  <div style={{ fontSize: 10, color: '#4b5563', marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: theme.textMuted }}>Created {formatDate(key.created_at)}</div>
+                  <div style={{ fontSize: 10, color: theme.textMuted, marginTop: 2 }}>
                     {key.last_used_at ? `Last used ${formatDateTime(key.last_used_at)}` : 'Never used'}
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                  <button
-                    onClick={() => copyToClipboard(key.key_prefix + '...', key.id)}
-                    style={{
-                      background: 'none', border: '1px solid #1f1f3a', borderRadius: 6,
-                      padding: '4px 10px', fontSize: 10, color: copiedId === key.id ? '#4ade80' : '#6b7280', cursor: 'pointer',
-                    }}
-                  >
+                  <button onClick={() => copyToClipboard(key.key_prefix + '...', key.id)} style={actionBtnStyle(copiedId === key.id ? theme.green : theme.textMuted)}>
                     {copiedId === key.id ? 'Copied' : 'Copy'}
                   </button>
-                  <button
-                    onClick={() => setRevealedId(revealedId === key.id ? null : key.id)}
-                    style={{
-                      background: 'none', border: '1px solid #1f1f3a', borderRadius: 6,
-                      padding: '4px 10px', fontSize: 10, color: '#9ca3af', cursor: 'pointer',
-                    }}
-                  >
+                  <button onClick={() => setRevealedId(revealedId === key.id ? null : key.id)} style={actionBtnStyle(theme.textSecondary)}>
                     {revealedId === key.id ? 'Hide' : 'Reveal'}
                   </button>
-                  <button
-                    onClick={() => { setEditingId(key.id); setEditName(key.name); }}
-                    style={{
-                      background: 'none', border: '1px solid #1f1f3a', borderRadius: 6,
-                      padding: '4px 10px', fontSize: 10, color: '#60a5fa', cursor: 'pointer',
-                    }}
-                  >
+                  <button onClick={() => { setEditingId(key.id); setEditName(key.name); }} style={actionBtnStyle(theme.blue)}>
                     Rename
                   </button>
                   {deleteConfirm === key.id ? (
                     <>
-                      <button
-                        onClick={() => deleteKey(key.id)}
-                        style={{
-                          background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #f87171', borderRadius: 6,
-                          padding: '4px 10px', fontSize: 10, color: '#f87171', cursor: 'pointer',
-                        }}
-                      >
+                      <button onClick={() => deleteKey(key.id)} style={{ ...actionBtnStyle(theme.red), background: theme.redBg, borderColor: theme.red }}>
                         Confirm
                       </button>
-                      <button
-                        onClick={() => setDeleteConfirm(null)}
-                        style={{
-                          background: 'none', border: '1px solid #1f1f3a', borderRadius: 6,
-                          padding: '4px 10px', fontSize: 10, color: '#9ca3af', cursor: 'pointer',
-                        }}
-                      >
+                      <button onClick={() => setDeleteConfirm(null)} style={actionBtnStyle(theme.textSecondary)}>
                         Cancel
                       </button>
                     </>
                   ) : (
-                    <button
-                      onClick={() => setDeleteConfirm(key.id)}
-                      style={{
-                        background: 'none', border: '1px solid #1f1f3a', borderRadius: 6,
-                        padding: '4px 10px', fontSize: 10, color: '#f87171', cursor: 'pointer',
-                      }}
-                    >
+                    <button onClick={() => setDeleteConfirm(key.id)} style={actionBtnStyle(theme.red)}>
                       Delete
                     </button>
                   )}

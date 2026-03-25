@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabaseAuth } from '../lib/supabase';
+import { theme, inputStyle as themeInputStyle, primaryBtnStyle } from '../lib/theme';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -27,25 +28,25 @@ export default function Login() {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      height: '100vh', background: '#0a0a1a',
+      height: '100vh', background: theme.pageBg,
     }}>
       <div style={{
-        width: 400, padding: 40, borderRadius: 20,
-        background: '#111127', border: '1px solid #1f1f3a',
+        width: 400, padding: 40, borderRadius: theme.radiusLg,
+        background: theme.cardBg, border: `1px solid ${theme.border}`,
       }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#a855f7', marginBottom: 8 }}>AVA</div>
-          <div style={{ fontSize: 14, color: '#9ca3af', letterSpacing: '0.5px' }}>
+          <div style={{ fontSize: 28, fontWeight: 800, color: theme.accent, marginBottom: 8 }}>AVA</div>
+          <div style={{ fontSize: 14, color: theme.textSecondary, letterSpacing: '0.5px' }}>
             Augmented Value Acceleration
           </div>
         </div>
 
         {/* Title */}
-        <h1 style={{ fontSize: 20, fontWeight: 600, color: '#fff', textAlign: 'center', marginBottom: 8 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 600, color: theme.text, textAlign: 'center', marginBottom: 8 }}>
           Sign In
         </h1>
-        <p style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', marginBottom: 32 }}>
+        <p style={{ fontSize: 13, color: theme.textMuted, textAlign: 'center', marginBottom: 32 }}>
           Admin accounts are created manually. Contact your administrator if you need access.
         </p>
 
@@ -53,8 +54,8 @@ export default function Login() {
         {error && (
           <div style={{
             padding: '10px 14px', borderRadius: 10, marginBottom: 16,
-            background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)',
-            color: '#ef4444', fontSize: 13,
+            background: theme.redBg, border: `1px solid ${theme.red}40`,
+            color: theme.red, fontSize: 13,
           }}>
             {error}
           </div>
@@ -63,7 +64,7 @@ export default function Login() {
         {/* Form */}
         <form onSubmit={handleLogin}>
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#9ca3af', marginBottom: 6 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: theme.textSecondary, marginBottom: 6 }}>
               Email
             </label>
             <input
@@ -73,17 +74,16 @@ export default function Login() {
               placeholder="your@email.com"
               autoFocus
               style={{
-                width: '100%', padding: '12px 14px', borderRadius: 10,
-                background: '#1a1a35', border: '1px solid #2a2a4a', color: '#fff',
-                fontSize: 14, outline: 'none',
+                ...themeInputStyle,
+                padding: '12px 14px',
               }}
-              onFocus={(e) => e.target.style.borderColor = '#a855f7'}
-              onBlur={(e) => e.target.style.borderColor = '#2a2a4a'}
+              onFocus={(e) => e.target.style.borderColor = theme.accent}
+              onBlur={(e) => e.target.style.borderColor = theme.border}
             />
           </div>
 
           <div style={{ marginBottom: 24 }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: '#9ca3af', marginBottom: 6 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: theme.textSecondary, marginBottom: 6 }}>
               Password
             </label>
             <input
@@ -92,12 +92,11 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               style={{
-                width: '100%', padding: '12px 14px', borderRadius: 10,
-                background: '#1a1a35', border: '1px solid #2a2a4a', color: '#fff',
-                fontSize: 14, outline: 'none',
+                ...themeInputStyle,
+                padding: '12px 14px',
               }}
-              onFocus={(e) => e.target.style.borderColor = '#a855f7'}
-              onBlur={(e) => e.target.style.borderColor = '#2a2a4a'}
+              onFocus={(e) => e.target.style.borderColor = theme.accent}
+              onBlur={(e) => e.target.style.borderColor = theme.border}
             />
           </div>
 
@@ -105,13 +104,15 @@ export default function Login() {
             type="submit"
             disabled={loading}
             style={{
-              width: '100%', padding: '12px 0', borderRadius: 10,
-              background: loading ? '#6b21a8' : '#a855f7', border: 'none',
-              color: '#fff', fontSize: 14, fontWeight: 600, cursor: loading ? 'wait' : 'pointer',
-              transition: 'background 0.2s',
+              ...primaryBtnStyle,
+              width: '100%',
+              padding: '12px 0',
+              borderRadius: theme.radiusSm,
+              cursor: loading ? 'wait' : 'pointer',
+              opacity: loading ? 0.7 : 1,
             }}
-            onMouseOver={(e) => { if (!loading) e.currentTarget.style.background = '#9333ea'; }}
-            onMouseOut={(e) => { if (!loading) e.currentTarget.style.background = '#a855f7'; }}
+            onMouseOver={(e) => { if (!loading) e.currentTarget.style.background = theme.accentHover; }}
+            onMouseOut={(e) => { if (!loading) e.currentTarget.style.background = theme.accent; }}
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
@@ -119,7 +120,7 @@ export default function Login() {
 
         {/* Footer */}
         <div style={{ marginTop: 32, textAlign: 'center' }}>
-          <p style={{ fontSize: 11, color: '#4b5563' }}>
+          <p style={{ fontSize: 11, color: theme.textMuted }}>
             Internal system — authorised personnel only
           </p>
         </div>

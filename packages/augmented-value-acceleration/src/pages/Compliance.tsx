@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import PageHeader from '../components/PageHeader';
+import { theme, pageStyle } from '../lib/theme';
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 
@@ -284,16 +285,16 @@ export default function Compliance() {
   }
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '10px 14px', background: '#1a1a35', border: '1px solid #1f1f3a',
-    borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box',
+    width: '100%', padding: '10px 14px', background: theme.inputBg, border: `1px solid ${theme.border}`,
+    borderRadius: 10, color: theme.text, fontSize: 14, outline: 'none', boxSizing: 'border-box',
   };
 
   const cardStyle: React.CSSProperties = {
-    background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 24,
+    background: theme.cardBg, border: `1px solid ${theme.border}`, borderRadius: theme.radiusLg, padding: 24,
   };
 
   return (
-    <div style={{ padding: '40px 48px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
+    <div style={pageStyle}>
       {/* Header */}
       <PageHeader title="Compliance" subtitle="GDPR, audit trails, data management and retention" onRefresh={refreshAll} />
 
@@ -404,7 +405,7 @@ export default function Compliance() {
                 <tbody>
                   {filteredAudit.slice(0, 100).map(entry => (
                     <tr key={entry.id} style={{ borderBottom: '1px solid #0d0d22' }}
-                      onMouseOver={e => (e.currentTarget.style.background = '#111127')}
+                      onMouseOver={e => (e.currentTarget.style.background = theme.cardBg)}
                       onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
                     >
                       <td style={{ padding: '10px 16px', fontSize: 12, color: '#4b5563', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
@@ -651,7 +652,7 @@ export default function Compliance() {
                 <tbody>
                   {activitySummary.map(user => (
                     <tr key={user.user_name} style={{ borderBottom: '1px solid #0d0d22' }}
-                      onMouseOver={e => (e.currentTarget.style.background = '#111127')}
+                      onMouseOver={e => (e.currentTarget.style.background = theme.cardBg)}
                       onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
                     >
                       <td style={{ padding: '12px 16px' }}>

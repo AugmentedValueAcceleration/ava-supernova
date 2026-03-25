@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import PageHeader from '../components/PageHeader';
+import { theme, pageStyle, inputStyle as themeInputStyle, cardStyle, statCardStyle, chipStyle, emptyStateStyle } from '../lib/theme';
 
 interface Memory {
   id: string;
@@ -11,10 +12,10 @@ interface Memory {
 }
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
-  global: { bg: 'rgba(168, 85, 247, 0.12)', text: '#a855f7' },
-  project: { bg: 'rgba(59, 130, 246, 0.12)', text: '#60a5fa' },
-  personal: { bg: 'rgba(34, 197, 94, 0.12)', text: '#4ade80' },
-  preference: { bg: 'rgba(245, 158, 11, 0.12)', text: '#fbbf24' },
+  global: { bg: theme.accentBg, text: theme.accent },
+  project: { bg: theme.blueBg, text: theme.blue },
+  personal: { bg: theme.greenBg, text: theme.green },
+  preference: { bg: theme.yellowBg, text: theme.yellow },
 };
 
 function formatDate(iso: string): string {
@@ -67,24 +68,19 @@ export default function UserMemory() {
     project: memories.filter(m => m.category === 'project').length,
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '10px 14px', background: '#1a1a35', border: '1px solid #1f1f3a',
-    borderRadius: 10, color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box',
-  };
-
   return (
-    <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
+    <div style={pageStyle}>
       <PageHeader title="My Memory" subtitle="Ava's stored memories about you and your projects." onRefresh={fetchMemories} />
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
         {[
-          { label: 'Total Memories', value: stats.total, color: '#fff' },
-          { label: 'Global', value: stats.global, color: '#a855f7' },
-          { label: 'Project', value: stats.project, color: '#60a5fa' },
+          { label: 'Total Memories', value: stats.total, color: theme.text },
+          { label: 'Global', value: stats.global, color: theme.accent },
+          { label: 'Project', value: stats.project, color: theme.blue },
         ].map(s => (
-          <div key={s.label} style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 20 }}>
-            <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280' }}>{s.label}</div>
+          <div key={s.label} style={statCardStyle}>
+            <div style={{ fontSize: 11, fontWeight: 500, color: theme.textMuted }}>{s.label}</div>
             <div style={{ fontSize: 28, fontWeight: 700, color: s.color, marginTop: 4 }}>{loading ? '...' : s.value}</div>
           </div>
         ))}
@@ -93,13 +89,13 @@ export default function UserMemory() {
       {/* Search + Filter */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
         <input
-          style={{ ...inputStyle, flex: 1 }}
+          style={{ ...themeInputStyle, flex: 1 }}
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search memories..."
         />
         <select
-          style={{ ...inputStyle, width: 'auto', minWidth: 140 }}
+          style={{ ...themeInputStyle, width: 'auto', minWidth: 140 }}
           value={categoryFilter}
           onChange={e => setCategoryFilter(e.target.value)}
         >
@@ -109,14 +105,14 @@ export default function UserMemory() {
       </div>
 
       {/* Loading */}
-      {loading && <div style={{ textAlign: 'center', color: '#6b7280', padding: 60 }}>Loading memories...</div>}
+      {loading && <div style={{ textAlign: 'center', color: theme.textMuted, padding: 60 }}>Loading memories...</div>}
 
       {/* Empty */}
       {!loading && filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 80, color: '#6b7280' }}>
+        <div style={emptyStateStyle}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>&#129504;</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: '#9ca3af', marginBottom: 8 }}>No memories stored</div>
-          <div style={{ fontSize: 14 }}>Ava will remember things as you interact with her.</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: theme.textSecondary, marginBottom: 8 }}>No memories stored</div>
+          <div style={{ fontSize: 14, color: theme.textMuted }}>Ava will remember things as you interact with her.</div>
         </div>
       )}
 
@@ -124,27 +120,20 @@ export default function UserMemory() {
       {!loading && filtered.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {filtered.map(memory => {
-            const cc = CATEGORY_COLORS[memory.category] || { bg: 'rgba(107, 114, 128, 0.12)', text: '#9ca3af' };
+            const cc = CATEGORY_COLORS[memory.category] || { bg: 'rgba(107, 114, 128, 0.12)', text: theme.textSecondary };
 
             return (
-              <div key={memory.id} style={{
-                background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: '16px 20px',
-              }}>
+              <div key={memory.id} style={{ ...cardStyle, padding: '16px 20px' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                      <span style={{
-                        background: cc.bg, color: cc.text, fontSize: 10, fontWeight: 700,
-                        padding: '3px 10px', borderRadius: 10, textTransform: 'capitalize' as const,
-                      }}>
-                        {memory.category}
-                      </span>
-                      <span style={{ fontSize: 11, color: '#6b7280' }}>{formatDate(memory.created_at)}</span>
-                      <span style={{ fontSize: 10, color: '#4b5563' }}>
+                      <span style={chipStyle(cc.bg, cc.text)}>{memory.category}</span>
+                      <span style={{ fontSize: 11, color: theme.textMuted }}>{formatDate(memory.created_at)}</span>
+                      <span style={{ fontSize: 10, color: theme.textMuted }}>
                         Recalled {memory.recall_count} time{memory.recall_count !== 1 ? 's' : ''}
                       </span>
                     </div>
-                    <div style={{ fontSize: 13, color: '#e5e7eb', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    <div style={{ fontSize: 13, color: theme.text, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                       {memory.content}
                     </div>
                   </div>
@@ -155,8 +144,8 @@ export default function UserMemory() {
                         <button
                           onClick={() => deleteMemory(memory.id)}
                           style={{
-                            background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #f87171', borderRadius: 6,
-                            padding: '4px 10px', fontSize: 10, color: '#f87171', cursor: 'pointer',
+                            background: theme.redBg, border: `1px solid ${theme.red}`, borderRadius: 6,
+                            padding: '4px 10px', fontSize: 10, color: theme.red, cursor: 'pointer',
                           }}
                         >
                           Confirm
@@ -164,8 +153,8 @@ export default function UserMemory() {
                         <button
                           onClick={() => setDeleteConfirm(null)}
                           style={{
-                            background: 'none', border: '1px solid #1f1f3a', borderRadius: 6,
-                            padding: '4px 10px', fontSize: 10, color: '#9ca3af', cursor: 'pointer',
+                            background: 'none', border: `1px solid ${theme.border}`, borderRadius: 6,
+                            padding: '4px 10px', fontSize: 10, color: theme.textSecondary, cursor: 'pointer',
                           }}
                         >
                           Cancel
@@ -175,8 +164,8 @@ export default function UserMemory() {
                       <button
                         onClick={() => setDeleteConfirm(memory.id)}
                         style={{
-                          background: 'none', border: '1px solid #1f1f3a', borderRadius: 6,
-                          padding: '4px 10px', fontSize: 10, color: '#f87171', cursor: 'pointer',
+                          background: 'none', border: `1px solid ${theme.border}`, borderRadius: 6,
+                          padding: '4px 10px', fontSize: 10, color: theme.red, cursor: 'pointer',
                         }}
                       >
                         Delete

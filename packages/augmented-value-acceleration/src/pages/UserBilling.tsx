@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import PageHeader from '../components/PageHeader';
+import { theme, pageStyle, cardStyle, statCardStyle, primaryBtnStyle, ghostBtnStyle, tableHeaderStyle, tableCellStyle, chipStyle, sectionHeaderStyle } from '../lib/theme';
 
 const PLANS = [
-  { tier: 'Free', price: '$0', period: '/month', tokens: '3M tokens', features: ['Qwen models', 'Basic tools', 'Community support'], color: '#9ca3af', current: true },
-  { tier: 'Pro', price: '$29', period: '/month', tokens: '50M tokens', features: ['All open-source models', 'Full 54 tools', 'Priority support'], color: '#60a5fa', current: false },
-  { tier: 'Ultra', price: '$79', period: '/month', tokens: '200M tokens', features: ['All models inc. Anthropic', 'Priority routing', 'Advanced analytics'], color: '#a855f7', current: false },
-  { tier: 'Enterprise', price: '$249', period: '/month', tokens: 'Unlimited', features: ['Custom models', 'Dedicated support', 'SLA guarantee', 'Team management'], color: '#fbbf24', current: false },
+  { tier: 'Free', price: '$0', period: '/month', tokens: '3M tokens', features: ['Qwen models', 'Basic tools', 'Community support'], color: theme.textSecondary, current: true },
+  { tier: 'Pro', price: '$29', period: '/month', tokens: '50M tokens', features: ['All open-source models', 'Full 54 tools', 'Priority support'], color: theme.blue, current: false },
+  { tier: 'Ultra', price: '$79', period: '/month', tokens: '200M tokens', features: ['All models inc. Anthropic', 'Priority routing', 'Advanced analytics'], color: theme.accent, current: false },
+  { tier: 'Enterprise', price: '$249', period: '/month', tokens: 'Unlimited', features: ['Custom models', 'Dedicated support', 'SLA guarantee', 'Team management'], color: theme.yellow, current: false },
 ];
 
 const PLACEHOLDER_PAYMENTS = [
@@ -16,27 +17,25 @@ export default function UserBilling() {
   const [currentPlan] = useState('Free');
 
   return (
-    <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
+    <div style={pageStyle}>
       <PageHeader title="My Plan" subtitle="Manage your subscription and billing." />
 
       {/* Current Plan Card */}
       <div style={{
-        background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 24, marginBottom: 24,
+        ...cardStyle, marginBottom: 24,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div>
-          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: '#6b7280', marginBottom: 8 }}>
-            Current Plan
+          <div style={sectionHeaderStyle}>Current Plan</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 8 }}>
+            <span style={{ fontSize: 32, fontWeight: 800, color: theme.text }}>{currentPlan}</span>
+            <span style={{ fontSize: 13, color: theme.textMuted }}>$0/month</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontSize: 32, fontWeight: 800, color: '#fff' }}>{currentPlan}</span>
-            <span style={{ fontSize: 13, color: '#6b7280' }}>$0/month</span>
-          </div>
-          <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 8 }}>3M tokens/month included</div>
+          <div style={{ fontSize: 12, color: theme.textSecondary, marginTop: 8 }}>3M tokens/month included</div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 11, color: '#6b7280' }}>Next billing date</div>
-          <div style={{ fontSize: 14, fontWeight: 500, color: '#fff', marginTop: 4 }}>N/A (Free tier)</div>
+          <div style={{ fontSize: 11, color: theme.textMuted }}>Next billing date</div>
+          <div style={{ fontSize: 14, fontWeight: 500, color: theme.text, marginTop: 4 }}>N/A (Free tier)</div>
         </div>
       </div>
 
@@ -44,14 +43,13 @@ export default function UserBilling() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
         {PLANS.map(plan => (
           <div key={plan.tier} style={{
-            background: '#111127',
-            border: plan.current ? '2px solid #a855f7' : '1px solid #1f1f3a',
-            borderRadius: 14, padding: 24,
+            ...cardStyle,
+            border: plan.current ? `2px solid ${theme.accent}` : `1px solid ${theme.border}`,
             display: 'flex', flexDirection: 'column',
           }}>
             {plan.current && (
               <div style={{
-                fontSize: 9, fontWeight: 700, color: '#a855f7', textTransform: 'uppercase' as const,
+                fontSize: 9, fontWeight: 700, color: theme.accent, textTransform: 'uppercase' as const,
                 letterSpacing: '1px', marginBottom: 8,
               }}>
                 Current Plan
@@ -59,13 +57,13 @@ export default function UserBilling() {
             )}
             <div style={{ fontSize: 16, fontWeight: 600, color: plan.color, marginBottom: 4 }}>{plan.tier}</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, marginBottom: 4 }}>
-              <span style={{ fontSize: 28, fontWeight: 800, color: '#fff' }}>{plan.price}</span>
-              <span style={{ fontSize: 12, color: '#6b7280' }}>{plan.period}</span>
+              <span style={{ fontSize: 28, fontWeight: 800, color: theme.text }}>{plan.price}</span>
+              <span style={{ fontSize: 12, color: theme.textMuted }}>{plan.period}</span>
             </div>
-            <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 16 }}>{plan.tokens}</div>
+            <div style={{ fontSize: 12, color: theme.textSecondary, marginBottom: 16 }}>{plan.tokens}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, marginBottom: 16 }}>
               {plan.features.map(f => (
-                <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#9ca3af' }}>
+                <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: theme.textSecondary }}>
                   <div style={{ width: 4, height: 4, borderRadius: '50%', background: plan.color, flexShrink: 0 }} />
                   {f}
                 </div>
@@ -74,10 +72,10 @@ export default function UserBilling() {
             <button
               disabled={plan.current}
               style={{
-                width: '100%', padding: '10px 16px', borderRadius: 10, border: 'none',
-                fontSize: 12, fontWeight: 600, cursor: plan.current ? 'default' : 'pointer',
-                background: plan.current ? '#1a1a35' : '#a855f7',
-                color: plan.current ? '#6b7280' : '#fff',
+                ...(plan.current ? ghostBtnStyle : primaryBtnStyle),
+                width: '100%', padding: '10px 16px',
+                color: plan.current ? theme.textMuted : '#fff',
+                cursor: plan.current ? 'default' : 'pointer',
               }}
             >
               {plan.current ? 'Current' : 'Upgrade'}
@@ -87,29 +85,26 @@ export default function UserBilling() {
       </div>
 
       {/* Payment History */}
-      <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #1f1f3a' }}>
-          <h2 style={{ fontSize: 14, fontWeight: 600, color: '#fff', margin: 0 }}>Payment History</h2>
+      <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${theme.border}` }}>
+          <h2 style={{ fontSize: 14, fontWeight: 600, color: theme.text, margin: 0 }}>Payment History</h2>
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid #1f1f3a' }}>
+            <tr style={{ borderBottom: `1px solid ${theme.border}` }}>
               {['Date', 'Description', 'Amount', 'Status'].map(h => (
-                <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500, color: '#6b7280', fontSize: 11 }}>{h}</th>
+                <th key={h} style={tableHeaderStyle}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {PLACEHOLDER_PAYMENTS.map((p, i) => (
-              <tr key={i} style={{ borderBottom: '1px solid #1f1f3a' }}>
-                <td style={{ padding: '10px 16px', color: '#9ca3af' }}>{p.date}</td>
-                <td style={{ padding: '10px 16px', color: '#fff' }}>{p.description}</td>
-                <td style={{ padding: '10px 16px', color: '#9ca3af' }}>{p.amount}</td>
-                <td style={{ padding: '10px 16px' }}>
-                  <span style={{
-                    background: 'rgba(34, 197, 94, 0.12)', color: '#4ade80', fontSize: 10, fontWeight: 700,
-                    padding: '3px 10px', borderRadius: 10, textTransform: 'capitalize' as const,
-                  }}>
+              <tr key={i} style={{ borderBottom: `1px solid ${theme.border}` }}>
+                <td style={{ ...tableCellStyle, color: theme.textSecondary }}>{p.date}</td>
+                <td style={{ ...tableCellStyle, color: theme.text }}>{p.description}</td>
+                <td style={{ ...tableCellStyle, color: theme.textSecondary }}>{p.amount}</td>
+                <td style={tableCellStyle}>
+                  <span style={chipStyle(theme.greenBg, theme.green)}>
                     {p.status}
                   </span>
                 </td>

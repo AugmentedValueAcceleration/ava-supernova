@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import PageHeader from '../components/PageHeader';
+import { theme, pageStyle, cardStyle, primaryBtnStyle, ghostBtnStyle } from '../lib/theme';
 
 interface Slide {
   title: string;
@@ -105,16 +106,18 @@ export default function Demo() {
   const next = () => setCurrentSlide(i => Math.min(SLIDES.length - 1, i + 1));
 
   return (
-    <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ ...pageStyle, display: 'flex', flexDirection: 'column' }}>
       <PageHeader title="Investor Demo" subtitle={`Slide ${currentSlide + 1} of ${SLIDES.length}`}>
         <div style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={prev}
             disabled={currentSlide === 0}
             style={{
-              background: '#111127', border: '1px solid #1f1f3a', borderRadius: 10,
-              padding: '10px 20px', fontSize: 13, color: currentSlide === 0 ? '#3f3f46' : '#fff',
+              ...ghostBtnStyle,
+              border: `1px solid ${theme.border}`,
+              color: currentSlide === 0 ? theme.textMuted : theme.text,
               cursor: currentSlide === 0 ? 'not-allowed' : 'pointer',
+              opacity: currentSlide === 0 ? 0.5 : 1,
             }}
           >
             Previous
@@ -123,12 +126,11 @@ export default function Demo() {
             onClick={next}
             disabled={currentSlide === SLIDES.length - 1}
             style={{
-              background: currentSlide === SLIDES.length - 1 ? '#111127' : '#a855f7',
-              border: currentSlide === SLIDES.length - 1 ? '1px solid #1f1f3a' : '1px solid #a855f7',
-              borderRadius: 10,
-              padding: '10px 20px', fontSize: 13, fontWeight: 600,
-              color: currentSlide === SLIDES.length - 1 ? '#3f3f46' : '#fff',
+              ...(currentSlide === SLIDES.length - 1 ? ghostBtnStyle : primaryBtnStyle),
+              border: currentSlide === SLIDES.length - 1 ? `1px solid ${theme.border}` : 'none',
+              color: currentSlide === SLIDES.length - 1 ? theme.textMuted : '#fff',
               cursor: currentSlide === SLIDES.length - 1 ? 'not-allowed' : 'pointer',
+              opacity: currentSlide === SLIDES.length - 1 ? 0.5 : 1,
             }}
           >
             Next
@@ -144,7 +146,7 @@ export default function Demo() {
             onClick={() => setCurrentSlide(i)}
             style={{
               flex: 1, height: 4, borderRadius: 2, border: 'none', cursor: 'pointer',
-              background: i === currentSlide ? '#a855f7' : i < currentSlide ? 'rgba(168, 85, 247, 0.4)' : '#1f1f3a',
+              background: i === currentSlide ? theme.accent : i < currentSlide ? theme.accentBgStrong : theme.border,
               transition: 'background 0.2s',
             }}
           />
@@ -153,34 +155,34 @@ export default function Demo() {
 
       {/* Slide Content */}
       <div style={{
-        flex: 1, background: '#111127', border: '1px solid #1f1f3a', borderRadius: 20,
+        flex: 1, ...cardStyle, borderRadius: 20,
         padding: '60px 80px', display: 'flex', flexDirection: 'column', justifyContent: 'center',
         minHeight: 400,
       }}>
-        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase' as const, color: '#a855f7', marginBottom: 16 }}>
+        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase' as const, color: theme.accent, marginBottom: 16 }}>
           AVA | SUPERNOVA
         </div>
-        <h2 style={{ fontSize: 40, fontWeight: 800, color: '#fff', margin: '0 0 12px 0', lineHeight: 1.1 }}>
+        <h2 style={{ fontSize: 40, fontWeight: 800, color: theme.text, margin: '0 0 12px 0', lineHeight: 1.1 }}>
           {slide.title}
         </h2>
-        <p style={{ fontSize: 18, color: '#9ca3af', margin: '0 0 40px 0' }}>
+        <p style={{ fontSize: 18, color: theme.textSecondary, margin: '0 0 40px 0' }}>
           {slide.subtitle}
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {slide.content.map((item, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
               <div style={{
-                width: 8, height: 8, borderRadius: '50%', background: '#a855f7',
+                width: 8, height: 8, borderRadius: '50%', background: theme.accent,
                 marginTop: 6, flexShrink: 0,
               }} />
-              <span style={{ fontSize: 16, color: '#e5e7eb', lineHeight: 1.5 }}>{item}</span>
+              <span style={{ fontSize: 16, color: theme.text, lineHeight: 1.5 }}>{item}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Keyboard hint */}
-      <div style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: '#3f3f46' }}>
+      <div style={{ textAlign: 'center', marginTop: 16, fontSize: 11, color: theme.textMuted }}>
         Click the progress bar to jump to any slide
       </div>
     </div>

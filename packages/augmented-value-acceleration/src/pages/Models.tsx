@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import PageHeader from '../components/PageHeader';
+import { theme, pageStyle, inputStyle as themeInputStyle, cardStyle, chipStyle } from '../lib/theme';
 
 interface Model {
   id: string;
@@ -32,11 +33,11 @@ const INITIAL_MODELS: Model[] = [
 ];
 
 const PROVIDER_COLORS: Record<string, string> = {
-  DeepSeek: '#60a5fa',
+  DeepSeek: theme.blue,
   Kimi: '#f472b6',
-  Qwen: '#4ade80',
-  Zhipu: '#fbbf24',
-  Mistral: '#fb923c',
+  Qwen: theme.green,
+  Zhipu: theme.yellow,
+  Mistral: theme.orange,
   Anthropic: '#a78bfa',
 };
 
@@ -65,32 +66,27 @@ export default function Models() {
   const capBadge = (label: string, active: boolean) => (
     <span style={{
       fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 8,
-      background: active ? 'rgba(168, 85, 247, 0.15)' : 'rgba(107, 114, 128, 0.1)',
-      color: active ? '#a855f7' : '#3f3f46',
+      background: active ? theme.accentBg : 'rgba(107, 114, 128, 0.1)',
+      color: active ? theme.accent : theme.textMuted,
     }}>
       {label}
     </span>
   );
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '10px 14px', background: '#1a1a35', border: '1px solid #1f1f3a',
-    borderRadius: 10, color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box',
-  };
-
   return (
-    <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
+    <div style={pageStyle}>
       <PageHeader title="Models" subtitle={`${models.length} models across ${providers.length} providers. ${models.filter(m => m.enabled).length} enabled.`} />
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
         <input
-          style={{ ...inputStyle, flex: 1 }}
+          style={{ ...themeInputStyle, flex: 1 }}
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search models..."
         />
         <select
-          style={{ ...inputStyle, width: 'auto', minWidth: 140 }}
+          style={{ ...themeInputStyle, width: 'auto', minWidth: 140 }}
           value={providerFilter}
           onChange={e => setProviderFilter(e.target.value)}
         >
@@ -105,8 +101,8 @@ export default function Models() {
           <div
             key={model.id}
             style={{
-              background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14,
-              padding: '16px 20px', opacity: model.enabled ? 1 : 0.5,
+              ...cardStyle, opacity: model.enabled ? 1 : 0.5,
+              padding: '16px 20px',
               transition: 'opacity 0.2s',
             }}
           >
@@ -114,32 +110,27 @@ export default function Models() {
               {/* Provider dot + name */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: PROVIDER_COLORS[model.provider] || '#6b7280', flexShrink: 0 }} />
-                  <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{model.name}</span>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: PROVIDER_COLORS[model.provider] || theme.textMuted, flexShrink: 0 }} />
+                  <span style={{ fontSize: 14, fontWeight: 600, color: theme.text }}>{model.name}</span>
                   {model.free && (
-                    <span style={{
-                      fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 8,
-                      background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80',
-                    }}>
-                      FREE
-                    </span>
+                    <span style={chipStyle(theme.greenBg, theme.green)}>FREE</span>
                   )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 11, color: '#6b7280', fontFamily: 'monospace' }}>{model.id}</span>
-                  <span style={{ fontSize: 11, color: '#3f3f46' }}>|</span>
-                  <span style={{ fontSize: 11, color: PROVIDER_COLORS[model.provider] || '#6b7280' }}>{model.provider}</span>
+                  <span style={{ fontSize: 11, color: theme.textMuted, fontFamily: 'monospace' }}>{model.id}</span>
+                  <span style={{ fontSize: 11, color: theme.textMuted }}>|</span>
+                  <span style={{ fontSize: 11, color: PROVIDER_COLORS[model.provider] || theme.textMuted }}>{model.provider}</span>
                 </div>
               </div>
 
               {/* Context + Pricing */}
               <div style={{ textAlign: 'right', minWidth: 100 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{formatContext(model.contextWindow)}</div>
-                <div style={{ fontSize: 10, color: '#6b7280' }}>context</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: theme.text }}>{formatContext(model.contextWindow)}</div>
+                <div style={{ fontSize: 10, color: theme.textMuted }}>context</div>
               </div>
               <div style={{ textAlign: 'right', minWidth: 100 }}>
-                <div style={{ fontSize: 11, color: '#9ca3af' }}>${model.inputPrice} / ${model.outputPrice}</div>
-                <div style={{ fontSize: 10, color: '#6b7280' }}>in / out per 1M</div>
+                <div style={{ fontSize: 11, color: theme.textSecondary }}>${model.inputPrice} / ${model.outputPrice}</div>
+                <div style={{ fontSize: 10, color: theme.textMuted }}>in / out per 1M</div>
               </div>
 
               {/* Capabilities */}
@@ -154,7 +145,7 @@ export default function Models() {
                 onClick={() => toggleModel(model.id)}
                 style={{
                   width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
-                  background: model.enabled ? '#a855f7' : '#1f1f3a',
+                  background: model.enabled ? theme.accent : theme.inputBg,
                   position: 'relative', transition: 'background 0.2s', flexShrink: 0,
                 }}
               >
@@ -171,7 +162,7 @@ export default function Models() {
       </div>
 
       {filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 60, color: '#6b7280' }}>
+        <div style={{ textAlign: 'center', padding: 60, color: theme.textMuted }}>
           No models match the current filters.
         </div>
       )}

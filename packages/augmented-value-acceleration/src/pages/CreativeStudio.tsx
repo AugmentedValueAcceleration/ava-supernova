@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import PageHeader from '../components/PageHeader';
+import { theme } from '../lib/theme';
 
 /* ══════════════════════════════════════════════════════════════════════
    Creative Studio — Augmented Value Acceleration Platform
@@ -12,25 +13,25 @@ const PLATFORM_URL = import.meta.env.VITE_PLATFORM_URL || 'https://ava-platform.
 /* ── Theme tokens (inline) ───────────────────────────────────────────── */
 
 const T = {
-  bg:        '#0a0a1a',
-  bgCard:    '#111127',
-  bgInput:   '#1a1a35',
-  bgHover:   '#1f1f3a',
-  accent:    '#a855f7',
-  accentDim: 'rgba(168,85,247,0.15)',
-  border:    '#2a2a4a',
-  borderHi:  '#3a3a5a',
-  text:      '#e2e2f0',
-  textSec:   '#a0a0c0',
-  textMuted: '#6a6a8a',
+  bg:        theme.pageBg,
+  bgCard:    theme.cardBg,
+  bgInput:   theme.inputBg,
+  bgHover:   theme.border,
+  accent:    theme.accent,
+  accentDim: theme.accentBg,
+  border:    theme.border,
+  borderHi:  theme.borderSubtle,
+  text:      theme.text,
+  textSec:   theme.textSecondary,
+  textMuted: theme.textMuted,
   white:     '#ffffff',
-  purple:    '#9333ea',
-  purpleBg:  '#7c3aed',
-  red:       '#ef4444',
-  redBg:     'rgba(239,68,68,0.1)',
-  redBorder: 'rgba(239,68,68,0.3)',
-  green:     '#34d399',
-  greenBg:   'rgba(16,185,129,0.15)',
+  purple:    theme.accentHover,
+  purpleBg:  theme.accent,
+  red:       theme.red,
+  redBg:     theme.redBg,
+  redBorder: `${theme.red}40`,
+  green:     theme.green,
+  greenBg:   theme.greenBg,
 };
 
 /* ── Types ─────────────────────────────────────────────────────────── */
