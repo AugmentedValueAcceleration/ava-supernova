@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import PageHeader from '../components/PageHeader';
-import { theme, primaryBtnStyle, chipStyle, cardStyle } from '../lib/theme';
+import { theme, cardStyle, chipStyle } from '../lib/theme';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -40,7 +40,7 @@ export default function Planner() {
   const [loading, setLoading] = useState(false);
   const [roadmapItems, setRoadmapItems] = useState<RoadmapItem[]>([]);
   const [roadmapLoading, setRoadmapLoading] = useState(true);
-  const [showRoadmap, setShowRoadmap] = useState(true);
+  const [roadmapDismissed, setRoadmapDismissed] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { loadRoadmap(); }, []);
@@ -91,23 +91,20 @@ export default function Planner() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   }
 
+  // Auto-show roadmap when items exist, auto-hide when empty — unless manually dismissed
+  const showRoadmap = !roadmapDismissed && roadmapItems.length > 0;
+
   return (
     <div style={{ display: 'flex', height: '100%', background: theme.pageBg, overflow: 'hidden' }}>
       {/* Chat panel */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ padding: '24px 32px 16px', borderBottom: `1px solid ${theme.border}`, flexShrink: 0 }}>
-          <PageHeader title="Planner" subtitle="Plan features and manage the roadmap with Ava." onRefresh={loadRoadmap}>
-            <button onClick={() => setShowRoadmap(!showRoadmap)} style={{
-              background: showRoadmap ? theme.accentBg : 'transparent',
-              border: `1px solid ${theme.border}`, borderRadius: 8, padding: '8px 14px',
-              fontSize: 12, fontWeight: 400, color: showRoadmap ? theme.accent : theme.textSecondary, cursor: 'pointer',
-            }}>{showRoadmap ? 'Hide Roadmap' : 'Show Roadmap'}</button>
-          </PageHeader>
-          <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+          <PageHeader title="Business Planning" subtitle="Plan features, roadmaps, and strategy with Ava." onRefresh={loadRoadmap} />
+          <div style={{ display: 'flex', gap: 6, marginTop: 14, flexWrap: 'wrap' }}>
             {QUICK_PROMPTS.map((qp) => (
               <button key={qp.label} onClick={() => sendMessage(qp.prompt)} disabled={loading} style={{
-                background: theme.cardBg, border: `1px solid ${theme.border}`, borderRadius: 8,
-                padding: '6px 12px', fontSize: 11, color: theme.textSecondary,
+                background: theme.cardBg, border: 'none', borderRadius: 9999,
+                padding: '6px 14px', fontSize: 12, fontWeight: 300, color: theme.textSecondary,
                 cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.5 : 1,
               }}>{qp.label}</button>
             ))}
@@ -117,15 +114,15 @@ export default function Planner() {
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px 32px' }}>
           {messages.length === 0 && (
             <div style={{ textAlign: 'center', paddingTop: 80, color: theme.textMuted }}>
-              <div style={{ fontSize: 36, marginBottom: 16 }}>&#128466;</div>
-              <p style={{ fontSize: 15, fontWeight: 400, color: theme.textSecondary }}>Start planning with Ava</p>
-              <p style={{ fontSize: 13, marginTop: 8 }}>Use a quick prompt or type a message below.</p>
+              <div style={{ fontSize: 24, marginBottom: 12 }}>&#128466;</div>
+              <p style={{ fontSize: 13, fontWeight: 300, color: theme.textSecondary }}>Start planning with Ava</p>
+              <p style={{ fontSize: 13, fontWeight: 300, marginTop: 6, color: theme.textMuted }}>Use a quick prompt or type a message below.</p>
             </div>
           )}
           {messages.map((msg, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 16 }}>
               <div style={{
-                maxWidth: '75%', padding: '12px 16px', borderRadius: 12, fontSize: 13, lineHeight: 1.6,
+                maxWidth: '75%', padding: '12px 16px', borderRadius: 12, fontSize: 13, fontWeight: 300, lineHeight: 1.6,
                 whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                 background: msg.role === 'user' ? theme.accent : theme.cardBg,
                 color: msg.role === 'user' ? '#fff' : theme.text,
@@ -136,36 +133,49 @@ export default function Planner() {
           <div ref={chatEndRef} />
         </div>
 
-        <div style={{ padding: '16px 32px', borderTop: `1px solid ${theme.border}`, flexShrink: 0 }}>
+        <div style={{ padding: '12px 32px', borderTop: `1px solid ${theme.border}`, flexShrink: 0 }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
             <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder="Type a message..."
               rows={1} style={{
                 flex: 1, background: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: 10,
-                padding: '12px 16px', fontSize: 13, color: theme.text, outline: 'none', resize: 'none',
-                minHeight: 44, maxHeight: 120, fontFamily: 'inherit',
+                padding: '8px 12px', fontSize: 13, fontWeight: 300, color: theme.text, outline: 'none', resize: 'none',
+                minHeight: 38, maxHeight: 100, fontFamily: 'inherit',
               }} />
             <button onClick={() => sendMessage()} disabled={!input.trim() || loading} style={{
-              ...primaryBtnStyle, borderRadius: 10, padding: '12px 20px',
-              cursor: !input.trim() || loading ? 'not-allowed' : 'pointer', opacity: !input.trim() || loading ? 0.5 : 1, flexShrink: 0,
+              background: theme.accent, color: '#fff', border: 'none', borderRadius: 8,
+              padding: '8px 16px', fontSize: 12, fontWeight: 300,
+              cursor: !input.trim() || loading ? 'not-allowed' : 'pointer', opacity: !input.trim() || loading ? 0.4 : 1, flexShrink: 0,
             }}>{loading ? 'Sending...' : 'Send'}</button>
           </div>
         </div>
       </div>
 
-      {/* Roadmap sidebar */}
+      {/* Roadmap sidebar — auto-shows when items exist, auto-hides when empty */}
       {showRoadmap && (
         <div style={{ width: 340, borderLeft: `1px solid ${theme.border}`, overflowY: 'auto', flexShrink: 0, background: theme.surfaceBg }}>
           <div style={{ padding: '24px 20px 16px', borderBottom: `1px solid ${theme.border}` }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <h2 style={{ fontSize: 14, fontWeight: 400, color: theme.text, margin: 0 }}>Roadmap</h2>
-              <span style={{ fontSize: 11, color: theme.textMuted }}>{roadmapItems.length} items</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 300, color: theme.textMuted }}>{roadmapItems.length} items</span>
+                <button
+                  onClick={() => setRoadmapDismissed(true)}
+                  title="Close roadmap panel"
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer', color: theme.textMuted,
+                    padding: 2, display: 'flex', alignItems: 'center',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
           <div style={{ padding: '12px 16px' }}>
             {roadmapLoading ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: theme.textMuted, fontSize: 13 }}>Loading...</div>
-            ) : roadmapItems.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: theme.textMuted, fontSize: 13 }}>No roadmap items yet.</div>
+              <div style={{ textAlign: 'center', padding: '40px 0', color: theme.textMuted, fontSize: 13, fontWeight: 300 }}>Loading...</div>
             ) : (
               roadmapItems.map((item) => {
                 const sc = STATUS_COLORS[item.status] || STATUS_COLORS.planned;
@@ -173,11 +183,11 @@ export default function Planner() {
                   <div key={item.id} style={{ ...cardStyle, padding: '12px 14px', marginBottom: 8, borderRadius: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                       <span style={chipStyle(sc.bg, sc.text)}>{item.status.replace('_', ' ')}</span>
-                      {item.quarter && <span style={{ fontSize: 10, color: theme.textMuted }}>{item.quarter}</span>}
+                      {item.quarter && <span style={{ fontSize: 10, fontWeight: 300, color: theme.textMuted }}>{item.quarter}</span>}
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 400, color: theme.text }}>{item.title}</div>
                     {item.description && (
-                      <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 4, lineHeight: 1.4 }}>
+                      <div style={{ fontSize: 11, fontWeight: 300, color: theme.textMuted, marginTop: 4, lineHeight: 1.4 }}>
                         {item.description.length > 100 ? item.description.slice(0, 100) + '...' : item.description}
                       </div>
                     )}

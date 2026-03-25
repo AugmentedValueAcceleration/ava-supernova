@@ -52,7 +52,7 @@ interface ToolLog {
 
 type CanvasItemType = 'text' | 'image';
 type CanvasTab = 'posts' | 'images';
-type ContextId = 'social' | 'planner';
+type ContextId = 'social';
 
 interface CanvasItem {
   id: string;
@@ -93,17 +93,6 @@ const MODELS_SOCIAL: ModelOption[] = [
   { id: 'qwen-flash',           name: 'Qwen Flash',        provider: 'Alibaba Cloud', tag: 'Free' },
 ];
 
-const MODELS_PLANNER: ModelOption[] = [
-  { id: 'glm-5',                name: 'GLM-5',            provider: 'Zhipu AI' },
-  { id: 'kimi-k2.5',            name: 'Kimi K2.5',        provider: 'Moonshot AI' },
-  { id: 'deepseek-chat',        name: 'DeepSeek V3.2',    provider: 'DeepSeek' },
-  { id: 'qwen3.5-plus',         name: 'Qwen 3.5 Plus',    provider: 'Alibaba' },
-  { id: 'mistral-large-latest', name: 'Mistral Large',    provider: 'Mistral' },
-  { id: 'devstral-latest',      name: 'Devstral 2',       provider: 'Mistral' },
-  { id: 'codestral-latest',     name: 'Codestral',        provider: 'Mistral' },
-  { id: 'deepseek-reasoner',    name: 'DeepSeek Reasoner', provider: 'DeepSeek' },
-];
-
 const PROMPTS_SOCIAL: QuickPrompt[] = [
   { label: 'Tweet — Ava\'s voice',     prompt: 'I want a tweet in Ava\'s voice. Ask me what to focus on.' },
   { label: 'Tweet — Professional',      prompt: 'I want a professional tweet. Ask me what to focus on.' },
@@ -118,16 +107,6 @@ const PROMPTS_SOCIAL: QuickPrompt[] = [
   { label: 'Release Notes',             prompt: 'I want to write release notes. Ask me what was shipped.' },
   { label: 'Social Media Graphic',      prompt: 'Generate a social media graphic. Ask me what to showcase.' },
   { label: 'Promotional Banner',        prompt: 'Generate a promotional banner image for Ava | Supernova.' },
-];
-
-const PROMPTS_PLANNER: QuickPrompt[] = [
-  { label: 'Show the roadmap',       prompt: 'Show me the current roadmap' },
-  { label: 'Plan Q3 features',       prompt: 'Plan Q3 features for the platform' },
-  { label: 'Create roadmap items',   prompt: 'Create items for MCP support' },
-  { label: 'What\'s shipped?',       prompt: 'What shipped items do we have?' },
-  { label: 'Plan a new feature',     prompt: 'I want to plan a new feature. Ask me what it is.' },
-  { label: 'Roadmap update',         prompt: 'Give me a roadmap status update for the current sprint.' },
-  { label: 'Sprint review',          prompt: 'Help me write a sprint review for what we shipped this week.' },
 ];
 
 const CONTEXTS: Record<ContextId, {
@@ -156,19 +135,6 @@ const CONTEXTS: Record<ContextId, {
     prompts: PROMPTS_SOCIAL,
     hasCanvas: true,
   },
-  planner: {
-    label: 'Planner',
-    badge: 'PLANNER',
-    badgeBg: 'rgba(59,130,246,0.15)',
-    badgeText: '#60a5fa',
-    endpoint: `${PLATFORM_URL}/api/admin/planner`,
-    welcome: '',
-    placeholder: 'Plan roadmap items, ask about the roadmap...',
-    models: MODELS_PLANNER,
-    defaultModel: 'glm-5',
-    prompts: PROMPTS_PLANNER,
-    hasCanvas: false,
-  },
 };
 
 /* ── Tool labels ─────────────────────────────────────────────────────── */
@@ -184,10 +150,6 @@ const TOOL_LABELS: Record<string, string> = {
   search_code: 'Searched code',
   design_graphic: 'Designed graphic',
   generate_image: 'Generated image',
-  list_roadmap_items: 'Listed roadmap items',
-  create_roadmap_item: 'Created roadmap item',
-  update_roadmap_item: 'Updated roadmap item',
-  delete_roadmap_item: 'Deleted roadmap item',
 };
 
 /* ── Platform detection for canvas items ─────────────────────────────── */
@@ -251,8 +213,8 @@ function persistMessages(ctxId: string, msgs: Message[]) {
    ══════════════════════════════════════════════════════════════════════ */
 
 export default function CreativeStudio() {
-  /* ── Context state ─────────────────────────────────────────────── */
-  const [activeCtx, setActiveCtx] = useState<ContextId>('social');
+  /* ── Context — Social Media only ──────────────────────────────── */
+  const activeCtx: ContextId = 'social';
   const ctx = CONTEXTS[activeCtx];
 
   /* ── Model selection ───────────────────────────────────────────── */
@@ -314,18 +276,6 @@ export default function CreativeStudio() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
-
-  // Reload messages on context switch
-  const prevCtx = useRef(activeCtx);
-  useEffect(() => {
-    if (prevCtx.current !== activeCtx) {
-      prevCtx.current = activeCtx;
-      setMessages(loadMessages(activeCtx, CONTEXTS[activeCtx].welcome));
-      setInput('');
-      setLoading(false);
-      setLiveToolLog([]);
-    }
-  }, [activeCtx]);
 
   /* ── Canvas helpers ────────────────────────────────────────────── */
 
@@ -567,33 +517,10 @@ export default function CreativeStudio() {
       {/* ── Header bar ─────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 20px', borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
 
-        {/* Compact context switcher — subtle text links */}
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-          {(Object.keys(CONTEXTS) as ContextId[]).map(id => {
-            const c = CONTEXTS[id];
-            const isActive = activeCtx === id;
-            return (
-              <button
-                key={id}
-                onClick={() => setActiveCtx(id)}
-                style={{
-                  padding: '4px 0',
-                  background: 'none',
-                  border: 'none',
-                  borderBottom: isActive ? `1px solid ${T.accent}` : '1px solid transparent',
-                  color: isActive ? T.text : T.textMuted,
-                  fontSize: 12,
-                  fontWeight: 300,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s',
-                  letterSpacing: '0.02em',
-                }}
-              >
-                {c.label}
-              </button>
-            );
-          })}
-        </div>
+        {/* Context label */}
+        <span style={{ fontSize: 12, fontWeight: 300, color: T.textSec, letterSpacing: '0.02em' }}>
+          Social Media
+        </span>
 
         {/* Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
