@@ -10,3 +10,7 @@
 	path = packages/mobile
 	url = https://github.com/AugmentedValueAcceleration/ava-supernova-companion.git
 	branch = development
+[submodule "packages/augmented-value-acceleration"]
+	path = packages/augmented-value-acceleration
+	url = https://github.com/AugmentedValueAcceleration/ava-augmented-value-acceleration.git
+	branch = development
