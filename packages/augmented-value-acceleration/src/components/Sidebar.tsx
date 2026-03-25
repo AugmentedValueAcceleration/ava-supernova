@@ -117,7 +117,7 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', width: 260, flexShrink: 0,
-      overflowY: 'auto', background: theme.surfaceBg, borderRight: `1px solid ${theme.border}`,
+      overflowY: 'auto', background: theme.surfaceBg, borderRight: `1px solid ${theme.border}`, backdropFilter: 'blur(20px)',
     }}>
       <nav style={{ flex: 1, padding: '20px 16px' }}>
         {NAV_SECTIONS.map((section, si) => (
@@ -132,7 +132,7 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
                 padding: '4px 8px',
                 marginBottom: 8,
                 fontSize: 10,
-                fontWeight: 600,
+                fontWeight: 400,
                 letterSpacing: '1.5px',
                 textTransform: 'uppercase' as const,
                 color: theme.textMuted,
@@ -161,10 +161,9 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
                         padding: '10px 14px',
                         borderRadius: theme.radiusSm,
                         fontSize: 13,
-                        fontWeight: isActive ? 500 : 400,
+                        fontWeight: 400,
                         color: isActive ? theme.accent : theme.textSecondary,
                         background: isActive ? theme.accentBg : 'transparent',
-                        borderLeft: isActive ? `2px solid ${theme.accent}` : '2px solid transparent',
                         border: 'none',
                         cursor: 'pointer',
                         transition: 'all 0.15s',

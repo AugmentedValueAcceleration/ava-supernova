@@ -4,15 +4,16 @@
 
 export const theme = {
   /* ── Backgrounds ─────────────────────────────────────────────────────── */
-  pageBg: '#1e1e2e',
-  cardBg: '#181825',
-  surfaceBg: '#11111b',
-  inputBg: '#313244',
-  hoverBg: 'rgba(255, 255, 255, 0.03)',
+  pageBg: 'linear-gradient(135deg, #0f0a1a 0%, #1a1028 40%, #150d22 100%)',
+  pageBgFlat: '#110c1a',
+  cardBg: 'rgba(26, 16, 40, 0.6)',
+  surfaceBg: '#0a0714',
+  inputBg: 'rgba(49, 34, 68, 0.5)',
+  hoverBg: 'rgba(168, 85, 247, 0.05)',
 
   /* ── Borders ─────────────────────────────────────────────────────────── */
-  border: '#313244',
-  borderSubtle: 'rgba(49, 50, 68, 0.6)',
+  border: 'rgba(168, 85, 247, 0.12)',
+  borderSubtle: 'rgba(168, 85, 247, 0.06)',
 
   /* ── Accent ──────────────────────────────────────────────────────────── */
   accent: '#a855f7',
@@ -57,6 +58,7 @@ export const pageStyle: React.CSSProperties = {
   overflowY: 'auto',
   height: '100%',
   background: theme.pageBg,
+  minHeight: '100vh',
 };
 
 export const cardStyle: React.CSSProperties = {

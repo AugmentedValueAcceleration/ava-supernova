@@ -79,7 +79,7 @@ export default function App() {
     return (
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        height: '100vh', background: '#1e1e2e',
+        height: '100vh', background: 'linear-gradient(135deg, #0f0a1a 0%, #1a1028 40%, #150d22 100%)',
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{
