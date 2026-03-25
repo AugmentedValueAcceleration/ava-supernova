@@ -147,30 +147,31 @@ export default function Library() {
                   {!isExpanded ? (
                     /* ── Compact card ───────────────────────────────────────── */
                     <>
-                      {/* Thumbnail */}
-                      <div style={{
-                        width: '100%',
-                        height: 160,
-                        borderRadius: theme.radiusSm,
-                        overflow: 'hidden',
-                        marginBottom: 12,
-                        background: theme.inputBg,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}>
-                        {asset.type === 'image' && (asset.thumbnail_url || asset.url) ? (
+                      {/* Thumbnail — only for images with actual URLs */}
+                      {asset.type === 'image' && (asset.thumbnail_url || asset.url) && (
+                        <div style={{
+                          width: '100%',
+                          height: 160,
+                          borderRadius: theme.radiusSm,
+                          overflow: 'hidden',
+                          marginBottom: 12,
+                        }}>
                           <img
                             src={asset.thumbnail_url || asset.url || ''}
                             alt={asset.title}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           />
-                        ) : (
-                          <div style={{ padding: 16, fontSize: 12, color: theme.textMuted, textAlign: 'center', lineHeight: 1.5 }}>
-                            {asset.content ? asset.content.slice(0, 120) + (asset.content.length > 120 ? '...' : '') : 'Text asset'}
-                          </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
+                      {/* Text preview for text assets */}
+                      {asset.type === 'text' && asset.content && (
+                        <div style={{
+                          fontSize: 12, color: theme.textSecondary, lineHeight: 1.5,
+                          marginBottom: 10, maxHeight: 60, overflow: 'hidden',
+                        }}>
+                          {asset.content.slice(0, 150)}{asset.content.length > 150 ? '...' : ''}
+                        </div>
+                      )}
 
                       {/* Info */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
