@@ -26,9 +26,18 @@ interface Personality {
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const API_URL = 'https://ava-supernova.com/api/chat';
-const DEFAULT_MODEL = 'qwen-3.5-plus';
-const MODEL_DISPLAY = 'Qwen 3.5 Plus';
 const MAX_CHARS = 4000;
+const LS_MODEL_KEY = 'ava-platform-chat-model';
+
+interface ModelOption {
+  id: string;
+  name: string;
+}
+
+const MODELS: ModelOption[] = [
+  { id: 'qwen-3.5-plus', name: 'Qwen 3.5 Plus' },
+  { id: 'qwen-flash', name: 'Qwen Flash' },
+];
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -140,10 +149,21 @@ export default function AvaChat() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [personality, setPersonality] = useState<Personality>({});
   const [hoveredBtn, setHoveredBtn] = useState(false);
+  const [model, setModelState] = useState<string>(() => {
+    try { return localStorage.getItem(LS_MODEL_KEY) || 'qwen-3.5-plus'; } catch { return 'qwen-3.5-plus'; }
+  });
+  const [modelOpen, setModelOpen] = useState(false);
+
+  const setModel = (m: string) => {
+    setModelState(m);
+    try { localStorage.setItem(LS_MODEL_KEY, m); } catch { /* */ }
+  };
+  const selectedModel = MODELS.find(m => m.id === model) || MODELS[0];
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const modelDropdownRef = useRef<HTMLDivElement>(null);
 
   // Inject CSS keyframes
   useEffect(() => { injectKeyframes(); }, []);
@@ -182,6 +202,15 @@ export default function AvaChat() {
       }
     })();
   }, [isAuthenticated, accessToken]);
+
+  // Close model dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (modelDropdownRef.current && !modelDropdownRef.current.contains(e.target as Node)) setModelOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   // ── Panel open/close ───────────────────────────────────────────────────────
 
@@ -250,7 +279,7 @@ export default function AvaChat() {
           'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          model: DEFAULT_MODEL,
+          model,
           messages: apiMessages,
           ...(personality.systemPrompt ? { system: personality.systemPrompt } : {}),
         }),
@@ -354,7 +383,7 @@ export default function AvaChat() {
       setIsStreaming(false);
       abortRef.current = null;
     }
-  }, [input, isStreaming, accessToken, messages, personality.systemPrompt]);
+  }, [input, isStreaming, accessToken, messages, personality.systemPrompt, model]);
 
   // ── Key handler ────────────────────────────────────────────────────────────
 
@@ -477,16 +506,50 @@ export default function AvaChat() {
                   <span style={{ fontSize: 15, fontWeight: 400, color: '#fff' }}>
                     {displayName}
                   </span>
-                  <span style={{
-                    fontSize: 10,
-                    color: '#6b7280',
-                    background: 'rgba(49, 34, 68, 0.5)',
-                    padding: '2px 8px',
-                    borderRadius: 8,
-                    fontWeight: 400,
-                  }}>
-                    {MODEL_DISPLAY}
-                  </span>
+                  <div ref={modelDropdownRef} style={{ position: 'relative', display: 'inline-flex' }}>
+                    <button
+                      onClick={() => setModelOpen(!modelOpen)}
+                      style={{
+                        fontSize: 10,
+                        color: '#6b7280',
+                        background: 'rgba(49, 34, 68, 0.5)',
+                        padding: '2px 8px',
+                        borderRadius: 8,
+                        fontWeight: 400,
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                      }}
+                    >
+                      <span>{selectedModel.name}</span>
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+                        style={{ transform: modelOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {modelOpen && (
+                      <div style={{
+                        position: 'absolute', left: 0, top: '100%', marginTop: 4, width: 160,
+                        background: 'rgba(26, 16, 40, 0.95)', border: '1px solid rgba(168, 85, 247, 0.15)',
+                        borderRadius: 8, boxShadow: '0 12px 24px rgba(0,0,0,0.6)', zIndex: 100, padding: '4px 0',
+                      }}>
+                        {MODELS.map(m => (
+                          <button
+                            key={m.id}
+                            onClick={() => { setModel(m.id); setModelOpen(false); }}
+                            style={{
+                              width: '100%', textAlign: 'left', padding: '6px 10px',
+                              background: m.id === model ? 'rgba(168, 85, 247, 0.15)' : 'transparent',
+                              color: m.id === model ? '#e5e7eb' : '#9ca3af',
+                              fontSize: 11, fontWeight: 300, border: 'none', cursor: 'pointer',
+                            }}
+                          >{m.name}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <span style={{ fontSize: 10, color: '#6b7280' }}>
                   Mode: {detectMode()}

@@ -81,16 +81,8 @@ interface QuickPrompt {
 /* ── Context definitions ─────────────────────────────────────────────── */
 
 const MODELS_SOCIAL: ModelOption[] = [
-  { id: 'kimi-k2.5',            name: 'Kimi K2.5',         provider: 'Moonshot AI', tag: 'Best for content' },
-  { id: 'qwen3.5-plus',         name: 'Qwen 3.5 Plus',    provider: 'Alibaba',     tag: 'Best for content' },
-  { id: 'claude-sonnet-4-6',    name: 'Claude Sonnet 4.6', provider: 'Anthropic',   tag: 'Best for content' },
-  { id: 'mistral-large-latest', name: 'Mistral Large',     provider: 'Mistral',     tag: 'Best for content' },
-  { id: 'glm-5',                name: 'GLM-5',             provider: 'Zhipu AI' },
-  { id: 'deepseek-chat',        name: 'DeepSeek V3.2',     provider: 'DeepSeek' },
-  { id: 'claude-opus-4-6',      name: 'Claude Opus 4.6',   provider: 'Anthropic' },
-  { id: 'claude-haiku-4-5',     name: 'Claude Haiku 4.5',  provider: 'Anthropic',   tag: 'Fast' },
-  { id: 'deepseek-reasoner',    name: 'DeepSeek Reasoner', provider: 'DeepSeek',    tag: 'Deep thinking' },
-  { id: 'qwen-flash',           name: 'Qwen Flash',        provider: 'Alibaba Cloud', tag: 'Free' },
+  { id: 'qwen-3.5-plus', name: 'Qwen 3.5 Plus', provider: 'Alibaba' },
+  { id: 'qwen-flash',    name: 'Qwen Flash',     provider: 'Alibaba', tag: 'Free' },
 ];
 
 const PROMPTS_SOCIAL: QuickPrompt[] = [
@@ -131,7 +123,7 @@ const CONTEXTS: Record<ContextId, {
     welcome: "Welcome to the Creative Studio. I can create text posts and generate AI images — all from one conversation.\n\n**Posts** — tweets, LinkedIn, blogs, announcements for any platform\n**Images** — AI-generated graphics, banners, and social media visuals\n\nTell me what you need or use the quick prompts. Output appears in the canvas.",
     placeholder: 'What do you want to create — a post or image?',
     models: MODELS_SOCIAL,
-    defaultModel: 'kimi-k2.5',
+    defaultModel: 'qwen-3.5-plus',
     prompts: PROMPTS_SOCIAL,
     hasCanvas: true,
   },

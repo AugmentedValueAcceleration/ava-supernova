@@ -8,13 +8,15 @@ import { theme, pageStyle, cardStyle, inputStyle, primaryBtnStyle, ghostBtnStyle
    Augmented Value Acceleration Platform
    ══════════════════════════════════════════════════════════════════════ */
 
-type AssetType = 'image' | 'text';
-type FilterTab = 'all' | 'image' | 'text';
+type AssetType = 'image' | 'content' | 'plan' | 'document';
+type FilterTab = 'all' | AssetType;
 
 interface CreativeAsset {
   id: string;
   title: string;
-  type: AssetType;
+  type: string;
+  asset_type: AssetType;
+  source: string | null;
   url: string | null;
   prompt: string | null;
   content: string | null;
@@ -25,8 +27,27 @@ interface CreativeAsset {
 const TAB_OPTIONS: { key: FilterTab; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'image', label: 'Images' },
-  { key: 'text', label: 'Text' },
+  { key: 'content', label: 'Content' },
+  { key: 'plan', label: 'Plans' },
+  { key: 'document', label: 'Documents' },
 ];
+
+/* ── Asset type badge colours ────────────────────────────────────────── */
+const typeChipColors: Record<AssetType, { bg: string; fg: string }> = {
+  image:    { bg: theme.blueBg,   fg: theme.blue },
+  content:  { bg: theme.tealBg,   fg: theme.teal },
+  plan:     { bg: theme.yellowBg, fg: theme.yellow },
+  document: { bg: theme.greenBg,  fg: theme.green },
+};
+
+/* ── Source badge colours ────────────────────────────────────────────── */
+const sourceChipColors: Record<string, { bg: string; fg: string }> = {
+  'Creative Studio':   { bg: theme.accentBg, fg: theme.accent },
+  'Business Planning': { bg: theme.blueBg,   fg: theme.blue },
+  'Support':           { bg: theme.greenBg,  fg: theme.green },
+};
+
+const defaultSourceChip = { bg: theme.accentBg, fg: theme.textMuted };
 
 export default function Library() {
   const [assets, setAssets] = useState<CreativeAsset[]>([]);
@@ -39,9 +60,14 @@ export default function Library() {
 
   const fetchAssets = async () => {
     setLoading(true);
-    let query = supabase.from('creative_assets').select('*').order('created_at', { ascending: false });
-    if (filter !== 'all') query = query.eq('type', filter);
+    let query = supabase
+      .from('creative_assets')
+      .select('id, title, type, asset_type, source, url, prompt, content, thumbnail_url, created_at')
+      .order('created_at', { ascending: false });
+
+    if (filter !== 'all') query = query.eq('asset_type', filter);
     if (search.trim()) query = query.ilike('title', `%${search.trim()}%`);
+
     const { data } = await query;
     setAssets(data || []);
     setLoading(false);
@@ -79,11 +105,17 @@ export default function Library() {
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
+  /* ── Empty-asset filter ────────────────────────────────────────────── */
   const filtered = assets.filter(a => {
-    if (a.type === 'image' && !a.thumbnail_url && !a.url) return false;
-    if (a.type === 'text' && !a.content) return false;
+    const t = a.asset_type;
+    if (t === 'image' && !a.thumbnail_url && !a.url) return false;
+    if ((t === 'content' || t === 'plan' || t === 'document') && !a.content) return false;
     return true;
   });
+
+  /* ── Helpers ───────────────────────────────────────────────────────── */
+  const typeChip = (at: AssetType) => typeChipColors[at] || typeChipColors.content;
+  const sourceChip = (src: string | null) => (src && sourceChipColors[src]) ? sourceChipColors[src] : defaultSourceChip;
 
   return (
     <div style={pageStyle}>
@@ -97,7 +129,7 @@ export default function Library() {
               key={tab.key}
               onClick={() => setFilter(tab.key)}
               style={{
-                padding: '6px 16px',
+                padding: '6px 14px',
                 borderRadius: 6,
                 border: 'none',
                 fontSize: 12,
@@ -131,9 +163,11 @@ export default function Library() {
 
       {/* Asset grid */}
       {!loading && filtered.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
           {filtered.map(asset => {
             const isExpanded = expandedId === asset.id;
+            const tc = typeChip(asset.asset_type);
+            const sc = sourceChip(asset.source);
             return (
               <div key={asset.id} style={{ gridColumn: isExpanded ? '1 / -1' : undefined }}>
                 {/* Card */}
@@ -141,6 +175,7 @@ export default function Library() {
                   onClick={() => setExpandedId(isExpanded ? null : asset.id)}
                   style={{
                     ...cardStyle,
+                    padding: '16px',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
                     overflow: 'hidden',
@@ -152,13 +187,13 @@ export default function Library() {
                     /* ── Compact card ───────────────────────────────────────── */
                     <>
                       {/* Thumbnail — only for images with actual URLs */}
-                      {asset.type === 'image' && (asset.thumbnail_url || asset.url) && (
+                      {asset.asset_type === 'image' && (asset.thumbnail_url || asset.url) && (
                         <div style={{
                           width: '100%',
-                          height: 160,
+                          height: 150,
                           borderRadius: theme.radiusSm,
                           overflow: 'hidden',
-                          marginBottom: 12,
+                          marginBottom: 10,
                         }}>
                           <img
                             src={asset.thumbnail_url || asset.url || ''}
@@ -167,18 +202,18 @@ export default function Library() {
                           />
                         </div>
                       )}
-                      {/* Text preview for text assets */}
-                      {asset.type === 'text' && asset.content && (
+                      {/* Text preview for content / plan / document assets */}
+                      {asset.asset_type !== 'image' && asset.content && (
                         <div style={{
                           fontSize: 12, color: theme.textSecondary, lineHeight: 1.5,
-                          marginBottom: 10, maxHeight: 60, overflow: 'hidden',
+                          marginBottom: 8, maxHeight: 56, overflow: 'hidden', fontWeight: 300,
                         }}>
                           {asset.content.slice(0, 150)}{asset.content.length > 150 ? '...' : ''}
                         </div>
                       )}
 
                       {/* Info */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{
                             fontSize: 13, fontWeight: 400, color: theme.text,
@@ -186,15 +221,24 @@ export default function Library() {
                           }}>
                             {asset.title || 'Untitled'}
                           </div>
-                          <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 2 }}>
+                          <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 2, fontWeight: 300 }}>
                             {formatDate(asset.created_at)}
                           </div>
+                          {/* Source badge */}
+                          {asset.source && (
+                            <span style={{
+                              ...chipStyle(sc.bg, sc.fg),
+                              fontSize: 10,
+                              padding: '2px 8px',
+                              marginTop: 4,
+                              fontWeight: 400,
+                            }}>
+                              {asset.source}
+                            </span>
+                          )}
                         </div>
-                        <span style={chipStyle(
-                          asset.type === 'image' ? theme.blueBg : theme.tealBg,
-                          asset.type === 'image' ? theme.blue : theme.teal,
-                        )}>
-                          {asset.type}
+                        <span style={chipStyle(tc.bg, tc.fg)}>
+                          {asset.asset_type}
                         </span>
                       </div>
                     </>
@@ -204,7 +248,7 @@ export default function Library() {
                       <div style={{ display: 'flex', gap: 24 }}>
                         {/* Preview */}
                         <div style={{ flex: '0 0 400px' }}>
-                          {asset.type === 'image' && asset.url ? (
+                          {asset.asset_type === 'image' && asset.url ? (
                             <img
                               src={asset.url}
                               alt={asset.title}
@@ -227,6 +271,7 @@ export default function Library() {
                               maxHeight: 400,
                               overflowY: 'auto',
                               whiteSpace: 'pre-wrap',
+                              fontWeight: 300,
                             }}>
                               {asset.content || 'No content'}
                             </div>
@@ -235,21 +280,32 @@ export default function Library() {
 
                         {/* Details */}
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                             <h2 style={{ fontSize: 16, fontWeight: 400, color: theme.text, margin: 0 }}>
                               {asset.title || 'Untitled'}
                             </h2>
-                            <span style={chipStyle(
-                              asset.type === 'image' ? theme.blueBg : theme.tealBg,
-                              asset.type === 'image' ? theme.blue : theme.teal,
-                            )}>
-                              {asset.type}
+                            <span style={chipStyle(tc.bg, tc.fg)}>
+                              {asset.asset_type}
                             </span>
                           </div>
 
-                          <div style={{ fontSize: 12, color: theme.textMuted, marginBottom: 20 }}>
+                          <div style={{ fontSize: 12, color: theme.textMuted, marginBottom: 6, fontWeight: 300 }}>
                             Created {formatDate(asset.created_at)}
                           </div>
+
+                          {/* Source badge — expanded view */}
+                          {asset.source && (
+                            <div style={{ marginBottom: 16 }}>
+                              <span style={{
+                                ...chipStyle(sc.bg, sc.fg),
+                                fontSize: 10,
+                                padding: '2px 8px',
+                                fontWeight: 400,
+                              }}>
+                                {asset.source}
+                              </span>
+                            </div>
+                          )}
 
                           {/* Prompt */}
                           {asset.prompt && (
@@ -265,6 +321,7 @@ export default function Library() {
                                 color: theme.textSecondary,
                                 lineHeight: 1.6,
                                 whiteSpace: 'pre-wrap',
+                                fontWeight: 300,
                               }}>
                                 {asset.prompt}
                               </div>
