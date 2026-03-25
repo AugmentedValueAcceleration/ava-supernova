@@ -143,21 +143,20 @@ export default function CRM() {
       <PageHeader title="CRM" subtitle="Client pipeline and relationship management" onRefresh={fetchData}>
         <button onClick={() => setShowCreate(true)} style={{
           padding: '10px 24px', background: theme.accent, color: theme.text, border: 'none',
-          borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+          borderRadius: 10, fontSize: 14, fontWeight: 400, cursor: 'pointer',
         }}>+ New Client</button>
       </PageHeader>
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
         {[
-          { label: 'Total Clients', value: stats.total, icon: '👥', color: theme.accent },
-          { label: 'Pipeline Value', value: `$${stats.pipelineValue.toLocaleString()}`, icon: '💰', color: '#f59e0b' },
-          { label: 'Won Deals', value: stats.won, icon: '🏆', color: '#34d399' },
-          { label: 'Lost Deals', value: stats.lost, icon: '❌', color: '#ef4444' },
+          { label: 'Total Clients', value: stats.total, color: theme.accent },
+          { label: 'Pipeline Value', value: `$${stats.pipelineValue.toLocaleString()}`, color: theme.yellow },
+          { label: 'Won Deals', value: stats.won, color: theme.green },
+          { label: 'Lost Deals', value: stats.lost, color: theme.red },
         ].map(s => (
-          <div key={s.label} style={{ background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 14, padding: '20px 22px' }}>
-            <div style={{ fontSize: 24, marginBottom: 8 }}>{s.icon}</div>
-            <div style={{ fontSize: 30, fontWeight: 800, color: s.color }}>{loading ? '...' : s.value}</div>
+          <div key={s.label} style={{ background: theme.cardBg, border: 'none', borderRadius: theme.radiusLg, padding: '28px 24px' }}>
+            <div style={{ fontSize: 30, fontWeight: 300, color: s.color }}>{loading ? '...' : s.value}</div>
             <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 4 }}>{s.label}</div>
           </div>
         ))}
@@ -173,10 +172,10 @@ export default function CRM() {
             const stageClients = clients.filter(c => c.status === stage.key);
             const stageValue = stageClients.reduce((s, c) => s + (c.deal_value || 0), 0);
             return (
-              <div key={stage.key} style={{ background: theme.surfaceBg, borderRadius: 14, padding: 14, border: '1px solid #1f1f3a' }}>
+              <div key={stage.key} style={{ background: theme.surfaceBg, borderRadius: 14, padding: 14, border: `1px solid ${theme.border}` }}>
                 <div style={{ marginBottom: 14, paddingBottom: 10, borderBottom: `2px solid ${stage.color}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: stage.color }}>{stage.label}</span>
+                    <span style={{ fontSize: 13, fontWeight: 400, color: stage.color }}>{stage.label}</span>
                     <span style={{ fontSize: 11, color: theme.textMuted, background: theme.border, borderRadius: 6, padding: '2px 8px' }}>{stageClients.length}</span>
                   </div>
                   {stageValue > 0 && (
@@ -194,20 +193,20 @@ export default function CRM() {
                     const lastContact = clientContacts[0];
                     return (
                       <div key={c.id} style={{
-                        background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 10, padding: 12,
+                        background: theme.cardBg, border: 'none', borderRadius: 10, padding: 12,
                         cursor: 'pointer', transition: 'border-color 0.2s',
                       }}
                         onClick={() => setExpandedId(expanded ? null : c.id)}
                         onMouseOver={e => e.currentTarget.style.borderColor = theme.accent}
                         onMouseOut={e => e.currentTarget.style.borderColor = theme.border}
                       >
-                        <div style={{ fontSize: 13, fontWeight: 600, color: theme.text, marginBottom: 4 }}>{c.name}</div>
+                        <div style={{ fontSize: 13, fontWeight: 400, color: theme.text, marginBottom: 4 }}>{c.name}</div>
                         {c.company && <div style={{ fontSize: 11, color: theme.textSecondary, marginBottom: 2 }}>{c.company}</div>}
-                        {c.deal_value > 0 && <div style={{ fontSize: 12, color: '#34d399', fontWeight: 600 }}>${c.deal_value.toLocaleString()}</div>}
+                        {c.deal_value > 0 && <div style={{ fontSize: 12, color: theme.green, fontWeight: 400 }}>${c.deal_value.toLocaleString()}</div>}
                         {lastContact && <div style={{ fontSize: 10, color: theme.textMuted, marginTop: 4 }}>{CONTACT_ICONS[lastContact.type] || '📋'} {new Date(lastContact.created_at).toLocaleDateString()}</div>}
 
                         {expanded && (
-                          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #1f1f3a' }}>
+                          <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${theme.border}` }}>
                             <div style={{ fontSize: 11, color: theme.textSecondary, display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
                               {c.email && <span>📧 {c.email}</span>}
                               {c.phone && <span>📞 {c.phone}</span>}
@@ -219,9 +218,9 @@ export default function CRM() {
                             {/* Contact History */}
                             {clientContacts.length > 0 && (
                               <div style={{ marginBottom: 8 }}>
-                                <div style={{ fontSize: 10, fontWeight: 600, color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Contact History</div>
+                                <div style={{ fontSize: 10, fontWeight: 400, color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Contact History</div>
                                 {clientContacts.slice(0, 5).map(ct => (
-                                  <div key={ct.id} style={{ fontSize: 11, color: theme.textMuted, padding: '4px 0', borderBottom: '1px solid #1a1a35' }}>
+                                  <div key={ct.id} style={{ fontSize: 11, color: theme.textMuted, padding: '4px 0', borderBottom: `1px solid ${theme.borderSubtle}` }}>
                                     <span>{CONTACT_ICONS[ct.type] || '📋'}</span>
                                     <span style={{ color: theme.textSecondary, marginLeft: 6 }}>{ct.subject}</span>
                                     <span style={{ marginLeft: 6, fontSize: 10 }}>{new Date(ct.created_at).toLocaleDateString()}</span>
@@ -259,10 +258,10 @@ export default function CRM() {
           alignItems: 'center', justifyContent: 'center', zIndex: 1000,
         }} onClick={() => setShowCreate(false)}>
           <div style={{
-            background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 16,
+            background: theme.cardBg, border: `1px solid ${theme.border}`, borderRadius: 16,
             padding: 32, width: 520, maxHeight: '85vh', overflowY: 'auto',
           }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: theme.text, margin: '0 0 24px' }}>New Client</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 300, color: theme.text, margin: '0 0 24px' }}>New Client</h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
@@ -318,7 +317,7 @@ export default function CRM() {
               }}>Cancel</button>
               <button onClick={handleCreate} disabled={saving || !form.name.trim()} style={{
                 padding: '10px 24px', background: theme.accent, color: theme.text, border: 'none',
-                borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                borderRadius: 10, fontSize: 14, fontWeight: 400, cursor: 'pointer',
                 opacity: saving || !form.name.trim() ? 0.5 : 1,
               }}>{saving ? 'Creating...' : 'Create Client'}</button>
             </div>
@@ -333,10 +332,10 @@ export default function CRM() {
           alignItems: 'center', justifyContent: 'center', zIndex: 1000,
         }} onClick={() => setShowContact(null)}>
           <div style={{
-            background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 16,
+            background: theme.cardBg, border: `1px solid ${theme.border}`, borderRadius: 16,
             padding: 32, width: 440,
           }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: theme.text, margin: '0 0 24px' }}>Add Contact Entry</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 300, color: theme.text, margin: '0 0 24px' }}>Add Contact Entry</h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
@@ -362,7 +361,7 @@ export default function CRM() {
               }}>Cancel</button>
               <button onClick={() => handleAddContact(showContact)} disabled={saving || !contactForm.subject.trim()} style={{
                 padding: '10px 24px', background: theme.accent, color: theme.text, border: 'none',
-                borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                borderRadius: 10, fontSize: 14, fontWeight: 400, cursor: 'pointer',
                 opacity: saving || !contactForm.subject.trim() ? 0.5 : 1,
               }}>{saving ? 'Saving...' : 'Add Entry'}</button>
             </div>

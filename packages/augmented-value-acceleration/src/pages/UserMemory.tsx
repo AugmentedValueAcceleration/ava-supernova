@@ -80,8 +80,8 @@ export default function UserMemory() {
           { label: 'Project', value: stats.project, color: theme.blue },
         ].map(s => (
           <div key={s.label} style={statCardStyle}>
-            <div style={{ fontSize: 11, fontWeight: 500, color: theme.textMuted }}>{s.label}</div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: s.color, marginTop: 4 }}>{loading ? '...' : s.value}</div>
+            <div style={{ fontSize: 11, fontWeight: 400, color: theme.textMuted }}>{s.label}</div>
+            <div style={{ fontSize: 28, fontWeight: 400, color: s.color, marginTop: 4 }}>{loading ? '...' : s.value}</div>
           </div>
         ))}
       </div>
@@ -111,7 +111,7 @@ export default function UserMemory() {
       {!loading && filtered.length === 0 && (
         <div style={emptyStateStyle}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>&#129504;</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: theme.textSecondary, marginBottom: 8 }}>No memories stored</div>
+          <div style={{ fontSize: 16, fontWeight: 400, color: theme.textSecondary, marginBottom: 8 }}>No memories stored</div>
           <div style={{ fontSize: 14, color: theme.textMuted }}>Ava will remember things as you interact with her.</div>
         </div>
       )}

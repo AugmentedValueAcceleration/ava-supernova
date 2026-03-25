@@ -117,7 +117,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           ) : activity.length === 0 ? (
             <div style={{ padding: '48px 24px', textAlign: 'center' }}>
               <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.5 }}>📋</div>
-              <div style={{ fontSize: 14, fontWeight: 500, color: theme.textSecondary, marginBottom: 4 }}>No recent activity</div>
+              <div style={{ fontSize: 14, fontWeight: 400, color: theme.textSecondary, marginBottom: 4 }}>No recent activity</div>
               <div style={{ fontSize: 13, color: theme.textMuted }}>Activity will appear here as it happens</div>
             </div>
           ) : (

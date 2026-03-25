@@ -168,7 +168,7 @@ export default function AuditLog() {
       {!loading && filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 80, color: theme.textMuted }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>📋</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: theme.textSecondary, marginBottom: 8 }}>No audit entries found</div>
+          <div style={{ fontSize: 16, fontWeight: 400, color: theme.textSecondary, marginBottom: 8 }}>No audit entries found</div>
           <div style={{ fontSize: 14 }}>Activity will appear here as you use the system</div>
         </div>
       )}
@@ -212,21 +212,21 @@ export default function AuditLog() {
                         <div style={{
                           width: 32, height: 32, borderRadius: '50%', background: theme.inputBg,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 11, fontWeight: 700, color: theme.accent, flexShrink: 0,
+                          fontSize: 11, fontWeight: 400, color: theme.accent, flexShrink: 0,
                         }}>{getInitials(entry.user_name)}</div>
                       )}
 
                       {/* Content */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: 14, fontWeight: 600, color: theme.text }}>{entry.user_name || 'System'}</span>
+                          <span style={{ fontSize: 14, fontWeight: 400, color: theme.text }}>{entry.user_name || 'System'}</span>
                           <span style={{
-                            padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700,
+                            padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 400,
                             background: actionStyle.bg, color: actionStyle.text, letterSpacing: '0.5px',
                           }}>{icon} {actionStyle.label}</span>
                           <span style={{ fontSize: 13, color: theme.textSecondary }}>
                             {entry.entity_type && <span style={{ color: theme.textMuted }}>{entry.entity_type} </span>}
-                            {entry.entity_name && <span style={{ fontWeight: 500 }}>{entry.entity_name}</span>}
+                            {entry.entity_name && <span style={{ fontWeight: 400 }}>{entry.entity_name}</span>}
                           </span>
                         </div>
 

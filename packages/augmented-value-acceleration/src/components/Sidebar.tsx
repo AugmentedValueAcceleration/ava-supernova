@@ -190,12 +190,12 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
           <div style={{
             width: 36, height: 36, borderRadius: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, fontWeight: 700, background: theme.accent, color: '#fff',
+            fontSize: 13, fontWeight: 400, background: theme.accent, color: '#fff',
           }}>
             SV
           </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 500, color: theme.text }}>Stewart Vincent</div>
+            <div style={{ fontSize: 13, fontWeight: 400, color: theme.text }}>Stewart Vincent</div>
             <div style={{ fontSize: 11, color: theme.textMuted }}>Admin</div>
           </div>
         </div>

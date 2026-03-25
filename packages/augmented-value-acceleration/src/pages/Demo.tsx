@@ -159,10 +159,10 @@ export default function Demo() {
         padding: '60px 80px', display: 'flex', flexDirection: 'column', justifyContent: 'center',
         minHeight: 400,
       }}>
-        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase' as const, color: theme.accent, marginBottom: 16 }}>
+        <div style={{ fontSize: 10, fontWeight: 400, letterSpacing: '2px', textTransform: 'uppercase' as const, color: theme.accent, marginBottom: 16 }}>
           AVA | SUPERNOVA
         </div>
-        <h2 style={{ fontSize: 40, fontWeight: 800, color: theme.text, margin: '0 0 12px 0', lineHeight: 1.1 }}>
+        <h2 style={{ fontSize: 40, fontWeight: 300, color: theme.text, margin: '0 0 12px 0', lineHeight: 1.1 }}>
           {slide.title}
         </h2>
         <p style={{ fontSize: 18, color: theme.textSecondary, margin: '0 0 40px 0' }}>

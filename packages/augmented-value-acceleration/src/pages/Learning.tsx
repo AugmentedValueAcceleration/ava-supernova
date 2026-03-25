@@ -72,15 +72,14 @@ export default function Learning() {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
         {[
-          { label: 'Team Members', value: stats.totalPeople, icon: '👥', color: theme.accent },
-          { label: 'Assignments', value: stats.totalAssignments, icon: '📚', color: theme.blue },
-          { label: 'In Progress', value: stats.inProgress, icon: '📖', color: theme.yellow },
-          { label: 'Completed', value: stats.completed, icon: '🎓', color: theme.green },
+          { label: 'Team Members', value: stats.totalPeople, color: theme.accent },
+          { label: 'Assignments', value: stats.totalAssignments, color: theme.blue },
+          { label: 'In Progress', value: stats.inProgress, color: theme.yellow },
+          { label: 'Completed', value: stats.completed, color: theme.green },
         ].map(s => (
           <div key={s.label} style={statCardStyle}>
-            <div style={{ fontSize: 24, marginBottom: 8 }}>{s.icon}</div>
-            <div style={{ fontSize: 30, fontWeight: 800, color: s.color }}>{loading ? '...' : s.value}</div>
-            <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 4 }}>{s.label}</div>
+            <div style={{ fontSize: 30, fontWeight: 300, color: s.color }}>{loading ? '...' : s.value}</div>
+            <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 10 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -93,10 +92,10 @@ export default function Learning() {
       }}>
         <span style={{ fontSize: 32 }}>🎓</span>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: theme.text, marginBottom: 4 }}>Ava Teach Mode</div>
+          <div style={{ fontSize: 15, fontWeight: 400, color: theme.text, marginBottom: 4 }}>Ava Teach Mode</div>
           <div style={{ fontSize: 13, color: theme.textSecondary }}>
             Free AI-powered tutoring for everyone. Assign curriculums to team members and track their learning journey.
-            Use <span style={{ color: theme.accent, fontWeight: 600 }}>??</span> in the CLI or switch to Teach mode in the extension.
+            Use <span style={{ color: theme.accent, fontWeight: 400 }}>??</span> in the CLI or switch to Teach mode in the extension.
           </div>
         </div>
       </div>
@@ -106,7 +105,7 @@ export default function Learning() {
       {!loading && people.length === 0 && (
         <div style={emptyStateStyle}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>📚</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: theme.textSecondary, marginBottom: 8 }}>No team members yet</div>
+          <div style={{ fontSize: 16, fontWeight: 400, color: theme.textSecondary, marginBottom: 8 }}>No team members yet</div>
           <div style={{ fontSize: 14, color: theme.textMuted }}>Add people in the People module first, then assign training here</div>
         </div>
       )}
@@ -126,9 +125,9 @@ export default function Learning() {
                   onMouseOver={e => e.currentTarget.style.background = theme.hoverBg}
                   onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <div style={{ width: 42, height: 42, borderRadius: '50%', background: theme.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: theme.accent, flexShrink: 0 }}>{getInitials(p.display_name)}</div>
+                  <div style={{ width: 42, height: 42, borderRadius: '50%', background: theme.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 400, color: theme.accent, flexShrink: 0 }}>{getInitials(p.display_name)}</div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: theme.text }}>{p.display_name}</div>
+                    <div style={{ fontSize: 15, fontWeight: 400, color: theme.text }}>{p.display_name}</div>
                     <div style={{ fontSize: 12, color: theme.textMuted }}>{p.title || p.role} {p.department ? `· ${p.department}` : ''}</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 20, fontSize: 13 }}>
@@ -139,7 +138,7 @@ export default function Learning() {
                         <div style={{ width: 80, height: 6, background: theme.inputBg, borderRadius: 3, overflow: 'hidden' }}>
                           <div style={{ width: `${avgProgress}%`, height: '100%', background: theme.accent, borderRadius: 3, transition: 'width 0.3s' }} />
                         </div>
-                        <span style={{ fontSize: 12, color: theme.accent, fontWeight: 600 }}>{avgProgress}%</span>
+                        <span style={{ fontSize: 12, color: theme.accent, fontWeight: 400 }}>{avgProgress}%</span>
                       </div>
                     )}
                     <span style={{ color: theme.textMuted, fontSize: 16 }}>{expanded ? '▲' : '▼'}</span>
@@ -154,7 +153,7 @@ export default function Learning() {
                       return (
                         <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 0', borderBottom: `1px solid ${theme.border}` }}>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 14, fontWeight: 600, color: theme.text, marginBottom: 4 }}>{a.curriculum_name}</div>
+                            <div style={{ fontSize: 14, fontWeight: 400, color: theme.text, marginBottom: 4 }}>{a.curriculum_name}</div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <span style={chipStyle(sc.bg, sc.text)}>{a.status.replace('_', ' ')}</span>
                               {a.notes && <span style={{ fontSize: 11, color: theme.textMuted, fontStyle: 'italic' }}>{a.notes}</span>}
@@ -192,7 +191,7 @@ export default function Learning() {
       {showAssign && (
         <div style={modalOverlayStyle} onClick={() => setShowAssign(false)}>
           <div style={{ ...modalContentStyle, width: 480 }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: theme.text, margin: '0 0 24px' }}>Assign Training</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 400, color: theme.text, margin: '0 0 24px' }}>Assign Training</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
                 <label style={labelStyle}>Team Member *</label>

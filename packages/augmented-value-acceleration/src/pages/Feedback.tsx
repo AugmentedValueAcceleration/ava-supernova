@@ -108,7 +108,7 @@ export default function Feedback() {
     flex: 1,
     padding: '10px 14px',
     fontSize: 12,
-    fontWeight: isActive ? 600 : 400,
+    fontWeight: isActive ? 400 : 300,
     color: isActive ? '#fff' : theme.textMuted,
     background: isActive ? theme.accent : 'transparent',
     border: 'none',
@@ -141,13 +141,13 @@ export default function Feedback() {
           {/* By mode & model */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
             <div style={cardStyle}>
-              <h2 style={{ fontSize: 13, fontWeight: 600, color: theme.textSecondary, margin: '0 0 16px 0' }}>Satisfaction by Mode</h2>
+              <h2 style={{ fontSize: 13, fontWeight: 400, color: theme.textSecondary, margin: '0 0 16px 0' }}>Satisfaction by Mode</h2>
               {Object.entries(byMode).map(([mode, counts]) => {
                 const t = counts.up + counts.down;
                 const pct = t > 0 ? Math.round((counts.up / t) * 100) : 0;
                 return (
                   <div key={mode} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                    <span style={{ width: 70, fontSize: 12, fontWeight: 500, color: theme.text, textTransform: 'capitalize' }}>{mode}</span>
+                    <span style={{ width: 70, fontSize: 12, fontWeight: 400, color: theme.text, textTransform: 'capitalize' }}>{mode}</span>
                     <div style={{ flex: 1, height: 6, borderRadius: 3, background: theme.inputBg, overflow: 'hidden' }}>
                       <div style={{ height: '100%', borderRadius: 3, background: theme.greenBg.replace('0.12', '0.5'), width: `${pct}%` }} />
                     </div>
@@ -158,7 +158,7 @@ export default function Feedback() {
             </div>
 
             <div style={cardStyle}>
-              <h2 style={{ fontSize: 13, fontWeight: 600, color: theme.textSecondary, margin: '0 0 16px 0' }}>Satisfaction by Model</h2>
+              <h2 style={{ fontSize: 13, fontWeight: 400, color: theme.textSecondary, margin: '0 0 16px 0' }}>Satisfaction by Model</h2>
               {Object.entries(byModel)
                 .sort((a, b) => (b[1].up + b[1].down) - (a[1].up + a[1].down))
                 .slice(0, 8)
@@ -168,7 +168,7 @@ export default function Feedback() {
                   const shortModel = model.includes(':') ? model.split(':').pop()! : model;
                   return (
                     <div key={model} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                      <span style={{ width: 100, fontSize: 12, fontWeight: 500, color: theme.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={model}>{shortModel}</span>
+                      <span style={{ width: 100, fontSize: 12, fontWeight: 400, color: theme.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={model}>{shortModel}</span>
                       <div style={{ flex: 1, height: 6, borderRadius: 3, background: theme.inputBg, overflow: 'hidden' }}>
                         <div style={{ height: '100%', borderRadius: 3, background: theme.blueBg.replace('0.12', '0.5'), width: `${pct}%` }} />
                       </div>
@@ -181,7 +181,7 @@ export default function Feedback() {
 
           {/* Common complaints */}
           <div style={cardStyle}>
-            <h2 style={{ fontSize: 13, fontWeight: 600, color: theme.textSecondary, margin: '0 0 16px 0' }}>Common Complaints</h2>
+            <h2 style={{ fontSize: 13, fontWeight: 400, color: theme.textSecondary, margin: '0 0 16px 0' }}>Common Complaints</h2>
             {complaints.length === 0 ? (
               <p style={{ fontSize: 12, color: theme.textMuted }}>No complaints yet.</p>
             ) : (
@@ -245,7 +245,7 @@ export default function Feedback() {
           {/* Learning summary */}
           <div style={{ ...cardStyle, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h2 style={{ fontSize: 13, fontWeight: 600, color: theme.textSecondary, margin: 0 }}>
+              <h2 style={{ fontSize: 13, fontWeight: 400, color: theme.textSecondary, margin: 0 }}>
                 Shared Learning Pool ({learnings.length})
               </h2>
               <span style={{ fontSize: 10, color: theme.textMuted }}>
@@ -325,8 +325,8 @@ export default function Feedback() {
 function StatCard({ label, value, sub, accent }: { label: string; value: string; sub: string; accent?: boolean }) {
   return (
     <div style={statCardStyle}>
-      <div style={{ fontSize: 11, fontWeight: 500, color: theme.textMuted }}>{label}</div>
-      <div style={{ fontSize: 28, fontWeight: 700, color: accent ? theme.green : theme.text, marginTop: 4, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
+      <div style={{ fontSize: 11, fontWeight: 400, color: theme.textMuted }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 400, color: accent ? theme.green : theme.text, marginTop: 4, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
       <div style={{ fontSize: 11, color: theme.textSecondary, marginTop: 4 }}>{sub}</div>
     </div>
   );

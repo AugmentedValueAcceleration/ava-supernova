@@ -144,7 +144,7 @@ export default function Settings() {
             >
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: theme.text }}>{config.label}</div>
+                  <div style={{ fontSize: 14, fontWeight: 400, color: theme.text }}>{config.label}</div>
                   {config.description && (
                     <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 2 }}>{config.description}</div>
                   )}

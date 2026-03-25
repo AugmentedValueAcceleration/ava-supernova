@@ -23,7 +23,7 @@ export default function Billing() {
     flex: 1,
     padding: '10px 14px',
     fontSize: 12,
-    fontWeight: isActive ? 600 : 400,
+    fontWeight: isActive ? 400 : 300,
     color: isActive ? '#fff' : theme.textMuted,
     background: isActive ? theme.accent : 'transparent',
     border: 'none',
@@ -54,8 +54,8 @@ export default function Billing() {
               { label: 'Churn Rate', value: '0%', sub: 'Last 30 days', color: theme.yellow },
             ].map(s => (
               <div key={s.label} style={statCardStyle}>
-                <div style={{ fontSize: 11, fontWeight: 500, color: theme.textMuted }}>{s.label}</div>
-                <div style={{ fontSize: 32, fontWeight: 800, color: s.color, marginTop: 8, lineHeight: 1 }}>{s.value}</div>
+                <div style={{ fontSize: 11, fontWeight: 400, color: theme.textMuted }}>{s.label}</div>
+                <div style={{ fontSize: 32, fontWeight: 300, color: s.color, marginTop: 8, lineHeight: 1 }}>{s.value}</div>
                 <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 6 }}>{s.sub}</div>
               </div>
             ))}
@@ -63,7 +63,7 @@ export default function Billing() {
 
           {/* Subscription Breakdown */}
           <div style={{ ...cardStyle, marginBottom: 24 }}>
-            <h2 style={{ fontSize: 14, fontWeight: 600, color: theme.text, margin: '0 0 16px 0' }}>Subscription Breakdown</h2>
+            <h2 style={{ fontSize: 14, fontWeight: 400, color: theme.text, margin: '0 0 16px 0' }}>Subscription Breakdown</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[
                 { tier: 'Free', count: 858, price: '$0', color: theme.textSecondary },
@@ -73,9 +73,9 @@ export default function Billing() {
               ].map(t => (
                 <div key={t.tier} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 16px', background: theme.surfaceBg, borderRadius: 10 }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: t.color, flexShrink: 0 }} />
-                  <span style={{ fontSize: 13, fontWeight: 500, color: theme.text, width: 100 }}>{t.tier}</span>
+                  <span style={{ fontSize: 13, fontWeight: 400, color: theme.text, width: 100 }}>{t.tier}</span>
                   <span style={{ fontSize: 13, color: theme.textSecondary, flex: 1 }}>{t.price}</span>
-                  <span style={{ fontSize: 20, fontWeight: 700, color: t.color }}>{t.count}</span>
+                  <span style={{ fontSize: 20, fontWeight: 300, color: t.color }}>{t.count}</span>
                   <span style={{ fontSize: 11, color: theme.textMuted }}>users</span>
                 </div>
               ))}
@@ -88,7 +88,7 @@ export default function Billing() {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: theme.text }}>Stripe Dashboard</div>
+              <div style={{ fontSize: 14, fontWeight: 400, color: theme.text }}>Stripe Dashboard</div>
               <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 4 }}>Access full revenue data, invoices, and subscription management.</div>
             </div>
             <a
@@ -127,7 +127,7 @@ export default function Billing() {
                   >
                     <td style={{ ...tableCellStyle, color: theme.text }}>{tx.user}</td>
                     <td style={{ ...tableCellStyle, color: theme.textSecondary }}>{tx.plan}</td>
-                    <td style={{ ...tableCellStyle, color: theme.green, fontWeight: 600 }}>${tx.amount}</td>
+                    <td style={{ ...tableCellStyle, color: theme.green, fontWeight: 400 }}>${tx.amount}</td>
                     <td style={{ ...tableCellStyle, color: theme.textMuted }}>{tx.date}</td>
                     <td style={tableCellStyle}>
                       <span style={chipStyle(sc.bg, sc.text)}>
@@ -152,7 +152,7 @@ export default function Billing() {
           textAlign: 'center',
         }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>&#9889;</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: theme.textSecondary, marginBottom: 8 }}>Token Top-up History</div>
+          <div style={{ fontSize: 16, fontWeight: 400, color: theme.textSecondary, marginBottom: 8 }}>Token Top-up History</div>
           <div style={{ fontSize: 13, color: theme.textMuted }}>
             Top-up purchases will appear here once the token marketplace is live.
           </div>

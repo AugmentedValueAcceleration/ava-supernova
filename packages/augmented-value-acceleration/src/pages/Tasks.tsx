@@ -146,7 +146,7 @@ export default function Tasks() {
                   display: 'flex', alignItems: 'center', gap: 10,
                   marginBottom: 16, paddingBottom: 12, borderBottom: `2px solid ${col.color}`,
                 }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: col.color }}>{col.label}</span>
+                  <span style={{ fontSize: 14, fontWeight: 400, color: col.color }}>{col.label}</span>
                   <span style={{
                     fontSize: 12, color: theme.textMuted,
                     background: theme.inputBg, borderRadius: 6, padding: '2px 8px',
@@ -174,7 +174,7 @@ export default function Tasks() {
                         {/* Title row */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                           <span style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
-                          <span style={{ fontSize: 13, fontWeight: 600, color: theme.text, lineHeight: 1.3 }}>{t.title}</span>
+                          <span style={{ fontSize: 13, fontWeight: 400, color: theme.text, lineHeight: 1.3 }}>{t.title}</span>
                         </div>
 
                         {/* Meta */}
@@ -205,7 +205,7 @@ export default function Tasks() {
                               {COLUMNS.filter(c => c.key !== t.status).map(c => (
                                 <button key={c.key} onClick={e => { e.stopPropagation(); moveTask(t.id, c.key); }} style={{
                                   padding: '4px 10px', background: theme.inputBg, color: c.color, border: 'none',
-                                  borderRadius: 6, fontSize: 10, cursor: 'pointer', fontWeight: 500,
+                                  borderRadius: 6, fontSize: 10, cursor: 'pointer', fontWeight: 400,
                                 }}>→ {c.label}</button>
                               ))}
                             </div>
@@ -230,7 +230,7 @@ export default function Tasks() {
       {showCreate && (
         <div style={modalOverlayStyle} onClick={() => setShowCreate(false)}>
           <div style={{ ...modalContentStyle, width: 480 }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: theme.text, margin: '0 0 24px' }}>New Task</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 400, color: theme.text, margin: '0 0 24px' }}>New Task</h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>

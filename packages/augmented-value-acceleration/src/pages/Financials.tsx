@@ -583,7 +583,7 @@ const chipStyle = (bg: string, color: string): React.CSSProperties => ({
   background: bg,
   color,
   fontSize: 10,
-  fontWeight: 700,
+  fontWeight: 400,
   borderRadius: 9999,
   padding: '2px 10px',
 });
@@ -617,27 +617,27 @@ function MarketContext() {
 
   return (
     <div style={cardStyle}>
-      <h3 style={{ fontSize: 14, fontWeight: 600, color: colors.text, margin: '0 0 12px 0' }}>
+      <h3 style={{ fontSize: 14, fontWeight: 400, color: colors.text, margin: '0 0 12px 0' }}>
         Market Context (March 2026)
       </h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
         {marketData.map((item) => (
           <div key={item.label} style={statBoxStyle}>
             <div style={{ fontSize: 11, color: colors.textMuted }}>{item.label}</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: colors.text }}>{item.value}</div>
+            <div style={{ fontSize: 18, fontWeight: 400, color: colors.text }}>{item.value}</div>
             <div style={{ fontSize: 11, color: colors.textSecondary }}>{item.sub}</div>
           </div>
         ))}
       </div>
 
-      <h4 style={{ fontSize: 11, fontWeight: 600, color: colors.textMuted, margin: '16px 0 8px 0' }}>
+      <h4 style={{ fontSize: 11, fontWeight: 400, color: colors.textMuted, margin: '16px 0 8px 0' }}>
         Competitor Landscape
       </h4>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
         {competitors.map((item) => (
           <div key={item.label} style={statBoxStyle}>
             <div style={{ fontSize: 11, color: colors.textMuted }}>{item.label}</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: colors.text }}>{item.value}</div>
+            <div style={{ fontSize: 18, fontWeight: 400, color: colors.text }}>{item.value}</div>
             <div style={{ fontSize: 11, color: colors.textSecondary }}>{item.sub}</div>
           </div>
         ))}
@@ -686,15 +686,15 @@ function ScenarioCard({ scenario }: { scenario: Scenario }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
         <div style={{ ...statBoxStyle, textAlign: 'center' }}>
           <div style={{ fontSize: 11, color: colors.textMuted }}>Year 5 ARR</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: scenario.color }}>{fmt(y5.arr)}</div>
+          <div style={{ fontSize: 18, fontWeight: 400, color: scenario.color }}>{fmt(y5.arr)}</div>
         </div>
         <div style={{ ...statBoxStyle, textAlign: 'center' }}>
           <div style={{ fontSize: 11, color: colors.textMuted }}>Year 5 Users</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: colors.text }}>{fmtUsers(y5.totalUsers)}</div>
+          <div style={{ fontSize: 18, fontWeight: 400, color: colors.text }}>{fmtUsers(y5.totalUsers)}</div>
         </div>
         <div style={{ ...statBoxStyle, textAlign: 'center' }}>
           <div style={{ fontSize: 11, color: colors.textMuted }}>Year 5 Net</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: y5.netArr >= 0 ? colors.green : colors.red }}>
+          <div style={{ fontSize: 18, fontWeight: 400, color: y5.netArr >= 0 ? colors.green : colors.red }}>
             {fmt(y5.netArr)}
           </div>
         </div>
@@ -705,28 +705,28 @@ function ScenarioCard({ scenario }: { scenario: Scenario }) {
         <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${colors.border}`, textAlign: 'left', fontSize: 11, color: colors.textMuted }}>
-              <th style={{ paddingBottom: 8, paddingRight: 12, fontWeight: 600 }}>Year</th>
-              <th style={{ paddingBottom: 8, paddingRight: 12, fontWeight: 600 }}>Users</th>
-              <th style={{ paddingBottom: 8, paddingRight: 12, fontWeight: 600 }}>Conv %</th>
-              <th style={{ paddingBottom: 8, paddingRight: 12, fontWeight: 600 }}>Paying</th>
-              <th style={{ paddingBottom: 8, paddingRight: 12, fontWeight: 600 }}>MRR</th>
-              <th style={{ paddingBottom: 8, paddingRight: 12, fontWeight: 600 }}>ARR</th>
-              <th style={{ paddingBottom: 8, paddingRight: 12, fontWeight: 600 }}>Costs</th>
-              <th style={{ paddingBottom: 8, paddingRight: 12, fontWeight: 600 }}>Net</th>
-              <th style={{ paddingBottom: 8, width: 96, fontWeight: 600 }}>ARR</th>
+              <th style={{ paddingBottom: 8, paddingRight: 12, fontWeight: 400 }}>Year</th>
+              <th style={{ paddingBottom: 8, paddingRight: 12, fontWeight: 400 }}>Users</th>
+              <th style={{ paddingBottom: 8, paddingRight: 12, fontWeight: 400 }}>Conv %</th>
+              <th style={{ paddingBottom: 8, paddingRight: 12, fontWeight: 400 }}>Paying</th>
+              <th style={{ paddingBottom: 8, paddingRight: 12, fontWeight: 400 }}>MRR</th>
+              <th style={{ paddingBottom: 8, paddingRight: 12, fontWeight: 400 }}>ARR</th>
+              <th style={{ paddingBottom: 8, paddingRight: 12, fontWeight: 400 }}>Costs</th>
+              <th style={{ paddingBottom: 8, paddingRight: 12, fontWeight: 400 }}>Net</th>
+              <th style={{ paddingBottom: 8, width: 96, fontWeight: 400 }}>ARR</th>
             </tr>
           </thead>
           <tbody>
             {scenario.years.map((y) => (
               <tr key={y.year} style={{ borderBottom: `1px solid ${colors.border}40` }}>
-                <td style={{ padding: '8px 12px 8px 0', fontWeight: 500, color: colors.text }}>{y.label}</td>
+                <td style={{ padding: '8px 12px 8px 0', fontWeight: 400, color: colors.text }}>{y.label}</td>
                 <td style={{ padding: '8px 12px 8px 0', color: colors.text }}>{fmtUsers(y.totalUsers)}</td>
                 <td style={{ padding: '8px 12px 8px 0', color: colors.text }}>{pct(y.conversionRate)}</td>
                 <td style={{ padding: '8px 12px 8px 0', color: colors.text }}>{fmtUsers(y.payingUsers)}</td>
                 <td style={{ padding: '8px 12px 8px 0', color: colors.text }}>{fmt(y.mrr)}</td>
-                <td style={{ padding: '8px 12px 8px 0', fontWeight: 500, color: scenario.color }}>{fmt(y.arr)}</td>
+                <td style={{ padding: '8px 12px 8px 0', fontWeight: 400, color: scenario.color }}>{fmt(y.arr)}</td>
                 <td style={{ padding: '8px 12px 8px 0', color: colors.textMuted }}>{fmt(y.costs)}</td>
-                <td style={{ padding: '8px 12px 8px 0', fontWeight: 500, color: y.netArr >= 0 ? colors.green : colors.red }}>
+                <td style={{ padding: '8px 12px 8px 0', fontWeight: 400, color: y.netArr >= 0 ? colors.green : colors.red }}>
                   {fmt(y.netArr)}
                 </td>
                 <td style={{ padding: '8px 0', width: 96 }}>
@@ -777,7 +777,7 @@ function ComparisonChart() {
 
   return (
     <div style={cardStyle}>
-      <h3 style={{ fontSize: 14, fontWeight: 600, color: colors.text, margin: '0 0 16px 0' }}>
+      <h3 style={{ fontSize: 14, fontWeight: 400, color: colors.text, margin: '0 0 16px 0' }}>
         5-Year ARR Comparison
       </h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -835,14 +835,14 @@ function UnitEconomics() {
 
   return (
     <div style={cardStyle}>
-      <h3 style={{ fontSize: 14, fontWeight: 600, color: colors.text, margin: '0 0 12px 0' }}>
+      <h3 style={{ fontSize: 14, fontWeight: 400, color: colors.text, margin: '0 0 12px 0' }}>
         Unit Economics &amp; Key Metrics
       </h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
         {metrics.map((m) => (
           <div key={m.label} style={statBoxStyle}>
             <div style={{ fontSize: 11, color: colors.textMuted }}>{m.label}</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: colors.text }}>{m.value}</div>
+            <div style={{ fontSize: 15, fontWeight: 400, color: colors.text }}>{m.value}</div>
             <div style={{ fontSize: 11, color: colors.textSecondary }}>{m.sub}</div>
           </div>
         ))}
@@ -895,7 +895,7 @@ function RevenueStreams() {
 
   return (
     <div style={cardStyle}>
-      <h3 style={{ fontSize: 14, fontWeight: 600, color: colors.text, margin: '0 0 12px 0' }}>Revenue Streams</h3>
+      <h3 style={{ fontSize: 14, fontWeight: 400, color: colors.text, margin: '0 0 12px 0' }}>Revenue Streams</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {streams.map((s) => (
           <div key={s.name} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: colors.inputBg, borderRadius: 8, padding: 12 }}>
@@ -904,7 +904,7 @@ function RevenueStreams() {
               background: 'rgba(168,85,247,0.2)',
               color: colors.purple,
               fontSize: 11,
-              fontWeight: 700,
+              fontWeight: 400,
               borderRadius: 6,
               padding: '2px 8px',
             }}>
@@ -912,7 +912,7 @@ function RevenueStreams() {
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 500, color: colors.text }}>{s.name}</span>
+                <span style={{ fontSize: 13, fontWeight: 400, color: colors.text }}>{s.name}</span>
                 <span style={{
                   background: colors.cardBg,
                   color: colors.textMuted,
@@ -980,7 +980,7 @@ function ObjectiveCard({ obj }: { obj: Objective }) {
           <polyline points="9 18 15 12 9 6" />
         </svg>
         <div style={{ display: 'flex', flex: 1, flexWrap: 'wrap', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          <h3 style={{ fontSize: 13, fontWeight: 600, color: colors.text, margin: 0 }}>{obj.title}</h3>
+          <h3 style={{ fontSize: 13, fontWeight: 400, color: colors.text, margin: 0 }}>{obj.title}</h3>
           <span style={chipStyle(status.bg, status.color)}>{status.label}</span>
           <span style={{ ...chipStyle(colors.inputBg, colors.textMuted), fontWeight: 400 }}>
             {doneCount}/{totalCount} done
@@ -1050,7 +1050,7 @@ function ObjectivesTab() {
     borderRadius: 6,
     padding: '8px 16px',
     fontSize: 13,
-    fontWeight: 500,
+    fontWeight: 400,
     cursor: 'pointer',
     boxShadow: active ? '0 1px 3px rgba(0,0,0,0.3)' : 'none',
     transition: 'all 0.15s',
@@ -1060,7 +1060,7 @@ function ObjectivesTab() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Overview */}
       <div style={cardStyle}>
-        <h3 style={{ fontSize: 14, fontWeight: 600, color: colors.text, margin: '0 0 12px 0' }}>
+        <h3 style={{ fontSize: 14, fontWeight: 400, color: colors.text, margin: '0 0 12px 0' }}>
           Strategic Objectives Overview
         </h3>
         <p style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 16, marginTop: 0 }}>
@@ -1069,19 +1069,19 @@ function ObjectivesTab() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
           <div style={{ ...statBoxStyle, textAlign: 'center' }}>
             <div style={{ fontSize: 11, color: colors.textMuted }}>Total</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: colors.text }}>{total}</div>
+            <div style={{ fontSize: 18, fontWeight: 400, color: colors.text }}>{total}</div>
           </div>
           <div style={{ ...statBoxStyle, textAlign: 'center', background: 'rgba(16,185,129,0.1)' }}>
             <div style={{ fontSize: 11, color: colors.green }}>Complete</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: colors.green }}>{complete}</div>
+            <div style={{ fontSize: 18, fontWeight: 400, color: colors.green }}>{complete}</div>
           </div>
           <div style={{ ...statBoxStyle, textAlign: 'center', background: 'rgba(245,158,11,0.1)' }}>
             <div style={{ fontSize: 11, color: colors.amber }}>In Progress</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: colors.amber }}>{inProgress}</div>
+            <div style={{ fontSize: 18, fontWeight: 400, color: colors.amber }}>{inProgress}</div>
           </div>
           <div style={{ ...statBoxStyle, textAlign: 'center' }}>
             <div style={{ fontSize: 11, color: colors.textMuted }}>Not Started</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: colors.textMuted }}>{notStarted}</div>
+            <div style={{ fontSize: 18, fontWeight: 400, color: colors.textMuted }}>{notStarted}</div>
           </div>
         </div>
 
@@ -1101,7 +1101,7 @@ function ObjectivesTab() {
 
       {/* Funding Applications */}
       <div style={cardStyle}>
-        <h3 style={{ fontSize: 14, fontWeight: 600, color: colors.text, margin: '0 0 12px 0' }}>
+        <h3 style={{ fontSize: 14, fontWeight: 400, color: colors.text, margin: '0 0 12px 0' }}>
           Funding Applications
         </h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
@@ -1130,7 +1130,7 @@ function ObjectivesTab() {
             <div key={f.name} style={{ background: colors.inputBg, borderRadius: 8, padding: 16 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: colors.text }}>{f.name}</div>
+                  <div style={{ fontSize: 13, fontWeight: 400, color: colors.text }}>{f.name}</div>
                   <div style={{ fontSize: 11, color: colors.textMuted }}>{f.org}</div>
                 </div>
                 <span style={chipStyle(f.statusBg, f.statusColor)}>{f.status}</span>
@@ -1138,15 +1138,15 @@ function ObjectivesTab() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 12, fontSize: 11 }}>
                 <div>
                   <div style={{ color: colors.textMuted }}>Amount</div>
-                  <div style={{ fontWeight: 500, color: colors.text }}>{f.amount}</div>
+                  <div style={{ fontWeight: 400, color: colors.text }}>{f.amount}</div>
                 </div>
                 <div>
                   <div style={{ color: colors.textMuted }}>Deadline</div>
-                  <div style={{ fontWeight: 500, color: colors.text }}>{f.deadline}</div>
+                  <div style={{ fontWeight: 400, color: colors.text }}>{f.deadline}</div>
                 </div>
                 <div>
                   <div style={{ color: colors.textMuted }}>Objectives</div>
-                  <div style={{ fontWeight: 500, color: colors.text }}>{f.objectives} linked</div>
+                  <div style={{ fontWeight: 400, color: colors.text }}>{f.objectives} linked</div>
                 </div>
               </div>
             </div>
@@ -1195,7 +1195,7 @@ function RealTimeTab() {
         <svg style={{ margin: '0 auto 16px auto', display: 'block' }} width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={colors.purple} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
         </svg>
-        <h3 style={{ fontSize: 18, fontWeight: 700, color: colors.text, marginBottom: 8 }}>Real-Time Financials</h3>
+        <h3 style={{ fontSize: 18, fontWeight: 400, color: colors.text, marginBottom: 8 }}>Real-Time Financials</h3>
         <p style={{ fontSize: 13, color: colors.textSecondary, maxWidth: 480, margin: '0 auto' }}>
           Live revenue, costs, and metrics will appear here once plans are enabled.
           This connects to Stripe and Supabase billing data.
@@ -1209,7 +1209,7 @@ function RealTimeTab() {
           ].map((item) => (
             <div key={item.label} style={{ background: colors.inputBg, borderRadius: 8, padding: 16 }}>
               <div style={{ fontSize: 11, color: colors.textMuted }}>{item.label}</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: colors.text }}>{item.value}</div>
+              <div style={{ fontSize: 20, fontWeight: 400, color: colors.text }}>{item.value}</div>
               <div style={{ fontSize: 11, color: colors.textSecondary }}>{item.sub}</div>
             </div>
           ))}
@@ -1222,7 +1222,7 @@ function RealTimeTab() {
         borderRadius: 12,
         padding: 20,
       }}>
-        <h3 style={{ fontSize: 13, fontWeight: 600, color: colors.textMuted, margin: '0 0 8px 0' }}>Coming Soon</h3>
+        <h3 style={{ fontSize: 13, fontWeight: 400, color: colors.textMuted, margin: '0 0 8px 0' }}>Coming Soon</h3>
         <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
           {[
             'Monthly revenue chart (MRR over time)',
@@ -1274,13 +1274,13 @@ function SourcesSection() {
 
   return (
     <div style={cardStyle}>
-      <h3 style={{ fontSize: 14, fontWeight: 600, color: colors.text, margin: '0 0 12px 0' }}>
+      <h3 style={{ fontSize: 14, fontWeight: 400, color: colors.text, margin: '0 0 12px 0' }}>
         Sources &amp; References
       </h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {sources.map((group) => (
           <div key={group.category}>
-            <h4 style={{ fontSize: 11, fontWeight: 600, color: colors.textMuted, margin: '0 0 8px 0' }}>
+            <h4 style={{ fontSize: 11, fontWeight: 400, color: colors.textMuted, margin: '0 0 8px 0' }}>
               {group.category}
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -1342,7 +1342,7 @@ export default function Financials() {
     borderRadius: 6,
     padding: '8px 16px',
     fontSize: 13,
-    fontWeight: 500,
+    fontWeight: 400,
     cursor: 'pointer',
     boxShadow: active ? '0 1px 3px rgba(0,0,0,0.3)' : 'none',
     transition: 'all 0.15s',
@@ -1378,7 +1378,7 @@ export default function Financials() {
 
           {/* Methodology */}
           <div style={cardStyle}>
-            <h3 style={{ fontSize: 14, fontWeight: 600, color: colors.text, margin: '0 0 8px 0' }}>Methodology</h3>
+            <h3 style={{ fontSize: 14, fontWeight: 400, color: colors.text, margin: '0 0 8px 0' }}>Methodology</h3>
             <p style={{ fontSize: 11, color: colors.textSecondary, lineHeight: 1.7, margin: 0 }}>
               Projections are based on publicly available data from Cursor ($2B ARR, $29.3B valuation, 18% market share, 60% enterprise),
               GitHub Copilot (4.7M paid subs, 20M all-time users, $451M-$848M ARR, 42% market share), Windsurf (acquired for $250M),

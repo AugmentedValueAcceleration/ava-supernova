@@ -109,7 +109,7 @@ const s = {
   label: {
     display: 'block',
     fontSize: 10,
-    fontWeight: 700,
+    fontWeight: 400,
     letterSpacing: '1.2px',
     textTransform: 'uppercase' as const,
     color: C.muted,
@@ -153,7 +153,7 @@ const s = {
     padding: '3px 10px',
     borderRadius: 99,
     fontSize: 10,
-    fontWeight: 700,
+    fontWeight: 400,
     background: bg,
     color: text,
     lineHeight: '16px',
@@ -165,7 +165,7 @@ const s = {
     borderRadius: 8,
     padding: '8px 18px',
     fontSize: 12,
-    fontWeight: 600,
+    fontWeight: 400,
     cursor: 'pointer',
     transition: 'opacity 0.15s',
   }),
@@ -176,7 +176,7 @@ const s = {
     borderRadius: 8,
     padding: '5px 12px',
     fontSize: 10,
-    fontWeight: 600,
+    fontWeight: 400,
     cursor: 'pointer',
     transition: 'opacity 0.15s',
   }),
@@ -535,7 +535,7 @@ export default function News() {
           {/* Editor header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
             <div>
-              <h2 style={{ fontSize: 18, fontWeight: 700, color: C.text, margin: 0 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 400, color: C.text, margin: 0 }}>
                 {editing ? 'Edit Post' : 'New Post'}
               </h2>
               <p style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
@@ -781,7 +781,7 @@ export default function News() {
 
             {form.sources.length > 0 && (
               <div style={{ marginTop: 14, borderTop: `1px solid ${C.border}`, paddingTop: 14 }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 8 }}>
+                <p style={{ fontSize: 10, fontWeight: 400, color: C.muted, marginBottom: 8 }}>
                   All Sources ({form.sources.length})
                 </p>
                 {form.sources.map((src, i) => (
@@ -845,7 +845,7 @@ export default function News() {
       <div>
         {/* Competitor quick filters */}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase' as const, color: C.muted }}>Quick:</span>
+          <span style={{ fontSize: 10, fontWeight: 400, letterSpacing: '1.2px', textTransform: 'uppercase' as const, color: C.muted }}>Quick:</span>
           {COMPETITOR_FILTERS.map(name => (
             <button
               key={name}
@@ -948,7 +948,7 @@ export default function News() {
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 style={{ fontSize: 14, fontWeight: 600, color: C.text, margin: 0 }}>{result.title}</h3>
+                    <h3 style={{ fontSize: 14, fontWeight: 400, color: C.text, margin: 0 }}>{result.title}</h3>
                     <p style={{ fontSize: 12, color: C.secondary, marginTop: 6, lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as React.CSSProperties}>
                       {result.description}
                     </p>
@@ -1044,7 +1044,7 @@ export default function News() {
             padding: '12px 18px',
             marginBottom: 16,
           }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{bulkSelected.size} selected</span>
+            <span style={{ fontSize: 12, fontWeight: 400, color: C.text }}>{bulkSelected.size} selected</span>
             <button onClick={bulkPublish} style={s.btnSmall('transparent', C.green, 'rgba(16,185,129,0.3)')}>
               Publish Selected
             </button>
@@ -1103,7 +1103,7 @@ export default function News() {
                 style={{
                   ...s.card,
                   padding: 18,
-                  borderColor: isHovered ? '#2a2a4a' : C.border,
+                  borderColor: isHovered ? 'rgba(168, 85, 247, 0.2)' : C.border,
                   transition: 'border-color 0.15s',
                 }}
                 onMouseEnter={() => setHoveredRow(post.id)}
@@ -1152,7 +1152,7 @@ export default function News() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                       <div style={{ minWidth: 0 }}>
                         <h3 style={{
-                          fontSize: 14, fontWeight: 600, color: C.text, margin: 0,
+                          fontSize: 14, fontWeight: 400, color: C.text, margin: 0,
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}>
                           {post.title}
@@ -1306,10 +1306,10 @@ export default function News() {
           { label: 'Featured',   value: stats.featured,  color: '#c084fc' },
         ].map(stat => (
           <div key={stat.label} style={{ ...s.card, padding: '20px 20px' }}>
-            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase' as const, color: C.muted, margin: 0 }}>
+            <p style={{ fontSize: 10, fontWeight: 400, letterSpacing: '1.2px', textTransform: 'uppercase' as const, color: C.muted, margin: 0 }}>
               {stat.label}
             </p>
-            <p style={{ fontSize: 28, fontWeight: 800, color: stat.color, margin: 0, marginTop: 8, lineHeight: 1 }}>
+            <p style={{ fontSize: 28, fontWeight: 300, color: stat.color, margin: 0, marginTop: 8, lineHeight: 1 }}>
               {stat.value}
             </p>
           </div>
@@ -1332,7 +1332,7 @@ export default function News() {
               borderRadius: 10,
               padding: '10px 20px',
               fontSize: 13,
-              fontWeight: 600,
+              fontWeight: 400,
               color: tab === t.key ? C.purple : C.secondary,
               cursor: 'pointer',
               display: 'flex',
@@ -1349,7 +1349,7 @@ export default function News() {
                 borderRadius: 99,
                 padding: '2px 8px',
                 fontSize: 10,
-                fontWeight: 700,
+                fontWeight: 400,
               }}>
                 {t.count}
               </span>

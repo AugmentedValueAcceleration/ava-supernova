@@ -28,14 +28,14 @@ export default function UserBilling() {
         <div>
           <div style={sectionHeaderStyle}>Current Plan</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 8 }}>
-            <span style={{ fontSize: 32, fontWeight: 800, color: theme.text }}>{currentPlan}</span>
+            <span style={{ fontSize: 32, fontWeight: 300, color: theme.text }}>{currentPlan}</span>
             <span style={{ fontSize: 13, color: theme.textMuted }}>$0/month</span>
           </div>
           <div style={{ fontSize: 12, color: theme.textSecondary, marginTop: 8 }}>3M tokens/month included</div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: 11, color: theme.textMuted }}>Next billing date</div>
-          <div style={{ fontSize: 14, fontWeight: 500, color: theme.text, marginTop: 4 }}>N/A (Free tier)</div>
+          <div style={{ fontSize: 14, fontWeight: 400, color: theme.text, marginTop: 4 }}>N/A (Free tier)</div>
         </div>
       </div>
 
@@ -49,15 +49,15 @@ export default function UserBilling() {
           }}>
             {plan.current && (
               <div style={{
-                fontSize: 9, fontWeight: 700, color: theme.accent, textTransform: 'uppercase' as const,
+                fontSize: 9, fontWeight: 400, color: theme.accent, textTransform: 'uppercase' as const,
                 letterSpacing: '1px', marginBottom: 8,
               }}>
                 Current Plan
               </div>
             )}
-            <div style={{ fontSize: 16, fontWeight: 600, color: plan.color, marginBottom: 4 }}>{plan.tier}</div>
+            <div style={{ fontSize: 16, fontWeight: 400, color: plan.color, marginBottom: 4 }}>{plan.tier}</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, marginBottom: 4 }}>
-              <span style={{ fontSize: 28, fontWeight: 800, color: theme.text }}>{plan.price}</span>
+              <span style={{ fontSize: 28, fontWeight: 300, color: theme.text }}>{plan.price}</span>
               <span style={{ fontSize: 12, color: theme.textMuted }}>{plan.period}</span>
             </div>
             <div style={{ fontSize: 12, color: theme.textSecondary, marginBottom: 16 }}>{plan.tokens}</div>
@@ -87,7 +87,7 @@ export default function UserBilling() {
       {/* Payment History */}
       <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
         <div style={{ padding: '16px 20px', borderBottom: `1px solid ${theme.border}` }}>
-          <h2 style={{ fontSize: 14, fontWeight: 600, color: theme.text, margin: 0 }}>Payment History</h2>
+          <h2 style={{ fontSize: 14, fontWeight: 400, color: theme.text, margin: 0 }}>Payment History</h2>
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>

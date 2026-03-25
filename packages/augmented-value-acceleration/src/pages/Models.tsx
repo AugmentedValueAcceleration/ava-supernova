@@ -65,7 +65,7 @@ export default function Models() {
 
   const capBadge = (label: string, active: boolean) => (
     <span style={{
-      fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 8,
+      fontSize: 9, fontWeight: 400, padding: '2px 8px', borderRadius: 8,
       background: active ? theme.accentBg : 'rgba(107, 114, 128, 0.1)',
       color: active ? theme.accent : theme.textMuted,
     }}>
@@ -111,7 +111,7 @@ export default function Models() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: PROVIDER_COLORS[model.provider] || theme.textMuted, flexShrink: 0 }} />
-                  <span style={{ fontSize: 14, fontWeight: 600, color: theme.text }}>{model.name}</span>
+                  <span style={{ fontSize: 14, fontWeight: 400, color: theme.text }}>{model.name}</span>
                   {model.free && (
                     <span style={chipStyle(theme.greenBg, theme.green)}>FREE</span>
                   )}
@@ -125,7 +125,7 @@ export default function Models() {
 
               {/* Context + Pricing */}
               <div style={{ textAlign: 'right', minWidth: 100 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: theme.text }}>{formatContext(model.contextWindow)}</div>
+                <div style={{ fontSize: 13, fontWeight: 400, color: theme.text }}>{formatContext(model.contextWindow)}</div>
                 <div style={{ fontSize: 10, color: theme.textMuted }}>context</div>
               </div>
               <div style={{ textAlign: 'right', minWidth: 100 }}>

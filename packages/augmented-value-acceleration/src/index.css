@@ -1,20 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --bg-page: #0a0a1a;
-  --bg-card: #111127;
-  --bg-sidebar: #0d0d20;
-  --bg-input: #1a1a35;
-  --text-primary: #ffffff;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
-  --border-card: #1f1f3a;
-  --border-input: #2a2a4a;
+  --bg-page: #0f0a1a;
+  --bg-card: rgba(26, 16, 40, 0.6);
+  --bg-sidebar: #0a0714;
+  --bg-input: rgba(49, 34, 68, 0.5);
+  --text-primary: #cdd6f4;
+  --text-secondary: #a6adc8;
+  --text-muted: #6c7086;
+  --border-card: rgba(168, 85, 247, 0.12);
+  --border-input: rgba(168, 85, 247, 0.12);
   --ava-purple: #a855f7;
   --accent: #a855f7;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --danger: #ef4444;
+  --success: #a6e3a1;
+  --warning: #f9e2af;
+  --danger: #f38ba8;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }

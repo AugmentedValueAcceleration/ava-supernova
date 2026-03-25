@@ -40,7 +40,7 @@ export default function Plugins() {
         ].map(s => (
           <div key={s.label} style={statCardStyle}>
             <div style={{ fontSize: 12, color: theme.textMuted, marginBottom: 8 }}>{s.label}</div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: s.color }}>{s.value}</div>
+            <div style={{ fontSize: 28, fontWeight: 400, color: s.color }}>{s.value}</div>
           </div>
         ))}
       </div>
@@ -52,7 +52,7 @@ export default function Plugins() {
           {(['all', 'enabled', 'disabled'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)} style={{
               padding: '10px 20px', borderRadius: 10, border: 'none', cursor: 'pointer',
-              fontSize: 13, fontWeight: 500,
+              fontSize: 13, fontWeight: 400,
               background: filter === f ? theme.accentBg : theme.inputBg,
               color: filter === f ? theme.accent : theme.textMuted,
               transition: 'all 0.15s',
@@ -71,7 +71,7 @@ export default function Plugins() {
                   <path d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
                 </svg>
               </div>
-              <div style={{ fontSize: 16, fontWeight: 600, color: theme.textSecondary, marginBottom: 8 }}>No plugins installed</div>
+              <div style={{ fontSize: 16, fontWeight: 400, color: theme.textSecondary, marginBottom: 8 }}>No plugins installed</div>
               <div style={{ fontSize: 14, color: theme.textMuted }}>Plugins extend the platform with new pages, tools, and integrations.</div>
               <div style={{ fontSize: 13, color: theme.textMuted, marginTop: 16 }}>
                 Register plugins programmatically using <code style={{ padding: '2px 6px', background: theme.inputBg, borderRadius: 4, fontSize: 12 }}>registerPlugin()</code> from <code style={{ padding: '2px 6px', background: theme.inputBg, borderRadius: 4, fontSize: 12 }}>lib/plugins</code>
@@ -79,7 +79,7 @@ export default function Plugins() {
             </>
           ) : (
             <>
-              <div style={{ fontSize: 16, fontWeight: 600, color: theme.textSecondary, marginBottom: 8 }}>No matching plugins</div>
+              <div style={{ fontSize: 16, fontWeight: 400, color: theme.textSecondary, marginBottom: 8 }}>No matching plugins</div>
               <div style={{ fontSize: 14, color: theme.textMuted }}>Try adjusting your search or filter</div>
             </>
           )}
@@ -114,8 +114,8 @@ function PluginCard({ registration, onToggle }: { registration: PluginRegistrati
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
-            <span style={{ fontSize: 15, fontWeight: 600, color: theme.text }}>{plugin.name}</span>
-            <span style={{ padding: '1px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: theme.inputBg, color: theme.textMuted }}>v{plugin.version}</span>
+            <span style={{ fontSize: 15, fontWeight: 400, color: theme.text }}>{plugin.name}</span>
+            <span style={{ padding: '1px 8px', borderRadius: 4, fontSize: 10, fontWeight: 400, background: theme.inputBg, color: theme.textMuted }}>v{plugin.version}</span>
           </div>
           <div style={{ fontSize: 13, color: theme.textSecondary }}>{plugin.description}</div>
           <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 4 }}>by {plugin.author} &middot; Section: {plugin.navItem.section}</div>
@@ -126,7 +126,7 @@ function PluginCard({ registration, onToggle }: { registration: PluginRegistrati
             {expanded ? 'Less' : 'Details'}
           </button>
           <button onClick={() => onToggle(plugin.id, !enabled)} style={{
-            padding: '6px 18px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            padding: '6px 18px', borderRadius: 8, fontSize: 12, fontWeight: 400, cursor: 'pointer',
             background: enabled ? theme.redBg : theme.greenBg,
             color: enabled ? theme.red : theme.green,
             border: `1px solid ${enabled ? theme.red + '30' : theme.green + '30'}`,
@@ -143,14 +143,14 @@ function PluginCard({ registration, onToggle }: { registration: PluginRegistrati
             <div style={sectionHeaderStyle}>Permissions</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
               {plugin.permissions.length > 0 ? plugin.permissions.map(p => (
-                <span key={p} style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 500, background: theme.inputBg, color: theme.textSecondary, border: `1px solid ${theme.border}` }}>{p}</span>
+                <span key={p} style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 400, background: theme.inputBg, color: theme.textSecondary, border: `1px solid ${theme.border}` }}>{p}</span>
               )) : <span style={{ fontSize: 12, color: theme.textMuted }}>No permissions required</span>}
             </div>
           </div>
           <div>
             <div style={sectionHeaderStyle}>Registration</div>
             <div style={{ fontSize: 12, color: theme.textSecondary, marginTop: 6 }}>Registered: {new Date(registeredAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
-            <div style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>Status: <span style={{ fontWeight: 600, color: enabled ? theme.green : theme.red }}>{enabled ? 'Enabled' : 'Disabled'}</span></div>
+            <div style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>Status: <span style={{ fontWeight: 400, color: enabled ? theme.green : theme.red }}>{enabled ? 'Enabled' : 'Disabled'}</span></div>
           </div>
           <div>
             <div style={sectionHeaderStyle}>Navigation</div>

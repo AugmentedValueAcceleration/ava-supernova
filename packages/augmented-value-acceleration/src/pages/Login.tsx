@@ -36,14 +36,14 @@ export default function Login() {
       }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 28, fontWeight: 800, color: theme.accent, marginBottom: 8 }}>AVA</div>
+          <div style={{ fontSize: 28, fontWeight: 300, color: theme.accent, marginBottom: 8 }}>AVA</div>
           <div style={{ fontSize: 14, color: theme.textSecondary, letterSpacing: '0.5px' }}>
             Augmented Value Acceleration
           </div>
         </div>
 
         {/* Title */}
-        <h1 style={{ fontSize: 20, fontWeight: 600, color: theme.text, textAlign: 'center', marginBottom: 8 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 400, color: theme.text, textAlign: 'center', marginBottom: 8 }}>
           Sign In
         </h1>
         <p style={{ fontSize: 13, color: theme.textMuted, textAlign: 'center', marginBottom: 32 }}>
@@ -64,7 +64,7 @@ export default function Login() {
         {/* Form */}
         <form onSubmit={handleLogin}>
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: theme.textSecondary, marginBottom: 6 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 400, color: theme.textSecondary, marginBottom: 6 }}>
               Email
             </label>
             <input
@@ -83,7 +83,7 @@ export default function Login() {
           </div>
 
           <div style={{ marginBottom: 24 }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: theme.textSecondary, marginBottom: 6 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 400, color: theme.textSecondary, marginBottom: 6 }}>
               Password
             </label>
             <input

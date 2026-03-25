@@ -105,7 +105,7 @@ export default function UserHistory() {
       {!loading && filtered.length === 0 && (
         <div style={emptyStateStyle}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>&#128172;</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: theme.textSecondary, marginBottom: 8 }}>No conversations yet</div>
+          <div style={{ fontSize: 16, fontWeight: 400, color: theme.textSecondary, marginBottom: 8 }}>No conversations yet</div>
           <div style={{ fontSize: 14, color: theme.textMuted }}>Chat history will appear here as you use Ava.</div>
         </div>
       )}
@@ -130,7 +130,7 @@ export default function UserHistory() {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 500, color: theme.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 14, fontWeight: 400, color: theme.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {conv.title || 'Untitled conversation'}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
@@ -143,7 +143,7 @@ export default function UserHistory() {
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: theme.accent }}>{conv.message_count}</div>
+                      <div style={{ fontSize: 16, fontWeight: 400, color: theme.accent }}>{conv.message_count}</div>
                       <div style={{ fontSize: 10, color: theme.textMuted }}>messages</div>
                     </div>
                   </div>
@@ -167,7 +167,7 @@ export default function UserHistory() {
                           }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                               <span style={{
-                                fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const,
+                                fontSize: 10, fontWeight: 400, textTransform: 'uppercase' as const,
                                 color: msg.role === 'user' ? theme.blue : theme.accent,
                               }}>
                                 {msg.role}

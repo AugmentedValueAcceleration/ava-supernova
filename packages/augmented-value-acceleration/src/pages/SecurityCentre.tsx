@@ -92,7 +92,7 @@ export default function SecurityCentre() {
   function updateFindingStatus(idx: number, status: 'open' | 'resolved' | 'ignored') { const updated = [...findings]; updated[idx] = { ...updated[idx], status }; setFindings(updated); }
 
   const tabStyle = (isActive: boolean) => ({
-    flex: 1, padding: '10px 16px', fontSize: 13, fontWeight: isActive ? 600 : 400,
+    flex: 1, padding: '10px 16px', fontSize: 13, fontWeight: isActive ? 400 : 300,
     color: isActive ? '#fff' : theme.textMuted, background: isActive ? theme.cardBg : 'transparent',
     border: 'none', borderRadius: 8, cursor: 'pointer' as const,
   });
@@ -105,7 +105,7 @@ export default function SecurityCentre() {
       <div style={{ ...cardStyle, marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 24, flexWrap: 'wrap' }}>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 11, fontWeight: 500, color: theme.textMuted, marginBottom: 10 }}>Select Repositories</p>
+            <p style={{ fontSize: 11, fontWeight: 400, color: theme.textMuted, marginBottom: 10 }}>Select Repositories</p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               {REPOS.map((repo) => (
                 <label key={repo.id} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: theme.textSecondary }}>
@@ -141,8 +141,8 @@ export default function SecurityCentre() {
             { label: 'Files', value: summary.filesScanned || 0, color: theme.textSecondary },
           ].map((card) => (
             <div key={card.label} style={{ ...statCardStyle, textAlign: 'center', padding: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 500, color: theme.textMuted }}>{card.label}</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: card.color, marginTop: 4 }}>{card.value}</div>
+              <div style={{ fontSize: 11, fontWeight: 400, color: theme.textMuted }}>{card.label}</div>
+              <div style={{ fontSize: 24, fontWeight: 400, color: card.color, marginTop: 4 }}>{card.value}</div>
             </div>
           ))}
         </div>
@@ -180,7 +180,7 @@ export default function SecurityCentre() {
                       <span style={{ ...chipStyle(sc.bg, sc.text), border: `1px solid ${sc.border}`, textTransform: 'uppercase', flexShrink: 0, marginTop: 2 }}>{finding.severity}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 13, fontWeight: 500, color: finding.status === 'resolved' ? theme.textMuted : theme.text, textDecoration: finding.status === 'resolved' ? 'line-through' : 'none' }}>{finding.title}</span>
+                          <span style={{ fontSize: 13, fontWeight: 400, color: finding.status === 'resolved' ? theme.textMuted : theme.text, textDecoration: finding.status === 'resolved' ? 'line-through' : 'none' }}>{finding.title}</span>
                           <span style={chipStyle(theme.inputBg, theme.textMuted)}>{finding.type}</span>
                           {finding.status && finding.status !== 'open' && <span style={chipStyle(finding.status === 'resolved' ? theme.greenBg : 'rgba(107,114,128,0.15)', finding.status === 'resolved' ? theme.green : theme.textSecondary)}>{finding.status}</span>}
                         </div>
@@ -195,7 +195,7 @@ export default function SecurityCentre() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           {(['open', 'resolved', 'ignored'] as const).map((s) => (
                             <button key={s} onClick={() => updateFindingStatus(idx, s)} style={{
-                              fontSize: 10, fontWeight: 500, padding: '4px 10px', borderRadius: 6, cursor: 'pointer',
+                              fontSize: 10, fontWeight: 400, padding: '4px 10px', borderRadius: 6, cursor: 'pointer',
                               border: (finding.status || 'open') === s ? 'none' : `1px solid ${theme.border}`,
                               background: (finding.status || 'open') === s ? (s === 'resolved' ? theme.greenBg : s === 'ignored' ? 'rgba(107,114,128,0.2)' : theme.redBg) : 'transparent',
                               color: (finding.status || 'open') === s ? (s === 'resolved' ? theme.green : s === 'ignored' ? theme.textSecondary : theme.red) : theme.textMuted,
@@ -225,7 +225,7 @@ export default function SecurityCentre() {
               <div key={scan.id} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 20px', borderBottom: i < history.length - 1 ? `1px solid ${theme.border}` : 'none' }}>
                 <div style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: scan.status === 'completed' ? theme.green : scan.status === 'running' ? theme.yellow : theme.red }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: theme.text }}>{scan.repo}</div>
+                  <div style={{ fontSize: 13, fontWeight: 400, color: theme.text }}>{scan.repo}</div>
                   <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 2 }}>{new Date(scan.started_at).toLocaleString()}{scan.completed_at && ` — ${Math.round((new Date(scan.completed_at).getTime() - new Date(scan.started_at).getTime()) / 1000)}s`}</div>
                 </div>
                 {scan.status === 'completed' && scan.summary && (

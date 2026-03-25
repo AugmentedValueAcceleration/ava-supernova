@@ -107,7 +107,7 @@ export default function Users() {
     const c = TIER_COLORS[tier] || TIER_COLORS.free;
     return (
       <span style={{
-        background: c.bg, color: c.text, fontSize: 11, fontWeight: 600,
+        background: c.bg, color: c.text, fontSize: 11, fontWeight: 400,
         padding: '3px 10px', borderRadius: 9999, textTransform: 'capitalize' as const,
       }}>
         {tier}
@@ -122,23 +122,18 @@ export default function Users() {
       {/* Stats Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 20, marginBottom: theme.sectionGap }}>
         {[
-          { label: 'Total Users', value: stats.total, icon: '👥', color: theme.text },
-          { label: 'Free', value: stats.free, icon: '🆓', color: theme.textSecondary },
-          { label: 'Pro', value: stats.pro, icon: '⭐', color: theme.blue },
-          { label: 'Ultra', value: stats.ultra, icon: '💎', color: theme.accent },
-          { label: 'Enterprise', value: stats.enterprise, icon: '🏢', color: theme.yellow },
+          { label: 'Total Users', value: stats.total, color: theme.text },
+          { label: 'Free', value: stats.free, color: theme.textSecondary },
+          { label: 'Pro', value: stats.pro, color: theme.blue },
+          { label: 'Ultra', value: stats.ultra, color: theme.accent },
+          { label: 'Enterprise', value: stats.enterprise, color: theme.yellow },
         ].map(s => (
           <div key={s.label} style={{
-            background: theme.cardBg, border: `1px solid ${theme.border}`,
-            borderRadius: theme.radiusLg, padding: '24px',
+            background: theme.cardBg, border: 'none',
+            borderRadius: theme.radiusLg, padding: '28px 24px',
           }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: theme.radiusSm,
-              background: theme.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 20, marginBottom: 12,
-            }}>{s.icon}</div>
-            <div style={{ fontSize: 30, fontWeight: 700, color: s.color, marginTop: 4 }}>{loading ? '...' : s.value}</div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: theme.textMuted, marginTop: 4 }}>{s.label}</div>
+            <div style={{ fontSize: 30, fontWeight: 300, color: s.color }}>{loading ? '...' : s.value}</div>
+            <div style={{ fontSize: 12, fontWeight: 400, color: theme.textMuted, marginTop: 10 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -194,7 +189,7 @@ export default function Users() {
                         onMouseOver={e => (e.currentTarget.style.background = theme.hoverBg)}
                         onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
                       >
-                        <td style={{ ...tableCellStyle, color: theme.text, fontWeight: 500 }}>
+                        <td style={{ ...tableCellStyle, color: theme.text, fontWeight: 400 }}>
                           {user.name || 'Unnamed'}
                         </td>
                         <td style={{ ...tableCellStyle, color: theme.textSecondary }}>{user.email}</td>
@@ -238,21 +233,21 @@ export default function Users() {
                                 borderRadius: theme.radiusMd, padding: '14px 18px', minWidth: 130,
                               }}>
                                 <div style={{ fontSize: 11, color: theme.textMuted, marginBottom: 4 }}>Token Usage</div>
-                                <div style={{ fontSize: 20, fontWeight: 700, color: theme.accent }}>{user.token_usage?.toLocaleString() || '0'}</div>
+                                <div style={{ fontSize: 20, fontWeight: 400, color: theme.accent }}>{user.token_usage?.toLocaleString() || '0'}</div>
                               </div>
                               <div style={{
                                 background: theme.cardBg, border: `1px solid ${theme.border}`,
                                 borderRadius: theme.radiusMd, padding: '14px 18px', minWidth: 130,
                               }}>
                                 <div style={{ fontSize: 11, color: theme.textMuted, marginBottom: 4 }}>Memories</div>
-                                <div style={{ fontSize: 20, fontWeight: 700, color: theme.blue }}>{user.memory_count || 0}</div>
+                                <div style={{ fontSize: 20, fontWeight: 400, color: theme.blue }}>{user.memory_count || 0}</div>
                               </div>
                               <div style={{
                                 background: theme.cardBg, border: `1px solid ${theme.border}`,
                                 borderRadius: theme.radiusMd, padding: '14px 18px', minWidth: 130,
                               }}>
                                 <div style={{ fontSize: 11, color: theme.textMuted, marginBottom: 4 }}>API Keys</div>
-                                <div style={{ fontSize: 20, fontWeight: 700, color: theme.yellow }}>{user.api_key_count || 0}</div>
+                                <div style={{ fontSize: 20, fontWeight: 400, color: theme.yellow }}>{user.api_key_count || 0}</div>
                               </div>
                             </div>
                             <div style={{ display: 'flex', gap: 8 }}>

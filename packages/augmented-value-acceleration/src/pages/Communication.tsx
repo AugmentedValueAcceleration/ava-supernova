@@ -248,7 +248,7 @@ export default function Communication() {
   }
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '10px 14px', background: theme.inputBg, border: '1px solid #1f1f3a',
+    width: '100%', padding: '10px 14px', background: theme.inputBg, border: `1px solid ${theme.border}`,
     borderRadius: 10, color: theme.text, fontSize: 14, outline: 'none', boxSizing: 'border-box',
   };
 
@@ -260,11 +260,11 @@ export default function Communication() {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
       {/* Sidebar — Channels */}
       <div style={{
-        width: 240, borderRight: '1px solid #1f1f3a', display: 'flex', flexDirection: 'column',
+        width: 240, borderRight: `1px solid ${theme.border}`, display: 'flex', flexDirection: 'column',
         background: theme.surfaceBg, flexShrink: 0,
       }}>
         <div style={{ padding: '24px 20px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, color: theme.text, margin: 0 }}>Channels</h2>
+          <h2 style={{ fontSize: 14, fontWeight: 400, color: theme.text, margin: 0 }}>Channels</h2>
           <button onClick={() => setShowCreateChannel(true)} style={{
             width: 28, height: 28, borderRadius: 8, background: theme.border, border: 'none',
             color: theme.accent, fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -278,7 +278,7 @@ export default function Communication() {
               borderRadius: 8, border: 'none', cursor: 'pointer', marginBottom: 4,
               background: activeChannel === ch.id ? '#a855f715' : 'transparent',
               color: activeChannel === ch.id ? theme.accent : theme.textSecondary,
-              fontSize: 13, fontWeight: activeChannel === ch.id ? 600 : 400, textAlign: 'left',
+              fontSize: 13, fontWeight: activeChannel === ch.id ? 400 : 300, textAlign: 'left',
             }}>
               <span style={{ color: theme.textMuted }}>#</span>
               <span>{ch.name}</span>
@@ -288,8 +288,8 @@ export default function Communication() {
 
         {/* Online Users — Presence */}
         {onlineUsers.length > 0 && (
-          <div style={{ padding: '12px 16px', borderTop: '1px solid #1f1f3a' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 10 }}>
+          <div style={{ padding: '12px 16px', borderTop: `1px solid ${theme.border}` }}>
+            <div style={{ fontSize: 10, fontWeight: 400, color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 10 }}>
               Online — {onlineUsers.length}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -299,13 +299,13 @@ export default function Communication() {
                     <div style={{
                       width: 24, height: 24, borderRadius: '50%', background: theme.border,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 9, fontWeight: 700, color: theme.accent,
+                      fontSize: 9, fontWeight: 400, color: theme.accent,
                     }}>{getInitials(u.user_name || 'U')}</div>
                     <div style={{
                       position: 'absolute', bottom: -1, right: -1,
                       width: 8, height: 8, borderRadius: '50%',
                       background: u.status === 'online' ? '#22c55e' : u.status === 'away' ? '#f59e0b' : '#ef4444',
-                      border: '2px solid #0d0d22',
+                      border: `2px solid ${theme.surfaceBg}`,
                     }} />
                   </div>
                   <span style={{ fontSize: 12, color: theme.textSecondary }}>{u.user_name || 'Unknown'}</span>
@@ -319,9 +319,9 @@ export default function Communication() {
       {/* Main Area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {/* Channel Header */}
-        <div style={{ padding: '16px 28px', borderBottom: '1px solid #1f1f3a', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '16px 28px', borderBottom: `1px solid ${theme.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: theme.text, margin: 0 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 400, color: theme.text, margin: 0 }}>
               # {channels.find(c => c.id === activeChannel)?.name || activeChannel || 'general'}
             </h2>
             <p style={{ fontSize: 12, color: theme.textMuted, margin: '2px 0 0' }}>
@@ -336,7 +336,7 @@ export default function Communication() {
           </div>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '4px 12px',
-            background: theme.cardBg, borderRadius: 8, border: '1px solid #1f1f3a',
+            background: theme.cardBg, borderRadius: 8, border: `1px solid ${theme.border}`,
           }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} />
             <span style={{ fontSize: 11, color: theme.textMuted }}>Live</span>
@@ -345,11 +345,11 @@ export default function Communication() {
 
         {/* Pinned Banner */}
         {pinnedMessages.length > 0 && (
-          <div style={{ padding: '8px 28px', background: theme.inputBg, borderBottom: '1px solid #1f1f3a' }}>
-            <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 600, marginBottom: 4 }}>Pinned Messages</div>
+          <div style={{ padding: '8px 28px', background: theme.inputBg, borderBottom: `1px solid ${theme.border}` }}>
+            <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 400, marginBottom: 4 }}>Pinned Messages</div>
             {pinnedMessages.slice(0, 3).map(pm => (
               <div key={pm.id} style={{ fontSize: 12, color: theme.textSecondary, padding: '2px 0' }}>
-                <span style={{ fontWeight: 600, color: theme.text }}>{pm.sender_name}:</span> {pm.content.slice(0, 80)}{pm.content.length > 80 ? '...' : ''}
+                <span style={{ fontWeight: 400, color: theme.text }}>{pm.sender_name}:</span> {pm.content.slice(0, 80)}{pm.content.length > 80 ? '...' : ''}
               </div>
             ))}
           </div>
@@ -364,7 +364,7 @@ export default function Communication() {
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16 }}>
                 <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
-              <div style={{ fontSize: 16, fontWeight: 600, color: theme.textSecondary, marginBottom: 8 }}>No messages yet</div>
+              <div style={{ fontSize: 16, fontWeight: 400, color: theme.textSecondary, marginBottom: 8 }}>No messages yet</div>
               <div style={{ fontSize: 14 }}>Start the conversation!</div>
             </div>
           )}
@@ -389,14 +389,14 @@ export default function Communication() {
                       <div style={{
                         width: 36, height: 36, borderRadius: '50%', background: theme.border,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 13, fontWeight: 700, color: theme.accent,
+                        fontSize: 13, fontWeight: 400, color: theme.accent,
                       }}>{getInitials(msg.sender_name)}</div>
                       {/* Presence dot */}
                       {onlineUsers.some(u => u.user_name === msg.sender_name) && (
                         <div style={{
                           position: 'absolute', bottom: 0, right: 0,
                           width: 10, height: 10, borderRadius: '50%',
-                          background: '#22c55e', border: '2px solid #0a0a1a',
+                          background: '#22c55e', border: `2px solid ${theme.surfaceBg}`,
                         }} />
                       )}
                     </div>
@@ -404,9 +404,9 @@ export default function Communication() {
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: theme.text }}>{msg.sender_name}</span>
+                      <span style={{ fontSize: 14, fontWeight: 400, color: theme.text }}>{msg.sender_name}</span>
                       <span style={{ fontSize: 11, color: theme.textMuted }}>{formatTime(msg.created_at)}</span>
-                      {msg.pinned && <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600 }}>Pinned</span>}
+                      {msg.pinned && <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 400 }}>Pinned</span>}
                     </div>
                     <div style={{ fontSize: 14, color: '#d1d5db', lineHeight: 1.5, wordBreak: 'break-word' }}>{msg.content}</div>
 
@@ -427,7 +427,7 @@ export default function Communication() {
 
                 {/* Replies */}
                 {replies.length > 0 && (
-                  <div style={{ marginLeft: 48, borderLeft: '2px solid #1f1f3a', paddingLeft: 16 }}>
+                  <div style={{ marginLeft: 48, borderLeft: `2px solid ${theme.border}`, paddingLeft: 16 }}>
                     {replies.map(reply => (
                       <div key={reply.id} style={{
                         display: 'flex', gap: 10, padding: '6px 8px', borderRadius: 6,
@@ -438,11 +438,11 @@ export default function Communication() {
                         <div style={{
                           width: 28, height: 28, borderRadius: '50%', background: theme.border,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 10, fontWeight: 700, color: theme.accent, flexShrink: 0,
+                          fontSize: 10, fontWeight: 400, color: theme.accent, flexShrink: 0,
                         }}>{getInitials(reply.sender_name)}</div>
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: theme.text }}>{reply.sender_name}</span>
+                            <span style={{ fontSize: 13, fontWeight: 400, color: theme.text }}>{reply.sender_name}</span>
                             <span style={{ fontSize: 10, color: theme.textMuted }}>{formatTime(reply.created_at)}</span>
                           </div>
                           <div style={{ fontSize: 13, color: '#d1d5db', lineHeight: 1.4 }}>{reply.content}</div>
@@ -459,16 +459,16 @@ export default function Communication() {
 
         {/* Reply indicator */}
         {replyTo && (
-          <div style={{ padding: '8px 28px', background: theme.inputBg, borderTop: '1px solid #1f1f3a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '8px 28px', background: theme.inputBg, borderTop: `1px solid ${theme.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 12, color: theme.textSecondary }}>
-              Replying to <span style={{ color: theme.accent, fontWeight: 600 }}>{messages.find(m => m.id === replyTo)?.sender_name || '...'}</span>
+              Replying to <span style={{ color: theme.accent, fontWeight: 400 }}>{messages.find(m => m.id === replyTo)?.sender_name || '...'}</span>
             </span>
             <button onClick={() => setReplyTo(null)} style={{ background: 'none', border: 'none', color: theme.textMuted, cursor: 'pointer', fontSize: 14 }}>x</button>
           </div>
         )}
 
         {/* Input Bar */}
-        <div style={{ padding: '16px 28px', borderTop: '1px solid #1f1f3a', display: 'flex', gap: 12 }}>
+        <div style={{ padding: '16px 28px', borderTop: `1px solid ${theme.border}`, display: 'flex', gap: 12 }}>
           <input
             style={{ ...inputStyle, flex: 1 }}
             value={newMessage}
@@ -478,7 +478,7 @@ export default function Communication() {
           />
           <button onClick={handleSend} disabled={saving || !newMessage.trim()} style={{
             padding: '10px 24px', background: theme.accent, color: theme.text, border: 'none',
-            borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+            borderRadius: 10, fontSize: 14, fontWeight: 400, cursor: 'pointer',
             opacity: saving || !newMessage.trim() ? 0.5 : 1, flexShrink: 0,
           }}>{saving ? '...' : 'Send'}</button>
         </div>
@@ -493,10 +493,10 @@ export default function Communication() {
           alignItems: 'center', justifyContent: 'center', zIndex: 1000,
         }} onClick={() => setShowCreateChannel(false)}>
           <div style={{
-            background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 16,
+            background: theme.cardBg, border: `1px solid ${theme.border}`, borderRadius: 16,
             padding: 32, width: 400,
           }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: theme.text, margin: '0 0 24px' }}>Create Channel</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 400, color: theme.text, margin: '0 0 24px' }}>Create Channel</h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
@@ -516,7 +516,7 @@ export default function Communication() {
               }}>Cancel</button>
               <button onClick={handleCreateChannel} disabled={saving || !channelName.trim()} style={{
                 padding: '10px 24px', background: theme.accent, color: theme.text, border: 'none',
-                borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                borderRadius: 10, fontSize: 14, fontWeight: 400, cursor: 'pointer',
                 opacity: saving || !channelName.trim() ? 0.5 : 1,
               }}>{saving ? 'Creating...' : 'Create'}</button>
             </div>

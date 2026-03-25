@@ -149,7 +149,7 @@ export default function UserUsage() {
         onRefresh={fetchUsage}
         badge={data ? (
           <span style={{
-            padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+            padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 400,
             background: `${TIER_COLORS[data.tier] || theme.textMuted}20`,
             color: TIER_COLORS[data.tier] || theme.textMuted,
             textTransform: 'uppercase',
@@ -170,11 +170,11 @@ export default function UserUsage() {
             <div style={cardStyle}>
               <div style={sectionHeaderStyle}>Free Tokens</div>
               {data.isUnlimited ? (
-                <div style={{ fontSize: 36, fontWeight: 800, color: theme.accent, marginTop: 12 }}>∞</div>
+                <div style={{ fontSize: 36, fontWeight: 300, color: theme.accent, marginTop: 12 }}>∞</div>
               ) : (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, marginBottom: 8 }}>
-                    <span style={{ fontSize: 24, fontWeight: 700, color: theme.accent }}>{formatNumber(data.period.free_tokens_used)}</span>
+                    <span style={{ fontSize: 24, fontWeight: 400, color: theme.accent }}>{formatNumber(data.period.free_tokens_used)}</span>
                     <span style={{ fontSize: 14, color: theme.textMuted, alignSelf: 'flex-end' }}>/ {formatNumber(data.period.free_tokens_limit)}</span>
                   </div>
                   <div style={{ height: 8, borderRadius: 4, background: theme.inputBg, overflow: 'hidden' }}>
@@ -190,7 +190,7 @@ export default function UserUsage() {
               {data.period.tokens_limit ? (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, marginBottom: 8 }}>
-                    <span style={{ fontSize: 24, fontWeight: 700, color: theme.green }}>{formatNumber(data.period.tokens_used)}</span>
+                    <span style={{ fontSize: 24, fontWeight: 400, color: theme.green }}>{formatNumber(data.period.tokens_used)}</span>
                     <span style={{ fontSize: 14, color: theme.textMuted, alignSelf: 'flex-end' }}>/ {formatNumber(data.period.tokens_limit)}</span>
                   </div>
                   <div style={{ height: 8, borderRadius: 4, background: theme.inputBg, overflow: 'hidden' }}>
@@ -212,7 +212,7 @@ export default function UserUsage() {
               { label: 'Active Days', value: data.totals.active_days },
             ].map(s => (
               <div key={s.label} style={{ ...cardStyle, textAlign: 'center' }}>
-                <div style={{ fontSize: 28, fontWeight: 700, color: theme.text }}>{s.value}</div>
+                <div style={{ fontSize: 28, fontWeight: 400, color: theme.text }}>{s.value}</div>
                 <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 4 }}>{s.label}</div>
               </div>
             ))}
@@ -258,7 +258,7 @@ export default function UserUsage() {
                         background: isToday ? theme.accent : d.tokens > 0 ? theme.accentBgStrong : theme.border,
                         transition: 'height 0.3s',
                       }} />
-                      <div style={{ fontSize: 9, fontWeight: isToday ? 600 : 400, color: isToday ? theme.accent : theme.textMuted }}>
+                      <div style={{ fontSize: 9, fontWeight: isToday ? 400 : 300, color: isToday ? theme.accent : theme.textMuted }}>
                         {new Date(d.date).getDate()}
                       </div>
                     </div>

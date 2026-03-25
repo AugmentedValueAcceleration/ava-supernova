@@ -100,7 +100,7 @@ export default function Planner() {
             <button onClick={() => setShowRoadmap(!showRoadmap)} style={{
               background: showRoadmap ? theme.accentBg : 'transparent',
               border: `1px solid ${theme.border}`, borderRadius: 8, padding: '8px 14px',
-              fontSize: 12, fontWeight: 500, color: showRoadmap ? theme.accent : theme.textSecondary, cursor: 'pointer',
+              fontSize: 12, fontWeight: 400, color: showRoadmap ? theme.accent : theme.textSecondary, cursor: 'pointer',
             }}>{showRoadmap ? 'Hide Roadmap' : 'Show Roadmap'}</button>
           </PageHeader>
           <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
@@ -118,7 +118,7 @@ export default function Planner() {
           {messages.length === 0 && (
             <div style={{ textAlign: 'center', paddingTop: 80, color: theme.textMuted }}>
               <div style={{ fontSize: 36, marginBottom: 16 }}>&#128466;</div>
-              <p style={{ fontSize: 15, fontWeight: 500, color: theme.textSecondary }}>Start planning with Ava</p>
+              <p style={{ fontSize: 15, fontWeight: 400, color: theme.textSecondary }}>Start planning with Ava</p>
               <p style={{ fontSize: 13, marginTop: 8 }}>Use a quick prompt or type a message below.</p>
             </div>
           )}
@@ -157,7 +157,7 @@ export default function Planner() {
         <div style={{ width: 340, borderLeft: `1px solid ${theme.border}`, overflowY: 'auto', flexShrink: 0, background: theme.surfaceBg }}>
           <div style={{ padding: '24px 20px 16px', borderBottom: `1px solid ${theme.border}` }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h2 style={{ fontSize: 14, fontWeight: 600, color: theme.text, margin: 0 }}>Roadmap</h2>
+              <h2 style={{ fontSize: 14, fontWeight: 400, color: theme.text, margin: 0 }}>Roadmap</h2>
               <span style={{ fontSize: 11, color: theme.textMuted }}>{roadmapItems.length} items</span>
             </div>
           </div>
@@ -175,7 +175,7 @@ export default function Planner() {
                       <span style={chipStyle(sc.bg, sc.text)}>{item.status.replace('_', ' ')}</span>
                       {item.quarter && <span style={{ fontSize: 10, color: theme.textMuted }}>{item.quarter}</span>}
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: theme.text }}>{item.title}</div>
+                    <div style={{ fontSize: 13, fontWeight: 400, color: theme.text }}>{item.title}</div>
                     {item.description && (
                       <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 4, lineHeight: 1.4 }}>
                         {item.description.length > 100 ? item.description.slice(0, 100) + '...' : item.description}

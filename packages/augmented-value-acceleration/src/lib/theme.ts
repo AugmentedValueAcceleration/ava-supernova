@@ -168,7 +168,7 @@ export const chipStyle = (bg: string, color: string): React.CSSProperties => ({
   background: bg,
   color,
   fontSize: 11,
-  fontWeight: 600,
+  fontWeight: 400,
   borderRadius: 9999,
   padding: '3px 10px',
 });

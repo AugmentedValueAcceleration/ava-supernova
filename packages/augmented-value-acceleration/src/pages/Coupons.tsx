@@ -47,7 +47,7 @@ function typeBadge(type: string): { bg: string; text: string } {
   if (type === 'percent') return { bg: 'rgba(34, 197, 94, 0.12)', text: '#4ade80' };
   if (type === 'fixed') return { bg: 'rgba(59, 130, 246, 0.12)', text: '#60a5fa' };
   if (type === 'free_months') return { bg: 'rgba(168, 85, 247, 0.12)', text: '#a855f7' };
-  return { bg: '#1a1a35', text: '#9ca3af' };
+  return { bg: theme.inputBg, text: '#9ca3af' };
 }
 
 function durationLabel(duration: string, months: number | null): string {
@@ -224,7 +224,7 @@ export default function Coupons() {
     flex: 1,
     padding: '10px 14px',
     fontSize: 12,
-    fontWeight: isActive ? 600 : 400,
+    fontWeight: isActive ? 400 : 300,
     color: isActive ? '#fff' : theme.textMuted,
     background: isActive ? theme.accent : 'transparent',
     border: 'none',
@@ -238,7 +238,7 @@ export default function Coupons() {
       <PageHeader title="Coupons" subtitle="Create and manage discount coupons for subscriptions." onRefresh={fetchCoupons} />
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 10, padding: 4, marginBottom: 24 }}>
+      <div style={{ display: 'flex', gap: 4, background: theme.cardBg, border: `1px solid ${theme.border}`, borderRadius: 10, padding: 4, marginBottom: 24 }}>
         <button onClick={() => setTab('active')} style={tabStyle(tab === 'active')}>
           Active Coupons ({activeCoupons.length})
         </button>
@@ -250,29 +250,29 @@ export default function Coupons() {
         <div>
           {/* Stats */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
-            <div style={{ background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 14, padding: 20 }}>
-              <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280' }}>Active Coupons</div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', marginTop: 4 }}>{activeCoupons.length}</div>
+            <div style={{ background: theme.cardBg, border: 'none', borderRadius: theme.radiusLg, padding: '28px 24px' }}>
+              <div style={{ fontSize: 28, fontWeight: 300, color: theme.green, lineHeight: 1 }}>{activeCoupons.length}</div>
+              <div style={{ fontSize: 11, fontWeight: 400, color: theme.textMuted, marginTop: 10 }}>Active Coupons</div>
             </div>
-            <div style={{ background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 14, padding: 20 }}>
-              <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280' }}>Total Redemptions</div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', marginTop: 4 }}>
+            <div style={{ background: theme.cardBg, border: 'none', borderRadius: theme.radiusLg, padding: '28px 24px' }}>
+              <div style={{ fontSize: 28, fontWeight: 300, color: theme.accent, lineHeight: 1 }}>
                 {coupons.reduce((sum, c) => sum + c.times_redeemed, 0)}
               </div>
+              <div style={{ fontSize: 11, fontWeight: 400, color: theme.textMuted, marginTop: 10 }}>Total Redemptions</div>
             </div>
-            <div style={{ background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 14, padding: 20 }}>
-              <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280' }}>Inactive / Expired</div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#6b7280', marginTop: 4 }}>{inactiveCoupons.length}</div>
+            <div style={{ background: theme.cardBg, border: 'none', borderRadius: theme.radiusLg, padding: '28px 24px' }}>
+              <div style={{ fontSize: 28, fontWeight: 300, color: theme.textMuted, lineHeight: 1 }}>{inactiveCoupons.length}</div>
+              <div style={{ fontSize: 11, fontWeight: 400, color: theme.textMuted, marginTop: 10 }}>Inactive / Expired</div>
             </div>
           </div>
 
           {/* Coupons table */}
-          <div style={{ background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ background: theme.cardBg, border: `1px solid ${theme.border}`, borderRadius: 14, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #1f1f3a', background: theme.cardBg }}>
+                <tr style={{ borderBottom: `1px solid ${theme.border}`, background: theme.cardBg }}>
                   {['Code', 'Type', 'Duration', 'Redeemed', 'Expires', 'Status', 'Actions'].map(h => (
-                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500, color: '#6b7280', fontSize: 11 }}>{h}</th>
+                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 400, color: '#6b7280', fontSize: 11 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -294,13 +294,13 @@ export default function Coupons() {
                             setExpandedId(isExpanded ? null : coupon.id);
                             if (!isExpanded) loadRedemptions(coupon.id);
                           }}
-                          style={{ borderBottom: '1px solid #1f1f3a', cursor: 'pointer' }}
-                          onMouseOver={(e) => (e.currentTarget.style.background = '#1a1a35')}
+                          style={{ borderBottom: `1px solid ${theme.border}`, cursor: 'pointer' }}
+                          onMouseOver={(e) => (e.currentTarget.style.background = theme.inputBg)}
                           onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
                         >
                           {/* Code */}
                           <td style={{ padding: '10px 16px' }}>
-                            <span style={{ background: '#1a1a35', padding: '4px 8px', borderRadius: 6, fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: '#fff' }}>
+                            <span style={{ background: theme.inputBg, padding: '4px 8px', borderRadius: 6, fontFamily: 'monospace', fontSize: 12, fontWeight: 400, color: '#fff' }}>
                               {coupon.code}
                             </span>
                             {coupon.notes && (
@@ -311,7 +311,7 @@ export default function Coupons() {
                           </td>
                           {/* Type */}
                           <td style={{ padding: '10px 16px' }}>
-                            <span style={{ background: tb.bg, color: tb.text, fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 10 }}>
+                            <span style={{ background: tb.bg, color: tb.text, fontSize: 10, fontWeight: 400, padding: '3px 10px', borderRadius: 10 }}>
                               {typeLabel(coupon.type, coupon.value)}
                             </span>
                           </td>
@@ -340,7 +340,7 @@ export default function Coupons() {
                             <div style={{ display: 'flex', gap: 4 }}>
                               <button
                                 onClick={() => handleCopy(coupon.code, coupon.id)}
-                                style={{ background: 'none', border: '1px solid #1f1f3a', borderRadius: 6, padding: '4px 8px', fontSize: 10, color: copiedId === coupon.id ? '#4ade80' : '#6b7280', cursor: 'pointer' }}
+                                style={{ background: 'none', border: `1px solid ${theme.border}`, borderRadius: 6, padding: '4px 8px', fontSize: 10, color: copiedId === coupon.id ? '#4ade80' : '#6b7280', cursor: 'pointer' }}
                               >
                                 {copiedId === coupon.id ? 'Copied' : 'Copy'}
                               </button>
@@ -349,7 +349,7 @@ export default function Coupons() {
                                 disabled={actionLoading === coupon.id}
                                 style={{
                                   background: 'none',
-                                  border: '1px solid #1f1f3a',
+                                  border: `1px solid ${theme.border}`,
                                   borderRadius: 6,
                                   padding: '4px 8px',
                                   fontSize: 10,
@@ -366,7 +366,7 @@ export default function Coupons() {
 
                         {/* Expanded redemption details */}
                         {isExpanded && (
-                          <tr style={{ borderBottom: '1px solid #1f1f3a', background: theme.pageBg }}>
+                          <tr style={{ borderBottom: `1px solid ${theme.border}`, background: theme.pageBg }}>
                             <td colSpan={7} style={{ padding: '16px 24px' }}>
                               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 10, color: '#6b7280', marginBottom: 12 }}>
                                 <span>Created: {formatDateTime(coupon.created_at)}</span>
@@ -375,7 +375,7 @@ export default function Coupons() {
                                 {coupon.notes && <span>Notes: {coupon.notes}</span>}
                               </div>
                               <div>
-                                <p style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', marginBottom: 8 }}>
+                                <p style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af', marginBottom: 8 }}>
                                   Redemptions ({redemptions[coupon.id]?.length || coupon.times_redeemed})
                                 </p>
                                 {!redemptions[coupon.id] ? (
@@ -390,7 +390,7 @@ export default function Coupons() {
                                     }}>
                                       <span style={{ color: '#fff' }}>{r.email || r.user_id}</span>
                                       {r.plan && (
-                                        <span style={{ background: '#1a1a35', padding: '2px 8px', borderRadius: 10, textTransform: 'capitalize', color: '#9ca3af' }}>
+                                        <span style={{ background: theme.inputBg, padding: '2px 8px', borderRadius: 10, textTransform: 'capitalize', color: theme.textSecondary }}>
                                           {r.plan}
                                         </span>
                                       )}
@@ -415,8 +415,8 @@ export default function Coupons() {
       {/* Create tab */}
       {tab === 'create' && (
         <div style={{ maxWidth: 520, margin: '0 auto' }}>
-          <div style={{ background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 14, padding: 24 }}>
-            <h2 style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 16, margin: '0 0 16px 0' }}>New Coupon</h2>
+          <div style={{ background: theme.cardBg, border: `1px solid ${theme.border}`, borderRadius: 14, padding: 24 }}>
+            <h2 style={{ fontSize: 14, fontWeight: 400, color: '#fff', marginBottom: 16, margin: '0 0 16px 0' }}>New Coupon</h2>
 
             {formError && (
               <div style={{ background: 'rgba(239, 68, 68, 0.1)', borderRadius: 8, padding: '10px 16px', fontSize: 12, color: '#f87171', marginBottom: 16 }}>
@@ -495,7 +495,7 @@ export default function Coupons() {
                 borderRadius: 10,
                 padding: '12px 16px',
                 fontSize: 13,
-                fontWeight: 600,
+                fontWeight: 400,
                 color: '#fff',
                 cursor: creating ? 'not-allowed' : 'pointer',
                 opacity: creating ? 0.5 : 1,
@@ -511,7 +511,7 @@ export default function Coupons() {
 }
 
 function FormLabel({ text }: { text: string }) {
-  return <div style={{ fontSize: 11, fontWeight: 500, color: theme.textMuted, marginBottom: 6 }}>{text}</div>;
+  return <div style={{ fontSize: 11, fontWeight: 400, color: theme.textMuted, marginBottom: 6 }}>{text}</div>;
 }
 
 const inputStyle: React.CSSProperties = {

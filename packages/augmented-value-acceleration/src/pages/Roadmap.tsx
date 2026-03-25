@@ -123,7 +123,7 @@ export default function Roadmap() {
       {/* Create/Edit Form */}
       {showForm && (
         <div style={{ ...cardStyle, marginBottom: 24 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 600, color: theme.text, margin: '0 0 16px 0' }}>{editItem ? 'Edit Item' : 'New Roadmap Item'}</h2>
+          <h2 style={{ fontSize: 14, fontWeight: 400, color: theme.text, margin: '0 0 16px 0' }}>{editItem ? 'Edit Item' : 'New Roadmap Item'}</h2>
           <form onSubmit={handleSave}>
             <div style={labelStyle}>Title</div>
             <input value={formTitle} onChange={e => setFormTitle(e.target.value)} style={{ ...themeInputStyle, marginBottom: 12 }} placeholder="Feature name" />
@@ -175,7 +175,7 @@ export default function Roadmap() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <span style={chipStyle(ss.bg, ss.text)}>{ss.label}</span>
                       <span style={chipStyle(`${catColor}15`, catColor)}>{item.category}</span>
-                      <span style={{ fontSize: 14, fontWeight: 500, color: theme.text, flex: 1 }}>{item.title}</span>
+                      <span style={{ fontSize: 14, fontWeight: 400, color: theme.text, flex: 1 }}>{item.title}</span>
                       {item.date_label && <span style={{ fontSize: 11, color: theme.textMuted }}>{item.date_label}</span>}
                       {!item.visible && <span style={{ fontSize: 10, color: theme.textMuted, fontStyle: 'italic' }}>hidden</span>}
                     </div>

@@ -594,7 +594,7 @@ export default function CreativeStudio() {
     // Simple markdown: bold only
     return text.split(/(\*\*.*?\*\*)/g).map((part, i) => {
       if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} style={{ color: T.white, fontWeight: 600 }}>{part.slice(2, -2)}</strong>;
+        return <strong key={i} style={{ color: T.white, fontWeight: 400 }}>{part.slice(2, -2)}</strong>;
       }
       return <span key={i}>{part}</span>;
     });
@@ -634,7 +634,7 @@ export default function CreativeStudio() {
                   background: isActive ? T.accentDim : 'transparent',
                   color: isActive ? T.white : T.textMuted,
                   fontSize: 13,
-                  fontWeight: 500,
+                  fontWeight: 400,
                   cursor: 'pointer',
                   transition: 'all 0.15s',
                 }}
@@ -765,7 +765,7 @@ export default function CreativeStudio() {
             {messages.length === 0 && !loading && ctx.prompts.length > 0 && (
               <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ textAlign: 'center' }}>
-                  <h2 style={{ fontSize: 18, fontWeight: 600, color: T.white, marginBottom: 6 }}>{ctx.label}</h2>
+                  <h2 style={{ fontSize: 18, fontWeight: 400, color: T.white, marginBottom: 6 }}>{ctx.label}</h2>
                   <p style={{ fontSize: 13, color: T.textMuted, maxWidth: 400, margin: '0 auto 20px' }}>
                     Chat with Ava in {ctx.label} mode
                   </p>
@@ -849,13 +849,13 @@ export default function CreativeStudio() {
                               </button>
                               {isExpanded && (
                                 <div style={{ borderTop: `1px solid ${T.border}`, padding: '8px 10px' }}>
-                                  <p style={{ fontSize: 10, color: T.textMuted, marginBottom: 4, fontWeight: 500 }}>Arguments</p>
+                                  <p style={{ fontSize: 10, color: T.textMuted, marginBottom: 4, fontWeight: 400 }}>Arguments</p>
                                   <pre style={{ fontSize: 10, color: T.textSec, background: T.bg, padding: 8, borderRadius: 6, overflow: 'auto', maxHeight: 120, margin: '0 0 6px', whiteSpace: 'pre-wrap' }}>
                                     {JSON.stringify(tool.args, null, 2)}
                                   </pre>
                                   {tool.result !== undefined && (
                                     <>
-                                      <p style={{ fontSize: 10, color: T.textMuted, marginBottom: 4, fontWeight: 500 }}>Result</p>
+                                      <p style={{ fontSize: 10, color: T.textMuted, marginBottom: 4, fontWeight: 400 }}>Result</p>
                                       <pre style={{ fontSize: 10, color: T.textSec, background: T.bg, padding: 8, borderRadius: 6, overflow: 'auto', maxHeight: 160, margin: 0, whiteSpace: 'pre-wrap' }}>
                                         {typeof tool.result === 'string' ? tool.result : JSON.stringify(tool.result, null, 2)}
                                       </pre>
@@ -878,10 +878,10 @@ export default function CreativeStudio() {
                       color: msg.isError ? '#fca5a5' : T.text,
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: T.white }}>Ava</span>
+                        <span style={{ fontSize: 13, fontWeight: 400, color: T.white }}>Ava</span>
                         <span style={{
                           fontSize: 9,
-                          fontWeight: 700,
+                          fontWeight: 400,
                           padding: '2px 6px',
                           borderRadius: 4,
                           background: ctx.badgeBg,
@@ -936,9 +936,9 @@ export default function CreativeStudio() {
                   background: T.bgCard,
                   border: `1px solid ${T.border}`,
                 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: T.white }}>Ava</span>
+                  <span style={{ fontSize: 13, fontWeight: 400, color: T.white }}>Ava</span>
                   <span style={{
-                    fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
+                    fontSize: 9, fontWeight: 400, padding: '2px 6px', borderRadius: 4,
                     background: ctx.badgeBg, color: ctx.badgeText, letterSpacing: '0.05em',
                   }}>{ctx.badge}</span>
                   <span style={{ display: 'flex', gap: 4, marginLeft: 6 }}>
@@ -1073,7 +1073,7 @@ export default function CreativeStudio() {
                   background: T.purpleBg,
                   color: T.white,
                   fontSize: 13,
-                  fontWeight: 600,
+                  fontWeight: 400,
                   cursor: (!input.trim() || loading) ? 'not-allowed' : 'pointer',
                   opacity: (!input.trim() || loading) ? 0.3 : 1,
                   flexShrink: 0,
@@ -1095,7 +1095,7 @@ export default function CreativeStudio() {
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke={T.accent} strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                 </svg>
-                <span style={{ fontSize: 13, fontWeight: 600, color: T.white }}>Canvas</span>
+                <span style={{ fontSize: 13, fontWeight: 400, color: T.white }}>Canvas</span>
               </div>
               {canvasItems.length > 0 && (
                 <button
@@ -1131,7 +1131,7 @@ export default function CreativeStudio() {
                       gap: 6,
                       padding: '10px 0',
                       fontSize: 12,
-                      fontWeight: 500,
+                      fontWeight: 400,
                       background: 'none',
                       border: 'none',
                       borderBottom: `2px solid ${isActive ? T.accent : 'transparent'}`,
@@ -1174,7 +1174,7 @@ export default function CreativeStudio() {
                             padding: '4px 10px',
                             borderRadius: 8,
                             fontSize: 11,
-                            fontWeight: 500,
+                            fontWeight: 400,
                             border: isActive ? 'none' : `1px solid ${T.border}`,
                             background: isActive ? T.purpleBg : T.bgCard,
                             color: isActive ? T.white : T.textMuted,
@@ -1198,7 +1198,7 @@ export default function CreativeStudio() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{
                             fontSize: 10,
-                            fontWeight: 700,
+                            fontWeight: 400,
                             padding: '2px 8px',
                             borderRadius: 4,
                             background: PLATFORM_STYLES[activeItem.platform]?.bg || PLATFORM_STYLES.post.bg,
@@ -1221,7 +1221,7 @@ export default function CreativeStudio() {
 
                       {activeItem.title && (
                         <div style={{ padding: '8px 16px', borderBottom: `1px solid ${T.border}` }}>
-                          <h3 style={{ fontSize: 13, fontWeight: 600, color: T.white, margin: 0 }}>{activeItem.title}</h3>
+                          <h3 style={{ fontSize: 13, fontWeight: 400, color: T.white, margin: 0 }}>{activeItem.title}</h3>
                         </div>
                       )}
 
@@ -1248,7 +1248,7 @@ export default function CreativeStudio() {
                             background: activeItem.copied ? T.green : T.purpleBg,
                             color: T.white,
                             fontSize: 13,
-                            fontWeight: 500,
+                            fontWeight: 400,
                             cursor: 'pointer',
                           }}
                         >
@@ -1324,7 +1324,7 @@ export default function CreativeStudio() {
                               background: T.purpleBg,
                               color: T.white,
                               fontSize: 13,
-                              fontWeight: 500,
+                              fontWeight: 400,
                               textDecoration: 'none',
                             }}
                           >
@@ -1416,7 +1416,7 @@ export default function CreativeStudio() {
                                 background: T.purpleBg,
                                 color: T.white,
                                 fontSize: 12,
-                                fontWeight: 500,
+                                fontWeight: 400,
                                 textDecoration: 'none',
                               }}
                             >

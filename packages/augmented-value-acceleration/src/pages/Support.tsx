@@ -158,12 +158,12 @@ export default function Support() {
         </button>
 
         <div style={{ marginBottom: 24 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: theme.text, margin: 0 }}>{selectedTicket.subject}</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 400, color: theme.text, margin: 0 }}>{selectedTicket.subject}</h1>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 10, fontSize: 12 }}>
-            <span style={{ background: sc.bg, color: sc.text, padding: '3px 10px', borderRadius: 9999, fontWeight: 600, textTransform: 'capitalize' }}>
+            <span style={{ background: sc.bg, color: sc.text, padding: '3px 10px', borderRadius: 9999, fontWeight: 400, textTransform: 'capitalize' }}>
               {selectedTicket.status.replace('_', ' ')}
             </span>
-            <span style={{ color: PRIORITY_COLORS[selectedTicket.priority], fontWeight: 500 }}>
+            <span style={{ color: PRIORITY_COLORS[selectedTicket.priority], fontWeight: 400 }}>
               {selectedTicket.priority}
             </span>
             <span style={{ color: theme.textMuted }}>from {selectedTicket.email}</span>
@@ -182,7 +182,7 @@ export default function Support() {
                 style={{
                   padding: '8px 16px',
                   fontSize: 12,
-                  fontWeight: 500,
+                  fontWeight: 400,
                   borderRadius: theme.radiusSm,
                   cursor: selectedTicket.status === s ? 'default' : 'pointer',
                   background: selectedTicket.status === s ? theme.accent : 'transparent',
@@ -211,7 +211,7 @@ export default function Support() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 500, color: theme.text }}>
+                <span style={{ fontSize: 13, fontWeight: 400, color: theme.text }}>
                   {msg.sender_name}
                   {msg.sender_type === 'admin' && (
                     <span style={{ marginLeft: 8, background: theme.accentBgStrong, color: theme.accent, fontSize: 10, padding: '2px 6px', borderRadius: 4 }}>
@@ -274,21 +274,16 @@ export default function Support() {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: theme.sectionGap }}>
         {[
-          { label: 'Total tickets', value: tickets.length, icon: '🎫', color: theme.text },
-          { label: 'Open', value: openCount, icon: '📬', color: theme.blue },
-          { label: 'In progress', value: inProgressCount, icon: '⏳', color: theme.yellow },
+          { label: 'Total tickets', value: tickets.length, color: theme.text },
+          { label: 'Open', value: openCount, color: theme.blue },
+          { label: 'In progress', value: inProgressCount, color: theme.yellow },
         ].map(s => (
           <div key={s.label} style={{
-            background: theme.cardBg, border: `1px solid ${theme.border}`,
-            borderRadius: theme.radiusLg, padding: '24px',
+            background: theme.cardBg, border: 'none',
+            borderRadius: theme.radiusLg, padding: '28px 24px',
           }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: theme.radiusSm,
-              background: theme.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 20, marginBottom: 12,
-            }}>{s.icon}</div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 4 }}>{s.label}</div>
+            <div style={{ fontSize: 28, fontWeight: 300, color: s.color }}>{s.value}</div>
+            <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 10 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -307,7 +302,7 @@ export default function Support() {
             <button key={f} onClick={() => setFilter(f)} style={{
               padding: '8px 14px',
               fontSize: 12,
-              fontWeight: filter === f ? 600 : 400,
+              fontWeight: filter === f ? 400 : 300,
               color: filter === f ? theme.text : theme.textMuted,
               background: filter === f ? theme.cardBg : 'transparent',
               border: 'none',
@@ -333,7 +328,7 @@ export default function Support() {
           borderRadius: theme.radiusLg, padding: '60px 40px', textAlign: 'center',
         }}>
           <div style={{ fontSize: 48, marginBottom: 12, opacity: 0.5 }}>🎫</div>
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: theme.text, marginBottom: 8 }}>No tickets</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 400, color: theme.text, marginBottom: 8 }}>No tickets</h2>
           <p style={{ fontSize: 13, color: theme.textMuted, margin: 0 }}>
             {filter !== 'all' ? `No ${filter.replace('_', ' ')} tickets found.` : 'No support tickets yet.'}
           </p>
@@ -362,17 +357,17 @@ export default function Support() {
                     onMouseOver={(e) => (e.currentTarget.style.background = theme.hoverBg)}
                     onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
                   >
-                    <td style={{ ...tableCellStyle, fontSize: 13, fontWeight: 500, color: theme.text }}>{ticket.subject}</td>
+                    <td style={{ ...tableCellStyle, fontSize: 13, fontWeight: 400, color: theme.text }}>{ticket.subject}</td>
                     <td style={tableCellStyle}>
                       <div style={{ fontSize: 12, color: theme.textSecondary }}>{ticket.email}</div>
                       {ticket.name && <div style={{ fontSize: 11, color: theme.textMuted }}>{ticket.name}</div>}
                     </td>
                     <td style={tableCellStyle}>
-                      <span style={{ background: sc.bg, color: sc.text, padding: '3px 10px', borderRadius: 9999, fontSize: 11, fontWeight: 600, textTransform: 'capitalize' }}>
+                      <span style={{ background: sc.bg, color: sc.text, padding: '3px 10px', borderRadius: 9999, fontSize: 11, fontWeight: 400, textTransform: 'capitalize' }}>
                         {ticket.status.replace('_', ' ')}
                       </span>
                     </td>
-                    <td style={{ ...tableCellStyle, fontSize: 12, fontWeight: 500, color: PRIORITY_COLORS[ticket.priority], textTransform: 'capitalize' }}>
+                    <td style={{ ...tableCellStyle, fontSize: 12, fontWeight: 400, color: PRIORITY_COLORS[ticket.priority], textTransform: 'capitalize' }}>
                       {ticket.priority}
                     </td>
                     <td style={{ ...tableCellStyle, fontSize: 12, color: theme.textMuted }}>

@@ -159,7 +159,7 @@ export default function Documents() {
   const fileTypes = [...new Set(docs.map(d => d.type).filter(Boolean))].sort();
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '10px 14px', background: theme.inputBg, border: '1px solid #1f1f3a',
+    width: '100%', padding: '10px 14px', background: theme.inputBg, border: `1px solid ${theme.border}`,
     borderRadius: 10, color: theme.text, fontSize: 14, outline: 'none', boxSizing: 'border-box',
   };
 
@@ -169,7 +169,7 @@ export default function Documents() {
       <PageHeader title="Documents" subtitle="File management and storage" onRefresh={fetchData}>
         <label style={{
           padding: '10px 24px', background: theme.border, color: theme.textSecondary, border: 'none',
-          borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+          borderRadius: 10, fontSize: 14, fontWeight: 400, cursor: 'pointer',
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
           {uploading ? 'Uploading...' : '📤 Upload'}
@@ -177,7 +177,7 @@ export default function Documents() {
         </label>
         <button onClick={() => setShowCreate(true)} style={{
           padding: '10px 24px', background: theme.accent, color: theme.text, border: 'none',
-          borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+          borderRadius: 10, fontSize: 14, fontWeight: 400, cursor: 'pointer',
         }}>+ Add Document</button>
       </PageHeader>
 
@@ -226,7 +226,7 @@ export default function Documents() {
       {!loading && filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 80, color: theme.textMuted }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>📂</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: theme.textSecondary, marginBottom: 8 }}>No documents found</div>
+          <div style={{ fontSize: 16, fontWeight: 400, color: theme.textSecondary, marginBottom: 8 }}>No documents found</div>
           <div style={{ fontSize: 14 }}>Upload a file or add a document entry to get started</div>
         </div>
       )}
@@ -236,7 +236,7 @@ export default function Documents() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           {filtered.map(doc => (
             <div key={doc.id} style={{
-              background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 14, padding: 20,
+              background: theme.cardBg, border: `1px solid ${theme.border}`, borderRadius: 14, padding: 20,
               transition: 'border-color 0.2s', display: 'flex', flexDirection: 'column',
             }}
               onMouseOver={e => e.currentTarget.style.borderColor = theme.accent}
@@ -246,7 +246,7 @@ export default function Documents() {
               <div style={{ fontSize: 40, textAlign: 'center', marginBottom: 14 }}>{getIcon(doc.name)}</div>
 
               {/* Name */}
-              <div style={{ fontSize: 13, fontWeight: 600, color: theme.text, textAlign: 'center', marginBottom: 8, wordBreak: 'break-word' }}>{doc.name}</div>
+              <div style={{ fontSize: 13, fontWeight: 400, color: theme.text, textAlign: 'center', marginBottom: 8, wordBreak: 'break-word' }}>{doc.name}</div>
 
               {/* Meta */}
               <div style={{ fontSize: 11, color: theme.textMuted, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 12 }}>
@@ -280,10 +280,10 @@ export default function Documents() {
           alignItems: 'center', justifyContent: 'center', zIndex: 1000,
         }} onClick={() => setShowCreate(false)}>
           <div style={{
-            background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 16,
+            background: theme.cardBg, border: `1px solid ${theme.border}`, borderRadius: 16,
             padding: 32, width: 480, maxHeight: '85vh', overflowY: 'auto',
           }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: theme.text, margin: '0 0 24px' }}>Add Document Entry</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 400, color: theme.text, margin: '0 0 24px' }}>Add Document Entry</h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
@@ -329,7 +329,7 @@ export default function Documents() {
               }}>Cancel</button>
               <button onClick={handleCreate} disabled={saving || !form.name.trim()} style={{
                 padding: '10px 24px', background: theme.accent, color: theme.text, border: 'none',
-                borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                borderRadius: 10, fontSize: 14, fontWeight: 400, cursor: 'pointer',
                 opacity: saving || !form.name.trim() ? 0.5 : 1,
               }}>{saving ? 'Adding...' : 'Add Document'}</button>
             </div>

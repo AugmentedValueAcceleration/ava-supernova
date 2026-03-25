@@ -141,22 +141,17 @@ export default function Projects() {
       {/* Stats Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, marginBottom: theme.sectionGap }}>
         {[
-          { label: 'Total', value: stats.total, icon: '📁', color: theme.accent },
-          { label: 'Active', value: stats.active, icon: '🚀', color: theme.green },
-          { label: 'Completed', value: stats.completed, icon: '✅', color: theme.blue },
-          { label: 'Paused', value: stats.paused, icon: '⏸️', color: theme.yellow },
+          { label: 'Total', value: stats.total, color: theme.accent },
+          { label: 'Active', value: stats.active, color: theme.green },
+          { label: 'Completed', value: stats.completed, color: theme.blue },
+          { label: 'Paused', value: stats.paused, color: theme.yellow },
         ].map(s => (
           <div key={s.label} style={{
-            background: theme.cardBg, border: `1px solid ${theme.border}`,
-            borderRadius: theme.radiusLg, padding: '24px',
+            background: theme.cardBg, border: 'none',
+            borderRadius: theme.radiusLg, padding: '28px 24px',
           }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: theme.radiusSm,
-              background: theme.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 20, marginBottom: 12,
-            }}>{s.icon}</div>
-            <div style={{ fontSize: 32, fontWeight: 800, color: s.color }}>{loading ? '...' : s.value}</div>
-            <div style={{ fontSize: 13, color: theme.textMuted, marginTop: 4 }}>{s.label}</div>
+            <div style={{ fontSize: 32, fontWeight: 300, color: s.color }}>{loading ? '...' : s.value}</div>
+            <div style={{ fontSize: 13, color: theme.textMuted, marginTop: 10 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -169,7 +164,7 @@ export default function Projects() {
             border: `1px solid ${filter === t.key ? theme.accent : theme.border}`,
             background: filter === t.key ? theme.accentBg : theme.cardBg,
             color: filter === t.key ? theme.accent : theme.textSecondary,
-            fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s',
+            fontSize: 13, fontWeight: 400, cursor: 'pointer', transition: 'all 0.2s',
           }}>{t.label}</button>
         ))}
       </div>
@@ -181,7 +176,7 @@ export default function Projects() {
       {!loading && filtered.length === 0 && (
         <div style={emptyStateStyle}>
           <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }}>📁</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: theme.textSecondary, marginBottom: 8 }}>No projects found</div>
+          <div style={{ fontSize: 16, fontWeight: 400, color: theme.textSecondary, marginBottom: 8 }}>No projects found</div>
           <div style={{ fontSize: 14, color: theme.textMuted }}>Create your first project to get started</div>
         </div>
       )}
@@ -205,10 +200,10 @@ export default function Projects() {
               >
                 {/* Top row */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                  <h3 style={{ fontSize: 16, fontWeight: 600, color: theme.text, margin: 0 }}>{p.name}</h3>
+                  <h3 style={{ fontSize: 16, fontWeight: 400, color: theme.text, margin: 0 }}>{p.name}</h3>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: sc.bg, color: sc.text }}>{p.status}</span>
-                    <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: pc.bg, color: pc.text }}>{p.priority}</span>
+                    <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 400, background: sc.bg, color: sc.text }}>{p.status}</span>
+                    <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 400, background: pc.bg, color: pc.text }}>{p.priority}</span>
                   </div>
                 </div>
 
@@ -253,7 +248,7 @@ export default function Projects() {
       {showCreate && (
         <div style={modalOverlayStyle} onClick={() => setShowCreate(false)}>
           <div style={{ ...modalContentStyle, width: 520 }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: theme.text, margin: '0 0 24px' }}>New Project</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 400, color: theme.text, margin: '0 0 24px' }}>New Project</h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>

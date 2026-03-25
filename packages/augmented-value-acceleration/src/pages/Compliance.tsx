@@ -307,20 +307,20 @@ export default function Compliance() {
         ].map(s => (
           <div key={s.label} style={cardStyle}>
             <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>{s.label}</div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: s.color }}>{s.value}</div>
+            <div style={{ fontSize: 28, fontWeight: 400, color: s.color }}>{s.value}</div>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 28, borderBottom: '1px solid #1f1f3a', paddingBottom: 0 }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 28, borderBottom: `1px solid ${theme.border}`, paddingBottom: 0 }}>
         {TABS.map(t => (
           <button
             key={t.id}
             onClick={() => { setTab(t.id); setActionResult(null); }}
             style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              padding: '12px 20px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500,
+              padding: '12px 20px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 400,
               background: 'transparent',
               color: tab === t.id ? '#a855f7' : '#6b7280',
               borderBottom: tab === t.id ? '2px solid #a855f7' : '2px solid transparent',
@@ -374,7 +374,7 @@ export default function Compliance() {
             <input type="date" style={{ ...inputStyle, width: 'auto' }} value={auditDateTo} onChange={e => setAuditDateTo(e.target.value)} />
             {(auditDateFrom || auditDateTo) && (
               <button onClick={() => { setAuditDateFrom(''); setAuditDateTo(''); }} style={{
-                padding: '8px 16px', background: '#1f1f3a', color: '#9ca3af', border: 'none',
+                padding: '8px 16px', background: theme.inputBg, color: '#9ca3af', border: 'none',
                 borderRadius: 8, fontSize: 12, cursor: 'pointer',
               }}>Clear</button>
             )}
@@ -386,17 +386,17 @@ export default function Compliance() {
             <div style={{ textAlign: 'center', color: '#6b7280', padding: 60 }}>Loading audit trail...</div>
           ) : filteredAudit.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 60, color: '#6b7280' }}>
-              <div style={{ fontSize: 16, fontWeight: 600, color: '#9ca3af', marginBottom: 8 }}>No audit entries found</div>
+              <div style={{ fontSize: 16, fontWeight: 400, color: '#9ca3af', marginBottom: 8 }}>No audit entries found</div>
               <div style={{ fontSize: 14 }}>Activity will appear here as the system is used</div>
             </div>
           ) : (
             <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #1f1f3a' }}>
+                  <tr style={{ borderBottom: `1px solid ${theme.border}` }}>
                     {['Time', 'User', 'Action', 'Entity', 'Details'].map(h => (
                       <th key={h} style={{
-                        padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 600,
+                        padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 400,
                         color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px',
                       }}>{h}</th>
                     ))}
@@ -404,7 +404,7 @@ export default function Compliance() {
                 </thead>
                 <tbody>
                   {filteredAudit.slice(0, 100).map(entry => (
-                    <tr key={entry.id} style={{ borderBottom: '1px solid #0d0d22' }}
+                    <tr key={entry.id} style={{ borderBottom: `1px solid ${theme.border}` }}
                       onMouseOver={e => (e.currentTarget.style.background = theme.cardBg)}
                       onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
                     >
@@ -414,23 +414,23 @@ export default function Compliance() {
                       <td style={{ padding: '10px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <div style={{
-                            width: 28, height: 28, borderRadius: '50%', background: '#1f1f3a',
+                            width: 28, height: 28, borderRadius: '50%', background: theme.inputBg,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 10, fontWeight: 700, color: '#a855f7', flexShrink: 0,
+                            fontSize: 10, fontWeight: 400, color: '#a855f7', flexShrink: 0,
                           }}>{getInitials(entry.user_name)}</div>
                           <span style={{ fontSize: 13, color: '#d1d5db' }}>{entry.user_name || 'System'}</span>
                         </div>
                       </td>
                       <td style={{ padding: '10px 16px' }}>
                         <span style={{
-                          padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700,
+                          padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 400,
                           background: entry.action === 'delete' ? '#7f1d1d' : entry.action === 'create' ? '#064e3b' : '#1e3a5f',
                           color: entry.action === 'delete' ? '#fca5a5' : entry.action === 'create' ? '#6ee7b7' : '#60a5fa',
                           textTransform: 'uppercase', letterSpacing: '0.5px',
                         }}>{entry.action}</span>
                       </td>
                       <td style={{ padding: '10px 16px', fontSize: 13, color: '#9ca3af' }}>
-                        {entry.entity_type} {entry.entity_name && <span style={{ fontWeight: 500, color: '#d1d5db' }}>{entry.entity_name}</span>}
+                        {entry.entity_type} {entry.entity_name && <span style={{ fontWeight: 400, color: '#d1d5db' }}>{entry.entity_name}</span>}
                       </td>
                       <td style={{ padding: '10px 16px', fontSize: 12, color: '#4b5563', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {entry.details || '-'}
@@ -448,7 +448,7 @@ export default function Compliance() {
       {tab === 'export' && (
         <div style={{ maxWidth: 600 }}>
           <div style={cardStyle}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>GDPR Data Export</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 400, color: '#fff', margin: '0 0 8px' }}>GDPR Data Export</h3>
             <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 24px' }}>
               Export all data associated with a user as a JSON file. This fulfils the GDPR right to access (Article 15).
             </p>
@@ -467,7 +467,7 @@ export default function Compliance() {
               padding: '12px 16px', borderRadius: 8, marginBottom: 20,
               background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.15)',
             }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#60a5fa', marginBottom: 4 }}>What gets exported</div>
+              <div style={{ fontSize: 12, fontWeight: 400, color: '#60a5fa', marginBottom: 4 }}>What gets exported</div>
               <ul style={{ margin: 0, paddingLeft: 20, fontSize: 12, color: '#9ca3af', lineHeight: 1.8 }}>
                 <li>Personal memories</li>
                 <li>Messages sent</li>
@@ -480,7 +480,7 @@ export default function Compliance() {
               disabled={processing || !exportEmail.trim()}
               style={{
                 padding: '12px 28px', background: '#a855f7', color: '#fff', border: 'none',
-                borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                borderRadius: 10, fontSize: 14, fontWeight: 400, cursor: 'pointer',
                 opacity: processing || !exportEmail.trim() ? 0.5 : 1,
               }}
             >{processing ? 'Exporting...' : 'Export User Data'}</button>
@@ -492,7 +492,7 @@ export default function Compliance() {
       {tab === 'deletion' && (
         <div style={{ maxWidth: 600 }}>
           <div style={{ ...cardStyle, borderColor: '#7f1d1d30' }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>GDPR Data Deletion</h3>
+            <h3 style={{ fontSize: 18, fontWeight: 400, color: '#fff', margin: '0 0 8px' }}>GDPR Data Deletion</h3>
             <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 24px' }}>
               Permanently delete all data associated with a user. This fulfils the GDPR right to erasure (Article 17).
               This action cannot be undone.
@@ -512,7 +512,7 @@ export default function Compliance() {
               padding: '12px 16px', borderRadius: 8, marginBottom: 20,
               background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.15)',
             }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#fca5a5', marginBottom: 4 }}>Warning: This is irreversible</div>
+              <div style={{ fontSize: 12, fontWeight: 400, color: '#fca5a5', marginBottom: 4 }}>Warning: This is irreversible</div>
               <ul style={{ margin: 0, paddingLeft: 20, fontSize: 12, color: '#9ca3af', lineHeight: 1.8 }}>
                 <li>All personal memories will be deleted</li>
                 <li>All messages sent by this user will be deleted</li>
@@ -526,7 +526,7 @@ export default function Compliance() {
                 Type DELETE to confirm
               </label>
               <input
-                style={{ ...inputStyle, borderColor: deleteConfirm === 'DELETE' ? '#ef4444' : '#1f1f3a' }}
+                style={{ ...inputStyle, borderColor: deleteConfirm === 'DELETE' ? '#ef4444' : theme.border }}
                 value={deleteConfirm}
                 onChange={e => setDeleteConfirm(e.target.value)}
                 placeholder="DELETE"
@@ -538,7 +538,7 @@ export default function Compliance() {
               disabled={processing || !deleteEmail.trim() || deleteConfirm !== 'DELETE'}
               style={{
                 padding: '12px 28px', background: '#dc2626', color: '#fff', border: 'none',
-                borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                borderRadius: 10, fontSize: 14, fontWeight: 400, cursor: 'pointer',
                 opacity: processing || !deleteEmail.trim() || deleteConfirm !== 'DELETE' ? 0.5 : 1,
               }}
             >{processing ? 'Deleting...' : 'Permanently Delete All Data'}</button>
@@ -550,7 +550,7 @@ export default function Compliance() {
       {tab === 'retention' && (
         <div>
           <div style={{ ...cardStyle, marginBottom: 24 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#fff', margin: '0 0 16px' }}>Add Retention Policy</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 400, color: '#fff', margin: '0 0 16px' }}>Add Retention Policy</h3>
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
               <div style={{ flex: 1 }}>
                 <label style={{ fontSize: 12, color: '#9ca3af', display: 'block', marginBottom: 6 }}>Entity Type</label>
@@ -576,7 +576,7 @@ export default function Compliance() {
                 disabled={savingPolicy || !newEntityType.trim()}
                 style={{
                   padding: '10px 24px', background: '#a855f7', color: '#fff', border: 'none',
-                  borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                  borderRadius: 10, fontSize: 14, fontWeight: 400, cursor: 'pointer',
                   opacity: savingPolicy || !newEntityType.trim() ? 0.5 : 1, whiteSpace: 'nowrap',
                 }}
               >{savingPolicy ? 'Saving...' : 'Add Policy'}</button>
@@ -586,7 +586,7 @@ export default function Compliance() {
           {/* Existing Policies */}
           {policies.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 60, color: '#6b7280' }}>
-              <div style={{ fontSize: 16, fontWeight: 600, color: '#9ca3af', marginBottom: 8 }}>No retention policies configured</div>
+              <div style={{ fontSize: 16, fontWeight: 400, color: '#9ca3af', marginBottom: 8 }}>No retention policies configured</div>
               <div style={{ fontSize: 14 }}>Add a policy above to automatically manage data retention</div>
             </div>
           ) : (
@@ -596,7 +596,7 @@ export default function Compliance() {
                   ...cardStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px',
                 }}>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{policy.entity_type}</div>
+                    <div style={{ fontSize: 14, fontWeight: 400, color: '#fff' }}>{policy.entity_type}</div>
                     <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
                       Auto-delete after {policy.retention_days} days
                     </div>
@@ -605,7 +605,7 @@ export default function Compliance() {
                     <button
                       onClick={() => handleTogglePolicy(policy)}
                       style={{
-                        padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                        padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 400, cursor: 'pointer',
                         background: policy.auto_delete ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
                         color: policy.auto_delete ? '#86efac' : '#fca5a5',
                         border: `1px solid ${policy.auto_delete ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
@@ -615,7 +615,7 @@ export default function Compliance() {
                       onClick={() => handleDeletePolicy(policy.id)}
                       style={{
                         padding: '6px 14px', borderRadius: 6, fontSize: 12, cursor: 'pointer',
-                        background: '#1f1f3a', color: '#9ca3af', border: 'none',
+                        background: theme.inputBg, color: '#9ca3af', border: 'none',
                       }}
                     >Remove</button>
                   </div>
@@ -633,17 +633,17 @@ export default function Compliance() {
             <div style={{ textAlign: 'center', color: '#6b7280', padding: 60 }}>Loading activity report...</div>
           ) : activitySummary.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 60, color: '#6b7280' }}>
-              <div style={{ fontSize: 16, fontWeight: 600, color: '#9ca3af', marginBottom: 8 }}>No activity data</div>
+              <div style={{ fontSize: 16, fontWeight: 400, color: '#9ca3af', marginBottom: 8 }}>No activity data</div>
               <div style={{ fontSize: 14 }}>Activity will appear as the system is used</div>
             </div>
           ) : (
             <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #1f1f3a' }}>
+                  <tr style={{ borderBottom: `1px solid ${theme.border}` }}>
                     {['User', 'Total Actions', 'Most Common Action', 'Last Activity'].map(h => (
                       <th key={h} style={{
-                        padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 600,
+                        padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 400,
                         color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px',
                       }}>{h}</th>
                     ))}
@@ -651,26 +651,26 @@ export default function Compliance() {
                 </thead>
                 <tbody>
                   {activitySummary.map(user => (
-                    <tr key={user.user_name} style={{ borderBottom: '1px solid #0d0d22' }}
+                    <tr key={user.user_name} style={{ borderBottom: `1px solid ${theme.border}` }}
                       onMouseOver={e => (e.currentTarget.style.background = theme.cardBg)}
                       onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
                     >
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div style={{
-                            width: 32, height: 32, borderRadius: '50%', background: '#1f1f3a',
+                            width: 32, height: 32, borderRadius: '50%', background: theme.inputBg,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 11, fontWeight: 700, color: '#a855f7',
+                            fontSize: 11, fontWeight: 400, color: '#a855f7',
                           }}>{getInitials(user.user_name)}</div>
-                          <span style={{ fontSize: 14, fontWeight: 500, color: '#fff' }}>{user.user_name}</span>
+                          <span style={{ fontSize: 14, fontWeight: 400, color: '#fff' }}>{user.user_name}</span>
                         </div>
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: 14, fontWeight: 600, color: '#a855f7' }}>
+                      <td style={{ padding: '12px 16px', fontSize: 14, fontWeight: 400, color: '#a855f7' }}>
                         {user.action_count.toLocaleString()}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{
-                          padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+                          padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 400,
                           background: '#1e3a5f', color: '#60a5fa', textTransform: 'uppercase',
                         }}>{user.most_common_action}</span>
                       </td>

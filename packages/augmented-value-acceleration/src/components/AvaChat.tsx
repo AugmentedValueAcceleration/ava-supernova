@@ -442,8 +442,8 @@ export default function AvaChat() {
             height: 600,
             maxHeight: 'calc(100vh - 80px)',
             borderRadius: 16,
-            background: '#111127',
-            border: '1px solid #1f1f3a',
+            background: 'rgba(26, 16, 40, 0.6)',
+            border: '1px solid rgba(168, 85, 247, 0.12)',
             boxShadow: '0 8px 40px rgba(0, 0, 0, 0.6), 0 0 1px rgba(168, 85, 247, 0.3)',
             display: 'flex',
             flexDirection: 'column',
@@ -459,7 +459,7 @@ export default function AvaChat() {
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '14px 16px',
-              borderBottom: '1px solid #1f1f3a',
+              borderBottom: '1px solid rgba(168, 85, 247, 0.12)',
               flexShrink: 0,
             }}
           >
@@ -474,16 +474,16 @@ export default function AvaChat() {
               }} />
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>
+                  <span style={{ fontSize: 15, fontWeight: 400, color: '#fff' }}>
                     {displayName}
                   </span>
                   <span style={{
                     fontSize: 10,
                     color: '#6b7280',
-                    background: '#1a1a35',
+                    background: 'rgba(49, 34, 68, 0.5)',
                     padding: '2px 8px',
                     borderRadius: 8,
-                    fontWeight: 500,
+                    fontWeight: 400,
                   }}>
                     {MODEL_DISPLAY}
                   </span>
@@ -512,7 +512,7 @@ export default function AvaChat() {
                   color: '#6b7280',
                   transition: 'background 0.15s, color 0.15s',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#1a1a35'; e.currentTarget.style.color = '#9ca3af'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(49, 34, 68, 0.5)'; e.currentTarget.style.color = '#9ca3af'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#6b7280'; }}
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
@@ -538,7 +538,7 @@ export default function AvaChat() {
                   color: '#6b7280',
                   transition: 'background 0.15s, color 0.15s',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#1a1a35'; e.currentTarget.style.color = '#9ca3af'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(49, 34, 68, 0.5)'; e.currentTarget.style.color = '#9ca3af'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#6b7280'; }}
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
@@ -577,7 +577,7 @@ export default function AvaChat() {
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                   <path d="M7 11V7a5 5 0 0110 0v4" />
                 </svg>
-                <span style={{ fontSize: 14, fontWeight: 500, color: '#9ca3af' }}>
+                <span style={{ fontSize: 14, fontWeight: 400, color: '#9ca3af' }}>
                   Sign in to chat with {displayName}
                 </span>
                 <span style={{ fontSize: 12, color: '#6b7280' }}>
@@ -613,7 +613,7 @@ export default function AvaChat() {
                     <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
                   </svg>
                 </div>
-                <span style={{ fontSize: 14, fontWeight: 500, color: '#9ca3af' }}>
+                <span style={{ fontSize: 14, fontWeight: 400, color: '#9ca3af' }}>
                   Hi, I'm {displayName}
                 </span>
                 <span style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>
@@ -636,7 +636,7 @@ export default function AvaChat() {
               >
                 {/* Label for assistant */}
                 {msg.role === 'assistant' && (
-                  <span style={{ fontSize: 10, fontWeight: 600, color: '#a855f7', paddingLeft: 2 }}>
+                  <span style={{ fontSize: 10, fontWeight: 400, color: '#a855f7', paddingLeft: 2 }}>
                     {displayName}
                   </span>
                 )}
@@ -684,7 +684,7 @@ export default function AvaChat() {
                       maxWidth: '85%',
                       padding: '10px 14px',
                       borderRadius: msg.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
-                      background: msg.role === 'user' ? '#7c3aed' : '#1a1a35',
+                      background: msg.role === 'user' ? '#7c3aed' : 'rgba(49, 34, 68, 0.5)',
                       color: msg.role === 'user' ? '#fff' : '#e5e7eb',
                       fontSize: 13,
                       lineHeight: 1.55,
@@ -719,7 +719,7 @@ export default function AvaChat() {
             <div
               style={{
                 padding: '12px 16px',
-                borderTop: '1px solid #1f1f3a',
+                borderTop: '1px solid rgba(168, 85, 247, 0.12)',
                 flexShrink: 0,
               }}
             >
@@ -728,10 +728,10 @@ export default function AvaChat() {
                   display: 'flex',
                   alignItems: 'flex-end',
                   gap: 8,
-                  background: '#1a1a35',
+                  background: 'rgba(49, 34, 68, 0.5)',
                   borderRadius: 12,
                   padding: '8px 12px',
-                  border: '1px solid #2a2a4a',
+                  border: '1px solid rgba(168, 85, 247, 0.12)',
                 }}
               >
                 <textarea
@@ -761,7 +761,7 @@ export default function AvaChat() {
                     width: 32,
                     height: 32,
                     borderRadius: 8,
-                    background: input.trim() && !isStreaming ? '#a855f7' : '#2a2a4a',
+                    background: input.trim() && !isStreaming ? '#a855f7' : 'rgba(168, 85, 247, 0.12)',
                     border: 'none',
                     cursor: input.trim() && !isStreaming ? 'pointer' : 'default',
                     display: 'flex',

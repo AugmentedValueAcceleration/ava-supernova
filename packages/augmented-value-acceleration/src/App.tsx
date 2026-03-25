@@ -86,7 +86,7 @@ export default function App() {
             width: 48, height: 48, borderRadius: 14, margin: '0 auto 16px',
             background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 20, fontWeight: 800, color: '#fff',
+            fontSize: 20, fontWeight: 300, color: '#fff',
             animation: 'pulse 1.5s ease-in-out infinite',
           }}>A</div>
           <div style={{ fontSize: 14, color: '#6b7280' }}>Loading...</div>

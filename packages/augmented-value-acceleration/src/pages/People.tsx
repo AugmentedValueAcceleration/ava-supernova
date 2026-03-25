@@ -116,7 +116,7 @@ export default function People() {
   }
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '10px 14px', background: theme.inputBg, border: '1px solid #1f1f3a',
+    width: '100%', padding: '10px 14px', background: theme.inputBg, border: `1px solid ${theme.border}`,
     borderRadius: 10, color: theme.text, fontSize: 14, outline: 'none', boxSizing: 'border-box',
   };
 
@@ -126,22 +126,21 @@ export default function People() {
       <PageHeader title="People" subtitle="Your team directory" onRefresh={fetchData}>
         <button onClick={() => setShowCreate(true)} style={{
           padding: '10px 24px', background: theme.accent, color: theme.text, border: 'none',
-          borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+          borderRadius: 10, fontSize: 14, fontWeight: 400, cursor: 'pointer',
         }}>+ Add Person</button>
       </PageHeader>
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
         {[
-          { label: 'Total Team', value: stats.total, icon: '👥', color: theme.accent },
-          { label: 'Admins', value: stats.admins, icon: '🛡️', color: theme.red },
-          { label: 'Managers', value: stats.managers, icon: '👔', color: '#fbbf24' },
-          { label: 'Members', value: stats.members, icon: '👤', color: '#60a5fa' },
+          { label: 'Total Team', value: stats.total, color: theme.accent },
+          { label: 'Admins', value: stats.admins, color: theme.red },
+          { label: 'Managers', value: stats.managers, color: theme.yellow },
+          { label: 'Members', value: stats.members, color: theme.blue },
         ].map(s => (
-          <div key={s.label} style={{ background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 14, padding: '20px 22px' }}>
-            <div style={{ fontSize: 24, marginBottom: 8 }}>{s.icon}</div>
-            <div style={{ fontSize: 30, fontWeight: 800, color: s.color }}>{loading ? '...' : s.value}</div>
-            <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 4 }}>{s.label}</div>
+          <div key={s.label} style={{ background: theme.cardBg, border: 'none', borderRadius: theme.radiusLg, padding: '28px 24px' }}>
+            <div style={{ fontSize: 30, fontWeight: 300, color: s.color }}>{loading ? '...' : s.value}</div>
+            <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 10 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -165,7 +164,7 @@ export default function People() {
       {!loading && filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 80, color: theme.textMuted }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>👥</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: theme.textSecondary, marginBottom: 8 }}>No team members found</div>
+          <div style={{ fontSize: 16, fontWeight: 400, color: theme.textSecondary, marginBottom: 8 }}>No team members found</div>
           <div style={{ fontSize: 14 }}>Add your first team member to get started</div>
         </div>
       )}
@@ -180,7 +179,7 @@ export default function People() {
 
             return (
               <div key={p.id} style={{
-                background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 14, padding: 24,
+                background: theme.cardBg, border: `1px solid ${theme.border}`, borderRadius: 14, padding: 24,
                 cursor: 'pointer', transition: 'border-color 0.2s',
               }}
                 onClick={() => setExpandedId(expanded ? null : p.id)}
@@ -196,23 +195,23 @@ export default function People() {
                       <div style={{
                         width: 48, height: 48, borderRadius: '50%', background: theme.border,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 16, fontWeight: 700, color: theme.accent,
+                        fontSize: 16, fontWeight: 400, color: theme.accent,
                       }}>{getInitials(p.display_name)}</div>
                     )}
                     <span style={{
                       position: 'absolute', bottom: 0, right: 0, width: 12, height: 12,
-                      borderRadius: '50%', background: si.color, border: '2px solid #111127',
+                      borderRadius: '50%', background: si.color, border: `2px solid ${theme.surfaceBg}`,
                     }} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: theme.text }}>{p.display_name}</div>
+                    <div style={{ fontSize: 15, fontWeight: 400, color: theme.text }}>{p.display_name}</div>
                     {p.title && <div style={{ fontSize: 12, color: theme.textSecondary }}>{p.title}</div>}
                   </div>
                 </div>
 
                 {/* Role + Department */}
                 <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                  <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: rc.bg, color: rc.text }}>{p.role}</span>
+                  <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 400, background: rc.bg, color: rc.text }}>{p.role}</span>
                   {p.department && <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, background: theme.border, color: theme.textSecondary }}>{p.department}</span>}
                 </div>
 
@@ -224,7 +223,7 @@ export default function People() {
 
                 {/* Expanded */}
                 {expanded && (
-                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #1f1f3a' }}>
+                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${theme.border}` }}>
                     <div style={{ fontSize: 12, color: theme.textSecondary, display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
                       {p.phone && <span>📞 {p.phone}</span>}
                       {p.timezone && <span>🌍 {p.timezone}</span>}
@@ -233,7 +232,7 @@ export default function People() {
                     {/* Skills */}
                     {p.skills && p.skills.length > 0 && (
                       <div style={{ marginBottom: 12 }}>
-                        <div style={{ fontSize: 10, fontWeight: 600, color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Skills</div>
+                        <div style={{ fontSize: 10, fontWeight: 400, color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Skills</div>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {p.skills.map((s, i) => (
                             <span key={i} style={{ padding: '2px 10px', borderRadius: 6, fontSize: 11, background: theme.accentBg, color: theme.accent }}>{s}</span>
@@ -245,7 +244,7 @@ export default function People() {
                     {/* Projects Assigned */}
                     {p.projects_assigned && p.projects_assigned.length > 0 && (
                       <div style={{ marginBottom: 12 }}>
-                        <div style={{ fontSize: 10, fontWeight: 600, color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Projects</div>
+                        <div style={{ fontSize: 10, fontWeight: 400, color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Projects</div>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {p.projects_assigned.map((proj, i) => (
                             <span key={i} style={{ padding: '2px 10px', borderRadius: 6, fontSize: 11, background: theme.border, color: theme.textSecondary }}>{proj}</span>
@@ -273,10 +272,10 @@ export default function People() {
           alignItems: 'center', justifyContent: 'center', zIndex: 1000,
         }} onClick={() => setShowCreate(false)}>
           <div style={{
-            background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 16,
+            background: theme.cardBg, border: `1px solid ${theme.border}`, borderRadius: 16,
             padding: 32, width: 480, maxHeight: '85vh', overflowY: 'auto',
           }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: theme.text, margin: '0 0 24px' }}>Add Person</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 400, color: theme.text, margin: '0 0 24px' }}>Add Person</h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
@@ -337,7 +336,7 @@ export default function People() {
               }}>Cancel</button>
               <button onClick={handleCreate} disabled={saving || !form.display_name.trim()} style={{
                 padding: '10px 24px', background: theme.accent, color: theme.text, border: 'none',
-                borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                borderRadius: 10, fontSize: 14, fontWeight: 400, cursor: 'pointer',
                 opacity: saving || !form.display_name.trim() ? 0.5 : 1,
               }}>{saving ? 'Adding...' : 'Add Person'}</button>
             </div>

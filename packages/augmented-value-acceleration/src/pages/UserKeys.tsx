@@ -139,7 +139,7 @@ export default function UserKeys() {
           background: theme.greenBg, border: `1px solid ${theme.green}40`,
           borderRadius: theme.radiusLg, padding: 20, marginBottom: 24,
         }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: theme.green, marginBottom: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 400, color: theme.green, marginBottom: 8 }}>
             Key created successfully. Copy it now — it will not be shown again.
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -167,7 +167,7 @@ export default function UserKeys() {
       {/* Create Form */}
       {showCreate && !createdKey && (
         <div style={{ ...cardStyle, marginBottom: 24 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 600, color: theme.text, margin: '0 0 16px 0' }}>New API Key</h2>
+          <h2 style={{ fontSize: 14, fontWeight: 400, color: theme.text, margin: '0 0 16px 0' }}>New API Key</h2>
           <form onSubmit={createKey}>
             <div style={labelStyle}>Key Name</div>
             <input
@@ -198,7 +198,7 @@ export default function UserKeys() {
       {!loading && keys.length === 0 && (
         <div style={emptyStateStyle}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>&#128273;</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: theme.textSecondary, marginBottom: 8 }}>No API keys</div>
+          <div style={{ fontSize: 16, fontWeight: 400, color: theme.textSecondary, marginBottom: 8 }}>No API keys</div>
           <div style={{ fontSize: 14, color: theme.textMuted }}>Create a key to authenticate with the Ava API.</div>
         </div>
       )}
@@ -222,7 +222,7 @@ export default function UserKeys() {
                     </div>
                   ) : (
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 500, color: theme.text, marginBottom: 4 }}>{key.name}</div>
+                      <div style={{ fontSize: 14, fontWeight: 400, color: theme.text, marginBottom: 4 }}>{key.name}</div>
                       <code style={{ fontSize: 11, color: theme.textMuted, fontFamily: 'monospace' }}>
                         {revealedId === key.id ? key.key_hash : maskKey(key.key_prefix)}
                       </code>

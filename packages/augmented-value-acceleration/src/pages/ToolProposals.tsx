@@ -77,7 +77,7 @@ export default function ToolProposals() {
         <PageHeader title="Tool Proposals" subtitle="Community-submitted tool proposals for Ava." />
         <div style={{ ...cardStyle, padding: 40, textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>&#128736;</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: theme.textSecondary, marginBottom: 8 }}>Table Not Found</div>
+          <div style={{ fontSize: 16, fontWeight: 400, color: theme.textSecondary, marginBottom: 8 }}>Table Not Found</div>
           <div style={{ fontSize: 13, color: theme.textMuted, maxWidth: 400, margin: '0 auto', lineHeight: 1.6 }}>
             The <code style={{ background: theme.inputBg, padding: '2px 6px', borderRadius: 4, fontSize: 12 }}>tool_proposals</code> table
             does not exist yet. Create it in Supabase to enable community tool proposals.
@@ -122,8 +122,8 @@ export default function ToolProposals() {
           { label: 'Shipped', value: stats.shipped, color: theme.green },
         ].map(s => (
           <div key={s.label} style={statCardStyle}>
-            <div style={{ fontSize: 11, fontWeight: 500, color: theme.textMuted }}>{s.label}</div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: s.color, marginTop: 4 }}>{loading ? '...' : s.value}</div>
+            <div style={{ fontSize: 11, fontWeight: 400, color: theme.textMuted }}>{s.label}</div>
+            <div style={{ fontSize: 28, fontWeight: 400, color: s.color, marginTop: 4 }}>{loading ? '...' : s.value}</div>
           </div>
         ))}
       </div>
@@ -172,11 +172,11 @@ export default function ToolProposals() {
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
                         minWidth: 40, padding: '4px 0',
                       }}>
-                        <span style={{ fontSize: 18, fontWeight: 700, color: theme.accent }}>{proposal.votes}</span>
+                        <span style={{ fontSize: 18, fontWeight: 400, color: theme.accent }}>{proposal.votes}</span>
                         <span style={{ fontSize: 9, color: theme.textMuted }}>votes</span>
                       </div>
                       <span style={chipStyle(ss.bg, ss.text)}>{ss.label}</span>
-                      <span style={{ fontSize: 14, fontWeight: 500, color: theme.text, flex: 1 }}>{proposal.title}</span>
+                      <span style={{ fontSize: 14, fontWeight: 400, color: theme.text, flex: 1 }}>{proposal.title}</span>
                       {proposal.submitted_by && (
                         <span style={{ fontSize: 11, color: theme.textMuted }}>by {proposal.submitted_by}</span>
                       )}

@@ -40,17 +40,17 @@ export default function TitleBar() {
         justifyContent: 'space-between',
         height: 48,
         padding: '0 20px',
-        background: '#0d0d20',
-        borderBottom: '1px solid #1f1f3a',
+        background: '#0f0a1a',
+        borderBottom: '1px solid rgba(168, 85, 247, 0.12)',
         userSelect: 'none',
         flexShrink: 0,
       }}
     >
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 16, fontWeight: 800, color: '#a855f7' }}>AVA</span>
+        <span style={{ fontSize: 16, fontWeight: 400, color: '#a855f7' }}>AVA</span>
         <span style={{ fontSize: 12, color: '#4b5563' }}>|</span>
-        <span style={{ fontSize: 13, fontWeight: 500, color: '#9ca3af', letterSpacing: '0.5px' }}>
+        <span style={{ fontSize: 13, fontWeight: 300, color: '#9ca3af', letterSpacing: '0.5px' }}>
           Augmented Value Acceleration
         </span>
       </div>
