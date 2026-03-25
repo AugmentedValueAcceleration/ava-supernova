@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuth } from './lib/auth';
 import TitleBar from './components/TitleBar';
 import Sidebar, { type Page } from './components/Sidebar';
 import AvaChat from './components/AvaChat';
 import Dashboard from './pages/Dashboard';
 import CreativeStudio from './pages/CreativeStudio';
+import Library from './pages/Library';
 import News from './pages/News';
 import Financials from './pages/Financials';
 import Planner from './pages/Planner';
@@ -39,6 +40,7 @@ import Login from './pages/Login';
 const PAGE_MAP: Record<Page, React.ComponentType<{ onNavigate?: (page: string) => void }>> = {
   'dashboard': Dashboard,
   'creative-studio': CreativeStudio,
+  'library': Library,
   'news': News,
   'financials': Financials,
   'planner': Planner,
@@ -72,7 +74,12 @@ const PAGE_MAP: Record<Page, React.ComponentType<{ onNavigate?: (page: string) =
 
 export default function App() {
   const [activePage, setActivePage] = useState<Page>('dashboard');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { isAuthenticated, loading } = useAuth();
+
+  const handleCollapsedChange = useCallback((collapsed: boolean) => {
+    setSidebarCollapsed(collapsed);
+  }, []);
 
   // Show loading screen while checking auth state
   if (loading) {
@@ -106,8 +113,8 @@ export default function App() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       <TitleBar />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <Sidebar activePage={activePage} onNavigate={setActivePage} />
-        <main style={{ flex: 1, overflow: 'hidden' }}>
+        <Sidebar activePage={activePage} onNavigate={setActivePage} onCollapsedChange={handleCollapsedChange} />
+        <main style={{ flex: 1, overflow: 'hidden', transition: 'margin-left 200ms ease' }}>
           <PageComponent onNavigate={(p) => setActivePage(p as Page)} />
         </main>
       </div>

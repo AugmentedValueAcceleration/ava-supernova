@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { theme } from '../lib/theme';
 
-type Page = 'dashboard' | 'creative-studio' | 'news' | 'financials' | 'planner' |
+type Page = 'dashboard' | 'creative-studio' | 'library' | 'news' | 'financials' | 'planner' |
   'projects' | 'tasks' | 'crm' | 'documents' | 'people' | 'communication' |
   'learning' | 'security' | 'audit-log' | 'compliance' | 'feedback' | 'support' | 'coupons' | 'settings' |
   'plugins' | 'users' | 'admin-billing' | 'models' | 'demo' | 'roadmap' | 'tool-proposals' |
@@ -10,6 +10,7 @@ type Page = 'dashboard' | 'creative-studio' | 'news' | 'financials' | 'planner' 
 interface SidebarProps {
   activePage: Page;
   onNavigate: (page: Page) => void;
+  onCollapsedChange?: (collapsed: boolean) => void;
 }
 
 interface NavItem {
@@ -22,6 +23,8 @@ interface NavSection {
   title: string;
   items: NavItem[];
 }
+
+const STORAGE_KEY = 'ava-platform-sidebar-collapsed';
 
 const ChevronIcon = ({ open }: { open: boolean }) => (
   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"
@@ -47,6 +50,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'BUSINESS',
     items: [
       { id: 'creative-studio', label: 'Creative Studio', icon: <I d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /> },
+      { id: 'library', label: 'Library', icon: <I d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /> },
       { id: 'news', label: 'News', icon: <I d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2" /> },
       { id: 'financials', label: 'Financials', icon: <I d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /> },
       { id: 'planner', label: 'Planner', icon: <I d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /> },
@@ -107,45 +111,86 @@ const NAV_SECTIONS: NavSection[] = [
 
 export type { Page };
 
-export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+export default function Sidebar({ activePage, onNavigate, onCollapsedChange }: SidebarProps) {
+  const [sectionCollapsed, setSectionCollapsed] = useState<Record<string, boolean>>({});
+
+  // Sidebar collapse state — persisted to localStorage
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    try { return localStorage.getItem(STORAGE_KEY) === 'true'; }
+    catch { return false; }
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, String(isCollapsed)); }
+    catch { /* noop */ }
+    onCollapsedChange?.(isCollapsed);
+  }, [isCollapsed, onCollapsedChange]);
 
   const toggleSection = (title: string) => {
-    setCollapsed(prev => ({ ...prev, [title]: !prev[title] }));
+    setSectionCollapsed(prev => ({ ...prev, [title]: !prev[title] }));
   };
+
+  const sidebarWidth = isCollapsed ? 56 : 260;
 
   return (
     <div style={{
-      display: 'flex', flexDirection: 'column', width: 260, flexShrink: 0,
-      overflowY: 'auto', background: theme.surfaceBg, borderRight: `1px solid ${theme.border}`, backdropFilter: 'blur(20px)',
+      display: 'flex', flexDirection: 'column', width: sidebarWidth, flexShrink: 0,
+      overflowY: 'auto', overflowX: 'hidden',
+      background: theme.surfaceBg, borderRight: `1px solid ${theme.border}`, backdropFilter: 'blur(20px)',
+      transition: 'width 200ms ease',
     }}>
-      <nav style={{ flex: 1, padding: '20px 16px' }}>
-        {NAV_SECTIONS.map((section, si) => (
-          <div key={section.title} style={{ marginTop: si > 0 ? 24 : 0 }}>
-            <button
-              onClick={() => toggleSection(section.title)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                width: '100%',
-                padding: '4px 8px',
-                marginBottom: 8,
-                fontSize: 10,
-                fontWeight: 400,
-                letterSpacing: '1.5px',
-                textTransform: 'uppercase' as const,
-                color: theme.textMuted,
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              <ChevronIcon open={!collapsed[section.title]} />
-              <span>{section.title}</span>
-            </button>
+      {/* Collapse toggle */}
+      <div style={{ display: 'flex', justifyContent: isCollapsed ? 'center' : 'flex-end', padding: isCollapsed ? '12px 0' : '12px 12px 0 0' }}>
+        <button
+          onClick={() => setIsCollapsed(c => !c)}
+          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 24, height: 24, borderRadius: 6,
+            background: 'transparent', border: 'none',
+            color: theme.textMuted, cursor: 'pointer', transition: 'color 0.15s',
+          }}
+          onMouseOver={e => { e.currentTarget.style.color = theme.accent; }}
+          onMouseOut={e => { e.currentTarget.style.color = theme.textMuted; }}
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+            style={{ transform: isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 200ms ease' }}>
+            <path d="M9 2L4 7l5 5" />
+          </svg>
+        </button>
+      </div>
 
-            {!collapsed[section.title] && (
+      <nav style={{ flex: 1, padding: isCollapsed ? '8px 4px' : '8px 16px 20px' }}>
+        {NAV_SECTIONS.map((section, si) => (
+          <div key={section.title} style={{ marginTop: si > 0 ? (isCollapsed ? 12 : 24) : 0 }}>
+            {/* Section header — hidden when collapsed */}
+            {!isCollapsed && (
+              <button
+                onClick={() => toggleSection(section.title)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  width: '100%',
+                  padding: '4px 8px',
+                  marginBottom: 8,
+                  fontSize: 10,
+                  fontWeight: 400,
+                  letterSpacing: '1.5px',
+                  textTransform: 'uppercase' as const,
+                  color: theme.textMuted,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                <ChevronIcon open={!sectionCollapsed[section.title]} />
+                <span>{section.title}</span>
+              </button>
+            )}
+
+            {/* Items — always visible when collapsed; respect section toggle when expanded */}
+            {(isCollapsed || !sectionCollapsed[section.title]) && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {section.items.map((item) => {
                   const isActive = activePage === item.id;
@@ -153,12 +198,14 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
                     <button
                       key={item.id}
                       onClick={() => onNavigate(item.id)}
+                      title={isCollapsed ? item.label : undefined}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 10,
+                        justifyContent: isCollapsed ? 'center' : 'flex-start',
+                        gap: isCollapsed ? 0 : 10,
                         width: '100%',
-                        padding: '10px 14px',
+                        padding: isCollapsed ? '10px 0' : '10px 14px',
                         borderRadius: theme.radiusSm,
                         fontSize: 13,
                         fontWeight: 400,
@@ -167,14 +214,16 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
                         border: 'none',
                         cursor: 'pointer',
                         transition: 'all 0.15s',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
                       }}
                       onMouseOver={(e) => { if (!isActive) e.currentTarget.style.background = theme.hoverBg; }}
                       onMouseOut={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
                     >
-                      <span style={{ color: isActive ? theme.accent : theme.textMuted }}>
+                      <span style={{ color: isActive ? theme.accent : theme.textMuted, flexShrink: 0 }}>
                         {item.icon}
                       </span>
-                      {item.label}
+                      {!isCollapsed && item.label}
                     </button>
                   );
                 })}
@@ -184,20 +233,28 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
         ))}
       </nav>
 
-      {/* User */}
-      <div style={{ padding: '16px 20px', marginTop: 'auto', borderTop: `1px solid ${theme.border}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      {/* User card */}
+      <div style={{
+        padding: isCollapsed ? '12px 0' : '16px 20px',
+        marginTop: 'auto',
+        borderTop: `1px solid ${theme.border}`,
+        display: 'flex',
+        justifyContent: isCollapsed ? 'center' : 'flex-start',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : 12 }}>
           <div style={{
-            width: 36, height: 36, borderRadius: '50%',
+            width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 13, fontWeight: 400, background: theme.accent, color: '#fff',
           }}>
             SV
           </div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 400, color: theme.text }}>Stewart Vincent</div>
-            <div style={{ fontSize: 11, color: theme.textMuted }}>Admin</div>
-          </div>
+          {!isCollapsed && (
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 400, color: theme.text }}>Stewart Vincent</div>
+              <div style={{ fontSize: 11, color: theme.textMuted }}>Admin</div>
+            </div>
+          )}
         </div>
       </div>
     </div>
