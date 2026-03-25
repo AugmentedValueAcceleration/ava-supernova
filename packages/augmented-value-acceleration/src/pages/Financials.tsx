@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import PageHeader from '../components/PageHeader';
-import { theme } from '../lib/theme';
+import { theme, statCardStyle, inputStyle } from '../lib/theme';
 
 /* ── Research-backed constants ───────────────────────────────────────────── */
 
@@ -19,7 +19,7 @@ import { theme } from '../lib/theme';
 //   Windsurf: acquired for $250M
 //
 // Conversion: OSS dev tools 1-3% free→paid, top quartile 3-5%
-// Ava traction: 1,234+ VS Code installs in 2 weeks, zero marketing, ~100/day velocity (accelerating), 1618% conversion
+// Ava traction: 1,354+ VS Code installs in 2 weeks, zero marketing, ~100/day velocity (accelerating), 1618% conversion
 // First live stream: 17 installs during stream, daily streaming planned
 // Ava pricing: Pro $19/mo, Ultra $39/mo, Enterprise $79/mo (Qwen at 50% enterprise pricing)
 // Top-ups: 3M/$3, 10M/$8, 25M/$15
@@ -107,7 +107,7 @@ const conservative = buildScenario(
   ],
   [
     'Zero external funding — fully bootstrapped and self-sustaining',
-    'Based on ACTUAL traction: 1,234+ installs in 2 weeks, ~100/day and accelerating',
+    'Based on ACTUAL traction: 1,354+ installs in 2 weeks, ~100/day and accelerating',
     'Daily live streams driving 17+ installs per stream session',
     'Organic growth: VS Code Marketplace, GitHub, Twitch, YouTube, word of mouth',
     '3% conversion rate (OSS dev tool benchmark: 1-3%, top quartile: 3-5%)',
@@ -133,7 +133,7 @@ const realistic = buildScenario(
   ],
   [
     'Seed round (NGI, Sovereign Tech Fund, or angel)',
-    'Based on ACTUAL traction: 1,234+ installs in 2 weeks at 100/day, accelerating with daily streams',
+    'Based on ACTUAL traction: 1,354+ installs in 2 weeks at 100/day, accelerating with daily streams',
     'First live stream: 17 installs during session, project giveaway model drives retention',
     'Team of 2-3 by Year 2, growing to 4-5 by Year 4',
     'Companion app (Capacitor) drives mobile adoption and education use case',
@@ -158,7 +158,7 @@ const optimistic = buildScenario(
   ],
   [
     'Funding: seed → Series A by Year 2',
-    'Based on ACTUAL traction: 1,234+ installs in 2 weeks at 100/day → viral with marketing + daily streams',
+    'Based on ACTUAL traction: 1,354+ installs in 2 weeks at 100/day → viral with marketing + daily streams',
     'Daily live streams + project giveaways create viral loop and YouTube content library',
     'Teach mode drives education adoption — schools, bootcamps, developing countries',
     'Enterprise tier ($79/mo) + top-ups drive blended ARPU up to ~$14/mo by Year 5',
@@ -455,7 +455,7 @@ const objectives: Objective[] = [
     priority: 'high',
     funding: [],
     description:
-      'With 1,234+ installs growing fast, the extension needs to be rock solid. Unit tests, integration tests, edge case handling, and UX polish.',
+      'With 1,354+ installs growing fast, the extension needs to be rock solid. Unit tests, integration tests, edge case handling, and UX polish.',
     activities: [
       { text: 'Unit tests for all 47 tool implementations', done: false },
       { text: 'Integration tests for provider failover and resilience', done: false },
@@ -550,30 +550,9 @@ function pct(n: number): string {
 
 /* ── Shared style constants ──────────────────────────────────────────────── */
 
-const colors = {
-  pageBg: theme.pageBg,
-  cardBg: theme.cardBg,
-  border: theme.border,
-  inputBg: theme.inputBg,
-  purple: theme.accent,
-  text: theme.text,
-  textSecondary: theme.textSecondary,
-  textMuted: theme.textMuted,
-  blue: theme.blue,
-  blueBg: theme.blueBg,
-  green: theme.green,
-  greenBg: theme.greenBg,
-  amber: theme.yellow,
-  amberBg: theme.yellowBg,
-  red: theme.red,
-  redBg: theme.redBg,
-  orange: theme.orange,
-  orangeBg: theme.orangeBg,
-};
-
 const cardStyle: React.CSSProperties = {
-  background: colors.cardBg,
-  border: `1px solid ${colors.border}`,
+  background: theme.cardBg,
+  border: 'none',
   borderRadius: theme.radiusLg,
   padding: theme.cardPadding,
 };
@@ -589,10 +568,191 @@ const chipStyle = (bg: string, color: string): React.CSSProperties => ({
 });
 
 const statBoxStyle: React.CSSProperties = {
-  background: colors.inputBg,
+  background: theme.inputBg,
   borderRadius: theme.radiusSm,
   padding: 14,
 };
+
+/* ── Days until launch helper ────────────────────────────────────────────── */
+
+function getDaysToLaunch(): number {
+  const launch = new Date('2026-04-13T00:00:00');
+  const now = new Date();
+  const diff = launch.getTime() - now.getTime();
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
+/* ── Dashboard Tab ───────────────────────────────────────────────────────── */
+
+function DashboardTab() {
+  const [installs, setInstalls] = useState(() => {
+    const saved = localStorage.getItem('ava-platform-installs');
+    return saved ? parseInt(saved, 10) : 1354;
+  });
+  const [signups, setSignups] = useState(() => {
+    const saved = localStorage.getItem('ava-platform-signups');
+    return saved ? parseInt(saved, 10) : 10;
+  });
+  const [dailyRate, setDailyRate] = useState(() => {
+    const saved = localStorage.getItem('ava-platform-daily-rate');
+    return saved ? parseInt(saved, 10) : 100;
+  });
+  const daysToLaunch = getDaysToLaunch();
+
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+
+  const startEdit = (key: string, current: number) => {
+    setEditing(key);
+    setEditValue(String(current));
+  };
+
+  const saveEdit = (key: string) => {
+    const val = parseInt(editValue, 10);
+    if (!isNaN(val) && val >= 0) {
+      if (key === 'installs') { setInstalls(val); localStorage.setItem('ava-platform-installs', String(val)); }
+      if (key === 'signups') { setSignups(val); localStorage.setItem('ava-platform-signups', String(val)); }
+      if (key === 'dailyRate') { setDailyRate(val); localStorage.setItem('ava-platform-daily-rate', String(val)); }
+    }
+    setEditing(null);
+  };
+
+  const cancelEdit = () => setEditing(null);
+
+  const projectedInstalls = installs + (dailyRate * daysToLaunch);
+
+  const kpis = [
+    { key: 'installs', label: 'VS Code Installs', value: installs, sub: 'Total lifetime', color: theme.accent, editable: true },
+    { key: 'signups', label: 'Platform Signups', value: signups, sub: 'Registered accounts', color: theme.blue, editable: true },
+    { key: 'dailyRate', label: 'Daily Install Rate', value: dailyRate, sub: 'Current velocity', color: theme.green, editable: true },
+    { key: 'daysToLaunch', label: 'Days to Launch', value: daysToLaunch, sub: 'April 13, 2026', color: theme.yellow, editable: false },
+  ];
+
+  const readinessItems: { label: string; status: string; detail?: string; statusColor: string; statusBg: string }[] = [
+    { label: 'Stripe Integration', status: 'pending', statusColor: theme.yellow, statusBg: theme.yellowBg },
+    { label: 'Plans Configured', status: 'configured', detail: '$19 / $39 / $79', statusColor: theme.blue, statusBg: theme.blueBg },
+    { label: 'Token Top-ups', status: 'pending', statusColor: theme.yellow, statusBg: theme.yellowBg },
+    { label: 'BYOK', status: 'live', statusColor: theme.green, statusBg: theme.greenBg },
+    { label: 'Free Tier', status: 'live', detail: '3M tokens', statusColor: theme.green, statusBg: theme.greenBg },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* KPI Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        {kpis.map((kpi) => (
+          <div key={kpi.key} style={{ ...statCardStyle, border: 'none' }}>
+            <div style={{ fontSize: 11, fontWeight: 400, color: theme.textMuted }}>{kpi.label}</div>
+            {editing === kpi.key ? (
+              <div style={{ marginTop: 6 }}>
+                <input
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveEdit(kpi.key);
+                    if (e.key === 'Escape') cancelEdit();
+                  }}
+                  autoFocus
+                  style={{
+                    ...inputStyle,
+                    width: 90,
+                    padding: '4px 8px',
+                    fontSize: 20,
+                    fontWeight: 300,
+                    textAlign: 'left',
+                  }}
+                />
+              </div>
+            ) : (
+              <div
+                style={{
+                  fontSize: 22,
+                  fontWeight: 300,
+                  color: kpi.color,
+                  marginTop: 6,
+                  lineHeight: 1,
+                  cursor: kpi.editable ? 'pointer' : 'default',
+                }}
+                onClick={() => kpi.editable && startEdit(kpi.key, kpi.value)}
+                title={kpi.editable ? 'Click to edit' : undefined}
+              >
+                {kpi.value.toLocaleString()}
+              </div>
+            )}
+            <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 6 }}>{kpi.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Growth Velocity */}
+      <div style={cardStyle}>
+        <h3 style={{ fontSize: 14, fontWeight: 400, color: theme.text, margin: '0 0 14px 0' }}>
+          Growth Velocity
+        </h3>
+        <div style={{ background: theme.inputBg, borderRadius: theme.radiusSm, padding: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 300, color: theme.textSecondary, lineHeight: 1.7 }}>
+            At current rate, projecting{' '}
+            <span style={{ fontWeight: 400, color: theme.accent, fontSize: 15 }}>
+              {projectedInstalls.toLocaleString()}
+            </span>{' '}
+            installs by launch
+          </div>
+          <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 8, fontFamily: 'monospace' }}>
+            {installs.toLocaleString()} current + ({dailyRate} / day x {daysToLaunch} days) = {projectedInstalls.toLocaleString()}
+          </div>
+          {/* Visual bar */}
+          <div style={{ marginTop: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: theme.textMuted, marginBottom: 4 }}>
+              <span>Current</span>
+              <span>Projected at launch</span>
+            </div>
+            <div style={{ height: 8, width: '100%', borderRadius: 9999, background: 'rgba(168,85,247,0.1)', position: 'relative' }}>
+              <div
+                style={{
+                  height: 8,
+                  borderRadius: 9999,
+                  background: `linear-gradient(90deg, ${theme.accent}, ${theme.blue})`,
+                  width: projectedInstalls > 0 ? `${Math.min(100, (installs / projectedInstalls) * 100)}%` : '0%',
+                  transition: 'width 0.3s',
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Revenue Readiness */}
+      <div style={cardStyle}>
+        <h3 style={{ fontSize: 14, fontWeight: 400, color: theme.text, margin: '0 0 14px 0' }}>
+          Revenue Readiness
+        </h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {readinessItems.map((item) => (
+            <div
+              key={item.label}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: theme.inputBg,
+                borderRadius: theme.radiusSm,
+                padding: '10px 14px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 13, fontWeight: 300, color: theme.text }}>{item.label}</span>
+                {item.detail && (
+                  <span style={{ fontSize: 11, color: theme.textMuted }}>{item.detail}</span>
+                )}
+              </div>
+              <span style={chipStyle(item.statusBg, item.statusColor)}>{item.status}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ── Market Context Panel ────────────────────────────────────────────────── */
 
@@ -605,7 +765,7 @@ function MarketContext() {
     { label: 'AI Productivity', value: '$17.0B', sub: '25% CAGR -> $41.1B by 2030' },
     { label: 'AI Companions', value: '$49.5B', sub: '31% CAGR -> $141B by 2030' },
     { label: 'Combined TAM', value: '$93B+', sub: 'Addressable across all markets (2026)' },
-    { label: 'Ava Traction', value: '1,234+', sub: '2 weeks, $0 marketing, ~100/day' },
+    { label: 'Ava Traction', value: '1,354+', sub: '2 weeks, $0 marketing, ~100/day' },
   ];
 
   const competitors = [
@@ -617,33 +777,33 @@ function MarketContext() {
 
   return (
     <div style={cardStyle}>
-      <h3 style={{ fontSize: 14, fontWeight: 400, color: colors.text, margin: '0 0 12px 0' }}>
+      <h3 style={{ fontSize: 14, fontWeight: 400, color: theme.text, margin: '0 0 12px 0' }}>
         Market Context (March 2026)
       </h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
         {marketData.map((item) => (
           <div key={item.label} style={statBoxStyle}>
-            <div style={{ fontSize: 11, color: colors.textMuted }}>{item.label}</div>
-            <div style={{ fontSize: 18, fontWeight: 400, color: colors.text }}>{item.value}</div>
-            <div style={{ fontSize: 11, color: colors.textSecondary }}>{item.sub}</div>
+            <div style={{ fontSize: 11, color: theme.textMuted }}>{item.label}</div>
+            <div style={{ fontSize: 18, fontWeight: 400, color: theme.text }}>{item.value}</div>
+            <div style={{ fontSize: 11, color: theme.textSecondary }}>{item.sub}</div>
           </div>
         ))}
       </div>
 
-      <h4 style={{ fontSize: 11, fontWeight: 400, color: colors.textMuted, margin: '16px 0 8px 0' }}>
+      <h4 style={{ fontSize: 11, fontWeight: 400, color: theme.textMuted, margin: '16px 0 8px 0' }}>
         Competitor Landscape
       </h4>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
         {competitors.map((item) => (
           <div key={item.label} style={statBoxStyle}>
-            <div style={{ fontSize: 11, color: colors.textMuted }}>{item.label}</div>
-            <div style={{ fontSize: 18, fontWeight: 400, color: colors.text }}>{item.value}</div>
-            <div style={{ fontSize: 11, color: colors.textSecondary }}>{item.sub}</div>
+            <div style={{ fontSize: 11, color: theme.textMuted }}>{item.label}</div>
+            <div style={{ fontSize: 18, fontWeight: 400, color: theme.text }}>{item.value}</div>
+            <div style={{ fontSize: 11, color: theme.textSecondary }}>{item.sub}</div>
           </div>
         ))}
       </div>
 
-      <p style={{ fontSize: 11, color: colors.textMuted, marginTop: 12, lineHeight: 1.6 }}>
+      <p style={{ fontSize: 11, color: theme.textMuted, marginTop: 12, lineHeight: 1.6 }}>
         Ava&apos;s unique position: open-source agentic coding agent with built-in personal tutor, AI companion,
         and 11-persona system — straddles multiple high-growth markets with a single platform.
         Priced at $19/mo Pro, $39/mo Ultra, $79/mo Enterprise (Qwen at 50% enterprise pricing). 1618% conversion rate on VS Code Marketplace.
@@ -657,7 +817,7 @@ function MarketContext() {
 function MiniBar({ value, max, color }: { value: number; max: number; color: string }) {
   const width = max > 0 ? Math.max(2, (value / max) * 100) : 0;
   return (
-    <div style={{ height: 12, width: '100%', borderRadius: 9999, background: colors.inputBg }}>
+    <div style={{ height: 12, width: '100%', borderRadius: 9999, background: theme.inputBg }}>
       <div style={{ height: 12, borderRadius: 9999, background: color, width: `${width}%` }} />
     </div>
   );
@@ -679,22 +839,22 @@ function ScenarioCard({ scenario }: { scenario: Scenario }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <span style={chipStyle(scenario.colorBg, scenario.color)}>{scenario.label}</span>
-        <span style={{ fontSize: 11, color: colors.textMuted }}>{scenario.description}</span>
+        <span style={{ fontSize: 11, color: theme.textMuted }}>{scenario.description}</span>
       </div>
 
       {/* Summary stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
         <div style={{ ...statBoxStyle, textAlign: 'center' }}>
-          <div style={{ fontSize: 11, color: colors.textMuted }}>Year 5 ARR</div>
+          <div style={{ fontSize: 11, color: theme.textMuted }}>Year 5 ARR</div>
           <div style={{ fontSize: 18, fontWeight: 400, color: scenario.color }}>{fmt(y5.arr)}</div>
         </div>
         <div style={{ ...statBoxStyle, textAlign: 'center' }}>
-          <div style={{ fontSize: 11, color: colors.textMuted }}>Year 5 Users</div>
-          <div style={{ fontSize: 18, fontWeight: 400, color: colors.text }}>{fmtUsers(y5.totalUsers)}</div>
+          <div style={{ fontSize: 11, color: theme.textMuted }}>Year 5 Users</div>
+          <div style={{ fontSize: 18, fontWeight: 400, color: theme.text }}>{fmtUsers(y5.totalUsers)}</div>
         </div>
         <div style={{ ...statBoxStyle, textAlign: 'center' }}>
-          <div style={{ fontSize: 11, color: colors.textMuted }}>Year 5 Net</div>
-          <div style={{ fontSize: 18, fontWeight: 400, color: y5.netArr >= 0 ? colors.green : colors.red }}>
+          <div style={{ fontSize: 11, color: theme.textMuted }}>Year 5 Net</div>
+          <div style={{ fontSize: 18, fontWeight: 400, color: y5.netArr >= 0 ? theme.green : theme.red }}>
             {fmt(y5.netArr)}
           </div>
         </div>
@@ -704,7 +864,7 @@ function ScenarioCard({ scenario }: { scenario: Scenario }) {
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ borderBottom: `1px solid ${colors.border}`, textAlign: 'left', fontSize: 11, color: colors.textMuted }}>
+            <tr style={{ borderBottom: `1px solid ${theme.border}`, textAlign: 'left', fontSize: 11, color: theme.textMuted }}>
               <th style={{ paddingBottom: 8, paddingRight: 12, fontWeight: 400 }}>Year</th>
               <th style={{ paddingBottom: 8, paddingRight: 12, fontWeight: 400 }}>Users</th>
               <th style={{ paddingBottom: 8, paddingRight: 12, fontWeight: 400 }}>Conv %</th>
@@ -718,15 +878,15 @@ function ScenarioCard({ scenario }: { scenario: Scenario }) {
           </thead>
           <tbody>
             {scenario.years.map((y) => (
-              <tr key={y.year} style={{ borderBottom: `1px solid ${colors.border}40` }}>
-                <td style={{ padding: '8px 12px 8px 0', fontWeight: 400, color: colors.text }}>{y.label}</td>
-                <td style={{ padding: '8px 12px 8px 0', color: colors.text }}>{fmtUsers(y.totalUsers)}</td>
-                <td style={{ padding: '8px 12px 8px 0', color: colors.text }}>{pct(y.conversionRate)}</td>
-                <td style={{ padding: '8px 12px 8px 0', color: colors.text }}>{fmtUsers(y.payingUsers)}</td>
-                <td style={{ padding: '8px 12px 8px 0', color: colors.text }}>{fmt(y.mrr)}</td>
+              <tr key={y.year} style={{ borderBottom: `1px solid ${theme.border}40` }}>
+                <td style={{ padding: '8px 12px 8px 0', fontWeight: 400, color: theme.text }}>{y.label}</td>
+                <td style={{ padding: '8px 12px 8px 0', color: theme.text }}>{fmtUsers(y.totalUsers)}</td>
+                <td style={{ padding: '8px 12px 8px 0', color: theme.text }}>{pct(y.conversionRate)}</td>
+                <td style={{ padding: '8px 12px 8px 0', color: theme.text }}>{fmtUsers(y.payingUsers)}</td>
+                <td style={{ padding: '8px 12px 8px 0', color: theme.text }}>{fmt(y.mrr)}</td>
                 <td style={{ padding: '8px 12px 8px 0', fontWeight: 400, color: scenario.color }}>{fmt(y.arr)}</td>
-                <td style={{ padding: '8px 12px 8px 0', color: colors.textMuted }}>{fmt(y.costs)}</td>
-                <td style={{ padding: '8px 12px 8px 0', fontWeight: 400, color: y.netArr >= 0 ? colors.green : colors.red }}>
+                <td style={{ padding: '8px 12px 8px 0', color: theme.textMuted }}>{fmt(y.costs)}</td>
+                <td style={{ padding: '8px 12px 8px 0', fontWeight: 400, color: y.netArr >= 0 ? theme.green : theme.red }}>
                   {fmt(y.netArr)}
                 </td>
                 <td style={{ padding: '8px 0', width: 96 }}>
@@ -745,21 +905,21 @@ function ScenarioCard({ scenario }: { scenario: Scenario }) {
           style={{
             background: 'none',
             border: 'none',
-            color: colors.textMuted,
+            color: theme.textMuted,
             fontSize: 11,
             cursor: 'pointer',
             padding: 0,
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = colors.text)}
-          onMouseLeave={(e) => (e.currentTarget.style.color = colors.textMuted)}
+          onMouseEnter={(e) => (e.currentTarget.style.color = theme.text)}
+          onMouseLeave={(e) => (e.currentTarget.style.color = theme.textMuted)}
         >
           {showAssumptions ? 'Hide' : 'View'} assumptions
         </button>
         {showAssumptions && (
           <ul style={{ marginTop: 8, padding: 0, listStyle: 'none' }}>
             {scenario.assumptions.map((a, i) => (
-              <li key={i} style={{ display: 'flex', gap: 8, fontSize: 11, color: colors.textSecondary, marginBottom: 4 }}>
-                <span style={{ flexShrink: 0, color: colors.textMuted }}>&bull;</span>
+              <li key={i} style={{ display: 'flex', gap: 8, fontSize: 11, color: theme.textSecondary, marginBottom: 4 }}>
+                <span style={{ flexShrink: 0, color: theme.textMuted }}>&bull;</span>
                 {a}
               </li>
             ))}
@@ -777,7 +937,7 @@ function ComparisonChart() {
 
   return (
     <div style={cardStyle}>
-      <h3 style={{ fontSize: 14, fontWeight: 400, color: colors.text, margin: '0 0 16px 0' }}>
+      <h3 style={{ fontSize: 14, fontWeight: 400, color: theme.text, margin: '0 0 16px 0' }}>
         5-Year ARR Comparison
       </h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -787,12 +947,12 @@ function ComparisonChart() {
           const o = optimistic.years[yr - 1];
           return (
             <div key={yr}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, color: colors.textMuted, marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, color: theme.textMuted, marginBottom: 4 }}>
                 <span>Year {yr}</span>
                 <span style={{ display: 'flex', gap: 16 }}>
-                  <span style={{ color: colors.blue }}>{fmt(c.arr)}</span>
-                  <span style={{ color: colors.green }}>{fmt(r.arr)}</span>
-                  <span style={{ color: colors.amber }}>{fmt(o.arr)}</span>
+                  <span style={{ color: theme.blue }}>{fmt(c.arr)}</span>
+                  <span style={{ color: theme.green }}>{fmt(r.arr)}</span>
+                  <span style={{ color: theme.yellow }}>{fmt(o.arr)}</span>
                 </span>
               </div>
               <div style={{ display: 'flex', gap: 4 }}>
@@ -804,7 +964,7 @@ function ComparisonChart() {
           );
         })}
       </div>
-      <div style={{ display: 'flex', gap: 16, fontSize: 11, color: colors.textMuted, marginTop: 12 }}>
+      <div style={{ display: 'flex', gap: 16, fontSize: 11, color: theme.textMuted, marginTop: 12 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 9999, background: '#3b82f6' }} /> Conservative
         </span>
@@ -827,7 +987,7 @@ function UnitEconomics() {
     { label: 'Ultra Tier', value: '$39/mo', sub: '40M tokens included' },
     { label: 'Enterprise', value: '$79/mo', sub: '100M tokens, SSO, priority' },
     { label: 'Free->Paid Conv.', value: '3-5%', sub: 'OSS benchmark: 1-3%, top quartile: 3-5%' },
-    { label: 'CAC (organic)', value: '~$0', sub: '1,234+ installs, $0 marketing' },
+    { label: 'CAC (organic)', value: '~$0', sub: '1,354+ installs, $0 marketing' },
     { label: 'Our Cost (Qwen)', value: '~$0.30/M', sub: 'Blended cost at 50% enterprise pricing' },
     { label: 'Gross Margin', value: '62-76%', sub: 'Depending on tier, BYOK = zero cost' },
     { label: 'Combined TAM', value: '$93B+', sub: 'Addressable markets (2026)' },
@@ -835,15 +995,15 @@ function UnitEconomics() {
 
   return (
     <div style={cardStyle}>
-      <h3 style={{ fontSize: 14, fontWeight: 400, color: colors.text, margin: '0 0 12px 0' }}>
+      <h3 style={{ fontSize: 14, fontWeight: 400, color: theme.text, margin: '0 0 12px 0' }}>
         Unit Economics &amp; Key Metrics
       </h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
         {metrics.map((m) => (
           <div key={m.label} style={statBoxStyle}>
-            <div style={{ fontSize: 11, color: colors.textMuted }}>{m.label}</div>
-            <div style={{ fontSize: 15, fontWeight: 400, color: colors.text }}>{m.value}</div>
-            <div style={{ fontSize: 11, color: colors.textSecondary }}>{m.sub}</div>
+            <div style={{ fontSize: 11, color: theme.textMuted }}>{m.label}</div>
+            <div style={{ fontSize: 15, fontWeight: 400, color: theme.text }}>{m.value}</div>
+            <div style={{ fontSize: 11, color: theme.textSecondary }}>{m.sub}</div>
           </div>
         ))}
       </div>
@@ -895,14 +1055,14 @@ function RevenueStreams() {
 
   return (
     <div style={cardStyle}>
-      <h3 style={{ fontSize: 14, fontWeight: 400, color: colors.text, margin: '0 0 12px 0' }}>Revenue Streams</h3>
+      <h3 style={{ fontSize: 14, fontWeight: 400, color: theme.text, margin: '0 0 12px 0' }}>Revenue Streams</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {streams.map((s) => (
-          <div key={s.name} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: colors.inputBg, borderRadius: 8, padding: 12 }}>
+          <div key={s.name} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: theme.inputBg, borderRadius: 8, padding: 12 }}>
             <div style={{
               flexShrink: 0,
               background: 'rgba(168,85,247,0.2)',
-              color: colors.purple,
+              color: theme.accent,
               fontSize: 11,
               fontWeight: 400,
               borderRadius: 6,
@@ -912,10 +1072,10 @@ function RevenueStreams() {
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 400, color: colors.text }}>{s.name}</span>
+                <span style={{ fontSize: 13, fontWeight: 400, color: theme.text }}>{s.name}</span>
                 <span style={{
-                  background: colors.cardBg,
-                  color: colors.textMuted,
+                  background: theme.cardBg,
+                  color: theme.textMuted,
                   fontSize: 10,
                   borderRadius: 9999,
                   padding: '2px 8px',
@@ -923,7 +1083,7 @@ function RevenueStreams() {
                   {s.timeline}
                 </span>
               </div>
-              <p style={{ fontSize: 11, color: colors.textSecondary, marginTop: 4, margin: '4px 0 0 0' }}>{s.desc}</p>
+              <p style={{ fontSize: 11, color: theme.textSecondary, marginTop: 4, margin: '4px 0 0 0' }}>{s.desc}</p>
             </div>
           </div>
         ))}
@@ -932,18 +1092,167 @@ function RevenueStreams() {
   );
 }
 
+/* ── Funding Tab ─────────────────────────────────────────────────────────── */
+
+function FundingTab() {
+  const fundingApplications = [
+    {
+      name: 'NGI Zero Commons Fund',
+      org: 'NLnet Foundation',
+      status: 'Submitted' as const,
+      amount: '\u20AC50,000',
+      deadline: 'April 1, 2026',
+      description: 'Supporting open-source digital infrastructure with a focus on privacy, security, and trust. Funds open-source projects that contribute to an open internet.',
+      linkedObjectives: objectives.filter((o) => o.funding.includes('NGI Zero Commons')),
+    },
+    {
+      name: 'Sovereign Tech Fund',
+      org: 'German Federal Government',
+      status: 'In Progress' as const,
+      amount: '\u20AC50K+',
+      deadline: 'Rolling',
+      description: 'Investing in the maintenance and improvement of critical open-source digital infrastructure. No upper funding limit for qualifying projects.',
+      linkedObjectives: objectives.filter((o) => o.funding.includes('Sovereign Tech Fund')),
+    },
+  ];
+
+  const statusStyles: Record<string, { color: string; bg: string }> = {
+    'Submitted': { color: theme.green, bg: theme.greenBg },
+    'In Progress': { color: theme.yellow, bg: theme.yellowBg },
+  };
+
+  // Build mapping: requirement key -> objective ids
+  const requirementMapping: { fund: string; requirement: string; objectiveIds: string[] }[] = [
+    { fund: 'NGI Zero Commons', requirement: 'Security audit and hardening', objectiveIds: ['security'] },
+    { fund: 'NGI Zero Commons', requirement: 'Testing infrastructure', objectiveIds: ['testing'] },
+    { fund: 'NGI Zero Commons', requirement: 'Teaching and learning system', objectiveIds: ['learning'] },
+    { fund: 'NGI Zero Commons', requirement: 'Documentation and community', objectiveIds: ['community'] },
+    { fund: 'NGI Zero Commons', requirement: 'European team building', objectiveIds: ['team'] },
+    { fund: 'Sovereign Tech Fund', requirement: 'Security hardening', objectiveIds: ['security'] },
+    { fund: 'Sovereign Tech Fund', requirement: 'Testing and resilience', objectiveIds: ['testing', 'resilience'] },
+    { fund: 'Sovereign Tech Fund', requirement: 'Multi-platform support', objectiveIds: ['platform'] },
+    { fund: 'Sovereign Tech Fund', requirement: 'European team building', objectiveIds: ['team'] },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Funding Application Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+        {fundingApplications.map((app) => {
+          const st = statusStyles[app.status];
+          const completeCount = app.linkedObjectives.filter((o) => o.status === 'complete').length;
+          const totalLinked = app.linkedObjectives.length;
+          const progressPct = totalLinked > 0 ? Math.round((completeCount / totalLinked) * 100) : 0;
+
+          return (
+            <div key={app.name} style={cardStyle}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 400, color: theme.text }}>{app.name}</div>
+                  <div style={{ fontSize: 11, color: theme.textMuted, marginTop: 2 }}>{app.org}</div>
+                </div>
+                <span style={chipStyle(st.bg, st.color)}>{app.status}</span>
+              </div>
+
+              <p style={{ fontSize: 11, color: theme.textSecondary, lineHeight: 1.6, margin: '0 0 14px 0' }}>
+                {app.description}
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 14 }}>
+                <div style={statBoxStyle}>
+                  <div style={{ fontSize: 10, color: theme.textMuted }}>Amount</div>
+                  <div style={{ fontSize: 15, fontWeight: 400, color: theme.text }}>{app.amount}</div>
+                </div>
+                <div style={statBoxStyle}>
+                  <div style={{ fontSize: 10, color: theme.textMuted }}>Deadline</div>
+                  <div style={{ fontSize: 15, fontWeight: 400, color: theme.text }}>{app.deadline}</div>
+                </div>
+              </div>
+
+              {/* Linked objectives progress */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: theme.textMuted, marginBottom: 4 }}>
+                  <span>{totalLinked} linked objectives</span>
+                  <span>{completeCount}/{totalLinked} complete</span>
+                </div>
+                <div style={{ height: 6, width: '100%', borderRadius: 9999, background: theme.inputBg }}>
+                  <div
+                    style={{
+                      height: 6,
+                      borderRadius: 9999,
+                      background: progressPct === 100 ? theme.green : theme.accent,
+                      width: `${progressPct}%`,
+                      transition: 'width 0.3s',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Requirement → Objective Mapping */}
+      <div style={cardStyle}>
+        <h3 style={{ fontSize: 14, fontWeight: 400, color: theme.text, margin: '0 0 14px 0' }}>
+          Requirement to Objective Mapping
+        </h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {requirementMapping.map((rm, idx) => {
+            const linkedObjs = rm.objectiveIds.map((id) => objectives.find((o) => o.id === id)).filter(Boolean) as Objective[];
+            const allComplete = linkedObjs.every((o) => o.status === 'complete');
+            const anyInProgress = linkedObjs.some((o) => o.status === 'in-progress');
+
+            return (
+              <div
+                key={idx}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: theme.inputBg,
+                  borderRadius: theme.radiusSm,
+                  padding: '8px 14px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                  <span style={chipStyle(theme.accentBg, theme.accent)}>{rm.fund}</span>
+                  <span style={{ fontSize: 12, fontWeight: 300, color: theme.text }}>{rm.requirement}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  {linkedObjs.map((o) => (
+                    <span key={o.id} style={{ fontSize: 10, color: theme.textMuted }}>{o.title.split(' ')[0]}</span>
+                  ))}
+                  <span
+                    style={chipStyle(
+                      allComplete ? theme.greenBg : anyInProgress ? theme.yellowBg : theme.inputBg,
+                      allComplete ? theme.green : anyInProgress ? theme.yellow : theme.textMuted,
+                    )}
+                  >
+                    {allComplete ? 'complete' : anyInProgress ? 'in progress' : 'not started'}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Objective Card ──────────────────────────────────────────────────────── */
 
 const statusConfig: Record<Objective['status'], { label: string; color: string; bg: string }> = {
-  'not-started': { label: 'Not Started', color: colors.textMuted, bg: colors.inputBg },
-  'in-progress': { label: 'In Progress', color: colors.amber, bg: colors.amberBg },
-  'complete': { label: 'Complete', color: colors.green, bg: colors.greenBg },
+  'not-started': { label: 'Not Started', color: theme.textMuted, bg: theme.inputBg },
+  'in-progress': { label: 'In Progress', color: theme.yellow, bg: theme.yellowBg },
+  'complete': { label: 'Complete', color: theme.green, bg: theme.greenBg },
 };
 
 const priorityConfig: Record<Objective['priority'], { label: string; color: string; bg: string }> = {
-  critical: { label: 'Critical', color: colors.red, bg: colors.redBg },
-  high: { label: 'High', color: colors.orange, bg: colors.orangeBg },
-  medium: { label: 'Medium', color: colors.blue, bg: colors.blueBg },
+  critical: { label: 'Critical', color: theme.red, bg: theme.redBg },
+  high: { label: 'High', color: theme.orange, bg: theme.orangeBg },
+  medium: { label: 'Medium', color: theme.blue, bg: theme.blueBg },
 };
 
 function ObjectiveCard({ obj }: { obj: Objective }) {
@@ -954,7 +1263,7 @@ function ObjectiveCard({ obj }: { obj: Objective }) {
   const totalCount = obj.activities.length;
 
   return (
-    <div style={{ background: colors.cardBg, border: `1px solid ${colors.border}`, borderRadius: 12, overflow: 'hidden' }}>
+    <div style={{ background: theme.cardBg, border: 'none', borderRadius: 12, overflow: 'hidden' }}>
       <button
         onClick={() => setExpanded(!expanded)}
         style={{
@@ -967,7 +1276,7 @@ function ObjectiveCard({ obj }: { obj: Objective }) {
           background: 'transparent',
           border: 'none',
           cursor: 'pointer',
-          color: colors.text,
+          color: theme.text,
           transition: 'background 0.15s',
         }}
         onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
@@ -975,50 +1284,50 @@ function ObjectiveCard({ obj }: { obj: Objective }) {
       >
         <svg
           width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-          style={{ flexShrink: 0, color: colors.textMuted, transition: 'transform 0.15s', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+          style={{ flexShrink: 0, color: theme.textMuted, transition: 'transform 0.15s', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
         >
           <polyline points="9 18 15 12 9 6" />
         </svg>
         <div style={{ display: 'flex', flex: 1, flexWrap: 'wrap', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          <h3 style={{ fontSize: 13, fontWeight: 400, color: colors.text, margin: 0 }}>{obj.title}</h3>
+          <h3 style={{ fontSize: 13, fontWeight: 400, color: theme.text, margin: 0 }}>{obj.title}</h3>
           <span style={chipStyle(status.bg, status.color)}>{status.label}</span>
-          <span style={{ ...chipStyle(colors.inputBg, colors.textMuted), fontWeight: 400 }}>
+          <span style={{ ...chipStyle(theme.inputBg, theme.textMuted), fontWeight: 400 }}>
             {doneCount}/{totalCount} done
           </span>
           <span style={chipStyle(priority.bg, priority.color)}>{priority.label}</span>
           {obj.funding.map((f) => (
-            <span key={f} style={{ ...chipStyle(colors.inputBg, colors.textMuted), fontWeight: 400 }}>{f}</span>
+            <span key={f} style={{ ...chipStyle(theme.inputBg, theme.textMuted), fontWeight: 400 }}>{f}</span>
           ))}
         </div>
       </button>
 
       {expanded && (
         <div style={{ padding: '0 20px 20px 20px' }}>
-          <p style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 12, marginTop: 0 }}>{obj.description}</p>
+          <p style={{ fontSize: 11, color: theme.textSecondary, marginBottom: 12, marginTop: 0 }}>{obj.description}</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {obj.activities.map((a, i) => (
               <div key={i} style={{
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: 8,
-                background: colors.inputBg,
+                background: theme.inputBg,
                 borderRadius: 8,
                 padding: '8px 12px',
                 fontSize: 11,
-                color: colors.textSecondary,
+                color: theme.textSecondary,
               }}>
                 <span style={{ marginTop: 2, flexShrink: 0 }}>
                   {a.done ? (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={colors.green} strokeWidth="2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={theme.green} strokeWidth="2">
                       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
                     </svg>
                   ) : (
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={colors.textMuted} strokeWidth="2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={theme.textMuted} strokeWidth="2">
                       <circle cx="12" cy="12" r="10" />
                     </svg>
                   )}
                 </span>
-                <span style={a.done ? { color: colors.textMuted, textDecoration: 'line-through' } : undefined}>
+                <span style={a.done ? { color: theme.textMuted, textDecoration: 'line-through' } : undefined}>
                   {a.text}
                 </span>
               </div>
@@ -1043,9 +1352,9 @@ function ObjectivesTab() {
   const notStarted = objectives.filter((o) => o.status === 'not-started').length;
   const displayedObjectives = viewTab === 'active' ? activeObjectives : completedObjectives;
 
-  const tabBtnStyle = (active: boolean): React.CSSProperties => ({
-    background: active ? colors.cardBg : 'transparent',
-    color: active ? colors.text : colors.textMuted,
+  const subTabStyle = (active: boolean): React.CSSProperties => ({
+    background: active ? theme.cardBg : 'transparent',
+    color: active ? theme.text : theme.textMuted,
     border: 'none',
     borderRadius: 6,
     padding: '8px 16px',
@@ -1060,106 +1369,51 @@ function ObjectivesTab() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Overview */}
       <div style={cardStyle}>
-        <h3 style={{ fontSize: 14, fontWeight: 400, color: colors.text, margin: '0 0 12px 0' }}>
+        <h3 style={{ fontSize: 14, fontWeight: 400, color: theme.text, margin: '0 0 12px 0' }}>
           Strategic Objectives Overview
         </h3>
-        <p style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 16, marginTop: 0 }}>
+        <p style={{ fontSize: 11, color: theme.textSecondary, marginBottom: 16, marginTop: 0 }}>
           Long-term objectives aligned with funding applications and project sustainability goals.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
           <div style={{ ...statBoxStyle, textAlign: 'center' }}>
-            <div style={{ fontSize: 11, color: colors.textMuted }}>Total</div>
-            <div style={{ fontSize: 18, fontWeight: 400, color: colors.text }}>{total}</div>
+            <div style={{ fontSize: 11, color: theme.textMuted }}>Total</div>
+            <div style={{ fontSize: 18, fontWeight: 400, color: theme.text }}>{total}</div>
           </div>
           <div style={{ ...statBoxStyle, textAlign: 'center', background: 'rgba(16,185,129,0.1)' }}>
-            <div style={{ fontSize: 11, color: colors.green }}>Complete</div>
-            <div style={{ fontSize: 18, fontWeight: 400, color: colors.green }}>{complete}</div>
+            <div style={{ fontSize: 11, color: theme.green }}>Complete</div>
+            <div style={{ fontSize: 18, fontWeight: 400, color: theme.green }}>{complete}</div>
           </div>
           <div style={{ ...statBoxStyle, textAlign: 'center', background: 'rgba(245,158,11,0.1)' }}>
-            <div style={{ fontSize: 11, color: colors.amber }}>In Progress</div>
-            <div style={{ fontSize: 18, fontWeight: 400, color: colors.amber }}>{inProgress}</div>
+            <div style={{ fontSize: 11, color: theme.yellow }}>In Progress</div>
+            <div style={{ fontSize: 18, fontWeight: 400, color: theme.yellow }}>{inProgress}</div>
           </div>
           <div style={{ ...statBoxStyle, textAlign: 'center' }}>
-            <div style={{ fontSize: 11, color: colors.textMuted }}>Not Started</div>
-            <div style={{ fontSize: 18, fontWeight: 400, color: colors.textMuted }}>{notStarted}</div>
+            <div style={{ fontSize: 11, color: theme.textMuted }}>Not Started</div>
+            <div style={{ fontSize: 18, fontWeight: 400, color: theme.textMuted }}>{notStarted}</div>
           </div>
         </div>
 
         {/* Progress bar */}
         <div style={{ marginTop: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: colors.textMuted, marginBottom: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: theme.textMuted, marginBottom: 4 }}>
             <span>Overall Progress</span>
             <span>{total > 0 ? Math.round((complete / total) * 100) : 0}%</span>
           </div>
           <div style={{ display: 'flex', height: 8, gap: 2, overflow: 'hidden', borderRadius: 9999 }}>
             {complete > 0 && <div style={{ height: '100%', borderRadius: 9999, background: '#10b981', width: `${(complete / total) * 100}%` }} />}
             {inProgress > 0 && <div style={{ height: '100%', borderRadius: 9999, background: '#f59e0b', width: `${(inProgress / total) * 100}%` }} />}
-            {notStarted > 0 && <div style={{ height: '100%', borderRadius: 9999, background: colors.inputBg, width: `${(notStarted / total) * 100}%` }} />}
+            {notStarted > 0 && <div style={{ height: '100%', borderRadius: 9999, background: theme.inputBg, width: `${(notStarted / total) * 100}%` }} />}
           </div>
         </div>
       </div>
 
-      {/* Funding Applications */}
-      <div style={cardStyle}>
-        <h3 style={{ fontSize: 14, fontWeight: 400, color: colors.text, margin: '0 0 12px 0' }}>
-          Funding Applications
-        </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
-          {[
-            {
-              name: 'NGI Zero Commons Fund',
-              org: 'NLnet Foundation',
-              status: 'Submitted',
-              statusColor: colors.green,
-              statusBg: colors.greenBg,
-              amount: 'Up to \u20AC50,000',
-              deadline: 'April 1, 2026',
-              objectives: objectives.filter((o) => o.funding.includes('NGI Zero Commons')).length,
-            },
-            {
-              name: 'Sovereign Tech Fund',
-              org: 'German Federal Government',
-              status: 'In Progress',
-              statusColor: colors.amber,
-              statusBg: colors.amberBg,
-              amount: '\u20AC50K+ (no upper limit)',
-              deadline: 'Rolling',
-              objectives: objectives.filter((o) => o.funding.includes('Sovereign Tech Fund')).length,
-            },
-          ].map((f) => (
-            <div key={f.name} style={{ background: colors.inputBg, borderRadius: 8, padding: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 400, color: colors.text }}>{f.name}</div>
-                  <div style={{ fontSize: 11, color: colors.textMuted }}>{f.org}</div>
-                </div>
-                <span style={chipStyle(f.statusBg, f.statusColor)}>{f.status}</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 12, fontSize: 11 }}>
-                <div>
-                  <div style={{ color: colors.textMuted }}>Amount</div>
-                  <div style={{ fontWeight: 400, color: colors.text }}>{f.amount}</div>
-                </div>
-                <div>
-                  <div style={{ color: colors.textMuted }}>Deadline</div>
-                  <div style={{ fontWeight: 400, color: colors.text }}>{f.deadline}</div>
-                </div>
-                <div>
-                  <div style={{ color: colors.textMuted }}>Objectives</div>
-                  <div style={{ fontWeight: 400, color: colors.text }}>{f.objectives} linked</div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Active / Completed toggle */}
-      <div style={{ display: 'flex', gap: 4, background: colors.inputBg, borderRadius: 8, padding: 4, width: 'fit-content' }}>
-        <button onClick={() => setViewTab('active')} style={tabBtnStyle(viewTab === 'active')}>
+      <div style={{ display: 'flex', gap: 4, background: theme.inputBg, borderRadius: 8, padding: 4, width: 'fit-content' }}>
+        <button onClick={() => setViewTab('active')} style={subTabStyle(viewTab === 'active')}>
           Active ({activeObjectives.length})
         </button>
-        <button onClick={() => setViewTab('completed')} style={tabBtnStyle(viewTab === 'completed')}>
+        <button onClick={() => setViewTab('completed')} style={subTabStyle(viewTab === 'completed')}>
           Completed ({completedObjectives.length})
         </button>
       </div>
@@ -1167,13 +1421,13 @@ function ObjectivesTab() {
       {/* Objective cards */}
       {displayedObjectives.length === 0 ? (
         <div style={{
-          background: `${colors.cardBg}80`,
-          border: `1px dashed ${colors.border}`,
+          background: `${theme.cardBg}80`,
+          border: 'none',
           borderRadius: 12,
           padding: 32,
           textAlign: 'center',
         }}>
-          <p style={{ fontSize: 13, color: colors.textMuted, margin: 0 }}>
+          <p style={{ fontSize: 13, color: theme.textMuted, margin: 0 }}>
             {viewTab === 'active' ? 'All objectives are complete!' : 'No completed objectives yet.'}
           </p>
         </div>
@@ -1182,61 +1436,6 @@ function ObjectivesTab() {
           {displayedObjectives.map((obj) => <ObjectiveCard key={obj.id} obj={obj} />)}
         </div>
       )}
-    </div>
-  );
-}
-
-/* ── Real-time Financials Tab ────────────────────────────────────────────── */
-
-function RealTimeTab() {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <div style={{ ...cardStyle, padding: 32, textAlign: 'center' }}>
-        <svg style={{ margin: '0 auto 16px auto', display: 'block' }} width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={colors.purple} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-        </svg>
-        <h3 style={{ fontSize: 18, fontWeight: 400, color: colors.text, marginBottom: 8 }}>Real-Time Financials</h3>
-        <p style={{ fontSize: 13, color: colors.textSecondary, maxWidth: 480, margin: '0 auto' }}>
-          Live revenue, costs, and metrics will appear here once plans are enabled.
-          This connects to Stripe and Supabase billing data.
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginTop: 24 }}>
-          {[
-            { label: 'Current MRR', value: '$0', sub: 'Plans not yet enabled' },
-            { label: 'Extension Installs', value: '1,234+', sub: '2 weeks, $0 marketing' },
-            { label: 'Platform Signups', value: 'Enabled', sub: 'Free tier live' },
-            { label: 'Active Subscribers', value: '0', sub: 'Plans launching soon' },
-          ].map((item) => (
-            <div key={item.label} style={{ background: colors.inputBg, borderRadius: 8, padding: 16 }}>
-              <div style={{ fontSize: 11, color: colors.textMuted }}>{item.label}</div>
-              <div style={{ fontSize: 20, fontWeight: 400, color: colors.text }}>{item.value}</div>
-              <div style={{ fontSize: 11, color: colors.textSecondary }}>{item.sub}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div style={{
-        background: `${colors.cardBg}80`,
-        border: `1px dashed ${colors.border}`,
-        borderRadius: 12,
-        padding: 20,
-      }}>
-        <h3 style={{ fontSize: 13, fontWeight: 400, color: colors.textMuted, margin: '0 0 8px 0' }}>Coming Soon</h3>
-        <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {[
-            'Monthly revenue chart (MRR over time)',
-            'Subscriber growth & churn tracking',
-            'Revenue by tier and stream breakdown',
-            'Cost tracking (API provider spend vs revenue)',
-            'Runway calculator based on current burn rate',
-          ].map((item) => (
-            <li key={item} style={{ fontSize: 13, color: colors.textSecondary }}>
-              &bull; {item}
-            </li>
-          ))}
-        </ul>
-      </div>
     </div>
   );
 }
@@ -1274,13 +1473,13 @@ function SourcesSection() {
 
   return (
     <div style={cardStyle}>
-      <h3 style={{ fontSize: 14, fontWeight: 400, color: colors.text, margin: '0 0 12px 0' }}>
+      <h3 style={{ fontSize: 14, fontWeight: 400, color: theme.text, margin: '0 0 12px 0' }}>
         Sources &amp; References
       </h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {sources.map((group) => (
           <div key={group.category}>
-            <h4 style={{ fontSize: 11, fontWeight: 400, color: colors.textMuted, margin: '0 0 8px 0' }}>
+            <h4 style={{ fontSize: 11, fontWeight: 400, color: theme.textMuted, margin: '0 0 8px 0' }}>
               {group.category}
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -1294,7 +1493,7 @@ function SourcesSection() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    background: colors.inputBg,
+                    background: theme.inputBg,
                     borderRadius: 8,
                     padding: '8px 12px',
                     fontSize: 11,
@@ -1303,17 +1502,17 @@ function SourcesSection() {
                     color: 'inherit',
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = colors.inputBg)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = theme.inputBg)}
                 >
-                  <span style={{ color: colors.textSecondary }}>{item.name}</span>
-                  <span style={{ color: colors.textMuted }}>{item.source} &rarr;</span>
+                  <span style={{ color: theme.textSecondary }}>{item.name}</span>
+                  <span style={{ color: theme.textMuted }}>{item.source} &rarr;</span>
                 </a>
               ))}
             </div>
           </div>
         ))}
       </div>
-      <p style={{ fontSize: 10, color: colors.textMuted, marginTop: 12, marginBottom: 0 }}>
+      <p style={{ fontSize: 10, color: theme.textMuted, marginTop: 12, marginBottom: 0 }}>
         All market data as of March 2026. Figures in USD unless otherwise stated.
       </p>
     </div>
@@ -1322,40 +1521,40 @@ function SourcesSection() {
 
 /* ── Main Page ───────────────────────────────────────────────────────────── */
 
-type Tab = 'realtime' | 'predictions' | 'unit-economics' | 'objectives' | 'sources';
+type Tab = 'dashboard' | 'projections' | 'funding' | 'objectives' | 'sources';
 
 export default function Financials() {
-  const [tab, setTab] = useState<Tab>('predictions');
+  const [tab, setTab] = useState<Tab>('dashboard');
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: 'realtime', label: 'Real-Time' },
-    { key: 'predictions', label: 'Predictions' },
-    { key: 'unit-economics', label: 'Unit Economics' },
+    { key: 'dashboard', label: 'Dashboard' },
+    { key: 'projections', label: 'Projections' },
+    { key: 'funding', label: 'Funding' },
     { key: 'objectives', label: 'Objectives' },
     { key: 'sources', label: 'Sources' },
   ];
 
   const tabBtnStyle = (active: boolean): React.CSSProperties => ({
-    background: active ? colors.cardBg : 'transparent',
-    color: active ? colors.text : colors.textMuted,
+    background: active ? theme.cardBg : 'transparent',
+    color: active ? theme.text : theme.textMuted,
     border: 'none',
     borderRadius: 6,
     padding: '8px 16px',
     fontSize: 13,
-    fontWeight: 400,
+    fontWeight: active ? 400 : 300,
     cursor: 'pointer',
     boxShadow: active ? '0 1px 3px rgba(0,0,0,0.3)' : 'none',
     transition: 'all 0.15s',
   });
 
   return (
-    <div style={{ padding: theme.pagePadding, overflowY: 'auto', height: '100%', background: colors.pageBg }}>
+    <div style={{ padding: theme.pagePadding, overflowY: 'auto', height: '100%', background: theme.pageBg }}>
 
       {/* Header */}
-      <PageHeader title="Financials" subtitle="Revenue projections, real-time tracking, and strategic objectives" />
+      <PageHeader title="Financials" subtitle="Live dashboard, revenue projections, funding, and strategic objectives" />
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, background: colors.inputBg, borderRadius: 8, padding: 4, width: 'fit-content', marginBottom: 24 }}>
+      <div style={{ display: 'flex', gap: 4, background: theme.inputBg, borderRadius: 8, padding: 4, width: 'fit-content', marginBottom: 24 }}>
         {tabs.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)} style={tabBtnStyle(tab === t.key)}>
             {t.label}
@@ -1364,9 +1563,9 @@ export default function Financials() {
       </div>
 
       {/* Tab content */}
-      {tab === 'realtime' && <RealTimeTab />}
+      {tab === 'dashboard' && <DashboardTab />}
 
-      {tab === 'predictions' && (
+      {tab === 'projections' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <MarketContext />
           <UnitEconomics />
@@ -1378,8 +1577,8 @@ export default function Financials() {
 
           {/* Methodology */}
           <div style={cardStyle}>
-            <h3 style={{ fontSize: 14, fontWeight: 400, color: colors.text, margin: '0 0 8px 0' }}>Methodology</h3>
-            <p style={{ fontSize: 11, color: colors.textSecondary, lineHeight: 1.7, margin: 0 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 400, color: theme.text, margin: '0 0 8px 0' }}>Methodology</h3>
+            <p style={{ fontSize: 11, color: theme.textSecondary, lineHeight: 1.7, margin: 0 }}>
               Projections are based on publicly available data from Cursor ($2B ARR, $29.3B valuation, 18% market share, 60% enterprise),
               GitHub Copilot (4.7M paid subs, 20M all-time users, $451M-$848M ARR, 42% market share), Windsurf (acquired for $250M),
               and industry benchmarks from GetPanto, Grand View Research, Precedence Research, Research &amp; Markets, CB Insights, OpenView Partners,
@@ -1398,13 +1597,7 @@ export default function Financials() {
         </div>
       )}
 
-      {tab === 'unit-economics' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <UnitEconomics />
-          <RevenueStreams />
-          <ComparisonChart />
-        </div>
-      )}
+      {tab === 'funding' && <FundingTab />}
 
       {tab === 'objectives' && <ObjectivesTab />}
 
