@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useAuth } from './lib/auth';
 import TitleBar from './components/TitleBar';
 import Sidebar, { type Page } from './components/Sidebar';
-import AvaChat from './components/AvaChat';
+// import AvaChat from './components/AvaChat';
 import Dashboard from './pages/Dashboard';
 import CreativeStudio from './pages/CreativeStudio';
 import Library from './pages/Library';
@@ -118,7 +118,7 @@ export default function App() {
           <PageComponent onNavigate={(p) => setActivePage(p as Page)} />
         </main>
       </div>
-      <AvaChat />
+      {/* <AvaChat /> */}
     </div>
   );
 }
