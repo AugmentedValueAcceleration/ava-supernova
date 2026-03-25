@@ -157,56 +157,56 @@ export default function Billing() {
       {/* Plans Tab */}
       {tab === 'plans' && (
         <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
-          {subsLoading ? (
-            <div style={{ padding: 40, textAlign: 'center', fontSize: 12, color: theme.textMuted }}>Loading...</div>
-          ) : subscriptions.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center' }}>
-              <div style={{ fontSize: 13, color: theme.textSecondary, fontWeight: 300 }}>No active subscriptions yet</div>
-              <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 4 }}>Plan subscriptions will appear here when users upgrade</div>
-            </div>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${theme.border}` }}>
-                  {['User', 'Plan', 'Amount', 'Started', 'Status'].map(h => (
-                    <th key={h} style={tableHeaderStyle}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {subscriptions.map(sub => {
-                  const sc = STATUS_COLORS[sub.status] || STATUS_COLORS.succeeded;
-                  return (
-                    <tr key={sub.id} style={{ borderBottom: `1px solid ${theme.border}` }}
-                      onMouseOver={e => e.currentTarget.style.background = theme.inputBg}
-                      onMouseOut={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <td style={{ ...tableCellStyle, color: theme.text }}>{sub.email}</td>
-                      <td style={{ ...tableCellStyle, color: theme.textSecondary }}>{sub.plan}</td>
-                      <td style={{ ...tableCellStyle, color: theme.green, fontWeight: 400 }}>${sub.amount}</td>
-                      <td style={{ ...tableCellStyle, color: theme.textMuted }}>{new Date(sub.started_at).toLocaleDateString('en-GB')}</td>
-                      <td style={tableCellStyle}>
-                        <span style={chipStyle(sc.bg, sc.text)}>{sub.status}</span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${theme.border}` }}>
+                {['User', 'Plan', 'Amount', 'Started', 'Status'].map(h => (
+                  <th key={h} style={tableHeaderStyle}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {subsLoading ? (
+                <tr><td colSpan={5} style={{ ...tableCellStyle, textAlign: 'center', color: theme.textMuted }}>Loading...</td></tr>
+              ) : subscriptions.length === 0 ? (
+                <tr><td colSpan={5} style={{ ...tableCellStyle, textAlign: 'center', color: theme.textMuted, padding: '32px 16px' }}>No active subscriptions</td></tr>
+              ) : subscriptions.map(sub => {
+                const sc = STATUS_COLORS[sub.status] || STATUS_COLORS.succeeded;
+                return (
+                  <tr key={sub.id} style={{ borderBottom: `1px solid ${theme.border}` }}
+                    onMouseOver={e => e.currentTarget.style.background = theme.inputBg}
+                    onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <td style={{ ...tableCellStyle, color: theme.text }}>{sub.email}</td>
+                    <td style={{ ...tableCellStyle, color: theme.textSecondary }}>{sub.plan}</td>
+                    <td style={{ ...tableCellStyle, color: theme.green, fontWeight: 400 }}>${sub.amount}</td>
+                    <td style={{ ...tableCellStyle, color: theme.textMuted }}>{new Date(sub.started_at).toLocaleDateString('en-GB')}</td>
+                    <td style={tableCellStyle}>
+                      <span style={chipStyle(sc.bg, sc.text)}>{sub.status}</span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
       {/* Top-ups Tab */}
       {tab === 'topups' && (
-        <div style={{
-          ...cardStyle, padding: 40,
-          textAlign: 'center',
-        }}>
-          <div style={{ fontSize: 13, fontWeight: 300, color: theme.textSecondary, marginBottom: 4 }}>Token Top-up History</div>
-          <div style={{ fontSize: 12, color: theme.textMuted }}>
-            Top-up purchases will appear here once the token marketplace is live.
-          </div>
+        <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${theme.border}` }}>
+                {['User', 'Tokens', 'Amount', 'Date', 'Status'].map(h => (
+                  <th key={h} style={tableHeaderStyle}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colSpan={5} style={{ ...tableCellStyle, textAlign: 'center', color: theme.textMuted, padding: '32px 16px' }}>No top-ups yet</td></tr>
+            </tbody>
+          </table>
         </div>
       )}
     </div>
