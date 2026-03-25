@@ -57,16 +57,16 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       <PageHeader title={`${getGreeting()}, Stewart`} subtitle={formatDate()} onRefresh={fetchData} />
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, marginBottom: 48 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }}>
         {statCards.map((s) => (
           <div key={s.label} style={{
             background: theme.cardBg,
             border: 'none',
-            borderRadius: theme.radiusLg,
-            padding: '28px 24px',
+            borderRadius: theme.radiusMd,
+            padding: '18px 20px',
           }}>
-            <div style={{ fontSize: 32, fontWeight: 300, color: s.color, lineHeight: 1, letterSpacing: '-1px' }}>{s.value}</div>
-            <div style={{ fontSize: 13, color: theme.textMuted, marginTop: 10, fontWeight: 400 }}>
+            <div style={{ fontSize: 22, fontWeight: 300, color: s.color, lineHeight: 1 }}>{s.value}</div>
+            <div style={{ fontSize: 12, color: theme.textMuted, marginTop: 6, fontWeight: 300 }}>
               {s.label}
               {s.sub && <span style={{ marginLeft: 6, opacity: 0.6 }}>&middot; {s.sub}</span>}
             </div>
@@ -75,9 +75,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       </div>
 
       {/* Quick Actions */}
-      <div style={{ marginBottom: 48 }}>
-        <h2 style={{ ...sectionHeaderStyle, marginBottom: 16 }}>Quick Actions</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginTop: 16 }}>
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ ...sectionHeaderStyle, marginBottom: 10 }}>Quick Actions</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginTop: 10 }}>
           {quickActions.map((a) => (
             <button
               key={a.label}
@@ -85,15 +85,15 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 14,
+                gap: 10,
                 background: theme.cardBg,
                 border: 'none',
-                borderRadius: theme.radiusLg,
-                padding: '18px 24px',
+                borderRadius: theme.radiusMd,
+                padding: '14px 18px',
                 cursor: 'pointer',
                 color: theme.textSecondary,
-                fontSize: 14,
-                fontWeight: 400,
+                fontSize: 13,
+                fontWeight: 300,
                 transition: 'color 0.2s, background 0.2s',
               }}
               onMouseOver={(e) => { e.currentTarget.style.color = theme.text; e.currentTarget.style.background = theme.inputBg; }}

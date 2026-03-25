@@ -46,9 +46,9 @@ export const theme = {
   radiusLg: 16,
 
   /* ── Spacing ─────────────────────────────────────────────────────────── */
-  pagePadding: '32px 40px',
-  cardPadding: '24px',
-  sectionGap: 32,
+  pagePadding: '24px 32px',
+  cardPadding: '20px',
+  sectionGap: 20,
 } as const;
 
 /* ── Re-usable style objects ───────────────────────────────────────────── */
@@ -71,8 +71,8 @@ export const cardStyle: React.CSSProperties = {
 export const statCardStyle: React.CSSProperties = {
   background: theme.cardBg,
   border: 'none',
-  borderRadius: theme.radiusLg,
-  padding: '28px 24px',
+  borderRadius: theme.radiusMd,
+  padding: '18px 20px',
 };
 
 export const inputStyle: React.CSSProperties = {
@@ -89,9 +89,9 @@ export const inputStyle: React.CSSProperties = {
 };
 
 export const sectionHeaderStyle: React.CSSProperties = {
-  fontSize: 11,
+  fontSize: 10,
   fontWeight: 400,
-  letterSpacing: '1.5px',
+  letterSpacing: '1.2px',
   textTransform: 'uppercase',
   color: theme.textMuted,
   margin: 0,

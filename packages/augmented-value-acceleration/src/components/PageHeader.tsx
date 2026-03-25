@@ -20,11 +20,11 @@ export default function PageHeader({ title, subtitle, onRefresh, badge, children
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: theme.sectionGap }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 300, color: theme.text, margin: 0, letterSpacing: '-0.02em' }}>{title}</h1>
-          {subtitle && <p style={{ fontSize: 14, color: theme.textMuted, marginTop: 6, margin: '6px 0 0 0', fontWeight: 300 }}>{subtitle}</p>}
+          <h1 style={{ fontSize: 16, fontWeight: 400, color: theme.text, margin: 0 }}>{title}</h1>
+          {subtitle && <p style={{ fontSize: 12, color: theme.textMuted, margin: '2px 0 0 0', fontWeight: 300 }}>{subtitle}</p>}
         </div>
         {badge}
       </div>
