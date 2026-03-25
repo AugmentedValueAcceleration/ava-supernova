@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import type { UIMessage } from '../types/messages';
 import { t, useLocale } from '../i18n';
 import { MarkdownRenderer } from './MarkdownRenderer';
@@ -9,6 +9,7 @@ import { TodoCard } from './TodoCard';
 import { AskUserCard } from './AskUserCard';
 import { CopyButton } from './CopyButton';
 import { FeedbackButtons } from './FeedbackButtons';
+import { useSecrets } from '../hooks/useSecrets';
 
 interface MessageBubbleProps {
   message: UIMessage;
@@ -100,6 +101,8 @@ function ErrorIcon({ code }: { code: string }) {
 
 export function MessageBubble({ message, onConfirmation, onContinue, onRate }: MessageBubbleProps) {
   useLocale();
+  const { redact } = useSecrets();
+
   if (message.role === 'system') {
     return (
       <div className="flex justify-center py-1">
@@ -193,6 +196,12 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
   const isThinkingOnly = hasThinking && !message.content;
   const getContent = useCallback(() => message.content, [message.content]);
 
+  // Secret redaction state for this message
+  const [secretsRevealed, setSecretsRevealed] = useState(false);
+  const redactedContent = message.content ? redact(message.content) : '';
+  const hasSecrets = message.content !== redactedContent;
+  const displayContent = secretsRevealed ? message.content : redactedContent;
+
   return (
     <div className="flex justify-start">
       <div className="group max-w-[90%] rounded-2xl rounded-bl-sm bg-[var(--vscode-input-background)] border border-[var(--vscode-panel-border)] px-4 py-3 space-y-2">
@@ -203,6 +212,35 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
                 style={{ color: 'var(--color-accent, #a855f7)', backgroundColor: 'rgba(168, 85, 247, 0.15)' }}>
             SUPERNOVA
           </span>
+          {/* Inline secret reveal toggle */}
+          {hasSecrets && !message.isStreaming && (
+            <button
+              onClick={() => setSecretsRevealed(!secretsRevealed)}
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium
+                         bg-transparent border-none cursor-pointer
+                         transition-all duration-150 ml-auto"
+              style={{
+                color: secretsRevealed ? '#ef4444' : '#A855F7',
+                background: secretsRevealed ? 'rgba(239, 68, 68, 0.08)' : 'rgba(168, 85, 247, 0.08)',
+                border: `1px solid ${secretsRevealed ? 'rgba(239, 68, 68, 0.15)' : 'rgba(168, 85, 247, 0.15)'}`,
+              }}
+              title={secretsRevealed ? t('secrets.hide') : t('secrets.reveal')}
+            >
+              {secretsRevealed ? (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+              ) : (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+              {secretsRevealed ? t('secrets.hide') : t('secrets.reveal')}
+            </button>
+          )}
         </div>
 
         {hasThinking && (
@@ -215,7 +253,7 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
         {message.content && (
           <div className="relative group">
             <div className="text-sm leading-relaxed">
-              <MarkdownRenderer content={message.content} />
+              <MarkdownRenderer content={displayContent} />
               {message.isStreaming && (
                 <span className="inline-block w-2 h-4 animate-pulse ml-0.5" style={{ backgroundColor: 'var(--color-accent, #a855f7)' }} />
               )}

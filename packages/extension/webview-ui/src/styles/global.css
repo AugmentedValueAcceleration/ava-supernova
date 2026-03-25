@@ -68,6 +68,18 @@ code {
   50% { opacity: 0.3; }
 }
 
+/* Secret Vault slide-up animation */
+@keyframes vault-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;

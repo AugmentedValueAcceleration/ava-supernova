@@ -1,6 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { t, useLocale } from '../i18n';
 import type { ProviderSource } from '../types/messages';
+import { SecretVault } from './SecretVault';
+import type { SecretEntry } from './SecretVault';
+import { useSecrets } from '../hooks/useSecrets';
 
 export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm';
 
@@ -63,6 +66,8 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const [modesExpanded, setModesExpanded] = useState(false);
+  const [vaultOpen, setVaultOpen] = useState(false);
+  const { secrets, setSecrets } = useSecrets();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modeMenuRef = useRef<HTMLDivElement>(null);
@@ -77,6 +82,13 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
       textareaRef.current?.focus();
     }
   }, [isStreaming]);
+
+  // Save secrets through context (handles persistence + events)
+  const handleSaveSecrets = useCallback((updated: SecretEntry[]) => {
+    setSecrets(updated);
+    // Dispatch custom event so other components in the same window stay in sync
+    window.dispatchEvent(new CustomEvent('ava-secrets-changed'));
+  }, [setSecrets]);
 
   // Keyboard shortcuts for mode switching: Ctrl+Shift+1-6
   useEffect(() => {
@@ -107,15 +119,22 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
   }, [modesExpanded]);
 
   const handleSend = useCallback(() => {
-    const trimmed = text.trim();
+    let trimmed = text.trim();
     if (!trimmed && attachments.length === 0) return;
+    // Replace @secret:Label references with actual values
+    if (trimmed) {
+      trimmed = trimmed.replace(/@secret:([^\s]+)/g, (_match, label: string) => {
+        const found = secrets.find((s) => s.label.toLowerCase() === label.toLowerCase());
+        return found ? found.value : _match;
+      });
+    }
     onSend(trimmed || '(image)', mode, attachments.length > 0 ? attachments : undefined);
     setText('');
     setAttachments([]);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
-  }, [text, mode, attachments, onSend]);
+  }, [text, mode, attachments, onSend, secrets]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -306,7 +325,15 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
   const hasContent = text.trim().length > 0 || attachments.length > 0;
 
   return (
-    <div className="px-3 pb-3 pt-1">
+    <div className="px-3 pb-3 pt-1 relative">
+      {/* Secret Vault panel */}
+      {vaultOpen && (
+        <SecretVault
+          secrets={secrets}
+          onSave={handleSaveSecrets}
+          onClose={() => setVaultOpen(false)}
+        />
+      )}
       <div
         className="rounded-xl overflow-visible relative transition-all duration-200 outline-none focus-within:outline-none"
         style={{
@@ -588,6 +615,39 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
               <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                 <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a2.75 2.75 0 1 1-3.935-3.84l4.486-4.486a1.75 1.75 0 0 1 2.505 2.44L6.623 9.573a.75.75 0 0 1-1.08-1.04l4.473-4.563z" />
               </svg>
+            </button>
+
+            {/* Secret Vault button */}
+            <button
+              onClick={() => setVaultOpen(!vaultOpen)}
+              disabled={disabled}
+              title={t('secrets.vault_tooltip')}
+              aria-label={t('secrets.title')}
+              className={`relative flex items-center justify-center w-9 h-9 rounded-lg
+                         cursor-pointer transition-all duration-200
+                         ${vaultOpen
+                           ? 'text-white border border-[rgba(168,85,247,0.5)]'
+                           : 'text-[var(--vscode-foreground)] opacity-50 hover:opacity-90 border border-[rgba(168,85,247,0.15)] hover:border-[rgba(168,85,247,0.4)] hover:bg-[rgba(168,85,247,0.1)]'
+                         }
+                         disabled:opacity-20 disabled:cursor-not-allowed`}
+              style={vaultOpen ? {
+                background: 'linear-gradient(135deg, #A855F7, #7C3AED)',
+                boxShadow: '0 2px 8px rgba(168, 85, 247, 0.35)',
+              } : { background: 'rgba(168, 85, 247, 0.05)' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              {secrets.length > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[8px] font-bold
+                             flex items-center justify-center text-white"
+                  style={{ background: '#A855F7' }}
+                >
+                  {secrets.length}
+                </span>
+              )}
             </button>
 
             {/* Voice input button */}

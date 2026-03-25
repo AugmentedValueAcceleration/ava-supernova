@@ -10,6 +10,7 @@ import { TasksPanel, DEFAULT_WIDTH } from './components/TasksPanel';
 // ContextBar removed — replaced by circular indicator in InputArea
 import type { AvaMode, ImageAttachment } from './components/InputArea';
 import { t, setLocale, loadStrings } from './i18n';
+import { SecretsProvider } from './hooks/useSecrets';
 
 /** Strip mode prefix from user messages so internal prompts don't show in the UI */
 function stripModePrefix(content: string): string {
@@ -812,6 +813,7 @@ export function App() {
   const lastError = state.messages.filter(m => m.role === 'error').at(-1);
 
   return (
+    <SecretsProvider>
     <div className="relative flex flex-row h-screen">
       {/* Main chat column */}
       <div className="relative flex flex-col flex-1 min-w-0 h-full">
@@ -918,5 +920,6 @@ export function App() {
         />
       )}
     </div>
+    </SecretsProvider>
   );
 }

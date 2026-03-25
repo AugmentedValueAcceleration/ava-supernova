@@ -273,6 +273,17 @@ export const enStrings: Record<string, string> = {
   'feedback.didnt_understand': "Didn't understand me",
   'feedback.off_topic': 'Off topic',
 
+  // Secret Vault
+  'secrets.title': 'Secret Vault',
+  'secrets.add': 'Add Secret',
+  'secrets.label_placeholder': 'Label (e.g. Supabase Key)',
+  'secrets.value_placeholder': 'Paste secret value',
+  'secrets.save': 'Save',
+  'secrets.empty': 'No secrets stored',
+  'secrets.reveal': 'Reveal',
+  'secrets.hide': 'Hide',
+  'secrets.vault_tooltip': 'Secret Vault \u2014 store & inject secrets safely',
+
   // App-level
   'app.model_switched': 'Switched to {model}',
   'app.context_compressed': 'Context compressed: ~{original} \u2192 ~{compressed} tokens',
