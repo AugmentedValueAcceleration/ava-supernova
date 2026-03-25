@@ -61,16 +61,16 @@ export const pageStyle: React.CSSProperties = {
 
 export const cardStyle: React.CSSProperties = {
   background: theme.cardBg,
-  border: `1px solid ${theme.border}`,
+  border: 'none',
   borderRadius: theme.radiusLg,
   padding: theme.cardPadding,
 };
 
 export const statCardStyle: React.CSSProperties = {
   background: theme.cardBg,
-  border: `1px solid ${theme.border}`,
+  border: 'none',
   borderRadius: theme.radiusLg,
-  padding: '24px',
+  padding: '28px 24px',
 };
 
 export const inputStyle: React.CSSProperties = {
@@ -88,7 +88,7 @@ export const inputStyle: React.CSSProperties = {
 
 export const sectionHeaderStyle: React.CSSProperties = {
   fontSize: 11,
-  fontWeight: 600,
+  fontWeight: 400,
   letterSpacing: '1.5px',
   textTransform: 'uppercase',
   color: theme.textMuted,
@@ -102,7 +102,7 @@ export const primaryBtnStyle: React.CSSProperties = {
   border: 'none',
   borderRadius: theme.radiusSm,
   fontSize: 14,
-  fontWeight: 600,
+  fontWeight: 400,
   cursor: 'pointer',
   transition: 'background 0.2s',
 };
@@ -114,6 +114,7 @@ export const ghostBtnStyle: React.CSSProperties = {
   border: 'none',
   borderRadius: theme.radiusSm,
   fontSize: 14,
+  fontWeight: 400,
   cursor: 'pointer',
   transition: 'background 0.2s',
 };
@@ -125,7 +126,7 @@ export const tableCellStyle: React.CSSProperties = {
 export const tableHeaderStyle: React.CSSProperties = {
   padding: '12px 16px',
   textAlign: 'left',
-  fontWeight: 600,
+  fontWeight: 400,
   color: theme.textMuted,
   fontSize: 11,
   letterSpacing: '0.5px',
@@ -134,7 +135,7 @@ export const tableHeaderStyle: React.CSSProperties = {
 
 export const labelStyle: React.CSSProperties = {
   fontSize: 12,
-  fontWeight: 500,
+  fontWeight: 400,
   color: theme.textSecondary,
   display: 'block',
   marginBottom: 6,

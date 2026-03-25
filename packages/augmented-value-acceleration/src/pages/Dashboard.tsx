@@ -38,17 +38,17 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   useEffect(() => { fetchData(); }, []);
 
   const statCards = [
-    { label: 'Total Users', value: loading ? '...' : stats.totalUsers.toLocaleString(), icon: '👥', color: theme.accent },
-    { label: 'Revenue', value: '$0', sub: 'Pre-launch', icon: '💰', color: theme.green },
-    { label: 'Active Projects', value: '3', icon: '📁', color: theme.yellow },
-    { label: 'Open Tickets', value: loading ? '...' : String(stats.openTickets), icon: '🎫', color: theme.red },
+    { label: 'Total Users', value: loading ? '...' : stats.totalUsers.toLocaleString(), color: theme.accent },
+    { label: 'Revenue', value: '$0', sub: 'Pre-launch', color: theme.green },
+    { label: 'Active Projects', value: '3', color: theme.yellow },
+    { label: 'Open Tickets', value: loading ? '...' : String(stats.openTickets), color: theme.red },
   ];
 
   const quickActions = [
-    { label: 'Create Content', icon: '✏️', page: 'creative-studio' },
-    { label: 'Check News', icon: '📰', page: 'news' },
-    { label: 'View Financials', icon: '📊', page: 'financials' },
-    { label: 'Run Security Scan', icon: '🔒', page: 'security' },
+    { label: 'Create Content', page: 'creative-studio' },
+    { label: 'Check News', page: 'news' },
+    { label: 'View Financials', page: 'financials' },
+    { label: 'Run Security Scan', page: 'security' },
   ];
 
   return (
@@ -61,21 +61,12 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         {statCards.map((s) => (
           <div key={s.label} style={{
             background: theme.cardBg,
-            border: `1px solid ${theme.border}`,
+            border: 'none',
             borderRadius: theme.radiusLg,
             padding: '28px 24px',
-            transition: 'border-color 0.2s',
-          }}
-            onMouseOver={(e) => e.currentTarget.style.borderColor = theme.accent}
-            onMouseOut={(e) => e.currentTarget.style.borderColor = theme.border}
-          >
-            <div style={{
-              width: 44, height: 44, borderRadius: theme.radiusMd,
-              background: theme.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 22, marginBottom: 16,
-            }}>{s.icon}</div>
-            <div style={{ fontSize: 36, fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</div>
-            <div style={{ fontSize: 13, color: theme.textMuted, marginTop: 8 }}>
+          }}>
+            <div style={{ fontSize: 32, fontWeight: 300, color: s.color, lineHeight: 1, letterSpacing: '-1px' }}>{s.value}</div>
+            <div style={{ fontSize: 13, color: theme.textMuted, marginTop: 10, fontWeight: 400 }}>
               {s.label}
               {s.sub && <span style={{ marginLeft: 6, opacity: 0.6 }}>&middot; {s.sub}</span>}
             </div>
@@ -96,23 +87,18 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 alignItems: 'center',
                 gap: 14,
                 background: theme.cardBg,
-                border: `1px solid ${theme.border}`,
+                border: 'none',
                 borderRadius: theme.radiusLg,
-                padding: '20px 24px',
+                padding: '18px 24px',
                 cursor: 'pointer',
-                color: theme.text,
+                color: theme.textSecondary,
                 fontSize: 14,
-                fontWeight: 500,
-                transition: 'border-color 0.2s',
+                fontWeight: 400,
+                transition: 'color 0.2s, background 0.2s',
               }}
-              onMouseOver={(e) => e.currentTarget.style.borderColor = theme.accent}
-              onMouseOut={(e) => e.currentTarget.style.borderColor = theme.border}
+              onMouseOver={(e) => { e.currentTarget.style.color = theme.text; e.currentTarget.style.background = theme.inputBg; }}
+              onMouseOut={(e) => { e.currentTarget.style.color = theme.textSecondary; e.currentTarget.style.background = theme.cardBg; }}
             >
-              <span style={{
-                width: 40, height: 40, borderRadius: theme.radiusSm,
-                background: theme.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 20, flexShrink: 0,
-              }}>{a.icon}</span>
               <span>{a.label}</span>
             </button>
           ))}

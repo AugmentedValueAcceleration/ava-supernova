@@ -23,8 +23,8 @@ export default function PageHeader({ title, subtitle, onRefresh, badge, children
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: theme.sectionGap }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: theme.text, margin: 0, letterSpacing: '-0.02em' }}>{title}</h1>
-          {subtitle && <p style={{ fontSize: 14, color: theme.textMuted, marginTop: 6, margin: '6px 0 0 0' }}>{subtitle}</p>}
+          <h1 style={{ fontSize: 26, fontWeight: 300, color: theme.text, margin: 0, letterSpacing: '-0.02em' }}>{title}</h1>
+          {subtitle && <p style={{ fontSize: 14, color: theme.textMuted, marginTop: 6, margin: '6px 0 0 0', fontWeight: 300 }}>{subtitle}</p>}
         </div>
         {badge}
       </div>
@@ -37,11 +37,11 @@ export default function PageHeader({ title, subtitle, onRefresh, badge, children
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: 40, height: 40, borderRadius: theme.radiusSm,
-              background: theme.cardBg, border: `1px solid ${theme.border}`,
-              color: theme.textSecondary, cursor: 'pointer', transition: 'all 0.2s',
+              background: 'transparent', border: 'none',
+              color: theme.textMuted, cursor: 'pointer', transition: 'color 0.2s',
             }}
-            onMouseOver={(e) => { e.currentTarget.style.borderColor = theme.accent; e.currentTarget.style.color = theme.accent; }}
-            onMouseOut={(e) => { e.currentTarget.style.borderColor = theme.border; e.currentTarget.style.color = theme.textSecondary; }}
+            onMouseOver={(e) => { e.currentTarget.style.color = theme.accent; }}
+            onMouseOut={(e) => { e.currentTarget.style.color = theme.textMuted; }}
           >
             <svg
               width="16" height="16" viewBox="0 0 24 24" fill="none"
