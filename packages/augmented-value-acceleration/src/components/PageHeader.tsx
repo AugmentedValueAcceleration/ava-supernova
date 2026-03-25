@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { theme } from '../lib/theme';
 
 interface PageHeaderProps {
   title: string;
@@ -19,11 +20,11 @@ export default function PageHeader({ title, subtitle, onRefresh, badge, children
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: theme.sectionGap }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#fff', margin: 0 }}>{title}</h1>
-          {subtitle && <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4 }}>{subtitle}</p>}
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: theme.text, margin: 0, letterSpacing: '-0.02em' }}>{title}</h1>
+          {subtitle && <p style={{ fontSize: 14, color: theme.textMuted, marginTop: 6, margin: '6px 0 0 0' }}>{subtitle}</p>}
         </div>
         {badge}
       </div>
@@ -35,12 +36,12 @@ export default function PageHeader({ title, subtitle, onRefresh, badge, children
             title="Refresh"
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 36, height: 36, borderRadius: 10,
-              background: '#111127', border: '1px solid #1f1f3a',
-              color: '#9ca3af', cursor: 'pointer', transition: 'all 0.2s',
+              width: 40, height: 40, borderRadius: theme.radiusSm,
+              background: theme.cardBg, border: `1px solid ${theme.border}`,
+              color: theme.textSecondary, cursor: 'pointer', transition: 'all 0.2s',
             }}
-            onMouseOver={(e) => { e.currentTarget.style.borderColor = '#a855f7'; e.currentTarget.style.color = '#a855f7'; }}
-            onMouseOut={(e) => { e.currentTarget.style.borderColor = '#1f1f3a'; e.currentTarget.style.color = '#9ca3af'; }}
+            onMouseOver={(e) => { e.currentTarget.style.borderColor = theme.accent; e.currentTarget.style.color = theme.accent; }}
+            onMouseOut={(e) => { e.currentTarget.style.borderColor = theme.border; e.currentTarget.style.color = theme.textSecondary; }}
           >
             <svg
               width="16" height="16" viewBox="0 0 24 24" fill="none"

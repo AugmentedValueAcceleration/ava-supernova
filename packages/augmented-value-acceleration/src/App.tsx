@@ -79,7 +79,7 @@ export default function App() {
     return (
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        height: '100vh', background: '#0a0a1a',
+        height: '100vh', background: '#1e1e2e',
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{

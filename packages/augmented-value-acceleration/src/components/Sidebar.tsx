@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { theme } from '../lib/theme';
 
 type Page = 'dashboard' | 'creative-studio' | 'news' | 'financials' | 'planner' |
   'projects' | 'tasks' | 'crm' | 'documents' | 'people' | 'communication' |
@@ -24,7 +25,7 @@ interface NavSection {
 
 const ChevronIcon = ({ open }: { open: boolean }) => (
   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"
-    style={{ color: 'var(--text-muted)', transform: open ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.15s' }}>
+    style={{ color: theme.textMuted, transform: open ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.15s' }}>
     <path d="M4 2l4 4-4 4" />
   </svg>
 );
@@ -114,7 +115,10 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: 260, flexShrink: 0, overflowY: 'auto', background: '#0d0d20', borderRight: '1px solid #1f1f3a' }}>
+    <div style={{
+      display: 'flex', flexDirection: 'column', width: 260, flexShrink: 0,
+      overflowY: 'auto', background: theme.surfaceBg, borderRight: `1px solid ${theme.border}`,
+    }}>
       <nav style={{ flex: 1, padding: '20px 16px' }}>
         {NAV_SECTIONS.map((section, si) => (
           <div key={section.title} style={{ marginTop: si > 0 ? 24 : 0 }}>
@@ -131,7 +135,7 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
                 fontWeight: 600,
                 letterSpacing: '1.5px',
                 textTransform: 'uppercase' as const,
-                color: '#6b7280',
+                color: theme.textMuted,
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
@@ -155,20 +159,20 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
                         gap: 10,
                         width: '100%',
                         padding: '10px 14px',
-                        borderRadius: 10,
+                        borderRadius: theme.radiusSm,
                         fontSize: 13,
                         fontWeight: isActive ? 500 : 400,
-                        color: isActive ? '#a855f7' : '#9ca3af',
-                        background: isActive ? 'rgba(168, 85, 247, 0.1)' : 'transparent',
-                        borderLeft: isActive ? '2px solid #a855f7' : '2px solid transparent',
+                        color: isActive ? theme.accent : theme.textSecondary,
+                        background: isActive ? theme.accentBg : 'transparent',
+                        borderLeft: isActive ? `2px solid ${theme.accent}` : '2px solid transparent',
                         border: 'none',
                         cursor: 'pointer',
                         transition: 'all 0.15s',
                       }}
-                      onMouseOver={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+                      onMouseOver={(e) => { if (!isActive) e.currentTarget.style.background = theme.hoverBg; }}
                       onMouseOut={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
                     >
-                      <span style={{ color: isActive ? '#a855f7' : '#6b7280' }}>
+                      <span style={{ color: isActive ? theme.accent : theme.textMuted }}>
                         {item.icon}
                       </span>
                       {item.label}
@@ -182,18 +186,18 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
       </nav>
 
       {/* User */}
-      <div style={{ padding: '16px 20px', marginTop: 'auto', borderTop: '1px solid #1f1f3a' }}>
+      <div style={{ padding: '16px 20px', marginTop: 'auto', borderTop: `1px solid ${theme.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 36, height: 36, borderRadius: '50%',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, fontWeight: 700, background: '#a855f7', color: '#fff',
+            fontSize: 13, fontWeight: 700, background: theme.accent, color: '#fff',
           }}>
             SV
           </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 500, color: '#fff' }}>Stewart Vincent</div>
-            <div style={{ fontSize: 11, color: '#6b7280' }}>Admin</div>
+            <div style={{ fontSize: 13, fontWeight: 500, color: theme.text }}>Stewart Vincent</div>
+            <div style={{ fontSize: 11, color: theme.textMuted }}>Admin</div>
           </div>
         </div>
       </div>

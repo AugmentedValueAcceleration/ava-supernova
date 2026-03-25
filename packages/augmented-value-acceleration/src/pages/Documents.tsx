@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import PageHeader from '../components/PageHeader';
+import { theme, pageStyle, inputStyle as themeInputStyle, primaryBtnStyle, ghostBtnStyle, modalOverlayStyle, modalContentStyle, labelStyle } from '../lib/theme';
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 
@@ -158,16 +159,16 @@ export default function Documents() {
   const fileTypes = [...new Set(docs.map(d => d.type).filter(Boolean))].sort();
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '10px 14px', background: '#1a1a35', border: '1px solid #1f1f3a',
-    borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box',
+    width: '100%', padding: '10px 14px', background: theme.inputBg, border: '1px solid #1f1f3a',
+    borderRadius: 10, color: theme.text, fontSize: 14, outline: 'none', boxSizing: 'border-box',
   };
 
   return (
-    <div style={{ padding: '40px 48px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
+    <div style={{ padding: '40px 48px', overflowY: 'auto', height: '100%', background: theme.pageBg }}>
       {/* Header */}
       <PageHeader title="Documents" subtitle="File management and storage" onRefresh={fetchData}>
         <label style={{
-          padding: '10px 24px', background: '#1f1f3a', color: '#9ca3af', border: 'none',
+          padding: '10px 24px', background: theme.border, color: theme.textSecondary, border: 'none',
           borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
@@ -175,18 +176,18 @@ export default function Documents() {
           <input type="file" style={{ display: 'none' }} onChange={handleUpload} disabled={uploading} />
         </label>
         <button onClick={() => setShowCreate(true)} style={{
-          padding: '10px 24px', background: '#a855f7', color: '#fff', border: 'none',
+          padding: '10px 24px', background: theme.accent, color: theme.text, border: 'none',
           borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
         }}>+ Add Document</button>
       </PageHeader>
 
       {/* Breadcrumb */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, fontSize: 13, color: '#6b7280' }}>
-        <span style={{ cursor: 'pointer', color: currentFolder === '/' ? '#a855f7' : '#9ca3af' }} onClick={() => setCurrentFolder('/')}>📁 Root</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, fontSize: 13, color: theme.textMuted }}>
+        <span style={{ cursor: 'pointer', color: currentFolder === '/' ? theme.accent : theme.textSecondary }} onClick={() => setCurrentFolder('/')}>📁 Root</span>
         {breadcrumbs.map((crumb, i) => (
           <span key={i}>
             <span style={{ margin: '0 4px' }}>/</span>
-            <span style={{ cursor: 'pointer', color: '#9ca3af' }} onClick={() => setCurrentFolder('/' + breadcrumbs.slice(0, i + 1).join('/'))}>{crumb}</span>
+            <span style={{ cursor: 'pointer', color: theme.textSecondary }} onClick={() => setCurrentFolder('/' + breadcrumbs.slice(0, i + 1).join('/'))}>{crumb}</span>
           </span>
         ))}
         {/* Folder shortcuts */}
@@ -194,8 +195,8 @@ export default function Documents() {
           <span style={{ marginLeft: 16, display: 'flex', gap: 6 }}>
             {folders.filter(f => f !== '/').map(f => (
               <span key={f} onClick={() => setCurrentFolder(f)} style={{
-                padding: '2px 10px', borderRadius: 6, background: currentFolder === f ? '#a855f720' : '#1f1f3a',
-                color: currentFolder === f ? '#a855f7' : '#6b7280', cursor: 'pointer', fontSize: 11,
+                padding: '2px 10px', borderRadius: 6, background: currentFolder === f ? '#a855f720' : theme.border,
+                color: currentFolder === f ? theme.accent : theme.textMuted, cursor: 'pointer', fontSize: 11,
               }}>{f}</span>
             ))}
           </span>
@@ -219,13 +220,13 @@ export default function Documents() {
       </div>
 
       {/* Loading */}
-      {loading && <div style={{ textAlign: 'center', color: '#6b7280', padding: 60 }}>Loading documents...</div>}
+      {loading && <div style={{ textAlign: 'center', color: theme.textMuted, padding: 60 }}>Loading documents...</div>}
 
       {/* Empty */}
       {!loading && filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 80, color: '#6b7280' }}>
+        <div style={{ textAlign: 'center', padding: 80, color: theme.textMuted }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>📂</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: '#9ca3af', marginBottom: 8 }}>No documents found</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: theme.textSecondary, marginBottom: 8 }}>No documents found</div>
           <div style={{ fontSize: 14 }}>Upload a file or add a document entry to get started</div>
         </div>
       )}
@@ -235,20 +236,20 @@ export default function Documents() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           {filtered.map(doc => (
             <div key={doc.id} style={{
-              background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 20,
+              background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 14, padding: 20,
               transition: 'border-color 0.2s', display: 'flex', flexDirection: 'column',
             }}
-              onMouseOver={e => e.currentTarget.style.borderColor = '#a855f7'}
-              onMouseOut={e => e.currentTarget.style.borderColor = '#1f1f3a'}
+              onMouseOver={e => e.currentTarget.style.borderColor = theme.accent}
+              onMouseOut={e => e.currentTarget.style.borderColor = theme.border}
             >
               {/* Icon */}
               <div style={{ fontSize: 40, textAlign: 'center', marginBottom: 14 }}>{getIcon(doc.name)}</div>
 
               {/* Name */}
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', textAlign: 'center', marginBottom: 8, wordBreak: 'break-word' }}>{doc.name}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: theme.text, textAlign: 'center', marginBottom: 8, wordBreak: 'break-word' }}>{doc.name}</div>
 
               {/* Meta */}
-              <div style={{ fontSize: 11, color: '#6b7280', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color: theme.textMuted, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 12 }}>
                 <span>{doc.type?.toUpperCase() || '—'} · {formatSize(doc.size)}</span>
                 <span>{doc.uploaded_by || '—'}</span>
                 <span>{new Date(doc.created_at).toLocaleDateString()}</span>
@@ -258,12 +259,12 @@ export default function Documents() {
               <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 'auto' }}>
                 {doc.storage_path && (
                   <button onClick={() => handleDownload(doc)} style={{
-                    padding: '5px 14px', background: '#1f1f3a', color: '#60a5fa', border: 'none',
+                    padding: '5px 14px', background: theme.border, color: '#60a5fa', border: 'none',
                     borderRadius: 6, fontSize: 11, cursor: 'pointer',
                   }}>Download</button>
                 )}
                 <button onClick={() => handleDelete(doc)} style={{
-                  padding: '5px 14px', background: '#7f1d1d', color: '#fca5a5', border: 'none',
+                  padding: '5px 14px', background: theme.redBg, color: theme.red, border: 'none',
                   borderRadius: 6, fontSize: 11, cursor: 'pointer',
                 }}>Delete</button>
               </div>
@@ -279,36 +280,36 @@ export default function Documents() {
           alignItems: 'center', justifyContent: 'center', zIndex: 1000,
         }} onClick={() => setShowCreate(false)}>
           <div style={{
-            background: '#111127', border: '1px solid #1f1f3a', borderRadius: 16,
+            background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 16,
             padding: 32, width: 480, maxHeight: '85vh', overflowY: 'auto',
           }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: '0 0 24px' }}>Add Document Entry</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: theme.text, margin: '0 0 24px' }}>Add Document Entry</h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
-                <label style={{ fontSize: 12, color: '#9ca3af', display: 'block', marginBottom: 6 }}>File Name *</label>
+                <label style={{ fontSize: 12, color: theme.textSecondary, display: 'block', marginBottom: 6 }}>File Name *</label>
                 <input style={inputStyle} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="report.docx" />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, color: '#9ca3af', display: 'block', marginBottom: 6 }}>Type</label>
+                  <label style={{ fontSize: 12, color: theme.textSecondary, display: 'block', marginBottom: 6 }}>Type</label>
                   <input style={inputStyle} value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} placeholder="docx, pdf, xlsx..." />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: '#9ca3af', display: 'block', marginBottom: 6 }}>Folder</label>
+                  <label style={{ fontSize: 12, color: theme.textSecondary, display: 'block', marginBottom: 6 }}>Folder</label>
                   <input style={inputStyle} value={form.folder} onChange={e => setForm({ ...form, folder: e.target.value })} placeholder="/" />
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, color: '#9ca3af', display: 'block', marginBottom: 6 }}>Project</label>
+                  <label style={{ fontSize: 12, color: theme.textSecondary, display: 'block', marginBottom: 6 }}>Project</label>
                   <select style={inputStyle} value={form.project_id} onChange={e => setForm({ ...form, project_id: e.target.value })}>
                     <option value="">— None —</option>
                     {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, color: '#9ca3af', display: 'block', marginBottom: 6 }}>Client</label>
+                  <label style={{ fontSize: 12, color: theme.textSecondary, display: 'block', marginBottom: 6 }}>Client</label>
                   <select style={inputStyle} value={form.client_id} onChange={e => setForm({ ...form, client_id: e.target.value })}>
                     <option value="">— None —</option>
                     {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -316,18 +317,18 @@ export default function Documents() {
                 </div>
               </div>
               <div>
-                <label style={{ fontSize: 12, color: '#9ca3af', display: 'block', marginBottom: 6 }}>Uploaded By</label>
+                <label style={{ fontSize: 12, color: theme.textSecondary, display: 'block', marginBottom: 6 }}>Uploaded By</label>
                 <input style={inputStyle} value={form.uploaded_by} onChange={e => setForm({ ...form, uploaded_by: e.target.value })} placeholder="Admin" />
               </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 28 }}>
               <button onClick={() => setShowCreate(false)} style={{
-                padding: '10px 24px', background: '#1f1f3a', color: '#9ca3af', border: 'none',
+                padding: '10px 24px', background: theme.border, color: theme.textSecondary, border: 'none',
                 borderRadius: 10, fontSize: 14, cursor: 'pointer',
               }}>Cancel</button>
               <button onClick={handleCreate} disabled={saving || !form.name.trim()} style={{
-                padding: '10px 24px', background: '#a855f7', color: '#fff', border: 'none',
+                padding: '10px 24px', background: theme.accent, color: theme.text, border: 'none',
                 borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
                 opacity: saving || !form.name.trim() ? 0.5 : 1,
               }}>{saving ? 'Adding...' : 'Add Document'}</button>

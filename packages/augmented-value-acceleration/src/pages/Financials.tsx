@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import PageHeader from '../components/PageHeader';
+import { theme } from '../lib/theme';
 
 /* ── Research-backed constants ───────────────────────────────────────────── */
 
@@ -550,31 +551,31 @@ function pct(n: number): string {
 /* ── Shared style constants ──────────────────────────────────────────────── */
 
 const colors = {
-  pageBg: '#0a0a1a',
-  cardBg: '#111127',
-  border: '#1f1f3a',
-  inputBg: '#1a1a35',
-  purple: '#a855f7',
-  text: '#fff',
-  textSecondary: '#9ca3af',
-  textMuted: '#6b7280',
-  blue: '#60a5fa',
-  blueBg: 'rgba(59,130,246,0.2)',
-  green: '#34d399',
-  greenBg: 'rgba(16,185,129,0.2)',
-  amber: '#fbbf24',
-  amberBg: 'rgba(245,158,11,0.2)',
-  red: '#f87171',
-  redBg: 'rgba(239,68,68,0.2)',
-  orange: '#fb923c',
-  orangeBg: 'rgba(249,115,22,0.2)',
+  pageBg: theme.pageBg,
+  cardBg: theme.cardBg,
+  border: theme.border,
+  inputBg: theme.inputBg,
+  purple: theme.accent,
+  text: theme.text,
+  textSecondary: theme.textSecondary,
+  textMuted: theme.textMuted,
+  blue: theme.blue,
+  blueBg: theme.blueBg,
+  green: theme.green,
+  greenBg: theme.greenBg,
+  amber: theme.yellow,
+  amberBg: theme.yellowBg,
+  red: theme.red,
+  redBg: theme.redBg,
+  orange: theme.orange,
+  orangeBg: theme.orangeBg,
 };
 
 const cardStyle: React.CSSProperties = {
   background: colors.cardBg,
   border: `1px solid ${colors.border}`,
-  borderRadius: 12,
-  padding: 20,
+  borderRadius: theme.radiusLg,
+  padding: theme.cardPadding,
 };
 
 const chipStyle = (bg: string, color: string): React.CSSProperties => ({
@@ -589,8 +590,8 @@ const chipStyle = (bg: string, color: string): React.CSSProperties => ({
 
 const statBoxStyle: React.CSSProperties = {
   background: colors.inputBg,
-  borderRadius: 8,
-  padding: 12,
+  borderRadius: theme.radiusSm,
+  padding: 14,
 };
 
 /* ── Market Context Panel ────────────────────────────────────────────────── */
@@ -1348,7 +1349,7 @@ export default function Financials() {
   });
 
   return (
-    <div style={{ padding: '40px 48px', overflowY: 'auto', height: '100%', background: colors.pageBg }}>
+    <div style={{ padding: theme.pagePadding, overflowY: 'auto', height: '100%', background: colors.pageBg }}>
 
       {/* Header */}
       <PageHeader title="Financials" subtitle="Revenue projections, real-time tracking, and strategic objectives" />

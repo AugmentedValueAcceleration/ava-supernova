@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getStats, getRecentActivity } from '../lib/supabase';
 import PageHeader from '../components/PageHeader';
+import { theme, pageStyle, sectionHeaderStyle } from '../lib/theme';
 
 const getGreeting = () => {
   const h = new Date().getHours();
@@ -37,10 +38,10 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   useEffect(() => { fetchData(); }, []);
 
   const statCards = [
-    { label: 'Total Users', value: loading ? '...' : stats.totalUsers.toLocaleString(), icon: '👥', color: '#a855f7' },
-    { label: 'Revenue', value: '$0', sub: 'Pre-launch', icon: '💰', color: '#10b981' },
-    { label: 'Active Projects', value: '3', icon: '📁', color: '#f59e0b' },
-    { label: 'Open Tickets', value: loading ? '...' : String(stats.openTickets), icon: '🎫', color: '#ef4444' },
+    { label: 'Total Users', value: loading ? '...' : stats.totalUsers.toLocaleString(), icon: '👥', color: theme.accent },
+    { label: 'Revenue', value: '$0', sub: 'Pre-launch', icon: '💰', color: theme.green },
+    { label: 'Active Projects', value: '3', icon: '📁', color: theme.yellow },
+    { label: 'Open Tickets', value: loading ? '...' : String(stats.openTickets), icon: '🎫', color: theme.red },
   ];
 
   const quickActions = [
@@ -51,7 +52,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   ];
 
   return (
-    <div style={{ padding: '40px 48px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
+    <div style={pageStyle}>
 
       <PageHeader title={`${getGreeting()}, Stewart`} subtitle={formatDate()} onRefresh={fetchData} />
 
@@ -59,16 +60,24 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, marginBottom: 48 }}>
         {statCards.map((s) => (
           <div key={s.label} style={{
-            background: '#111127',
-            border: '1px solid #1f1f3a',
-            borderRadius: 16,
+            background: theme.cardBg,
+            border: `1px solid ${theme.border}`,
+            borderRadius: theme.radiusLg,
             padding: '28px 24px',
-          }}>
-            <div style={{ fontSize: 28, marginBottom: 16 }}>{s.icon}</div>
+            transition: 'border-color 0.2s',
+          }}
+            onMouseOver={(e) => e.currentTarget.style.borderColor = theme.accent}
+            onMouseOut={(e) => e.currentTarget.style.borderColor = theme.border}
+          >
+            <div style={{
+              width: 44, height: 44, borderRadius: theme.radiusMd,
+              background: theme.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 22, marginBottom: 16,
+            }}>{s.icon}</div>
             <div style={{ fontSize: 36, fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</div>
-            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 8 }}>
+            <div style={{ fontSize: 13, color: theme.textMuted, marginTop: 8 }}>
               {s.label}
-              {s.sub && <span style={{ marginLeft: 6, opacity: 0.6 }}>· {s.sub}</span>}
+              {s.sub && <span style={{ marginLeft: 6, opacity: 0.6 }}>&middot; {s.sub}</span>}
             </div>
           </div>
         ))}
@@ -76,7 +85,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
       {/* Quick Actions */}
       <div style={{ marginBottom: 48 }}>
-        <h2 style={{ fontSize: 10, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: '#6b7280', marginBottom: 16, margin: 0 }}>Quick Actions</h2>
+        <h2 style={{ ...sectionHeaderStyle, marginBottom: 16 }}>Quick Actions</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginTop: 16 }}>
           {quickActions.map((a) => (
             <button
@@ -86,20 +95,24 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 14,
-                background: '#111127',
-                border: '1px solid #1f1f3a',
-                borderRadius: 16,
+                background: theme.cardBg,
+                border: `1px solid ${theme.border}`,
+                borderRadius: theme.radiusLg,
                 padding: '20px 24px',
                 cursor: 'pointer',
-                color: '#fff',
+                color: theme.text,
                 fontSize: 14,
                 fontWeight: 500,
                 transition: 'border-color 0.2s',
               }}
-              onMouseOver={(e) => e.currentTarget.style.borderColor = '#a855f7'}
-              onMouseOut={(e) => e.currentTarget.style.borderColor = '#1f1f3a'}
+              onMouseOver={(e) => e.currentTarget.style.borderColor = theme.accent}
+              onMouseOut={(e) => e.currentTarget.style.borderColor = theme.border}
             >
-              <span style={{ fontSize: 24 }}>{a.icon}</span>
+              <span style={{
+                width: 40, height: 40, borderRadius: theme.radiusSm,
+                background: theme.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 20, flexShrink: 0,
+              }}>{a.icon}</span>
               <span>{a.label}</span>
             </button>
           ))}
@@ -108,12 +121,19 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
       {/* Recent Activity */}
       <div style={{ marginBottom: 40 }}>
-        <h2 style={{ fontSize: 10, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: '#6b7280', marginBottom: 16, margin: 0 }}>Recent Releases</h2>
-        <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 16, overflow: 'hidden', marginTop: 16 }}>
+        <h2 style={{ ...sectionHeaderStyle, marginBottom: 16 }}>Recent Releases</h2>
+        <div style={{
+          background: theme.cardBg, border: `1px solid ${theme.border}`,
+          borderRadius: theme.radiusLg, overflow: 'hidden', marginTop: 16,
+        }}>
           {loading ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>Loading...</div>
+            <div style={{ padding: '24px', textAlign: 'center', color: theme.textMuted }}>Loading...</div>
           ) : activity.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>No recent activity</div>
+            <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+              <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.5 }}>📋</div>
+              <div style={{ fontSize: 14, fontWeight: 500, color: theme.textSecondary, marginBottom: 4 }}>No recent activity</div>
+              <div style={{ fontSize: 13, color: theme.textMuted }}>Activity will appear here as it happens</div>
+            </div>
           ) : (
             activity.map((item, i) => (
               <div
@@ -122,12 +142,16 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '16px 24px',
-                  borderBottom: i < activity.length - 1 ? '1px solid #1f1f3a' : 'none',
+                  padding: '14px 24px',
+                  borderBottom: i < activity.length - 1 ? `1px solid ${theme.border}` : 'none',
+                  transition: 'background 0.15s',
+                  cursor: 'default',
                 }}
+                onMouseOver={(e) => e.currentTarget.style.background = theme.hoverBg}
+                onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
               >
-                <span style={{ fontSize: 14, color: '#e5e7eb' }}>{item.text}</span>
-                <span style={{ fontSize: 12, color: '#6b7280', flexShrink: 0, marginLeft: 16 }}>{item.time}</span>
+                <span style={{ fontSize: 14, color: theme.text }}>{item.text}</span>
+                <span style={{ fontSize: 12, color: theme.textMuted, flexShrink: 0, marginLeft: 16 }}>{item.time}</span>
               </div>
             ))
           )}

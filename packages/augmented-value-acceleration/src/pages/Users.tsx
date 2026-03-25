@@ -1,6 +1,7 @@
 import { useEffect, useState, Fragment } from 'react';
 import { supabase } from '../lib/supabase';
 import PageHeader from '../components/PageHeader';
+import { theme, pageStyle, inputStyle as baseInputStyle, tableHeaderStyle, tableCellStyle } from '../lib/theme';
 
 interface User {
   id: string;
@@ -17,11 +18,11 @@ interface User {
 const TIERS = ['free', 'pro', 'ultra', 'enterprise', 'admin'] as const;
 
 const TIER_COLORS: Record<string, { bg: string; text: string }> = {
-  free: { bg: 'rgba(107, 114, 128, 0.15)', text: '#9ca3af' },
-  pro: { bg: 'rgba(59, 130, 246, 0.15)', text: '#60a5fa' },
-  ultra: { bg: 'rgba(168, 85, 247, 0.15)', text: '#a855f7' },
-  enterprise: { bg: 'rgba(245, 158, 11, 0.15)', text: '#fbbf24' },
-  admin: { bg: 'rgba(239, 68, 68, 0.15)', text: '#f87171' },
+  free: { bg: 'rgba(108, 112, 134, 0.12)', text: theme.textSecondary },
+  pro: { bg: theme.blueBg, text: theme.blue },
+  ultra: { bg: theme.accentBg, text: theme.accent },
+  enterprise: { bg: theme.yellowBg, text: theme.yellow },
+  admin: { bg: theme.redBg, text: theme.red },
 };
 
 function formatDate(iso: string): string {
@@ -106,35 +107,38 @@ export default function Users() {
     const c = TIER_COLORS[tier] || TIER_COLORS.free;
     return (
       <span style={{
-        background: c.bg, color: c.text, fontSize: 10, fontWeight: 700,
-        padding: '3px 10px', borderRadius: 10, textTransform: 'capitalize' as const,
+        background: c.bg, color: c.text, fontSize: 11, fontWeight: 600,
+        padding: '3px 10px', borderRadius: 9999, textTransform: 'capitalize' as const,
       }}>
         {tier}
       </span>
     );
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '10px 14px', background: '#1a1a35', border: '1px solid #1f1f3a',
-    borderRadius: 10, color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box',
-  };
-
   return (
-    <div style={{ padding: '32px 40px', overflowY: 'auto', height: '100%', background: '#0a0a1a' }}>
+    <div style={pageStyle}>
       <PageHeader title="Users" subtitle="Manage platform users, tiers, and usage." onRefresh={fetchUsers} />
 
       {/* Stats Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 20, marginBottom: theme.sectionGap }}>
         {[
-          { label: 'Total Users', value: stats.total, color: '#fff' },
-          { label: 'Free', value: stats.free, color: '#9ca3af' },
-          { label: 'Pro', value: stats.pro, color: '#60a5fa' },
-          { label: 'Ultra', value: stats.ultra, color: '#a855f7' },
-          { label: 'Enterprise', value: stats.enterprise, color: '#fbbf24' },
+          { label: 'Total Users', value: stats.total, icon: '👥', color: theme.text },
+          { label: 'Free', value: stats.free, icon: '🆓', color: theme.textSecondary },
+          { label: 'Pro', value: stats.pro, icon: '⭐', color: theme.blue },
+          { label: 'Ultra', value: stats.ultra, icon: '💎', color: theme.accent },
+          { label: 'Enterprise', value: stats.enterprise, icon: '🏢', color: theme.yellow },
         ].map(s => (
-          <div key={s.label} style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, padding: 20 }}>
-            <div style={{ fontSize: 11, fontWeight: 500, color: '#6b7280' }}>{s.label}</div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: s.color, marginTop: 4 }}>{loading ? '...' : s.value}</div>
+          <div key={s.label} style={{
+            background: theme.cardBg, border: `1px solid ${theme.border}`,
+            borderRadius: theme.radiusLg, padding: '24px',
+          }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: theme.radiusSm,
+              background: theme.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 20, marginBottom: 12,
+            }}>{s.icon}</div>
+            <div style={{ fontSize: 30, fontWeight: 700, color: s.color, marginTop: 4 }}>{loading ? '...' : s.value}</div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: theme.textMuted, marginTop: 4 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -142,13 +146,13 @@ export default function Users() {
       {/* Search + Filter */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
         <input
-          style={{ ...inputStyle, flex: 1 }}
+          style={{ ...baseInputStyle, flex: 1 }}
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search by name, email, or ID..."
         />
         <select
-          style={{ ...inputStyle, width: 'auto', minWidth: 140 }}
+          style={{ ...baseInputStyle, width: 'auto', minWidth: 140 }}
           value={tierFilter}
           onChange={e => setTierFilter(e.target.value)}
         >
@@ -158,24 +162,25 @@ export default function Users() {
       </div>
 
       {/* Loading */}
-      {loading && <div style={{ textAlign: 'center', color: '#6b7280', padding: 60 }}>Loading users...</div>}
+      {loading && <div style={{ textAlign: 'center', color: theme.textMuted, padding: 60 }}>Loading users...</div>}
 
       {/* Table */}
       {!loading && (
-        <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 14, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <div style={{ background: theme.cardBg, border: `1px solid ${theme.border}`, borderRadius: theme.radiusLg, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #1f1f3a' }}>
+              <tr style={{ borderBottom: `1px solid ${theme.border}` }}>
                 {['Name', 'Email', 'Tier', 'Signed Up', 'Last Active', 'Actions'].map(h => (
-                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 500, color: '#6b7280', fontSize: 11 }}>{h}</th>
+                  <th key={h} style={tableHeaderStyle}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: '32px 16px', textAlign: 'center', color: '#6b7280' }}>
-                    No users found.
+                  <td colSpan={6} style={{ padding: '48px 16px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 36, marginBottom: 8, opacity: 0.5 }}>👤</div>
+                    <div style={{ fontSize: 14, color: theme.textSecondary }}>No users found.</div>
                   </td>
                 </tr>
               ) : (
@@ -185,30 +190,30 @@ export default function Users() {
                     <Fragment key={user.id}>
                       <tr
                         onClick={() => setExpandedId(isExpanded ? null : user.id)}
-                        style={{ borderBottom: '1px solid #1f1f3a', cursor: 'pointer' }}
-                        onMouseOver={e => (e.currentTarget.style.background = '#1a1a35')}
+                        style={{ borderBottom: `1px solid ${theme.border}`, cursor: 'pointer', transition: 'background 0.15s' }}
+                        onMouseOver={e => (e.currentTarget.style.background = theme.hoverBg)}
                         onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
                       >
-                        <td style={{ padding: '10px 16px', color: '#fff', fontWeight: 500 }}>
+                        <td style={{ ...tableCellStyle, color: theme.text, fontWeight: 500 }}>
                           {user.name || 'Unnamed'}
                         </td>
-                        <td style={{ padding: '10px 16px', color: '#9ca3af' }}>{user.email}</td>
-                        <td style={{ padding: '10px 16px' }}>{tierBadge(user.tier || 'free')}</td>
-                        <td style={{ padding: '10px 16px', color: '#6b7280' }}>
+                        <td style={{ ...tableCellStyle, color: theme.textSecondary }}>{user.email}</td>
+                        <td style={tableCellStyle}>{tierBadge(user.tier || 'free')}</td>
+                        <td style={{ ...tableCellStyle, color: theme.textMuted }}>
                           {user.created_at ? formatDate(user.created_at) : '—'}
                         </td>
-                        <td style={{ padding: '10px 16px', color: '#6b7280' }}>
+                        <td style={{ ...tableCellStyle, color: theme.textMuted }}>
                           {user.last_sign_in_at ? formatDateTime(user.last_sign_in_at) : 'Never'}
                         </td>
-                        <td style={{ padding: '10px 16px' }} onClick={e => e.stopPropagation()}>
+                        <td style={tableCellStyle} onClick={e => e.stopPropagation()}>
                           <div style={{ display: 'flex', gap: 4 }}>
                             <select
                               value={user.tier || 'free'}
                               onChange={e => changeTier(user.id, e.target.value)}
                               disabled={actionLoading === user.id}
                               style={{
-                                background: '#1a1a35', border: '1px solid #1f1f3a', borderRadius: 6,
-                                padding: '4px 8px', fontSize: 10, color: '#9ca3af', cursor: 'pointer',
+                                background: theme.inputBg, border: `1px solid ${theme.border}`, borderRadius: 6,
+                                padding: '4px 8px', fontSize: 11, color: theme.textSecondary, cursor: 'pointer',
                               }}
                             >
                               {TIERS.map(t => <option key={t} value={t}>{t}</option>)}
@@ -218,24 +223,36 @@ export default function Users() {
                       </tr>
 
                       {isExpanded && (
-                        <tr style={{ borderBottom: '1px solid #1f1f3a', background: '#0a0a1a' }}>
-                          <td colSpan={6} style={{ padding: '16px 24px' }}>
-                            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 12 }}>
-                              <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 10, padding: '12px 16px', minWidth: 120 }}>
-                                <div style={{ fontSize: 10, color: '#6b7280' }}>User ID</div>
-                                <div style={{ fontSize: 11, color: '#fff', fontFamily: 'monospace', marginTop: 4 }}>{user.id}</div>
+                        <tr style={{ borderBottom: `1px solid ${theme.border}`, background: theme.surfaceBg }}>
+                          <td colSpan={6} style={{ padding: '20px 24px' }}>
+                            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+                              <div style={{
+                                background: theme.cardBg, border: `1px solid ${theme.border}`,
+                                borderRadius: theme.radiusMd, padding: '14px 18px', minWidth: 130,
+                              }}>
+                                <div style={{ fontSize: 11, color: theme.textMuted, marginBottom: 4 }}>User ID</div>
+                                <div style={{ fontSize: 11, color: theme.text, fontFamily: 'monospace' }}>{user.id}</div>
                               </div>
-                              <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 10, padding: '12px 16px', minWidth: 120 }}>
-                                <div style={{ fontSize: 10, color: '#6b7280' }}>Token Usage</div>
-                                <div style={{ fontSize: 18, fontWeight: 700, color: '#a855f7', marginTop: 4 }}>{user.token_usage?.toLocaleString() || '0'}</div>
+                              <div style={{
+                                background: theme.cardBg, border: `1px solid ${theme.border}`,
+                                borderRadius: theme.radiusMd, padding: '14px 18px', minWidth: 130,
+                              }}>
+                                <div style={{ fontSize: 11, color: theme.textMuted, marginBottom: 4 }}>Token Usage</div>
+                                <div style={{ fontSize: 20, fontWeight: 700, color: theme.accent }}>{user.token_usage?.toLocaleString() || '0'}</div>
                               </div>
-                              <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 10, padding: '12px 16px', minWidth: 120 }}>
-                                <div style={{ fontSize: 10, color: '#6b7280' }}>Memories</div>
-                                <div style={{ fontSize: 18, fontWeight: 700, color: '#60a5fa', marginTop: 4 }}>{user.memory_count || 0}</div>
+                              <div style={{
+                                background: theme.cardBg, border: `1px solid ${theme.border}`,
+                                borderRadius: theme.radiusMd, padding: '14px 18px', minWidth: 130,
+                              }}>
+                                <div style={{ fontSize: 11, color: theme.textMuted, marginBottom: 4 }}>Memories</div>
+                                <div style={{ fontSize: 20, fontWeight: 700, color: theme.blue }}>{user.memory_count || 0}</div>
                               </div>
-                              <div style={{ background: '#111127', border: '1px solid #1f1f3a', borderRadius: 10, padding: '12px 16px', minWidth: 120 }}>
-                                <div style={{ fontSize: 10, color: '#6b7280' }}>API Keys</div>
-                                <div style={{ fontSize: 18, fontWeight: 700, color: '#fbbf24', marginTop: 4 }}>{user.api_key_count || 0}</div>
+                              <div style={{
+                                background: theme.cardBg, border: `1px solid ${theme.border}`,
+                                borderRadius: theme.radiusMd, padding: '14px 18px', minWidth: 130,
+                              }}>
+                                <div style={{ fontSize: 11, color: theme.textMuted, marginBottom: 4 }}>API Keys</div>
+                                <div style={{ fontSize: 20, fontWeight: 700, color: theme.yellow }}>{user.api_key_count || 0}</div>
                               </div>
                             </div>
                             <div style={{ display: 'flex', gap: 8 }}>
@@ -243,9 +260,9 @@ export default function Users() {
                                 onClick={() => resetUsage(user.id)}
                                 disabled={actionLoading === user.id}
                                 style={{
-                                  background: 'none', border: '1px solid #1f1f3a', borderRadius: 6,
-                                  padding: '6px 12px', fontSize: 11, color: '#fb923c', cursor: 'pointer',
-                                  opacity: actionLoading === user.id ? 0.5 : 1,
+                                  background: 'none', border: `1px solid ${theme.border}`, borderRadius: theme.radiusSm,
+                                  padding: '8px 14px', fontSize: 12, color: theme.orange, cursor: 'pointer',
+                                  opacity: actionLoading === user.id ? 0.5 : 1, transition: 'border-color 0.2s',
                                 }}
                               >
                                 Reset Usage
@@ -254,11 +271,11 @@ export default function Users() {
                                 onClick={() => toggleDisable(user.id, user.tier)}
                                 disabled={actionLoading === user.id}
                                 style={{
-                                  background: 'none', border: '1px solid #1f1f3a', borderRadius: 6,
-                                  padding: '6px 12px', fontSize: 11,
-                                  color: user.tier === 'disabled' ? '#4ade80' : '#f87171',
+                                  background: 'none', border: `1px solid ${theme.border}`, borderRadius: theme.radiusSm,
+                                  padding: '8px 14px', fontSize: 12,
+                                  color: user.tier === 'disabled' ? theme.green : theme.red,
                                   cursor: 'pointer',
-                                  opacity: actionLoading === user.id ? 0.5 : 1,
+                                  opacity: actionLoading === user.id ? 0.5 : 1, transition: 'border-color 0.2s',
                                 }}
                               >
                                 {user.tier === 'disabled' ? 'Enable Account' : 'Disable Account'}

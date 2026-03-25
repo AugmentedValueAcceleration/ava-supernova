@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import PageHeader from '../components/PageHeader';
+import { theme } from '../lib/theme';
 import {
   subscribeToTable,
   trackPresence,
@@ -247,12 +248,12 @@ export default function Communication() {
   }
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '10px 14px', background: '#1a1a35', border: '1px solid #1f1f3a',
-    borderRadius: 10, color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box',
+    width: '100%', padding: '10px 14px', background: theme.inputBg, border: '1px solid #1f1f3a',
+    borderRadius: 10, color: theme.text, fontSize: 14, outline: 'none', boxSizing: 'border-box',
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#0a0a1a' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: theme.pageBg }}>
       <div style={{ padding: '24px 28px 0', flexShrink: 0 }}>
         <PageHeader title="Communication" subtitle="Team messaging and channels" onRefresh={fetchMessages} />
       </div>
@@ -260,13 +261,13 @@ export default function Communication() {
       {/* Sidebar — Channels */}
       <div style={{
         width: 240, borderRight: '1px solid #1f1f3a', display: 'flex', flexDirection: 'column',
-        background: '#0d0d22', flexShrink: 0,
+        background: theme.surfaceBg, flexShrink: 0,
       }}>
         <div style={{ padding: '24px 20px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0 }}>Channels</h2>
+          <h2 style={{ fontSize: 14, fontWeight: 700, color: theme.text, margin: 0 }}>Channels</h2>
           <button onClick={() => setShowCreateChannel(true)} style={{
-            width: 28, height: 28, borderRadius: 8, background: '#1f1f3a', border: 'none',
-            color: '#a855f7', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 28, height: 28, borderRadius: 8, background: theme.border, border: 'none',
+            color: theme.accent, fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>+</button>
         </div>
 
@@ -276,10 +277,10 @@ export default function Communication() {
               display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 12px',
               borderRadius: 8, border: 'none', cursor: 'pointer', marginBottom: 4,
               background: activeChannel === ch.id ? '#a855f715' : 'transparent',
-              color: activeChannel === ch.id ? '#a855f7' : '#9ca3af',
+              color: activeChannel === ch.id ? theme.accent : theme.textSecondary,
               fontSize: 13, fontWeight: activeChannel === ch.id ? 600 : 400, textAlign: 'left',
             }}>
-              <span style={{ color: '#6b7280' }}>#</span>
+              <span style={{ color: theme.textMuted }}>#</span>
               <span>{ch.name}</span>
             </button>
           ))}
@@ -288,7 +289,7 @@ export default function Communication() {
         {/* Online Users — Presence */}
         {onlineUsers.length > 0 && (
           <div style={{ padding: '12px 16px', borderTop: '1px solid #1f1f3a' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 10 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: theme.textMuted, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 10 }}>
               Online — {onlineUsers.length}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -296,9 +297,9 @@ export default function Communication() {
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ position: 'relative' }}>
                     <div style={{
-                      width: 24, height: 24, borderRadius: '50%', background: '#1f1f3a',
+                      width: 24, height: 24, borderRadius: '50%', background: theme.border,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 9, fontWeight: 700, color: '#a855f7',
+                      fontSize: 9, fontWeight: 700, color: theme.accent,
                     }}>{getInitials(u.user_name || 'U')}</div>
                     <div style={{
                       position: 'absolute', bottom: -1, right: -1,
@@ -307,7 +308,7 @@ export default function Communication() {
                       border: '2px solid #0d0d22',
                     }} />
                   </div>
-                  <span style={{ fontSize: 12, color: '#9ca3af' }}>{u.user_name || 'Unknown'}</span>
+                  <span style={{ fontSize: 12, color: theme.textSecondary }}>{u.user_name || 'Unknown'}</span>
                 </div>
               ))}
             </div>
@@ -320,10 +321,10 @@ export default function Communication() {
         {/* Channel Header */}
         <div style={{ padding: '16px 28px', borderBottom: '1px solid #1f1f3a', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: 0 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: theme.text, margin: 0 }}>
               # {channels.find(c => c.id === activeChannel)?.name || activeChannel || 'general'}
             </h2>
-            <p style={{ fontSize: 12, color: '#6b7280', margin: '2px 0 0' }}>
+            <p style={{ fontSize: 12, color: theme.textMuted, margin: '2px 0 0' }}>
               {messages.length} messages{pinnedMessages.length > 0 ? ` · ${pinnedMessages.length} pinned` : ''}
               {onlineUsers.length > 0 && (
                 <span style={{ marginLeft: 8 }}>
@@ -335,20 +336,20 @@ export default function Communication() {
           </div>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '4px 12px',
-            background: '#111127', borderRadius: 8, border: '1px solid #1f1f3a',
+            background: theme.cardBg, borderRadius: 8, border: '1px solid #1f1f3a',
           }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} />
-            <span style={{ fontSize: 11, color: '#6b7280' }}>Live</span>
+            <span style={{ fontSize: 11, color: theme.textMuted }}>Live</span>
           </div>
         </div>
 
         {/* Pinned Banner */}
         {pinnedMessages.length > 0 && (
-          <div style={{ padding: '8px 28px', background: '#1a1a35', borderBottom: '1px solid #1f1f3a' }}>
+          <div style={{ padding: '8px 28px', background: theme.inputBg, borderBottom: '1px solid #1f1f3a' }}>
             <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 600, marginBottom: 4 }}>Pinned Messages</div>
             {pinnedMessages.slice(0, 3).map(pm => (
-              <div key={pm.id} style={{ fontSize: 12, color: '#9ca3af', padding: '2px 0' }}>
-                <span style={{ fontWeight: 600, color: '#fff' }}>{pm.sender_name}:</span> {pm.content.slice(0, 80)}{pm.content.length > 80 ? '...' : ''}
+              <div key={pm.id} style={{ fontSize: 12, color: theme.textSecondary, padding: '2px 0' }}>
+                <span style={{ fontWeight: 600, color: theme.text }}>{pm.sender_name}:</span> {pm.content.slice(0, 80)}{pm.content.length > 80 ? '...' : ''}
               </div>
             ))}
           </div>
@@ -356,14 +357,14 @@ export default function Communication() {
 
         {/* Messages */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px' }}>
-          {loading && <div style={{ textAlign: 'center', color: '#6b7280', padding: 60 }}>Loading messages...</div>}
+          {loading && <div style={{ textAlign: 'center', color: theme.textMuted, padding: 60 }}>Loading messages...</div>}
 
           {!loading && topMessages.length === 0 && (
-            <div style={{ textAlign: 'center', padding: 80, color: '#6b7280' }}>
+            <div style={{ textAlign: 'center', padding: 80, color: theme.textMuted }}>
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 16 }}>
                 <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
-              <div style={{ fontSize: 16, fontWeight: 600, color: '#9ca3af', marginBottom: 8 }}>No messages yet</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: theme.textSecondary, marginBottom: 8 }}>No messages yet</div>
               <div style={{ fontSize: 14 }}>Start the conversation!</div>
             </div>
           )}
@@ -377,7 +378,7 @@ export default function Communication() {
                   display: 'flex', gap: 12, padding: '10px 12px', borderRadius: 8,
                   transition: 'background 0.15s',
                 }}
-                  onMouseOver={e => e.currentTarget.style.background = '#111127'}
+                  onMouseOver={e => e.currentTarget.style.background = theme.cardBg}
                   onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                 >
                   {/* Avatar */}
@@ -386,9 +387,9 @@ export default function Communication() {
                   ) : (
                     <div style={{ position: 'relative', flexShrink: 0 }}>
                       <div style={{
-                        width: 36, height: 36, borderRadius: '50%', background: '#1f1f3a',
+                        width: 36, height: 36, borderRadius: '50%', background: theme.border,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 13, fontWeight: 700, color: '#a855f7',
+                        fontSize: 13, fontWeight: 700, color: theme.accent,
                       }}>{getInitials(msg.sender_name)}</div>
                       {/* Presence dot */}
                       {onlineUsers.some(u => u.user_name === msg.sender_name) && (
@@ -403,8 +404,8 @@ export default function Communication() {
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{msg.sender_name}</span>
-                      <span style={{ fontSize: 11, color: '#4b5563' }}>{formatTime(msg.created_at)}</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: theme.text }}>{msg.sender_name}</span>
+                      <span style={{ fontSize: 11, color: theme.textMuted }}>{formatTime(msg.created_at)}</span>
                       {msg.pinned && <span style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600 }}>Pinned</span>}
                     </div>
                     <div style={{ fontSize: 14, color: '#d1d5db', lineHeight: 1.5, wordBreak: 'break-word' }}>{msg.content}</div>
@@ -412,13 +413,13 @@ export default function Communication() {
                     {/* Actions */}
                     <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
                       <button onClick={() => setReplyTo(msg.id)} style={{
-                        background: 'none', border: 'none', color: '#6b7280', fontSize: 11, cursor: 'pointer', padding: 0,
+                        background: 'none', border: 'none', color: theme.textMuted, fontSize: 11, cursor: 'pointer', padding: 0,
                       }}>Reply{replies.length > 0 ? ` (${replies.length})` : ''}</button>
                       <button onClick={() => togglePin(msg)} style={{
-                        background: 'none', border: 'none', color: '#6b7280', fontSize: 11, cursor: 'pointer', padding: 0,
+                        background: 'none', border: 'none', color: theme.textMuted, fontSize: 11, cursor: 'pointer', padding: 0,
                       }}>{msg.pinned ? 'Unpin' : 'Pin'}</button>
                       <button onClick={() => handleDelete(msg.id)} style={{
-                        background: 'none', border: 'none', color: '#4b5563', fontSize: 11, cursor: 'pointer', padding: 0,
+                        background: 'none', border: 'none', color: theme.textMuted, fontSize: 11, cursor: 'pointer', padding: 0,
                       }}>Delete</button>
                     </div>
                   </div>
@@ -431,18 +432,18 @@ export default function Communication() {
                       <div key={reply.id} style={{
                         display: 'flex', gap: 10, padding: '6px 8px', borderRadius: 6,
                       }}
-                        onMouseOver={e => e.currentTarget.style.background = '#0d0d22'}
+                        onMouseOver={e => e.currentTarget.style.background = theme.surfaceBg}
                         onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                       >
                         <div style={{
-                          width: 28, height: 28, borderRadius: '50%', background: '#1f1f3a',
+                          width: 28, height: 28, borderRadius: '50%', background: theme.border,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 10, fontWeight: 700, color: '#a855f7', flexShrink: 0,
+                          fontSize: 10, fontWeight: 700, color: theme.accent, flexShrink: 0,
                         }}>{getInitials(reply.sender_name)}</div>
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{reply.sender_name}</span>
-                            <span style={{ fontSize: 10, color: '#4b5563' }}>{formatTime(reply.created_at)}</span>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: theme.text }}>{reply.sender_name}</span>
+                            <span style={{ fontSize: 10, color: theme.textMuted }}>{formatTime(reply.created_at)}</span>
                           </div>
                           <div style={{ fontSize: 13, color: '#d1d5db', lineHeight: 1.4 }}>{reply.content}</div>
                         </div>
@@ -458,11 +459,11 @@ export default function Communication() {
 
         {/* Reply indicator */}
         {replyTo && (
-          <div style={{ padding: '8px 28px', background: '#1a1a35', borderTop: '1px solid #1f1f3a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: '#9ca3af' }}>
-              Replying to <span style={{ color: '#a855f7', fontWeight: 600 }}>{messages.find(m => m.id === replyTo)?.sender_name || '...'}</span>
+          <div style={{ padding: '8px 28px', background: theme.inputBg, borderTop: '1px solid #1f1f3a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 12, color: theme.textSecondary }}>
+              Replying to <span style={{ color: theme.accent, fontWeight: 600 }}>{messages.find(m => m.id === replyTo)?.sender_name || '...'}</span>
             </span>
-            <button onClick={() => setReplyTo(null)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 14 }}>x</button>
+            <button onClick={() => setReplyTo(null)} style={{ background: 'none', border: 'none', color: theme.textMuted, cursor: 'pointer', fontSize: 14 }}>x</button>
           </div>
         )}
 
@@ -476,7 +477,7 @@ export default function Communication() {
             placeholder={`Message #${channels.find(c => c.id === activeChannel)?.name || 'general'}...`}
           />
           <button onClick={handleSend} disabled={saving || !newMessage.trim()} style={{
-            padding: '10px 24px', background: '#a855f7', color: '#fff', border: 'none',
+            padding: '10px 24px', background: theme.accent, color: theme.text, border: 'none',
             borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
             opacity: saving || !newMessage.trim() ? 0.5 : 1, flexShrink: 0,
           }}>{saving ? '...' : 'Send'}</button>
@@ -492,29 +493,29 @@ export default function Communication() {
           alignItems: 'center', justifyContent: 'center', zIndex: 1000,
         }} onClick={() => setShowCreateChannel(false)}>
           <div style={{
-            background: '#111127', border: '1px solid #1f1f3a', borderRadius: 16,
+            background: theme.cardBg, border: '1px solid #1f1f3a', borderRadius: 16,
             padding: 32, width: 400,
           }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: '0 0 24px' }}>Create Channel</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: theme.text, margin: '0 0 24px' }}>Create Channel</h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
-                <label style={{ fontSize: 12, color: '#9ca3af', display: 'block', marginBottom: 6 }}>Channel Name *</label>
+                <label style={{ fontSize: 12, color: theme.textSecondary, display: 'block', marginBottom: 6 }}>Channel Name *</label>
                 <input style={inputStyle} value={channelName} onChange={e => setChannelName(e.target.value)} placeholder="design-team" />
               </div>
               <div>
-                <label style={{ fontSize: 12, color: '#9ca3af', display: 'block', marginBottom: 6 }}>Description</label>
+                <label style={{ fontSize: 12, color: theme.textSecondary, display: 'block', marginBottom: 6 }}>Description</label>
                 <input style={inputStyle} value={channelDesc} onChange={e => setChannelDesc(e.target.value)} placeholder="What's this channel for?" />
               </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 28 }}>
               <button onClick={() => setShowCreateChannel(false)} style={{
-                padding: '10px 24px', background: '#1f1f3a', color: '#9ca3af', border: 'none',
+                padding: '10px 24px', background: theme.border, color: theme.textSecondary, border: 'none',
                 borderRadius: 10, fontSize: 14, cursor: 'pointer',
               }}>Cancel</button>
               <button onClick={handleCreateChannel} disabled={saving || !channelName.trim()} style={{
-                padding: '10px 24px', background: '#a855f7', color: '#fff', border: 'none',
+                padding: '10px 24px', background: theme.accent, color: theme.text, border: 'none',
                 borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
                 opacity: saving || !channelName.trim() ? 0.5 : 1,
               }}>{saving ? 'Creating...' : 'Create'}</button>
