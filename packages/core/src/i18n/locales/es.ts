@@ -1116,6 +1116,9 @@ export const esStrings: Record<string, string> = {
   'dash.usage.prev': 'Anterior',
   'dash.usage.next': 'Siguiente',
   'dash.usage.connect_for_history': 'Conecta una cuenta para rastrear el uso entre sesiones y ver tendencias históricas.',
+  'dash.usage.req': 'sol',
+  'dash.usage.reqs': 'sols',
+  'dash.usage.used_of': '{used} / {limit} usado',
 
   // ── Settings Page (missing) ───────────────────────────────────────────
   'dash.settings.section.your_ai': 'Tu IA',

@@ -806,6 +806,9 @@ export const enStrings: Record<string, string> = {
   'dash.usage.prev': 'Prev',
   'dash.usage.next': 'Next',
   'dash.usage.connect_for_history': 'Connect an account to track usage across sessions and see historical trends.',
+  'dash.usage.req': 'req',
+  'dash.usage.reqs': 'reqs',
+  'dash.usage.used_of': '{used} / {limit} used',
 
   // ── Billing Page ────────────────────────────────────────────────────────
   'dash.billing.title': 'Billing',

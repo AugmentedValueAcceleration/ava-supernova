@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { t, useLocale } from '../i18n';
+import { t, useLocale, getLocale } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
 import { UsageBar } from '../components/UsageBar';
@@ -177,7 +177,7 @@ function SessionView({ stats }: { stats: SessionStats | null }) {
                       <div className="flex items-center gap-3">
                         <span className={`text-[10px] font-medium ${costColour(cost)}`}>${cost.toFixed(4)}</span>
                         <span className="text-[10px] text-[var(--text-muted)]">
-                          {m.requests} {m.requests === 1 ? 'req' : 'reqs'}
+                          {m.requests} {m.requests === 1 ? t('dash.usage.req') : t('dash.usage.reqs')}
                         </span>
                       </div>
                     </div>
@@ -269,7 +269,7 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
                 <>
                   <div className="mb-2 flex justify-between text-xs">
                     <span className="text-[var(--text-secondary)]">
-                      {formatNumber(data.balance.used)} / {formatNumber(data.balance.limit)} used
+                      {t('dash.usage.used_of', { used: formatNumber(data.balance.used), limit: formatNumber(data.balance.limit) })}
                     </span>
                     <span className="text-[var(--text-muted)]">
                       {((data.balance.used / data.balance.limit) * 100).toFixed(0)}%
@@ -308,7 +308,7 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
               {data.daily.map((d) => {
                 const heightPct = dailyMax > 0 ? (d.tokens / dailyMax) * 100 : 0;
                 const isToday = d.date === today;
-                const dayLabel = new Date(d.date + 'T00:00:00').toLocaleDateString('en', { day: 'numeric' });
+                const dayLabel = new Date(d.date + 'T00:00:00').toLocaleDateString(getLocale(), { day: 'numeric' });
 
                 return (
                   <div key={d.date} className="flex flex-1 flex-col items-center gap-1" title={`${d.date}: ${formatNumber(d.tokens)} tokens`}>
@@ -332,7 +332,7 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
               })}
             </div>
             <div className="mt-2 flex justify-between text-[8px] text-[var(--text-muted)]">
-              <span>{data.daily[0]?.date ? new Date(data.daily[0].date + 'T00:00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' }) : ''}</span>
+              <span>{data.daily[0]?.date ? new Date(data.daily[0].date + 'T00:00:00').toLocaleDateString(getLocale(), { month: 'short', day: 'numeric' }) : ''}</span>
               <span>{t('dash.usage.today')}</span>
             </div>
           </div>
@@ -390,7 +390,7 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
                       onClick={() => setExpandedSession(expandedSession === i ? null : i)}
                     >
                       <span className="text-xs text-[var(--text-secondary)]">
-                        {new Date(s.date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                        {new Date(s.date + 'T00:00:00').toLocaleDateString(getLocale(), { day: 'numeric', month: 'short' })}
                       </span>
                       <span className="text-xs text-[var(--text-muted)]">{s.duration}</span>
                       <span className="text-xs text-[var(--text-muted)] text-right">{s.messages}</span>
