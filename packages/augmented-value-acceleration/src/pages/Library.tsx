@@ -79,7 +79,11 @@ export default function Library() {
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
-  const filtered = assets;
+  const filtered = assets.filter(a => {
+    if (a.type === 'image' && !a.thumbnail_url && !a.url) return false;
+    if (a.type === 'text' && !a.content) return false;
+    return true;
+  });
 
   return (
     <div style={pageStyle}>
