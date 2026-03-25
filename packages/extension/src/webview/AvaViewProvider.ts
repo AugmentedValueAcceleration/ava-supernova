@@ -82,6 +82,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private panelStateCallback?: (isOpen: boolean) => void;
   private cachedAccount: AccountInfo | null = null;
   private providerSource: ProviderSource = 'byok';
+  private enabledModelIds: Set<string> | null = null;
   private heartbeatInterval?: ReturnType<typeof setInterval>;
   private missedPongs = 0;
 
@@ -551,6 +552,25 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       } as ExtToWebviewMessage);
     }
 
+    // ── Fetch enabled models from platform (non-blocking) ─────────────────
+    try {
+      const cached = this.context.globalState.get<{ ids: string[]; ts: number }>('enabledModels');
+      if (cached && Date.now() - cached.ts < 3600000) {
+        this.enabledModelIds = new Set(cached.ids);
+      } else {
+        const res = await fetch('https://ava-supernova.com/api/models');
+        if (res.ok) {
+          const models: Array<{ id: string; enabled: boolean }> = await res.json();
+          const ids = models.filter(m => m.enabled !== false).map(m => m.id);
+          this.enabledModelIds = new Set(ids);
+          await this.context.globalState.update('enabledModels', { ids, ts: Date.now() });
+          this.log(`Fetched ${ids.length} enabled models from platform`);
+        }
+      }
+    } catch {
+      this.log('Could not fetch enabled models from platform — using all registered');
+    }
+
     // Resolve provider source (persisted preference)
     const hasPlatform = this.providerRegistry.listAllModels().some(m => m.provider === 'platform');
     const hasByok = this.providerRegistry.listAllModels().some(m => m.provider !== 'platform');
@@ -806,15 +826,20 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         return m.provider !== 'platform';
       });
 
+    // Filter by platform-enabled models (if cached)
+    const enabledIds = this.enabledModelIds;
+    const filtered = enabledIds
+      ? allModels.filter((m) => m.provider === 'platform' || enabledIds.has(m.id))
+      : allModels;
+
     // Deduplicate: if platform has a model, skip the BYOK version with the same base ID
     const seen = new Set<string>();
-    const deduped = allModels.filter((m) => {
-      const baseId = m.id; // e.g. 'qwen3.5-plus', 'qwen-flash'
+    const deduped = filtered.filter((m) => {
+      const baseId = m.id;
       if (m.provider === 'platform') {
         seen.add(baseId);
         return true;
       }
-      // Skip BYOK model if platform already provides it
       if (seen.has(baseId)) return false;
       seen.add(baseId);
       return true;
