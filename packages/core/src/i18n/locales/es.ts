@@ -951,6 +951,10 @@ export const esStrings: Record<string, string> = {
   'dash.auth.enter_key': 'Introduce la clave de plataforma (sk-ava-...)',
   'dash.auth.connected_as': 'Conectado como {name}',
   'dash.auth.byok_hint': 'Usando tus propias claves API',
+  'dash.auth.step1': '1. Reg\u00edstrate en ava-supernova.com',
+  'dash.auth.step2': '2. Dashboard \u2192 API Keys',
+  'dash.auth.step3': '3. Pega tu clave sk-ava-... abajo',
+  'dash.auth.connecting': 'Conectando...',
 
   // ── Sidebar Sections (missing) ────────────────────────────────────────
   'dash.section.productivity': 'Productividad',

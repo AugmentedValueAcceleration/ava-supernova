@@ -1151,6 +1151,17 @@ export const enStrings: Record<string, string> = {
   'dash.auth.enter_key': 'Enter platform key (sk-ava-...)',
   'dash.auth.connected_as': 'Connected as {name}',
   'dash.auth.byok_hint': 'Using your own API keys',
+  'dash.auth.step1': '1. Sign up at ava-supernova.com',
+  'dash.auth.step2': '2. Dashboard \u2192 API Keys',
+  'dash.auth.step3': '3. Paste your sk-ava-... key below',
+  'dash.auth.connecting': 'Connecting...',
+
+  // ── Secret Vault ──
+  'dash.chat.secret_vault': 'Secret Vault',
+  'dash.chat.secret_used': 'This message used secrets',
+  'dash.chat.delete_secret': 'Delete secret',
+  'dash.chat.secret_label': 'Label',
+  'dash.chat.secret_value': 'Secret value',
 
   // ── Calendar Legend ───────────────────────────────────────────────────
   'dash.calendar.you': 'You',
