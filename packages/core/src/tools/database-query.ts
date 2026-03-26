@@ -74,7 +74,7 @@ async function queryPostgres(connStr: string, query: string): Promise<{ columns:
   await client.connect();
   try {
     await client.query('SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY');
-    await client.query(`SET statement_timeout = ${QUERY_TIMEOUT_MS}`);
+    await client.query('SET statement_timeout = $1', [QUERY_TIMEOUT_MS]);
     const result = await client.query(query);
     return {
       columns: result.fields?.map((f: any) => f.name) ?? [],
