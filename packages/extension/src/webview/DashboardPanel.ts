@@ -616,7 +616,7 @@ export class DashboardPanel {
 
       const res = await apiFetch(path, { method, body, platformKey });
       if (res.ok) {
-        this.post({ type: 'memory_upserted', memory: res.data as never });
+        this.post({ type: 'memory_upserted', memory: res.data as any });
       } else {
         this.post({ type: 'error', message: 'Failed to save memory.' });
       }
@@ -632,7 +632,7 @@ export class DashboardPanel {
     try {
       const res = await apiFetch(`/memories/${id}`, { method: 'PATCH', body: { archived }, platformKey });
       if (res.ok) {
-        this.post({ type: 'memory_upserted', memory: res.data as never });
+        this.post({ type: 'memory_upserted', memory: res.data as any });
       } else {
         this.post({ type: 'error', message: `Failed to ${archived ? 'archive' : 'restore'} memory.` });
       }
@@ -881,7 +881,7 @@ export class DashboardPanel {
 
     try {
       const res = await apiFetch('/conversations', { platformKey });
-      this.post({ type: 'conversations_loaded', conversations: res.ok ? (res.data as never[]) : [] });
+      this.post({ type: 'conversations_loaded', conversations: res.ok ? (res.data as any[]) : [] });
     } catch {
       this.post({ type: 'conversations_loaded', conversations: [] });
     }
@@ -929,7 +929,7 @@ export class DashboardPanel {
 
     try {
       const res = await apiFetch('/support', { platformKey });
-      this.post({ type: 'tickets_loaded', tickets: res.ok ? (res.data as never[]) : [] });
+      this.post({ type: 'tickets_loaded', tickets: res.ok ? (res.data as any[]) : [] });
     } catch {
       this.post({ type: 'tickets_loaded', tickets: [] });
     }
@@ -946,7 +946,7 @@ export class DashboardPanel {
         platformKey,
       });
       if (res.ok) {
-        this.post({ type: 'ticket_created', ticket: res.data as never });
+        this.post({ type: 'ticket_created', ticket: res.data as any });
       } else {
         this.post({ type: 'error', message: 'Failed to create ticket.' });
       }

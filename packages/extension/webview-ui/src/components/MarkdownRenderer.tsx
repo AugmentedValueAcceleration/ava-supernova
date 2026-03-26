@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -41,8 +41,19 @@ function CodeBlock({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Error boundary to prevent malformed markdown from crashing the UI
+class MarkdownErrorBoundary extends React.Component<{ children: React.ReactNode; fallback: string }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode; fallback: string }) { super(props); this.state = { hasError: false }; }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) return <pre className="text-xs whitespace-pre-wrap opacity-70">{this.props.fallback}</pre>;
+    return this.props.children;
+  }
+}
+
 export function MarkdownRenderer({ content }: MarkdownRendererProps) {
   return (
+    <MarkdownErrorBoundary fallback={content}>
     <div className="markdown-body space-y-2.5">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
@@ -161,5 +172,6 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
         {content}
       </ReactMarkdown>
     </div>
+    </MarkdownErrorBoundary>
   );
 }

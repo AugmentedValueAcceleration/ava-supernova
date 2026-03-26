@@ -428,7 +428,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       this.missedPongs++;
       this.postMessage({ type: 'ping' } as ExtToWebviewMessage);
 
-      if (this.missedPongs >= 3) {
+      if (this.missedPongs >= 5) {
+        this.log('Heartbeat: webview unresponsive — attempting reinitialisation');
+        this.missedPongs = 0;
+        this.initializeSession().catch(() => {});
+      } else if (this.missedPongs >= 3) {
         this.log(`Heartbeat: ${this.missedPongs} consecutive pings missed — webview may be unresponsive`);
       }
     }, 30_000);
@@ -1111,10 +1115,16 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       this.memoryManager.getEntries('global'),
       this.memoryManager.getEntries('project'),
     ]);
+    const toUI = (e: { id: string; category: string; content: string; createdAt: string; updatedAt: string; lastRecalledAt?: string | null; recallCount?: number; tags?: string[]; archived?: boolean; archivedAt?: string | null; branch?: string | null }) => ({
+      id: e.id, category: e.category, content: e.content,
+      createdAt: e.createdAt, updatedAt: e.updatedAt,
+      lastRecalledAt: e.lastRecalledAt ?? null, recallCount: e.recallCount ?? 0,
+      tags: e.tags, archived: e.archived, archivedAt: e.archivedAt ?? null, branch: e.branch ?? null,
+    });
     this.postMessage({
       type: 'memory_content',
-      global: globalEntries as never[],
-      project: projectEntries as never[],
+      global: globalEntries.map(toUI),
+      project: projectEntries.map(toUI),
     });
   }
 

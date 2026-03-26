@@ -120,6 +120,7 @@ export type WebviewToExtMessage =
   | { type: 'switch_model'; modelId: string }
   | { type: 'clear_chat' }
   | { type: 'cancel' }
+  | { type: 'interrupt' }
   | { type: 'open_dashboard' }
   | { type: 'open_docs' }
   | { type: 'request_history' }
