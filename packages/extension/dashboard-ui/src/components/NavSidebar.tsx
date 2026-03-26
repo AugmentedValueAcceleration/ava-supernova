@@ -257,17 +257,23 @@ export function NavSidebar({
       {/* Account section */}
       <div className="border-t border-[var(--border-card)] p-4">
         {mode === 'platform' ? (
-          <>
-            {email && (
-              <p className="mb-2 truncate px-3 text-[10px] text-[var(--text-muted)]">{email}</p>
-            )}
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-sm font-light text-purple-400">
+              {email?.[0]?.toUpperCase() || '?'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="truncate text-[11px] font-medium text-white">{email}</p>
+              {isAdmin && (
+                <span className="inline-block mt-0.5 rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[8px] font-bold text-purple-400 uppercase tracking-wider">Admin</span>
+              )}
+            </div>
             <button
               onClick={() => post({ type: 'disconnect_account' })}
-              className="w-full rounded-lg border border-red-500/30 bg-transparent px-3 py-1.5 text-xs text-red-400 transition hover:bg-red-500/10"
+              className="shrink-0 rounded-md border border-[var(--border-card)] px-2 py-1 text-[10px] text-[var(--text-muted)] transition hover:border-red-500/30 hover:text-red-400"
             >
               {t('dash.auth.disconnect')}
             </button>
-          </>
+          </div>
         ) : (
           <>
             <p className="mb-2 px-3 text-[10px] text-[var(--text-muted)]">{t('dash.auth.byok_hint')}</p>
