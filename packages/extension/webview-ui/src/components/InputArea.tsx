@@ -35,6 +35,8 @@ interface InputAreaProps {
     tier: string | null;
     freeTokensUsed: number;
     freeTokensLimit: number;
+    warning?: 'none' | 'approaching' | 'critical' | 'exhausted';
+    warningMessage?: string;
   } | null;
   onProviderSourceChange?: (source: ProviderSource) => void;
 }
@@ -324,8 +326,22 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
 
   const hasContent = text.trim().length > 0 || attachments.length > 0;
 
+  const warningLevel = platformStatus?.warning;
+  const warningMsg = platformStatus?.warningMessage;
+
   return (
     <div className="px-3 pb-3 pt-1 relative">
+      {/* Usage warning banner */}
+      {warningLevel && warningLevel !== 'none' && warningMsg && (
+        <div className={`mb-2 rounded-lg px-3 py-2 text-[11px] flex items-center gap-2 ${
+          warningLevel === 'exhausted' ? 'bg-red-500/15 text-red-400 border border-red-500/20' :
+          warningLevel === 'critical' ? 'bg-orange-500/15 text-orange-400 border border-orange-500/20' :
+          'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+        }`}>
+          <span>{warningLevel === 'exhausted' ? '\u26D4' : warningLevel === 'critical' ? '\u26A0' : '\u25CB'}</span>
+          <span className="flex-1">{warningMsg}</span>
+        </div>
+      )}
       {/* Secret Vault panel */}
       {vaultOpen && (
         <SecretVault

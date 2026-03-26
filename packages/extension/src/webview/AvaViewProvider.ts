@@ -236,6 +236,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           free_tokens_limit: number;
           tokens_used: number;
           tokens_limit: number | null;
+          warning?: string;
+          warning_pct?: number;
+          warning_message?: string;
         };
 
         this.postMessage({
@@ -246,18 +249,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           freeTokensLimit: data.free_tokens_limit,
           subTokensUsed: data.tokens_used,
           subTokensLimit: data.tokens_limit,
+          warning: (data.warning as 'none' | 'approaching' | 'critical' | 'exhausted') || 'none',
+          warningPct: data.warning_pct || 0,
+          warningMessage: data.warning_message || '',
         });
-
-        // Low balance warning at 20% remaining (100K)
-        const freeRemaining = data.free_tokens_limit - data.free_tokens_used;
-        if (freeRemaining > 0 && freeRemaining <= 100_000) {
-          this.postMessage({
-            type: 'error',
-            message: `Low free token balance: ~${Math.round(freeRemaining / 1000)}K remaining this month.`,
-            code: 'low_balance',
-            suggestion: 'Add your own API key in settings or wait for the monthly reset.',
-          });
-        }
       }
     } catch (err) {
       this.log(`Usage reporting failed (non-blocking): ${err}`);

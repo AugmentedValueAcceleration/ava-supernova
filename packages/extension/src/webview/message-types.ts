@@ -2,6 +2,8 @@
 
 export type ProviderSource = 'platform' | 'byok';
 
+export type WarningLevel = 'none' | 'approaching' | 'critical' | 'exhausted';
+
 export interface PlatformStatus {
   connected: boolean;
   tier: string | null;
@@ -11,6 +13,9 @@ export interface PlatformStatus {
   subTokensLimit: number | null;
   claudeTokensUsed: number;
   claudeTokensLimit: number | null;
+  warning: WarningLevel;
+  warningPct: number;
+  warningMessage: string;
 }
 
 // ─── Extension Host → Webview ────────────────────────────────────────────────
