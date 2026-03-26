@@ -50,6 +50,7 @@ import { sessionStats } from '../session-stats.js';
 
 export class AvaViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'ava-supernova.chatView';
+  private static readonly SILENT_TOOLS = new Set(['detect_language']);
 
   private view?: vscode.WebviewView;
   private panel?: vscode.WebviewPanel;
@@ -613,8 +614,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           freeTokensLimit: this.cachedAccount.tier === 'admin' ? 999_999_999_999 : (this.cachedAccount.usage?.free_tokens_limit ?? 3_000_000),
           subTokensUsed: this.cachedAccount.usage?.tokens_used ?? 0,
           subTokensLimit: this.cachedAccount.usage?.tokens_limit ?? null,
-          claudeTokensUsed: this.cachedAccount.usage?.claude_tokens_used ?? 0,
-          claudeTokensLimit: this.cachedAccount.usage?.claude_tokens_limit ?? null,
         }
       : undefined;
 
@@ -782,6 +781,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   private async setActiveModel(modelId: string): Promise<void> {
+    if (this.isRunning) {
+      this.postMessage({ type: 'error', message: 'Cannot switch model while Ava is working. Wait for the current task to finish.' });
+      return;
+    }
+
     const resolved = this.providerRegistry.resolveModel(modelId);
     if (!resolved) return;
 
@@ -1377,7 +1381,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
 
       case 'interrupt':
-        this.interruptRun();
+        this.interruptRun().catch(() => {});
         break;
 
       case 'open_dashboard':
@@ -1484,6 +1488,17 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     mode: AvaMode = 'code',
     attachments?: Array<{ type: 'image'; data: string; name: string }>,
   ): Promise<void> {
+    // Input validation
+    if (text.length > 100_000) {
+      this.postMessage({ type: 'error', message: 'Message too long (max 100K characters).' });
+      return;
+    }
+    const totalAttachmentSize = attachments?.reduce((sum, a) => sum + a.data.length, 0) ?? 0;
+    if (totalAttachmentSize > 50 * 1024 * 1024) {
+      this.postMessage({ type: 'error', message: 'Attachments too large (max 50MB total).' });
+      return;
+    }
+
     if (!this.agent || !this.conversation) {
       this.log('handleUserMessage: no agent or conversation — needs setup');
       this.postMessage({
@@ -1558,8 +1573,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           break;
         case 'tool_call_start': {
           // Silent tools — don't show in UI
-          const silentTools = new Set(['detect_language']);
-          if (!silentTools.has(event.toolCall.function.name)) {
+          if (!AvaViewProvider.SILENT_TOOLS.has(event.toolCall.function.name)) {
             this.postMessage({
               type: 'tool_call_start',
               toolCall: {
@@ -1574,8 +1588,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           break;
         }
         case 'tool_call_end': {
-          const silentToolsEnd = new Set(['detect_language']);
-          if (!silentToolsEnd.has(event.toolCall.function.name)) {
+          if (!AvaViewProvider.SILENT_TOOLS.has(event.toolCall.function.name)) {
             this.postMessage({
               type: 'tool_call_end',
               toolCallId: event.toolCall.id,
@@ -1895,9 +1908,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     const topics = userMessages.slice(0, 3).map(m => m.slice(0, 80)).join('. ');
 
+    const userName = this.cachedAccount?.name || this.cachedAccount?.email?.split('@')[0] || 'the user';
+
     const entry = topics
-      ? `Worked with Stewart for ${duration} minutes on: ${topics}. Used ${stats.tool_calls} tools across ${stats.messages} exchanges on ${model}.`
-      : `Had a ${duration}-minute session with Stewart — ${stats.messages} messages and ${stats.tool_calls} tool calls on ${model}.`;
+      ? `Worked with ${userName} for ${duration} minutes on: ${topics}. Used ${stats.tool_calls} tools across ${stats.messages} exchanges on ${model}.`
+      : `Had a ${duration}-minute session with ${userName} — ${stats.messages} messages and ${stats.tool_calls} tool calls on ${model}.`;
 
     this.journalManager!.appendAvaEntry(today, entry).catch(() => {});
   }

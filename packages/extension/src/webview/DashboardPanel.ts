@@ -2093,7 +2093,6 @@ export class DashboardPanel {
       this.weatherCache = { data: msg, timestamp: Date.now() };
       this.post(msg);
     } catch (err) {
-      console.error('[Dashboard] Weather fetch failed:', err);
       this.post({ type: 'weather_loaded', data: null });
     }
   }
