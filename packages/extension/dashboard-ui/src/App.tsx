@@ -288,6 +288,9 @@ export function App() {
       case 'learning_loaded':
         setLearningCurriculums(msg.curriculums);
         break;
+      case 'curriculum_deleted':
+        setLearningCurriculums(prev => prev.filter(c => c.id !== msg.id));
+        break;
       // Sync messages
       case 'sync_status':
         setSyncStatus(msg.data);

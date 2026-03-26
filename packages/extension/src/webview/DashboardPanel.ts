@@ -381,6 +381,10 @@ export class DashboardPanel {
         await this.loadLearning();
         break;
 
+      case 'delete_curriculum':
+        await this.deleteCurriculum(msg.id);
+        break;
+
       // ─── Sync messages ──────────────────────────────────────────────────
 
       case 'load_sync_status':
@@ -1229,9 +1233,26 @@ export class DashboardPanel {
       const learningPath = path.join(AVA_HOME, 'learning.json');
       const raw = await fs.readFile(learningPath, 'utf-8');
       const store = JSON.parse(raw);
-      this.post({ type: 'learning_loaded', curriculums: store.curriculums || [] });
+      const curriculums = Array.isArray(store.curriculums) ? store.curriculums : [];
+      this.post({ type: 'learning_loaded', curriculums });
     } catch {
       this.post({ type: 'learning_loaded', curriculums: [] });
+    }
+  }
+
+  private async deleteCurriculum(id: string): Promise<void> {
+    try {
+      const fs = await import('node:fs/promises');
+      const learningPath = path.join(AVA_HOME, 'learning.json');
+      const raw = await fs.readFile(learningPath, 'utf-8');
+      const store = JSON.parse(raw);
+      if (Array.isArray(store.curriculums)) {
+        store.curriculums = store.curriculums.filter((c: { id: string }) => c.id !== id);
+        await fs.writeFile(learningPath, JSON.stringify(store, null, 2), 'utf-8');
+      }
+      this.post({ type: 'curriculum_deleted', id });
+    } catch {
+      this.post({ type: 'error', message: 'Failed to delete curriculum.' });
     }
   }
 

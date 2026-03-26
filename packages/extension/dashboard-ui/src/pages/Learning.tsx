@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { t, useLocale } from '../i18n';
+import { post } from '../App';
 import type { DashboardLearningCurriculum } from '../types/messages';
 import { SectionGroup } from '../components/SectionGroup';
 
@@ -32,6 +33,11 @@ export function Learning({ curriculums }: Props) {
 
   const selected = curriculums.find(c => c.id === selectedId);
 
+  function deleteCurriculum(id: string) {
+    post({ type: 'delete_curriculum', id });
+    setSelectedId(null);
+  }
+
   const toggleModule = (id: string) => {
     setExpandedModules(prev => {
       const next = new Set(prev);
@@ -44,12 +50,20 @@ export function Learning({ curriculums }: Props) {
   if (selected) {
     return (
       <div>
-        <button
-          onClick={() => setSelectedId(null)}
-          className="mb-4 text-xs text-[var(--text-muted)] hover:text-white transition bg-transparent border-none cursor-pointer"
-        >
-          ← {t('dash.learning.back')}
-        </button>
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => setSelectedId(null)}
+            className="text-xs text-[var(--text-muted)] hover:text-white transition bg-transparent border-none cursor-pointer"
+          >
+            ← {t('dash.learning.back')}
+          </button>
+          <button
+            onClick={() => deleteCurriculum(selected.id)}
+            className="text-[10px] text-red-400 hover:text-red-300 bg-transparent border border-red-400/20 hover:border-red-400/40 rounded-md px-2.5 py-1 cursor-pointer transition"
+          >
+            Delete
+          </button>
+        </div>
 
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-1">

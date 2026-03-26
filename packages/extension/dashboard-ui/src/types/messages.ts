@@ -319,6 +319,7 @@ export type ExtToDashboardMessage =
   | { type: 'session_tasks_updated'; tasks: Array<{ id: string; title: string; status: 'pending' | 'in_progress' | 'completed' }> }
   // Learning messages
   | { type: 'learning_loaded'; curriculums: DashboardLearningCurriculum[] }
+  | { type: 'curriculum_deleted'; id: string }
   // Sync messages
   | { type: 'sync_status'; data: SyncStatus }
   | { type: 'sync_started'; dataType: string }
@@ -403,6 +404,7 @@ export type DashboardToExtMessage =
   | { type: 'load_session_tasks' }
   // Learning messages
   | { type: 'load_learning' }
+  | { type: 'delete_curriculum'; id: string }
   // Sync messages
   | { type: 'load_sync_status' }
   | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' }

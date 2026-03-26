@@ -439,7 +439,8 @@ function formatCategoryLabel(slug: string): string {
     .join(' ');
 }
 
-function NewsWidget({ articles }: { articles: NewsArticle[] }) {
+function NewsWidget({ articles: rawArticles }: { articles: NewsArticle[] }) {
+  const articles = Array.isArray(rawArticles) ? rawArticles : [];
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const handleCategoryChange = (cat: string | null) => {
@@ -516,7 +517,8 @@ function NewsWidget({ articles }: { articles: NewsArticle[] }) {
 
 // ── Tasks Widget ─────────────────────────────────────────────────────────────
 
-function TasksWidget({ tasks, onNavigate }: { tasks: DashboardTaskEntry[]; onNavigate: (p: Page) => void }) {
+function TasksWidget({ tasks: rawTasks, onNavigate }: { tasks: DashboardTaskEntry[]; onNavigate: (p: Page) => void }) {
+  const tasks = Array.isArray(rawTasks) ? rawTasks : [];
   const today = new Date().toISOString().slice(0, 10);
 
   const todayTasks = useMemo(() => {
@@ -646,7 +648,8 @@ function JournalWidget({ journalDay, onNavigate }: { journalDay: DashboardJourna
 
 // ── Learning Widget ──────────────────────────────────────────────────────────
 
-function LearningWidget({ curriculums, onNavigate }: { curriculums: DashboardLearningCurriculum[]; onNavigate: (p: Page) => void }) {
+function LearningWidget({ curriculums: rawCurriculums, onNavigate }: { curriculums: DashboardLearningCurriculum[]; onNavigate: (p: Page) => void }) {
+  const curriculums = Array.isArray(rawCurriculums) ? rawCurriculums : [];
   const active = useMemo(() => {
     return curriculums.filter(c => c.status !== 'completed').slice(0, 3);
   }, [curriculums]);
@@ -693,7 +696,8 @@ function LearningWidget({ curriculums, onNavigate }: { curriculums: DashboardLea
 
 // ── Memory Widget ────────────────────────────────────────────────────────────
 
-function MemoryWidget({ memories, onNavigate, total }: { memories: MemoryEntry[]; onNavigate: (p: Page) => void; total?: number }) {
+function MemoryWidget({ memories: rawMemories, onNavigate, total }: { memories: MemoryEntry[]; onNavigate: (p: Page) => void; total?: number }) {
+  const memories = Array.isArray(rawMemories) ? rawMemories : [];
   const activeCount = memories.filter(m => !m.archived).length;
   const lastMemory = memories.length > 0
     ? memories.reduce((latest, m) => {
