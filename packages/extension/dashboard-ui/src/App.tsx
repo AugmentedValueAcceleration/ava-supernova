@@ -82,6 +82,8 @@ export function App() {
     streamResponses: true,
   });
   const [memories, setMemories] = useState<MemoryEntry[]>([]);
+  const [memoryTotal, setMemoryTotal] = useState(0);
+  const [memoryHasMore, setMemoryHasMore] = useState(false);
   const [providerKeys, setProviderKeys] = useState<ProviderKeyStatus>({
     anthropic: false, deepseek: false, kimi: false, glm: false, qwen: false, mistral: false,
   });
@@ -153,6 +155,13 @@ export function App() {
         break;
       case 'memories_loaded':
         setMemories(msg.memories);
+        setMemoryTotal(msg.total ?? msg.memories.length);
+        setMemoryHasMore(msg.hasMore ?? false);
+        break;
+      case 'memories_more_loaded':
+        setMemories(prev => [...prev, ...msg.memories]);
+        setMemoryTotal(msg.total ?? 0);
+        setMemoryHasMore(msg.hasMore ?? false);
         break;
       case 'memory_deleted':
         setMemories((prev) => prev.filter((m) => m.id !== msg.id));
@@ -450,11 +459,11 @@ export function App() {
     const mode = account ? 'platform' as const : 'byok' as const;
     switch (page) {
       case 'overview':
-        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} />;
+        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} />;
       case 'usage':
         return <Usage account={account} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} />;
       case 'memory':
-        return <Memory memories={account ? memories : localMemories} mode={mode} />;
+        return <Memory memories={account ? memories : localMemories} mode={mode} serverTotal={account ? memoryTotal : undefined} serverHasMore={account ? memoryHasMore : undefined} />;
       case 'tasks':
         return <Tasks tasks={tasks} sessionTasks={sessionTasks} />;
       case 'journal':

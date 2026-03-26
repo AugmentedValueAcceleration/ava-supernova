@@ -95,6 +95,7 @@ interface OverviewProps {
   journalDay: DashboardJournalDay | null;
   learningCurriculums: DashboardLearningCurriculum[];
   memories: MemoryEntry[];
+  memoryTotal?: number;
   weatherData: WeatherData | null;
   newsArticles: NewsArticle[];
   latestRelease: ReleaseInfo | null;
@@ -113,6 +114,7 @@ export function Overview({
   journalDay,
   learningCurriculums,
   memories,
+  memoryTotal,
   weatherData,
   newsArticles,
   latestRelease,
@@ -242,7 +244,7 @@ export function Overview({
       <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <JournalWidget journalDay={journalDay} onNavigate={onNavigate} />
         <LearningWidget curriculums={learningCurriculums} onNavigate={onNavigate} />
-        <MemoryWidget memories={memories} onNavigate={onNavigate} />
+        <MemoryWidget memories={memories} onNavigate={onNavigate} total={memoryTotal} />
         <ReleaseWidget release={latestRelease} />
       </div>
 
@@ -691,7 +693,7 @@ function LearningWidget({ curriculums, onNavigate }: { curriculums: DashboardLea
 
 // ── Memory Widget ────────────────────────────────────────────────────────────
 
-function MemoryWidget({ memories, onNavigate }: { memories: MemoryEntry[]; onNavigate: (p: Page) => void }) {
+function MemoryWidget({ memories, onNavigate, total }: { memories: MemoryEntry[]; onNavigate: (p: Page) => void; total?: number }) {
   const activeCount = memories.filter(m => !m.archived).length;
   const lastMemory = memories.length > 0
     ? memories.reduce((latest, m) => {
@@ -715,7 +717,7 @@ function MemoryWidget({ memories, onNavigate }: { memories: MemoryEntry[]; onNav
             <div className="text-[10px] text-[var(--text-muted)]">{t('dash.memory.title')}</div>
           </div>
           <div className="ml-auto text-right">
-            <div className="text-lg font-semibold text-[var(--text-secondary)]">{memories.length}</div>
+            <div className="text-lg font-semibold text-[var(--text-secondary)]">{total ?? memories.length}</div>
             <div className="text-[10px] text-[var(--text-muted)]">{t('dash.memory.total')}</div>
           </div>
         </div>

@@ -283,7 +283,8 @@ export type ExtToDashboardMessage =
     }
   | { type: 'account_updated'; account: AccountInfo | null }
   | { type: 'provider_keys_updated'; providerKeys: ProviderKeyStatus }
-  | { type: 'memories_loaded'; memories: MemoryEntry[] }
+  | { type: 'memories_loaded'; memories: MemoryEntry[]; total?: number; hasMore?: boolean }
+  | { type: 'memories_more_loaded'; memories: MemoryEntry[]; total?: number; hasMore?: boolean }
   | { type: 'memory_deleted'; id: string }
   | { type: 'memory_upserted'; memory: MemoryEntry }
   | { type: 'connection_tested'; service: string; success: boolean; message: string }
@@ -347,6 +348,7 @@ export type DashboardToExtMessage =
   | { type: 'save_provider_key'; provider: string; apiKey: string }
   | { type: 'remove_provider_key'; provider: string }
   | { type: 'load_memories' }
+  | { type: 'load_more_memories' }
   | { type: 'delete_memory'; id: string }
   | { type: 'upsert_memory'; id?: string; scope?: 'global' | 'project'; key?: string; content: string; category?: string | null }
   | { type: 'archive_memory'; id: string }

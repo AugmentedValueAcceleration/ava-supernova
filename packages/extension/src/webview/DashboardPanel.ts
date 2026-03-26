@@ -168,6 +168,10 @@ export class DashboardPanel {
         await this.loadMemories();
         break;
 
+      case 'load_more_memories':
+        await this.loadMoreMemories();
+        break;
+
       case 'delete_memory':
         await this.deleteMemory(msg.id);
         break;
@@ -524,17 +528,44 @@ export class DashboardPanel {
 
   // ─── Memories ──────────────────────────────────────────────────────────────
 
+  private memoryOffset = 0;
+
   private async loadMemories(): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
     if (!platformKey) return;
 
     try {
-      const res = await apiFetch('/memories', { platformKey });
+      this.memoryOffset = 0;
+      const res = await apiFetch('/memories?limit=100&offset=0', { platformKey });
       if (res.ok) {
-        this.post({ type: 'memories_loaded', memories: res.data as never[] });
+        const body = res.data as { memories?: never[]; total?: number; hasMore?: boolean } | never[];
+        const memories = Array.isArray(body) ? body : (body.memories || []);
+        const total = Array.isArray(body) ? memories.length : (body.total || memories.length);
+        const hasMore = Array.isArray(body) ? false : (body.hasMore || false);
+        this.memoryOffset = memories.length;
+        this.post({ type: 'memories_loaded', memories, total, hasMore });
       }
     } catch {
       // Non-fatal: just leave memories empty
+    }
+  }
+
+  private async loadMoreMemories(): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+
+    try {
+      const res = await apiFetch(`/memories?limit=100&offset=${this.memoryOffset}`, { platformKey });
+      if (res.ok) {
+        const body = res.data as { memories?: never[]; total?: number; hasMore?: boolean } | never[];
+        const memories = Array.isArray(body) ? body : (body.memories || []);
+        const total = Array.isArray(body) ? memories.length : (body.total || memories.length);
+        const hasMore = Array.isArray(body) ? false : (body.hasMore || false);
+        this.memoryOffset += memories.length;
+        this.post({ type: 'memories_more_loaded', memories, total, hasMore });
+      }
+    } catch {
+      // silent
     }
   }
 

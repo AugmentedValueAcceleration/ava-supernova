@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
@@ -158,9 +158,11 @@ function RestoreIcon({ className }: { className?: string }) {
 interface MemoryProps {
   memories: MemoryEntry[];
   mode?: 'platform' | 'byok';
+  serverTotal?: number;
+  serverHasMore?: boolean;
 }
 
-export function Memory({ memories, mode = 'platform' }: MemoryProps) {
+export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore }: MemoryProps) {
   useLocale();
   const isLocal = mode === 'byok';
   const [search, setSearch] = useState('');
@@ -169,6 +171,12 @@ export function Memory({ memories, mode = 'platform' }: MemoryProps) {
   const [editText, setEditText] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('active');
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // Refresh memories from host when page mounts
+  useEffect(() => {
+    post({ type: isLocal ? 'load_local_memories' : 'load_memories' });
+  }, [isLocal]);
 
   // Partition entries
   const { activeEntries, staleEntries, archivedEntries } = useMemo(() => {
@@ -229,6 +237,18 @@ export function Memory({ memories, mode = 'platform' }: MemoryProps) {
     }
     return result;
   }, [viewEntries, search, categoryFilter]);
+
+  function loadMore() {
+    if (!isLocal && serverHasMore) {
+      setLoadingMore(true);
+      post({ type: 'load_more_memories' });
+      // loadingMore will be cleared when new memories arrive
+      setTimeout(() => setLoadingMore(false), 5000); // fallback timeout
+    }
+  }
+
+  // Clear loading state when memories change (new batch arrived)
+  useEffect(() => { setLoadingMore(false); }, [memories.length]);
 
   function startEdit(m: MemoryEntry) {
     setEditingId(m.id);
@@ -353,7 +373,7 @@ export function Memory({ memories, mode = 'platform' }: MemoryProps) {
       {/* Search & List */}
       <SectionGroup
         label={viewMode === 'active' ? 'Active Memories' : viewMode === 'stale' ? 'Stale Memories' : 'Archived Memories'}
-        count={`${filtered.length} ${filtered.length === 1 ? 'memory' : 'memories'}${search ? ` matching "${search}"` : ''}${categoryFilter ? ` in ${categoryFilter}` : ''}`}
+        count={`${filtered.length} ${filtered.length === 1 ? 'memory' : 'memories'}${serverTotal && serverTotal > memories.length ? ` (${memories.length} of ${serverTotal} loaded)` : ''}${search ? ` matching "${search}"` : ''}${categoryFilter ? ` in ${categoryFilter}` : ''}`}
       >
         {/* Search */}
         <div className="relative">
@@ -536,6 +556,17 @@ export function Memory({ memories, mode = 'platform' }: MemoryProps) {
                 )}
               </div>
             ))}
+
+            {/* Load more from server */}
+            {!isLocal && serverHasMore && (
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className={`w-full rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] py-3 text-xs font-medium text-[var(--accent)] transition hover:border-[var(--accent)]/50 ${loadingMore ? 'opacity-50 cursor-wait' : ''}`}
+              >
+                {loadingMore ? 'Loading...' : `Load more (${(serverTotal || 0) - memories.length} remaining)`}
+              </button>
+            )}
           </div>
         )}
       </SectionGroup>
