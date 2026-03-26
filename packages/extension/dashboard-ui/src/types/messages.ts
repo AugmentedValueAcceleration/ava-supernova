@@ -320,6 +320,10 @@ export type ExtToDashboardMessage =
   // Learning messages
   | { type: 'learning_loaded'; curriculums: DashboardLearningCurriculum[] }
   | { type: 'curriculum_deleted'; id: string }
+  // Avatar messages
+  | { type: 'avatar_loaded'; dataUrl: string }
+  | { type: 'avatar_saved'; dataUrl: string }
+  | { type: 'avatar_removed' }
   // Sync messages
   | { type: 'sync_status'; data: SyncStatus }
   | { type: 'sync_started'; dataType: string }
@@ -407,7 +411,10 @@ export type DashboardToExtMessage =
   | { type: 'delete_curriculum'; id: string }
   // Sync messages
   | { type: 'load_sync_status' }
-  | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' }
+  | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' | 'profile' }
+  | { type: 'save_avatar'; data: string; mimeType: string }
+  | { type: 'remove_avatar' }
+  | { type: 'load_avatar' }
   // Release notes
   | { type: 'load_releases' }
   // Library

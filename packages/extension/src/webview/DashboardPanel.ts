@@ -434,6 +434,20 @@ export class DashboardPanel {
         await this.handleResetPersonality();
         break;
 
+      // ─── Avatar messages ─────────────────────────────────────────────────────────
+
+      case 'save_avatar':
+        await this.saveAvatar(msg.data, msg.mimeType);
+        break;
+
+      case 'remove_avatar':
+        await this.removeAvatar();
+        break;
+
+      case 'load_avatar':
+        await this.loadAvatar();
+        break;
+
       // ─── Overview widget messages ───────────────────────────────────────────────
 
       case 'load_weather':
@@ -1646,6 +1660,43 @@ export class DashboardPanel {
     }
   }
 
+  // ─── Avatar (local file in ~/.ava/) ──────────────────────────────────────────
+
+  private async saveAvatar(dataUrl: string, _mimeType: string): Promise<void> {
+    try {
+      const fs = await import('node:fs/promises');
+      const avaDir = path.join(os.homedir(), '.ava');
+      await fs.mkdir(avaDir, { recursive: true });
+      // Save data URL as-is (small file, base64 is fine for local)
+      await fs.writeFile(path.join(avaDir, 'avatar.dat'), dataUrl, 'utf-8');
+      this.post({ type: 'avatar_saved', dataUrl });
+    } catch {
+      this.post({ type: 'error', message: 'Failed to save avatar.' });
+    }
+  }
+
+  private async removeAvatar(): Promise<void> {
+    try {
+      const fs = await import('node:fs/promises');
+      await fs.unlink(path.join(os.homedir(), '.ava', 'avatar.dat')).catch(() => {});
+      this.post({ type: 'avatar_removed' });
+    } catch {
+      this.post({ type: 'error', message: 'Failed to remove avatar.' });
+    }
+  }
+
+  private async loadAvatar(): Promise<void> {
+    try {
+      const fs = await import('node:fs/promises');
+      const dataUrl = await fs.readFile(path.join(os.homedir(), '.ava', 'avatar.dat'), 'utf-8');
+      if (dataUrl.startsWith('data:image/')) {
+        this.post({ type: 'avatar_loaded', dataUrl });
+      }
+    } catch {
+      // No avatar file — silent
+    }
+  }
+
   private async loadSyncState(): Promise<Record<string, { syncedCount: number; syncedAt: string }>> {
     const fs = await import('node:fs/promises');
     try {
@@ -1879,6 +1930,44 @@ export class DashboardPanel {
           }
           await this.saveSyncState('learnings', pushed);
           this.post({ type: 'sync_completed', dataType, count: pushed });
+          await this.loadSyncStatus();
+          break;
+        }
+
+        case 'profile': {
+          // Upload local avatar to Supabase Storage + update users.avatar_url
+          const avatarPath = path.join(os.homedir(), '.ava', 'avatar.dat');
+          const avatarData = await fs.readFile(avatarPath, 'utf-8');
+          if (!avatarData.startsWith('data:image/')) {
+            this.post({ type: 'sync_error', dataType, message: 'No local avatar to sync.' });
+            break;
+          }
+          // Parse data URL → binary
+          const [header, base64] = avatarData.split(',');
+          const mimeMatch = header.match(/data:(image\/\w+)/);
+          const mime = mimeMatch?.[1] || 'image/png';
+          const ext = mime.split('/')[1] || 'png';
+          const buffer = Buffer.from(base64, 'base64');
+
+          // Get user ID
+          const { data: keyRow } = await apiFetch('/account-info', { platformKey });
+          const userId = keyRow?.id;
+          if (!userId) throw new Error('Could not determine user ID');
+
+          // Upload via platform API (base64 body)
+          const uploadRes = await apiFetch('/avatar/upload', {
+            platformKey,
+            method: 'POST',
+            body: { avatar: avatarData, extension: ext },
+          });
+          if (!uploadRes.ok) {
+            // Fallback: update avatar_url with data URL encoded (not ideal but works)
+            // In practice, the platform should have an /avatar/upload endpoint
+            // For now, just update the avatar_url directly
+            throw new Error('Avatar sync not yet supported on the platform API');
+          }
+          await this.saveSyncState('profile', 1);
+          this.post({ type: 'sync_completed', dataType, count: 1 });
           await this.loadSyncStatus();
           break;
         }

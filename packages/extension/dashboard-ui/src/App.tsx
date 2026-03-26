@@ -122,6 +122,8 @@ export function App() {
   const [libraryHasFolder, setLibraryHasFolder] = useState(true);
   // Personality state
   const [personalityData, setPersonalityData] = useState<PersonalityData | null>(null);
+  // Avatar state
+  const [avatarDataUrl, setAvatarDataUrl] = useState('');
   // Overview widget state
   const [weatherData, setWeatherData] = useState<{ location: string; temp_c: number; condition: string; emoji: string; humidity: number; wind_kmph: number; forecast: Array<{ date: string; day: string; max_c: number; min_c: number; condition: string; emoji: string }> } | null>(null);
   const [newsArticles, setNewsArticles] = useState<Array<{ title: string; category: string; reading_time: number; slug: string; date: string }>>([]);
@@ -318,6 +320,16 @@ export function App() {
       case 'library_image_deleted':
         setLibraryImages(prev => prev.filter(i => i.path !== msg.path));
         break;
+      // Avatar messages
+      case 'avatar_loaded':
+        setAvatarDataUrl(msg.dataUrl);
+        break;
+      case 'avatar_saved':
+        setAvatarDataUrl(msg.dataUrl);
+        break;
+      case 'avatar_removed':
+        setAvatarDataUrl('');
+        break;
       // Personality messages
       case 'personality_loaded':
         setPersonalityData(msg.personality);
@@ -432,6 +444,10 @@ export function App() {
     if (page === 'personality') {
       post({ type: 'load_personality' });
     }
+    // Load avatar when navigating to settings
+    if (page === 'settings' || page === 'keys') {
+      post({ type: 'load_avatar' });
+    }
   }, [page]);
 
   if (!initialized) {
@@ -500,7 +516,7 @@ export function App() {
         return account ? <Billing account={account} /> : <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys onNavigate={setPagePersist} personality={personalityData} account={account} />;
       case 'keys':
       case 'settings':
-        return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys onNavigate={setPagePersist} personality={personalityData} account={account} />;
+        return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys onNavigate={setPagePersist} personality={personalityData} account={account} avatarDataUrl={avatarDataUrl} />;
       case 'admin_support':
         return <AdminSupport tickets={adminTickets} total={adminTicketsTotal} loading={adminTicketsLoading} />;
       case 'admin_proposals':

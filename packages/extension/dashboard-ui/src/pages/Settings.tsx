@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { t, initLocale, useLocale } from '../i18n';
 import { post } from '../App';
 import { Select } from '../components/Select';
@@ -13,6 +13,7 @@ interface SettingsProps {
   onNavigate?: (page: Page) => void;
   personality?: PersonalityData | null;
   account?: { email?: string } | null;
+  avatarDataUrl?: string;
 }
 
 // ── Static Data ──────────────────────────────────────────────────────────────
@@ -109,6 +110,7 @@ export function Settings({
   onNavigate,
   personality,
   account,
+  avatarDataUrl,
 }: SettingsProps) {
   useLocale();
   const [local, setLocal] = useState<DashboardSettings>(settings);
@@ -117,6 +119,24 @@ export function Settings({
   const [savingProvider, setSavingProvider] = useState<string | null>(null);
   const [apiKeysOpen, setApiKeysOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) return;
+    if (file.size > 2 * 1024 * 1024) return;
+    setAvatarUploading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      post({ type: 'save_avatar', data: dataUrl, mimeType: file.type });
+      setAvatarUploading(false);
+    };
+    reader.readAsDataURL(file);
+    if (avatarInputRef.current) avatarInputRef.current.value = '';
+  }
 
   useEffect(() => setLocal(settings), [settings]);
 
@@ -205,6 +225,43 @@ export function Settings({
               {t('dash.settings.customise')} &rarr;
             </button>
           )}
+        </div>
+      </div>
+
+      {/* ── Avatar ──────────────────────────────────────────────────────── */}
+      <SectionLabel>Avatar</SectionLabel>
+      <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+        <div className="flex items-center gap-4">
+          <div
+            className="h-14 w-14 shrink-0 rounded-full border-2 border-[var(--border-card)] flex items-center justify-center text-lg font-light overflow-hidden"
+            style={{
+              background: avatarDataUrl ? `url(${avatarDataUrl}) center/cover no-repeat` : 'rgba(168,85,247,0.15)',
+              color: 'var(--accent)',
+            }}
+          >
+            {!avatarDataUrl && (account?.email?.[0]?.toUpperCase() || personality?.name?.[0]?.toUpperCase() || 'A')}
+          </div>
+          <div>
+            <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleAvatarUpload} className="hidden" />
+            <div className="flex gap-2">
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-[11px] font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+              >
+                {avatarUploading ? 'Saving...' : avatarDataUrl ? 'Change Avatar' : 'Upload Avatar'}
+              </button>
+              {avatarDataUrl && (
+                <button
+                  onClick={() => post({ type: 'remove_avatar' })}
+                  className="rounded-lg border border-[var(--border-card)] px-3 py-1.5 text-[11px] text-red-400 transition hover:border-red-400/40"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+            <p className="mt-1.5 text-[10px] text-[var(--text-muted)]">Saved locally. Sync to cloud from the Sync page. JPEG, PNG, WebP or GIF. Max 2 MB.</p>
+          </div>
         </div>
       </div>
 

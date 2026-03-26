@@ -26,6 +26,7 @@ function getSyncDataTypes() {
     { key: 'settings',    label: t('dash.sync.settings'),         icon: '⚙',  description: t('dash.sync.settings_desc') },
     { key: 'personality', label: t('dash.sync.personality'),       icon: '🎭', description: t('dash.sync.personality_desc') },
     { key: 'learnings',   label: t('dash.sync.shared_learnings'), icon: '💡', description: t('dash.sync.shared_learnings_desc') },
+    { key: 'profile',     label: 'Profile',                       icon: '👤', description: 'Avatar and display name — syncs your profile to the cloud for use across devices' },
   ] as const;
 }
 
@@ -133,7 +134,7 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
 
                 {/* Push button */}
                 <button
-                  onClick={() => post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' })}
+                  onClick={() => post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' | 'profile' })}
                   disabled={!isConnected || syncing || localCount === 0 || (isUpToDate && !syncing) || !isSyncEnabled(key)}
                   className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-30 disabled:cursor-not-allowed"
                 >
@@ -173,7 +174,7 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
                 if (!isSyncEnabled(key)) continue; // Skip disabled sections
                 const status = syncStatus?.[key];
                 if (status && status.localCount > 0) {
-                  post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' });
+                  post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' | 'profile' });
                 }
               }
             }}
