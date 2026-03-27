@@ -96,13 +96,8 @@ export class DashboardPanel {
     const column = vscode.ViewColumn.One;
 
     if (DashboardPanel.currentPanel) {
-      try {
-        DashboardPanel.currentPanel.panel.reveal(column);
-        return;
-      } catch {
-        // Panel was disposed but currentPanel wasn't cleared — recreate
-        DashboardPanel.currentPanel = undefined;
-      }
+      DashboardPanel.currentPanel.panel.reveal(column);
+      return;
     }
 
     const panel = vscode.window.createWebviewPanel(

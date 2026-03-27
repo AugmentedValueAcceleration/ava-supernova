@@ -86,7 +86,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private enabledModelIds: Set<string> | null = null;
   private heartbeatInterval?: ReturnType<typeof setInterval>;
   private missedPongs = 0;
-  private isInterrupting = false;
 
   /** External webview callback — used by DashboardPanel in unified mode */
   private externalPostMessage?: (msg: ExtToWebviewMessage) => void;
@@ -1924,10 +1923,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       await this.historyManager.saveConversation(this.conversation);
       this.setLastConversationId(this.conversation.id);
     } catch (error) {
-      // Abort errors from cancellation or interrupt — not a real error, just clean up
+      // Abort errors from cancellation — not a real error, just clean up
       const isAbort = error instanceof DOMException && error.name === 'AbortError';
-      if (isAbort || this.isInterrupting) {
-        this.log(this.isInterrupting ? 'Run interrupted by user' : 'Run cancelled by user');
+      if (isAbort) {
+        this.log('Run cancelled by user');
         if (streamStarted) {
           this.postMessage({ type: 'stream_end' });
         }
@@ -2123,15 +2122,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private async interruptRun(): Promise<void> {
     if (!this.isRunning) return;
 
-    // Flag so the catch block knows this is an interrupt, not a cancel
-    this.isInterrupting = true;
-
     // Stop current generation
     this.cancelRun();
 
     // Wait for cancel to complete
-    await new Promise(resolve => setTimeout(resolve, 300));
-    this.isInterrupting = false;
+    await new Promise(resolve => setTimeout(resolve, 200));
 
     // Send a follow-up message so Ava acknowledges the interrupt
     try {

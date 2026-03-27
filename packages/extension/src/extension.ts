@@ -201,16 +201,12 @@ export function activate(context: vscode.ExtensionContext): void {
   });
 
   // Restore the unified panel after a short delay so VS Code's Welcome tab doesn't steal focus
-  const wasOpen = context.globalState.get<boolean>(PANEL_STATE_KEY, false);
+  const wasOpen = context.globalState.get<boolean>(PANEL_STATE_KEY, true);
   const dashboardWasOpen = context.globalState.get<boolean>(DASHBOARD_STATE_KEY, false);
 
   if (wasOpen || dashboardWasOpen) {
     setTimeout(() => {
-      try {
-        openUnifiedPanel();
-      } catch (err) {
-        console.error('[Ava] Failed to restore panel:', err);
-      }
+      openUnifiedPanel();
     }, 1500);
   }
 
