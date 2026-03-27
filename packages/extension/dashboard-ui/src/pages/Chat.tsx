@@ -96,6 +96,15 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     }
 
     case 'stream_start': {
+      // If conductor is active, reuse the last assistant bubble instead of creating a new one
+      if (state.conductorActive) {
+        const last = state.messages[state.messages.length - 1];
+        if (last && last.role === 'assistant') {
+          const messages = [...state.messages];
+          messages[messages.length - 1] = { ...last, isStreaming: true };
+          return { ...state, messages, isStreaming: true, isThinking: true };
+        }
+      }
       const msg: UIMessage = {
         id: nextId(),
         role: 'assistant',
@@ -126,6 +135,11 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     }
 
     case 'stream_end': {
+      // During conductor, don't mark streaming as false — personas finish individually
+      // but the overall response is still building. Only 'done' ends it.
+      if (state.conductorActive) {
+        return { ...state, isThinking: false };
+      }
       const messages = [...state.messages];
       const last = messages[messages.length - 1];
       if (last && last.role === 'assistant') {
@@ -211,13 +225,29 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'done':
       return { ...state, isStreaming: false, isThinking: false, conductorActive: false, activePersonas: [] };
 
-    case 'conductor_status':
+    case 'conductor_status': {
+      if (action.active) {
+        // Create an assistant bubble for the conductor to render persona status in
+        const last = state.messages[state.messages.length - 1];
+        if (!last || last.role !== 'assistant') {
+          const msg: UIMessage = {
+            id: nextId(),
+            role: 'assistant',
+            content: '',
+            toolCalls: [],
+            isStreaming: true,
+            timestamp: Date.now(),
+          };
+          return { ...state, messages: [...state.messages, msg], conductorActive: true, conductorMode: action.mode, isStreaming: true };
+        }
+      }
       return {
         ...state,
         conductorActive: action.active,
         conductorMode: action.mode,
         ...(!action.active ? { activePersonas: state.activePersonas } : {}),
       };
+    }
 
     case 'persona_status': {
       const existing = state.activePersonas.filter(p => p.id !== action.persona);
