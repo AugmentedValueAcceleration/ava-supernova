@@ -13,6 +13,7 @@ const PANEL_STATE_KEY = 'avaSupernova.panelOpen';
 const DASHBOARD_STATE_KEY = 'avaSupernova.dashboardOpen';
 
 export function activate(context: vscode.ExtensionContext): void {
+  try {
   viewProvider = new AvaViewProvider(context.extensionUri, context);
 
   // Task Manager (shared instance)
@@ -201,7 +202,7 @@ export function activate(context: vscode.ExtensionContext): void {
   });
 
   // Restore the unified panel after a short delay so VS Code's Welcome tab doesn't steal focus
-  const wasOpen = context.globalState.get<boolean>(PANEL_STATE_KEY, true);
+  const wasOpen = context.globalState.get<boolean>(PANEL_STATE_KEY, false);
   const dashboardWasOpen = context.globalState.get<boolean>(DASHBOARD_STATE_KEY, false);
 
   if (wasOpen || dashboardWasOpen) {
@@ -213,6 +214,11 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // ── Release notes on version change ──────────────────────────────────────
   checkForReleaseNotes(context);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[Ava] ACTIVATION FAILED:', msg, err);
+    vscode.window.showErrorMessage(`Ava failed to activate: ${msg}`);
+  }
 }
 
 const LAST_VERSION_KEY = 'avaSupernova.lastSeenVersion';

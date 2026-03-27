@@ -173,7 +173,7 @@ export class DashboardPanel {
         await this.sendInit();
         // Also initialise the chat engine
         if (this.viewProvider) {
-          this.viewProvider.initChatForUnifiedPanel().catch(() => {});
+          this.viewProvider.initChatForUnifiedPanel().catch((err) => console.error('[Ava] Chat init failed:', err));
         }
         break;
 
@@ -2210,6 +2210,9 @@ export class DashboardPanel {
     const styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'dist', 'dashboard', 'index.css'),
     );
+    const iconUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'dist', 'dashboard', 'icon.png'),
+    );
     const nonce = getNonce();
 
     return `<!DOCTYPE html>
@@ -2227,7 +2230,7 @@ export class DashboardPanel {
   <title>Ava | Dashboard</title>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root" data-icon-uri="${iconUri}"></div>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;

@@ -40,6 +40,9 @@ export class FileEditTool implements Tool {
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const filePath = args.file_path as string;
+    if (!filePath) {
+      return { success: false, output: 'file_path is required and cannot be null. Provide the absolute or relative path to the file.' };
+    }
     const oldString = args.old_string as string;
     const newString = args.new_string as string;
     const replaceAll = (args.replace_all as boolean) ?? false;

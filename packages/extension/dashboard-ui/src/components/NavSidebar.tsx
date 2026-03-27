@@ -17,6 +17,11 @@ interface NavSidebarProps {
   onLoadJournalSummaries?: (from: string, to: string) => void;
   taskDates?: string[];
   onLoadTaskDates?: () => void;
+  onToggleSidebar?: () => void;
+  onFlipSidebar?: () => void;
+  sidebarSide?: 'left' | 'right';
+  onNewChat?: () => void;
+  onOpenHistory?: () => void;
 }
 
 /* ── Nav structure ────────────────────────────────────────────────────── */
@@ -109,6 +114,11 @@ export function NavSidebar({
   onLoadJournalSummaries,
   taskDates,
   onLoadTaskDates,
+  onToggleSidebar,
+  onFlipSidebar,
+  sidebarSide,
+  onNewChat,
+  onOpenHistory,
 }: NavSidebarProps) {
   useLocale();
 
@@ -143,12 +153,45 @@ export function NavSidebar({
   const sections = getSections();
 
   return (
-    <nav className="flex w-56 shrink-0 flex-col border-r border-[var(--border-card)] bg-[var(--bg-card)]">
-      {/* Logo */}
-      <div className="border-b border-[var(--border-card)] px-5 py-3">
-        <span className="bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] bg-clip-text text-sm font-light text-transparent">
-          {aiName || 'Ava'} | Supernova
-        </span>
+    <nav className="flex w-56 shrink-0 flex-col h-full overflow-hidden border-r border-[var(--border-card)] bg-[var(--bg-card)]">
+      {/* Logo + action buttons */}
+      <div className="border-b border-[var(--border-card)] px-4 py-3">
+        <div className="flex items-center gap-2 mb-2">
+          <img src={document.getElementById('root')?.getAttribute('data-icon-uri') || ''} width="20" height="20" alt="" style={{ borderRadius: 4 }} />
+          <span className="bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] bg-clip-text text-sm font-light text-transparent">
+            {aiName || 'Ava'} Supernova
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          {onToggleSidebar && (
+            <button onClick={onToggleSidebar} title="Hide sidebar" className="flex items-center justify-center w-6 h-6 rounded hover:bg-[rgba(168,85,247,0.15)] text-[var(--text-muted)] opacity-60 hover:opacity-100 bg-transparent border-none cursor-pointer">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style={sidebarSide === 'right' ? { transform: 'scaleX(-1)' } : undefined}>
+                <path d="M1 2h14v12H1V2zm1 1v10h4V3H2zm5 0v10h7V3H7z"/>
+              </svg>
+            </button>
+          )}
+          {onFlipSidebar && (
+            <button onClick={onFlipSidebar} title={sidebarSide === 'left' ? 'Move sidebar to right' : 'Move sidebar to left'} className="flex items-center justify-center w-6 h-6 rounded hover:bg-[rgba(168,85,247,0.15)] text-[var(--text-muted)] opacity-60 hover:opacity-100 bg-transparent border-none cursor-pointer">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M2 8l3-3v2h6V5l3 3-3 3V9H5v2L2 8z"/>
+              </svg>
+            </button>
+          )}
+          {onOpenHistory && (
+            <button onClick={onOpenHistory} title="History" className="flex items-center justify-center w-6 h-6 rounded hover:bg-[rgba(168,85,247,0.15)] text-[var(--text-muted)] opacity-60 hover:opacity-100 bg-transparent border-none cursor-pointer">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M13.507 12.324a7 7 0 0 0 .065-8.56A7 7 0 0 0 2 4.393V2H1v3.5l.5.5H5V5H2.811a6.008 6.008 0 1 1-.135 5.77l-.887.462a7 7 0 0 0 11.718 1.092zM8 4h1v4.28l3.35 2.01-.51.858L8 8.72V4z"/>
+              </svg>
+            </button>
+          )}
+          {onNewChat && (
+            <button onClick={onNewChat} title="New chat" className="flex items-center justify-center w-6 h-6 rounded hover:bg-[rgba(168,85,247,0.15)] text-[var(--text-muted)] opacity-60 hover:opacity-100 bg-transparent border-none cursor-pointer">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M14 7v1H8v6H7V8H1V7h6V1h1v6h6z"/>
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Navigation */}

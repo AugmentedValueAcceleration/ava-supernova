@@ -573,13 +573,18 @@ export function App() {
             onLoadJournalSummaries={(from, to) => post({ type: 'load_journal_summaries', from, to })}
             taskDates={taskDates}
             onLoadTaskDates={() => post({ type: 'load_task_dates' })}
+            onToggleSidebar={toggleSidebar}
+            onFlipSidebar={flipSidebar}
+            sidebarSide={sidebarSide}
+            onNewChat={() => post({ type: 'new_chat' })}
+            onOpenHistory={() => post({ type: 'request_history' })}
           />
         </div>
       )}
 
       {/* Chat page — always mounted to preserve state, hidden when not active */}
       {hasAccess && (
-        <div className={`flex-1 overflow-hidden ${page === 'chat' ? '' : 'hidden'}`} style={{ order: 1 }}>
+        <div className={`flex-1 overflow-hidden ${page === 'chat' ? '' : 'hidden'}`} style={{ order: 1, height: '100%' }}>
           <Chat
             onRegisterDispatch={registerChatDispatch}
             isActive={page === 'chat'}
