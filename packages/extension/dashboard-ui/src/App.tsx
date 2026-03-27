@@ -551,32 +551,35 @@ export function App() {
     }
   };
 
-  const sidebarEl = hasAccess && !sidebarCollapsed && (
-    <NavSidebar
-      currentPage={page}
-      onNavigate={setPagePersist}
-      mode={account ? 'platform' : 'byok'}
-      email={account?.email}
-      isAdmin={account?.tier === 'admin'}
-      onConnectAccount={handleConnectAccount}
-      aiName={personalityData?.name}
-      journalSummaries={journalSummaries}
-      selectedJournalDate={selectedJournalDate}
-      onSelectJournalDate={(date) => {
-        setSelectedJournalDate(date);
-        post({ type: 'load_journal_day', date });
-      }}
-      onLoadJournalSummaries={(from, to) => post({ type: 'load_journal_summaries', from, to })}
-      taskDates={taskDates}
-      onLoadTaskDates={() => post({ type: 'load_task_dates' })}
-    />
-  );
+  return (
+    <div className="flex h-screen overflow-hidden text-sm">
+      {/* Sidebar — uses CSS order to flip sides without remounting */}
+      {hasAccess && !sidebarCollapsed && (
+        <div style={{ order: sidebarSide === 'left' ? 0 : 2 }}>
+          <NavSidebar
+            currentPage={page}
+            onNavigate={setPagePersist}
+            mode={account ? 'platform' : 'byok'}
+            email={account?.email}
+            isAdmin={account?.tier === 'admin'}
+            onConnectAccount={handleConnectAccount}
+            aiName={personalityData?.name}
+            journalSummaries={journalSummaries}
+            selectedJournalDate={selectedJournalDate}
+            onSelectJournalDate={(date) => {
+              setSelectedJournalDate(date);
+              post({ type: 'load_journal_day', date });
+            }}
+            onLoadJournalSummaries={(from, to) => post({ type: 'load_journal_summaries', from, to })}
+            taskDates={taskDates}
+            onLoadTaskDates={() => post({ type: 'load_task_dates' })}
+          />
+        </div>
+      )}
 
-  const contentEl = (
-    <>
       {/* Chat page — always mounted to preserve state, hidden when not active */}
       {hasAccess && (
-        <div className={`flex-1 overflow-hidden ${page === 'chat' ? '' : 'hidden'}`}>
+        <div className={`flex-1 overflow-hidden ${page === 'chat' ? '' : 'hidden'}`} style={{ order: 1 }}>
           <Chat
             onRegisterDispatch={registerChatDispatch}
             isActive={page === 'chat'}
@@ -590,7 +593,7 @@ export function App() {
 
       {/* Other pages */}
       {page !== 'chat' && (
-        <main className="flex-1 overflow-y-auto p-8">
+        <main className="flex-1 overflow-y-auto p-8" style={{ order: 1 }}>
           {errorMsg && (
             <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-400">
               {errorMsg}
@@ -599,12 +602,6 @@ export function App() {
           {renderPage()}
         </main>
       )}
-    </>
-  );
-
-  return (
-    <div className="flex h-screen overflow-hidden text-sm">
-      {sidebarSide === 'left' ? <>{sidebarEl}{contentEl}</> : <>{contentEl}{sidebarEl}</>}
     </div>
   );
 }
