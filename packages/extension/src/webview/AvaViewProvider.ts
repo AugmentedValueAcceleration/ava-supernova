@@ -87,6 +87,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private heartbeatInterval?: ReturnType<typeof setInterval>;
   private missedPongs = 0;
 
+  /** External webview callback — used by DashboardPanel in unified mode */
+  private externalPostMessage?: (msg: ExtToWebviewMessage) => void;
+
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly context: vscode.ExtensionContext,
@@ -303,6 +306,123 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   /** Set the shared JournalManager instance. */
   setJournalManager(manager: JournalManager): void {
     this.journalManager = manager;
+  }
+
+  /**
+   * Set an external webview callback for the unified panel.
+   * When set, postMessage also forwards chat messages through this callback
+   * with type remapping (init → chat_init, platform_status → chat_platform_status).
+   */
+  setUnifiedWebview(callback: (msg: ExtToWebviewMessage) => void): void {
+    this.externalPostMessage = callback;
+  }
+
+  /**
+   * Handle a chat message from the unified dashboard panel.
+   * Maps dashboard message types to the internal WebviewToExtMessage format.
+   */
+  async handleChatMessage(msg: Record<string, unknown>): Promise<void> {
+    // Remap unified message types to internal chat types
+    const type = msg.type as string;
+    let mapped: WebviewToExtMessage;
+    switch (type) {
+      case 'send_message':
+        mapped = { type: 'send_message', text: msg.text as string, mode: (msg.mode ?? 'code') as AvaMode, attachments: msg.attachments as any };
+        break;
+      case 'tool_confirmation_response':
+        mapped = { type: 'tool_confirmation_response', confirmationId: msg.confirmationId as string, approved: msg.approved as boolean, alwaysAllow: msg.alwaysAllow as boolean | undefined, allowAll: msg.allowAll as boolean | undefined, planSelection: msg.planSelection as string | undefined, userResponse: msg.userResponse as string | undefined };
+        break;
+      case 'switch_model':
+        mapped = { type: 'switch_model', modelId: msg.modelId as string };
+        break;
+      case 'clear_chat':
+        mapped = { type: 'clear_chat' };
+        break;
+      case 'cancel':
+        mapped = { type: 'cancel' };
+        break;
+      case 'interrupt':
+        mapped = { type: 'interrupt' };
+        break;
+      case 'request_history':
+        mapped = { type: 'request_history' };
+        break;
+      case 'load_chat_conversation':
+        mapped = { type: 'load_conversation', conversationId: msg.conversationId as string };
+        break;
+      case 'delete_chat_conversation':
+        mapped = { type: 'delete_conversation', conversationId: msg.conversationId as string };
+        break;
+      case 'search_history':
+        mapped = { type: 'search_history', query: msg.query as string };
+        break;
+      case 'rename_conversation':
+        mapped = { type: 'rename_conversation', conversationId: msg.conversationId as string, newTitle: msg.newTitle as string };
+        break;
+      case 'pin_conversation':
+        mapped = { type: 'pin_conversation', conversationId: msg.conversationId as string, pinned: msg.pinned as boolean };
+        break;
+      case 'export_conversation':
+        mapped = { type: 'export_conversation', conversationId: msg.conversationId as string, format: msg.format as 'markdown' | 'json' };
+        break;
+      case 'new_chat':
+        mapped = { type: 'new_chat' };
+        break;
+      case 'compress_context':
+        mapped = { type: 'compress_context' };
+        break;
+      case 'set_provider_source':
+        mapped = { type: 'set_provider_source', source: msg.source as ProviderSource };
+        break;
+      case 'request_memory':
+        mapped = { type: 'request_memory' };
+        break;
+      case 'save_chat_memory':
+        mapped = { type: 'save_memory', scope: msg.scope as 'global' | 'project', content: msg.content as string };
+        break;
+      case 'clear_chat_memory':
+        mapped = { type: 'clear_memory', scope: msg.scope as 'global' | 'project' };
+        break;
+      case 'archive_chat_memory':
+        mapped = { type: 'archive_memory', scope: msg.scope as 'global' | 'project', id: msg.id as string };
+        break;
+      case 'restore_chat_memory':
+        mapped = { type: 'restore_memory', scope: msg.scope as 'global' | 'project', id: msg.id as string };
+        break;
+      case 'delete_chat_memory_entry':
+        mapped = { type: 'delete_memory_entry', scope: msg.scope as 'global' | 'project', id: msg.id as string };
+        break;
+      case 'pong':
+        mapped = { type: 'pong' };
+        break;
+      case 'request_today_tasks':
+        mapped = { type: 'request_today_tasks' };
+        break;
+      case 'request_all_tasks':
+        mapped = { type: 'request_all_tasks' };
+        break;
+      case 'toggle_task':
+        mapped = { type: 'toggle_task', taskId: msg.taskId as string };
+        break;
+      case 'rate_message':
+        mapped = { type: 'rate_message', messageId: msg.messageId as string, rating: msg.rating as 'up' | 'down', reason: msg.reason as string | undefined };
+        break;
+      case 'save_secrets':
+        mapped = { type: 'save_secrets', secrets: msg.secrets as any };
+        break;
+      default:
+        return; // Not a chat message
+    }
+    await this.handleWebviewMessage(mapped);
+  }
+
+  /**
+   * Initialise the chat engine for the unified panel.
+   * Called by DashboardPanel when its webview_ready fires.
+   */
+  async initChatForUnifiedPanel(): Promise<void> {
+    await this.initializeSession();
+    await this.restoreLastConversation();
   }
 
   openInEditor(): void {
@@ -2225,6 +2345,19 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // Broadcast to all active webviews — keeps sidebar + editor panel in sync
     this.view?.webview.postMessage(message);
     this.panel?.webview.postMessage(message);
+
+    // Forward to unified dashboard panel with type remapping
+    if (this.externalPostMessage) {
+      if (message.type === 'init') {
+        // Remap init → chat_init to avoid collision with dashboard init
+        this.externalPostMessage({ ...message, type: 'chat_init' } as any);
+      } else if (message.type === 'platform_status') {
+        // Remap platform_status → chat_platform_status
+        this.externalPostMessage({ ...message, type: 'chat_platform_status' } as any);
+      } else {
+        this.externalPostMessage(message);
+      }
+    }
   }
 
   private getHtmlForWebview(webview: vscode.Webview): string {

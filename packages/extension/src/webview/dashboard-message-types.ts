@@ -427,4 +427,33 @@ export type DashboardToExtMessage =
   // Overview widgets (routed through extension host)
   | { type: 'load_weather' }
   | { type: 'load_news'; category?: string }
-  | { type: 'load_latest_release' };
+  | { type: 'load_latest_release' }
+  // ── Chat messages (forwarded to AvaViewProvider) ────────────────────────
+  | { type: 'send_message'; text: string; mode: string; attachments?: Array<{ type: 'image'; data: string; name: string }> }
+  | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllow?: boolean; allowAll?: boolean; planSelection?: string; userResponse?: string }
+  | { type: 'switch_model'; modelId: string }
+  | { type: 'clear_chat' }
+  | { type: 'cancel' }
+  | { type: 'interrupt' }
+  | { type: 'request_history' }
+  | { type: 'load_chat_conversation'; conversationId: string }
+  | { type: 'delete_chat_conversation'; conversationId: string }
+  | { type: 'search_history'; query: string }
+  | { type: 'rename_conversation'; conversationId: string; newTitle: string }
+  | { type: 'pin_conversation'; conversationId: string; pinned: boolean }
+  | { type: 'export_conversation'; conversationId: string; format: 'markdown' | 'json' }
+  | { type: 'new_chat' }
+  | { type: 'compress_context' }
+  | { type: 'set_provider_source'; source: 'platform' | 'byok' }
+  | { type: 'request_memory' }
+  | { type: 'save_chat_memory'; scope: 'global' | 'project'; content: string }
+  | { type: 'clear_chat_memory'; scope: 'global' | 'project' }
+  | { type: 'archive_chat_memory'; scope: 'global' | 'project'; id: string }
+  | { type: 'restore_chat_memory'; scope: 'global' | 'project'; id: string }
+  | { type: 'delete_chat_memory_entry'; scope: 'global' | 'project'; id: string }
+  | { type: 'pong' }
+  | { type: 'request_today_tasks' }
+  | { type: 'request_all_tasks' }
+  | { type: 'toggle_task'; taskId: string }
+  | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; model?: string; mode?: string }
+  | { type: 'save_secrets'; secrets: Array<{ id: string; label: string; value: string }> };

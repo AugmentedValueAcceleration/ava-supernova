@@ -39,39 +39,45 @@ interface NavSection {
 
 const STORAGE_KEY = 'ava-dash-sidebar-sections';
 
+/** Translate with fallback — returns fallback if t() returns the raw key */
+function tt(key: string, fallback: string): string {
+  const val = t(key);
+  return val === key ? fallback : val;
+}
+
 function getSections(): NavSection[] {
   return [
     {
       title: 'Workspace',
       items: [
-        { page: 'memory', icon: '\uD83E\uDDE0', label: t('dash.nav.memory'), description: 'Patterns, preferences, decisions' },
-        { page: 'tasks', icon: '\u2705', label: t('dash.nav.tasks'), description: "Today's plan and priorities" },
-        { page: 'journal', icon: '\uD83D\uDCD3', label: t('dash.nav.journal'), description: 'Daily reflections' },
-        { page: 'learning', icon: '\uD83C\uDF93', label: t('dash.nav.learning'), description: 'Curriculums and progress' },
-        { page: 'library', icon: '\uD83D\uDDBC\uFE0F', label: t('dash.nav.library'), description: 'Project files and media' },
+        { page: 'memory', icon: '\uD83E\uDDE0', label: tt('dash.nav.memory', 'Memory'), description: 'Patterns, preferences, decisions' },
+        { page: 'tasks', icon: '\u2705', label: tt('dash.nav.tasks', 'Tasks'), description: "Today's plan and priorities" },
+        { page: 'journal', icon: '\uD83D\uDCD3', label: tt('dash.nav.journal', 'Journal'), description: 'Daily reflections' },
+        { page: 'learning', icon: '\uD83C\uDF93', label: tt('dash.nav.learning', 'Learning'), description: 'Curriculums and progress' },
+        { page: 'library', icon: '\uD83D\uDDBC\uFE0F', label: tt('dash.nav.library', 'Library'), description: 'Project files and media' },
       ],
     },
     {
       title: 'Personalise',
       items: [
-        { page: 'personality', icon: '\uD83C\uDFA8', label: t('dash.nav.personality'), description: 'Customise your AI' },
-        { page: 'sync', icon: '\u2601\uFE0F', label: t('dash.nav.sync'), description: 'Push to cloud', platformOnly: true },
+        { page: 'personality', icon: '\uD83C\uDFA8', label: tt('dash.nav.personality', 'Personality'), description: 'Customise your AI' },
+        { page: 'sync', icon: '\u2601\uFE0F', label: tt('dash.nav.sync', 'Sync'), description: 'Push to cloud', platformOnly: true },
       ],
     },
     {
       title: 'Account',
       items: [
-        { page: 'history', icon: '\uD83D\uDCCA', label: t('dash.nav.history'), description: 'Tokens, sessions, models' },
-        { page: 'billing', icon: '\uD83D\uDCB3', label: t('dash.nav.billing'), description: 'Plans and top-ups', platformOnly: true },
-        { page: 'settings', icon: '\u2699\uFE0F', label: t('dash.nav.settings'), description: 'Preferences and API keys' },
-        { page: 'connections', icon: '\uD83D\uDD17', label: t('dash.nav.connections'), description: 'GitHub, Slack, email', comingSoon: true },
+        { page: 'history', icon: '\uD83D\uDCCA', label: tt('dash.nav.history', 'Usage & History'), description: 'Tokens, sessions, models' },
+        { page: 'billing', icon: '\uD83D\uDCB3', label: tt('dash.nav.billing', 'Billing'), description: 'Plans and top-ups', platformOnly: true },
+        { page: 'settings', icon: '\u2699\uFE0F', label: tt('dash.nav.settings', 'Settings'), description: 'Preferences and API keys' },
+        { page: 'connections', icon: '\uD83D\uDD17', label: tt('dash.nav.connections', 'Connections'), description: 'GitHub, Slack, email', comingSoon: true },
       ],
     },
     {
       title: 'Help',
       items: [
-        { page: 'releases', icon: '\uD83D\uDCCB', label: t('dash.nav.releases'), description: "What's new" },
-        { page: 'support', icon: '\u2753', label: t('dash.nav.support'), description: 'Get help' },
+        { page: 'releases', icon: '\uD83D\uDCCB', label: tt('dash.nav.releases', 'Releases'), description: "What's new" },
+        { page: 'support', icon: '\u2753', label: tt('dash.nav.support', 'Support'), description: 'Get help' },
       ],
     },
     {
@@ -147,11 +153,21 @@ export function NavSidebar({
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto px-3 py-2">
-        {/* Command Centre — standalone */}
+        {/* Chat — primary action */}
+        <NavItem
+          page="chat"
+          icon={'\uD83D\uDCAC'}
+          label={tt('dash.nav.chat', 'Chat with Ava')}
+          description="Talk, build, create"
+          isActive={currentPage === 'chat'}
+          onClick={() => handleNavigate('chat')}
+        />
+
+        {/* Command Centre */}
         <NavItem
           page="overview"
           icon={'\u26A1'}
-          label={t('dash.nav.command_centre')}
+          label={tt('dash.nav.command_centre', 'Command Centre')}
           description="Your daily overview"
           isActive={currentPage === 'overview'}
           onClick={() => handleNavigate('overview')}

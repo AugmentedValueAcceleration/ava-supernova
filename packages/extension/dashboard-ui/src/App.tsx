@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { initLocale, useLocale } from './i18n';
+import { post } from './vscode';
 import { NavSidebar } from './components/NavSidebar';
 import { ConnectAccount } from './pages/ConnectAccount';
 import { Overview } from './pages/Overview';
@@ -19,6 +20,7 @@ import { Sync } from './pages/Sync';
 import { Releases } from './pages/Releases';
 import { Library } from './pages/Library';
 import { Personality } from './pages/Personality';
+import { Chat } from './pages/Chat';
 import type {
   Page,
   AccountInfo,
@@ -36,7 +38,6 @@ import type {
   ProviderKeyStatus,
   UsageLogEntry,
   ExtToDashboardMessage,
-  DashboardToExtMessage,
   DashboardLearningCurriculum,
   SyncStatus,
   ReleaseNote,
@@ -44,20 +45,25 @@ import type {
   PersonalityData,
 } from './types/messages';
 
-declare function acquireVsCodeApi(): {
-  postMessage: (msg: DashboardToExtMessage) => void;
-};
-
-const vscode = acquireVsCodeApi();
-
-export function post(msg: DashboardToExtMessage): void {
-  vscode.postMessage(msg);
-}
+export { post };
 
 export function App() {
   useLocale(); // re-render on language change
   const [initialized, setInitialized] = useState(false);
-  const [page, setPage] = useState<Page>('overview');
+  const [page, setPage] = useState<Page>(() => {
+    const saved = localStorage.getItem('ava-dashboard-page') as Page | null;
+    return saved || 'chat';
+  });
+
+  // Chat page dispatch — forwards extension messages to the Chat reducer
+  const chatDispatchRef = useRef<((msg: ExtToDashboardMessage) => void) | null>(null);
+  const registerChatDispatch = useCallback((fn: (msg: ExtToDashboardMessage) => void) => {
+    chatDispatchRef.current = fn;
+  }, []);
+
+  // Sidebar collapse state
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const toggleSidebar = useCallback(() => setSidebarCollapsed(prev => !prev), []);
   // Persist active page
   const setPagePersist = (p: Page) => {
     setPage(p);
@@ -135,6 +141,10 @@ export function App() {
     // Only accept messages from the VSCode webview host
     if (!event.origin || !event.origin.startsWith('vscode-webview://')) return;
     const msg = event.data as ExtToDashboardMessage;
+
+    // Forward ALL messages to chat dispatch — it filters internally
+    chatDispatchRef.current?.(msg);
+
     switch (msg.type) {
       case 'init':
         setAccount(msg.account);
@@ -143,7 +153,6 @@ export function App() {
         setProviderKeys(msg.providerKeys);
         if (!msg.account && Object.values(msg.providerKeys).some(Boolean)) {
           setByokMode(true);
-          setPagePersist('overview');
         }
         setInitialized(true);
         break;
@@ -151,7 +160,6 @@ export function App() {
         setAccount(msg.account);
         if (!msg.account && Object.values(providerKeys).some(Boolean)) {
           setByokMode(true);
-          setPagePersist('overview');
         }
         break;
       case 'provider_keys_updated':
@@ -482,6 +490,8 @@ export function App() {
     }
     const mode = account ? 'platform' as const : 'byok' as const;
     switch (page) {
+      case 'chat':
+        return null; // Chat is rendered separately (always mounted)
       case 'overview':
         return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} />;
       case 'usage':
@@ -531,7 +541,7 @@ export function App() {
 
   return (
     <div className="flex h-screen overflow-hidden text-sm">
-      {hasAccess && (
+      {hasAccess && !sidebarCollapsed && (
         <NavSidebar
           currentPage={page}
           onNavigate={setPagePersist}
@@ -552,14 +562,29 @@ export function App() {
         />
       )}
 
-      <main className="flex-1 overflow-y-auto p-8">
-        {errorMsg && (
-          <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-400">
-            {errorMsg}
-          </div>
-        )}
-        {renderPage()}
-      </main>
+      {/* Chat page — always mounted to preserve state, hidden when not active */}
+      {hasAccess && (
+        <div className={`flex-1 overflow-hidden ${page === 'chat' ? '' : 'hidden'}`}>
+          <Chat
+            onRegisterDispatch={registerChatDispatch}
+            isActive={page === 'chat'}
+            onToggleSidebar={toggleSidebar}
+            sidebarCollapsed={sidebarCollapsed}
+          />
+        </div>
+      )}
+
+      {/* Other pages */}
+      {page !== 'chat' && (
+        <main className="flex-1 overflow-y-auto p-8">
+          {errorMsg && (
+            <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-400">
+              {errorMsg}
+            </div>
+          )}
+          {renderPage()}
+        </main>
+      )}
     </div>
   );
 }

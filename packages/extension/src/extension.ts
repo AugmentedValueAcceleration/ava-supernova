@@ -20,6 +20,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const projectRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   const taskManager = new TaskManager({ globalDir, projectRoot });
 
+  // Keep sidebar registration for backwards compat (will still work if user prefers sidebar)
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
       AvaViewProvider.viewType,
@@ -35,18 +36,22 @@ export function activate(context: vscode.ExtensionContext): void {
   viewProvider.setTaskManager(taskManager);
   viewProvider.setJournalManager(journalManager);
 
+  /** Open the unified panel (dashboard + chat in one editor tab) */
+  const openUnifiedPanel = () => {
+    DashboardPanel.show(context.extensionUri, context, viewProvider);
+    context.globalState.update(DASHBOARD_STATE_KEY, true);
+  };
+
   context.subscriptions.push(
-    vscode.commands.registerCommand('ava-supernova.openChat', () => viewProvider!.openInEditor()),
+    // Primary action — Ava icon opens the unified panel
+    vscode.commands.registerCommand('ava-supernova.openChat', openUnifiedPanel),
     vscode.commands.registerCommand('ava-supernova.focusInput', () => viewProvider!.focusInput()),
     vscode.commands.registerCommand('ava-supernova.newChat', () => viewProvider!.newChat()),
     vscode.commands.registerCommand('ava-supernova.clearChat', () => viewProvider!.clearChat()),
     vscode.commands.registerCommand('ava-supernova.switchModel', () => viewProvider!.switchModel()),
     vscode.commands.registerCommand('ava-supernova.showHistory', () => viewProvider!.showHistory()),
     vscode.commands.registerCommand('ava-supernova.openDocs', () => DocsPanel.show(context.extensionUri)),
-    vscode.commands.registerCommand('ava-supernova.openDashboard', () => {
-      DashboardPanel.show(context.extensionUri, context);
-      context.globalState.update(DASHBOARD_STATE_KEY, true);
-    }),
+    vscode.commands.registerCommand('ava-supernova.openDashboard', openUnifiedPanel),
     vscode.commands.registerCommand('ava-supernova.previewDocument', async (resourceUri?: vscode.Uri) => {
       // Accept URI from explorer context menu, editor title bar, or let user pick
       let uri = resourceUri ?? vscode.window.activeTextEditor?.document.uri;
@@ -195,18 +200,13 @@ export function activate(context: vscode.ExtensionContext): void {
     context.globalState.update(DASHBOARD_STATE_KEY, false);
   });
 
-  // Restore panels after a short delay so VS Code's Welcome tab doesn't steal focus
+  // Restore the unified panel after a short delay so VS Code's Welcome tab doesn't steal focus
   const wasOpen = context.globalState.get<boolean>(PANEL_STATE_KEY, true);
   const dashboardWasOpen = context.globalState.get<boolean>(DASHBOARD_STATE_KEY, false);
 
   if (wasOpen || dashboardWasOpen) {
     setTimeout(() => {
-      if (dashboardWasOpen) {
-        DashboardPanel.show(context.extensionUri, context);
-      }
-      if (wasOpen) {
-        viewProvider!.openInEditor();
-      }
+      openUnifiedPanel();
     }, 1500);
   }
 

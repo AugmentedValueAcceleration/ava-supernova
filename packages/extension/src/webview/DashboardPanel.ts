@@ -24,6 +24,7 @@ import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, Journa
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
 import { sessionStats } from '../session-stats.js';
+import type { AvaViewProvider } from './AvaViewProvider.js';
 import type {
   ExtToDashboardMessage,
   DashboardToExtMessage,
@@ -35,6 +36,18 @@ import type {
   UsageLogEntry,
   DashboardTaskEntry,
 } from './dashboard-message-types.js';
+
+/** Chat message types that should be forwarded to AvaViewProvider */
+const CHAT_MESSAGE_TYPES = new Set([
+  'send_message', 'tool_confirmation_response', 'switch_model', 'clear_chat',
+  'cancel', 'interrupt', 'request_history', 'load_chat_conversation',
+  'delete_chat_conversation', 'search_history', 'rename_conversation',
+  'pin_conversation', 'export_conversation', 'new_chat', 'compress_context',
+  'set_provider_source', 'request_memory', 'save_chat_memory', 'clear_chat_memory',
+  'archive_chat_memory', 'restore_chat_memory', 'delete_chat_memory_entry',
+  'pong', 'request_today_tasks', 'request_all_tasks', 'toggle_task',
+  'rate_message', 'save_secrets',
+]);
 
 // ─── Platform API ─────────────────────────────────────────────────────────────
 
@@ -71,6 +84,7 @@ export class DashboardPanel {
   private memoryManager?: MemoryManager;
   private taskManager?: TaskManager;
   private journalManager?: JournalManager;
+  private viewProvider?: AvaViewProvider;
 
   // Weather cache (30 minutes)
   private weatherCache: { data: ExtToDashboardMessage & { type: 'weather_loaded' }; timestamp: number } | null = null;
@@ -78,7 +92,7 @@ export class DashboardPanel {
 
   // ─── Static factory ────────────────────────────────────────────────────────
 
-  public static show(extensionUri: vscode.Uri, context: vscode.ExtensionContext): void {
+  public static show(extensionUri: vscode.Uri, context: vscode.ExtensionContext, viewProvider?: AvaViewProvider): void {
     const column = vscode.ViewColumn.One;
 
     if (DashboardPanel.currentPanel) {
@@ -88,7 +102,7 @@ export class DashboardPanel {
 
     const panel = vscode.window.createWebviewPanel(
       DashboardPanel.viewType,
-      'Ava | Dashboard',
+      'Ava | Supernova',
       column,
       {
         enableScripts: true,
@@ -97,7 +111,7 @@ export class DashboardPanel {
       },
     );
 
-    DashboardPanel.currentPanel = new DashboardPanel(panel, extensionUri, context);
+    DashboardPanel.currentPanel = new DashboardPanel(panel, extensionUri, context, viewProvider);
   }
 
   // ─── Constructor ───────────────────────────────────────────────────────────
@@ -106,13 +120,14 @@ export class DashboardPanel {
     panel: vscode.WebviewPanel,
     extensionUri: vscode.Uri,
     context: vscode.ExtensionContext,
+    viewProvider?: AvaViewProvider,
   ) {
     this.panel = panel;
     this.extensionUri = extensionUri;
     this.secrets = context.secrets;
+    this.viewProvider = viewProvider;
 
     this.panel.iconPath = vscode.Uri.joinPath(extensionUri, 'media', 'AvaSupernovaIcon.png');
-    this.panel.webview.html = this.getHtml(panel.webview);
 
     // Register message handler BEFORE setting HTML to catch webview_ready
     this.panel.webview.onDidReceiveMessage(
@@ -120,6 +135,15 @@ export class DashboardPanel {
       null,
       this.disposables,
     );
+
+    this.panel.webview.html = this.getHtml(panel.webview);
+
+    // Wire up AvaViewProvider to post chat messages through this panel's webview
+    if (viewProvider) {
+      viewProvider.setUnifiedWebview((msg) => {
+        this.panel.webview.postMessage(msg);
+      });
+    }
 
     // Re-fetch account data when the panel becomes visible again
     this.panel.onDidChangeViewState(
@@ -138,9 +162,19 @@ export class DashboardPanel {
   // ─── Message handler ───────────────────────────────────────────────────────
 
   private async handleMessage(msg: DashboardToExtMessage): Promise<void> {
+    // Forward chat messages to AvaViewProvider
+    if (CHAT_MESSAGE_TYPES.has(msg.type) && this.viewProvider) {
+      await this.viewProvider.handleChatMessage(msg as unknown as Record<string, unknown>);
+      return;
+    }
+
     switch (msg.type) {
       case 'webview_ready':
         await this.sendInit();
+        // Also initialise the chat engine
+        if (this.viewProvider) {
+          this.viewProvider.initChatForUnifiedPanel().catch(() => {});
+        }
         break;
 
       case 'connect_account':

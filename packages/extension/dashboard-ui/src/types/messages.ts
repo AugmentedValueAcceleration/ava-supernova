@@ -234,7 +234,137 @@ export interface UsageHistoryData {
   totalSessions: number;
 }
 
-export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'library' | 'personality' | 'sync' | 'releases' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals';
+export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'library' | 'personality' | 'sync' | 'releases' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals';
+
+// ─── Chat UI Types ──────────────────────────────────────────────────────────
+
+export type ProviderSource = 'platform' | 'byok';
+export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm';
+
+export interface ChatPlatformStatus {
+  connected: boolean;
+  tier: string | null;
+  freeTokensUsed: number;
+  freeTokensLimit: number;
+  subTokensUsed: number;
+  subTokensLimit: number | null;
+}
+
+export interface ToolCallDisplay {
+  id: string;
+  name: string;
+  arguments: string;
+  status: 'pending_confirmation' | 'running' | 'success' | 'failed';
+  result?: string;
+  confirmationId?: string;
+  summary?: string;
+  isAskUser?: boolean;
+}
+
+export interface UIMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'error' | 'system';
+  content: string;
+  thinking?: string;
+  images?: string[];
+  toolCalls: ToolCallDisplay[];
+  isStreaming: boolean;
+  errorCode?: string;
+  errorSuggestion?: string;
+  timestamp?: number;
+  rating?: 'up' | 'down';
+  ratingReason?: string;
+}
+
+export interface MemoryEntryUI {
+  id: string;
+  category: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  lastRecalledAt: string | null;
+  recallCount: number;
+  tags?: string[];
+  archived?: boolean;
+  archivedAt?: string | null;
+  branch?: string | null;
+}
+
+export interface TodayTaskUI {
+  id: string;
+  title: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: 'todo' | 'in-progress' | 'done';
+  dueDate?: string;
+  category: string;
+}
+
+export interface SessionTaskUI {
+  id: string;
+  title: string;
+  status: 'pending' | 'in_progress' | 'completed';
+}
+
+export interface AvaCompletedTaskUI {
+  id: string;
+  title: string;
+  completedAt: string;
+}
+
+export interface ChatModel {
+  id: string;
+  name: string;
+  provider: string;
+  supportsVision?: boolean;
+  available: boolean;
+}
+
+export interface ChatState {
+  messages: UIMessage[];
+  models: ChatModel[];
+  activeModel: string | null;
+  isStreaming: boolean;
+  isThinking: boolean;
+  needsSetup: boolean;
+  initialized: boolean;
+  lastUsage: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+    cost?: number;
+    contextWindow?: number;
+  } | null;
+  contextUsage: { used: number; limit: number; percent: number } | null;
+  isCompressing: boolean;
+  historyOpen: boolean;
+  historyList: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }>;
+  currentConversationId: string | null;
+  providerSource: ProviderSource;
+  platformStatus: {
+    connected: boolean;
+    tier: string | null;
+    freeTokensUsed: number;
+    freeTokensLimit: number;
+  } | null;
+  memoryOpen: boolean;
+  memoryGlobal: MemoryEntryUI[];
+  memoryProject: MemoryEntryUI[];
+  tasksOpen: boolean;
+  todayTasks: TodayTaskUI[];
+  allTasks: TodayTaskUI[];
+  sessionTasks: SessionTaskUI[];
+  avaCompletedTasks: AvaCompletedTaskUI[];
+  tasksPanelWidth: number;
+  conductorActive: boolean;
+  conductorMode?: string;
+  activePersonas: Array<{
+    id: string;
+    phase: 'active' | 'complete' | 'error';
+    description?: string;
+    output?: string;
+    tools?: Array<{ name: string; done: boolean; success?: boolean }>;
+  }>;
+}
 
 // Library (project files — images, documents, spreadsheets, presentations)
 export type LibraryFileType = 'image' | 'document' | 'spreadsheet' | 'presentation';
@@ -343,7 +473,42 @@ export type ExtToDashboardMessage =
   | { type: 'weather_loaded'; data: { location: string; temp_c: number; condition: string; emoji: string; humidity: number; wind_kmph: number; forecast: Array<{ date: string; day: string; max_c: number; min_c: number; condition: string; emoji: string }> } | null }
   | { type: 'news_loaded'; articles: Array<{ title: string; category: string; reading_time: number; slug: string; date: string }> }
   | { type: 'latest_release_loaded'; release: { version: string; title: string; published_at: string } | null }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string }
+  // ── Chat messages (Extension → Chat page) ───────────────────────────────
+  | { type: 'chat_init'; models: ChatModel[]; activeModel: string | null; needsSetup: boolean; locale?: string; localeStrings?: Record<string, string>; providerSource?: ProviderSource; platformStatus?: ChatPlatformStatus }
+  | ({ type: 'chat_platform_status' } & ChatPlatformStatus)
+  | { type: 'user_message_ack'; text: string; images?: string[] }
+  | { type: 'stream_start' }
+  | { type: 'thinking_delta'; content: string }
+  | { type: 'stream_delta'; content: string }
+  | { type: 'stream_end' }
+  | { type: 'tool_call_start'; toolCall: { id: string; name: string; arguments: string } }
+  | { type: 'tool_call_end'; toolCallId: string; result: string; success: boolean }
+  | { type: 'tool_confirmation_request'; confirmationId: string; toolName: string; args: Record<string, unknown>; summary: string; isAskUser?: boolean }
+  | { type: 'usage'; usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; cost?: number; contextWindow?: number }
+  | { type: 'done' }
+  | { type: 'model_switched'; modelId: string; modelName: string }
+  | { type: 'history_list'; conversations: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }> }
+  | { type: 'history_search_results'; conversations: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }> }
+  | { type: 'conversation_loaded'; conversationId: string; title: string; messages: Array<{ role: 'user' | 'assistant'; content: string }> }
+  | { type: 'chat_cleared' }
+  | { type: 'context_usage'; used: number; limit: number; percent: number }
+  | { type: 'compression_start' }
+  | { type: 'compression_end'; originalTokens: number; compressedTokens: number }
+  | { type: 'memory_content'; global: MemoryEntryUI[]; project: MemoryEntryUI[] }
+  | { type: 'system_message'; content: string }
+  | { type: 'ping' }
+  | { type: 'focus_input' }
+  | { type: 'interjection_ack'; content: string }
+  | { type: 'today_tasks'; tasks: TodayTaskUI[] }
+  | { type: 'all_tasks'; tasks: TodayTaskUI[] }
+  | { type: 'session_tasks'; tasks: SessionTaskUI[] }
+  | { type: 'ava_completed_tasks'; tasks: AvaCompletedTaskUI[] }
+  | { type: 'conductor_status'; active: boolean; mode?: string }
+  | { type: 'persona_status'; persona: string; phase: 'active' | 'complete' | 'error'; description?: string; output?: string }
+  | { type: 'persona_tool_call'; persona: string; tool: string }
+  | { type: 'persona_tool_result'; persona: string; tool: string; success: boolean }
+  | { type: 'briefing'; text: string; todayTasks: number; overdueTasks: number; totalActive: number };
 
 // Dashboard → Extension Host
 export type DashboardToExtMessage =
@@ -431,4 +596,33 @@ export type DashboardToExtMessage =
   // Overview widgets (routed through extension host)
   | { type: 'load_weather' }
   | { type: 'load_news'; category?: string }
-  | { type: 'load_latest_release' };
+  | { type: 'load_latest_release' }
+  // ── Chat messages (Chat page → Extension) ───────────────────────────────
+  | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }> }
+  | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllow?: boolean; allowAll?: boolean; planSelection?: string; userResponse?: string }
+  | { type: 'switch_model'; modelId: string }
+  | { type: 'clear_chat' }
+  | { type: 'cancel' }
+  | { type: 'interrupt' }
+  | { type: 'request_history' }
+  | { type: 'load_chat_conversation'; conversationId: string }
+  | { type: 'delete_chat_conversation'; conversationId: string }
+  | { type: 'search_history'; query: string }
+  | { type: 'rename_conversation'; conversationId: string; newTitle: string }
+  | { type: 'pin_conversation'; conversationId: string; pinned: boolean }
+  | { type: 'export_conversation'; conversationId: string; format: 'markdown' | 'json' }
+  | { type: 'new_chat' }
+  | { type: 'compress_context' }
+  | { type: 'set_provider_source'; source: ProviderSource }
+  | { type: 'request_memory' }
+  | { type: 'save_chat_memory'; scope: 'global' | 'project'; content: string }
+  | { type: 'clear_chat_memory'; scope: 'global' | 'project' }
+  | { type: 'archive_chat_memory'; scope: 'global' | 'project'; id: string }
+  | { type: 'restore_chat_memory'; scope: 'global' | 'project'; id: string }
+  | { type: 'delete_chat_memory_entry'; scope: 'global' | 'project'; id: string }
+  | { type: 'pong' }
+  | { type: 'request_today_tasks' }
+  | { type: 'request_all_tasks' }
+  | { type: 'toggle_task'; taskId: string }
+  | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; model?: string; mode?: string }
+  | { type: 'save_secrets'; secrets: Array<{ id: string; label: string; value: string }> };
