@@ -50,34 +50,34 @@ function getSections(): NavSection[] {
     {
       title: 'Workspace',
       items: [
-        { page: 'memory', icon: '\uD83E\uDDE0', label: tt('dash.nav.memory', 'Memory'), description: 'Patterns, preferences, decisions' },
-        { page: 'tasks', icon: '\u2705', label: tt('dash.nav.tasks', 'Tasks'), description: "Today's plan and priorities" },
-        { page: 'journal', icon: '\uD83D\uDCD3', label: tt('dash.nav.journal', 'Journal'), description: 'Daily reflections' },
-        { page: 'learning', icon: '\uD83C\uDF93', label: tt('dash.nav.learning', 'Learning'), description: 'Curriculums and progress' },
-        { page: 'library', icon: '\uD83D\uDDBC\uFE0F', label: tt('dash.nav.library', 'Library'), description: 'Project files and media' },
+        { page: 'memory', icon: '\uD83E\uDDE0', label: tt('dash.nav.memory', 'Memory'), description: tt('dash.nav.memory_desc', 'Patterns, preferences, decisions') },
+        { page: 'tasks', icon: '\u2705', label: tt('dash.nav.tasks', 'Tasks'), description: tt('dash.nav.tasks_desc', "Today's plan and priorities") },
+        { page: 'journal', icon: '\uD83D\uDCD3', label: tt('dash.nav.journal', 'Journal'), description: tt('dash.nav.journal_desc', 'Daily reflections') },
+        { page: 'learning', icon: '\uD83C\uDF93', label: tt('dash.nav.learning', 'Learning'), description: tt('dash.nav.learning_desc', 'Curriculums and progress') },
+        { page: 'library', icon: '\uD83D\uDDBC\uFE0F', label: tt('dash.nav.library', 'Library'), description: tt('dash.nav.library_desc', 'Project files and media') },
       ],
     },
     {
       title: 'Personalise',
       items: [
-        { page: 'personality', icon: '\uD83C\uDFA8', label: tt('dash.nav.personality', 'Personality'), description: 'Customise your AI' },
-        { page: 'sync', icon: '\u2601\uFE0F', label: tt('dash.nav.sync', 'Sync'), description: 'Push to cloud', platformOnly: true },
+        { page: 'personality', icon: '\uD83C\uDFA8', label: tt('dash.nav.personality', 'Personality'), description: tt('dash.nav.personality_desc', 'Customise your AI') },
+        { page: 'sync', icon: '\u2601\uFE0F', label: tt('dash.nav.cloud_sync', 'Sync'), description: tt('dash.nav.cloud_sync_desc', 'Push to cloud'), platformOnly: true },
       ],
     },
     {
       title: 'Account',
       items: [
-        { page: 'history', icon: '\uD83D\uDCCA', label: tt('dash.nav.history', 'Usage & History'), description: 'Tokens, sessions, models' },
-        { page: 'billing', icon: '\uD83D\uDCB3', label: tt('dash.nav.billing', 'Billing'), description: 'Plans and top-ups', platformOnly: true },
-        { page: 'settings', icon: '\u2699\uFE0F', label: tt('dash.nav.settings', 'Settings'), description: 'Preferences and API keys' },
-        { page: 'connections', icon: '\uD83D\uDD17', label: tt('dash.nav.connections', 'Connections'), description: 'GitHub, Slack, email', comingSoon: true },
+        { page: 'history', icon: '\uD83D\uDCCA', label: tt('dash.nav.usage', 'Usage & History'), description: tt('dash.nav.usage_desc', 'Tokens, sessions, models') },
+        { page: 'billing', icon: '\uD83D\uDCB3', label: tt('dash.nav.billing', 'Billing'), description: tt('dash.nav.billing_desc', 'Plans and top-ups'), platformOnly: true },
+        { page: 'settings', icon: '\u2699\uFE0F', label: tt('dash.nav.settings', 'Settings'), description: tt('dash.nav.settings_desc', 'Preferences and API keys') },
+        { page: 'connections', icon: '\uD83D\uDD17', label: tt('dash.nav.connections', 'Connections'), description: tt('dash.nav.connections_desc', 'GitHub, Slack, email'), comingSoon: true },
       ],
     },
     {
       title: 'Help',
       items: [
-        { page: 'releases', icon: '\uD83D\uDCCB', label: tt('dash.nav.releases', 'Releases'), description: "What's new" },
-        { page: 'support', icon: '\u2753', label: tt('dash.nav.support', 'Support'), description: 'Get help' },
+        { page: 'releases', icon: '\uD83D\uDCCB', label: tt('dash.nav.release_notes', 'Releases'), description: tt('dash.nav.release_notes_desc', "What's new") },
+        { page: 'support', icon: '\u2753', label: tt('dash.nav.support', 'Support'), description: tt('dash.nav.support_desc', 'Get help') },
       ],
     },
     {
@@ -85,7 +85,7 @@ function getSections(): NavSection[] {
       adminOnly: true,
       items: [
         { page: 'admin_support', icon: '\uD83D\uDEE1\uFE0F', label: 'Admin Support', description: 'All user tickets', adminOnly: true },
-        { page: 'admin_proposals', icon: '\uD83D\uDD27', label: 'Tool Proposals', description: 'Review and approve', adminOnly: true },
+        { page: 'admin_proposals', icon: '\uD83D\uDD27', label: tt('dash.nav.proposals', 'Tool Proposals'), description: 'Review and approve', adminOnly: true },
       ],
     },
   ];
@@ -157,8 +157,8 @@ export function NavSidebar({
         <NavItem
           page="chat"
           icon={'\uD83D\uDCAC'}
-          label={tt('dash.nav.chat', 'Chat with Ava')}
-          description="Talk, build, create"
+          label={tt('dash.nav.ava_chat', 'Chat with Ava')}
+          description={tt('dash.nav.ava_chat_desc', 'Talk, build, create')}
           isActive={currentPage === 'chat'}
           onClick={() => handleNavigate('chat')}
         />
@@ -168,7 +168,7 @@ export function NavSidebar({
           page="overview"
           icon={'\u26A1'}
           label={tt('dash.nav.command_centre', 'Command Centre')}
-          description="Your daily overview"
+          description={tt('dash.nav.command_centre_desc', 'Your daily overview')}
           isActive={currentPage === 'overview'}
           onClick={() => handleNavigate('overview')}
         />

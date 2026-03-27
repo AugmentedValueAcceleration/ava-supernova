@@ -429,9 +429,13 @@ export interface ChatPageProps {
   onToggleSidebar?: () => void;
   /** Whether the sidebar is collapsed */
   sidebarCollapsed?: boolean;
+  /** Flip sidebar between left and right */
+  onFlipSidebar?: () => void;
+  /** Which side the sidebar is on */
+  sidebarSide?: 'left' | 'right';
 }
 
-export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCollapsed }: ChatPageProps) {
+export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCollapsed, onFlipSidebar, sidebarSide }: ChatPageProps) {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const justLoadedRef = useRef(false);
@@ -668,6 +672,8 @@ export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCol
             tasksOpen={state.tasksOpen}
             onToggleSidebar={onToggleSidebar}
             sidebarCollapsed={sidebarCollapsed}
+            onFlipSidebar={onFlipSidebar}
+            sidebarSide={sidebarSide}
           />
 
           <ChatContainer

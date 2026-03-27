@@ -265,21 +265,7 @@ export function Settings({
         </div>
       </div>
 
-      {/* ── 2. Model ────────────────────────────────────────────────────── */}
-      <SectionLabel>{t('dash.settings.section.model')}</SectionLabel>
-      <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-        <div className="mb-3">
-          <p className="text-lg font-semibold">{modelLabel}</p>
-          <p className="text-xs text-[var(--text-muted)]">{providerForModel()}</p>
-        </div>
-        <Select
-          value={local.activeModel}
-          onChange={v => saveImmediate('activeModel', v)}
-          options={MODEL_OPTIONS}
-        />
-      </div>
-
-      {/* ── 3. Privacy & Data ───────────────────────────────────────────── */}
+      {/* ── 2. Privacy & Data ───────────────────────────────────────────── */}
       <SectionLabel>{t('dash.settings.section.privacy')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         {/* Auto Memory */}

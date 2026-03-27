@@ -64,6 +64,18 @@ export function App() {
   // Sidebar collapse state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const toggleSidebar = useCallback(() => setSidebarCollapsed(prev => !prev), []);
+
+  // Sidebar side (left or right) — persisted
+  const [sidebarSide, setSidebarSide] = useState<'left' | 'right'>(() => {
+    return (localStorage.getItem('ava-sidebar-side') as 'left' | 'right') || 'left';
+  });
+  const flipSidebar = useCallback(() => {
+    setSidebarSide(prev => {
+      const next = prev === 'left' ? 'right' : 'left';
+      localStorage.setItem('ava-sidebar-side', next);
+      return next;
+    });
+  }, []);
   // Persist active page
   const setPagePersist = (p: Page) => {
     setPage(p);
@@ -539,29 +551,29 @@ export function App() {
     }
   };
 
-  return (
-    <div className="flex h-screen overflow-hidden text-sm">
-      {hasAccess && !sidebarCollapsed && (
-        <NavSidebar
-          currentPage={page}
-          onNavigate={setPagePersist}
-          mode={account ? 'platform' : 'byok'}
-          email={account?.email}
-          isAdmin={account?.tier === 'admin'}
-          onConnectAccount={handleConnectAccount}
-          aiName={personalityData?.name}
-          journalSummaries={journalSummaries}
-          selectedJournalDate={selectedJournalDate}
-          onSelectJournalDate={(date) => {
-            setSelectedJournalDate(date);
-            post({ type: 'load_journal_day', date });
-          }}
-          onLoadJournalSummaries={(from, to) => post({ type: 'load_journal_summaries', from, to })}
-          taskDates={taskDates}
-          onLoadTaskDates={() => post({ type: 'load_task_dates' })}
-        />
-      )}
+  const sidebarEl = hasAccess && !sidebarCollapsed && (
+    <NavSidebar
+      currentPage={page}
+      onNavigate={setPagePersist}
+      mode={account ? 'platform' : 'byok'}
+      email={account?.email}
+      isAdmin={account?.tier === 'admin'}
+      onConnectAccount={handleConnectAccount}
+      aiName={personalityData?.name}
+      journalSummaries={journalSummaries}
+      selectedJournalDate={selectedJournalDate}
+      onSelectJournalDate={(date) => {
+        setSelectedJournalDate(date);
+        post({ type: 'load_journal_day', date });
+      }}
+      onLoadJournalSummaries={(from, to) => post({ type: 'load_journal_summaries', from, to })}
+      taskDates={taskDates}
+      onLoadTaskDates={() => post({ type: 'load_task_dates' })}
+    />
+  );
 
+  const contentEl = (
+    <>
       {/* Chat page — always mounted to preserve state, hidden when not active */}
       {hasAccess && (
         <div className={`flex-1 overflow-hidden ${page === 'chat' ? '' : 'hidden'}`}>
@@ -570,6 +582,8 @@ export function App() {
             isActive={page === 'chat'}
             onToggleSidebar={toggleSidebar}
             sidebarCollapsed={sidebarCollapsed}
+            onFlipSidebar={flipSidebar}
+            sidebarSide={sidebarSide}
           />
         </div>
       )}
@@ -585,6 +599,12 @@ export function App() {
           {renderPage()}
         </main>
       )}
+    </>
+  );
+
+  return (
+    <div className="flex h-screen overflow-hidden text-sm">
+      {sidebarSide === 'left' ? <>{sidebarEl}{contentEl}</> : <>{contentEl}{sidebarEl}</>}
     </div>
   );
 }
