@@ -189,7 +189,11 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     }
 
     case 'usage':
-      return { ...state, lastUsage: { ...action.usage, cost: action.cost, contextWindow: action.contextWindow } };
+      return {
+        ...state,
+        lastUsage: { ...action.usage, cost: action.cost, contextWindow: action.contextWindow },
+        sessionTokens: state.sessionTokens + (action.usage.total_tokens || (action.usage.prompt_tokens || 0) + (action.usage.completion_tokens || 0)),
+      };
 
     case 'chat_platform_status':
       return {
@@ -418,6 +422,7 @@ const initialState: ChatState = {
   sessionTasks: [],
   avaCompletedTasks: [],
   tasksPanelWidth: DEFAULT_WIDTH,
+  sessionTokens: 0,
 };
 
 /* ── Chat message types we handle ─────────────────────────────────────────── */
@@ -695,6 +700,11 @@ export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCol
             sidebarCollapsed={sidebarCollapsed}
             onFlipSidebar={onFlipSidebar}
             sidebarSide={sidebarSide}
+            sessionTokens={state.sessionTokens}
+            contextUsage={state.contextUsage}
+            providerSource={state.providerSource}
+            platformStatus={state.platformStatus}
+            onProviderSourceChange={handleProviderSourceChange}
           />
 
           <ChatContainer

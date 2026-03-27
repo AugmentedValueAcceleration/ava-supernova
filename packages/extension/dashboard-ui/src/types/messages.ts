@@ -355,6 +355,7 @@ export interface ChatState {
   sessionTasks: SessionTaskUI[];
   avaCompletedTasks: AvaCompletedTaskUI[];
   tasksPanelWidth: number;
+  sessionTokens: number;
   conductorActive: boolean;
   conductorMode?: string;
   activePersonas: Array<{
