@@ -124,6 +124,8 @@ export function App() {
   const [personalityData, setPersonalityData] = useState<PersonalityData | null>(null);
   // Avatar state
   const [avatarDataUrl, setAvatarDataUrl] = useState('');
+  // Task calendar dates
+  const [taskDates, setTaskDates] = useState<string[]>([]);
   // Overview widget state
   const [weatherData, setWeatherData] = useState<{ location: string; temp_c: number; condition: string; emoji: string; humidity: number; wind_kmph: number; forecast: Array<{ date: string; day: string; max_c: number; min_c: number; condition: string; emoji: string }> } | null>(null);
   const [newsArticles, setNewsArticles] = useState<Array<{ title: string; category: string; reading_time: number; slug: string; date: string }>>([]);
@@ -292,6 +294,9 @@ export function App() {
         break;
       case 'curriculum_deleted':
         setLearningCurriculums(prev => prev.filter(c => c.id !== msg.id));
+        break;
+      case 'task_dates_loaded':
+        setTaskDates(msg.dates);
         break;
       // Sync messages
       case 'sync_status':
@@ -542,6 +547,8 @@ export function App() {
             post({ type: 'load_journal_day', date });
           }}
           onLoadJournalSummaries={(from, to) => post({ type: 'load_journal_summaries', from, to })}
+          taskDates={taskDates}
+          onLoadTaskDates={() => post({ type: 'load_task_dates' })}
         />
       )}
 

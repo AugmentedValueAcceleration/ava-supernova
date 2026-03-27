@@ -320,6 +320,7 @@ export type ExtToDashboardMessage =
   // Learning messages
   | { type: 'learning_loaded'; curriculums: DashboardLearningCurriculum[] }
   | { type: 'curriculum_deleted'; id: string }
+  | { type: 'task_dates_loaded'; dates: string[] }
   // Avatar messages
   | { type: 'avatar_loaded'; dataUrl: string }
   | { type: 'avatar_saved'; dataUrl: string }
@@ -409,6 +410,7 @@ export type DashboardToExtMessage =
   // Learning messages
   | { type: 'load_learning' }
   | { type: 'delete_curriculum'; id: string }
+  | { type: 'load_task_dates' }
   // Sync messages
   | { type: 'load_sync_status' }
   | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' | 'profile' }

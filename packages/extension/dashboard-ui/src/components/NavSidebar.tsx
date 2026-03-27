@@ -1,8 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { Page, DashboardJournalDaySummary } from '../types/messages';
-import { BoltIcon, ChartBarIcon, SparklesIcon, ChecklistIcon, BookIcon, GraduationCapIcon, CloudUpIcon, MegaphoneIcon, HelpCircleIcon, CogIcon, ShieldIcon, WrenchIcon, PhotoIcon, UserCircleIcon } from './Icons';
 
 interface NavSidebarProps {
   currentPage: Page;
@@ -12,95 +11,83 @@ interface NavSidebarProps {
   isAdmin?: boolean;
   onConnectAccount?: () => void;
   aiName?: string;
-  // Journal calendar
   journalSummaries?: DashboardJournalDaySummary[];
   selectedJournalDate?: string;
   onSelectJournalDate?: (date: string) => void;
   onLoadJournalSummaries?: (from: string, to: string) => void;
+  taskDates?: string[];
+  onLoadTaskDates?: () => void;
 }
 
-// ── Nav structure ────────────────────────────────────────────────────────────
-
-interface NavGroup {
-  label: string;
-  items: NavItem[];
-  adminOnly?: boolean;
-}
+/* ── Nav structure ────────────────────────────────────────────────────── */
 
 interface NavItem {
   page: Page;
+  icon: string;
   label: string;
-  icon: React.FC<{ className?: string }>;
+  description: string;
   platformOnly?: boolean;
   adminOnly?: boolean;
   comingSoon?: boolean;
 }
 
-/** Nav groups — labels resolved at render time via t() */
-function getNavGroups(): NavGroup[] {
+interface NavSection {
+  title: string;
+  items: NavItem[];
+  adminOnly?: boolean;
+}
+
+const STORAGE_KEY = 'ava-dash-sidebar-sections';
+
+function getSections(): NavSection[] {
   return [
     {
-      label: t('dash.section.personalise'),
+      title: 'Workspace',
       items: [
-        { page: 'personality', label: t('dash.nav.personality'), icon: UserCircleIcon },
+        { page: 'memory', icon: '\uD83E\uDDE0', label: t('dash.nav.memory'), description: 'Patterns, preferences, decisions' },
+        { page: 'tasks', icon: '\u2705', label: t('dash.nav.tasks'), description: "Today's plan and priorities" },
+        { page: 'journal', icon: '\uD83D\uDCD3', label: t('dash.nav.journal'), description: 'Daily reflections' },
+        { page: 'learning', icon: '\uD83C\uDF93', label: t('dash.nav.learning'), description: 'Curriculums and progress' },
+        { page: 'library', icon: '\uD83D\uDDBC\uFE0F', label: t('dash.nav.library'), description: 'Project files and media' },
       ],
     },
     {
-      label: t('dash.section.productivity'),
+      title: 'Personalise',
       items: [
-        { page: 'tasks', label: t('dash.nav.tasks'), icon: ChecklistIcon },
-        { page: 'journal', label: t('dash.nav.journal'), icon: BookIcon },
-        { page: 'learning', label: t('dash.nav.learning'), icon: GraduationCapIcon },
+        { page: 'personality', icon: '\uD83C\uDFA8', label: t('dash.nav.personality'), description: 'Customise your AI' },
+        { page: 'sync', icon: '\u2601\uFE0F', label: t('dash.nav.sync'), description: 'Push to cloud', platformOnly: true },
       ],
     },
     {
-      label: t('dash.section.creative'),
+      title: 'Account',
       items: [
-        { page: 'library', label: t('dash.nav.library'), icon: PhotoIcon },
+        { page: 'history', icon: '\uD83D\uDCCA', label: t('dash.nav.history'), description: 'Tokens, sessions, models' },
+        { page: 'billing', icon: '\uD83D\uDCB3', label: t('dash.nav.billing'), description: 'Plans and top-ups', platformOnly: true },
+        { page: 'settings', icon: '\u2699\uFE0F', label: t('dash.nav.settings'), description: 'Preferences and API keys' },
+        { page: 'connections', icon: '\uD83D\uDD17', label: t('dash.nav.connections'), description: 'GitHub, Slack, email', comingSoon: true },
       ],
     },
     {
-      label: t('dash.nav.memory'),
+      title: 'Help',
       items: [
-        { page: 'memory', label: t('dash.nav.memory'), icon: SparklesIcon },
+        { page: 'releases', icon: '\uD83D\uDCCB', label: t('dash.nav.releases'), description: "What's new" },
+        { page: 'support', icon: '\u2753', label: t('dash.nav.support'), description: 'Get help' },
       ],
     },
     {
-      label: t('dash.section.account'),
-      items: [
-        { page: 'settings', label: t('dash.nav.settings'), icon: CogIcon },
-        { page: 'history', label: t('dash.nav.usage'), icon: ChartBarIcon },
-        { page: 'sync', label: t('dash.nav.cloud_sync'), icon: CloudUpIcon, platformOnly: true },
-      ],
-    },
-    {
-      label: t('dash.section.help'),
-      items: [
-        { page: 'releases', label: t('dash.nav.release_notes'), icon: MegaphoneIcon },
-        { page: 'support', label: t('dash.nav.support'), icon: HelpCircleIcon },
-      ],
-    },
-    {
-      label: t('dash.section.admin'),
+      title: 'Admin',
       adminOnly: true,
       items: [
-        { page: 'admin_support', label: t('dash.nav.support'), icon: ShieldIcon, platformOnly: true, adminOnly: true },
-        { page: 'admin_proposals', label: t('dash.nav.proposals'), icon: WrenchIcon, platformOnly: true, adminOnly: true },
+        { page: 'admin_support', icon: '\uD83D\uDEE1\uFE0F', label: 'Admin Support', description: 'All user tickets', adminOnly: true },
+        { page: 'admin_proposals', icon: '\uD83D\uDD27', label: 'Tool Proposals', description: 'Review and approve', adminOnly: true },
       ],
     },
   ];
 }
 
-// ── Calendar helpers ─────────────────────────────────────────────────────────
+/* ── Exports ───────────────────────────────────────────────────────────── */
 
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const DAY_HEADERS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-
-function getToday(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-// ── Component ────────────────────────────────────────────────────────────────
+export type { Page };
 
 export function NavSidebar({
   currentPage,
@@ -110,73 +97,73 @@ export function NavSidebar({
   isAdmin,
   onConnectAccount,
   aiName,
-  journalSummaries = [],
+  journalSummaries,
   selectedJournalDate,
   onSelectJournalDate,
   onLoadJournalSummaries,
+  taskDates,
+  onLoadTaskDates,
 }: NavSidebarProps) {
   useLocale();
-  const NAV_GROUPS = getNavGroups();
 
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
-    // Auto-expand the group containing the current page
-    const initial = new Set<string>();
-    for (const group of NAV_GROUPS) {
-      if (group.items.some(item => item.page === currentPage)) {
-        initial.add(group.label);
-      }
-    }
-    return initial;
+  // Section collapse state — persisted
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
+    try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : {}; }
+    catch { return {}; }
   });
 
-  const toggleGroup = (label: string) => {
-    setExpandedGroups(prev => {
-      const next = new Set(prev);
-      if (next.has(label)) next.delete(label);
-      else next.add(label);
+  const toggleSection = (title: string) => {
+    setCollapsed(prev => {
+      const next = { ...prev, [title]: !prev[title] };
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* */ }
       return next;
     });
   };
 
+  // Load task dates for calendar on mount
+  useEffect(() => { onLoadTaskDates?.(); }, []);
+
   const handleNavigate = (page: Page) => {
     onNavigate(page);
-    // Auto-expand the group when navigating
-    for (const group of NAV_GROUPS) {
-      if (group.items.some(item => item.page === page)) {
-        setExpandedGroups(prev => new Set(prev).add(group.label));
+    // Auto-expand section containing the page
+    const sections = getSections();
+    for (const s of sections) {
+      if (s.items.some(i => i.page === page) && collapsed[s.title]) {
+        toggleSection(s.title);
       }
     }
   };
 
-  const showJournalCalendar = currentPage === 'journal';
+  const sections = getSections();
 
   return (
     <nav className="flex w-56 shrink-0 flex-col border-r border-[var(--border-card)] bg-[var(--bg-card)]">
       {/* Logo */}
-      <div className="border-b border-[var(--border-card)] px-6 py-4">
-        <span className="bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] bg-clip-text text-sm font-semibold text-transparent">
+      <div className="border-b border-[var(--border-card)] px-5 py-3">
+        <span className="bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] bg-clip-text text-sm font-light text-transparent">
           {aiName || 'Ava'} | Supernova
         </span>
       </div>
 
       {/* Navigation */}
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1 overflow-y-auto px-3 py-2">
         {/* Command Centre — standalone */}
-        <NavButton
+        <NavItem
           page="overview"
+          icon={'\u26A1'}
           label={t('dash.nav.command_centre')}
-          icon={BoltIcon}
+          description="Your daily overview"
           isActive={currentPage === 'overview'}
           onClick={() => handleNavigate('overview')}
         />
 
-        <div className="mt-2" />
+        <div className="mt-1" />
 
         {/* Grouped sections */}
-        {NAV_GROUPS.map(group => {
-          if (group.adminOnly && !isAdmin) return null;
+        {sections.map(section => {
+          if (section.adminOnly && !isAdmin) return null;
 
-          const visibleItems = group.items.filter(item => {
+          const visibleItems = section.items.filter(item => {
             if (mode === 'byok' && item.platformOnly) return false;
             if (item.adminOnly && !isAdmin) return false;
             return true;
@@ -184,59 +171,46 @@ export function NavSidebar({
 
           if (visibleItems.length === 0) return null;
 
-          const isExpanded = expandedGroups.has(group.label);
+          const isCollapsed = collapsed[section.title];
           const hasActivePage = visibleItems.some(item => item.page === currentPage);
 
           return (
-            <div key={group.label} className="mt-1">
-              {/* Group header */}
+            <div key={section.title} className="mt-1">
+              {/* Section header */}
               <button
-                onClick={() => toggleGroup(group.label)}
-                className={`flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left border-none cursor-pointer transition
-                  ${hasActivePage && !isExpanded
-                    ? 'text-white bg-[var(--bg-input)]'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] bg-transparent hover:bg-[var(--bg-input)]/50'
-                  }`}
+                onClick={() => toggleSection(section.title)}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left border-none cursor-pointer transition bg-transparent hover:bg-[var(--bg-input)]/50"
               >
                 <svg
                   width="8" height="8" viewBox="0 0 16 16" fill="currentColor"
                   className="opacity-40 transition-transform shrink-0"
-                  style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                  style={{ transform: isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)' }}
                 >
                   <path d="M6 4l4 4-4 4V4z"/>
                 </svg>
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${group.adminOnly ? 'text-red-400/70' : ''}`}>
-                  {group.label}
+                <span className={`text-[9px] font-light uppercase tracking-wider ${section.adminOnly ? 'text-red-400/70' : 'text-[var(--text-muted)]'}`}>
+                  {section.title}
                 </span>
+                {isCollapsed && hasActivePage && (
+                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                )}
               </button>
 
-              {/* Group items */}
-              {isExpanded && (
-                <div className="ml-2 mt-0.5 flex flex-col gap-0.5">
-                  {visibleItems.map(item => {
-                    if (item.comingSoon) {
-                      return (
-                        <div key={item.page} className="flex items-center gap-3 rounded-lg px-3 py-1.5 text-[12px] text-[var(--text-muted)] cursor-not-allowed">
-                          <span className="w-4 shrink-0"><item.icon className="h-3.5 w-3.5" /></span>
-                          <span>{item.label}</span>
-                          <span className="ml-auto rounded bg-[var(--bg-input)] px-1.5 py-0.5 text-[9px]">{t('dash.nav.coming_soon')}</span>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <NavButton
-                        key={item.page}
-                        page={item.page}
-                        label={item.label}
-                        icon={item.icon}
-                        isActive={currentPage === item.page}
-                        onClick={() => handleNavigate(item.page)}
-                        isAdmin={item.adminOnly}
-                        small
-                      />
-                    );
-                  })}
+              {/* Items */}
+              {!isCollapsed && (
+                <div className="mt-0.5">
+                  {visibleItems.map(item => (
+                    <NavItem
+                      key={item.page}
+                      page={item.page}
+                      icon={item.icon}
+                      label={item.label}
+                      description={item.description}
+                      isActive={currentPage === item.page}
+                      onClick={() => handleNavigate(item.page)}
+                      comingSoon={item.comingSoon}
+                    />
+                  ))}
                 </div>
               )}
             </div>
@@ -244,15 +218,15 @@ export function NavSidebar({
         })}
       </div>
 
-      {/* Journal Calendar — shows when on journal page */}
-      {showJournalCalendar && onSelectJournalDate && onLoadJournalSummaries && (
-        <MiniCalendar
-          summaries={journalSummaries}
-          selectedDate={selectedJournalDate || getToday()}
-          onSelectDate={onSelectJournalDate}
-          onLoadSummaries={onLoadJournalSummaries}
-        />
-      )}
+      {/* Mini Calendar — always visible, task-focused */}
+      <TaskCalendar
+        taskDates={taskDates || []}
+        onDayClick={(date) => {
+          // Navigate to tasks with date filter
+          handleNavigate('tasks');
+        }}
+        onRefresh={onLoadTaskDates}
+      />
 
       {/* Account section */}
       <div className="border-t border-[var(--border-card)] p-4">
@@ -264,7 +238,7 @@ export function NavSidebar({
             <div className="flex-1 min-w-0">
               <p className="truncate text-[11px] font-medium text-white">{email}</p>
               {isAdmin && (
-                <span className="inline-block mt-0.5 rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[8px] font-bold text-purple-400 uppercase tracking-wider">Admin</span>
+                <span className="inline-block mt-0.5 rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[8px] font-light text-purple-400 uppercase tracking-wider">Admin</span>
               )}
             </div>
             <button
@@ -290,157 +264,127 @@ export function NavSidebar({
   );
 }
 
-// ── NavButton ────────────────────────────────────────────────────────────────
+/* ── NavItem ──────────────────────────────────────────────────────────── */
 
-function NavButton({
-  page: _page,
+function NavItem({
+  page,
+  icon,
   label,
-  icon: Icon,
+  description,
   isActive,
   onClick,
-  isAdmin,
-  small,
+  comingSoon,
 }: {
   page: string;
+  icon: string;
   label: string;
-  icon: React.FC<{ className?: string }>;
+  description: string;
   isActive: boolean;
   onClick: () => void;
-  isAdmin?: boolean;
-  small?: boolean;
+  comingSoon?: boolean;
 }) {
+  if (comingSoon) {
+    return (
+      <div className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-[var(--text-muted)] cursor-not-allowed opacity-50">
+        <span className="w-5 text-center text-sm shrink-0">{icon}</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[12px]">{label}</span>
+            <span className="rounded bg-[var(--bg-input)] px-1 py-0.5 text-[8px]">Soon</span>
+          </div>
+          <p className="text-[9px] text-[var(--text-muted)] truncate">{description}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <button
       onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-lg border-none px-3 ${small ? 'py-1.5' : 'py-2'} text-left ${small ? 'text-[12px]' : 'text-sm'} transition cursor-pointer ${
+      className={`flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left border-none cursor-pointer transition ${
         isActive
-          ? 'bg-[var(--bg-input)] font-medium text-white'
-          : isAdmin
-            ? 'text-red-400/70 hover:bg-[var(--bg-input)] hover:text-red-300 bg-transparent'
-            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-input)] hover:text-white bg-transparent'
+          ? 'bg-[var(--bg-input)] border-l-2 border-l-[var(--accent)]'
+          : 'bg-transparent hover:bg-[var(--bg-input)]/50'
       }`}
+      style={{ borderLeft: isActive ? '2px solid var(--accent)' : '2px solid transparent' }}
     >
-      <span className="w-4 shrink-0"><Icon className={small ? 'h-3.5 w-3.5' : 'h-4 w-4'} /></span>
-      <span>{label}</span>
+      <span className="w-5 text-center text-sm shrink-0">{icon}</span>
+      <div className="min-w-0 flex-1">
+        <span className={`text-[12px] block ${isActive ? 'text-white' : 'text-[var(--text-secondary)]'}`}>
+          {label}
+        </span>
+        <p className="text-[9px] text-[var(--text-muted)] truncate">{description}</p>
+      </div>
     </button>
   );
 }
 
-// ── MiniCalendar ─────────────────────────────────────────────────────────────
+/* ── Task Calendar ────────────────────────────────────────────────────── */
 
-function MiniCalendar({
-  summaries,
-  selectedDate,
-  onSelectDate,
-  onLoadSummaries,
+function TaskCalendar({
+  taskDates,
+  onDayClick,
+  onRefresh,
 }: {
-  summaries: DashboardJournalDaySummary[];
-  selectedDate: string;
-  onSelectDate: (date: string) => void;
-  onLoadSummaries: (from: string, to: string) => void;
+  taskDates: string[];
+  onDayClick: (date: string) => void;
+  onRefresh?: () => void;
 }) {
-  const today = getToday();
-  const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
-  const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
+  const [monthOffset, setMonthOffset] = useState(0);
+  const taskSet = new Set(taskDates);
 
-  const handlePrev = () => {
-    const m = viewMonth === 0 ? 11 : viewMonth - 1;
-    const y = viewMonth === 0 ? viewYear - 1 : viewYear;
-    setViewMonth(m);
-    setViewYear(y);
-    const from = `${y}-${String(m + 1).padStart(2, '0')}-01`;
-    const last = new Date(y, m + 1, 0).getDate();
-    const to = `${y}-${String(m + 1).padStart(2, '0')}-${String(last).padStart(2, '0')}`;
-    onLoadSummaries(from, to);
-  };
+  useEffect(() => { onRefresh?.(); }, [monthOffset]);
 
-  const handleNext = () => {
-    const m = viewMonth === 11 ? 0 : viewMonth + 1;
-    const y = viewMonth === 11 ? viewYear + 1 : viewYear;
-    setViewMonth(m);
-    setViewYear(y);
-    const from = `${y}-${String(m + 1).padStart(2, '0')}-01`;
-    const last = new Date(y, m + 1, 0).getDate();
-    const to = `${y}-${String(m + 1).padStart(2, '0')}-${String(last).padStart(2, '0')}`;
-    onLoadSummaries(from, to);
-  };
-
-  const calendarDays = useMemo(() => {
-    const firstDay = new Date(viewYear, viewMonth, 1);
-    const startDow = (firstDay.getDay() + 6) % 7;
-    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-    const summaryMap = new Map(summaries.map(s => [s.date, s]));
-    const cells: Array<{ date: string; day: number; summary?: DashboardJournalDaySummary } | null> = [];
-
-    for (let i = 0; i < startDow; i++) cells.push(null);
-    for (let d = 1; d <= daysInMonth; d++) {
-      const date = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      cells.push({ date, day: d, summary: summaryMap.get(date) });
-    }
-    return cells;
-  }, [viewYear, viewMonth, summaries]);
+  const now = new Date();
+  const target = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+  const year = target.getFullYear();
+  const month = target.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDay = new Date(year, month, 1).getDay();
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const label = target.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  const todayStr = now.toISOString().slice(0, 10);
 
   return (
-    <div className="border-t border-[var(--border-card)] p-3">
+    <div className="border-t border-[var(--border-card)] px-3 py-2.5 shrink-0">
       {/* Month nav */}
       <div className="flex items-center justify-between mb-1.5">
-        <button onClick={handlePrev} className="w-5 h-5 flex items-center justify-center rounded text-[10px] text-[var(--text-secondary)] hover:bg-[var(--bg-input)] hover:text-white bg-transparent border-none cursor-pointer transition">
-          &lt;
-        </button>
-        <span className="text-[10px] font-semibold text-white">{MONTH_NAMES[viewMonth]} {viewYear}</span>
-        <button onClick={handleNext} className="w-5 h-5 flex items-center justify-center rounded text-[10px] text-[var(--text-secondary)] hover:bg-[var(--bg-input)] hover:text-white bg-transparent border-none cursor-pointer transition">
-          &gt;
-        </button>
+        <button onClick={() => setMonthOffset(o => o - 1)} className="text-[10px] text-[var(--text-muted)] bg-transparent border-none cursor-pointer hover:text-white">{'\u25C0'}</button>
+        <span className="text-[10px] font-light text-[var(--text-secondary)]">{label}</span>
+        <button onClick={() => setMonthOffset(o => o + 1)} className="text-[10px] text-[var(--text-muted)] bg-transparent border-none cursor-pointer hover:text-white">{'\u25B6'}</button>
       </div>
-
       {/* Day headers */}
-      <div className="grid grid-cols-7 gap-px mb-px">
-        {DAY_HEADERS.map(h => (
-          <div key={h} className="text-center text-[8px] font-semibold text-[var(--text-muted)] py-0.5">{h}</div>
+      <div className="grid grid-cols-7 gap-0.5 text-center mb-0.5">
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+          <span key={i} className="text-[8px] text-[var(--text-muted)]">{d}</span>
         ))}
       </div>
-
-      {/* Day cells */}
-      <div className="grid grid-cols-7 gap-px">
-        {calendarDays.map((cell, i) => {
-          if (!cell) return <div key={`e-${i}`} />;
-          const isSelected = cell.date === selectedDate;
-          const isToday = cell.date === today;
-          const hasUser = cell.summary?.has_user_entry;
-          const hasAva = cell.summary?.has_ava_entry;
-
+      {/* Day grid */}
+      <div className="grid grid-cols-7 gap-0.5">
+        {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
+        {days.map(day => {
+          const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          const isToday = iso === todayStr;
+          const hasTask = taskSet.has(iso);
           return (
             <button
-              key={cell.date}
-              onClick={() => onSelectDate(cell.date)}
-              className={`relative flex flex-col items-center justify-center py-0.5 rounded text-[9px] border-none cursor-pointer transition
-                ${isSelected
-                  ? 'bg-[#A855F7] text-white font-bold'
-                  : isToday
-                    ? 'bg-[var(--bg-input)] text-white'
-                    : 'bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-input)]'
-                }`}
+              key={day}
+              onClick={() => onDayClick(iso)}
+              className="relative flex flex-col items-center justify-center border-none cursor-pointer transition"
+              style={{
+                width: 22, height: 22, borderRadius: '50%',
+                background: isToday ? 'rgba(168,85,247,0.2)' : 'transparent',
+                color: isToday ? 'var(--accent)' : 'var(--text-secondary)',
+                fontSize: 9, fontWeight: isToday ? 500 : 300,
+              }}
             >
-              {cell.day}
-              {(hasUser || hasAva) && (
-                <div className="flex gap-px">
-                  {hasUser && <span className="w-0.5 h-0.5 rounded-full bg-white" />}
-                  {hasAva && <span className="w-0.5 h-0.5 rounded-full bg-[#A855F7]" />}
-                </div>
+              {day}
+              {hasTask && (
+                <span className="absolute" style={{ bottom: 1, width: 3, height: 3, borderRadius: '50%', background: isToday ? 'var(--accent)' : '#f59e0b' }} />
               )}
             </button>
           );
         })}
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center gap-3 mt-2 justify-center">
-        <div className="flex items-center gap-1 text-[8px] text-[var(--text-muted)]">
-          <span className="w-1 h-1 rounded-full bg-white" /> {t('dash.calendar.you')}
-        </div>
-        <div className="flex items-center gap-1 text-[8px] text-[var(--text-muted)]">
-          <span className="w-1 h-1 rounded-full bg-[#A855F7]" /> {t('dash.calendar.ava')}
-        </div>
       </div>
     </div>
   );

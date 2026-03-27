@@ -381,6 +381,10 @@ export class DashboardPanel {
         await this.loadLearning();
         break;
 
+      case 'load_task_dates':
+        await this.loadTaskDates();
+        break;
+
       case 'delete_curriculum':
         await this.deleteCurriculum(msg.id);
         break;
@@ -1238,6 +1242,19 @@ export class DashboardPanel {
       this.post({ type: 'tasks_loaded', tasks: tasks.map(t => this.coreToDisplayTask(t)) });
     } catch {
       this.post({ type: 'tasks_loaded', tasks: [] });
+    }
+  }
+
+  private async loadTaskDates(): Promise<void> {
+    try {
+      const mgr = this.getTaskManager();
+      const tasks = await mgr.listTasks();
+      const dates = tasks
+        .filter(t => t.dueDate && t.status !== 'done' && t.status !== 'archived')
+        .map(t => t.dueDate!.slice(0, 10));
+      this.post({ type: 'task_dates_loaded', dates });
+    } catch {
+      this.post({ type: 'task_dates_loaded', dates: [] });
     }
   }
 
