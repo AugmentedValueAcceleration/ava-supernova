@@ -96,14 +96,13 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     }
 
     case 'stream_start': {
-      // If conductor is active, reuse the last assistant bubble instead of creating a new one
-      if (state.conductorActive) {
-        const last = state.messages[state.messages.length - 1];
-        if (last && last.role === 'assistant') {
-          const messages = [...state.messages];
-          messages[messages.length - 1] = { ...last, isStreaming: true };
-          return { ...state, messages, isStreaming: true, isThinking: true };
-        }
+      // Reuse existing assistant bubble — all thinking, tool calls, and text
+      // stay in one bubble until 'done' fires
+      const last = state.messages[state.messages.length - 1];
+      if (last && last.role === 'assistant') {
+        const messages = [...state.messages];
+        messages[messages.length - 1] = { ...last, isStreaming: true };
+        return { ...state, messages, isStreaming: true, isThinking: true };
       }
       const msg: UIMessage = {
         id: nextId(),
@@ -135,17 +134,9 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     }
 
     case 'stream_end': {
-      // During conductor, don't mark streaming as false — personas finish individually
-      // but the overall response is still building. Only 'done' ends it.
-      if (state.conductorActive) {
-        return { ...state, isThinking: false };
-      }
-      const messages = [...state.messages];
-      const last = messages[messages.length - 1];
-      if (last && last.role === 'assistant') {
-        messages[messages.length - 1] = { ...last, isStreaming: false };
-      }
-      return { ...state, messages, isThinking: false };
+      // Don't close the bubble — the agent loop may continue with more
+      // tool calls and streaming rounds. Only 'done' ends the response.
+      return { ...state, isThinking: false };
     }
 
     case 'tool_call_start': {
