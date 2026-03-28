@@ -41,6 +41,25 @@ When Ava takes on a complex task, her internal team activates:
 
 Each persona has scoped tool access. Challenger can read but never write. Simple questions skip orchestration — zero overhead.
 
+## Unified Panel
+
+Chat and Dashboard are one unified app inside a single editor panel. Click the Ava icon and everything is right there — chat, memory, tasks, journal, settings — all connected by a collapsible nav sidebar.
+
+- **Single editor tab** — no more switching between sidebar and panel
+- **Collapsible sidebar** — flip between left and right, persisted across sessions
+- **Chat header** — model selector, Local/Cloud toggle, Provider toggle, token counter, context usage ring
+- **Single bubble** — all thinking, tool calls, and text in one cohesive message per response
+- **Identical layout** to the Ava IDE — seamless transition between surfaces
+
+## Local/Cloud Data Sync
+
+Your data, your choice. Local-first by default — nothing leaves your machine unless you choose it.
+
+- **Green "Local"** — data stays on your machine, nothing syncs
+- **Blue "Cloud"** — auto-syncs every 15 minutes (memory, tasks, journal, learning, history, settings, personality)
+- Toggle in the chat header, persisted across sessions
+- Only visible when connected to a platform account
+
 ## Command Centre Dashboard
 
 Open the dashboard and everything's right there:
