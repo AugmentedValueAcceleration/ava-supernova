@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { Page, DashboardJournalDaySummary } from '../types/messages';
@@ -152,8 +152,52 @@ export function NavSidebar({
 
   const sections = getSections();
 
+  // Resizable sidebar width — persisted
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem('ava-sidebar-width');
+    return saved ? Math.max(180, Math.min(400, Number(saved))) : 224;
+  });
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(224);
+
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = sidebarWidth;
+
+    const onMove = (ev: MouseEvent) => {
+      if (!isDragging.current) return;
+      const delta = ev.clientX - dragStartX.current;
+      const newWidth = Math.max(180, Math.min(400, dragStartWidth.current + delta));
+      setSidebarWidth(newWidth);
+    };
+
+    const onUp = () => {
+      isDragging.current = false;
+      localStorage.setItem('ava-sidebar-width', String(sidebarWidth));
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [sidebarWidth]);
+
+  // Save width on change (debounced via mouseup above)
+  useEffect(() => {
+    localStorage.setItem('ava-sidebar-width', String(sidebarWidth));
+  }, [sidebarWidth]);
+
   return (
-    <nav className="flex w-56 shrink-0 flex-col h-full overflow-hidden border-r border-[var(--border-card)] bg-[var(--bg-card)]">
+    <nav className="relative flex shrink-0 flex-col h-full overflow-hidden border-r border-[var(--border-card)] bg-[var(--bg-card)]" style={{ width: sidebarWidth }}>
+      {/* Drag handle */}
+      <div
+        onMouseDown={handleDragStart}
+        className="absolute top-0 bottom-0 w-1 cursor-col-resize z-10 hover:bg-[rgba(168,85,247,0.3)] transition-colors"
+        style={{ right: 0 }}
+      />
       {/* Logo + action buttons */}
       <div className="border-b border-[var(--border-card)] px-4 py-3">
         <div className="flex items-center gap-2 mb-2">
