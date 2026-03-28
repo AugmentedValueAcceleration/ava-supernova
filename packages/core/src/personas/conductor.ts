@@ -53,16 +53,48 @@ export class Conductor {
   /**
    * Determine if a task needs the full persona team or can be handled directly.
    *
-   * Personas are MODE-driven, not content-driven. The user chooses when to
-   * engage the team by switching modes. Work mode goes straight to the agent.
-   *
-   * Modes that use personas: plan, brainstorm, teach, security
-   * Modes that skip personas: work (code), chat
+   * Plan, brainstorm, teach, security ALWAYS use personas.
+   * Work mode uses personas for complex tasks (multi-file, architecture, systems).
+   * Chat mode never uses personas.
+   * Simple work tasks (one-line fixes, quick questions) skip orchestration.
    */
-  needsOrchestration(_userMessage: string, mode: string): boolean {
-    // Only these modes activate the persona pipeline
-    const personaModes = new Set(['plan', 'brainstorm', 'teach', 'security']);
-    return personaModes.has(mode);
+  needsOrchestration(userMessage: string, mode: string): boolean {
+    // These modes always orchestrate
+    if (['plan', 'brainstorm', 'teach', 'security'].includes(mode)) return true;
+
+    // Chat never orchestrates
+    if (mode === 'chat') return false;
+
+    // Work mode: orchestrate for complex tasks
+    if (mode === 'work') {
+      const msg = userMessage.toLowerCase();
+      const len = msg.length;
+
+      // Short messages are usually simple — skip orchestration
+      if (len < 40) return false;
+
+      // Detect complexity signals
+      const complexitySignals = [
+        // Multi-file / system-level work
+        /\b(create|build|implement|design|architect|set\s*up|scaffold|refactor)\b/,
+        /\b(system|module|feature|component|service|engine|pipeline|framework)\b/,
+        /\b(multiple files|several files|across|full|complete|entire|whole)\b/,
+        // Architecture
+        /\b(architecture|structure|pattern|database|schema|migration|api)\b/,
+        // Testing / review
+        /\b(test suite|comprehensive|audit|review|security|optimise|optimize)\b/,
+        // Multi-step explicit
+        /\band\b.*\band\b/,
+        /\b(then|after that|next|also|plus)\b/,
+      ];
+
+      const matchCount = complexitySignals.filter(re => re.test(msg)).length;
+
+      // 2+ complexity signals = orchestrate
+      return matchCount >= 2;
+    }
+
+    return false;
   }
 
   /**

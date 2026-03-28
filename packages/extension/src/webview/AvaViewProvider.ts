@@ -1743,6 +1743,25 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const images = attachments?.map((a) => a.data);
     this.postMessage({ type: 'user_message_ack', text, ...(images?.length ? { images } : {}) });
 
+    // Inject relevant memories as context for this message
+    try {
+      if (this.memoryManager && text.length > 5) {
+        const recalled = await this.memoryManager.recall({ query: text, limit: 5, scope: 'all' });
+        if (recalled.length > 0) {
+          const memoryContext = recalled
+            .map((r: { scope: string; entry: { category: string; content: string } }) =>
+              `[${r.scope}/${r.entry.category}] ${r.entry.content.slice(0, 300)}`)
+            .join('\n');
+          const msgs = this.conversation.getMessages();
+          msgs.push({
+            role: 'system' as const,
+            content: `[Relevant memories for this message]\n${memoryContext}\n\nUse these if relevant. Don't mention them unless asked about memory.`,
+          });
+          this.conversation.setMessages(msgs);
+        }
+      }
+    } catch { /* non-fatal — memory recall is optional */ }
+
     let streamStarted = false;
     let deltaCount = 0;
     let thinkingDeltaCount = 0;
