@@ -158,18 +158,22 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       const messages = [...state.messages];
       const last = messages[messages.length - 1];
       if (last && last.role === 'assistant') {
-        const toolCalls = last.toolCalls.map((tc) =>
-          tc.name === action.toolName || tc.status === 'running'
-            ? {
-                ...tc,
-                status: 'pending_confirmation' as const,
-                confirmationId: action.confirmationId,
-                summary: action.summary,
-                ...(action.isAskUser ? { isAskUser: true } : {}),
-              }
-            : tc,
-        );
-        messages[messages.length - 1] = { ...last, toolCalls };
+        // Match the LAST running tool call with the matching name — don't overwrite others
+        let matched = false;
+        const updatedCalls = [...last.toolCalls].reverse().map((tc) => {
+          if (!matched && tc.name === action.toolName && tc.status === 'running') {
+            matched = true;
+            return {
+              ...tc,
+              status: 'pending_confirmation' as const,
+              confirmationId: action.confirmationId,
+              summary: action.summary,
+              ...(action.isAskUser ? { isAskUser: true } : {}),
+            };
+          }
+          return tc;
+        }).reverse();
+        messages[messages.length - 1] = { ...last, toolCalls: updatedCalls };
       }
       return { ...state, messages };
     }
