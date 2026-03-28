@@ -505,48 +505,11 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
             )}
           </div>
 
-          {/* Right side: provider toggle + actions */}
-          <div className="flex items-center gap-2 shrink-0">
-          {/* Provider source toggle */}
-          {platformStatus?.connected && onProviderSourceChange && (
-            <div className="flex items-center gap-0.5 rounded-lg bg-[rgba(168,85,247,0.06)] p-0.5 border border-[rgba(168,85,247,0.1)]">
-              <button
-                onClick={() => onProviderSourceChange('platform')}
-                disabled={
-                  providerSource !== 'platform' &&
-                  platformStatus.tier === 'free' &&
-                  platformStatus.freeTokensUsed >= platformStatus.freeTokensLimit
-                }
-                className={`px-2.5 py-1 rounded-md text-[10px] font-medium border-none cursor-pointer transition-all duration-150
-                  disabled:opacity-20 disabled:cursor-not-allowed
-                  ${providerSource === 'platform'
-                    ? 'bg-[var(--color-accent,var(--vscode-button-background))] text-white shadow-sm'
-                    : 'bg-transparent text-[var(--vscode-foreground)] opacity-40 hover:opacity-70'
-                  }`}
-                title={providerSource === 'platform'
-                  ? t('input.tokens_remaining', { remaining: Math.max(0, platformStatus.freeTokensLimit - platformStatus.freeTokensUsed).toLocaleString() })
-                  : t('input.provider_switch_free')}
-              >
-                {platformStatus.tier === 'free' ? t('input.provider_free') : t('input.provider_platform')}
-              </button>
-              <button
-                onClick={() => onProviderSourceChange('byok')}
-                className={`px-2.5 py-1 rounded-md text-[10px] font-medium border-none cursor-pointer transition-all duration-150
-                  ${providerSource === 'byok'
-                    ? 'bg-[var(--color-accent,var(--vscode-button-background))] text-white shadow-sm'
-                    : 'bg-transparent text-[var(--vscode-foreground)] opacity-40 hover:opacity-70'
-                  }`}
-                title={t('input.provider_use_own_key')}
-              >
-                {t('input.provider_api_key')}
-              </button>
-            </div>
-          )}
-
           {/* Right side: attach + usage + send/stop */}
+          <div className="flex items-center gap-2 shrink-0">
           <div className="flex items-center gap-2">
             {/* Token balance */}
-            {providerSource === 'platform' && platformStatus?.connected && (() => {
+            {platformStatus?.connected && (() => {
               // Admin/unlimited accounts
               if (platformStatus.freeTokensLimit >= 999_999_999) {
                 return (
@@ -555,23 +518,17 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
                   </span>
                 );
               }
-              // Paid plan: show sub tokens if they have a subscription limit
-              const isSub = platformStatus.subTokensLimit && platformStatus.subTokensLimit > 0;
-              const used = isSub ? platformStatus.subTokensUsed : platformStatus.freeTokensUsed;
-              const limit = isSub ? platformStatus.subTokensLimit! : platformStatus.freeTokensLimit;
-              const remaining = Math.max(0, limit - used);
-              const isLow = remaining <= 500_000;
-              const label = isSub ? '' : ' free';
+              const remaining = Math.max(0, platformStatus.freeTokensLimit - platformStatus.freeTokensUsed);
+              const pct = platformStatus.freeTokensLimit > 0 ? (platformStatus.freeTokensUsed / platformStatus.freeTokensLimit) * 100 : 0;
+              const isLow = pct >= 80;
+              const color = pct >= 95 ? '#ef4444' : pct >= 80 ? '#eab308' : undefined;
               return (
                 <span
-                  className={`text-[10px] tabular-nums ${
-                    isLow
-                      ? 'text-[var(--vscode-editorWarning-foreground,#cca700)] opacity-80'
-                      : 'opacity-30'
-                  }`}
-                  title={`${remaining.toLocaleString()} / ${limit.toLocaleString()} tokens remaining`}
+                  className={`text-[10px] tabular-nums ${isLow ? 'opacity-80' : 'opacity-30'}`}
+                  style={color ? { color } : undefined}
+                  title={`${remaining.toLocaleString()} / ${platformStatus.freeTokensLimit.toLocaleString()} tokens remaining`}
                 >
-                  {remaining >= 1_000_000 ? `${(remaining / 1_000_000).toFixed(1)}M` : remaining >= 1000 ? `${Math.round(remaining / 1000)}K` : remaining}{label}
+                  {remaining >= 1_000_000 ? `${(remaining / 1_000_000).toFixed(1)}M` : remaining >= 1000 ? `${Math.round(remaining / 1000)}K` : remaining} left
                 </span>
               );
             })()}
@@ -666,32 +623,6 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
               )}
             </button>
 
-            {/* Voice input button */}
-            <button
-              onClick={toggleVoice}
-              disabled={disabled || micPermission === 'denied'}
-              title={micPermission === 'denied' ? t('input.voice_denied') : isListening ? t('input.voice_stop') : t('input.voice_input')}
-              aria-label={isListening ? t('input.voice_stop') : t('input.voice_input')}
-              className={`flex items-center justify-center w-9 h-9 rounded-lg
-                         cursor-pointer transition-all duration-200
-                         ${isListening
-                           ? 'text-white border border-red-500/50'
-                           : micPermission === 'denied'
-                           ? 'text-[var(--vscode-foreground)] opacity-15 cursor-not-allowed border border-[rgba(168,85,247,0.08)]'
-                           : 'text-[var(--vscode-foreground)] opacity-50 hover:opacity-90 border border-[rgba(168,85,247,0.15)] hover:border-[rgba(168,85,247,0.4)] hover:bg-[rgba(168,85,247,0.1)]'
-                         }
-                         disabled:opacity-15 disabled:cursor-not-allowed`}
-              style={isListening ? {
-                background: 'linear-gradient(135deg, #e53935, #c62828)',
-                boxShadow: '0 2px 8px rgba(229, 57, 53, 0.35)',
-                animation: 'pulse 1.5s infinite',
-              } : { background: 'rgba(168, 85, 247, 0.05)' }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
-              </svg>
-            </button>
-
             {isStreaming ? (
               <button
                 onClick={onInterrupt || onCancel}
@@ -742,41 +673,6 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
           </div>{/* close second row */}
         </div>
       </div>
-      {/* Mic consent prompt */}
-      {showMicPrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.6)' }}>
-          <div className="w-80 rounded-xl p-5 space-y-3" style={{ background: 'var(--vscode-editor-background)', border: '1px solid var(--vscode-panel-border)' }}>
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'rgba(168,85,247,0.2)' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A855F7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
-                </svg>
-              </div>
-              <div>
-                <div className="text-sm font-semibold" style={{ color: 'var(--vscode-foreground)' }}>{t('input.voice_title')}</div>
-                <div className="text-[11px]" style={{ color: 'var(--vscode-descriptionForeground)' }}>{t('input.voice_subtitle')}</div>
-              </div>
-            </div>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--vscode-foreground)' }} dangerouslySetInnerHTML={{ __html: t('input.voice_description') }} />
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={() => { setShowMicPrompt(false); startListening(); }}
-                className="flex-1 py-2 rounded-lg text-sm font-medium text-white cursor-pointer border-none"
-                style={{ background: 'linear-gradient(135deg, #A855F7, #7C3AED)' }}
-              >
-                {t('input.voice_allow')}
-              </button>
-              <button
-                onClick={() => { setShowMicPrompt(false); localStorage.setItem('ava-mic-consent', 'denied'); setMicPermission('denied'); }}
-                className="flex-1 py-2 rounded-lg text-sm font-medium cursor-pointer"
-                style={{ background: 'var(--vscode-button-secondaryBackground)', color: 'var(--vscode-button-secondaryForeground)', border: 'none' }}
-              >
-                {t('input.voice_deny')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
