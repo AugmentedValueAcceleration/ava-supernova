@@ -263,14 +263,37 @@ export function Header({
           </button>
         )}
 
-        {/* Session token counter */}
-        <span
-          className="text-[11px] tabular-nums opacity-40"
-          style={{ fontFamily: 'monospace' }}
-          title={`${sessionTokens.toLocaleString()} tokens used this session`}
-        >
-          {sessionTokens > 0 ? fmtTokens(sessionTokens) : '0'} tokens
-        </span>
+        {/* Token display — platform balance or session count */}
+        {platformStatus?.connected && providerSource === 'platform' ? (() => {
+          const isAdmin = platformStatus.freeTokensLimit >= 999_999_999;
+          if (isAdmin) {
+            return (
+              <span className="text-[11px] tabular-nums opacity-30" style={{ fontFamily: 'monospace' }} title="Unlimited tokens">
+                ∞ tokens
+              </span>
+            );
+          }
+          const remaining = Math.max(0, platformStatus.freeTokensLimit - platformStatus.freeTokensUsed);
+          const pct = platformStatus.freeTokensLimit > 0 ? (platformStatus.freeTokensUsed / platformStatus.freeTokensLimit) * 100 : 0;
+          const color = pct >= 95 ? '#ef4444' : pct >= 80 ? '#eab308' : '#a6e3a1';
+          return (
+            <span
+              className="text-[11px] tabular-nums font-medium"
+              style={{ fontFamily: 'monospace', color }}
+              title={`${remaining.toLocaleString()} of ${platformStatus.freeTokensLimit.toLocaleString()} tokens remaining (${Math.round(pct)}% used)`}
+            >
+              {fmtTokens(remaining)} left
+            </span>
+          );
+        })() : (
+          <span
+            className="text-[11px] tabular-nums opacity-40"
+            style={{ fontFamily: 'monospace' }}
+            title={`${sessionTokens.toLocaleString()} tokens used this session`}
+          >
+            {sessionTokens > 0 ? fmtTokens(sessionTokens) : '0'} tokens
+          </span>
+        )}
 
         {/* Context usage ring */}
         {contextPercent > 0 && (() => {
