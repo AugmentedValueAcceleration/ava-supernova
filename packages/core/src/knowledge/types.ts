@@ -44,6 +44,7 @@ export type KnowledgeDomain =
   | 'security'
   | 'data-science'
   | 'education'
+  | 'game-development'
   | 'custom';
 
 /** Lightweight pack metadata (for listing without loading full context). */
@@ -61,5 +62,6 @@ export interface KnowledgePackMeta {
 /** All valid domains. */
 export const KNOWLEDGE_DOMAINS: KnowledgeDomain[] = [
   'marketing', 'finance', 'legal', 'sales', 'hr', 'product',
-  'design', 'devops', 'security', 'data-science', 'education', 'custom',
+  'design', 'devops', 'security', 'data-science', 'education',
+  'game-development', 'custom',
 ];

@@ -725,6 +725,18 @@ export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCol
             activePersonas={state.activePersonas}
           />
 
+          {/* Compression indicator */}
+          {state.isCompressing && (
+            <div className="flex items-center gap-2 px-4 py-2 text-xs" style={{ background: 'rgba(168, 85, 247, 0.06)', borderTop: '1px solid rgba(168, 85, 247, 0.12)' }}>
+              <svg width="14" height="14" viewBox="0 0 16 16" className="animate-spin" style={{ color: '#a855f7' }}>
+                <path fill="currentColor" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 1.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11z" opacity="0.2"/>
+                <path fill="currentColor" d="M8 1v1.5A5.5 5.5 0 0 1 13.5 8H15A7 7 0 0 0 8 1z"/>
+              </svg>
+              <span style={{ color: '#a855f7' }}>{t('input.compressing') || 'Compressing context...'}</span>
+              <span className="opacity-40">Ava is summarising older messages to free up space</span>
+            </div>
+          )}
+
           <InputArea
             onSend={handleSend}
             onCancel={handleCancel}

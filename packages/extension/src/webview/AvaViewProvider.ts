@@ -1078,6 +1078,32 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // Non-fatal — self-improvement is optional
     }
 
+    // Auto-detect knowledge packs from project type
+    let knowledgeContext: string | undefined;
+    try {
+      const fs = require('node:fs');
+      const path = require('node:path');
+      if (cwd) {
+        const files = fs.readdirSync(cwd).map((f: string) => f.toLowerCase());
+        const isGameProject = files.some((f: string) =>
+          f.endsWith('.uproject') || f === 'project.godot' || f.endsWith('.sln') && files.some((g: string) => g === 'assets') ||
+          files.includes('content') && files.includes('source')
+        );
+        if (isGameProject) {
+          const { BUILTIN_PACKS } = require('@ava/core');
+          const gamePack = BUILTIN_PACKS?.find((p: { id: string }) => p.id === 'game-development');
+          if (gamePack) {
+            // Detect specific engine
+            const engine = files.some((f: string) => f.endsWith('.uproject')) ? 'Unreal Engine (C++)'
+              : files.includes('project.godot') ? 'Godot (GDScript)'
+              : files.some((f: string) => f.endsWith('.csproj')) ? 'Unity (C#)'
+              : 'game engine';
+            knowledgeContext = `## Active Knowledge Pack: Game Development\nDetected: ${engine}\n\n${gamePack.context}`;
+          }
+        }
+      }
+    } catch { /* non-fatal */ }
+
     return buildSystemPrompt({
       cwd,
       platform: process.platform,
@@ -1092,7 +1118,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       isAdmin,
       sourceRoot,
       personality,
-      // selfImprovementContext moved to on-demand via buildContextualInjection
+      knowledgeContext,
     });
   }
 
@@ -2125,30 +2151,42 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // Stop current generation
     this.cancelRun();
 
-    // Wait for cancel to complete
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Wait for cancel and cleanup to fully complete
+    await new Promise(resolve => {
+      const check = () => {
+        if (!this.isRunning) resolve(undefined);
+        else setTimeout(check, 50);
+      };
+      setTimeout(check, 100);
+    });
 
     // Send a follow-up message so Ava acknowledges the interrupt
     try {
-      this.conversation.addUserMessage('[User interrupted — wants your attention]');
+      // Clean up any orphaned tool messages from the aborted run
+      const msgs = this.conversation.getMessages();
+      const cleanMsgs = msgs.filter((m, i) => {
+        // Remove trailing tool/assistant messages that were mid-stream
+        if (i === msgs.length - 1 && m.role === 'assistant' && !m.content) return false;
+        if (m.role === 'tool' && i > msgs.length - 4) return false;
+        return true;
+      });
+      this.conversation.setMessages(cleanMsgs);
 
       const interruptSystemNote =
-        '\n\n[INTERRUPT: The user just interrupted you. They tapped the pause button to get your attention. ' +
-        'Stop what you were doing, acknowledge the interruption politely, and ask what they need. ' +
-        'Be warm — they interrupted because something is on their mind. Keep it brief — one or two sentences.]';
+        '\n\n[INTERRUPT: The user tapped pause to get your attention. ' +
+        'Acknowledge briefly (one sentence) and ask what they need. Be warm.]';
 
-      // Temporarily inject interrupt note into system prompt
-      const messages = this.conversation.getMessages();
-      const sysMsg = messages[0]?.role === 'system' ? String(messages[0].content) : '';
+      // Temporarily inject interrupt note
+      const sysMsg = cleanMsgs[0]?.role === 'system' ? String(cleanMsgs[0].content) : '';
       this.conversation.setSystemPrompt(sysMsg + interruptSystemNote);
 
-      // Run the agent for the interrupt response
-      await this.runAgent('[User interrupted — wants your attention]');
+      // Run a lightweight response
+      await this.runAgent('[pause]');
 
       // Clean up interrupt note
-      const cleanMessages = this.conversation.getMessages();
-      const cleanSys = cleanMessages[0]?.role === 'system' ? String(cleanMessages[0].content) : '';
-      this.conversation.setSystemPrompt(cleanSys.replace(/\n\n\[INTERRUPT:[\s\S]*?\]/, ''));
+      const afterMsgs = this.conversation.getMessages();
+      const afterSys = afterMsgs[0]?.role === 'system' ? String(afterMsgs[0].content) : '';
+      this.conversation.setSystemPrompt(afterSys.replace(/\n\n\[INTERRUPT:[\s\S]*?\]/, ''));
     } catch {
       // Interrupt response failed — not critical
     }
