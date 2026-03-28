@@ -1155,7 +1155,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   // ── History ──────────────────────────────────────────────────────────────────
 
   private async sendHistoryList(): Promise<void> {
-    const conversations = await this.historyManager.listConversations();
+    const conversations = await this.historyManager.listConversations(false);
     this.postMessage({ type: 'history_list', conversations });
   }
 
@@ -1193,7 +1193,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   private async searchHistory(query: string): Promise<void> {
-    const results = await this.historyManager.searchConversations(query);
+    const results = await this.historyManager.searchConversations(query, false);
     this.postMessage({ type: 'history_search_results', conversations: results });
   }
 
