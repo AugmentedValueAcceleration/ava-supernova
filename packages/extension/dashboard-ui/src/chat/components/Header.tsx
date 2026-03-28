@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ModelSelector } from './ModelSelector';
 import { t, useLocale } from '../../i18n';
 import { post } from '../../vscode';
@@ -9,6 +9,16 @@ function fmtTokens(n: number): string {
   if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
   return String(n);
 }
+
+const KNOWLEDGE_PACKS = [
+  { id: 'game-development', name: 'Game Development', icon: '\uD83C\uDFAE', desc: 'Unreal, Godot, Unity' },
+  { id: 'marketing', name: 'Marketing & Growth', icon: '\uD83D\uDCC8', desc: 'SEO, content, analytics' },
+  { id: 'finance', name: 'Finance & Business', icon: '\uD83D\uDCB0', desc: 'Modelling, budgeting, fundraising' },
+  { id: 'legal', name: 'Legal & Compliance', icon: '\u2696\uFE0F', desc: 'Contracts, IP, privacy' },
+  { id: 'product', name: 'Product Management', icon: '\uD83D\uDCCB', desc: 'Roadmaps, metrics, user research' },
+  { id: 'devops', name: 'DevOps & Infrastructure', icon: '\u2601\uFE0F', desc: 'CI/CD, Docker, cloud' },
+  { id: 'data-science', name: 'Data Science', icon: '\uD83D\uDCC9', desc: 'Analysis, ML, visualisation' },
+];
 
 const SYNC_INTERVAL = 15 * 60 * 1000; // 15 minutes
 const SYNC_TYPES = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings', 'personality'] as const;
@@ -57,6 +67,38 @@ export function Header({
                    bg-transparent border-none cursor-pointer text-sm`;
 
   const contextPercent = contextUsage?.percent ?? 0;
+
+  // Knowledge packs — persisted
+  const [enabledPacks, setEnabledPacks] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('ava-knowledge-packs');
+      return saved ? new Set(JSON.parse(saved)) : new Set<string>();
+    } catch { return new Set<string>(); }
+  });
+  const [packsOpen, setPacksOpen] = useState(false);
+  const packsRef = useRef<HTMLDivElement>(null);
+
+  const togglePack = useCallback((id: string) => {
+    setEnabledPacks(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      localStorage.setItem('ava-knowledge-packs', JSON.stringify([...next]));
+      // Save to host and reinitialise session with new knowledge
+      post({ type: 'toggle_knowledge_pack', packId: id, enabled: next.has(id) } as any);
+      return next;
+    });
+  }, []);
+
+  // Close packs dropdown on outside click
+  useEffect(() => {
+    if (!packsOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (packsRef.current && !packsRef.current.contains(e.target as Node)) setPacksOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [packsOpen]);
 
   // Local/Cloud data mode — persisted
   const [dataMode, setDataMode] = useState<'local' | 'cloud'>(() => {
@@ -110,6 +152,66 @@ export function Header({
           onSwitch={onSwitch}
           onOpenDashboard={onOpenDashboard}
         />
+      </div>
+
+      {/* Knowledge packs dropdown */}
+      <div className="relative" ref={packsRef}>
+        <button
+          onClick={() => setPacksOpen(!packsOpen)}
+          className="flex items-center gap-1 rounded-md border border-transparent px-2 py-1 text-[10px] font-semibold cursor-pointer transition-all"
+          style={{
+            background: enabledPacks.size > 0 ? 'rgba(168,85,247,0.1)' : 'rgba(108,112,134,0.1)',
+            borderColor: enabledPacks.size > 0 ? 'rgba(168,85,247,0.3)' : 'rgba(108,112,134,0.2)',
+            color: enabledPacks.size > 0 ? '#a855f7' : '#6c7086',
+          }}
+          title="Knowledge Packs"
+        >
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M14.5 2H9l-.35-.15-.65-.64-.65.64L7 2H1.5l-.5.5v10l.5.5h13l.5-.5v-10l-.5-.5zM7 3H2v9h5V3zm7 9H9V3h5v9z"/>
+          </svg>
+          {enabledPacks.size > 0 ? `${enabledPacks.size} pack${enabledPacks.size > 1 ? 's' : ''}` : 'Packs'}
+          <svg width="8" height="8" viewBox="0 0 12 12" fill="currentColor" style={{ opacity: 0.5 }}>
+            <path d="M2 4l4 4 4-4"/>
+          </svg>
+        </button>
+
+        {packsOpen && (
+          <div className="absolute left-0 top-full mt-1 z-50 rounded-lg border overflow-hidden"
+            style={{ background: '#1e1e2e', borderColor: 'rgba(168,85,247,0.2)', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', minWidth: 240 }}
+          >
+            <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider opacity-40 border-b" style={{ borderColor: 'rgba(168,85,247,0.1)' }}>
+              Knowledge Packs
+            </div>
+            {KNOWLEDGE_PACKS.map(pack => {
+              const enabled = enabledPacks.has(pack.id);
+              return (
+                <button
+                  key={pack.id}
+                  onClick={() => togglePack(pack.id)}
+                  className="flex items-center gap-3 w-full px-3 py-2 text-left bg-transparent border-none cursor-pointer transition hover:bg-white/[0.04]"
+                >
+                  <span className="text-sm">{pack.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium" style={{ color: enabled ? '#cdd6f4' : '#6c7086' }}>{pack.name}</div>
+                    <div className="text-[10px] opacity-40">{pack.desc}</div>
+                  </div>
+                  <div
+                    className="w-8 h-4 rounded-full relative transition-all"
+                    style={{ background: enabled ? '#a855f7' : 'rgba(108,112,134,0.3)' }}
+                  >
+                    <div
+                      className="absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all"
+                      style={{ left: enabled ? 16 : 2 }}
+                    />
+                  </div>
+                </button>
+              );
+            })}
+            <div className="px-3 py-1.5 text-[10px] opacity-30 border-t" style={{ borderColor: 'rgba(168,85,247,0.1)' }}>
+              Game projects auto-detect. Others enable here.
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Spacer */}

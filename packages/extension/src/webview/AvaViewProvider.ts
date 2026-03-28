@@ -410,6 +410,27 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       case 'save_secrets':
         mapped = { type: 'save_secrets', secrets: msg.secrets as any };
         break;
+      case 'toggle_knowledge_pack': {
+        // Save enabled packs to ~/.ava/knowledge-enabled.json and reinit
+        try {
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const enabledPath = path.join(AVA_HOME, 'knowledge-enabled.json');
+          let enabled: string[] = [];
+          try { enabled = JSON.parse(fs.readFileSync(enabledPath, 'utf-8')); } catch { /* empty */ }
+          if (msg.enabled) {
+            if (!enabled.includes(msg.packId as string)) enabled.push(msg.packId as string);
+          } else {
+            enabled = enabled.filter((id: string) => id !== msg.packId);
+          }
+          fs.mkdirSync(AVA_HOME, { recursive: true });
+          fs.writeFileSync(enabledPath, JSON.stringify(enabled, null, 2), 'utf-8');
+          this.log(`Knowledge pack ${msg.packId}: ${msg.enabled ? 'enabled' : 'disabled'}`);
+          // Reinit session so new knowledge is loaded
+          await this.initializeSession();
+        } catch (err) { this.log(`Knowledge pack toggle failed: ${err}`); }
+        return;
+      }
       default:
         return; // Not a chat message
     }
@@ -1078,11 +1099,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // Non-fatal — self-improvement is optional
     }
 
-    // Auto-detect knowledge packs from project type
+    // Load knowledge packs — auto-detected + manually enabled
     let knowledgeContext: string | undefined;
     try {
       const fs = require('node:fs');
-      const path = require('node:path');
+      const { BUILTIN_PACKS } = require('@ava/core');
+      const packSections: string[] = [];
+      const loadedIds = new Set<string>();
+
+      // Auto-detect game projects
       if (cwd) {
         const files = fs.readdirSync(cwd).map((f: string) => f.toLowerCase());
         const isGameProject = files.some((f: string) =>
@@ -1090,17 +1115,36 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           files.includes('content') && files.includes('source')
         );
         if (isGameProject) {
-          const { BUILTIN_PACKS } = require('@ava/core');
           const gamePack = BUILTIN_PACKS?.find((p: { id: string }) => p.id === 'game-development');
           if (gamePack) {
-            // Detect specific engine
             const engine = files.some((f: string) => f.endsWith('.uproject')) ? 'Unreal Engine (C++)'
               : files.includes('project.godot') ? 'Godot (GDScript)'
               : files.some((f: string) => f.endsWith('.csproj')) ? 'Unity (C#)'
               : 'game engine';
-            knowledgeContext = `## Active Knowledge Pack: Game Development\nDetected: ${engine}\n\n${gamePack.context}`;
+            packSections.push(`## Active Knowledge Pack: Game Development\nDetected: ${engine}\n\n${gamePack.context}`);
+            loadedIds.add('game-development');
           }
         }
+      }
+
+      // Load manually enabled packs from ~/.ava/knowledge-enabled.json
+      try {
+        const enabledPath = require('node:path').join(AVA_HOME, 'knowledge-enabled.json');
+        if (fs.existsSync(enabledPath)) {
+          const enabledIds: string[] = JSON.parse(fs.readFileSync(enabledPath, 'utf-8'));
+          for (const id of enabledIds) {
+            if (loadedIds.has(id)) continue;
+            const pack = BUILTIN_PACKS?.find((p: { id: string }) => p.id === id);
+            if (pack) {
+              packSections.push(`## Knowledge Pack: ${pack.name}\n\n${pack.context}`);
+              loadedIds.add(id);
+            }
+          }
+        }
+      } catch { /* no enabled packs file */ }
+
+      if (packSections.length > 0) {
+        knowledgeContext = packSections.join('\n\n');
       }
     } catch { /* non-fatal */ }
 
