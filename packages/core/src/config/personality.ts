@@ -55,7 +55,7 @@ const PRONOUN_MAP: Record<Personality['pronouns'], { subject: string; object: st
  * Replaces the hardcoded "Who You Are" and "Your Vibe" sections.
  */
 export function buildPersonalityPrefix(p: Personality): string {
-  const pronouns = PRONOUN_MAP[p.pronouns];
+  const pronouns = PRONOUN_MAP[p.pronouns] || PRONOUN_MAP['she/her'];
   const isDefault = p.name === 'Ava' && !p.description;
 
   if (isDefault) {
