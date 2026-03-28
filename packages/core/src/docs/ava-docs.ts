@@ -1058,6 +1058,48 @@ Reset to default Ava anytime from the Personality Designer panel.
 Dashboard > Personal > Personality`,
   },
 
+  // ── Ecosystem ──────────────────────────────────────────────────────────
+  {
+    topic: 'ecosystem',
+    keywords: ['ecosystem', 'surfaces', 'extension', 'ide', 'companion', 'mobile', 'cli', 'app', 'desktop', 'phone', 'platforms', 'where', 'available', 'download'],
+    title: 'Ava Ecosystem',
+    content: `# Ava Ecosystem
+
+Ava lives across multiple surfaces. Same memory, same personality, same you.
+
+## VS Code Extension
+The primary surface for developers. Unified panel with chat, dashboard, and all 54 tools. Install from the VS Code Marketplace — search "Ava Supernova".
+- Ctrl+Shift+A to open
+- All 6 modes, 24 personas, full tool access
+- Local-first with optional cloud sync
+
+## Ava IDE (Desktop App)
+Standalone desktop application built with Tauri. Same unified layout as the extension but in its own dedicated window.
+- File menu with native folder picker
+- Real file explorer
+- Full chat with all tools
+- Download from GitHub releases
+
+## Companion App (Mobile/Web)
+Your AI companion on the go. Tasks, journal, memory, and chat — synced with your desktop.
+- Available at companion.ava-supernova.com
+- Chat with Ava anywhere
+- Check tasks and journal on your phone
+- Memory stays in sync when cloud mode is enabled
+
+## CLI
+Terminal-based agent for headless workflows and scripting.
+- \`npm install -g @ava/cli\`
+- All 54 tools available
+- Perfect for CI/CD integration and automation
+
+## Sync Across Surfaces
+When cloud sync is enabled, your data follows you:
+- Memory, tasks, journal, learning, chat history, settings, personality
+- Auto-syncs every 15 minutes in cloud mode
+- Manual sync always available`,
+  },
+
   // ── Unified Panel ──────────────────────────────────────────────────────
   {
     topic: 'unified-panel',
