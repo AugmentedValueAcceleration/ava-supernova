@@ -1,5 +1,7 @@
+import { useState, useEffect, useCallback } from 'react';
 import { ModelSelector } from './ModelSelector';
 import { t, useLocale } from '../../i18n';
+import { post } from '../../vscode';
 import type { ProviderSource } from '../../types/messages';
 
 function fmtTokens(n: number): string {
@@ -7,6 +9,9 @@ function fmtTokens(n: number): string {
   if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
   return String(n);
 }
+
+const SYNC_INTERVAL = 15 * 60 * 1000; // 15 minutes
+const SYNC_TYPES = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings', 'personality'] as const;
 
 interface HeaderProps {
   models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;
@@ -53,6 +58,38 @@ export function Header({
 
   const contextPercent = contextUsage?.percent ?? 0;
 
+  // Local/Cloud data mode — persisted
+  const [dataMode, setDataMode] = useState<'local' | 'cloud'>(() => {
+    return (localStorage.getItem('ava-data-mode') as 'local' | 'cloud') || 'local';
+  });
+
+  const toggleDataMode = useCallback(() => {
+    if (!platformStatus?.connected) return;
+    setDataMode(prev => {
+      const next = prev === 'local' ? 'cloud' : 'local';
+      localStorage.setItem('ava-data-mode', next);
+      return next;
+    });
+  }, [platformStatus?.connected]);
+
+  // Auto-sync every 15 minutes when cloud mode is active
+  useEffect(() => {
+    if (dataMode !== 'cloud' || !platformStatus?.connected) return;
+
+    // Sync immediately on switching to cloud
+    for (const dt of SYNC_TYPES) {
+      post({ type: 'push_to_cloud', dataType: dt });
+    }
+
+    const interval = setInterval(() => {
+      for (const dt of SYNC_TYPES) {
+        post({ type: 'push_to_cloud', dataType: dt });
+      }
+    }, SYNC_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [dataMode, platformStatus?.connected]);
+
   return (
     <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: 'rgba(168, 85, 247, 0.12)' }} role="toolbar" aria-label="Chat controls">
       {/* Sidebar toggle — only shows when sidebar is collapsed */}
@@ -78,8 +115,30 @@ export function Header({
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Right side: provider toggle + tokens + context ring + tasks */}
+      {/* Right side: data mode + provider toggle + tokens + context ring + tasks */}
       <div className="flex items-center gap-3">
+        {/* Local/Cloud data toggle */}
+        {platformStatus?.connected && (
+          <button
+            onClick={toggleDataMode}
+            className="flex items-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-[10px] font-semibold cursor-pointer transition-all"
+            style={{
+              background: dataMode === 'cloud' ? 'rgba(137,180,250,0.1)' : 'rgba(166,227,161,0.1)',
+              borderColor: dataMode === 'cloud' ? 'rgba(137,180,250,0.3)' : 'rgba(166,227,161,0.3)',
+              color: dataMode === 'cloud' ? '#89b4fa' : '#a6e3a1',
+            }}
+            title={dataMode === 'local'
+              ? 'Local — data stays on your machine. Click to enable cloud sync.'
+              : 'Cloud — auto-syncing every 15 minutes. Click to switch to local only.'}
+          >
+            <span
+              className="inline-block w-1.5 h-1.5 rounded-full"
+              style={{ background: dataMode === 'cloud' ? '#89b4fa' : '#a6e3a1' }}
+            />
+            {dataMode === 'local' ? 'Local' : 'Cloud'}
+          </button>
+        )}
+
         {/* Provider toggle (Platform / API Key) */}
         {platformStatus?.connected && onProviderSourceChange && (
           <button
