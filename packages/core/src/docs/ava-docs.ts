@@ -1057,4 +1057,128 @@ Reset to default Ava anytime from the Personality Designer panel.
 ## Where to Find It
 Dashboard > Personal > Personality`,
   },
+
+  // ── Unified Panel ──────────────────────────────────────────────────────
+  {
+    topic: 'unified-panel',
+    keywords: ['unified', 'panel', 'sidebar', 'layout', 'dashboard', 'chat', 'single', 'editor', 'tab', 'navigation', 'collapsible', 'flip'],
+    title: 'Unified Panel',
+    content: `# Unified Panel
+
+Chat and Dashboard are merged into one unified app inside a single editor panel. No more switching between a sidebar chat and a separate dashboard tab.
+
+## How It Works
+- Click the Ava icon in the activity bar to open the unified panel
+- The **nav sidebar** on the left (or right) connects all pages
+- **Chat with Ava** is the top item — your primary workspace
+- All dashboard pages (Memory, Tasks, Journal, Learning, etc.) are accessible from the same sidebar
+- Chat state is preserved when navigating between pages
+
+## Sidebar Controls
+- **Collapse/expand** — toggle button in the sidebar header (or chat header when collapsed)
+- **Flip left/right** — move the sidebar to either side, persisted across sessions
+- **Calendar** — task calendar always visible at the bottom of the sidebar
+
+## Chat Header
+- **Model selector** — choose your active model
+- **Local/Cloud toggle** — switch between local-first and cloud sync
+- **Provider toggle** — switch between Platform tokens and your own API keys
+- **Token counter** — session tokens used
+- **Context ring** — visual indicator of context window usage (yellow at 80%, red at 90%)
+- **Tasks toggle** — open/close the tasks side panel
+
+## Single Bubble
+All of Ava's thinking, tool calls, and text responses appear in one cohesive message bubble. No more clutter from multiple empty bubbles.`,
+  },
+
+  // ── Local/Cloud Sync ─────────────────────────────────────────────────────
+  {
+    topic: 'local-cloud-sync',
+    keywords: ['local', 'cloud', 'sync', 'auto-sync', 'data', 'toggle', 'privacy', 'local-first', 'backup'],
+    title: 'Local/Cloud Data Sync',
+    content: `# Local/Cloud Data Sync
+
+Your data, your choice. Ava is local-first by default — nothing leaves your machine unless you choose it.
+
+## The Toggle
+A Local/Cloud button in the chat header lets you switch modes:
+- **Green "Local"** — all data stays on your machine. Nothing syncs.
+- **Blue "Cloud"** — auto-syncs to the platform every 15 minutes.
+
+## What Syncs
+When cloud mode is active, these data types sync automatically:
+- Memory (patterns, preferences, decisions)
+- Tasks (your task list)
+- Journal (daily reflections — both yours and Ava's)
+- Learning (curriculums and progress)
+- Chat History (conversation archive)
+- Settings (preferences and config)
+- Personality (your custom AI design)
+
+## How It Works
+- Syncs immediately when you switch to cloud mode
+- Then every 15 minutes while cloud mode is active
+- Manual sync always available from the Sync page in the dashboard
+- Only visible when connected to a platform account
+- BYOK users without an account never see the toggle
+
+## Privacy
+Cloud sync is opt-in, never forced. New users start in local mode. Your data is encrypted in transit and stored securely on the platform. You can switch back to local at any time.`,
+  },
+
+  // ── Document Preview ────────────────────────────────────────────────────
+  {
+    topic: 'document-preview',
+    keywords: ['preview', 'document', 'docx', 'xlsx', 'pdf', 'csv', 'markdown', 'view', 'open'],
+    title: 'Document Preview',
+    content: `# Document Preview
+
+Preview documents directly inside VS Code without leaving the editor.
+
+## Supported Formats
+- **.md** — Rendered markdown
+- **.txt** — Plain text
+- **.csv** — Table format with headers
+- **.html** — Rendered HTML
+- **.docx** — Word documents (requires mammoth)
+- **.xlsx** — Excel spreadsheets (requires exceljs)
+- **.pdf** — PDF documents (requires pdf-parse)
+
+## How to Use
+- Right-click a file in the Explorer > "Preview with Ava"
+- Or use the command palette: "Ava: Preview Document"
+- Documents created by Ava (presentations, emails, reports) can be previewed immediately after creation
+
+## Integration with Office Suite
+When Ava creates a .docx, .xlsx, or .pptx file, you can preview it directly in the editor panel without opening an external application.`,
+  },
+
+  // ── Interjection ──────────────────────────────────────────────────────
+  {
+    topic: 'interjection',
+    keywords: ['interjection', 'interrupt', 'pause', 'mid-run', 'inject', 'attention', 'stop', 'cancel'],
+    title: 'Mid-Task Interjection',
+    content: `# Mid-Task Interjection
+
+You can get Ava's attention while she's working without losing progress.
+
+## Pause (Soft Interrupt)
+Tap the pause button in the input area. Ava will:
+1. Stop her current generation
+2. Acknowledge the interruption
+3. Ask what you need
+
+This is a soft interrupt — Ava remembers what she was doing and can resume if you want.
+
+## Type While Running
+If you type a message while Ava is actively working, your message is injected as an interjection. Ava sees it mid-run and adjusts her work accordingly. No "already processing" error.
+
+## Hard Stop
+Hold the stop button for 800ms for a hard cancel. This kills the current run completely — Ava stops immediately and waits for your next instruction.
+
+## When to Use What
+- **Pause** — you want Ava's attention but don't want to lose context
+- **Type while running** — you have additional info or a correction
+- **Hard stop** — something went wrong and you want to start fresh`,
+  },
 ];
