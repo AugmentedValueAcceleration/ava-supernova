@@ -166,11 +166,12 @@ export function NavSidebar({
     isDragging.current = true;
     dragStartX.current = e.clientX;
     dragStartWidth.current = sidebarWidth;
+    const isRight = sidebarSide === 'right';
 
     const onMove = (ev: MouseEvent) => {
       if (!isDragging.current) return;
       const delta = ev.clientX - dragStartX.current;
-      const newWidth = Math.max(180, Math.min(400, dragStartWidth.current + delta));
+      const newWidth = Math.max(180, Math.min(400, dragStartWidth.current + (isRight ? -delta : delta)));
       setSidebarWidth(newWidth);
     };
 
@@ -183,7 +184,7 @@ export function NavSidebar({
 
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
-  }, [sidebarWidth]);
+  }, [sidebarWidth, sidebarSide]);
 
   // Save width on change (debounced via mouseup above)
   useEffect(() => {
@@ -192,11 +193,11 @@ export function NavSidebar({
 
   return (
     <nav className="relative flex shrink-0 flex-col h-full overflow-hidden border-r border-[var(--border-card)] bg-[var(--bg-card)]" style={{ width: sidebarWidth }}>
-      {/* Drag handle */}
+      {/* Drag handle — on the edge facing the content */}
       <div
         onMouseDown={handleDragStart}
         className="absolute top-0 bottom-0 w-1 cursor-col-resize z-10 hover:bg-[rgba(168,85,247,0.3)] transition-colors"
-        style={{ right: 0 }}
+        style={{ [sidebarSide === 'right' ? 'left' : 'right']: 0 }}
       />
       {/* Logo + action buttons */}
       <div className="border-b border-[var(--border-card)] px-4 py-3">
