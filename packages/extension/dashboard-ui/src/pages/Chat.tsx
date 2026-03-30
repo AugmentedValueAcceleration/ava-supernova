@@ -427,6 +427,9 @@ const initialState: ChatState = {
   avaCompletedTasks: [],
   tasksPanelWidth: DEFAULT_WIDTH,
   sessionTokens: 0,
+  conductorActive: false,
+  conductorMode: null,
+  activePersonas: [],
 };
 
 /* ── Chat message types we handle ─────────────────────────────────────────── */
