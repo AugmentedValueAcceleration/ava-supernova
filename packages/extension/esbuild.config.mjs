@@ -7,7 +7,7 @@ const ctx = await esbuild.context({
   entryPoints: ['src/extension.ts'],
   bundle: true,
   outfile: 'dist/extension.js',
-  external: ['vscode', 'playwright', 'playwright-core', 'chromium-bidi', 'docx', 'exceljs', 'pdfkit', 'pdf-parse', 'mammoth', 'pptxgenjs'],
+  external: ['vscode', 'playwright', 'playwright-core', 'chromium-bidi', 'docx', 'exceljs', 'pdfkit', 'pdf-parse', 'mammoth', 'pptxgenjs', 'jszip'],
   format: 'cjs',
   platform: 'node',
   sourcemap: !isProduction,

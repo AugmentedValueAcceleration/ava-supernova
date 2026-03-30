@@ -500,6 +500,44 @@ export class DashboardPanel {
         await this.handleLoadLatestRelease();
         break;
 
+      case 'export_data':
+        if ((msg as any).dataType === 'bundle') {
+          await this.handleExportBundle((msg as any).types || []);
+        } else {
+          await this.handleExportData((msg as any).dataType);
+        }
+        break;
+
+      case 'import_data':
+        await this.handleImportData((msg as any).dataType, (msg as any).content);
+        break;
+
+      case 'import_pick_files': {
+        const uris = await vscode.window.showOpenDialog({
+          canSelectFiles: true,
+          canSelectMany: true,
+          filters: { 'JSON': ['json'] },
+          openLabel: 'Import',
+        });
+        if (uris && uris.length > 0) {
+          const fs = await import('node:fs/promises');
+          const files: Array<{ name: string; content: string; size: number }> = [];
+          for (const uri of uris) {
+            try {
+              const content = await fs.readFile(uri.fsPath, 'utf-8');
+              const stat = await fs.stat(uri.fsPath);
+              files.push({
+                name: uri.fsPath.split(/[/\\]/).pop() || 'unknown.json',
+                content,
+                size: stat.size,
+              });
+            } catch { /* skip unreadable */ }
+          }
+          this.post({ type: 'import_files_picked' as any, files });
+        }
+        break;
+      }
+
     }
   }
 
@@ -2201,6 +2239,237 @@ export class DashboardPanel {
     this.panel.dispose();
     for (const d of this.disposables) d.dispose();
     this.disposables = [];
+  }
+
+  // ─── Data Portability ─────────────────────────────────────────────────────
+
+  private async handleExportData(dataType: string): Promise<void> {
+    const fs = await import('node:fs/promises');
+    const avaDir = AVA_HOME;
+
+    try {
+      let content = '';
+      let filename = '';
+
+      switch (dataType) {
+        case 'memory': {
+          const raw = await fs.readFile(path.join(avaDir, 'memory.json'), 'utf-8');
+          content = raw;
+          filename = 'ava-memory.json';
+          break;
+        }
+        case 'tasks': {
+          const raw = await fs.readFile(path.join(avaDir, 'tasks.json'), 'utf-8');
+          content = raw;
+          filename = 'ava-tasks.json';
+          break;
+        }
+        case 'journal': {
+          const journalDir = path.join(avaDir, 'journal');
+          const files = await fs.readdir(journalDir).catch(() => []);
+          const entries: unknown[] = [];
+          for (const file of files) {
+            if (!file.endsWith('.json')) continue;
+            try {
+              const raw = await fs.readFile(path.join(journalDir, file), 'utf-8');
+              entries.push(JSON.parse(raw));
+            } catch { /* skip */ }
+          }
+          content = JSON.stringify({ journal: entries }, null, 2);
+          filename = 'ava-journal.json';
+          break;
+        }
+        case 'learning': {
+          const raw = await fs.readFile(path.join(avaDir, 'learning.json'), 'utf-8');
+          content = raw;
+          filename = 'ava-learning.json';
+          break;
+        }
+        case 'history': {
+          const histDir = path.join(avaDir, 'history');
+          const files = await fs.readdir(histDir).catch(() => []);
+          const convos: unknown[] = [];
+          for (const file of files) {
+            if (!file.endsWith('.json')) continue;
+            try {
+              const raw = await fs.readFile(path.join(histDir, file), 'utf-8');
+              convos.push(JSON.parse(raw));
+            } catch { /* skip */ }
+          }
+          content = JSON.stringify({ conversations: convos }, null, 2);
+          filename = 'ava-history.json';
+          break;
+        }
+        case 'settings': {
+          const raw = await fs.readFile(path.join(avaDir, 'config.json'), 'utf-8');
+          content = raw;
+          filename = 'ava-settings.json';
+          break;
+        }
+        case 'personality': {
+          const raw = await fs.readFile(path.join(avaDir, 'personality.json'), 'utf-8');
+          content = raw;
+          filename = 'ava-personality.json';
+          break;
+        }
+        default:
+          this.post({ type: 'error', message: `Unknown data type: ${dataType}` });
+          return;
+      }
+
+      // Use VS Code's native save dialog — webviews can't trigger downloads
+      const uri = await vscode.window.showSaveDialog({
+        defaultUri: vscode.Uri.file(filename),
+        filters: { 'JSON': ['json'] },
+      });
+      if (uri) {
+        await vscode.workspace.fs.writeFile(uri, Buffer.from(content, 'utf-8'));
+        vscode.window.showInformationMessage(`Exported ${dataType} to ${uri.fsPath}`);
+      }
+    } catch (err) {
+      this.post({ type: 'error', message: `Export failed: ${err instanceof Error ? err.message : String(err)}` });
+    }
+  }
+
+  private async handleExportBundle(types: string[]): Promise<void> {
+    const fs = await import('node:fs/promises');
+    const JSZip = require('jszip');
+    const avaDir = AVA_HOME;
+
+    try {
+      const zip = new JSZip();
+
+      for (const dataType of types) {
+        try {
+          switch (dataType) {
+            case 'memory':
+              zip.file('ava-memory.json', await fs.readFile(path.join(avaDir, 'memory.json'), 'utf-8'));
+              break;
+            case 'tasks':
+              zip.file('ava-tasks.json', await fs.readFile(path.join(avaDir, 'tasks.json'), 'utf-8'));
+              break;
+            case 'journal': {
+              const journalDir = path.join(avaDir, 'journal');
+              const files = await fs.readdir(journalDir).catch(() => []);
+              const entries: unknown[] = [];
+              for (const file of files) {
+                if (!file.endsWith('.json')) continue;
+                try { entries.push(JSON.parse(await fs.readFile(path.join(journalDir, file), 'utf-8'))); } catch { /* skip */ }
+              }
+              zip.file('ava-journal.json', JSON.stringify({ journal: entries }, null, 2));
+              break;
+            }
+            case 'learning':
+              zip.file('ava-learning.json', await fs.readFile(path.join(avaDir, 'learning.json'), 'utf-8'));
+              break;
+            case 'history': {
+              const histDir = path.join(avaDir, 'history');
+              const files = await fs.readdir(histDir).catch(() => []);
+              const convos: unknown[] = [];
+              for (const file of files) {
+                if (!file.endsWith('.json')) continue;
+                try { convos.push(JSON.parse(await fs.readFile(path.join(histDir, file), 'utf-8'))); } catch { /* skip */ }
+              }
+              zip.file('ava-history.json', JSON.stringify({ conversations: convos }, null, 2));
+              break;
+            }
+            case 'settings':
+              zip.file('ava-settings.json', await fs.readFile(path.join(avaDir, 'config.json'), 'utf-8'));
+              break;
+            case 'personality':
+              zip.file('ava-personality.json', await fs.readFile(path.join(avaDir, 'personality.json'), 'utf-8'));
+              break;
+          }
+        } catch { /* skip missing files */ }
+      }
+
+      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+
+      const uri = await vscode.window.showSaveDialog({
+        defaultUri: vscode.Uri.file('ava-data-export.zip'),
+        filters: { 'ZIP Archive': ['zip'] },
+      });
+
+      if (uri) {
+        await vscode.workspace.fs.writeFile(uri, zipBuffer);
+        vscode.window.showInformationMessage(`Exported ${types.length} data types to ${uri.fsPath}`);
+      }
+    } catch (err) {
+      this.post({ type: 'error', message: `Export failed: ${err instanceof Error ? err.message : String(err)}` });
+    }
+  }
+
+  private async handleImportData(dataType: string, content: string): Promise<void> {
+    const fs = await import('node:fs/promises');
+    const avaDir = AVA_HOME;
+
+    try {
+      let count = 0;
+
+      switch (dataType) {
+        case 'memory': {
+          await fs.writeFile(path.join(avaDir, 'memory.json'), content, 'utf-8');
+          const data = JSON.parse(content);
+          count = data.entries?.length || 0;
+          break;
+        }
+        case 'tasks': {
+          await fs.writeFile(path.join(avaDir, 'tasks.json'), content, 'utf-8');
+          const data = JSON.parse(content);
+          count = data.tasks?.length || 0;
+          break;
+        }
+        case 'journal': {
+          const data = JSON.parse(content);
+          const entries = data.journal || [];
+          const journalDir = path.join(avaDir, 'journal');
+          await fs.mkdir(journalDir, { recursive: true });
+          for (const entry of entries) {
+            if (entry.date) {
+              await fs.writeFile(path.join(journalDir, `${entry.date}.json`), JSON.stringify(entry, null, 2), 'utf-8');
+              count++;
+            }
+          }
+          break;
+        }
+        case 'learning': {
+          await fs.writeFile(path.join(avaDir, 'learning.json'), content, 'utf-8');
+          const data = JSON.parse(content);
+          count = data.curriculums?.length || 0;
+          break;
+        }
+        case 'history': {
+          const data = JSON.parse(content);
+          const convos = data.conversations || [];
+          const histDir = path.join(avaDir, 'history');
+          await fs.mkdir(histDir, { recursive: true });
+          for (const conv of convos) {
+            if (conv.id) {
+              await fs.writeFile(path.join(histDir, `${conv.id}.json`), JSON.stringify(conv, null, 2), 'utf-8');
+              count++;
+            }
+          }
+          break;
+        }
+        case 'settings': {
+          await fs.writeFile(path.join(avaDir, 'config.json'), content, 'utf-8');
+          count = 1;
+          break;
+        }
+        case 'personality': {
+          await fs.writeFile(path.join(avaDir, 'personality.json'), content, 'utf-8');
+          count = 1;
+          break;
+        }
+        default:
+          this.post({ type: 'error', message: `Unknown data type: ${dataType}` });
+          return;
+      }
+
+      this.post({ type: 'data_imported' as any, dataType, count });
+    } catch (err) {
+      this.post({ type: 'error', message: `Import failed: ${err instanceof Error ? err.message : String(err)}` });
+    }
   }
 
   private getHtml(webview: vscode.Webview): string {

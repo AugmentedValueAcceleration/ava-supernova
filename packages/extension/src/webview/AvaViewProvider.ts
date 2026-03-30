@@ -222,6 +222,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
       const isByok = this.providerSource !== 'platform';
 
+      // BYOK users: no usage reporting — their tokens, their provider, nothing to track
+      // Platform users: always report — platform tokens must be deducted
+      if (isByok) return;
+
       const res = await apiFetch('/usage', {
         method: 'POST',
         platformKey,

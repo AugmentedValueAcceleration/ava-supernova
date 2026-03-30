@@ -509,7 +509,9 @@ export type ExtToDashboardMessage =
   | { type: 'persona_status'; persona: string; phase: 'active' | 'complete' | 'error'; description?: string; output?: string }
   | { type: 'persona_tool_call'; persona: string; tool: string }
   | { type: 'persona_tool_result'; persona: string; tool: string; success: boolean }
-  | { type: 'briefing'; text: string; todayTasks: number; overdueTasks: number; totalActive: number };
+  | { type: 'briefing'; text: string; todayTasks: number; overdueTasks: number; totalActive: number }
+  | { type: 'data_exported'; dataType: string; content: string; filename: string }
+  | { type: 'data_imported'; dataType: string; count: number };
 
 // Dashboard → Extension Host
 export type DashboardToExtMessage =
@@ -626,4 +628,6 @@ export type DashboardToExtMessage =
   | { type: 'request_all_tasks' }
   | { type: 'toggle_task'; taskId: string }
   | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; model?: string; mode?: string }
-  | { type: 'save_secrets'; secrets: Array<{ id: string; label: string; value: string }> };
+  | { type: 'save_secrets'; secrets: Array<{ id: string; label: string; value: string }> }
+  | { type: 'export_data'; dataType: string }
+  | { type: 'import_data'; dataType: string; content: string };

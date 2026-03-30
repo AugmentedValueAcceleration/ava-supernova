@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { Page, DashboardJournalDaySummary } from '../types/messages';
+import { DataPortability } from './DataPortability';
 
 interface NavSidebarProps {
   currentPage: Page;
@@ -153,6 +154,8 @@ export function NavSidebar({
   const sections = getSections();
 
   // Resizable sidebar width — persisted
+  const [dataPortOpen, setDataPortOpen] = useState(false);
+
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem('ava-sidebar-width');
     return saved ? Math.max(180, Math.min(400, Number(saved))) : 224;
@@ -192,7 +195,7 @@ export function NavSidebar({
   }, [sidebarWidth]);
 
   return (
-    <nav className="relative flex shrink-0 flex-col h-full overflow-hidden border-r border-[var(--border-card)] bg-[var(--bg-card)]" style={{ width: sidebarWidth }}>
+    <nav className="relative flex shrink-0 flex-col h-full border-r border-[var(--border-card)] bg-[var(--bg-card)]" style={{ width: sidebarWidth }}>
       {/* Drag handle — on the edge facing the content */}
       <div
         onMouseDown={handleDragStart}
@@ -236,6 +239,17 @@ export function NavSidebar({
               </svg>
             </button>
           )}
+          {/* Data portability */}
+          <div className="relative">
+            <button onClick={() => setDataPortOpen(!dataPortOpen)} title="Export / Import data" className="flex items-center justify-center w-6 h-6 rounded hover:bg-[rgba(168,85,247,0.15)] text-[var(--text-muted)] opacity-60 hover:opacity-100 bg-transparent border-none cursor-pointer"
+              style={dataPortOpen ? { opacity: 1, background: 'rgba(168,85,247,0.15)' } : undefined}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 1v10.293L4.854 8.146l-.708.708L8 12.707l3.854-3.853-.708-.708L8 11.293V1H8zM2 14h12v1H2v-1z"/>
+              </svg>
+            </button>
+            <DataPortability isOpen={dataPortOpen} onClose={() => setDataPortOpen(false)} />
+          </div>
         </div>
       </div>
 
