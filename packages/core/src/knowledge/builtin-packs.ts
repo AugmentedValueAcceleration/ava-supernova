@@ -269,6 +269,82 @@ Core classes:
   - Triggers: UInputTriggerPressed, UInputTriggerReleased, UInputTriggerHold (hold duration), UInputTriggerTap, UInputTriggerChordAction (combo).
   - Module dependency: add "EnhancedInput" to .Build.cs PublicDependencyModuleNames.
   - ALL of this can be done in C++ code. You CAN create input actions and mapping contexts at runtime. Don't say you can't.
+  - If you're unsure about the API, use web_search: "UE5 Enhanced Input C++ site:dev.epicgames.com"
+
+  C++ code example — creating actions + context + binding in code:
+  \`\`\`cpp
+  // In header (.h):
+  #include "InputAction.h"
+  #include "InputMappingContext.h"
+  UPROPERTY() UInputAction* MoveAction;
+  UPROPERTY() UInputAction* JumpAction;
+  UPROPERTY() UInputAction* LookAction;
+  UPROPERTY() UInputMappingContext* DefaultMappingContext;
+  void OnMove(const FInputActionValue& Value);
+  void OnJump(const FInputActionValue& Value);
+  void OnLook(const FInputActionValue& Value);
+
+  // In constructor or BeginPlay:
+  // Create actions
+  MoveAction = NewObject<UInputAction>(this, TEXT("IA_Move"));
+  MoveAction->ValueType = EInputActionValueType::Axis2D;
+
+  JumpAction = NewObject<UInputAction>(this, TEXT("IA_Jump"));
+  JumpAction->ValueType = EInputActionValueType::Boolean;
+
+  LookAction = NewObject<UInputAction>(this, TEXT("IA_Look"));
+  LookAction->ValueType = EInputActionValueType::Axis2D;
+
+  // Create mapping context
+  DefaultMappingContext = NewObject<UInputMappingContext>(this, TEXT("IMC_Default"));
+
+  // Map keys to actions
+  FEnhancedActionKeyMapping& MoveMapping = DefaultMappingContext->MapKey(MoveAction, EKeys::W);
+  // Add modifiers for WASD (swizzle for S/A/D, negate for S/A):
+  FEnhancedActionKeyMapping& MoveSMapping = DefaultMappingContext->MapKey(MoveAction, EKeys::S);
+  UInputModifierNegate* Negate = NewObject<UInputModifierNegate>();
+  MoveSMapping.Modifiers.Add(Negate);
+  FEnhancedActionKeyMapping& MoveAMapping = DefaultMappingContext->MapKey(MoveAction, EKeys::A);
+  UInputModifierSwizzleAxis* SwizzleA = NewObject<UInputModifierSwizzleAxis>();
+  SwizzleA->Order = EInputAxisSwizzle::YXZ;
+  MoveAMapping.Modifiers.Add(SwizzleA);
+  UInputModifierNegate* NegateA = NewObject<UInputModifierNegate>();
+  MoveAMapping.Modifiers.Add(NegateA);
+  FEnhancedActionKeyMapping& MoveDMapping = DefaultMappingContext->MapKey(MoveAction, EKeys::D);
+  UInputModifierSwizzleAxis* SwizzleD = NewObject<UInputModifierSwizzleAxis>();
+  SwizzleD->Order = EInputAxisSwizzle::YXZ;
+  MoveDMapping.Modifiers.Add(SwizzleD);
+
+  DefaultMappingContext->MapKey(JumpAction, EKeys::SpaceBar);
+  DefaultMappingContext->MapKey(LookAction, EKeys::Mouse2D);
+
+  // In BeginPlay — add context to player:
+  if (APlayerController* PC = Cast<APlayerController>(GetController())) {
+    if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer())) {
+      Subsystem->AddMappingContext(DefaultMappingContext, 0);
+    }
+  }
+
+  // In SetupPlayerInputComponent — bind actions:
+  if (UEnhancedInputComponent* EIC = CastChecked<UEnhancedInputComponent>(PlayerInputComponent)) {
+    EIC->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AMyCharacter::OnMove);
+    EIC->BindAction(JumpAction, ETriggerEvent::Started, this, &AMyCharacter::OnJump);
+    EIC->BindAction(LookAction, ETriggerEvent::Triggered, this, &AMyCharacter::OnLook);
+  }
+
+  // Handler implementations:
+  void AMyCharacter::OnMove(const FInputActionValue& Value) {
+    FVector2D Axis = Value.Get<FVector2D>();
+    AddMovementInput(GetActorForwardVector(), Axis.Y);
+    AddMovementInput(GetActorRightVector(), Axis.X);
+  }
+  void AMyCharacter::OnJump(const FInputActionValue& Value) { Jump(); }
+  void AMyCharacter::OnLook(const FInputActionValue& Value) {
+    FVector2D Axis = Value.Get<FVector2D>();
+    AddControllerYawInput(Axis.X);
+    AddControllerPitchInput(Axis.Y);
+  }
+  \`\`\`
 - GAS: abilities, effects, attributes, tags. Complex but powerful.
 - Subsystems: UGameInstanceSubsystem, UWorldSubsystem, ULocalPlayerSubsystem.
 - Data Assets: UDataAsset for designer-editable data.
