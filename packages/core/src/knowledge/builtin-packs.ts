@@ -260,7 +260,15 @@ Core classes:
 - UFUNCTION(): BlueprintCallable, Server, Client, NetMulticast.
 - GameMode (server-only rules) vs GameState (replicated shared state).
 - PlayerController: input, camera, HUD. One per player.
-- Enhanced Input System: input actions + mapping contexts. Replaces legacy.
+- Enhanced Input System: replaces legacy input. Everything is created in C++ or Blueprint — both work.
+  - UInputAction: define input actions in C++ with NewObject<UInputAction>() or create .uasset in editor. Set ValueType (bool, Axis1D, Axis2D, Axis3D). Add triggers (pressed, released, hold, tap) and modifiers (negate, swizzle, dead zone, scale).
+  - UInputMappingContext: group actions + key bindings. Create in C++ with NewObject<UInputMappingContext>(), then AddMapping() to bind keys. Map multiple keys to one action. Priority for context switching (combat vs vehicle vs menu).
+  - C++ setup: #include "EnhancedInputComponent.h" and "EnhancedInputSubsystems.h". In SetupPlayerInputComponent: CastChecked<UEnhancedInputComponent>(InputComponent)->BindAction(Action, ETriggerEvent::Triggered, this, &AMyChar::OnMove).
+  - Add context in BeginPlay: GetLocalPlayer()->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>()->AddMappingContext(MyContext, Priority).
+  - Modifiers: UInputModifierNegate (invert axis), UInputModifierSwizzleAxis (remap XYZ), UInputModifierDeadZone, UInputModifierScalar. Chain multiple.
+  - Triggers: UInputTriggerPressed, UInputTriggerReleased, UInputTriggerHold (hold duration), UInputTriggerTap, UInputTriggerChordAction (combo).
+  - Module dependency: add "EnhancedInput" to .Build.cs PublicDependencyModuleNames.
+  - ALL of this can be done in C++ code. You CAN create input actions and mapping contexts at runtime. Don't say you can't.
 - GAS: abilities, effects, attributes, tags. Complex but powerful.
 - Subsystems: UGameInstanceSubsystem, UWorldSubsystem, ULocalPlayerSubsystem.
 - Data Assets: UDataAsset for designer-editable data.
