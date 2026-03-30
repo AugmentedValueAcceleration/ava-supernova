@@ -323,6 +323,8 @@ export const ptStrings: Record<string, string> = {
   'dash.nav.documentation_desc': 'Guias e refer\u00eancia',
   'dash.nav.release_notes': 'Notas de Vers\u00e3o',
   'dash.nav.release_notes_desc': 'Novidades',
+  'dash.nav.roadmap': 'Roteiro',
+  'dash.nav.roadmap_desc': 'Para onde a Ava está indo',
 
   // ── Command Centre ──────────────────────────────────────────────────────
   'dash.cc.statistics': 'ESTAT\u00cdSTICAS',

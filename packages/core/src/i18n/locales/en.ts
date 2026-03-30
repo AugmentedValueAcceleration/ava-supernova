@@ -330,6 +330,8 @@ export const enStrings: Record<string, string> = {
   'dash.nav.documentation_desc': 'Guides and reference',
   'dash.nav.release_notes': 'Release Notes',
   'dash.nav.release_notes_desc': "What's new",
+  'dash.nav.roadmap': 'Roadmap',
+  'dash.nav.roadmap_desc': 'Where Ava is heading',
   'dash.nav.proposals': 'Proposals',
 
   // ── Command Centre ──────────────────────────────────────────────────────

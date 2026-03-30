@@ -327,6 +327,8 @@ export const hiStrings: Record<string, string> = {
   'dash.nav.documentation_desc': 'गाइड और संदर्भ',
   'dash.nav.release_notes': 'रिलीज़ नोट्स',
   'dash.nav.release_notes_desc': 'नया क्या है',
+  'dash.nav.roadmap': 'रोडमैप',
+  'dash.nav.roadmap_desc': 'आवा कहाँ जा रही है',
 
   // ── Command Centre ──────────────────────────────────────────────────────
   'dash.cc.statistics': 'आँकड़े',

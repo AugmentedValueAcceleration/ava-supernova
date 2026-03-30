@@ -323,6 +323,8 @@ export const esStrings: Record<string, string> = {
   'dash.nav.documentation_desc': 'Gu\u00edas y referencia',
   'dash.nav.release_notes': 'Notas de versi\u00f3n',
   'dash.nav.release_notes_desc': 'Novedades',
+  'dash.nav.roadmap': 'Hoja de ruta',
+  'dash.nav.roadmap_desc': 'Hacia dónde se dirige Ava',
 
   // ── Command Centre ──────────────────────────────────────────────────────
   'dash.cc.statistics': 'ESTAD\u00cdSTICAS',

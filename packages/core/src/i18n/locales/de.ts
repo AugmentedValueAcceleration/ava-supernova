@@ -330,6 +330,8 @@ export const deStrings: Record<string, string> = {
   'dash.nav.documentation_desc': 'Anleitungen und Referenz',
   'dash.nav.release_notes': 'Versionshinweise',
   'dash.nav.release_notes_desc': 'Was ist neu',
+  'dash.nav.roadmap': 'Roadmap',
+  'dash.nav.roadmap_desc': 'Wohin Ava sich entwickelt',
   'dash.nav.proposals': 'Vorschläge',
 
   // ── Command Centre ──────────────────────────────────────────────────────

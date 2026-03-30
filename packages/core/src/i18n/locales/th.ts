@@ -327,6 +327,8 @@ export const thStrings: Record<string, string> = {
   'dash.nav.documentation_desc': 'คู่มือและข้อมูลอ้างอิง',
   'dash.nav.release_notes': 'บันทึกการอัปเดต',
   'dash.nav.release_notes_desc': 'มีอะไรใหม่',
+  'dash.nav.roadmap': 'แผนงาน',
+  'dash.nav.roadmap_desc': 'ทิศทางของ Ava',
 
   // ── Command Centre ──────────────────────────────────────────────────────
   'dash.cc.statistics': 'สถิติ',

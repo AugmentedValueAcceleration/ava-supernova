@@ -327,6 +327,8 @@ export const nlStrings: Record<string, string> = {
   'dash.nav.documentation_desc': 'Handleidingen en referentie',
   'dash.nav.release_notes': 'Release Notes',
   'dash.nav.release_notes_desc': 'Wat is er nieuw',
+  'dash.nav.roadmap': 'Routekaart',
+  'dash.nav.roadmap_desc': 'Waar Ava naartoe gaat',
 
   // ── Command Centre ──────────────────────────────────────────────────────
   'dash.cc.statistics': 'STATISTIEKEN',

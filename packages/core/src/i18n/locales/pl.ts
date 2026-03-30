@@ -330,6 +330,8 @@ export const plStrings: Record<string, string> = {
   'dash.nav.documentation_desc': 'Przewodniki i materiały referencyjne',
   'dash.nav.release_notes': 'Informacje o wydaniach',
   'dash.nav.release_notes_desc': 'Co nowego',
+  'dash.nav.roadmap': 'Plan rozwoju',
+  'dash.nav.roadmap_desc': 'Dokąd zmierza Ava',
   'dash.nav.proposals': 'Propozycje',
 
   // ── Command Centre ──────────────────────────────────────────────────────

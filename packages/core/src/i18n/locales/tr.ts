@@ -327,6 +327,8 @@ export const trStrings: Record<string, string> = {
   'dash.nav.documentation_desc': 'Kılavuzlar ve referans',
   'dash.nav.release_notes': 'Sürüm Notları',
   'dash.nav.release_notes_desc': 'Yenilikler',
+  'dash.nav.roadmap': 'Yol Haritası',
+  'dash.nav.roadmap_desc': 'Ava nereye gidiyor',
 
   // ── Command Centre ──────────────────────────────────────────────────────
   'dash.cc.statistics': 'İSTATİSTİKLER',

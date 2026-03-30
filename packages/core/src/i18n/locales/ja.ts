@@ -327,6 +327,8 @@ export const jaStrings: Record<string, string> = {
   'dash.nav.documentation_desc': 'ガイドとリファレンス',
   'dash.nav.release_notes': 'リリースノート',
   'dash.nav.release_notes_desc': '新着情報',
+  'dash.nav.roadmap': 'ロードマップ',
+  'dash.nav.roadmap_desc': 'Avaの今後の方向性',
 
   // ── Command Centre ──────────────────────────────────────────────────────
   'dash.cc.statistics': '統計',

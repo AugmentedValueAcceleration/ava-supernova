@@ -327,6 +327,8 @@ export const zhTWStrings: Record<string, string> = {
   'dash.nav.documentation_desc': '指南與參考',
   'dash.nav.release_notes': '版本紀錄',
   'dash.nav.release_notes_desc': '最新更新',
+  'dash.nav.roadmap': '路線圖',
+  'dash.nav.roadmap_desc': 'Ava 的發展方向',
 
   // ── 指揮中心 ──────────────────────────────────────────────────────────────
   'dash.cc.statistics': '統計',

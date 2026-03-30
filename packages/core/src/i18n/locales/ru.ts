@@ -327,6 +327,8 @@ export const ruStrings: Record<string, string> = {
   'dash.nav.documentation_desc': 'Руководства и справка',
   'dash.nav.release_notes': 'Список изменений',
   'dash.nav.release_notes_desc': 'Что нового',
+  'dash.nav.roadmap': 'Дорожная карта',
+  'dash.nav.roadmap_desc': 'Куда движется Ava',
 
   // ── Command Centre ──────────────────────────────────────────────────────
   'dash.cc.statistics': 'СТАТИСТИКА',

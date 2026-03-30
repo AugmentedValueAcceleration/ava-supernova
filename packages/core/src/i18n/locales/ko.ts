@@ -327,6 +327,8 @@ export const koStrings: Record<string, string> = {
   'dash.nav.documentation_desc': '가이드 및 레퍼런스',
   'dash.nav.release_notes': '릴리스 노트',
   'dash.nav.release_notes_desc': '새로운 소식',
+  'dash.nav.roadmap': '로드맵',
+  'dash.nav.roadmap_desc': 'Ava가 향하는 곳',
 
   // ── Command Centre ──────────────────────────────────────────────────────
   'dash.cc.statistics': '통계',

@@ -323,6 +323,8 @@ export const frStrings: Record<string, string> = {
   'dash.nav.documentation_desc': 'Guides et r\u00e9f\u00e9rence',
   'dash.nav.release_notes': 'Notes de version',
   'dash.nav.release_notes_desc': 'Nouveaut\u00e9s',
+  'dash.nav.roadmap': 'Feuille de route',
+  'dash.nav.roadmap_desc': 'O\u00f9 va Ava',
 
   // ── Dashboard: Command Centre ───────────────────────────────────────────────
   'dash.cc.statistics': 'STATISTIQUES',

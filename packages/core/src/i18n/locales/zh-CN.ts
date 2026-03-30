@@ -330,6 +330,8 @@ export const zhCNStrings: Record<string, string> = {
   'dash.nav.documentation_desc': '指南和参考',
   'dash.nav.release_notes': '更新日志',
   'dash.nav.release_notes_desc': '最新动态',
+  'dash.nav.roadmap': '路线图',
+  'dash.nav.roadmap_desc': 'Ava 的发展方向',
   'dash.nav.proposals': '提案',
 
   // ── Command Centre ──────────────────────────────────────────────────────

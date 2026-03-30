@@ -327,6 +327,8 @@ export const idStrings: Record<string, string> = {
   'dash.nav.documentation_desc': 'Panduan dan referensi',
   'dash.nav.release_notes': 'Catatan Rilis',
   'dash.nav.release_notes_desc': 'Yang baru',
+  'dash.nav.roadmap': 'Peta Jalan',
+  'dash.nav.roadmap_desc': 'Ke mana Ava menuju',
 
   // ── Command Centre ──────────────────────────────────────────────────────
   'dash.cc.statistics': 'STATISTIK',

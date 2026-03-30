@@ -330,6 +330,8 @@ export const ukStrings: Record<string, string> = {
   'dash.nav.documentation_desc': 'Посібники та довідка',
   'dash.nav.release_notes': 'Нотатки випуску',
   'dash.nav.release_notes_desc': 'Що нового',
+  'dash.nav.roadmap': 'Дорожня карта',
+  'dash.nav.roadmap_desc': 'Куди рухається Ava',
   'dash.nav.proposals': 'Пропозиції',
   'dash.nav.coming_soon': 'Незабаром',
 

@@ -327,6 +327,8 @@ export const itStrings: Record<string, string> = {
   'dash.nav.documentation_desc': 'Guide e riferimenti',
   'dash.nav.release_notes': 'Note di rilascio',
   'dash.nav.release_notes_desc': 'Novità',
+  'dash.nav.roadmap': 'Roadmap',
+  'dash.nav.roadmap_desc': 'Dove sta andando Ava',
 
   // ── Command Centre ──────────────────────────────────────────────────────
   'dash.cc.statistics': 'STATISTICHE',

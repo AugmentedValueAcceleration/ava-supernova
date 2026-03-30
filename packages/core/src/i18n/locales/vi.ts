@@ -327,6 +327,8 @@ export const viStrings: Record<string, string> = {
   'dash.nav.documentation_desc': 'Hướng dẫn và tham chiếu',
   'dash.nav.release_notes': 'Ghi chú phát hành',
   'dash.nav.release_notes_desc': 'Có gì mới',
+  'dash.nav.roadmap': 'Lộ trình',
+  'dash.nav.roadmap_desc': 'Ava đang hướng tới đâu',
 
   // ── Command Centre ──────────────────────────────────────────────────────
   'dash.cc.statistics': 'THỐNG KÊ',

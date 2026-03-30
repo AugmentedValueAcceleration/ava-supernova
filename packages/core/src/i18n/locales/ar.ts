@@ -327,6 +327,8 @@ export const arStrings: Record<string, string> = {
   'dash.nav.documentation_desc': 'الأدلة والمراجع',
   'dash.nav.release_notes': 'ملاحظات الإصدار',
   'dash.nav.release_notes_desc': 'ما الجديد',
+  'dash.nav.roadmap': 'خارطة الطريق',
+  'dash.nav.roadmap_desc': 'إلى أين تتجه آفا',
 
   // ── Command Centre ──────────────────────────────────────────────────────
   'dash.cc.statistics': 'الإحصائيات',
