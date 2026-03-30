@@ -275,6 +275,105 @@ Troubleshooting:
 - Blueprint compile error → check parent C++ class for UPROPERTY/UFUNCTION changes
 - Packaging fails → check Output Log for missing cooked assets, run validation
 
+**UE5 Advanced Systems:**
+
+MetaHuman:
+- Docs: https://dev.epicgames.com/documentation/en-us/metahuman
+- MetaHuman Creator: cloud-based tool at metahuman.unrealengine.com. Design faces, bodies, hair, clothing. Export to UE5 project.
+- Quixel Bridge: download MetaHumans directly into project via Bridge plugin.
+- Blueprint: BP_MetaHuman base. Skeletal mesh + Face/Body anim BPs. LOD 0-7 for performance scaling.
+- Animation: Face board controls (jaw, lips, brows, eyes). ARKit-compatible blend shapes (52 shapes). LiveLink for face/body capture.
+- Live Link Face: iPhone app → LiveLink plugin → real-time facial animation in editor or runtime.
+- Hair: Groom system (Alembic or Groom assets). Strand-based with physics. Performance heavy — use cards for background characters.
+- Clothing: Chaos Cloth simulation. Paint max distance/backstop for cloth behaviour.
+- Customisation at runtime: morph targets for face shape, material instances for skin/eye colour, skeletal mesh swaps for body/hair.
+- Performance: LOD system critical. Full MetaHuman is expensive — use LOD 4+ for crowds. Stream body parts with significance manager.
+- Anim Blueprint: ABP_MetaHuman. Control rig for procedural adjustments. Layered blend per bone for face + body.
+- Speech: use MetaHuman Animator or Audio2Face for lip sync from audio. OVRLipSync for runtime.
+
+Nanite:
+- Docs: https://dev.epicgames.com/documentation/en-us/unreal-engine/nanite-virtualized-geometry-in-unreal-engine
+- Virtualised geometry — renders billions of triangles. No manual LODs needed for static meshes.
+- Enable per mesh: Static Mesh → Nanite Settings → Enable.
+- Works on: static meshes, instanced static meshes, landscape (UE5.4+), skeletal meshes (UE5.5+ experimental).
+- Does NOT work on: translucent materials, masked/two-sided foliage (use Nanite fallback mesh or World Position Offset).
+- Programmable rasteriser: custom material-driven visibility (dithered, pixel depth offset).
+- Displacement: Nanite tessellation for displacement maps without extra geometry in source asset.
+- Performance: GPU-driven. Occlusion culling, cluster-based LOD streaming. Check stat Nanite for GPU cost.
+
+Lumen:
+- Docs: https://dev.epicgames.com/documentation/en-us/unreal-engine/lumen-global-illumination-and-reflections-in-unreal-engine
+- Dynamic global illumination + reflections. No baking lightmaps needed.
+- Software ray tracing (default): screen traces + mesh distance fields. Works on all hardware.
+- Hardware ray tracing: higher quality, needs RTX/RDNA2+. Enable in Project Settings → Rendering.
+- Lumen Scene: distance field representation of the world. Update speed matters for moving objects.
+- Final Gather: controls quality. Higher = better but slower. 1-2 for gameplay, 4+ for cinematics.
+- Reflections: screen space first, then Lumen ray traced. Roughness threshold for detail.
+- Performance: r.Lumen.TraceMeshSDFs, r.Lumen.ScreenProbeGather. Scale quality per platform.
+- Emissive lighting: emissive materials contribute to GI automatically. Set emissive boost for brightness.
+
+Niagara VFX:
+- Docs: https://dev.epicgames.com/documentation/en-us/unreal-engine/niagara-visual-effects-in-unreal-engine
+- Modular particle system replacing Cascade. Emitter → System stack.
+- Emitters: spawn rate, burst, GPU events. Modules: lifetime, velocity, size, colour, forces.
+- Renderers: sprite, mesh, ribbon (trails), light, component.
+- Data Interfaces: read game data (skeletal mesh surfaces, collision, audio, landscape height).
+- Simulation stages: emitter update, particle spawn, particle update. Custom scratch pad modules.
+- GPU sim: millions of particles. Enable GPU Compute Sim on emitter. Limited read-back to CPU.
+- Events: particle death → spawn new emitter. Collision events → spawn impact FX.
+- Curves/dynamic inputs: animate any parameter over lifetime, speed, custom attributes.
+- Performance: fixed bounds, kill particles aggressively, LOD significance distance.
+
+Chaos Physics & Destruction:
+- Docs: https://dev.epicgames.com/documentation/en-us/unreal-engine/chaos-physics-overview-in-unreal-engine
+- Chaos replaces PhysX. Rigid body, cloth, destruction, vehicles.
+- Geometry Collection: fracture meshes in editor (Voronoi, planar, cluster). Generate from static mesh.
+- Destruction: damage threshold per cluster level. Internal strain for cascading breaks.
+- Chaos Cloth: paint constraints (max distance, backstop, drag). Wind + gravity interaction.
+- Chaos Vehicles: wheel setup, suspension, engine/transmission curves. ChaosWheeledVehicleMovementComponent.
+- Field system: radial/box/plane forces for runtime destruction triggers, wind zones.
+- Async physics: Physics thread decoupled from game thread. Substepping for stability.
+
+World Partition & Open World:
+- Docs: https://dev.epicgames.com/documentation/en-us/unreal-engine/world-partition-in-unreal-engine
+- Replaces World Composition. Automatic grid-based streaming. One persistent level.
+- Enable: World Settings → World Partition → Enable.
+- Data Layers: organise actors into runtime/editor layers. Toggle gameplay layers (day/night, quest states).
+- HLOD (Hierarchical LOD): auto-generate simplified meshes for distant cells. Nanite HLOD for best quality.
+- Level Instancing: reuse cells for procedural/repeated areas.
+- One File Per Actor (OFPA): each actor saved separately. Better version control for teams.
+- Streaming: grid cell size controls granularity. Loading range per streaming source.
+- Minimap/large worlds: World Partition + Nanite + Lumen = full open world pipeline.
+
+PCG (Procedural Content Generation):
+- Docs: https://dev.epicgames.com/documentation/en-us/unreal-engine/procedural-content-generation-overview-in-unreal-engine
+- Node graph for scattering objects, generating landscapes, placing gameplay elements.
+- PCG Graph: nodes for points (surface sampler, mesh sampler), filters (density, bounds, biome), spawners.
+- Surface sampler: scatter points on landscape or meshes. Density, min distance, seed.
+- Mesh spawner: place static meshes/ISMs/HISMs at point locations. Random rotation/scale.
+- Subgraphs: reusable PCG logic. Parameters for variation per instance.
+- Runtime generation: generate content at runtime for infinite worlds. Partition grid for streaming.
+- Biomes: layer multiple PCG graphs with masks/weights for biome blending.
+
+Control Rig & Procedural Animation:
+- Docs: https://dev.epicgames.com/documentation/en-us/unreal-engine/control-rig-in-unreal-engine
+- Runtime rigging system. IK solvers, FK chains, math nodes, bone manipulation.
+- Full Body IK: position end effectors, solver handles full chain. Foot/hand placement.
+- Aim solve: look-at targets for head, eyes, weapon aiming.
+- Spline IK: tails, tentacles, ropes along splines.
+- Use in Anim Blueprint: Control Rig node in AnimGraph. Layer on top of animations.
+- Sequencer: animate Control Rig in cinematics. Key any rig control.
+
+Motion Matching:
+- Docs: https://dev.epicgames.com/documentation/en-us/unreal-engine/motion-matching-in-unreal-engine (UE5.4+)
+- Data-driven animation. Database of motion clips, system picks best match per frame.
+- Pose Search: compare current pose + trajectory to database. Lowest cost = best clip.
+- Trajectory: predicted future path from input. Matches movement direction, speed, facing.
+- Schema: define which bones/features to match against. Balance quality vs search speed.
+- Chooser: replace state machines with motion matching nodes. Blend between clips automatically.
+- Database: tag clips with contexts (locomotion, combat, traversal). Filter by gameplay state.
+- Performance: precompute search database. LOD motion matching — simpler matching for distant characters.
+
 **--- ENGINE SPECIFIC: GODOT 4 (GDScript / C#) ---**
 
 Docs: https://docs.godotengine.org/en/stable/
