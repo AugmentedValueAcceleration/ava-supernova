@@ -226,62 +226,158 @@ export const BUILTIN_PACKS: KnowledgePack[] = [
 - Dialogue systems: branching dialogue trees, response options, NPC memory of past choices
 - Tutorials: contextual, non-intrusive. Show don't tell. Let the player discover.
 
-**--- ENGINE SPECIFIC: UNREAL (C++) ---**
+**--- ENGINE SPECIFIC: UNREAL ENGINE (C++) ---**
 
-- UObject: base class, garbage collected. Never use raw new/delete for UObjects.
-- AActor: anything placed in the world. Has components, transform, lifecycle (BeginPlay/Tick/EndPlay).
-- UActorComponent: logic component. USceneComponent: has transform. Always attach to an actor.
-- ACharacter: APawn + UCharacterMovementComponent. Walking, falling, swimming, flying built in.
-- UPROPERTY(): expose to editor, replicate, save. Specifiers: EditAnywhere, BlueprintReadWrite, Replicated, SaveGame.
-- UFUNCTION(): expose to Blueprint, RPCs. Specifiers: BlueprintCallable, Server, Client, NetMulticast.
-- GameMode vs GameState: GameMode is server-only rules. GameState is replicated shared state.
-- PlayerController: input handling, camera, HUD. One per player.
-- Enhanced Input System: input actions + input mapping contexts. Replaces legacy input.
-- GAS (Gameplay Ability System): abilities, effects, attributes, tags. Complex but powerful.
-- Subsystems: UGameInstanceSubsystem, UWorldSubsystem, ULocalPlayerSubsystem. Singleton-like per scope.
-- Data Assets: UDataAsset for designer-editable data (weapon stats, item definitions, level configs).
-- Slate/UMG: Slate is C++ UI framework. UMG is Blueprint-friendly wrapper. Use UMG for game UI.
-- Build: UnrealBuildTool, .Build.cs for module dependencies, .Target.cs for build config.
+Docs: https://dev.epicgames.com/documentation/en-us/unreal-engine
+API Reference: https://dev.epicgames.com/documentation/en-us/unreal-engine/API
+Community: https://forums.unrealengine.com/
+
+Detection: .uproject file in project root.
+
+Project structure:
+- Source/<ProjectName>/: C++ source files
+- Content/: all assets (meshes, textures, blueprints, maps)
+- Config/: DefaultEngine.ini, DefaultGame.ini, DefaultInput.ini
+- Plugins/: project-specific plugins
+- Binaries/: compiled output
+- <ProjectName>.uproject: project descriptor (engine version, modules, plugins)
+
+Build & compile (use bash):
+- Editor build: \`UnrealBuildTool <ProjectName>Editor <Platform> Development\`
+- Cook & package: \`RunUAT BuildCookRun -project="<path>.uproject" -platform=Win64 -clientconfig=Shipping -cook -stage -package -archive\`
+- Windows path: \`"C:/Program Files/Epic Games/UE_5.x/Engine/Build/BatchFiles/RunUAT.bat"\`
+- Generate project files: \`"C:/Program Files/Epic Games/UE_5.x/Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTool.exe" -projectfiles -project="<path>.uproject" -game -engine\`
+- VS solution build: open .sln, build in Development Editor config
+- Live coding: Ctrl+Alt+F11 in editor for hot reload (C++ changes)
+- Blueprint-only projects: no compile needed, just cook & package
+
+Core classes:
+- UObject: base class, garbage collected. Never raw new/delete.
+- AActor: anything in the world. Components, transform, lifecycle (BeginPlay/Tick/EndPlay).
+- UActorComponent: logic. USceneComponent: has transform. Always attach to an actor.
+- ACharacter: APawn + UCharacterMovementComponent. Walking, falling, swimming, flying.
+- UPROPERTY(): EditAnywhere, BlueprintReadWrite, Replicated, SaveGame.
+- UFUNCTION(): BlueprintCallable, Server, Client, NetMulticast.
+- GameMode (server-only rules) vs GameState (replicated shared state).
+- PlayerController: input, camera, HUD. One per player.
+- Enhanced Input System: input actions + mapping contexts. Replaces legacy.
+- GAS: abilities, effects, attributes, tags. Complex but powerful.
+- Subsystems: UGameInstanceSubsystem, UWorldSubsystem, ULocalPlayerSubsystem.
+- Data Assets: UDataAsset for designer-editable data.
+- Slate/UMG: Slate = C++ UI, UMG = Blueprint-friendly wrapper.
+- .Build.cs: module dependencies. .Target.cs: build configuration.
+- Naming: A=Actors, U=UObjects, F=structs, E=enums, I=interfaces.
 - Common includes: CoreMinimal.h, GameFramework/, Engine/, Kismet/.
-- Naming: A prefix for Actors, U for UObjects, F for structs, E for enums, I for interfaces.
 
-**--- ENGINE SPECIFIC: GODOT (GDScript) ---**
+Troubleshooting:
+- "Missing module" → check .Build.cs PublicDependencyModuleNames
+- Hot reload crash → close editor, delete Binaries/ and Intermediate/, rebuild
+- Blueprint compile error → check parent C++ class for UPROPERTY/UFUNCTION changes
+- Packaging fails → check Output Log for missing cooked assets, run validation
 
+**--- ENGINE SPECIFIC: GODOT 4 (GDScript / C#) ---**
+
+Docs: https://docs.godotengine.org/en/stable/
+API Reference: https://docs.godotengine.org/en/stable/classes/
+Community: https://forum.godotengine.org/ | https://godotengine.org/community
+
+Detection: project.godot file in project root.
+
+Project structure:
+- project.godot: project settings (autoloads, input map, rendering)
+- scenes/: .tscn scene files
+- scripts/: .gd (GDScript) or .cs (C#) scripts
+- assets/: textures, models, audio, fonts
+- addons/: editor plugins
+- export_presets.cfg: export platform configurations
+
+Build & export (use bash):
+- Run project: \`godot --path "<project_dir>" --editor\` (opens editor) or \`godot --path "<project_dir>"\` (runs game)
+- Export (headless): \`godot --path "<project_dir>" --headless --export-release "Windows Desktop" output.exe\`
+- Export debug: \`godot --path "<project_dir>" --headless --export-debug "Windows Desktop" output_debug.exe\`
+- Export all: configured in Export menu → export_presets.cfg
+- C# build: \`dotnet build\` in project root (Godot C# projects use .csproj)
+- Install export templates: Editor → Manage Export Templates → download for current version
+
+Core:
 - Node-based: everything is a Node in a tree. Scenes are reusable node subtrees.
 - GDScript: Python-like, typed optional. @export for editor, @onready for late init.
-- Signals: Godot's event system. Connect in editor or code. Custom signals with \`signal my_signal(arg)\`.
-- CharacterBody3D/2D: move_and_slide() for movement. velocity property. Floor/wall detection built in.
+- Signals: event system. \`signal my_signal(arg)\`. Connect in editor or \`connect()\` in code.
+- CharacterBody3D/2D: move_and_slide(). velocity property. Floor/wall detection.
 - Area3D/2D: trigger zones. body_entered/body_exited signals.
-- AnimationPlayer + AnimationTree: keyframe anything. Blend trees via AnimationTree state machine.
-- TileMap (2D): grid-based level design. Multiple layers, auto-tiling.
+- AnimationPlayer + AnimationTree: keyframe anything. Blend trees via state machine.
+- TileMap/TileMapLayer (2D): grid-based levels. Multiple layers, auto-tiling.
 - Resources: .tres files. Custom Resource classes for data (items, stats, dialogue).
-- Autoloads: global singletons. Use for game manager, audio manager, save system.
-- SceneTree: get_tree(), change_scene(), pause, groups.
-- Input: Input.is_action_pressed(), Input.get_vector() for movement. Input map in project settings.
-- Export templates: one-click export to Windows, Linux, macOS, Android, iOS, Web.
+- Autoloads: global singletons (game manager, audio manager, save system).
+- SceneTree: get_tree(), change_scene_to_file(), pause, groups.
+- Input: Input.is_action_pressed(), Input.get_vector(). Input map in project settings.
+- Platforms: Windows, Linux, macOS, Android, iOS, Web (HTML5).
+
+Troubleshooting:
+- "Invalid call" → check node is ready (@onready or await ready)
+- Export fails → install export templates for your Godot version
+- C# not working → make sure .mono/ exists, run dotnet build
+- Null instance → node path wrong or node not in tree yet
 
 **--- ENGINE SPECIFIC: UNITY (C#) ---**
 
-- MonoBehaviour: base component class. Awake/Start/Update/FixedUpdate/LateUpdate lifecycle.
-- GameObject + Transform: everything has a transform. Use GetComponent<T>() to access components.
-- Prefabs: reusable object templates. Instantiate() to spawn, Destroy() to remove.
-- Physics: Rigidbody for physics-driven, CharacterController for manual. FixedUpdate for physics code.
+Docs: https://docs.unity3d.com/Manual/
+API Reference: https://docs.unity3d.com/ScriptReference/
+Tutorials: https://learn.unity.com/
+Community: https://discussions.unity.com/
+
+Detection: .csproj files + Assets/ folder, or .unity scene files in project root.
+
+Project structure:
+- Assets/: ALL project content (scripts, scenes, prefabs, materials, textures, audio)
+- Assets/Scripts/: C# source files
+- Assets/Scenes/: .unity scene files
+- Assets/Prefabs/: reusable object templates
+- Assets/Resources/: runtime-loadable assets (Resources.Load)
+- Packages/: package manager dependencies (manifest.json)
+- ProjectSettings/: all project settings .asset files
+- Library/: Unity cache (auto-generated, don't version control)
+
+Build & compile (use bash):
+- Build from CLI: \`"C:/Program Files/Unity/Hub/Editor/<version>/Editor/Unity.exe" -batchmode -nographics -projectPath "<path>" -buildTarget Win64 -buildWindows64Player output.exe -quit\`
+- Run tests: \`Unity.exe -batchmode -nographics -projectPath "<path>" -runTests -testResults results.xml -quit\`
+- Build AssetBundles: \`Unity.exe -batchmode -nographics -projectPath "<path>" -executeMethod BuildScript.BuildBundles -quit\`
+- Open project: \`Unity.exe -projectPath "<path>"\`
+- C# compile check: \`dotnet build <ProjectName>.sln\` (if generated)
+- Platform switch: \`Unity.exe -batchmode -projectPath "<path>" -buildTarget Android -quit\`
+- IL2CPP build: set in Player Settings → Scripting Backend. Slower build, faster runtime.
+
+Core:
+- MonoBehaviour: Awake/Start/Update/FixedUpdate/LateUpdate lifecycle.
+- GameObject + Transform: everything has transform. GetComponent<T>() for access.
+- Prefabs: templates. Instantiate() to spawn, Destroy() to remove.
+- Physics: Rigidbody for physics-driven, CharacterController for manual. FixedUpdate for physics.
 - Input System (new): PlayerInput component, Input Actions asset, event-driven or polling.
-- ScriptableObjects: data containers. Create asset menu. Use for items, configs, events.
-- Coroutines: yield return for async-like sequences. WaitForSeconds, WaitUntil, WaitForEndOfFrame.
+- ScriptableObjects: data containers. [CreateAssetMenu] attribute. Items, configs, events.
+- Coroutines: yield return for sequences. WaitForSeconds, WaitUntil, WaitForEndOfFrame.
 - Addressables: async asset loading, memory management, content updates.
-- ECS/DOTS: data-oriented tech stack for high performance. Jobs + Burst compiler.
-- UI Toolkit / Canvas: Canvas for traditional UI, UI Toolkit for editor-like UI.
-- Assembly definitions: .asmdef files to control compilation units and dependencies.
-- Naming: PascalCase for public, _camelCase for private, [SerializeField] for editor-exposed privates.
+- ECS/DOTS: data-oriented for performance. Jobs + Burst compiler.
+- UI Toolkit / Canvas: Canvas for game UI, UI Toolkit for editor-style.
+- Assembly definitions: .asmdef files for compilation units and dependencies.
+- Naming: PascalCase public, _camelCase private, [SerializeField] for editor-exposed privates.
+- Packages: UPM (Unity Package Manager). Add via Window → Package Manager or manifest.json.
+
+Troubleshooting:
+- Missing reference → check serialised field in Inspector, not just code
+- Build fails → check Console for errors, Player Settings for correct platform
+- Script not running → ensure component is attached to active GameObject in scene
+- Performance → Profiler (Window → Analysis → Profiler). Check GC allocations in Update.
+- Library/ corruption → delete Library/ folder, Unity reimports on next open
 
 **When helping with game development:**
-- Detect the engine from project files (.uproject = Unreal, project.godot = Godot, .unity/.csproj = Unity)
-- Use engine-specific patterns and APIs for the detected engine
-- Performance matters more than in web dev — every millisecond counts at 60fps
-- Prefer engine conventions over generic patterns. Use the engine's built-in systems.
+- Detect the engine from project files (.uproject = Unreal, project.godot = Godot, .csproj + Assets/ = Unity)
+- Use engine-specific patterns, APIs, and CLI commands for the detected engine
+- When asked to build/compile/package — use bash with the correct CLI command for that engine. NEVER say you can't build.
+- Performance matters — every millisecond counts at 60fps
+- Prefer engine conventions over generic patterns. Use built-in systems.
 - Think about gameplay feel, not just functionality. Timing, juice, and feedback matter.
 - Test in-engine, not just in code. A passing compile doesn't mean it feels right.
-- Memory management differs per engine: GC in Unity/Godot, manual + GC in Unreal. Know which.`,
+- Memory management differs: GC in Unity/Godot, manual + GC in Unreal.
+- When searching docs, use the URLs above with web_search for current API info.`,
   },
 ];
