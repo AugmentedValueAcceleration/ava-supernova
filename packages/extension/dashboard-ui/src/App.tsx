@@ -18,6 +18,7 @@ import { Journal } from './pages/Journal';
 import { Learning } from './pages/Learning';
 import { Sync } from './pages/Sync';
 import { Releases } from './pages/Releases';
+import { Roadmap } from './pages/Roadmap';
 import { Library } from './pages/Library';
 import { Personality } from './pages/Personality';
 import { Chat } from './pages/Chat';
@@ -529,6 +530,8 @@ export function App() {
         return <Sync syncStatus={syncStatus} syncingTypes={syncingTypes} syncResults={syncResults} isConnected={!!account} />;
       case 'releases':
         return <Releases releases={releases} />;
+      case 'roadmap':
+        return <Roadmap />;
       case 'library':
         return <Library images={libraryImages} projectRoot={libraryProjectRoot} hasImagesFolder={libraryHasFolder} />;
       case 'personality':

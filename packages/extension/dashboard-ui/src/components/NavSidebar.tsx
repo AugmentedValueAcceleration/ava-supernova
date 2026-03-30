@@ -83,6 +83,7 @@ function getSections(): NavSection[] {
       title: 'Help',
       items: [
         { page: 'releases', icon: '\uD83D\uDCCB', label: tt('dash.nav.release_notes', 'Releases'), description: tt('dash.nav.release_notes_desc', "What's new") },
+        { page: 'roadmap', icon: '\uD83D\uDDFA\uFE0F', label: 'Roadmap', description: 'Where Ava is heading' },
         { page: 'support', icon: '\u2753', label: tt('dash.nav.support', 'Support'), description: tt('dash.nav.support_desc', 'Get help') },
       ],
     },
