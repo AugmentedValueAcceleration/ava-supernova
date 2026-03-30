@@ -2,25 +2,26 @@ import type { ModelDefinition } from '../../core/types.js';
 
 export const AVA_FREE_MODELS: ModelDefinition[] = [
   {
-    id: 'qwen-flash',
-    name: 'Qwen Flash (Free)',
+    id: 'qwen3-omni-flash',
+    name: 'Qwen Omni Flash (Free)',
     provider: 'ava-free',
     contextWindow: 256000,
     maxOutputTokens: 8192,
     supportsToolCalls: true,
     supportsStreaming: true,
-    pricing: { inputPerMillion: 0, outputPerMillion: 0 }, // Free for users
+    supportsVision: true,
+    pricing: { inputPerMillion: 0, outputPerMillion: 0 },
   },
   {
-    id: 'qwen3.5-plus',
-    name: 'Qwen 3.5 Plus (Free)',
+    id: 'qwen3.5-omni-plus',
+    name: 'Qwen 3.5 Omni Plus (Free)',
     provider: 'ava-free',
-    contextWindow: 1000000,
+    contextWindow: 256000,
     maxOutputTokens: 128000,
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
-    pricing: { inputPerMillion: 0, outputPerMillion: 0 }, // Free for users (uses 3M token balance)
+    pricing: { inputPerMillion: 0, outputPerMillion: 0 },
   },
 ];

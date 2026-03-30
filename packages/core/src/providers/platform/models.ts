@@ -7,28 +7,29 @@ import type { ModelDefinition } from '../../core/types.js';
  * Paid plans: default to Qwen 3.5 Plus.
  */
 export const PLATFORM_MODELS: ModelDefinition[] = [
-  // Qwen 3.5 Plus — premium model for paid plans (default for paid)
+  // Qwen 3.5 Omni Plus — multimodal, paid plans default
   {
-    id: 'qwen3.5-plus',
-    name: 'Qwen 3.5 Plus',
+    id: 'qwen3.5-omni-plus',
+    name: 'Qwen 3.5 Omni Plus',
     provider: 'platform',
-    contextWindow: 1000000,
+    contextWindow: 256000,
     maxOutputTokens: 128000,
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
-    pricing: { inputPerMillion: 0.20, outputPerMillion: 1.20 },
+    pricing: { inputPerMillion: 0.26, outputPerMillion: 1.56 },
   },
-  // Qwen Flash — fast, cheap, default for free accounts
+  // Qwen Omni Flash — multimodal, free accounts default
   {
-    id: 'qwen-flash',
-    name: 'Qwen Flash',
+    id: 'qwen3-omni-flash',
+    name: 'Qwen Omni Flash',
     provider: 'platform',
     contextWindow: 256000,
     maxOutputTokens: 8192,
     supportsToolCalls: true,
     supportsStreaming: true,
-    pricing: { inputPerMillion: 0.05, outputPerMillion: 0.40 },
+    supportsVision: true,
+    pricing: { inputPerMillion: 0.065, outputPerMillion: 0.26 },
   },
 ];

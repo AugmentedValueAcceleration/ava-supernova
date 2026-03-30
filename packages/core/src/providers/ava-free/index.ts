@@ -3,7 +3,7 @@ import type { ChatCompletionRequest } from '../types.js';
 import type { CompletionResponse, ModelDefinition, StreamChunk } from '../../core/types.js';
 import { AVA_FREE_MODELS } from './models.js';
 
-const ALLOWED_FREE_MODELS = new Set(['qwen-flash', 'qwen3.5-plus']);
+const ALLOWED_FREE_MODELS = new Set(['qwen3-omni-flash', 'qwen3.5-omni-plus']);
 
 /**
  * Ava Free provider — routes through the Ava platform proxy to Qwen models.
@@ -38,7 +38,7 @@ export class AvaFreeProvider extends BaseProvider {
 
   protected transformRequest(request: ChatCompletionRequest): Record<string, unknown> {
     // Only allow Qwen models — default to qwen-flash
-    const model = ALLOWED_FREE_MODELS.has(request.model) ? request.model : 'qwen-flash';
+    const model = ALLOWED_FREE_MODELS.has(request.model) ? request.model : 'qwen3-omni-flash';
     return { ...request, model };
   }
 
