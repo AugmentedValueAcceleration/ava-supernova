@@ -313,6 +313,32 @@ export class MemoryManager {
   }
 
   /**
+   * Delete ALL entries from a scope. Permanent.
+   */
+  async clearAll(scope: 'global' | 'project'): Promise<void> {
+    const store = scope === 'global'
+      ? await this.loadGlobalStore()
+      : await this.loadProjectStore();
+    if (!store) return;
+
+    store.entries = [];
+    store.lastModified = new Date().toISOString();
+
+    const index = scope === 'global' ? this.globalIndex : this.projectIndex;
+    index.clear();
+
+    if (scope === 'global') {
+      this.globalStore = store;
+      await this.persistStore(this.globalDir, store);
+    } else if (this.projectDir) {
+      this.projectStore = store;
+      await this.persistStore(this.projectDir, store);
+    }
+
+    this.syncEntries(scope, []);
+  }
+
+  /**
    * Search memories with TF-IDF ranking + temporal relevance scoring.
    * Falls back to substring for exact matches, then semantic via platform.
    */

@@ -32,4 +32,28 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsVision: true,
     pricing: { inputPerMillion: 0.065, outputPerMillion: 0.26 },
   },
+  // Qwen 3.5 Plus — 1M context, text-focused
+  {
+    id: 'qwen3.5-plus',
+    name: 'Qwen 3.5 Plus',
+    provider: 'platform',
+    contextWindow: 1000000,
+    maxOutputTokens: 128000,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: true,
+    pricing: { inputPerMillion: 0.20, outputPerMillion: 1.20 },
+  },
+  // Qwen Flash — fast, lightweight
+  {
+    id: 'qwen-flash',
+    name: 'Qwen Flash',
+    provider: 'platform',
+    contextWindow: 256000,
+    maxOutputTokens: 8192,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    pricing: { inputPerMillion: 0.05, outputPerMillion: 0.40 },
+  },
 ];

@@ -210,6 +210,10 @@ export class DashboardPanel {
         await this.deleteMemory(msg.id);
         break;
 
+      case 'delete_all_memories':
+        await this.deleteAllMemories();
+        break;
+
       case 'upsert_memory':
         await this.upsertMemory(msg);
         break;
@@ -324,6 +328,10 @@ export class DashboardPanel {
 
       case 'delete_local_memory':
         await this.deleteLocalMemory(msg.id);
+        break;
+
+      case 'delete_all_local_memories':
+        await this.deleteAllLocalMemories();
         break;
 
       case 'upsert_local_memory':
@@ -676,6 +684,26 @@ export class DashboardPanel {
       }
     } catch {
       this.post({ type: 'error', message: 'Failed to delete memory.' });
+    }
+  }
+
+  private async deleteAllMemories(): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) {
+      this.post({ type: 'error', message: 'No platform key found. Please reconnect your account.' });
+      return;
+    }
+
+    try {
+      const res = await apiFetch('/memories', { method: 'DELETE', platformKey });
+      console.log('[Ava] Delete all memories response:', res.status, JSON.stringify(res.data));
+      if (res.ok) {
+        this.post({ type: 'memories_loaded', memories: [], total: 0, hasMore: false });
+      } else {
+        this.post({ type: 'error', message: `Failed to delete all memories: ${res.status} — ${JSON.stringify(res.data)}` });
+      }
+    } catch (err) {
+      this.post({ type: 'error', message: `Failed to delete all memories: ${err instanceof Error ? err.message : String(err)}` });
     }
   }
 
@@ -1208,6 +1236,17 @@ export class DashboardPanel {
       }
     } catch {
       this.post({ type: 'error', message: 'Failed to delete memory.' });
+    }
+  }
+
+  private async deleteAllLocalMemories(): Promise<void> {
+    try {
+      const mgr = this.getMemoryManager();
+      await mgr.clearAll('global');
+      await mgr.clearAll('project');
+      this.post({ type: 'local_memories_loaded', memories: [] });
+    } catch {
+      this.post({ type: 'error', message: 'Failed to delete all memories.' });
     }
   }
 

@@ -3,7 +3,7 @@ import type { ChatCompletionRequest } from '../types.js';
 import type { CompletionResponse, ModelDefinition, StreamChunk } from '../../core/types.js';
 import { AVA_FREE_MODELS } from './models.js';
 
-const ALLOWED_FREE_MODELS = new Set(['qwen3-omni-flash', 'qwen3.5-omni-plus']);
+const ALLOWED_FREE_MODELS = new Set(['qwen3-omni-flash', 'qwen3.5-omni-plus', 'qwen3.5-plus', 'qwen-flash']);
 
 /**
  * Ava Free provider — routes through the Ava platform proxy to Qwen models.

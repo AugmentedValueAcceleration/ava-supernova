@@ -170,6 +170,8 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('active');
   const [loadingMore, setLoadingMore] = useState(false);
 
@@ -248,7 +250,7 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
   }
 
   // Clear loading state when memories change (new batch arrived)
-  useEffect(() => { setLoadingMore(false); }, [memories.length]);
+  useEffect(() => { setLoadingMore(false); setDeletingAll(false); }, [memories.length]);
 
   function startEdit(m: MemoryEntry) {
     setEditingId(m.id);
@@ -267,6 +269,12 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
     setConfirmDeleteId(null);
   }
 
+  function deleteAllMemories() {
+    setDeletingAll(true);
+    post({ type: isLocal ? 'delete_all_local_memories' : 'delete_all_memories' });
+    setConfirmDeleteAll(false);
+  }
+
   function archiveEntry(id: string) {
     post({ type: isLocal ? 'archive_local_memory' : 'archive_memory', id });
   }
@@ -278,12 +286,53 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
   return (
     <div className="mx-auto w-full max-w-4xl">
       {/* Page Header */}
-      <div className="mb-10">
-        <h1 className="text-2xl font-bold">{t('dash.memory.title')}</h1>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          {t('dash.memory.subtitle')}
-        </p>
+      <div className="mb-10 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">{t('dash.memory.title')}</h1>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            {t('dash.memory.subtitle')}
+          </p>
+        </div>
+        {memories.length > 0 && !deletingAll && (
+          <button
+            onClick={() => setConfirmDeleteAll(true)}
+            className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/20"
+          >
+            Delete All
+          </button>
+        )}
       </div>
+
+      {/* Deleting progress banner */}
+      {deletingAll && !confirmDeleteAll && (
+        <div className="mb-6 flex items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
+          <p className="text-sm text-amber-400">Deleting all memories... This may take a moment.</p>
+        </div>
+      )}
+
+      {/* Delete All Confirmation */}
+      {confirmDeleteAll && (
+        <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4">
+          <p className="text-sm font-medium text-red-400 mb-2">Are you sure you want to delete all memories?</p>
+          <p className="text-xs text-[var(--text-muted)] mb-4">This is permanent and cannot be undone. ALL memories will be deleted — not just the ones shown on screen.</p>
+          <div className="flex gap-2">
+            <button
+              onClick={deleteAllMemories}
+              disabled={deletingAll}
+              className="rounded-lg bg-red-500 px-4 py-1.5 text-xs font-medium text-white transition hover:bg-red-600 disabled:opacity-50"
+            >
+              {deletingAll ? 'Deleting...' : 'Yes, delete all memories permanently'}
+            </button>
+            <button
+              onClick={() => setConfirmDeleteAll(false)}
+              className="rounded-lg border border-[var(--border-card)] px-4 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-white"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {isLocal && (
         <div className="mb-6 rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] px-4 py-3 text-xs text-[var(--text-muted)]">
