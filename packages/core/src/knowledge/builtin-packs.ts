@@ -226,6 +226,110 @@ export const BUILTIN_PACKS: KnowledgePack[] = [
 - Dialogue systems: branching dialogue trees, response options, NPC memory of past choices
 - Tutorials: contextual, non-intrusive. Show don't tell. Let the player discover.
 
+**Game Design Terminology:**
+- Game feel / juice: screenshake, hitstop, particle bursts, squash & stretch. Makes actions feel impactful.
+- Coyote time: grace period after leaving a ledge where jump still works (~100ms). Essential for platformers.
+- Input buffering: queue the next input during an animation so it fires when the current action ends. Prevents "swallowed" inputs.
+- I-frames: invincibility frames during dodge/roll. Player can't take damage during these frames.
+- Hitstop / hitlag: freeze both attacker and target for 2-5 frames on hit. Sells the impact.
+- TTK: time to kill. How long to eliminate a target. Defines game pace (low TTK = tactical, high TTK = arena).
+- DPS: damage per second. Base metric for balancing weapons and abilities.
+- Aggro / threat table: AI targeting priority. Tank generates threat to pull aggro from DPS/healers.
+- Proc: programmed random occurrence. % chance to trigger a bonus effect on hit/action.
+- Proc gen: procedurally generated content. Roguelikes, infinite runners, random dungeons.
+- Vertical slice: polished demo of one complete section. Proves the game works before building everything.
+- Grey boxing / blockout: build levels with simple shapes first. Test flow, pacing, sightlines before art.
+- Gold master: final build submitted for release. No more changes.
+- Souls-like: challenging combat, pattern-based enemies, stamina management, death penalty, bonfires/checkpoints.
+
+**Movement Systems:**
+- Character controller types: capsule-based (most common, handles slopes/steps), physics-based (Rigidbody, realistic but harder to control), custom (full manual control for precision).
+- Locomotion: root motion (animation drives position — precise for melee, climbing) vs code-driven (gameplay code drives position — responsive, predictable). Blend both for best results.
+- Acceleration curves: don't snap to max speed. Ease in/out for weight and feel. Separate accel/decel values. Air control should be reduced.
+- Grounded movement: walk, run, sprint. Speed tiers with stamina cost. Crouch with reduced speed + smaller capsule.
+- Jump systems: variable height (hold for higher), double/triple jump, wall jump, coyote time, jump buffering, apex hang (reduced gravity at peak).
+- Wall running: detect wall via raycasts, apply gravity reduction, limit duration, exit with jump. Requires camera tilt for feel.
+- Mantling / vaulting: trace forward + up from character. Classify: step-up (small), vault (medium, one-hand), mantle (tall, pull-up). Play matching animation. Warp character to target position.
+- Sliding: trigger from sprint + crouch. Maintain momentum, reduce friction, lower capsule. Slope boost (downhill = faster, uphill = slower). Slide cancel into jump for speed tech.
+- Grappling: line trace to valid grapple point, pull character along spline/curve, swing physics (pendulum), release momentum for launch.
+- Swimming: separate movement mode. Buoyancy at water surface, 3D movement underwater, oxygen/breath meter, different camera behaviour.
+- Climbing: detect climbable surfaces (tags or physical material), IK hand/foot placement, stamina drain, directional input for traverse.
+- Flying / jetpack: 6DOF movement, hover mode (maintain altitude), fuel/energy system with recharge, transition between grounded and airborne states.
+- Vehicle movement: wheeled (suspension, engine torque curves, gear ratios, drift mechanics), hover (repulsion forces, banking), boat (buoyancy, wave response, rudder steering).
+- Movement state machine: grounded → jumping → falling → landing → wallrunning → mantling → hanging → climbing. Each state has enter/exit/tick. Transitions have conditions.
+- Movement networking: client predicts movement locally, server validates and corrects. Smooth corrections with interpolation. Reconcile on mismatch. Send input not position.
+
+**Combat Design:**
+- Hitboxes / hurtboxes: hitbox = attack area (attached to weapon/limb), hurtbox = vulnerable area (attached to body). Separate collision channels.
+- Combo systems: input sequence detection (light→light→heavy), cancel windows, chain timing, reset on miss/timeout.
+- Damage types: physical, fire, ice, electric, poison. Resistance/weakness per enemy type. Elemental reactions (wet + electric = bonus).
+- Damage calculation: base damage × weapon modifier × crit multiplier × resistance factor − armour reduction. Crit: % chance, usually 2× damage.
+- DoT (damage over time): poison, burn, bleed. Tick damage every N seconds for duration. Stack or refresh on reapply.
+- Stamina system: attacks/dodges cost stamina. Regenerates when not acting. Empty = vulnerable (can't dodge/block). Souls-like staple.
+- Lock-on targeting: cycle targets with input, camera tracks target, strafe movement replaces free look, break on distance/obstruction.
+- Parry / block: timed block = parry (counter window ~200ms), hold block = guard (reduced damage, stamina drain). Parry rewards: riposte, stagger.
+
+**Camera Systems:**
+- Third person orbit: spring arm + camera. Collision trace to prevent clipping into walls. Lag speed for smooth follow.
+- Lock-on camera: blend between free cam and target-focused. Offset to keep both player and target visible.
+- Cinematic blend: smooth transition between gameplay camera and scripted camera (Sequencer/timeline). Ease curves matter.
+- Camera shake: spring-based (recoil), perlin noise (ambient), directional (explosions). Layer multiple shakes.
+- Dynamic FOV: increase on sprint, decrease on aim. Smooth lerp. Sells speed and focus.
+- Obstruction handling: trace from target to camera, pull camera forward on hit, fade near objects.
+
+**Inventory & Items:**
+- Slot-based: fixed slots (helmet, chest, weapon, ring). Equip/unequip. Visual preview.
+- Weight-based: carry limit (Skyrim-style). Items have weight. Over-encumbered = slow.
+- Grid-based: Tetris inventory (Resident Evil 4). Items have shapes, spatial puzzle element.
+- Item data: ScriptableObject (Unity), DataAsset (Unreal), Resource (Godot). Define stats, icon, mesh, rarity.
+- Loot tables: weighted random drops. Rarity tiers. Guaranteed drops on bosses.
+- Crafting: recipe system (input items → output item). Discovery or known recipes.
+
+**Quest & Dialogue:**
+- Quest structure: objectives (kill, collect, deliver, escort, interact), prerequisites, rewards, branching outcomes.
+- Quest state: inactive → active → complete → turned-in. Track per-objective progress.
+- Dialogue trees: nodes (NPC text) + edges (player responses). Conditions on edges (has item, quest state, reputation).
+- Barks: short contextual lines (combat shouts, idle chatter, reactions). Triggered by gameplay events.
+- Journal / quest log: categorised (main, side, completed), objective markers on map/HUD, tracking toggle.
+
+**Spawning & AI Director:**
+- Wave spawning: predefined groups, escalating difficulty, rest between waves. Arena/horde mode staple.
+- Director system (L4D-style): monitor player stress (health, ammo, pace). High stress = ease off, low stress = ramp up. Pacing curves.
+- Proximity spawning: trigger volumes that spawn enemies when player approaches. Despawn when far. Memory efficient.
+- Spawn points: validated locations (not inside walls, not in player view, NavMesh-valid). Randomise from pool.
+
+**Shader & Material Techniques:**
+- Dissolve: noise texture threshold. Animate threshold 0→1 for dissolve/appear. Edge emission for glow.
+- Outline: inverted hull (scale mesh along normals, render backfaces with solid colour), post-process (depth/normal edge detection), fresnel.
+- Fresnel: rim lighting based on view angle. Use for shields, selection highlights, magical effects.
+- Scrolling UV: pan texture coordinates over time. Lava, water, energy beams, conveyor belts.
+- Vertex displacement: offset vertices in shader. Ocean waves, breathing, wind-blown foliage.
+- Cel shading / toon: step function on lighting (2-3 bands). Outline pass. Stylised look.
+- Triplanar mapping: project texture from 3 axes. No UV unwrap needed. Good for terrain, procedural meshes.
+
+**Level Design Principles:**
+- Weenies: tall, visible landmarks that guide the player naturally (Disney term). Tower, mountain, glowing tree.
+- Flow: guide player movement with lighting, colour, geometry, enemy placement. Leading lines.
+- Pacing: tension → release cycles. Combat → exploration → puzzle → reward. Vary intensity.
+- Lock and key: gate progress behind items/abilities. Metroidvania: ability-gated, backtrack to unlock.
+- Arena design: clear boundaries, cover placement, elevation changes, spawn closets, ammo/health placement. Test with grey boxes.
+- Spatial storytelling: environmental narrative. Ruins tell a story. Prop placement implies history.
+
+**Optimisation Patterns:**
+- Spatial partitioning: octree (3D), quadtree (2D), BSP (binary space). Speeds up collision, visibility, and queries.
+- Object pooling per engine: Unreal (spawn pool manager, deactivate instead of destroy), Unity (Queue<GameObject>, SetActive), Godot (Array pool, hide + process_mode).
+- Async loading: load assets in background. Show loading screen or stream seamlessly. Unreal: StreamableManager, Unity: Addressables, Godot: ResourceLoader.load_threaded.
+- Draw call reduction: instancing (same mesh many times), atlasing (combine textures), merge static meshes, LOD.
+- Frame budget: 16.6ms for 60fps. Split: gameplay 2-3ms, physics 2-3ms, rendering 8-10ms, UI 1ms. Profile before optimising.
+
+**Multiplayer Patterns:**
+- Lobby system: host creates session, players join via invite/matchmaking/server browser. Ready state, countdown to start.
+- Matchmaking: skill-based (ELO/MMR), connection-based (ping), mixed. Queue system with timeout.
+- Dedicated vs listen server: dedicated = separate process, authoritative, no host advantage. Listen = player is host, cheaper but host has advantage.
+- Session management: join in progress, host migration, disconnect/reconnect, spectator mode.
+- Anti-cheat: server authority (validate all actions server-side), input validation, speed checks, position verification. Never trust the client.
+- Replication priority: replicate what matters. Player transforms = high priority. Cosmetics = low. Cull by distance.
+
 **--- ENGINE SPECIFIC: UNREAL ENGINE (C++) ---**
 
 Docs: https://dev.epicgames.com/documentation/en-us/unreal-engine
