@@ -917,7 +917,7 @@ function ByokOverview({
               icon={<ChartBarIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
               value={sessionDuration}
               label={t('dash.usage.session')}
-              subtext={stats ? t('dash.usage.since', { time: new Date(stats.session_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }) : undefined}
+              subtext={stats ? t('dash.usage.since', { time: new Date(stats.session_start).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }) }) : undefined}
             />
           </div>
         </SectionGroup>

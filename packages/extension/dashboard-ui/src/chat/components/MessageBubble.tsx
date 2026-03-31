@@ -184,7 +184,7 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
           )}
           {message.content}
           <div className="text-[11px] opacity-60 mt-1 text-right">
-            {message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+            {message.timestamp ? new Date(message.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }) : ''}
           </div>
         </div>
       </div>
@@ -342,7 +342,7 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
             )}
             {message.timestamp && (
               <div className="text-[11px] opacity-40 text-right flex-shrink-0 ml-auto">
-                {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {new Date(message.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
               </div>
             )}
           </div>

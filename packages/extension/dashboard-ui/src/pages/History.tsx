@@ -139,7 +139,7 @@ function SessionView({ stats }: { stats: SessionStats | null }) {
             <StatCard label={t('dash.usage.total_tokens')} value={formatNumber(totalTokens)} highlight />
             <StatCard label={t('dash.usage.messages')} value={String(stats?.messages ?? 0)} />
             <StatCard label={t('dash.usage.tool_calls')} value={String(stats?.tool_calls ?? 0)} />
-            <StatCard label={t('dash.usage.duration')} value={sessionDuration} sub={stats ? t('dash.usage.since', { time: new Date(stats.session_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }) : undefined} />
+            <StatCard label={t('dash.usage.duration')} value={sessionDuration} sub={stats ? t('dash.usage.since', { time: new Date(stats.session_start).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }) }) : undefined} />
           </div>
         </SectionGroup>
       </div>

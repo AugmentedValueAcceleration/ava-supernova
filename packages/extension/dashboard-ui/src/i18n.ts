@@ -377,6 +377,30 @@ export function getLocale(): string {
   return currentLocale;
 }
 
+/** Format time in 24-hour format (HH:mm) */
+export function formatTime(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+/** Format date as DD/MM/YYYY */
+export function formatDate(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+/** Format date as "31 Mar 2026" */
+export function formatDateShort(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/** Format date as "31 Mar" (no year) */
+export function formatDateCompact(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
 /** Set locale directly (used by chat init) */
 export function setLocale(locale: string): void {
   const resolved = translations[locale] ? locale : 'en';

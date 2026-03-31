@@ -4,7 +4,7 @@ import { post } from '../App';
 import type { ReleaseNote } from '../types/messages';
 
 function formatMonth(date: Date): string {
-  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  return date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 }
 
 function getMonthKey(dateStr: string): string {
@@ -132,7 +132,7 @@ export function Releases({ releases }: { releases: ReleaseNote[] }) {
                     {release.tool_count} tools
                   </span>
                   <span className="text-[10px] text-[var(--text-muted)]">
-                    {new Date(release.published_at).toLocaleDateString()}
+                    {new Date(release.published_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                   </span>
                   <svg
                     className={`w-4 h-4 text-[var(--text-muted)] transition-transform ${isExpanded ? 'rotate-180' : ''}`}
