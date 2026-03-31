@@ -19,6 +19,19 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsVision: true,
     pricing: { inputPerMillion: 0.60, outputPerMillion: 3.00 },
   },
+  // MiniMax M2.5 — best tool calling, cheapest agentic model
+  {
+    id: 'MiniMax-M2.5',
+    name: 'MiniMax M2.5',
+    provider: 'platform',
+    contextWindow: 1000000,
+    maxOutputTokens: 128000,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: true,
+    pricing: { inputPerMillion: 0.15, outputPerMillion: 1.20 },
+  },
   // Qwen 3.5 Omni Plus — multimodal
   {
     id: 'qwen3.5-omni-plus',
