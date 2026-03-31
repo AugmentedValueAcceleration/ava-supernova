@@ -634,11 +634,16 @@ export class Agent {
       },
     };
 
-    const result = await this.toolRegistry.execute(
-      toolCall.function.name,
-      parsedArgs,
-      toolRunContext,
-    );
+    let result: { output: string; success: boolean; metadata?: Record<string, unknown> };
+    try {
+      result = await this.toolRegistry.execute(
+        toolCall.function.name,
+        parsedArgs,
+        toolRunContext,
+      );
+    } catch (err) {
+      result = { output: `Tool error: ${err instanceof Error ? err.message : String(err)}`, success: false };
+    }
 
     onEvent({
       type: 'tool_call_end',

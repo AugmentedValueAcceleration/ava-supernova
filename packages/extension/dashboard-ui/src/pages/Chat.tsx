@@ -211,6 +211,12 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       };
 
     case 'error': {
+      // Clear isStreaming on the last assistant message so the thinking spinner stops
+      const errorMessages = state.messages.map((m, i) =>
+        i === state.messages.length - 1 && m.role === 'assistant' && m.isStreaming
+          ? { ...m, isStreaming: false }
+          : m
+      );
       const msg: UIMessage = {
         id: nextId(),
         role: 'error',
@@ -218,7 +224,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         toolCalls: [],
         isStreaming: false,
       };
-      return { ...state, messages: [...state.messages, msg], isStreaming: false, isThinking: false };
+      return { ...state, messages: [...errorMessages, msg], isStreaming: false, isThinking: false, conductorActive: false, activePersonas: [] };
     }
 
     case 'done':
