@@ -413,7 +413,20 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
       case 'save_secrets':
         mapped = { type: 'save_secrets', secrets: msg.secrets as any };
+        // Persist to VS Code SecretStorage
+        try {
+          await this.context.secrets.store('ava-supernova.secretVault', JSON.stringify(msg.secrets));
+        } catch { /* best-effort */ }
         break;
+      case 'load_secrets':
+        try {
+          const raw = await this.context.secrets.get('ava-supernova.secretVault');
+          const secrets = raw ? JSON.parse(raw) : [];
+          this.postMessage({ type: 'secrets_loaded', secrets });
+        } catch {
+          this.postMessage({ type: 'secrets_loaded', secrets: [] });
+        }
+        return;
       case 'toggle_knowledge_pack': {
         // Save enabled packs to ~/.ava/knowledge-enabled.json and reinit
         try {
@@ -670,7 +683,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         if (this.cachedAccount) {
           const platform = new PlatformProvider({ apiKey: platformKey });
           this.providerRegistry.registerCustom('platform', platform);
-          this.log(`Platform provider registered (tier: ${this.cachedAccount.tier}, email: ${this.cachedAccount.email})`);
+          this.log(`Platform provider registered (tier: ${this.cachedAccount.tier})`);
         } else {
           this.log('Platform key present but account verification failed');
           this.postMessage({

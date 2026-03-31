@@ -36,6 +36,8 @@ export async function apiFetch(
         port: url.port || 443,
         path: url.pathname + url.search,
         method: options.method ?? 'GET',
+        rejectUnauthorized: true,
+        minVersion: 'TLSv1.2',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${options.platformKey}`,

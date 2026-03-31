@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { SecretEntry } from '../components/SecretVault';
+import { post } from '../../App';
 
 interface SecretsContextValue {
   secrets: SecretEntry[];
@@ -26,45 +27,30 @@ const SecretsContext = createContext<SecretsContextValue>({
 });
 
 export function SecretsProvider({ children }: { children: ReactNode }) {
-  const [secrets, setSecretsState] = useState<SecretEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem('ava-secret-vault');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [secrets, setSecretsState] = useState<SecretEntry[]>([]);
+
+  // Load secrets from extension host on mount
+  useEffect(() => {
+    post({ type: 'load_secrets' });
+  }, []);
+
+  // Listen for secrets from extension host
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      const msg = e.data;
+      if (msg?.type === 'secrets_loaded' && Array.isArray(msg.secrets)) {
+        setSecretsState(msg.secrets);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   const setSecrets = useCallback((updated: SecretEntry[]) => {
     setSecretsState(updated);
-    try {
-      localStorage.setItem('ava-secret-vault', JSON.stringify(updated));
-    } catch {}
-  }, []);
-
-  // Sync from localStorage changes (in case InputArea writes)
-  useEffect(() => {
-    const handler = (e: StorageEvent) => {
-      if (e.key === 'ava-secret-vault' && e.newValue) {
-        try {
-          setSecretsState(JSON.parse(e.newValue));
-        } catch {}
-      }
-    };
-    window.addEventListener('storage', handler);
-    return () => window.removeEventListener('storage', handler);
-  }, []);
-
-  // Also listen for custom event from InputArea in same window
-  useEffect(() => {
-    const handler = () => {
-      try {
-        const saved = localStorage.getItem('ava-secret-vault');
-        if (saved) setSecretsState(JSON.parse(saved));
-      } catch {}
-    };
-    window.addEventListener('ava-secrets-changed', handler);
-    return () => window.removeEventListener('ava-secrets-changed', handler);
+    // Persist via extension host (VS Code SecretStorage)
+    post({ type: 'save_secrets', secrets: updated });
+    window.dispatchEvent(new CustomEvent('ava-secrets-changed'));
   }, []);
 
   const redact = useCallback(
@@ -72,8 +58,7 @@ export function SecretsProvider({ children }: { children: ReactNode }) {
       if (!text || secrets.length === 0) return text;
       let result = text;
       for (const secret of secrets) {
-        if (secret.value.length < 4) continue; // skip very short values
-        // Escape regex special chars in the secret value
+        if (secret.value.length < 4) continue;
         const escaped = secret.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         result = result.replace(new RegExp(escaped, 'g'), '\u2022\u2022\u2022\u2022\u2022\u2022');
       }
@@ -86,13 +71,7 @@ export function SecretsProvider({ children }: { children: ReactNode }) {
     (text: string): RedactedSegment[] => {
       if (!text || secrets.length === 0) return [{ text, isSecret: false }];
 
-      // Build a list of match positions
-      interface Match {
-        start: number;
-        end: number;
-        label: string;
-        value: string;
-      }
+      interface Match { start: number; end: number; label: string; value: string; }
       const matches: Match[] = [];
 
       for (const secret of secrets) {
@@ -101,19 +80,13 @@ export function SecretsProvider({ children }: { children: ReactNode }) {
         while (true) {
           const found = text.indexOf(secret.value, idx);
           if (found === -1) break;
-          matches.push({
-            start: found,
-            end: found + secret.value.length,
-            label: secret.label,
-            value: secret.value,
-          });
+          matches.push({ start: found, end: found + secret.value.length, label: secret.label, value: secret.value });
           idx = found + secret.value.length;
         }
       }
 
       if (matches.length === 0) return [{ text, isSecret: false }];
 
-      // Sort by position, remove overlaps
       matches.sort((a, b) => a.start - b.start);
       const deduped: Match[] = [];
       for (const m of matches) {
@@ -122,19 +95,13 @@ export function SecretsProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Build segments
       const segments: RedactedSegment[] = [];
       let cursor = 0;
       for (const m of deduped) {
         if (m.start > cursor) {
           segments.push({ text: text.slice(cursor, m.start), isSecret: false });
         }
-        segments.push({
-          text: '\u2022\u2022\u2022\u2022\u2022\u2022',
-          isSecret: true,
-          secretLabel: m.label,
-          originalValue: m.value,
-        });
+        segments.push({ text: '\u2022\u2022\u2022\u2022\u2022\u2022', isSecret: true, secretLabel: m.label, originalValue: m.value });
         cursor = m.end;
       }
       if (cursor < text.length) {

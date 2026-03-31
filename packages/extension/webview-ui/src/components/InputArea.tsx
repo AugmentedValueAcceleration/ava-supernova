@@ -757,7 +757,7 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
                 <div className="text-[11px]" style={{ color: 'var(--vscode-descriptionForeground)' }}>{t('input.voice_subtitle')}</div>
               </div>
             </div>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--vscode-foreground)' }} dangerouslySetInnerHTML={{ __html: t('input.voice_description') }} />
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--vscode-foreground)' }}>{t('input.voice_description')}</p>
             <div className="flex gap-2 pt-1">
               <button
                 onClick={() => { setShowMicPrompt(false); startListening(); }}

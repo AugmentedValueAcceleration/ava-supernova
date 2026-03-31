@@ -2562,7 +2562,7 @@ export class DashboardPanel {
         content="default-src 'none';
                  style-src ${webview.cspSource} 'unsafe-inline';
                  script-src 'nonce-${nonce}';
-                 connect-src https: http:;
+                 connect-src https:;
                  img-src ${webview.cspSource} data: https: vscode-resource:;">
   <link rel="stylesheet" href="${styleUri}">
   <title>Ava | Dashboard</title>
