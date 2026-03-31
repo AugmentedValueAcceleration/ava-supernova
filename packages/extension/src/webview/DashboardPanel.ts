@@ -689,22 +689,33 @@ export class DashboardPanel {
 
   private async deleteAllMemories(): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'error', message: 'No platform key found. Please reconnect your account.' });
-      return;
+
+    // Always clear local memory files
+    try {
+      const mgr = this.getMemoryManager();
+      await mgr.clearAll('global');
+      await mgr.clearAll('project');
+    } catch { /* local clear is best-effort */ }
+
+    // Delete platform memories in batches — call repeatedly until remaining is 0
+    if (platformKey) {
+      try {
+        for (let i = 0; i < 100; i++) {
+          const res = await apiFetch('/memories', { method: 'DELETE', platformKey });
+          const data = res.data as { remaining?: number; deleted?: number };
+          console.log(`[Ava] Delete batch ${i + 1}: deleted=${data?.deleted}, remaining=${data?.remaining}`);
+          if (!res.ok) {
+            this.post({ type: 'error', message: `Failed to delete platform memories: ${res.status}` });
+            break;
+          }
+          if (data?.remaining === 0 || data?.deleted === 0) break;
+        }
+      } catch (err) {
+        this.post({ type: 'error', message: `Failed to delete platform memories: ${err instanceof Error ? err.message : String(err)}` });
+      }
     }
 
-    try {
-      const res = await apiFetch('/memories', { method: 'DELETE', platformKey });
-      console.log('[Ava] Delete all memories response:', res.status, JSON.stringify(res.data));
-      if (res.ok) {
-        this.post({ type: 'memories_loaded', memories: [], total: 0, hasMore: false });
-      } else {
-        this.post({ type: 'error', message: `Failed to delete all memories: ${res.status} — ${JSON.stringify(res.data)}` });
-      }
-    } catch (err) {
-      this.post({ type: 'error', message: `Failed to delete all memories: ${err instanceof Error ? err.message : String(err)}` });
-    }
+    this.post({ type: 'memories_loaded', memories: [], total: 0, hasMore: false });
   }
 
   private async upsertMemory(msg: Extract<DashboardToExtMessage, { type: 'upsert_memory' }>): Promise<void> {
