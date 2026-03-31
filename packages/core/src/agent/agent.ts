@@ -310,9 +310,11 @@ export class Agent {
 
       messages = [...messages, assistantMessage];
 
-      // If the actual token count was dangerously high, force aggressive truncation
-      // before the next iteration. Our estimation may have been too low.
-      if (promptTokens > 0 && promptTokens > this.model.contextWindow * 0.65) {
+      // NOTE: Do NOT truncate here — tool results haven't been appended yet.
+      // Truncation between assistant tool_calls and tool results breaks the
+      // message ordering that models require. Truncation happens after tool
+      // results are appended, at the top of the next loop iteration.
+      if (false && promptTokens > 0 && promptTokens > this.model.contextWindow * 0.65) {
         const targetTokens = Math.floor(this.model.contextWindow * 0.5);
         messages = this.truncateMessages(messages, targetTokens);
       }
