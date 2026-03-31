@@ -551,6 +551,16 @@ export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCol
     };
   }, [onRegisterDispatch, startFlushLoop, flushAllDeltas]);
 
+  // Auto-focus chat input when page becomes active
+  useEffect(() => {
+    if (isActive) {
+      setTimeout(() => {
+        const input = document.getElementById('chat-input');
+        if (input) input.focus();
+      }, 100);
+    }
+  }, [isActive]);
+
   // Auto-scroll
   useEffect(() => {
     if (!isActive || state.messages.length === 0) return;

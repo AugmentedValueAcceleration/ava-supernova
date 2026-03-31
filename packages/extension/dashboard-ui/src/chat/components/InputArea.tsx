@@ -75,6 +75,11 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const wasStreamingRef = useRef(false);
 
+  // Auto-focus textarea on mount
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, []);
+
   // Auto-focus textarea when streaming ends
   useEffect(() => {
     if (isStreaming) {
@@ -84,6 +89,19 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
       textareaRef.current?.focus();
     }
   }, [isStreaming]);
+
+  // Re-focus after any click inside the chat area (prevents losing focus)
+  useEffect(() => {
+    const handler = () => {
+      setTimeout(() => {
+        if (!document.activeElement || document.activeElement === document.body) {
+          textareaRef.current?.focus();
+        }
+      }, 50);
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, []);
 
   // Save secrets through context (handles persistence + events)
   const handleSaveSecrets = useCallback((updated: SecretEntry[]) => {
@@ -419,6 +437,7 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
         <textarea
           id="chat-input"
           ref={textareaRef}
+          autoFocus
           value={text}
           onChange={(e) => {
             setText(e.target.value);
