@@ -1386,6 +1386,16 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  /** Reset the memory manager — called after Delete All to prevent re-sync of cached entries. */
+  public async resetMemoryManager(): Promise<void> {
+    if (this.memoryManager) {
+      await this.memoryManager.clearEverything();
+    }
+    // Recreate with sync disabled until next session
+    this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, localOnly: true });
+    this.cachedMemory = undefined;
+  }
+
   private async saveMemory(scope: 'global' | 'project', content: string): Promise<void> {
     if (!this.memoryManager) return;
     if (scope === 'global') {

@@ -46,7 +46,7 @@ const W_FREQUENCY = 0.20; // How often recalled
 export class MemoryManager {
   private readonly globalDir: string;
   private readonly projectDir: string | null;
-  private readonly sync?: PlatformMemorySync;
+  private sync?: PlatformMemorySync;
 
   // In-memory caches — loaded lazily, written through on save
   private globalStore: MemoryStore | null = null;
@@ -339,6 +339,50 @@ export class MemoryManager {
   }
 
   /**
+   * Delete ALL entries from ALL scopes — global + current project + all known projects.
+   * Reads the project registry to find every project memory file.
+   */
+  async clearEverything(): Promise<void> {
+    // Disable sync to prevent re-upload of cached entries
+    this.sync = undefined;
+    this.localOnly = true;
+
+    // Reset in-memory caches
+    this.globalStore = null as unknown as MemoryStore;
+    this.projectStore = null;
+
+    // Clear global
+    await this.clearAll('global');
+
+    // Clear current project
+    await this.clearAll('project');
+
+    // Clear all known projects from registry
+    try {
+      const registryPath = join(this.globalDir, PROJECTS_REGISTRY);
+      const data = await readFile(registryPath, 'utf-8');
+      const registry: ProjectRegistryEntry[] = JSON.parse(data);
+
+      for (const project of registry) {
+        try {
+          const projectMemoryPath = join(project.path, '.ava', MEMORY_FILENAME_V2);
+          const raw = await readFile(projectMemoryPath, 'utf-8');
+          const store: MemoryStore = JSON.parse(raw);
+          store.entries = [];
+          store.lastModified = new Date().toISOString();
+          await this.writeSafe(projectMemoryPath, JSON.stringify(store, null, 2));
+        } catch { /* project dir may not exist anymore */ }
+      }
+    } catch { /* no registry or corrupt */ }
+
+    // Clear legacy memory.md
+    try {
+      const mdPath = join(this.globalDir, 'memory.md');
+      await this.writeSafe(mdPath, '');
+    } catch { /* best effort */ }
+  }
+
+  /**
    * Search memories with TF-IDF ranking + temporal relevance scoring.
    * Falls back to substring for exact matches, then semantic via platform.
    */
@@ -453,8 +497,8 @@ export class MemoryManager {
         this.globalStore ? this.persistStore(this.globalDir, this.globalStore) : Promise.resolve(),
         this.projectStore && this.projectDir ? this.persistStore(this.projectDir, this.projectStore) : Promise.resolve(),
       ]);
-      if (this.globalStore) this.syncEntries('global', this.globalStore.entries);
-      if (this.projectStore) this.syncEntries('project', this.projectStore.entries);
+      // Don't sync on recall — only sync when explicitly saving/updating
+      // Recall just updates lastRecalledAt counters, not content
     }
 
     return results.slice(0, limit);

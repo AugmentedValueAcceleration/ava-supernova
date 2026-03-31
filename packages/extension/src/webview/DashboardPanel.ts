@@ -634,21 +634,26 @@ export class DashboardPanel {
 
   private async loadMemories(): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
+    if (!platformKey) {
+      console.log('[Ava] loadMemories: no platform key');
+      return;
+    }
 
     try {
       this.memoryOffset = 0;
       const res = await apiFetch('/memories?limit=100&offset=0', { platformKey });
+      console.log('[Ava] loadMemories response:', res.status, 'ok:', res.ok);
       if (res.ok) {
         const body = res.data as { memories?: never[]; total?: number; hasMore?: boolean } | never[];
         const memories = Array.isArray(body) ? body : (body.memories || []);
         const total = Array.isArray(body) ? memories.length : (body.total || memories.length);
         const hasMore = Array.isArray(body) ? false : (body.hasMore || false);
+        console.log(`[Ava] loadMemories: got ${memories.length} memories, total=${total}, hasMore=${hasMore}`);
         this.memoryOffset = memories.length;
         this.post({ type: 'memories_loaded', memories, total, hasMore });
       }
-    } catch {
-      // Non-fatal: just leave memories empty
+    } catch (err) {
+      console.error('[Ava] loadMemories error:', err);
     }
   }
 
@@ -690,29 +695,43 @@ export class DashboardPanel {
   private async deleteAllMemories(): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
 
-    // Always clear local memory files
-    try {
-      const mgr = this.getMemoryManager();
-      await mgr.clearAll('global');
-      await mgr.clearAll('project');
-    } catch { /* local clear is best-effort */ }
-
-    // Delete platform memories in batches — call repeatedly until remaining is 0
+    // Step 1: Delete ALL platform memories FIRST — loop until remaining is 0
     if (platformKey) {
+      let totalDeleted = 0;
       try {
         for (let i = 0; i < 100; i++) {
           const res = await apiFetch('/memories', { method: 'DELETE', platformKey });
-          const data = res.data as { remaining?: number; deleted?: number };
-          console.log(`[Ava] Delete batch ${i + 1}: deleted=${data?.deleted}, remaining=${data?.remaining}`);
           if (!res.ok) {
-            this.post({ type: 'error', message: `Failed to delete platform memories: ${res.status}` });
+            this.post({ type: 'error', message: `Delete failed: ${res.status}` });
             break;
           }
+          const data = res.data as { remaining?: number; deleted?: number };
+          totalDeleted += data?.deleted ?? 0;
+          console.log(`[Ava] Delete batch ${i + 1}: deleted=${data?.deleted}, remaining=${data?.remaining}, total=${totalDeleted}`);
           if (data?.remaining === 0 || data?.deleted === 0) break;
         }
       } catch (err) {
-        this.post({ type: 'error', message: `Failed to delete platform memories: ${err instanceof Error ? err.message : String(err)}` });
+        this.post({ type: 'error', message: `Failed: ${err instanceof Error ? err.message : String(err)}` });
       }
+    }
+
+    // Step 2: THEN clear all local files — so sync can't re-upload
+    try {
+      const mgr = this.getMemoryManager();
+      await mgr.clearEverything();
+    } catch { /* best-effort */ }
+
+    // Step 3: Reset the AvaViewProvider's memory manager so it doesn't re-sync cached entries
+    if (this.viewProvider) {
+      try {
+        console.log('[Ava] Resetting AvaViewProvider memory manager...');
+        await (this.viewProvider as any).resetMemoryManager();
+        console.log('[Ava] AvaViewProvider memory manager reset complete.');
+      } catch (err) {
+        console.error('[Ava] Failed to reset AvaViewProvider memory manager:', err);
+      }
+    } else {
+      console.log('[Ava] No viewProvider reference — cannot reset AvaViewProvider memory manager');
     }
 
     this.post({ type: 'memories_loaded', memories: [], total: 0, hasMore: false });
