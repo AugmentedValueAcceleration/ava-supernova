@@ -359,12 +359,12 @@ export class Agent {
       if (currentToolNames === lastToolName) {
         repeatCount++;
         if (repeatCount >= MAX_SAME_TOOL_REPEATS) {
-          logger.warn(`[agent] Breaking loop: ${currentToolNames} called ${repeatCount + 1} times consecutively`);
-          messages = [
-            ...messages,
-            { role: 'system' as const, content: `You have called ${currentToolNames} ${repeatCount + 1} times in a row. Stop calling this tool and respond to the user conversationally with what you have so far.` },
-          ];
-          continue; // Skip tool execution, let the model respond with text
+          logger.warn(`[agent] HARD STOP: ${currentToolNames} called ${repeatCount + 1} times consecutively`);
+          onEvent({
+            type: 'done',
+            finalMessage: { role: 'assistant', content: `I was stuck in a loop calling ${currentToolNames} repeatedly. Stopping to avoid wasting tokens. Please try a different approach or start a new chat.` } as any,
+          });
+          return messages;
         }
       } else {
         lastToolName = currentToolNames;
