@@ -2,12 +2,24 @@ import type { ModelDefinition } from '../../core/types.js';
 
 /**
  * Platform models — available on managed plans + free accounts.
- * Powered by Qwen (enterprise partnership).
- * Free accounts: 3M tokens, default to Qwen Flash.
- * Paid plans: default to Qwen 3.5 Plus.
+ * Paid plans: Kimi K2.5 (default) + all Qwen models.
+ * Free accounts: Qwen only (Omni Flash default).
  */
 export const PLATFORM_MODELS: ModelDefinition[] = [
-  // Qwen 3.5 Omni Plus — multimodal, paid plans default
+  // Kimi K2.5 — paid plans default. Best agentic coding, multimodal, 256K context.
+  {
+    id: 'kimi-k2.5',
+    name: 'Kimi K2.5',
+    provider: 'platform',
+    contextWindow: 256000,
+    maxOutputTokens: 8192,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: true,
+    pricing: { inputPerMillion: 0.60, outputPerMillion: 3.00 },
+  },
+  // Qwen 3.5 Omni Plus — multimodal
   {
     id: 'qwen3.5-omni-plus',
     name: 'Qwen 3.5 Omni Plus',
@@ -20,7 +32,7 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsVision: true,
     pricing: { inputPerMillion: 0.26, outputPerMillion: 1.56 },
   },
-  // Qwen Omni Flash — multimodal, free accounts default
+  // Qwen Omni Flash — free accounts default
   {
     id: 'qwen3-omni-flash',
     name: 'Qwen Omni Flash',
@@ -32,7 +44,7 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsVision: true,
     pricing: { inputPerMillion: 0.065, outputPerMillion: 0.26 },
   },
-  // Qwen 3.5 Plus — 1M context, text-focused
+  // Qwen 3.5 Plus — 1M context
   {
     id: 'qwen3.5-plus',
     name: 'Qwen 3.5 Plus',
