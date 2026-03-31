@@ -113,6 +113,56 @@ export class Agent {
     const MAX_SAME_TOOL_REPEATS = 3;
 
     while (iterations < MAX_TOOL_CALL_ITERATIONS) {
+      // ── Sliding Window — compress old messages to memory ─────────────────
+      // Keep context lean by saving older exchanges to project memory and
+      // removing them from the conversation. The model always has recent
+      // context + can recall older work via memory_recall.
+      const WINDOW_MAX = 30; // Max non-system messages before compression
+      const WINDOW_KEEP = 16; // Messages to keep after compression
+      const nonSystem = messages.filter(m => m.role !== 'system');
+      if (nonSystem.length > WINDOW_MAX) {
+        const systemMsgs = messages.filter(m => m.role === 'system');
+        const toCompress = nonSystem.slice(0, nonSystem.length - WINDOW_KEEP);
+        const toKeep = nonSystem.slice(nonSystem.length - WINDOW_KEEP);
+
+        // Summarise what's being compressed
+        const summary = toCompress
+          .filter(m => m.role === 'user' || m.role === 'assistant')
+          .map(m => {
+            const content = typeof m.content === 'string' ? m.content : '';
+            return `[${m.role}]: ${content.slice(0, 200)}`;
+          })
+          .join('\n');
+
+        // Save to project memory
+        if (summary.length > 20) {
+          const mm = (this.toolContext.sharedState as Record<string, unknown> | undefined)?.memoryManager as
+            | { saveEntry: (opts: { scope: string; content: string; category: string; tags?: string[] }) => Promise<unknown> }
+            | undefined;
+          if (mm?.saveEntry) {
+            try {
+              await mm.saveEntry({
+                scope: 'project',
+                content: `[Session context] ${summary.slice(0, 2000)}`,
+                category: 'general',
+                tags: ['session-context'],
+              });
+            } catch { /* non-critical */ }
+          }
+        }
+
+        // Rebuild messages: system + context note + recent messages
+        const fixedKeep = this.fixToolPairing(toKeep);
+        messages = [
+          ...systemMsgs,
+          { role: 'system' as const, content: `[${toCompress.length} earlier messages compressed to project memory. Use memory_recall to search for previous context if needed.]` },
+          ...fixedKeep,
+        ];
+
+        // Notify UI about compression (uses 'info' event type)
+        logger.debug(`[agent] Sliding window: compressed ${toCompress.length} messages, kept ${fixedKeep.length}`);
+      }
+
       // Check for cancellation before each iteration
       if (signal?.aborted) {
         onEvent({ type: 'done', finalMessage: { role: 'assistant', content: null } });
