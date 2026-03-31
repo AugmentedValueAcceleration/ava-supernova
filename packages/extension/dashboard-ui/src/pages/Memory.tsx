@@ -250,7 +250,9 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
   }
 
   // Clear loading state when memories change (new batch arrived)
-  useEffect(() => { setLoadingMore(false); setDeletingAll(false); }, [memories.length]);
+  useEffect(() => { setLoadingMore(false); }, [memories.length]);
+  // Only clear deletingAll when memories are actually empty
+  useEffect(() => { if (deletingAll && memories.length === 0) setDeletingAll(false); }, [memories.length, deletingAll]);
 
   function startEdit(m: MemoryEntry) {
     setEditingId(m.id);
@@ -273,7 +275,21 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
     setDeletingAll(true);
     post({ type: isLocal ? 'delete_all_local_memories' : 'delete_all_memories' });
     setConfirmDeleteAll(false);
+    // Fallback timeout — clear spinner if no response after 30s
+    setTimeout(() => setDeletingAll(false), 30000);
   }
+
+  // Listen for error events to clear the deleting state
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      const msg = e.data;
+      if (msg?.type === 'error' && deletingAll) {
+        setDeletingAll(false);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [deletingAll]);
 
   function archiveEntry(id: string) {
     post({ type: isLocal ? 'archive_local_memory' : 'archive_memory', id });
@@ -293,21 +309,33 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
             {t('dash.memory.subtitle')}
           </p>
         </div>
-        {memories.length > 0 && !deletingAll && (
+        <div className="flex gap-2">
           <button
-            onClick={() => setConfirmDeleteAll(true)}
-            className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/20"
+            onClick={() => post({ type: isLocal ? 'load_local_memories' : 'load_memories' })}
+            className="rounded-lg border border-[var(--border-card)] px-3 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-white"
+            title="Refresh memories"
           >
-            Delete All
+            Refresh
           </button>
-        )}
+          {memories.length > 0 && !deletingAll && (
+            <button
+              onClick={() => setConfirmDeleteAll(true)}
+              className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/20"
+            >
+              Delete All
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Deleting progress banner */}
       {deletingAll && !confirmDeleteAll && (
         <div className="mb-6 flex items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
-          <p className="text-sm text-amber-400">Deleting all memories... This may take a moment.</p>
+          <div>
+            <p className="text-sm text-amber-400">Deleting all memories... This may take a moment.</p>
+            <p className="text-xs text-amber-400/60 mt-1">Please stay on this page — leaving will interrupt the deletion.</p>
+          </div>
         </div>
       )}
 
