@@ -702,6 +702,18 @@ Modern tools:
 - Movement state machine: grounded → jumping → falling → landing → wallrunning → mantling → hanging → climbing. Each state has enter/exit/tick. Transitions have conditions.
 - Movement networking: client predicts movement locally, server validates and corrects. Smooth corrections with interpolation. Reconcile on mismatch. Send input not position.
 
+Genre-specific movement modes — these are DIFFERENT and must not be confused:
+- **FPS (First Person Shooter)**: camera IS the character's eyes. No visible body (or arms-only). Movement is ALWAYS in the direction the camera faces. Mouse controls look direction AND movement direction simultaneously. WASD moves relative to camera forward. Sprint, crouch, lean, ADS (aim down sights). No character rotation separate from camera — they are locked together.
+- **TPS (Third Person Shooter)**: character faces the SAME direction as the camera (over-the-shoulder). Character rotates to match camera yaw. bUseControllerRotationYaw = true. Movement is strafing relative to camera — character always faces where you aim. Right stick/mouse controls camera, left stick moves character relative to camera. ADS tightens camera to shoulder. Character visibly turns when aiming.
+- **ARPG / Hack-and-Slash (Diablo, Souls, action RPG)**: character does NOT face the camera direction. Character faces the MOVEMENT direction. bUseControllerRotationYaw = false. bOrientRotationToMovement = true. Camera orbits freely around the character. Player can look one way and run another. Character rotates smoothly to face the direction of input. Lock-on overrides this to face the locked target. Dodge/roll goes in movement direction, not camera direction.
+- **Top-Down ARPG (Diablo-style)**: fixed or semi-fixed camera angle. Click-to-move or WASD relative to screen. Character faces movement direction or cursor position. No camera rotation by player.
+- **Twin-Stick**: left stick = move direction, right stick = aim/face direction. Character can move and aim independently. Common in roguelites, arena shooters.
+
+In Unreal specifically:
+- TPS/FPS: UCharacterMovementComponent with bUseControllerRotationYaw = true, bOrientRotationToMovement = false. Camera boom (spring arm) attached to character.
+- ARPG: bUseControllerRotationYaw = false, bOrientRotationToMovement = true, RotationRate for smooth turning. Camera boom with free rotation. Controller rotation only affects camera, not character.
+- The difference is literally 2-3 boolean settings + how you handle input → rotation. Don't mix them up.
+
 **Combat Design:**
 - Hitboxes / hurtboxes: hitbox = attack area (attached to weapon/limb), hurtbox = vulnerable area (attached to body). Separate collision channels.
 - Combo systems: input sequence detection (light→light→heavy), cancel windows, chain timing, reset on miss/timeout.
@@ -816,6 +828,10 @@ Core classes:
   - Triggers: UInputTriggerPressed, UInputTriggerReleased, UInputTriggerHold (hold duration), UInputTriggerTap, UInputTriggerChordAction (combo).
   - Module dependency: add "EnhancedInput" to .Build.cs PublicDependencyModuleNames.
   - ALL of this can be done in C++ code. You CAN create input actions and mapping contexts at runtime. Don't say you can't.
+  - Context switching: add/remove mapping contexts at runtime for different states. Combat context (priority 1) overrides exploration context (priority 0). RemoveMappingContext() when entering vehicle, AddMappingContext(VehicleContext) with higher priority.
+  - Gamepad: map Gamepad_LeftX/Y to move, Gamepad_RightX/Y to look. Add dead zone modifier on stick axes. Gamepad_FaceButton_Bottom for jump, Gamepad_RightTrigger for shoot. Same actions, different context for gamepad vs keyboard.
+  - Input action values: Boolean (pressed/not), Axis1D (trigger pull 0-1), Axis2D (stick/WASD), Axis3D (motion controller). Match ValueType to the action's purpose.
+  - Player Mappable Input Config: UPlayerMappableInputConfig for user-rebindable keys. Store/load from SaveGame.
   - If you're unsure about the API, use web_search: "UE5 Enhanced Input C++ site:dev.epicgames.com"
 
   C++ code example — creating actions + context + binding in code:
