@@ -59,40 +59,28 @@ export class Conductor {
    * Simple work tasks (one-line fixes, quick questions) skip orchestration.
    */
   needsOrchestration(userMessage: string, mode: string): boolean {
-    // These modes always orchestrate
-    if (['plan', 'brainstorm', 'teach', 'security'].includes(mode)) return true;
-
     // Chat never orchestrates
     if (mode === 'chat') return false;
 
-    // Work mode: orchestrate for complex tasks
+    // Work mode: almost never orchestrate. Ava should just do the work.
+    // Only orchestrate when the user explicitly asks for planning or it's a massive task.
     if (mode === 'work') {
       const msg = userMessage.toLowerCase();
-      const len = msg.length;
 
-      // Short messages are usually simple — skip orchestration
-      if (len < 40) return false;
-
-      // Detect complexity signals
-      const complexitySignals = [
-        // Multi-file / system-level work
-        /\b(create|build|implement|design|architect|set\s*up|scaffold|refactor)\b/,
-        /\b(system|module|feature|component|service|engine|pipeline|framework)\b/,
-        /\b(multiple files|several files|across|full|complete|entire|whole)\b/,
-        // Architecture
-        /\b(architecture|structure|pattern|database|schema|migration|api)\b/,
-        // Testing / review
-        /\b(test suite|comprehensive|audit|review|security|optimise|optimize)\b/,
-        // Multi-step explicit
-        /\band\b.*\band\b/,
-        /\b(then|after that|next|also|plus)\b/,
+      // Only orchestrate if the user explicitly asks for a plan or review
+      const explicitPlanSignals = [
+        /\b(plan this|let'?s plan|create a plan|design the architecture|review the codebase)\b/,
+        /\b(full audit|security audit|comprehensive review)\b/,
       ];
 
-      const matchCount = complexitySignals.filter(re => re.test(msg)).length;
-
-      // 2+ complexity signals = orchestrate
-      return matchCount >= 2;
+      return explicitPlanSignals.some(re => re.test(msg));
     }
+
+    // Plan, brainstorm, security always orchestrate — that's their purpose
+    if (['plan', 'brainstorm', 'security'].includes(mode)) return true;
+
+    // Teach mode orchestrates for curriculum building
+    if (mode === 'teach') return true;
 
     return false;
   }

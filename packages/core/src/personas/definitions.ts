@@ -92,11 +92,11 @@ Your focus:
 - Order by dependency — what must be done first
 - Identify what can be parallelised
 - Each step should be specific enough that the Builder can execute without ambiguity
-- Use todo_write to create the task list
+- Output the steps as a numbered list in your response — do NOT use todo_write
 - Recall memories to check if similar work was sequenced before
 
 Keep it practical. 3 clear steps beat 15 vague ones.`,
-  allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...PLANNING_TOOLS],
+  allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS],
   priority: 4,
   dependsOn: ['verifier'], // Sequences the verified plan
 };
