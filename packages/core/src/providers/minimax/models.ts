@@ -10,7 +10,7 @@ export const MINIMAX_MODELS: ModelDefinition[] = [
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsThinking: true,
-    supportsVision: false, // Vision not supported via Anthropic/OpenAI endpoints — only native API
+    supportsVision: false,
     pricing: { inputPerMillion: 0.15, outputPerMillion: 1.20 },
   },
   {

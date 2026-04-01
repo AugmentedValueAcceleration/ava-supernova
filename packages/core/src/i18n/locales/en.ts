@@ -80,7 +80,7 @@ export const enStrings: Record<string, string> = {
   'error.msg.model_not_found': 'This model isn\'t available on {provider}. It may have been renamed or removed.',
   'error.msg.rate_limit': '{provider} is limiting requests because too many were sent too quickly.',
   'error.msg.server_error': '{provider} is having technical difficulties (error {code}).',
-  'error.msg.empty_response': 'The AI didn\'t send a response. This usually means the service is overloaded.',
+  'error.msg.empty_response': 'The model returned an empty response. This can happen with unsupported features (like images on some models), overloaded services, or request formatting issues. Try again or switch models.',
   'error.msg.iteration_limit': 'This task needed more than {limit} steps. It may be too complex for a single message.',
   'error.msg.iteration_warning': '[WARNING] You have {remaining} iterations remaining before the loop limit. Wrap up your current task \u2014 summarize what you\'ve done and what\'s left. Don\'t start new multi-step work.',
   'error.msg.image_stripped': '[An image was shared but this model does not support vision]',

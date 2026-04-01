@@ -24,7 +24,8 @@ function getErrorLabel(code: string): string {
 
 // Errors where "Try Again" makes sense — the conversation context is intact
 const RESUMABLE_ERRORS = new Set([
-  'stream_stall', 'timeout', 'server_error', 'network', 'rate_limit', 'iterations_exceeded', 'context_truncated', 'provider_error', 'unknown',
+  'stream_stall', 'timeout', 'server_error', 'network', 'rate_limit', 'iterations_exceeded',
+  'context_truncated', 'provider_error', 'unknown', 'bad_request', 'model_not_found',
 ]);
 
 // Contextual SVG icons per error type — makes errors scannable at a glance

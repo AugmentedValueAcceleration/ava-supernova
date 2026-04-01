@@ -244,6 +244,11 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'done':
       return { ...state, isStreaming: false, isThinking: false, conductorActive: false, activePersonas: [] };
 
+    case 'remove_last_error': {
+      const filtered = state.messages.filter((m, i) => !(m.role === 'error' && i === state.messages.length - 1));
+      return { ...state, messages: filtered };
+    }
+
     case 'conductor_status': {
       if (action.active) {
         // Create an assistant bubble for the conductor to render persona status in
@@ -644,8 +649,16 @@ export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCol
   }, []);
 
   const handleContinue = useCallback(() => {
-    post({ type: 'send_message', text: t('app.continue'), mode: 'code' });
-  }, []);
+    // Find the last user message and resend it
+    const lastUserMsg = [...state.messages].reverse().find(m => m.role === 'user');
+    if (lastUserMsg?.content) {
+      // Remove the error message first so it doesn't accumulate
+      dispatch({ type: 'remove_last_error' });
+      post({ type: 'send_message', text: lastUserMsg.content, mode: 'code' });
+    } else {
+      post({ type: 'send_message', text: t('app.continue'), mode: 'code' });
+    }
+  }, [state.messages]);
 
   const handleSuggestion = useCallback((prompt: string) => {
     post({ type: 'send_message', text: prompt, mode: 'code' });
