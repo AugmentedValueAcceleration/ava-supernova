@@ -53,6 +53,7 @@ function tt(key: string, fallback: string): string {
 
 function getNavItems(isAdmin?: boolean): NavItem[] {
   const items: NavItem[] = [
+    { page: 'overview', icon: '\u26A1', label: tt('dash.nav.command_centre', 'Command Centre'), description: tt('dash.nav.command_centre_desc', 'Your daily overview') },
     { page: 'chat', icon: '\uD83D\uDCAC', label: tt('dash.nav.ava_chat', 'Chat'), description: tt('dash.nav.ava_chat_desc', 'Talk, build, create') },
     { page: 'planner', icon: '\uD83D\uDCCB', label: 'Planner', description: 'Tasks, journal, learning' },
     { page: 'memory', icon: '\uD83E\uDDE0', label: tt('dash.nav.memory', 'Memory'), description: tt('dash.nav.memory_desc', 'Patterns, preferences, decisions') },
