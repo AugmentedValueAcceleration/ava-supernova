@@ -4,8 +4,12 @@ export type { AgentEvent, AgentEventHandler, ContextUsage } from './agent/agent.
 export { Conversation } from './agent/conversation.js';
 
 // Auto Mode
-export { AutoCoordinator, ModelRouter, classifyTask, ContextTracker } from './auto/index.js';
-export type { TaskCategory as AutoTaskCategory, ClassificationResult, RouteResult, UserRoutePreferences, TaskBrief, AutoEvent } from './auto/index.js';
+export { AutoCoordinator, ModelRouter, classifyTask, ContextTracker, resolveCoordinatorModel } from './auto/index.js';
+export type { TaskCategory as AutoTaskCategory, ClassificationResult, RouteResult, UserRoutePreferences, TaskBrief, AutoEvent, CoordinatorModelResult } from './auto/index.js';
+
+// Memory Agent
+export { MemoryAgent } from './memory/memory-agent.js';
+export type { MemoryBrief, MemoryAgentOptions } from './memory/memory-agent.js';
 export type { SystemPromptOptions } from './agent/system-prompt.js';
 export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix } from './agent/system-prompt.js';
 

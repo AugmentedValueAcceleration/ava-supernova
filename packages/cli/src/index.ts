@@ -19,6 +19,7 @@ import {
   Conductor,
   BriefingEngine,
   AutoCoordinator,
+  MemoryAgent,
   AVA_HOME,
   detectProjectRoot,
   loadProjectInstructions,
@@ -113,6 +114,19 @@ async function main(): Promise<void> {
     activeModelId: resolved.model.id,
   };
 
+  // Memory Agent — curates briefs instead of raw memory dumps
+  const qwenFlash = providerRegistry.resolveModel('platform:qwen3-omni-flash')
+    || providerRegistry.resolveModel('platform:qwen-flash')
+    || providerRegistry.resolveModel('qwen:qwen3-omni-flash');
+  if (qwenFlash && memoryManager) {
+    const memoryAgent = new MemoryAgent({
+      memoryManager,
+      provider: qwenFlash.provider,
+      model: qwenFlash.model,
+    });
+    sharedState.memoryAgent = memoryAgent;
+  }
+
   // Build resilient provider with automatic failover
   const healthTracker = new ProviderHealthTracker();
   const fallbackChain = providerRegistry.buildFallbackChain(appConfig.activeModel);
@@ -155,11 +169,9 @@ async function main(): Promise<void> {
   if (appConfig.providers?.anthropic?.apiKey || process.env.ANTHROPIC_API_KEY) availableProviders.add('anthropic');
   if (appConfig.providers?.mistral?.apiKey || process.env.MISTRAL_API_KEY) availableProviders.add('mistral');
 
-  // Only enable Auto Mode if multiple providers are available (otherwise single-model is fine)
+  // Auto Mode — picks Kimi K2.5 for platform, best available for BYOK
   const autoCoordinator = availableProviders.size > 1 || availableProviders.has('platform')
-    ? new AutoCoordinator({
-        coordinatorProvider: provider,
-        coordinatorModel: resolved.model,
+    ? AutoCoordinator.create({
         providerRegistry,
         toolRegistry,
         cwd,
@@ -188,11 +200,9 @@ async function main(): Promise<void> {
       repl.setConductor(
         new Conductor({ provider, model, toolRegistry, cwd, sharedState }),
       );
-      // Update AutoCoordinator with new coordinator model
+      // Update AutoCoordinator — uses correct coordinator model (not user's selection)
       if (availableProviders.size > 1 || availableProviders.has('platform')) {
-        repl.setAutoCoordinator(new AutoCoordinator({
-          coordinatorProvider: provider,
-          coordinatorModel: model,
+        repl.setAutoCoordinator(AutoCoordinator.create({
           providerRegistry,
           toolRegistry,
           cwd,

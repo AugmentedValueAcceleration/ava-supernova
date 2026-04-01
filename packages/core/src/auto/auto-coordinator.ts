@@ -13,6 +13,7 @@ import { classifyTask } from './task-classifier.js';
 import { ModelRouter } from './model-router.js';
 import { generateBrief, formatBriefAsSystem } from './brief-generator.js';
 import { ContextTracker } from './context-tracker.js';
+import { resolveCoordinatorModel } from './coordinator-model.js';
 import { buildSystemPrompt } from '../agent/system-prompt.js';
 
 // Categories where Conductor orchestration may trigger on the spawned agent
@@ -87,6 +88,36 @@ export class AutoCoordinator {
       toolRegistry: opts.toolRegistry,
       cwd: opts.cwd,
       sharedState: opts.sharedState,
+    });
+  }
+
+  /**
+   * Create an AutoCoordinator with the correct coordinator model.
+   * Platform users: Kimi K2.5. BYOK users: best available. Free: Qwen Flash.
+   * Returns null if no model is available.
+   */
+  static create(opts: {
+    providerRegistry: ProviderRegistry;
+    toolRegistry: ToolRegistry;
+    cwd: string;
+    sharedState: Record<string, unknown>;
+    availableProviders: Set<string>;
+    platformKey?: string;
+    userPreferences?: UserRoutePreferences;
+    projectInstructions?: string;
+    systemPromptOpts?: Record<string, unknown>;
+  }): AutoCoordinator | null {
+    const coordinator = resolveCoordinatorModel(
+      opts.providerRegistry,
+      opts.availableProviders,
+      !!opts.platformKey || opts.availableProviders.has('platform'),
+    );
+    if (!coordinator) return null;
+
+    return new AutoCoordinator({
+      coordinatorProvider: coordinator.provider,
+      coordinatorModel: coordinator.model,
+      ...opts,
     });
   }
 
@@ -362,6 +393,19 @@ export class AutoCoordinator {
       ? content
       : content.filter(p => p.type === 'text').map(p => (p as { text: string }).text).join(' ');
 
+    // Try Memory Agent first (curated brief)
+    const ma = this.sharedState.memoryAgent as {
+      generateBrief?: (msg: string) => Promise<{ summary: string }>;
+    } | undefined;
+
+    if (ma?.generateBrief) {
+      try {
+        const brief = await ma.generateBrief(text);
+        if (brief.summary) return brief.summary;
+      } catch { /* fall through */ }
+    }
+
+    // Fallback: direct recall
     const mm = this.sharedState.memoryManager as {
       recall?: (opts: { query: string; limit: number; scope: string }) => Promise<Array<{ content: string; category: string }>>;
     } | undefined;

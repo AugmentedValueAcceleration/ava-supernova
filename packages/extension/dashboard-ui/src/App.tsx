@@ -22,6 +22,9 @@ import { Roadmap } from './pages/Roadmap';
 import { Library } from './pages/Library';
 import { Personality } from './pages/Personality';
 import { Chat } from './pages/Chat';
+import { Planner } from './pages/Planner';
+import { AccountPage } from './pages/AccountPage';
+import { HelpPage } from './pages/HelpPage';
 import type {
   Page,
   AccountInfo,
@@ -505,48 +508,76 @@ export function App() {
     switch (page) {
       case 'chat':
         return null; // Chat is rendered separately (always mounted)
+
+      // ── Consolidated pages ──────────────────────────────────────────
+      case 'planner':
+      case 'tasks':
+      case 'journal':
+      case 'learning':
+        return (
+          <Planner
+            tasks={tasks}
+            sessionTasks={sessionTasks}
+            journalDay={journalDay}
+            journalDate={selectedJournalDate}
+            userName={account?.name?.split(' ')[0] ?? null}
+            onSaveJournalEntry={(date, content, mood, tags) => post({ type: 'save_journal_user_entry', date, content, mood, tags })}
+            onDeleteUserEntry={(date) => post({ type: 'delete_journal_user_entry', date })}
+            onDeleteAvaEntry={(date) => post({ type: 'delete_journal_ava_entry', date })}
+            learningCurriculums={learningCurriculums}
+          />
+        );
+
+      case 'account':
+      case 'settings':
+      case 'billing':
+      case 'connections':
+      case 'personality':
+      case 'sync':
+      case 'keys':
+        return (
+          <AccountPage
+            settings={settings}
+            onSettingsChange={setSettings}
+            providerKeys={providerKeys}
+            onNavigate={setPagePersist}
+            personality={personalityData}
+            account={account}
+            avatarDataUrl={avatarDataUrl}
+            connections={connections}
+            syncStatus={syncStatus}
+            syncingTypes={syncingTypes}
+            syncResults={syncResults}
+            isPlatform={!!account}
+          />
+        );
+
+      case 'help':
+      case 'support':
+      case 'releases':
+      case 'roadmap':
+        return (
+          <HelpPage
+            tickets={tickets}
+            ticketsLoading={ticketsLoading}
+            releases={releases}
+            mode={mode}
+          />
+        );
+
+      // ── Standalone pages ────────────────────────────────────────────
       case 'overview':
         return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} />;
       case 'usage':
         return <Usage account={account} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} />;
       case 'memory':
         return <Memory memories={account ? memories : localMemories} mode={mode} serverTotal={account ? memoryTotal : undefined} serverHasMore={account ? memoryHasMore : undefined} />;
-      case 'tasks':
-        return <Tasks tasks={tasks} sessionTasks={sessionTasks} />;
-      case 'journal':
-        return (
-          <Journal
-            day={journalDay}
-            selectedDate={selectedJournalDate}
-            userName={account?.name?.split(' ')[0] ?? null}
-            onSaveUserEntry={(date, content, mood, tags) => post({ type: 'save_journal_user_entry', date, content, mood, tags })}
-            onDeleteUserEntry={(date) => post({ type: 'delete_journal_user_entry', date })}
-            onDeleteAvaEntry={(date) => post({ type: 'delete_journal_ava_entry', date })}
-          />
-        );
-      case 'learning':
-        return <Learning curriculums={learningCurriculums} />;
-      case 'sync':
-        return <Sync syncStatus={syncStatus} syncingTypes={syncingTypes} syncResults={syncResults} isConnected={!!account} />;
-      case 'releases':
-        return <Releases releases={releases} />;
-      case 'roadmap':
-        return <Roadmap />;
-      case 'library':
-        return <Library images={libraryImages} projectRoot={libraryProjectRoot} hasImagesFolder={libraryHasFolder} />;
-      case 'personality':
-        return <Personality personality={personalityData} />;
-      case 'connections':
-        return <Connections connections={connections} />;
       case 'history':
         return <History sessionStats={sessionStatsData} usageHistory={usageHistoryData} mode={account ? 'platform' : 'byok'} account={account} />;
-      case 'support':
-        return <Support tickets={tickets} loading={ticketsLoading} mode={mode} />;
-      case 'billing':
-        return account ? <Billing account={account} /> : <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys onNavigate={setPagePersist} personality={personalityData} account={account} />;
-      case 'keys':
-      case 'settings':
-        return <Settings settings={settings} onSettingsChange={setSettings} providerKeys={providerKeys} showProviderKeys onNavigate={setPagePersist} personality={personalityData} account={account} avatarDataUrl={avatarDataUrl} />;
+      case 'library':
+        return <Library images={libraryImages} projectRoot={libraryProjectRoot} hasImagesFolder={libraryHasFolder} />;
+
+      // ── Admin ───────────────────────────────────────────────────────
       case 'admin_support':
         return <AdminSupport tickets={adminTickets} total={adminTicketsTotal} loading={adminTicketsLoading} />;
       case 'admin_proposals':

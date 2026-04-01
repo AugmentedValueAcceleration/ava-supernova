@@ -128,16 +128,32 @@ export class ModelRouter {
   }
 
   private resolveAnyModel(reason: string): RouteResult | null {
-    // Try platform models
+    // Platform models (preferred order: coding-capable first)
     if (this.hasPlatform) {
-      const platformModels = ['qwen3-omni-flash', 'MiniMax-M2.7', 'kimi-k2.5'];
+      const platformModels = ['kimi-k2.5', 'MiniMax-M2.7', 'MiniMax-M2.5', 'qwen3.5-omni-plus', 'qwen3-omni-flash'];
       for (const id of platformModels) {
         const result = this.providerRegistry.resolveModel(`platform:${id}`);
         if (result) return { modelId: `platform:${id}`, provider: result.provider, model: result.model, reason };
       }
     }
 
-    // Try any registered provider
+    // BYOK models (dynamic — try whatever providers are available, best first)
+    const byokModels = ['kimi-k2.5', 'claude-sonnet-4-6', 'MiniMax-M2.7', 'deepseek-chat', 'mistral-large-latest', 'qwen3.5-omni-plus', 'qwen3-omni-flash'];
+    for (const id of byokModels) {
+      const result = this.providerRegistry.resolveModel(id);
+      if (result && this.isProviderAvailable(result.provider.name)) {
+        return { modelId: id, provider: result.provider, model: result.model, reason };
+      }
+      // Try with provider prefix
+      for (const providerName of this.availableProviders) {
+        if (providerName === 'platform') continue;
+        const qualified = `${providerName}:${id}`;
+        const r = this.providerRegistry.resolveModel(qualified);
+        if (r) return { modelId: qualified, provider: r.provider, model: r.model, reason };
+      }
+    }
+
+    // Last resort — any registered provider's default model
     for (const providerName of this.availableProviders) {
       const result = this.providerRegistry.resolveModel(providerName);
       if (result) return { modelId: result.model.id, provider: result.provider, model: result.model, reason };

@@ -38,7 +38,6 @@ interface HeaderProps {
   onFlipSidebar?: () => void;
   sidebarSide?: 'left' | 'right';
   sessionTokens?: number;
-  contextUsage?: { used: number; limit: number; percent: number } | null;
   providerSource?: ProviderSource;
   platformStatus?: { connected: boolean; tier: string | null; freeTokensUsed: number; freeTokensLimit: number } | null;
   onProviderSourceChange?: (source: ProviderSource) => void;
@@ -55,7 +54,6 @@ export function Header({
   onToggleSidebar,
   sidebarCollapsed,
   sessionTokens = 0,
-  contextUsage,
   providerSource,
   platformStatus,
   onProviderSourceChange,
@@ -65,8 +63,6 @@ export function Header({
                    hover:bg-[var(--vscode-toolbar-hoverBackground)]
                    text-[var(--vscode-foreground)] opacity-70 hover:opacity-100
                    bg-transparent border-none cursor-pointer text-sm`;
-
-  const contextPercent = contextUsage?.percent ?? 0;
 
   // Knowledge packs — persisted
   const [enabledPacks, setEnabledPacks] = useState<Set<string>>(() => {
@@ -271,26 +267,6 @@ export function Header({
         >
           {sessionTokens > 0 ? fmtTokens(sessionTokens) : '0'} tokens
         </span>
-
-        {/* Context usage ring */}
-        {contextPercent > 0 && (() => {
-          const isWarning = contextPercent >= 80;
-          const isCritical = contextPercent >= 90;
-          const color = isCritical ? '#ef4444' : isWarning ? '#eab308' : '#a855f7';
-          const r = 9;
-          const circumference = 2 * Math.PI * r;
-          const dashOffset = circumference - (contextPercent / 100) * circumference;
-          return (
-            <div className="relative flex items-center justify-center" style={{ width: 24, height: 24 }} title={`Context: ${contextPercent}%`}>
-              <svg width="22" height="22" viewBox="0 0 22 22" style={{ transform: 'rotate(-90deg)' }}>
-                <circle cx="11" cy="11" r={r} fill="none" stroke="rgba(168, 85, 247, 0.12)" strokeWidth="2.5" />
-                <circle cx="11" cy="11" r={r} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round"
-                  strokeDasharray={circumference} strokeDashoffset={dashOffset} style={{ transition: 'stroke-dashoffset 0.5s ease' }} />
-              </svg>
-              <span className="absolute text-[7px] font-bold tabular-nums" style={{ color, fontFamily: 'monospace' }}>{contextPercent}</span>
-            </div>
-          );
-        })()}
 
         {/* Tasks */}
         <button

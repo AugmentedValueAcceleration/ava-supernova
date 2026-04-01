@@ -104,6 +104,7 @@ Stay in the user's selected mode. Don't switch modes automatically.${opts.source
 export function buildContextualInjection(opts: {
   userMessage: string;
   relevantMemories?: string;
+  memoryBrief?: string;
   selfImprovement?: string;
   activeTasks?: string;
   journalContext?: string;
@@ -111,7 +112,9 @@ export function buildContextualInjection(opts: {
 }): string {
   const parts: string[] = [];
 
-  if (opts.relevantMemories) parts.push(`Memories: ${opts.relevantMemories}`);
+  // Prefer curated memory brief (from Memory Agent) over raw memories
+  if (opts.memoryBrief) parts.push(opts.memoryBrief);
+  else if (opts.relevantMemories) parts.push(`Memories: ${opts.relevantMemories}`);
   if (opts.selfImprovement) parts.push(`Learned: ${opts.selfImprovement}`);
   if (opts.activeTasks) parts.push(`Tasks: ${opts.activeTasks}`);
   if (opts.knowledgeContext) parts.push(`Knowledge: ${opts.knowledgeContext}`);

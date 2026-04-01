@@ -398,15 +398,16 @@ export class Agent {
           });
         }
         // Auto-extract memories from the conversation (fire-and-forget)
+        const ma = runContext.sharedState?.memoryAgent as { extractAndSave: (msgs: Message[], cid?: string) => Promise<number> } | undefined;
         const mm = runContext.sharedState?.memoryManager as MemoryManager | undefined;
-        if (mm) {
-          // Layer 1: Pattern-based extraction (instant, every turn)
+        if (ma) {
+          // Memory Agent: single extraction call (regex + LLM reflection)
+          ma.extractAndSave(messages).catch(() => {});
+        } else if (mm) {
+          // Legacy fallback: 4-layer extraction (when Memory Agent unavailable)
           autoExtractAndSave(messages, mm).catch(() => {});
-          // Layer 2: LLM reflection (end of meaningful conversations)
           reflectAndSave(messages, mm, this.provider, this.model).catch(() => {});
-          // Layer 3: Pattern detection (tracks corrections, style, workflow preferences)
           trackAndLearn(messages, mm).catch(() => {});
-          // Layer 4: Cross-memory insights (only for longer conversations, 6+ user turns)
           const userTurns = messages.filter(m => m.role === 'user').length;
           if (userTurns >= 6) {
             analyseAndSave(mm, this.provider, this.model).catch(() => {});

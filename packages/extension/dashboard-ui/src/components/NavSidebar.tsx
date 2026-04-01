@@ -51,51 +51,24 @@ function tt(key: string, fallback: string): string {
   return val === key ? fallback : val;
 }
 
-function getSections(): NavSection[] {
-  return [
-    {
-      title: 'Workspace',
-      items: [
-        { page: 'memory', icon: '\uD83E\uDDE0', label: tt('dash.nav.memory', 'Memory'), description: tt('dash.nav.memory_desc', 'Patterns, preferences, decisions') },
-        { page: 'tasks', icon: '\u2705', label: tt('dash.nav.tasks', 'Tasks'), description: tt('dash.nav.tasks_desc', "Today's plan and priorities") },
-        { page: 'journal', icon: '\uD83D\uDCD3', label: tt('dash.nav.journal', 'Journal'), description: tt('dash.nav.journal_desc', 'Daily reflections') },
-        { page: 'learning', icon: '\uD83C\uDF93', label: tt('dash.nav.learning', 'Learning'), description: tt('dash.nav.learning_desc', 'Curriculums and progress') },
-        { page: 'library', icon: '\uD83D\uDDBC\uFE0F', label: tt('dash.nav.library', 'Library'), description: tt('dash.nav.library_desc', 'Project files and media') },
-      ],
-    },
-    {
-      title: 'Personalise',
-      items: [
-        { page: 'personality', icon: '\uD83C\uDFA8', label: tt('dash.nav.personality', 'Personality'), description: tt('dash.nav.personality_desc', 'Customise your AI') },
-        { page: 'sync', icon: '\u2601\uFE0F', label: tt('dash.nav.cloud_sync', 'Sync'), description: tt('dash.nav.cloud_sync_desc', 'Push to cloud'), platformOnly: true },
-      ],
-    },
-    {
-      title: 'Account',
-      items: [
-        { page: 'history', icon: '\uD83D\uDCCA', label: tt('dash.nav.usage', 'Usage & History'), description: tt('dash.nav.usage_desc', 'Tokens, sessions, models') },
-        { page: 'billing', icon: '\uD83D\uDCB3', label: tt('dash.nav.billing', 'Billing'), description: tt('dash.nav.billing_desc', 'Plans and top-ups'), platformOnly: true },
-        { page: 'settings', icon: '\u2699\uFE0F', label: tt('dash.nav.settings', 'Settings'), description: tt('dash.nav.settings_desc', 'Preferences and API keys') },
-        { page: 'connections', icon: '\uD83D\uDD17', label: tt('dash.nav.connections', 'Connections'), description: tt('dash.nav.connections_desc', 'GitHub, Slack, email'), comingSoon: true },
-      ],
-    },
-    {
-      title: 'Help',
-      items: [
-        { page: 'releases', icon: '\uD83D\uDCCB', label: tt('dash.nav.release_notes', 'Releases'), description: tt('dash.nav.release_notes_desc', "What's new") },
-        { page: 'roadmap', icon: '\uD83D\uDDFA\uFE0F', label: 'Roadmap', description: 'Where Ava is heading' },
-        { page: 'support', icon: '\u2753', label: tt('dash.nav.support', 'Support'), description: tt('dash.nav.support_desc', 'Get help') },
-      ],
-    },
-    {
-      title: 'Admin',
-      adminOnly: true,
-      items: [
-        { page: 'admin_support', icon: '\uD83D\uDEE1\uFE0F', label: 'Admin Support', description: 'All user tickets', adminOnly: true },
-        { page: 'admin_proposals', icon: '\uD83D\uDD27', label: tt('dash.nav.proposals', 'Tool Proposals'), description: 'Review and approve', adminOnly: true },
-      ],
-    },
+function getNavItems(isAdmin?: boolean): NavItem[] {
+  const items: NavItem[] = [
+    { page: 'chat', icon: '\uD83D\uDCAC', label: tt('dash.nav.ava_chat', 'Chat'), description: tt('dash.nav.ava_chat_desc', 'Talk, build, create') },
+    { page: 'planner', icon: '\uD83D\uDCCB', label: 'Planner', description: 'Tasks, journal, learning' },
+    { page: 'memory', icon: '\uD83E\uDDE0', label: tt('dash.nav.memory', 'Memory'), description: tt('dash.nav.memory_desc', 'Patterns, preferences, decisions') },
+    { page: 'history', icon: '\uD83D\uDCCA', label: tt('dash.nav.usage', 'History'), description: tt('dash.nav.usage_desc', 'Tokens, sessions, models') },
+    { page: 'account', icon: '\u2699\uFE0F', label: 'Account', description: 'Settings, billing, personalisation' },
+    { page: 'help', icon: '\u2753', label: tt('dash.nav.support', 'Help'), description: 'Support, releases, roadmap' },
   ];
+
+  if (isAdmin) {
+    items.push(
+      { page: 'admin_support', icon: '\uD83D\uDEE1\uFE0F', label: 'Admin Support', description: 'All user tickets', adminOnly: true },
+      { page: 'admin_proposals', icon: '\uD83D\uDD27', label: tt('dash.nav.proposals', 'Tool Proposals'), description: 'Review and approve', adminOnly: true },
+    );
+  }
+
+  return items;
 }
 
 /* ── Exports ───────────────────────────────────────────────────────────── */
@@ -124,35 +97,14 @@ export function NavSidebar({
 }: NavSidebarProps) {
   useLocale();
 
-  // Section collapse state — persisted
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
-    try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : {}; }
-    catch { return {}; }
-  });
-
-  const toggleSection = (title: string) => {
-    setCollapsed(prev => {
-      const next = { ...prev, [title]: !prev[title] };
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* */ }
-      return next;
-    });
-  };
-
   // Load task dates for calendar on mount
   useEffect(() => { onLoadTaskDates?.(); }, []);
 
   const handleNavigate = (page: Page) => {
     onNavigate(page);
-    // Auto-expand section containing the page
-    const sections = getSections();
-    for (const s of sections) {
-      if (s.items.some(i => i.page === page) && collapsed[s.title]) {
-        toggleSection(s.title);
-      }
-    }
   };
 
-  const sections = getSections();
+  const navItems = getNavItems(isAdmin);
 
   // Resizable sidebar width — persisted
   const [dataPortOpen, setDataPortOpen] = useState(false);
@@ -254,95 +206,28 @@ export function NavSidebar({
         </div>
       </div>
 
-      {/* Navigation */}
-      <div className="flex-1 overflow-y-auto px-3 py-2">
-        {/* Chat — primary action */}
-        <NavItem
-          page="chat"
-          icon={'\uD83D\uDCAC'}
-          label={tt('dash.nav.ava_chat', 'Chat with Ava')}
-          description={tt('dash.nav.ava_chat_desc', 'Talk, build, create')}
-          isActive={currentPage === 'chat'}
-          onClick={() => handleNavigate('chat')}
-        />
-
-        {/* Command Centre */}
-        <NavItem
-          page="overview"
-          icon={'\u26A1'}
-          label={tt('dash.nav.command_centre', 'Command Centre')}
-          description={tt('dash.nav.command_centre_desc', 'Your daily overview')}
-          isActive={currentPage === 'overview'}
-          onClick={() => handleNavigate('overview')}
-        />
-
-        <div className="mt-1" />
-
-        {/* Grouped sections */}
-        {sections.map(section => {
-          if (section.adminOnly && !isAdmin) return null;
-
-          const visibleItems = section.items.filter(item => {
-            if (mode === 'byok' && item.platformOnly) return false;
-            if (item.adminOnly && !isAdmin) return false;
-            return true;
-          });
-
-          if (visibleItems.length === 0) return null;
-
-          const isCollapsed = collapsed[section.title];
-          const hasActivePage = visibleItems.some(item => item.page === currentPage);
-
-          return (
-            <div key={section.title} className="mt-1">
-              {/* Section header */}
-              <button
-                onClick={() => toggleSection(section.title)}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left border-none cursor-pointer transition bg-transparent hover:bg-[var(--bg-input)]/50"
-              >
-                <svg
-                  width="8" height="8" viewBox="0 0 16 16" fill="currentColor"
-                  className="opacity-40 transition-transform shrink-0"
-                  style={{ transform: isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)' }}
-                >
-                  <path d="M6 4l4 4-4 4V4z"/>
-                </svg>
-                <span className={`text-[9px] font-light uppercase tracking-wider ${section.adminOnly ? 'text-red-400/70' : 'text-[var(--text-muted)]'}`}>
-                  {section.title}
-                </span>
-                {isCollapsed && hasActivePage && (
-                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
-                )}
-              </button>
-
-              {/* Items */}
-              {!isCollapsed && (
-                <div className="mt-0.5">
-                  {visibleItems.map(item => (
-                    <NavItem
-                      key={item.page}
-                      page={item.page}
-                      icon={item.icon}
-                      label={item.label}
-                      description={item.description}
-                      isActive={currentPage === item.page}
-                      onClick={() => handleNavigate(item.page)}
-                      comingSoon={item.comingSoon}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
+      {/* Navigation — flat, 6 items */}
+      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5">
+        {navItems.map(item => (
+          <NavItem
+            key={item.page}
+            page={item.page}
+            icon={item.icon}
+            label={item.label}
+            description={item.description}
+            isActive={currentPage === item.page}
+            onClick={() => handleNavigate(item.page)}
+            comingSoon={item.comingSoon}
+          />
+        ))}
       </div>
 
       {/* Mini Calendar — always visible, task-focused */}
       <TaskCalendar
         taskDates={taskDates || []}
         onDayClick={(date) => {
-          // Navigate to tasks with date filter
-          handleNavigate('tasks');
+          // Navigate to planner (tasks tab)
+          handleNavigate('planner');
         }}
         onRefresh={onLoadTaskDates}
       />

@@ -31,6 +31,8 @@ import {
   resolveLocale,
   Conductor,
   AutoCoordinator,
+  MemoryAgent,
+  resolveCoordinatorModel,
   BriefingEngine,
   EventDetector,
   loadPersonality,
@@ -77,6 +79,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private journalManager?: JournalManager;
   private conductor?: Conductor;
   private autoCoordinator?: AutoCoordinator;
+  private memoryAgent?: MemoryAgent;
   private briefingEngine?: BriefingEngine;
   private eventDetector?: EventDetector;
   private projectContextReady?: Promise<void>;
@@ -916,7 +919,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     const minimaxApiKey = await this.context.secrets.get('ava-supernova.provider.minimax.apiKey') || process.env.MINIMAX_API_KEY;
 
-    const sharedState = {
+    const sharedState: Record<string, unknown> = {
       memoryManager: this.memoryManager,
       taskManager: this.taskManager,
       journalManager: this.journalManager,
@@ -925,6 +928,19 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       minimaxApiKey,
       activeModelId: model.id,
     };
+
+    // Memory Agent — curates memory briefs instead of raw dumps
+    const qwenFlash = this.providerRegistry.resolveModel('platform:qwen3-omni-flash')
+      || this.providerRegistry.resolveModel('platform:qwen-flash')
+      || this.providerRegistry.resolveModel('qwen:qwen3-omni-flash');
+    if (qwenFlash && this.memoryManager) {
+      this.memoryAgent = new MemoryAgent({
+        memoryManager: this.memoryManager,
+        provider: qwenFlash.provider,
+        model: qwenFlash.model,
+      });
+      sharedState.memoryAgent = this.memoryAgent;
+    }
 
     this.agent = new Agent({
       provider: resilientProvider,
@@ -953,10 +969,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const deepseekKey = await this.context.secrets.get('ava-supernova.provider.deepseek.apiKey') || process.env.DEEPSEEK_API_KEY;
     if (deepseekKey) availableProviders.add('deepseek');
 
+    // Use static create() — picks Kimi K2.5 for platform, best available for BYOK
     if (availableProviders.size > 1 || availableProviders.has('platform')) {
-      this.autoCoordinator = new AutoCoordinator({
-        coordinatorProvider: resilientProvider,
-        coordinatorModel: model,
+      this.autoCoordinator = AutoCoordinator.create({
         providerRegistry: this.providerRegistry,
         toolRegistry: this.toolRegistry,
         cwd,
@@ -1842,24 +1857,39 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const images = attachments?.map((a) => a.data);
     this.postMessage({ type: 'user_message_ack', text, ...(images?.length ? { images } : {}) });
 
-    // Inject relevant memories as context for this message
+    // Inject memory brief (curated by Memory Agent) or fall back to raw recall
     try {
-      if (this.memoryManager && text.length > 5) {
+      if (this.memoryAgent && text.length > 5) {
+        const brief = await this.memoryAgent.generateBrief(text);
+        if (brief.summary) {
+          const topicList = brief.availableTopics.length > 0
+            ? '\n\nAvailable memory topics (use memory_recall for detail): ' +
+              brief.availableTopics.map(t => t.topic).join(', ')
+            : '';
+          const msgs = this.conversation!.getMessages();
+          msgs.push({
+            role: 'system' as const,
+            content: `[Memory Brief]\n${brief.summary}${topicList}`,
+          });
+          this.conversation!.setMessages(msgs);
+        }
+      } else if (this.memoryManager && text.length > 5) {
+        // Fallback: raw recall (no Memory Agent available)
         const recalled = await this.memoryManager.recall({ query: text, limit: 5, scope: 'all' });
         if (recalled.length > 0) {
           const memoryContext = recalled
             .map((r: { scope: string; entry: { category: string; content: string } }) =>
               `[${r.scope}/${r.entry.category}] ${r.entry.content.slice(0, 300)}`)
             .join('\n');
-          const msgs = this.conversation.getMessages();
+          const msgs = this.conversation!.getMessages();
           msgs.push({
             role: 'system' as const,
             content: `[Relevant memories for this message]\n${memoryContext}\n\nUse these if relevant. Don't mention them unless asked about memory.`,
           });
-          this.conversation.setMessages(msgs);
+          this.conversation!.setMessages(msgs);
         }
       }
-    } catch { /* non-fatal — memory recall is optional */ }
+    } catch { /* non-fatal — memory is optional */ }
 
     let streamStarted = false;
     let deltaCount = 0;

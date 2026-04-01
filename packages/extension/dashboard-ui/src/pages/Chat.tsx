@@ -761,7 +761,6 @@ export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCol
             onFlipSidebar={onFlipSidebar}
             sidebarSide={sidebarSide}
             sessionTokens={state.sessionTokens}
-            contextUsage={state.contextUsage}
             providerSource={state.providerSource}
             platformStatus={state.platformStatus}
             onProviderSourceChange={handleProviderSourceChange}

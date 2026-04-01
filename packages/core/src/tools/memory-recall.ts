@@ -1,25 +1,23 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import type { MemoryManager } from '../memory/memory-manager.js';
+import type { MemoryAgent } from '../memory/memory-agent.js';
 import type { MemoryCategory } from '../memory/types.js';
 import { MEMORY_CATEGORIES } from '../memory/types.js';
 
 export class MemoryRecallTool implements Tool {
   readonly name = 'memory_recall';
-  readonly description = 'Search persistent memory using smart TF-IDF ranking';
+  readonly description = 'Ask the memory agent for detailed information from your stored memories';
   readonly riskLevel: ToolRiskLevel = 'safe';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'memory_recall',
     description:
-      'Search your saved memories using smart TF-IDF ranking. Results are scored by ' +
-      'a combination of content relevance, recency, and recall frequency. ' +
-      'Use this when you need to find specific stored knowledge — user preferences, ' +
-      'past decisions, project patterns, bug fixes. ' +
-      'Results show category, relevance score, match type (substring/tfidf/semantic), ' +
-      'and temporal metadata. Memory is also shown in your system prompt, but this ' +
-      'tool lets you search for specific entries when memory grows large.',
+      'Ask the memory agent for detailed recall on a specific topic. ' +
+      'The memory brief in your context shows what\'s available — use this tool when ' +
+      'you need deeper detail on a topic listed there, or to search for something ' +
+      'not in the brief. Falls back to direct TF-IDF search if the memory agent is unavailable.',
     parameters: {
       type: 'object',
       properties: {
@@ -65,6 +63,18 @@ export class MemoryRecallTool implements Tool {
       return { success: false, output: `Invalid category. Must be one of: ${MEMORY_CATEGORIES.join(', ')}` };
     }
 
+    // Try Memory Agent first (curated, intelligent recall)
+    const memoryAgent = context.sharedState?.memoryAgent as MemoryAgent | undefined;
+    if (memoryAgent) {
+      try {
+        const result = await memoryAgent.deepRecall(query, query);
+        return { success: true, output: result, metadata: { source: 'memory-agent', query, scope } };
+      } catch {
+        // Fall through to direct TF-IDF recall
+      }
+    }
+
+    // Direct TF-IDF recall (fallback when Memory Agent unavailable)
     const memoryManager = context.sharedState?.memoryManager as MemoryManager | undefined;
     if (!memoryManager) {
       return { success: false, output: 'Memory system is not available in this context.' };
