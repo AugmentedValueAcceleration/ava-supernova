@@ -54,6 +54,7 @@ export class Agent {
   private readonly toolRegistry: ToolRegistry;
   private readonly toolContext: ToolExecutionContext;
   private readonly pendingInterjections: string[] = [];
+  private _inThinkTag = false;
 
   constructor(opts: {
     provider: Provider;
@@ -107,6 +108,7 @@ export class Agent {
     const runContext = { ...this.toolContext, signal };
 
     let iterations = 0;
+    this._inThinkTag = false;
     let warningInjected = false;
     let lastToolName: string | null = null;
     let repeatCount = 0;
@@ -595,8 +597,28 @@ export class Agent {
         }
 
         if (delta.content) {
-          content += delta.content;
-          onEvent({ type: 'stream_delta', content: delta.content });
+          // Strip <think>...</think> tags — some models (MiniMax) embed thinking inline
+          let visibleContent = delta.content;
+          if (visibleContent.includes('<think>') || this._inThinkTag) {
+            // Track if we're inside a think tag across chunks
+            const parts = visibleContent.split(/(<\/?think>)/);
+            let visible = '';
+            for (const part of parts) {
+              if (part === '<think>') { this._inThinkTag = true; continue; }
+              if (part === '</think>') { this._inThinkTag = false; continue; }
+              if (this._inThinkTag) {
+                reasoningContent += part;
+                onEvent({ type: 'thinking_delta', content: part });
+              } else {
+                visible += part;
+              }
+            }
+            visibleContent = visible;
+          }
+          if (visibleContent) {
+            content += visibleContent;
+            onEvent({ type: 'stream_delta', content: visibleContent });
+          }
         }
 
         if (delta.tool_calls) {

@@ -128,6 +128,15 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
         )}
       </button>
 
+      {/* Live output for running tools (bash install progress etc) */}
+      {toolCall.status === 'running' && toolCall.partialOutput && (
+        <div className="pl-[18px] py-1">
+          <pre className="text-[10px] opacity-60 whitespace-pre-wrap max-h-24 overflow-y-auto overflow-x-hidden font-mono leading-relaxed">
+            {toolCall.partialOutput.slice(-500)}
+          </pre>
+        </div>
+      )}
+
       {/* Confirmation bar — always visible for pending_confirmation */}
       {isPending && toolCall.confirmationId && (
         <div className="pl-[18px] py-1.5 space-y-1.5">

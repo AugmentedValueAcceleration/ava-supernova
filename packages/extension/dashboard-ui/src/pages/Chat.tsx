@@ -178,6 +178,20 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return { ...state, messages };
     }
 
+    case 'tool_call_partial': {
+      const messages = [...state.messages];
+      const last = messages[messages.length - 1];
+      if (last && last.role === 'assistant') {
+        const toolCalls = last.toolCalls.map((tc) =>
+          tc.id === action.toolCallId
+            ? { ...tc, partialOutput: (tc.partialOutput || '') + action.data }
+            : tc,
+        );
+        messages[messages.length - 1] = { ...last, toolCalls };
+      }
+      return { ...state, messages };
+    }
+
     case 'tool_call_end': {
       const messages = [...state.messages];
       const last = messages[messages.length - 1];

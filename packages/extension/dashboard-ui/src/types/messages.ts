@@ -256,6 +256,7 @@ export interface ToolCallDisplay {
   arguments: string;
   status: 'pending_confirmation' | 'running' | 'success' | 'failed';
   result?: string;
+  partialOutput?: string;
   confirmationId?: string;
   summary?: string;
   isAskUser?: boolean;

@@ -29,7 +29,7 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsThinking: true,
-    supportsVision: true,
+    supportsVision: false,
     pricing: { inputPerMillion: 0.15, outputPerMillion: 1.20 },
   },
   // Qwen 3.5 Omni Plus — multimodal

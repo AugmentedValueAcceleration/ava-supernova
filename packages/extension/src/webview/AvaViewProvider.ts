@@ -1833,6 +1833,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           sessionStats.recordToolCall();
           break;
         }
+        case 'tool_call_partial': {
+          this.postMessage({
+            type: 'tool_call_partial',
+            toolCallId: event.toolCallId,
+            data: event.data,
+          });
+          break;
+        }
         case 'tool_call_end': {
           if (!AvaViewProvider.SILENT_TOOLS.has(event.toolCall.function.name)) {
             this.postMessage({

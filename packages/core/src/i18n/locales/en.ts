@@ -73,7 +73,7 @@ export const enStrings: Record<string, string> = {
   'error.continue': 'Try Again',
 
   // ── Error Messages (with interpolation) ───────────────────────────────────
-  'error.msg.bad_request': 'The request couldn\'t be processed by {provider}.',
+  'error.msg.bad_request': 'The request was rejected by {provider}. This could be an unsupported feature (like images), a context issue, or a model error. Try a different approach or switch models.',
   'error.msg.auth': 'Your API key for {provider} isn\'t working. It may be expired or incorrect.',
   'error.msg.credits': 'Your {provider} account has run out of credits.',
   'error.msg.forbidden': '{provider} blocked this request. Your API key may not have the right permissions.',
