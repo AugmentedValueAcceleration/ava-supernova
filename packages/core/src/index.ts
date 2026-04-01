@@ -2,6 +2,10 @@
 export { Agent } from './agent/agent.js';
 export type { AgentEvent, AgentEventHandler, ContextUsage } from './agent/agent.js';
 export { Conversation } from './agent/conversation.js';
+
+// Auto Mode
+export { AutoCoordinator, ModelRouter, classifyTask, ContextTracker } from './auto/index.js';
+export type { TaskCategory as AutoTaskCategory, ClassificationResult, RouteResult, UserRoutePreferences, TaskBrief, AutoEvent } from './auto/index.js';
 export type { SystemPromptOptions } from './agent/system-prompt.js';
 export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix } from './agent/system-prompt.js';
 

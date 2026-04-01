@@ -576,6 +576,16 @@ export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCol
     };
   }, [onRegisterDispatch, startFlushLoop, flushAllDeltas]);
 
+  // Safety watchdog: if isStreaming stays true for 30s without any events, force-clear it.
+  // This catches edge cases where 'done' is lost between extension host and webview.
+  useEffect(() => {
+    if (!state.isStreaming) return;
+    const watchdog = setTimeout(() => {
+      dispatch({ type: 'done' } as any);
+    }, 30_000);
+    return () => clearTimeout(watchdog);
+  }, [state.isStreaming, state.messages]);
+
   // Auto-focus chat input when page becomes active
   useEffect(() => {
     if (isActive) {

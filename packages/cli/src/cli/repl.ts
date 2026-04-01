@@ -2,7 +2,7 @@ import * as readline from 'node:readline';
 import { stdin, stdout } from 'node:process';
 import chalk from 'chalk';
 import { t, getSecurityModePrefix, getBrainstormModePrefix, Conductor } from '@ava/core';
-import type { Agent, AgentEvent, ConductorEvent, Conversation, ToolRegistry, HistoryManager } from '@ava/core';
+import type { Agent, AgentEvent, ConductorEvent, Conversation, ToolRegistry, HistoryManager, AutoCoordinator } from '@ava/core';
 import { Renderer } from './renderer.js';
 import { CommandHandler } from './commands.js';
 import { Spinner } from './spinner.js';
@@ -17,6 +17,7 @@ export class Repl {
   private spinner: Spinner;
   private agent: Agent;
   private conductor?: Conductor;
+  private autoCoordinator?: AutoCoordinator;
   private conversation: Conversation;
   private closed = false;
   private modelLabel: string;
@@ -29,6 +30,7 @@ export class Repl {
   constructor(opts: {
     agent: Agent;
     conductor?: Conductor;
+    autoCoordinator?: AutoCoordinator;
     conversation: Conversation;
     toolRegistry: ToolRegistry;
     historyManager: HistoryManager;
@@ -36,6 +38,7 @@ export class Repl {
   }) {
     this.agent = opts.agent;
     this.conductor = opts.conductor;
+    this.autoCoordinator = opts.autoCoordinator;
     this.conversation = opts.conversation;
     this.historyManager = opts.historyManager;
     this.renderer = new Renderer();
@@ -158,6 +161,10 @@ export class Repl {
 
   setConductor(conductor: Conductor): void {
     this.conductor = conductor;
+  }
+
+  setAutoCoordinator(autoCoordinator: AutoCoordinator | undefined): void {
+    this.autoCoordinator = autoCoordinator;
   }
 
   setCommands(commands: CommandHandler): void {
@@ -437,6 +444,16 @@ export class Repl {
         case 'interjection':
           // Already printed by the input listener
           break;
+        case 'auto_routing':
+          this.spinner.stop();
+          console.log(chalk.cyan(`  → Routing to ${(event as any).model} — ${(event as any).reason}`));
+          break;
+        case 'auto_agent_start':
+          this.spinner.start(`Working on ${(event as any).model}...`);
+          break;
+        case 'auto_agent_end':
+          this.spinner.stop();
+          break;
         case 'done':
           break;
       }
@@ -490,7 +507,8 @@ export class Repl {
         this.spinner.start(t('cli.thinking'));
       }
 
-      const updatedMessages = await this.agent.run(
+      const runner = this.autoCoordinator || this.agent;
+      const updatedMessages = await runner.run(
         this.conversation.getMessages(),
         onEvent,
         this.runAbortController.signal,

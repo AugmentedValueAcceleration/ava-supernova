@@ -13,6 +13,7 @@
     }
   },
   "scripts": {
+    "prebuild": "node scripts/generate-self-knowledge.mjs",
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch",
     "typecheck": "tsc --noEmit",

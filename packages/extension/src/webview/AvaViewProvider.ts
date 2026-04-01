@@ -30,6 +30,7 @@ import {
   setLocaleSync,
   resolveLocale,
   Conductor,
+  AutoCoordinator,
   BriefingEngine,
   EventDetector,
   loadPersonality,
@@ -75,6 +76,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private taskManager?: TaskManager;
   private journalManager?: JournalManager;
   private conductor?: Conductor;
+  private autoCoordinator?: AutoCoordinator;
   private briefingEngine?: BriefingEngine;
   private eventDetector?: EventDetector;
   private projectContextReady?: Promise<void>;
@@ -939,6 +941,32 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       cwd,
       sharedState,
     });
+
+    // Auto Mode — detect available providers and create coordinator
+    const availableProviders = new Set<string>();
+    const platformKey = sharedState.platformKey as string | undefined;
+    if (platformKey) availableProviders.add('platform');
+    if (qwenApiKey) availableProviders.add('qwen');
+    if (minimaxApiKey) availableProviders.add('minimax');
+    const kimiKey = await this.context.secrets.get('ava-supernova.provider.kimi.apiKey') || process.env.KIMI_API_KEY;
+    if (kimiKey) availableProviders.add('kimi');
+    const deepseekKey = await this.context.secrets.get('ava-supernova.provider.deepseek.apiKey') || process.env.DEEPSEEK_API_KEY;
+    if (deepseekKey) availableProviders.add('deepseek');
+
+    if (availableProviders.size > 1 || availableProviders.has('platform')) {
+      this.autoCoordinator = new AutoCoordinator({
+        coordinatorProvider: resilientProvider,
+        coordinatorModel: model,
+        providerRegistry: this.providerRegistry,
+        toolRegistry: this.toolRegistry,
+        cwd,
+        sharedState,
+        availableProviders,
+        platformKey,
+      });
+    } else {
+      this.autoCoordinator = undefined;
+    }
   }
 
   private getPermissionMode(): PermissionMode {
@@ -952,10 +980,33 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       return;
     }
 
+    // Auto Mode — use M2.5 as coordinator (1M context, cheap, great tool calling)
+    if (modelId === 'auto') {
+      const coordinatorId = this.providerRegistry.resolveModel('platform:MiniMax-M2.5')
+        ? 'platform:MiniMax-M2.5'
+        : this.providerRegistry.resolveModel('platform:MiniMax-M2.7')
+          ? 'platform:MiniMax-M2.7'
+          : this.getActiveModelId() || 'platform:qwen3-omni-flash';
+
+      const resolved = this.providerRegistry.resolveModel(coordinatorId);
+      if (!resolved) return;
+
+      await this.setupAgent(resolved.provider, resolved.model);
+
+      const config = vscode.workspace.getConfiguration('ava-supernova');
+      config.update('activeModel', 'auto', vscode.ConfigurationTarget.Global);
+
+      this.updateStatusBar('ready');
+      this.postMessage({ type: 'model_switched', modelId: 'auto', modelName: 'Auto' });
+      return;
+    }
+
     const resolved = this.providerRegistry.resolveModel(modelId);
     if (!resolved) return;
 
     await this.setupAgent(resolved.provider, resolved.model);
+    // Specific model selected — disable Auto Mode
+    this.autoCoordinator = undefined;
 
     const config = vscode.workspace.getConfiguration('ava-supernova');
     config.update('activeModel', modelId, vscode.ConfigurationTarget.Global);
@@ -1010,13 +1061,22 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       return true;
     });
 
-    return deduped.map((m) => ({
+    const modelList = deduped.map((m) => ({
       id: `${m.provider}:${m.id}`,
       name: m.name,
       provider: m.provider,
       available: m.available,
       ...(m.supportsVision ? { supportsVision: true } : {}),
     }));
+
+    // Add "Auto" as the first option if multiple providers are available
+    const hasMultiple = new Set(deduped.filter(m => m.available).map(m => m.provider)).size > 1
+      || deduped.some(m => m.provider === 'platform' && m.available);
+    if (hasMultiple) {
+      modelList.unshift({ id: 'auto', name: 'Auto', provider: 'Ava', available: true });
+    }
+
+    return modelList;
   }
 
   private getActiveModelId(): string | null {
@@ -1127,6 +1187,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       const { BUILTIN_PACKS } = require('@ava/core');
       const packSections: string[] = [];
       const loadedIds = new Set<string>();
+
+      // Always load internal packs (self-knowledge, etc.) — hidden from user, always active
+      for (const pack of (BUILTIN_PACKS || [])) {
+        if (pack.domain === 'internal') {
+          packSections.push(`## ${pack.name}\n\n${pack.context}`);
+          loadedIds.add(pack.id);
+        }
+      }
 
       // Auto-detect game projects
       if (cwd) {
@@ -1973,6 +2041,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         case 'interjection':
           this.log(`Interjection processed: "${event.content.slice(0, 80)}"`);
           break;
+        case 'auto_routing':
+          this.postMessage({ type: 'auto_routing', category: (event as any).category, model: (event as any).model, reason: (event as any).reason });
+          this.log(`Auto Mode: routing ${(event as any).category} → ${(event as any).model}`);
+          break;
+        case 'auto_agent_start':
+          this.postMessage({ type: 'auto_agent_start', model: (event as any).model });
+          this.log(`Auto Mode: agent started on ${(event as any).model}`);
+          break;
+        case 'auto_agent_end':
+          this.postMessage({ type: 'auto_agent_end', model: (event as any).model });
+          this.log(`Auto Mode: agent completed on ${(event as any).model}`);
+          break;
         case 'done':
           this.postMessage({ type: 'done' });
           this.log('Agent done');
@@ -2039,8 +2119,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         }
       }
 
-      this.log(`Calling agent.run() with ${this.conversation.getMessages().length} messages`);
-      const updatedMessages = await this.agent.run(
+      const runner = this.autoCoordinator || this.agent;
+      this.log(`Calling ${this.autoCoordinator ? 'autoCoordinator' : 'agent'}.run() with ${this.conversation.getMessages().length} messages`);
+      const updatedMessages = await runner!.run(
         this.conversation.getMessages(),
         onEvent,
         this.runAbortController.signal,
@@ -2078,6 +2159,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       this.isRunning = false;
       this.runAbortController = undefined;
       this.updateStatusBar('ready');
+      // Safety net: always send 'done' so the UI clears isStreaming.
+      // If 'done' was already sent via onEvent, this is a harmless no-op in the reducer.
+      this.postMessage({ type: 'done' });
       // Flush session tasks from todo_write to persistent storage
       if (this.taskManager) {
         this.taskManager.flushSessionTasks().catch(() => {});

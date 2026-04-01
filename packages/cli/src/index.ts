@@ -18,6 +18,7 @@ import {
   ResilientProvider,
   Conductor,
   BriefingEngine,
+  AutoCoordinator,
   AVA_HOME,
   detectProjectRoot,
   loadProjectInstructions,
@@ -144,9 +145,33 @@ async function main(): Promise<void> {
     sharedState,
   });
 
+  // Auto Mode — determine available providers for routing
+  const availableProviders = new Set<string>();
+  if (appConfig.platformKey) availableProviders.add('platform');
+  if (appConfig.providers?.qwen?.apiKey || process.env.QWEN_API_KEY) availableProviders.add('qwen');
+  if (appConfig.providers?.minimax?.apiKey || process.env.MINIMAX_API_KEY) availableProviders.add('minimax');
+  if (appConfig.providers?.kimi?.apiKey || process.env.KIMI_API_KEY) availableProviders.add('kimi');
+  if (appConfig.providers?.deepseek?.apiKey || process.env.DEEPSEEK_API_KEY) availableProviders.add('deepseek');
+  if (appConfig.providers?.anthropic?.apiKey || process.env.ANTHROPIC_API_KEY) availableProviders.add('anthropic');
+  if (appConfig.providers?.mistral?.apiKey || process.env.MISTRAL_API_KEY) availableProviders.add('mistral');
+
+  // Only enable Auto Mode if multiple providers are available (otherwise single-model is fine)
+  const autoCoordinator = availableProviders.size > 1 || availableProviders.has('platform')
+    ? new AutoCoordinator({
+        coordinatorProvider: provider,
+        coordinatorModel: resolved.model,
+        providerRegistry,
+        toolRegistry,
+        cwd,
+        sharedState,
+        availableProviders,
+        platformKey: appConfig.platformKey,
+      })
+    : undefined;
+
   // Set up REPL
   const modelLabel = `${resolved.provider.name}:${resolved.model.id}`;
-  const repl = new Repl({ agent, conductor, conversation, toolRegistry, historyManager, modelLabel });
+  const repl = new Repl({ agent, conductor, autoCoordinator, conversation, toolRegistry, historyManager, modelLabel });
 
   // Set up commands with live model switching
   const commands = new CommandHandler({
@@ -163,6 +188,19 @@ async function main(): Promise<void> {
       repl.setConductor(
         new Conductor({ provider, model, toolRegistry, cwd, sharedState }),
       );
+      // Update AutoCoordinator with new coordinator model
+      if (availableProviders.size > 1 || availableProviders.has('platform')) {
+        repl.setAutoCoordinator(new AutoCoordinator({
+          coordinatorProvider: provider,
+          coordinatorModel: model,
+          providerRegistry,
+          toolRegistry,
+          cwd,
+          sharedState,
+          availableProviders,
+          platformKey: appConfig.platformKey,
+        }));
+      }
       repl.setModelLabel(`${provider.name}:${model.id}`);
     },
     onRetry: () => {

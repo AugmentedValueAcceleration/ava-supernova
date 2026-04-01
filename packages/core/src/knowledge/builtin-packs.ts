@@ -6,8 +6,19 @@
  */
 
 import type { KnowledgePack } from './types.js';
+import { SELF_KNOWLEDGE_CONTENT } from './self-knowledge.js';
 
 export const BUILTIN_PACKS: KnowledgePack[] = [
+  {
+    id: 'ava-self-knowledge',
+    name: 'Ava Self-Knowledge',
+    description: 'Complete index of Ava\'s own source code — architecture, files, exports. Always active.',
+    domain: 'internal',
+    version: '1.0.0',
+    builtIn: true,
+    modes: [],
+    context: SELF_KNOWLEDGE_CONTENT,
+  },
   {
     id: 'marketing',
     name: 'Marketing & Growth',

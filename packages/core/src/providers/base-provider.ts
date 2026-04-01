@@ -55,7 +55,7 @@ export abstract class BaseProvider implements Provider {
   private static readonly BASE_DELAY_MS = 1000;
   private static readonly RATE_LIMIT_BASE_DELAY_MS = 5000;  // 5s base for rate limits (Zhipu free models need ~6s)
   private static readonly FETCH_TIMEOUT_MS = 60_000; // 60s connection timeout
-  private static readonly STREAM_READ_TIMEOUT_MS = 90_000; // 90s per-chunk — reasoning models can think for a while
+  private static readonly STREAM_READ_TIMEOUT_MS = 30_000; // 30s per-chunk — if no data for 30s, connection is likely dead
 
   protected async fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
     // Extract the caller's abort signal (for user cancellation) — it must not

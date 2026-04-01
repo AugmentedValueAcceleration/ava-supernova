@@ -1,190 +1,273 @@
+import { readFile, readdir, stat } from 'node:fs/promises';
+import { join, resolve, extname } from 'node:path';
+import { existsSync } from 'node:fs';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 
 /**
- * Self-inspect tool — Ava can read her own source code from GitHub.
+ * Self-inspect tool — Ava reads her own source code.
  *
- * This makes Ava the only AI that can explain its own implementation.
- * Open source means full transparency — she can show users exactly
- * how she works, point contributors to the right files, and reference
- * her own architecture when planning.
+ * Priority order:
+ * 1. Platform API (synced file bases — always available, no rate limits)
+ * 2. Local filesystem (dev environment only)
+ * 3. GitHub API (fallback, rate-limited)
+ *
+ * The self-knowledge pack already gives Ava the project index.
+ * This tool is only needed to read actual file contents.
  */
 
-const GITHUB_ORG = 'AugmentedValueAcceleration';
-const GITHUB_BRANCH = 'development';
-
-const REPOS: Record<string, string> = {
-  core: 'ava-supernova',
-  platform: 'ava-supernova-platform',
-  companion: 'ava-supernova-companion',
-  ide: 'ava-supernova-ide',
-};
+const PLATFORM_SOURCE_URL = 'https://ava-supernova.com/api/source';
 
 const REPO_DESCRIPTIONS: Record<string, string> = {
-  core: 'Main monorepo — packages/core (agent engine, providers, 52 tools, memory), packages/cli (REPL), packages/extension (VS Code), packages/plugins',
-  platform: 'Web platform (Next.js) — admin panel, workspace, public site, dashboard, API routes, Supabase migrations',
-  companion: 'Companion web app (Next.js) — mobile-first chat, tasks, memory, journal, learning, BYOK support',
-  ide: 'Standalone desktop IDE (Electron/Theia) — deferred until revenue',
+  core: 'Main monorepo — packages/core (agent engine, providers, 54 tools, memory), packages/cli (REPL), packages/extension (VS Code)',
+  extension: 'VS Code extension — host, webview UI, dashboard UI',
+  ide: 'Desktop IDE (Tauri) + Node.js sidecar',
+  mobile: 'Companion web app (Next.js) — mobile-first chat, tasks, memory, journal',
 };
-
-async function githubFetch(path: string): Promise<{ ok: boolean; data: unknown }> {
-  try {
-    const res = await fetch(`https://api.github.com${path}`, {
-      headers: {
-        'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'ava-self-inspect',
-      },
-      signal: AbortSignal.timeout(10000),
-    });
-    const data = await res.json();
-    return { ok: res.ok, data };
-  } catch {
-    return { ok: false, data: 'Request failed or timed out' };
-  }
-}
 
 export class SelfInspectTool implements Tool {
   readonly name = 'self_inspect';
-  readonly description = 'Read your own source code from GitHub — explain how you work, help contributors, reference your own architecture';
+  readonly description = 'Read your own source code when you need to quote or examine the actual implementation. You already have a full project index in your self-knowledge pack — use that to know WHERE files are. Only call this when you need to READ the actual code content.';
   readonly riskLevel: ToolRiskLevel = 'safe';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'self_inspect',
     description:
-      'Read your own source code from the Ava | Supernova GitHub repositories. Use this when:\n' +
-      '- A user asks how you work ("how does your memory work?", "what tools do you have?")\n' +
-      '- A contributor wants to understand the codebase ("where do I add a new tool?")\n' +
-      '- You need to reference your own architecture during planning\n' +
-      '- You want to explain a feature with actual code, not just descriptions\n\n' +
-      'Repos: core (monorepo — agent, tools, CLI, extension), platform (web + admin), companion (mobile app), ide (desktop)',
+      'Read your own source code. You already know the file structure from your self-knowledge pack. ' +
+      'Only call this to read actual file contents you need to quote or examine.\n\n' +
+      'File bases: core (agent engine, CLI), extension (VS Code), ide (desktop), mobile (companion)',
     parameters: {
       type: 'object',
       properties: {
         action: {
           type: 'string',
           enum: ['read_file', 'list_directory', 'search', 'overview'],
-          description: 'read_file = read a specific file, list_directory = list contents of a path, search = search code across repos, overview = get high-level project structure',
+          description: 'read_file = read a specific file, list_directory = list contents of a path, search = search code, overview = list all file bases',
         },
-        repo: {
+        base: {
           type: 'string',
-          enum: ['core', 'platform', 'companion', 'ide'],
-          description: 'Which repository. core = main monorepo (most things live here), platform = web/admin, companion = mobile app, ide = desktop IDE',
+          enum: ['core', 'extension', 'ide', 'mobile'],
+          description: 'Which file base. core = agent engine + CLI, extension = VS Code, ide = desktop IDE, mobile = companion app',
         },
         path: {
           type: 'string',
-          description: 'For read_file/list_directory: file or directory path (e.g. "packages/core/src/tools" or "packages/core/src/memory/memory-manager.ts")',
+          description: 'File or directory path within the base (e.g. "agent/agent.ts", "src/components")',
         },
         query: {
           type: 'string',
-          description: 'For search: code search query (e.g. "registerBuiltins", "class MemoryManager", "export function build")',
+          description: 'For search: text to find in source files',
         },
       },
       required: ['action'],
     },
   };
 
-  async execute(args: Record<string, unknown>, _context: ToolExecutionContext): Promise<ToolResult> {
+  async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const action = args.action as string;
-    const repoKey = (args.repo as string) || 'core';
-    const repoName = REPOS[repoKey];
-    if (!repoName) {
-      return { success: false, output: `Unknown repo: ${repoKey}. Use: core, platform, companion, ide` };
+    const base = (args.base as string) || 'core';
+    const path = (args.path as string) || '';
+    const query = (args.query as string) || '';
+
+    if (!REPO_DESCRIPTIONS[base]) {
+      return { success: false, output: `Unknown base: ${base}. Use: core, extension, ide, mobile` };
     }
 
+    // Try platform API first (synced file bases — always available)
+    const platformKey = (context.sharedState as Record<string, unknown> | undefined)?.platformKey as string | undefined;
+    if (platformKey) {
+      const result = await this.readFromPlatform(platformKey, action, base, path, query);
+      if (result) return result;
+    }
+
+    // Fallback: local filesystem (dev environment)
+    const monorepoRoot = this.findMonorepoRoot(context.cwd);
+    if (monorepoRoot) {
+      const localRoot = this.getLocalPath(monorepoRoot, base);
+      if (localRoot) {
+        return this.readLocal(action, base, localRoot, path, query);
+      }
+    }
+
+    return { success: false, output: `Could not read ${base}/${path || ''}. Platform sync not available and local files not found. Ask the admin to sync the GitHub file bases in the company hub.` };
+  }
+
+  // ── Platform API ────────────────────────────────────────────────────────
+
+  private async readFromPlatform(platformKey: string, action: string, base: string, path: string, query: string): Promise<ToolResult | null> {
+    try {
+      const params = new URLSearchParams({ base, action });
+      if (path) params.set('path', path);
+      if (query) params.set('query', query);
+
+      const res = await fetch(`${PLATFORM_SOURCE_URL}?${params}`, {
+        headers: { 'Authorization': `Bearer ${platformKey}` },
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (!res.ok) {
+        if (res.status === 404) return null; // Not synced — fall through to local
+        return null;
+      }
+
+      const data = await res.json() as Record<string, unknown>;
+
+      if (action === 'overview') {
+        const bases = data.bases as Array<{ base_id: string; last_synced: string; file_count: number }>;
+        if (!bases || bases.length === 0) return null; // Not synced yet
+
+        const lines = Object.entries(REPO_DESCRIPTIONS).map(([key, desc]) => {
+          const b = bases.find(x => x.base_id === key);
+          const status = b?.last_synced ? `${b.file_count} files, synced ${new Date(b.last_synced).toLocaleDateString()}` : 'not synced';
+          return `**${key}** — ${desc}\n  (${status})`;
+        });
+        return { success: true, output: `# Ava Source Code\n\n${lines.join('\n\n')}` };
+      }
+
+      if (action === 'list_directory') {
+        const files = data.files as Array<{ path: string; type: string; size: number }>;
+        if (!files || files.length === 0) return null;
+        const items = files.map(f => `${f.type === 'dir' ? '📁' : '📄'} ${f.path.split('/').pop()}`).join('\n');
+        return { success: true, output: `**${base}/${path || '/'}**\n\n${items}` };
+      }
+
+      if (action === 'read_file') {
+        const content = data.content as string;
+        if (!content) return null;
+        const lines = content.split('\n').length;
+        const MAX = 15000;
+        if (content.length > MAX) {
+          return { success: true, output: `**${base}/${path}** (${lines} lines, truncated)\n\n\`\`\`\n${content.slice(0, MAX)}\n\`\`\`\n\n*Truncated at ${MAX} chars*` };
+        }
+        return { success: true, output: `**${base}/${path}** (${lines} lines)\n\n\`\`\`\n${content}\n\`\`\`` };
+      }
+
+      if (action === 'search') {
+        const matches = data.matches as string[];
+        if (!matches || matches.length === 0) return { success: true, output: `No results for "${query}" in ${base}` };
+        return { success: true, output: `**Search "${query}" in ${base}** (${matches.length} matches)\n\n${matches.map(m => `- **${m}**`).join('\n')}\n\nUse read_file to see the content.` };
+      }
+
+      return null;
+    } catch {
+      return null; // Platform unavailable — fall through
+    }
+  }
+
+  // ── Local filesystem ────────────────────────────────────────────────────
+
+  private async readLocal(action: string, base: string, localRoot: string, path: string, query: string): Promise<ToolResult> {
     switch (action) {
       case 'overview': {
-        const lines = Object.entries(REPO_DESCRIPTIONS).map(
-          ([key, desc]) => `**${key}** (${REPOS[key]})\n  ${desc}`
-        );
-        let out = `# Ava | Supernova — Project Overview\n\n${lines.join('\n\n')}`;
-
-        // Get root listing of requested repo
-        const { ok, data } = await githubFetch(`/repos/${GITHUB_ORG}/${repoName}/contents?ref=${GITHUB_BRANCH}`);
-        if (ok && Array.isArray(data)) {
-          out += `\n\n## ${repoKey} repo root:\n`;
-          out += (data as Array<{ name: string; type: string }>)
-            .map(f => `${f.type === 'dir' ? '📁' : '📄'} ${f.name}`)
-            .join('\n');
-        }
-
+        const lines = Object.entries(REPO_DESCRIPTIONS).map(([key, desc]) => `**${key}** — ${desc}`);
+        let out = `# Ava Source Code (local)\n\n${lines.join('\n\n')}`;
+        try {
+          const entries = await readdir(localRoot);
+          out += `\n\n## ${base} root:\n`;
+          for (const name of entries.sort()) {
+            if (name.startsWith('.') || name === 'node_modules' || name === 'dist') continue;
+            const s = await stat(join(localRoot, name)).catch(() => null);
+            out += `${s?.isDirectory() ? '📁' : '📄'} ${name}\n`;
+          }
+        } catch { /* ignore */ }
         return { success: true, output: out };
       }
 
       case 'read_file': {
-        const filePath = ((args.path as string) || '').replace(/^\//, '');
-        if (!filePath) return { success: false, output: 'path is required for read_file' };
-
-        const { ok, data } = await githubFetch(
-          `/repos/${GITHUB_ORG}/${repoName}/contents/${filePath}?ref=${GITHUB_BRANCH}`
-        );
-        if (!ok) return { success: false, output: `Could not read ${repoKey}/${filePath}` };
-
-        const file = data as { content?: string; type?: string; size?: number };
-        if (file.type !== 'file') return { success: false, output: `${filePath} is a ${file.type}, not a file. Use list_directory.` };
-        if (!file.content) return { success: false, output: 'File has no content (may be too large)' };
-
-        const content = Buffer.from(file.content, 'base64').toString('utf-8');
-        const MAX = 15000;
-        if (content.length > MAX) {
-          return {
-            success: true,
-            output: `**${repoKey}/${filePath}** (${content.split('\n').length} lines, truncated)\n\n\`\`\`\n${content.slice(0, MAX)}\n\`\`\`\n\n*Truncated at ${MAX} chars (${content.length} total)*`,
-          };
+        const cleanPath = path.replace(/^\//, '');
+        if (!cleanPath) return { success: false, output: 'path is required' };
+        try {
+          const content = await readFile(join(localRoot, cleanPath), 'utf-8');
+          const MAX = 15000;
+          const lines = content.split('\n').length;
+          if (content.length > MAX) {
+            return { success: true, output: `**${base}/${cleanPath}** (${lines} lines, truncated)\n\n\`\`\`\n${content.slice(0, MAX)}\n\`\`\`\n\n*Truncated at ${MAX} chars*` };
+          }
+          return { success: true, output: `**${base}/${cleanPath}** (${lines} lines)\n\n\`\`\`\n${content}\n\`\`\`` };
+        } catch {
+          return { success: false, output: `Could not read ${base}/${cleanPath}` };
         }
-
-        return {
-          success: true,
-          output: `**${repoKey}/${filePath}** (${content.split('\n').length} lines)\n\n\`\`\`\n${content}\n\`\`\``,
-        };
       }
 
       case 'list_directory': {
-        const dirPath = ((args.path as string) || '').replace(/^\//, '');
-        const apiPath = dirPath
-          ? `/repos/${GITHUB_ORG}/${repoName}/contents/${dirPath}?ref=${GITHUB_BRANCH}`
-          : `/repos/${GITHUB_ORG}/${repoName}/contents?ref=${GITHUB_BRANCH}`;
-
-        const { ok, data } = await githubFetch(apiPath);
-        if (!ok) return { success: false, output: `Could not list ${repoKey}/${dirPath || '/'}` };
-
-        const items = (data as Array<{ name: string; type: string; size: number }>)
-          .map(f => `${f.type === 'dir' ? '📁' : '📄'} ${f.name}${f.type !== 'dir' ? ` (${f.size}B)` : ''}`)
-          .join('\n');
-
-        return {
-          success: true,
-          output: `**${repoKey}/${dirPath || '/'}**\n\n${items}`,
-        };
+        const cleanPath = path.replace(/^\//, '');
+        const fullPath = cleanPath ? join(localRoot, cleanPath) : localRoot;
+        try {
+          const entries = await readdir(fullPath);
+          const items: string[] = [];
+          for (const name of entries.sort()) {
+            if (name.startsWith('.') || name === 'node_modules' || name === 'dist') continue;
+            const s = await stat(join(fullPath, name)).catch(() => null);
+            items.push(`${s?.isDirectory() ? '📁' : '📄'} ${name}`);
+          }
+          return { success: true, output: `**${base}/${cleanPath || '/'}**\n\n${items.join('\n')}` };
+        } catch {
+          return { success: false, output: `Could not list ${base}/${cleanPath || '/'}` };
+        }
       }
 
       case 'search': {
-        const query = args.query as string;
-        if (!query) return { success: false, output: 'query is required for search' };
-
-        const scope = `repo:${GITHUB_ORG}/${repoName}`;
-        const { ok, data } = await githubFetch(
-          `/search/code?q=${encodeURIComponent(`${query} ${scope}`)}&per_page=15`
-        );
-        if (!ok) return { success: false, output: 'Code search failed' };
-
-        const results = data as { total_count: number; items: Array<{ path: string; name: string; repository: { name: string } }> };
-        if (results.total_count === 0) {
-          return { success: true, output: `No results for "${query}" in ${repoKey}` };
-        }
-
-        const matches = results.items
-          .map(item => `- **${item.path}**`)
-          .join('\n');
-
-        return {
-          success: true,
-          output: `**Search "${query}" in ${repoKey}** (${results.total_count} matches)\n\n${matches}\n\nUse read_file to see the full content of any match.`,
-        };
+        if (!query) return { success: false, output: 'query is required' };
+        const matches = await this.localSearch(localRoot, query, base);
+        if (matches.length === 0) return { success: true, output: `No results for "${query}" in ${base}` };
+        return { success: true, output: `**Search "${query}" in ${base}** (${matches.length} matches)\n\n${matches.join('\n')}\n\nUse read_file to see the content.` };
       }
 
       default:
-        return { success: false, output: `Unknown action: ${action}. Use: read_file, list_directory, search, overview` };
+        return { success: false, output: `Unknown action: ${action}` };
     }
+  }
+
+  private async localSearch(rootDir: string, query: string, base: string, maxResults = 15): Promise<string[]> {
+    const matches: string[] = [];
+    const skipDirs = new Set(['node_modules', 'dist', '.git', '.next', 'build', 'coverage']);
+    const extensions = new Set(['.ts', '.tsx', '.js', '.mjs', '.json', '.md', '.sql']);
+
+    const walk = async (dir: string, relative: string) => {
+      if (matches.length >= maxResults) return;
+      let entries: string[];
+      try { entries = await readdir(dir); } catch { return; }
+      for (const name of entries) {
+        if (matches.length >= maxResults) return;
+        if (skipDirs.has(name) || name.startsWith('.')) continue;
+        const fullPath = join(dir, name);
+        const relPath = relative ? `${relative}/${name}` : name;
+        let s;
+        try { s = await stat(fullPath); } catch { continue; }
+        if (s.isDirectory()) {
+          await walk(fullPath, relPath);
+        } else if (s.isFile() && extensions.has(extname(name))) {
+          try {
+            const content = await readFile(fullPath, 'utf-8');
+            if (content.includes(query)) matches.push(`- **${base}/${relPath}**`);
+          } catch { /* skip */ }
+        }
+      }
+    };
+
+    await walk(rootDir, '');
+    return matches;
+  }
+
+  private findMonorepoRoot(startDir: string): string | null {
+    let dir = resolve(startDir);
+    for (let i = 0; i < 10; i++) {
+      if (existsSync(join(dir, 'pnpm-workspace.yaml')) || existsSync(join(dir, 'packages', 'core'))) return dir;
+      const parent = resolve(dir, '..');
+      if (parent === dir) break;
+      dir = parent;
+    }
+    return null;
+  }
+
+  private getLocalPath(monorepoRoot: string, base: string): string | null {
+    const paths: Record<string, string> = {
+      core: join(monorepoRoot, 'packages', 'core', 'src'),
+      extension: join(monorepoRoot, 'packages', 'extension', 'src'),
+      ide: join(monorepoRoot, 'packages', 'ide', 'src'),
+      mobile: join(monorepoRoot, 'packages', 'mobile', 'src'),
+    };
+    const p = paths[base];
+    return p && existsSync(p) ? p : null;
   }
 }

@@ -28,11 +28,12 @@ export class KnowledgePackManager {
 
   // ── Public API — Read ───────────────────────────────────────────────────────
 
-  /** List all available packs (built-in + user) with enabled status. */
+  /** List all available packs (built-in + user) with enabled status. Internal packs are hidden. */
   async listPacks(): Promise<KnowledgePackMeta[]> {
     const enabled = await this.loadEnabled();
     const userPacks = await this.loadUserPacks();
-    const allPacks = [...BUILTIN_PACKS, ...userPacks];
+    // Hide internal packs (e.g. self-knowledge) — always active, not user-facing
+    const allPacks = [...BUILTIN_PACKS.filter(p => p.domain !== 'internal'), ...userPacks];
 
     return allPacks.map(p => ({
       id: p.id,
@@ -64,16 +65,23 @@ export class KnowledgePackManager {
     }
   }
 
-  /** Load all enabled packs, optionally filtered by mode and persona. */
+  /** Load all enabled packs, optionally filtered by mode and persona. Internal packs are always included. */
   async loadActive(mode?: string, persona?: string): Promise<KnowledgePack[]> {
     const enabled = await this.loadEnabled();
-    if (enabled.size === 0) return [];
-
     const packs: KnowledgePack[] = [];
 
+    // Always include internal packs (self-knowledge, etc.) — no user activation needed
+    for (const pack of BUILTIN_PACKS) {
+      if (pack.domain === 'internal') {
+        packs.push(pack);
+      }
+    }
+
+    // Add user-enabled packs
     for (const id of enabled) {
       const pack = await this.getPack(id);
       if (!pack) continue;
+      if (pack.domain === 'internal') continue; // Already added above
 
       // Filter by mode
       if (mode && pack.modes && pack.modes.length > 0 && !pack.modes.includes(mode)) continue;

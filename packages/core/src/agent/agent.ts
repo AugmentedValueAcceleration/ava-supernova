@@ -42,7 +42,11 @@ export type AgentEvent =
   | { type: 'context_compression_end'; originalTokens: number; compressedTokens: number }
   | { type: 'context_truncated'; droppedCount: number }
   | { type: 'interjection'; content: string }
-  | { type: 'done'; finalMessage: AssistantMessage };
+  | { type: 'done'; finalMessage: AssistantMessage }
+  // Auto Mode events — emitted by AutoCoordinator
+  | { type: 'auto_routing'; category: string; model: string; reason: string }
+  | { type: 'auto_agent_start'; model: string; category: string }
+  | { type: 'auto_agent_end'; model: string; summary?: string };
 
 export type AgentEventHandler = (event: AgentEvent) => void;
 
@@ -115,6 +119,9 @@ export class Agent {
     const MAX_SAME_TOOL_REPEATS = 3;
 
     while (iterations < MAX_TOOL_CALL_ITERATIONS) {
+      iterations++;
+      logger.debug(`[agent] ── Iteration ${iterations}/${MAX_TOOL_CALL_ITERATIONS} ── messages=${messages.length}`);
+
       // ── Sliding Window — compress old messages to memory ─────────────────
       // Keep context lean by saving older exchanges to project memory and
       // removing them from the conversation. The model always has recent
@@ -212,10 +219,8 @@ export class Agent {
         context: { used: estimatedTotal, limit: this.model.contextWindow, percent: contextPercent },
       });
 
-      // Auto-compress: either at 80% of context OR when messages exceed 50K tokens
-      // (for large context models like Qwen 1M, 80% never triggers — 50K cap prevents token bleed)
-      const TOKEN_CAP = 50_000;
-      if ((estimatedTotal > maxInputTokens || estimatedTotal > TOKEN_CAP) && messages.length >= 6) {
+      // Auto-compress at 70% of context window — proportional to model, no hard cap
+      if (estimatedTotal > maxInputTokens && messages.length >= 6) {
         messages = await this.compressContext(messages, onEvent, signal);
       }
 
@@ -340,11 +345,17 @@ export class Agent {
 
       let assistantMessage: AssistantMessage;
       let promptTokens: number;
+      const estimatedInput = this.estimateTokenCount(messages);
+      logger.debug(`[agent] Calling streamResponse (est. ${estimatedInput} input tokens, model context: ${this.model.contextWindow})`);
       try {
         ({ message: assistantMessage, promptTokens } = await this.streamResponse(request, onEvent, signal));
+        logger.debug(`[agent] streamResponse returned: content=${assistantMessage.content?.length ?? 0} chars, tool_calls=${assistantMessage.tool_calls?.length ?? 0}, promptTokens=${promptTokens}`);
       } catch (error) {
+        logger.error(`[agent] streamResponse THREW: ${error instanceof Error ? error.message : String(error)}`);
         // Surface the error through the event system so CLI/extension handle it consistently
         onEvent({ type: 'error', error: error instanceof Error ? error : new Error(String(error)) });
+        // Always emit done so UI clears isStreaming/isThinking
+        onEvent({ type: 'done', finalMessage: { role: 'assistant', content: '' } as any });
         return messages;
       }
       // Text-based tool parsing: extract <tool_call> blocks from the model's text
@@ -414,9 +425,14 @@ export class Agent {
         repeatCount++;
         if (repeatCount >= MAX_SAME_TOOL_REPEATS) {
           logger.warn(`[agent] HARD STOP: ${currentToolNames} called ${repeatCount + 1} times consecutively`);
+          const stopMsg = `Stopped: ${currentToolNames} was called ${repeatCount + 1} times in a row and kept failing. Try a different approach or start a new chat.`;
+          onEvent({
+            type: 'error',
+            error: Object.assign(new Error(stopMsg), { code: 'tool_loop_stopped' }),
+          });
           onEvent({
             type: 'done',
-            finalMessage: { role: 'assistant', content: `I was stuck in a loop calling ${currentToolNames} repeatedly. Stopping to avoid wasting tokens. Please try a different approach or start a new chat.` } as any,
+            finalMessage: { role: 'assistant', content: stopMsg } as any,
           });
           return messages;
         }
@@ -558,6 +574,8 @@ export class Agent {
     );
     (iterError as Error & { code?: string }).code = 'iterations_exceeded';
     onEvent({ type: 'error', error: iterError });
+    // Always emit done so the UI clears isStreaming
+    onEvent({ type: 'done', finalMessage: { role: 'assistant', content: 'Stopped: tool call iteration limit reached.' } as any });
     return messages;
   }
 

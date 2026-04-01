@@ -49,6 +49,7 @@ export type KnowledgeDomain =
   | 'mobile-development'
   | 'api-development'
   | 'systems-programming'
+  | 'internal'
   | 'custom';
 
 /** Lightweight pack metadata (for listing without loading full context). */
@@ -68,5 +69,5 @@ export const KNOWLEDGE_DOMAINS: KnowledgeDomain[] = [
   'marketing', 'finance', 'legal', 'sales', 'hr', 'product',
   'design', 'devops', 'security', 'data-science', 'education',
   'game-development', 'web-development', 'mobile-development',
-  'api-development', 'systems-programming', 'custom',
+  'api-development', 'systems-programming', 'internal', 'custom',
 ];
