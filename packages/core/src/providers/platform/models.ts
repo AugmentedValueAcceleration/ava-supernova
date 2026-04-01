@@ -19,6 +19,19 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsVision: true,
     pricing: { inputPerMillion: 0.60, outputPerMillion: 3.00 },
   },
+  // MiniMax M2.7 — self-evolving, premium reasoning, fewer hallucinations
+  {
+    id: 'MiniMax-M2.7',
+    name: 'MiniMax M2.7',
+    provider: 'platform',
+    contextWindow: 204800,
+    maxOutputTokens: 128000,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: false,
+    pricing: { inputPerMillion: 0.30, outputPerMillion: 1.20 },
+  },
   // MiniMax M2.5 — best tool calling, cheapest agentic model
   {
     id: 'MiniMax-M2.5',

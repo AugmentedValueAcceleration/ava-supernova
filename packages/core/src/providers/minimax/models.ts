@@ -2,6 +2,18 @@ import type { ModelDefinition } from '../../core/types.js';
 
 export const MINIMAX_MODELS: ModelDefinition[] = [
   {
+    id: 'MiniMax-M2.7',
+    name: 'MiniMax M2.7',
+    provider: 'minimax',
+    contextWindow: 204800,
+    maxOutputTokens: 128000,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: false,
+    pricing: { inputPerMillion: 0.30, outputPerMillion: 1.20 },
+  },
+  {
     id: 'MiniMax-M2.5',
     name: 'MiniMax M2.5',
     provider: 'minimax',
