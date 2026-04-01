@@ -1203,13 +1203,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       const packSections: string[] = [];
       const loadedIds = new Set<string>();
 
-      // Always load internal packs (self-knowledge, etc.) — hidden from user, always active
-      for (const pack of (BUILTIN_PACKS || [])) {
-        if (pack.domain === 'internal') {
-          packSections.push(`## ${pack.name}\n\n${pack.context}`);
-          loadedIds.add(pack.id);
-        }
-      }
+      // Skip internal packs (self-knowledge = 147KB = ~37K tokens).
+      // Ava accesses her own code via the self_inspect tool instead.
 
       // Auto-detect game projects
       if (cwd) {
