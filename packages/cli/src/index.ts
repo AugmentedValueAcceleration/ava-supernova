@@ -104,7 +104,13 @@ async function main(): Promise<void> {
     }),
   );
 
-  const sharedState = { memoryManager, platformKey: appConfig.platformKey };
+  const sharedState: Record<string, unknown> = {
+    memoryManager,
+    platformKey: appConfig.platformKey,
+    qwenApiKey: appConfig.providers?.qwen?.apiKey || process.env.QWEN_API_KEY,
+    minimaxApiKey: appConfig.providers?.minimax?.apiKey || process.env.MINIMAX_API_KEY,
+    activeModelId: resolved.model.id,
+  };
 
   // Build resilient provider with automatic failover
   const healthTracker = new ProviderHealthTracker();
@@ -150,6 +156,7 @@ async function main(): Promise<void> {
     toolRegistry,
     historyManager,
     onModelSwitch: (provider, model) => {
+      sharedState.activeModelId = model.id;
       repl.setAgent(
         new Agent({ provider, model, toolRegistry, cwd, sharedState }),
       );

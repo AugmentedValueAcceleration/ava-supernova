@@ -912,12 +912,16 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     const qwenApiKey = await this.context.secrets.get('ava-supernova.provider.qwen.apiKey') || process.env.QWEN_API_KEY;
 
+    const minimaxApiKey = await this.context.secrets.get('ava-supernova.provider.minimax.apiKey') || process.env.MINIMAX_API_KEY;
+
     const sharedState = {
       memoryManager: this.memoryManager,
       taskManager: this.taskManager,
       journalManager: this.journalManager,
       platformKey: await this.context.secrets.get('ava-supernova.platformKey'),
       qwenApiKey,
+      minimaxApiKey,
+      activeModelId: model.id,
     };
 
     this.agent = new Agent({

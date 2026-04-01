@@ -12,6 +12,7 @@ export interface AvaConfig {
     kimi?: ProviderSettings;
     glm?: ProviderSettings;
     qwen?: ProviderSettings;
+    minimax?: ProviderSettings;
     mistral?: ProviderSettings;
     generic?: Array<{
       name: string;

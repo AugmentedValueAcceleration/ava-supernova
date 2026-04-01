@@ -4,8 +4,9 @@ import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './ty
 import type { FunctionSchema } from '../providers/types.js';
 
 /**
- * Generate an AI image via DashScope Wan2.6 and save it to the project.
+ * Generate an AI image and save it to the project.
  *
+ * Supports Wan2.6 (DashScope/Qwen) and MiniMax image-01.
  * Smart prompt enhancement based on purpose (icons get transparent bg).
  * Vision verification loop using Qwen VL to check quality.
  */
@@ -13,6 +14,15 @@ import type { FunctionSchema } from '../providers/types.js';
 const DASHSCOPE_BASE = 'https://dashscope-intl.aliyuncs.com';
 const API_URL = `${DASHSCOPE_BASE}/api/v1/services/aigc/multimodal-generation/generation`;
 const VISION_URL = `${DASHSCOPE_BASE}/compatible-mode/v1/chat/completions`;
+
+const MINIMAX_IMAGE_URL = 'https://api.minimax.io/v1/image_generation';
+
+// MiniMax supported aspect ratios
+const MINIMAX_ASPECT_MAP: Record<string, string> = {
+  'square':    '1:1',
+  'portrait':  '3:4',
+  'landscape': '4:3',
+};
 
 const SIZE_MAP: Record<string, string> = {
   'square':    '1280*1280',
@@ -47,10 +57,12 @@ export class GenerateImageTool implements Tool {
   readonly schema: FunctionSchema = {
     name: 'generate_image',
     description:
-      'Generate an AI image using Wan2.6 text-to-image and save it to the project. ' +
+      'Generate an AI image and save it to the project. ' +
+      'Uses MiniMax image-01 when on a MiniMax model, or Wan2.6 when on a Qwen model. ' +
+      'Requires an active Qwen or MiniMax model — if neither is selected, tell the user to switch. ' +
       'Use for custom icons, illustrations, backgrounds, promotional graphics, or any visual asset. ' +
       'Images are saved to the project\'s images/ folder. Provide a descriptive prompt and a meaningful filename. ' +
-      'Supports square (1280x1280), portrait (768x1280), and landscape (1280x768) sizes. ' +
+      'Supports square, portrait, and landscape sizes. ' +
       'Set purpose to help with smart prompt enhancement (e.g. icons automatically get transparent backgrounds).',
     parameters: {
       type: 'object',
@@ -66,7 +78,7 @@ export class GenerateImageTool implements Tool {
         size: {
           type: 'string',
           enum: ['square', 'portrait', 'landscape'],
-          description: 'Image size: square (1280x1280), portrait (768x1280), landscape (1280x768). Default: square.',
+          description: 'Image size: square, portrait, landscape. Default: square.',
         },
         purpose: {
           type: 'string',
@@ -78,25 +90,55 @@ export class GenerateImageTool implements Tool {
     },
   };
 
+  // Detect image backend from the active chat model
+  private detectImageBackend(context: ToolExecutionContext): 'minimax' | 'wan2.6' | null {
+    const state = context.sharedState as Record<string, unknown> | undefined;
+    const activeModel = (state?.activeModelId as string || '').toLowerCase();
+
+    if (activeModel.startsWith('minimax')) return 'minimax';
+    if (activeModel.startsWith('qwen') || activeModel.startsWith('wan')) return 'wan2.6';
+
+    // Platform models — check prefix
+    if (activeModel === 'qwen3-omni-flash' || activeModel === 'qwen3.5-omni-plus' || activeModel === 'qwen3.5-plus' || activeModel === 'qwen-flash') return 'wan2.6';
+
+    return null;
+  }
+
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const rawPrompt = args.prompt as string;
     const rawFilename = (args.filename as string).replace(/\.\w+$/, '');
-    const size = SIZE_MAP[(args.size as string) || 'square'] || '1280*1280';
+    const sizeKey = (args.size as string) || 'square';
     const purpose = (args.purpose as string) || 'general';
 
-    const { apiKey, usePlatform, platformKey } = this.resolveApiKey(context);
-    if (!apiKey && !usePlatform) {
+    const backend = this.detectImageBackend(context);
+    if (!backend) {
       return {
         success: false,
-        output: 'Image generation requires either a platform account or a Qwen API key. Sign in to your account, or add a Qwen key in Settings > API Keys.',
+        output: 'Image generation requires a Qwen or MiniMax model. Switch to a Qwen model (uses Wan2.6) or a MiniMax model (uses image-01) to use this tool.',
       };
     }
+    const useMinimax = backend === 'minimax';
+
+    const size = SIZE_MAP[sizeKey] || '1280*1280';
+    const minimaxAspect = MINIMAX_ASPECT_MAP[sizeKey] || '1:1';
+
+    const resolved = useMinimax ? this.resolveMinimaxKey(context) : this.resolveApiKey(context);
+    if (!resolved.apiKey && !resolved.usePlatform) {
+      return {
+        success: false,
+        output: useMinimax
+          ? 'MiniMax image generation requires either a platform account or a MiniMax API key. Sign in to your account, or add a MiniMax key in Settings > API Keys.'
+          : 'Image generation requires either a platform account or a Qwen API key. Sign in to your account, or add a Qwen key in Settings > API Keys.',
+      };
+    }
+    const { apiKey, usePlatform, platformKey } = resolved;
 
     // Smart prompt enhancement based on purpose
     const promptAddition = PURPOSE_PROMPT_ADDITIONS[purpose] || '';
     const enhancedPrompt = rawPrompt + promptAddition;
 
-    context.onOutput?.(`Generating ${purpose} image with Wan2.6...\n`);
+    const modelLabel = useMinimax ? 'MiniMax image-01' : 'Wan2.6';
+    context.onOutput?.(`Generating ${purpose} image with ${modelLabel}...\n`);
     if (promptAddition) {
       context.onOutput?.(`Smart enhancement: added "${purpose}" optimisations to prompt\n`);
     }
@@ -111,9 +153,16 @@ export class GenerateImageTool implements Tool {
       }
 
       try {
-        const imageUrl = usePlatform
-          ? await this.generateViaPlatform(currentPrompt, size, platformKey!)
-          : await this.generateImage(currentPrompt, size, apiKey!);
+        let imageUrl: string | null;
+        if (useMinimax) {
+          imageUrl = usePlatform
+            ? await this.generateViaPlatform(currentPrompt, size, platformKey!, 'minimax')
+            : await this.generateMinimax(currentPrompt, minimaxAspect, apiKey!);
+        } else {
+          imageUrl = usePlatform
+            ? await this.generateViaPlatform(currentPrompt, size, platformKey!, 'wan2.6')
+            : await this.generateImage(currentPrompt, size, apiKey!);
+        }
         if (!imageUrl) {
           lastError = 'No image URL returned';
           continue;
@@ -215,8 +264,48 @@ export class GenerateImageTool implements Tool {
     return this.findImageUrl(data);
   }
 
+  private async generateMinimax(prompt: string, aspectRatio: string, apiKey: string): Promise<string | null> {
+    const res = await fetch(MINIMAX_IMAGE_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'image-01',
+        prompt,
+        aspect_ratio: aspectRatio,
+        response_format: 'url',
+        n: 1,
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`MiniMax image API error: ${errText}`);
+    }
+
+    const data = await res.json() as any;
+    // MiniMax returns { data: { images: [{ url: "..." }] } } or similar
+    if (data?.data?.images?.[0]?.url) return data.data.images[0].url;
+    if (data?.data?.[0]?.url) return data.data[0].url;
+    if (data?.url) return data.url;
+    // Try base64 fallback — not used with response_format: 'url' but just in case
+    if (data?.data?.images?.[0]?.base64) {
+      // Return as data URI so downloadImage can handle it
+      return `data:image/png;base64,${data.data.images[0].base64}`;
+    }
+    return null;
+  }
+
   private async downloadImage(imageUrl: string, context: ToolExecutionContext): Promise<Buffer | null> {
     context.onOutput?.('Downloading image...\n');
+    // Handle data URI (base64) responses
+    if (imageUrl.startsWith('data:')) {
+      const base64 = imageUrl.split(',')[1];
+      if (!base64) return null;
+      return Buffer.from(base64, 'base64');
+    }
     const imageRes = await fetch(imageUrl);
     if (!imageRes.ok) return null;
     return Buffer.from(await imageRes.arrayBuffer());
@@ -392,14 +481,32 @@ export class GenerateImageTool implements Tool {
     return { usePlatform: false };
   }
 
-  private async generateViaPlatform(prompt: string, size: string, platformKey: string): Promise<string | null> {
+  private resolveMinimaxKey(context: ToolExecutionContext): { apiKey?: string; usePlatform: boolean; platformKey?: string } {
+    const state = context.sharedState as Record<string, unknown> | undefined;
+
+    // BYOK MiniMax key — direct API
+    const minimaxKey = state?.minimaxApiKey as string | undefined;
+    if (minimaxKey) return { apiKey: minimaxKey, usePlatform: false };
+
+    // Environment key
+    const envKey = process.env.MINIMAX_API_KEY;
+    if (envKey) return { apiKey: envKey, usePlatform: false };
+
+    // Platform key — route through platform API
+    const platformKey = state?.platformKey as string | undefined;
+    if (platformKey) return { usePlatform: true, platformKey };
+
+    return { usePlatform: false };
+  }
+
+  private async generateViaPlatform(prompt: string, size: string, platformKey: string, model: string = 'wan2.6'): Promise<string | null> {
     const res = await fetch('https://ava-supernova.com/api/generate-image', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${platformKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ prompt, size }),
+      body: JSON.stringify({ prompt, size, model }),
     });
 
     if (!res.ok) {
