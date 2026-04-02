@@ -420,13 +420,14 @@ export class Agent {
       logger.debug(`[agent] Got ${assistantMessage.tool_calls.length} tool_calls: ${assistantMessage.tool_calls.map((tc: ToolCall) => tc.function.name).join(', ')}`);
 
       // ── Repeated tool-call detection ───────────────────────────────────────
-      // If the model calls the same tool 3+ times consecutively, break the loop.
-      const currentToolNames = assistantMessage.tool_calls.map((tc: ToolCall) => tc.function.name).sort().join(',');
-      if (currentToolNames === lastToolName) {
+      // If the model calls the same tool with the same arguments 3+ times, break the loop.
+      // Different arguments = different call = not a loop (e.g. list_directory on different paths).
+      const currentToolSig = assistantMessage.tool_calls.map((tc: ToolCall) => `${tc.function.name}:${tc.function.arguments}`).sort().join(',');
+      if (currentToolSig === lastToolName) {
         repeatCount++;
         if (repeatCount >= MAX_SAME_TOOL_REPEATS) {
-          logger.warn(`[agent] HARD STOP: ${currentToolNames} called ${repeatCount + 1} times consecutively`);
-          const stopMsg = `Stopped: ${currentToolNames} was called ${repeatCount + 1} times in a row and kept failing. Try a different approach or start a new chat.`;
+          logger.warn(`[agent] HARD STOP: ${currentToolSig} called ${repeatCount + 1} times consecutively`);
+          const stopMsg = `Stopped: ${currentToolSig} was called ${repeatCount + 1} times in a row and kept failing. Try a different approach or start a new chat.`;
           onEvent({
             type: 'error',
             error: Object.assign(new Error(stopMsg), { code: 'tool_loop_stopped' }),
@@ -438,7 +439,7 @@ export class Agent {
           return messages;
         }
       } else {
-        lastToolName = currentToolNames;
+        lastToolName = currentToolSig;
         repeatCount = 0;
       }
 
