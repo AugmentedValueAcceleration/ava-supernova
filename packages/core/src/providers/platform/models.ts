@@ -6,7 +6,19 @@ import type { ModelDefinition } from '../../core/types.js';
  * Free accounts: Qwen only (Omni Flash default).
  */
 export const PLATFORM_MODELS: ModelDefinition[] = [
-  // Kimi removed from platform — BYOK only (no enterprise billing available)
+  // Qwen 3.6 Plus — flagship conductor. Agentic coding, 1M context, always-on CoT.
+  {
+    id: 'qwen3.6-plus',
+    name: 'Qwen 3.6 Plus',
+    provider: 'platform',
+    contextWindow: 1000000,
+    maxOutputTokens: 65536,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: true,
+    pricing: { inputPerMillion: 0.29, outputPerMillion: 1.70 },
+  },
   // MiniMax M2.7 — self-evolving, premium reasoning, fewer hallucinations
   {
     id: 'MiniMax-M2.7',

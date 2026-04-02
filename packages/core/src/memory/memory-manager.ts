@@ -7,6 +7,7 @@ import type { PlatformMemorySync, SemanticMatch } from './platform-sync.js';
 import type {
   MemoryEntry,
   MemoryCategory,
+  MemoryLayer,
   MemoryStore,
   MemorySaveOptions,
   MemoryRecallOptions,
@@ -14,7 +15,7 @@ import type {
   MemoryStoreSummary,
   MemoryConsolidationGroup,
 } from './types.js';
-import { MEMORY_CATEGORIES, createEmptyStore } from './types.js';
+import { MEMORY_CATEGORIES, createEmptyStore, inferLayer } from './types.js';
 
 const MEMORY_FILENAME_V1 = 'memory.md';
 const MEMORY_FILENAME_V2 = 'memory.json';
@@ -192,8 +193,14 @@ export class MemoryManager {
 
     const index = opts.scope === 'global' ? this.globalIndex : this.projectIndex;
 
-    // Conflict detection — TF-IDF similarity + first-line fallback
-    const conflict = this.findConflict(store, index, opts.content, opts.category);
+    // Determine layer
+    const category = opts.category ?? 'general';
+    const layer: MemoryLayer = opts.layer ?? inferLayer(category, opts.scope);
+
+    // Conflict detection — skip for project layer (never auto-dedup project memories)
+    const conflict = layer === 'project'
+      ? null
+      : this.findConflict(store, index, opts.content, opts.category);
 
     let entry: MemoryEntry;
 
@@ -202,6 +209,7 @@ export class MemoryManager {
       conflict.content = opts.content;
       conflict.updatedAt = new Date().toISOString();
       conflict.category = opts.category ?? conflict.category;
+      conflict.layer = layer;
       if (opts.tags) conflict.tags = opts.tags;
       if (opts.branch !== undefined) conflict.branch = opts.branch;
       if (opts.directoryScope !== undefined) conflict.directoryScope = opts.directoryScope;
@@ -215,7 +223,8 @@ export class MemoryManager {
       // Create new entry
       entry = {
         id: randomUUID(),
-        category: opts.category ?? 'general',
+        category,
+        layer,
         content: opts.content,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -688,6 +697,7 @@ export class MemoryManager {
 
     const byCategory = {} as Record<MemoryCategory, number>;
     for (const cat of MEMORY_CATEGORIES) byCategory[cat] = 0;
+    const byLayer = { person: 0, workflow: 0, project: 0 } as Record<MemoryLayer, number>;
 
     const now = Date.now();
     let staleCount = 0;
@@ -703,6 +713,8 @@ export class MemoryManager {
       }
 
       byCategory[entry.category] = (byCategory[entry.category] ?? 0) + 1;
+      const layer = entry.layer ?? inferLayer(entry.category, scope);
+      byLayer[layer] = (byLayer[layer] ?? 0) + 1;
 
       if (!oldest || entry.createdAt < oldest) oldest = entry.createdAt;
       if (!newest || entry.createdAt > newest) newest = entry.createdAt;
@@ -717,6 +729,7 @@ export class MemoryManager {
     return {
       totalEntries: store.entries.filter(e => !e.archived).length,
       byCategory,
+      byLayer,
       oldestEntry: oldest,
       newestEntry: newest,
       staleCount,
@@ -826,10 +839,20 @@ export class MemoryManager {
     try {
       const raw = await readFile(v2Path, 'utf-8');
       const parsed = JSON.parse(raw) as MemoryStore;
-      if (parsed.version === 2 && Array.isArray(parsed.entries)) {
+      if ((parsed.version === 2 || parsed.version === 3) && Array.isArray(parsed.entries)) {
         // Fix corrupt entries whose content is a JSON store blob
         const cleaned = this.cleanBlobEntries(parsed);
         if (cleaned) {
+          await this.persistStore(dir, parsed);
+        }
+        // Auto-migrate v2 → v3: assign layer to entries that don't have one
+        if (parsed.version === 2 || parsed.entries.some(e => !e.layer)) {
+          for (const entry of parsed.entries) {
+            if (!entry.layer) {
+              entry.layer = inferLayer(entry.category, scope);
+            }
+          }
+          parsed.version = 3;
           await this.persistStore(dir, parsed);
         }
         return parsed;
@@ -958,7 +981,7 @@ export class MemoryManager {
     if (trimmedInput.startsWith('{')) {
       try {
         const parsed = JSON.parse(trimmedInput);
-        if (parsed.version === 2 && Array.isArray(parsed.entries)) {
+        if ((parsed.version === 2 || parsed.version === 3) && Array.isArray(parsed.entries)) {
           // It's a full MemoryStore — return the entries as-is
           return parsed.entries;
         }
@@ -1022,7 +1045,7 @@ export class MemoryManager {
       if (entry.content.startsWith('{"version":')) {
         try {
           const blob = JSON.parse(entry.content);
-          if (blob.version === 2 && Array.isArray(blob.entries)) {
+          if ((blob.version === 2 || blob.version === 3) && Array.isArray(blob.entries)) {
             toRemove.push(i);
             // Extract real entries, skip duplicates already in store
             const existingIds = new Set(store.entries.map(e => e.id));
@@ -1102,22 +1125,32 @@ export class MemoryManager {
 
   /** Format entries for system prompt (compact, category-grouped). */
   private formatEntriesForPrompt(entries: MemoryEntry[]): string {
-    const grouped = new Map<MemoryCategory, MemoryEntry[]>();
+    const layerLabels: Record<string, string> = {
+      person: 'About You',
+      workflow: 'How You Work',
+      project: 'This Project',
+    };
+
+    // Group by layer first, then category within each layer
+    const byLayer = new Map<string, MemoryEntry[]>();
     for (const entry of entries) {
-      const list = grouped.get(entry.category) ?? [];
+      const layer = entry.layer ?? 'workflow';
+      const list = byLayer.get(layer) ?? [];
       list.push(entry);
-      grouped.set(entry.category, list);
+      byLayer.set(layer, list);
     }
 
     const parts: string[] = [];
-    for (const [category, categoryEntries] of grouped) {
-      const label = category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ');
-      const items = categoryEntries.map(e => {
-        const stale = this.isStale(e) ? ' ⚠️ stale' : '';
+    for (const layerKey of ['person', 'workflow', 'project']) {
+      const layerEntries = byLayer.get(layerKey);
+      if (!layerEntries || layerEntries.length === 0) continue;
+
+      const items = layerEntries.map(e => {
+        const stale = this.isStale(e) ? ' (stale)' : '';
         const branchTag = e.branch ? ` [${e.branch}]` : '';
-        return `- ${e.content}${branchTag}${stale}`;
+        return `- [${e.category}] ${e.content}${branchTag}${stale}`;
       }).join('\n');
-      parts.push(`**${label}:**\n${items}`);
+      parts.push(`**${layerLabels[layerKey] || layerKey}:**\n${items}`);
     }
 
     return parts.join('\n\n');

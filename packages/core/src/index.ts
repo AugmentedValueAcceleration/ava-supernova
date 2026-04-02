@@ -67,6 +67,7 @@ export type { PlatformMemory, SemanticMatch } from './memory/platform-sync.js';
 export type {
   MemoryEntry,
   MemoryCategory,
+  MemoryLayer,
   MemoryStore,
   MemorySaveOptions,
   MemoryRecallOptions,
@@ -74,7 +75,7 @@ export type {
   MemoryStoreSummary,
   MemoryConsolidationGroup,
 } from './memory/types.js';
-export { MEMORY_CATEGORIES, createEmptyStore } from './memory/types.js';
+export { MEMORY_CATEGORIES, MEMORY_LAYERS, LAYER_CATEGORY_MAP, inferLayer, createEmptyStore } from './memory/types.js';
 export { TfIdfIndex, tokenize, cosineSimilarity } from './memory/tfidf.js';
 export { detectPatterns, trackAndLearn, PatternAccumulatorManager } from './memory/patterns.js';
 export type { DetectedPattern, PatternState } from './memory/patterns.js';

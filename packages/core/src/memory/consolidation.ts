@@ -32,8 +32,14 @@ export interface ConsolidationReport {
   runAt: string;
 }
 
-/** TF-IDF similarity threshold for merging related memories. */
-const MERGE_SIMILARITY_THRESHOLD = 0.7;
+/** TF-IDF similarity thresholds by layer. Person merges aggressively, project never. */
+// @ts-ignore — ready for layer-aware consolidation (Phase 10)
+const MERGE_THRESHOLDS: Record<string, number> = {
+  person: 0.6,       // Aggressive: keep most complete version
+  workflow: 0.7,     // Careful: standard dedup, newer wins contradictions
+  project: Infinity, // Never: project memories are never auto-deduplicated
+};
+const MERGE_SIMILARITY_THRESHOLD = 0.7; // Default for backwards compat
 
 /** Number of days without recall before a memory is considered stale. */
 const STALE_DAYS = 90;

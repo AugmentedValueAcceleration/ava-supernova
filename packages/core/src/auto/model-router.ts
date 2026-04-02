@@ -11,15 +11,15 @@ interface RouteEntry {
 }
 
 const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
-  coding:       { modelId: 'qwen3.5-omni-plus', reason: 'Best coding benchmarks (85.3% LiveCodeBench) + enterprise pricing', fallbackModelId: 'MiniMax-M2.7' },
-  vision:       { modelId: 'qwen3.5-omni-plus', reason: 'Vision-capable with strong reasoning', fallbackModelId: 'qwen3-omni-flash', requiresVision: true },
+  coding:       { modelId: 'qwen3.6-plus',      reason: 'Best agentic coding — Terminal-Bench #1, native function calling', fallbackModelId: 'qwen3.5-omni-plus' },
+  vision:       { modelId: 'qwen3.6-plus',      reason: 'Vision + reasoning + 1M context', fallbackModelId: 'qwen3.5-omni-plus', requiresVision: true },
   image_gen:    { modelId: 'MiniMax-M2.5',      reason: 'Image generation handled by generate_image tool' },
-  planning:     { modelId: 'MiniMax-M2.7',      reason: 'Strong reasoning, self-evolving', fallbackModelId: 'qwen3.5-omni-plus' },
+  planning:     { modelId: 'MiniMax-M2.7',      reason: 'Strong reasoning, self-evolving', fallbackModelId: 'qwen3.6-plus' },
   chat:         { modelId: 'MiniMax-M2.5',      reason: 'Fast, cheap, 1M context for conversation', fallbackModelId: 'qwen3-omni-flash' },
-  long_context: { modelId: 'MiniMax-M2.5',      reason: '1M context window for large codebases', fallbackModelId: 'qwen3.5-omni-plus' },
-  teach:        { modelId: 'MiniMax-M2.7',      reason: 'Patient, structured teaching', fallbackModelId: 'qwen3.5-omni-plus' },
-  security:     { modelId: 'qwen3.5-omni-plus', reason: 'Thorough tool calling for security audits', fallbackModelId: 'MiniMax-M2.7' },
-  brainstorm:   { modelId: 'MiniMax-M2.7',      reason: 'Creative reasoning', fallbackModelId: 'qwen3.5-omni-plus' },
+  long_context: { modelId: 'qwen3.6-plus',      reason: '1M context + always-on CoT', fallbackModelId: 'MiniMax-M2.5' },
+  teach:        { modelId: 'MiniMax-M2.7',      reason: 'Patient, structured teaching', fallbackModelId: 'qwen3.6-plus' },
+  security:     { modelId: 'qwen3.5-omni-plus', reason: 'Better security scores than 3.6 (88.1 vs 82.4)', fallbackModelId: 'MiniMax-M2.7' },
+  brainstorm:   { modelId: 'MiniMax-M2.7',      reason: 'Creative reasoning', fallbackModelId: 'qwen3.6-plus' },
 };
 
 /**

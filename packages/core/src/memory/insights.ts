@@ -9,7 +9,7 @@
  */
 
 import type { MemoryManager } from './memory-manager.js';
-import type { MemoryCategory } from './types.js';
+import type { MemoryCategory, MemoryLayer } from './types.js';
 import type { Provider } from '../providers/types.js';
 import type { Message, ModelDefinition } from '../core/types.js';
 import { logger } from '../core/logger.js';
@@ -146,10 +146,14 @@ export async function analyseAndSave(
     for (const insight of insights) {
       if (insight.confidence >= 0.7) {
         try {
+          const insightLayer: MemoryLayer = insight.category === 'person' ? 'person'
+            : ['preference', 'pattern', 'convention'].includes(insight.category) ? 'workflow'
+            : 'project';
           await memoryManager.saveEntry({
             scope: 'global',
             content: `[Insight] ${insight.title}: ${insight.summary}`,
             category: insight.category,
+            layer: insightLayer,
             tags: ['auto-insight', 'cross-memory'],
           });
           saved++;

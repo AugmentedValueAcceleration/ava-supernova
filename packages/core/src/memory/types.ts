@@ -1,11 +1,19 @@
 /**
- * Memory v2 — Structured memory types.
+ * Memory v3 — Three-Layer Memory System.
  *
- * Replaces flat markdown with categorized, timestamped entries
- * that support conflict detection, relevance scoring, and smart retrieval.
+ * Memories are organised into three layers:
+ *   Person   — who the user IS (name, role, values, personal context)
+ *   Workflow — HOW they work (tools, style, feedback prefs, patterns)
+ *   Project  — THIS codebase (architecture, bugs, decisions, conventions)
+ *
+ * Person + Workflow are always recalled. Project only when relevant.
+ * Person and Workflow auto-deduplicate. Project never does.
  */
 
-/** Categories for memory entries — helps with filtering and display. */
+/** The three memory layers — primary organiser for every memory. */
+export type MemoryLayer = 'person' | 'workflow' | 'project';
+
+/** Categories for memory entries — finer granularity within each layer. */
 export type MemoryCategory =
   | 'pattern'       // Coding patterns, conventions, best practices
   | 'preference'    // User preferences (style, workflow, tools)
@@ -23,6 +31,8 @@ export interface MemoryEntry {
   id: string;
   /** What category this memory belongs to. */
   category: MemoryCategory;
+  /** Which layer: person (who they are), workflow (how they work), project (this codebase). */
+  layer?: MemoryLayer;
   /** The actual memory content (markdown). */
   content: string;
   /** When this memory was first created (ISO 8601). */
@@ -51,8 +61,8 @@ export interface MemoryEntry {
 
 /** The full structured memory store persisted as JSON. */
 export interface MemoryStore {
-  /** Schema version for future migrations. */
-  version: 2;
+  /** Schema version — 2 = flat categories, 3 = three-layer system. */
+  version: 2 | 3;
   /** When this store was last modified (ISO 8601). */
   lastModified: string;
   /** The memory entries. */
@@ -64,6 +74,8 @@ export interface MemorySaveOptions {
   scope: 'global' | 'project';
   content: string;
   category?: MemoryCategory;
+  /** Which layer. If omitted, inferred from category + scope. */
+  layer?: MemoryLayer;
   tags?: string[];
   sourceConversationId?: string;
   /** Scope this memory to a specific git branch. */
@@ -78,6 +90,8 @@ export interface MemoryRecallOptions {
   /** Where to search: "global", "project", "all" (global+current), or "all_projects" (global+every known project). */
   scope?: 'global' | 'project' | 'all' | 'all_projects';
   category?: MemoryCategory;
+  /** Filter to a specific layer. */
+  layer?: MemoryLayer;
   limit?: number;
   /** Only return memories scoped to this branch (or unscoped). */
   branch?: string | null;
@@ -94,6 +108,8 @@ export interface MemoryRecallResult {
   relevance: number;
   /** How the match was found. */
   matchType: 'exact' | 'substring' | 'tfidf' | 'semantic';
+  /** Which layer this memory belongs to. */
+  layer?: MemoryLayer;
 }
 
 /** A group of related memory entries (for consolidation). */
@@ -112,6 +128,7 @@ export interface MemoryConsolidationGroup {
 export interface MemoryStoreSummary {
   totalEntries: number;
   byCategory: Record<MemoryCategory, number>;
+  byLayer: Record<MemoryLayer, number>;
   oldestEntry: string | null;
   newestEntry: string | null;
   staleCount: number; // entries not recalled in 90+ days
@@ -125,10 +142,31 @@ export const MEMORY_CATEGORIES: MemoryCategory[] = [
   'convention', 'tool-config', 'decision', 'person', 'general',
 ];
 
-/** Default empty store. */
+/** All valid layers as an array. */
+export const MEMORY_LAYERS: MemoryLayer[] = ['person', 'workflow', 'project'];
+
+/** Which categories belong to which layer (default mapping). */
+export const LAYER_CATEGORY_MAP: Record<MemoryLayer, MemoryCategory[]> = {
+  person: ['person', 'general'],
+  workflow: ['preference', 'convention', 'tool-config', 'pattern'],
+  project: ['architecture', 'bug-fix', 'decision', 'general'],
+};
+
+/**
+ * Infer layer from category + scope when layer isn't explicitly set.
+ * Used for backwards compat with existing memories and LLM fallback.
+ */
+export function inferLayer(category: MemoryCategory, scope: 'global' | 'project'): MemoryLayer {
+  if (scope === 'project') return 'project';
+  if (category === 'person') return 'person';
+  if (['preference', 'convention', 'tool-config', 'pattern'].includes(category)) return 'workflow';
+  return 'workflow'; // safe default for global scope
+}
+
+/** Default empty store (v3 — three-layer). */
 export function createEmptyStore(): MemoryStore {
   return {
-    version: 2,
+    version: 3,
     lastModified: new Date().toISOString(),
     entries: [],
   };

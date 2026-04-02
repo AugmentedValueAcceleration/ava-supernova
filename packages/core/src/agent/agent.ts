@@ -285,6 +285,23 @@ export class Agent {
         return msg;
       });
 
+      // Ensure all messages have string content and strip ANSI escape codes
+      // Qwen rejects content: null and ANSI codes with 400 Bad Request
+      sanitizedMessages = sanitizedMessages.map(m => {
+        if (m.content === null || m.content === undefined) {
+          return { ...m, content: '' };
+        }
+        if (typeof m.content === 'string') {
+          // Strip all ANSI escape sequences and control characters that APIs reject
+          const cleaned = m.content
+            .replace(/\u001b\[[0-9;]*[a-zA-Z]/g, '')  // Standard ANSI escape codes
+            .replace(/\u001b\][^\u0007]*\u0007/g, '')  // OSC sequences
+            .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');  // Control chars (keep \n \r \t)
+          if (cleaned !== m.content) return { ...m, content: cleaned };
+        }
+        return m;
+      });
+
       // Fix orphaned tool messages before sending — prevents 400 errors
       sanitizedMessages = this.fixToolPairing(sanitizedMessages);
 

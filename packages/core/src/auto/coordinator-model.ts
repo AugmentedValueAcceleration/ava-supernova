@@ -22,10 +22,10 @@ export interface CoordinatorModelResult {
 }
 
 // Ordered by reasoning capability — best first
-// Qwen 3.5 Plus is the platform conductor (50% enterprise pricing, best benchmarks)
-// Swaps to Qwen 3.6 Plus when approved
+// Qwen 3.6 Plus is the platform conductor — best agentic model, 1M context, always-on CoT
 const PLATFORM_PRIORITY = [
-  { id: 'qwen3.5-omni-plus', reason: 'Qwen 3.5 Plus — best reasoning + vision, enterprise pricing' },
+  { id: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — best agentic coding, 1M context, native function calling' },
+  { id: 'qwen3.5-omni-plus', reason: 'Qwen 3.5 Plus — fallback conductor' },
   { id: 'MiniMax-M2.7',      reason: 'MiniMax M2.7 — strong reasoning fallback' },
   { id: 'qwen3-omni-flash',  reason: 'Qwen Flash — free tier default' },
 ];

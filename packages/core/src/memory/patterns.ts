@@ -12,7 +12,7 @@ import { join } from 'node:path';
 import type { Message } from '../core/types.js';
 import { getTextContent } from '../core/types.js';
 import type { MemoryManager } from './memory-manager.js';
-import type { MemoryCategory } from './types.js';
+import type { MemoryCategory, MemoryLayer } from './types.js';
 import { logger } from '../core/logger.js';
 
 /** A detected interaction pattern. */
@@ -190,10 +190,12 @@ export class PatternAccumulatorManager {
     // Check if we should promote
     if (existing.count >= PROMOTION_THRESHOLD) {
       try {
+        const layer: MemoryLayer = existing.category === 'preference' ? 'workflow' : 'project';
         await memoryManager.saveEntry({
-          scope: existing.category === 'preference' ? 'global' : 'project',
+          scope: layer === 'project' ? 'project' : 'global',
           content: `[Cross-session pattern — ${existing.category}] ${existing.pattern}`,
           category: existing.category,
+          layer,
           tags: ['auto-learned', 'pattern-detection', 'cross-session'],
           sourceConversationId: conversationId,
         });
@@ -416,10 +418,12 @@ export async function trackAndLearn(
           : 'general';
 
         try {
+          const patternLayer: MemoryLayer = category === 'preference' ? 'workflow' : 'project';
           await memoryManager.saveEntry({
-            scope: category === 'preference' ? 'global' : 'project',
+            scope: patternLayer === 'project' ? 'project' : 'global',
             content: `[Learned pattern — ${pattern.type}] ${pattern.signal}`,
             category,
+            layer: patternLayer,
             tags: ['auto-learned', 'pattern-detection', pattern.type],
             sourceConversationId: conversationId,
           });

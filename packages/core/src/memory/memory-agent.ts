@@ -21,7 +21,8 @@ import { getTextContent } from '../core/types.js';
 import type { Provider } from '../providers/types.js';
 import type { ModelDefinition } from '../core/types.js';
 import type { MemoryManager } from './memory-manager.js';
-import type { MemoryCategory } from './types.js';
+import type { MemoryCategory, MemoryLayer } from './types.js';
+import { inferLayer } from './types.js';
 import { autoExtractAndSave } from './auto-extract.js';
 import { logger } from '../core/logger.js';
 
@@ -52,6 +53,13 @@ export interface MemoryAgentOptions {
 
 const BRIEF_PROMPT = `You are a memory curator for an AI assistant called Ava. Your job is to read raw memory entries and the user's current message, then write a concise brief that tells Ava what she needs to know.
 
+Memories are organized into three layers:
+- PERSON: who the user is (always relevant — name, role, values, personal context)
+- WORKFLOW: how the user works (always relevant — tools, style, preferences)
+- PROJECT: this specific codebase (relevant when discussing this project)
+
+Prioritize Person and Workflow memories — they apply everywhere. Include Project memories when they match the user's message.
+
 Rules:
 - Write 2-4 sentences summarising what's relevant to the user's message
 - Focus on facts, decisions, preferences, and context that help Ava respond well
@@ -76,13 +84,23 @@ Rules:
 const EXTRACT_PROMPT = `You are a memory extractor. Read the conversation exchange below and extract important facts worth remembering for future conversations.
 
 Extract as a JSON array. Each entry:
-{ "content": "concise fact (1-2 sentences)", "category": "preference|convention|architecture|bug-fix|decision|person|general", "scope": "global|project" }
+{ "content": "concise fact (1-2 sentences)", "category": "preference|convention|architecture|bug-fix|decision|person|general", "scope": "global|project", "layer": "person|workflow|project" }
+
+Layer rules:
+- "person": Facts about WHO the user is (name, role, expertise, values, personal context, relationships)
+- "workflow": HOW the user works (preferred tools, coding style, feedback preferences, work patterns). Use when a preference applies across all projects.
+- "project": Facts about THIS specific codebase (architecture, conventions, decisions, bugs, what's been tried)
+
+Context clues:
+- "I always use pnpm" → workflow (cross-project preference)
+- "We use pnpm workspaces here" → project (this codebase's setup)
+- "My name is..." → person
+- "I prefer TypeScript" → workflow
+- "The API uses REST not GraphQL" → project
 
 Rules:
 - Only extract non-obvious, useful information
 - Skip ephemeral details (debugging steps, temporary state)
-- Preferences and personal info → scope "global"
-- Project decisions, architecture, conventions → scope "project"
 - Maximum 5 entries per extraction
 - If nothing worth saving, return []`;
 
@@ -224,6 +242,7 @@ export class MemoryAgent {
             scope: mem.scope as 'global' | 'project',
             content: mem.content,
             category: mem.category as MemoryCategory,
+            layer: mem.layer as MemoryLayer,
             tags: ['memory-agent', 'auto-extracted'],
             branch: null,
             sourceConversationId: conversationId,
@@ -296,7 +315,7 @@ export class MemoryAgent {
 
   private async llmExtract(
     transcript: string,
-  ): Promise<Array<{ content: string; category: string; scope: string }>> {
+  ): Promise<Array<{ content: string; category: string; scope: string; layer: string }>> {
     const messages = [
       { role: 'system' as const, content: EXTRACT_PROMPT },
       { role: 'user' as const, content: transcript },
@@ -321,6 +340,7 @@ export class MemoryAgent {
         content?: string;
         category?: string;
         scope?: string;
+        layer?: string;
       }>;
 
       return parsed
@@ -330,6 +350,9 @@ export class MemoryAgent {
           content: e.content!,
           category: e.category!,
           scope: e.scope!,
+          layer: e.layer && ['person', 'workflow', 'project'].includes(e.layer)
+            ? e.layer
+            : inferLayer(e.category as MemoryCategory, e.scope as 'global' | 'project'),
         }));
     } catch {
       return [];

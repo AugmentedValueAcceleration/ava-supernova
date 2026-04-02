@@ -19,7 +19,8 @@
 import type { Message } from '../core/types.js';
 import { getTextContent } from '../core/types.js';
 import type { MemoryManager } from './memory-manager.js';
-import type { MemoryCategory } from './types.js';
+import type { MemoryCategory, MemoryLayer } from './types.js';
+import { inferLayer } from './types.js';
 import type { Provider } from '../providers/types.js';
 import type { ModelDefinition } from '../core/types.js';
 import { logger } from '../core/logger.js';
@@ -28,6 +29,7 @@ interface ExtractedMemory {
   content: string;
   category: MemoryCategory;
   scope: 'global' | 'project';
+  layer: MemoryLayer;
   tags?: string[];
 }
 
@@ -113,21 +115,22 @@ interface PatternGroup {
   patterns: RegExp[];
   category: MemoryCategory;
   scope: 'global' | 'project';
+  layer: MemoryLayer;
   tags: string[];
 }
 
 const USER_PATTERN_GROUPS: PatternGroup[] = [
-  { patterns: EXPLICIT_REMEMBER_PATTERNS, category: 'general', scope: 'project', tags: ['auto-extracted', 'explicit'] },
-  { patterns: PREFERENCE_PATTERNS, category: 'preference', scope: 'global', tags: ['auto-extracted'] },
-  { patterns: CORRECTION_PATTERNS, category: 'convention', scope: 'project', tags: ['auto-extracted', 'correction'] },
-  { patterns: DECISION_PATTERNS, category: 'decision', scope: 'project', tags: ['auto-extracted'] },
-  { patterns: ARCHITECTURE_PATTERNS, category: 'architecture', scope: 'project', tags: ['auto-extracted'] },
-  { patterns: PERSONAL_PATTERNS, category: 'person', scope: 'global', tags: ['auto-extracted'] },
-  { patterns: PROJECT_KNOWLEDGE_PATTERNS, category: 'general', scope: 'project', tags: ['auto-extracted', 'knowledge'] },
+  { patterns: EXPLICIT_REMEMBER_PATTERNS, category: 'general', scope: 'project', layer: 'project', tags: ['auto-extracted', 'explicit'] },
+  { patterns: PREFERENCE_PATTERNS, category: 'preference', scope: 'global', layer: 'workflow', tags: ['auto-extracted'] },
+  { patterns: CORRECTION_PATTERNS, category: 'convention', scope: 'project', layer: 'project', tags: ['auto-extracted', 'correction'] },
+  { patterns: DECISION_PATTERNS, category: 'decision', scope: 'project', layer: 'project', tags: ['auto-extracted'] },
+  { patterns: ARCHITECTURE_PATTERNS, category: 'architecture', scope: 'project', layer: 'project', tags: ['auto-extracted'] },
+  { patterns: PERSONAL_PATTERNS, category: 'person', scope: 'global', layer: 'person', tags: ['auto-extracted'] },
+  { patterns: PROJECT_KNOWLEDGE_PATTERNS, category: 'general', scope: 'project', layer: 'project', tags: ['auto-extracted', 'knowledge'] },
 ];
 
 const ASSISTANT_PATTERN_GROUPS: PatternGroup[] = [
-  { patterns: DISCOVERY_PATTERNS, category: 'bug-fix', scope: 'project', tags: ['auto-extracted', 'discovery'] },
+  { patterns: DISCOVERY_PATTERNS, category: 'bug-fix', scope: 'project', layer: 'project', tags: ['auto-extracted', 'discovery'] },
 ];
 
 /** Category labels used as prefixes in distilled memories. */
@@ -254,6 +257,7 @@ export function extractMemories(messages: Message[]): ExtractedMemory[] {
             content: distillMemory(text, pattern, group),
             category: group.category,
             scope: group.scope,
+            layer: group.layer,
             tags: [...group.tags],
           });
           break; // One match per group per message
@@ -284,6 +288,13 @@ Respond ONLY with a JSON array of memory objects. Each object must have:
 - "content": A concise, standalone summary (not the raw message — distill the key insight)
 - "category": One of: preference, convention, architecture, bug-fix, decision, person, tool-config, pattern, general
 - "scope": "global" (applies to all projects) or "project" (specific to this project)
+- "layer": "person" (who the user IS), "workflow" (HOW they work), or "project" (THIS specific codebase)
+
+Layer guidance:
+- "person": name, role, experience, values, personal context, relationships
+- "workflow": preferred tools, coding style, feedback preferences, work patterns — things that apply across ALL projects
+- "project": architecture decisions, bug fixes, conventions specific to THIS codebase
+- Context matters: "I always use pnpm" → workflow. "We use pnpm workspaces here" → project.
 
 Rules:
 - Only extract genuinely useful knowledge that would help in FUTURE conversations
@@ -299,6 +310,7 @@ interface ReflectionMemory {
   content: string;
   category: MemoryCategory;
   scope: 'global' | 'project';
+  layer?: string;
 }
 
 const VALID_CATEGORIES: MemoryCategory[] = [
@@ -373,6 +385,9 @@ export async function reflectAndExtract(
         content: m.content.slice(0, 500),
         category: m.category,
         scope: m.scope,
+        layer: (m.layer && ['person', 'workflow', 'project'].includes(m.layer)
+          ? m.layer
+          : inferLayer(m.category, m.scope)) as MemoryLayer,
         tags: ['auto-extracted', 'reflection'],
       }));
   } catch (err) {
@@ -406,12 +421,13 @@ export async function autoExtractAndSave(
           scope: mem.scope,
           content: mem.content,
           category: mem.category,
+          layer: mem.layer,
           tags: mem.tags,
           branch: null,
           sourceConversationId: conversationId,
         });
         saved++;
-        logger.debug(`[auto-memory] L1 saved ${mem.category} memory (${mem.scope}): ${mem.content.slice(0, 60)}...`);
+        logger.debug(`[auto-memory] L1 saved ${mem.layer}/${mem.category} memory (${mem.scope}): ${mem.content.slice(0, 60)}...`);
       } catch {
         // Dedup rejection or write error — non-fatal
       }
@@ -449,12 +465,13 @@ export async function reflectAndSave(
           scope: mem.scope,
           content: mem.content,
           category: mem.category,
+          layer: mem.layer,
           tags: mem.tags,
           branch: null,
           sourceConversationId: conversationId,
         });
         saved++;
-        logger.debug(`[auto-memory] L2 saved ${mem.category} memory (${mem.scope}): ${mem.content.slice(0, 60)}...`);
+        logger.debug(`[auto-memory] L2 saved ${mem.layer}/${mem.category} memory (${mem.scope}): ${mem.content.slice(0, 60)}...`);
       } catch {
         // Dedup rejection or write error — non-fatal
       }
