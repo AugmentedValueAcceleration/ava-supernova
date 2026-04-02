@@ -22,17 +22,18 @@ export interface CoordinatorModelResult {
 }
 
 // Ordered by reasoning capability — best first
+// Qwen 3.5 Plus is the platform conductor (50% enterprise pricing, best benchmarks)
+// Swaps to Qwen 3.6 Plus when approved
 const PLATFORM_PRIORITY = [
-  { id: 'kimi-k2.5',         reason: 'Kimi K2.5 — best agentic reasoning + vision' },
+  { id: 'qwen3.5-omni-plus', reason: 'Qwen 3.5 Plus — best reasoning + vision, enterprise pricing' },
   { id: 'MiniMax-M2.7',      reason: 'MiniMax M2.7 — strong reasoning fallback' },
-  { id: 'qwen3.5-omni-plus', reason: 'Qwen Plus — capable free-tier upgrade' },
   { id: 'qwen3-omni-flash',  reason: 'Qwen Flash — free tier default' },
 ];
 
 const BYOK_PRIORITY = [
-  { id: 'kimi-k2.5',            reason: 'Kimi K2.5 — best agentic reasoning' },
   { id: 'claude-sonnet-4-6',    reason: 'Claude Sonnet — strong reasoning' },
   { id: 'claude-opus-4-6',      reason: 'Claude Opus — strongest reasoning' },
+  { id: 'kimi-k2.5',            reason: 'Kimi K2.5 — agentic reasoning (BYOK)' },
   { id: 'MiniMax-M2.7',         reason: 'MiniMax M2.7 — strong reasoning' },
   { id: 'deepseek-chat',        reason: 'DeepSeek — capable coding model' },
   { id: 'mistral-large-latest', reason: 'Mistral Large — reasoning fallback' },

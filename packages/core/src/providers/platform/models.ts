@@ -6,19 +6,7 @@ import type { ModelDefinition } from '../../core/types.js';
  * Free accounts: Qwen only (Omni Flash default).
  */
 export const PLATFORM_MODELS: ModelDefinition[] = [
-  // Kimi K2.5 — paid plans default. Best agentic coding, multimodal, 256K context.
-  {
-    id: 'kimi-k2.5',
-    name: 'Kimi K2.5',
-    provider: 'platform',
-    contextWindow: 256000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsThinking: true,
-    supportsVision: true,
-    pricing: { inputPerMillion: 0.60, outputPerMillion: 3.00 },
-  },
+  // Kimi removed from platform — BYOK only (no enterprise billing available)
   // MiniMax M2.7 — self-evolving, premium reasoning, fewer hallucinations
   {
     id: 'MiniMax-M2.7',
