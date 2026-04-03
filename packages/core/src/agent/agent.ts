@@ -77,6 +77,14 @@ export class Agent {
   }
 
   /**
+   * Update the working directory used by all tool executions.
+   * Called when the user opens a different project folder mid-session.
+   */
+  setCwd(cwd: string): void {
+    (this.toolContext as { cwd: string }).cwd = cwd;
+  }
+
+  /**
    * Inject a user message mid-run. The message will be appended to the
    * conversation between the current and next agent iteration, allowing
    * the user to steer, add context, or redirect without cancelling.

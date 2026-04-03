@@ -51,6 +51,14 @@ export class Conductor {
   }
 
   /**
+   * Update the working directory used by all tool executions.
+   * Called when the user opens a different project folder mid-session.
+   */
+  setCwd(cwd: string): void {
+    (this.toolContext as { cwd: string }).cwd = cwd;
+  }
+
+  /**
    * Determine if a task needs the full persona team or can be handled directly.
    *
    * Plan, brainstorm, teach, security ALWAYS use personas.
