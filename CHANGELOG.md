@@ -2,6 +2,95 @@
 
 All notable changes to Ava | Supernova will be documented in this file.
 
+## IDE [0.7.3] - 2026-04-03
+
+### Memory System — Project Safety + Context Recovery
+- **Project memory fallback** — project-scoped saves with no project open now fall back to global scope instead of silently vanishing
+- **Context compression recovery** — compression note now instructs Ava to proactively check memory before claiming lack of context
+
+## IDE [0.7.2] - 2026-04-03
+
+### Memory System Overhaul
+- **Pre-compression extraction** — Layer 1 regex patterns now run on messages before context compression drops them. Preferences, corrections, and decisions are no longer silently lost.
+- **Recall threshold** — raised from 0.15 to 0.25 TF-IDF minimum, filtering out weak noise
+- **Relevance-scored candidates** — memory brief generator sees match percentage and recency metadata
+- **Ambiguous reference detection** — "that thing we discussed" enriches memory query with conversation context for disambiguation
+- **Pattern surfacing** — brief generator highlights learned preferences and style patterns
+- **Brief curation** — prompt instructs score-based prioritisation of strong recent matches
+
+## IDE [0.7.1] - 2026-04-03
+
+### Screenshot Compression
+- **Rust-side resize** — screenshots resized to 1280px width before PNG encoding (~60-75% smaller payloads)
+- **Coordinate mapping** — Holo3 coordinates scaled back: resized image space to original pixels to DPI-adjusted logical coordinates
+
+### Smart Replanning
+- **Stuck detection** — 3x same action triggers Qwen 3.6 Plus replan from blackboard state
+- **Failure recovery** — 3 consecutive failures trigger replan with full context (what was done, what failed, current screen)
+- **Adaptive approach** — new plan only includes remaining steps, adapts method if original failed
+- **Max 2 replans** before final abort (configurable)
+
+## IDE [0.7.0] - 2026-04-03
+
+### Computer Use Overhaul
+- **UIA grounding** — Holo3 receives visible UI element names and coordinates from Windows UI Automation for pixel-perfect clicking
+- **Vision knowledge** — app-specific visual patterns (Notepad, Browser, VS Code, etc.) injected into Holo3 system prompt
+- **DPI scaling fix** — re-detect every 10s, safe 1.0 default instead of wrong 1.5, coordinate bounds clamping
+- **Screen dimensions** — Holo3 knows the coordinate space to stay in bounds
+- **Adaptive wait** — polls for screen changes after actions instead of fixed sleep
+- **History** — action history extended from 3 to 6 steps for better multi-step continuity
+
+## IDE [0.6.2] - 2026-04-03
+
+### Live Status Feedback
+- **15+ event types** surfaced as user-friendly status text (Scanning files, Searching code, Recalling memories, etc.)
+- **Tool-specific labels** — glob shows "Scanning files", grep shows "Searching code", bash shows "Running command"
+- **Status shown next to thinking spinner** — replaces static "thinking" text
+
+### Chat API Fix
+- **500 error fix** — wrap increment_usage RPC in try-catch, allow chat through on tracking failure
+
+## IDE [0.6.1] - 2026-04-03
+
+### Project Explorer Fix
+- **set_cwd command** — sidecar now receives working directory updates when user opens a folder
+- **Agent.setCwd() / Conductor.setCwd()** — dynamic working directory updates without recreating the agent
+- **Memory + indexer refresh** — re-creates MemoryManager and ProjectIndexer for the new project
+
+### Image Warning
+- **Vision model check** — immediate warning when attaching images on a non-vision model
+
+### Usage Fix
+- **405 error** — balance fetch was calling POST-only /api/usage with GET, now uses /api/account-info
+
+## Website - 2026-04-03
+
+### Landing Page Redesign
+- **Hero** — single headline, ambient glow, one CTA button
+- **Terminal demo** — animated Ava reviewing a project
+- **3 scenario cards** — Work (build), Teach (learn), Computer Use (desktop control)
+- **Values** — free for everyone, your data stays yours, open source
+- **Modes** — minimal 6-icon strip with hover effects
+- **Removed** — install counts, proof carousel, provider grid, stats bar
+
+### Models Page Redesign
+- **Interactive benchmarks** — click any model to see detailed performance bars with layman explanations
+- **7 benchmark categories** — SWE-Bench, HumanEval, MMLU, MATH, GPQA, Tool Use, Vision
+- **Platform/BYOK badges** — every model shows how it can be accessed
+- **20+ models** — added Qwen 3.6 Plus, Qwen Omni Flash, MiniMax M2.7/M2.5, Holo3 models
+
+### Legal
+- **Privacy policy** — UK GDPR compliant with data subject rights, Computer Use section, all providers listed
+- **Terms of service** — Computer Use liability section, free token pool terms, all providers listed
+
+### Content Fixes
+- Tool count 56 to 54 across all pages
+- Removed install counts (no vanity metrics)
+- Removed standalone Qwen page (consolidated into models)
+- Updated model count to 20+
+
+---
+
 ## [0.22.2] - 2026-03-23
 
 ### Platform-Tagged Release Notes
