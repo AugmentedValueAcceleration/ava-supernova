@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocale } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { Support } from './Support';
 import { Releases } from './Releases';
 import { Roadmap } from './Roadmap';
@@ -14,11 +14,13 @@ interface HelpPageProps {
   mode: 'platform' | 'byok';
 }
 
-const TABS: { key: HelpTab; label: string }[] = [
-  { key: 'support', label: 'Support' },
-  { key: 'releases', label: 'Releases' },
-  { key: 'roadmap', label: 'Roadmap' },
-];
+function getHelpTabs(): { key: HelpTab; label: string }[] {
+  return [
+    { key: 'support', label: t('dash.help.tab_support') },
+    { key: 'releases', label: t('dash.help.tab_releases') },
+    { key: 'roadmap', label: t('dash.help.tab_roadmap') },
+  ];
+}
 
 export function HelpPage({ tickets, ticketsLoading, releases, mode }: HelpPageProps) {
   useLocale();
@@ -34,7 +36,7 @@ export function HelpPage({ tickets, ticketsLoading, releases, mode }: HelpPagePr
 
       {/* Tab bar */}
       <div className="flex items-center gap-1 border-b border-[var(--border-card)] pb-px">
-        {TABS.map(({ key, label }) => (
+        {getHelpTabs().map(({ key, label }) => (
           <button
             key={key}
             onClick={() => setActiveTab(key)}

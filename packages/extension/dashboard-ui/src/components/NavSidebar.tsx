@@ -55,18 +55,18 @@ function getNavItems(isAdmin?: boolean): NavItem[] {
   const items: NavItem[] = [
     { page: 'overview', icon: '\u26A1', label: tt('dash.nav.command_centre', 'Command Centre'), description: tt('dash.nav.command_centre_desc', 'Your daily overview') },
     { page: 'chat', icon: '\uD83D\uDCAC', label: tt('dash.nav.ava_chat', 'Chat'), description: tt('dash.nav.ava_chat_desc', 'Talk, build, create') },
-    { page: 'planner', icon: '\uD83D\uDCCB', label: 'Planner', description: 'Tasks, journal, learning' },
-    { page: 'learning-library', icon: '\uD83D\uDCDA', label: 'Learning Library', description: 'Browse and start learning paths' },
+    { page: 'planner', icon: '\uD83D\uDCCB', label: tt('dash.nav.planner', 'Planner'), description: tt('dash.nav.planner_desc', 'Tasks, journal, learning') },
+    { page: 'learning-library', icon: '\uD83D\uDCDA', label: tt('dash.nav.learning_library', 'Learning Library'), description: tt('dash.nav.learning_library_desc', 'Browse and start learning paths') },
     { page: 'memory', icon: '\uD83E\uDDE0', label: tt('dash.nav.memory', 'Memory'), description: tt('dash.nav.memory_desc', 'Patterns, preferences, decisions') },
     { page: 'history', icon: '\uD83D\uDCCA', label: tt('dash.nav.usage', 'History'), description: tt('dash.nav.usage_desc', 'Tokens, sessions, models') },
-    { page: 'account', icon: '\u2699\uFE0F', label: 'Account', description: 'Settings, billing, personalisation' },
-    { page: 'help', icon: '\u2753', label: tt('dash.nav.support', 'Help'), description: 'Support, releases, roadmap' },
+    { page: 'account', icon: '\u2699\uFE0F', label: tt('dash.nav.account', 'Account'), description: tt('dash.nav.account_desc', 'Settings, billing, personalisation') },
+    { page: 'help', icon: '\u2753', label: tt('dash.nav.help', 'Help'), description: tt('dash.nav.help_desc', 'Support, releases, roadmap') },
   ];
 
   if (isAdmin) {
     items.push(
-      { page: 'admin_support', icon: '\uD83D\uDEE1\uFE0F', label: 'Admin Support', description: 'All user tickets', adminOnly: true },
-      { page: 'admin_proposals', icon: '\uD83D\uDD27', label: tt('dash.nav.proposals', 'Tool Proposals'), description: 'Review and approve', adminOnly: true },
+      { page: 'admin_support', icon: '\uD83D\uDEE1\uFE0F', label: tt('dash.nav.admin_support', 'Admin Support'), description: tt('dash.nav.admin_support_desc', 'All user tickets'), adminOnly: true },
+      { page: 'admin_proposals', icon: '\uD83D\uDD27', label: tt('dash.nav.proposals', 'Tool Proposals'), description: tt('dash.nav.proposals_desc', 'Review and approve'), adminOnly: true },
     );
   }
 

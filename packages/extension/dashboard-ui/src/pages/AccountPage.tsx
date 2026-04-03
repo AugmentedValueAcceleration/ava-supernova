@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocale } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { Settings } from './Settings';
 import { Billing } from './Billing';
 import { Connections } from './Connections';
@@ -27,13 +27,15 @@ interface AccountPageProps {
   isPlatform: boolean;
 }
 
-const TABS: { key: AccountTab; label: string; platformOnly?: boolean }[] = [
-  { key: 'settings', label: 'Settings' },
-  { key: 'billing', label: 'Billing', platformOnly: true },
-  { key: 'connections', label: 'Connections' },
-  { key: 'personality', label: 'Personality' },
-  { key: 'sync', label: 'Sync', platformOnly: true },
-];
+function getAccountTabs(): { key: AccountTab; label: string; platformOnly?: boolean }[] {
+  return [
+    { key: 'settings', label: t('dash.account.tab_settings') },
+    { key: 'billing', label: t('dash.account.tab_billing'), platformOnly: true },
+    { key: 'connections', label: t('dash.account.tab_connections') },
+    { key: 'personality', label: t('dash.account.tab_personality') },
+    { key: 'sync', label: t('dash.account.tab_sync'), platformOnly: true },
+  ];
+}
 
 export function AccountPage({
   settings, onSettingsChange, providerKeys, onNavigate,
@@ -43,7 +45,7 @@ export function AccountPage({
   useLocale();
   const [activeTab, setActiveTab] = useState<AccountTab>('settings');
 
-  const visibleTabs = TABS.filter(t => !t.platformOnly || isPlatform);
+  const visibleTabs = getAccountTabs().filter(tab => !tab.platformOnly || isPlatform);
 
   return (
     <div className="space-y-4">

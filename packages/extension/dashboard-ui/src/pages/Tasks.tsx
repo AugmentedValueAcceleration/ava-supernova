@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
+import { Select } from '../components/Select';
 import { SearchIcon, TrashIcon, PencilIcon, PlusIcon, CalendarIcon } from '../components/Icons';
 import type { DashboardTaskEntry } from '../types/messages';
 
@@ -355,23 +356,23 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
             {/* Priority */}
             <div className="flex-1 min-w-[120px]">
               <label className="mb-1 block text-[10px] text-[var(--text-muted)]">{t('dash.tasks.label_priority')}</label>
-              <select value={formPriority} onChange={e => setFormPriority(e.target.value)} className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-2 py-1.5 text-xs text-white outline-none">
-                <option value="low">{t('dash.tasks.priority_low')}</option>
-                <option value="medium">{t('dash.tasks.priority_medium')}</option>
-                <option value="high">{t('dash.tasks.priority_high')}</option>
-                <option value="urgent">{t('dash.tasks.priority_urgent')}</option>
-              </select>
+              <Select value={formPriority} onChange={setFormPriority} options={[
+                { value: 'low', label: t('dash.tasks.priority_low') },
+                { value: 'medium', label: t('dash.tasks.priority_medium') },
+                { value: 'high', label: t('dash.tasks.priority_high') },
+                { value: 'urgent', label: t('dash.tasks.priority_urgent') },
+              ]} />
             </div>
             {/* Category */}
             <div className="flex-1 min-w-[120px]">
               <label className="mb-1 block text-[10px] text-[var(--text-muted)]">{t('dash.tasks.label_category')}</label>
-              <select value={formCategory} onChange={e => setFormCategory(e.target.value)} className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-2 py-1.5 text-xs text-white outline-none">
-                <option value="coding">{t('dash.tasks.cat_coding')}</option>
-                <option value="personal">{t('dash.tasks.cat_personal')}</option>
-                <option value="admin">{t('dash.tasks.cat_admin')}</option>
-                <option value="meeting">{t('dash.tasks.cat_meeting')}</option>
-                <option value="custom">{t('dash.tasks.cat_custom')}</option>
-              </select>
+              <Select value={formCategory} onChange={setFormCategory} options={[
+                { value: 'coding', label: t('dash.tasks.cat_coding') },
+                { value: 'personal', label: t('dash.tasks.cat_personal') },
+                { value: 'admin', label: t('dash.tasks.cat_admin') },
+                { value: 'meeting', label: t('dash.tasks.cat_meeting') },
+                { value: 'custom', label: t('dash.tasks.cat_custom') },
+              ]} />
             </div>
             {/* Due date */}
             <div className="flex-1 min-w-[140px]">
@@ -386,11 +387,11 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
             {/* Recurrence */}
             <div className="flex-1 min-w-[120px]">
               <label className="mb-1 block text-[10px] text-[var(--text-muted)]">{t('dash.tasks.label_recurrence')}</label>
-              <select value={formRecurrence} onChange={e => setFormRecurrence(e.target.value)} className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-2 py-1.5 text-xs text-white outline-none">
-                <option value="none">{t('dash.tasks.recurrence_none')}</option>
-                <option value="daily">{t('dash.tasks.recurrence_daily')}</option>
-                <option value="weekly">{t('dash.tasks.recurrence_weekly')}</option>
-              </select>
+              <Select value={formRecurrence} onChange={setFormRecurrence} options={[
+                { value: 'none', label: t('dash.tasks.recurrence_none') },
+                { value: 'daily', label: t('dash.tasks.recurrence_daily') },
+                { value: 'weekly', label: t('dash.tasks.recurrence_weekly') },
+              ]} />
             </div>
           </div>
           <div className="flex gap-2">

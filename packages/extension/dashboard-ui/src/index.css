@@ -1,35 +1,35 @@
 @import 'tailwindcss';
 
 /*
- * CSS Variable Bridge
- * Maps VS Code theme variables → website's custom property names.
- * This lets us use the same Tailwind classes (bg-[var(--bg-card)], etc.)
- * in both codebases, while the extension adapts to light/dark themes.
+ * Ava | Supernova — Branded Design System
+ *
+ * Overrides VS Code theme variables with Ava's signature purple-dark palette.
+ * Matches the Desktop IDE for consistent branding across all surfaces.
  */
 :root {
-  /* Surface colors */
-  --bg-page: var(--vscode-editor-background, #0a0a0a);
-  --bg-card: var(--vscode-editorWidget-background, #111111);
-  --bg-input: var(--vscode-input-background, #1a1a1a);
+  /* Surface colors — purple-tinted dark theme */
+  --bg-page: #0f0a1a;
+  --bg-card: rgba(26, 16, 40, 0.6);
+  --bg-input: rgba(49, 34, 68, 0.5);
 
-  /* Border colors */
-  --border-card: var(--vscode-panel-border, #222222);
-  --border-input: var(--vscode-input-border, #333333);
+  /* Border colors — faint purple tint */
+  --border-card: rgba(168, 85, 247, 0.12);
+  --border-input: rgba(168, 85, 247, 0.12);
 
-  /* Text colors */
-  --text-primary: var(--vscode-editor-foreground, #ffffff);
-  --text-secondary: var(--vscode-descriptionForeground, rgba(255, 255, 255, 0.6));
-  --text-muted: var(--vscode-disabledForeground, rgba(255, 255, 255, 0.35));
+  /* Text colors — lavender tinted */
+  --text-primary: #cdd6f4;
+  --text-secondary: #a6adc8;
+  --text-muted: #6c7086;
 
-  /* Brand colors (fixed, not theme-dependent) */
-  --accent: #7c3aed;
-  --accent-hover: #6d28d9;
+  /* Brand colors */
+  --accent: #a855f7;
+  --accent-hover: #9333ea;
   --gradient-start: #a78bfa;
   --gradient-end: #c084fc;
 }
 
 body {
-  background: var(--bg-page);
+  background: linear-gradient(135deg, #0f0a1a 0%, #1a1028 40%, #150d22 100%);
   color: var(--text-primary);
   font-family: var(--vscode-font-family, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
   -webkit-font-smoothing: antialiased;
@@ -37,12 +37,12 @@ body {
   margin: 0;
 }
 
-/* Custom scrollbar matching site design */
+/* Custom scrollbar — purple tinted */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--border-input) transparent;
+  scrollbar-color: rgba(168, 85, 247, 0.2) transparent;
 }
-*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar { width: 6px; height: 6px; }
 *::-webkit-scrollbar-track { background: transparent; }
-*::-webkit-scrollbar-thumb { background: var(--border-input); border-radius: 4px; }
-*::-webkit-scrollbar-thumb:hover { background: var(--border-card); }
+*::-webkit-scrollbar-thumb { background: rgba(168, 85, 247, 0.2); border-radius: 3px; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(168, 85, 247, 0.35); }

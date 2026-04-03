@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
+import { Select } from '../components/Select';
 import type { LibraryPath, LibraryPathDetail } from '../types/messages';
 
 const levelColors: Record<string, string> = {
@@ -89,12 +90,12 @@ export function LearningLibrary({ paths, detail, onNavigate }: Props) {
           onClick={() => setSelectedId(null)}
           style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, marginBottom: 16, padding: 0 }}
         >
-          &larr; Back to Library
+          {t('dash.learning_library.back')}
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
           <span style={{ cssText: sourceColors[selected.source] || '', padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>
-            {selected.source === 'curated' ? 'Curated by Ava' : 'Community'}
+            {selected.source === 'curated' ? t('dash.learning_library.curated') : t('dash.learning_library.community')}
           </span>
           <span style={{ cssText: levelColors[selected.level] || '', padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>
             {selected.level}
@@ -128,7 +129,7 @@ export function LearningLibrary({ paths, detail, onNavigate }: Props) {
         {/* Learning objectives */}
         {selected.learning_objectives?.length > 0 && (
           <div style={{ marginBottom: 20 }}>
-            <h3 style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>What you will learn</h3>
+            <h3 style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>{t('dash.learning_library.what_you_learn')}</h3>
             <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
               {selected.learning_objectives.map((obj, i) => <li key={i}>{obj}</li>)}
             </ul>
@@ -173,7 +174,7 @@ export function LearningLibrary({ paths, detail, onNavigate }: Props) {
               background: 'linear-gradient(135deg, #a855f7, #7c3aed)', color: '#fff', fontSize: 14, fontWeight: 500,
             }}
           >
-            {forking ? 'Starting...' : 'Start Learning'}
+            {forking ? t('dash.learning_library.starting') : t('dash.learning_library.start_learning')}
           </button>
           {/* Star rating */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 8 }}>
@@ -215,13 +216,13 @@ export function LearningLibrary({ paths, detail, onNavigate }: Props) {
         </button>
       </div>
       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
-        Curated and community learning paths. Free for everyone.
+        {t('dash.learning_library.subtitle')}
       </p>
 
       {/* Search */}
       <input
         type="text"
-        placeholder="Search paths..."
+        placeholder="{t('dash.learning_library.search')}"
         value={search}
         onChange={e => setSearch(e.target.value)}
         style={{
@@ -251,28 +252,32 @@ export function LearningLibrary({ paths, detail, onNavigate }: Props) {
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         {/* Level filter */}
-        <select
-          value={levelFilter}
-          onChange={e => setLevelFilter(e.target.value)}
-          style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-card)', background: 'var(--bg-input)', color: '#fff', fontSize: 11 }}
-        >
-          <option value="all">All levels</option>
-          <option value="beginner">Beginner</option>
-          <option value="intermediate">Intermediate</option>
-          <option value="advanced">Advanced</option>
-          <option value="mixed">Mixed</option>
-        </select>
+        <div style={{ width: 140 }}>
+          <Select
+            value={levelFilter}
+            onChange={setLevelFilter}
+            options={[
+              { value: 'all', label: 'All levels' },
+              { value: 'beginner', label: 'Beginner' },
+              { value: 'intermediate', label: 'Intermediate' },
+              { value: 'advanced', label: 'Advanced' },
+              { value: 'mixed', label: 'Mixed' },
+            ]}
+          />
+        </div>
 
         {/* Sort */}
-        <select
-          value={sort}
-          onChange={e => setSort(e.target.value as SortOption)}
-          style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-card)', background: 'var(--bg-input)', color: '#fff', fontSize: 11 }}
-        >
-          <option value="popular">Most Popular</option>
-          <option value="newest">Newest</option>
-          <option value="rating">Highest Rated</option>
-        </select>
+        <div style={{ width: 140 }}>
+          <Select
+            value={sort}
+            onChange={v => setSort(v as SortOption)}
+            options={[
+              { value: 'popular', label: 'Most Popular' },
+              { value: 'newest', label: 'Newest' },
+              { value: 'rating', label: 'Highest Rated' },
+            ]}
+          />
+        </div>
       </div>
 
       {/* Results */}
@@ -298,7 +303,7 @@ export function LearningLibrary({ paths, detail, onNavigate }: Props) {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
                 <span style={{ cssText: sourceColors[path.source] || '', padding: '1px 6px', borderRadius: 3, fontSize: 9, fontWeight: 600, textTransform: 'uppercase' }}>
-                  {path.source === 'curated' ? 'Curated' : 'Community'}
+                  {path.source === 'curated' ? t('dash.learning_library.curated') : 'Community'}
                 </span>
                 <span style={{ cssText: levelColors[path.level] || '', padding: '1px 6px', borderRadius: 3, fontSize: 9, fontWeight: 600, textTransform: 'uppercase' }}>
                   {path.level}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
+import { Select } from '../components/Select';
 import type { ReleaseNote } from '../types/messages';
 
 function formatMonth(date: Date): string {
@@ -64,16 +65,16 @@ export function Releases({ releases }: { releases: ReleaseNote[] }) {
           </p>
         </div>
 
-        <select
-          value={selectedMonth}
-          onChange={(e) => setSelectedMonth(e.target.value)}
-          className="text-xs bg-[var(--bg-input)] border border-[var(--border-card)] text-white rounded-lg px-3 py-2 outline-none focus:border-[var(--accent)] transition"
-        >
-          <option value="">All months</option>
-          {months.map(([key, label]) => (
-            <option key={key} value={key}>{label}</option>
-          ))}
-        </select>
+        <div style={{ width: 160 }}>
+          <Select
+            value={selectedMonth}
+            onChange={setSelectedMonth}
+            options={[
+              { value: '', label: 'All months' },
+              ...months.map(([key, label]) => ({ value: key, label })),
+            ]}
+          />
+        </div>
       </div>
 
       {/* Platform tabs */}
