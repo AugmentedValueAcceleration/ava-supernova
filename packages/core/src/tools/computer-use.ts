@@ -4,7 +4,7 @@ import { HoloClient, type HoloAction, type HoloHistoryEntry } from '../providers
 import { buildPlanningKnowledge, buildVisionKnowledge } from '../knowledge/computer-use-knowledge.js';
 import {
   createBlackboard, beginStep, completeStep, failStep,
-  updateScreenState, toResultSummary,
+  updateScreenState, toResultSummary, replan, toPlannerContext,
 } from './computer-use-blackboard.js';
 
 /**
@@ -406,7 +406,12 @@ export class ComputerUseTool implements Tool {
           // Get vision knowledge for the target app
           const visionKnowledge = buildVisionKnowledge(task, targetApp);
           // Get screen dimensions for coordinate bounds
-          const screenDims = (screenshotProvider as { _lastDims?: { width: number; height: number } })._lastDims;
+          // Tell Holo3 the image dimensions it's seeing (may be resized from original)
+          const origDims = (screenshotProvider as { _lastDims?: { width: number; height: number } })._lastDims;
+          const HOLO_MAX_WIDTH = 1280;
+          const screenDims = origDims && origDims.width > HOLO_MAX_WIDTH
+            ? { width: HOLO_MAX_WIDTH, height: Math.round(origDims.height * (HOLO_MAX_WIDTH / origDims.width)) }
+            : origDims;
           action = await holo.getNextAction(screenshot, currentInstruction, history, context.signal, uiElements, visionKnowledge || undefined, screenDims);
           // Emit Holo3 token usage for session tracking
           if (action._usage) {
@@ -431,12 +436,27 @@ export class ComputerUseTool implements Tool {
         };
         actionLog.push(logEntry);
 
-        // 4b. Stuck detection — if repeating the same action 3+ times, stop
+        // 4b. Stuck detection — if repeating the same action 3+ times, try replanning
         const actionKey = `${action.type}:${action.x || ''},${action.y || ''},${action.key || ''},${action.text || ''}`;
         if (actionKey === lastActionKey) {
           sameActionCount++;
           if (sameActionCount >= 3) {
-            emit(`Step ${step}: Stuck repeating "${formatAction(action)}" — aborting to prevent loop`);
+            emit(`Step ${step}: Stuck repeating "${formatAction(action)}" — attempting replan`);
+            if (bb.replanCount < bb.maxReplans && platformKey) {
+              try {
+                const context = toPlannerContext(bb);
+                const newSteps = await this.replanFromState(context, task, platformKey, targetApp);
+                if (newSteps.length > 0) {
+                  replan(bb, newSteps);
+                  plannedSteps = newSteps;
+                  currentPlanStep = 0;
+                  sameActionCount = 0;
+                  lastActionKey = '';
+                  emit(`Replanned: ${newSteps.length} new steps`);
+                  continue;
+                }
+              } catch { /* replan failed — fall through to abort */ }
+            }
             return {
               success: false,
               output: `Stuck repeating the same action: "${formatAction(action)}". The screen may not have changed as expected.\n\n**Actions taken:** ${actionLog.map(a => `${a.step}. ${formatAction(a.action)}`).join('\n')}`,
@@ -535,8 +555,26 @@ export class ComputerUseTool implements Tool {
             metadata: { steps: step, actionLog, plan: plannedSteps, blackboard: bb },
           };
         }
-        // Check if blackboard says we failed
+        // Check if blackboard says we failed — attempt replan before giving up
         if (bb.agentState === 'failed') {
+          if (bb.replanCount < bb.maxReplans && platformKey) {
+            emit(`${bb.consecutiveFailures} consecutive failures — attempting replan (${bb.replanCount + 1}/${bb.maxReplans})`);
+            try {
+              const context = toPlannerContext(bb);
+              const newSteps = await this.replanFromState(context, task, platformKey, targetApp);
+              if (newSteps.length > 0) {
+                replan(bb, newSteps);
+                plannedSteps = newSteps;
+                currentPlanStep = 0;
+                sameActionCount = 0;
+                lastActionKey = '';
+                emit(`Replanned: ${newSteps.length} new steps`);
+                continue;
+              }
+            } catch {
+              emit('Replan failed — giving up');
+            }
+          }
           emit(`Task failed after ${bb.consecutiveFailures} consecutive failures.`);
           return {
             success: false,
@@ -630,6 +668,85 @@ export class ComputerUseTool implements Tool {
       .filter((line: string) => line.length > 0 && !line.startsWith('#'));
 
     if (steps.length === 0) throw new Error('Empty plan');
+    return steps;
+  }
+
+  /**
+   * Replan from the current blackboard state — tells Qwen what's been done,
+   * what failed, and what the screen looks like now, then gets new steps.
+   */
+  private async replanFromState(
+    blackboardContext: string,
+    originalTask: string,
+    apiKey: string,
+    targetApp?: string,
+  ): Promise<string[]> {
+    const PLAN_URL = 'https://ava-supernova.com/api/chat';
+    const knowledge = buildPlanningKnowledge(originalTask, targetApp);
+
+    const res = await fetch(PLAN_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'qwen3.6-plus',
+        messages: [
+          {
+            role: 'system',
+            content: [
+              'You are a desktop automation planner. A previous plan partially failed.',
+              'Given what has been done and the current screen state, create NEW steps to complete the original task.',
+              'Only include steps that STILL NEED TO BE DONE. Do not repeat completed steps.',
+              '',
+              knowledge,
+              '',
+              'Each step must be ONE of:',
+              '- Press key combo (e.g. "Press Win+R", "Press Ctrl+N", "Press Enter")',
+              '- Type text (e.g. "Type notepad", "Type Hello World")',
+              '- Click element (e.g. "Click the Save button")',
+              '- Wait (e.g. "Wait for app to open")',
+              '',
+              'Rules:',
+              '- Use keyboard shortcuts from the knowledge above',
+              '- After launching an app, add "Wait for app to open"',
+              '- Consider what already happened — adapt the approach if the original method failed',
+              '- One action per step. Respond with ONLY the numbered list.',
+            ].join('\n'),
+          },
+          {
+            role: 'user',
+            content: [
+              `Original task: ${originalTask}`,
+              '',
+              'Current state:',
+              blackboardContext,
+              '',
+              'What steps should I take to complete this task from here?',
+            ].join('\n'),
+          },
+        ],
+        stream: false,
+        max_tokens: 500,
+        temperature: 0.2,
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!res.ok) throw new Error(`Replan API error ${res.status}`);
+
+    const data = await res.json() as {
+      choices: Array<{ message: { content: string } }>;
+    };
+
+    const content = data.choices?.[0]?.message?.content || '';
+    const steps = content
+      .split('\n')
+      .map((line: string) => line.replace(/^\d+[\.\)]\s*/, '').trim())
+      .filter((line: string) => line.length > 0 && !line.startsWith('#'));
+
+    if (steps.length === 0) throw new Error('Empty replan');
     return steps;
   }
 }
