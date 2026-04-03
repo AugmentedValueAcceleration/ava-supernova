@@ -10,7 +10,7 @@
 
 const HOLO_API_BASE = 'https://api.hcompany.ai/v1';
 const PLATFORM_HOLO_URL = 'https://ava-supernova.com/api/computer-use';
-const DEFAULT_MODEL = 'holo3-35b-a3b';
+const DEFAULT_MODEL = 'holo3-122b-a10b';
 
 // ─── Action Types ─────────────────────────────────────────────────────────────
 
@@ -35,6 +35,8 @@ export interface HoloAction {
   summary?: string;
   /** Internal thought from Holo3 (for logging/display) */
   _thought?: string;
+  /** Token usage from this Holo3 call */
+  _usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
 }
 
 export interface HoloHistoryEntry {
@@ -51,6 +53,8 @@ export class HoloClient {
   /** If true, route through platform API (no direct Holo3 key needed) */
   private usePlatform: boolean;
   private platformKey: string | undefined;
+  /** Last API call's token usage */
+  private _lastUsage: { prompt_tokens: number; completion_tokens: number; total_tokens: number } | null = null;
 
   constructor(apiKey: string, model = DEFAULT_MODEL, baseUrl = HOLO_API_BASE) {
     this.apiKey = apiKey;
@@ -160,9 +164,11 @@ export class HoloClient {
 
       const data = await res.json() as {
         choices: Array<{ message: { content: string | null; reasoning: string | null } }>;
+        usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
       };
       const msg = data.choices?.[0]?.message;
       raw = msg?.content?.trim() || msg?.reasoning?.trim() || '';
+      this._lastUsage = data.usage || null;
     } else {
       // Direct Holo3 API (BYOK)
       const res = await fetch(`${this.baseUrl}/chat/completions`, {
@@ -213,15 +219,21 @@ export class HoloClient {
 
       const data = await res.json() as {
         choices: Array<{ message: { content: string | null; reasoning: string | null } }>;
+        usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
       };
       const msg = data.choices?.[0]?.message;
-      // Holo3 returns actions in content when thinking is disabled, or reasoning when enabled
       raw = msg?.content?.trim() || msg?.reasoning?.trim() || '';
+      // Capture usage for tracking
+      this._lastUsage = data.usage || null;
     }
 
     if (!raw) throw new Error('Holo3 returned empty response');
 
-    return this.parseAction(raw);
+    const action = this.parseAction(raw);
+    if (this._lastUsage) {
+      action._usage = this._lastUsage;
+    }
+    return action;
   }
 
   /**

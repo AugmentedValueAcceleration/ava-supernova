@@ -2,6 +2,10 @@ import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './ty
 import type { FunctionSchema } from '../providers/types.js';
 import { HoloClient, type HoloAction, type HoloHistoryEntry } from '../providers/holo/index.js';
 import { buildPlanningKnowledge } from '../knowledge/computer-use-knowledge.js';
+import {
+  createBlackboard, beginStep, completeStep, failStep,
+  updateScreenState, toResultSummary,
+} from './computer-use-blackboard.js';
 
 /**
  * ComputerUseTool — Ava sees the screen and interacts with desktop applications.
@@ -52,7 +56,7 @@ export const DEFAULT_SETTINGS: ComputerUseSettings = {
   logActions: true,
   inactivityTimeout: 60,
   blockDangerous: true,
-  holoModel: 'holo3-35b-a3b',
+  holoModel: 'holo3-122b-a10b',
 };
 
 export interface ActionLogEntry {
@@ -85,6 +89,14 @@ export interface InputProvider {
 /** Provided by the host for active window detection */
 export interface WindowProvider {
   getActiveWindow(): Promise<{ title: string; appName: string; bounds: { x: number; y: number; width: number; height: number } }>;
+}
+
+/** Provided by the host for UI Automation element detection */
+export interface UIAProvider {
+  listElements(): Promise<Array<{ name: string; control_type: string; cx: number; cy: number; x: number; y: number; width: number; height: number }>>;
+  findElement(name: string): Promise<{ name: string; control_type: string; cx: number; cy: number } | null>;
+  clickElement(name: string): Promise<{ name: string; cx: number; cy: number } | null>;
+  focusWindow(name: string): Promise<string | null>;
 }
 
 // ─── Dangerous button patterns (blocked in restricted mode) ──────────────────
@@ -144,6 +156,7 @@ export class ComputerUseTool implements Tool {
     const screenshotProvider = state.screenshotProvider as ScreenshotProvider | undefined;
     const inputProvider = state.inputProvider as InputProvider | undefined;
     const windowProvider = state.windowProvider as WindowProvider | undefined;
+    const uiaProvider = state.uiaProvider as UIAProvider | undefined;
     const holoApiKey = state.holoApiKey as string | undefined;
     const platformKey = state.platformKey as string | undefined;
     const settings = (state.computerUseSettings as ComputerUseSettings) || DEFAULT_SETTINGS;
@@ -204,14 +217,15 @@ export class ComputerUseTool implements Tool {
       emit('Planning failed — Holo3 will handle the full task');
     }
 
-    // ── Phase 2: Execute each planned step via Holo3 ──
+    // ── Phase 2: Create blackboard and execute ──
+    const bb = createBlackboard(task, plannedSteps, targetApp);
     const actionLog: ActionLogEntry[] = [];
     const history: HoloHistoryEntry[] = [];
     let step = 0;
     let lastActionKey = '';
     let sameActionCount = 0;
 
-    emit(`Starting computer use: "${task}"${targetApp ? ` in ${targetApp}` : ''} (${plannedSteps.length} planned steps, max ${maxSteps} actions)`);
+    emit(`Starting computer use: "${task}" (${plannedSteps.length} planned steps, max ${maxSteps} actions)`);
 
     try {
       // Execute each planned step — Holo3 gets one simple instruction at a time
@@ -228,7 +242,19 @@ export class ComputerUseTool implements Tool {
         const currentInstruction = plannedSteps[currentPlanStep];
         emit(`Step ${step}/${plannedSteps.length}: "${currentInstruction}"`);
 
-        // 1. Capture screenshot
+        // 1. Update blackboard with screen state
+        if (windowProvider) {
+          try {
+            const win = await windowProvider.getActiveWindow();
+            const elements = uiaProvider ? await uiaProvider.listElements().catch(() => []) : [];
+            updateScreenState(bb,
+              { name: win.title, app: win.appName },
+              elements.map((e: { name: string }) => e.name).filter(Boolean).slice(0, 15),
+            );
+          } catch { /* non-fatal */ }
+        }
+
+        // 2. Capture screenshot
         let screenshot: string;
         try {
           screenshot = await screenshotProvider.capture();
@@ -261,10 +287,121 @@ export class ComputerUseTool implements Tool {
           }
         }
 
-        // 3. Send to Holo3 with JUST this one step instruction
+        // 2b. If instruction is "Click ..." and we have UIA, try element-based click first
+        if (uiaProvider && currentInstruction.toLowerCase().startsWith('click ')) {
+          const target = currentInstruction.replace(/^click\s+/i, '').replace(/^the\s+/i, '').replace(/^on\s+/i, '').trim();
+          try {
+            const element = await uiaProvider.clickElement(target);
+            if (element) {
+              emit(`Step ${step}: UIA click "${element.name}" at (${element.cx}, ${element.cy})`);
+              const uiaAction: HoloAction = { type: 'click', x: element.cx, y: element.cy, _thought: `UIA found "${element.name}"` };
+              actionLog.push({ step, timestamp: new Date().toISOString(), action: uiaAction });
+              history.push({ action: uiaAction, screenshot });
+              completeStep(bb, `Click ${element.name}`, `Clicked at (${element.cx}, ${element.cy})`, 'uia');
+              currentPlanStep++;
+              lastActionKey = '';
+              sameActionCount = 0;
+              await sleep(delay);
+              if (currentPlanStep >= plannedSteps.length) {
+                emit(`All ${plannedSteps.length} planned steps completed.`);
+                return {
+                  success: true,
+                  output: `Task completed in ${step} actions.\n\n**Plan:** ${plannedSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\n**Actions taken:** ${actionLog.map(a => `${a.step}. ${formatAction(a.action)}`).join('\n')}`,
+                  metadata: { steps: step, actionLog, plan: plannedSteps },
+                };
+              }
+              continue; // UIA handled it — skip Holo3 for this step
+            }
+          } catch {
+            // UIA couldn't find it — fall through to Holo3
+          }
+        }
+
+        // 2c. If instruction is a key press or type, execute directly without Holo3
+        const keyMatch = currentInstruction.match(/^press\s+(.+)$/i);
+        const typeMatch = currentInstruction.match(/^type\s+["']?(.+?)["']?$/i);
+        const waitMatch = currentInstruction.match(/^wait/i);
+
+        if (keyMatch || typeMatch || waitMatch) {
+          let directAction: HoloAction;
+          if (keyMatch) {
+            directAction = { type: 'key', key: keyMatch[1].trim(), _thought: `Direct: ${currentInstruction}` };
+          } else if (typeMatch) {
+            // Before typing, ensure the target app has focus
+            if (uiaProvider) {
+              const focusTarget = targetApp || bb.screen.activeWindow?.app || '';
+              if (focusTarget) {
+                try {
+                  const focused = await uiaProvider.focusWindow(focusTarget);
+                  if (focused) {
+                    emit(`Step ${step}: Focus → ${focused}`);
+                    await sleep(300);
+                  }
+                } catch { /* best effort */ }
+              }
+            }
+            directAction = { type: 'type', text: typeMatch[1].trim(), _thought: `Direct: ${currentInstruction}` };
+          } else {
+            // Wait step — also try to focus the target app after waiting
+            directAction = { type: 'done', summary: 'Waited', _thought: 'Waiting for screen to settle' };
+          }
+
+          // After wait steps, try to focus the target app
+          if (waitMatch && uiaProvider) {
+            const focusTarget = targetApp || task.match(/open\s+(\w+)/i)?.[1] || '';
+            if (focusTarget) {
+              try {
+                await sleep(1500); // Give app time to fully load
+                const focused = await uiaProvider.focusWindow(focusTarget);
+                if (focused) emit(`Focus restored → ${focused}`);
+              } catch { /* best effort */ }
+            }
+          }
+
+          beginStep(bb);
+          emit(`Step ${step}: ${formatAction(directAction)}`);
+          if (directAction.type !== 'done') {
+            try {
+              await executeAction(directAction, inputProvider);
+              completeStep(bb, formatAction(directAction), 'Executed', 'direct');
+            } catch (err) {
+              const errMsg = err instanceof Error ? err.message : String(err);
+              emit(`Step ${step}: Action failed — ${errMsg}`);
+              failStep(bb, errMsg);
+            }
+          } else {
+            completeStep(bb, 'Wait', 'Waited for screen', 'direct');
+          }
+          actionLog.push({ step, timestamp: new Date().toISOString(), action: directAction });
+          history.push({ action: directAction, screenshot });
+          currentPlanStep++;
+          lastActionKey = '';
+          sameActionCount = 0;
+          const isLaunch = directAction.type === 'key' && (
+            directAction.key === 'Enter' || directAction.key === 'Return' || (directAction.key?.includes('+'))
+          );
+          await sleep(isLaunch || waitMatch ? Math.max(delay, 2000) : delay);
+          if (currentPlanStep >= plannedSteps.length) {
+            emit(`All ${plannedSteps.length} planned steps completed.`);
+            return {
+              success: true,
+              output: `Task completed in ${step} actions.\n\n**Plan:** ${plannedSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\n**Actions taken:** ${actionLog.map(a => `${a.step}. ${formatAction(a.action)}`).join('\n')}`,
+              metadata: { steps: step, actionLog, plan: plannedSteps },
+            };
+          }
+          continue; // Direct execution — skip Holo3
+        }
+
+        // 3. Only use Holo3 for visual tasks (clicking elements we can't find via UIA)
         let action: HoloAction;
         try {
           action = await holo.getNextAction(screenshot, currentInstruction, history, context.signal);
+          // Emit Holo3 token usage for session tracking
+          if (action._usage) {
+            emit(`Holo3 usage: ${action._usage.prompt_tokens} in / ${action._usage.completion_tokens} out / ${action._usage.total_tokens} total`);
+            // Emit as structured usage data so the frontend session counter picks it up
+            emit(`__usage__:${JSON.stringify({ model: 'holo3', provider: 'holo', ...action._usage })}`);
+          }
         } catch (err) {
           return {
             success: false,
@@ -372,12 +509,22 @@ export class ComputerUseTool implements Tool {
         await sleep(isLaunchAction ? Math.max(delay, 1500) : delay);
 
         // 13. Check if we've completed all planned steps
-        if (currentPlanStep >= plannedSteps.length) {
+        if (currentPlanStep >= plannedSteps.length || bb.agentState === 'finished') {
+          bb.agentState = 'finished';
           emit(`All ${plannedSteps.length} planned steps completed.`);
           return {
             success: true,
-            output: `Task completed in ${step} actions.\n\n**Plan:** ${plannedSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\n**Actions taken:** ${actionLog.map(a => `${a.step}. ${formatAction(a.action)}`).join('\n')}`,
-            metadata: { steps: step, actionLog, plan: plannedSteps },
+            output: toResultSummary(bb),
+            metadata: { steps: step, actionLog, plan: plannedSteps, blackboard: bb },
+          };
+        }
+        // Check if blackboard says we failed
+        if (bb.agentState === 'failed') {
+          emit(`Task failed after ${bb.consecutiveFailures} consecutive failures.`);
+          return {
+            success: false,
+            output: toResultSummary(bb),
+            metadata: { steps: step, actionLog, plan: plannedSteps, blackboard: bb },
           };
         }
       }
