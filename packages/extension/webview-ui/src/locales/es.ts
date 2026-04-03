@@ -273,6 +273,17 @@ export const esStrings: Record<string, string> = {
   'feedback.didnt_understand': 'No me entendi\u00f3',
   'feedback.off_topic': 'Fuera de tema',
 
+  // Secret Vault
+  'secrets.title': 'Almacen de Secretos',
+  'secrets.add': 'Agregar Secreto',
+  'secrets.label_placeholder': 'Etiqueta (ej. Clave Supabase)',
+  'secrets.value_placeholder': 'Pegar valor secreto',
+  'secrets.save': 'Guardar',
+  'secrets.empty': 'No hay secretos almacenados',
+  'secrets.reveal': 'Revelar',
+  'secrets.hide': 'Ocultar',
+  'secrets.vault_tooltip': 'Almacen de Secretos — almacena e inyecta secretos de forma segura',
+
   // App-level
   'app.model_switched': 'Cambiado a {model}',
   'app.context_compressed': 'Contexto comprimido: ~{original} \u2192 ~{compressed} tokens',
