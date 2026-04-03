@@ -184,15 +184,19 @@ export class MemoryManager {
 
   /** Save a new memory entry with TF-IDF conflict detection. Returns the saved entry. */
   async saveEntry(opts: MemorySaveOptions): Promise<MemoryEntry> {
-    const store = opts.scope === 'global'
+    // If saving to project scope but no project is open, fall back to global
+    // rather than silently losing the memory in a temporary in-memory store
+    const effectiveScope = (opts.scope === 'project' && !this.projectDir) ? 'global' : opts.scope;
+
+    const store = effectiveScope === 'global'
       ? await this.loadGlobalStore()
       : await this.loadProjectStore() ?? createEmptyStore();
 
-    if (opts.scope === 'project' && this.projectDir) {
+    if (effectiveScope === 'project' && this.projectDir) {
       await mkdir(this.projectDir, { recursive: true });
     }
 
-    const index = opts.scope === 'global' ? this.globalIndex : this.projectIndex;
+    const index = effectiveScope === 'global' ? this.globalIndex : this.projectIndex;
 
     // Determine layer
     const category = opts.category ?? 'general';
@@ -245,7 +249,7 @@ export class MemoryManager {
     store.lastModified = new Date().toISOString();
 
     // Update cache and persist
-    if (opts.scope === 'global') {
+    if (effectiveScope === 'global') {
       this.globalStore = store;
       await this.persistStore(this.globalDir, store);
     } else {
@@ -253,7 +257,7 @@ export class MemoryManager {
       if (this.projectDir) await this.persistStore(this.projectDir, store);
     }
 
-    this.syncEntries(opts.scope, store.entries);
+    this.syncEntries(effectiveScope, store.entries);
     return entry;
   }
 

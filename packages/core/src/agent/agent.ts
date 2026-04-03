@@ -179,7 +179,12 @@ export class Agent {
         const fixedKeep = this.fixToolPairing(toKeep);
         messages = [
           ...systemMsgs,
-          { role: 'system' as const, content: `[${toCompress.length} earlier messages compressed to project memory. Use memory_recall to search for previous context if needed.]` },
+          { role: 'system' as const, content: [
+            `[${toCompress.length} earlier messages compressed to memory.]`,
+            'Your memory system has saved the important context from those messages.',
+            'If the user references something from earlier in the conversation, use memory_recall to retrieve it.',
+            'Do NOT say you don\'t have context — check memory first.',
+          ].join(' ') },
           ...fixedKeep,
         ];
 
