@@ -99,6 +99,11 @@ export function LearningLibrary({ paths, detail, onNavigate }: Props) {
           <span style={{ cssText: levelColors[selected.level] || '', padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>
             {selected.level}
           </span>
+          {selected.subject && (
+            <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 500, color: 'var(--text-secondary)', background: 'var(--bg-input)', border: '1px solid var(--border-card)' }}>
+              {selected.subject}
+            </span>
+          )}
           {selected.estimated_hours && (
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{selected.estimated_hours}h estimated</span>
           )}
@@ -298,6 +303,11 @@ export function LearningLibrary({ paths, detail, onNavigate }: Props) {
                 <span style={{ cssText: levelColors[path.level] || '', padding: '1px 6px', borderRadius: 3, fontSize: 9, fontWeight: 600, textTransform: 'uppercase' }}>
                   {path.level}
                 </span>
+                {path.subject && (
+                  <span style={{ padding: '1px 6px', borderRadius: 3, fontSize: 9, fontWeight: 500, color: 'var(--text-secondary)', background: 'var(--bg-input)', border: '1px solid var(--border-card)' }}>
+                    {path.subject}
+                  </span>
+                )}
                 {path.tags.slice(0, 3).map(tag => (
                   <span key={tag} style={{ padding: '1px 6px', borderRadius: 3, fontSize: 9, color: 'var(--text-muted)', border: '1px solid var(--border-card)' }}>
                     {tag}
