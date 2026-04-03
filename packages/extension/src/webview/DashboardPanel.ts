@@ -431,6 +431,85 @@ export class DashboardPanel {
         await this.deleteCurriculum(msg.id);
         break;
 
+      // ─── Learning Library messages ─────────────────────────────────────
+
+      case 'load_library_paths': {
+        try {
+          const params = new URLSearchParams();
+          if (msg.search) params.set('search', msg.search);
+          if (msg.subject) params.set('subject', msg.subject);
+          if (msg.level) params.set('level', msg.level);
+          if (msg.sort) params.set('sort', msg.sort);
+          params.set('limit', '30');
+          const url = `/learning/library?${params.toString()}`;
+          // Public endpoint — try with platform key if available, otherwise direct fetch
+          const platformKey = this.context.globalState.get<string>('ava.platformKey');
+          if (platformKey) {
+            const res = await apiFetch(url, { platformKey });
+            this.postMessage({ type: 'library_paths_loaded', paths: res.paths || [], total: res.total || 0 });
+          } else {
+            // Direct public fetch for BYOK users
+            const res = await fetch(`https://ava-supernova.com/api${url}`);
+            const data = await res.json();
+            this.postMessage({ type: 'library_paths_loaded', paths: data.paths || [], total: data.total || 0 });
+          }
+        } catch {
+          this.postMessage({ type: 'library_paths_loaded', paths: [], total: 0 });
+        }
+        break;
+      }
+
+      case 'load_library_path_detail': {
+        try {
+          const res = await fetch(`https://ava-supernova.com/api/learning/library/${msg.id}`);
+          const data = await res.json();
+          if (data && data.id) {
+            this.postMessage({ type: 'library_path_detail_loaded', path: data });
+          }
+        } catch { /* non-fatal */ }
+        break;
+      }
+
+      case 'fork_library_path': {
+        const platformKey = this.context.globalState.get<string>('ava.platformKey');
+        if (!platformKey) {
+          this.postMessage({ type: 'error', message: 'Connect your Ava account to start learning paths from the library.' });
+          break;
+        }
+        try {
+          const res = await apiFetch(`/learning/library/${msg.id}/fork`, { method: 'POST', platformKey });
+          this.postMessage({ type: 'library_path_forked', curriculumId: res.curriculum_id, title: res.message || 'Started!' });
+        } catch (err: any) {
+          this.postMessage({ type: 'error', message: err.message || 'Failed to fork learning path' });
+        }
+        break;
+      }
+
+      case 'publish_to_library': {
+        const platformKey = this.context.globalState.get<string>('ava.platformKey');
+        if (!platformKey) {
+          this.postMessage({ type: 'error', message: 'Connect your Ava account to publish learning paths.' });
+          break;
+        }
+        try {
+          const res = await apiFetch('/learning/library', { method: 'POST', body: { curriculum_id: msg.curriculumId }, platformKey });
+          this.postMessage({ type: 'library_path_published', pathId: res.id, status: res.status, message: res.message });
+        } catch (err: any) {
+          this.postMessage({ type: 'error', message: err.message || 'Failed to publish' });
+        }
+        break;
+      }
+
+      case 'rate_library_path': {
+        const platformKey = this.context.globalState.get<string>('ava.platformKey');
+        if (!platformKey) break;
+        try {
+          await apiFetch(`/learning/library/${msg.id}/rate`, { method: 'POST', body: { rating: msg.rating }, platformKey });
+          this.postMessage({ type: 'library_path_rated', pathId: msg.id, rating: msg.rating });
+        } catch { /* non-fatal */ }
+        break;
+      }
+
       // ─── Sync messages ──────────────────────────────────────────────────
 
       case 'load_sync_status':

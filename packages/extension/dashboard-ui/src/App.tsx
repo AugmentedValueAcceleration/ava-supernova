@@ -23,6 +23,7 @@ import { Library } from './pages/Library';
 import { Personality } from './pages/Personality';
 import { Chat } from './pages/Chat';
 import { Planner } from './pages/Planner';
+import { LearningLibrary } from './pages/LearningLibrary';
 import { AccountPage } from './pages/AccountPage';
 import { HelpPage } from './pages/HelpPage';
 import type {
@@ -46,6 +47,8 @@ import type {
   SyncStatus,
   ReleaseNote,
   LibraryImage,
+  LibraryPath,
+  LibraryPathDetail,
   PersonalityData,
 } from './types/messages';
 
@@ -124,6 +127,8 @@ export function App() {
   const [sessionStatsData, setSessionStatsData] = useState<SessionStats | null>(null);
   const [usageHistoryData, setUsageHistoryData] = useState<UsageHistoryData | null>(null);
   const [learningCurriculums, setLearningCurriculums] = useState<DashboardLearningCurriculum[]>([]);
+  const [libraryPaths, setLibraryPaths] = useState<LibraryPath[]>([]);
+  const [libraryPathDetail, setLibraryPathDetail] = useState<LibraryPathDetail | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // Admin state
   const [adminTickets, setAdminTickets] = useState<SupportTicket[]>([]);
@@ -319,6 +324,16 @@ export function App() {
       case 'curriculum_deleted':
         setLearningCurriculums(prev => prev.filter(c => c.id !== msg.id));
         break;
+      case 'library_paths_loaded':
+        setLibraryPaths(msg.paths);
+        break;
+      case 'library_path_detail_loaded':
+        setLibraryPathDetail(msg.path);
+        break;
+      case 'library_path_forked':
+        // Refresh learning list to show the new curriculum
+        post({ type: 'load_learning' });
+        break;
       case 'task_dates_loaded':
         setTaskDates(msg.dates);
         break;
@@ -469,6 +484,9 @@ export function App() {
     if (page === 'library') {
       post({ type: 'load_library' });
     }
+    if (page === 'learning-library') {
+      post({ type: 'load_library_paths' });
+    }
     // Load personality when navigating to personality page
     if (page === 'personality') {
       post({ type: 'load_personality' });
@@ -576,6 +594,8 @@ export function App() {
         return <History sessionStats={sessionStatsData} usageHistory={usageHistoryData} mode={account ? 'platform' : 'byok'} account={account} />;
       case 'library':
         return <Library images={libraryImages} projectRoot={libraryProjectRoot} hasImagesFolder={libraryHasFolder} />;
+      case 'learning-library':
+        return <LearningLibrary paths={libraryPaths} detail={libraryPathDetail} onNavigate={setPagePersist} />;
 
       // ── Admin ───────────────────────────────────────────────────────
       case 'admin_support':

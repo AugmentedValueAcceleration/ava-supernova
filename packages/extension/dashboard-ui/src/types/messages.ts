@@ -189,6 +189,46 @@ export interface DashboardLearningCurriculum {
   updated_at: string;
 }
 
+// ─── Learning Library Types ─────────────────────────────────────────────────
+
+export interface LibraryPath {
+  id: string;
+  title: string;
+  description: string | null;
+  subject: string;
+  level: string;
+  tags: string[];
+  goal: string | null;
+  prerequisites: string | null;
+  estimated_hours: number | null;
+  learning_objectives: string[];
+  target_audience: string | null;
+  source: 'curated' | 'community';
+  author_name: string | null;
+  fork_count: number;
+  completion_count: number;
+  rating_sum: number;
+  rating_count: number;
+  average_rating: number | null;
+  created_at: string;
+  published_at: string | null;
+}
+
+export interface LibraryPathDetail extends LibraryPath {
+  content: {
+    modules: Array<{
+      title: string;
+      description?: string;
+      lessons: Array<{
+        title: string;
+        type: string;
+        difficulty?: string;
+        content?: string;
+      }>;
+    }>;
+  };
+}
+
 // ─── Journal Types ───────────────────────────────────────────────────────────
 
 export interface DashboardJournalEntry {
@@ -234,7 +274,7 @@ export interface UsageHistoryData {
   totalSessions: number;
 }
 
-export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'library' | 'personality' | 'sync' | 'releases' | 'roadmap' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals' | 'planner' | 'account' | 'help';
+export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'library' | 'personality' | 'sync' | 'releases' | 'roadmap' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals' | 'planner' | 'account' | 'help';
 
 // ─── Chat UI Types ──────────────────────────────────────────────────────────
 
@@ -452,6 +492,12 @@ export type ExtToDashboardMessage =
   // Learning messages
   | { type: 'learning_loaded'; curriculums: DashboardLearningCurriculum[] }
   | { type: 'curriculum_deleted'; id: string }
+  // Learning Library messages
+  | { type: 'library_paths_loaded'; paths: LibraryPath[]; total: number }
+  | { type: 'library_path_detail_loaded'; path: LibraryPathDetail }
+  | { type: 'library_path_forked'; curriculumId: string; title: string }
+  | { type: 'library_path_published'; pathId: string; status: string; message: string }
+  | { type: 'library_path_rated'; pathId: string; rating: number }
   | { type: 'task_dates_loaded'; dates: string[] }
   // Avatar messages
   | { type: 'avatar_loaded'; dataUrl: string }
@@ -579,6 +625,12 @@ export type DashboardToExtMessage =
   // Learning messages
   | { type: 'load_learning' }
   | { type: 'delete_curriculum'; id: string }
+  // Learning Library messages
+  | { type: 'load_library_paths'; search?: string; subject?: string; level?: string; sort?: string }
+  | { type: 'load_library_path_detail'; id: string }
+  | { type: 'fork_library_path'; id: string }
+  | { type: 'publish_to_library'; curriculumId: string }
+  | { type: 'rate_library_path'; id: string; rating: number }
   | { type: 'load_task_dates' }
   // Sync messages
   | { type: 'load_sync_status' }

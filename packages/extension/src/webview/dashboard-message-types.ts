@@ -410,6 +410,12 @@ export type DashboardToExtMessage =
   | { type: 'load_session_tasks' }
   // Learning messages
   | { type: 'load_learning' }
+  // Learning Library messages
+  | { type: 'load_library_paths'; search?: string; subject?: string; level?: string; sort?: string }
+  | { type: 'load_library_path_detail'; id: string }
+  | { type: 'fork_library_path'; id: string }
+  | { type: 'publish_to_library'; curriculumId: string }
+  | { type: 'rate_library_path'; id: string; rating: number }
   // Sync messages
   | { type: 'load_sync_status' }
   | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' }
