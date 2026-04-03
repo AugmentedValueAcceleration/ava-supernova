@@ -1,7 +1,7 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { HoloClient, type HoloAction, type HoloHistoryEntry } from '../providers/holo/index.js';
-import { buildPlanningKnowledge } from '../knowledge/computer-use-knowledge.js';
+import { buildPlanningKnowledge, buildVisionKnowledge } from '../knowledge/computer-use-knowledge.js';
 import {
   createBlackboard, beginStep, completeStep, failStep,
   updateScreenState, toResultSummary,
@@ -393,9 +393,21 @@ export class ComputerUseTool implements Tool {
         }
 
         // 3. Only use Holo3 for visual tasks (clicking elements we can't find via UIA)
+        //    Feed UIA elements + vision knowledge for grounding
         let action: HoloAction;
         try {
-          action = await holo.getNextAction(screenshot, currentInstruction, history, context.signal);
+          // Gather UIA elements for grounding (helps Holo3 click precisely)
+          let uiElements: Array<{ name: string; control_type: string; cx: number; cy: number }> | undefined;
+          if (uiaProvider) {
+            try {
+              uiElements = (await uiaProvider.listElements()).slice(0, 20);
+            } catch { /* non-fatal */ }
+          }
+          // Get vision knowledge for the target app
+          const visionKnowledge = buildVisionKnowledge(task, targetApp);
+          // Get screen dimensions for coordinate bounds
+          const screenDims = (screenshotProvider as { _lastDims?: { width: number; height: number } })._lastDims;
+          action = await holo.getNextAction(screenshot, currentInstruction, history, context.signal, uiElements, visionKnowledge || undefined, screenDims);
           // Emit Holo3 token usage for session tracking
           if (action._usage) {
             emit(`Holo3 usage: ${action._usage.prompt_tokens} in / ${action._usage.completion_tokens} out / ${action._usage.total_tokens} total`);
@@ -501,12 +513,17 @@ export class ComputerUseTool implements Tool {
         lastActionKey = '';
         sameActionCount = 0;
 
-        // 12. Wait for screen to settle — longer after Enter/key combos (app launches)
+        // 12. Adaptive wait — poll for screen change instead of fixed sleep
         const isLaunchAction = action.type === 'key' && (
           action.key === 'Enter' || action.key === 'Return' ||
           (action.key?.includes('+'))
         );
-        await sleep(isLaunchAction ? Math.max(delay, 1500) : delay);
+        const maxWait = isLaunchAction ? Math.max(delay, 3000) : Math.max(delay, 1500);
+        const changed = await waitForScreenChange(screenshotProvider, screenshot, maxWait, 300);
+        if (!changed) {
+          // Screen didn't change — give a minimum delay anyway
+          await sleep(Math.min(delay, 500));
+        }
 
         // 13. Check if we've completed all planned steps
         if (currentPlanStep >= plannedSteps.length || bb.agentState === 'finished') {
@@ -642,6 +659,35 @@ async function executeAction(action: HoloAction, input: InputProvider): Promise<
     default:
       throw new Error(`Cannot execute action type: ${action.type}`);
   }
+}
+
+/**
+ * Wait for the screen to change after an action.
+ * Takes screenshots until the image differs from the baseline, or timeout is reached.
+ * Returns the new screenshot if changed, or null if timed out.
+ */
+async function waitForScreenChange(
+  screenshotProvider: ScreenshotProvider,
+  baselineScreenshot: string,
+  maxWaitMs: number = 3000,
+  pollIntervalMs: number = 400,
+): Promise<string | null> {
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    await sleep(pollIntervalMs);
+    try {
+      const newScreenshot = await screenshotProvider.capture();
+      // Quick diff: compare first 500 chars of base64 (header changes if pixels change)
+      // Plus compare length — different content = different screenshot
+      if (newScreenshot.length !== baselineScreenshot.length ||
+          newScreenshot.slice(0, 500) !== baselineScreenshot.slice(0, 500)) {
+        return newScreenshot;
+      }
+    } catch {
+      // Screenshot failed — continue waiting
+    }
+  }
+  return null; // Timed out, screen didn't change
 }
 
 function formatAction(action: HoloAction): string {

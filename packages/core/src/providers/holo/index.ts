@@ -77,45 +77,62 @@ export class HoloClient {
   /**
    * Given a screenshot and task description, get the next action to perform.
    * Optionally pass action history for multi-step context.
+   *
+   * @param uiElements - Visible UI elements from UIA for grounding (element names + coordinates)
+   * @param visionKnowledge - App-specific visual patterns from knowledge packs
+   * @param screenDims - Screenshot dimensions for coordinate reference
    */
   async getNextAction(
     screenshot: string,
     task: string,
     history: HoloHistoryEntry[] = [],
     signal?: AbortSignal,
+    uiElements?: Array<{ name: string; control_type: string; cx: number; cy: number }>,
+    visionKnowledge?: string,
+    screenDims?: { width: number; height: number },
   ): Promise<HoloAction> {
     // Build message sequence: system → history screenshots/actions → current screenshot + task
-    const messages: Array<Record<string, unknown>> = [
-      {
-        role: 'system',
-        content: [
-          'You are a desktop automation agent. Execute ONE instruction at a time.',
-          'You receive a simple instruction like "Press Win+R" or "Type notepad" or "Click the Save button".',
-          '',
-          'Respond with JSON:',
-          '{"thought":"I see the Run dialog","action":{"type":"key","key":"meta+r"}}',
-          '{"thought":"Typing text","action":{"type":"type","text":"notepad"}}',
-          '{"thought":"Clicking the button","action":{"type":"click","x":500,"y":300}}',
-          '{"thought":"Done","action":{"type":"done","summary":"Completed"}}',
-          '',
-          'Action types: click, type, key, scroll, move, drag, done',
-          '',
-          'Rules:',
-          '- Execute EXACTLY the instruction given — nothing more, nothing less',
-          '- "type" sends ALL characters at once. Never one character at a time.',
-          '- "Press X" → use {"type":"key","key":"X"}',
-          '- "Type X" → use {"type":"type","text":"X"}',
-          '- "Click X" → find X on screen, return {"type":"click","x":...,"y":...}',
-          '- "Wait" → respond with {"type":"done","summary":"Waited"}',
-          '- If the instruction is already done, respond with done',
-          '',
-          'RESPOND WITH ONLY JSON.',
-        ].join('\n'),
-      },
+    const systemParts: string[] = [
+      'You are a desktop automation agent. Execute ONE instruction at a time.',
+      'You receive a simple instruction like "Press Win+R" or "Type notepad" or "Click the Save button".',
+      '',
+      'Respond with JSON:',
+      '{"thought":"I see the Run dialog","action":{"type":"key","key":"meta+r"}}',
+      '{"thought":"Typing text","action":{"type":"type","text":"notepad"}}',
+      '{"thought":"Clicking the button","action":{"type":"click","x":500,"y":300}}',
+      '{"thought":"Done","action":{"type":"done","summary":"Completed"}}',
+      '',
+      'Action types: click, type, key, scroll, move, drag, done',
+      '',
+      'Rules:',
+      '- Execute EXACTLY the instruction given — nothing more, nothing less',
+      '- "type" sends ALL characters at once. Never one character at a time.',
+      '- "Press X" → use {"type":"key","key":"X"}',
+      '- "Type X" → use {"type":"type","text":"X"}',
+      '- "Click X" → find X on screen, return {"type":"click","x":...,"y":...}',
+      '- "Wait" → respond with {"type":"done","summary":"Waited"}',
+      '- If the instruction is already done, respond with done',
+      '- Coordinates must be within screen bounds',
     ];
 
-    // Add action history for multi-step context (keep last 5 to save tokens)
-    const recentHistory = history.slice(-3);
+    // Inject screen dimensions so model knows the coordinate space
+    if (screenDims) {
+      systemParts.push(`- Screen size: ${screenDims.width}x${screenDims.height} pixels. All coordinates must be within this range.`);
+    }
+
+    // Inject vision knowledge (app-specific visual patterns)
+    if (visionKnowledge) {
+      systemParts.push('', '## Visual Context', visionKnowledge);
+    }
+
+    systemParts.push('', 'RESPOND WITH ONLY JSON.');
+
+    const messages: Array<Record<string, unknown>> = [
+      { role: 'system', content: systemParts.join('\n') },
+    ];
+
+    // Add action history for multi-step context (keep last 6 for better continuity)
+    const recentHistory = history.slice(-6);
     for (const entry of recentHistory) {
       // Assistant message: what action was taken
       messages.push({
@@ -129,14 +146,28 @@ export class HoloClient {
       });
     }
 
-    // Current screenshot + task
-    messages.push({
-      role: 'user',
-      content: [
-        { type: 'text', text: `Task: ${task}\n\nHere is the current screen. What action should I take next?` },
-        { type: 'image_url', image_url: { url: `data:image/png;base64,${screenshot}` } },
-      ],
-    });
+    // Build the user message with grounding context
+    const userParts: Array<Record<string, unknown>> = [];
+
+    // Text instruction + UIA grounding
+    let textContent = `Task: ${task}`;
+    if (uiElements && uiElements.length > 0) {
+      const elementList = uiElements
+        .filter(e => e.name && e.name.trim())
+        .slice(0, 20)
+        .map(e => `  - ${e.control_type} "${e.name}" at (${e.cx}, ${e.cy})`)
+        .join('\n');
+      if (elementList) {
+        textContent += `\n\n## Visible UI Elements (use these coordinates for precise clicking):\n${elementList}`;
+      }
+    }
+    textContent += '\n\nHere is the current screen. What action should I take next?';
+    userParts.push({ type: 'text', text: textContent });
+
+    // Screenshot
+    userParts.push({ type: 'image_url', image_url: { url: `data:image/png;base64,${screenshot}` } });
+
+    messages.push({ role: 'user', content: userParts });
 
     let raw: string;
 
