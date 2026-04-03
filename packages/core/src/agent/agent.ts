@@ -265,16 +265,23 @@ export class Agent {
       let sanitizedMessages = filteredMessages.map((m) => {
         let msg = m;
 
-        // Strip image_url parts for non-vision models (DeepSeek, Mistral, etc.)
+        // Strip image_url parts for non-vision models (DeepSeek, Mistral Codestral, etc.)
         // The image stays in local history so vision-capable models can still see it.
         if (!this.model.supportsVision && Array.isArray(msg.content)) {
           const textParts = (msg.content as ContentPart[]).filter((p) => p.type === 'text');
+          const visionNote = [
+            `Your current model (${this.model.name || this.model.id}) doesn't support images.`,
+            'To analyse images, switch to one of these vision-capable models:',
+            '- Qwen 3.6 Plus (best quality, 1M context)',
+            '- Qwen 3.5 Plus (1M context)',
+            '- Qwen 3.5 Omni Plus (multimodal)',
+            '- Qwen Omni Flash (free tier)',
+            '- Kimi K2.5, GLM-5, Mistral Large, Claude (BYOK)',
+          ].join('\n');
           if (textParts.length === 0) {
-            // Message was image-only — tell user to switch to a vision model
-            msg = { ...msg, content: 'Image received but your current model doesn\'t support vision. Switch to Qwen 3.5 Plus to analyse images.' };
-          } else if (textParts.length < (msg.content as ContentPart[]).length) {
-            // Mixed text+image — keep text, add note about vision
-            msg = { ...msg, content: textParts.map((p) => p.text).join('\n') + '\n\n(Image attached but your current model doesn\'t support vision. Switch to Qwen 3.5 Plus to analyse images.)' };
+            msg = { ...msg, content: visionNote };
+          } else {
+            msg = { ...msg, content: textParts.map((p) => p.text).join('\n') + '\n\n' + visionNote };
           }
         }
 
