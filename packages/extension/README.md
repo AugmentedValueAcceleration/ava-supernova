@@ -184,6 +184,10 @@ Everything local by default. Connected users choose what to sync:
 - Prompt injection resistance built in
 - You control what syncs and when
 
+## Privacy
+
+Ava collects **no analytics, no telemetry, and no screen captures**. Code context is sent only to your chosen AI provider for processing. All memory and conversation data is stored locally on your machine. See our full [Privacy Policy](PRIVACY.md).
+
 ## Links
 
 - [Website](https://ava-supernova.com)

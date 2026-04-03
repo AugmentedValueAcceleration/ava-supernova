@@ -45,6 +45,10 @@ const GREETING_PATTERN = /^(?:hi|hello|hey|thanks|thank you|good morning|good ev
 
 const AVA_SELF_PATTERN = /\b(?:what can you do|who are you|what are you|what model|help me|your name)\b/i;
 
+// ─── Computer use patterns ──────────────────────────────────────────────────
+
+const COMPUTER_USE_PATTERN = /\b(?:click|type\s+(?:in|into|on)|scroll|open\s+(?:the\s+)?(?:app|application|blender|unreal|photoshop|notepad|browser|chrome|firefox|excel|word|powerpoint|terminal)|control\s+(?:the\s+)?(?:screen|desktop|mouse|keyboard)|automate\s+(?:the\s+)?desktop|use\s+(?:the\s+)?(?:mouse|keyboard)|drag\s+(?:and\s+)?drop|interact\s+with|move\s+(?:the\s+)?(?:mouse|cursor)|press\s+(?:the\s+)?(?:button|key)|right[\s-]?click|double[\s-]?click)\b/i;
+
 // ─── Planning patterns (mirrors conductor's needsOrchestration) ──────────────
 
 const PLANNING_PATTERN = /\b(?:plan|design|architect|review|strategy|proposal|approach|roadmap|blueprint|outline the|break down|think through)\b/i;
@@ -89,6 +93,11 @@ export function classifyTask(
   // 3. Image generation — explicit request to create visual content
   if (IMAGE_GEN_PATTERN.test(text)) {
     return { category: 'image_gen', reason: 'Image generation request detected' };
+  }
+
+  // 3b. Computer use — desktop interaction requested
+  if (COMPUTER_USE_PATTERN.test(text)) {
+    return { category: 'computer_use', reason: 'Desktop interaction / computer use detected' };
   }
 
   // 4. Mode override — security, brainstorm, teach, plan modes force their category

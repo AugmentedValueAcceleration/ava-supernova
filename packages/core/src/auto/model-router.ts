@@ -14,6 +14,7 @@ const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
   coding:       { modelId: 'qwen3.6-plus',      reason: 'Best agentic coding — Terminal-Bench #1, native function calling', fallbackModelId: 'qwen3.5-omni-plus' },
   vision:       { modelId: 'qwen3.6-plus',      reason: 'Vision + reasoning + 1M context', fallbackModelId: 'qwen3.5-omni-plus', requiresVision: true },
   image_gen:    { modelId: 'MiniMax-M2.5',      reason: 'Image generation handled by generate_image tool' },
+  computer_use: { modelId: 'qwen3.6-plus',      reason: 'Conductor plans steps, Holo3 executes via computer_use tool', requiresVision: true },
   planning:     { modelId: 'MiniMax-M2.7',      reason: 'Strong reasoning, self-evolving', fallbackModelId: 'qwen3.6-plus' },
   chat:         { modelId: 'MiniMax-M2.5',      reason: 'Fast, cheap, 1M context for conversation', fallbackModelId: 'qwen3-omni-flash' },
   long_context: { modelId: 'qwen3.6-plus',      reason: '1M context + always-on CoT', fallbackModelId: 'MiniMax-M2.5' },

@@ -52,6 +52,7 @@ import { SelfInspectTool } from './self-inspect.js';
 import { ReleaseNotesTool } from './release-notes.js';
 import { WeatherTool } from './weather.js';
 import { NewsTool } from './news.js';
+import { ComputerUseTool } from './computer-use.js';
 
 // Which risk levels require confirmation under each permission mode
 const CONFIRMATION_MATRIX: Record<PermissionMode, Set<ToolRiskLevel>> = {
@@ -77,7 +78,8 @@ export class ToolRegistry {
     return this.permissionMode;
   }
 
-  registerBuiltins(): void {
+  registerBuiltins(options?: { exclude?: string[] }): void {
+    const excludeSet = new Set(options?.exclude || []);
     const builtins: Tool[] = [
       new FileReadTool(),
       new FileWriteTool(),
@@ -133,9 +135,12 @@ export class ToolRegistry {
       new ReportGenerateTool(),
       new GenerateImageTool(),
       new RemoveBackgroundTool(),
+      new ComputerUseTool(),
     ];
     for (const tool of builtins) {
-      this.tools.set(tool.name, tool);
+      if (!excludeSet.has(tool.name)) {
+        this.tools.set(tool.name, tool);
+      }
     }
   }
 
