@@ -860,8 +860,8 @@ export class LearningProgressTool implements Tool {
       properties: {
         action: {
           type: 'string',
-          enum: ['list', 'detail', 'next_lesson', 'needs_review', 'search', 'stats', 'recommend', 'certificate'],
-          description: 'list = all curriculums, detail = specific curriculum, next_lesson = next available, needs_review = spaced repetition due, search = keyword/tag search, stats = learning statistics, recommend = suggest what to learn next, certificate = completion certificate',
+          enum: ['list', 'detail', 'next_lesson', 'needs_review', 'search', 'stats', 'recommend', 'certificate', 'library_search', 'library_recommend'],
+          description: 'list = all curriculums, detail = specific curriculum, next_lesson = next available, needs_review = spaced repetition due, search = keyword/tag search, stats = learning statistics, recommend = suggest what to learn next, certificate = completion certificate, library_search = search public Learning Library, library_recommend = get library recommendations based on your learning history',
         },
         curriculum_id: { type: 'string', description: 'For detail/next_lesson: which curriculum' },
         query: { type: 'string', description: 'For search: keyword or tag to search for' },
@@ -1078,6 +1078,77 @@ export class LearningProgressTool implements Tool {
           return { success: false, output: `Curriculum is ${Math.round(cert.progress_percent)}% complete. Finish all lessons to earn your certificate.` };
         }
         return { success: true, output: generateCertificate(cert) };
+      }
+
+      case 'library_search': {
+        const query = args.query as string;
+        if (!query) return { success: false, output: 'query is required for library_search' };
+
+        const platformKey = (context.sharedState as Record<string, unknown>)?.platformKey as string | undefined;
+        if (!platformKey) {
+          return { success: true, output: 'The Learning Library is available on the Ava platform. Connect your account or browse the Library tab in your dashboard to explore curated and community learning paths.' };
+        }
+
+        try {
+          const res = await fetch(`https://ava-supernova.com/api/learning/library?search=${encodeURIComponent(query)}&limit=5`, {
+            headers: { 'Authorization': `Bearer ${platformKey}` },
+            signal: AbortSignal.timeout(8000),
+          });
+          if (!res.ok) return { success: false, output: 'Failed to search library' };
+          const data = await res.json() as { paths: Array<{ title: string; subject: string; level: string; description: string; fork_count: number; rating_sum: number; rating_count: number; estimated_hours: number; source: string; id: string }> };
+          if (!data.paths?.length) return { success: true, output: `No library paths found for "${query}". Try a different search term, or I can create a custom learning path for you.` };
+
+          const results = data.paths.map((p, i) => {
+            const rating = p.rating_count > 0 ? `${(p.rating_sum / p.rating_count).toFixed(1)}/5` : 'No ratings yet';
+            const badge = p.source === 'curated' ? ' [Curated by Ava]' : '';
+            return `${i + 1}. **${p.title}**${badge}\n   ${p.subject} · ${p.level} · ${p.estimated_hours || '?'}h · ${p.fork_count} learners · ${rating}\n   ${p.description?.slice(0, 120) || ''}`;
+          }).join('\n\n');
+
+          return { success: true, output: `**Learning Library — "${query}"**\n\n${results}\n\nSay "start [title]" to fork a path and begin learning, or I can create a custom one.` };
+        } catch {
+          return { success: false, output: 'Library search timed out. Try again or browse the Library tab in your dashboard.' };
+        }
+      }
+
+      case 'library_recommend': {
+        const platformKey = (context.sharedState as Record<string, unknown>)?.platformKey as string | undefined;
+        const localRecs = generateRecommendations(store);
+        let libraryRecs = '';
+
+        if (platformKey) {
+          try {
+            const completedLevels = store.curriculums
+              .filter(c => c.status === 'completed')
+              .map(c => c.level);
+            const nextLevel = completedLevels.includes('beginner') && !completedLevels.includes('intermediate')
+              ? 'intermediate'
+              : completedLevels.includes('intermediate') && !completedLevels.includes('advanced')
+                ? 'advanced'
+                : 'beginner';
+
+            const res = await fetch(`https://ava-supernova.com/api/learning/library?sort=popular&level=${nextLevel}&limit=3`, {
+              headers: { 'Authorization': `Bearer ${platformKey}` },
+              signal: AbortSignal.timeout(5000),
+            });
+            if (res.ok) {
+              const data = await res.json() as { paths: Array<{ title: string; subject: string; level: string; fork_count: number; source: string }> };
+              if (data.paths?.length) {
+                libraryRecs = '\n\n**From the Learning Library:**\n' + data.paths.map((p, i) => {
+                  const badge = p.source === 'curated' ? ' [Curated]' : '';
+                  return `${i + 1}. ${p.title}${badge} (${p.level}, ${p.fork_count} learners)`;
+                }).join('\n');
+              }
+            }
+          } catch { /* non-fatal */ }
+        }
+
+        const output = localRecs.length > 0
+          ? localRecs.join('\n') + libraryRecs
+          : libraryRecs
+            ? 'Based on your learning history:' + libraryRecs
+            : 'Start your first learning path! Say "teach me [topic]" or browse the Learning Library in your dashboard.';
+
+        return { success: true, output };
       }
 
       default:
