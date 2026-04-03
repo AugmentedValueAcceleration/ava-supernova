@@ -67,6 +67,8 @@ Rules:
 - Each topic: { "topic": "short label", "count": number, "desc": "one line" }
 - Only list topics that have 1+ relevant entries
 - If nothing is relevant, write "No relevant memories." and an empty topics array
+- If any memories mention learned patterns or preferences (e.g., "prefers camelCase", "always tests before committing"), highlight these — they help Ava match the user's style
+- Include relevance scores when available — prioritise high-match memories over weak ones
 - Be concise. This goes into Ava's working context — every token counts.
 
 Respond in this exact format:
@@ -141,13 +143,21 @@ export class MemoryAgent {
 
       if (!results || results.length === 0) return emptyBrief;
 
-      // Format raw memories for the memory model
+      // Format raw memories with relevance scores so the brief generator
+      // knows which memories are strong matches vs. marginal
       const rawMemories = results.map((r, i) => {
         const entry = r.entry || r;
         const content = entry.content || (r as any).content || '';
         const category = entry.category || (r as any).category || 'general';
         const scope = r.scope || 'global';
-        return `[${i + 1}] (${scope}/${category}) ${content.slice(0, 300)}`;
+        const relevance = typeof (r as any).relevance === 'number'
+          ? Math.round((r as any).relevance * 100)
+          : null;
+        const recency = entry.updatedAt
+          ? `${Math.round((Date.now() - new Date(entry.updatedAt).getTime()) / 86400000)}d ago`
+          : '';
+        const meta = [relevance ? `${relevance}% match` : '', recency].filter(Boolean).join(', ');
+        return `[${i + 1}] (${scope}/${category}${meta ? ' | ' + meta : ''}) ${content.slice(0, 300)}`;
       }).join('\n');
 
       // Try LLM curation with timeout

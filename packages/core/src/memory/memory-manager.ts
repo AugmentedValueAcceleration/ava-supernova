@@ -36,8 +36,9 @@ const CONFLICT_TFIDF_THRESHOLD = 0.45;
 /** TF-IDF similarity threshold for consolidation grouping. */
 const CONSOLIDATION_THRESHOLD = 0.35;
 
-/** Minimum TF-IDF score to include in recall results. */
-const RECALL_TFIDF_THRESHOLD = 0.15;
+/** Minimum TF-IDF score to include in recall results.
+ *  0.25 filters out weak noise while keeping valid semantic matches. */
+const RECALL_TFIDF_THRESHOLD = 0.25;
 
 // ── Relevance scoring weights ────────────────────────────────────────────────
 const W_TFIDF = 0.55;     // TF-IDF match quality

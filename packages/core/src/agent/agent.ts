@@ -151,21 +151,28 @@ export class Agent {
           })
           .join('\n');
 
-        // Save to project memory
-        if (summary.length > 20) {
-          const mm = (this.toolContext.sharedState as Record<string, unknown> | undefined)?.memoryManager as
-            | { saveEntry: (opts: { scope: string; content: string; category: string; tags?: string[] }) => Promise<unknown> }
-            | undefined;
-          if (mm?.saveEntry) {
-            try {
-              await mm.saveEntry({
-                scope: 'project',
-                content: `[Session context] ${summary.slice(0, 2000)}`,
-                category: 'general',
-                tags: ['session-context'],
-              });
-            } catch { /* non-critical */ }
+        // Extract memories from messages being compressed BEFORE they're dropped
+        // Layer 1 (regex patterns) catches preferences, corrections, decisions
+        const mm = (this.toolContext.sharedState as Record<string, unknown> | undefined)?.memoryManager as
+          | { saveEntry: (opts: { scope: string; content: string; category: string; tags?: string[] }) => Promise<unknown> }
+          | undefined;
+        try {
+          const { autoExtractAndSave } = await import('../memory/auto-extract.js');
+          if (mm) {
+            await autoExtractAndSave(toCompress, mm as any);
           }
+        } catch { /* non-critical */ }
+
+        // Also save the raw summary as project context
+        if (summary.length > 20 && mm?.saveEntry) {
+          try {
+            await mm.saveEntry({
+              scope: 'project',
+              content: `[Session context] ${summary.slice(0, 2000)}`,
+              category: 'general',
+              tags: ['session-context'],
+            });
+          } catch { /* non-critical */ }
         }
 
         // Rebuild messages: system + context note + recent messages
