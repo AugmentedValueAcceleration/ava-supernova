@@ -175,18 +175,26 @@ export class Agent {
           } catch { /* non-critical */ }
         }
 
-        // Rebuild messages: system + context note + recent messages
+        // Rebuild messages: system (with compression note merged in) + recent messages
+        // Merging into the first system message avoids Qwen's "system must be at beginning" error
         const fixedKeep = this.fixToolPairing(toKeep);
-        messages = [
-          ...systemMsgs,
-          { role: 'system' as const, content: [
-            `[${toCompress.length} earlier messages compressed to memory.]`,
-            'Your memory system has saved the important context from those messages.',
-            'If the user references something from earlier in the conversation, use memory_recall to retrieve it.',
-            'Do NOT say you don\'t have context — check memory first.',
-          ].join(' ') },
-          ...fixedKeep,
-        ];
+        const compressionNote = [
+          `[${toCompress.length} earlier messages compressed to memory.]`,
+          'Your memory system has saved the important context from those messages.',
+          'If the user references something from earlier in the conversation, use memory_recall to retrieve it.',
+          'Do NOT say you don\'t have context — check memory first.',
+        ].join(' ');
+
+        if (systemMsgs.length > 0) {
+          const primary = systemMsgs[0];
+          const mergedSystem = { ...primary, content: (typeof primary.content === 'string' ? primary.content : '') + '\n\n' + compressionNote };
+          messages = [mergedSystem, ...fixedKeep];
+        } else {
+          messages = [
+            { role: 'system' as const, content: compressionNote },
+            ...fixedKeep,
+          ];
+        }
 
         // Notify UI about compression (uses 'info' event type)
         logger.debug(`[agent] Sliding window: compressed ${toCompress.length} messages, kept ${fixedKeep.length}`);
@@ -211,14 +219,15 @@ export class Agent {
       iterations++;
 
       // Warn the model when approaching the iteration limit
+      // Injected as a user-role message to avoid Qwen's "system must be at beginning" error
       const remaining = MAX_TOOL_CALL_ITERATIONS - iterations;
       if (!warningInjected && remaining <= ITERATION_WARNING_THRESHOLD) {
         warningInjected = true;
         messages = [
           ...messages,
           {
-            role: 'system' as const,
-            content: t('error.msg.iteration_warning', { remaining: String(remaining) }),
+            role: 'user' as const,
+            content: `[System notice]: ${t('error.msg.iteration_warning', { remaining: String(remaining) })}`,
           },
         ];
       }
