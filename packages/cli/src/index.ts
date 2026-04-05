@@ -181,7 +181,7 @@ async function main(): Promise<void> {
   if (appConfig.providers?.mistral?.apiKey || process.env.MISTRAL_API_KEY) availableProviders.add('mistral');
 
   // Auto Mode — picks Kimi K2.5 for platform, best available for BYOK
-  const autoCoordinator = availableProviders.size > 1 || availableProviders.has('platform')
+  const autoCoordinator = (availableProviders.size > 1 || availableProviders.has('platform')
     ? AutoCoordinator.create({
         providerRegistry,
         toolRegistry,
@@ -190,7 +190,7 @@ async function main(): Promise<void> {
         availableProviders,
         platformKey: appConfig.platformKey,
       })
-    : undefined;
+    : undefined) ?? undefined;
 
   // Set up REPL
   const modelLabel = `${resolved.provider.name}:${resolved.model.id}`;
@@ -220,7 +220,7 @@ async function main(): Promise<void> {
           sharedState,
           availableProviders,
           platformKey: appConfig.platformKey,
-        }));
+        }) ?? undefined);
       }
       repl.setModelLabel(`${provider.name}:${model.id}`);
     },

@@ -995,7 +995,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     // Auto Mode — detect available providers and create coordinator
     const availableProviders = new Set<string>();
-    const platformKey = sharedState.platformKey as string | undefined;
     if (platformKey) availableProviders.add('platform');
     if (qwenApiKey) availableProviders.add('qwen');
     if (minimaxApiKey) availableProviders.add('minimax');
@@ -2072,14 +2071,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             toolFailures.delete(toolKey);
             try {
               const learned = `For ${toolKey}: retry succeeded after failure. Previous error: "${prev.error.slice(0, 80)}"`;
-              await addLearning(AVA_HOME, {
+              addLearning(AVA_HOME, {
                 type: 'error-recovery' as const,
                 category: 'general',
                 context: toolKey,
                 learned,
                 confidence: 0.5,
                 source: 'retry-success' as const,
-              });
+              }).catch(() => { /* self-improvement is non-critical */ });
             } catch { /* self-improvement is non-critical */ }
           }
 
