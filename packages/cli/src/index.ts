@@ -58,7 +58,25 @@ async function main(): Promise<void> {
     const projectId = projectRoot ? createHash('sha256').update(projectRoot).digest('hex').slice(0, 16) : undefined;
     sync = new PlatformMemorySync('https://ava-supernova.com/api', appConfig.platformKey, projectId);
   }
-  const memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot, sync });
+  // Scope data directory per account — prevents memory leakage between accounts
+  let globalDir = AVA_HOME;
+  if (appConfig.platformKey) {
+    try {
+      const res = await fetch('https://ava-supernova.com/api/account-info', {
+        headers: { Authorization: `Bearer ${appConfig.platformKey}` },
+      });
+      if (res.ok) {
+        const account = await res.json();
+        if (account?.id) {
+          const { join } = await import('node:path');
+          const { mkdir } = await import('node:fs/promises');
+          globalDir = join(AVA_HOME, 'users', account.id);
+          await mkdir(globalDir, { recursive: true });
+        }
+      }
+    } catch { /* fall back to default AVA_HOME */ }
+  }
+  const memoryManager = new MemoryManager({ globalDir, projectRoot, sync });
   const configToRegistry: Record<string, string> = { glm: 'zhipu' };
   for (const [name, providerConfig] of Object.entries(appConfig.providers)) {
     if (name === 'generic' || !providerConfig) continue;
@@ -236,9 +254,9 @@ async function main(): Promise<void> {
 
   // Daily briefing — proactive greeting
   try {
-    const taskManager = new TaskManager({ globalDir: AVA_HOME, projectRoot });
-    const journalManager = new JournalManager({ globalDir: AVA_HOME, projectRoot });
-    const briefingEngine = new BriefingEngine({ globalDir: AVA_HOME });
+    const taskManager = new TaskManager({ globalDir, projectRoot });
+    const journalManager = new JournalManager({ globalDir, projectRoot });
+    const briefingEngine = new BriefingEngine({ globalDir });
 
     if (await briefingEngine.shouldShowBriefing()) {
       const briefing = await briefingEngine.generateBriefing(taskManager, journalManager, memoryManager);

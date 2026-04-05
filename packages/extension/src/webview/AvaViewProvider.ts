@@ -89,6 +89,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private currentLocale = 'en';
   private panelStateCallback?: (isOpen: boolean) => void;
   private cachedAccount: AccountInfo | null = null;
+  private accountScopedDir: string = AVA_HOME; // scoped per account when connected
   private providerSource: ProviderSource = 'byok';
   private enabledModelIds: Set<string> | null = null;
   private heartbeatInterval?: ReturnType<typeof setInterval>;
@@ -125,6 +126,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       this.context.secrets.onDidChange(async (e) => {
         if (e.key === 'ava-supernova.platformKey') {
           this.cachedAccount = null;
+          this.accountScopedDir = AVA_HOME; // Reset to default until new account verified
           await this.initializeSession();
           // Pull latest memories from cloud after sign-in
           if (this.memoryManager) {
@@ -709,6 +711,29 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           const platform = new PlatformProvider({ apiKey: platformKey });
           this.providerRegistry.registerCustom('platform', platform);
           this.log(`Platform provider registered (tier: ${this.cachedAccount.tier})`);
+
+          // Scope data directory per account — prevents memory leakage between accounts
+          const { join } = await import('node:path');
+          const { mkdir } = await import('node:fs/promises');
+          const newScopedDir = join(AVA_HOME, 'users', this.cachedAccount.id);
+          if (newScopedDir !== this.accountScopedDir) {
+            await mkdir(newScopedDir, { recursive: true });
+            this.accountScopedDir = newScopedDir;
+            this.log(`Account-scoped data directory: ${newScopedDir}`);
+
+            // Re-create managers with account-scoped directory
+            const projectId = this.projectRoot
+              ? crypto.createHash('sha256').update(this.projectRoot).digest('hex').slice(0, 16)
+              : undefined;
+            const sync = new PlatformMemorySync('https://ava-supernova.com/api', platformKey, projectId);
+            const memoryLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? false;
+            this.memoryManager = new MemoryManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly });
+            const taskSync = new PlatformTaskSyncImpl('https://ava-supernova.com/api', platformKey);
+            this.taskManager = new TaskManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: taskSync });
+            const journalSync = new PlatformJournalSyncImpl('https://ava-supernova.com/api', platformKey);
+            this.journalManager = new JournalManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: journalSync });
+            this.cachedMemory = (await this.memoryManager.loadAll(this.projectInstructions)) || undefined;
+          }
         } else {
           this.log('Platform key present but account verification failed');
           this.postMessage({
@@ -1521,7 +1546,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       await this.memoryManager.clearEverything();
     }
     // Recreate with sync disabled until next session
-    this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, localOnly: true });
+    this.memoryManager = new MemoryManager({ globalDir: this.accountScopedDir, projectRoot: this.projectRoot, localOnly: true });
     this.cachedMemory = undefined;
   }
 
