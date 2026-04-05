@@ -9,10 +9,10 @@ export { PLATFORM_API };
 let _deviceId: string | null = null;
 export function getDeviceId(): string {
   if (!_deviceId) {
-    // Try to generate a stable ID from machine characteristics
+    // Generate a stable ID from machine characteristics + entropy salt
     try {
       const os = require('os');
-      const raw = `${os.hostname()}-${os.userInfo().username}-${os.platform()}-${os.arch()}`;
+      const raw = `${os.hostname()}-${os.userInfo().username}-${os.platform()}-${os.arch()}-${os.cpus()[0]?.model || ''}-${os.totalmem()}`;
       _deviceId = crypto.createHash('sha256').update(raw).digest('hex').slice(0, 16);
     } catch {
       _deviceId = crypto.randomUUID().slice(0, 16);

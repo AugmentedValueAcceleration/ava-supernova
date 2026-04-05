@@ -104,15 +104,15 @@ export class Renderer {
 
     if (hasMarkdown) {
       process.stdout.write('\r');
-      for (let i = 0; i <= this.streamLineCount; i++) {
+      for (let i = 0; i < this.streamLineCount; i++) {
         process.stdout.write('\x1b[2K');
-        if (i < this.streamLineCount) {
-          process.stdout.write('\x1b[1A');
-        }
+        process.stdout.write('\x1b[1A');
       }
-      process.stdout.write('\r');
+      process.stdout.write('\x1b[2K\r');
 
-      const rendered = marked.parse(this.streamBuffer) as string;
+      // Sanitise raw ANSI escape sequences from AI output before rendering
+      const sanitised = this.streamBuffer.replace(/\x1b\[[0-9;]*[a-zA-Z~]/g, '');
+      const rendered = marked.parse(sanitised) as string;
       process.stdout.write(rendered);
     } else {
       process.stdout.write('\n');

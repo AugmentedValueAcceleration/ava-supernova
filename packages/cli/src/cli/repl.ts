@@ -336,16 +336,55 @@ export class Repl {
     // Pause the readline so it doesn't compete for stdin
     this.rl.pause();
 
+    let inEscapeSequence = false;
+
+    const cleanup = () => {
+      stdin.removeListener('data', onData);
+      if (stdin.isTTY) {
+        stdin.setRawMode(wasRaw ?? false);
+      }
+      this.rl.resume();
+    };
+
     const onData = (data: Buffer) => {
       const str = data.toString();
 
       for (const ch of str) {
-        // Escape or Ctrl+C → cancel
-        if (ch === '\x1b' || ch === '\x03') {
+        // Skip remainder of ANSI escape sequences (multi-byte)
+        if (inEscapeSequence) {
+          // Escape sequences end with a letter (A-Z, a-z)
+          if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch === '~') {
+            inEscapeSequence = false;
+          }
+          continue;
+        }
+
+        // Escape key — if followed by '[' it's an ANSI sequence, otherwise cancel
+        if (ch === '\x1b') {
+          inEscapeSequence = true;
+          // Also handle bare escape (cancel) — set a short timeout
+          // If no sequence follows, treat as cancel
+          setTimeout(() => {
+            if (inEscapeSequence) {
+              inEscapeSequence = false;
+              if (this.runAbortController) {
+                this.spinner.stop();
+                console.log(chalk.yellow('\n  ' + t('cli.cancelled')));
+                this.runAbortController.abort();
+                cleanup();
+              }
+            }
+          }, 50);
+          continue;
+        }
+
+        // Ctrl+C → cancel
+        if (ch === '\x03') {
           if (this.runAbortController) {
             this.spinner.stop();
             console.log(chalk.yellow('\n  ' + t('cli.cancelled')));
             this.runAbortController.abort();
+            cleanup();
           }
           return;
         }
@@ -368,7 +407,7 @@ export class Repl {
           return;
         }
 
-        // Regular character — accumulate
+        // Regular character — accumulate (skip control chars)
         if (ch >= ' ') {
           lineBuffer += ch;
         }
@@ -377,13 +416,7 @@ export class Repl {
 
     stdin.on('data', onData);
 
-    return () => {
-      stdin.removeListener('data', onData);
-      if (stdin.isTTY) {
-        stdin.setRawMode(wasRaw ?? false);
-      }
-      this.rl.resume();
-    };
+    return cleanup;
   }
 
   private async processUserMessage(input: string): Promise<void> {

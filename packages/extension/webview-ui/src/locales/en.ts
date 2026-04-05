@@ -38,6 +38,8 @@ export const enStrings: Record<string, string> = {
   'welcome.mode.security_desc': 'Security scanning',
   'welcome.mode.teach': 'Teach',
   'welcome.mode.teach_desc': 'Ava becomes your personal tutor',
+  'welcome.mode.brainstorm': 'Brainstorm',
+  'welcome.mode.brainstorm_desc': 'Ideation & creative thinking',
 
   // Input Area
   'input.placeholder.code': 'What do you want to build?',

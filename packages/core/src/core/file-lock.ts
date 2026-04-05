@@ -48,12 +48,23 @@ export async function acquireLock(filePath: string): Promise<() => Promise<void>
       // File already exists (locked by another process)
       if (err.code === 'EEXIST') {
         if (Date.now() - startTime > LOCK_TIMEOUT_MS) {
-          // Timeout — force acquire (the other process is probably dead)
-          await unlink(lockPath).catch(() => {});
-          await writeFile(lockPath, String(pid), { flag: 'wx' }).catch(() => {});
-          return async () => {
+          // Timeout — check staleness one more time before force-acquiring
+          const stale = await isLockStale(lockPath);
+          if (stale) {
             await unlink(lockPath).catch(() => {});
-          };
+          }
+          // Attempt to create — if another process just claimed it, this will fail
+          // and we fall through to the warning path
+          try {
+            await writeFile(lockPath, String(pid), { flag: 'wx' });
+            return async () => {
+              await unlink(lockPath).catch(() => {});
+            };
+          } catch {
+            // Another process holds a valid lock — proceed without lock and warn
+            console.warn(`[file-lock] Could not acquire lock for ${filePath} after ${LOCK_TIMEOUT_MS}ms`);
+            return async () => {};
+          }
         }
         // Wait and retry
         await sleep(LOCK_RETRY_MS);

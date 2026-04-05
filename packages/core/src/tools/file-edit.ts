@@ -1,7 +1,9 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, stat } from 'node:fs/promises';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { validatePath } from './security.js';
+
+const MAX_EDIT_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 export class FileEditTool implements Tool {
   readonly name = 'file_edit';
@@ -55,6 +57,12 @@ export class FileEditTool implements Tool {
     }
 
     try {
+      // Guard against reading extremely large files into memory
+      const fileStat = await stat(absolutePath);
+      if (fileStat.size > MAX_EDIT_FILE_BYTES) {
+        return { success: false, output: `File is ${Math.round(fileStat.size / (1024 * 1024))} MB — exceeds the ${MAX_EDIT_FILE_BYTES / (1024 * 1024)} MB edit limit.` };
+      }
+
       const content = await readFile(absolutePath, 'utf-8');
 
       const occurrences = content.split(oldString).length - 1;

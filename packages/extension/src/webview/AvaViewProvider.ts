@@ -69,7 +69,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private pendingConfirmations = new Map<string, { resolve: (result: boolean | string) => void; toolName: string }>();
   private sessionAllowedTools = new Set<string>();
   private sessionAllowAll = false;
+  private sessionAllowAllExpiry = 0;
   private settingsListener?: vscode.Disposable;
+  private readonly disposables: vscode.Disposable[] = [];
   private readonly outputChannel: vscode.OutputChannel;
   private readonly statusBarItem: vscode.StatusBarItem;
   private projectRoot?: string;
@@ -111,27 +113,31 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // Store the promise so initializeSession can await it before using managers
     this.projectContextReady = this.refreshProjectContext();
 
-    // Re-detect project when workspace folders change
-    vscode.workspace.onDidChangeWorkspaceFolders(() => {
-      this.onWorkspaceChanged();
-    });
+    // Re-detect project when workspace folders change (tracked for disposal)
+    this.disposables.push(
+      vscode.workspace.onDidChangeWorkspaceFolders(() => {
+        this.onWorkspaceChanged();
+      }),
+    );
 
     // Re-initialize when platform key is added or removed (dashboard connect/disconnect)
-    this.context.secrets.onDidChange(async (e) => {
-      if (e.key === 'ava-supernova.platformKey') {
-        this.cachedAccount = null;
-        await this.initializeSession();
-        // Pull latest memories from cloud after sign-in
-        if (this.memoryManager) {
-          this.memoryManager.pullLatest('global').catch(() => {});
-          this.memoryManager.pullLatest('project').catch(() => {});
+    this.disposables.push(
+      this.context.secrets.onDidChange(async (e) => {
+        if (e.key === 'ava-supernova.platformKey') {
+          this.cachedAccount = null;
+          await this.initializeSession();
+          // Pull latest memories from cloud after sign-in
+          if (this.memoryManager) {
+            this.memoryManager.pullLatest('global').catch(() => {});
+            this.memoryManager.pullLatest('project').catch(() => {});
+          }
         }
-      }
-      // Refresh model list when any BYOK key changes
-      if (e.key.startsWith('ava-supernova.provider.')) {
-        await this.initializeSession();
-      }
-    });
+        // Refresh model list when any BYOK key changes
+        if (e.key.startsWith('ava-supernova.provider.')) {
+          await this.initializeSession();
+        }
+      }),
+    );
   }
 
   private async refreshProjectContext(): Promise<void> {
@@ -282,19 +288,23 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.view = webviewView;
     this.setupWebview(webviewView.webview);
 
-    webviewView.onDidChangeVisibility(async () => {
-      if (webviewView.visible) {
-        this.startHeartbeat();
-        await this.initializeSession();
-      } else {
-        this.stopHeartbeat();
-      }
-    });
+    this.disposables.push(
+      webviewView.onDidChangeVisibility(async () => {
+        if (webviewView.visible) {
+          this.startHeartbeat();
+          await this.initializeSession();
+        } else {
+          this.stopHeartbeat();
+        }
+      }),
+    );
 
-    webviewView.onDidDispose(() => {
-      this.stopHeartbeat();
-      this.view = undefined;
-    });
+    this.disposables.push(
+      webviewView.onDidDispose(() => {
+        this.stopHeartbeat();
+        this.view = undefined;
+      }),
+    );
 
     this.startHeartbeat();
 
@@ -335,8 +345,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const type = msg.type as string;
     let mapped: WebviewToExtMessage;
     switch (type) {
-      case 'send_message':
-        mapped = { type: 'send_message', text: msg.text as string, mode: (msg.mode ?? 'code') as AvaMode, attachments: msg.attachments as any };
+      case 'send_message': {
+        // Validate attachments structure before passing through
+        const rawAttachments = msg.attachments;
+        const validAttachments = Array.isArray(rawAttachments)
+          ? rawAttachments.filter((a: unknown) => a && typeof a === 'object' && typeof (a as Record<string, unknown>).data === 'string')
+          : undefined;
+        mapped = { type: 'send_message', text: msg.text as string, mode: (msg.mode ?? 'code') as AvaMode, attachments: validAttachments as any };
+      }
         break;
       case 'tool_confirmation_response':
         mapped = { type: 'tool_confirmation_response', confirmationId: msg.confirmationId as string, approved: msg.approved as boolean, alwaysAllow: msg.alwaysAllow as boolean | undefined, allowAll: msg.allowAll as boolean | undefined, planSelection: msg.planSelection as string | undefined, userResponse: msg.userResponse as string | undefined };
@@ -511,8 +527,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     };
 
     // Register handler BEFORE setting HTML to guarantee we catch webview_ready
-    webview.onDidReceiveMessage(
-      (message: WebviewToExtMessage) => this.handleWebviewMessage(message),
+    this.disposables.push(
+      webview.onDidReceiveMessage(
+        (message: WebviewToExtMessage) => this.handleWebviewMessage(message),
+      ),
     );
 
     webview.html = this.getHtmlForWebview(webview);
@@ -539,7 +557,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.conversation.setSystemPrompt(await this.buildCurrentSystemPrompt());
     this.setLastConversationId(undefined);
     this.postMessage({ type: 'chat_cleared' });
-    this.postMessage({ type: 'init', models: this.getModelList(), activeModel: this.getActiveModelId(), needsSetup: !this.agent, locale: this.currentLocale });
+    this.postMessage({ type: 'init', models: this.getModelList(), activeModel: this.getActiveModelId(), needsSetup: !this.agent, consentRequired: !this.context.globalState.get('ava.consentAccepted'), locale: this.currentLocale });
   }
 
   focusInput(): void {
@@ -551,7 +569,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   clearChat(): void {
     this.conversation?.clear();
     this.postMessage({ type: 'chat_cleared' });
-    this.postMessage({ type: 'init', models: this.getModelList(), activeModel: this.getActiveModelId(), needsSetup: !this.agent, locale: this.currentLocale });
+    this.postMessage({ type: 'init', models: this.getModelList(), activeModel: this.getActiveModelId(), needsSetup: !this.agent, consentRequired: !this.context.globalState.get('ava.consentAccepted'), locale: this.currentLocale });
   }
 
   async switchModel(): Promise<void> {
@@ -582,6 +600,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.statusBarItem.dispose();
     this.panel?.dispose();
     this.outputChannel.dispose();
+    for (const d of this.disposables) d.dispose();
+    this.disposables.length = 0;
   }
 
   private startHeartbeat(): void {
@@ -737,7 +757,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // Resolve provider source (persisted preference)
     const hasPlatform = this.providerRegistry.listAllModels().some(m => m.provider === 'platform');
     const hasByok = this.providerRegistry.listAllModels().some(m => m.provider !== 'platform');
-    const storedSource = this.context.globalState.get<ProviderSource>('providerSource');
+    const storedSource = this.context.workspaceState.get<ProviderSource>('providerSource');
 
     if (storedSource === 'platform' && hasPlatform) {
       this.providerSource = 'platform';
@@ -789,6 +809,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       models: this.getModelList(),
       activeModel: this.getActiveModelId(),
       needsSetup: !this.agent,
+      consentRequired: !this.context.globalState.get('ava.consentAccepted'),
       locale: this.currentLocale,
       providerSource: this.providerSource,
       platformStatus,
@@ -917,17 +938,29 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         })
       : provider;
 
-    const qwenApiKey = await this.context.secrets.get('ava-supernova.provider.qwen.apiKey') || process.env.QWEN_API_KEY;
+    const qwenApiKey = await this.context.secrets.get('ava-supernova.provider.qwen.apiKey') || undefined;
 
-    const minimaxApiKey = await this.context.secrets.get('ava-supernova.provider.minimax.apiKey') || process.env.MINIMAX_API_KEY;
+    const minimaxApiKey = await this.context.secrets.get('ava-supernova.provider.minimax.apiKey') || undefined;
+
+    const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
+
+    // Sealed key getter — API keys are accessed via function, not stored as plain strings
+    // in sharedState. This prevents accidental exposure through logging or serialisation.
+    const getProviderKey = (provider: string): string | undefined => {
+      switch (provider) {
+        case 'qwen': return qwenApiKey;
+        case 'minimax': return minimaxApiKey;
+        case 'platform': return platformKey || undefined;
+        default: return undefined;
+      }
+    };
 
     const sharedState: Record<string, unknown> = {
       memoryManager: this.memoryManager,
       taskManager: this.taskManager,
       journalManager: this.journalManager,
-      platformKey: await this.context.secrets.get('ava-supernova.platformKey'),
-      qwenApiKey,
-      minimaxApiKey,
+      platformKey,
+      getProviderKey,
       activeModelId: model.id,
     };
 
@@ -966,9 +999,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     if (platformKey) availableProviders.add('platform');
     if (qwenApiKey) availableProviders.add('qwen');
     if (minimaxApiKey) availableProviders.add('minimax');
-    const kimiKey = await this.context.secrets.get('ava-supernova.provider.kimi.apiKey') || process.env.KIMI_API_KEY;
+    const kimiKey = await this.context.secrets.get('ava-supernova.provider.kimi.apiKey') || undefined;
     if (kimiKey) availableProviders.add('kimi');
-    const deepseekKey = await this.context.secrets.get('ava-supernova.provider.deepseek.apiKey') || process.env.DEEPSEEK_API_KEY;
+    const deepseekKey = await this.context.secrets.get('ava-supernova.provider.deepseek.apiKey') || undefined;
     if (deepseekKey) availableProviders.add('deepseek');
 
     // Use static create() — picks Kimi K2.5 for platform, best available for BYOK
@@ -1620,7 +1653,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           learned,
           confidence: 0.4,
           source: 'feedback-negative',
-        });
+        }).catch(() => { /* self-improvement is non-critical */ });
       } else if (message.rating === 'up') {
         // Reinforce existing relevant learnings
         const relevant = getRelevantLearnings(AVA_HOME, `mode:${entry.mode} model:${entry.model}`, 3);
@@ -1741,7 +1774,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
       case 'set_provider_source':
         this.providerSource = message.source;
-        this.context.globalState.update('providerSource', message.source);
+        this.context.workspaceState.update('providerSource', message.source);
         this.log(`Provider source switched to: ${message.source}`);
         await this.initializeSession();
         break;
@@ -1791,6 +1824,30 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       case 'rate_message':
         await this.handleRateMessage(message);
         break;
+
+      case 'accept_consent': {
+        const consentTimestamp = new Date().toISOString();
+        const extensionVersion = this.context.extension.packageJSON?.version || 'unknown';
+        await this.context.globalState.update('ava.consentAccepted', consentTimestamp);
+        this.log('User accepted Terms of Service and Privacy Policy');
+
+        // Record consent server-side if connected — GDPR audit trail
+        const consentPlatformKey = await this.context.secrets.get('ava-supernova.platformKey');
+        if (consentPlatformKey) {
+          apiFetch('/consent', {
+            method: 'POST',
+            platformKey: consentPlatformKey,
+            body: {
+              platform: 'extension',
+              appVersion: extensionVersion,
+              acceptedAt: consentTimestamp,
+              termsVersion: '1.0',
+              privacyVersion: '1.0',
+            },
+          }).catch(() => { /* consent recording is non-critical */ });
+        }
+        break;
+      }
     }
   }
 
@@ -1855,6 +1912,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.postMessage({ type: 'user_message_ack', text, ...(images?.length ? { images } : {}) });
 
     // Inject memory brief (curated by Memory Agent) or fall back to raw recall
+    // Uses 'user' role to avoid Qwen's "system must be at beginning" error
     try {
       if (this.memoryAgent && text.length > 5) {
         const brief = await this.memoryAgent.generateBrief(text);
@@ -1865,7 +1923,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             : '';
           const msgs = this.conversation!.getMessages();
           msgs.push({
-            role: 'system' as const,
+            role: 'user' as const,
             content: `[Memory Brief]\n${brief.summary}${topicList}`,
           });
           this.conversation!.setMessages(msgs);
@@ -1880,8 +1938,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             .join('\n');
           const msgs = this.conversation!.getMessages();
           msgs.push({
-            role: 'system' as const,
-            content: `[Relevant memories for this message]\n${memoryContext}\n\nUse these if relevant. Don't mention them unless asked about memory.`,
+            role: 'user' as const,
+            content: `[Memory context]\n${memoryContext}\n\nUse these if relevant. Don't mention them unless asked about memory.`,
           });
           this.conversation!.setMessages(msgs);
         }
@@ -1967,6 +2025,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
               );
             }
           }
+          // Refresh VSCode explorer when file-modifying tools complete
+          const fileTools = ['file_write', 'file_edit', 'bash', 'apply_plan'];
+          if (event.success && fileTools.includes(event.toolCall.function.name)) {
+            vscode.commands.executeCommand('workbench.files.action.refreshExplorer');
+          }
           // Refresh dashboard journal when journal_write fires
           if (event.toolCall.function.name === 'journal_write' && DashboardPanel.currentPanel) {
             const today = new Date().toISOString().slice(0, 10);
@@ -2009,7 +2072,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             toolFailures.delete(toolKey);
             try {
               const learned = `For ${toolKey}: retry succeeded after failure. Previous error: "${prev.error.slice(0, 80)}"`;
-              addLearning(AVA_HOME, {
+              await addLearning(AVA_HOME, {
                 type: 'error-recovery' as const,
                 category: 'general',
                 context: toolKey,
@@ -2154,7 +2217,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         this.runAbortController.signal,
       );
       this.log(`agent.run() returned ${updatedMessages.length} messages`);
-      this.conversation.setMessages(updatedMessages);
+      // Guard: only update conversation if still the active run (not cancelled/replaced)
+      if (this.isRunning && !this.runAbortController?.signal.aborted) {
+        this.conversation.setMessages(updatedMessages);
+      }
 
       await this.historyManager.saveConversation(this.conversation);
       this.setLastConversationId(this.conversation.id);
@@ -2452,6 +2518,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   ): Promise<boolean | string> {
     // Session allow list — skip confirmation if already approved for this tool or all tools.
     // BUT never skip for present_plan — plans are a collaboration checkpoint, not a permission check.
+    // Expire session allow-all after timeout
+    if (this.sessionAllowAll && this.sessionAllowAllExpiry > 0 && Date.now() > this.sessionAllowAllExpiry) {
+      this.sessionAllowAll = false;
+      this.sessionAllowAllExpiry = 0;
+      this.log('Session allow ALL expired');
+    }
     if (toolName !== 'present_plan' && toolName !== 'ask_user' && (this.sessionAllowAll || this.sessionAllowedTools.has(toolName))) {
       this.log(`Auto-approved ${toolName} (session allow list)`);
       return Promise.resolve(true);
@@ -2481,9 +2553,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     userResponse?: string,
   ): void {
     const pending = this.pendingConfirmations.get(confirmationId);
-    if (pending) {
-      this.pendingConfirmations.delete(confirmationId);
+    if (!pending) {
+      this.log(`Confirmation response for unknown/expired ID: ${confirmationId}`);
+      return;
+    }
+    this.pendingConfirmations.delete(confirmationId);
 
+    {
       if (approved && alwaysAllow) {
         this.sessionAllowedTools.add(pending.toolName);
         this.context.workspaceState.update('ava.toolAllowList', [...this.sessionAllowedTools]);
@@ -2491,7 +2567,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       }
       if (approved && allowAll) {
         this.sessionAllowAll = true;
-        this.log('Session allow ALL tools enabled');
+        this.sessionAllowAllExpiry = Date.now() + 30 * 60 * 1000; // 30 minute timeout
+        this.log('Session allow ALL tools enabled (30 min timeout)');
       }
 
       // For present_plan, return a descriptive string instead of boolean

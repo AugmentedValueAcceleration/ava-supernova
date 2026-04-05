@@ -714,12 +714,16 @@ export class Agent {
         }
       }
     } catch (error) {
-      // Preserve partial content if we collected any before the error
-      if (content || reasoningContent) {
+      // Preserve partial content AND accumulated tool calls if we collected any before the error
+      if (content || reasoningContent || toolCallsAccumulator.size > 0) {
+        const partialToolCalls: ToolCall[] = toolCallsAccumulator.size > 0
+          ? Array.from(toolCallsAccumulator.values()).filter(tc => tc.id && tc.function.name)
+          : [];
         const partialMessage: AssistantMessage = {
           role: 'assistant',
           content: content || null,
           ...(reasoningContent ? { reasoning_content: reasoningContent } : {}),
+          ...(partialToolCalls.length > 0 ? { tool_calls: partialToolCalls } : {}),
         };
         onEvent({ type: 'stream_end', message: partialMessage });
       }

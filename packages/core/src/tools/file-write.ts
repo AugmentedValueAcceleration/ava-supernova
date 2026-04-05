@@ -31,12 +31,19 @@ export class FileWriteTool implements Tool {
     },
   };
 
+  private static readonly MAX_WRITE_BYTES = 10 * 1024 * 1024; // 10 MB
+
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const filePath = args.file_path as string;
     if (!filePath) {
       return { success: false, output: 'file_path is required and cannot be null. Provide the absolute or relative path to the file.' };
     }
     const content = args.content as string;
+
+    // Guard against extremely large writes
+    if (content && content.length > FileWriteTool.MAX_WRITE_BYTES) {
+      return { success: false, output: `Content exceeds maximum write size of ${FileWriteTool.MAX_WRITE_BYTES / (1024 * 1024)} MB.` };
+    }
 
     let absolutePath: string;
     try {

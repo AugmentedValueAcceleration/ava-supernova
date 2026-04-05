@@ -141,8 +141,8 @@ function doRequest(opts: RequestOptions): Promise<{ status: number; statusText: 
 export class HttpRequestTool implements Tool {
   readonly name = 'http_request';
   readonly description = 'Make HTTP requests to test APIs or fetch data';
-  readonly riskLevel: ToolRiskLevel = 'safe';
-  readonly requiresConfirmation = false;
+  readonly riskLevel: ToolRiskLevel = 'dangerous';
+  readonly requiresConfirmation = true;
 
   readonly schema: FunctionSchema = {
     name: 'http_request',

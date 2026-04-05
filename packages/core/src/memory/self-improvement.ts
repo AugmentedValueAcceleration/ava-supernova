@@ -8,9 +8,11 @@
  * NEVER stores user code, messages, or personal data.
  */
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { withLock } from '../core/file-lock.js';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -61,13 +63,15 @@ export function loadStore(avaHome: string): SelfImprovementStore {
   return { version: 1, local: [], lastGlobalSync: null };
 }
 
-export function saveStore(avaHome: string, store: SelfImprovementStore): void {
-  const path = getStorePath(avaHome);
-  const dir = dirname(path);
+export async function saveStore(avaHome: string, store: SelfImprovementStore): Promise<void> {
+  const storePath = getStorePath(avaHome);
+  const dir = dirname(storePath);
   if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
+    await mkdir(dir, { recursive: true });
   }
-  writeFileSync(path, JSON.stringify(store, null, 2), 'utf-8');
+  await withLock(storePath, async () => {
+    await writeFile(storePath, JSON.stringify(store, null, 2), 'utf-8');
+  });
 }
 
 // ─── Similarity ──────────────────────────────────────────────────────────────
@@ -90,10 +94,10 @@ function textSimilarity(a: string, b: string): number {
  * Add a learning to the local store. Deduplicates against existing entries
  * by similarity — if a similar learning exists, updates it instead.
  */
-export function addLearning(
+export async function addLearning(
   avaHome: string,
   learning: Omit<SelfImprovement, 'id' | 'confirmations' | 'createdAt' | 'updatedAt'>,
-): SelfImprovement {
+): Promise<SelfImprovement> {
   const store = loadStore(avaHome);
   const now = new Date().toISOString();
 
@@ -112,7 +116,7 @@ export function addLearning(
       if (learning.context && !existing.context.includes(learning.context)) {
         existing.context = `${existing.context}; ${learning.context}`.slice(0, 200);
       }
-      saveStore(avaHome, store);
+      await saveStore(avaHome, store);
       return existing;
     }
   }

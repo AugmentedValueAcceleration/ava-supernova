@@ -24,6 +24,7 @@ export type ExtToWebviewMessage =
       models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;
       activeModel: string | null;
       needsSetup: boolean;
+      consentRequired: boolean;
       locale?: string;
       localeStrings?: Record<string, string>;
       providerSource?: ProviderSource;
@@ -144,4 +145,5 @@ export type WebviewToExtMessage =
   | { type: 'request_today_tasks' }
   | { type: 'request_all_tasks' }
   | { type: 'toggle_task'; taskId: string }
-  | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; model?: string; mode?: string };
+  | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; model?: string; mode?: string }
+  | { type: 'accept_consent' };

@@ -246,6 +246,17 @@ export class MemoryManager {
       index.addDocument(entry.id, entry.content);
     }
 
+    // Cap at 500 entries per scope — archive oldest non-archived entries
+    const MAX_ENTRIES = 500;
+    const active = store.entries.filter(e => !e.archived);
+    if (active.length > MAX_ENTRIES) {
+      const sorted = active.sort((a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime());
+      const toArchive = sorted.slice(0, active.length - MAX_ENTRIES);
+      for (const e of toArchive) {
+        e.archived = true;
+      }
+    }
+
     store.lastModified = new Date().toISOString();
 
     // Update cache and persist
@@ -837,6 +848,17 @@ export class MemoryManager {
   // ── Private — Storage ──────────────────────────────────────────────────────
 
   private async loadStore(dir: string, scope: 'global' | 'project'): Promise<MemoryStore> {
+    // Clean up orphaned .tmp files from interrupted writes
+    try {
+      const { readdir, unlink: unlinkFile } = await import('node:fs/promises');
+      const files = await readdir(dir).catch(() => [] as string[]);
+      for (const file of files) {
+        if (file.endsWith('.tmp')) {
+          await unlinkFile(join(dir, file)).catch(() => {});
+        }
+      }
+    } catch { /* non-critical cleanup */ }
+
     const v2Path = join(dir, MEMORY_FILENAME_V2);
     const v1Path = join(dir, MEMORY_FILENAME_V1);
 
@@ -1202,6 +1224,7 @@ export class MemoryManager {
   /** Fire-and-forget sync entries to platform. Never throws. */
   private syncEntries(scope: 'global' | 'project', entries: MemoryEntry[]): void {
     if (!this.sync || this.localOnly) return;
+    console.info(`[memory] Syncing ${entries.length} ${scope} entries to platform`);
     this.sync.pushEntries(
       scope,
       entries.map((e) => ({
@@ -1211,8 +1234,11 @@ export class MemoryManager {
         tags: e.tags,
         archived: e.archived,
       })),
-    ).catch(() => {
-      /* platform unavailable — local is source of truth */
+    ).then(() => {
+      console.info(`[memory] Platform sync complete for ${scope} (${entries.length} entries)`);
+    }).catch((err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[memory] Platform sync failed for ${scope}: ${msg}`);
     });
   }
 

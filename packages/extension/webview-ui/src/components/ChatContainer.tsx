@@ -1,4 +1,4 @@
-import type { RefObject } from 'react';
+import { useState, type RefObject } from 'react';
 import type { UIMessage } from '../types/messages';
 import { MessageBubble } from './MessageBubble';
 import { ThinkingIndicator } from './ThinkingIndicator';
@@ -25,6 +25,8 @@ interface ChatContainerProps {
   onRate?: (messageId: string, rating: 'up' | 'down', reason?: string) => void;
   chatEndRef: RefObject<HTMLDivElement | null>;
   needsSetup?: boolean;
+  consentRequired?: boolean;
+  onAcceptConsent?: () => void;
   initialized?: boolean;
   onOpenDashboard?: () => void;
   activeModel?: string | null;
@@ -51,14 +53,129 @@ const MODE_INFO = [
   { icon: '>>', label: 'Work', desc: 'welcome.mode.code_desc' },
   { icon: '::', label: 'Plan', desc: 'welcome.mode.plan_desc' },
   { icon: '..', label: 'Chat', desc: 'welcome.mode.chat_desc' },
+  { icon: '??', label: 'Teach', desc: 'welcome.mode.teach_desc' },
   { icon: '!!', label: 'Security', desc: 'welcome.mode.security_desc' },
+  { icon: '**', label: 'Brainstorm', desc: 'welcome.mode.brainstorm_desc' },
 ];
 
-export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onSuggestion, onRate, chatEndRef, needsSetup, initialized, onOpenDashboard, activeModel, models, conductorActive, conductorMode, activePersonas }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onSuggestion, onRate, chatEndRef, needsSetup, consentRequired, onAcceptConsent, initialized, onOpenDashboard, activeModel, models, conductorActive, conductorMode, activePersonas }: ChatContainerProps) {
   useLocale();
+  const [consentChecked, setConsentChecked] = useState(false);
+
   // Don't render welcome screen until init message arrives — prevents setup banner flash
   if (!initialized && messages.length === 0) {
     return <div className="flex-1" />;
+  }
+
+  // ── GDPR Consent Gate ─────────────────────────────────────────────────────
+  if (consentRequired && initialized) {
+    return (
+      <div className="flex-1 overflow-y-auto px-4 py-6">
+        <div className="max-w-lg mx-auto">
+
+          {/* Hero */}
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center gap-2 mb-3">
+              <span className="text-2xl font-bold text-[var(--vscode-foreground)]">Ava</span>
+              <span
+                className="text-[10px] uppercase tracking-[3px] font-semibold px-2 py-0.5 rounded-full"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(168,85,247,0.2), rgba(124,58,237,0.2))',
+                  color: '#C084FC',
+                  border: '1px solid rgba(168,85,247,0.2)',
+                }}
+              >
+                Supernova
+              </span>
+            </div>
+            <p className="text-sm opacity-60 mb-1">Welcome to Ava</p>
+          </div>
+
+          {/* Privacy summary */}
+          <div
+            className="rounded-xl p-5 mb-4"
+            style={{
+              background: 'rgba(0, 0, 0, 0.2)',
+              border: '1px solid rgba(168, 85, 247, 0.15)',
+            }}
+          >
+            <p className="text-xs font-semibold opacity-70 mb-3">Before you get started</p>
+            <div className="space-y-2.5 text-[11px] opacity-50 leading-relaxed">
+              <p>Ava is built by <span className="opacity-80 font-medium">Augmented Value Acceleration Ltd</span>, registered in England and Wales.</p>
+              <div className="space-y-1.5">
+                <p className="font-medium opacity-70">How your data is handled:</p>
+                <ul className="list-disc pl-4 space-y-1">
+                  <li>All conversations, memory, and settings are <span className="font-medium opacity-80">stored locally on your machine</span> by default</li>
+                  <li>Cloud sync is <span className="font-medium opacity-80">opt-in only</span> — nothing leaves your device unless you choose to connect an account</li>
+                  <li>Your code is <span className="font-medium opacity-80">never used to train AI models</span></li>
+                  <li>API keys are stored in your system keychain, <span className="font-medium opacity-80">never transmitted</span> to our servers</li>
+                  <li>No third-party analytics or tracking</li>
+                </ul>
+              </div>
+              <p>You can exercise your UK GDPR rights at any time through Settings.</p>
+            </div>
+          </div>
+
+          {/* Links to full policies */}
+          <div className="flex gap-3 mb-5 justify-center">
+            <a
+              href="https://ava-supernova.com/terms"
+              className="text-[11px] font-medium opacity-60 hover:opacity-100 transition-opacity"
+              style={{ color: '#C084FC' }}
+            >
+              Terms of Service
+            </a>
+            <span className="text-[11px] opacity-20">|</span>
+            <a
+              href="https://ava-supernova.com/privacy"
+              className="text-[11px] font-medium opacity-60 hover:opacity-100 transition-opacity"
+              style={{ color: '#C084FC' }}
+            >
+              Privacy Policy
+            </a>
+          </div>
+
+          {/* Consent checkbox */}
+          <label
+            className="flex items-start gap-3 rounded-lg px-4 py-3 cursor-pointer transition-all"
+            style={{
+              background: consentChecked ? 'rgba(168, 85, 247, 0.08)' : 'rgba(0, 0, 0, 0.1)',
+              border: consentChecked ? '1px solid rgba(168, 85, 247, 0.3)' : '1px solid rgba(168, 85, 247, 0.1)',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={consentChecked}
+              onChange={(e) => setConsentChecked(e.target.checked)}
+              className="mt-0.5 accent-purple-500"
+            />
+            <span className="text-[11px] opacity-60 leading-relaxed">
+              I have read and agree to the <span className="font-medium opacity-80">Terms of Service</span> and <span className="font-medium opacity-80">Privacy Policy</span>
+            </span>
+          </label>
+
+          {/* Accept button */}
+          <button
+            onClick={onAcceptConsent}
+            disabled={!consentChecked}
+            className="w-full mt-4 py-2.5 rounded-lg text-sm font-medium text-white transition-all cursor-pointer border-none
+                       disabled:opacity-30 disabled:cursor-not-allowed"
+            style={{
+              background: consentChecked
+                ? 'linear-gradient(135deg, #A855F7, #7C3AED)'
+                : 'rgba(168, 85, 247, 0.3)',
+            }}
+          >
+            Get Started
+          </button>
+
+          <p className="text-center text-[9px] opacity-20 mt-3">
+            You can withdraw consent and delete your data at any time in Settings.
+          </p>
+
+        </div>
+      </div>
+    );
   }
 
   if (messages.length === 0 && !isThinking) {
@@ -182,11 +299,11 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
           {/* Modes */}
           <div className="mb-4">
             <p className="text-[10px] uppercase tracking-[1.5px] font-semibold opacity-30 mb-3">{t('welcome.modes')}</p>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {MODE_INFO.map((m) => (
                 <div
                   key={m.label}
-                  className="flex-1 px-2.5 py-2 rounded-lg text-center"
+                  className="px-2.5 py-2 rounded-lg text-center"
                   style={{
                     background: 'rgba(0, 0, 0, 0.15)',
                     border: '1px solid rgba(168, 85, 247, 0.06)',

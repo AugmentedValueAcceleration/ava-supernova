@@ -259,9 +259,14 @@ export class DashboardPanel {
         break;
 
       case 'open_url': {
-        const uri = vscode.Uri.parse(msg.url);
-        if (uri.scheme === 'https') {
-          vscode.env.openExternal(uri);
+        // Validate URL with native URL parser for defence-in-depth
+        try {
+          const parsed = new URL(msg.url);
+          if (parsed.protocol === 'https:') {
+            vscode.env.openExternal(vscode.Uri.parse(msg.url));
+          }
+        } catch {
+          // Invalid URL — ignore silently
         }
         break;
       }
@@ -541,9 +546,22 @@ export class DashboardPanel {
         await this.openLibraryImage(msg.path);
         break;
 
-      case 'open_external':
-        await vscode.env.openExternal(vscode.Uri.file(msg.path));
+      case 'open_external': {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders) {
+          const projectRoot = workspaceFolders[0].uri.fsPath;
+          const fullPath = path.resolve(projectRoot, msg.path);
+          // Prevent path traversal — must stay within workspace or home
+          const home = process.env.HOME || process.env.USERPROFILE || '';
+          if (!fullPath.toLowerCase().startsWith(projectRoot.toLowerCase()) &&
+              !(home && fullPath.toLowerCase().startsWith(home.toLowerCase()))) {
+            this.post({ type: 'error', message: 'Invalid path: access restricted to workspace and home directory.' });
+            break;
+          }
+          await vscode.env.openExternal(vscode.Uri.file(fullPath));
+        }
         break;
+      }
 
       // ─── Personality messages ──────────────────────────────────────────────────
 
@@ -1828,7 +1846,13 @@ export class DashboardPanel {
       const workspaceFolders = vscode.workspace.workspaceFolders;
       if (!workspaceFolders) return;
 
-      const fullPath = path.join(workspaceFolders[0].uri.fsPath, relativePath);
+      const projectRoot = workspaceFolders[0].uri.fsPath;
+      const fullPath = path.resolve(projectRoot, relativePath);
+      // Prevent path traversal — ensure resolved path stays within workspace
+      if (!fullPath.toLowerCase().startsWith(projectRoot.toLowerCase() + path.sep) && fullPath.toLowerCase() !== projectRoot.toLowerCase()) {
+        this.post({ type: 'error', message: 'Invalid path: access restricted to workspace.' });
+        return;
+      }
       await fs.unlink(fullPath);
       this.post({ type: 'library_image_deleted', path: relativePath });
     } catch (err) {
@@ -1840,7 +1864,13 @@ export class DashboardPanel {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders) return;
 
-    const fullPath = path.join(workspaceFolders[0].uri.fsPath, relativePath);
+    const projectRoot = workspaceFolders[0].uri.fsPath;
+    const fullPath = path.resolve(projectRoot, relativePath);
+    // Prevent path traversal — ensure resolved path stays within workspace
+    if (!fullPath.toLowerCase().startsWith(projectRoot.toLowerCase() + path.sep) && fullPath.toLowerCase() !== projectRoot.toLowerCase()) {
+      this.post({ type: 'error', message: 'Invalid path: access restricted to workspace.' });
+      return;
+    }
     const uri = vscode.Uri.file(fullPath);
     await vscode.commands.executeCommand('vscode.open', uri);
   }
@@ -2641,7 +2671,7 @@ export class DashboardPanel {
         content="default-src 'none';
                  style-src ${webview.cspSource} 'unsafe-inline';
                  script-src 'nonce-${nonce}';
-                 connect-src https:;
+                 connect-src https://ava-supernova.com;
                  img-src ${webview.cspSource} data: https: vscode-resource:;">
   <link rel="stylesheet" href="${styleUri}">
   <title>Ava | Dashboard</title>

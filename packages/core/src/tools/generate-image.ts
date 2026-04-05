@@ -464,17 +464,14 @@ export class GenerateImageTool implements Tool {
 
   private resolveApiKey(context: ToolExecutionContext): { apiKey?: string; usePlatform: boolean; platformKey?: string } {
     const state = context.sharedState as Record<string, unknown> | undefined;
+    const getKey = state?.getProviderKey as ((p: string) => string | undefined) | undefined;
 
-    // BYOK Qwen key — direct DashScope
-    const qwenKey = state?.qwenApiKey as string | undefined;
+    // BYOK Qwen key — via sealed getter or legacy sharedState fallback
+    const qwenKey = getKey?.('qwen') ?? (state?.qwenApiKey as string | undefined);
     if (qwenKey) return { apiKey: qwenKey, usePlatform: false };
 
-    // Environment key
-    const envKey = process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY;
-    if (envKey) return { apiKey: envKey, usePlatform: false };
-
     // Platform key — route through platform API
-    const platformKey = state?.platformKey as string | undefined;
+    const platformKey = getKey?.('platform') ?? (state?.platformKey as string | undefined);
     if (platformKey) return { usePlatform: true, platformKey };
 
     // No key at all
@@ -483,17 +480,14 @@ export class GenerateImageTool implements Tool {
 
   private resolveMinimaxKey(context: ToolExecutionContext): { apiKey?: string; usePlatform: boolean; platformKey?: string } {
     const state = context.sharedState as Record<string, unknown> | undefined;
+    const getKey = state?.getProviderKey as ((p: string) => string | undefined) | undefined;
 
-    // BYOK MiniMax key — direct API
-    const minimaxKey = state?.minimaxApiKey as string | undefined;
+    // BYOK MiniMax key — via sealed getter or legacy sharedState fallback
+    const minimaxKey = getKey?.('minimax') ?? (state?.minimaxApiKey as string | undefined);
     if (minimaxKey) return { apiKey: minimaxKey, usePlatform: false };
 
-    // Environment key
-    const envKey = process.env.MINIMAX_API_KEY;
-    if (envKey) return { apiKey: envKey, usePlatform: false };
-
     // Platform key — route through platform API
-    const platformKey = state?.platformKey as string | undefined;
+    const platformKey = getKey?.('platform') ?? (state?.platformKey as string | undefined);
     if (platformKey) return { usePlatform: true, platformKey };
 
     return { usePlatform: false };

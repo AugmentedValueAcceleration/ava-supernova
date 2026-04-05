@@ -13,14 +13,18 @@ export function validatePath(rawPath: string, cwd: string): string {
   const absolutePath = isAbsolute(rawPath) ? normalize(rawPath) : normalize(resolve(cwd, rawPath));
   const normalizedCwd = normalize(cwd);
 
+  // Case-insensitive comparison on Windows to prevent case-based path traversal bypass
+  const compare = (a: string, b: string) =>
+    process.platform === 'win32' ? a.toLowerCase().startsWith(b.toLowerCase()) : a.startsWith(b);
+
   // Allow paths within the cwd
-  if (absolutePath.startsWith(normalizedCwd)) {
+  if (compare(absolutePath, normalizedCwd)) {
     return absolutePath;
   }
 
   // Allow paths within the user's home directory (for ~/.ava config, memory, etc.)
   const home = process.env.HOME || process.env.USERPROFILE || '';
-  if (home && absolutePath.startsWith(normalize(home))) {
+  if (home && compare(absolutePath, normalize(home))) {
     return absolutePath;
   }
 
@@ -52,6 +56,11 @@ export const SECRET_PATTERNS = [
   /\b(?:AKIA|ABIA|ACCA|ASIA)[A-Z0-9]{16}\b/,            // AWS access keys
   /\bAIza[A-Za-z0-9\-_]{30,}/,                           // Google API keys
   /-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----/,       // Private keys (PEM)
+  /\b(?:postgres|mysql|mongodb(?:\+srv)?|redis):\/\/[^\s]{10,}/i,  // Database connection strings
+  /\bBearer\s+[A-Za-z0-9\-_.]{20,}/,                    // Bearer tokens (generic)
+  /\b(?:password|passwd|pwd)\s*[:=]\s*\S{4,}/i,          // Inline password assignments
+  /\b[A-Za-z0-9]{32,}\b(?=.*(?:key|token|secret))/i,    // Long hex/alpha strings near key/token/secret
+  /\bsb_[a-z]+_[A-Za-z0-9\-_]{20,}/,                    // Supabase keys
 ];
 
 /**

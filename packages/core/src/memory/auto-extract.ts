@@ -94,7 +94,9 @@ const EXPLICIT_REMEMBER_PATTERNS = [
 
 /** Patterns that indicate project-specific knowledge */
 const PROJECT_KNOWLEDGE_PATTERNS = [
-  /\bthe (?:password|key|token|secret|endpoint|url|api|port) (?:is|for)\b/i,
+  // Note: password/key/token/secret patterns removed — they risk extracting actual credentials.
+  // Only match safe project knowledge hints (endpoints, ports, URLs without auth).
+  /\bthe (?:endpoint|url|port) (?:is|for)\b/i,
   /\bthe repo (?:is|lives|at)\b/i,
   /\b(?:config|env|settings?) (?:file |is |goes |in )\b/i,
   /\brun (?:it |this |the )?(?:with|using)\b/i,
@@ -278,7 +280,7 @@ const REFLECTION_PROMPT = `You are a memory extraction assistant. Analyze this c
 1. **User preferences** — how they like to work, communication style, formatting preferences
 2. **Corrections** — things the user corrected or asked to change (these are critical to remember)
 3. **Decisions** — technical choices, architecture decisions, workflow decisions
-4. **Project knowledge** — endpoints, credentials hints (not actual secrets), deployment info, gotchas, workarounds
+4. **Project knowledge** — endpoints (NOT credentials/passwords/tokens/secrets), deployment info, gotchas, workarounds
 5. **Personal info** — name, role, team, expertise level
 6. **Solutions** — bugs that were fixed and how, tricky problems and their solutions
 7. **Patterns** — recurring workflows or conventions discovered during the conversation

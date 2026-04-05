@@ -13,7 +13,8 @@ import { ConfigError } from '../core/errors.js';
  */
 async function atomicWriteFile(filePath: string, data: string): Promise<void> {
   const tmpPath = join(dirname(filePath), `.${Date.now()}.tmp`);
-  await writeFile(tmpPath, data, 'utf-8');
+  // Write with restrictive permissions (owner-only) — config contains API keys
+  await writeFile(tmpPath, data, { encoding: 'utf-8', mode: 0o600 });
   try {
     await rename(tmpPath, filePath);
   } catch (err) {

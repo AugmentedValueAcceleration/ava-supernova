@@ -97,6 +97,13 @@ export async function runSetupWizard(
   const choice = await rl.question(accent('  > ') + t('setup.choose'));
   const choiceIdx = parseInt(choice, 10) - 1;
 
+  // Validate input is a number
+  if (isNaN(choiceIdx)) {
+    console.log(chalk.hex(THEME.error)('  ' + t('setup.invalid_choice')));
+    rl.close();
+    return;
+  }
+
   // Skip option
   if (choiceIdx === liveProviders.length) {
     console.log(dim('\n  Skipped. Run /provider add <name> later to configure.\n'));
@@ -119,6 +126,17 @@ export async function runSetupWizard(
     const baseUrl = await rl.question(accent('  > ') + 'Base URL: ');
     if (!baseUrl.trim()) {
       console.log(chalk.hex(THEME.error)('  No URL provided.'));
+      rl.close();
+      return;
+    }
+    // Validate URL scheme — only HTTP(S) allowed
+    try {
+      const parsed = new URL(baseUrl.trim());
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        throw new Error('unsupported protocol');
+      }
+    } catch {
+      console.log(chalk.hex(THEME.error)('  Invalid URL. Must start with http:// or https://'));
       rl.close();
       return;
     }

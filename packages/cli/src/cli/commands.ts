@@ -409,7 +409,8 @@ export class CommandHandler {
           return true;
         }
         const ext = format === 'json' ? '.json' : '.md';
-        const filename = `conversation-export${ext}`;
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const filename = `conversation-export-${timestamp}${ext}`;
         const { writeFile } = await import('node:fs/promises');
         await writeFile(filename, content, 'utf-8');
         console.log(chalk.green(`  ${t('cmd.export.done', { filename })}`));
@@ -592,7 +593,12 @@ export class CommandHandler {
       return true;
     }
 
-    return command.execute(args);
+    try {
+      return await command.execute(args);
+    } catch (err) {
+      console.error(`  Command error: ${err instanceof Error ? err.message : String(err)}`);
+      return true;
+    }
   }
 }
 

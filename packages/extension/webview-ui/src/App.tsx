@@ -11,6 +11,7 @@ import { TasksPanel, DEFAULT_WIDTH } from './components/TasksPanel';
 import type { AvaMode, ImageAttachment } from './components/InputArea';
 import { t, setLocale, loadStrings } from './i18n';
 import { SecretsProvider } from './hooks/useSecrets';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 /** Strip mode prefix from user messages so internal prompts don't show in the UI */
 function stripModePrefix(content: string): string {
@@ -63,6 +64,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         models: action.models,
         activeModel: action.activeModel,
         needsSetup: action.needsSetup,
+        consentRequired: action.consentRequired ?? false,
         providerSource: action.providerSource ?? state.providerSource,
         platformStatus: action.platformStatus
           ? {
@@ -445,6 +447,7 @@ const initialState: ChatState = {
   isStreaming: false,
   isThinking: false,
   needsSetup: true,
+  consentRequired: false,
   initialized: false,
   lastUsage: null,
   contextUsage: null,
@@ -660,6 +663,11 @@ export function App() {
     postMessage({ type: 'new_chat' });
   }, [postMessage]);
 
+  const handleAcceptConsent = useCallback(() => {
+    postMessage({ type: 'accept_consent' });
+    dispatch({ type: 'init', models: state.models, activeModel: state.activeModel, needsSetup: state.needsSetup, consentRequired: false } as any);
+  }, [postMessage, state.models, state.activeModel, state.needsSetup]);
+
   const handleLoadConversation = useCallback(
     (conversationId: string) => {
       justLoadedRef.current = true;
@@ -854,6 +862,8 @@ export function App() {
           onRate={handleRate}
           chatEndRef={chatEndRef}
           needsSetup={state.needsSetup}
+          consentRequired={state.consentRequired}
+          onAcceptConsent={handleAcceptConsent}
           initialized={state.initialized}
           onOpenDashboard={handleOpenDashboard}
           activeModel={state.activeModel}
@@ -879,45 +889,51 @@ export function App() {
         />
 
         {state.historyOpen && (
-          <HistoryPanel
-            conversations={state.historyList}
-            onClose={handleCloseHistory}
-            onSelect={handleLoadConversation}
-            onDelete={handleDeleteConversation}
-            onNewChat={handleNewChat}
-            onSearch={handleSearchHistory}
-            onRename={handleRenameConversation}
-            onPin={handlePinConversation}
-            onExport={handleExportConversation}
-          />
+          <ErrorBoundary>
+            <HistoryPanel
+              conversations={state.historyList}
+              onClose={handleCloseHistory}
+              onSelect={handleLoadConversation}
+              onDelete={handleDeleteConversation}
+              onNewChat={handleNewChat}
+              onSearch={handleSearchHistory}
+              onRename={handleRenameConversation}
+              onPin={handlePinConversation}
+              onExport={handleExportConversation}
+            />
+          </ErrorBoundary>
         )}
 
         {state.memoryOpen && (
-          <MemoryPanel
-            globalEntries={state.memoryGlobal}
-            projectEntries={state.memoryProject}
-            onClose={handleCloseMemory}
-            onSave={handleSaveMemory}
-            onClear={handleClearMemory}
-            onArchive={handleArchiveMemory}
-            onRestore={handleRestoreMemory}
-            onDelete={handleDeleteMemoryEntry}
-          />
+          <ErrorBoundary>
+            <MemoryPanel
+              globalEntries={state.memoryGlobal}
+              projectEntries={state.memoryProject}
+              onClose={handleCloseMemory}
+              onSave={handleSaveMemory}
+              onClear={handleClearMemory}
+              onArchive={handleArchiveMemory}
+              onRestore={handleRestoreMemory}
+              onDelete={handleDeleteMemoryEntry}
+            />
+          </ErrorBoundary>
         )}
       </div>
 
       {/* Tasks side panel — collapsible on the right */}
       {state.tasksOpen && (
-        <TasksPanel
-          todayTasks={state.todayTasks}
-          allTasks={state.allTasks}
-          sessionTasks={state.sessionTasks}
-          avaCompletedTasks={state.avaCompletedTasks}
-          onClose={handleCloseTasks}
-          onToggleTask={handleToggleTask}
-          width={state.tasksPanelWidth}
-          onWidthChange={handleTasksWidthChange}
-        />
+        <ErrorBoundary>
+          <TasksPanel
+            todayTasks={state.todayTasks}
+            allTasks={state.allTasks}
+            sessionTasks={state.sessionTasks}
+            avaCompletedTasks={state.avaCompletedTasks}
+            onClose={handleCloseTasks}
+            onToggleTask={handleToggleTask}
+            width={state.tasksPanelWidth}
+            onWidthChange={handleTasksWidthChange}
+          />
+        </ErrorBoundary>
       )}
     </div>
     </SecretsProvider>

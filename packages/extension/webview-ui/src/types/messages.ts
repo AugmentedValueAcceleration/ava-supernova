@@ -17,6 +17,7 @@ export type ExtToWebviewMessage =
       models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;
       activeModel: string | null;
       needsSetup: boolean;
+      consentRequired?: boolean;
       locale?: string;
       localeStrings?: Record<string, string>;
       providerSource?: ProviderSource;
@@ -159,7 +160,8 @@ export type WebviewToExtMessage =
   | { type: 'request_all_tasks' }
   | { type: 'toggle_task'; taskId: string }
   | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; model?: string; mode?: string }
-  | { type: 'save_secrets'; secrets: Array<{ id: string; label: string; value: string }> };
+  | { type: 'save_secrets'; secrets: Array<{ id: string; label: string; value: string }> }
+  | { type: 'accept_consent' };
 
 // UI state types
 
@@ -196,6 +198,7 @@ export interface ChatState {
   isStreaming: boolean;
   isThinking: boolean;
   needsSetup: boolean;
+  consentRequired: boolean;
   initialized: boolean;
   lastUsage: {
     prompt_tokens: number;

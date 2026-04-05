@@ -116,7 +116,7 @@ export function killBackgroundProcesses(): void {
     try {
       if (process.platform === 'win32') {
         // On Windows, spawn('taskkill') to kill the process tree
-        spawn('taskkill', ['/pid', String(child.pid), '/f', '/t'], { shell: true });
+        spawn('taskkill', ['/pid', String(child.pid), '/f', '/t']);
       } else {
         // On Unix, kill the process group
         process.kill(-child.pid!, 'SIGTERM');
@@ -337,7 +337,7 @@ export class BashTool implements Tool {
           backgroundProcesses.delete(child);
           try {
             if (process.platform === 'win32') {
-              spawn('taskkill', ['/pid', String(child.pid), '/f', '/t'], { shell: true });
+              spawn('taskkill', ['/pid', String(child.pid), '/f', '/t']);
             } else {
               process.kill(-child.pid!, 'SIGTERM');
             }

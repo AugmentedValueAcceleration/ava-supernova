@@ -229,6 +229,16 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
   const [showMicPrompt, setShowMicPrompt] = useState(false);
   const recognitionRef = useRef<any>(null);
 
+  // Clean up speech recognition on unmount to prevent orphaned listeners
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+        recognitionRef.current = null;
+      }
+    };
+  }, []);
+
   const startListening = useCallback(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) return;

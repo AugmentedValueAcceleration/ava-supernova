@@ -4,6 +4,9 @@ import { join } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 
+/** Characters that could be used for shell injection */
+const SHELL_INJECTION_PATTERN = /[;&|`$(){}[\]<>!#\\'"]/;
+
 const TEST_TIMEOUT_MS = 300_000; // 5 minutes
 const MAX_OUTPUT_LENGTH = 30_000;
 
@@ -49,6 +52,11 @@ export class TestRunTool implements Tool {
     const filePath = args.file_path as string | undefined;
     const commandOverride = args.command as string | undefined;
     const timeout = ((args.timeout as number) ?? 300) * 1000;
+
+    // Validate filePath against shell injection
+    if (filePath && SHELL_INJECTION_PATTERN.test(filePath)) {
+      return { success: false, output: 'file_path contains unsafe characters. Use a plain file path without shell metacharacters.' };
+    }
 
     let command: string;
 

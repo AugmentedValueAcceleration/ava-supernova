@@ -213,8 +213,11 @@ export class DatabaseQueryTool implements Tool {
           result = await queryPostgres(connStr, query);
           break;
         case 'sqlite': {
+          const { validatePath } = await import('./security.js');
           const dbPath = connStr.startsWith('sqlite://') ? connStr.slice(9) :
                          connStr.startsWith('sqlite:') ? connStr.slice(7) : connStr;
+          // Validate SQLite path stays within workspace/home to prevent path traversal
+          validatePath(dbPath, context.cwd);
           result = querySqlite(dbPath, query, context.cwd);
           break;
         }

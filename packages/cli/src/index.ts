@@ -106,11 +106,22 @@ async function main(): Promise<void> {
     }),
   );
 
+  // Sealed key getter — API keys accessed via function, not stored as plain strings
+  const qwenApiKey = appConfig.providers?.qwen?.apiKey || undefined;
+  const minimaxApiKey = appConfig.providers?.minimax?.apiKey || undefined;
+  const getProviderKey = (provider: string): string | undefined => {
+    switch (provider) {
+      case 'qwen': return qwenApiKey;
+      case 'minimax': return minimaxApiKey;
+      case 'platform': return appConfig.platformKey || undefined;
+      default: return undefined;
+    }
+  };
+
   const sharedState: Record<string, unknown> = {
     memoryManager,
     platformKey: appConfig.platformKey,
-    qwenApiKey: appConfig.providers?.qwen?.apiKey || process.env.QWEN_API_KEY,
-    minimaxApiKey: appConfig.providers?.minimax?.apiKey || process.env.MINIMAX_API_KEY,
+    getProviderKey,
     activeModelId: resolved.model.id,
   };
 
@@ -237,12 +248,19 @@ async function main(): Promise<void> {
     // Briefing is non-critical — don't block startup
   }
 
-  // Save conversation on exit
-  process.on('SIGINT', () => {
+  // Save conversation on exit — handle both SIGINT and SIGTERM
+  const gracefulExit = () => {
+    // Restore terminal state
+    if (process.stdin.isTTY && process.stdin.isRaw) {
+      process.stdin.setRawMode(false);
+    }
+    process.stdout.write('\x1b[?25h\x1b[0m'); // Show cursor, reset styles
     historyManager.saveConversation(conversation)
       .catch(() => {})
       .then(() => process.exit(0));
-  });
+  };
+  process.on('SIGINT', gracefulExit);
+  process.on('SIGTERM', gracefulExit);
 
   await repl.start();
 

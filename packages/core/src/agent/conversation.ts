@@ -69,10 +69,11 @@ export class Conversation {
   private estimateMessageTokens(message: Message): number {
     const { content } = message;
     if (content === null) return 4;
-    if (typeof content === 'string') return Math.ceil(content.length / 4) + 4;
+    // Use /3 divisor aligned with agent.ts estimation to avoid context window divergence
+    if (typeof content === 'string') return Math.ceil(content.length / 3) + 4;
     // Content array — sum text tokens + ~85 tokens per image
     return content.reduce((sum, part) => {
-      if (part.type === 'text') return sum + Math.ceil(part.text.length / 4);
+      if (part.type === 'text') return sum + Math.ceil(part.text.length / 3);
       if (part.type === 'image_url') return sum + 85;
       return sum;
     }, 0) + 4;
