@@ -963,9 +963,11 @@ export class DashboardPanel {
         totals: { tokens: number; requests: number; active_days: number };
       };
 
+      // Free tier: show free pool only. Paid tiers: show subscription pool (free pool is bonus).
+      const hasSub = summary.period.tokens_limit !== null && summary.period.tokens_limit > 0 && summary.tier !== 'free';
       const balance = {
-        used: summary.period.tokens_used + summary.period.free_tokens_used,
-        limit: (summary.period.tokens_limit ?? 0) + summary.period.free_tokens_limit,
+        used: hasSub ? summary.period.tokens_used : summary.period.free_tokens_used,
+        limit: hasSub ? summary.period.tokens_limit! : summary.period.free_tokens_limit,
         tier: summary.tier,
       };
 

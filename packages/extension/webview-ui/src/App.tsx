@@ -539,8 +539,9 @@ export function App() {
   // Listen for messages from extension host
   useEffect(() => {
     const handler = (event: MessageEvent<ExtToWebviewMessage>) => {
-      // Only accept messages from the VSCode webview host
-      if (!event.origin || !event.origin.startsWith('vscode-webview://')) return;
+      // Ignore messages from unexpected origins (e.g. browser extensions)
+      // Accept vscode-webview:// and vscode-file:// (Electron/WebView2 on Windows)
+      if (event.origin && !event.origin.startsWith('vscode-webview://') && !event.origin.startsWith('vscode-file://')) return;
       const msg = event.data;
 
       // Respond to heartbeat pings immediately

@@ -129,7 +129,8 @@ export function Header({
   }, [dataMode, platformStatus?.connected]);
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: 'rgba(168, 85, 247, 0.12)' }} role="toolbar" aria-label="Chat controls">
+    <div className="border-b" style={{ borderColor: 'rgba(168, 85, 247, 0.12)' }}>
+    <div className="flex items-center gap-2 px-3 py-2" role="toolbar" aria-label="Chat controls">
       {/* Sidebar toggle — only shows when sidebar is collapsed */}
       {onToggleSidebar && sidebarCollapsed && (
         <button onClick={onToggleSidebar} title="Show sidebar" aria-label="Show sidebar" className={btnBase}>
@@ -283,6 +284,32 @@ export function Header({
           </svg>
         </button>
       </div>
+    </div>
+
+      {/* Token usage bar — full width below header */}
+      {platformStatus?.connected && platformStatus.freeTokensLimit > 0 && platformStatus.freeTokensLimit < 999_999_999 && (() => {
+        const remaining = Math.max(0, platformStatus.freeTokensLimit - platformStatus.freeTokensUsed);
+        const pct = Math.max(0, Math.min(100, (remaining / platformStatus.freeTokensLimit) * 100));
+        const color = pct <= 5 ? '#ef4444' : pct <= 20 ? '#eab308' : '#a855f7';
+        return (
+          <div className="px-3 pb-1.5">
+            <div className="flex items-center gap-2">
+              <div className="h-1 flex-1 rounded-full overflow-hidden" style={{ background: 'rgba(168,85,247,0.08)' }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${pct}%`, background: color }}
+                />
+              </div>
+              <span
+                className="text-[9px] tabular-nums shrink-0"
+                style={{ color, opacity: pct <= 20 ? 0.9 : 0.4, fontFamily: 'monospace' }}
+              >
+                {remaining >= 1_000_000 ? `${(remaining / 1_000_000).toFixed(2)}M` : remaining >= 1000 ? `${(remaining / 1000).toFixed(1)}K` : remaining} left
+              </span>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

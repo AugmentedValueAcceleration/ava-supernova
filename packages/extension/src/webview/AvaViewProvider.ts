@@ -124,24 +124,28 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // Re-initialize when platform key is added or removed (dashboard connect/disconnect)
     this.disposables.push(
       this.context.secrets.onDidChange(async (e) => {
-        if (e.key === 'ava-supernova.platformKey') {
-          this.cachedAccount = null;
-          this.accountScopedDir = AVA_HOME; // Reset to default until new account verified
-          // Clear chat, conversation, and last ID so stale data doesn't reload
-          this.conversation = new Conversation();
-          this.setLastConversationId(undefined);
-          this.postMessage({ type: 'chat_cleared' });
-          await this.refreshProjectContext();
-          await this.initializeSession();
-          // Pull latest memories from cloud after sign-in
-          if (this.memoryManager) {
-            this.memoryManager.pullLatest('global').catch(() => {});
-            this.memoryManager.pullLatest('project').catch(() => {});
+        try {
+          if (e.key === 'ava-supernova.platformKey') {
+            this.cachedAccount = null;
+            this.accountScopedDir = AVA_HOME; // Reset to default until new account verified
+            // Clear chat, conversation, and last ID so stale data doesn't reload
+            this.conversation = new Conversation();
+            this.setLastConversationId(undefined);
+            this.postMessage({ type: 'chat_cleared' });
+            await this.refreshProjectContext();
+            await this.initializeSession();
+            // Pull latest memories from cloud after sign-in
+            if (this.memoryManager) {
+              this.memoryManager.pullLatest('global').catch(() => {});
+              this.memoryManager.pullLatest('project').catch(() => {});
+            }
           }
-        }
-        // Refresh model list when any BYOK key changes
-        if (e.key.startsWith('ava-supernova.provider.')) {
-          await this.initializeSession();
+          // Refresh model list when any BYOK key changes
+          if (e.key.startsWith('ava-supernova.provider.')) {
+            await this.initializeSession();
+          }
+        } catch (err) {
+          this.log(`Secret change handler failed: ${err}`);
         }
       }),
     );
@@ -267,6 +271,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           warning_message?: string;
         };
 
+        this.log(`Usage reported — free: ${data.free_tokens_used}/${data.free_tokens_limit}, sub: ${data.tokens_used}/${data.tokens_limit}`);
+
         this.postMessage({
           type: 'platform_status',
           connected: true,
@@ -279,6 +285,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           warningPct: data.warning_pct || 0,
           warningMessage: data.warning_message || '',
         });
+      } else {
+        this.log(`Usage reporting returned non-ok: status=${res.status}, data=${JSON.stringify(res.data)}`);
       }
     } catch (err) {
       this.log(`Usage reporting failed (non-blocking): ${err}`);
@@ -348,6 +356,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    * Maps dashboard message types to the internal WebviewToExtMessage format.
    */
   async handleChatMessage(msg: Record<string, unknown>): Promise<void> {
+    this.log(`handleChatMessage received: type=${msg.type}`);
     // Remap unified message types to internal chat types
     const type = msg.type as string;
     let mapped: WebviewToExtMessage;
@@ -657,176 +666,183 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   // ── Private Methods ────────────────────────────────────────────────────────
 
   private async initializeSession(): Promise<void> {
-    // Ensure project context (memory, tasks, journal) is ready before proceeding
-    if (this.projectContextReady) {
-      await this.projectContextReady;
-    }
-
-    const config = vscode.workspace.getConfiguration('ava-supernova');
-    this.providerRegistry = new ProviderRegistry();
-
-    // Resolve locale from settings, falling back to VS Code language
-    const langSetting = config.get<string>('preferences.language') || 'auto';
-    this.currentLocale = resolveLocale(langSetting === 'auto' ? vscode.env.language : langSetting);
-    setLocaleSync(this.currentLocale);
-
-    this.log(`Initializing session... (locale: ${this.currentLocale})`);
-
-    // ── BYOK providers (keys stored in SecretStorage) ─────────────────────
-    const providerSecrets: Record<string, string> = {
-      deepseek: 'ava-supernova.provider.deepseek.apiKey',
-      kimi: 'ava-supernova.provider.kimi.apiKey',
-      qwen: 'ava-supernova.provider.qwen.apiKey',
-      glm: 'ava-supernova.provider.glm.apiKey',
-      mistral: 'ava-supernova.provider.mistral.apiKey',
-      anthropic: 'ava-supernova.provider.anthropic.apiKey',
-    };
-    // Config key → registry key mapping (glm config maps to zhipu provider)
-    const configToRegistry: Record<string, string> = { glm: 'zhipu' };
-    for (const name of ['deepseek', 'kimi', 'qwen', 'glm', 'mistral', 'anthropic']) {
-      // Migrate legacy plaintext settings → SecretStorage (one-time)
-      const legacyKey = config.get<string>(`providers.${name}.apiKey`);
-      if (legacyKey) {
-        await this.context.secrets.store(providerSecrets[name], legacyKey);
-        await config.update(`providers.${name}.apiKey`, undefined, vscode.ConfigurationTarget.Global);
-        this.log(`Migrated ${name} API key from settings to SecretStorage`);
-      }
-
-      const apiKey = await this.context.secrets.get(providerSecrets[name]);
-      if (apiKey) {
-        const registryKey = configToRegistry[name] || name;
-        try {
-          this.providerRegistry.register(registryKey, { apiKey });
-          this.log(`Provider registered: ${registryKey}`);
-        } catch (err) {
-          this.log(`Provider ${registryKey} failed to register: ${err}`);
-        }
-      }
-    }
-
-    // ── Platform account provider ───────────────────────────────────────────
     try {
-      const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
-      if (platformKey) {
-        if (!this.cachedAccount) {
-          const res = await apiFetch('/account-info', { platformKey });
-          this.cachedAccount = res.ok ? (res.data as AccountInfo) : null;
-        }
-        if (this.cachedAccount) {
-          const platform = new PlatformProvider({ apiKey: platformKey });
-          this.providerRegistry.registerCustom('platform', platform);
-          this.log(`Platform provider registered (tier: ${this.cachedAccount.tier})`);
+      // Ensure project context (memory, tasks, journal) is ready before proceeding
+      if (this.projectContextReady) {
+        await this.projectContextReady;
+      }
 
-          // Scope data directory per account — prevents memory leakage between accounts
+      const config = vscode.workspace.getConfiguration('ava-supernova');
+      this.providerRegistry = new ProviderRegistry();
+
+      // Resolve locale from settings, falling back to VS Code language
+      const langSetting = config.get<string>('preferences.language') || 'auto';
+      this.currentLocale = resolveLocale(langSetting === 'auto' ? vscode.env.language : langSetting);
+      setLocaleSync(this.currentLocale);
+
+      this.log(`Initializing session... (locale: ${this.currentLocale})`);
+
+      // ── BYOK providers (keys stored in SecretStorage) ─────────────────────
+      const providerSecrets: Record<string, string> = {
+        deepseek: 'ava-supernova.provider.deepseek.apiKey',
+        kimi: 'ava-supernova.provider.kimi.apiKey',
+        qwen: 'ava-supernova.provider.qwen.apiKey',
+        glm: 'ava-supernova.provider.glm.apiKey',
+        mistral: 'ava-supernova.provider.mistral.apiKey',
+        anthropic: 'ava-supernova.provider.anthropic.apiKey',
+      };
+      // Config key → registry key mapping (glm config maps to zhipu provider)
+      const configToRegistry: Record<string, string> = { glm: 'zhipu' };
+      for (const name of ['deepseek', 'kimi', 'qwen', 'glm', 'mistral', 'anthropic']) {
+        // Migrate legacy plaintext settings → SecretStorage (one-time)
+        const legacyKey = config.get<string>(`providers.${name}.apiKey`);
+        if (legacyKey) {
+          await this.context.secrets.store(providerSecrets[name], legacyKey);
+          await config.update(`providers.${name}.apiKey`, undefined, vscode.ConfigurationTarget.Global);
+          this.log(`Migrated ${name} API key from settings to SecretStorage`);
+        }
+
+        const apiKey = await this.context.secrets.get(providerSecrets[name]);
+        if (apiKey) {
+          const registryKey = configToRegistry[name] || name;
           try {
-            const { join } = await import('node:path');
-            const { mkdir } = await import('node:fs/promises');
-            const newScopedDir = join(AVA_HOME, 'users', this.cachedAccount.id);
-            if (newScopedDir !== this.accountScopedDir) {
-              await mkdir(newScopedDir, { recursive: true });
-              this.accountScopedDir = newScopedDir;
-              this.log(`Account-scoped data directory: ${newScopedDir}`);
-
-              // Re-create managers with account-scoped directory
-              const projectId = this.projectRoot
-                ? crypto.createHash('sha256').update(this.projectRoot).digest('hex').slice(0, 16)
-                : undefined;
-              const sync = new PlatformMemorySync('https://ava-supernova.com/api', platformKey, projectId);
-              const memoryLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? false;
-              this.memoryManager = new MemoryManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly });
-              const taskSync = new PlatformTaskSyncImpl('https://ava-supernova.com/api', platformKey);
-              this.taskManager = new TaskManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: taskSync });
-              const journalSync = new PlatformJournalSyncImpl('https://ava-supernova.com/api', platformKey);
-              this.journalManager = new JournalManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: journalSync });
-              this.cachedMemory = (await this.memoryManager.loadAll(this.projectInstructions)) || undefined;
-            }
-          } catch (scopeErr) {
-            this.log(`Account scoping failed, using default directory: ${scopeErr}`);
+            this.providerRegistry.register(registryKey, { apiKey });
+            this.log(`Provider registered: ${registryKey}`);
+          } catch (err) {
+            this.log(`Provider ${registryKey} failed to register: ${err}`);
           }
-        } else {
-          this.log('Platform key present but account verification failed');
-          this.postMessage({
-            type: 'system_message',
-            content: 'Platform account verification failed. Your API key may be invalid or expired.',
-          } as ExtToWebviewMessage);
-          // Show VS Code popup with action to open account page
-          const action = await vscode.window.showWarningMessage(
-            'Your Ava platform API key is no longer valid. Please reconnect your account.',
-            'Open Account'
-          );
-          if (action === 'Open Account') {
-            vscode.env.openExternal(vscode.Uri.parse('https://ava-supernova.com/dashboard'));
-          }
-          // Clear the invalid key
-          await this.context.secrets.delete('ava-supernova.platformKey');
         }
+      }
+
+      // ── Platform account provider ───────────────────────────────────────────
+      try {
+        const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
+        if (platformKey) {
+          if (!this.cachedAccount) {
+            const res = await apiFetch('/account-info', { platformKey });
+            this.cachedAccount = res.ok ? (res.data as AccountInfo) : null;
+          }
+          if (this.cachedAccount) {
+            const platform = new PlatformProvider({ apiKey: platformKey });
+            this.providerRegistry.registerCustom('platform', platform);
+            this.log(`Platform provider registered (tier: ${this.cachedAccount.tier})`);
+
+            // Scope data directory per account — prevents memory leakage between accounts
+            try {
+              const { join } = await import('node:path');
+              const { mkdir } = await import('node:fs/promises');
+              const newScopedDir = join(AVA_HOME, 'users', this.cachedAccount.id);
+              if (newScopedDir !== this.accountScopedDir) {
+                await mkdir(newScopedDir, { recursive: true });
+                this.accountScopedDir = newScopedDir;
+                this.log(`Account-scoped data directory: ${newScopedDir}`);
+
+                // Re-create managers with account-scoped directory
+                const projectId = this.projectRoot
+                  ? crypto.createHash('sha256').update(this.projectRoot).digest('hex').slice(0, 16)
+                  : undefined;
+                const sync = new PlatformMemorySync('https://ava-supernova.com/api', platformKey, projectId);
+                const memoryLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? false;
+                this.memoryManager = new MemoryManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly });
+                const taskSync = new PlatformTaskSyncImpl('https://ava-supernova.com/api', platformKey);
+                this.taskManager = new TaskManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: taskSync });
+                const journalSync = new PlatformJournalSyncImpl('https://ava-supernova.com/api', platformKey);
+                this.journalManager = new JournalManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: journalSync });
+                this.cachedMemory = (await this.memoryManager.loadAll(this.projectInstructions)) || undefined;
+              }
+            } catch (scopeErr) {
+              this.log(`Account scoping failed, using default directory: ${scopeErr}`);
+            }
+          } else {
+            this.log('Platform key present but account verification failed');
+            this.postMessage({
+              type: 'system_message',
+              content: 'Platform account verification failed. Your API key may be invalid or expired.',
+            } as ExtToWebviewMessage);
+            // Show VS Code popup with action to open account page
+            const action = await vscode.window.showWarningMessage(
+              'Your Ava platform API key is no longer valid. Please reconnect your account.',
+              'Open Account'
+            );
+            if (action === 'Open Account') {
+              vscode.env.openExternal(vscode.Uri.parse('https://ava-supernova.com/dashboard'));
+            }
+            // Clear the invalid key
+            await this.context.secrets.delete('ava-supernova.platformKey');
+          }
+        }
+      } catch (err) {
+        this.log(`Platform account check failed: ${err}`);
+        this.postMessage({
+          type: 'system_message',
+          content: 'Could not reach the Ava platform. Platform features are unavailable. Your local API keys still work.',
+        } as ExtToWebviewMessage);
+      }
+
+      // ── Fetch enabled models from platform (non-blocking) ─────────────────
+      try {
+        const cached = this.context.globalState.get<{ ids: string[]; ts: number }>('enabledModels');
+        if (cached && Date.now() - cached.ts < 3600000) {
+          this.enabledModelIds = new Set(cached.ids);
+        } else {
+          const res = await fetch('https://ava-supernova.com/api/models');
+          if (res.ok) {
+            const models: Array<{ id: string; enabled: boolean }> = await res.json();
+            const ids = models.filter(m => m.enabled !== false).map(m => m.id);
+            this.enabledModelIds = new Set(ids);
+            await this.context.globalState.update('enabledModels', { ids, ts: Date.now() });
+            this.log(`Fetched ${ids.length} enabled models from platform`);
+          }
+        }
+      } catch {
+        this.log('Could not fetch enabled models from platform — using all registered');
+      }
+
+      // Resolve provider source (persisted preference)
+      const hasPlatform = this.providerRegistry.listAllModels().some(m => m.provider === 'platform');
+      const hasByok = this.providerRegistry.listAllModels().some(m => m.provider !== 'platform');
+      const storedSource = this.context.workspaceState.get<ProviderSource>('providerSource');
+
+      if (storedSource === 'platform' && hasPlatform) {
+        this.providerSource = 'platform';
+      } else if (storedSource === 'byok' && hasByok) {
+        this.providerSource = 'byok';
+      } else {
+        this.providerSource = hasPlatform ? 'platform' : 'byok';
+      }
+
+      try {
+        const activeModelId = config.get<string>('activeModel') || '';
+        const resolved = this.providerRegistry.resolveModel(activeModelId);
+
+        if (resolved) {
+          this.log(`Active model: ${resolved.provider.name}:${resolved.model.id} (${resolved.model.name})`);
+          await this.setupAgent(resolved.provider, resolved.model);
+        } else {
+          // Auto-select a free model for new users
+          const allModels = this.providerRegistry.listAllModels();
+          const pick = allModels.find(m => m.pricing?.inputPerMillion === 0) || allModels[0];
+          if (pick) {
+            const autoResolved = this.providerRegistry.resolveModel(`${pick.provider}:${pick.id}`);
+            if (autoResolved) {
+              this.log(`Auto-selected free model: ${pick.provider}:${pick.id}`);
+              await this.setupAgent(autoResolved.provider, autoResolved.model);
+              config.update('activeModel', `${pick.provider}:${pick.id}`, vscode.ConfigurationTarget.Global);
+            }
+          } else {
+            this.log(`No model resolved for activeModel="${activeModelId}". Available: ${allModels.map(m => m.id).join(', ') || 'none'}`);
+          }
+        }
+      } catch (err) {
+        this.log(`Agent setup failed (non-blocking): ${err}`);
       }
     } catch (err) {
-      this.log(`Platform account check failed: ${err}`);
-      this.postMessage({
-        type: 'system_message',
-        content: 'Could not reach the Ava platform. Platform features are unavailable. Your local API keys still work.',
-      } as ExtToWebviewMessage);
+      this.log(`Session initialization failed: ${err}`);
     }
 
-    // ── Fetch enabled models from platform (non-blocking) ─────────────────
-    try {
-      const cached = this.context.globalState.get<{ ids: string[]; ts: number }>('enabledModels');
-      if (cached && Date.now() - cached.ts < 3600000) {
-        this.enabledModelIds = new Set(cached.ids);
-      } else {
-        const res = await fetch('https://ava-supernova.com/api/models');
-        if (res.ok) {
-          const models: Array<{ id: string; enabled: boolean }> = await res.json();
-          const ids = models.filter(m => m.enabled !== false).map(m => m.id);
-          this.enabledModelIds = new Set(ids);
-          await this.context.globalState.update('enabledModels', { ids, ts: Date.now() });
-          this.log(`Fetched ${ids.length} enabled models from platform`);
-        }
-      }
-    } catch {
-      this.log('Could not fetch enabled models from platform — using all registered');
-    }
-
-    // Resolve provider source (persisted preference)
-    const hasPlatform = this.providerRegistry.listAllModels().some(m => m.provider === 'platform');
-    const hasByok = this.providerRegistry.listAllModels().some(m => m.provider !== 'platform');
-    const storedSource = this.context.workspaceState.get<ProviderSource>('providerSource');
-
-    if (storedSource === 'platform' && hasPlatform) {
-      this.providerSource = 'platform';
-    } else if (storedSource === 'byok' && hasByok) {
-      this.providerSource = 'byok';
-    } else {
-      this.providerSource = hasPlatform ? 'platform' : 'byok';
-    }
-
-    const activeModelId = config.get<string>('activeModel') || '';
-    const resolved = this.providerRegistry.resolveModel(activeModelId);
-
-    if (resolved) {
-      this.log(`Active model: ${resolved.provider.name}:${resolved.model.id} (${resolved.model.name})`);
-      await this.setupAgent(resolved.provider, resolved.model);
-    } else {
-      // Auto-select a free model for new users
-      const allModels = this.providerRegistry.listAllModels();
-      const pick = allModels.find(m => m.pricing?.inputPerMillion === 0) || allModels[0];
-      if (pick) {
-        const autoResolved = this.providerRegistry.resolveModel(`${pick.provider}:${pick.id}`);
-        if (autoResolved) {
-          this.log(`Auto-selected free model: ${pick.provider}:${pick.id}`);
-          await this.setupAgent(autoResolved.provider, autoResolved.model);
-          config.update('activeModel', `${pick.provider}:${pick.id}`, vscode.ConfigurationTarget.Global);
-        }
-      } else {
-        this.log(`No model resolved for activeModel="${activeModelId}". Available: ${allModels.map(m => m.id).join(', ') || 'none'}`);
-      }
-    }
-
-    // Update status bar now that the model is resolved
+    // ── Always send init — webview must never be left in loading state ─────
     this.updateStatusBar('ready');
 
-    // Build platform status from cached account
     const platformStatus: PlatformStatus | undefined = this.cachedAccount
       ? {
           connected: true,
@@ -1889,6 +1905,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     mode: AvaMode = 'code',
     attachments?: Array<{ type: 'image'; data: string; name: string }>,
   ): Promise<void> {
+    this.log(`handleUserMessage called: text="${text.slice(0, 40)}", mode=${mode}, providerSource=${this.providerSource}`);
     // Input validation
     if (text.length > 100_000) {
       this.postMessage({ type: 'error', message: 'Message too long (max 100K characters).' });
@@ -2745,7 +2762,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   <title>Ava | Supernova</title>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;opacity:0.3;font-size:13px;font-family:var(--vscode-font-family)">Loading Ava…</div></div>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;

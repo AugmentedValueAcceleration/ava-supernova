@@ -329,6 +329,8 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
           ))}
         </div>
       )}
+
+      <LegalLinks />
     </div>
   );
 }
@@ -407,6 +409,36 @@ function ByokSupport() {
             GitHub
           </button>.
         </p>
+      </div>
+
+      <LegalLinks />
+    </div>
+  );
+}
+
+function LegalLinks() {
+  return (
+    <div className="mt-8 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Legal</h2>
+      <div className="flex gap-4">
+        <button
+          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/terms' })}
+          className="flex items-center gap-2 text-sm text-[var(--text-secondary)] transition hover:text-white"
+        >
+          <svg className="h-4 w-4 shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+          </svg>
+          Terms of Service
+        </button>
+        <button
+          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/privacy' })}
+          className="flex items-center gap-2 text-sm text-[var(--text-secondary)] transition hover:text-white"
+        >
+          <svg className="h-4 w-4 shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+          </svg>
+          Privacy Policy
+        </button>
       </div>
     </div>
   );

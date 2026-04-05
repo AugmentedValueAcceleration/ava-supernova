@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { initLocale, useLocale } from './i18n';
 import { post } from './vscode';
+
 import { NavSidebar } from './components/NavSidebar';
 import { ConnectAccount } from './pages/ConnectAccount';
 import { Overview } from './pages/Overview';
@@ -159,8 +160,9 @@ export function App() {
   const [latestRelease, setLatestRelease] = useState<{ version: string; title: string; published_at: string } | null>(null);
 
   const handleMessage = useCallback((event: MessageEvent) => {
-    // Only accept messages from the VSCode webview host
-    if (!event.origin || !event.origin.startsWith('vscode-webview://')) return;
+    // Ignore messages from unexpected origins (e.g. browser extensions)
+    // Accept vscode-webview:// and vscode-file:// (Electron/WebView2 on Windows)
+    if (event.origin && !event.origin.startsWith('vscode-webview://') && !event.origin.startsWith('vscode-file://')) return;
     const msg = event.data as ExtToDashboardMessage;
 
     // Forward ALL messages to chat dispatch — it filters internally
@@ -507,6 +509,9 @@ export function App() {
 
   const hasAccess = Boolean(account) || byokMode;
 
+  // If no access and page is 'chat', show connect page instead of blank screen
+  const effectivePage = (!hasAccess && page === 'chat') ? 'connect' : page;
+
   function handleSkipAccount() {
     setByokMode(true);
     setPagePersist('overview');
@@ -638,7 +643,7 @@ export function App() {
 
       {/* Chat page — always mounted to preserve state, hidden when not active */}
       {hasAccess && (
-        <div className={`flex-1 overflow-hidden ${page === 'chat' ? '' : 'hidden'}`} style={{ order: 1, height: '100%' }}>
+        <div className={`flex-1 overflow-hidden ${effectivePage === 'chat' ? '' : 'hidden'}`} style={{ order: 1, height: '100%' }}>
           <Chat
             onRegisterDispatch={registerChatDispatch}
             isActive={page === 'chat'}
@@ -651,7 +656,7 @@ export function App() {
       )}
 
       {/* Other pages */}
-      {page !== 'chat' && (
+      {effectivePage !== 'chat' && (
         <main className="flex-1 overflow-y-auto p-8" style={{ order: 1 }}>
           {errorMsg && (
             <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-400">

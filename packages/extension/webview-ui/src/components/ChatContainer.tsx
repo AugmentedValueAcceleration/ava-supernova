@@ -62,10 +62,8 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
   useLocale();
   const [consentChecked, setConsentChecked] = useState(false);
 
-  // Don't render welcome screen until init message arrives — prevents setup banner flash
-  if (!initialized && messages.length === 0) {
-    return <div className="flex-1" />;
-  }
+  // Show welcome screen immediately — don't block on init message
+  // Init will update models/activeModel/needsSetup when it arrives
 
   // ── GDPR Consent Gate ─────────────────────────────────────────────────────
   if (consentRequired && initialized) {
