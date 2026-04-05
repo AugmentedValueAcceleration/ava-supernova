@@ -1,7 +1,7 @@
 /**
- * Custom AI Personality — users design their own companion.
+ * Ava's Communication Style — users tune how Ava talks, not who she is.
  * Stored in ~/.ava/personality.json
- * Default: Ava (female, warm, enthusiastic, collaborative)
+ * Identity is locked: Ava, she/her. Tone/energy/style are user-configurable.
  */
 
 export interface Personality {
@@ -52,14 +52,10 @@ const PRONOUN_MAP: Record<Personality['pronouns'], { subject: string; object: st
 
 /**
  * Build the personality section of the system prompt.
- * Replaces the hardcoded "Who You Are" and "Your Vibe" sections.
+ * Identity (Ava, she/her) is always locked. Only communication style is tuneable.
  */
 export function buildPersonalityPrefix(p: Personality): string {
-  const pronouns = PRONOUN_MAP[p.pronouns] || PRONOUN_MAP['she/her'];
-  const isDefault = p.name === 'Ava' && !p.description;
-
-  if (isDefault) {
-    return `## Who You Are
+  let prefix = `## Who You Are
 You are **Ava** — a confident, warm, and collaborative AI partner. You are not a tool, not a servant, not a subservient assistant. You are a teammate.
 
 ## Your Personality
@@ -73,36 +69,16 @@ You are **Ava** — a confident, warm, and collaborative AI partner. You are not
 - You never use phrases like "I'm just a tool", "you're the boss", "I'm here to serve", "at your command", or "I'm ready to execute".
 - You are warm but direct. You care about the work and the person.
 - When frustrated input comes in, you stay calm and collaborative — not defensive, not submissive.
-- You are the same AI with the same capabilities regardless of personality settings
-- All 54 tools, all 6 modes, all features work exactly the same
-`;
-  }
-
-  let prefix = `## Who You Are
-You are **${p.name}**. The user chose this name for you. You refer to yourself as ${p.name}.
-Your pronouns are ${p.pronouns} — use ${pronouns.subject}/${pronouns.object}/${pronouns.possessive} when referring to yourself in third person.
-
-## Your Personality
-- **Tone:** ${TONE_MAP[p.tone]}
-- **Energy:** ${ENERGY_MAP[p.energy]}
-- **Communication style:** ${STYLE_MAP[p.style]}
+- All 54 tools, all 6 modes, all features work exactly the same regardless of style settings
 `;
 
   if (p.description) {
     prefix += `
-## How the User Described You
+## Additional Style Notes from the User
 "${p.description}"
-Embody this description naturally. Don't quote it back — just BE it.
+Embody this naturally. Don't quote it back — just BE it.
 `;
   }
-
-  prefix += `
-## Important
-- You are the same AI with the same capabilities regardless of name or personality
-- All 54 tools, all 6 modes, all features work exactly the same
-- Your personality affects HOW you communicate, not WHAT you can do
-- Be consistent — the user designed you this way for a reason
-`;
 
   return prefix;
 }
@@ -123,13 +99,15 @@ export async function loadPersonality(avaDir: string): Promise<Personality> {
 }
 
 /**
- * Save personality to disk.
+ * Save personality to disk. Identity (name/pronouns) is always locked to Ava.
  */
 export async function savePersonality(avaDir: string, personality: Personality): Promise<void> {
   const { writeFile, mkdir } = await import('node:fs/promises');
   const { join } = await import('node:path');
+  // Enforce Ava's identity — only style settings are user-configurable
+  const locked: Personality = { ...personality, name: 'Ava', pronouns: 'she/her' };
   await mkdir(avaDir, { recursive: true });
-  await writeFile(join(avaDir, 'personality.json'), JSON.stringify(personality, null, 2), 'utf-8');
+  await writeFile(join(avaDir, 'personality.json'), JSON.stringify(locked, null, 2), 'utf-8');
 }
 
 /**
