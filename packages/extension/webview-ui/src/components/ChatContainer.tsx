@@ -62,8 +62,8 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
   useLocale();
   const [consentChecked, setConsentChecked] = useState(false);
 
-  // Don't render until init message arrives — prevents flash. But if initialized, always render something.
-  if (!initialized) {
+  // Don't render welcome screen until init message arrives — prevents setup banner flash
+  if (!initialized && messages.length === 0) {
     return <div className="flex-1" />;
   }
 

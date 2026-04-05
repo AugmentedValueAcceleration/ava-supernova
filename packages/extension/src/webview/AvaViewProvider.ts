@@ -127,7 +127,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         if (e.key === 'ava-supernova.platformKey') {
           this.cachedAccount = null;
           this.accountScopedDir = AVA_HOME; // Reset to default until new account verified
-          // Clear chat and re-init so webview resets cleanly after account change
+          // Clear chat, conversation, and last ID so stale data doesn't reload
+          this.conversation = new Conversation();
+          this.setLastConversationId(undefined);
           this.postMessage({ type: 'chat_cleared' });
           await this.refreshProjectContext();
           await this.initializeSession();
