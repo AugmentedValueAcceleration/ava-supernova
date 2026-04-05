@@ -44,12 +44,6 @@ const STYLE_MAP: Record<Personality['style'], string> = {
   'structured': 'organised and methodical — uses headers, bullet points, numbered steps. Everything in its place',
 };
 
-const PRONOUN_MAP: Record<Personality['pronouns'], { subject: string; object: string; possessive: string }> = {
-  'she/her': { subject: 'she', object: 'her', possessive: 'her' },
-  'he/him': { subject: 'he', object: 'him', possessive: 'his' },
-  'they/them': { subject: 'they', object: 'them', possessive: 'their' },
-};
-
 /**
  * Build the personality section of the system prompt.
  * Identity (Ava, she/her) is always locked. Only communication style is tuneable.
