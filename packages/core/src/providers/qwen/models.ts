@@ -2,6 +2,18 @@ import type { ModelDefinition } from '../../core/types.js';
 
 export const QWEN_MODELS: ModelDefinition[] = [
   {
+    id: 'qwen3.6-plus',
+    name: 'Qwen 3.6 Plus',
+    provider: 'qwen',
+    contextWindow: 1000000,
+    maxOutputTokens: 65536,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: true,
+    pricing: { inputPerMillion: 0.29, outputPerMillion: 1.70 },
+  },
+  {
     id: 'qwen3.5-omni-plus',
     name: 'Qwen 3.5 Omni Plus',
     provider: 'qwen',
