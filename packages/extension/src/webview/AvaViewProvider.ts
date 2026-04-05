@@ -127,6 +127,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         if (e.key === 'ava-supernova.platformKey') {
           this.cachedAccount = null;
           this.accountScopedDir = AVA_HOME; // Reset to default until new account verified
+          // Clear chat and re-init so webview resets cleanly after account change
+          this.postMessage({ type: 'chat_cleared' });
+          await this.refreshProjectContext();
           await this.initializeSession();
           // Pull latest memories from cloud after sign-in
           if (this.memoryManager) {
@@ -713,26 +716,30 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           this.log(`Platform provider registered (tier: ${this.cachedAccount.tier})`);
 
           // Scope data directory per account — prevents memory leakage between accounts
-          const { join } = await import('node:path');
-          const { mkdir } = await import('node:fs/promises');
-          const newScopedDir = join(AVA_HOME, 'users', this.cachedAccount.id);
-          if (newScopedDir !== this.accountScopedDir) {
-            await mkdir(newScopedDir, { recursive: true });
-            this.accountScopedDir = newScopedDir;
-            this.log(`Account-scoped data directory: ${newScopedDir}`);
+          try {
+            const { join } = await import('node:path');
+            const { mkdir } = await import('node:fs/promises');
+            const newScopedDir = join(AVA_HOME, 'users', this.cachedAccount.id);
+            if (newScopedDir !== this.accountScopedDir) {
+              await mkdir(newScopedDir, { recursive: true });
+              this.accountScopedDir = newScopedDir;
+              this.log(`Account-scoped data directory: ${newScopedDir}`);
 
-            // Re-create managers with account-scoped directory
-            const projectId = this.projectRoot
-              ? crypto.createHash('sha256').update(this.projectRoot).digest('hex').slice(0, 16)
-              : undefined;
-            const sync = new PlatformMemorySync('https://ava-supernova.com/api', platformKey, projectId);
-            const memoryLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? false;
-            this.memoryManager = new MemoryManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly });
-            const taskSync = new PlatformTaskSyncImpl('https://ava-supernova.com/api', platformKey);
-            this.taskManager = new TaskManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: taskSync });
-            const journalSync = new PlatformJournalSyncImpl('https://ava-supernova.com/api', platformKey);
-            this.journalManager = new JournalManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: journalSync });
-            this.cachedMemory = (await this.memoryManager.loadAll(this.projectInstructions)) || undefined;
+              // Re-create managers with account-scoped directory
+              const projectId = this.projectRoot
+                ? crypto.createHash('sha256').update(this.projectRoot).digest('hex').slice(0, 16)
+                : undefined;
+              const sync = new PlatformMemorySync('https://ava-supernova.com/api', platformKey, projectId);
+              const memoryLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? false;
+              this.memoryManager = new MemoryManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly });
+              const taskSync = new PlatformTaskSyncImpl('https://ava-supernova.com/api', platformKey);
+              this.taskManager = new TaskManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: taskSync });
+              const journalSync = new PlatformJournalSyncImpl('https://ava-supernova.com/api', platformKey);
+              this.journalManager = new JournalManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: journalSync });
+              this.cachedMemory = (await this.memoryManager.loadAll(this.projectInstructions)) || undefined;
+            }
+          } catch (scopeErr) {
+            this.log(`Account scoping failed, using default directory: ${scopeErr}`);
           }
         } else {
           this.log('Platform key present but account verification failed');
