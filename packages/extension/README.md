@@ -184,9 +184,14 @@ Everything local by default. Connected users choose what to sync:
 - Prompt injection resistance built in
 - You control what syncs and when
 
-## Privacy
+## Privacy & Terms
 
-Ava collects **no analytics, no telemetry, and no screen captures**. Code context is sent only to your chosen AI provider for processing. All memory and conversation data is stored locally on your machine. See our full [Privacy Policy](PRIVACY.md).
+Ava collects **no analytics, no telemetry, and no screen captures**. Code context is sent only to your chosen AI provider for processing. All memory and conversation data is stored locally on your machine. Cloud sync is opt-in only.
+
+Built by **Augmented Value Acceleration Ltd**, registered in England and Wales. Fully UK GDPR compliant.
+
+- [Privacy Policy](https://ava-supernova.com/privacy)
+- [Terms of Service](https://ava-supernova.com/terms)
 
 ## Links
 

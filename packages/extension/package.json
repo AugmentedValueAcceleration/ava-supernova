@@ -9,6 +9,9 @@
     "type": "git",
     "url": "https://github.com/AugmentedValueAcceleration/ava-supernova"
   },
+  "homepage": "https://ava-supernova.com",
+  "pricing": "Free",
+  "qna": "https://github.com/AugmentedValueAcceleration/ava-supernova/issues",
   "engines": {
     "vscode": "^1.85.0"
   },
