@@ -81,6 +81,8 @@ export class DashboardPanel {
   private readonly extensionUri: vscode.Uri;
   private readonly secrets: vscode.SecretStorage;
   private disposables: vscode.Disposable[] = [];
+  private supportPollInterval?: ReturnType<typeof setInterval>;
+  private activeSupportConvId?: string;
   private memoryManager?: MemoryManager;
   private taskManager?: TaskManager;
   private journalManager?: JournalManager;
@@ -326,6 +328,8 @@ export class DashboardPanel {
         break;
 
       case 'clear_support_chat':
+        this.stopSupportPolling();
+        this.activeSupportConvId = undefined;
         this.post({ type: 'support_chat_cleared' } as any);
         break;
 
@@ -1374,6 +1378,36 @@ export class DashboardPanel {
       }
     } catch {
       this.post({ type: 'error', message: 'Failed to load messages.' });
+    }
+
+    // Start polling for this conversation
+    this.activeSupportConvId = conversationId;
+    this.stopSupportPolling();
+    this.supportPollInterval = setInterval(() => {
+      if (this.activeSupportConvId) {
+        this.loadSupportMessagesQuiet(this.activeSupportConvId);
+      }
+    }, 10_000);
+  }
+
+  private async loadSupportMessagesQuiet(conversationId: string): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+    try {
+      const res = await apiFetch(`/support/conversations/${conversationId}/messages`, { platformKey });
+      if (res.ok) {
+        const data = res.data as { messages: any[] };
+        this.post({ type: 'support_messages_loaded', conversationId, messages: data.messages } as any);
+      }
+    } catch { /* silent */ }
+    // Also refresh conversation list for unread counts
+    this.loadSupportConversations();
+  }
+
+  private stopSupportPolling(): void {
+    if (this.supportPollInterval) {
+      clearInterval(this.supportPollInterval);
+      this.supportPollInterval = undefined;
     }
   }
 
