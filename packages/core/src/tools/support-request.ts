@@ -95,34 +95,32 @@ export class SupportRequestTool implements Tool {
         headers['Authorization'] = `Bearer ${platformKey}`;
       }
 
-      const response = await fetch(`${apiBase}/api/support`, {
+      // Try live chat conversations API first, fall back to legacy tickets
+      const response = await fetch(`${apiBase}/api/support/conversations`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          email,
-          name,
-          subject,
-          message,
-          source: 'tool',
-          category,
+          message: `[${category}] ${subject}\n\n${message}\n\nContact: ${email}${name ? ` (${name})` : ''}`,
+          platform: 'tool',
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const errorMsg = (errorData as Record<string, string>).error || `HTTP ${response.status}`;
-        return { success: false, output: `Failed to submit support ticket: ${errorMsg}` };
+        return { success: false, output: `Failed to submit support request: ${errorMsg}` };
       }
 
-      const ticket = await response.json();
-      const ticketId = (ticket as Record<string, string>).id?.slice(0, 8) || 'unknown';
+      const data = await response.json();
+      const convId = (data as Record<string, any>).conversation?.id?.slice(0, 8) || 'unknown';
 
       return {
         success: true,
         output:
-          `Support ticket submitted successfully (ID: ${ticketId}).\n\n` +
-          `The Ava team will review your request and reply to ${email}. ` +
-          `You can also track your ticket at ${apiBase}/dashboard/support.`,
+          `Support conversation started (ID: ${convId}).\n\n` +
+          `Ava is looking into your request right now. If she can't help, ` +
+          `the team will jump in. You can track the conversation in the ` +
+          `Support section of your dashboard.`,
       };
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
