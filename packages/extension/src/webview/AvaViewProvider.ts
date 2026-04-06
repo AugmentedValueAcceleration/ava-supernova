@@ -84,6 +84,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private memoryAgent?: MemoryAgent;
   private briefingEngine?: BriefingEngine;
   private eventDetector?: EventDetector;
+  private tickInterval?: ReturnType<typeof setInterval>;
+  private tickEngine?: import('@ava/core').TickEngine;
   private projectContextReady?: Promise<void>;
   private cachedMemory?: string;
   private currentLocale = 'en';
@@ -876,6 +878,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     // Daily briefing — proactive greeting (fire-and-forget)
     this.checkAndSendBriefing().catch(() => {});
+
+    // Start tick engine — continuous background awareness
+    this.startTickEngine();
   }
 
   /** Check if a daily briefing should be shown and send it to the webview. */
@@ -941,6 +946,64 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     } catch (err) {
       this.log(`Event detection failed: ${err}`);
     }
+  }
+
+  private startTickEngine(): void {
+    // Clear any existing tick interval
+    if (this.tickInterval) clearInterval(this.tickInterval);
+
+    // Lazy-load TickEngine from core
+    import('@ava/core').then(({ TickEngine }) => {
+      if (!this.tickEngine) this.tickEngine = new TickEngine();
+
+      // Tick every 2 minutes
+      this.tickInterval = setInterval(async () => {
+        if (!this.tickEngine || this.isRunning) return; // Don't tick while agent is working
+
+        const result = await this.tickEngine.tick({
+          getOverdueTasks: this.taskManager ? async () => {
+            const tasks = await this.taskManager!.listTasks({ status: ['todo', 'in-progress'] });
+            const now = new Date().toISOString().slice(0, 10);
+            return tasks.filter(t => t.dueDate && t.dueDate < now).map(t => ({ title: t.title, dueDate: t.dueDate, priority: t.priority }));
+          } : undefined,
+          getJournalStreak: this.journalManager ? async () => {
+            const today = new Date().toISOString().slice(0, 10);
+            const day = await this.journalManager!.getDay(today);
+            const writtenToday = !!(day?.userEntry || day?.avaEntry);
+            // Simple streak check — count consecutive days backwards
+            let streak = writtenToday ? 1 : 0;
+            const d = new Date();
+            for (let i = 1; i <= 30; i++) {
+              d.setDate(d.getDate() - 1);
+              const prev = await this.journalManager!.getDay(d.toISOString().slice(0, 10));
+              if (prev?.userEntry || prev?.avaEntry) streak++;
+              else break;
+            }
+            return { days: streak, writtenToday };
+          } : undefined,
+          getTokenBalance: () => {
+            if (this.cachedAccount?.usage) {
+              return { used: this.cachedAccount.usage.free_tokens_used, limit: this.cachedAccount.usage.free_tokens_limit };
+            }
+            return null;
+          },
+          getSupportUnread: () => 0, // TODO: track from support polling
+        });
+
+        for (const event of result.events) {
+          this.log(`[tick] ${event.type}: ${event.message}`);
+          if (event.severity === 'urgent') {
+            vscode.window.showWarningMessage(`Ava: ${event.message}`);
+          } else if (event.severity === 'nudge') {
+            vscode.window.showInformationMessage(`Ava: ${event.message}`);
+          }
+          // Also send to webview for inline display
+          this.postMessage({ type: 'system_message', content: event.message } as ExtToWebviewMessage);
+        }
+      }, 120_000); // Every 2 minutes
+    }).catch(err => {
+      this.log(`Tick engine init failed: ${err}`);
+    });
   }
 
   private async setupAgent(provider: Provider, model: ModelDefinition): Promise<void> {

@@ -117,6 +117,8 @@ export type { Briefing, BriefingData, BriefingState, TimeOfDay } from './briefin
 // Events
 export { EventDetector } from './events/index.js';
 export type { AvaEvent, AvaEventHandler, AvaEventType, EventDetectorState } from './events/index.js';
+export { TickEngine } from './awareness/tick-engine.js';
+export type { TickContext, TickEvent, TickResult } from './awareness/tick-engine.js';
 
 // Knowledge Packs
 export { KnowledgePackManager, BUILTIN_PACKS, KNOWLEDGE_DOMAINS } from './knowledge/index.js';
