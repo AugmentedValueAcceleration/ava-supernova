@@ -20,7 +20,7 @@ import { buildSystemPrompt } from '../agent/system-prompt.js';
 const ORCHESTRATED_CATEGORIES = new Set<TaskCategory>(['planning', 'security', 'brainstorm', 'teach']);
 
 // Categories the coordinator handles directly (no agent spawn)
-const DIRECT_CATEGORIES = new Set<TaskCategory>(['chat', 'image_gen']);
+const DIRECT_CATEGORIES = new Set<TaskCategory>(['chat', 'image_gen', 'vision']);
 
 // Map task categories to mode names for conductor/system prompt
 const CATEGORY_TO_MODE: Record<string, string> = {
