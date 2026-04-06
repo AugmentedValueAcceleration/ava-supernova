@@ -23,6 +23,7 @@ interface NavSidebarProps {
   sidebarSide?: 'left' | 'right';
   onNewChat?: () => void;
   onOpenHistory?: () => void;
+  supportUnread?: number;
 }
 
 /* ── Nav structure ────────────────────────────────────────────────────── */
@@ -96,6 +97,7 @@ export function NavSidebar({
   sidebarSide,
   onNewChat,
   onOpenHistory,
+  supportUnread,
 }: NavSidebarProps) {
   useLocale();
 
@@ -220,6 +222,7 @@ export function NavSidebar({
             isActive={currentPage === item.page}
             onClick={() => handleNavigate(item.page)}
             comingSoon={item.comingSoon}
+            badge={item.page === 'help' ? supportUnread : undefined}
           />
         ))}
       </div>
@@ -280,6 +283,7 @@ function NavItem({
   isActive,
   onClick,
   comingSoon,
+  badge,
 }: {
   page: string;
   icon: string;
@@ -288,6 +292,7 @@ function NavItem({
   isActive: boolean;
   onClick: () => void;
   comingSoon?: boolean;
+  badge?: number;
 }) {
   if (comingSoon) {
     return (
@@ -314,7 +319,12 @@ function NavItem({
       }`}
       style={{ borderLeft: isActive ? '2px solid var(--accent)' : '2px solid transparent' }}
     >
-      <span className="w-5 text-center text-sm shrink-0">{icon}</span>
+      <span className="w-5 text-center text-sm shrink-0 relative">
+        {icon}
+        {badge && badge > 0 ? (
+          <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[14px] h-[14px] rounded-full bg-[var(--accent)] px-0.5 text-[7px] font-bold text-white">{badge}</span>
+        ) : null}
+      </span>
       <div className="min-w-0 flex-1">
         <span className={`text-[12px] block ${isActive ? 'text-white' : 'text-[var(--text-secondary)]'}`}>
           {label}

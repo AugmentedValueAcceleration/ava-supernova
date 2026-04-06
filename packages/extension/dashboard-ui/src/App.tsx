@@ -668,6 +668,7 @@ export function App() {
             sidebarSide={sidebarSide}
             onNewChat={() => post({ type: 'new_chat' })}
             onOpenHistory={() => post({ type: 'request_history' })}
+            supportUnread={supportUnread}
           />
         </div>
       )}
