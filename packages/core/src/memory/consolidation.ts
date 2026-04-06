@@ -1,16 +1,24 @@
 /**
- * Memory Consolidation — Layer 5
+ * ══════════════════════════════════════════════════════════════════════
+ * Memory Consolidation — Layer 5 (4-Phase Cycle)
+ * ══════════════════════════════════════════════════════════════════════
  *
- * Periodically reviews all memories and:
- * 1. Merges related/overlapping memories into richer entries
- * 2. Removes contradicted memories (newer wins)
- * 3. Summarizes verbose memories into concise forms
- * 4. Tags stale memories for review
+ * Structured consolidation that keeps Ava's memory sharp, not noisy.
  *
- * Designed to run weekly or on-demand. Can be triggered from:
- * - The briefing engine (weekly check)
- * - A manual command
- * - The event detector (when memory count exceeds a threshold)
+ * Phase 1: ORIENT  — scan recent sessions, understand what happened
+ * Phase 2: GATHER  — pull relevant patterns, decisions, corrections
+ * Phase 3: CONSOLIDATE — merge duplicates, resolve contradictions
+ * Phase 4: PRUNE   — remove noise, enforce 25KB cap per scope
+ *
+ * Triggers after 24 hours AND at least 5 sessions — doesn't waste
+ * cycles on a quick one-off interaction.
+ *
+ * A certain well-funded AI lab had a similar system called "autoDream"
+ * hidden behind a feature flag in code they accidentally published to
+ * npm. Ours ships in the open. No flags. No accidents. Just memory
+ * that actually works. Thanks for the validation, lads. 🫡
+ *
+ * ══════════════════════════════════════════════════════════════════════
  */
 
 import type { MemoryManager } from './memory-manager.js';
@@ -18,36 +26,48 @@ import type { MemoryEntry, MemoryCategory } from './types.js';
 import { TfIdfIndex } from './tfidf.js';
 import { logger } from '../core/logger.js';
 
-/** Report returned by the consolidation process. */
-export interface ConsolidationReport {
-  /** Number of memory pairs that were merged. */
-  merged: number;
-  /** Number of contradicting memories removed (older one removed). */
-  contradictionsRemoved: number;
-  /** Number of stale memories tagged for review. */
-  staleTagged: number;
-  /** Total memories processed. */
-  totalProcessed: number;
-  /** Timestamp of consolidation run. */
-  runAt: string;
-}
+// ── Configuration ─────────────────────────────────────────────────────
 
-/** TF-IDF similarity thresholds by layer. Person merges aggressively, project never. */
-// @ts-ignore — ready for layer-aware consolidation (Phase 10)
-const MERGE_THRESHOLDS: Record<string, number> = {
-  person: 0.6,       // Aggressive: keep most complete version
-  workflow: 0.7,     // Careful: standard dedup, newer wins contradictions
-  project: Infinity, // Never: project memories are never auto-deduplicated
-};
-const MERGE_SIMILARITY_THRESHOLD = 0.7; // Default for backwards compat
+/** Maximum total memory size per scope before pruning kicks in */
+const MAX_MEMORY_SIZE_BYTES = 25 * 1024; // 25KB — keeps context lean
 
-/** Number of days without recall before a memory is considered stale. */
+/** Minimum time since last consolidation (ms) */
+const MIN_CONSOLIDATION_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/** Minimum sessions since last consolidation */
+const MIN_SESSIONS_SINCE_LAST = 5;
+
+/** TF-IDF similarity threshold for merging */
+const MERGE_SIMILARITY_THRESHOLD = 0.7;
+
+/** Days without recall before a memory is considered stale */
 const STALE_DAYS = 90;
 
-/**
- * Known contradiction pairs — if two memories match these opposing patterns,
- * they contradict each other. The most recent one wins.
- */
+/** Days stale before auto-archive (pruning) */
+const AUTO_ARCHIVE_DAYS = 180;
+
+// ── Types ─────────────────────────────────────────────────────────────
+
+export interface ConsolidationReport {
+  phase: 'orient' | 'gather' | 'consolidate' | 'prune' | 'complete' | 'skipped';
+  merged: number;
+  contradictionsRemoved: number;
+  staleTagged: number;
+  pruned: number;
+  totalProcessed: number;
+  memorySizeBefore: number;
+  memorySizeAfter: number;
+  runAt: string;
+  reason?: string;
+}
+
+export interface ConsolidationState {
+  lastRunAt: string | null;
+  sessionsSinceLastRun: number;
+}
+
+// ── Contradiction Patterns ────────────────────────────────────────────
+
 const CONTRADICTION_PAIRS: Array<[RegExp, RegExp]> = [
   [/\bprefers?\s+tabs\b/i, /\bprefers?\s+spaces\b/i],
   [/\bprefers?\s+single\s+quotes\b/i, /\bprefers?\s+double\s+quotes\b/i],
@@ -60,196 +80,275 @@ const CONTRADICTION_PAIRS: Array<[RegExp, RegExp]> = [
   [/\buse\s+npm\b/i, /\buse\s+(?:pnpm|yarn)\b/i],
 ];
 
+// ── State Management ──────────────────────────────────────────────────
+
+const STATE_FILE = 'consolidation-state.json';
+
+async function loadState(globalDir: string): Promise<ConsolidationState> {
+  try {
+    const { readFile } = await import('node:fs/promises');
+    const { join } = await import('node:path');
+    const raw = await readFile(join(globalDir, STATE_FILE), 'utf-8');
+    return JSON.parse(raw);
+  } catch {
+    return { lastRunAt: null, sessionsSinceLastRun: 0 };
+  }
+}
+
+async function saveState(globalDir: string, state: ConsolidationState): Promise<void> {
+  try {
+    const { writeFile } = await import('node:fs/promises');
+    const { join } = await import('node:path');
+    await writeFile(join(globalDir, STATE_FILE), JSON.stringify(state, null, 2), 'utf-8');
+  } catch { /* non-critical */ }
+}
+
+// ── Public API ────────────────────────────────────────────────────────
+
 /**
- * Run memory consolidation across all active memories.
+ * Record a session — call this at the end of each meaningful interaction.
+ * The consolidation cycle triggers based on session count + time.
+ */
+export async function recordSession(globalDir: string): Promise<void> {
+  const state = await loadState(globalDir);
+  state.sessionsSinceLastRun++;
+  await saveState(globalDir, state);
+}
+
+/**
+ * Check if consolidation should run based on dual trigger:
+ * - At least 24 hours since last run
+ * - At least 5 sessions since last run
+ */
+export async function shouldConsolidate(globalDir: string): Promise<boolean> {
+  const state = await loadState(globalDir);
+
+  // Never run before — always consolidate
+  if (!state.lastRunAt) return state.sessionsSinceLastRun >= MIN_SESSIONS_SINCE_LAST;
+
+  const timeSince = Date.now() - new Date(state.lastRunAt).getTime();
+  return timeSince >= MIN_CONSOLIDATION_INTERVAL_MS && state.sessionsSinceLastRun >= MIN_SESSIONS_SINCE_LAST;
+}
+
+/**
+ * Run the full 4-phase consolidation cycle.
  *
- * Steps:
- * 1. Load all memories from both scopes
- * 2. Group by category
- * 3. Within each category, find high-similarity pairs and merge them
- * 4. Detect and remove contradictions (newer wins)
- * 5. Tag stale memories (90+ days without recall)
- *
- * @param memoryManager - The memory manager instance
- * @returns A report of what was consolidated
+ * Phase 1: ORIENT  — load and assess current memory state
+ * Phase 2: GATHER  — identify merge candidates, contradictions, stale entries
+ * Phase 3: CONSOLIDATE — execute merges and contradiction resolution
+ * Phase 4: PRUNE   — enforce 25KB cap, archive old stale entries
  */
 export async function runConsolidation(
   memoryManager: MemoryManager,
+  globalDir?: string,
 ): Promise<ConsolidationReport> {
   const report: ConsolidationReport = {
+    phase: 'orient',
     merged: 0,
     contradictionsRemoved: 0,
     staleTagged: 0,
+    pruned: 0,
     totalProcessed: 0,
+    memorySizeBefore: 0,
+    memorySizeAfter: 0,
     runAt: new Date().toISOString(),
   };
 
   try {
-    // Process both scopes
     for (const scope of ['global', 'project'] as const) {
       const entries = await memoryManager.getEntries(scope);
-      const activeEntries = entries.filter(e => !e.archived);
+      const active = entries.filter(e => !e.archived);
 
-      if (activeEntries.length < 2) continue;
+      if (active.length < 2) continue;
 
-      report.totalProcessed += activeEntries.length;
+      report.totalProcessed += active.length;
+      report.memorySizeBefore += measureSize(active);
 
-      // Step 1: Build TF-IDF index for this scope
+      // ── Phase 1: ORIENT ───────────────────────────────────────
+      report.phase = 'orient';
+      logger.debug(`[consolidation] Phase 1 ORIENT: ${active.length} active memories in ${scope} (${formatBytes(measureSize(active))})`);
+
       const index = new TfIdfIndex();
-      for (const entry of activeEntries) {
+      for (const entry of active) {
         index.addDocument(entry.id, entry.content);
       }
 
-      // Step 2: Group by category
       const byCategory = new Map<MemoryCategory, MemoryEntry[]>();
-      for (const entry of activeEntries) {
+      for (const entry of active) {
         const list = byCategory.get(entry.category) ?? [];
         list.push(entry);
         byCategory.set(entry.category, list);
       }
 
-      // Step 3: Find and merge similar pairs within each category
+      // ── Phase 2: GATHER ───────────────────────────────────────
+      report.phase = 'gather';
+      logger.debug(`[consolidation] Phase 2 GATHER: scanning ${byCategory.size} categories for duplicates and contradictions`);
+
+      // Identify merge candidates
+      const mergePairs: Array<[MemoryEntry, MemoryEntry]> = [];
       const merged = new Set<string>();
+
       for (const [, categoryEntries] of byCategory) {
         if (categoryEntries.length < 2) continue;
-
         for (let i = 0; i < categoryEntries.length; i++) {
           const entry = categoryEntries[i];
           if (merged.has(entry.id)) continue;
-
           const similar = index.findSimilar(entry.id, MERGE_SIMILARITY_THRESHOLD);
-
           for (const { id: similarId } of similar) {
             if (merged.has(similarId)) continue;
-
             const other = categoryEntries.find(e => e.id === similarId);
             if (!other) continue;
-
-            // Determine which is newer
-            const entryTime = new Date(entry.updatedAt).getTime();
-            const otherTime = new Date(other.updatedAt).getTime();
-
-            const [keeper, older] = entryTime >= otherTime
-              ? [entry, other]
-              : [other, entry];
-
-            // Merge: keep the newer one, incorporate any unique info from the older
-            const mergedContent = mergeMemoryContent(keeper.content, older.content);
-
-            if (mergedContent !== keeper.content) {
-              await memoryManager.updateEntry(scope, keeper.id, {
-                content: mergedContent,
-              });
-            }
-
-            // Delete the older duplicate
-            await memoryManager.deleteEntry(scope, older.id);
-            merged.add(older.id);
-            report.merged++;
-
-            logger.debug(`[consolidation] Merged: "${older.content.slice(0, 40)}..." into "${keeper.content.slice(0, 40)}..."`);
+            mergePairs.push([entry, other]);
+            merged.add(similarId);
           }
         }
       }
 
-      // Step 4: Detect and remove contradictions
-      const remainingEntries = (await memoryManager.getEntries(scope)).filter(e => !e.archived);
-      const contradictionsRemoved = await resolveContradictions(remainingEntries, memoryManager, scope);
-      report.contradictionsRemoved += contradictionsRemoved;
+      // ── Phase 3: CONSOLIDATE ──────────────────────────────────
+      report.phase = 'consolidate';
+      logger.debug(`[consolidation] Phase 3 CONSOLIDATE: ${mergePairs.length} merge pairs, checking contradictions`);
 
-      // Step 5: Tag stale memories
-      const staleTagged = await tagStaleMemories(remainingEntries, memoryManager, scope);
-      report.staleTagged += staleTagged;
+      // Execute merges
+      for (const [a, b] of mergePairs) {
+        const aTime = new Date(a.updatedAt).getTime();
+        const bTime = new Date(b.updatedAt).getTime();
+        const [keeper, older] = aTime >= bTime ? [a, b] : [b, a];
+
+        const mergedContent = mergeMemoryContent(keeper.content, older.content);
+        if (mergedContent !== keeper.content) {
+          await memoryManager.updateEntry(scope, keeper.id, { content: mergedContent });
+        }
+        await memoryManager.deleteEntry(scope, older.id);
+        report.merged++;
+      }
+
+      // Resolve contradictions
+      const postMerge = (await memoryManager.getEntries(scope)).filter(e => !e.archived);
+      report.contradictionsRemoved += await resolveContradictions(postMerge, memoryManager, scope);
+
+      // Tag stale
+      const postContradiction = (await memoryManager.getEntries(scope)).filter(e => !e.archived);
+      report.staleTagged += await tagStaleMemories(postContradiction, memoryManager, scope);
+
+      // ── Phase 4: PRUNE ────────────────────────────────────────
+      report.phase = 'prune';
+      const postConsolidate = (await memoryManager.getEntries(scope)).filter(e => !e.archived);
+      const currentSize = measureSize(postConsolidate);
+      logger.debug(`[consolidation] Phase 4 PRUNE: ${postConsolidate.length} memories, ${formatBytes(currentSize)} (cap: ${formatBytes(MAX_MEMORY_SIZE_BYTES)})`);
+
+      // Auto-archive very old stale memories
+      for (const entry of postConsolidate) {
+        if (!entry.tags?.includes('stale')) continue;
+        const lastActivity = entry.lastRecalledAt ?? entry.updatedAt ?? entry.createdAt;
+        const daysSince = (Date.now() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSince > AUTO_ARCHIVE_DAYS) {
+          await memoryManager.archiveEntry(scope, entry.id);
+          report.pruned++;
+        }
+      }
+
+      // If still over 25KB, prune least-recalled entries
+      if (currentSize > MAX_MEMORY_SIZE_BYTES) {
+        const remaining = (await memoryManager.getEntries(scope)).filter(e => !e.archived);
+        const sorted = [...remaining].sort((a, b) => {
+          const aScore = (a.recallCount ?? 0) + (a.lastRecalledAt ? 1 : 0);
+          const bScore = (b.recallCount ?? 0) + (b.lastRecalledAt ? 1 : 0);
+          return aScore - bScore; // Least recalled first
+        });
+
+        let size = measureSize(sorted);
+        while (size > MAX_MEMORY_SIZE_BYTES && sorted.length > 5) {
+          const victim = sorted.shift()!;
+          await memoryManager.archiveEntry(scope, victim.id);
+          size -= victim.content.length;
+          report.pruned++;
+        }
+      }
+
+      // Measure final size
+      const final = (await memoryManager.getEntries(scope)).filter(e => !e.archived);
+      report.memorySizeAfter += measureSize(final);
     }
 
-    if (report.merged > 0 || report.contradictionsRemoved > 0 || report.staleTagged > 0) {
+    report.phase = 'complete';
+
+    if (report.merged > 0 || report.contradictionsRemoved > 0 || report.pruned > 0) {
       logger.info(
-        `[consolidation] Complete: merged ${report.merged}, removed ${report.contradictionsRemoved} contradictions, tagged ${report.staleTagged} stale`
+        `[consolidation] Complete: merged ${report.merged}, contradictions ${report.contradictionsRemoved}, ` +
+        `stale ${report.staleTagged}, pruned ${report.pruned} | ` +
+        `${formatBytes(report.memorySizeBefore)} → ${formatBytes(report.memorySizeAfter)}`
       );
+    }
+
+    // Update state
+    if (globalDir) {
+      await saveState(globalDir, { lastRunAt: report.runAt, sessionsSinceLastRun: 0 });
     }
 
     return report;
   } catch (err) {
-    logger.debug(`[consolidation] Failed: ${err}`);
+    logger.debug(`[consolidation] Failed at phase ${report.phase}: ${err}`);
     return report;
   }
 }
 
-/**
- * Merge two memory contents. Keeps the primary content and appends
- * any unique information from the secondary that isn't already covered.
- */
+// ── Helpers ───────────────────────────────────────────────────────────
+
+function measureSize(entries: MemoryEntry[]): number {
+  return entries.reduce((sum, e) => sum + e.content.length, 0);
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${bytes}B`;
+}
+
 function mergeMemoryContent(primary: string, secondary: string): string {
-  // If the secondary is very short or a substring of primary, nothing to merge
   if (secondary.length < 10 || primary.toLowerCase().includes(secondary.toLowerCase())) {
     return primary;
   }
-
-  // If primary is a substring of secondary, the secondary is richer
   if (secondary.toLowerCase().includes(primary.toLowerCase())) {
     return secondary;
   }
-
-  // Extract words from both — find words in secondary not in primary
   const primaryWords = new Set(primary.toLowerCase().split(/\s+/));
   const secondaryWords = secondary.split(/\s+/);
   const uniqueWords = secondaryWords.filter(w => !primaryWords.has(w.toLowerCase()));
-
-  // If less than 20% of secondary words are unique, the primary covers it
   if (uniqueWords.length < secondaryWords.length * 0.2) {
     return primary;
   }
-
-  // Append a concise note from the secondary
   const supplement = secondary.length > 150 ? secondary.slice(0, 150) + '...' : secondary;
   return `${primary} (also: ${supplement})`;
 }
 
-/**
- * Find contradicting memories and remove the older one.
- * Uses known contradiction patterns (e.g., "prefers tabs" vs "prefers spaces").
- */
 async function resolveContradictions(
   entries: MemoryEntry[],
   memoryManager: MemoryManager,
   scope: 'global' | 'project',
 ): Promise<number> {
   let removed = 0;
-
   for (let i = 0; i < entries.length; i++) {
     for (let j = i + 1; j < entries.length; j++) {
       const a = entries[i];
       const b = entries[j];
-
       if (a.archived || b.archived) continue;
-
       const contradicts = CONTRADICTION_PAIRS.some(([patA, patB]) =>
         (patA.test(a.content) && patB.test(b.content)) ||
         (patB.test(a.content) && patA.test(b.content))
       );
-
       if (contradicts) {
-        // Newer wins
         const aTime = new Date(a.updatedAt).getTime();
         const bTime = new Date(b.updatedAt).getTime();
         const [, loser] = aTime >= bTime ? [a, b] : [b, a];
-
         await memoryManager.deleteEntry(scope, loser.id);
-        loser.archived = true; // Mark in local array to avoid re-processing
+        loser.archived = true;
         removed++;
-
         logger.debug(`[consolidation] Contradiction resolved: removed "${loser.content.slice(0, 60)}..."`);
       }
     }
   }
-
   return removed;
 }
 
-/**
- * Tag memories older than 90 days without recall as 'stale'.
- * Adds a 'stale' tag rather than archiving — gives the user a chance to review.
- */
 async function tagStaleMemories(
   entries: MemoryEntry[],
   memoryManager: MemoryManager,
@@ -257,26 +356,17 @@ async function tagStaleMemories(
 ): Promise<number> {
   const now = Date.now();
   let tagged = 0;
-
   for (const entry of entries) {
-    if (entry.archived) continue;
-    if (entry.tags?.includes('stale')) continue; // Already tagged
-
+    if (entry.archived || entry.tags?.includes('stale')) continue;
     const lastActivity = entry.lastRecalledAt ?? entry.updatedAt ?? entry.createdAt;
     const daysSince = (now - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24);
-
     if (daysSince > STALE_DAYS) {
       const existingTags = entry.tags ?? [];
-      if (!existingTags.includes('stale')) {
-        await memoryManager.updateEntry(scope, entry.id, {
-          tags: [...existingTags, 'stale'],
-        });
-        tagged++;
-
-        logger.debug(`[consolidation] Tagged stale: "${entry.content.slice(0, 60)}..."`);
-      }
+      await memoryManager.updateEntry(scope, entry.id, {
+        tags: [...existingTags, 'stale'],
+      });
+      tagged++;
     }
   }
-
   return tagged;
 }
