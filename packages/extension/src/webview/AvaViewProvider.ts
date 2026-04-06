@@ -273,6 +273,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
         this.log(`Usage reported — free: ${data.free_tokens_used}/${data.free_tokens_limit}, sub: ${data.tokens_used}/${data.tokens_limit}`);
 
+        // Keep cached account in sync so future init messages don't revert the display
+        if (this.cachedAccount?.usage) {
+          this.cachedAccount.usage.free_tokens_used = data.free_tokens_used;
+          this.cachedAccount.usage.tokens_used = data.tokens_used;
+        }
+
         this.postMessage({
           type: 'platform_status',
           connected: true,
@@ -721,6 +727,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           if (!this.cachedAccount) {
             const res = await apiFetch('/account-info', { platformKey });
             this.cachedAccount = res.ok ? (res.data as AccountInfo) : null;
+            if (this.cachedAccount?.usage) {
+              this.log(`Account usage: free=${this.cachedAccount.usage.free_tokens_used}/${this.cachedAccount.usage.free_tokens_limit}`);
+            }
           }
           if (this.cachedAccount) {
             const platform = new PlatformProvider({ apiKey: platformKey });

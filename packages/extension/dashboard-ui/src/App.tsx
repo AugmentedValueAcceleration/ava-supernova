@@ -60,7 +60,7 @@ export function App() {
   const [initialized, setInitialized] = useState(false);
   const [page, setPage] = useState<Page>(() => {
     const saved = localStorage.getItem('ava-dashboard-page') as Page | null;
-    return saved || 'chat';
+    return saved || 'overview';
   });
 
   // Chat page dispatch — forwards extension messages to the Chat reducer
