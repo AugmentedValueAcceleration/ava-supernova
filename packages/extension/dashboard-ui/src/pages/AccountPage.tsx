@@ -32,7 +32,7 @@ function getAccountTabs(): { key: AccountTab; label: string; platformOnly?: bool
     { key: 'settings', label: t('dash.account.tab_settings') },
     { key: 'billing', label: t('dash.account.tab_billing'), platformOnly: true },
     { key: 'connections', label: t('dash.account.tab_connections') },
-    { key: 'personality', label: t('dash.account.tab_personality') },
+    { key: 'personality', label: "Ava's Style" },
     { key: 'sync', label: t('dash.account.tab_sync'), platformOnly: true },
   ];
 }

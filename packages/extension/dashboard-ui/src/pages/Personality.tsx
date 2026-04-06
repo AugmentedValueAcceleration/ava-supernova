@@ -9,14 +9,6 @@ interface Props {
 
 // ── Option descriptors ─────────────────────────────────────────────────────
 
-function getPronouns() {
-  return [
-    { value: 'she/her', label: t('dash.personality.pronouns.she') },
-    { value: 'he/him', label: t('dash.personality.pronouns.he') },
-    { value: 'they/them', label: t('dash.personality.pronouns.they') },
-  ];
-}
-
 function getTones() {
   return [
     { value: 'warm', label: t('dash.personality.tone.warm'), desc: t('dash.personality.tone.warm_desc') },
@@ -49,8 +41,6 @@ function getStyles() {
 
 export function Personality({ personality }: Props) {
   useLocale();
-  const [name, setName] = useState('Ava');
-  const [pronouns, setPronouns] = useState('she/her');
   const [tone, setTone] = useState('warm');
   const [energy, setEnergy] = useState('enthusiastic');
   const [style, setStyle] = useState('conversational');
@@ -60,8 +50,6 @@ export function Personality({ personality }: Props) {
   // Sync from loaded personality
   useEffect(() => {
     if (personality) {
-      setName(personality.name);
-      setPronouns(personality.pronouns);
       setTone(personality.tone);
       setEnergy(personality.energy);
       setStyle(personality.style);
@@ -77,7 +65,7 @@ export function Personality({ personality }: Props) {
   const handleSave = () => {
     post({
       type: 'save_personality',
-      personality: { name, pronouns, tone, energy, style, description },
+      personality: { name: 'Ava', pronouns: 'she/her', tone, energy, style, description },
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
@@ -87,7 +75,6 @@ export function Personality({ personality }: Props) {
     post({ type: 'reset_personality' });
   };
 
-  const PRONOUNS = getPronouns();
   const TONES = getTones();
   const ENERGIES = getEnergies();
   const STYLES = getStyles();
@@ -104,36 +91,6 @@ export function Personality({ personality }: Props) {
           {t('dash.personality.subtitle')}
         </p>
       </div>
-
-      {/* Name */}
-      <Section label={t('dash.personality.name')}>
-        <input
-          type="text"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          placeholder="Ava"
-          className="w-full max-w-xs rounded-lg border border-[var(--border)] bg-[var(--bg-input)] px-4 py-2.5 text-sm text-white outline-none transition focus:border-[var(--accent)]"
-        />
-      </Section>
-
-      {/* Pronouns */}
-      <Section label={t('dash.personality.pronouns')}>
-        <div className="flex gap-2">
-          {PRONOUNS.map(p => (
-            <button
-              key={p.value}
-              onClick={() => setPronouns(p.value)}
-              className={`rounded-lg border px-4 py-2 text-sm font-medium transition cursor-pointer ${
-                pronouns === p.value
-                  ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-white shadow-[0_0_12px_rgba(168,85,247,0.25)]'
-                  : 'border-[var(--border)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:border-[var(--text-muted)] hover:text-white'
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </Section>
 
       {/* Tone */}
       <Section label={t('dash.personality.tone')}>
@@ -198,7 +155,7 @@ export function Personality({ personality }: Props) {
       <div className="mb-8 rounded-xl border border-[var(--border)] bg-[var(--bg-input)] p-5">
         <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">{t('dash.personality.preview')}</p>
         <p className="text-sm text-white">
-          <span className="font-semibold text-[var(--accent)]">{name || 'Ava'}</span>{' '}
+          <span className="font-semibold text-[var(--accent)]">Ava</span>{' '}
           {t('dash.personality.will_be', { name: '', tone: toneLabel, energy: energyLabel, style: styleLabel }).trim()}
         </p>
         {description && (
