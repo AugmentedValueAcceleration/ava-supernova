@@ -313,6 +313,13 @@ export type ExtToDashboardMessage =
   | { type: 'session_stats_loaded'; stats: SessionStats }
   | { type: 'usage_history_loaded'; data: UsageHistoryData | null }
   | { type: 'byok_support_sent'; success: boolean; message: string }
+  // Live chat support responses
+  | { type: 'support_conversations_loaded'; conversations: any[] }
+  | { type: 'support_messages_loaded'; conversationId: string; messages: any[] }
+  | { type: 'support_conversation_started'; conversation: any }
+  | { type: 'support_message_sent'; conversationId: string; message: any }
+  | { type: 'support_chat_cleared' }
+  | { type: 'support_unread_count'; count: number }
   // Task messages
   | { type: 'tasks_loaded'; tasks: DashboardTaskEntry[] }
   | { type: 'task_upserted'; task: DashboardTaskEntry }
@@ -377,6 +384,13 @@ export type DashboardToExtMessage =
   | { type: 'load_tickets' }
   | { type: 'create_support_ticket'; subject: string; message: string; category?: string }
   | { type: 'reply_support_ticket'; ticketId: string; message: string }
+  // Live chat support
+  | { type: 'start_support_conversation'; message: string }
+  | { type: 'send_support_message'; conversationId: string; message: string }
+  | { type: 'load_support_conversations' }
+  | { type: 'load_support_messages'; conversationId: string }
+  | { type: 'mark_support_read'; conversationId: string }
+  | { type: 'clear_support_chat' }
   // Admin messages
   | { type: 'load_admin_tickets'; status?: string }
   | { type: 'admin_reply_ticket'; ticketId: string; message: string }

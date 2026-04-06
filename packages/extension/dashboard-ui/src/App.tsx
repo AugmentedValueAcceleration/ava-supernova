@@ -131,6 +131,12 @@ export function App() {
   const [libraryPaths, setLibraryPaths] = useState<LibraryPath[]>([]);
   const [libraryPathDetail, setLibraryPathDetail] = useState<LibraryPathDetail | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // Live chat support state
+  const [supportConversations, setSupportConversations] = useState<any[]>([]);
+  const [supportMessages, setSupportMessages] = useState<any[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [supportLoading, setSupportLoading] = useState(false);
+  const [supportUnread, setSupportUnread] = useState(0);
   // Admin state
   const [adminTickets, setAdminTickets] = useState<SupportTicket[]>([]);
   const [adminTicketsTotal, setAdminTicketsTotal] = useState(0);
@@ -320,6 +326,28 @@ export function App() {
       case 'byok_support_sent':
         // Handled by Support page directly
         break;
+      // Live chat support
+      case 'support_conversations_loaded':
+        setSupportConversations(msg.conversations);
+        setSupportLoading(false);
+        break;
+      case 'support_messages_loaded':
+        setSupportMessages(msg.messages);
+        setActiveConversationId(msg.conversationId);
+        break;
+      case 'support_conversation_started':
+        setActiveConversationId(msg.conversation.id);
+        break;
+      case 'support_message_sent':
+        // Message sent — will be refreshed via loadSupportMessages
+        break;
+      case 'support_chat_cleared':
+        setSupportMessages([]);
+        setActiveConversationId(null);
+        break;
+      case 'support_unread_count':
+        setSupportUnread(msg.count);
+        break;
       case 'learning_loaded':
         setLearningCurriculums(msg.curriculums);
         break;
@@ -428,9 +456,9 @@ export function App() {
       }, 15_000);
       return () => clearInterval(interval);
     }
-    if (page === 'support' && tickets.length === 0 && !ticketsLoading && account) {
-      setTicketsLoading(true);
-      post({ type: 'load_tickets' });
+    if ((page === 'support' || page === 'help') && supportConversations.length === 0 && !supportLoading) {
+      setSupportLoading(true);
+      post({ type: 'load_support_conversations' });
     }
     if (page === 'admin_support' && adminTickets.length === 0 && !adminTicketsLoading) {
       setAdminTicketsLoading(true);
@@ -581,10 +609,13 @@ export function App() {
       case 'roadmap':
         return (
           <HelpPage
-            tickets={tickets}
-            ticketsLoading={ticketsLoading}
             releases={releases}
             mode={mode}
+            supportConversations={supportConversations}
+            supportMessages={supportMessages}
+            activeConversationId={activeConversationId}
+            supportLoading={supportLoading}
+            supportUnread={supportUnread}
           />
         );
 

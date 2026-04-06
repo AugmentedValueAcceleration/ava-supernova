@@ -303,6 +303,32 @@ export class DashboardPanel {
         await this.replySupportTicket(msg.ticketId, msg.message);
         break;
 
+      // ─── Live chat support ─────────────────────────────────────────────────
+
+      case 'start_support_conversation':
+        await this.startSupportConversation(msg.message);
+        break;
+
+      case 'send_support_message':
+        await this.sendSupportMessage(msg.conversationId, msg.message);
+        break;
+
+      case 'load_support_conversations':
+        await this.loadSupportConversations();
+        break;
+
+      case 'load_support_messages':
+        await this.loadSupportMessages(msg.conversationId);
+        break;
+
+      case 'mark_support_read':
+        await this.markSupportRead(msg.conversationId);
+        break;
+
+      case 'clear_support_chat':
+        this.post({ type: 'support_chat_cleared' } as any);
+        break;
+
       // ─── Admin messages ──────────────────────────────────────────────────────
 
       case 'load_admin_tickets':
@@ -1261,6 +1287,109 @@ export class DashboardPanel {
       });
     } catch {
       this.post({ type: 'error', message: 'Failed to update ticket.' });
+    }
+  }
+
+  // ─── Live Chat Support ───────────────────────────────────────────────────
+
+  private async startSupportConversation(message: string): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+
+    try {
+      const res = await apiFetch('/support/conversations', {
+        method: 'POST',
+        body: { message, platform: 'extension' },
+        platformKey,
+      });
+      if (res.ok) {
+        const data = res.data as { conversation: any };
+        this.post({ type: 'support_conversation_started', conversation: data.conversation } as any);
+        // Load messages for the new conversation (includes Ava's response)
+        setTimeout(() => this.loadSupportMessages(data.conversation.id), 1500);
+        // Refresh conversation list
+        this.loadSupportConversations();
+      } else {
+        this.post({ type: 'error', message: 'Failed to start conversation.' });
+      }
+    } catch {
+      this.post({ type: 'error', message: 'Failed to start conversation.' });
+    }
+  }
+
+  private async sendSupportMessage(conversationId: string, message: string): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+
+    try {
+      const res = await apiFetch(`/support/conversations/${conversationId}/messages`, {
+        method: 'POST',
+        body: { message },
+        platformKey,
+      });
+      if (res.ok) {
+        const data = res.data as { message: any };
+        this.post({ type: 'support_message_sent', conversationId, message: data.message } as any);
+        // Reload messages to get Ava's response
+        setTimeout(() => this.loadSupportMessages(conversationId), 1500);
+      } else {
+        this.post({ type: 'error', message: 'Failed to send message.' });
+      }
+    } catch {
+      this.post({ type: 'error', message: 'Failed to send message.' });
+    }
+  }
+
+  private async loadSupportConversations(): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) {
+      this.post({ type: 'support_conversations_loaded', conversations: [] } as any);
+      return;
+    }
+
+    try {
+      const res = await apiFetch('/support/conversations', { platformKey });
+      if (res.ok) {
+        const data = res.data as { conversations: any[] };
+        this.post({ type: 'support_conversations_loaded', conversations: data.conversations } as any);
+
+        // Calculate total unread for badge
+        const totalUnread = data.conversations.reduce((sum: number, c: any) => sum + (c.unread_user || 0), 0);
+        this.post({ type: 'support_unread_count', count: totalUnread } as any);
+      }
+    } catch {
+      this.post({ type: 'support_conversations_loaded', conversations: [] } as any);
+    }
+  }
+
+  private async loadSupportMessages(conversationId: string): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+
+    try {
+      const res = await apiFetch(`/support/conversations/${conversationId}/messages`, { platformKey });
+      if (res.ok) {
+        const data = res.data as { messages: any[] };
+        this.post({ type: 'support_messages_loaded', conversationId, messages: data.messages } as any);
+      }
+    } catch {
+      this.post({ type: 'error', message: 'Failed to load messages.' });
+    }
+  }
+
+  private async markSupportRead(conversationId: string): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+
+    try {
+      await apiFetch(`/support/conversations/${conversationId}/read`, {
+        method: 'POST',
+        platformKey,
+      });
+      // Refresh conversations to update unread counts
+      this.loadSupportConversations();
+    } catch {
+      // Non-critical
     }
   }
 

@@ -1,17 +1,20 @@
 import { useState } from 'react';
 import { t, useLocale } from '../i18n';
-import { Support } from './Support';
+import { SupportChat } from './SupportChat';
 import { Releases } from './Releases';
 import { Roadmap } from './Roadmap';
-import type { SupportTicket, ReleaseNote } from '../types/messages';
+import type { ReleaseNote } from '../types/messages';
 
 type HelpTab = 'support' | 'releases' | 'roadmap';
 
 interface HelpPageProps {
-  tickets: SupportTicket[];
-  ticketsLoading: boolean;
   releases: ReleaseNote[];
   mode: 'platform' | 'byok';
+  supportConversations: any[];
+  supportMessages: any[];
+  activeConversationId: string | null;
+  supportLoading: boolean;
+  supportUnread: number;
 }
 
 function getHelpTabs(): { key: HelpTab; label: string }[] {
@@ -22,7 +25,7 @@ function getHelpTabs(): { key: HelpTab; label: string }[] {
   ];
 }
 
-export function HelpPage({ tickets, ticketsLoading, releases, mode }: HelpPageProps) {
+export function HelpPage({ releases, mode, supportConversations, supportMessages, activeConversationId, supportLoading, supportUnread }: HelpPageProps) {
   useLocale();
   const [activeTab, setActiveTab] = useState<HelpTab>('support');
 
@@ -30,7 +33,7 @@ export function HelpPage({ tickets, ticketsLoading, releases, mode }: HelpPagePr
     <div className="space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-lg font-semibold text-white">Help</h1>
+        <h1 className="text-lg font-light text-white">Help</h1>
         <p className="mt-0.5 text-xs text-[var(--text-muted)]">Support, release notes, and product roadmap</p>
       </div>
 
@@ -47,9 +50,9 @@ export function HelpPage({ tickets, ticketsLoading, releases, mode }: HelpPagePr
             }`}
           >
             {label}
-            {key === 'support' && tickets.length > 0 && (
-              <span className="ml-1 rounded-full bg-[var(--accent)]/15 px-1.5 text-[10px] text-[var(--accent)]">
-                {tickets.filter(t => t.status === 'open').length || ''}
+            {key === 'support' && supportUnread > 0 && (
+              <span className="ml-1.5 inline-flex items-center justify-center min-w-[16px] h-4 rounded-full bg-[var(--accent)] px-1 text-[9px] font-bold text-white">
+                {supportUnread}
               </span>
             )}
           </button>
@@ -58,7 +61,13 @@ export function HelpPage({ tickets, ticketsLoading, releases, mode }: HelpPagePr
 
       {/* Tab content */}
       {activeTab === 'support' && (
-        <Support tickets={tickets} loading={ticketsLoading} mode={mode} />
+        <SupportChat
+          conversations={supportConversations}
+          activeMessages={supportMessages}
+          activeConversationId={activeConversationId}
+          loading={supportLoading}
+          mode={mode}
+        />
       )}
 
       {activeTab === 'releases' && (
