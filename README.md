@@ -44,8 +44,11 @@ Agentic coding shouldn't be a luxury. The open-source model ecosystem delivers n
 - **She remembers you** — 5-layer memory system that learns your coding style, decisions, conventions, and preferences. Every session she's better at helping you specifically.
 - **She thinks before she builds** — 24 specialist personas across 5 modes plan before executing. Complex tasks get proper analysis, not just code generation.
 - **She teaches for free** — Switch to Teach mode, say "teach me Python", and she builds a personalised curriculum with spaced repetition. Education shouldn't have a price tag.
-- **She's yours to design** — Name her. Choose the tone, energy, and communication style. Same brain, your personality.
+- **She picks the right brain** — Auto Mode analyses every task and routes to the best model automatically. Coding goes to Qwen, creative goes to MiniMax. You just talk.
+- **She's yours to design** — Choose the tone, energy, and communication style. Same brain, your personality.
 - **She explains herself** — Ask "how does your memory work?" and she reads her own source code and explains it. The only AI that can.
+- **She's always aware** — Tick Engine runs every 2 minutes, checking tasks, journal streaks, token balance, and support messages. She speaks up only when it matters.
+- **She gets sharper, not noisier** — 4-phase memory consolidation (Orient → Gather → Consolidate → Prune) with a 25KB cap keeps memory lean at scale.
 
 ## 6 Modes — States of Thought
 
@@ -79,9 +82,10 @@ Each persona has scoped tool access. Challenger can read but never write. Simple
 | Provider | Models | Highlights |
 |---|---|---|
 | **Ava Free** | Qwen Flash | **FREE — 3M tokens** with account |
-| **Alibaba Cloud** | Qwen 3.5 Plus | Vision, thinking, 256K context, $0.20/M input, $1.20/M output |
+| **Alibaba Cloud** | Qwen 3.6 Plus, 3.5 Plus | Primary model — Terminal-Bench #1 agentic coding, vision, 256K context |
 | **Zhipu AI** | GLM-5 | 77.8% SWE-Bench, vision, best tool-call reliability |
 | **Moonshot AI** | Kimi K2.5 | 76.8% SWE-Bench, best tool calling, vision, 256K context |
+| **MiniMax** | M2.7, M2.5 | Creative specialist — chat, brainstorm, teaching. 1M context |
 | **DeepSeek** | V3.2, Reasoner | Best value ($0.28/M input), Reasoner has chain-of-thought |
 | **Mistral** | Large, Codestral, Devstral 2 | European provider, code-specialized, up to 262K context |
 | **Anthropic** | Claude Opus 4.6, Sonnet 4.6, Haiku 4.5 | Frontier models, vision, 200K context |
@@ -231,18 +235,16 @@ Browse generated images in the **Dashboard Library** — grid or list view, filt
 - **email_draft** — Native .docx emails with tone-aware fonts — serif for formal, sans-serif for casual
 - **report_generate** — Native .docx reports (board briefs, sprint reviews, weekly status) from your tasks, journal, memory, and git data
 
-## Custom Personality
+## Ava's Style
 
-Design your own AI companion:
+Shape how Ava communicates:
 
-- **Name** — call her Ava, or name her anything you want
-- **Pronouns** — she/her, he/him, they/them
 - **Tone** — warm, direct, playful, professional, dry wit
 - **Energy** — calm, enthusiastic, measured, excitable
 - **Style** — concise, detailed, conversational, structured
-- **Free-text description** — describe exactly who you want
+- **Free-text description** — describe the vibe in your own words
 
-The dashboard header updates to show your AI's name. Reset to default Ava anytime.
+Reset to defaults anytime from Account → Ava's Style.
 
 ## 5-Layer Memory System
 
@@ -252,7 +254,7 @@ The dashboard header updates to show your AI's name. Reset to default Ava anytim
 | **Layer 2** | LLM reflection — end of meaningful conversations |
 | **Layer 3** | Pattern detection — tracks corrections, naming, style, workflow habits |
 | **Layer 4** | Cross-memory insights — finds themes, contradictions, consolidation opportunities |
-| **Layer 5** | Cloud sync + semantic search — vector embeddings for intelligent cross-device recall |
+| **Layer 5** | 4-phase consolidation — Orient, Gather, Consolidate, Prune with 25KB cap |
 
 - TF-IDF retrieval with composite scoring
 - Branch scoping for experimental work
@@ -428,7 +430,7 @@ packages/
 │   ├── webview-ui/        #   React + Tailwind chat interface
 │   └── dashboard-ui/      #   Command centre dashboard panel
 ├── mobile/                # Companion app (git submodule → ava-supernova-companion)
-├── ide/                   # Standalone IDE (Eclipse Theia, git submodule)
+├── ide/                   # Standalone IDE (Tauri v2 + Node.js sidecar, git submodule)
 └── web/                   # Platform website (git submodule)
 ```
 
@@ -500,7 +502,16 @@ cd packages/extension && pnpm build
 - [x] Error recovery and resilience
 - [x] i18n — 20 languages
 - [x] Companion app (mobile)
-- [ ] Memory embeddings and vector search improvements
+- [x] Auto Mode — intelligent task routing across Qwen + MiniMax
+- [x] Tick Engine — proactive background awareness (tasks, journal, tokens, support)
+- [x] 4-phase memory consolidation (Orient → Gather → Consolidate → Prune) with 25KB cap
+- [x] Live chat support — Ava first-line triage, seamless human handoff
+- [x] Token usage bar with real-time deduction
+- [x] Period rollover for paid plans (unused tokens carry over)
+- [x] GDPR consent gate with Terms/Privacy links
+- [ ] Contributor marketplace — users get paid for improvements
+- [ ] Voice system (Kokoro TTS)
+- [ ] Creative Studio (image gen, video editing, social media)
 - [ ] Plugin system for community-contributed tools
 - [ ] Productivity integrations (email, Slack, Discord)
 
