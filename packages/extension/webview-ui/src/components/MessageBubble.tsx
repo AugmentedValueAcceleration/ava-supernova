@@ -13,7 +13,7 @@ import { useSecrets } from '../hooks/useSecrets';
 
 interface MessageBubbleProps {
   message: UIMessage;
-  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllow?: boolean, allowAll?: boolean, planSelection?: string, userResponse?: string) => void;
+  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllowCategory?: boolean, planSelection?: string, userResponse?: string) => void;
   onContinue?: () => void;
   onRate?: (messageId: string, rating: 'up' | 'down', reason?: string) => void;
 }

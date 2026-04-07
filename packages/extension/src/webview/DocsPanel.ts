@@ -803,31 +803,42 @@ export class DocsPanel {
     <!-- Permissions -->
     <section class="docs-section" id="permissions">
       <h2>Permission Modes</h2>
+      <p>All 54 tools are grouped into <strong>10 categories</strong> (File Ops, Shell, Git, Web, Media, Database, System, Documents, Memory, Learning). Each category has its own permission level. Three presets:</p>
       <table>
-        <thead><tr><th>Mode</th><th>File Reads</th><th>File Writes</th><th>Shell Commands</th></tr></thead>
+        <thead><tr><th>Mode</th><th>File Ops</th><th>Shell</th><th>Git</th><th>Web</th><th>Database</th><th>System</th></tr></thead>
         <tbody>
           <tr>
             <td><strong>Strict</strong></td>
-            <td><span class="badge badge-safe">auto</span></td>
-            <td>Confirm</td>
-            <td>Confirm</td>
+            <td>First time</td>
+            <td>Always ask</td>
+            <td>Always ask</td>
+            <td>Always ask</td>
+            <td>Always ask</td>
+            <td>Always ask</td>
           </tr>
           <tr>
             <td><strong>Balanced</strong></td>
             <td><span class="badge badge-safe">auto</span></td>
-            <td><span class="badge badge-safe">auto</span></td>
-            <td>Confirm</td>
+            <td>Always ask</td>
+            <td>First time</td>
+            <td>First time</td>
+            <td>Always ask</td>
+            <td>Always ask</td>
           </tr>
           <tr>
             <td><strong>Autonomous</strong></td>
             <td><span class="badge badge-safe">auto</span></td>
             <td><span class="badge badge-safe">auto</span></td>
             <td><span class="badge badge-safe">auto</span></td>
+            <td><span class="badge badge-safe">auto</span></td>
+            <td><span class="badge badge-safe">auto</span></td>
+            <td><span class="badge badge-safe">auto</span></td>
           </tr>
         </tbody>
       </table>
+      <p><strong>Auto</strong> executes immediately. <strong>First time</strong> asks once per session, then remembers. <strong>Always ask</strong> confirms every call. Memory and Learning categories are always auto.</p>
       <p>Plans (<code>present_plan</code>) and questions (<code>ask_user</code>) always require your approval, regardless of mode.</p>
-      <p>During a session, you can also grant per-tool approval with <strong>Always Allow</strong> or blanket approval with <strong>Allow All</strong>.</p>
+      <p>Customise individual categories in <strong>Settings &rarr; Customise by Category</strong>. Clicking <strong>Always Allow</strong> on a confirmation auto-approves that category for the session. Every tool call is logged in the <strong>Audit</strong> tab in History.</p>
     </section>
 
     <!-- Configuration -->

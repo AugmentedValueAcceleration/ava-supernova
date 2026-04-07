@@ -88,7 +88,7 @@ export const viStrings: Record<string, string> = {
   // ── Tool UI ───────────────────────────────────────────────────────────────
   'tool.allow': 'Cho phép',
   'tool.always_allow': 'Luôn cho phép',
-  'tool.allow_all': 'Cho phép tất cả',
+  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
   'tool.deny': 'Từ chối',
   'tool.allow_prompt': 'Cho phép {tool}?',
   'tool.arguments': 'Tham số',

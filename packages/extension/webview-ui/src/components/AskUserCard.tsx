@@ -4,7 +4,7 @@ import { t, useLocale } from '../i18n';
 
 interface AskUserCardProps {
   toolCall: ToolCallDisplay;
-  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllow?: boolean, allowAll?: boolean, planSelection?: string, userResponse?: string) => void;
+  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllowCategory?: boolean, planSelection?: string, userResponse?: string) => void;
 }
 
 export function AskUserCard({ toolCall, onConfirmation }: AskUserCardProps) {
@@ -63,7 +63,7 @@ export function AskUserCard({ toolCall, onConfirmation }: AskUserCardProps) {
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey && response.trim()) {
                 e.preventDefault();
-                onConfirmation(toolCall.confirmationId!, true, false, false, undefined, response.trim());
+                onConfirmation(toolCall.confirmationId!, true, false, undefined, response.trim());
               }
             }}
           />
@@ -76,7 +76,7 @@ export function AskUserCard({ toolCall, onConfirmation }: AskUserCardProps) {
                          hover:bg-[var(--vscode-button-hoverBackground)]
                          border-none cursor-pointer
                          disabled:opacity-40 disabled:cursor-not-allowed"
-              onClick={() => onConfirmation(toolCall.confirmationId!, true, false, false, undefined, response.trim())}
+              onClick={() => onConfirmation(toolCall.confirmationId!, true, false, undefined, response.trim())}
             >
               {t('ask.submit')}
             </button>

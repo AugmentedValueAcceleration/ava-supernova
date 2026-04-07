@@ -88,7 +88,7 @@ export const koStrings: Record<string, string> = {
   // ── Tool UI ───────────────────────────────────────────────────────────────
   'tool.allow': '허용',
   'tool.always_allow': '항상 허용',
-  'tool.allow_all': '모두 허용',
+  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
   'tool.deny': '거부',
   'tool.allow_prompt': '{tool}을(를) 허용하시겠습니까?',
   'tool.arguments': '인수',

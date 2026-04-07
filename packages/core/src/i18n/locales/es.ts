@@ -88,7 +88,7 @@ export const esStrings: Record<string, string> = {
   // \u2500\u2500 Tool UI \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   'tool.allow': 'Permitir',
   'tool.always_allow': 'Permitir siempre',
-  'tool.allow_all': 'Permitir todo',
+  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
   'tool.deny': 'Denegar',
   'tool.allow_prompt': '\u00bfPermitir {tool}?',
   'tool.arguments': 'Argumentos',

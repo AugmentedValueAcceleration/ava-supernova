@@ -88,7 +88,7 @@ export const deStrings: Record<string, string> = {
   // \u2500\u2500 Tool UI \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   'tool.allow': 'Erlauben',
   'tool.always_allow': 'Immer erlauben',
-  'tool.allow_all': 'Alles erlauben',
+  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
   'tool.deny': 'Ablehnen',
   'tool.allow_prompt': '{tool} erlauben?',
   'tool.arguments': 'Argumente',

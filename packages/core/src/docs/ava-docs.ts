@@ -381,7 +381,7 @@ Regardless of permission mode, these always require user approval:
 ## Per-Session Overrides
 During a session, you can grant:
 - **Always Allow** — Auto-approve a specific tool for the rest of the session
-- **Allow All** — Auto-approve all tools for the rest of the session
+- **Always Allow** — Auto-approve this tool category for the rest of the session
 
 ## Changing Permission Mode
 - **Extension**: Dashboard > Settings > Permission Mode

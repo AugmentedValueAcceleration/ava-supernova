@@ -4,7 +4,7 @@ import { t, useLocale } from '../i18n';
 
 interface PlanCardProps {
   toolCall: ToolCallDisplay;
-  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllow?: boolean, allowAll?: boolean, planSelection?: string) => void;
+  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllowCategory?: boolean, planSelection?: string) => void;
 }
 
 interface PlanStep {
@@ -201,7 +201,6 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
                 onClick={() => onConfirmation(
                   toolCall.confirmationId!,
                   true,
-                  undefined,
                   undefined,
                   selectedAlt ?? undefined,
                 )}
