@@ -114,7 +114,7 @@ export const trStrings: Record<string, string> = {
   // Tool UI
   'tool.allow': 'İzin Ver',
   'tool.always_allow': 'Her Zaman İzin Ver',
-  'tool.allow_all': 'Tümüne İzin Ver',
+  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
   'tool.deny': 'Reddet',
   'tool.allow_prompt': '{tool} izni verilsin mi?',
   'tool.arguments': 'Argümanlar',

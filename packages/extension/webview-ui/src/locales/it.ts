@@ -114,7 +114,7 @@ export const itStrings: Record<string, string> = {
   // Tool UI
   'tool.allow': 'Consenti',
   'tool.always_allow': 'Consenti sempre',
-  'tool.allow_all': 'Consenti tutto',
+  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
   'tool.deny': 'Nega',
   'tool.allow_prompt': 'Consentire {tool}?',
   'tool.arguments': 'Argomenti',

@@ -114,7 +114,7 @@ export const zhTWStrings: Record<string, string> = {
   // Tool UI
   'tool.allow': '允許',
   'tool.always_allow': '一律允許',
-  'tool.allow_all': '全部允許',
+  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
   'tool.deny': '拒絕',
   'tool.allow_prompt': '允許 {tool}？',
   'tool.arguments': '參數',

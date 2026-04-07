@@ -114,7 +114,7 @@ export const ruStrings: Record<string, string> = {
   // Tool UI
   'tool.allow': 'Разрешить',
   'tool.always_allow': 'Всегда разрешать',
-  'tool.allow_all': 'Разрешить все',
+  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
   'tool.deny': 'Запретить',
   'tool.allow_prompt': 'Разрешить {tool}?',
   'tool.arguments': 'Аргументы',

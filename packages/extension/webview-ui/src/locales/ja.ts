@@ -114,7 +114,7 @@ export const jaStrings: Record<string, string> = {
   // Tool UI
   'tool.allow': '許可',
   'tool.always_allow': '常に許可',
-  'tool.allow_all': 'すべて許可',
+  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
   'tool.deny': '拒否',
   'tool.allow_prompt': '{tool} を許可しますか？',
   'tool.arguments': '引数',

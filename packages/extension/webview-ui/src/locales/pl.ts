@@ -114,7 +114,7 @@ export const plStrings: Record<string, string> = {
   // Tool UI
   'tool.allow': 'Zezwól',
   'tool.always_allow': 'Zawsze zezwalaj',
-  'tool.allow_all': 'Zezwól na wszystko',
+  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
   'tool.deny': 'Odmów',
   'tool.allow_prompt': 'Zezwolić na {tool}?',
   'tool.arguments': 'Argumenty',

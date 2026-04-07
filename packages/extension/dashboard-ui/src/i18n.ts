@@ -227,7 +227,7 @@ const chatStrings: Record<string, string> = {
   // Tools
   'tool.allow': 'Allow',
   'tool.always_allow': 'Always Allow',
-  'tool.allow_all': 'Allow All',
+  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
   'tool.deny': 'Deny',
   'tool.arguments': 'Arguments',
   'tool.output': 'Output',
