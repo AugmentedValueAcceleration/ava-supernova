@@ -45,6 +45,9 @@ import { PresentationCreateTool } from './presentation-create.js';
 import { EmailDraftTool } from './email-draft.js';
 import { ReportGenerateTool } from './report-generate.js';
 import { GenerateImageTool } from './generate-image.js';
+import { GenerateMusicTool } from './generate-music.js';
+import { GenerateVideoTool } from './generate-video.js';
+import { GenerateVoiceTool } from './generate-voice.js';
 import { RemoveBackgroundTool } from './remove-background.js';
 import { AuditDependenciesTool } from './audit-dependencies.js';
 import { BenchmarkTool } from './benchmark.js';
@@ -77,7 +80,8 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   // Web
   web_search: 'web', http_request: 'web', browser: 'web',
   // Media
-  screenshot: 'media', generate_image: 'media', remove_background: 'media',
+  screenshot: 'media', generate_image: 'media', generate_music: 'media',
+  generate_video: 'media', generate_voice: 'media', remove_background: 'media',
   // Database
   database_query: 'database',
   // System
@@ -320,6 +324,9 @@ export class ToolRegistry {
       new EmailDraftTool(),
       new ReportGenerateTool(),
       new GenerateImageTool(),
+      new GenerateMusicTool(),
+      new GenerateVideoTool(),
+      new GenerateVoiceTool(),
       new RemoveBackgroundTool(),
       new ComputerUseTool(),
     ];
