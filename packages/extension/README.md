@@ -180,13 +180,23 @@ Everything local by default. Connected users choose what to sync:
 - API keys encrypted in OS keychain
 - All data stored locally by default
 - Credentials blocked from memory at runtime
-- No telemetry, no tracking
+- No analytics or screen captures
 - Prompt injection resistance built in
 - You control what syncs and when
 
+### Shared Learning (Opt-In)
+
+Ava includes an optional **Contribute Shared Learning** setting (off by default). When enabled, anonymised feedback data is shared to improve response quality for all users:
+
+- Message ratings (thumbs up/down) and selected reason
+- Model and mode used
+- Timestamp
+
+**No code, no conversation content, and no personal data is ever shared.** You can disable this at any time in Settings. Usage data (token counts, model used) is reported only for users with a platform account, for billing and fair-use purposes.
+
 ## Privacy & Terms
 
-Ava collects **no analytics, no telemetry, and no screen captures**. Code context is sent only to your chosen AI provider for processing. All memory and conversation data is stored locally on your machine. Cloud sync is opt-in only.
+Code context is sent only to your chosen AI provider for processing. All memory and conversation data is stored locally on your machine. Cloud sync is opt-in only.
 
 Built by **Augmented Value Acceleration Ltd**, registered in England and Wales. Fully UK GDPR compliant.
 

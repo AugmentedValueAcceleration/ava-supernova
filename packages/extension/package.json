@@ -10,6 +10,7 @@
     "url": "https://github.com/AugmentedValueAcceleration/ava-supernova"
   },
   "homepage": "https://ava-supernova.com",
+  "privacy": "https://ava-supernova.com/privacy",
   "pricing": "Free",
   "qna": "https://github.com/AugmentedValueAcceleration/ava-supernova/issues",
   "engines": {
@@ -299,7 +300,7 @@
             "type": "boolean",
             "default": false,
             "order": 8,
-            "description": "Help improve Ava for everyone. When enabled, anonymised technical learnings (no personal data, no code) are shared with all users."
+            "markdownDescription": "Help improve Ava for everyone. When enabled, anonymised feedback data (ratings, model and mode used — no code, no conversation content) is shared to improve response quality. **Off by default.** See [Privacy Policy](https://ava-supernova.com/privacy) for details."
           }
         }
       },

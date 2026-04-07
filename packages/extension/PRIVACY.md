@@ -1,6 +1,6 @@
 # Privacy Policy — Ava | Supernova
 
-**Last updated:** 2 April 2026
+**Last updated:** 7 April 2026
 
 Ava | Supernova is an open-source AI coding agent. This policy explains what data the extension collects, how it is used, and where it is sent.
 
@@ -21,6 +21,16 @@ If you connect a platform account (optional), basic usage metrics are recorded: 
 ### No Screen Capture
 The VS Code extension does **not** capture screenshots, record your screen, or access any visual content outside of the VS Code editor. Screen capture functionality is excluded from the extension entirely.
 
+### Shared Learning (Opt-In)
+
+The extension includes a **Contribute Shared Learning** setting (disabled by default). When you choose to enable it, the following anonymised feedback data is shared when you rate messages:
+
+- Your rating (thumbs up/down) and selected reason (e.g., "Wrong", "Incomplete")
+- The model and mode used
+- Timestamp and message ID
+
+**No code, no conversation content, and no personal data is shared.** This data is used solely to improve Ava's response quality for all users. You can disable this setting at any time in VS Code Settings. When disabled, all feedback is stored locally only.
+
 ## Where Data is Sent
 
 ### AI Model Providers
@@ -30,7 +40,7 @@ Your code context and messages are sent to whichever AI model provider you choos
 - **BYOK (Bring Your Own Key)**: Sent directly from your machine to the provider's API (e.g., Anthropic, DeepSeek, Mistral). No data passes through our servers.
 
 ### No Third-Party Analytics
-We do not use Google Analytics, Mixpanel, Segment, or any third-party analytics service. We do not sell or share your data with anyone.
+We do not use Google Analytics, Mixpanel, Segment, or any third-party analytics service. We do not sell or share your data with anyone. The only data that leaves your machine (beyond AI provider requests) is opt-in feedback and platform usage metrics as described above.
 
 ## Data Storage
 
@@ -41,6 +51,7 @@ We do not use Google Analytics, Mixpanel, Segment, or any third-party analytics 
 | Settings | Local (VS Code settings) | Optional platform sync |
 | API keys | Local (VS Code secure storage) | Never uploaded |
 | Usage metrics | Platform (if connected) | Automatic |
+| Feedback ratings | Local (`~/.ava/feedback.json`) | Opt-in via Shared Learning |
 
 ## Your Rights
 
