@@ -51,7 +51,10 @@ const COMPUTER_USE_PATTERN = /\b(?:click|type\s+(?:in|into|on)|scroll|open\s+(?:
 
 // ─── Planning patterns (mirrors conductor's needsOrchestration) ──────────────
 
-const PLANNING_PATTERN = /\b(?:plan|design|architect|review|strategy|proposal|approach|roadmap|blueprint|outline the|break down|think through)\b/i;
+const PLANNING_PATTERN = /\b(?:plan|design|architect|strategy|proposal|approach|roadmap|blueprint|outline the|break down|think through)\b/i;
+
+// Review/audit tasks read many files — need large context model, not planning model
+const REVIEW_PATTERN = /\b(?:review|audit|scan|analyze|check|inspect|assess|evaluate)\s+(?:the\s+)?(?:project|code|codebase|files|repo|repository|folder|directory)\b/i;
 
 /**
  * Classify a user message into a TaskCategory.
@@ -117,16 +120,21 @@ export function classifyTask(
     return { category: 'chat', reason: 'Question about Ava detected' };
   }
 
-  // 6. Long context — conversation is getting large
+  // 6. Review/audit tasks — read many files, need large context
+  if (REVIEW_PATTERN.test(text)) {
+    return { category: 'long_context', reason: 'Project review/audit — routing to large context model' };
+  }
+
+  // 7. Long context — conversation is getting large
   if (conversationTokenCount > 150_000) {
     return { category: 'long_context', reason: `Conversation at ${conversationTokenCount} tokens, routing to large context model` };
   }
 
-  // 7. Planning — explicit planning language
+  // 8. Planning — explicit planning language
   if (PLANNING_PATTERN.test(text)) {
     return { category: 'planning', reason: 'Planning language detected' };
   }
 
-  // 8. Default — coding (work mode default)
+  // 9. Default — coding (work mode default)
   return { category: 'coding', reason: 'Default coding task in work mode' };
 }
