@@ -10,17 +10,19 @@ interface RouteEntry {
   requiresVision?: boolean;
 }
 
+// All reasoning/coding/planning tasks → Qwen 3.6 Plus (1M context, Terminal-Bench #1)
+// MiniMax reserved for creative generation (image/video/music/voice) — added when Creative Studio ships
 const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
-  coding:       { modelId: 'qwen3.6-plus',      reason: 'Best agentic coding — Terminal-Bench #1, native function calling', fallbackModelId: 'qwen3.5-omni-plus' },
-  vision:       { modelId: 'qwen3.6-plus',      reason: 'Vision + reasoning + 1M context', fallbackModelId: 'qwen3.5-omni-plus', requiresVision: true },
-  image_gen:    { modelId: 'MiniMax-M2.5',      reason: 'Image generation handled by generate_image tool' },
-  computer_use: { modelId: 'qwen3.6-plus',      reason: 'Conductor plans steps, Holo3 executes via computer_use tool', requiresVision: true },
-  planning:     { modelId: 'MiniMax-M2.7',      reason: 'Strong reasoning, self-evolving', fallbackModelId: 'qwen3.6-plus' },
-  chat:         { modelId: 'MiniMax-M2.5',      reason: 'Fast, cheap, 1M context for conversation', fallbackModelId: 'qwen3-omni-flash' },
-  long_context: { modelId: 'qwen3.6-plus',      reason: '1M context + always-on CoT', fallbackModelId: 'MiniMax-M2.5' },
-  teach:        { modelId: 'MiniMax-M2.7',      reason: 'Patient, structured teaching', fallbackModelId: 'qwen3.6-plus' },
-  security:     { modelId: 'qwen3.5-omni-plus', reason: 'Better security scores than 3.6 (88.1 vs 82.4)', fallbackModelId: 'MiniMax-M2.7' },
-  brainstorm:   { modelId: 'MiniMax-M2.7',      reason: 'Creative reasoning', fallbackModelId: 'qwen3.6-plus' },
+  coding:       { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — Terminal-Bench #1, 1M context', fallbackModelId: 'qwen3.5-omni-plus' },
+  vision:       { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — vision + reasoning + 1M context', fallbackModelId: 'qwen3.5-omni-plus', requiresVision: true },
+  image_gen:    { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — image generation via generate_image tool', fallbackModelId: 'qwen3.5-omni-plus' },
+  computer_use: { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — conductor plans, Holo3 executes', fallbackModelId: 'qwen3.5-omni-plus', requiresVision: true },
+  planning:     { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — 1M context for architecture + planning', fallbackModelId: 'qwen3.5-omni-plus' },
+  chat:         { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — conversational with full context', fallbackModelId: 'qwen3-omni-flash' },
+  long_context: { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — 1M context', fallbackModelId: 'qwen3.5-omni-plus' },
+  teach:        { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — patient structured teaching', fallbackModelId: 'qwen3.5-omni-plus' },
+  security:     { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — security analysis with full codebase context', fallbackModelId: 'qwen3.5-omni-plus' },
+  brainstorm:   { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — creative reasoning with 1M context', fallbackModelId: 'qwen3.5-omni-plus' },
 };
 
 /**
@@ -131,7 +133,8 @@ export class ModelRouter {
   private resolveAnyModel(reason: string): RouteResult | null {
     // Platform models (preferred order: coding-capable first)
     if (this.hasPlatform) {
-      const platformModels = ['kimi-k2.5', 'MiniMax-M2.7', 'MiniMax-M2.5', 'qwen3.5-omni-plus', 'qwen3-omni-flash'];
+      // MiniMax excluded from reasoning fallback — reserved for creative generation
+      const platformModels = ['qwen3.6-plus', 'qwen3.5-omni-plus', 'qwen3-omni-flash', 'kimi-k2.5'];
       for (const id of platformModels) {
         const result = this.providerRegistry.resolveModel(`platform:${id}`);
         if (result) return { modelId: `platform:${id}`, provider: result.provider, model: result.model, reason };
@@ -139,7 +142,8 @@ export class ModelRouter {
     }
 
     // BYOK models (dynamic — try whatever providers are available, best first)
-    const byokModels = ['kimi-k2.5', 'claude-sonnet-4-6', 'MiniMax-M2.7', 'deepseek-chat', 'mistral-large-latest', 'qwen3.5-omni-plus', 'qwen3-omni-flash'];
+    // MiniMax excluded — reserved for creative generation only
+    const byokModels = ['kimi-k2.5', 'claude-sonnet-4-6', 'deepseek-chat', 'mistral-large-latest', 'qwen3.5-omni-plus', 'qwen3-omni-flash'];
     for (const id of byokModels) {
       const result = this.providerRegistry.resolveModel(id);
       if (result && this.isProviderAvailable(result.provider.name)) {
