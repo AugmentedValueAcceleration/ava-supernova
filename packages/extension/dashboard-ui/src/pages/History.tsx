@@ -49,27 +49,43 @@ function costColour(cost: number): string {
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
+interface AuditEntry {
+  timestamp: string;
+  toolName: string;
+  category: string;
+  riskLevel: string;
+  approvalMethod: string;
+  status: string;
+  argsSummary: string;
+  fullArgs?: Record<string, unknown>;
+  result?: string;
+}
+
 interface HistoryProps {
   sessionStats: SessionStats | null;
   usageHistory: UsageHistoryData | null;
   mode: 'platform' | 'byok';
   account: AccountInfo | null;
+  auditLog?: AuditEntry[];
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export function History({ sessionStats, usageHistory, mode, account }: HistoryProps) {
+export function History({ sessionStats, usageHistory, mode, account, auditLog }: HistoryProps) {
   useLocale();
-  const [activeTab, setActiveTab] = useState<'session' | 'alltime'>(() => {
+  const [activeTab, setActiveTab] = useState<'session' | 'alltime' | 'audit'>(() => {
     const saved = localStorage.getItem('ava-analytics-tab');
     return (saved === 'alltime' && mode === 'platform') ? 'alltime' : 'session';
   });
 
-  const handleTabChange = (tab: 'session' | 'alltime') => {
+  const handleTabChange = (tab: 'session' | 'alltime' | 'audit') => {
     setActiveTab(tab);
     localStorage.setItem('ava-analytics-tab', tab);
     if (tab === 'alltime' && mode === 'platform') {
       post({ type: 'load_usage_history' });
+    }
+    if (tab === 'audit') {
+      post({ type: 'request_audit_log' });
     }
   };
 
@@ -104,13 +120,115 @@ export function History({ sessionStats, usageHistory, mode, account }: HistoryPr
         >
           {t('dash.usage.all_time')}
         </button>
+        <button
+          onClick={() => handleTabChange('audit')}
+          className={`rounded-md px-4 py-1.5 text-xs font-medium transition border-none cursor-pointer ${
+            activeTab === 'audit'
+              ? 'bg-[var(--accent)] text-white'
+              : 'text-[var(--text-muted)] hover:text-white bg-transparent'
+          }`}
+        >
+          Audit
+        </button>
       </div>
 
       {activeTab === 'session' ? (
         <SessionView stats={sessionStats} />
+      ) : activeTab === 'audit' ? (
+        <AuditView entries={auditLog || []} />
       ) : (
         <AllTimeView data={usageHistory} mode={mode} account={account} />
       )}
+    </div>
+  );
+}
+
+// ─── Audit View ─────────────────────────────────────────────────────────────
+
+const APPROVAL_COLORS: Record<string, string> = {
+  'auto': 'bg-emerald-500/15 text-emerald-400',
+  'first-time': 'bg-blue-500/15 text-blue-400',
+  'user-approved': 'bg-yellow-500/15 text-yellow-400',
+  'denied': 'bg-red-500/15 text-red-400',
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  'success': 'text-emerald-400',
+  'failed': 'text-red-400',
+  'denied': 'text-red-400',
+};
+
+const RISK_COLORS: Record<string, string> = {
+  'safe': 'bg-emerald-500/15 text-emerald-400',
+  'write': 'bg-yellow-500/15 text-yellow-400',
+  'dangerous': 'bg-red-500/15 text-red-400',
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  file_ops: 'File Ops', shell: 'Shell', git: 'Git', web: 'Web',
+  media: 'Media', database: 'Database', system: 'System',
+  documents: 'Documents', memory: 'Memory', learning: 'Learning',
+};
+
+function AuditView({ entries }: { entries: AuditEntry[] }) {
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+
+  if (entries.length === 0) {
+    return (
+      <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-8 text-center">
+        <span className="block text-2xl opacity-30 mb-2">📋</span>
+        <p className="text-xs text-[var(--text-muted)]">No tool calls recorded this session.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] overflow-hidden">
+      {/* Header */}
+      <div className="grid grid-cols-[60px_1fr_80px_60px_90px_60px] gap-2 px-3 py-2 border-b border-[var(--border-card)] text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+        <span>Time</span>
+        <span>Tool</span>
+        <span>Category</span>
+        <span>Risk</span>
+        <span>Approval</span>
+        <span>Status</span>
+      </div>
+      {/* Entries — newest first */}
+      {[...entries].reverse().map((entry, i) => {
+        const time = new Date(entry.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const isExpanded = expandedIdx === i;
+        return (
+          <div key={i}>
+            <button
+              onClick={() => setExpandedIdx(isExpanded ? null : i)}
+              className="grid grid-cols-[60px_1fr_80px_60px_90px_60px] gap-2 w-full px-3 py-2 text-left text-[11px] border-none bg-transparent cursor-pointer hover:bg-[var(--bg-input)]/30 transition"
+            >
+              <span className="text-[var(--text-muted)] font-mono">{time}</span>
+              <span className="text-white font-medium truncate">{entry.toolName}</span>
+              <span className="text-[var(--text-secondary)]">{CATEGORY_LABELS[entry.category] || entry.category}</span>
+              <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium text-center ${RISK_COLORS[entry.riskLevel] || ''}`}>{entry.riskLevel}</span>
+              <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium text-center ${APPROVAL_COLORS[entry.approvalMethod] || ''}`}>{entry.approvalMethod}</span>
+              <span className={`text-[10px] font-medium ${STATUS_COLORS[entry.status] || 'text-[var(--text-muted)]'}`}>{entry.status}</span>
+            </button>
+            {isExpanded && (
+              <div className="px-3 pb-3 space-y-2">
+                <div className="rounded-lg bg-[var(--bg-input)]/50 p-2.5 text-[10px] font-mono text-[var(--text-secondary)]">
+                  <p className="font-semibold text-[var(--text-muted)] mb-1">Arguments</p>
+                  <pre className="whitespace-pre-wrap break-all max-h-40 overflow-y-auto">
+                    {entry.fullArgs ? JSON.stringify(entry.fullArgs, null, 2) : entry.argsSummary}
+                  </pre>
+                </div>
+                {entry.result && (
+                  <div className="rounded-lg bg-[var(--bg-input)]/50 p-2.5 text-[10px] font-mono text-[var(--text-secondary)]">
+                    <p className="font-semibold text-[var(--text-muted)] mb-1">Result</p>
+                    <pre className="whitespace-pre-wrap break-all max-h-40 overflow-y-auto">{entry.result}</pre>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

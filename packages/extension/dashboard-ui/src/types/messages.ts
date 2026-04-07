@@ -46,7 +46,8 @@ export interface ConnectionStatus {
 
 export interface DashboardSettings {
   language: string;
-  permissionMode: 'strict' | 'balanced' | 'autonomous';
+  permissionMode: 'strict' | 'balanced' | 'autonomous' | 'custom';
+  categoryPermissions?: Record<string, string>;
   temperature: number;
   maxTokens: number;
   activeModel: string;
@@ -533,7 +534,9 @@ export type ExtToDashboardMessage =
   | { type: 'stream_end' }
   | { type: 'tool_call_start'; toolCall: { id: string; name: string; arguments: string } }
   | { type: 'tool_call_end'; toolCallId: string; result: string; success: boolean }
-  | { type: 'tool_confirmation_request'; confirmationId: string; toolName: string; args: Record<string, unknown>; summary: string; isAskUser?: boolean }
+  | { type: 'tool_confirmation_request'; confirmationId: string; toolName: string; toolCategory?: string; args: Record<string, unknown>; summary: string; isAskUser?: boolean }
+  | { type: 'category_permissions'; permissions: Record<string, string>; mode: string }
+  | { type: 'audit_log'; entries: Array<{ timestamp: string; toolName: string; category: string; riskLevel: string; approvalMethod: string; status: string; argsSummary: string; fullArgs?: Record<string, unknown>; result?: string }> }
   | { type: 'usage'; usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; cost?: number; contextWindow?: number }
   | { type: 'done' }
   | { type: 'model_switched'; modelId: string; modelName: string }
@@ -657,7 +660,9 @@ export type DashboardToExtMessage =
   | { type: 'load_latest_release' }
   // ── Chat messages (Chat page → Extension) ───────────────────────────────
   | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }> }
-  | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllow?: boolean; allowAll?: boolean; planSelection?: string; userResponse?: string }
+  | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllowCategory?: boolean; planSelection?: string; userResponse?: string }
+  | { type: 'set_category_permission'; category: string; permission: string }
+  | { type: 'request_audit_log' }
   | { type: 'switch_model'; modelId: string }
   | { type: 'clear_chat' }
   | { type: 'cancel' }

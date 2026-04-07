@@ -50,6 +50,7 @@ export type ExtToWebviewMessage =
       type: 'tool_confirmation_request';
       confirmationId: string;
       toolName: string;
+      toolCategory?: string;
       args: Record<string, unknown>;
       summary: string;
       isAskUser?: boolean;
@@ -117,7 +118,7 @@ export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainst
 
 export type WebviewToExtMessage =
   | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }> }
-  | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllow?: boolean; allowAll?: boolean; planSelection?: string; userResponse?: string }
+  | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllowCategory?: boolean; planSelection?: string; userResponse?: string }
   | { type: 'switch_model'; modelId: string }
   | { type: 'clear_chat' }
   | { type: 'cancel' }

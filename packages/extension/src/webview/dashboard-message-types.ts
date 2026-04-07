@@ -46,7 +46,8 @@ export interface ConnectionStatus {
 
 export interface DashboardSettings {
   language: string;
-  permissionMode: 'strict' | 'balanced' | 'autonomous';
+  permissionMode: 'strict' | 'balanced' | 'autonomous' | 'custom';
+  categoryPermissions?: Record<string, string>;
   temperature: number;
   maxTokens: number;
   activeModel: string;
@@ -452,7 +453,7 @@ export type DashboardToExtMessage =
   | { type: 'load_latest_release' }
   // ── Chat messages (forwarded to AvaViewProvider) ────────────────────────
   | { type: 'send_message'; text: string; mode: string; attachments?: Array<{ type: 'image'; data: string; name: string }> }
-  | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllow?: boolean; allowAll?: boolean; planSelection?: string; userResponse?: string }
+  | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllowCategory?: boolean; planSelection?: string; userResponse?: string }
   | { type: 'switch_model'; modelId: string }
   | { type: 'clear_chat' }
   | { type: 'cancel' }

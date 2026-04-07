@@ -623,8 +623,8 @@ export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCol
     post({ type: 'switch_model', modelId });
   }, []);
 
-  const handleConfirmation = useCallback((confirmationId: string, approved: boolean, alwaysAllow?: boolean, allowAll?: boolean, planSelection?: string, userResponse?: string) => {
-    post({ type: 'tool_confirmation_response', confirmationId, approved, alwaysAllow, allowAll, planSelection, userResponse });
+  const handleConfirmation = useCallback((confirmationId: string, approved: boolean, alwaysAllowCategory?: boolean, planSelection?: string, userResponse?: string) => {
+    post({ type: 'tool_confirmation_response', confirmationId, approved, alwaysAllowCategory, planSelection, userResponse });
   }, []);
 
   const handleInterrupt = useCallback(() => { post({ type: 'interrupt' }); }, []);

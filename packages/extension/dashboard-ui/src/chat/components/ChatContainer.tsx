@@ -19,7 +19,7 @@ interface ChatContainerProps {
   conductorActive?: boolean;
   conductorMode?: string;
   activePersonas?: PersonaInfo[];
-  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllow?: boolean, allowAll?: boolean, planSelection?: string, userResponse?: string) => void;
+  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllowCategory?: boolean, planSelection?: string, userResponse?: string) => void;
   onContinue: () => void;
   onSuggestion: (prompt: string) => void;
   onRate?: (messageId: string, rating: 'up' | 'down', reason?: string) => void;

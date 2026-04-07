@@ -172,6 +172,8 @@ export function App() {
   const [weatherData, setWeatherData] = useState<{ location: string; temp_c: number; condition: string; emoji: string; humidity: number; wind_kmph: number; forecast: Array<{ date: string; day: string; max_c: number; min_c: number; condition: string; emoji: string }> } | null>(null);
   const [newsArticles, setNewsArticles] = useState<Array<{ title: string; category: string; reading_time: number; slug: string; date: string }>>([]);
   const [latestRelease, setLatestRelease] = useState<{ version: string; title: string; published_at: string } | null>(null);
+  // Audit log state
+  const [auditLog, setAuditLog] = useState<Array<{ timestamp: string; toolName: string; category: string; riskLevel: string; approvalMethod: string; status: string; argsSummary: string; fullArgs?: Record<string, unknown>; result?: string }>>([]);
   // Article reader state
   const [activeArticle, setActiveArticle] = useState<FullArticle | null>(null);
   const [activeArticleRelated, setActiveArticleRelated] = useState<RelatedArticle[]>([]);
@@ -446,6 +448,9 @@ export function App() {
           }
         }
         break;
+      case 'audit_log':
+        setAuditLog((msg as any).entries || []);
+        break;
       case 'latest_release_loaded':
         setLatestRelease(msg.release);
         break;
@@ -665,7 +670,7 @@ export function App() {
       case 'memory':
         return <Memory memories={account ? memories : localMemories} mode={mode} serverTotal={account ? memoryTotal : undefined} serverHasMore={account ? memoryHasMore : undefined} />;
       case 'history':
-        return <History sessionStats={sessionStatsData} usageHistory={usageHistoryData} mode={account ? 'platform' : 'byok'} account={account} />;
+        return <History sessionStats={sessionStatsData} usageHistory={usageHistoryData} mode={account ? 'platform' : 'byok'} account={account} auditLog={auditLog} />;
       case 'library':
         return <Library images={libraryImages} projectRoot={libraryProjectRoot} hasImagesFolder={libraryHasFolder} />;
       case 'learning-library':

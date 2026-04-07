@@ -337,6 +337,63 @@ export function Settings({
           />
         </div>
 
+        {local.permissionMode === 'custom' && (
+          <div className="mb-3 rounded-lg border border-purple-500/30 bg-purple-500/5 px-3 py-2 text-[11px] text-purple-300">
+            Custom — you've adjusted individual categories. Select a preset above to reset.
+          </div>
+        )}
+
+        {/* Category-level permissions */}
+        <details className="mb-4 group">
+          <summary className="cursor-pointer text-xs font-semibold text-[var(--text-secondary)] hover:text-white transition select-none">
+            Customise by Category
+          </summary>
+          <div className="mt-3 space-y-1.5">
+            {([
+              { id: 'file_ops', icon: '📁', label: 'File Operations', desc: 'read, write, edit, glob, grep' },
+              { id: 'shell', icon: '💻', label: 'Shell', desc: 'bash, test_run, test_generate' },
+              { id: 'git', icon: '🔀', label: 'Git', desc: 'status, diff, commit, PR, rollback' },
+              { id: 'web', icon: '🌐', label: 'Web', desc: 'search, http_request, browser' },
+              { id: 'media', icon: '🎨', label: 'Media', desc: 'screenshot, generate_image, remove_bg' },
+              { id: 'database', icon: '🗄️', label: 'Database', desc: 'database_query' },
+              { id: 'system', icon: '🖥️', label: 'System', desc: 'computer_use' },
+              { id: 'documents', icon: '📄', label: 'Documents', desc: 'docs, presentations, reports' },
+              { id: 'memory', icon: '🧠', label: 'Memory', desc: 'save, recall, update, delete' },
+              { id: 'learning', icon: '🎓', label: 'Learning', desc: 'create, teach, progress' },
+            ] as const).map(cat => {
+              const currentPerm = (local.categoryPermissions || {})[cat.id] || 'auto';
+              return (
+                <div key={cat.id} className="flex items-center gap-3 rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)]/30 px-3 py-2">
+                  <span className="text-sm">{cat.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-medium text-[var(--text-secondary)]">{cat.label}</p>
+                    <p className="text-[9px] text-[var(--text-muted)] truncate">{cat.desc}</p>
+                  </div>
+                  <div className="flex gap-0.5 rounded-md border border-[var(--border-card)] bg-[var(--bg-card)] p-0.5">
+                    {(['auto', 'first_time', 'always_ask'] as const).map(perm => (
+                      <button
+                        key={perm}
+                        onClick={() => {
+                          const updated = { ...local.categoryPermissions, [cat.id]: perm };
+                          saveImmediate('categoryPermissions', updated);
+                          post({ type: 'set_category_permission', category: cat.id, permission: perm });
+                        }}
+                        className={`px-2 py-0.5 rounded text-[9px] font-medium transition border-none cursor-pointer ${
+                          currentPerm === perm
+                            ? 'bg-[var(--accent)] text-white'
+                            : 'bg-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                        }`}
+                      >
+                        {perm === 'auto' ? 'Auto' : perm === 'first_time' ? 'First Time' : 'Always Ask'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </details>
+
         <Divider />
 
         <ToggleRow

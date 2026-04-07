@@ -256,6 +256,16 @@ export class DashboardPanel {
         this.saveSettings(msg.settings);
         break;
 
+      case 'set_category_permission':
+        if ((this.viewProvider as any)?.toolRegistry && (msg as any).category && (msg as any).permission) {
+          (this.viewProvider as any).toolRegistry.setCategoryPermission((msg as any).category, (msg as any).permission);
+        }
+        break;
+
+      case 'request_audit_log':
+        this.post({ type: 'audit_log', entries: (this.viewProvider as any)?.auditLog || [] } as any);
+        break;
+
       case 'open_chat':
         vscode.commands.executeCommand('ava-supernova.openChat');
         break;

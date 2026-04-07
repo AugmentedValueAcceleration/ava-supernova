@@ -1,4 +1,7 @@
-import type { Tool, ToolResult, ToolExecutionContext, ToolConfirmationHandler, PermissionMode, ToolRiskLevel } from './types.js';
+import type {
+  Tool, ToolResult, ToolExecutionContext, ToolConfirmationHandler,
+  PermissionMode, ToolCategory, CategoryPermission, AuditCallback, AuditLogEntry,
+} from './types.js';
 import type { ToolSchema } from '../providers/types.js';
 import { FileReadTool } from './file-read.js';
 import { FileWriteTool } from './file-write.js';
@@ -54,17 +57,123 @@ import { WeatherTool } from './weather.js';
 import { NewsTool } from './news.js';
 import { ComputerUseTool } from './computer-use.js';
 
-// Which risk levels require confirmation under each permission mode
-const CONFIRMATION_MATRIX: Record<PermissionMode, Set<ToolRiskLevel>> = {
-  strict: new Set(['write', 'dangerous']),
-  balanced: new Set(['dangerous']),
-  autonomous: new Set(),
+// ── Tool → Category mapping ────────────────────────────────────────────────
+
+export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
+  // File Operations
+  file_read: 'file_ops', file_write: 'file_ops', file_edit: 'file_ops',
+  glob: 'file_ops', grep: 'file_ops', list_directory: 'file_ops',
+  find_symbol: 'file_ops', project_index: 'file_ops',
+  detect_language: 'file_ops', get_datetime: 'file_ops',
+  analyze_architecture: 'file_ops', self_inspect: 'file_ops',
+  benchmark: 'file_ops', debug_logs: 'file_ops',
+  release_notes: 'file_ops', docs_lookup: 'file_ops',
+  audit_dependencies: 'file_ops', weather: 'file_ops', news: 'file_ops',
+  // Shell
+  bash: 'shell', test_run: 'shell', test_generate: 'shell',
+  // Git
+  git_status: 'git', git_diff: 'git', git_commit: 'git',
+  git_create_pr: 'git', rollback: 'git',
+  // Web
+  web_search: 'web', http_request: 'web', browser: 'web',
+  // Media
+  screenshot: 'media', generate_image: 'media', remove_background: 'media',
+  // Database
+  database_query: 'database',
+  // System
+  computer_use: 'system',
+  // Documents
+  document_manage: 'documents', presentation_create: 'documents',
+  report_generate: 'documents', email_draft: 'documents',
+  doc_generate: 'documents', todo_write: 'documents',
+  task_manage: 'documents', journal_write: 'documents',
+  propose_tool: 'documents', support_request: 'documents',
+  apply_plan: 'documents',
+  // Memory
+  memory_save: 'memory', memory_recall: 'memory',
+  memory_update: 'memory', memory_delete: 'memory',
+  // Learning
+  learning_create: 'learning', learning_teach: 'learning',
+  learning_progress: 'learning',
 };
+
+// ── Preset category defaults per permission mode ────────────────────────────
+
+const ALL_CATEGORIES: ToolCategory[] = [
+  'file_ops', 'shell', 'git', 'web', 'media',
+  'database', 'system', 'documents', 'memory', 'learning',
+];
+
+export const PRESET_CATEGORY_DEFAULTS: Record<
+  Exclude<PermissionMode, 'custom'>,
+  Record<ToolCategory, CategoryPermission>
+> = {
+  strict: {
+    file_ops: 'first_time',
+    shell: 'always_ask',
+    git: 'always_ask',
+    web: 'always_ask',
+    media: 'first_time',
+    database: 'always_ask',
+    system: 'always_ask',
+    documents: 'first_time',
+    memory: 'auto',
+    learning: 'auto',
+  },
+  balanced: {
+    file_ops: 'auto',
+    shell: 'always_ask',
+    git: 'first_time',
+    web: 'first_time',
+    media: 'auto',
+    database: 'always_ask',
+    system: 'always_ask',
+    documents: 'auto',
+    memory: 'auto',
+    learning: 'auto',
+  },
+  autonomous: {
+    file_ops: 'auto',
+    shell: 'auto',
+    git: 'auto',
+    web: 'auto',
+    media: 'auto',
+    database: 'auto',
+    system: 'auto',
+    documents: 'auto',
+    memory: 'auto',
+    learning: 'auto',
+  },
+};
+
+// ── Summarise tool args for audit display ────────────────────────────────────
+
+function summariseArgs(toolName: string, args: Record<string, unknown>): string {
+  const path = args.file_path || args.path || args.target || args.url || args.query || args.command;
+  if (typeof path === 'string') {
+    const short = path.length > 80 ? '...' + path.slice(-77) : path;
+    return `${toolName}(${short})`;
+  }
+  const keys = Object.keys(args);
+  if (keys.length === 0) return toolName;
+  return `${toolName}(${keys.join(', ')})`;
+}
+
+// ── Registry ────────────────────────────────────────────────────────────────
 
 export class ToolRegistry {
   private tools = new Map<string, Tool>();
   private confirmationHandler?: ToolConfirmationHandler;
   private permissionMode: PermissionMode = 'strict';
+
+  // Category-based permission overrides (user customisation on top of preset)
+  private categoryOverrides = new Map<ToolCategory, CategoryPermission>();
+  // Categories already approved this session (for first_time mode)
+  private sessionFirstTimeApproved = new Set<ToolCategory>();
+  // Audit callback
+  private auditCallback?: AuditCallback;
+
+  // ── Configuration ───────────────────────────────────────────────────────
 
   setConfirmationHandler(handler: ToolConfirmationHandler): void {
     this.confirmationHandler = handler;
@@ -72,11 +181,88 @@ export class ToolRegistry {
 
   setPermissionMode(mode: PermissionMode): void {
     this.permissionMode = mode;
+    // When switching to a preset, clear overrides
+    if (mode !== 'custom') {
+      this.categoryOverrides.clear();
+    }
   }
 
   getPermissionMode(): PermissionMode {
     return this.permissionMode;
   }
+
+  setAuditCallback(cb: AuditCallback): void {
+    this.auditCallback = cb;
+  }
+
+  // ── Category permissions ────────────────────────────────────────────────
+
+  getCategoryForTool(toolName: string): ToolCategory {
+    return TOOL_CATEGORY_MAP[toolName] || 'file_ops';
+  }
+
+  getCategoryPermission(category: ToolCategory): CategoryPermission {
+    // User overrides take priority
+    const override = this.categoryOverrides.get(category);
+    if (override !== undefined) return override;
+    // Fall back to preset defaults
+    const presetMode = this.permissionMode === 'custom' ? 'strict' : this.permissionMode;
+    return PRESET_CATEGORY_DEFAULTS[presetMode][category];
+  }
+
+  getCategoryPermissions(): Record<ToolCategory, CategoryPermission> {
+    const result = {} as Record<ToolCategory, CategoryPermission>;
+    for (const cat of ALL_CATEGORIES) {
+      result[cat] = this.getCategoryPermission(cat);
+    }
+    return result;
+  }
+
+  setCategoryPermission(category: ToolCategory, permission: CategoryPermission): void {
+    this.categoryOverrides.set(category, permission);
+    // Check if overrides now differ from any preset → switch to 'custom'
+    if (this.permissionMode !== 'custom') {
+      const presetDefaults = PRESET_CATEGORY_DEFAULTS[this.permissionMode];
+      if (presetDefaults[category] !== permission) {
+        this.permissionMode = 'custom';
+      }
+    }
+  }
+
+  setCategoryPermissions(overrides: Partial<Record<ToolCategory, CategoryPermission>>): void {
+    for (const [cat, perm] of Object.entries(overrides)) {
+      this.categoryOverrides.set(cat as ToolCategory, perm as CategoryPermission);
+    }
+    // Detect if result matches any preset
+    this.detectPresetMatch();
+  }
+
+  /** Mark a category as approved for first_time mode (lasts until session reset). */
+  approveCategory(category: ToolCategory): void {
+    this.sessionFirstTimeApproved.add(category);
+  }
+
+  /** Clear first-time approvals (call on new session / clear chat). */
+  resetSessionFirstTime(): void {
+    this.sessionFirstTimeApproved.clear();
+  }
+
+  /** Check if current overrides match a preset and auto-switch mode. */
+  private detectPresetMatch(): void {
+    const current = this.getCategoryPermissions();
+    for (const mode of ['strict', 'balanced', 'autonomous'] as const) {
+      const preset = PRESET_CATEGORY_DEFAULTS[mode];
+      const matches = ALL_CATEGORIES.every(cat => current[cat] === preset[cat]);
+      if (matches) {
+        this.permissionMode = mode;
+        this.categoryOverrides.clear();
+        return;
+      }
+    }
+    this.permissionMode = 'custom';
+  }
+
+  // ── Tool registration ───────────────────────────────────────────────────
 
   registerBuiltins(options?: { exclude?: string[] }): void {
     const excludeSet = new Set(options?.exclude || []);
@@ -159,12 +345,21 @@ export class ToolRegistry {
     }));
   }
 
+  // ── Permission check ────────────────────────────────────────────────────
+
   needsConfirmation(tool: Tool): boolean {
-    // Plans always require confirmation — they're a collaboration checkpoint, not a permission check.
-    // Even in autonomous mode, the user should approve the direction before Ava executes.
+    // Plans and ask_user always require confirmation — collaboration checkpoints
     if (tool.name === 'present_plan' || tool.name === 'ask_user') return true;
-    return CONFIRMATION_MATRIX[this.permissionMode].has(tool.riskLevel);
+
+    const category = this.getCategoryForTool(tool.name);
+    const permission = this.getCategoryPermission(category);
+
+    if (permission === 'auto') return false;
+    if (permission === 'first_time') return !this.sessionFirstTimeApproved.has(category);
+    return true; // always_ask
   }
+
+  // ── Execution ───────────────────────────────────────────────────────────
 
   async execute(
     name: string,
@@ -179,10 +374,18 @@ export class ToolRegistry {
       };
     }
 
+    const category = this.getCategoryForTool(name);
+    const permission = this.getCategoryPermission(category);
+    const argsSummary = summariseArgs(name, args);
+
+    // Determine approval method for audit
+    let approvalMethod: AuditLogEntry['approvalMethod'] = 'auto';
+
     if (this.needsConfirmation(tool) && this.confirmationHandler) {
       try {
         const result = await this.confirmationHandler(name, args);
         if (result === false) {
+          this.emitAudit(name, category, tool.riskLevel, 'denied', 'denied', argsSummary, args);
           return {
             success: false,
             output: `Tool "${name}" was denied by the user.`,
@@ -190,10 +393,14 @@ export class ToolRegistry {
         }
         // Handler provided a custom result string (e.g., plan approval with context)
         if (typeof result === 'string') {
+          approvalMethod = permission === 'first_time' ? 'first-time' : 'user-approved';
+          this.emitAudit(name, category, tool.riskLevel, approvalMethod, 'success', argsSummary, args, result);
           return { success: true, output: result };
         }
+        approvalMethod = permission === 'first_time' ? 'first-time' : 'user-approved';
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
+        this.emitAudit(name, category, tool.riskLevel, 'user-approved', 'failed', argsSummary, args, message);
         return {
           success: false,
           output: `Tool "${name}" confirmation failed: ${message}`,
@@ -202,13 +409,43 @@ export class ToolRegistry {
     }
 
     try {
-      return await tool.execute(args, context);
+      const toolResult = await tool.execute(args, context);
+      this.emitAudit(
+        name, category, tool.riskLevel, approvalMethod,
+        toolResult.success ? 'success' : 'failed',
+        argsSummary, args, toolResult.output?.slice(0, 200),
+      );
+      return toolResult;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      this.emitAudit(name, category, tool.riskLevel, approvalMethod, 'failed', argsSummary, args, message);
       return {
         success: false,
         output: `Tool "${name}" failed: ${message}`,
       };
     }
+  }
+
+  private emitAudit(
+    toolName: string,
+    category: ToolCategory,
+    riskLevel: Tool['riskLevel'],
+    approvalMethod: AuditLogEntry['approvalMethod'],
+    status: AuditLogEntry['status'],
+    argsSummary: string,
+    fullArgs?: Record<string, unknown>,
+    result?: string,
+  ): void {
+    this.auditCallback?.({
+      timestamp: new Date().toISOString(),
+      toolName,
+      category,
+      riskLevel,
+      approvalMethod,
+      status,
+      argsSummary,
+      fullArgs,
+      result,
+    });
   }
 }

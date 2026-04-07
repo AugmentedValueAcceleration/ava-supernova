@@ -143,7 +143,13 @@ export type {
   ToolConfirmationHandler,
   ToolRiskLevel,
   PermissionMode,
+  ToolCategory,
+  CategoryPermission,
+  AuditApprovalMethod,
+  AuditLogEntry,
+  AuditCallback,
 } from './tools/types.js';
+export { TOOL_CATEGORY_MAP, PRESET_CATEGORY_DEFAULTS } from './tools/tool-registry.js';
 
 // Config
 export { ConfigManager } from './config/config.js';

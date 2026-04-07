@@ -5,7 +5,7 @@ import { t, useLocale } from '../../i18n';
 
 interface ToolCallCardProps {
   toolCall: ToolCallDisplay;
-  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllow?: boolean, allowAll?: boolean) => void;
+  onConfirmation: (confirmationId: string, approved: boolean, alwaysAllowCategory?: boolean) => void;
 }
 
 // ─── Human-readable tool descriptions ──────────────────────────────────────
@@ -161,17 +161,9 @@ export function ToolCallCard({ toolCall, onConfirmation }: ToolCallCardProps) {
                          hover:opacity-80
                          border-none cursor-pointer transition-opacity"
               onClick={() => onConfirmation(toolCall.confirmationId!, true, true)}
+              title={t('tool.always_allow_category_tip')}
             >
               {t('tool.always_allow')}
-            </button>
-            <button
-              className="px-2 py-1 rounded text-[10px]
-                         bg-transparent
-                         text-[var(--vscode-foreground)] opacity-50 hover:opacity-80
-                         border-none cursor-pointer transition-opacity"
-              onClick={() => onConfirmation(toolCall.confirmationId!, true, false, true)}
-            >
-              {t('tool.allow_all')}
             </button>
             <button
               className="px-3 py-1 rounded text-xs font-medium

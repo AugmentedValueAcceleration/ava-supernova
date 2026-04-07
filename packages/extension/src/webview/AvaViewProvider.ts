@@ -67,9 +67,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private isRunning = false;
   private runAbortController?: AbortController;
   private pendingConfirmations = new Map<string, { resolve: (result: boolean | string) => void; toolName: string }>();
-  private sessionAllowedTools = new Set<string>();
-  private sessionAllowAll = false;
-  private sessionAllowAllExpiry = 0;
+  // Audit log — in-memory, cleared on new session
+  private auditLog: Array<{ timestamp: string; toolName: string; category: string; riskLevel: string; approvalMethod: string; status: string; argsSummary: string; fullArgs?: Record<string, unknown>; result?: string }> = [];
   private settingsListener?: vscode.Disposable;
   private readonly disposables: vscode.Disposable[] = [];
   private readonly outputChannel: vscode.OutputChannel;
@@ -203,10 +202,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       this.pendingConfirmations.delete(id);
     }
 
-    // Clear session tool allow-list (new workspace = new trust boundary)
-    this.sessionAllowedTools.clear();
-    this.sessionAllowAll = false;
-    this.context.workspaceState.update('ava.toolAllowList', []);
+    // Clear session permissions and audit (new workspace = new trust boundary)
+    this.toolRegistry?.resetSessionFirstTime();
+    this.auditLog = [];
 
     // Save current conversation before switching
     if (this.conversation) {
@@ -379,7 +377,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       }
         break;
       case 'tool_confirmation_response':
-        mapped = { type: 'tool_confirmation_response', confirmationId: msg.confirmationId as string, approved: msg.approved as boolean, alwaysAllow: msg.alwaysAllow as boolean | undefined, allowAll: msg.allowAll as boolean | undefined, planSelection: msg.planSelection as string | undefined, userResponse: msg.userResponse as string | undefined };
+        mapped = { type: 'tool_confirmation_response', confirmationId: msg.confirmationId as string, approved: msg.approved as boolean, alwaysAllowCategory: msg.alwaysAllowCategory as boolean | undefined, planSelection: msg.planSelection as string | undefined, userResponse: msg.userResponse as string | undefined };
         break;
       case 'switch_model':
         mapped = { type: 'switch_model', modelId: msg.modelId as string };
@@ -592,6 +590,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   clearChat(): void {
     this.conversation?.clear();
+    this.toolRegistry?.resetSessionFirstTime();
+    this.auditLog = [];
     this.postMessage({ type: 'chat_cleared' });
     this.postMessage({ type: 'init', models: this.getModelList(), activeModel: this.getActiveModelId(), needsSetup: !this.agent, consentRequired: !this.context.globalState.get('ava.consentAccepted'), locale: this.currentLocale });
   }
@@ -1007,15 +1007,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   private async setupAgent(provider: Provider, model: ModelDefinition): Promise<void> {
-    // Restore persisted tool allow-list from workspace state
-    const savedAllowList = this.context.workspaceState.get<string[]>('ava.toolAllowList', []);
-    if (savedAllowList.length > 0 && this.sessionAllowedTools.size === 0) {
-      for (const tool of savedAllowList) {
-        this.sessionAllowedTools.add(tool);
-      }
-      this.log(`Restored tool allow-list: ${savedAllowList.join(', ')}`);
-    }
-
     this.toolRegistry = new ToolRegistry();
     this.toolRegistry.registerBuiltins({
       exclude: ['screenshot', 'computer_use'], // Not available in VS Code extension — no native screen capture
@@ -1029,6 +1020,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.toolRegistry.setConfirmationHandler(
       (toolName, args) => this.requestConfirmation(toolName, args),
     );
+
+    // Wire audit callback — log all tool executions for the Audit tab
+    this.toolRegistry.setAuditCallback((entry) => {
+      this.auditLog.push(entry);
+      if (this.auditLog.length > 500) this.auditLog.shift();
+    });
 
     const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
 
@@ -1830,7 +1827,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
 
       case 'tool_confirmation_response':
-        this.handleConfirmationResponse(message.confirmationId, message.approved, message.alwaysAllow, message.allowAll, message.planSelection, message.userResponse);
+        this.handleConfirmationResponse(message.confirmationId, message.approved, message.alwaysAllowCategory, message.planSelection, message.userResponse);
         break;
 
       case 'switch_model':
@@ -2638,18 +2635,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     toolName: string,
     args: Record<string, unknown>,
   ): Promise<boolean | string> {
-    // Session allow list — skip confirmation if already approved for this tool or all tools.
-    // BUT never skip for present_plan — plans are a collaboration checkpoint, not a permission check.
-    // Expire session allow-all after timeout
-    if (this.sessionAllowAll && this.sessionAllowAllExpiry > 0 && Date.now() > this.sessionAllowAllExpiry) {
-      this.sessionAllowAll = false;
-      this.sessionAllowAllExpiry = 0;
-      this.log('Session allow ALL expired');
-    }
-    if (toolName !== 'present_plan' && toolName !== 'ask_user' && (this.sessionAllowAll || this.sessionAllowedTools.has(toolName))) {
-      this.log(`Auto-approved ${toolName} (session allow list)`);
-      return Promise.resolve(true);
-    }
+    // Core ToolRegistry.needsConfirmation() already handles category-based permission checks.
+    // If we reach here, the tool genuinely needs user confirmation.
+    const toolCategory = this.toolRegistry?.getCategoryForTool(toolName) || 'file_ops';
 
     return new Promise((resolve) => {
       const confirmationId = crypto.randomUUID();
@@ -2659,6 +2647,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         type: 'tool_confirmation_request',
         confirmationId,
         toolName,
+        toolCategory,
         args,
         summary: this.formatToolSummary(toolName, args),
         ...(toolName === 'ask_user' ? { isAskUser: true } : {}),
@@ -2669,8 +2658,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private handleConfirmationResponse(
     confirmationId: string,
     approved: boolean,
-    alwaysAllow?: boolean,
-    allowAll?: boolean,
+    alwaysAllowCategory?: boolean,
     planSelection?: string,
     userResponse?: string,
   ): void {
@@ -2681,35 +2669,30 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
     this.pendingConfirmations.delete(confirmationId);
 
-    {
-      if (approved && alwaysAllow) {
-        this.sessionAllowedTools.add(pending.toolName);
-        this.context.workspaceState.update('ava.toolAllowList', [...this.sessionAllowedTools]);
-        this.log(`Session allow: ${pending.toolName}`);
-      }
-      if (approved && allowAll) {
-        this.sessionAllowAll = true;
-        this.sessionAllowAllExpiry = Date.now() + 30 * 60 * 1000; // 30 minute timeout
-        this.log('Session allow ALL tools enabled (30 min timeout)');
-      }
+    // "Always Allow" — approve this category for the rest of the session
+    if (approved && alwaysAllowCategory && this.toolRegistry) {
+      const category = this.toolRegistry.getCategoryForTool(pending.toolName);
+      this.toolRegistry.approveCategory(category as any);
+      this.toolRegistry.setCategoryPermission(category as any, 'auto');
+      this.log(`Category auto-approved for session: ${category}`);
+    }
 
-      // For present_plan, return a descriptive string instead of boolean
-      if (pending.toolName === 'present_plan') {
-        if (approved) {
-          const selection = planSelection ? ` User selected approach: "${planSelection}".` : '';
-          pending.resolve(`Plan approved.${selection} Execute the steps.`);
-        } else {
-          pending.resolve(false);
-        }
-      } else if (pending.toolName === 'ask_user') {
-        if (approved && userResponse) {
-          pending.resolve(`User response: ${userResponse}`);
-        } else {
-          pending.resolve(false);
-        }
+    // For present_plan, return a descriptive string instead of boolean
+    if (pending.toolName === 'present_plan') {
+      if (approved) {
+        const selection = planSelection ? ` User selected approach: "${planSelection}".` : '';
+        pending.resolve(`Plan approved.${selection} Execute the steps.`);
       } else {
-        pending.resolve(approved);
+        pending.resolve(false);
       }
+    } else if (pending.toolName === 'ask_user') {
+      if (approved && userResponse) {
+        pending.resolve(`User response: ${userResponse}`);
+      } else {
+        pending.resolve(false);
+      }
+    } else {
+      pending.resolve(approved);
     }
   }
 

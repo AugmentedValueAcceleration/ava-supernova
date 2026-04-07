@@ -12,7 +12,39 @@ export type ToolRiskLevel = 'safe' | 'write' | 'dangerous';
 // balanced   — auto-approve writes, confirm dangerous only
 // autonomous — auto-approve everything (YOLO mode)
 
-export type PermissionMode = 'strict' | 'balanced' | 'autonomous';
+export type PermissionMode = 'strict' | 'balanced' | 'autonomous' | 'custom';
+
+// ─── Tool Categories ────────────────────────────────────────────────────────
+// Group tools by functional area for granular permission control.
+
+export type ToolCategory =
+  | 'file_ops' | 'shell' | 'git' | 'web' | 'media'
+  | 'database' | 'system' | 'documents' | 'memory' | 'learning';
+
+// ─── Category Permission Levels ─────────────────────────────────────────────
+// auto        — never ask, execute immediately
+// first_time  — ask once per session, then remember
+// always_ask  — confirm every call
+
+export type CategoryPermission = 'auto' | 'first_time' | 'always_ask';
+
+// ─── Audit Log ──────────────────────────────────────────────────────────────
+
+export type AuditApprovalMethod = 'auto' | 'first-time' | 'user-approved' | 'denied';
+
+export interface AuditLogEntry {
+  timestamp: string;
+  toolName: string;
+  category: ToolCategory;
+  riskLevel: ToolRiskLevel;
+  approvalMethod: AuditApprovalMethod;
+  status: 'success' | 'failed' | 'denied';
+  argsSummary: string;
+  fullArgs?: Record<string, unknown>;
+  result?: string;
+}
+
+export type AuditCallback = (entry: AuditLogEntry) => void;
 
 export interface ToolResult {
   success: boolean;
