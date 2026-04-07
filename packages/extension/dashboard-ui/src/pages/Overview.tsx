@@ -99,6 +99,8 @@ interface OverviewProps {
   weatherData: WeatherData | null;
   newsArticles: NewsArticle[];
   latestRelease: ReleaseInfo | null;
+  articleLoading?: boolean;
+  onOpenArticle?: (slug: string) => void;
 }
 
 // ── Main Component ───────────────────────────────────────────────────────────
@@ -118,6 +120,8 @@ export function Overview({
   weatherData,
   newsArticles,
   latestRelease,
+  articleLoading,
+  onOpenArticle,
 }: OverviewProps) {
   useLocale();
   if (mode === 'byok' || !account) {
@@ -132,6 +136,8 @@ export function Overview({
         weatherData={weatherData}
         newsArticles={newsArticles}
         latestRelease={latestRelease}
+        articleLoading={articleLoading}
+        onOpenArticle={onOpenArticle}
       />
     );
   }
@@ -236,7 +242,7 @@ export function Overview({
 
       {/* ── News + Tasks (2-col) ──────────────────────────────────────── */}
       <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <NewsWidget articles={newsArticles} />
+        <NewsWidget articles={newsArticles} articleLoading={articleLoading} onOpenArticle={onOpenArticle} />
         <TasksWidget tasks={tasks} onNavigate={onNavigate} />
       </div>
 
@@ -439,7 +445,7 @@ function formatCategoryLabel(slug: string): string {
     .join(' ');
 }
 
-function NewsWidget({ articles: rawArticles }: { articles: NewsArticle[] }) {
+function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { articles: NewsArticle[]; articleLoading?: boolean; onOpenArticle?: (slug: string) => void }) {
   const articles = Array.isArray(rawArticles) ? rawArticles : [];
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -449,6 +455,14 @@ function NewsWidget({ articles: rawArticles }: { articles: NewsArticle[] }) {
       post({ type: 'load_news', category: cat });
     } else {
       post({ type: 'load_news' });
+    }
+  };
+
+  const handleArticleClick = (slug: string) => {
+    if (onOpenArticle) {
+      onOpenArticle(slug);
+    } else {
+      post({ type: 'open_url', url: `https://ava-supernova.com/news/${slug}` });
     }
   };
 
@@ -485,14 +499,21 @@ function NewsWidget({ articles: rawArticles }: { articles: NewsArticle[] }) {
         ))}
       </div>
 
-      {articles.length === 0 ? (
+      {articleLoading && (
+        <div className="flex items-center justify-center py-6">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+          <span className="ml-2 text-xs text-[var(--text-muted)]">Loading article...</span>
+        </div>
+      )}
+
+      {!articleLoading && articles.length === 0 ? (
         <p className="py-4 text-xs text-[var(--text-muted)]">{t('dash.cc.no_news')}</p>
-      ) : (
+      ) : !articleLoading && (
         <div className="space-y-2">
           {articles.map((article, idx) => (
             <button
               key={article.slug || idx}
-              onClick={() => post({ type: 'open_url', url: `https://ava-supernova.com/news/${article.slug}` })}
+              onClick={() => handleArticleClick(article.slug)}
               className="block w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)]/30 p-3 text-left transition hover:border-[var(--accent)]/30"
             >
               <div className="flex items-center gap-2 mb-1">
@@ -862,6 +883,8 @@ function ByokOverview({
   weatherData,
   newsArticles,
   latestRelease,
+  articleLoading,
+  onOpenArticle,
 }: {
   stats?: SessionStats | null;
   onNavigate: (page: Page) => void;
@@ -871,6 +894,8 @@ function ByokOverview({
   memories: MemoryEntry[];
   weatherData: WeatherData | null;
   newsArticles: NewsArticle[];
+  articleLoading?: boolean;
+  onOpenArticle?: (slug: string) => void;
   latestRelease: ReleaseInfo | null;
 }) {
   const totalTokens = stats ? stats.total_input_tokens + stats.total_output_tokens : 0;
@@ -925,7 +950,7 @@ function ByokOverview({
 
       {/* ── News + Tasks (2-col) ──────────────────────────────────────── */}
       <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <NewsWidget articles={newsArticles} />
+        <NewsWidget articles={newsArticles} articleLoading={articleLoading} onOpenArticle={onOpenArticle} />
         <TasksWidget tasks={tasks} onNavigate={onNavigate} />
       </div>
 

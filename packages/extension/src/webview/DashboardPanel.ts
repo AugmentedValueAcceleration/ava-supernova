@@ -631,6 +631,10 @@ export class DashboardPanel {
         await this.handleLoadNews(msg.category);
         break;
 
+      case 'load_news_article':
+        await this.handleLoadNewsArticle((msg as any).slug);
+        break;
+
       case 'load_latest_release':
         await this.handleLoadLatestRelease();
         break;
@@ -2552,6 +2556,26 @@ export class DashboardPanel {
       });
     } catch {
       this.post({ type: 'news_loaded', articles: [] });
+    }
+  }
+
+  private async handleLoadNewsArticle(slug: string): Promise<void> {
+    if (!slug) {
+      this.post({ type: 'news_article_loaded', post: null, related: [] });
+      return;
+    }
+    // Send loading state immediately
+    this.post({ type: 'news_article_loaded', post: null, related: [], loading: true });
+    try {
+      const data = await httpGetJson(`https://ava-supernova.com/api/news/${encodeURIComponent(slug)}`) as
+        { post?: Record<string, unknown>; related?: Array<Record<string, unknown>> };
+      this.post({
+        type: 'news_article_loaded',
+        post: data.post ?? null,
+        related: data.related ?? [],
+      });
+    } catch {
+      this.post({ type: 'news_article_loaded', post: null, related: [] });
     }
   }
 

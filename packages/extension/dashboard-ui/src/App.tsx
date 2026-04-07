@@ -27,6 +27,8 @@ import { Planner } from './pages/Planner';
 import { LearningLibrary } from './pages/LearningLibrary';
 import { AccountPage } from './pages/AccountPage';
 import { HelpPage } from './pages/HelpPage';
+import { ArticleReader } from './pages/ArticleReader';
+import type { FullArticle, RelatedArticle } from './pages/ArticleReader';
 import type {
   Page,
   AccountInfo,
@@ -88,6 +90,12 @@ export function App() {
   const setPagePersist = (p: Page) => {
     setPage(p);
     localStorage.setItem('ava-dashboard-page', p);
+    // Clear article reader when navigating away from overview
+    if (p !== 'overview') {
+      setActiveArticle(null);
+      setActiveArticleRelated([]);
+      setArticleLoading(false);
+    }
   };
   const [account, setAccount] = useState<AccountInfo | null>(null);
   const [connections, setConnections] = useState<ConnectionStatus>({
@@ -164,6 +172,10 @@ export function App() {
   const [weatherData, setWeatherData] = useState<{ location: string; temp_c: number; condition: string; emoji: string; humidity: number; wind_kmph: number; forecast: Array<{ date: string; day: string; max_c: number; min_c: number; condition: string; emoji: string }> } | null>(null);
   const [newsArticles, setNewsArticles] = useState<Array<{ title: string; category: string; reading_time: number; slug: string; date: string }>>([]);
   const [latestRelease, setLatestRelease] = useState<{ version: string; title: string; published_at: string } | null>(null);
+  // Article reader state
+  const [activeArticle, setActiveArticle] = useState<FullArticle | null>(null);
+  const [activeArticleRelated, setActiveArticleRelated] = useState<RelatedArticle[]>([]);
+  const [articleLoading, setArticleLoading] = useState(false);
 
   const handleMessage = useCallback((event: MessageEvent) => {
     // Ignore messages from unexpected origins (e.g. browser extensions)
@@ -422,6 +434,18 @@ export function App() {
       case 'news_loaded':
         setNewsArticles(msg.articles);
         break;
+      case 'news_article_loaded':
+        if (msg.loading) {
+          setArticleLoading(true);
+        } else {
+          setArticleLoading(false);
+          if (msg.post) {
+            setActiveArticle(msg.post as unknown as FullArticle);
+            setActiveArticleRelated((msg.related || []) as unknown as RelatedArticle[]);
+            setPagePersist('overview'); // stay on overview — reader overlays it
+          }
+        }
+        break;
       case 'latest_release_loaded':
         setLatestRelease(msg.release);
         break;
@@ -621,7 +645,21 @@ export function App() {
 
       // ── Standalone pages ────────────────────────────────────────────
       case 'overview':
-        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} />;
+        if (activeArticle) {
+          return (
+            <ArticleReader
+              article={activeArticle}
+              related={activeArticleRelated}
+              onBack={() => { setActiveArticle(null); setActiveArticleRelated([]); }}
+              onNavigateToArticle={(slug) => {
+                setActiveArticle(null);
+                setArticleLoading(true);
+                post({ type: 'load_news_article', slug });
+              }}
+            />
+          );
+        }
+        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} />;
       case 'usage':
         return <Usage account={account} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} />;
       case 'memory':
