@@ -69,6 +69,7 @@ ${personalityPrefix || DEFAULT_IDENTITY}
 
 ${userLine}
 Working directory: ${opts.cwd}
+SECURITY: You are restricted to this project directory. NEVER read, write, search, or access files outside "${opts.cwd}". Do not access other projects, system files, or the user's home directory (except ~/.ava/ for your own config). If asked to review or scan files outside this folder, refuse.
 Platform: ${opts.platform} | Shell: ${opts.shell} | Permissions: ${permDesc}${opts.supportsVision ? ' | Vision: enabled' : ''}
 ${langLine}
 

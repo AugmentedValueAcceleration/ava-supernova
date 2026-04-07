@@ -1,8 +1,24 @@
-import { resolve, isAbsolute, normalize } from 'node:path';
+import { resolve, isAbsolute, normalize, sep } from 'node:path';
+
+/**
+ * Check if `candidate` is within `boundary` using proper path separator validation.
+ * Prevents sibling directory attacks (e.g. /app accessing /app-secrets).
+ */
+function isWithinDirectory(candidate: string, boundary: string): boolean {
+  const normCandidate = process.platform === 'win32' ? candidate.toLowerCase() : candidate;
+  const normBoundary = process.platform === 'win32' ? boundary.toLowerCase() : boundary;
+
+  // Exact match (the directory itself)
+  if (normCandidate === normBoundary) return true;
+
+  // Must start with boundary + separator — prevents /app matching /app-secrets
+  const boundaryWithSep = normBoundary.endsWith(sep) ? normBoundary : normBoundary + sep;
+  return normCandidate.startsWith(boundaryWithSep);
+}
 
 /**
  * Validate that a resolved path stays within the allowed working directory.
- * Prevents path traversal attacks (e.g. ../../etc/passwd).
+ * Prevents path traversal attacks (e.g. ../../etc/passwd) and sibling directory access.
  *
  * @param rawPath - The user-provided path (absolute or relative)
  * @param cwd - The current working directory (trust boundary)
@@ -13,24 +29,23 @@ export function validatePath(rawPath: string, cwd: string): string {
   const absolutePath = isAbsolute(rawPath) ? normalize(rawPath) : normalize(resolve(cwd, rawPath));
   const normalizedCwd = normalize(cwd);
 
-  // Case-insensitive comparison on Windows to prevent case-based path traversal bypass
-  const compare = (a: string, b: string) =>
-    process.platform === 'win32' ? a.toLowerCase().startsWith(b.toLowerCase()) : a.startsWith(b);
-
-  // Allow paths within the cwd
-  if (compare(absolutePath, normalizedCwd)) {
+  // Allow paths strictly within the project directory
+  if (isWithinDirectory(absolutePath, normalizedCwd)) {
     return absolutePath;
   }
 
-  // Allow paths within the user's home directory (for ~/.ava config, memory, etc.)
+  // Allow paths strictly within ~/.ava/ (config, memory, feedback — NOT the entire home directory)
   const home = process.env.HOME || process.env.USERPROFILE || '';
-  if (home && compare(absolutePath, normalize(home))) {
-    return absolutePath;
+  if (home) {
+    const avaDir = normalize(resolve(home, '.ava'));
+    if (isWithinDirectory(absolutePath, avaDir)) {
+      return absolutePath;
+    }
   }
 
   throw new Error(
     `Path "${rawPath}" resolves outside the project directory. ` +
-    `Access is restricted to "${normalizedCwd}" and the home directory.`
+    `Access is restricted to "${normalizedCwd}" and ~/.ava/.`
   );
 }
 
