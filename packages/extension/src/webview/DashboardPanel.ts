@@ -2870,8 +2870,9 @@ export class DashboardPanel {
         content="default-src 'none';
                  style-src ${webview.cspSource} 'unsafe-inline';
                  script-src 'nonce-${nonce}';
-                 connect-src https://ava-supernova.com;
-                 img-src ${webview.cspSource} data: https: vscode-resource:;">
+                 connect-src https://ava-supernova.com https://*.supabase.co;
+                 img-src ${webview.cspSource} data: https: vscode-resource:;
+                 media-src data: https: blob:;">
   <link rel="stylesheet" href="${styleUri}">
   <title>Ava | Dashboard</title>
 </head>
