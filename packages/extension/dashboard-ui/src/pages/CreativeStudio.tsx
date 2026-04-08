@@ -198,12 +198,15 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  const apiCall = useCallback((endpoint: string, body: Record<string, unknown>): Promise<any> => {
-    return new Promise((resolve, reject) => {
+  const apiCall = useCallback(async (endpoint: string, body: Record<string, unknown>): Promise<any> => {
+    const result = await new Promise((resolve, reject) => {
       pendingResolve.current = resolve;
       pendingReject.current = reject;
       post({ type: 'creative_generate', endpoint, body } as any);
     });
+    // Refresh account to update token balance after generation
+    post({ type: 'refresh_account' } as any);
+    return result;
   }, []);
 
   const [activeTab, setActiveTab] = useState<string>('images');
