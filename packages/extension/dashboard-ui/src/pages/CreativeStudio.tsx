@@ -175,7 +175,8 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
   const usage = account?.usage;
   const tokensUsed = usage ? (usage.tokens_used + usage.free_tokens_used) : 0;
   const tokensLimit = usage ? (usage.tokens_limit || usage.free_tokens_limit) : 0;
-  const tokenPct = tokensLimit > 0 ? Math.min((tokensUsed / tokensLimit) * 100, 100) : 0;
+  const tokensRemaining = Math.max(0, tokensLimit - tokensUsed);
+  const remainPct = tokensLimit > 0 ? Math.min((tokensRemaining / tokensLimit) * 100, 100) : 0;
 
   // API helper: send request through extension host (avoids CORS)
   const pendingResolve = useRef<((data: any) => void) | null>(null);
@@ -414,20 +415,20 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
           {account?.usage && (
             <div className="w-48 shrink-0">
               <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)] mb-1">
-                <span>Token Balance</span>
-                <span>{tokenPct.toFixed(0)}%</span>
+                <span>Tokens Remaining</span>
+                <span>{formatTokens(tokensRemaining)}</span>
               </div>
               <div className="h-1.5 rounded-full bg-[var(--bg-input)] overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${
-                    tokenPct > 90 ? 'bg-red-500' : tokenPct > 70 ? 'bg-amber-500' : 'bg-[var(--accent)]'
+                    remainPct < 10 ? 'bg-red-500' : remainPct < 30 ? 'bg-amber-500' : 'bg-[var(--accent)]'
                   }`}
-                  style={{ width: `${tokenPct}%` }}
+                  style={{ width: `${remainPct}%` }}
                 />
               </div>
               <div className="flex justify-between text-[9px] text-[var(--text-muted)] mt-0.5">
-                <span>{formatTokens(tokensUsed)}</span>
-                <span>{formatTokens(tokensLimit)}</span>
+                <span>{formatTokens(tokensUsed)} used</span>
+                <span>{formatTokens(tokensLimit)} limit</span>
               </div>
             </div>
           )}
