@@ -1,11 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocale } from '../i18n';
-// import { post } from '../App';
-// import { SectionGroup } from '../components/SectionGroup';
+import type { AccountInfo } from '../types/messages';
 
 /* ── Constants ─────────────────────────────────────────────────────── */
 
 const PLATFORM_URL = 'https://ava-supernova.com/api';
+
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
+  return String(n);
+}
 
 const TABS = [
   { key: 'images', icon: '\uD83D\uDDBC\uFE0F', label: 'Images' },
@@ -167,8 +172,13 @@ function deleteLocalAsset(id: string) {
    Creative Studio
    ══════════════════════════════════════════════════════════════════════ */
 
-export function CreativeStudio() {
+export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
   useLocale();
+
+  const usage = account?.usage;
+  const tokensUsed = usage ? (usage.tokens_used + usage.free_tokens_used) : 0;
+  const tokensLimit = usage ? (usage.tokens_limit || usage.free_tokens_limit) : 0;
+  const tokenPct = tokensLimit > 0 ? Math.min((tokensUsed / tokensLimit) * 100, 100) : 0;
 
   const [activeTab, setActiveTab] = useState<string>('images');
   const [generating, setGenerating] = useState(false);
@@ -401,12 +411,36 @@ export function CreativeStudio() {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-4">
-      {/* Header */}
+      {/* Header + Token Bar */}
       <div>
-        <h1 className="text-lg font-semibold text-white">Creative Studio</h1>
-        <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-          Generate images, music, voice, and video with MiniMax
-        </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-lg font-semibold text-white">Creative Studio</h1>
+            <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+              Generate images, music, voice, and video with MiniMax
+            </p>
+          </div>
+          {account?.usage && (
+            <div className="w-48 shrink-0">
+              <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)] mb-1">
+                <span>Token Balance</span>
+                <span>{tokenPct.toFixed(0)}%</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-[var(--bg-input)] overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    tokenPct > 90 ? 'bg-red-500' : tokenPct > 70 ? 'bg-amber-500' : 'bg-[var(--accent)]'
+                  }`}
+                  style={{ width: `${tokenPct}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-[9px] text-[var(--text-muted)] mt-0.5">
+                <span>{formatTokens(tokensUsed)}</span>
+                <span>{formatTokens(tokensLimit)}</span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tab bar */}

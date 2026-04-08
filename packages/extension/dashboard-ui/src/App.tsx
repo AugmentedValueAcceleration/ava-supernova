@@ -683,7 +683,7 @@ export function App() {
       case 'learning-library':
         return <LearningLibrary paths={libraryPaths} detail={libraryPathDetail} onNavigate={setPagePersist} />;
       case 'creative-studio':
-        return <CreativeStudio />;
+        return <CreativeStudio account={account} />;
 
       // ── Admin ───────────────────────────────────────────────────────
       case 'admin_support':
