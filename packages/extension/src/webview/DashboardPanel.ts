@@ -700,7 +700,7 @@ export class DashboardPanel {
     const providerKeys = await this.getProviderKeyStatus();
     const locale = vscode.workspace.getConfiguration('ava-supernova').get<string>('preferences.language') ?? 'auto';
 
-    this.post({ type: 'init', account, connections, settings, providerKeys, locale });
+    this.post({ type: 'init', account, connections, settings, providerKeys, locale, platformKey: platformKey || undefined });
 
     if (account) {
       // Platform user — load memories from API
