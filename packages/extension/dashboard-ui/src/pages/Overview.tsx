@@ -124,6 +124,19 @@ export function Overview({
   onOpenArticle,
 }: OverviewProps) {
   useLocale();
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState(account?.name ?? '');
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (logs.length === 0 && account) {
+      post({ type: 'load_usage_logs', period: '30d' });
+    }
+  }, []);
+
+  // Update name when account changes
+  useEffect(() => { setNameValue(account?.name ?? ''); }, [account?.name]);
+
   if (mode === 'byok' || !account) {
     return (
       <ByokOverview
@@ -141,17 +154,6 @@ export function Overview({
       />
     );
   }
-
-  const [editingName, setEditingName] = useState(false);
-  const [nameValue, setNameValue] = useState(account.name ?? '');
-  const [refreshing, setRefreshing] = useState(false);
-
-  // Load usage logs on mount so we have fallback stats
-  useEffect(() => {
-    if (logs.length === 0) {
-      post({ type: 'load_usage_logs', period: '30d' });
-    }
-  }, []);
 
   const saveName = () => {
     const trimmed = nameValue.trim();

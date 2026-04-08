@@ -304,7 +304,7 @@ export function Header({
                 className="text-[9px] tabular-nums shrink-0"
                 style={{ color, opacity: pct <= 20 ? 0.9 : 0.4, fontFamily: 'monospace' }}
               >
-                {remaining >= 1_000_000 ? `${(remaining / 1_000_000).toFixed(2)}M` : remaining >= 1000 ? `${(remaining / 1000).toFixed(1)}K` : remaining} left
+                {remaining >= 1_000_000 ? `${(remaining / 1_000_000).toFixed(1)}M` : remaining >= 1000 ? `${Math.round(remaining / 1000)}K` : remaining} left
               </span>
             </div>
           </div>

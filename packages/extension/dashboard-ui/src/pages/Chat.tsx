@@ -491,9 +491,11 @@ export interface ChatPageProps {
   onFlipSidebar?: () => void;
   /** Which side the sidebar is on */
   sidebarSide?: 'left' | 'right';
+  /** Navigate to a dashboard page */
+  onNavigate?: (page: string) => void;
 }
 
-export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCollapsed, onFlipSidebar, sidebarSide }: ChatPageProps) {
+export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCollapsed, onFlipSidebar, sidebarSide, onNavigate }: ChatPageProps) {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const justLoadedRef = useRef(false);
@@ -751,7 +753,7 @@ export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCol
             activeModel={state.activeModel}
             needsSetup={state.needsSetup}
             onSwitch={handleModelSwitch}
-            onOpenDashboard={() => {}}
+            onOpenDashboard={() => onNavigate?.('settings')}
             onOpenHistory={handleOpenHistory}
             onNewChat={handleNewChat}
             onToggleTasks={handleToggleTasks}
@@ -776,7 +778,7 @@ export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCol
             chatEndRef={chatEndRef}
             needsSetup={state.needsSetup}
             initialized={state.initialized}
-            onOpenDashboard={() => {}}
+            onOpenDashboard={() => onNavigate?.('settings')}
             activeModel={state.activeModel}
             models={state.models}
             conductorActive={state.conductorActive}

@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
+import { StorageBadge } from '../components/StorageBadge';
 import { SearchIcon, PencilIcon, TrashIcon } from '../components/Icons';
 import type { MemoryEntry, MemoryCategory } from '../types/messages';
 
@@ -271,11 +272,11 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
     setConfirmDeleteId(null);
   }
 
-  function deleteAllMemories() {
+  function deleteAllMemories(scope: 'local' | 'cloud' | 'both') {
     setDeletingAll(true);
-    post({ type: isLocal ? 'delete_all_local_memories' : 'delete_all_memories' });
+    if (scope === 'local' || scope === 'both') post({ type: 'delete_all_local_memories' });
+    if (scope === 'cloud' || scope === 'both') post({ type: 'delete_all_memories' });
     setConfirmDeleteAll(false);
-    // Fallback timeout — clear spinner if no response after 30s
     setTimeout(() => setDeletingAll(false), 30000);
   }
 
@@ -304,7 +305,10 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
       {/* Page Header */}
       <div className="mb-10 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{t('dash.memory.title')}</h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-bold">{t('dash.memory.title')}</h1>
+            <StorageBadge />
+          </div>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
             {t('dash.memory.subtitle')}
           </p>
@@ -342,16 +346,34 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
       {/* Delete All Confirmation */}
       {confirmDeleteAll && (
         <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4">
-          <p className="text-sm font-medium text-red-400 mb-2">Are you sure you want to delete all memories?</p>
-          <p className="text-xs text-[var(--text-muted)] mb-4">This is permanent and cannot be undone. ALL memories will be deleted — not just the ones shown on screen.</p>
-          <div className="flex gap-2">
+          <p className="text-sm font-medium text-red-400 mb-2">Delete all memories?</p>
+          <p className="text-xs text-[var(--text-muted)] mb-4">This is permanent and cannot be undone.</p>
+          <div className="flex flex-wrap gap-2">
             <button
-              onClick={deleteAllMemories}
+              onClick={() => deleteAllMemories('local')}
               disabled={deletingAll}
-              className="rounded-lg bg-red-500 px-4 py-1.5 text-xs font-medium text-white transition hover:bg-red-600 disabled:opacity-50"
+              className="rounded-lg border border-emerald-500/30 bg-emerald-500/15 px-4 py-1.5 text-xs font-medium text-emerald-400 transition hover:bg-emerald-500/25 disabled:opacity-50"
             >
-              {deletingAll ? 'Deleting...' : 'Yes, delete all memories permanently'}
+              Local Only
             </button>
+            {!isLocal && (
+              <button
+                onClick={() => deleteAllMemories('cloud')}
+                disabled={deletingAll}
+                className="rounded-lg border border-blue-500/30 bg-blue-500/15 px-4 py-1.5 text-xs font-medium text-blue-400 transition hover:bg-blue-500/25 disabled:opacity-50"
+              >
+                Cloud Only
+              </button>
+            )}
+            {!isLocal && (
+              <button
+                onClick={() => deleteAllMemories('both')}
+                disabled={deletingAll}
+                className="rounded-lg bg-red-500 px-4 py-1.5 text-xs font-medium text-white transition hover:bg-red-600 disabled:opacity-50"
+              >
+                Both
+              </button>
+            )}
             <button
               onClick={() => setConfirmDeleteAll(false)}
               className="rounded-lg border border-[var(--border-card)] px-4 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-white"

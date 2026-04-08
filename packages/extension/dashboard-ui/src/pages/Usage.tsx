@@ -23,10 +23,7 @@ const PAGE_SIZE = 15;
 
 export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
   useLocale();
-  if (mode === 'byok' || !account) {
-    return <ByokUsage stats={sessionStats} />;
-  }
-  const usage = account.usage ?? {
+  const usage = account?.usage ?? {
     tokens_used: 0,
     tokens_limit: null as number | null,
     requests_count: 0,
@@ -39,9 +36,12 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
   const [page, setPage] = useState(0);
 
   useEffect(() => {
-    post({ type: 'load_usage_logs', period });
-    setPage(0);
+    if (account) { post({ type: 'load_usage_logs', period }); setPage(0); }
   }, [period]);
+
+  if (mode === 'byok' || !account) {
+    return <ByokUsage stats={sessionStats} />;
+  }
 
   // Build model breakdown from logs
   const modelMap: Record<string, ModelBreakdown> = {};
@@ -115,13 +115,13 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
           {/* Free Pool */}
           <div className="mb-2 flex justify-between text-xs">
             <span className="text-[var(--text-secondary)]">
-              {t('dash.usage.free_pool')}: {formatNumber(usage.free_tokens_used)} / {formatNumber(usage.free_tokens_limit)} tokens
+              Tokens Remaining
             </span>
             {account.tier === 'admin' ? (
               <span className="font-medium text-[var(--gradient-start)]">{t('dash.usage.unlimited')}</span>
             ) : (
-              <span className="text-[var(--text-muted)]">
-                {((usage.free_tokens_used / usage.free_tokens_limit) * 100).toFixed(1)}%
+              <span className="text-white font-semibold">
+                {formatNumber(Math.max(0, usage.free_tokens_limit - usage.free_tokens_used))}
               </span>
             )}
           </div>
@@ -132,22 +132,23 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
           ) : (
             <UsageBar used={usage.free_tokens_used} limit={usage.free_tokens_limit} />
           )}
-          <p className="mt-2 mb-5 text-[10px] text-[var(--text-muted)]">
-            {account.tier === 'admin' ? t('dash.usage.no_metering') : t('dash.usage.free_pool_desc')}
-          </p>
+          <div className="mt-1 mb-5 flex justify-between text-[10px] text-[var(--text-muted)]">
+            <span>{formatNumber(usage.free_tokens_used)} used</span>
+            <span>{formatNumber(usage.free_tokens_limit)} limit</span>
+          </div>
 
           {/* Subscription Pool */}
           {(account.tier !== 'free' || usage.tokens_limit !== null) && (
             <>
               <div className="mb-2 flex justify-between text-xs">
                 <span className="text-[var(--text-secondary)]">
-                  {account.tier.charAt(0).toUpperCase() + account.tier.slice(1)} Plan: {formatNumber(usage.tokens_used)}{usage.tokens_limit !== null ? ` / ${formatNumber(usage.tokens_limit)} tokens` : ' tokens'}
+                  {account.tier.charAt(0).toUpperCase() + account.tier.slice(1)} Plan — Tokens Remaining
                 </span>
                 {account.tier === 'admin' ? (
                   <span className="font-medium text-[var(--gradient-start)]">{t('dash.usage.unlimited')}</span>
                 ) : usage.tokens_limit !== null ? (
-                  <span className="text-[var(--text-muted)]">
-                    {((usage.tokens_used / usage.tokens_limit) * 100).toFixed(1)}%
+                  <span className="text-white font-semibold">
+                    {formatNumber(Math.max(0, usage.tokens_limit - usage.tokens_used))}
                   </span>
                 ) : (
                   <span className="text-[var(--text-muted)]">{t('dash.usage.byok_no_limit')}</span>
@@ -302,7 +303,7 @@ function SummaryCard({ label, value, sub, isText }: { label: string; value: stri
 
 function formatNumber(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
   return n.toString();
 }
 

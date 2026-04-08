@@ -547,7 +547,7 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
                   style={color ? { color } : undefined}
                   title={`${remaining.toLocaleString()} / ${platformStatus.freeTokensLimit.toLocaleString()} tokens remaining`}
                 >
-                  {remaining >= 1_000_000 ? `${(remaining / 1_000_000).toFixed(2)}M` : remaining >= 1000 ? `${(remaining / 1000).toFixed(1)}K` : remaining} left
+                  {remaining >= 1_000_000 ? `${(remaining / 1_000_000).toFixed(1)}M` : remaining >= 1000 ? `${Math.round(remaining / 1000)}K` : remaining} left
                 </span>
               );
             })()}

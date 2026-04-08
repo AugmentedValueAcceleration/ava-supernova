@@ -259,18 +259,77 @@ export function NavSidebar({
             </button>
           </div>
         ) : (
-          <>
-            <p className="mb-2 px-3 text-[10px] text-[var(--text-muted)]">{t('dash.auth.byok_hint')}</p>
-            <button
-              onClick={onConnectAccount}
-              className="w-full rounded-lg border border-[var(--accent)]/40 bg-transparent px-3 py-1.5 text-xs text-[var(--accent)] transition hover:bg-[var(--accent)]/10"
-            >
-              {t('dash.auth.connect')}
-            </button>
-          </>
+          <SidebarConnect />
         )}
       </div>
     </nav>
+  );
+}
+
+/* ── SidebarConnect — inline connect form matching IDE ──────────────── */
+
+function SidebarConnect() {
+  const [showForm, setShowForm] = useState(false);
+  const [keyInput, setKeyInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleConnect = () => {
+    const trimmed = keyInput.trim();
+    if (!trimmed.startsWith('sk-ava-')) { setError('Key must start with sk-ava-'); return; }
+    setError('');
+    setLoading(true);
+    post({ type: 'connect_account', key: trimmed });
+    setTimeout(() => setLoading(false), 8000);
+  };
+
+  if (!showForm) {
+    return (
+      <>
+        <button
+          onClick={() => setShowForm(true)}
+          className="w-full rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-90 mb-1.5"
+        >
+          {t('dash.auth.connect')}
+        </button>
+        <p className="text-center text-[10px] text-[var(--text-muted)]">{t('dash.auth.byok_hint')}</p>
+      </>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
+        1. Sign up at ava-supernova.com<br/>
+        2. Dashboard → API Keys<br/>
+        3. Paste your sk-ava-... key below
+      </p>
+      <input
+        type="password"
+        placeholder="sk-ava-. . ."
+        value={keyInput}
+        onChange={(e) => { setKeyInput(e.target.value); setError(''); }}
+        onKeyDown={(e) => { if (e.key === 'Enter') handleConnect(); }}
+        className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-1.5 font-mono text-[11px] text-white placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]"
+        autoFocus
+      />
+      {error && <p className="text-[10px] text-red-400">{error}</p>}
+      <div className="flex gap-1.5">
+        <button
+          onClick={handleConnect}
+          disabled={loading}
+          className="flex-1 rounded-lg bg-[var(--accent)] py-1.5 text-[11px] font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+        >
+          {loading ? 'Connecting...' : t('dash.auth.connect')}
+        </button>
+        <button
+          onClick={() => { setShowForm(false); setKeyInput(''); setError(''); }}
+          className="flex-1 rounded-lg border border-[var(--border-card)] bg-transparent py-1.5 text-[11px] text-[var(--text-muted)] transition hover:text-white"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
   );
 }
 

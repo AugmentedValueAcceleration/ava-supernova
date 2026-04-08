@@ -129,14 +129,18 @@ export function App() {
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [byokMode, setByokMode] = useState(false);
   const [localMemories, setLocalMemories] = useState<MemoryEntry[]>([]);
-  const [tasks, setTasks] = useState<DashboardTaskEntry[]>([]);
+  const [tasks, setTasks] = useState<DashboardTaskEntry[]>(() => {
+    try { const saved = localStorage.getItem('ava-dash-tasks'); return saved ? JSON.parse(saved) : []; } catch { return []; }
+  });
   const [sessionTasks, setSessionTasks] = useState<Array<{ id: string; title: string; status: 'pending' | 'in_progress' | 'completed' }>>([]);
   const [journalDay, setJournalDay] = useState<DashboardJournalDay | null>(null);
   const [journalSummaries, setJournalSummaries] = useState<DashboardJournalDaySummary[]>([]);
   const [selectedJournalDate, setSelectedJournalDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [sessionStatsData, setSessionStatsData] = useState<SessionStats | null>(null);
   const [usageHistoryData, setUsageHistoryData] = useState<UsageHistoryData | null>(null);
-  const [learningCurriculums, setLearningCurriculums] = useState<DashboardLearningCurriculum[]>([]);
+  const [learningCurriculums, setLearningCurriculums] = useState<DashboardLearningCurriculum[]>(() => {
+    try { const saved = localStorage.getItem('ava-dash-learning'); return saved ? JSON.parse(saved) : []; } catch { return []; }
+  });
   const [libraryPaths, setLibraryPaths] = useState<LibraryPath[]>([]);
   const [libraryPathDetail, setLibraryPathDetail] = useState<LibraryPathDetail | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -164,7 +168,9 @@ export function App() {
   const [libraryProjectRoot, setLibraryProjectRoot] = useState('');
   const [libraryHasFolder, setLibraryHasFolder] = useState(true);
   // Personality state
-  const [personalityData, setPersonalityData] = useState<PersonalityData | null>(null);
+  const [personalityData, setPersonalityData] = useState<PersonalityData | null>(() => {
+    try { const saved = localStorage.getItem('ava-dash-personality'); return saved ? JSON.parse(saved) : null; } catch { return null; }
+  });
   // Avatar state
   const [avatarDataUrl, setAvatarDataUrl] = useState('');
   // Task calendar dates
@@ -179,6 +185,12 @@ export function App() {
   const [activeArticle, setActiveArticle] = useState<FullArticle | null>(null);
   const [activeArticleRelated, setActiveArticleRelated] = useState<RelatedArticle[]>([]);
   const [articleLoading, setArticleLoading] = useState(false);
+
+  // ── Local-first persistence ─────────────────────────────────────────────
+  useEffect(() => { try { localStorage.setItem('ava-dash-tasks', JSON.stringify(tasks)); } catch {} }, [tasks]);
+  useEffect(() => { if (learningCurriculums.length > 0) { try { localStorage.setItem('ava-dash-learning', JSON.stringify(learningCurriculums)); } catch {} } }, [learningCurriculums]);
+  useEffect(() => { if (journalDay) { try { localStorage.setItem(`ava-dash-journal-${selectedJournalDate}`, JSON.stringify(journalDay)); } catch {} } }, [journalDay, selectedJournalDate]);
+  useEffect(() => { if (personalityData) { try { localStorage.setItem('ava-dash-personality', JSON.stringify(personalityData)); } catch {} } }, [personalityData]);
 
   const handleMessage = useCallback((event: MessageEvent) => {
     // Ignore messages from unexpected origins (e.g. browser extensions)
@@ -310,7 +322,11 @@ export function App() {
         break;
       // Task messages
       case 'tasks_loaded':
-        setTasks(msg.tasks);
+        setTasks(prev => {
+          const cloudIds = new Set(msg.tasks.map((t: any) => t.id));
+          const localOnly = prev.filter(t => !cloudIds.has(t.id));
+          return [...msg.tasks, ...localOnly];
+        });
         break;
       case 'session_tasks_updated':
         setSessionTasks(msg.tasks);
@@ -330,7 +346,16 @@ export function App() {
         setTasks((prev) => prev.filter((t) => t.id !== msg.id));
         break;
       case 'journal_day_loaded':
-        setJournalDay(msg.day);
+        if (msg.day) {
+          setJournalDay(msg.day);
+        } else {
+          // No cloud data — try localStorage
+          try {
+            const local = localStorage.getItem(`ava-dash-journal-${selectedJournalDate}`);
+            if (local) setJournalDay(JSON.parse(local));
+            else setJournalDay(null);
+          } catch { setJournalDay(null); }
+        }
         break;
       case 'journal_day_updated':
         setJournalDay(msg.day);
@@ -370,7 +395,11 @@ export function App() {
         setSupportUnread(msg.count);
         break;
       case 'learning_loaded':
-        setLearningCurriculums(msg.curriculums);
+        setLearningCurriculums(prev => {
+          const cloudIds = new Set(msg.curriculums.map((c: any) => c.id));
+          const localOnly = prev.filter(c => !cloudIds.has(c.id));
+          return [...msg.curriculums, ...localOnly];
+        });
         break;
       case 'curriculum_deleted':
         setLearningCurriculums(prev => prev.filter(c => c.id !== msg.id));
@@ -573,8 +602,8 @@ export function App() {
 
   const hasAccess = Boolean(account) || byokMode;
 
-  // If no access and page is 'chat', show connect page instead of blank screen
-  const effectivePage = (!hasAccess && page === 'chat') ? 'connect' : page;
+  // If no access and page is 'chat', show overview instead of blank screen
+  const effectivePage = (!hasAccess && page === 'chat') ? 'overview' : page;
 
   function handleSkipAccount() {
     setByokMode(true);
@@ -696,7 +725,7 @@ export function App() {
   return (
     <div className="flex h-screen overflow-hidden text-sm">
       {/* Sidebar — uses CSS order to flip sides without remounting */}
-      {hasAccess && !sidebarCollapsed && (
+      {!sidebarCollapsed && (
         <div style={{ order: sidebarSide === 'left' ? 0 : 2 }}>
           <NavSidebar
             currentPage={page}
@@ -735,6 +764,7 @@ export function App() {
             sidebarCollapsed={sidebarCollapsed}
             onFlipSidebar={flipSidebar}
             sidebarSide={sidebarSide}
+            onNavigate={setPagePersist}
           />
         </div>
       )}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { t, useLocale } from '../i18n';
+import { StorageBadge } from '../components/StorageBadge';
 import type { DashboardJournalDay } from '../types/messages';
 
 type JournalTab = 'user' | 'ava';
@@ -45,6 +46,10 @@ export function Journal({ day, selectedDate, userName, onSaveUserEntry, onDelete
 
   return (
     <div className="flex flex-col h-full">
+      <div className="flex items-center gap-2.5 mb-3">
+        <h1 className="text-lg font-semibold text-white">Journal</h1>
+        <StorageBadge />
+      </div>
       {/* Tabs */}
       <div className="flex border-b border-[var(--border-card)] mb-4">
         <button

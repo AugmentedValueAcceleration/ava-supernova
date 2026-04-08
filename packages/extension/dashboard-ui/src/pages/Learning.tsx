@@ -3,6 +3,7 @@ import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { DashboardLearningCurriculum } from '../types/messages';
 import { SectionGroup } from '../components/SectionGroup';
+import { StorageBadge } from '../components/StorageBadge';
 
 const levelColors: Record<string, string> = {
   beginner: 'color: #34d399; background: rgba(52,211,153,0.1)',
@@ -146,7 +147,10 @@ export function Learning({ curriculums }: Props) {
   // List view
   return (
     <div>
-      <h1 className="text-xl font-bold text-white mb-1">{t('dash.learning.title')}</h1>
+      <div className="flex items-center gap-2.5 mb-1">
+        <h1 className="text-xl font-bold text-white">{t('dash.learning.title')}</h1>
+        <StorageBadge />
+      </div>
       <p className="text-sm text-[var(--text-secondary)] mb-6">
         {t('dash.learning.subtitle')}
       </p>

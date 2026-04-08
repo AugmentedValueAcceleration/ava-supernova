@@ -264,60 +264,42 @@ function MessageBubble({ message }: { message: SupportMessage }) {
 // ── BYOK fallback ─────────────────────────────────────────────────────
 
 function ByokChat() {
-  useLocale();
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [sent, setSent] = useState(false);
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email.trim() || !message.trim()) return;
-    const subject = message.trim().slice(0, 80) + (message.trim().length > 80 ? '...' : '');
-    post({ type: 'send_byok_support', email: email.trim(), subject, message: message.trim(), category: 'other' });
-    setSent(true);
-    setTimeout(() => setSent(false), 3000);
-  }
-
   return (
-    <div className="mx-auto w-full max-w-xl">
-      <div className="mb-6">
-        <h1 className="text-xl font-light">Support</h1>
-        <p className="mt-1 text-xs text-[var(--text-muted)]">
-          Connect your account for live chat, or send us a message below.
-        </p>
+    <div className="mx-auto w-full max-w-lg pt-4">
+      <div className="mb-6 text-center">
+        <h2 className="text-xl font-light text-white">Need help?</h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-        <div>
-          <label className="mb-1 block text-xs text-[var(--text-secondary)]">Your email</label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none focus:border-[var(--accent)]"
-            placeholder="you@example.com"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs text-[var(--text-secondary)]">What's up?</label>
-          <textarea
-            required
-            rows={4}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            className="w-full resize-y rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none focus:border-[var(--accent)]"
-            placeholder="Describe your issue or question..."
-          />
-        </div>
-        <button
-          type="submit"
-          className="rounded-lg bg-[var(--accent)] px-5 py-2 text-xs font-medium text-white transition hover:bg-[var(--accent-hover,#6d28d9)] cursor-pointer"
-        >
-          Send Message
+      <div className="space-y-3">
+        <button onClick={() => post({ type: 'open_url', url: 'https://github.com/AugmentedValueAcceleration/ava-supernova/issues' })}
+          className="w-full flex items-center gap-3.5 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-left cursor-pointer hover:border-[var(--accent)]/30 transition">
+          <span className="text-2xl">🐙</span>
+          <div>
+            <p className="text-sm font-medium text-white">GitHub Issues</p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Report bugs, request features, or ask questions</p>
+          </div>
         </button>
-        {sent && <span className="text-xs text-green-400 ml-2">Sent! We'll reply to your email.</span>}
-      </form>
+        <button onClick={() => post({ type: 'open_url', url: 'https://discord.gg/tuHZzUGxA6' })}
+          className="w-full flex items-center gap-3.5 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-left cursor-pointer hover:border-[var(--accent)]/30 transition">
+          <span className="text-2xl">💬</span>
+          <div>
+            <p className="text-sm font-medium text-white">Community</p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Join the community for help and discussion</p>
+          </div>
+        </button>
+        <button onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/docs' })}
+          className="w-full flex items-center gap-3.5 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-left cursor-pointer hover:border-[var(--accent)]/30 transition">
+          <span className="text-2xl">📖</span>
+          <div>
+            <p className="text-sm font-medium text-white">Documentation</p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Guides, setup instructions, and API reference</p>
+          </div>
+        </button>
+      </div>
+
+      <p className="text-center mt-5 text-[11px] text-[var(--text-muted)]">
+        Connect your account for live chat support with the team
+      </p>
     </div>
   );
 }
