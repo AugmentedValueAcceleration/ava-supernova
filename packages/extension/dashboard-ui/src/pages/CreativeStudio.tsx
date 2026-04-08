@@ -173,8 +173,10 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
   useLocale();
 
   const usage = account?.usage;
-  const tokensUsed = usage ? (usage.tokens_used + usage.free_tokens_used) : 0;
-  const tokensLimit = usage ? (usage.tokens_limit || usage.free_tokens_limit) : 0;
+  // Match the chat header token bar — use free pool for free tier, subscription pool for paid
+  const hasSub = usage && usage.tokens_limit && usage.tokens_limit > 0;
+  const tokensUsed = usage ? (hasSub ? usage.tokens_used : usage.free_tokens_used) : 0;
+  const tokensLimit = usage ? (hasSub ? usage.tokens_limit! : usage.free_tokens_limit) : 0;
   const tokensRemaining = Math.max(0, tokensLimit - tokensUsed);
   const remainPct = tokensLimit > 0 ? Math.min((tokensRemaining / tokensLimit) * 100, 100) : 0;
 
