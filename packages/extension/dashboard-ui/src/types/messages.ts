@@ -663,6 +663,7 @@ export type DashboardToExtMessage =
   | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllowCategory?: boolean; planSelection?: string; userResponse?: string }
   | { type: 'set_category_permission'; category: string; permission: string }
   | { type: 'request_audit_log' }
+  | { type: 'creative_generate'; endpoint: string; body: Record<string, unknown> }
   | { type: 'switch_model'; modelId: string }
   | { type: 'clear_chat' }
   | { type: 'cancel' }

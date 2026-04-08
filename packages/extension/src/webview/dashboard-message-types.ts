@@ -451,6 +451,8 @@ export type DashboardToExtMessage =
   | { type: 'load_news'; category?: string }
   | { type: 'load_news_article'; slug: string }
   | { type: 'load_latest_release' }
+  // Creative Studio (proxied through extension host for CORS)
+  | { type: 'creative_generate'; endpoint: string; body: Record<string, unknown> }
   // ── Chat messages (forwarded to AvaViewProvider) ────────────────────────
   | { type: 'send_message'; text: string; mode: string; attachments?: Array<{ type: 'image'; data: string; name: string }> }
   | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllowCategory?: boolean; planSelection?: string; userResponse?: string }
