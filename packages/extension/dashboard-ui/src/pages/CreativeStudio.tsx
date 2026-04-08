@@ -173,12 +173,11 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
   useLocale();
 
   const usage = account?.usage;
-  // Match the chat header token bar — use free pool for free tier, subscription pool for paid
-  const hasSub = usage && usage.tokens_limit && usage.tokens_limit > 0;
-  const tokensUsed = usage ? (hasSub ? usage.tokens_used : usage.free_tokens_used) : 0;
-  const tokensLimit = usage ? (hasSub ? usage.tokens_limit! : usage.free_tokens_limit) : 0;
-  const tokensRemaining = Math.max(0, tokensLimit - tokensUsed);
-  const remainPct = tokensLimit > 0 ? Math.min((tokensRemaining / tokensLimit) * 100, 100) : 0;
+  // Exact same calculation as chat header bar (Header.tsx line 291)
+  const freeUsed = usage?.free_tokens_used || 0;
+  const freeLimit = usage?.free_tokens_limit || 0;
+  const tokensRemaining = Math.max(0, freeLimit - freeUsed);
+  const remainPct = freeLimit > 0 ? Math.min((tokensRemaining / freeLimit) * 100, 100) : 0;
 
   // API helper: send request through extension host (avoids CORS)
   const pendingResolve = useRef<((data: any) => void) | null>(null);
@@ -429,8 +428,8 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                 />
               </div>
               <div className="flex justify-between text-[9px] text-[var(--text-muted)] mt-0.5">
-                <span>{formatTokens(tokensUsed)} used</span>
-                <span>{formatTokens(tokensLimit)} limit</span>
+                <span>{formatTokens(freeUsed)} used</span>
+                <span>{formatTokens(freeLimit)} limit</span>
               </div>
             </div>
           )}
