@@ -47,7 +47,7 @@ const LIBRARY_FILTERS: { key: LibraryFilter; label: string; icon: string }[] = [
 /* ── Auth helpers ──────────────────────────────────────────────────── */
 
 function getAuthHeaders(): Record<string, string> {
-  const key = localStorage.getItem('ava-platform-key') || '';
+  const key = (window as any).__avaPlatformKey || '';
   return {
     'Content-Type': 'application/json',
     ...(key ? { Authorization: `Bearer ${key}` } : {}),
@@ -55,7 +55,7 @@ function getAuthHeaders(): Record<string, string> {
 }
 
 function hasAuth(): boolean {
-  return !!localStorage.getItem('ava-platform-key');
+  return !!(window as any).__avaPlatformKey;
 }
 
 /* ── Asset type helpers ────────────────────────────────────────────── */

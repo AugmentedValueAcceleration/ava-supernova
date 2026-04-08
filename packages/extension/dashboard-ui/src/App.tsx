@@ -210,12 +210,13 @@ export function App() {
         if (!msg.account && Object.values(msg.providerKeys).some(Boolean)) {
           setByokMode(true);
         }
-        // Store platform key for direct API calls (Creative Studio)
+        // Store key in memory only (not localStorage) for Creative Studio API calls
         if ((msg as any).platformKey) {
-          localStorage.setItem('ava-platform-key', (msg as any).platformKey);
+          (window as any).__avaPlatformKey = (msg as any).platformKey;
         } else {
-          localStorage.removeItem('ava-platform-key');
+          delete (window as any).__avaPlatformKey;
         }
+        localStorage.removeItem('ava-platform-key');
         setInitialized(true);
         break;
       case 'account_updated':
