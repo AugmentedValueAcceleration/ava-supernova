@@ -25,6 +25,7 @@ import { Personality } from './pages/Personality';
 import { Chat } from './pages/Chat';
 import { Planner } from './pages/Planner';
 import { LearningLibrary } from './pages/LearningLibrary';
+import { CreativeStudio } from './pages/CreativeStudio';
 import { AccountPage } from './pages/AccountPage';
 import { HelpPage } from './pages/HelpPage';
 import { ArticleReader } from './pages/ArticleReader';
@@ -675,6 +676,8 @@ export function App() {
         return <Library images={libraryImages} projectRoot={libraryProjectRoot} hasImagesFolder={libraryHasFolder} />;
       case 'learning-library':
         return <LearningLibrary paths={libraryPaths} detail={libraryPathDetail} onNavigate={setPagePersist} />;
+      case 'creative-studio':
+        return <CreativeStudio />;
 
       // ── Admin ───────────────────────────────────────────────────────
       case 'admin_support':

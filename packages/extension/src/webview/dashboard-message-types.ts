@@ -261,7 +261,7 @@ export interface UsageHistoryData {
   totalSessions: number;
 }
 
-export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'library' | 'personality' | 'sync' | 'releases' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals';
+export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'creative-studio' | 'library' | 'personality' | 'sync' | 'releases' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals' | 'planner' | 'account' | 'help' | 'chat';
 
 // Library (project files — images, documents, spreadsheets, presentations)
 export type LibraryFileType = 'image' | 'document' | 'spreadsheet' | 'presentation';

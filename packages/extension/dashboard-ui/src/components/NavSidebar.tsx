@@ -58,6 +58,7 @@ function getNavItems(isAdmin?: boolean): NavItem[] {
     { page: 'chat', icon: '\uD83D\uDCAC', label: tt('dash.nav.ava_chat', 'Chat'), description: tt('dash.nav.ava_chat_desc', 'Talk, build, create') },
     { page: 'planner', icon: '\uD83D\uDCCB', label: tt('dash.nav.planner', 'Planner'), description: tt('dash.nav.planner_desc', 'Tasks, journal, learning') },
     { page: 'learning-library', icon: '\uD83D\uDCDA', label: tt('dash.nav.learning_library', 'Learning Library'), description: tt('dash.nav.learning_library_desc', 'Browse and start learning paths') },
+    { page: 'creative-studio', icon: '\uD83C\uDFA8', label: tt('dash.nav.creative_studio', 'Creative Studio'), description: tt('dash.nav.creative_studio_desc', 'Images, music, video, voice') },
     { page: 'memory', icon: '\uD83E\uDDE0', label: tt('dash.nav.memory', 'Memory'), description: tt('dash.nav.memory_desc', 'Patterns, preferences, decisions') },
     { page: 'history', icon: '\uD83D\uDCCA', label: tt('dash.nav.usage', 'History'), description: tt('dash.nav.usage_desc', 'Tokens, sessions, models') },
     { page: 'account', icon: '\u2699\uFE0F', label: tt('dash.nav.account', 'Account'), description: tt('dash.nav.account_desc', 'Settings, billing, personalisation') },
