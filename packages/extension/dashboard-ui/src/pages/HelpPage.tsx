@@ -33,6 +33,7 @@ function DocsPage() {
     { title: 'Modes', desc: 'Work, Plan, Chat, Teach, Security, Brainstorm', icon: '🎯', url: 'https://ava-supernova.com/docs/modes' },
     { title: 'Tools', desc: 'All available tools and how to use them', icon: '🔧', url: 'https://ava-supernova.com/docs/tools' },
     { title: 'Memory', desc: 'How Ava remembers and learns from you', icon: '🧠', url: 'https://ava-supernova.com/docs/memory' },
+    { title: 'Creative Studio', desc: 'Generate images, music, voice, and video', icon: '🎨', url: 'https://ava-supernova.com/docs/creative-studio' },
     { title: 'BYOK', desc: 'Bring your own API keys from any provider', icon: '🔑', url: 'https://ava-supernova.com/docs/byok' },
     { title: 'API Reference', desc: 'Platform API for integrations', icon: '📡', url: 'https://ava-supernova.com/docs/api' },
   ];
