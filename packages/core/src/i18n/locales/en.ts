@@ -653,6 +653,10 @@ export const enStrings: Record<string, string> = {
   'dash.learning.level_mixed': 'mixed',
   'dash.learning.pct_complete': '{pct}% complete',
 
+  // ── Creative Studio ────────────────────────────────────────────────────
+  'dash.nav.creative_studio': 'Creative Studio',
+  'dash.nav.creative_studio_desc': 'Images, music, video, voice',
+
   // ── Learning Library Page ──────────────────────────────────────────────
   'dash.nav.learning_library': 'Learning Library',
   'dash.learning_library.title': 'Learning Library',
