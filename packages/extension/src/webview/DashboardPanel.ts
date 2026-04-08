@@ -266,6 +266,13 @@ export class DashboardPanel {
         this.post({ type: 'audit_log', entries: (this.viewProvider as any)?.auditLog || [] } as any);
         break;
 
+      // ─── Creative Studio generation (proxied through extension host for CORS) ──
+      case 'creative_generate': {
+        const m = msg as any;
+        this.handleCreativeGenerate(m.endpoint, m.body).catch(() => {});
+        break;
+      }
+
       case 'open_chat':
         vscode.commands.executeCommand('ava-supernova.openChat');
         break;
@@ -2586,6 +2593,30 @@ export class DashboardPanel {
       });
     } catch {
       this.post({ type: 'news_article_loaded', post: null, related: [] });
+    }
+  }
+
+  private async handleCreativeGenerate(endpoint: string, body: Record<string, unknown>): Promise<void> {
+    try {
+      const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+      if (!platformKey) {
+        this.post({ type: 'creative_result', success: false, error: 'Not connected. Add your account in Settings.' } as any);
+        return;
+      }
+      const res = await fetch(`https://ava-supernova.com/api/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${platformKey}` },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: `Request failed (${res.status})` }));
+        this.post({ type: 'creative_result', success: false, error: errData.error || `Request failed (${res.status})` } as any);
+        return;
+      }
+      const data = await res.json();
+      this.post({ type: 'creative_result', success: true, data } as any);
+    } catch (err) {
+      this.post({ type: 'creative_result', success: false, error: err instanceof Error ? err.message : 'Generation failed' } as any);
     }
   }
 

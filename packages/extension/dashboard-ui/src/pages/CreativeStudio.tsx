@@ -1,10 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocale } from '../i18n';
+import { post } from '../App';
 import type { AccountInfo } from '../types/messages';
-
-/* ── Constants ─────────────────────────────────────────────────────── */
-
-const PLATFORM_URL = 'https://ava-supernova.com/api';
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -180,6 +177,35 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
   const tokensLimit = usage ? (usage.tokens_limit || usage.free_tokens_limit) : 0;
   const tokenPct = tokensLimit > 0 ? Math.min((tokensUsed / tokensLimit) * 100, 100) : 0;
 
+  // API helper: send request through extension host (avoids CORS)
+  const pendingResolve = useRef<((data: any) => void) | null>(null);
+  const pendingReject = useRef<((err: string) => void) | null>(null);
+
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      const msg = event.data;
+      if (msg?.type === 'creative_result') {
+        if (msg.success && pendingResolve.current) {
+          pendingResolve.current(msg.data);
+        } else if (!msg.success && pendingReject.current) {
+          pendingReject.current(msg.error || 'Generation failed');
+        }
+        pendingResolve.current = null;
+        pendingReject.current = null;
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const apiCall = useCallback((endpoint: string, body: Record<string, unknown>): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      pendingResolve.current = resolve;
+      pendingReject.current = reject;
+      post({ type: 'creative_generate', endpoint, body } as any);
+    });
+  }, []);
+
   const [activeTab, setActiveTab] = useState<string>('images');
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -267,24 +293,14 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
 
   const handleGenerateImage = async () => {
     if (!imagePrompt.trim() || generating) return;
-    if (!requiresAuth()) return;
-    setGenerating(true);
-    setError(null);
+    setGenerating(true); setError(null);
     try {
-      const res = await fetch(`${PLATFORM_URL}/generate-image`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ prompt: imagePrompt.trim(), size: imageSize, model: 'minimax' }),
-      });
-      if (!res.ok) throw new Error(`Image generation failed (${res.status})`);
-      const data = await res.json();
+      const data = await apiCall('generate-image', { prompt: imagePrompt.trim(), size: imageSize, model: 'minimax' });
       if (data.url) {
         setLastImage(data.url);
         saveLocalAsset('image', data.url, imagePrompt.slice(0, 60), imagePrompt);
       } else throw new Error(data.error || 'No image URL returned');
-    } catch (e: any) {
-      setError(e.message || 'Image generation failed');
-    }
+    } catch (e: any) { setError(e.message || e); }
     setGenerating(false);
   };
 
@@ -292,24 +308,14 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
 
   const handleGenerateMusic = async () => {
     if (!musicPrompt.trim() || generating) return;
-    if (!requiresAuth()) return;
-    setGenerating(true);
-    setError(null);
+    setGenerating(true); setError(null);
     try {
-      const res = await fetch(`${PLATFORM_URL}/generate-music`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ prompt: musicPrompt.trim(), lyrics: musicLyrics.trim() || undefined }),
-      });
-      if (!res.ok) throw new Error(`Music generation failed (${res.status})`);
-      const data = await res.json();
+      const data = await apiCall('generate-music', { prompt: musicPrompt.trim(), lyrics: musicLyrics.trim() || undefined });
       if (data.url) {
         setLastAudio(data.url);
         saveLocalAsset('music', data.url, musicPrompt.slice(0, 60), musicPrompt);
       } else throw new Error(data.error || 'No audio URL returned');
-    } catch (e: any) {
-      setError(e.message || 'Music generation failed');
-    }
+    } catch (e: any) { setError(e.message || e); }
     setGenerating(false);
   };
 
@@ -317,24 +323,14 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
 
   const handleGenerateVoice = async () => {
     if (!voiceText.trim() || generating) return;
-    if (!requiresAuth()) return;
-    setGenerating(true);
-    setError(null);
+    setGenerating(true); setError(null);
     try {
-      const res = await fetch(`${PLATFORM_URL}/generate-voice`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ text: voiceText.trim(), voice_id: voiceId, speed: voiceSpeed }),
-      });
-      if (!res.ok) throw new Error(`Voice generation failed (${res.status})`);
-      const data = await res.json();
+      const data = await apiCall('generate-voice', { text: voiceText.trim(), voice_id: voiceId, speed: voiceSpeed });
       if (data.url) {
         setLastVoice(data.url);
         saveLocalAsset('voice', data.url, voiceText.slice(0, 60), voiceText);
       } else throw new Error(data.error || 'No voice URL returned');
-    } catch (e: any) {
-      setError(e.message || 'Voice generation failed');
-    }
+    } catch (e: any) { setError(e.message || e); }
     setGenerating(false);
   };
 
@@ -342,17 +338,9 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
 
   const handleGenerateVideo = async () => {
     if (!videoPrompt.trim() || generating) return;
-    if (!requiresAuth()) return;
-    setGenerating(true);
-    setError(null);
+    setGenerating(true); setError(null);
     try {
-      const res = await fetch(`${PLATFORM_URL}/generate-video`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ prompt: videoPrompt.trim(), duration: videoDuration }),
-      });
-      if (!res.ok) throw new Error(`Video generation failed (${res.status})`);
-      const data = await res.json();
+      const data = await apiCall('generate-video', { prompt: videoPrompt.trim(), duration: videoDuration });
       if (data.url) {
         setLastVideo(data.url);
         saveLocalAsset('video', data.url, videoPrompt.slice(0, 60), videoPrompt);
