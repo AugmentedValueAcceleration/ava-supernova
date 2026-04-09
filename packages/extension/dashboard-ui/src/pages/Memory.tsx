@@ -5,6 +5,7 @@ import { SectionGroup } from '../components/SectionGroup';
 import { StorageBadge } from '../components/StorageBadge';
 import { SearchIcon, PencilIcon, TrashIcon } from '../components/Icons';
 import type { MemoryEntry, MemoryCategory } from '../types/messages';
+import { postData, postLoad, getDataMode } from '../lib/data-mode';
 
 const CATEGORY_COLORS: Record<string, string> = {
   pattern: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
@@ -165,7 +166,8 @@ interface MemoryProps {
 
 export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore }: MemoryProps) {
   useLocale();
-  const isLocal = mode === 'byok';
+  const dataMode = getDataMode();
+  const isLocal = dataMode === 'local';
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -178,8 +180,8 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
 
   // Refresh memories from host when page mounts
   useEffect(() => {
-    post({ type: isLocal ? 'load_local_memories' : 'load_memories' });
-  }, [isLocal]);
+    postLoad({ type: 'load_local_memories' }, { type: 'load_memories' });
+  }, [dataMode]);
 
   // Partition entries
   const { activeEntries, staleEntries, archivedEntries } = useMemo(() => {
@@ -242,7 +244,7 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
   }, [viewEntries, search, categoryFilter]);
 
   function loadMore() {
-    if (!isLocal && serverHasMore) {
+    if (dataMode !== 'local' && serverHasMore) {
       setLoadingMore(true);
       post({ type: 'load_more_memories' });
       // loadingMore will be cleared when new memories arrive
@@ -262,13 +264,19 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
 
   function saveEdit(m: MemoryEntry) {
     if (editText.trim() && editText !== m.content) {
-      post({ type: isLocal ? 'upsert_local_memory' : 'upsert_memory', id: m.id, content: editText.trim() });
+      postData(
+        { type: 'upsert_local_memory', id: m.id, content: editText.trim() },
+        { type: 'upsert_memory', id: m.id, content: editText.trim() },
+      );
     }
     setEditingId(null);
   }
 
   function confirmDelete(id: string) {
-    post({ type: isLocal ? 'delete_local_memory' : 'delete_memory', id });
+    postData(
+      { type: 'delete_local_memory', id },
+      { type: 'delete_memory', id },
+    );
     setConfirmDeleteId(null);
   }
 
@@ -293,11 +301,17 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
   }, [deletingAll]);
 
   function archiveEntry(id: string) {
-    post({ type: isLocal ? 'archive_local_memory' : 'archive_memory', id });
+    postData(
+      { type: 'archive_local_memory', id },
+      { type: 'archive_memory', id },
+    );
   }
 
   function restoreEntry(id: string) {
-    post({ type: isLocal ? 'restore_local_memory' : 'restore_memory', id });
+    postData(
+      { type: 'restore_local_memory', id },
+      { type: 'restore_memory', id },
+    );
   }
 
   return (
@@ -315,7 +329,7 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => post({ type: isLocal ? 'load_local_memories' : 'load_memories' })}
+            onClick={() => postLoad({ type: 'load_local_memories' }, { type: 'load_memories' })}
             className="rounded-lg border border-[var(--border-card)] px-3 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-white"
             title="Refresh memories"
           >
@@ -356,7 +370,7 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
             >
               Local Only
             </button>
-            {!isLocal && (
+            {dataMode !== 'local' &&(
               <button
                 onClick={() => deleteAllMemories('cloud')}
                 disabled={deletingAll}
@@ -365,7 +379,7 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
                 Cloud Only
               </button>
             )}
-            {!isLocal && (
+            {dataMode !== 'local' &&(
               <button
                 onClick={() => deleteAllMemories('both')}
                 disabled={deletingAll}
@@ -657,7 +671,7 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
             ))}
 
             {/* Load more from server */}
-            {!isLocal && serverHasMore && (
+            {dataMode !== 'local' &&serverHasMore && (
               <button
                 onClick={loadMore}
                 disabled={loadingMore}

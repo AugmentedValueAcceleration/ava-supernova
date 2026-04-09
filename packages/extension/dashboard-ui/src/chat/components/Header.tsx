@@ -96,25 +96,29 @@ export function Header({
     return () => document.removeEventListener('mousedown', handler);
   }, [packsOpen]);
 
-  // Local/Cloud data mode — persisted
-  const [dataMode, setDataMode] = useState<'local' | 'cloud'>(() => {
-    return (localStorage.getItem('ava-data-mode') as 'local' | 'cloud') || 'local';
+  // Local/Cloud/Both data mode — persisted
+  type DataMode = 'local' | 'cloud' | 'both';
+  const DATA_MODES: DataMode[] = ['local', 'cloud', 'both'];
+
+  const [dataMode, setDataMode] = useState<DataMode>(() => {
+    return (localStorage.getItem('ava-data-mode') as DataMode) || 'local';
   });
 
-  const toggleDataMode = useCallback(() => {
+  const cycleDataMode = useCallback(() => {
     if (!platformStatus?.connected) return;
     setDataMode(prev => {
-      const next = prev === 'local' ? 'cloud' : 'local';
+      const idx = DATA_MODES.indexOf(prev);
+      const next = DATA_MODES[(idx + 1) % DATA_MODES.length];
       localStorage.setItem('ava-data-mode', next);
       return next;
     });
   }, [platformStatus?.connected]);
 
-  // Auto-sync every 15 minutes when cloud mode is active
+  // Auto-sync when cloud or both mode is active
   useEffect(() => {
-    if (dataMode !== 'cloud' || !platformStatus?.connected) return;
+    if ((dataMode !== 'cloud' && dataMode !== 'both') || !platformStatus?.connected) return;
 
-    // Sync immediately on switching to cloud
+    // Sync immediately on switching to cloud/both
     for (const dt of SYNC_TYPES) {
       post({ type: 'push_to_cloud', dataType: dt });
     }
@@ -216,25 +220,37 @@ export function Header({
 
       {/* Right side: data mode + provider toggle + tokens + context ring + tasks */}
       <div className="flex items-center gap-3">
-        {/* Local/Cloud data toggle */}
+        {/* Local/Cloud/Both data toggle */}
         {platformStatus?.connected && (
           <button
-            onClick={toggleDataMode}
+            onClick={cycleDataMode}
             className="flex items-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-[10px] font-semibold cursor-pointer transition-all"
             style={{
-              background: dataMode === 'cloud' ? 'rgba(137,180,250,0.1)' : 'rgba(166,227,161,0.1)',
-              borderColor: dataMode === 'cloud' ? 'rgba(137,180,250,0.3)' : 'rgba(166,227,161,0.3)',
-              color: dataMode === 'cloud' ? '#89b4fa' : '#a6e3a1',
+              background: dataMode === 'cloud' ? 'rgba(137,180,250,0.1)'
+                : dataMode === 'both' ? 'rgba(168,85,247,0.1)'
+                : 'rgba(166,227,161,0.1)',
+              borderColor: dataMode === 'cloud' ? 'rgba(137,180,250,0.3)'
+                : dataMode === 'both' ? 'rgba(168,85,247,0.3)'
+                : 'rgba(166,227,161,0.3)',
+              color: dataMode === 'cloud' ? '#89b4fa'
+                : dataMode === 'both' ? '#a855f7'
+                : '#a6e3a1',
             }}
             title={dataMode === 'local'
-              ? 'Local — data stays on your machine. Click to enable cloud sync.'
-              : 'Cloud — auto-syncing every 15 minutes. Click to switch to local only.'}
+              ? 'Local — data stays on your machine. Click to switch to Cloud.'
+              : dataMode === 'cloud'
+              ? 'Cloud — syncing to platform. Click to switch to Both.'
+              : 'Both — local backup + cloud sync. Click to switch to Local.'}
           >
             <span
               className="inline-block w-1.5 h-1.5 rounded-full"
-              style={{ background: dataMode === 'cloud' ? '#89b4fa' : '#a6e3a1' }}
+              style={{
+                background: dataMode === 'cloud' ? '#89b4fa'
+                  : dataMode === 'both' ? '#a855f7'
+                  : '#a6e3a1',
+              }}
             />
-            {dataMode === 'local' ? 'Local' : 'Cloud'}
+            {dataMode === 'local' ? 'Local' : dataMode === 'cloud' ? 'Cloud' : 'Both'}
           </button>
         )}
 

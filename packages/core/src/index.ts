@@ -197,6 +197,9 @@ export {
 export { scanDependencies, scanSecrets, scanCodeVulns, runFullScan } from './security/index.js';
 export type { DependencyVuln, SecretFinding, CodeVuln, ScanReport } from './security/index.js';
 
+// Dataset
+export { captureInteraction } from './dataset/capture.js';
+
 // Constants & Errors
 export {
   APP_NAME,

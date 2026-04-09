@@ -266,5 +266,7 @@ function getPermissionDescription(mode: PermissionMode): string {
       return 'Balanced — reads/writes/edits auto-approved, shell requires approval.';
     case 'autonomous':
       return 'Autonomous — all tools auto-approved. Be extra careful with destructive ops.';
+    default:
+      return 'Balanced — reads/writes/edits auto-approved, shell requires approval.';
   }
 }

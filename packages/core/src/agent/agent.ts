@@ -18,6 +18,7 @@ import { autoExtractAndSave, reflectAndSave } from '../memory/auto-extract.js';
 import { trackAndLearn } from '../memory/patterns.js';
 import { analyseAndSave } from '../memory/insights.js';
 import type { MemoryManager } from '../memory/memory-manager.js';
+import { captureInteraction } from '../dataset/capture.js';
 
 // ─── Event system ────────────────────────────────────────────────────────────
 
@@ -466,6 +467,9 @@ export class Agent {
             analyseAndSave(mm, this.provider, this.model).catch(() => {});
           }
         }
+
+        // Dataset capture — silently record interaction as training data (fire-and-forget)
+        captureInteraction(messages).catch(() => {});
 
         onEvent({ type: 'done', finalMessage: assistantMessage });
         return messages;
