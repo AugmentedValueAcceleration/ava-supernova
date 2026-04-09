@@ -1,14 +1,14 @@
 <p align="center">
   <h1 align="center">Ava | Supernova</h1>
   <p align="center">
-    <strong>Open-source AI coding agent — 54 tools, 6 modes, 24 specialist personas, 14 models from 7 providers. 3M free Qwen tokens with an account, or bring your own API keys.</strong>
+    <strong>Open-source AI coding agent — 61 tools, 6 modes, 24 specialist personas, 20+ models from 8 providers. Creative Studio for images, video, music, voice. 3M free tokens with an account, or bring your own API keys.</strong>
   </p>
   <p align="center">
     <a href="#supported-models">Models</a> &middot;
     <a href="#getting-started">Getting Started</a> &middot;
     <a href="#vscode-extension">Extension</a> &middot;
     <a href="#ide">IDE</a> &middot;
-    <a href="#tools-54">Tools</a> &middot;
+    <a href="#tools-61">Tools</a> &middot;
     <a href="#privacy--security">Privacy</a> &middot;
     <a href="#sponsors">Sponsors</a> &middot;
     <a href="#contributing">Contributing</a>
@@ -177,7 +177,7 @@ Plus dedicated pages for Tasks, Journal, Memory, Learning, Library, Settings, Sy
 Ava | Supernova IDE is a standalone desktop application built on [Tauri v2](https://v2.tauri.app/) (Rust + React) with Ava deeply integrated. A Node.js sidecar runs `@ava/core` locally, giving you the full 54-tool agent without a browser or VS Code.
 
 The IDE includes:
-- **Local AI engine** — `@ava/core` runs as a sidecar process with all 54 tools, personas, and memory
+- **Local AI engine** — `@ava/core` runs as a sidecar process with all 61 tools, personas, and memory
 - **Cloud & Local modes** — toggle between platform API (cloud) and your own BYOK keys (local)
 - **11 dashboard pages** — Command Centre, Chat, Memory, Tasks, Journal, Learning, Library, Personality, Cloud Sync, Usage, Settings
 - **Library** — browse images, documents, presentations, and spreadsheets created by Ava (grid + list views, type filtering)
@@ -192,7 +192,7 @@ Ava on the go. The companion web app gives you access to Ava from your phone or 
 
 - [companion.ava-supernova.com](https://companion.ava-supernova.com)
 
-## Tools (54)
+## Tools (61)
 
 | Category | Tools | Description |
 |---|---|---|
@@ -201,7 +201,8 @@ Ava on the go. The companion web app gives you access to Ava from your phone or 
 | **Shell** | `bash` | Execute commands, run builds, start servers |
 | **Git** | `git_status`, `git_diff`, `rollback`, `git_commit`, `git_create_pr` | Check repo state, view diffs, undo changes, commit, create PRs |
 | **Web** | `web_search`, `http_request`, `browser` | Search the web, test APIs, automate browsers |
-| **Media** | `screenshot`, `generate_image`, `remove_background` | Capture screen, create images, remove backgrounds |
+| **Creative** | `generate_image`, `generate_video`, `generate_music`, `generate_voice`, `remove_background`, `browse_library`, `screenshot` | Full creative studio — images, video, music, voice, asset library |
+| **Computer** | `computer_use` | Browser and desktop automation |
 | **Data** | `database_query` | Read-only SQL against PostgreSQL, SQLite, MySQL |
 | **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete` | Smart persistent memory with TF-IDF retrieval |
 | **Tasks** | `task_manage` | Create, update, complete, and track tasks |
@@ -211,23 +212,27 @@ Ava on the go. The companion web app gives you access to Ava from your phone or 
 | **Testing** | `test_run`, `test_generate` | Run tests and generate test suites |
 | **Architecture** | `analyze_architecture` | Analyze project structure and dependencies |
 | **Docs** | `doc_generate` | Generate documentation from code |
-| **Security** | `audit_dependencies` | Scan dependencies for vulnerabilities |
+| **Security** | `audit_dependencies`, `security` | Dependency scanning and comprehensive security audits |
 | **Performance** | `benchmark` | Run performance benchmarks |
 | **Batch** | `apply_plan` | Execute multi-step plans |
 | **Debug** | `debug_logs` | Access and analyze debug logs |
 | **Office** | `presentation_create`, `email_draft`, `report_generate` | Native .pptx, .docx, and .xlsx generation |
-| **Planning** | `present_plan`, `todo_write` | Structured plans with approval, task tracking |
+| **Planning** | `present_plan`, `todo_write`, `switch_mode` | Structured plans with approval, task tracking, collaborative mode transitions |
 | **Interaction** | `ask_user`, `support_request` | Ask for clarification, submit support tickets |
 | **Self** | `docs_lookup`, `propose_tool`, `self_inspect`, `release_notes` | Self-inspection, docs, tool proposals |
 | **Utility** | `get_datetime`, `detect_language`, `weather`, `news` | Date/time, language detection, weather, news |
 
-The agent automatically decides which tools to use, executes them, reads the results, and continues reasoning — up to 50 iterations per request.
+The agent automatically decides which tools to use, executes them, reads the results, and continues reasoning — up to 200 iterations per request.
 
-## Image Generation
+## Creative Studio
 
-Ask Ava to create icons, illustrations, backgrounds, or any visual asset. Powered by Alibaba's Wan2.6 model. Images save directly to your project's `images/` folder with sensible names.
+Ava's built-in creative suite — generate images, video, music, and voice from inside your IDE.
 
-Browse generated images in the **Dashboard Library** — grid or list view, filter by subfolder, preview, open in editor, copy path.
+- **Images** — Wan2.6 (Qwen) or MiniMax image-01. Smart prompt enhancement for icons, logos, backgrounds. Vision-verified quality. Transparent backgrounds for UI elements.
+- **Video** — MiniMax Hailuo 2.3. 6s at 1080P or 10s at 768P. Custom video player with thumbnails, progress bar, and fullscreen.
+- **Music** — MiniMax. Instrumental or vocal tracks with lyrics. Custom audio player.
+- **Voice** — MiniMax TTS. 10 voice options with speed control.
+- **Library** — Browse all project assets (images, video, audio, documents). Centered preview overlay. Download via Save As. Everything Ava creates goes straight into the library.
 
 ## Office Suite
 
@@ -416,7 +421,7 @@ Ava is a monorepo with shared packages, plus submodules for the IDE, web platfor
 packages/
 ├── core/                  # @ava/core — shared agent engine
 │   ├── agent/             #   Agentic loop, system prompt, events
-│   ├── providers/         #   LLM provider adapters (7 providers)
+│   ├── providers/         #   LLM provider adapters (8 providers)
 │   ├── tools/             #   54 built-in tool implementations
 │   ├── personas/          #   24 specialist personas + Conductor
 │   ├── memory/            #   5-layer persistent memory system
@@ -479,7 +484,7 @@ cd packages/extension && pnpm build
 - [x] VS Code extension with chat UI
 - [x] Standalone IDE (Eclipse Theia)
 - [x] 54 built-in tools (file ops, search, bash, git, web, browser, database, memory, media, office, planning, docs)
-- [x] 14 models from 7 providers with free Qwen tier
+- [x] 20+ models from 8 providers with free Qwen tier
 - [x] 6 modes — Work, Plan, Brainstorm, Chat, Teach, Security
 - [x] 24 specialist personas with Conductor orchestration
 - [x] 5-layer memory — pattern extraction, LLM reflection, habit detection, cross-memory insights, cloud sync
