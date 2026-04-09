@@ -66,7 +66,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private historyManager!: HistoryManager;
   private isRunning = false;
   private runAbortController?: AbortController;
-  private pendingConfirmations = new Map<string, { resolve: (result: boolean | string) => void; toolName: string }>();
+  private pendingConfirmations = new Map<string, { resolve: (result: boolean | string) => void; toolName: string; args?: Record<string, unknown> }>();
   // Audit log — in-memory, cleared on new session
   private auditLog: Array<{ timestamp: string; toolName: string; category: string; riskLevel: string; approvalMethod: string; status: string; argsSummary: string; fullArgs?: Record<string, unknown>; result?: string }> = [];
   private settingsListener?: vscode.Disposable;
@@ -2442,6 +2442,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // Always send done to guarantee the UI resets
       this.postMessage({ type: 'done' });
       this.log('handleUserMessage finished — isRunning=false');
+
+      // Mode transition: if switch_mode was approved during the run, start the new mode
+      if (this.pendingModeTransition) {
+        const { targetMode, context } = this.pendingModeTransition;
+        this.pendingModeTransition = null;
+        this.log(`Mode transition: switching to ${targetMode}`);
+        // Small delay so the UI finishes updating before the new run starts
+        setTimeout(() => {
+          const transitionMsg = `[Continuing from previous mode]\n\n${context}\n\nProceed with the above in ${targetMode} mode.`;
+          this.handleUserMessage(transitionMsg, targetMode as any);
+        }, 300);
+      }
     }
   }
 
@@ -2642,7 +2654,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     return new Promise((resolve) => {
       const confirmationId = crypto.randomUUID();
-      this.pendingConfirmations.set(confirmationId, { resolve, toolName });
+      this.pendingConfirmations.set(confirmationId, { resolve, toolName, args });
 
       this.postMessage({
         type: 'tool_confirmation_request',
@@ -2678,11 +2690,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       this.log(`Category auto-approved for session: ${category}`);
     }
 
-    // For present_plan, return a descriptive string instead of boolean
+    // For present_plan, return a descriptive string and create session tasks from plan steps
     if (pending.toolName === 'present_plan') {
       if (approved) {
         const selection = planSelection ? ` User selected approach: "${planSelection}".` : '';
         pending.resolve(`Plan approved.${selection} Execute the steps.`);
+        // Create session tasks from plan steps so they appear in the Ava sidebar tab
+        this.createTasksFromPlan(pending.args);
       } else {
         pending.resolve(false);
       }
@@ -2692,8 +2706,62 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       } else {
         pending.resolve(false);
       }
+    } else if (pending.toolName === 'switch_mode') {
+      if (approved) {
+        const args = (pending as any).args || {};
+        const additions = userResponse ? ` Additional context from user: ${userResponse}` : '';
+        pending.resolve(`Mode transition approved. Switching to ${args.target_mode || 'work'} mode.${additions}`);
+        // Schedule mode transition after current run completes
+        const targetMode = args.target_mode || 'work';
+        const context = args.context_summary || '';
+        this.scheduleModeTransition(targetMode, context + additions);
+      } else {
+        pending.resolve('Mode transition declined. Staying in current mode.');
+      }
     } else {
       pending.resolve(approved);
+    }
+  }
+
+  /**
+   * Schedule a mode transition after the current agent run completes.
+   * Injects the context from the previous mode and starts a new run.
+   */
+  private pendingModeTransition: { targetMode: string; context: string } | null = null;
+
+  private scheduleModeTransition(targetMode: string, context: string): void {
+    this.pendingModeTransition = { targetMode, context };
+  }
+
+  /**
+   * Create session tasks from an approved plan's steps.
+   * These appear in the Ava tab of the task sidebar.
+   */
+  private createTasksFromPlan(args?: Record<string, unknown>): void {
+    if (!args || !this.taskManager) return;
+    try {
+      const steps = args.steps as Array<{ description: string; files?: string[] }> | undefined;
+      if (!steps || !Array.isArray(steps)) return;
+
+      // Clear any existing session tasks so the new plan starts fresh
+      this.taskManager.clearSessionTasks();
+
+      for (let i = 0; i < steps.length; i++) {
+        const step = steps[i];
+        const title = `Step ${i + 1}: ${step.description}`;
+        this.taskManager.addSessionTask({
+          id: `plan-step-${i}-${Date.now()}`,
+          title,
+          status: 'pending',
+        });
+      }
+
+      // Push updated session tasks to the webview
+      const sessionTasks = this.taskManager.getSessionTasks();
+      this.postMessage({ type: 'session_tasks', tasks: sessionTasks });
+      this.log(`Created ${steps.length} session tasks from approved plan`);
+    } catch (err) {
+      this.log(`Failed to create tasks from plan: ${err}`);
     }
   }
 

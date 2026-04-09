@@ -30,17 +30,31 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'file_read', 'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
     'web_search', 'memory_save', 'memory_recall', 'present_plan', 'analyze_architecture',
     'ask_user', 'get_datetime', 'detect_language', 'docs_lookup', 'self_inspect',
+    'switch_mode',
   ]),
   chat: new Set([
     'web_search', 'memory_save', 'memory_recall', 'memory_update', 'journal_write',
     'get_datetime', 'weather', 'news', 'ask_user',
+    'switch_mode',
   ]),
   brainstorm: new Set([
     'web_search', 'memory_save', 'memory_recall', 'present_plan', 'journal_write',
     'ask_user', 'get_datetime',
+    'switch_mode',
   ]),
-  // teach and security have broader tool access — teach uses bash for examples,
-  // security uses bash + audit tools. No filtering needed for these.
+  teach: new Set([
+    'file_read', 'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
+    'web_search', 'memory_save', 'memory_recall', 'bash', 'ask_user',
+    'get_datetime', 'detect_language', 'learning_create', 'learning_teach', 'learning_progress',
+    'switch_mode',
+  ]),
+  security: new Set([
+    'file_read', 'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
+    'bash', 'git_status', 'git_diff', 'web_search', 'analyze_architecture',
+    'audit_dependencies', 'security', 'debug_logs', 'memory_save', 'memory_recall',
+    'test_run', 'ask_user',
+    'switch_mode',
+  ]),
 };
 
 function detectModeFromMessages(messages: Message[]): string | null {

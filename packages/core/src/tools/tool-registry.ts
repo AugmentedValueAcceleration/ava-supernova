@@ -59,6 +59,7 @@ import { ReleaseNotesTool } from './release-notes.js';
 import { WeatherTool } from './weather.js';
 import { NewsTool } from './news.js';
 import { ComputerUseTool } from './computer-use.js';
+import { SwitchModeTool } from './switch-mode.js';
 
 // ── Tool → Category mapping ────────────────────────────────────────────────
 
@@ -92,7 +93,7 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   report_generate: 'documents', email_draft: 'documents',
   doc_generate: 'documents', todo_write: 'documents',
   task_manage: 'documents', journal_write: 'documents',
-  present_plan: 'documents', apply_plan: 'documents',
+  present_plan: 'documents', apply_plan: 'documents', switch_mode: 'documents',
   // Memory — persistent knowledge
   memory_save: 'memory', memory_recall: 'memory',
   memory_update: 'memory', memory_delete: 'memory',
@@ -329,6 +330,7 @@ export class ToolRegistry {
       new GenerateVoiceTool(),
       new RemoveBackgroundTool(),
       new ComputerUseTool(),
+      new SwitchModeTool(),
     ];
     for (const tool of builtins) {
       if (!excludeSet.has(tool.name)) {
@@ -355,8 +357,8 @@ export class ToolRegistry {
   // ── Permission check ────────────────────────────────────────────────────
 
   needsConfirmation(tool: Tool): boolean {
-    // Plans and ask_user always require confirmation — collaboration checkpoints
-    if (tool.name === 'present_plan' || tool.name === 'ask_user') return true;
+    // Plans, ask_user, and switch_mode always require confirmation — collaboration checkpoints
+    if (tool.name === 'present_plan' || tool.name === 'ask_user' || tool.name === 'switch_mode') return true;
 
     const category = this.getCategoryForTool(tool.name);
     const permission = this.getCategoryPermission(category);
