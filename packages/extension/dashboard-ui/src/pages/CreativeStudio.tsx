@@ -9,13 +9,27 @@ function formatTokens(n: number): string {
   return String(n);
 }
 
+// SVG icon components for the Creative Studio tabs
+const TabIcon = ({ d, size = 16 }: { d: string; size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d={d} />
+  </svg>
+);
+
+const TAB_ICONS: Record<string, JSX.Element> = {
+  library: <TabIcon d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />,
+  images: <TabIcon d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />,
+  audio: <TabIcon d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />,
+  voice: <TabIcon d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4M12 15a3 3 0 003-3V5a3 3 0 00-6 0v7a3 3 0 003 3z" />,
+  video: <TabIcon d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />,
+};
+
 const TABS = [
-  { key: 'images', icon: '\uD83D\uDDBC\uFE0F', label: 'Images' },
-  { key: 'audio', icon: '\uD83C\uDFB5', label: 'Audio' },
-  { key: 'voice', icon: '\uD83C\uDF99\uFE0F', label: 'Voice' },
-  /* { key: 'sfx', icon: '\uD83D\uDD0A', label: 'SFX' }, */
-  { key: 'video', icon: '\uD83C\uDFAC', label: 'Video' },
-  { key: 'library', icon: '\uD83D\uDCDA', label: 'Library' },
+  { key: 'library', label: 'Library' },
+  { key: 'images', label: 'Images' },
+  { key: 'audio', label: 'Audio' },
+  { key: 'voice', label: 'Voice' },
+  { key: 'video', label: 'Video' },
 ];
 
 const VOICES = [
@@ -33,15 +47,26 @@ const VOICES = [
 
 type LibraryFilter = 'all' | 'images' | 'music' | 'video' | 'voice' | 'documents' | 'spreadsheets' | 'presentations';
 
-const LIBRARY_FILTERS: { key: LibraryFilter; label: string; icon: string }[] = [
-  { key: 'all', label: 'All', icon: '\uD83D\uDCCB' },
-  { key: 'images', label: 'Images', icon: '\uD83D\uDDBC\uFE0F' },
-  { key: 'music', label: 'Music', icon: '\uD83C\uDFB5' },
-  { key: 'video', label: 'Video', icon: '\uD83C\uDFAC' },
-  { key: 'voice', label: 'Voice', icon: '\uD83C\uDF99\uFE0F' },
-  { key: 'documents', label: 'Documents', icon: '\uD83D\uDCC4' },
-  { key: 'spreadsheets', label: 'Spreadsheets', icon: '\uD83D\uDCCA' },
-  { key: 'presentations', label: 'Presentations', icon: '\uD83D\uDCBD' },
+const FILTER_ICONS: Record<string, JSX.Element> = {
+  all: <TabIcon d="M4 6h16M4 10h16M4 14h16M4 18h16" />,
+  images: <TabIcon d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />,
+  music: <TabIcon d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />,
+  video: <TabIcon d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />,
+  voice: <TabIcon d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4M12 15a3 3 0 003-3V5a3 3 0 00-6 0v7a3 3 0 003 3z" />,
+  documents: <TabIcon d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />,
+  spreadsheets: <TabIcon d="M3 10h18M3 14h18M3 6h18M3 18h18M8 6v12M16 6v12" />,
+  presentations: <TabIcon d="M8 13v-1m4 1v-3m4 3V8M8 21l4-4 4 4M3 4h18v12H3z" />,
+};
+
+const LIBRARY_FILTERS: { key: LibraryFilter; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'images', label: 'Images' },
+  { key: 'music', label: 'Music' },
+  { key: 'video', label: 'Video' },
+  { key: 'voice', label: 'Voice' },
+  { key: 'documents', label: 'Documents' },
+  { key: 'spreadsheets', label: 'Spreadsheets' },
+  { key: 'presentations', label: 'Presentations' },
 ];
 
 /* ── Auth helpers ──────────────────────────────────────────────────── */
@@ -69,6 +94,175 @@ function typeIcon(type: string): string {
   if (type === 'spreadsheet') return '\uD83D\uDCCA';
   if (type === 'presentation') return '\uD83D\uDCBD';
   return '\uD83D\uDCC1';
+}
+
+/* ── Custom Video Player ──────────────────────────────────────────── */
+
+function VideoPlayer({ src, hideFullscreen }: { src: string; hideFullscreen?: boolean }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [thumbnail, setThumbnail] = useState<string | null>(null);
+  const [showControls, setShowControls] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const hideTimer = useRef<ReturnType<typeof setTimeout>>(null);
+
+  const fmt = (s: number) =>
+    `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
+
+  // Capture first frame as thumbnail
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const capture = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 360;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          setThumbnail(canvas.toDataURL('image/jpeg', 0.8));
+        }
+      } catch { /* cross-origin or not ready */ }
+    };
+    video.addEventListener('loadeddata', () => {
+      // Seek to 0.1s to get a good frame (avoids black first frame)
+      video.currentTime = 0.1;
+    });
+    video.addEventListener('seeked', capture, { once: true });
+  }, [src]);
+
+  const toggle = () => {
+    if (!videoRef.current) return;
+    if (playing) {
+      videoRef.current.pause();
+    } else {
+      videoRef.current.play();
+    }
+    setPlaying(!playing);
+  };
+
+  const seek = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!videoRef.current || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    videoRef.current.currentTime = pct * duration;
+  };
+
+  const toggleFullscreen = () => {
+    setIsExpanded(prev => !prev);
+  };
+
+  // Close expanded view on Escape key
+  useEffect(() => {
+    if (!isExpanded) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsExpanded(false);
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [isExpanded]);
+
+  // Auto-hide controls during playback
+  const scheduleHide = useCallback(() => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    setShowControls(true);
+    if (playing) {
+      hideTimer.current = setTimeout(() => setShowControls(false), 3000);
+    }
+  }, [playing]);
+
+  useEffect(() => { scheduleHide(); }, [playing, scheduleHide]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={`relative overflow-hidden bg-black group cursor-pointer ${
+        isExpanded
+          ? 'fixed inset-0 z-[9999] rounded-none flex items-center justify-center'
+          : 'rounded-lg'
+      }`}
+      onMouseMove={scheduleHide}
+      onMouseLeave={() => playing && setShowControls(false)}
+      onClick={toggle}
+    >
+      <video
+        ref={videoRef}
+        src={src}
+        preload="metadata"
+        className={isExpanded ? 'max-w-full max-h-full block' : 'w-full block'}
+        poster={thumbnail || undefined}
+        onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
+        onTimeUpdate={() => setProgress(videoRef.current?.currentTime || 0)}
+        onEnded={() => { setPlaying(false); setShowControls(true); }}
+        onPlay={() => setPlaying(true)}
+        onPause={() => { setPlaying(false); setShowControls(true); }}
+      />
+
+      {/* Play overlay — shows when paused */}
+      {!playing && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent)]/80 text-white backdrop-blur-sm transition hover:bg-[var(--accent)]">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom controls bar */}
+      <div
+        className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-3 pb-2.5 pt-8 transition-opacity duration-200 ${showControls ? 'opacity-100' : 'opacity-0'}`}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Progress bar */}
+        <div
+          className="h-1.5 cursor-pointer overflow-hidden rounded-full bg-white/15 mb-2"
+          onClick={seek}
+        >
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-purple-400 transition-[width] duration-100"
+            style={{ width: `${duration ? (progress / duration) * 100 : 0}%` }}
+          />
+        </div>
+
+        {/* Time + controls */}
+        <div className="flex items-center justify-between text-[10px] text-white/70">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggle}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white border-none cursor-pointer hover:bg-white/20 transition"
+            >
+              {playing ? (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg>
+              ) : (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              )}
+            </button>
+            <span>{fmt(progress)} / {fmt(duration)}</span>
+          </div>
+          {!hideFullscreen && <button
+            onClick={toggleFullscreen}
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white border-none cursor-pointer hover:bg-white/20 transition"
+            title={isExpanded ? 'Exit fullscreen (Esc)' : 'Fullscreen'}
+          >
+            {isExpanded ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 14h6v6m10-10h-6V4m0 6l7-7M3 21l7-7"/>
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+              </svg>
+            )}
+          </button>}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /* ── Custom Audio Player ──────────────────────────────────────────── */
@@ -211,7 +405,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     return result;
   }, []);
 
-  const [activeTab, setActiveTab] = useState<string>('images');
+  const [activeTab, setActiveTab] = useState<string>('library');
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -448,7 +642,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                 : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
             }`}
           >
-            {tab.icon} {tab.label}
+            <span className="inline-flex items-center gap-1.5">{TAB_ICONS[tab.key]} {tab.label}</span>
           </button>
         ))}
       </div>
@@ -496,7 +690,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                     : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                 }`}
               >
-                {f.icon} {f.label}
+                <span className="inline-flex items-center gap-1.5">{FILTER_ICONS[f.key]} {f.label}</span>
               </button>
             ))}
           </div>
@@ -568,96 +762,109 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                 </div>
               </div>
 
-              {/* Detail panel */}
+              {/* Preview overlay */}
               {selectedAsset && (
-                <div className="w-72 shrink-0 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
-                  <div className="mb-3 flex items-start justify-between">
-                    <h3 className="text-sm font-semibold text-white truncate pr-2">
-                      {selectedAsset.title || selectedAsset.name || 'Untitled'}
-                    </h3>
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+                  onClick={() => { setSelectedAsset(null); setConfirmDelete(false); }}
+                >
+                  <div
+                    className="relative w-full max-w-2xl mx-4 rounded-2xl border border-[var(--accent)]/20 bg-[var(--bg-card)] shadow-2xl overflow-hidden"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {/* Close button */}
                     <button
                       onClick={() => { setSelectedAsset(null); setConfirmDelete(false); }}
-                      className="shrink-0 text-xs text-[var(--text-muted)] hover:text-white transition"
+                      className="absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white/70 hover:text-white hover:bg-black/60 border-none cursor-pointer transition backdrop-blur-sm"
                     >
-                      {'\u2715'}
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
                     </button>
-                  </div>
 
-                  {/* Preview */}
-                  {['image', 'graphic'].includes(selectedAsset.asset_type || '') && selectedAsset.url ? (
-                    <img
-                      src={selectedAsset.url}
-                      alt=""
-                      className="mb-3 w-full rounded-lg object-contain"
-                    />
-                  ) : ['music', 'voice', 'sfx'].includes(selectedAsset.asset_type || '') && selectedAsset.url ? (
-                    <div className="mb-3">
-                      <AudioPlayer src={selectedAsset.url} />
+                    {/* Preview area */}
+                    <div className="bg-black/30">
+                      {['image', 'graphic'].includes(selectedAsset.asset_type || '') && selectedAsset.url ? (
+                        <img
+                          src={selectedAsset.url}
+                          alt=""
+                          className="w-full max-h-[60vh] object-contain"
+                        />
+                      ) : ['music', 'voice', 'sfx'].includes(selectedAsset.asset_type || '') && selectedAsset.url ? (
+                        <div className="p-6">
+                          <div className="flex items-center justify-center h-32 mb-4">
+                            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[var(--accent)]/15 text-[var(--accent)]">
+                              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/>
+                              </svg>
+                            </div>
+                          </div>
+                          <AudioPlayer src={selectedAsset.url} />
+                        </div>
+                      ) : selectedAsset.asset_type === 'video' && selectedAsset.url ? (
+                        <VideoPlayer src={selectedAsset.url} hideFullscreen />
+                      ) : (
+                        <div className="flex h-48 items-center justify-center text-5xl opacity-20">
+                          {typeIcon(selectedAsset.asset_type || selectedAsset.type || '')}
+                        </div>
+                      )}
                     </div>
-                  ) : selectedAsset.asset_type === 'video' && selectedAsset.url ? (
-                    <video
-                      controls
-                      src={selectedAsset.url}
-                      className="mb-3 w-full rounded-lg"
-                    />
-                  ) : (
-                    <div className="mb-3 flex h-32 items-center justify-center rounded-lg bg-[var(--bg-input)] text-4xl opacity-30">
-                      {typeIcon(selectedAsset.asset_type || selectedAsset.type || '')}
-                    </div>
-                  )}
 
-                  {/* Metadata */}
-                  {selectedAsset.prompt && (
-                    <p className="mb-3 text-[11px] leading-relaxed text-[var(--text-secondary)]">
-                      {selectedAsset.prompt}
-                    </p>
-                  )}
-                  {selectedAsset.created_at && (
-                    <p className="mb-3 text-[10px] text-[var(--text-muted)]">
-                      Created {new Date(selectedAsset.created_at).toLocaleString()}
-                    </p>
-                  )}
+                    {/* Info + actions */}
+                    <div className="p-5">
+                      <h3 className="text-sm font-semibold text-white mb-1">
+                        {selectedAsset.title || selectedAsset.name || 'Untitled'}
+                      </h3>
 
-                  {/* Actions */}
-                  <div className="space-y-2">
-                    {selectedAsset.url && (
-                      <a
-                        href={selectedAsset.url}
-                        download
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block w-full rounded-lg bg-[var(--accent)] py-2 text-center text-xs font-medium text-white transition hover:opacity-90"
-                      >
-                        Download
-                      </a>
-                    )}
+                      {selectedAsset.prompt && (
+                        <p className="text-[11px] leading-relaxed text-[var(--text-secondary)] mb-2">
+                          {selectedAsset.prompt}
+                        </p>
+                      )}
 
-                    {!confirmDelete ? (
-                      <button
-                        onClick={() => setConfirmDelete(true)}
-                        className="w-full rounded-lg border border-[var(--border-card)] py-2 text-xs font-medium text-[var(--text-secondary)] transition hover:border-red-400/50 hover:text-red-400"
-                      >
-                        Delete
-                      </button>
-                    ) : (
-                      <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
-                        <p className="mb-2 text-xs text-red-400">Are you sure?</p>
-                        <div className="flex gap-2">
+                      <div className="flex items-center gap-3 text-[10px] text-[var(--text-muted)] mb-4">
+                        <span className="capitalize">{selectedAsset.asset_type || selectedAsset.type}</span>
+                        {selectedAsset.created_at && (
+                          <>
+                            <span className="opacity-30">&middot;</span>
+                            <span>{new Date(selectedAsset.created_at).toLocaleDateString()}</span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        {selectedAsset.path && (
                           <button
-                            onClick={() => setConfirmDelete(false)}
-                            className="flex-1 rounded-md border border-[var(--border-card)] py-1.5 text-xs text-[var(--text-secondary)] transition hover:text-white"
+                            onClick={() => post({ type: 'download_asset', path: selectedAsset.path } as any)}
+                            className="flex-1 rounded-lg bg-[var(--accent)] py-2.5 text-center text-xs font-medium text-white transition hover:opacity-90 border-none cursor-pointer"
                           >
-                            Cancel
+                            Download
                           </button>
+                        )}
+                        {!confirmDelete ? (
                           <button
-                            onClick={() => handleDeleteAsset(selectedAsset)}
-                            className="flex-1 rounded-md bg-red-500/20 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/30"
+                            onClick={() => setConfirmDelete(true)}
+                            className="rounded-lg border border-[var(--border-card)] px-4 py-2.5 text-xs font-medium text-[var(--text-secondary)] transition hover:border-red-400/50 hover:text-red-400 cursor-pointer"
                           >
                             Delete
                           </button>
-                        </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setConfirmDelete(false)}
+                              className="rounded-lg border border-[var(--border-card)] px-4 py-2.5 text-xs text-[var(--text-secondary)] transition hover:text-white cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAsset(selectedAsset)}
+                              className="rounded-lg bg-red-500/20 px-4 py-2.5 text-xs font-medium text-red-400 transition hover:bg-red-500/30 border-none cursor-pointer"
+                            >
+                              Confirm Delete
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -959,11 +1166,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
             {activeTab === 'video' && (
               lastVideo ? (
                 <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 space-y-3">
-                  <video
-                    controls
-                    src={lastVideo}
-                    className="w-full rounded-lg"
-                  />
+                  <VideoPlayer src={lastVideo} />
                   <p className="text-[11px] text-[var(--text-muted)]">Generated video</p>
                   <p className="text-xs leading-relaxed text-[var(--text-secondary)]">{videoPrompt}</p>
                   <a

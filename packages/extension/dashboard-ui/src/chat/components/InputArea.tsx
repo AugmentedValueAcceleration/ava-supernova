@@ -90,18 +90,9 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
     }
   }, [isStreaming]);
 
-  // Re-focus after any click inside the chat area (prevents losing focus)
-  useEffect(() => {
-    const handler = () => {
-      setTimeout(() => {
-        if (!document.activeElement || document.activeElement === document.body) {
-          textareaRef.current?.focus();
-        }
-      }, 50);
-    };
-    document.addEventListener('click', handler);
-    return () => document.removeEventListener('click', handler);
-  }, []);
+  // Note: removed aggressive re-focus-on-any-click handler.
+  // It was stealing focus from copy buttons, links, and other interactive elements.
+  // Auto-focus on mount + after streaming ends is sufficient.
 
   // Save secrets through context (handles persistence + events)
   const handleSaveSecrets = useCallback((updated: SecretEntry[]) => {

@@ -593,6 +593,27 @@ export class DashboardPanel {
         await this.openLibraryImage(msg.path);
         break;
 
+      case 'download_asset': {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && msg.path) {
+          const projectRoot = workspaceFolders[0].uri.fsPath;
+          const sourcePath = path.resolve(projectRoot, msg.path);
+          const fileName = path.basename(sourcePath);
+          const dest = await vscode.window.showSaveDialog({
+            defaultUri: vscode.Uri.file(path.join(require('os').homedir(), 'Downloads', fileName)),
+            filters: { 'All Files': ['*'] },
+          });
+          if (dest) {
+            try {
+              await fs.copyFile(sourcePath, dest.fsPath);
+              vscode.window.showInformationMessage(`Saved to ${dest.fsPath}`);
+            } catch (err: any) {
+              this.post({ type: 'error', message: `Download failed: ${err.message}` });
+            }
+          }
+        }
+        break;
+      }
       case 'open_external': {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (workspaceFolders) {
@@ -1933,23 +1954,33 @@ export class DashboardPanel {
       const projectRoot = workspaceFolders[0].uri.fsPath;
       const imagesDir = path.join(projectRoot, 'images');
       const docsDir = path.join(projectRoot, 'documents');
+      const creativeDir = path.join(projectRoot, '.ava', 'creative');
+      const publicDir = path.join(projectRoot, 'public');
+      const srcAssetsDir = path.join(projectRoot, 'src', 'assets');
+      const assetsDir = path.join(projectRoot, 'assets');
+      const staticDir = path.join(projectRoot, 'static');
+      const mediaDir = path.join(projectRoot, 'media');
 
       const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.ico', '.bmp']);
+      const VIDEO_EXTENSIONS = new Set(['.mp4', '.webm', '.mov']);
+      const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.m4a']);
       const DOCUMENT_EXTENSIONS = new Set(['.docx', '.doc', '.pdf', '.txt', '.md', '.rtf']);
       const SPREADSHEET_EXTENSIONS = new Set(['.xlsx', '.xls', '.csv']);
       const PRESENTATION_EXTENSIONS = new Set(['.pptx', '.ppt']);
 
-      type FileType = 'image' | 'document' | 'spreadsheet' | 'presentation';
+      type FileType = 'image' | 'video' | 'audio' | 'document' | 'spreadsheet' | 'presentation';
 
       const getFileType = (ext: string): FileType | null => {
         if (IMAGE_EXTENSIONS.has(ext)) return 'image';
+        if (VIDEO_EXTENSIONS.has(ext)) return 'video';
+        if (AUDIO_EXTENSIONS.has(ext)) return 'audio';
         if (DOCUMENT_EXTENSIONS.has(ext)) return 'document';
         if (SPREADSHEET_EXTENSIONS.has(ext)) return 'spreadsheet';
         if (PRESENTATION_EXTENSIONS.has(ext)) return 'presentation';
         return null;
       };
 
-      const ALL_EXTENSIONS = new Set([...IMAGE_EXTENSIONS, ...DOCUMENT_EXTENSIONS, ...SPREADSHEET_EXTENSIONS, ...PRESENTATION_EXTENSIONS]);
+      const ALL_EXTENSIONS = new Set([...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS, ...AUDIO_EXTENSIONS, ...DOCUMENT_EXTENSIONS, ...SPREADSHEET_EXTENSIONS, ...PRESENTATION_EXTENSIONS]);
 
       const files: Array<{ path: string; name: string; folder: string; size: number; modified: string; fileType: FileType; dataUri?: string }> = [];
 
@@ -1965,8 +1996,8 @@ export class DashboardPanel {
         for (const entry of entries) {
           const fullPath = path.join(dir, entry.name);
           if (entry.isDirectory()) {
-            // Skip node_modules, .git, etc.
-            if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+            // Skip node_modules, .git, etc. — but allow .ava for creative assets
+            if ((entry.name.startsWith('.') && entry.name !== '.ava') || entry.name === 'node_modules') continue;
             await scan(fullPath);
           } else if (entry.isFile()) {
             const ext = path.extname(entry.name).toLowerCase();
@@ -1990,17 +2021,22 @@ export class DashboardPanel {
               fileType,
             };
 
-            // Only send base64 data for images (with 5MB limit)
-            if (fileType === 'image') {
-              if (stat.size > 5 * 1024 * 1024) continue;
+            // Send base64 data for images + audio (webviews block file:// URLs)
+            // Images: 5MB cap. Audio: 10MB cap. Video: skip (too large for base64).
+            if (fileType === 'image' && stat.size <= 5 * 1024 * 1024) {
               const fileBuffer = await fs.readFile(fullPath);
               const mimeTypes: Record<string, string> = {
                 '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
                 '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml',
                 '.ico': 'image/x-icon', '.bmp': 'image/bmp',
               };
-              const mime = mimeTypes[ext] || 'image/png';
-              item.dataUri = `data:${mime};base64,${fileBuffer.toString('base64')}`;
+              item.dataUri = `data:${mimeTypes[ext] || 'image/png'};base64,${fileBuffer.toString('base64')}`;
+            } else if (fileType === 'audio' && stat.size <= 10 * 1024 * 1024) {
+              const fileBuffer = await fs.readFile(fullPath);
+              const audioMimes: Record<string, string> = {
+                '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.m4a': 'audio/mp4',
+              };
+              item.dataUri = `data:${audioMimes[ext] || 'audio/mpeg'};base64,${fileBuffer.toString('base64')}`;
             }
 
             files.push(item);
@@ -2008,14 +2044,21 @@ export class DashboardPanel {
         }
       };
 
-      // Check if folders exist
+      // Check if primary folders exist
       const imagesDirExists = await fs.access(imagesDir).then(() => true).catch(() => false);
       const docsDirExists = await fs.access(docsDir).then(() => true).catch(() => false);
       const hasFolders = imagesDirExists || docsDirExists;
 
-      // Scan both images/ and documents/ directories
-      await scan(imagesDir);
-      await scan(docsDir);
+      // Scan all standard asset directories
+      const scanDirs = [imagesDir, docsDir, creativeDir, publicDir, srcAssetsDir, assetsDir, staticDir, mediaDir];
+      const scanned = new Set<string>();
+      for (const dir of scanDirs) {
+        // Avoid scanning the same directory twice (e.g. if assets/ and src/assets/ resolve to the same path)
+        const resolved = path.resolve(dir);
+        if (scanned.has(resolved)) continue;
+        scanned.add(resolved);
+        await scan(dir);
+      }
 
       // Sort newest first
       files.sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime());

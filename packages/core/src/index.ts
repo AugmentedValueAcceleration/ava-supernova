@@ -200,6 +200,10 @@ export type { DependencyVuln, SecretFinding, CodeVuln, ScanReport } from './secu
 // Dataset
 export { captureInteraction } from './dataset/capture.js';
 
+// Generation
+export { GenerationManager } from './tools/generation-manager.js';
+export type { GenerationJob, GenerationType, GenerationStatus, GenerationEventHandler } from './tools/generation-manager.js';
+
 // Constants & Errors
 export {
   APP_NAME,

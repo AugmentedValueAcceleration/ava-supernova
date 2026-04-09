@@ -41,6 +41,7 @@ import {
   loadSelfImprovementStore,
   saveSelfImprovementStore,
   getRelevantLearnings,
+  GenerationManager,
 } from '@ava/core';
 import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, Message, ContentPart, PermissionMode } from '@ava/core';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus } from './message-types.js';
@@ -78,6 +79,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private memoryManager?: MemoryManager;
   private taskManager?: TaskManager;
   private journalManager?: JournalManager;
+  private generationManager?: import('@ava/core').GenerationManager;
   private conductor?: Conductor;
   private autoCoordinator?: AutoCoordinator;
   private memoryAgent?: MemoryAgent;
@@ -181,6 +183,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       journalSync = new PlatformJournalSyncImpl('https://ava-supernova.com/api', platformKey);
     }
     this.journalManager = new JournalManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync: journalSync });
+
+    // Generation manager — persists across page navigation, tracks creative jobs
+    this.generationManager = new GenerationManager();
+    this.generationManager.load().catch(() => {});
+    this.generationManager.onUpdate((jobs) => {
+      const active = jobs.filter(j => j.status !== 'complete' && j.status !== 'failed');
+      if (active.length > 0) {
+        this.updateStatusBar('generating', `Generating ${active.length} asset${active.length !== 1 ? 's' : ''}...`);
+      }
+      // Send to webview so it can show progress anywhere
+      this.postMessage({ type: 'generation_progress', jobs: active } as any);
+    });
 
     this.projectInstructions = this.projectRoot
       ? (await loadProjectInstructions(this.projectRoot)) ?? undefined
@@ -1078,6 +1092,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       memoryManager: this.memoryManager,
       taskManager: this.taskManager,
       journalManager: this.journalManager,
+      generationManager: this.generationManager,
       platformKey,
       getProviderKey,
       activeModelId: model.id,
@@ -2148,7 +2163,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           // Refresh VSCode explorer when file-modifying tools complete
           const fileTools = ['file_write', 'file_edit', 'bash', 'apply_plan'];
           if (event.success && fileTools.includes(event.toolCall.function.name)) {
-            vscode.commands.executeCommand('workbench.files.action.refreshExplorer');
+            vscode.commands.executeCommand('workbench.files.action.refreshFilesExplorer').catch(() => {});
           }
           // Refresh dashboard journal when journal_write fires
           if (event.toolCall.function.name === 'journal_write' && DashboardPanel.currentPanel) {
@@ -2177,6 +2192,57 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
                 });
               } catch { /* preview is non-critical */ }
             }
+          }
+          // Register creative assets in the dashboard library so Creative Studio sees them
+          const creativeTools: Record<string, string> = {
+            generate_image: 'image', generate_video: 'video',
+            generate_music: 'music', generate_voice: 'voice',
+          };
+          const creativeType = creativeTools[event.toolCall.function.name];
+          if (event.success && creativeType && event.metadata) {
+            const meta = event.metadata as Record<string, unknown>;
+            const absPath = meta.absolutePath as string;
+
+            // Read file for base64 dataUri (images + audio + video, with 10MB cap)
+            // VS Code webviews block file:// URLs so assets must be data URIs
+            let dataUri: string | undefined;
+            if (absPath) {
+              try {
+                const nodeFs = require('node:fs');
+                const nodePath = require('node:path');
+                const buf = nodeFs.readFileSync(absPath);
+                if (buf.length < 10 * 1024 * 1024) {
+                  const ext = nodePath.extname(absPath).toLowerCase();
+                  const mimes: Record<string, string> = {
+                    '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+                    '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml',
+                    '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.m4a': 'audio/mp4',
+                    '.mp4': 'video/mp4', '.webm': 'video/webm',
+                  };
+                  const mime = mimes[ext];
+                  if (mime) {
+                    dataUri = `data:${mime};base64,${buf.toString('base64')}`;
+                  }
+                }
+              } catch { /* non-critical */ }
+            }
+
+            // Notify dashboard to add asset to the creative library
+            if (DashboardPanel.currentPanel) {
+              DashboardPanel.currentPanel.post({
+                type: 'creative_asset_created',
+                asset: {
+                  type: creativeType,
+                  path: meta.path as string,
+                  absolutePath: absPath,
+                  prompt: meta.prompt as string || '',
+                  size: meta.size as number || 0,
+                  dataUri,
+                },
+              } as any);
+            }
+            // Refresh file explorer so the file shows in VS Code
+            vscode.commands.executeCommand('workbench.files.action.refreshFilesExplorer').catch(() => {});
           }
           // Auto-learn from retries: track failures, extract learnings on subsequent success
           const toolKey = event.toolCall.function.name;

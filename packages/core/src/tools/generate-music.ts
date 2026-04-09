@@ -46,15 +46,24 @@ export class GenerateMusicTool implements Tool {
     const prompt = args.prompt as string;
     const lyrics = args.lyrics as string | undefined;
     const filename = (args.filename as string).replace(/\.\w+$/, '');
+    const targetPath = args.target_path as string | undefined;
+
+    const genManager = (context.sharedState as Record<string, unknown>)?.generationManager as
+      { create: (j: any) => any; update: (id: string, p: any) => void; complete: (id: string, m?: any) => void; fail: (id: string, e: string) => void } | undefined;
+    const jobId = `mus-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const defaultPath = `.ava/creative/audio/${filename}.mp3`;
+    genManager?.create({ id: jobId, type: 'music', prompt, filename, targetPath: targetPath || defaultPath });
 
     const resolved = this.resolveKey(context);
     if (!resolved) {
+      genManager?.fail(jobId, 'No API key');
       return {
         success: false,
         output: 'Music generation requires a MiniMax API key (BYOK) or platform account.',
       };
     }
 
+    genManager?.update(jobId, { status: 'generating', progress: 10 });
     context.onOutput?.('Generating music...\n');
 
     try {
@@ -80,30 +89,29 @@ export class GenerateMusicTool implements Tool {
       if (!data.url) throw new Error('No audio URL returned from API');
 
       // Download audio buffer
+      genManager?.update(jobId, { status: 'downloading', progress: 70 });
       const audioBuffer = await this.downloadAudio(data.url);
 
-      // Save to project
-      const savePath = join(context.cwd, '.ava', 'creative', 'audio', `${filename}.mp3`);
+      // Save to project — use target_path if provided
+      const relativePath = targetPath || defaultPath;
+      const savePath = join(context.cwd, relativePath);
       await mkdir(dirname(savePath), { recursive: true });
       await writeFile(savePath, audioBuffer);
 
-      const relativePath = `.ava/creative/audio/${filename}.mp3`;
       const sizeKb = (audioBuffer.length / 1024).toFixed(1);
       context.onOutput?.(`Music saved: ${relativePath} (${sizeKb} KB)\n`);
+
+      const meta = { path: relativePath, absolutePath: savePath, size: audioBuffer.length, prompt, hasLyrics: !!lyrics };
+      genManager?.complete(jobId, meta);
 
       return {
         success: true,
         output: `Generated music and saved to ${relativePath}`,
-        metadata: {
-          path: relativePath,
-          absolutePath: savePath,
-          size: audioBuffer.length,
-          prompt,
-          hasLyrics: !!lyrics,
-        },
+        metadata: meta,
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      genManager?.fail(jobId, message);
       return { success: false, output: `Music generation failed: ${message}` };
     }
   }

@@ -38,6 +38,10 @@ export class GenerateVideoTool implements Tool {
           enum: [6, 10],
           description: 'Duration in seconds. 6s at 1080P, 10s at 768P. Default: 6.',
         },
+        target_path: {
+          type: 'string',
+          description: 'Exact path relative to project root for the video. Overrides default .ava/creative/video/ folder.',
+        },
       },
       required: ['prompt', 'filename'],
     },
@@ -48,15 +52,24 @@ export class GenerateVideoTool implements Tool {
     const filename = (args.filename as string).replace(/\.\w+$/, '');
     const duration = (args.duration as number) || 6;
     const resolution = duration === 10 ? '768P' : '1080P';
+    const targetPath = args.target_path as string | undefined;
+
+    const genManager = (context.sharedState as Record<string, unknown>)?.generationManager as
+      { create: (j: any) => any; update: (id: string, p: any) => void; complete: (id: string, m?: any) => void; fail: (id: string, e: string) => void } | undefined;
+    const jobId = `vid-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const defaultPath = `.ava/creative/video/${filename}.mp4`;
+    genManager?.create({ id: jobId, type: 'video', prompt, filename, targetPath: targetPath || defaultPath });
 
     const resolved = this.resolveKey(context);
     if (!resolved) {
+      genManager?.fail(jobId, 'No API key');
       return {
         success: false,
         output: 'Video generation requires a MiniMax API key (BYOK) or platform account.',
       };
     }
 
+    genManager?.update(jobId, { status: 'generating', progress: 10 });
     context.onOutput?.('Generating video (this may take a few minutes)...\n');
 
     try {
@@ -79,31 +92,29 @@ export class GenerateVideoTool implements Tool {
       if (!data.url) throw new Error('No video URL returned from API');
 
       // Download video buffer
+      genManager?.update(jobId, { status: 'downloading', progress: 70 });
       const videoBuffer = await this.downloadVideo(data.url);
 
-      // Save to project
-      const savePath = join(context.cwd, '.ava', 'creative', 'video', `${filename}.mp4`);
+      // Save to project — use target_path if provided
+      const relativePath = targetPath || `.ava/creative/video/${filename}.mp4`;
+      const savePath = join(context.cwd, relativePath);
       await mkdir(dirname(savePath), { recursive: true });
       await writeFile(savePath, videoBuffer);
 
-      const relativePath = `.ava/creative/video/${filename}.mp4`;
       const sizeMb = (videoBuffer.length / (1024 * 1024)).toFixed(1);
       context.onOutput?.(`Video saved: ${relativePath} (${sizeMb} MB)\n`);
+
+      const meta = { path: relativePath, absolutePath: savePath, size: videoBuffer.length, duration, resolution, prompt };
+      genManager?.complete(jobId, meta);
 
       return {
         success: true,
         output: `Generated ${duration}s ${resolution} video and saved to ${relativePath}`,
-        metadata: {
-          path: relativePath,
-          absolutePath: savePath,
-          size: videoBuffer.length,
-          duration,
-          resolution,
-          prompt,
-        },
+        metadata: meta,
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      genManager?.fail(jobId, message);
       return { success: false, output: `Video generation failed: ${message}` };
     }
   }

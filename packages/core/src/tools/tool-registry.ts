@@ -60,6 +60,7 @@ import { WeatherTool } from './weather.js';
 import { NewsTool } from './news.js';
 import { ComputerUseTool } from './computer-use.js';
 import { SwitchModeTool } from './switch-mode.js';
+import { BrowseLibraryTool } from './browse-library.js';
 
 // ── Tool → Category mapping ────────────────────────────────────────────────
 
@@ -93,7 +94,7 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   report_generate: 'documents', email_draft: 'documents',
   doc_generate: 'documents', todo_write: 'documents',
   task_manage: 'documents', journal_write: 'documents',
-  present_plan: 'documents', apply_plan: 'documents', switch_mode: 'documents',
+  present_plan: 'documents', apply_plan: 'documents', switch_mode: 'documents', browse_library: 'file_ops',
   // Memory — persistent knowledge
   memory_save: 'memory', memory_recall: 'memory',
   memory_update: 'memory', memory_delete: 'memory',
@@ -331,6 +332,7 @@ export class ToolRegistry {
       new RemoveBackgroundTool(),
       new ComputerUseTool(),
       new SwitchModeTool(),
+      new BrowseLibraryTool(),
     ];
     for (const tool of builtins) {
       if (!excludeSet.has(tool.name)) {

@@ -338,6 +338,12 @@ export function Library({ images, projectRoot, hasImagesFolder = true }: Props) 
                   </button>
                 )}
                 <button
+                  onClick={() => post({ type: 'download_asset', path: selected.path } as any)}
+                  className="px-3 py-2 rounded-lg text-xs font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
+                >
+                  Download
+                </button>
+                <button
                   onClick={() => {
                     navigator.clipboard.writeText(selected.path);
                   }}

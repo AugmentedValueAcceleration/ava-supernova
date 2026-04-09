@@ -85,6 +85,10 @@ export class GenerateImageTool implements Tool {
           enum: ['icon', 'ui-element', 'logo', 'illustration', 'background', 'promotional', 'avatar', 'general'],
           description: 'What the image is for. Icons, ui-elements, and logos automatically get transparent backgrounds. Default: general.',
         },
+        target_path: {
+          type: 'string',
+          description: 'Exact path relative to project root where the image should be saved (e.g. "src/assets/hero.png", "public/icons/logo.png"). When provided, overrides the default images/ folder. Use this to place assets exactly where the project needs them.',
+        },
       },
       required: ['prompt', 'filename'],
     },
@@ -109,6 +113,14 @@ export class GenerateImageTool implements Tool {
     const rawFilename = (args.filename as string).replace(/\.\w+$/, '');
     const sizeKey = (args.size as string) || 'square';
     const purpose = (args.purpose as string) || 'general';
+    const targetPath = args.target_path as string | undefined;
+
+    // Register with GenerationManager if available (enables global progress tracking)
+    const genManager = (context.sharedState as Record<string, unknown>)?.generationManager as
+      { create: (j: any) => any; update: (id: string, p: any) => void; complete: (id: string, m?: any) => void; fail: (id: string, e: string) => void } | undefined;
+    const jobId = `img-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const savePath = targetPath || `images/${rawFilename}.png`;
+    genManager?.create({ id: jobId, type: 'image', prompt: rawPrompt, filename: rawFilename, targetPath: savePath });
 
     const backend = this.detectImageBackend(context);
     if (!backend) {
@@ -138,6 +150,7 @@ export class GenerateImageTool implements Tool {
     const enhancedPrompt = rawPrompt + promptAddition;
 
     const modelLabel = useMinimax ? 'MiniMax image-01' : 'Wan2.6';
+    genManager?.update(jobId, { status: 'generating', progress: 10 });
     context.onOutput?.(`Generating ${purpose} image with ${modelLabel}...\n`);
     if (promptAddition) {
       context.onOutput?.(`Smart enhancement: added "${purpose}" optimisations to prompt\n`);
@@ -169,6 +182,7 @@ export class GenerateImageTool implements Tool {
         }
 
         // Download the image
+        genManager?.update(jobId, { status: 'downloading', progress: 60 });
         let imageBuffer = await this.downloadImage(imageUrl, context);
         if (!imageBuffer) {
           lastError = 'Failed to download image';
@@ -181,17 +195,19 @@ export class GenerateImageTool implements Tool {
           imageBuffer = await this.removeBackground(imageBuffer, context);
         }
 
-        // Save to disk
+        // Save to disk — use target_path if provided, otherwise default images/ folder
         const filename = `${rawFilename}.png`;
-        const savePath = join(context.cwd, 'images', filename);
-        await mkdir(dirname(savePath), { recursive: true });
-        await writeFile(savePath, imageBuffer);
+        const relativePath = targetPath || `images/${filename}`;
+        const absoluteSavePath = join(context.cwd, relativePath);
+        await mkdir(dirname(absoluteSavePath), { recursive: true });
+        await writeFile(absoluteSavePath, imageBuffer);
+        genManager?.update(jobId, { progress: 85 });
 
         // Vision verification (only if we have retries left)
         if (attempt < MAX_VISION_RETRIES) {
           context.onOutput?.('Verifying image quality with Qwen Vision...\n');
           const visionKey = apiKey || platformKey || '';
-          const review = await this.verifyWithVision(savePath, purpose, rawPrompt, visionKey);
+          const review = await this.verifyWithVision(absoluteSavePath, purpose, rawPrompt, visionKey);
 
           if (review.approved) {
             context.onOutput?.(`Vision check: approved ✓ — ${review.feedback}\n`);
@@ -203,21 +219,23 @@ export class GenerateImageTool implements Tool {
         }
 
         // Success
-        const relativePath = `images/${filename}`;
         const sizeKb = (imageBuffer.length / 1024).toFixed(1);
         context.onOutput?.(`Image saved: ${relativePath} (${sizeKb} KB)\n`);
+
+        const resultMeta = {
+          path: relativePath,
+          absolutePath: absoluteSavePath,
+          size: imageBuffer.length,
+          dimensions: size.replace('*', 'x'),
+          prompt: enhancedPrompt,
+          purpose,
+        };
+        genManager?.complete(jobId, resultMeta);
 
         return {
           success: true,
           output: `Generated and saved ${purpose} image to ${relativePath} (${sizeKb} KB, ${size.replace('*', 'x')})\n\nPrompt: ${rawPrompt}${promptAddition ? `\nEnhanced: ${enhancedPrompt}` : ''}`,
-          metadata: {
-            path: relativePath,
-            absolutePath: savePath,
-            size: imageBuffer.length,
-            dimensions: size.replace('*', 'x'),
-            prompt: enhancedPrompt,
-            purpose,
-          },
+          metadata: resultMeta,
         };
       } catch (err) {
         lastError = err instanceof Error ? err.message : String(err);
@@ -225,6 +243,7 @@ export class GenerateImageTool implements Tool {
       }
     }
 
+    genManager?.fail(jobId, lastError);
     return {
       success: false,
       output: `Image generation failed after ${MAX_VISION_RETRIES + 1} attempts. Last error: ${lastError}`,

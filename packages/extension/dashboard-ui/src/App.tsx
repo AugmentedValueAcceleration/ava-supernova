@@ -445,6 +445,31 @@ export function App() {
       case 'library_image_deleted':
         setLibraryImages(prev => prev.filter(i => i.path !== msg.path));
         break;
+      case 'creative_asset_created': {
+        // Agent generated a creative asset — register in Creative Studio's local store
+        const asset = (msg as any).asset;
+        if (asset) {
+          try {
+            const saved = localStorage.getItem('ava-creative-assets');
+            const assets = saved ? JSON.parse(saved) : [];
+            assets.unshift({
+              id: `${asset.type}_${Date.now()}`,
+              type: asset.type,
+              asset_type: asset.type,
+              title: asset.path?.split(/[/\\]/).pop() || 'Untitled',
+              prompt: asset.prompt || '',
+              url: asset.dataUri || (asset.absolutePath ? `file://${asset.absolutePath}` : ''),
+              created_at: new Date().toISOString(),
+              path: asset.path,
+              size: asset.size,
+            });
+            localStorage.setItem('ava-creative-assets', JSON.stringify(assets));
+          } catch { /* quota */ }
+          // Also trigger a library refresh so the Library page picks it up
+          post({ type: 'load_library' } as any);
+        }
+        break;
+      }
       // Avatar messages
       case 'avatar_loaded':
         setAvatarDataUrl(msg.dataUrl);
