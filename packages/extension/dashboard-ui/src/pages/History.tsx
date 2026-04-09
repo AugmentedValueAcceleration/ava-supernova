@@ -90,7 +90,7 @@ export function History({ sessionStats, usageHistory, mode, account, auditLog }:
   };
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="w-full">
       <div className="mb-6">
         <h1 className="text-xl font-bold">{t('dash.usage.title')}</h1>
         <p className="mt-1 text-xs text-[var(--text-secondary)]">

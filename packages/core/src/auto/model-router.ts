@@ -16,7 +16,7 @@ const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
   coding:       { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — Terminal-Bench #1, 1M context', fallbackModelId: 'qwen3.5-omni-plus' },
   vision:       { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — vision + reasoning + 1M context', fallbackModelId: 'qwen3.5-omni-plus', requiresVision: true },
   image_gen:    { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — image generation via generate_image tool', fallbackModelId: 'qwen3.5-omni-plus' },
-  computer_use: { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — conductor plans, Holo3 executes', fallbackModelId: 'qwen3.5-omni-plus', requiresVision: true },
+  computer_use: { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — orchestrates Agent S3 desktop automation', fallbackModelId: 'qwen3.5-omni-plus', requiresVision: true },
   planning:     { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — 1M context for architecture + planning', fallbackModelId: 'qwen3.5-omni-plus' },
   chat:         { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — conversational with full context', fallbackModelId: 'qwen3-omni-flash' },
   long_context: { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — 1M context', fallbackModelId: 'qwen3.5-omni-plus' },

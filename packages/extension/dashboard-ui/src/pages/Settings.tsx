@@ -191,7 +191,7 @@ export function Settings({
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="mx-auto max-w-2xl pb-12">
+    <div className="w-full pb-12">
       {/* Page Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold">{t('dash.settings.title')}</h1>

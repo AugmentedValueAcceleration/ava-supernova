@@ -90,7 +90,7 @@ export function Library({ images, projectRoot, hasImagesFolder = true }: Props) 
   const selected = images.find(i => i.path === selectedPath);
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
+    <div className="w-full">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
