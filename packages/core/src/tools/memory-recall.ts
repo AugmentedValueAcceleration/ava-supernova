@@ -7,7 +7,7 @@ import { MEMORY_CATEGORIES } from '../memory/types.js';
 
 export class MemoryRecallTool implements Tool {
   readonly name = 'memory_recall';
-  readonly description = 'Ask the memory agent for detailed information from your stored memories';
+  readonly description = 'Search persistent memory for information from past conversations. Use natural language queries — the memory system uses semantic search. Ask about user preferences, past decisions, project context, patterns, or anything previously saved with memory_save.';
   readonly riskLevel: ToolRiskLevel = 'safe';
   readonly requiresConfirmation = false;
 

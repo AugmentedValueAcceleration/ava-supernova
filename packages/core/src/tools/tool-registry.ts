@@ -63,40 +63,40 @@ import { ComputerUseTool } from './computer-use.js';
 // ── Tool → Category mapping ────────────────────────────────────────────────
 
 export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
-  // File Operations
+  // File Operations — reading, writing, searching files
   file_read: 'file_ops', file_write: 'file_ops', file_edit: 'file_ops',
   glob: 'file_ops', grep: 'file_ops', list_directory: 'file_ops',
   find_symbol: 'file_ops', project_index: 'file_ops',
-  detect_language: 'file_ops', get_datetime: 'file_ops',
   analyze_architecture: 'file_ops', self_inspect: 'file_ops',
-  benchmark: 'file_ops', debug_logs: 'file_ops',
-  release_notes: 'file_ops', docs_lookup: 'file_ops',
-  audit_dependencies: 'file_ops', weather: 'file_ops', news: 'file_ops',
-  // Shell
+  docs_lookup: 'file_ops',
+  // Shell — execution, testing, performance
   bash: 'shell', test_run: 'shell', test_generate: 'shell',
-  // Git
+  benchmark: 'shell', debug_logs: 'shell',
+  // Git — version control
   git_status: 'git', git_diff: 'git', git_commit: 'git',
   git_create_pr: 'git', rollback: 'git',
-  // Web
+  // Web — search, HTTP, browsing, real-world data
   web_search: 'web', http_request: 'web', browser: 'web',
-  // Media
+  weather: 'web', news: 'web', release_notes: 'web',
+  // Media — images, audio, video, screen capture
   screenshot: 'media', generate_image: 'media', generate_music: 'media',
   generate_video: 'media', generate_voice: 'media', remove_background: 'media',
   // Database
   database_query: 'database',
-  // System
-  computer_use: 'system',
-  // Documents
+  // System — desktop control, utilities, security
+  computer_use: 'system', get_datetime: 'system', detect_language: 'system',
+  audit_dependencies: 'system', security: 'system',
+  ask_user: 'system', support_request: 'system', propose_tool: 'system',
+  // Documents — creation, planning, tasks
   document_manage: 'documents', presentation_create: 'documents',
   report_generate: 'documents', email_draft: 'documents',
   doc_generate: 'documents', todo_write: 'documents',
   task_manage: 'documents', journal_write: 'documents',
-  propose_tool: 'documents', support_request: 'documents',
-  apply_plan: 'documents',
-  // Memory
+  present_plan: 'documents', apply_plan: 'documents',
+  // Memory — persistent knowledge
   memory_save: 'memory', memory_recall: 'memory',
   memory_update: 'memory', memory_delete: 'memory',
-  // Learning
+  // Learning — education system
   learning_create: 'learning', learning_teach: 'learning',
   learning_progress: 'learning',
 };

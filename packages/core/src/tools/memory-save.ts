@@ -7,7 +7,7 @@ import { containsCredentials } from './security.js';
 
 export class MemorySaveTool implements Tool {
   readonly name = 'memory_save';
-  readonly description = 'Save information to persistent memory that survives across conversations';
+  readonly description = 'Save information to persistent memory that survives across conversations. Use for: user preferences, project decisions, code patterns, architecture notes, bug-fix context. Categories: preference, pattern, architecture, bug-fix, convention, decision, general. Different from journal (daily reflection) and task_manage (action items).';
   readonly riskLevel: ToolRiskLevel = 'safe';
   readonly requiresConfirmation = false;
 

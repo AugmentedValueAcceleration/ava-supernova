@@ -3,7 +3,7 @@ import type { FunctionSchema } from '../providers/types.js';
 
 export class ProposeToolTool implements Tool {
   readonly name = 'propose_tool';
-  readonly description = 'Propose a new tool that Ava needs but does not currently have';
+  readonly description = 'Propose a new tool when you hit a capability gap — something you should be able to do but can\'t. The proposal is reviewed by the development team and may be built. Include: what the tool would do, why it\'s needed, and example use cases. This is how Ava evolves.';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = true;
 

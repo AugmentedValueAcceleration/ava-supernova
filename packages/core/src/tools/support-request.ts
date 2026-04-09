@@ -4,7 +4,7 @@ import { containsCredentials } from './security.js';
 
 export class SupportRequestTool implements Tool {
   readonly name = 'support_request';
-  readonly description = 'Submit a support ticket to the Ava team on behalf of the user';
+  readonly description = 'Submit a support ticket to the Ava development team. Use when the user reports a bug you can\'t fix, requests a feature, or needs help that\'s beyond your capabilities. Captures the user\'s email, issue description, and category.';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = true;
 

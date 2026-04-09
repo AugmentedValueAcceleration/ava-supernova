@@ -5,7 +5,7 @@ import type { JournalMood } from '../journal/types.js';
 
 export class JournalWriteTool implements Tool {
   readonly name = 'journal_write';
-  readonly description = 'Dual journal system — both you and the user have journals';
+  readonly description = 'Write daily journal entries. Two journals: yours (Ava observations about the session — what was built, patterns noticed, mood) and the user\'s (their reflections). Use at end of sessions or when the user wants to reflect. Different from memory (persistent facts) and task_manage (action items).';
   readonly riskLevel: ToolRiskLevel = 'safe';
   readonly requiresConfirmation = false;
 

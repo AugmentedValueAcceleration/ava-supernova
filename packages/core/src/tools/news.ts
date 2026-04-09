@@ -3,7 +3,7 @@ import type { FunctionSchema } from '../providers/types.js';
 
 export class NewsTool implements Tool {
   readonly name = 'news';
-  readonly description = 'Get latest news articles from the Ava platform. Filter by category or search.';
+  readonly description = 'Get latest tech and AI news curated by the Ava platform. Filter by category (ai, coding, open-source, startups, tools) or search by keyword. Use in Chat mode for casual conversation or when users ask about what\'s happening in tech.';
   readonly riskLevel: ToolRiskLevel = 'safe';
   readonly requiresConfirmation = false;
 

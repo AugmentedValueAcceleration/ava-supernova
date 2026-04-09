@@ -3,7 +3,7 @@ import type { FunctionSchema } from '../providers/types.js';
 
 export class PresentPlanTool implements Tool {
   readonly name = 'present_plan';
-  readonly description = 'Present a structured plan for the user to review and approve';
+  readonly description = 'Present a structured plan for the user to review and approve before execution. Use in Plan mode for proposals, in Work mode before complex multi-step tasks, and in Brainstorm mode for refined action plans. Shows steps, effort estimates, and trade-offs.';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = true;
 
