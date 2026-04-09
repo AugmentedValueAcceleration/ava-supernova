@@ -93,7 +93,7 @@ export function Connections({ connections }: ConnectionsProps) {
   const connectedCount = Object.values(connections).filter(Boolean).length;
 
   return (
-    <div className="w-full">
+    <div className="mx-auto w-full max-w-4xl">
       <div className="mb-10">
         <h1 className="text-2xl font-bold">{t('dash.connections.title')}</h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">

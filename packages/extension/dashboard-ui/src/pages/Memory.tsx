@@ -301,7 +301,7 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
   }
 
   return (
-    <div className="w-full">
+    <div className="mx-auto w-full max-w-4xl">
       {/* Page Header */}
       <div className="mb-10 flex items-start justify-between">
         <div>

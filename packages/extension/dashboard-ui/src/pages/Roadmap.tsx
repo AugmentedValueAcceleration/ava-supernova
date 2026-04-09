@@ -124,7 +124,7 @@ export function Roadmap() {
   const pct = Math.round((totalShipped / totalAll) * 100);
 
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ maxWidth: 700 }}>
       {/* Header */}
       <h1 className="text-2xl font-light mb-1">Roadmap</h1>
       <p className="text-xs font-light text-[var(--text-muted)] mb-6">Where Ava has been and where she's heading.</p>

@@ -180,7 +180,7 @@ export function Overview({
   }, [logs]);
 
   return (
-    <div className="w-full">
+    <div className="mx-auto w-full max-w-5xl">
       {/* Page Header */}
       <div className="mb-6 flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
@@ -904,7 +904,7 @@ function ByokOverview({
   const sessionDuration = stats ? timeSince(stats.session_start) : '\u2014';
 
   return (
-    <div className="w-full">
+    <div className="mx-auto w-full max-w-5xl">
       <div className="mb-6">
         <h1 className="text-xl font-bold">{t('dash.nav.command_centre')}</h1>
         <p className="mt-1 text-xs text-[var(--text-secondary)]">

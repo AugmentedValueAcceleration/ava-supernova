@@ -59,7 +59,6 @@ import { ReleaseNotesTool } from './release-notes.js';
 import { WeatherTool } from './weather.js';
 import { NewsTool } from './news.js';
 import { ComputerUseTool } from './computer-use.js';
-import { DesktopControlTool } from './desktop-control.js';
 
 // ── Tool → Category mapping ────────────────────────────────────────────────
 
@@ -85,7 +84,7 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   // Database
   database_query: 'database',
   // System — desktop control, utilities, security
-  computer_use: 'system', desktop_control: 'system', get_datetime: 'system', detect_language: 'system',
+  computer_use: 'system', get_datetime: 'system', detect_language: 'system',
   audit_dependencies: 'system', security: 'system',
   ask_user: 'system', support_request: 'system', propose_tool: 'system',
   // Documents — creation, planning, tasks
@@ -330,7 +329,6 @@ export class ToolRegistry {
       new GenerateVoiceTool(),
       new RemoveBackgroundTool(),
       new ComputerUseTool(),
-      new DesktopControlTool(),
     ];
     for (const tool of builtins) {
       if (!excludeSet.has(tool.name)) {

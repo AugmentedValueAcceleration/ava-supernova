@@ -83,7 +83,7 @@ export function Personality({ personality }: Props) {
   const styleLabel = STYLES.find(x => x.value === style)?.label?.toLowerCase() ?? style;
 
   return (
-    <div className="w-full">
+    <div className="mx-auto w-full max-w-3xl">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold">{t('dash.personality.title')}</h1>

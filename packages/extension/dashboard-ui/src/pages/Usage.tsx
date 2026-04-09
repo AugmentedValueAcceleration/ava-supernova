@@ -72,7 +72,7 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
   const pagedLogs = logs.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
-    <div className="w-full">
+    <div className="mx-auto w-full max-w-4xl">
       <div className="mb-6">
         <h1 className="text-xl font-bold">{t('dash.usage.title')}</h1>
         <p className="mt-1 text-xs text-[var(--text-secondary)]">
@@ -319,7 +319,7 @@ function ByokUsage({ stats }: { stats?: SessionStats | null }) {
   const sessionDuration = stats ? timeSince(stats.session_start) : '—';
 
   return (
-    <div className="w-full">
+    <div className="mx-auto w-full max-w-4xl">
       <div className="mb-6">
         <h1 className="text-xl font-bold">{t('dash.usage.title')}</h1>
         <p className="mt-1 text-xs text-[var(--text-secondary)]">

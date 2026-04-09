@@ -403,7 +403,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
      ══════════════════════════════════════════════════════════════════ */
 
   return (
-    <div className="w-full space-y-4">
+    <div className="mx-auto w-full max-w-5xl space-y-4">
       {/* Header + Token Bar */}
       <div>
         <div className="flex items-start justify-between">
