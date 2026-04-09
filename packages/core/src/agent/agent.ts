@@ -20,6 +20,43 @@ import { analyseAndSave } from '../memory/insights.js';
 import type { MemoryManager } from '../memory/memory-manager.js';
 import { captureInteraction } from '../dataset/capture.js';
 
+// ─── Mode-aware tool filtering ──────────────────────────────────────────────
+// When a non-work mode is active, restrict the tool schema sent to the model
+// so it can only call tools listed in that mode's system prompt.
+// Without this, the model sees all tools in the schema and ignores text restrictions.
+
+const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
+  plan: new Set([
+    'file_read', 'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
+    'web_search', 'memory_save', 'memory_recall', 'present_plan', 'analyze_architecture',
+    'ask_user', 'get_datetime', 'detect_language', 'docs_lookup', 'self_inspect',
+  ]),
+  chat: new Set([
+    'web_search', 'memory_save', 'memory_recall', 'memory_update', 'journal_write',
+    'get_datetime', 'weather', 'news', 'ask_user',
+  ]),
+  brainstorm: new Set([
+    'web_search', 'memory_save', 'memory_recall', 'present_plan', 'journal_write',
+    'ask_user', 'get_datetime',
+  ]),
+  // teach and security have broader tool access — teach uses bash for examples,
+  // security uses bash + audit tools. No filtering needed for these.
+};
+
+function detectModeFromMessages(messages: Message[]): string | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role !== 'user') continue;
+    const text = getTextContent(msg.content);
+    if (text.startsWith('[Internal Planning')) continue;
+    if (text.startsWith('[Plan Mode]')) return 'plan';
+    if (text.startsWith('[Chat Mode]')) return 'chat';
+    if (text.startsWith('[Brainstorm Mode]')) return 'brainstorm';
+    break;
+  }
+  return null;
+}
+
 // ─── Event system ────────────────────────────────────────────────────────────
 
 export interface ContextUsage {
@@ -97,12 +134,20 @@ export class Agent {
   async run(messages: Message[], onEvent: AgentEventHandler, signal?: AbortSignal): Promise<Message[]> {
     const useNativeTools = this.model.supportsToolCalls !== false;
     const allSchemas = this.toolRegistry.getSchemas();
-    const toolSchemas: ToolSchema[] = useNativeTools ? allSchemas : [];
-    logger.debug(`[agent] Starting run: model=${this.model.id} supportsToolCalls=${useNativeTools} toolSchemas=${toolSchemas.length}`);
+
+    // Mode-aware filtering: restrict tool schemas to only those allowed in the active mode
+    const detectedMode = detectModeFromMessages(messages);
+    const modeAllowed = detectedMode ? MODE_ALLOWED_TOOLS[detectedMode] : null;
+    const filteredSchemas = modeAllowed
+      ? allSchemas.filter(s => modeAllowed.has(s.function.name))
+      : allSchemas;
+
+    const toolSchemas: ToolSchema[] = useNativeTools ? filteredSchemas : [];
+    logger.debug(`[agent] Starting run: model=${this.model.id} supportsToolCalls=${useNativeTools} toolSchemas=${toolSchemas.length}${detectedMode ? ` mode=${detectedMode}` : ''}`);
 
     // For models without native tool_calls, inject tool descriptions into the system prompt
-    if (!useNativeTools && allSchemas.length > 0) {
-      const toolPrompt = buildToolPrompt(allSchemas);
+    if (!useNativeTools && filteredSchemas.length > 0) {
+      const toolPrompt = buildToolPrompt(filteredSchemas);
       const firstMsg = messages[0];
       if (firstMsg?.role === 'system') {
         messages = [
@@ -498,6 +543,27 @@ export class Agent {
       } else {
         lastToolName = currentToolSig;
         repeatCount = 0;
+      }
+
+      // ── Mode enforcement: block tools not allowed in the active mode ────
+      if (modeAllowed) {
+        const blocked = assistantMessage.tool_calls.filter((tc: ToolCall) => !modeAllowed.has(tc.function.name));
+        if (blocked.length > 0) {
+          const blockedNames = blocked.map((tc: ToolCall) => tc.function.name).join(', ');
+          logger.warn(`[agent] Mode ${detectedMode} blocked tools: ${blockedNames}`);
+          // Return error results for blocked tools so the model knows to stop
+          for (const tc of blocked) {
+            messages.push(assistantMessage);
+            messages.push({
+              role: 'tool' as const,
+              content: `Tool "${tc.function.name}" is not available in ${detectedMode} mode. This mode is read-only — use work mode (>>) to make changes.`,
+              tool_call_id: tc.id,
+            } as any);
+          }
+          // Remove blocked calls, keep allowed ones
+          assistantMessage.tool_calls = assistantMessage.tool_calls.filter((tc: ToolCall) => modeAllowed.has(tc.function.name));
+          if (assistantMessage.tool_calls.length === 0) continue;
+        }
       }
 
       // ── Parallel tool execution ──────────────────────────────────────────
