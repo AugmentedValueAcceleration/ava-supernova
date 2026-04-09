@@ -1415,6 +1415,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       sourceRoot,
       personality,
       knowledgeContext,
+      excludeTools: ['screenshot', 'computer_use'],
     });
   }
 

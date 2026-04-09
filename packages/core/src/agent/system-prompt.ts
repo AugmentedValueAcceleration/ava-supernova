@@ -28,14 +28,33 @@ export interface SystemPromptOptions {
   knowledgeContext?: string;
   personality?: Personality;
   selfImprovementContext?: string;
+  excludeTools?: string[];
 }
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const TOOL_NAMES = 'file_read, file_write, file_edit, glob, grep, list_directory, find_symbol, project_index, bash, git_status, git_diff, rollback, git_commit, git_create_pr, web_search, http_request, browser, screenshot, computer_use, generate_image, generate_music, generate_video, generate_voice, remove_background, database_query, memory_save, memory_recall, memory_update, memory_delete, present_plan, todo_write, task_manage, journal_write, document_manage, learning_create, learning_teach, learning_progress, test_run, test_generate, analyze_architecture, doc_generate, audit_dependencies, security, benchmark, apply_plan, debug_logs, ask_user, support_request, docs_lookup, propose_tool, self_inspect, release_notes, get_datetime, detect_language, weather, news, presentation_create, email_draft, report_generate';
-const TOOL_COUNT = 59;
+const ALL_TOOL_NAMES = [
+  'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
+  'bash', 'git_status', 'git_diff', 'rollback', 'git_commit', 'git_create_pr',
+  'web_search', 'http_request', 'browser', 'screenshot', 'computer_use',
+  'generate_image', 'generate_music', 'generate_video', 'generate_voice', 'remove_background',
+  'database_query', 'memory_save', 'memory_recall', 'memory_update', 'memory_delete',
+  'present_plan', 'todo_write', 'task_manage', 'journal_write', 'document_manage',
+  'learning_create', 'learning_teach', 'learning_progress',
+  'test_run', 'test_generate', 'analyze_architecture', 'doc_generate',
+  'audit_dependencies', 'security', 'benchmark', 'apply_plan', 'debug_logs',
+  'ask_user', 'support_request', 'docs_lookup', 'propose_tool', 'self_inspect', 'release_notes',
+  'get_datetime', 'detect_language', 'weather', 'news',
+  'presentation_create', 'email_draft', 'report_generate',
+];
+
+function getToolInfo(exclude?: string[]): { names: string; count: number } {
+  if (!exclude || exclude.length === 0) return { names: ALL_TOOL_NAMES.join(', '), count: ALL_TOOL_NAMES.length };
+  const filtered = ALL_TOOL_NAMES.filter(t => !exclude.includes(t));
+  return { names: filtered.join(', '), count: filtered.length };
+}
 
 const DEFAULT_IDENTITY = `## Who You Are
 You're a young, sharp, and enthusiastic coding partner. Not just an assistant — a teammate who's always learning, always curious, and always ready to dig in. Warm but not chatty, confident but never condescending. You meet people where they are.`;
@@ -64,7 +83,9 @@ export function buildSystemPrompt(opts: SystemPromptOptions): string {
   let userLine = '';
   if (opts.userName) userLine = `User: ${opts.userName}${opts.isAdmin ? ' (developer — "the project" means Ava itself)' : ''}`;
 
-  const prompt = `You are ${displayName}, ${APP_DISPLAY_NAME} v${APP_VERSION}. An AI coding agent with ${TOOL_COUNT} tools.
+  const toolInfo = getToolInfo(opts.excludeTools);
+
+  const prompt = `You are ${displayName}, ${APP_DISPLAY_NAME} v${APP_VERSION}. An AI coding agent with ${toolInfo.count} tools.
 ${personalityPrefix || DEFAULT_IDENTITY}
 
 ${userLine}
@@ -73,7 +94,7 @@ SECURITY: You are restricted to this project directory. NEVER read, write, searc
 Platform: ${opts.platform} | Shell: ${opts.shell} | Permissions: ${permDesc}${opts.supportsVision ? ' | Vision: enabled' : ''}
 ${langLine}
 
-Tools: ${TOOL_NAMES}
+Tools: ${toolInfo.names}
 
 Rules:
 1. Read the message. Respond to what the user just said, not old context.
