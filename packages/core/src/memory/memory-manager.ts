@@ -27,23 +27,15 @@ interface ProjectRegistryEntry {
   lastUsed: string;
 }
 
-/** Number of days without recall before a memory is considered stale. */
-const STALE_THRESHOLD_DAYS = 90;
-
-/** TF-IDF similarity threshold for conflict detection (higher = stricter). */
-const CONFLICT_TFIDF_THRESHOLD = 0.45;
-
-/** TF-IDF similarity threshold for consolidation grouping. */
-const CONSOLIDATION_THRESHOLD = 0.35;
-
-/** Minimum TF-IDF score to include in recall results.
- *  0.25 filters out weak noise while keeping valid semantic matches. */
-const RECALL_TFIDF_THRESHOLD = 0.25;
-
-// ── Relevance scoring weights ────────────────────────────────────────────────
-const W_TFIDF = 0.55;     // TF-IDF match quality
-const W_RECENCY = 0.25;   // How recently updated/recalled
-const W_FREQUENCY = 0.20; // How often recalled
+import {
+  CONFLICT_THRESHOLD as CONFLICT_TFIDF_THRESHOLD,
+  RECALL_THRESHOLD as RECALL_TFIDF_THRESHOLD,
+  CONSOLIDATION_THRESHOLD,
+  STALE_DAYS as STALE_THRESHOLD_DAYS,
+  MAX_ENTRIES_PER_SCOPE,
+  W_TFIDF, W_RECENCY, W_FREQUENCY,
+  RECENCY_HALF_LIFE_DAYS,
+} from './config.js';
 
 export class MemoryManager {
   private readonly globalDir: string;
@@ -202,10 +194,8 @@ export class MemoryManager {
     const category = opts.category ?? 'general';
     const layer: MemoryLayer = opts.layer ?? inferLayer(category, opts.scope);
 
-    // Conflict detection — skip for project layer (never auto-dedup project memories)
-    const conflict = layer === 'project'
-      ? null
-      : this.findConflict(store, index, opts.content, opts.category);
+    // Conflict detection — project memories use stricter threshold to avoid over-merging
+    const conflict = this.findConflict(store, index, opts.content, opts.category, layer === 'project' ? 0.6 : undefined);
 
     let entry: MemoryEntry;
 
@@ -1117,7 +1107,8 @@ export class MemoryManager {
   // ── Private — Conflict Detection (TF-IDF enhanced) ─────────────────────────
 
   /** Find an existing entry that conflicts with new content using TF-IDF similarity. */
-  private findConflict(store: MemoryStore, index: TfIdfIndex, newContent: string, category?: MemoryCategory): MemoryEntry | null {
+  private findConflict(store: MemoryStore, index: TfIdfIndex, newContent: string, category?: MemoryCategory, customThreshold?: number): MemoryEntry | null {
+    const threshold = customThreshold ?? CONFLICT_TFIDF_THRESHOLD;
     // Only check active entries in the same category
     for (const entry of store.entries) {
       if (entry.archived) continue;
@@ -1125,7 +1116,7 @@ export class MemoryManager {
 
       // TF-IDF similarity check
       const similarity = index.similarityToText(entry.id, newContent);
-      if (similarity > CONFLICT_TFIDF_THRESHOLD) return entry;
+      if (similarity > threshold) return entry;
 
       // First-line exact match fallback (catches renamed/reformatted entries)
       const newFirstLine = newContent.toLowerCase().split('\n')[0].trim();

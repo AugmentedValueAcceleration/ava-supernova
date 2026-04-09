@@ -28,23 +28,14 @@ import { logger } from '../core/logger.js';
 
 // ── Configuration ─────────────────────────────────────────────────────
 
-/** Maximum total memory size per scope before pruning kicks in */
-const MAX_MEMORY_SIZE_BYTES = 25 * 1024; // 25KB — keeps context lean
+import {
+  MAX_STORE_SIZE_BYTES as MAX_MEMORY_SIZE_BYTES,
+  CONSOLIDATION_INTERVAL_HOURS, CONSOLIDATION_MIN_SESSIONS as MIN_SESSIONS_SINCE_LAST,
+  MERGE_THRESHOLD as MERGE_SIMILARITY_THRESHOLD,
+  STALE_DAYS, AUTO_ARCHIVE_DAYS,
+} from './config.js';
 
-/** Minimum time since last consolidation (ms) */
-const MIN_CONSOLIDATION_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-/** Minimum sessions since last consolidation */
-const MIN_SESSIONS_SINCE_LAST = 5;
-
-/** TF-IDF similarity threshold for merging */
-const MERGE_SIMILARITY_THRESHOLD = 0.7;
-
-/** Days without recall before a memory is considered stale */
-const STALE_DAYS = 90;
-
-/** Days stale before auto-archive (pruning) */
-const AUTO_ARCHIVE_DAYS = 180;
+const MIN_CONSOLIDATION_INTERVAL_MS = CONSOLIDATION_INTERVAL_HOURS * 60 * 60 * 1000;
 
 // ── Types ─────────────────────────────────────────────────────────────
 

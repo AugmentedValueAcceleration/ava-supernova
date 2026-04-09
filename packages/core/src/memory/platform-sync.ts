@@ -3,6 +3,21 @@
  * Uses native fetch — no extra dependencies.
  */
 
+/** Retry a fetch with exponential backoff */
+async function fetchWithRetry(url: string, opts: RequestInit, maxRetries = 2): Promise<Response> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch(url, opts);
+      if (res.ok || res.status < 500) return res; // Don't retry client errors
+      if (attempt < maxRetries) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+    } catch (err) {
+      if (attempt === maxRetries) throw err;
+      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+    }
+  }
+  return fetch(url, opts); // Final attempt
+}
+
 export interface PlatformMemory {
   id: string;
   key: string;
@@ -38,7 +53,7 @@ export class PlatformMemorySync {
       params.set('project_id', this.projectId);
     }
 
-    const res = await fetch(`${this.apiBase}/memories?${params}`, {
+    const res = await fetchWithRetry(`${this.apiBase}/memories?${params}`, {
       headers: this.headers(),
     });
 
@@ -79,7 +94,7 @@ export class PlatformMemorySync {
   /** Push individual memory entries to the platform (one Supabase row per entry). */
   async pushEntries(
     scope: 'global' | 'project',
-    entries: Array<{ id: string; content: string; category?: string; tags?: string[]; archived?: boolean }>,
+    entries: Array<{ id: string; content: string; category?: string; tags?: string[]; archived?: boolean; layer?: string; branch?: string; directoryScope?: string }>,
   ): Promise<void> {
     // Pull existing to map local IDs → remote IDs
     const existing = await this.pull(scope);
@@ -89,7 +104,7 @@ export class PlatformMemorySync {
       const remote = remoteByKey.get(entry.id);
 
       if (remote) {
-        // Update existing
+        // Update existing — include layer/branch/scope metadata
         await fetch(`${this.apiBase}/memories/${remote.id}`, {
           method: 'PATCH',
           headers: this.headers(),
@@ -97,6 +112,10 @@ export class PlatformMemorySync {
             content: entry.content,
             category: entry.category ?? null,
             archived: entry.archived ?? false,
+            layer: entry.layer ?? null,
+            branch: entry.branch ?? null,
+            directory_scope: entry.directoryScope ?? null,
+            tags: entry.tags ?? [],
           }),
         });
       } else {
@@ -110,6 +129,10 @@ export class PlatformMemorySync {
             scope,
             project_id: scope === 'project' ? this.projectId : null,
             category: entry.category ?? null,
+            layer: entry.layer ?? null,
+            branch: entry.branch ?? null,
+            directory_scope: entry.directoryScope ?? null,
+            tags: entry.tags ?? [],
           }),
         });
       }

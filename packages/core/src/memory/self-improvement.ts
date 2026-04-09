@@ -24,7 +24,8 @@ export interface SelfImprovement {
   learned: string; // what was learned
   confidence: number; // 0-1
   source: 'retry-success' | 'feedback-negative' | 'feedback-positive' | 'error-recovery' | 'observation';
-  confirmations: number; // how many times independently confirmed
+  confirmations: number; // how many times independently confirmed (across different sessions)
+  lastConfirmedSession?: string; // session ID of last confirmation — prevents same-session double counting
   createdAt: string;
   updatedAt: string;
 }
@@ -97,6 +98,7 @@ function textSimilarity(a: string, b: string): number {
 export async function addLearning(
   avaHome: string,
   learning: Omit<SelfImprovement, 'id' | 'confirmations' | 'createdAt' | 'updatedAt'>,
+  sessionId?: string,
 ): Promise<SelfImprovement> {
   const store = loadStore(avaHome);
   const now = new Date().toISOString();
@@ -108,9 +110,13 @@ export async function addLearning(
       existing.category === learning.category &&
       textSimilarity(existing.learned, learning.learned) > 0.6
     ) {
-      // Update existing rather than duplicate
-      existing.confirmations += 1;
-      existing.confidence = Math.min(1, existing.confidence + 0.1);
+      // Only count as independent confirmation if from a different session
+      const isNewSession = !sessionId || !existing.lastConfirmedSession || existing.lastConfirmedSession !== sessionId;
+      if (isNewSession) {
+        existing.confirmations += 1;
+        existing.lastConfirmedSession = sessionId;
+      }
+      existing.confidence = Math.min(1, existing.confidence + (isNewSession ? 0.1 : 0.02));
       existing.updatedAt = now;
       // Merge context if different
       if (learning.context && !existing.context.includes(learning.context)) {

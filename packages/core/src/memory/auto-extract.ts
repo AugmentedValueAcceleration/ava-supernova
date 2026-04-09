@@ -66,11 +66,14 @@ const DECISION_PATTERNS = [
 
 /** Patterns that indicate tech stack / architecture info */
 const ARCHITECTURE_PATTERNS = [
-  /\bwe use (?:react|vue|angular|next|svelte|express|django|flask|spring)\b/i,
+  /\bwe (?:use|chose|picked|went with|switched to) (?:react|vue|angular|next|svelte|express|django|flask|spring)\b/i,
   /\bour (?:stack|architecture|infra|database|backend|frontend) (?:is|uses)\b/i,
   /\bdeployed (?:on|to|with|via)\b/i,
   /\bwe (?:host|deploy|run) (?:on|with|in)\b/i,
 ];
+
+/** Negation words that appear before patterns — if found, the extraction includes the negation */
+const NEGATION_PATTERN = /\b(?:don'?t|doesn'?t|not|never|no longer|stopped|quit|avoid|won'?t|can'?t|shouldn'?t)\b/i;
 
 /** Patterns that indicate personal info worth remembering */
 const PERSONAL_PATTERNS = [
@@ -165,9 +168,13 @@ function distillMemory(text: string, matchedPattern: RegExp, group: PatternGroup
   const matchStart = match.index;
   const matchEnd = matchStart + match[0].length;
 
-  // Expand window to capture surrounding context
-  const windowStart = Math.max(0, matchStart - 20);
+  // Expand window — include more context before the match to capture negation
+  const windowStart = Math.max(0, matchStart - 40);
   const windowEnd = Math.min(text.length, matchEnd + 80);
+
+  // Check for negation in the text before the match — ensure it's included in the window
+  const preContext = text.slice(Math.max(0, matchStart - 30), matchStart);
+  const hasNegation = NEGATION_PATTERN.test(preContext);
 
   let window = text.slice(windowStart, windowEnd).trim();
 
@@ -185,17 +192,11 @@ function distillMemory(text: string, matchedPattern: RegExp, group: PatternGroup
     }
   }
 
-  // For explicit remember patterns, keep as-is but trim
-  if (group.tags.includes('explicit')) {
-    return `${prefix}: ${cleanSentence(window)}`;
-  }
+  // If negation detected, use appropriate prefix
+  const effectivePrefix = hasNegation && (group.category === 'architecture' || group.category === 'preference')
+    ? 'Preference (avoids)' : prefix;
 
-  // For knowledge/discovery, extract the key finding
-  if (group.tags.includes('knowledge') || group.tags.includes('discovery')) {
-    return `${prefix}: ${cleanSentence(window)}`;
-  }
-
-  return `${prefix}: ${cleanSentence(window)}`;
+  return `${effectivePrefix}: ${cleanSentence(window)}`;
 }
 
 /** Clean a sentence fragment into a concise statement. */
