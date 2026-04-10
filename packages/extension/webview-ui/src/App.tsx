@@ -41,7 +41,8 @@ type ChatAction =
   | { type: 'toggle_tasks' }
   | { type: 'close_tasks' }
   | { type: 'set_tasks_width'; width: number }
-  | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string };
+  | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string }
+  | { type: 'confirmation_responded'; confirmationId: string; approved: boolean };
 
 let messageIdCounter = 0;
 function nextId(): string {
@@ -259,6 +260,36 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         );
         messages[messages.length - 1] = { ...last, toolCalls };
       }
+      return { ...state, messages };
+    }
+
+    case 'confirmation_responded': {
+      // Optimistic UI update — when the user clicks Allow/Always Allow/Deny,
+      // immediately transition the matching tool call out of
+      // pending_confirmation so the buttons disappear and the user gets
+      // visible feedback their click registered. Without this the card sits
+      // in pending state forever if the tool execution hangs (e.g. broken
+      // bash environment), so the user clicks repeatedly thinking nothing
+      // happened.
+      const messages = state.messages.map((msg) => {
+        if (msg.role !== 'assistant') return msg;
+        let changed = false;
+        const toolCalls = msg.toolCalls.map((tc) => {
+          if (tc.confirmationId !== action.confirmationId) return tc;
+          changed = true;
+          return action.approved
+            // Approved → tool is now running. Spinner replaces buttons.
+            ? { ...tc, status: 'running' as const, confirmationId: undefined }
+            // Denied → tool is failed with a clear reason.
+            : {
+                ...tc,
+                status: 'failed' as const,
+                confirmationId: undefined,
+                result: 'Denied by user.',
+              };
+        });
+        return changed ? { ...msg, toolCalls } : msg;
+      });
       return { ...state, messages };
     }
 
@@ -700,6 +731,12 @@ export function App() {
   const handleConfirmation = useCallback(
     (confirmationId: string, approved: boolean, alwaysAllowCategory?: boolean, planSelection?: string, userResponse?: string) => {
       postMessage({ type: 'tool_confirmation_response', confirmationId, approved, alwaysAllowCategory, planSelection, userResponse });
+      // Optimistic UI update — transition the matching tool out of
+      // pending_confirmation immediately so the user gets visible feedback
+      // their click landed. Without this the card stays in pending state
+      // until tool_call_end arrives, which can be never if the tool hangs
+      // (e.g. broken bash environment), so the user clicks again and again.
+      dispatch({ type: 'confirmation_responded', confirmationId, approved });
     },
     [postMessage],
   );
