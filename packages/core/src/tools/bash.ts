@@ -2,6 +2,7 @@ import { exec, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
+import { enrichErrorOutput } from './error-guidance.js';
 
 const DEFAULT_TIMEOUT_MS = 120_000;
 const MAX_OUTPUT_LENGTH = 30_000;
@@ -229,9 +230,17 @@ export class BashTool implements Tool {
             output = output.slice(0, MAX_OUTPUT_LENGTH) + '\n... (output truncated)';
           }
 
+          // On failure, wrap the output with plain-English guidance for
+          // any known dependency/environment errors. The raw error stays
+          // available below the guidance for debugging. Non-coder users
+          // see "install Git for Windows" instead of "class not registered".
+          const finalOutput = error
+            ? enrichErrorOutput(output || '(no output)')
+            : (output || '(no output)');
+
           resolvePromise({
             success: !error,
-            output: output || '(no output)',
+            output: finalOutput,
             metadata: {
               exitCode: error ? (error as NodeJS.ErrnoException).code : 0,
               killed: error?.killed ?? false,

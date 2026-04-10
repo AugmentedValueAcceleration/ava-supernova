@@ -2204,11 +2204,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
               );
             }
           }
-          // Refresh VSCode explorer when file-modifying tools complete
-          const fileTools = ['file_write', 'file_edit', 'bash', 'apply_plan'];
-          if (event.success && fileTools.includes(event.toolCall.function.name)) {
-            vscode.commands.executeCommand('workbench.files.action.refreshFilesExplorer').catch(() => {});
-          }
+          // Note: we used to fire workbench.files.action.refreshFilesExplorer
+          // here after file-modifying tools, but it forced the activity bar
+          // sidebar open as a side effect — disrupting the user's view every
+          // time Ava ran a command. VS Code's built-in file watcher picks
+          // up changes naturally, so the explicit refresh wasn't earning
+          // its cost. Removed.
           // Refresh dashboard journal when journal_write fires
           if (event.toolCall.function.name === 'journal_write' && DashboardPanel.currentPanel) {
             const today = new Date().toISOString().slice(0, 10);
@@ -2285,8 +2286,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
                 },
               } as any);
             }
-            // Refresh file explorer so the file shows in VS Code
-            vscode.commands.executeCommand('workbench.files.action.refreshFilesExplorer').catch(() => {});
+            // Note: removed the refreshFilesExplorer call here for the same
+            // reason as the file-tool branch above — it was forcing the
+            // sidebar open every time a creative asset was generated.
           }
           // Auto-learn from retries: track failures, extract learnings on subsequent success
           const toolKey = event.toolCall.function.name;
