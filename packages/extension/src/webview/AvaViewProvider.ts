@@ -2365,6 +2365,66 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           this.postMessage({ type: 'auto_agent_end', model: (event as any).model });
           this.log(`Auto Mode: agent completed on ${(event as any).model}`);
           break;
+        case 'execution_start': {
+          const total = (event as any).total as number;
+          this.postMessage({
+            type: 'system_message',
+            content: `Builder dispatched — executing ${total} task${total === 1 ? '' : 's'}.`,
+          } as ExtToWebviewMessage);
+          this.log(`Execution: starting ${total} tasks`);
+          break;
+        }
+        case 'task_start': {
+          const ev = event as any;
+          this.postMessage({
+            type: 'system_message',
+            content: `▶ Task ${ev.index + 1}/${ev.total}: ${ev.title}`,
+          } as ExtToWebviewMessage);
+          this.log(`Task ${ev.index + 1}/${ev.total} start: ${ev.title}`);
+          // Refresh the session task pills so the in-progress state shows
+          this.pushSessionTasksUpdate();
+          break;
+        }
+        case 'task_complete': {
+          const ev = event as any;
+          this.postMessage({
+            type: 'system_message',
+            content: `✓ ${ev.title}${ev.summary ? ` — ${ev.summary}` : ''}`,
+          } as ExtToWebviewMessage);
+          this.log(`Task complete: ${ev.title}`);
+          this.pushSessionTasksUpdate();
+          break;
+        }
+        case 'task_blocked': {
+          const ev = event as any;
+          this.postMessage({
+            type: 'system_message',
+            content: `⛔ ${ev.title} blocked: ${ev.reason}`,
+          } as ExtToWebviewMessage);
+          this.log(`Task blocked: ${ev.title} — ${ev.reason}`);
+          this.pushSessionTasksUpdate();
+          break;
+        }
+        case 'task_failed': {
+          const ev = event as any;
+          this.postMessage({
+            type: 'system_message',
+            content: `⛔ ${ev.title} failed: ${ev.error}`,
+          } as ExtToWebviewMessage);
+          this.log(`Task failed: ${ev.title} — ${ev.error}`);
+          this.pushSessionTasksUpdate();
+          break;
+        }
+        case 'execution_complete': {
+          const ev = event as any;
+          const headline = ev.blocked > 0
+            ? `Builder finished: ${ev.completed}/${ev.total} done, ${ev.blocked} blocked.`
+            : `Builder finished: all ${ev.completed} tasks done.`;
+          this.postMessage({ type: 'system_message', content: headline } as ExtToWebviewMessage);
+          this.log(`Execution complete: ${ev.completed}/${ev.total} done, ${ev.blocked} blocked`);
+          this.pushSessionTasksUpdate();
+          break;
+        }
         case 'done':
           this.postMessage({ type: 'done' });
           this.log('Agent done');
@@ -2859,11 +2919,39 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       }
 
       // Push updated session tasks to the webview
-      const sessionTasks = this.taskManager.getSessionTasks();
-      this.postMessage({ type: 'session_tasks', tasks: sessionTasks });
+      this.pushSessionTasksUpdate();
       this.log(`Created ${steps.length} session tasks from approved plan`);
     } catch (err) {
       this.log(`Failed to create tasks from plan: ${err}`);
+    }
+  }
+
+  /**
+   * Broadcast the current session task list to both the chat webview and the
+   * dashboard panel. Called whenever task status changes (Builder execution
+   * progress, plan approval, blockers).
+   */
+  private pushSessionTasksUpdate(): void {
+    if (!this.taskManager) return;
+    const sessionTasks = this.taskManager.getSessionTasks();
+    this.postMessage({
+      type: 'session_tasks',
+      tasks: sessionTasks.map(t => ({ id: t.id, title: t.title, status: t.status })),
+    });
+    if (DashboardPanel.currentPanel) {
+      DashboardPanel.currentPanel.notifySessionTasksUpdated(
+        sessionTasks.map(t => ({
+          id: t.id,
+          title: t.title,
+          // Map core's TaskStatus -> dashboard's narrower 3-state vocabulary.
+          // 'blocked' surfaces as 'pending' so the user sees it as still-to-do.
+          status: t.status === 'done'
+            ? 'completed' as const
+            : t.status === 'in-progress'
+              ? 'in_progress' as const
+              : 'pending' as const,
+        })),
+      );
     }
   }
 

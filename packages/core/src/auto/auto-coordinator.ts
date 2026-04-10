@@ -5,6 +5,7 @@ import type { ProviderRegistry } from '../providers/provider-registry.js';
 import type { ToolRegistry } from '../tools/tool-registry.js';
 import type { AgentEvent, AgentEventHandler } from '../agent/agent.js';
 import type { TaskCategory, RouteResult, UserRoutePreferences, AutoEvent } from './types.js';
+import type { TaskManager } from '../tasks/task-manager.js';
 
 import { Agent } from '../agent/agent.js';
 import { Conductor } from '../personas/conductor.js';
@@ -15,6 +16,8 @@ import { generateBrief, formatBriefAsSystem } from './brief-generator.js';
 import { ContextTracker } from './context-tracker.js';
 import { resolveCoordinatorModel } from './coordinator-model.js';
 import { buildSystemPrompt } from '../agent/system-prompt.js';
+import { TaskExecutor } from './task-executor.js';
+import { logger } from '../core/logger.js';
 
 // Categories where Conductor orchestration may trigger on the spawned agent
 const ORCHESTRATED_CATEGORIES = new Set<TaskCategory>(['planning', 'security', 'brainstorm', 'teach']);
@@ -125,9 +128,75 @@ export class AutoCoordinator {
    * Process a user message. Classifies the task, routes to the best model,
    * spawns an agent if needed, and returns updated messages.
    *
+   * After the planning agent returns, checks for newly created session tasks
+   * (added by present_plan + todo_write) and dispatches the TaskExecutor to
+   * run a fresh Builder for each one. This is the JARVIS hand-off — the
+   * conductor model plans, Builder agents execute.
+   *
    * Drop-in replacement for Agent.run() — same signature.
    */
   async run(
+    messages: Message[],
+    onEvent: AgentEventHandler,
+    signal?: AbortSignal,
+  ): Promise<Message[]> {
+    // Snapshot pending session task IDs BEFORE the run so we can detect tasks
+    // newly created during this turn (vs leftovers from a previous run).
+    const taskMgr = this.getTaskManager();
+    const pendingBefore = taskMgr
+      ? new Set(taskMgr.getSessionTasks().filter(t => t.status === 'todo').map(t => t.id))
+      : new Set<string>();
+
+    // Run the planning leg — existing logic untouched.
+    const planResult = await this.runPlanningLeg(messages, onEvent, signal);
+
+    // Execution leg: if the planning agent created new session tasks via
+    // present_plan + todo_write, dispatch the Builder executor to run them.
+    if (taskMgr && !signal?.aborted) {
+      const newlyPending = taskMgr.getSessionTasks().filter(
+        t => t.status === 'todo' && !pendingBefore.has(t.id),
+      );
+
+      if (newlyPending.length > 0) {
+        logger.debug(`[auto-coordinator] Dispatching TaskExecutor for ${newlyPending.length} new tasks`);
+
+        const executor = new TaskExecutor({
+          provider: this.coordinatorProvider,
+          model: this.coordinatorModel,
+          toolRegistry: this.toolRegistry,
+          taskManager: taskMgr,
+          cwd: this.cwd,
+          sharedState: this.sharedState,
+        });
+
+        const planContext = this.extractPlanContext(planResult);
+
+        try {
+          const execResult = await executor.executeAll(planContext, onEvent, signal);
+
+          // Append the execution summary as the final assistant message so
+          // the user sees a clear "what got built" recap in the chat.
+          if (execResult.summary) {
+            planResult.push({ role: 'assistant', content: execResult.summary });
+          }
+        } catch (err) {
+          logger.debug(`[auto-coordinator] TaskExecutor threw: ${err}`);
+          onEvent({
+            type: 'error',
+            error: err instanceof Error ? err : new Error(String(err)),
+          });
+        }
+      }
+    }
+
+    return planResult;
+  }
+
+  /**
+   * The original planning logic — classify, route, spawn task agent.
+   * Extracted so the execution dispatch wrapper in run() can stay readable.
+   */
+  private async runPlanningLeg(
     messages: Message[],
     onEvent: AgentEventHandler,
     signal?: AbortSignal,
@@ -186,6 +255,51 @@ export class AutoCoordinator {
       onEvent({ type: 'error', error: err instanceof Error ? err : new Error(String(err)) });
       return this.coordinatorAgent.run(messages, onEvent, signal);
     }
+  }
+
+  /** Pull the TaskManager out of sharedState if the host wired it in. */
+  private getTaskManager(): TaskManager | undefined {
+    const tm = this.sharedState.taskManager as TaskManager | undefined;
+    return tm && typeof tm.getSessionTasks === 'function' ? tm : undefined;
+  }
+
+  /**
+   * Pull a concise plan context from the conversation so the Builder sub-agents
+   * have something more grounded than just task titles. Looks for the most
+   * recent present_plan tool call and extracts title/goal/verification.
+   */
+  private extractPlanContext(messages: Message[]): string {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.role !== 'assistant') continue;
+      const tcs = (m as AssistantMessage).tool_calls;
+      if (!tcs) continue;
+      for (const tc of tcs) {
+        if (tc.function?.name !== 'present_plan') continue;
+        try {
+          const args = JSON.parse(tc.function.arguments || '{}') as {
+            title?: string;
+            goal?: string;
+            verification?: string;
+          };
+          const parts: string[] = [];
+          if (args.title) parts.push(`**${args.title}**`);
+          if (args.goal) parts.push(args.goal);
+          if (args.verification) parts.push(`Verification: ${args.verification}`);
+          if (parts.length > 0) return parts.join('\n');
+        } catch {
+          /* fall through to next */
+        }
+      }
+    }
+    // Fallback: the user's most recent message
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        const c = messages[i].content;
+        return typeof c === 'string' ? c : '';
+      }
+    }
+    return '';
   }
 
   /** Inject a mid-run message (delegates to coordinator agent) */

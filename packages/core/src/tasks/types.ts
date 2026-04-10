@@ -9,7 +9,7 @@
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 /** Status of a task. */
-export type TaskStatus = 'todo' | 'in-progress' | 'done' | 'archived';
+export type TaskStatus = 'todo' | 'in-progress' | 'done' | 'archived' | 'blocked';
 
 /** Categories for task entries. */
 export type TaskCategory = 'coding' | 'personal' | 'admin' | 'meeting' | 'custom';

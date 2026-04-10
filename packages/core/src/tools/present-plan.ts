@@ -79,9 +79,16 @@ export class PresentPlanTool implements Tool {
   async execute(_args: Record<string, unknown>, _context: ToolExecutionContext): Promise<ToolResult> {
     // Normally bypassed — the confirmation handler returns a string result directly.
     // This is a fallback in case the handler returns true instead of a string.
+    //
+    // In Auto Mode the host's TaskExecutor will pick up the approved task list
+    // and dispatch a fresh Builder agent per step. The conductor model should
+    // call todo_write to materialise the task list and then stop — the Builder
+    // hand-off is automatic.
     return {
       success: true,
-      output: 'Plan approved. Proceed with execution.',
+      output:
+        'Plan approved by user. Call todo_write to materialise the task list, ' +
+        'then stop — the Builder will execute each task automatically.',
     };
   }
 }

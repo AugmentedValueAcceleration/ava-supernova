@@ -98,7 +98,15 @@ export type AgentEvent =
   // Auto Mode events — emitted by AutoCoordinator
   | { type: 'auto_routing'; category: string; model: string; reason: string }
   | { type: 'auto_agent_start'; model: string; category: string }
-  | { type: 'auto_agent_end'; model: string; summary?: string };
+  | { type: 'auto_agent_end'; model: string; summary?: string }
+  // Execution dispatch events — emitted by TaskExecutor when Builder runs
+  // a task list created by present_plan + todo_write.
+  | { type: 'execution_start'; total: number }
+  | { type: 'task_start'; taskId: string; title: string; index: number; total: number }
+  | { type: 'task_complete'; taskId: string; title: string; summary?: string }
+  | { type: 'task_blocked'; taskId: string; title: string; reason: string }
+  | { type: 'task_failed'; taskId: string; title: string; error: string }
+  | { type: 'execution_complete'; completed: number; blocked: number; total: number };
 
 export type AgentEventHandler = (event: AgentEvent) => void;
 
