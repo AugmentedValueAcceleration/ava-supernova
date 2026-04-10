@@ -55,6 +55,10 @@ export class AutoCoordinator {
   private router: ModelRouter;
   private projectInstructions: string;
   private systemPromptOpts: Record<string, unknown>;
+  // The Agent currently executing inside run(). May be the planning task agent
+  // or a Builder spawned by TaskExecutor. inject() forwards to whichever is
+  // active so user mid-run messages reach the agent that's actually running.
+  private activeAgent: Agent | null = null;
 
   constructor(opts: {
     coordinatorProvider: Provider;
@@ -186,6 +190,10 @@ export class AutoCoordinator {
           taskManager: taskMgr,
           cwd: this.cwd,
           sharedState: this.sharedState,
+          // Forward Builder lifecycle into our activeAgent slot so user
+          // injections during execution land in the running Builder, not
+          // the dead coordinator queue.
+          onActiveAgentChange: (agent) => this.setActiveAgent(agent),
         });
 
         const planContext = this.extractPlanContext(planResult);
@@ -233,7 +241,7 @@ export class AutoCoordinator {
     const userMsg = this.getLastUserMessage(messages);
     if (!userMsg) {
       // No user message — just forward to coordinator
-      return this.coordinatorAgent.run(messages, onEvent, signal);
+      return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
     }
 
     const mode = this.detectMode(messages);
@@ -244,19 +252,19 @@ export class AutoCoordinator {
 
     // Direct handling — no spawn needed
     if (DIRECT_CATEGORIES.has(classification.category) && !classification.modelOverride) {
-      return this.coordinatorAgent.run(messages, onEvent, signal);
+      return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
     }
 
     // Route to best model
     const route = this.router.route(classification.category, classification.modelOverride);
     if (!route) {
       // No model available — fallback to coordinator
-      return this.coordinatorAgent.run(messages, onEvent, signal);
+      return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
     }
 
     // If routed to the same model as coordinator, just run directly
     if (route.model.id === this.coordinatorModel.id && route.provider.name === this.coordinatorProvider.name) {
-      return this.coordinatorAgent.run(messages, onEvent, signal);
+      return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
     }
 
     // Emit routing event
@@ -281,8 +289,36 @@ export class AutoCoordinator {
     } catch (err) {
       // Fallback to coordinator on spawn failure
       onEvent({ type: 'error', error: err instanceof Error ? err : new Error(String(err)) });
-      return this.coordinatorAgent.run(messages, onEvent, signal);
+      return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
     }
+  }
+
+  /**
+   * Run an agent and register it as the active agent for the duration so
+   * inject() can route mid-run user messages to whichever agent is actually
+   * executing right now.
+   */
+  private async runWithActiveAgent(
+    agent: Agent,
+    messages: Message[],
+    onEvent: AgentEventHandler,
+    signal?: AbortSignal,
+  ): Promise<Message[]> {
+    this.activeAgent = agent;
+    try {
+      return await agent.run(messages, onEvent, signal);
+    } finally {
+      this.activeAgent = null;
+    }
+  }
+
+  /**
+   * Public hook so TaskExecutor can register/unregister the Builder agent
+   * it's currently driving. Without this, mid-run injections during the
+   * execution leg would land in the wrong queue and never reach the model.
+   */
+  setActiveAgent(agent: Agent | null): void {
+    this.activeAgent = agent;
   }
 
   /** Pull the TaskManager out of sharedState if the host wired it in. */
@@ -330,8 +366,18 @@ export class AutoCoordinator {
     return '';
   }
 
-  /** Inject a mid-run message (delegates to coordinator agent) */
+  /**
+   * Inject a mid-run message. Forwards to whichever agent is currently
+   * executing — the planning task agent during the planning leg, the
+   * active Builder during execution, or the coordinator agent for direct
+   * categories. Falling back to the coordinator agent ensures injections
+   * still queue when no run is in flight.
+   */
   inject(message: string): void {
+    if (this.activeAgent) {
+      this.activeAgent.inject(message);
+      return;
+    }
     this.coordinatorAgent.inject(message);
   }
 
@@ -453,12 +499,19 @@ export class AutoCoordinator {
       }
     }
 
-    // Run the task agent
-    const updatedTaskMessages = await taskAgent.run(
-      taskConversation.getMessages(),
-      wrappedOnEvent,
-      signal,
-    );
+    // Run the task agent — register it as the active agent so user
+    // injections are routed here while it's running.
+    this.activeAgent = taskAgent;
+    let updatedTaskMessages: Message[];
+    try {
+      updatedTaskMessages = await taskAgent.run(
+        taskConversation.getMessages(),
+        wrappedOnEvent,
+        signal,
+      );
+    } finally {
+      this.activeAgent = null;
+    }
 
     // Restore activeModelId
     this.sharedState.activeModelId = originalActiveModel;

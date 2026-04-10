@@ -2050,12 +2050,20 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
 
     if (this.isRunning) {
-      // Inject as mid-run interjection instead of rejecting
-      if (this.agent) {
+      // Mid-run interjection — forward to whichever runner is actually
+      // executing right now. AutoCoordinator's inject() routes to the
+      // active sub-agent (planning task agent or current Builder); plain
+      // Agent's inject() queues into its own pendingInterjections.
+      const runner = this.autoCoordinator || this.agent;
+      if (runner) {
         this.log(`handleUserMessage: injecting interjection — "${text.slice(0, 80)}"`);
-        this.agent.inject(text);
-        this.conversation?.addUserMessage(text);
-        this.postMessage({ type: 'interjection_ack', content: text });
+        runner.inject(text);
+        // Echo the user's text back to the webview as a normal user_message_ack
+        // so they actually see what they typed appear in the chat (the
+        // dedicated interjection_ack message type was never wired up in the
+        // webview reducer, so it silently disappeared).
+        const images = attachments?.map((a) => a.data);
+        this.postMessage({ type: 'user_message_ack', text, ...(images?.length ? { images } : {}) });
       }
       return;
     }

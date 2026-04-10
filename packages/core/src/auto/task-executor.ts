@@ -34,6 +34,12 @@ export interface TaskExecutorOptions {
   taskManager: TaskManager;
   cwd: string;
   sharedState: Record<string, unknown>;
+  /**
+   * Called whenever a Builder Agent starts (passed the agent) or ends
+   * (passed null). AutoCoordinator uses this to forward user inject()
+   * calls into the currently-running Builder.
+   */
+  onActiveAgentChange?: (agent: Agent | null) => void;
 }
 
 export interface TaskExecutionResult {
@@ -51,6 +57,7 @@ export class TaskExecutor {
   private readonly taskManager: TaskManager;
   private readonly cwd: string;
   private readonly sharedState: Record<string, unknown>;
+  private readonly onActiveAgentChange?: (agent: Agent | null) => void;
 
   constructor(opts: TaskExecutorOptions) {
     this.provider = opts.provider;
@@ -59,6 +66,7 @@ export class TaskExecutor {
     this.taskManager = opts.taskManager;
     this.cwd = opts.cwd;
     this.sharedState = opts.sharedState;
+    this.onActiveAgentChange = opts.onActiveAgentChange;
   }
 
   /**
@@ -226,6 +234,10 @@ export class TaskExecutor {
       sharedState: this.sharedState,
     });
 
+    // Register the Builder as the active agent so AutoCoordinator's inject()
+    // forwards user mid-run messages here instead of into the dead coordinator
+    // queue.
+    this.onActiveAgentChange?.(builderAgent);
     try {
       const result = await builderAgent.run(conversation.getMessages(), onEvent, signal);
       const lastAssistant = this.lastAssistantText(result);
@@ -242,6 +254,8 @@ export class TaskExecutor {
     } catch (err) {
       logger.debug(`[task-executor] Builder agent threw: ${err}`);
       throw err;
+    } finally {
+      this.onActiveAgentChange?.(null);
     }
   }
 
