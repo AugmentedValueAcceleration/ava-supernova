@@ -8,11 +8,12 @@ import type { ModelDefinition } from '../core/types.js';
  * The coordinator is the persistent model that classifies tasks and routes them.
  * It must be the best reasoning model available — not whatever the user has selected.
  *
- * Priority:
- *   Platform paid  → Kimi K2.5 (best agentic reasoning)
- *   BYOK multi-key → Best available: Kimi > Claude > MiniMax M2.7 > DeepSeek > Qwen Plus
- *   Platform free  → Qwen Flash (only option)
- *   BYOK single    → Whatever they have
+ * MiniMax is NEVER used as a coordinator — it is reserved exclusively for Creative Studio.
+ *
+ * Priority (all coordinator-eligible models must be 1M context to avoid fallback cliffs):
+ *   Platform paid  → Qwen 3.6 Plus (1M) → Qwen 3.5 Plus (1M)
+ *   Platform free  → Qwen Omni Flash
+ *   BYOK           → Claude > Kimi > DeepSeek > Mistral > Qwen Plus > Qwen Flash
  */
 
 export interface CoordinatorModelResult {
@@ -21,24 +22,22 @@ export interface CoordinatorModelResult {
   reason: string;
 }
 
-// Ordered by reasoning capability — best first
-// Qwen 3.6 Plus is the platform conductor — best agentic model, 1M context, always-on CoT
+// Ordered by reasoning capability — best first.
+// Both Plus tiers are 1M context — no cliff on fallback. MiniMax excluded (creative-only, 200K).
 const PLATFORM_PRIORITY = [
-  { id: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — best agentic coding, 1M context, native function calling' },
-  { id: 'qwen3.5-omni-plus', reason: 'Qwen 3.5 Plus — fallback conductor' },
-  { id: 'MiniMax-M2.7',      reason: 'MiniMax M2.7 — strong reasoning fallback' },
-  { id: 'qwen3-omni-flash',  reason: 'Qwen Flash — free tier default' },
+  { id: 'qwen3.6-plus',     reason: 'Qwen 3.6 Plus — best agentic coding, 1M context, native function calling' },
+  { id: 'qwen3.5-plus',     reason: 'Qwen 3.5 Plus — 1M context fallback conductor' },
+  { id: 'qwen3-omni-flash', reason: 'Qwen Omni Flash — free tier default' },
 ];
 
 const BYOK_PRIORITY = [
   { id: 'claude-sonnet-4-6',    reason: 'Claude Sonnet — strong reasoning' },
   { id: 'claude-opus-4-6',      reason: 'Claude Opus — strongest reasoning' },
   { id: 'kimi-k2.5',            reason: 'Kimi K2.5 — agentic reasoning (BYOK)' },
-  { id: 'MiniMax-M2.7',         reason: 'MiniMax M2.7 — strong reasoning' },
   { id: 'deepseek-chat',        reason: 'DeepSeek — capable coding model' },
   { id: 'mistral-large-latest', reason: 'Mistral Large — reasoning fallback' },
-  { id: 'qwen3.5-omni-plus',   reason: 'Qwen Plus — capable fallback' },
-  { id: 'qwen3-omni-flash',    reason: 'Qwen Flash — lightweight fallback' },
+  { id: 'qwen3.5-plus',         reason: 'Qwen 3.5 Plus — 1M context fallback' },
+  { id: 'qwen3-omni-flash',     reason: 'Qwen Omni Flash — lightweight fallback' },
 ];
 
 export function resolveCoordinatorModel(

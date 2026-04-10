@@ -41,7 +41,9 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
 
   if (models.length === 0) return null;
 
-  const activeModelName = models.find(m => m.id === activeModel)?.name ?? 'Select model';
+  const activeModelName = activeModel === 'auto'
+    ? 'Auto'
+    : models.find(m => m.id === activeModel)?.name ?? 'Select model';
 
   // Sort: available first, then alphabetical by provider
   const sorted = [...models].sort((a, b) => {

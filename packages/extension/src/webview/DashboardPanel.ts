@@ -364,6 +364,22 @@ export class DashboardPanel {
         await this.adminUpdateTicket(msg.ticketId, msg.status);
         break;
 
+      case 'load_admin_conversations':
+        await this.loadAdminConversations(msg.status, msg.needsHuman);
+        break;
+
+      case 'load_admin_conversation_messages':
+        await this.loadAdminConversationMessages(msg.conversationId);
+        break;
+
+      case 'admin_reply_conversation':
+        await this.adminReplyConversation(msg.conversationId, msg.message);
+        break;
+
+      case 'admin_update_conversation':
+        await this.adminUpdateConversation(msg.conversationId, msg.status, msg.needs_human);
+        break;
+
       case 'load_admin_proposals':
         await this.loadAdminProposals(msg.status);
         break;
@@ -1454,6 +1470,102 @@ export class DashboardPanel {
       });
     } catch {
       this.post({ type: 'error', message: 'Failed to update ticket.' });
+    }
+  }
+
+  // ─── Admin Support Conversations (new schema) ─────────────────────────────
+
+  private async loadAdminConversations(status?: string, needsHuman?: boolean): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) {
+      this.post({ type: 'admin_conversations_loaded', conversations: [] });
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams();
+      if (status) params.set('status', status);
+      if (needsHuman) params.set('needs_human', 'true');
+      const qs = params.toString() ? `?${params.toString()}` : '';
+      const res = await apiFetch(`/support/conversations/admin${qs}`, { platformKey });
+      if (res.ok) {
+        const data = res.data as { conversations: unknown[] };
+        this.post({ type: 'admin_conversations_loaded', conversations: (data.conversations as never[]) || [] });
+      } else {
+        this.post({ type: 'admin_conversations_loaded', conversations: [] });
+      }
+    } catch (err) {
+      this.log(`loadAdminConversations failed: ${err instanceof Error ? err.message : String(err)}`);
+      this.post({ type: 'admin_conversations_loaded', conversations: [] });
+    }
+  }
+
+  private async loadAdminConversationMessages(conversationId: string): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+
+    try {
+      const res = await apiFetch(`/support/conversations/${conversationId}/messages`, { platformKey });
+      if (res.ok) {
+        const data = res.data as { messages: unknown[] };
+        this.post({
+          type: 'admin_conversation_messages_loaded',
+          conversationId,
+          messages: (data.messages as never[]) || [],
+        });
+      } else {
+        this.post({ type: 'error', message: 'Failed to load conversation messages.' });
+      }
+    } catch (err) {
+      this.log(`loadAdminConversationMessages failed: ${err instanceof Error ? err.message : String(err)}`);
+      this.post({ type: 'error', message: 'Failed to load conversation messages.' });
+    }
+  }
+
+  private async adminReplyConversation(conversationId: string, message: string): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+
+    try {
+      const res = await apiFetch(`/support/conversations/${conversationId}/admin-reply`, {
+        method: 'POST',
+        body: { message },
+        platformKey,
+      });
+      if (res.ok) {
+        this.post({ type: 'admin_conversation_updated', conversationId });
+        // Reload messages so the UI shows the new reply
+        await this.loadAdminConversationMessages(conversationId);
+      } else {
+        this.post({ type: 'error', message: 'Failed to send admin reply.' });
+      }
+    } catch (err) {
+      this.log(`adminReplyConversation failed: ${err instanceof Error ? err.message : String(err)}`);
+      this.post({ type: 'error', message: 'Failed to send admin reply.' });
+    }
+  }
+
+  private async adminUpdateConversation(conversationId: string, status?: string, needsHuman?: boolean): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+
+    try {
+      const body: Record<string, unknown> = {};
+      if (status) body.status = status;
+      if (typeof needsHuman === 'boolean') body.needs_human = needsHuman;
+      const res = await apiFetch(`/support/conversations/${conversationId}`, {
+        method: 'PATCH',
+        body,
+        platformKey,
+      });
+      if (res.ok) {
+        this.post({ type: 'admin_conversation_updated', conversationId });
+      } else {
+        this.post({ type: 'error', message: 'Failed to update conversation.' });
+      }
+    } catch (err) {
+      this.log(`adminUpdateConversation failed: ${err instanceof Error ? err.message : String(err)}`);
+      this.post({ type: 'error', message: 'Failed to update conversation.' });
     }
   }
 
@@ -2687,7 +2799,13 @@ export class DashboardPanel {
     cfg.update('preferences.permissionMode', settings.permissionMode, vscode.ConfigurationTarget.Global);
     cfg.update('preferences.temperature', settings.temperature, vscode.ConfigurationTarget.Global);
     cfg.update('preferences.maxTokens', settings.maxTokens, vscode.ConfigurationTarget.Global);
-    cfg.update('activeModel', settings.activeModel, vscode.ConfigurationTarget.Global);
+    // Guard: MiniMax is reserved for Creative Studio — never as the chat coordinator.
+    // Reject Dashboard writes that would stamp a MiniMax model as the active chat model.
+    if (settings.activeModel && settings.activeModel.toLowerCase().includes('minimax')) {
+      console.warn(`[DashboardPanel] Refusing activeModel="${settings.activeModel}" — MiniMax is Creative Studio only`);
+    } else {
+      cfg.update('activeModel', settings.activeModel, vscode.ConfigurationTarget.Global);
+    }
     cfg.update('preferences.autoMemory', settings.autoMemory, vscode.ConfigurationTarget.Global);
     cfg.update('preferences.memoryLocalOnly', settings.memoryLocalOnly, vscode.ConfigurationTarget.Global);
     cfg.update('contributeSharedLearning', settings.contributeSharedLearning, vscode.ConfigurationTarget.Global);

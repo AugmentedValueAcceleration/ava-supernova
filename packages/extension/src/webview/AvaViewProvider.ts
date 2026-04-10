@@ -837,7 +837,16 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       }
 
       try {
-        const activeModelId = config.get<string>('activeModel') || '';
+        let activeModelId = config.get<string>('activeModel') || '';
+
+        // Migration: MiniMax is reserved for Creative Studio — never as the chat coordinator.
+        // If a previous session (or the Dashboard leak) stuck a MiniMax model here, reset to Auto
+        // so resolveCoordinatorModel() picks the correct Qwen model on next load.
+        if (activeModelId.toLowerCase().includes('minimax')) {
+          this.log(`Migrating stuck chat model "${activeModelId}" → auto (MiniMax is Creative Studio only)`);
+          activeModelId = 'auto';
+          await config.update('activeModel', 'auto', vscode.ConfigurationTarget.Global);
+        }
 
         // Restore Auto Mode if it was the last selection
         if (activeModelId === 'auto') {
@@ -848,7 +857,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
           if (resolved) {
             this.log(`Active model: ${resolved.provider.name}:${resolved.model.id} (${resolved.model.name})`);
-            await this.setupAgent(resolved.provider, resolved.model);
+            // Route through setActiveModel so autoCoordinator state, status bar and webview
+            // stay in sync — calling setupAgent() directly skips those resets.
+            await this.setActiveModel(activeModelId);
           } else {
             // Auto-select a free model for new users
             const allModels = this.providerRegistry.listAllModels();
@@ -1170,18 +1181,36 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    // Auto Mode — use M2.5 as coordinator (1M context, cheap, great tool calling)
+    // Auto Mode — resolve the correct coordinator via the core helper.
+    // Platform users get Qwen 3.6 Plus (best agentic coding, 1M context).
+    // MiniMax is reserved for creative generation, never routed for reasoning.
     if (modelId === 'auto') {
-      const coordinatorId = this.providerRegistry.resolveModel('platform:MiniMax-M2.5')
-        ? 'platform:MiniMax-M2.5'
-        : this.providerRegistry.resolveModel('platform:MiniMax-M2.7')
-          ? 'platform:MiniMax-M2.7'
-          : this.getActiveModelId() || 'platform:qwen3-omni-flash';
+      const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
+      const hasPlatform = !!platformKey;
+      const availableProviders = new Set<string>();
+      if (hasPlatform) availableProviders.add('platform');
+      const qwenKey = await this.context.secrets.get('ava-supernova.provider.qwen.apiKey');
+      if (qwenKey) availableProviders.add('qwen');
+      const minimaxKey = await this.context.secrets.get('ava-supernova.provider.minimax.apiKey');
+      if (minimaxKey) availableProviders.add('minimax');
+      const kimiKey = await this.context.secrets.get('ava-supernova.provider.kimi.apiKey');
+      if (kimiKey) availableProviders.add('kimi');
+      const deepseekKey = await this.context.secrets.get('ava-supernova.provider.deepseek.apiKey');
+      if (deepseekKey) availableProviders.add('deepseek');
+      const anthropicKey = await this.context.secrets.get('ava-supernova.provider.anthropic.apiKey');
+      if (anthropicKey) availableProviders.add('anthropic');
+      const mistralKey = await this.context.secrets.get('ava-supernova.provider.mistral.apiKey');
+      if (mistralKey) availableProviders.add('mistral');
 
-      const resolved = this.providerRegistry.resolveModel(coordinatorId);
-      if (!resolved) return;
+      const coordinator = resolveCoordinatorModel(this.providerRegistry, availableProviders, hasPlatform);
+      if (!coordinator) {
+        this.log('Auto Mode: no coordinator model available');
+        this.postMessage({ type: 'error', message: 'Auto Mode needs at least one configured provider. Add an API key or sign in.' });
+        return;
+      }
 
-      await this.setupAgent(resolved.provider, resolved.model);
+      this.log(`Auto Mode coordinator: ${coordinator.model.name} (${coordinator.reason})`);
+      await this.setupAgent(coordinator.provider, coordinator.model);
 
       const config = vscode.workspace.getConfiguration('ava-supernova');
       config.update('activeModel', 'auto', vscode.ConfigurationTarget.Global);
