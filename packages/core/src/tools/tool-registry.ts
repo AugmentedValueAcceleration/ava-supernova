@@ -362,6 +362,12 @@ export class ToolRegistry {
     // Plans, ask_user, and switch_mode always require confirmation — collaboration checkpoints
     if (tool.name === 'present_plan' || tool.name === 'ask_user' || tool.name === 'switch_mode') return true;
 
+    // Safe tools never require confirmation — they have no real-world side effects.
+    // This honors the riskLevel contract from types.ts and prevents safe tools like
+    // todo_write from getting trapped in category-level "first_time" gates that
+    // never resolve (e.g. the documents-category trap that hung the planning loop).
+    if (tool.riskLevel === 'safe') return false;
+
     const category = this.getCategoryForTool(tool.name);
     const permission = this.getCategoryPermission(category);
 
