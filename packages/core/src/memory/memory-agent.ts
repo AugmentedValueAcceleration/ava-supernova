@@ -258,15 +258,17 @@ export class MemoryAgent {
             sourceConversationId: conversationId,
           });
           saved++;
-        } catch { /* dedup rejection — non-fatal */ }
+        } catch (err) {
+          logger.debug(`[memory-agent] Dedup/write rejection for L2 memory: ${err instanceof Error ? err.message : String(err)}`);
+        }
       }
 
       if (saved > 0) {
         logger.info(`[memory-agent] Extracted and saved ${saved} memories`);
       }
-    } catch {
+    } catch (err) {
       // LLM extraction failed — Layer 1 results are still saved
-      logger.debug('[memory-agent] LLM extraction failed, Layer 1 results preserved');
+      logger.warn(`[memory-agent] LLM extraction failed: ${err instanceof Error ? err.message : String(err)}`);
     }
 
     return saved;

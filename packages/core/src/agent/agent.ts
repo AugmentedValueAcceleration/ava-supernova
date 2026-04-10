@@ -510,25 +510,11 @@ export class Agent {
             error: new Error(t('error.msg.empty_response')),
           });
         }
-        // Auto-extract memories from the conversation (fire-and-forget)
-        const ma = runContext.sharedState?.memoryAgent as { extractAndSave: (msgs: Message[], cid?: string) => Promise<number> } | undefined;
-        const mm = runContext.sharedState?.memoryManager as MemoryManager | undefined;
-        if (ma) {
-          // Memory Agent: single extraction call (regex + LLM reflection)
-          ma.extractAndSave(messages).catch(() => {});
-        } else if (mm) {
-          // Legacy fallback: 4-layer extraction (when Memory Agent unavailable)
-          autoExtractAndSave(messages, mm).catch(() => {});
-          reflectAndSave(messages, mm, this.provider, this.model).catch(() => {});
-          trackAndLearn(messages, mm).catch(() => {});
-          const userTurns = messages.filter(m => m.role === 'user').length;
-          if (userTurns >= 6) {
-            analyseAndSave(mm, this.provider, this.model).catch(() => {});
-          }
-        }
+        // Auto-extract memories from the conversation (fire-and-forget, errors logged)
+        this.extractMemoriesFromRun(messages, runContext);
 
         // Dataset capture — silently record interaction as training data (fire-and-forget)
-        captureInteraction(messages).catch(() => {});
+        captureInteraction(messages).catch(err => logger.debug(`[dataset] capture failed: ${err}`));
 
         onEvent({ type: 'done', finalMessage: assistantMessage });
         return messages;
@@ -715,7 +701,57 @@ export class Agent {
     onEvent({ type: 'error', error: iterError });
     // Always emit done so the UI clears isStreaming
     onEvent({ type: 'done', finalMessage: { role: 'assistant', content: 'Stopped: tool call iteration limit reached.' } as any });
+    // Extract memories even on iteration limit — there's still valuable context to capture
+    this.extractMemoriesFromRun(messages, runContext);
+    captureInteraction(messages).catch(err => logger.debug(`[dataset] capture failed: ${err}`));
     return messages;
+  }
+
+  /**
+   * Extract and save memories from a completed run.
+   * Fire-and-forget — never blocks the response.
+   * Errors are logged at debug level so they don't spam the UI but are visible for debugging.
+   */
+  private extractMemoriesFromRun(messages: Message[], runContext: ToolExecutionContext): void {
+    const ma = runContext.sharedState?.memoryAgent as { extractAndSave: (msgs: Message[], cid?: string) => Promise<number> } | undefined;
+    const mm = runContext.sharedState?.memoryManager as MemoryManager | undefined;
+
+    if (ma) {
+      // Memory Agent: single extraction call (regex + LLM reflection)
+      logger.debug('[memory] Running Memory Agent extraction');
+      ma.extractAndSave(messages)
+        .then(saved => {
+          if (saved > 0) logger.info(`[memory] Memory Agent saved ${saved} ${saved === 1 ? 'memory' : 'memories'}`);
+          else logger.debug('[memory] Memory Agent: 0 memories extracted from this turn');
+        })
+        .catch(err => logger.warn(`[memory] Memory Agent extraction failed: ${err instanceof Error ? err.message : String(err)}`));
+    } else if (mm) {
+      // Legacy fallback: multi-layer extraction (when Memory Agent unavailable)
+      logger.debug('[memory] Running legacy memory extraction (no Memory Agent)');
+      autoExtractAndSave(messages, mm)
+        .then(saved => {
+          if (saved > 0) logger.info(`[memory] Auto-extract saved ${saved} ${saved === 1 ? 'memory' : 'memories'}`);
+          else logger.debug('[memory] Auto-extract: 0 memories from regex patterns');
+        })
+        .catch(err => logger.warn(`[memory] Auto-extract failed: ${err instanceof Error ? err.message : String(err)}`));
+
+      reflectAndSave(messages, mm, this.provider, this.model)
+        .then(saved => {
+          if (saved > 0) logger.info(`[memory] LLM reflection saved ${saved} ${saved === 1 ? 'memory' : 'memories'}`);
+        })
+        .catch(err => logger.warn(`[memory] LLM reflection failed: ${err instanceof Error ? err.message : String(err)}`));
+
+      trackAndLearn(messages, mm)
+        .catch(err => logger.debug(`[memory] Pattern tracking failed: ${err instanceof Error ? err.message : String(err)}`));
+
+      const userTurns = messages.filter(m => m.role === 'user').length;
+      if (userTurns >= 6) {
+        analyseAndSave(mm, this.provider, this.model)
+          .catch(err => logger.debug(`[memory] Insights analysis failed: ${err instanceof Error ? err.message : String(err)}`));
+      }
+    } else {
+      logger.debug('[memory] No memoryManager in sharedState — skipping extraction. Is memory wired correctly?');
+    }
   }
 
   private async streamResponse(

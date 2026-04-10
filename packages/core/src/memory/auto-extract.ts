@@ -431,17 +431,20 @@ export async function autoExtractAndSave(
         });
         saved++;
         logger.debug(`[auto-memory] L1 saved ${mem.layer}/${mem.category} memory (${mem.scope}): ${mem.content.slice(0, 60)}...`);
-      } catch {
-        // Dedup rejection or write error — non-fatal
+      } catch (err) {
+        logger.debug(`[auto-memory] L1 save rejected (dedup or write error): ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
     if (saved > 0) {
       logger.info(`[auto-memory] Layer 1: extracted ${saved} ${saved === 1 ? 'memory' : 'memories'}`);
+    } else if (extracted.length > 0) {
+      logger.debug(`[auto-memory] Layer 1: ${extracted.length} candidates found but all were deduped`);
     }
     return saved;
-  } catch {
+  } catch (err) {
     // Never crash the agent over auto-memory
+    logger.warn(`[auto-memory] extraction crashed: ${err instanceof Error ? err.message : String(err)}`);
     return 0;
   }
 }
