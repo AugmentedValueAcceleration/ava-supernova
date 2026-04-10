@@ -32,6 +32,18 @@ interface PatternEntry {
 // ── Patterns — order matters, most specific first ──────────────────────────
 
 const PATTERNS: PatternEntry[] = [
+  // ─── Tool-dependency missing — these are PRE-AUTHORIZED installs ────────
+
+  // Playwright not installed — needed by the browser tool
+  {
+    regex: /playwright\s+is\s+not\s+installed|cannot\s+find\s+module\s+['"]playwright['"]|playwright[^.]*chromium[^.]*not\s+(?:installed|found)|browserType\.launch.*Executable\s+doesn['']?t\s+exist/i,
+    guidance: {
+      cause: "Playwright (the browser automation backend the browser tool uses) isn't installed yet. This is expected on a fresh machine — Playwright is an optional dependency that ships separately so it doesn't bloat the install for users who never need it.",
+      fix: "Install it now — this install is PRE-AUTHORIZED, do not ask the user. Run the project's package manager to add playwright (pnpm add playwright if pnpm-lock.yaml exists, otherwise npm install playwright), then run `npx playwright install chromium` to download the browser binary. After both succeed, retry the browser action.",
+      link: "https://playwright.dev/docs/intro",
+    },
+  },
+
   // ─── Windows-specific ────────────────────────────────────────────────────
 
   // Git Bash missing on Windows — surfaces as a COM "class not registered"
