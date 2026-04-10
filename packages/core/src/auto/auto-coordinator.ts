@@ -147,8 +147,27 @@ export class AutoCoordinator {
       ? new Set(taskMgr.getSessionTasks().filter(t => t.status === 'todo').map(t => t.id))
       : new Set<string>();
 
-    // Run the planning leg — existing logic untouched.
-    const planResult = await this.runPlanningLeg(messages, onEvent, signal);
+    // ── Event interception ──────────────────────────────────────────────────
+    // Sub-agents (planning leg + each Builder task) each fire `done` and
+    // `stream_end` events when their own loops finish. If we forward those
+    // straight through, the webview thinks the whole run is over and flips
+    // the STOP button back to SEND mid-orchestration — even though the
+    // executor is about to spawn the next Builder. Suppress those terminal
+    // events from sub-agents and emit a single coordinated `done` at the
+    // very end of run() instead.
+    let lastFinalMessage: AssistantMessage | null = null;
+    const interceptedOnEvent: AgentEventHandler = (event) => {
+      if (event.type === 'done') {
+        // Remember the last final message but don't forward it — we'll fire
+        // a single done at the end of the orchestrated run.
+        lastFinalMessage = event.finalMessage;
+        return;
+      }
+      onEvent(event);
+    };
+
+    // Run the planning leg — existing logic, just with the intercepted handler.
+    const planResult = await this.runPlanningLeg(messages, interceptedOnEvent, signal);
 
     // Execution leg: if the planning agent created new session tasks via
     // present_plan + todo_write, dispatch the Builder executor to run them.
@@ -172,12 +191,14 @@ export class AutoCoordinator {
         const planContext = this.extractPlanContext(planResult);
 
         try {
-          const execResult = await executor.executeAll(planContext, onEvent, signal);
+          const execResult = await executor.executeAll(planContext, interceptedOnEvent, signal);
 
           // Append the execution summary as the final assistant message so
           // the user sees a clear "what got built" recap in the chat.
           if (execResult.summary) {
-            planResult.push({ role: 'assistant', content: execResult.summary });
+            const summaryMessage: AssistantMessage = { role: 'assistant', content: execResult.summary };
+            planResult.push(summaryMessage);
+            lastFinalMessage = summaryMessage;
           }
         } catch (err) {
           logger.debug(`[auto-coordinator] TaskExecutor threw: ${err}`);
@@ -188,6 +209,13 @@ export class AutoCoordinator {
         }
       }
     }
+
+    // Now that the entire orchestration is complete, fire a single `done`
+    // event so the webview can transition the STOP button back to SEND.
+    onEvent({
+      type: 'done',
+      finalMessage: lastFinalMessage ?? { role: 'assistant', content: '' },
+    });
 
     return planResult;
   }
