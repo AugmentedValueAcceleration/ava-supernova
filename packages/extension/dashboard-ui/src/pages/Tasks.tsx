@@ -333,82 +333,103 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
         ))}
       </div>
 
-      {/* Add/Edit Form */}
+      {/* Add/Edit Form — Centered Overlay */}
       {showForm && (
-        <div className="rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] p-4 space-y-3">
-          <p className="text-xs font-medium text-white">{editingId ? t('dash.tasks.edit_task') : t('dash.tasks.new_task')}</p>
-          <input
-            type="text"
-            placeholder={t('dash.tasks.title_placeholder')}
-            value={formTitle}
-            onChange={e => setFormTitle(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSubmitTask()}
-            className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]/50"
-            autoFocus
-          />
-          <textarea
-            placeholder={t('dash.tasks.desc_placeholder')}
-            value={formDesc}
-            onChange={e => setFormDesc(e.target.value)}
-            rows={2}
-            className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]/50 resize-none"
-          />
-          <div className="flex flex-wrap gap-3">
-            {/* Priority */}
-            <div className="flex-1 min-w-[120px]">
-              <label className="mb-1 block text-[10px] text-[var(--text-muted)]">{t('dash.tasks.label_priority')}</label>
-              <Select value={formPriority} onChange={setFormPriority} options={[
-                { value: 'low', label: t('dash.tasks.priority_low') },
-                { value: 'medium', label: t('dash.tasks.priority_medium') },
-                { value: 'high', label: t('dash.tasks.priority_high') },
-                { value: 'urgent', label: t('dash.tasks.priority_urgent') },
-              ]} />
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => resetForm()}
+        >
+          <div
+            className="relative w-full max-w-lg mx-4 rounded-2xl border border-[var(--accent)]/20 bg-[var(--bg-card)] shadow-2xl overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-3">
+              <p className="text-sm font-semibold text-white">{editingId ? t('dash.tasks.edit_task') : t('dash.tasks.new_task')}</p>
+              <button
+                onClick={resetForm}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-white/50 hover:text-white hover:bg-white/10 border-none cursor-pointer transition"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
             </div>
-            {/* Category */}
-            <div className="flex-1 min-w-[120px]">
-              <label className="mb-1 block text-[10px] text-[var(--text-muted)]">{t('dash.tasks.label_category')}</label>
-              <Select value={formCategory} onChange={setFormCategory} options={[
-                { value: 'coding', label: t('dash.tasks.cat_coding') },
-                { value: 'personal', label: t('dash.tasks.cat_personal') },
-                { value: 'admin', label: t('dash.tasks.cat_admin') },
-                { value: 'meeting', label: t('dash.tasks.cat_meeting') },
-                { value: 'custom', label: t('dash.tasks.cat_custom') },
-              ]} />
-            </div>
-            {/* Due date */}
-            <div className="flex-1 min-w-[140px]">
-              <label className="mb-1 block text-[10px] text-[var(--text-muted)]">{t('dash.tasks.label_due_date')}</label>
+
+            {/* Form */}
+            <div className="px-5 pb-5 space-y-3">
               <input
-                type="date"
-                value={formDueDate}
-                onChange={e => setFormDueDate(e.target.value)}
-                className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-2 py-1.5 text-xs text-white outline-none"
+                type="text"
+                placeholder={t('dash.tasks.title_placeholder')}
+                value={formTitle}
+                onChange={e => setFormTitle(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSubmitTask()}
+                className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2.5 text-sm text-white placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]/50"
+                autoFocus
               />
+              <textarea
+                placeholder={t('dash.tasks.desc_placeholder')}
+                value={formDesc}
+                onChange={e => setFormDesc(e.target.value)}
+                rows={3}
+                className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2.5 text-sm text-white placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]/50 resize-none"
+              />
+              <div className="grid grid-cols-2 gap-3">
+                {/* Priority */}
+                <div>
+                  <label className="mb-1 block text-[10px] text-[var(--text-muted)]">{t('dash.tasks.label_priority')}</label>
+                  <Select value={formPriority} onChange={setFormPriority} options={[
+                    { value: 'low', label: t('dash.tasks.priority_low') },
+                    { value: 'medium', label: t('dash.tasks.priority_medium') },
+                    { value: 'high', label: t('dash.tasks.priority_high') },
+                    { value: 'urgent', label: t('dash.tasks.priority_urgent') },
+                  ]} />
+                </div>
+                {/* Category */}
+                <div>
+                  <label className="mb-1 block text-[10px] text-[var(--text-muted)]">{t('dash.tasks.label_category')}</label>
+                  <Select value={formCategory} onChange={setFormCategory} options={[
+                    { value: 'coding', label: t('dash.tasks.cat_coding') },
+                    { value: 'personal', label: t('dash.tasks.cat_personal') },
+                    { value: 'admin', label: t('dash.tasks.cat_admin') },
+                    { value: 'meeting', label: t('dash.tasks.cat_meeting') },
+                    { value: 'custom', label: t('dash.tasks.cat_custom') },
+                  ]} />
+                </div>
+                {/* Due date */}
+                <div>
+                  <label className="mb-1 block text-[10px] text-[var(--text-muted)]">{t('dash.tasks.label_due_date')}</label>
+                  <input
+                    type="date"
+                    value={formDueDate}
+                    onChange={e => setFormDueDate(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-xs text-white outline-none"
+                  />
+                </div>
+                {/* Recurrence */}
+                <div>
+                  <label className="mb-1 block text-[10px] text-[var(--text-muted)]">{t('dash.tasks.label_recurrence')}</label>
+                  <Select value={formRecurrence} onChange={setFormRecurrence} options={[
+                    { value: 'none', label: t('dash.tasks.recurrence_none') },
+                    { value: 'daily', label: t('dash.tasks.recurrence_daily') },
+                    { value: 'weekly', label: t('dash.tasks.recurrence_weekly') },
+                  ]} />
+                </div>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={handleSubmitTask}
+                  disabled={!formTitle.trim()}
+                  className="flex-1 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-40 border-none cursor-pointer"
+                >
+                  {editingId ? t('dash.tasks.save_changes') : t('dash.tasks.add_task')}
+                </button>
+                <button
+                  onClick={resetForm}
+                  className="rounded-lg border border-[var(--border-card)] bg-transparent px-4 py-2.5 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)] cursor-pointer"
+                >
+                  {t('dash.tasks.cancel')}
+                </button>
+              </div>
             </div>
-            {/* Recurrence */}
-            <div className="flex-1 min-w-[120px]">
-              <label className="mb-1 block text-[10px] text-[var(--text-muted)]">{t('dash.tasks.label_recurrence')}</label>
-              <Select value={formRecurrence} onChange={setFormRecurrence} options={[
-                { value: 'none', label: t('dash.tasks.recurrence_none') },
-                { value: 'daily', label: t('dash.tasks.recurrence_daily') },
-                { value: 'weekly', label: t('dash.tasks.recurrence_weekly') },
-              ]} />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={handleSubmitTask}
-              disabled={!formTitle.trim()}
-              className="rounded-lg bg-[var(--accent)] px-4 py-1.5 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-40"
-            >
-              {editingId ? t('dash.tasks.save_changes') : t('dash.tasks.add_task')}
-            </button>
-            <button
-              onClick={resetForm}
-              className="rounded-lg border border-[var(--border-card)] bg-transparent px-4 py-1.5 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)]"
-            >
-              {t('dash.tasks.cancel')}
-            </button>
           </div>
         </div>
       )}

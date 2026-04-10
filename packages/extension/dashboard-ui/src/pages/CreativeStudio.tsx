@@ -1,7 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { useLocale } from '../i18n';
 import { post } from '../App';
 import type { AccountInfo } from '../types/messages';
+import {
+  FolderOpen, Image as ImageIcon, MusicNotes, Microphone, VideoCamera,
+  FileText, GridFour, Table, FilePdf, FileCode, Presentation,
+} from '@phosphor-icons/react';
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -9,19 +13,13 @@ function formatTokens(n: number): string {
   return String(n);
 }
 
-// SVG icon components for the Creative Studio tabs
-const TabIcon = ({ d, size = 16 }: { d: string; size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d={d} />
-  </svg>
-);
-
-const TAB_ICONS: Record<string, JSX.Element> = {
-  library: <TabIcon d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />,
-  images: <TabIcon d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />,
-  audio: <TabIcon d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />,
-  voice: <TabIcon d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4M12 15a3 3 0 003-3V5a3 3 0 00-6 0v7a3 3 0 003 3z" />,
-  video: <TabIcon d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />,
+const TAB_ICONS: Record<string, ReactNode> = {
+  library: <FolderOpen weight="duotone" size={16} />,
+  images: <ImageIcon weight="duotone" size={16} />,
+  audio: <MusicNotes weight="duotone" size={16} />,
+  voice: <Microphone weight="duotone" size={16} />,
+  video: <VideoCamera weight="duotone" size={16} />,
+  documents: <FileText weight="duotone" size={16} />,
 };
 
 const TABS = [
@@ -30,6 +28,7 @@ const TABS = [
   { key: 'audio', label: 'Audio' },
   { key: 'voice', label: 'Voice' },
   { key: 'video', label: 'Video' },
+  { key: 'documents', label: 'Documents' },
 ];
 
 const VOICES = [
@@ -47,15 +46,15 @@ const VOICES = [
 
 type LibraryFilter = 'all' | 'images' | 'music' | 'video' | 'voice' | 'documents' | 'spreadsheets' | 'presentations';
 
-const FILTER_ICONS: Record<string, JSX.Element> = {
-  all: <TabIcon d="M4 6h16M4 10h16M4 14h16M4 18h16" />,
-  images: <TabIcon d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />,
-  music: <TabIcon d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />,
-  video: <TabIcon d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />,
-  voice: <TabIcon d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4M12 15a3 3 0 003-3V5a3 3 0 00-6 0v7a3 3 0 003 3z" />,
-  documents: <TabIcon d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />,
-  spreadsheets: <TabIcon d="M3 10h18M3 14h18M3 6h18M3 18h18M8 6v12M16 6v12" />,
-  presentations: <TabIcon d="M8 13v-1m4 1v-3m4 3V8M8 21l4-4 4 4M3 4h18v12H3z" />,
+const FILTER_ICONS: Record<string, ReactNode> = {
+  all: <GridFour weight="duotone" size={16} />,
+  images: <ImageIcon weight="duotone" size={16} />,
+  music: <MusicNotes weight="duotone" size={16} />,
+  video: <VideoCamera weight="duotone" size={16} />,
+  voice: <Microphone weight="duotone" size={16} />,
+  documents: <FileText weight="duotone" size={16} />,
+  spreadsheets: <Table weight="duotone" size={16} />,
+  presentations: <Presentation weight="duotone" size={16} />,
 };
 
 const LIBRARY_FILTERS: { key: LibraryFilter; label: string }[] = [
@@ -70,6 +69,8 @@ const LIBRARY_FILTERS: { key: LibraryFilter; label: string }[] = [
 ];
 
 /* ── Auth helpers ──────────────────────────────────────────────────── */
+
+const PLATFORM_URL = 'https://ava-supernova.com/api';
 
 function getAuthHeaders(): Record<string, string> {
   const key = (window as any).__avaPlatformKey || '';
@@ -337,9 +338,11 @@ function loadLocalAssets(): any[] {
 }
 
 function saveLocalAsset(type: string, url: string, title: string, prompt: string) {
+  // Always save to localStorage (Creative Studio's local store)
   const assets = loadLocalAssets();
+  const id = `${type}_${Date.now()}`;
   assets.unshift({
-    id: `${type}_${Date.now()}`,
+    id,
     type,
     asset_type: type,
     title,
@@ -350,6 +353,19 @@ function saveLocalAsset(type: string, url: string, title: string, prompt: string
   try {
     localStorage.setItem('ava-creative-assets', JSON.stringify(assets));
   } catch { /* quota */ }
+
+  // When Local or Both mode is active, also save the file to disk
+  const dataMode = localStorage.getItem('ava-data-mode') || 'local';
+  if (dataMode === 'local' || dataMode === 'both') {
+    const extMap: Record<string, string> = { image: 'png', music: 'mp3', voice: 'mp3', video: 'mp4' };
+    const dirMap: Record<string, string> = { image: 'images', music: '.ava/creative/audio', voice: '.ava/creative/voice', video: '.ava/creative/video' };
+    const ext = extMap[type] || 'bin';
+    const dir = dirMap[type] || '.ava/creative';
+    const safeName = title.replace(/[^a-zA-Z0-9-_ ]/g, '').replace(/\s+/g, '-').toLowerCase().slice(0, 60) || 'untitled';
+    const filename = `${dir}/${safeName}.${ext}`;
+    // Send to extension host to download the URL and save to disk
+    post({ type: 'save_creative_to_disk', url, filename, assetType: type, prompt } as any);
+  }
 }
 
 function deleteLocalAsset(id: string) {
@@ -1185,6 +1201,78 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                 </div>
               )
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Documents tab ──────────────────────────────────────── */}
+      {activeTab === 'documents' && (
+        <div className="p-6">
+          <h2 className="text-lg font-semibold text-white mb-2">Create a Document</h2>
+          <p className="text-xs text-[var(--text-muted)] mb-6">
+            Create blank files or use templates. Files save to your project's documents/ folder and appear in the Library.
+          </p>
+
+          {/* Blank file creation */}
+          <div className="mb-8">
+            <h3 className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-medium mb-3">New Blank File</h3>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { ext: 'docx', label: 'Word Document', icon: <FileText weight="duotone" size={24} />, color: '#60a5fa' },
+                { ext: 'xlsx', label: 'Spreadsheet', icon: <Table weight="duotone" size={24} />, color: '#4ade80' },
+                { ext: 'pptx', label: 'Presentation', icon: <Presentation weight="duotone" size={24} />, color: '#fb923c' },
+                { ext: 'csv', label: 'CSV File', icon: <GridFour weight="duotone" size={24} />, color: '#a78bfa' },
+                { ext: 'md', label: 'Markdown', icon: <FileCode weight="duotone" size={24} />, color: '#f472b6' },
+                { ext: 'pdf', label: 'PDF Document', icon: <FilePdf weight="duotone" size={24} />, color: '#f87171' },
+              ].map(item => (
+                <button
+                  key={item.ext}
+                  onClick={() => {
+                    const name = prompt(`Filename (without .${item.ext}):`, `untitled`);
+                    if (!name?.trim()) return;
+                    post({ type: 'create_blank_document', format: item.ext, filename: `${name.trim()}.${item.ext}` } as any);
+                  }}
+                  className="flex flex-col items-center gap-2 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-center transition hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/5 cursor-pointer"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ background: `${item.color}15`, color: item.color }}>
+                    {item.icon}
+                  </div>
+                  <span className="text-xs font-medium text-white">{item.label}</span>
+                  <span className="text-[10px] text-[var(--text-muted)]">.{item.ext}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Templates */}
+          <div>
+            <h3 className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-medium mb-3">From Template</h3>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { id: 'proposal', label: 'Project Proposal', desc: 'Executive summary, objectives, timeline, budget', icon: '📋' },
+                { id: 'report', label: 'Status Report', desc: 'Progress, issues, next steps', icon: '📊' },
+                { id: 'invoice', label: 'Invoice', desc: 'Items table, payment terms', icon: '💰' },
+                { id: 'letter', label: 'Formal Letter', desc: 'Recipient, body, closing', icon: '✉️' },
+                { id: 'meeting_notes', label: 'Meeting Notes', desc: 'Agenda, discussion, action items', icon: '📝' },
+                { id: 'resume', label: 'Resume', desc: 'Contact, experience, education, skills', icon: '👤' },
+              ].map(tmpl => (
+                <button
+                  key={tmpl.id}
+                  onClick={() => {
+                    const name = prompt(`Filename (without .docx):`, tmpl.id);
+                    if (!name?.trim()) return;
+                    post({ type: 'create_from_template', template: tmpl.id, filename: `${name.trim()}.docx` } as any);
+                  }}
+                  className="flex items-start gap-3 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-left transition hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/5 cursor-pointer"
+                >
+                  <span className="text-xl mt-0.5">{tmpl.icon}</span>
+                  <div>
+                    <span className="text-xs font-medium text-white block">{tmpl.label}</span>
+                    <span className="text-[10px] text-[var(--text-muted)] leading-relaxed">{tmpl.desc}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}

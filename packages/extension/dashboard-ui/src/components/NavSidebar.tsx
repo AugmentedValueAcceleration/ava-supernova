@@ -1,8 +1,12 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { Page, DashboardJournalDaySummary } from '../types/messages';
 import { DataPortability } from './DataPortability';
+import {
+  Lightning, ChatCircleDots, ListChecks, Books, Palette,
+  Brain, ChartBar, GearSix, Question, ShieldCheck, Wrench,
+} from '@phosphor-icons/react';
 
 interface NavSidebarProps {
   currentPage: Page;
@@ -24,13 +28,14 @@ interface NavSidebarProps {
   onNewChat?: () => void;
   onOpenHistory?: () => void;
   supportUnread?: number;
+  avatarUrl?: string;
 }
 
 /* ── Nav structure ────────────────────────────────────────────────────── */
 
 interface NavItem {
   page: Page;
-  icon: string;
+  icon: ReactNode;
   label: string;
   description: string;
   platformOnly?: boolean;
@@ -54,21 +59,21 @@ function tt(key: string, fallback: string): string {
 
 function getNavItems(isAdmin?: boolean): NavItem[] {
   const items: NavItem[] = [
-    { page: 'overview', icon: '\u26A1', label: tt('dash.nav.command_centre', 'Command Centre'), description: tt('dash.nav.command_centre_desc', 'Your daily overview') },
-    { page: 'chat', icon: '\uD83D\uDCAC', label: tt('dash.nav.ava_chat', 'Chat'), description: tt('dash.nav.ava_chat_desc', 'Talk, build, create') },
-    { page: 'planner', icon: '\uD83D\uDCCB', label: tt('dash.nav.planner', 'Planner'), description: tt('dash.nav.planner_desc', 'Tasks, journal, learning') },
-    { page: 'learning-library', icon: '\uD83D\uDCDA', label: tt('dash.nav.learning_library', 'Learning Library'), description: tt('dash.nav.learning_library_desc', 'Browse and start learning paths') },
-    { page: 'creative-studio', icon: '\uD83C\uDFA8', label: tt('dash.nav.creative_studio', 'Creative Studio'), description: tt('dash.nav.creative_studio_desc', 'Images, music, video, voice') },
-    { page: 'memory', icon: '\uD83E\uDDE0', label: tt('dash.nav.memory', 'Memory'), description: tt('dash.nav.memory_desc', 'Patterns, preferences, decisions') },
-    { page: 'history', icon: '\uD83D\uDCCA', label: tt('dash.nav.usage', 'History'), description: tt('dash.nav.usage_desc', 'Tokens, sessions, models') },
-    { page: 'account', icon: '\u2699\uFE0F', label: tt('dash.nav.account', 'Account'), description: tt('dash.nav.account_desc', 'Settings, billing, personalisation') },
-    { page: 'help', icon: '\u2753', label: tt('dash.nav.help', 'Help'), description: tt('dash.nav.help_desc', 'Support, releases, roadmap') },
+    { page: 'overview', icon: <Lightning weight="duotone" size={18} />, label: tt('dash.nav.command_centre', 'Command Centre'), description: tt('dash.nav.command_centre_desc', 'Your daily overview') },
+    { page: 'chat', icon: <ChatCircleDots weight="duotone" size={18} />, label: tt('dash.nav.ava_chat', 'Chat'), description: tt('dash.nav.ava_chat_desc', 'Talk, build, create') },
+    { page: 'planner', icon: <ListChecks weight="duotone" size={18} />, label: tt('dash.nav.planner', 'Planner'), description: tt('dash.nav.planner_desc', 'Tasks, journal, learning') },
+    { page: 'learning-library', icon: <Books weight="duotone" size={18} />, label: tt('dash.nav.learning_library', 'Learning Library'), description: tt('dash.nav.learning_library_desc', 'Browse and start learning paths') },
+    { page: 'creative-studio', icon: <Palette weight="duotone" size={18} />, label: tt('dash.nav.creative_studio', 'Creative Studio'), description: tt('dash.nav.creative_studio_desc', 'Images, music, video, voice') },
+    { page: 'memory', icon: <Brain weight="duotone" size={18} />, label: tt('dash.nav.memory', 'Memory'), description: tt('dash.nav.memory_desc', 'Patterns, preferences, decisions') },
+    { page: 'history', icon: <ChartBar weight="duotone" size={18} />, label: tt('dash.nav.usage', 'History'), description: tt('dash.nav.usage_desc', 'Tokens, sessions, models') },
+    { page: 'account', icon: <GearSix weight="duotone" size={18} />, label: tt('dash.nav.account', 'Account'), description: tt('dash.nav.account_desc', 'Settings, billing, personalisation') },
+    { page: 'help', icon: <Question weight="duotone" size={18} />, label: tt('dash.nav.help', 'Help'), description: tt('dash.nav.help_desc', 'Support, releases, roadmap') },
   ];
 
   if (isAdmin) {
     items.push(
-      { page: 'admin_support', icon: '\uD83D\uDEE1\uFE0F', label: tt('dash.nav.admin_support', 'Admin Support'), description: tt('dash.nav.admin_support_desc', 'All user tickets'), adminOnly: true },
-      { page: 'admin_proposals', icon: '\uD83D\uDD27', label: tt('dash.nav.proposals', 'Tool Proposals'), description: tt('dash.nav.proposals_desc', 'Review and approve'), adminOnly: true },
+      { page: 'admin_support', icon: <ShieldCheck weight="duotone" size={18} />, label: tt('dash.nav.admin_support', 'Admin Support'), description: tt('dash.nav.admin_support_desc', 'All user tickets'), adminOnly: true },
+      { page: 'admin_proposals', icon: <Wrench weight="duotone" size={18} />, label: tt('dash.nav.proposals', 'Tool Proposals'), description: tt('dash.nav.proposals_desc', 'Review and approve'), adminOnly: true },
     );
   }
 
@@ -99,6 +104,7 @@ export function NavSidebar({
   onNewChat,
   onOpenHistory,
   supportUnread,
+  avatarUrl,
 }: NavSidebarProps) {
   useLocale();
 
@@ -242,9 +248,13 @@ export function NavSidebar({
       <div className="border-t border-[var(--border-card)] p-4">
         {mode === 'platform' ? (
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-sm font-light text-purple-400">
-              {email?.[0]?.toUpperCase() || '?'}
-            </div>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-sm font-light text-purple-400">
+                {email?.[0]?.toUpperCase() || '?'}
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <p className="truncate text-[11px] font-medium text-white">{email}</p>
               {isAdmin && (
@@ -346,7 +356,7 @@ function NavItem({
   badge,
 }: {
   page: string;
-  icon: string;
+  icon: ReactNode;
   label: string;
   description: string;
   isActive: boolean;

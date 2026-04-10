@@ -1,7 +1,11 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { SyncStatus } from '../types/messages';
+import {
+  Brain, CheckSquare, BookOpen, GraduationCap, ChatCircle,
+  GearSix, MaskHappy, Lightbulb, User, Palette,
+} from '@phosphor-icons/react';
 
 const SYNC_PREFS_KEY = 'ava-sync-preferences';
 
@@ -18,15 +22,16 @@ function saveSyncPrefs(prefs: Record<string, boolean>) {
 
 function getSyncDataTypes() {
   return [
-    { key: 'memory',      label: t('dash.sync.memory'),           icon: '🧠', description: t('dash.sync.memory_desc') },
-    { key: 'tasks',       label: t('dash.sync.tasks'),            icon: '✓',  description: t('dash.sync.tasks_desc') },
-    { key: 'journal',     label: t('dash.sync.journal'),          icon: '📖', description: t('dash.sync.journal_desc') },
-    { key: 'learning',    label: t('dash.nav.learning'),          icon: '🎓', description: t('dash.nav.learning_desc') },
-    { key: 'history',     label: t('dash.sync.chat_history'),     icon: '💬', description: t('dash.sync.chat_history_desc') },
-    { key: 'settings',    label: t('dash.sync.settings'),         icon: '⚙',  description: t('dash.sync.settings_desc') },
-    { key: 'personality', label: t('dash.sync.personality'),       icon: '🎭', description: t('dash.sync.personality_desc') },
-    { key: 'learnings',   label: t('dash.sync.shared_learnings'), icon: '💡', description: t('dash.sync.shared_learnings_desc') },
-    { key: 'profile',     label: 'Profile',                       icon: '👤', description: 'Avatar and display name — syncs your profile to the cloud for use across devices' },
+    { key: 'memory',      label: t('dash.sync.memory'),           icon: <Brain weight="duotone" size={18} />, description: t('dash.sync.memory_desc') },
+    { key: 'tasks',       label: t('dash.sync.tasks'),            icon: <CheckSquare weight="duotone" size={18} />,  description: t('dash.sync.tasks_desc') },
+    { key: 'journal',     label: t('dash.sync.journal'),          icon: <BookOpen weight="duotone" size={18} />, description: t('dash.sync.journal_desc') },
+    { key: 'learning',    label: t('dash.nav.learning'),          icon: <GraduationCap weight="duotone" size={18} />, description: t('dash.nav.learning_desc') },
+    { key: 'history',     label: t('dash.sync.chat_history'),     icon: <ChatCircle weight="duotone" size={18} />, description: t('dash.sync.chat_history_desc') },
+    { key: 'settings',    label: t('dash.sync.settings'),         icon: <GearSix weight="duotone" size={18} />,  description: t('dash.sync.settings_desc') },
+    { key: 'personality', label: t('dash.sync.personality'),       icon: <MaskHappy weight="duotone" size={18} />, description: t('dash.sync.personality_desc') },
+    { key: 'learnings',   label: t('dash.sync.shared_learnings'), icon: <Lightbulb weight="duotone" size={18} />, description: t('dash.sync.shared_learnings_desc') },
+    { key: 'profile',     label: 'Profile',                       icon: <User weight="duotone" size={18} />, description: 'Avatar and display name — syncs your profile to the cloud for use across devices' },
+    { key: 'creative',    label: 'Creative Assets',               icon: <Palette weight="duotone" size={18} />, description: 'Generated images, videos, music, and voice — sync your creative library to the cloud' },
   ] as const;
 }
 

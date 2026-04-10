@@ -838,24 +838,31 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
       try {
         const activeModelId = config.get<string>('activeModel') || '';
-        const resolved = this.providerRegistry.resolveModel(activeModelId);
 
-        if (resolved) {
-          this.log(`Active model: ${resolved.provider.name}:${resolved.model.id} (${resolved.model.name})`);
-          await this.setupAgent(resolved.provider, resolved.model);
+        // Restore Auto Mode if it was the last selection
+        if (activeModelId === 'auto') {
+          this.log('Restoring Auto Mode from saved setting');
+          await this.setActiveModel('auto');
         } else {
-          // Auto-select a free model for new users
-          const allModels = this.providerRegistry.listAllModels();
-          const pick = allModels.find(m => m.pricing?.inputPerMillion === 0) || allModels[0];
-          if (pick) {
-            const autoResolved = this.providerRegistry.resolveModel(`${pick.provider}:${pick.id}`);
-            if (autoResolved) {
-              this.log(`Auto-selected free model: ${pick.provider}:${pick.id}`);
-              await this.setupAgent(autoResolved.provider, autoResolved.model);
-              config.update('activeModel', `${pick.provider}:${pick.id}`, vscode.ConfigurationTarget.Global);
-            }
+          const resolved = this.providerRegistry.resolveModel(activeModelId);
+
+          if (resolved) {
+            this.log(`Active model: ${resolved.provider.name}:${resolved.model.id} (${resolved.model.name})`);
+            await this.setupAgent(resolved.provider, resolved.model);
           } else {
-            this.log(`No model resolved for activeModel="${activeModelId}". Available: ${allModels.map(m => m.id).join(', ') || 'none'}`);
+            // Auto-select a free model for new users
+            const allModels = this.providerRegistry.listAllModels();
+            const pick = allModels.find(m => m.pricing?.inputPerMillion === 0) || allModels[0];
+            if (pick) {
+              const autoResolved = this.providerRegistry.resolveModel(`${pick.provider}:${pick.id}`);
+              if (autoResolved) {
+                this.log(`Auto-selected free model: ${pick.provider}:${pick.id}`);
+                await this.setupAgent(autoResolved.provider, autoResolved.model);
+                config.update('activeModel', `${pick.provider}:${pick.id}`, vscode.ConfigurationTarget.Global);
+              }
+            } else {
+              this.log(`No model resolved for activeModel="${activeModelId}". Available: ${allModels.map(m => m.id).join(', ') || 'none'}`);
+            }
           }
         }
       } catch (err) {

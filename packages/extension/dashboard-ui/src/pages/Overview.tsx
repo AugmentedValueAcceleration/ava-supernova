@@ -3,7 +3,10 @@ import { t, useLocale } from '../i18n';
 import { TierBadge } from '../components/TierBadge';
 import { SectionGroup } from '../components/SectionGroup';
 import { post } from '../App';
-import { BoltIcon, ChartBarIcon } from '../components/Icons';
+import {
+  Lightning, ChartBar, Clock, CloudSun, Newspaper, CheckCircle,
+  Brain, BookOpen, Sparkle, Rocket, ArrowsClockwise,
+} from '@phosphor-icons/react';
 import type {
   AccountInfo,
   ConnectionStatus,
@@ -228,13 +231,13 @@ export function Overview({
         </div>
         <div className="grid grid-cols-2 gap-3">
           <StatCard
-            icon={<ChartBarIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
+            icon={<ChartBar weight="duotone" size={20} />}
             value={formatNumber(usage.tokens_used || logsTotal.total)}
             label={t('dash.cc.tokens_used')}
             subtext={usage.period_start ? t('dash.cc.since', { date: new Date(usage.period_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) }) : (logsTotal.count > 0 ? t('dash.cc.from_requests', { count: logsTotal.count }) : undefined)}
           />
           <StatCard
-            icon={<BoltIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
+            icon={<Lightning weight="duotone" size={20} />}
             value={String(usage.requests_count || logsTotal.count)}
             label={t('dash.cc.requests')}
             subtext={t('dash.cc.this_period')}
@@ -337,7 +340,7 @@ function WorkingHoursClock() {
   const isWorking = start <= end ? (now >= start && now < end) : (now >= start || now < end);
 
   return (
-    <WidgetCard title={t('dash.cc.working_hours')} icon="🕐">
+    <WidgetCard title={t('dash.cc.working_hours')} icon={<Clock weight="duotone" size={16} />}>
       <div className="flex items-center gap-4">
         <svg ref={clockRef} width={size} height={size} className="shrink-0">
           <circle cx={cx} cy={cy} r={r + 6} fill="var(--bg-input)" stroke="var(--border-card)" strokeWidth={1} />
@@ -373,7 +376,7 @@ function WorkingHoursClock() {
 function WeatherWidget({ weather }: { weather: WeatherData | null }) {
   if (weather === undefined) {
     return (
-      <WidgetCard title={t('dash.cc.weather')} icon="🌤️">
+      <WidgetCard title={t('dash.cc.weather')} icon={<CloudSun weight="duotone" size={16} />}>
         <div className="flex items-center gap-2 py-4 text-xs text-[var(--text-muted)]">
           <span className="animate-pulse">{t('dash.cc.weather_loading')}</span>
         </div>
@@ -383,14 +386,14 @@ function WeatherWidget({ weather }: { weather: WeatherData | null }) {
 
   if (!weather) {
     return (
-      <WidgetCard title={t('dash.cc.weather')} icon="🌤️">
+      <WidgetCard title={t('dash.cc.weather')} icon={<CloudSun weight="duotone" size={16} />}>
         <p className="py-2 text-xs text-[var(--text-muted)]">{t('dash.cc.weather_error')}</p>
       </WidgetCard>
     );
   }
 
   return (
-    <WidgetCard title={t('dash.cc.weather')} icon="🌤️" subtitle={weather.location} onRefresh={() => post({ type: 'load_weather' })}>
+    <WidgetCard title={t('dash.cc.weather')} icon={<CloudSun weight="duotone" size={16} />} subtitle={weather.location} onRefresh={() => post({ type: 'load_weather' })}>
       {/* Current conditions */}
       <div className="flex items-center gap-4">
         <span className="text-3xl">{weather.emoji}</span>
@@ -469,7 +472,7 @@ function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { 
   };
 
   return (
-    <WidgetCard title={t('dash.cc.latest_news')} icon="📰" onRefresh={() => post({ type: 'load_news' })}>
+    <WidgetCard title={t('dash.cc.latest_news')} icon={<Newspaper weight="duotone" size={16} />} onRefresh={() => post({ type: 'load_news' })}>
       {/* Category carousel */}
       <div
         className="news-carousel mb-3 flex gap-1.5 overflow-x-auto pb-1"
@@ -516,20 +519,27 @@ function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { 
             <button
               key={article.slug || idx}
               onClick={() => handleArticleClick(article.slug)}
-              className="block w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)]/30 p-3 text-left transition hover:border-[var(--accent)]/30"
+              className="group block w-full rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-3.5 text-left transition hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/[0.03]"
             >
-              <div className="flex items-center gap-2 mb-1">
-                {article.category && (
-                  <span className="rounded-full bg-[var(--accent)]/15 px-2 py-0.5 text-[9px] font-medium text-[var(--accent)]">
-                    {formatCategoryLabel(article.category)}
-                  </span>
-                )}
-                {article.reading_time > 0 && (
-                  <span className="text-[9px] text-[var(--text-muted)]">{t('news.min_read', { n: article.reading_time })}</span>
-                )}
+              <div className="flex items-start gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg mt-0.5 text-[var(--accent)]" style={{ background: 'rgba(168,85,247,0.08)' }}>
+                  <Newspaper weight="duotone" size={14} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-medium text-white leading-snug group-hover:text-[var(--accent)] transition-colors">{article.title}</p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    {article.category && (
+                      <span className="rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[9px] font-medium text-[var(--accent)]">
+                        {formatCategoryLabel(article.category)}
+                      </span>
+                    )}
+                    {article.reading_time > 0 && (
+                      <span className="text-[9px] text-[var(--text-muted)]">{t('news.min_read', { n: article.reading_time })}</span>
+                    )}
+                    <span className="text-[9px] text-[var(--text-muted)]">{formatRelativeDate(article.date)}</span>
+                  </div>
+                </div>
               </div>
-              <p className="text-xs font-medium text-white leading-snug">{article.title}</p>
-              <p className="mt-1 text-[10px] text-[var(--text-muted)]">{formatRelativeDate(article.date)}</p>
             </button>
           ))}
         </div>
@@ -764,7 +774,7 @@ function MemoryWidget({ memories: rawMemories, onNavigate, total }: { memories: 
 
 function ReleaseWidget({ release }: { release: ReleaseInfo | null }) {
   return (
-    <WidgetCard title={t('dash.cc.latest_release')} icon="🚀" onRefresh={() => post({ type: 'load_latest_release' })}>
+    <WidgetCard title={t('dash.cc.latest_release')} icon={<Rocket weight="duotone" size={16} />} onRefresh={() => post({ type: 'load_latest_release' })}>
       {!release ? (
         <p className="py-4 text-xs text-[var(--text-muted)]">{t('dash.cc.no_release')}</p>
       ) : (
@@ -799,7 +809,7 @@ function WidgetCard({
   children,
 }: {
   title: string;
-  icon: string;
+  icon: React.ReactNode;
   subtitle?: string;
   action?: { label: string; onClick: () => void };
   onRefresh?: () => void;
@@ -816,7 +826,7 @@ function WidgetCard({
     <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-sm">{icon}</span>
+          <span className="text-[var(--accent)] shrink-0">{icon}</span>
           <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{title}</h3>
           {subtitle && (
             <span className="text-[10px] text-[var(--text-muted)]">&middot; {subtitle}</span>
@@ -851,13 +861,13 @@ function WidgetCard({
 
 function StatCard({ icon, value, label, subtext }: { icon: React.ReactNode; value: string; label: string; subtext?: string }) {
   return (
-    <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
-      <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--bg-input)]">
+    <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 transition hover:border-[var(--accent)]/20">
+      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl text-[var(--accent)]" style={{ background: 'rgba(168,85,247,0.1)' }}>
         {icon}
       </div>
-      <div className="text-xl font-bold">{value}</div>
-      <div className="text-xs text-[var(--text-secondary)]">{label}</div>
-      {subtext && <div className="mt-0.5 text-[10px] text-[var(--text-muted)]">{subtext}</div>}
+      <div className="text-2xl font-bold tracking-tight">{value}</div>
+      <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">{label}</div>
+      {subtext && <div className="mt-1 text-[10px] text-[var(--text-muted)]">{subtext}</div>}
     </div>
   );
 }
@@ -923,25 +933,25 @@ function ByokOverview({
         <SectionGroup label={t('dash.cc.session_stats')}>
           <div className="grid grid-cols-2 gap-3">
             <StatCard
-              icon={<BoltIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
+              icon={<Lightning weight="duotone" size={20} />}
               value={String(stats?.messages ?? 0)}
               label={t('dash.usage.messages')}
               subtext={t('dash.usage.session')}
             />
             <StatCard
-              icon={<ChartBarIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
+              icon={<ChartBar weight="duotone" size={20} />}
               value={formatNumber(totalTokens)}
               label={t('dash.cc.tokens_used')}
               subtext={`${t('dash.usage.input_tokens')}: ${formatNumber(stats?.total_input_tokens ?? 0)} / ${t('dash.usage.output_tokens')}: ${formatNumber(stats?.total_output_tokens ?? 0)}`}
             />
             <StatCard
-              icon={<BoltIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
+              icon={<Lightning weight="duotone" size={20} />}
               value={String(stats?.tool_calls ?? 0)}
               label={t('dash.usage.tool_calls')}
               subtext={t('dash.usage.session')}
             />
             <StatCard
-              icon={<ChartBarIcon className="h-5 w-5 text-[var(--gradient-start)]" />}
+              icon={<ChartBar weight="duotone" size={20} />}
               value={sessionDuration}
               label={t('dash.usage.session')}
               subtext={stats ? t('dash.usage.since', { time: new Date(stats.session_start).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }) }) : undefined}

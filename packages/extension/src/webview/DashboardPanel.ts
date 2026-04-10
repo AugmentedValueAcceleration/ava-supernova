@@ -614,6 +614,127 @@ export class DashboardPanel {
         }
         break;
       }
+      case 'save_creative_to_disk': {
+        // Creative Studio generated an asset — download URL and save to project
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && msg.url && msg.filename) {
+          const projectRoot = workspaceFolders[0].uri.fsPath;
+          const savePath = path.join(projectRoot, msg.filename);
+          try {
+            await fs.mkdir(path.dirname(savePath), { recursive: true });
+            // Download the URL
+            const res = await fetch(msg.url);
+            if (res.ok) {
+              const buf = Buffer.from(await res.arrayBuffer());
+              await fs.writeFile(savePath, buf);
+              this.log(`[Creative] Saved ${msg.assetType} to ${msg.filename} (${(buf.length / 1024).toFixed(1)} KB)`);
+              // Refresh library so it shows up
+              await this.loadLibraryFiles();
+            } else {
+              this.log(`[Creative] Failed to download ${msg.url}: ${res.status}`);
+            }
+          } catch (err: any) {
+            this.log(`[Creative] Save to disk failed: ${err.message}`);
+          }
+        }
+        break;
+      }
+      case 'create_blank_document': {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders) {
+          const projectRoot = workspaceFolders[0].uri.fsPath;
+          const docsDir = path.join(projectRoot, 'documents');
+          const filePath = path.join(docsDir, msg.filename);
+          try {
+            await fs.mkdir(docsDir, { recursive: true });
+            const ext = path.extname(msg.filename).toLowerCase();
+            if (ext === '.docx') {
+              try {
+                const { Document, Packer, Paragraph } = await import('docx');
+                const doc = new Document({ sections: [{ children: [new Paragraph({ text: '' })] }] });
+                const buf = await Packer.toBuffer(doc);
+                await fs.writeFile(filePath, buf);
+              } catch {
+                await fs.writeFile(filePath, '');
+              }
+            } else if (ext === '.xlsx') {
+              try {
+                const ExcelJS = await import('exceljs');
+                const wb = new ExcelJS.default.Workbook();
+                wb.addWorksheet('Sheet1');
+                await wb.xlsx.writeFile(filePath);
+              } catch {
+                await fs.writeFile(filePath, '');
+              }
+            } else if (ext === '.pptx') {
+              try {
+                const PptxGenJS = (await import('pptxgenjs')).default;
+                const pptx = new PptxGenJS();
+                pptx.addSlide();
+                const buf = await pptx.write({ outputType: 'nodebuffer' }) as Buffer;
+                await fs.writeFile(filePath, buf);
+              } catch {
+                await fs.writeFile(filePath, '');
+              }
+            } else if (ext === '.csv') {
+              await fs.writeFile(filePath, 'Column1,Column2,Column3\n');
+            } else if (ext === '.md') {
+              await fs.writeFile(filePath, `# ${path.basename(msg.filename, ext)}\n\n`);
+            } else if (ext === '.pdf') {
+              try {
+                const PDFDocument = (await import('pdfkit')).default;
+                await new Promise<void>((resolve, reject) => {
+                  const doc = new PDFDocument();
+                  const chunks: Buffer[] = [];
+                  doc.on('data', (c: Buffer) => chunks.push(c));
+                  doc.on('end', async () => {
+                    await fs.writeFile(filePath, Buffer.concat(chunks));
+                    resolve();
+                  });
+                  doc.on('error', reject);
+                  doc.text(' ');
+                  doc.end();
+                });
+              } catch {
+                await fs.writeFile(filePath, '');
+              }
+            } else {
+              await fs.writeFile(filePath, '');
+            }
+            this.post({ type: 'info', message: `Created documents/${msg.filename}` });
+            await vscode.workspace.openTextDocument(vscode.Uri.file(filePath)).then(doc => vscode.window.showTextDocument(doc));
+            await this.loadLibraryFiles();
+          } catch (err: any) {
+            this.post({ type: 'error', message: `Failed to create document: ${err.message}` });
+          }
+        }
+        break;
+      }
+      case 'create_from_template': {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && this.toolRegistry) {
+          const projectRoot = workspaceFolders[0].uri.fsPath;
+          const filePath = path.join('documents', msg.filename);
+          try {
+            const tool = this.toolRegistry.getTool('document_manage');
+            if (tool) {
+              await tool.execute({
+                action: 'from_template',
+                template: msg.template,
+                file_path: filePath,
+                format: 'docx',
+              }, { cwd: projectRoot, sharedState: {} });
+              this.post({ type: 'info', message: `Created documents/${msg.filename} from ${msg.template} template` });
+              const absPath = path.join(projectRoot, filePath);
+              await vscode.workspace.openTextDocument(vscode.Uri.file(absPath)).then(doc => vscode.window.showTextDocument(doc));
+              await this.loadLibraryFiles();
+            }
+          } catch (err: any) {
+            this.post({ type: 'error', message: `Failed to create from template: ${err.message}` });
+          }
+        }
+        break;
+      }
       case 'open_external': {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (workspaceFolders) {
@@ -2201,6 +2322,30 @@ export class DashboardPanel {
     } catch { return {}; }
   }
 
+  private async scanCreativeDir(dir: string, projectRoot: string): Promise<Array<{ absolutePath: string; relativePath: string; type: string }>> {
+    const fsLib = await import('node:fs/promises');
+    const results: Array<{ absolutePath: string; relativePath: string; type: string }> = [];
+    const exts: Record<string, string> = {
+      '.png': 'image', '.jpg': 'image', '.jpeg': 'image', '.gif': 'image', '.webp': 'image', '.svg': 'image',
+      '.mp3': 'audio', '.wav': 'audio', '.ogg': 'audio',
+      '.mp4': 'video', '.webm': 'video',
+    };
+    try {
+      const entries = await fsLib.readdir(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+          results.push(...await this.scanCreativeDir(full, projectRoot));
+        } else if (entry.isFile()) {
+          const ext = path.extname(entry.name).toLowerCase();
+          const type = exts[ext];
+          if (type) results.push({ absolutePath: full, relativePath: path.relative(projectRoot, full).replace(/\\/g, '/'), type });
+        }
+      }
+    } catch { /* dir doesn't exist */ }
+    return results;
+  }
+
   private async saveSyncState(dataType: string, count: number): Promise<void> {
     const fs = await import('node:fs/promises');
     const state = await this.loadSyncState();
@@ -2214,7 +2359,7 @@ export class DashboardPanel {
     const syncState = await this.loadSyncState();
     const data: Record<string, { available: boolean; lastSynced: string | null; localCount: number; syncedCount: number; newCount: number }> = {};
 
-    const types = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings', 'personality'] as const;
+    const types = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings', 'personality', 'creative'] as const;
     for (const t of types) {
       let localCount = 0;
       try {
@@ -2345,22 +2490,27 @@ export class DashboardPanel {
         case 'history': {
           const historyDir = path.join(AVA_HOME, 'history');
           const files = await fs.readdir(historyDir).catch(() => []);
-          const conversations = [];
+          let synced = 0;
+          // Sync one conversation at a time to avoid payload size limits
           for (const file of files) {
             if (!file.endsWith('.json')) continue;
             try {
               const raw = await fs.readFile(path.join(historyDir, file), 'utf-8');
-              conversations.push(JSON.parse(raw));
-            } catch { /* skip */ }
+              const conv = JSON.parse(raw);
+              // Truncate messages to last 50 to keep payload manageable
+              if (conv.messages && conv.messages.length > 50) {
+                conv.messages = conv.messages.slice(-50);
+              }
+              const res = await apiFetch('/history/sync', {
+                platformKey,
+                method: 'POST',
+                body: { conversations: [conv] },
+              });
+              if (res.ok) synced++;
+            } catch { /* skip malformed */ }
           }
-          const res = await apiFetch('/history/sync', {
-            platformKey,
-            method: 'POST',
-            body: { conversations },
-          });
-          if (!res.ok) throw new Error('Failed to sync chat history');
-          await this.saveSyncState('history', conversations.length);
-          this.post({ type: 'sync_completed', dataType, count: conversations.length });
+          await this.saveSyncState('history', synced);
+          this.post({ type: 'sync_completed', dataType, count: synced });
           await this.loadSyncStatus();
           break;
         }
@@ -2390,6 +2540,44 @@ export class DashboardPanel {
           if (!res.ok) throw new Error('Failed to sync personality');
           await this.saveSyncState('personality', 1);
           this.post({ type: 'sync_completed', dataType, count: 1 });
+          await this.loadSyncStatus();
+          break;
+        }
+
+        case 'creative': {
+          // Sync local creative asset files to cloud storage
+          const workspaceFolders = vscode.workspace.workspaceFolders;
+          if (!workspaceFolders) {
+            this.post({ type: 'sync_completed', dataType, count: 0 });
+            break;
+          }
+          const projectRoot = workspaceFolders[0].uri.fsPath;
+          const creativeDirs = [
+            path.join(projectRoot, 'images'),
+            path.join(projectRoot, '.ava', 'creative'),
+          ];
+          let uploadCount = 0;
+          for (const dir of creativeDirs) {
+            try {
+              const entries = await this.scanCreativeDir(dir, projectRoot);
+              for (const entry of entries) {
+                try {
+                  const buf = await fs.readFile(entry.absolutePath);
+                  if (buf.length > 10 * 1024 * 1024) continue; // Skip files > 10MB
+                  // Upload via platform API
+                  const base64 = buf.toString('base64');
+                  const res = await apiFetch('/sync/creative', {
+                    platformKey,
+                    method: 'POST',
+                    body: { path: entry.relativePath, data: base64, type: entry.type, size: buf.length },
+                  });
+                  if (res.ok) uploadCount++;
+                } catch { /* skip individual file failures */ }
+              }
+            } catch { /* dir doesn't exist */ }
+          }
+          await this.saveSyncState('creative', uploadCount);
+          this.post({ type: 'sync_completed', dataType, count: uploadCount });
           await this.loadSyncStatus();
           break;
         }

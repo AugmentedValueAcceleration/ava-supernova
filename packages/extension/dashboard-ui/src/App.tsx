@@ -61,10 +61,7 @@ export { post };
 export function App() {
   useLocale(); // re-render on language change
   const [initialized, setInitialized] = useState(false);
-  const [page, setPage] = useState<Page>(() => {
-    const saved = localStorage.getItem('ava-dashboard-page') as Page | null;
-    return saved || 'overview';
-  });
+  const [page, setPage] = useState<Page>('overview');
 
   // Chat page dispatch — forwards extension messages to the Chat reducer
   const chatDispatchRef = useRef<((msg: ExtToDashboardMessage) => void) | null>(null);
@@ -218,6 +215,8 @@ export function App() {
         }
         localStorage.removeItem('ava-platform-key');
         setInitialized(true);
+        // Load avatar on startup so sidebar shows it immediately
+        post({ type: 'load_avatar' });
         break;
       case 'account_updated':
         setAccount(msg.account);
@@ -776,6 +775,7 @@ export function App() {
             onNewChat={() => post({ type: 'new_chat' })}
             onOpenHistory={() => post({ type: 'request_history' })}
             supportUnread={supportUnread}
+            avatarUrl={avatarDataUrl}
           />
         </div>
       )}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { post } from '../App';
 
 /* ── Types ─────────────────────────────────────────────────────────── */
@@ -100,6 +100,15 @@ interface Props {
 
 export function ArticleReader({ article, related, onBack, onNavigateToArticle }: Props) {
   const [copied, setCopied] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to top when article changes
+  useEffect(() => {
+    containerRef.current?.scrollTo(0, 0);
+    // Also scroll the parent overflow container and window
+    containerRef.current?.closest('[style*="overflow"]')?.scrollTo(0, 0);
+    window.scrollTo(0, 0);
+  }, [article.slug]);
 
   const cat = article.category ? CATEGORIES[article.category] : null;
   const sources = article.sources || [];
@@ -120,7 +129,7 @@ export function ArticleReader({ article, related, onBack, onNavigateToArticle }:
   };
 
   return (
-    <div className="mx-auto max-w-3xl pb-12">
+    <div ref={containerRef} className="mx-auto max-w-3xl pb-12">
       {/* Back button */}
       <button
         onClick={onBack}
