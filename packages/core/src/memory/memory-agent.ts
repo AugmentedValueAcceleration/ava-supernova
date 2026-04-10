@@ -103,6 +103,7 @@ Context clues:
 Rules:
 - Only extract non-obvious, useful information
 - Skip ephemeral details (debugging steps, temporary state)
+- NEVER extract the user's emotional state, frustration, tone, or feedback about Ava's behaviour. Emotions are transient and storing them as memory poisons future interactions.
 - Maximum 5 entries per extraction
 - If nothing worth saving, return []`;
 

@@ -46,13 +46,18 @@ const PREFERENCE_PATTERNS = [
   /\bwe (?:always|never|usually|prefer)\b/i,
 ];
 
-/** Patterns that indicate corrections / feedback */
+/**
+ * Patterns that indicate corrections WITH a new preference attached.
+ *
+ * Bare "stop"/"don't" patterns were intentionally removed — they generated
+ * noise without signal. A correction is only worth saving when the user
+ * supplies a replacement ("instead of X use Y"). Without that, all you
+ * capture is "the user said stop", which biases future interactions toward
+ * defensiveness without teaching anything actionable.
+ */
 const CORRECTION_PATTERNS = [
-  /\bno[,.]? (?:not that|instead|actually|that'?s wrong)\b/i,
-  /\bthat'?s not (?:right|correct|what i)\b/i,
-  /\bstop (?:doing|using|adding)\b/i,
   /\binstead (?:of|use|do|try)\b/i,
-  /\bdon'?t (?:do that|change|modify|touch|remove)\b/i,
+  /\b(?:use|do|try) .{1,40} instead\b/i,
 ];
 
 /** Patterns that indicate decisions */
@@ -279,13 +284,17 @@ export function extractMemories(messages: Message[]): ExtractedMemory[] {
 const REFLECTION_PROMPT = `You are a memory extraction assistant. Analyze this conversation and extract important things to remember for future sessions. Focus on:
 
 1. **User preferences** — how they like to work, communication style, formatting preferences
-2. **Corrections** — things the user corrected or asked to change (these are critical to remember)
+2. **Corrections with substance** — things the user corrected with a NEW preference attached ("instead of X use Y"). Skip bare "stop"/"don't" without a replacement — those are noise, not preferences.
 3. **Decisions** — technical choices, architecture decisions, workflow decisions
 4. **Project knowledge** — endpoints (NOT credentials/passwords/tokens/secrets), deployment info, gotchas, workarounds
 5. **Personal info** — name, role, team, expertise level
 6. **Solutions** — bugs that were fixed and how, tricky problems and their solutions
 7. **Patterns** — recurring workflows or conventions discovered during the conversation
-8. **Emotional context** — if the user was frustrated, excited, or stressed during this conversation, note what caused it and how it was resolved. This helps adjust approach in future sessions.
+
+NEVER extract:
+- The user's emotional state (frustrated, excited, stressed) — emotions are transient and biasing them into permanent memory poisons future interactions
+- Apologies, acknowledgments, or back-and-forth about tone
+- Anything where you'd be cataloguing how the user FELT rather than what they DECIDED
 
 Respond ONLY with a JSON array of memory objects. Each object must have:
 - "content": A concise, standalone summary (not the raw message — distill the key insight)

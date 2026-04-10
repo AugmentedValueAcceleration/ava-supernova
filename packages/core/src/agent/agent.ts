@@ -274,12 +274,16 @@ export class Agent {
         return messages;
       }
 
-      // Check for user interjections — messages injected mid-run
+      // Check for user interjections — messages injected mid-run.
+      // Append as plain user messages with no wrapper. The previous
+      // "[User interjection]:" prefix framed every mid-run message as a
+      // corrective interruption, priming the model to read questions as
+      // criticism and respond with apology instead of answer.
       while (this.pendingInterjections.length > 0) {
         const interjection = this.pendingInterjections.shift()!;
         messages = [
           ...messages,
-          { role: 'user' as const, content: `[User interjection]: ${interjection}` },
+          { role: 'user' as const, content: interjection },
         ];
         onEvent({ type: 'interjection', content: interjection });
       }
