@@ -106,6 +106,39 @@ export interface SupportTicket {
   }[];
 }
 
+// ── Live Support Conversation (new system) ────────────────────────────────
+export interface SupportConversation {
+  id: string;
+  user_id: string;
+  platform: string;
+  status: 'active' | 'resolved' | 'closed';
+  unread_user: number;
+  unread_admin: number;
+  needs_human: boolean;
+  summary: string | null;
+  created_at: string;
+  updated_at: string;
+  last_message_at: string;
+  user: { email: string; name: string | null; tier: string } | null;
+  messageCount: number;
+  lastMessage: {
+    preview: string;
+    senderType: 'user' | 'admin' | 'ava';
+    isAva: boolean;
+    timestamp: string;
+  } | null;
+}
+
+export interface SupportConversationMessage {
+  id: string;
+  sender_type: 'user' | 'admin' | 'ava';
+  sender_name: string;
+  body: string;
+  is_ava: boolean;
+  read_at: string | null;
+  created_at: string;
+}
+
 export interface SessionStats {
   messages: number;
   tool_calls: number;
@@ -472,6 +505,9 @@ export type ExtToDashboardMessage =
   | { type: 'ticket_reply_sent'; ticketId: string }
   // Admin messages
   | { type: 'admin_tickets_loaded'; tickets: SupportTicket[]; total: number }
+  | { type: 'admin_conversations_loaded'; conversations: SupportConversation[] }
+  | { type: 'admin_conversation_messages_loaded'; conversationId: string; messages: SupportConversationMessage[] }
+  | { type: 'admin_conversation_updated'; conversationId: string }
   | { type: 'admin_proposals_loaded'; proposals: AdminToolProposal[]; total: number }
   | { type: 'admin_proposal_updated' }
   // BYOK messages
@@ -534,7 +570,7 @@ export type ExtToDashboardMessage =
   | { type: 'stream_end' }
   | { type: 'tool_call_start'; toolCall: { id: string; name: string; arguments: string } }
   | { type: 'tool_call_end'; toolCallId: string; result: string; success: boolean }
-  | { type: 'tool_confirmation_request'; confirmationId: string; toolName: string; toolCategory?: string; args: Record<string, unknown>; summary: string; isAskUser?: boolean }
+  | { type: 'tool_confirmation_request'; confirmationId: string; toolCallId?: string; toolName: string; toolCategory?: string; args: Record<string, unknown>; summary: string; isAskUser?: boolean }
   | { type: 'category_permissions'; permissions: Record<string, string>; mode: string }
   | { type: 'audit_log'; entries: Array<{ timestamp: string; toolName: string; category: string; riskLevel: string; approvalMethod: string; status: string; argsSummary: string; fullArgs?: Record<string, unknown>; result?: string }> }
   | { type: 'usage'; usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; cost?: number; contextWindow?: number }
@@ -600,6 +636,10 @@ export type DashboardToExtMessage =
   | { type: 'load_admin_tickets'; status?: string }
   | { type: 'admin_reply_ticket'; ticketId: string; message: string }
   | { type: 'admin_update_ticket'; ticketId: string; status: string }
+  | { type: 'load_admin_conversations'; status?: string; needsHuman?: boolean }
+  | { type: 'load_admin_conversation_messages'; conversationId: string }
+  | { type: 'admin_reply_conversation'; conversationId: string; message: string }
+  | { type: 'admin_update_conversation'; conversationId: string; status?: string; needs_human?: boolean }
   | { type: 'load_admin_proposals'; status?: string }
   | { type: 'admin_update_proposal'; id: string; status: string; reviewer_notes?: string; reward_tokens?: number }
   // BYOK messages
