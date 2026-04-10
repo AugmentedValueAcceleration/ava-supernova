@@ -51,6 +51,20 @@ export class MemoryManager {
   /** When true, skip all platform sync — memories stay on disk only. Default: true (local-first). */
   private localOnly = true;
 
+  // ── Sync coalescing — debounce + in-flight guard ──────────────────────────
+  // syncEntries() used to fire every store mutation, with each call doing a
+  // full pull + per-entry POST/PATCH against the platform. With the Memory
+  // Agent extracting 5+ memories at once, that meant dozens of parallel
+  // racing syncs from a single turn — flooding the client's connection pool
+  // and starving the LLM stream until the 30s stall watchdog tripped.
+  //
+  // The fix: debounce sync calls per scope (collect rapid mutations into one
+  // sync), and guard against concurrent runs (in-flight + dirty flag pattern).
+  private readonly SYNC_DEBOUNCE_MS = 2000;
+  private readonly syncTimers = new Map<'global' | 'project', NodeJS.Timeout>();
+  private readonly syncInFlight = new Set<'global' | 'project'>();
+  private readonly syncDirty = new Set<'global' | 'project'>();
+
   constructor(opts: { globalDir: string; projectRoot?: string; sync?: PlatformMemorySync; localOnly?: boolean }) {
     this.globalDir = opts.globalDir;
     this.projectDir = opts.projectRoot ? join(opts.projectRoot, '.ava') : null;
@@ -1210,25 +1224,88 @@ export class MemoryManager {
     this.localOnly = value;
   }
 
-  /** Fire-and-forget sync entries to platform. Never throws. */
-  private syncEntries(scope: 'global' | 'project', entries: MemoryEntry[]): void {
+  /**
+   * Fire-and-forget sync entries to platform. Never throws.
+   *
+   * Schedules a debounced sync — multiple calls in quick succession (e.g.
+   * the Memory Agent saving 5 entries in a loop) coalesce into a single
+   * sync 2 seconds after the last mutation. This eliminates the 5x parallel
+   * racing-syncs flood that was saturating the client's HTTP connection
+   * pool and stalling the LLM stream.
+   *
+   * The `entries` parameter is intentionally ignored — the actual sync
+   * reads the latest store at execution time so we always push current
+   * state, never stale snapshots.
+   */
+  private syncEntries(scope: 'global' | 'project', _entries: MemoryEntry[]): void {
     if (!this.sync || this.localOnly) return;
-    console.info(`[memory] Syncing ${entries.length} ${scope} entries to platform`);
-    this.sync.pushEntries(
-      scope,
-      entries.map((e) => ({
-        id: e.id,
-        content: e.content,
-        category: e.category,
-        tags: e.tags,
-        archived: e.archived,
-      })),
-    ).then(() => {
+    this.scheduleSync(scope);
+  }
+
+  /** Coalesce sync calls into a debounced execution per scope. */
+  private scheduleSync(scope: 'global' | 'project'): void {
+    const existing = this.syncTimers.get(scope);
+    if (existing) clearTimeout(existing);
+
+    const timer = setTimeout(() => {
+      this.syncTimers.delete(scope);
+      void this.runSync(scope);
+    }, this.SYNC_DEBOUNCE_MS);
+
+    this.syncTimers.set(scope, timer);
+  }
+
+  /**
+   * Execute one sync for a scope. If a sync is already in flight, mark the
+   * scope dirty so the running sync schedules another pass when it finishes.
+   * Reads the latest store at execution time so we always push current state.
+   */
+  private async runSync(scope: 'global' | 'project'): Promise<void> {
+    if (!this.sync) return;
+
+    // In-flight guard — coalesce with any sync already running
+    if (this.syncInFlight.has(scope)) {
+      this.syncDirty.add(scope);
+      return;
+    }
+
+    this.syncInFlight.add(scope);
+    this.syncDirty.delete(scope);
+
+    try {
+      const store = scope === 'global'
+        ? await this.loadGlobalStore()
+        : await this.loadProjectStore();
+      if (!store) return;
+
+      const entries = store.entries;
+      console.info(`[memory] Syncing ${entries.length} ${scope} entries to platform`);
+
+      await this.sync.pushEntries(
+        scope,
+        entries.map((e) => ({
+          id: e.id,
+          content: e.content,
+          category: e.category,
+          tags: e.tags,
+          archived: e.archived,
+        })),
+      );
+
       console.info(`[memory] Platform sync complete for ${scope} (${entries.length} entries)`);
-    }).catch((err) => {
+    } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.warn(`[memory] Platform sync failed for ${scope}: ${msg}`);
-    });
+    } finally {
+      this.syncInFlight.delete(scope);
+
+      // If anything got marked dirty during the sync, schedule another pass
+      // through the debounce so we coalesce subsequent dirty marks too.
+      if (this.syncDirty.has(scope)) {
+        this.syncDirty.delete(scope);
+        this.scheduleSync(scope);
+      }
+    }
   }
 
   // ── Project Registry ────────────────────────────────────────────────────────
