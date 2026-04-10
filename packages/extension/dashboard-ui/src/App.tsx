@@ -42,6 +42,8 @@ import type {
   SessionStats,
   UsageHistoryData,
   SupportTicket,
+  SupportConversation,
+  SupportConversationMessage,
   DashboardSettings,
   MemoryEntry,
   ProviderKeyStatus,
@@ -151,6 +153,9 @@ export function App() {
   const [adminTickets, setAdminTickets] = useState<SupportTicket[]>([]);
   const [adminTicketsTotal, setAdminTicketsTotal] = useState(0);
   const [adminTicketsLoading, setAdminTicketsLoading] = useState(false);
+  const [adminConversations, setAdminConversations] = useState<SupportConversation[]>([]);
+  const [adminConversationsLoading, setAdminConversationsLoading] = useState(false);
+  const [adminConversationMessages, setAdminConversationMessages] = useState<Record<string, SupportConversationMessage[]>>({});
   const [adminProposals, setAdminProposals] = useState<AdminToolProposal[]>([]);
   const [adminProposalsTotal, setAdminProposalsTotal] = useState(0);
   const [adminProposalsLoading, setAdminProposalsLoading] = useState(false);
@@ -286,6 +291,17 @@ export function App() {
         setAdminTickets(msg.tickets);
         setAdminTicketsTotal(msg.total);
         setAdminTicketsLoading(false);
+        break;
+      case 'admin_conversations_loaded':
+        setAdminConversations(msg.conversations);
+        setAdminConversationsLoading(false);
+        break;
+      case 'admin_conversation_messages_loaded':
+        setAdminConversationMessages(prev => ({ ...prev, [msg.conversationId]: msg.messages }));
+        break;
+      case 'admin_conversation_updated':
+        // Reload the conversation list
+        post({ type: 'load_admin_conversations' });
         break;
       case 'admin_proposals_loaded':
         setAdminProposals(msg.proposals);
@@ -550,9 +566,9 @@ export function App() {
       setSupportLoading(true);
       post({ type: 'load_support_conversations' });
     }
-    if (page === 'admin_support' && adminTickets.length === 0 && !adminTicketsLoading) {
-      setAdminTicketsLoading(true);
-      post({ type: 'load_admin_tickets' });
+    if (page === 'admin_support' && !adminConversationsLoading) {
+      setAdminConversationsLoading(true);
+      post({ type: 'load_admin_conversations' });
     }
     if (page === 'admin_proposals' && adminProposals.length === 0 && !adminProposalsLoading) {
       setAdminProposalsLoading(true);
@@ -741,7 +757,7 @@ export function App() {
 
       // ── Admin ───────────────────────────────────────────────────────
       case 'admin_support':
-        return <AdminSupport tickets={adminTickets} total={adminTicketsTotal} loading={adminTicketsLoading} />;
+        return <AdminSupport conversations={adminConversations} messages={adminConversationMessages} loading={adminConversationsLoading} />;
       case 'admin_proposals':
         return <AdminProposals proposals={adminProposals} total={adminProposalsTotal} loading={adminProposalsLoading} />;
     }
