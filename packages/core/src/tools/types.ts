@@ -71,12 +71,23 @@ export interface ToolExecutionContext {
   sharedState?: Record<string, unknown>;
   /** Current conversation ID (for memory traceability). */
   conversationId?: string;
+  /**
+   * The model-assigned tool_call ID for this invocation. Threaded through
+   * to confirmation handlers so the UI can attach confirmation cards to the
+   * exact tool call instance instead of guessing by name.
+   */
+  toolCallId?: string;
 }
 
 // Returns boolean (true=approved, false=denied) or a string (approved with custom tool result).
 // When a string is returned, the ToolRegistry uses it as the tool output directly,
 // bypassing the tool's execute() method. Used by present_plan for rich approval messages.
+//
+// toolCallId is the model's tool_call ID — passed through so UI hosts can
+// match confirmation prompts to the exact tool call instance instead of by
+// name (which races with multiple parallel tool calls).
 export type ToolConfirmationHandler = (
   toolName: string,
   args: Record<string, unknown>,
+  toolCallId?: string,
 ) => Promise<boolean | string>;

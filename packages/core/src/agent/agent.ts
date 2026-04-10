@@ -643,6 +643,10 @@ export class Agent {
             try { parsedArgs = JSON.parse(tc.function.arguments); } catch { parsedArgs = {}; }
             const ctx = {
               ...runContext,
+              // Thread the model's tool_call ID so any confirmation handler
+              // (auto tools should never trigger one, but this is defensive)
+              // can match cards to the exact tool call.
+              toolCallId: tc.id,
               onOutput: (data: string) => {
                 onEvent({ type: 'tool_call_partial', toolCallId: tc.id, data });
               },
@@ -912,6 +916,9 @@ export class Agent {
 
     const toolRunContext = {
       ...runContext,
+      // Thread the model's tool_call ID through so the confirmation handler
+      // can forward it to the UI for exact-match card attachment.
+      toolCallId: toolCall.id,
       onOutput: (data: string) => {
         onEvent({ type: 'tool_call_partial', toolCallId: toolCall.id, data });
       },

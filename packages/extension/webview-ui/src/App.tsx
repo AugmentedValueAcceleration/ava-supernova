@@ -123,10 +123,26 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       const messages = [...state.messages];
       const last = messages[messages.length - 1];
       if (last && last.role === 'assistant') {
-        messages[messages.length - 1] = {
-          ...last,
-          content: last.content + action.content,
-        };
+        // Timeline flow — if the last message already has tool calls AND text,
+        // start a new assistant bubble for the continuation text.
+        // This matches the IDE's timeline structure, producing separate bubbles
+        // for text-before-tools, tool calls, and text-after-tools.
+        if (last.toolCalls.length > 0 && last.content.length > 0) {
+          const newMsg: UIMessage = {
+            id: nextId(),
+            role: 'assistant',
+            content: action.content,
+            toolCalls: [],
+            isStreaming: true,
+            timestamp: Date.now(),
+          };
+          messages.push(newMsg);
+        } else {
+          messages[messages.length - 1] = {
+            ...last,
+            content: last.content + action.content,
+          };
+        }
       }
       return { ...state, messages, isThinking: false };
     }
@@ -146,16 +162,33 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       const messages = [...state.messages];
       const last = messages[messages.length - 1];
       if (last && last.role === 'assistant') {
-        const tc: ToolCallDisplay = {
-          id: action.toolCall.id,
-          name: action.toolCall.name,
-          arguments: action.toolCall.arguments,
-          status: 'running',
-        };
-        messages[messages.length - 1] = {
-          ...last,
-          toolCalls: [...last.toolCalls, tc],
-        };
+        // Dedupe by ID. If a synthetic placeholder was already created
+        // by the tool_confirmation_request safety net (race fallback),
+        // merge in the real arguments and preserve its pending state
+        // instead of creating a duplicate row.
+        const existingIdx = last.toolCalls.findIndex((tc) => tc.id === action.toolCall.id);
+        let toolCalls: ToolCallDisplay[];
+        if (existingIdx >= 0) {
+          const existing = last.toolCalls[existingIdx];
+          toolCalls = [...last.toolCalls];
+          toolCalls[existingIdx] = {
+            ...existing,
+            // Update arguments from the real tool call (synthetic had a stub)
+            arguments: action.toolCall.arguments,
+            // Keep pending_confirmation if already set by the safety net,
+            // otherwise this is a fresh tool call so mark it running.
+            status: existing.status === 'pending_confirmation' ? existing.status : 'running',
+          };
+        } else {
+          const tc: ToolCallDisplay = {
+            id: action.toolCall.id,
+            name: action.toolCall.name,
+            arguments: action.toolCall.arguments,
+            status: 'running',
+          };
+          toolCalls = [...last.toolCalls, tc];
+        }
+        messages[messages.length - 1] = { ...last, toolCalls };
       }
       return { ...state, messages };
     }
@@ -164,17 +197,48 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       const messages = [...state.messages];
       const last = messages[messages.length - 1];
       if (last && last.role === 'assistant') {
-        const toolCalls = last.toolCalls.map((tc) =>
-          tc.name === action.toolName || tc.status === 'running'
-            ? {
-                ...tc,
-                status: 'pending_confirmation' as const,
-                confirmationId: action.confirmationId,
-                summary: action.summary,
-                ...(action.isAskUser ? { isAskUser: true } : {}),
-              }
-            : tc,
-        );
+        // Match the tool call this confirmation belongs to. Priority order:
+        //   1. Exact toolCallId match (reliable, set by extension v0.36.9+)
+        //   2. Status === 'running' fallback (legacy, for older messages)
+        // The OR-on-name match was removed because it overwrote unrelated
+        // pending confirmations when the model called the same tool twice.
+        let matched = false;
+        let toolCalls = last.toolCalls.map((tc) => {
+          const isMatch = action.toolCallId
+            ? tc.id === action.toolCallId
+            : tc.status === 'running' && tc.name === action.toolName;
+          if (!isMatch) return tc;
+          matched = true;
+          return {
+            ...tc,
+            status: 'pending_confirmation' as const,
+            confirmationId: action.confirmationId,
+            summary: action.summary,
+            ...(action.isAskUser ? { isAskUser: true } : {}),
+          };
+        });
+
+        // Safety net: if no tool call was matched, the tool_call_start
+        // event hasn't landed yet (race condition observed on first ask).
+        // Create a synthetic pending tool call so the buttons render
+        // immediately. The real tool_call_start, when it arrives, will
+        // also try to add the same tool — the reducer for tool_call_start
+        // dedupes by ID below.
+        if (!matched) {
+          toolCalls = [
+            ...toolCalls,
+            {
+              id: action.toolCallId || `synthetic-${action.confirmationId}`,
+              name: action.toolName,
+              arguments: JSON.stringify(action.args || {}),
+              status: 'pending_confirmation' as const,
+              confirmationId: action.confirmationId,
+              summary: action.summary,
+              ...(action.isAskUser ? { isAskUser: true } : {}),
+            },
+          ];
+        }
+
         messages[messages.length - 1] = { ...last, toolCalls };
       }
       return { ...state, messages };

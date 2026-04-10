@@ -1050,7 +1050,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.toolRegistry.setPermissionMode(permissionMode);
 
     this.toolRegistry.setConfirmationHandler(
-      (toolName, args) => this.requestConfirmation(toolName, args),
+      (toolName, args, toolCallId) => this.requestConfirmation(toolName, args, toolCallId),
     );
 
     // Wire audit callback — log all tool executions for the Audit tab
@@ -2817,6 +2817,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private requestConfirmation(
     toolName: string,
     args: Record<string, unknown>,
+    toolCallId?: string,
   ): Promise<boolean | string> {
     // Core ToolRegistry.needsConfirmation() already handles category-based permission checks.
     // If we reach here, the tool genuinely needs user confirmation.
@@ -2829,6 +2830,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       this.postMessage({
         type: 'tool_confirmation_request',
         confirmationId,
+        // Forward the model's tool_call ID so the webview can attach the
+        // confirmation card to the EXACT tool call instance instead of
+        // guessing by name (which races for parallel calls and broke the
+        // first-ask UX).
+        toolCallId,
         toolName,
         toolCategory,
         args,

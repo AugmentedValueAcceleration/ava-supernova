@@ -42,6 +42,13 @@ export type ExtToWebviewMessage =
   | {
       type: 'tool_confirmation_request';
       confirmationId: string;
+      /**
+       * Model-assigned tool_call ID. The reducer matches by this exact ID
+       * so confirmation cards attach to the right tool call instance even
+       * when multiple are in flight or when timing races make the broad
+       * name/status match unreliable.
+       */
+      toolCallId?: string;
       toolName: string;
       args: Record<string, unknown>;
       summary: string;

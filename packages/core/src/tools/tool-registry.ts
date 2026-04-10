@@ -400,7 +400,10 @@ export class ToolRegistry {
 
     if (this.needsConfirmation(tool) && this.confirmationHandler) {
       try {
-        const result = await this.confirmationHandler(name, args);
+        // Pass the toolCallId from the execution context so UI hosts can
+        // attach the confirmation card to the exact tool call instance
+        // instead of guessing by name (which races for parallel calls).
+        const result = await this.confirmationHandler(name, args, context.toolCallId);
         if (result === false) {
           this.emitAudit(name, category, tool.riskLevel, 'denied', 'denied', argsSummary, args);
           return {
