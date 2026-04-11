@@ -1,5 +1,82 @@
 import { useReducer, useEffect, useRef, useCallback } from 'react';
-import type { ExtToWebviewMessage, ChatState, UIMessage, ToolCallDisplay } from './types/messages';
+import type { ExtToWebviewMessage, ChatState, UIMessage, ToolCallDisplay, MessageEvent } from './types/messages';
+
+// ── Event timeline helpers ────────────────────────────────────────────────
+// Assistant messages store their chronological timeline in `message.events`.
+// Every streaming update (thinking delta, text delta, tool call start / end /
+// partial output / confirmation) maps to an event update on the current
+// assistant bubble. These helpers keep the reducer cases short and consistent.
+
+/** Append content to the last event if it's the same kind, else start a new event. */
+function appendToLastEventOfKind(
+  events: MessageEvent[],
+  kind: 'thinking' | 'text',
+  chunk: string,
+): MessageEvent[] {
+  const last = events[events.length - 1];
+  if (last && last.kind === kind) {
+    return [
+      ...events.slice(0, -1),
+      { kind, content: last.content + chunk },
+    ];
+  }
+  return [...events, { kind, content: chunk }];
+}
+
+/** Find the tool_call event whose toolCall.id matches, return its index or -1. */
+function findToolCallEventIndex(events: MessageEvent[], toolCallId: string): number {
+  for (let i = 0; i < events.length; i++) {
+    const e = events[i];
+    if (e.kind === 'tool_call' && e.toolCall.id === toolCallId) return i;
+  }
+  return -1;
+}
+
+/**
+ * Update (or insert) a tool_call event in the events array.
+ * If an event for the given tool call ID already exists, its toolCall is
+ * merged with the patch. Otherwise a new tool_call event is appended.
+ */
+function upsertToolCallEvent(
+  events: MessageEvent[],
+  toolCallId: string,
+  patch: Partial<ToolCallDisplay> & Pick<ToolCallDisplay, 'id'>,
+): MessageEvent[] {
+  const idx = findToolCallEventIndex(events, toolCallId);
+  if (idx >= 0) {
+    const existing = (events[idx] as Extract<MessageEvent, { kind: 'tool_call' }>).toolCall;
+    const next = [...events];
+    next[idx] = { kind: 'tool_call', toolCall: { ...existing, ...patch } };
+    return next;
+  }
+  return [
+    ...events,
+    {
+      kind: 'tool_call',
+      toolCall: {
+        id: toolCallId,
+        name: patch.name || 'unknown',
+        arguments: patch.arguments || '{}',
+        status: patch.status || 'running',
+        ...patch,
+      } as ToolCallDisplay,
+    },
+  ];
+}
+
+/** Update the events array of the message with the given ID. Returns a new messages array. */
+function updateMessageEvents(
+  messages: UIMessage[],
+  messageId: string | null,
+  updater: (events: MessageEvent[]) => MessageEvent[],
+): UIMessage[] {
+  if (!messageId) return messages;
+  return messages.map((m) =>
+    m.id === messageId
+      ? { ...m, events: updater(m.events || []) }
+      : m,
+  );
+}
 import { useVSCodeApi } from './hooks/useVSCodeApi';
 import { ChatContainer } from './components/ChatContainer';
 import { InputArea } from './components/InputArea';
@@ -87,208 +164,236 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         isStreaming: false,
         timestamp: Date.now(),
       };
-      // Mark agent as running immediately so the Stop button appears
-      return { ...state, messages: [...state.messages, msg], isStreaming: true };
+      // New user message = new turn. Clear currentAssistantId so the next
+      // stream_start creates a fresh assistant bubble instead of appending
+      // to the previous turn's bubble.
+      return {
+        ...state,
+        messages: [...state.messages, msg],
+        currentAssistantId: null,
+        isStreaming: true,
+      };
     }
 
     case 'stream_start': {
+      // ── One assistant bubble per user turn ───────────────────────────
+      // If a bubble already exists for this turn (second+ LLM iteration
+      // within the same turn), keep using it — stream_start just means the
+      // next LLM round is about to write. Do NOT create a new bubble.
+      //
+      // Only create a new bubble when currentAssistantId is null, which is
+      // true at the start of each turn after user_message_ack clears it.
+      if (state.currentAssistantId) {
+        return { ...state, isStreaming: true, isThinking: true };
+      }
+      const newId = nextId();
       const msg: UIMessage = {
-        id: nextId(),
+        id: newId,
         role: 'assistant',
         content: '',
         toolCalls: [],
+        events: [],
         isStreaming: true,
         timestamp: Date.now(),
       };
       return {
         ...state,
         messages: [...state.messages, msg],
+        currentAssistantId: newId,
         isStreaming: true,
         isThinking: true,
       };
     }
 
     case 'thinking_delta': {
-      const messages = [...state.messages];
-      const last = messages[messages.length - 1];
-      if (last && last.role === 'assistant') {
-        messages[messages.length - 1] = {
-          ...last,
-          thinking: (last.thinking || '') + action.content,
-        };
-      }
+      // Append to the last thinking event in the current bubble. If the
+      // previous event was a different kind (text or tool call), start a
+      // new thinking event so the chronology is preserved.
+      const messages = updateMessageEvents(state.messages, state.currentAssistantId, (events) =>
+        appendToLastEventOfKind(events, 'thinking', action.content),
+      );
       return { ...state, messages, isThinking: false };
     }
 
     case 'stream_delta': {
-      const messages = [...state.messages];
-      const last = messages[messages.length - 1];
-      if (last && last.role === 'assistant') {
-        // Timeline flow — if the last message already has tool calls AND text,
-        // start a new assistant bubble for the continuation text.
-        // This matches the IDE's timeline structure, producing separate bubbles
-        // for text-before-tools, tool calls, and text-after-tools.
-        if (last.toolCalls.length > 0 && last.content.length > 0) {
-          const newMsg: UIMessage = {
-            id: nextId(),
-            role: 'assistant',
-            content: action.content,
-            toolCalls: [],
-            isStreaming: true,
-            timestamp: Date.now(),
-          };
-          messages.push(newMsg);
-        } else {
-          messages[messages.length - 1] = {
-            ...last,
-            content: last.content + action.content,
-          };
-        }
-      }
+      // Append to the last text event in the current bubble. No more
+      // bubble splitting on text-after-tools — the text becomes a new
+      // text event inside the same timeline, appearing chronologically
+      // after whatever tool events preceded it.
+      const messages = updateMessageEvents(state.messages, state.currentAssistantId, (events) =>
+        appendToLastEventOfKind(events, 'text', action.content),
+      );
       return { ...state, messages, isThinking: false };
     }
 
     case 'stream_end': {
-      const messages = [...state.messages];
-      const last = messages[messages.length - 1];
-      if (last && last.role === 'assistant') {
-        messages[messages.length - 1] = { ...last, isStreaming: false };
-      }
-      // Keep state.isStreaming TRUE — the agent loop may continue with tool calls
-      // and more streaming rounds. Only 'done' and 'error' set isStreaming to false.
-      return { ...state, messages, isThinking: false };
+      // The current LLM round finished streaming. Do NOT close the bubble —
+      // the agent loop may run more iterations within the same user turn
+      // (e.g. text → tool_call → tool_result → more text). Only `done`
+      // closes the bubble.
+      return { ...state, isThinking: false };
     }
 
     case 'tool_call_start': {
-      const messages = [...state.messages];
-      const last = messages[messages.length - 1];
-      if (last && last.role === 'assistant') {
-        // Dedupe by ID. If a synthetic placeholder was already created
-        // by the tool_confirmation_request safety net (race fallback),
-        // merge in the real arguments and preserve its pending state
-        // instead of creating a duplicate row.
-        const existingIdx = last.toolCalls.findIndex((tc) => tc.id === action.toolCall.id);
-        let toolCalls: ToolCallDisplay[];
-        if (existingIdx >= 0) {
-          const existing = last.toolCalls[existingIdx];
-          toolCalls = [...last.toolCalls];
-          toolCalls[existingIdx] = {
-            ...existing,
-            // Update arguments from the real tool call (synthetic had a stub)
-            arguments: action.toolCall.arguments,
-            // Keep pending_confirmation if already set by the safety net,
-            // otherwise this is a fresh tool call so mark it running.
-            status: existing.status === 'pending_confirmation' ? existing.status : 'running',
+      // Insert or update a tool_call event in the current bubble's events.
+      // upsertToolCallEvent handles the synthetic-placeholder dedupe case
+      // where tool_confirmation_request arrived before tool_call_start.
+      const messages = updateMessageEvents(state.messages, state.currentAssistantId, (events) => {
+        const idx = findToolCallEventIndex(events, action.toolCall.id);
+        if (idx >= 0) {
+          // Dedupe — merge real arguments but preserve pending_confirmation
+          // if the safety net already set it
+          const existing = (events[idx] as Extract<MessageEvent, { kind: 'tool_call' }>).toolCall;
+          const next = [...events];
+          next[idx] = {
+            kind: 'tool_call',
+            toolCall: {
+              ...existing,
+              arguments: action.toolCall.arguments,
+              name: action.toolCall.name,
+              status: existing.status === 'pending_confirmation' ? existing.status : 'running',
+            },
           };
-        } else {
-          const tc: ToolCallDisplay = {
-            id: action.toolCall.id,
-            name: action.toolCall.name,
-            arguments: action.toolCall.arguments,
-            status: 'running',
-          };
-          toolCalls = [...last.toolCalls, tc];
+          return next;
         }
-        messages[messages.length - 1] = { ...last, toolCalls };
-      }
+        return [
+          ...events,
+          {
+            kind: 'tool_call',
+            toolCall: {
+              id: action.toolCall.id,
+              name: action.toolCall.name,
+              arguments: action.toolCall.arguments,
+              status: 'running',
+            },
+          },
+        ];
+      });
+      return { ...state, messages };
+    }
+
+    case 'tool_call_partial': {
+      // Live stream chunks from the tool (bash stdout, file write preview,
+      // file edit diff, etc.) — append to the partialOutput of the matching
+      // tool_call event so the card shows live progress while running.
+      const messages = updateMessageEvents(state.messages, state.currentAssistantId, (events) => {
+        const idx = findToolCallEventIndex(events, action.toolCallId);
+        if (idx < 0) return events;
+        const existing = (events[idx] as Extract<MessageEvent, { kind: 'tool_call' }>).toolCall;
+        const next = [...events];
+        next[idx] = {
+          kind: 'tool_call',
+          toolCall: {
+            ...existing,
+            partialOutput: (existing.partialOutput || '') + action.data,
+          },
+        };
+        return next;
+      });
       return { ...state, messages };
     }
 
     case 'tool_confirmation_request': {
-      const messages = [...state.messages];
-      const last = messages[messages.length - 1];
-      if (last && last.role === 'assistant') {
-        // Match the tool call this confirmation belongs to. Priority order:
-        //   1. Exact toolCallId match (reliable, set by extension v0.36.9+)
-        //   2. Status === 'running' fallback (legacy, for older messages)
-        // The OR-on-name match was removed because it overwrote unrelated
-        // pending confirmations when the model called the same tool twice.
-        let matched = false;
-        let toolCalls = last.toolCalls.map((tc) => {
-          const isMatch = action.toolCallId
-            ? tc.id === action.toolCallId
-            : tc.status === 'running' && tc.name === action.toolName;
-          if (!isMatch) return tc;
-          matched = true;
-          return {
-            ...tc,
-            status: 'pending_confirmation' as const,
-            confirmationId: action.confirmationId,
-            summary: action.summary,
-            ...(action.isAskUser ? { isAskUser: true } : {}),
-          };
-        });
-
-        // Safety net: if no tool call was matched, the tool_call_start
-        // event hasn't landed yet (race condition observed on first ask).
-        // Create a synthetic pending tool call so the buttons render
-        // immediately. The real tool_call_start, when it arrives, will
-        // also try to add the same tool — the reducer for tool_call_start
-        // dedupes by ID below.
-        if (!matched) {
-          toolCalls = [
-            ...toolCalls,
-            {
-              id: action.toolCallId || `synthetic-${action.confirmationId}`,
-              name: action.toolName,
-              arguments: JSON.stringify(action.args || {}),
-              status: 'pending_confirmation' as const,
+      // Update the matching tool_call event to pending_confirmation. If no
+      // matching event exists yet (race condition where this message
+      // arrived before tool_call_start), create a synthetic placeholder so
+      // the approval buttons render immediately. The real tool_call_start,
+      // when it arrives, will dedupe via upsertToolCallEvent.
+      const messages = updateMessageEvents(state.messages, state.currentAssistantId, (events) => {
+        // Priority: exact toolCallId match (reliable, v0.36.9+)
+        //           then status==='running' AND name match (legacy fallback)
+        let matchIdx = action.toolCallId ? findToolCallEventIndex(events, action.toolCallId) : -1;
+        if (matchIdx < 0) {
+          for (let i = events.length - 1; i >= 0; i--) {
+            const e = events[i];
+            if (e.kind === 'tool_call' && e.toolCall.status === 'running' && e.toolCall.name === action.toolName) {
+              matchIdx = i;
+              break;
+            }
+          }
+        }
+        if (matchIdx >= 0) {
+          const existing = (events[matchIdx] as Extract<MessageEvent, { kind: 'tool_call' }>).toolCall;
+          const next = [...events];
+          next[matchIdx] = {
+            kind: 'tool_call',
+            toolCall: {
+              ...existing,
+              status: 'pending_confirmation',
               confirmationId: action.confirmationId,
               summary: action.summary,
               ...(action.isAskUser ? { isAskUser: true } : {}),
             },
-          ];
+          };
+          return next;
         }
-
-        messages[messages.length - 1] = { ...last, toolCalls };
-      }
+        // Safety net — synthesise a pending tool_call event so buttons render
+        return [
+          ...events,
+          {
+            kind: 'tool_call',
+            toolCall: {
+              id: action.toolCallId || `synthetic-${action.confirmationId}`,
+              name: action.toolName,
+              arguments: JSON.stringify(action.args || {}),
+              status: 'pending_confirmation',
+              confirmationId: action.confirmationId,
+              summary: action.summary,
+              ...(action.isAskUser ? { isAskUser: true } : {}),
+            },
+          },
+        ];
+      });
       return { ...state, messages };
     }
 
     case 'tool_call_end': {
-      const messages = [...state.messages];
-      const last = messages[messages.length - 1];
-      if (last && last.role === 'assistant') {
-        const toolCalls = last.toolCalls.map((tc) =>
-          tc.id === action.toolCallId
-            ? {
-                ...tc,
-                status: (action.success ? 'success' : 'failed') as 'success' | 'failed',
-                result: action.result,
-              }
-            : tc,
-        );
-        messages[messages.length - 1] = { ...last, toolCalls };
-      }
+      // Mark the matching tool_call event success/failed and attach the
+      // final result. Preserves partialOutput (live stream) alongside
+      // result (final) so the UI can show both if useful.
+      const messages = state.messages.map((msg) => {
+        if (!msg.events) return msg;
+        const idx = findToolCallEventIndex(msg.events, action.toolCallId);
+        if (idx < 0) return msg;
+        const existing = (msg.events[idx] as Extract<MessageEvent, { kind: 'tool_call' }>).toolCall;
+        const next = [...msg.events];
+        next[idx] = {
+          kind: 'tool_call',
+          toolCall: {
+            ...existing,
+            status: action.success ? 'success' : 'failed',
+            result: action.result,
+          },
+        };
+        return { ...msg, events: next };
+      });
       return { ...state, messages };
     }
 
     case 'confirmation_responded': {
-      // Optimistic UI update — when the user clicks Allow/Always Allow/Deny,
-      // immediately transition the matching tool call out of
-      // pending_confirmation so the buttons disappear and the user gets
-      // visible feedback their click registered. Without this the card sits
-      // in pending state forever if the tool execution hangs (e.g. broken
-      // bash environment), so the user clicks repeatedly thinking nothing
-      // happened.
+      // Optimistic UI update — transition the matching tool_call event out
+      // of pending_confirmation immediately on click so the user sees their
+      // click registered, even if the tool then hangs on its own execution.
       const messages = state.messages.map((msg) => {
-        if (msg.role !== 'assistant') return msg;
+        if (!msg.events) return msg;
         let changed = false;
-        const toolCalls = msg.toolCalls.map((tc) => {
-          if (tc.confirmationId !== action.confirmationId) return tc;
+        const next = msg.events.map((e) => {
+          if (e.kind !== 'tool_call') return e;
+          if (e.toolCall.confirmationId !== action.confirmationId) return e;
           changed = true;
-          return action.approved
-            // Approved → tool is now running. Spinner replaces buttons.
-            ? { ...tc, status: 'running' as const, confirmationId: undefined }
-            // Denied → tool is failed with a clear reason.
-            : {
-                ...tc,
-                status: 'failed' as const,
-                confirmationId: undefined,
-                result: 'Denied by user.',
-              };
+          return {
+            kind: 'tool_call' as const,
+            toolCall: action.approved
+              ? { ...e.toolCall, status: 'running' as const, confirmationId: undefined }
+              : {
+                  ...e.toolCall,
+                  status: 'failed' as const,
+                  confirmationId: undefined,
+                  result: 'Denied by user.',
+                },
+          };
         });
-        return changed ? { ...msg, toolCalls } : msg;
+        return changed ? { ...msg, events: next } : msg;
       });
       return { ...state, messages };
     }
@@ -320,16 +425,39 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         errorCode: action.code,
         errorSuggestion: action.suggestion,
       };
+      // Close the current assistant bubble (if any) and end the turn —
+      // error means the turn failed, next user message starts fresh.
+      const messages = [...state.messages, msg].map((m) =>
+        m.id === state.currentAssistantId ? { ...m, isStreaming: false } : m,
+      );
       return {
         ...state,
-        messages: [...state.messages, msg],
+        messages,
+        currentAssistantId: null,
         isStreaming: false,
         isThinking: false,
       };
     }
 
-    case 'done':
-      return { ...state, isStreaming: false, isThinking: false, conductorActive: false, activePersonas: [] };
+    case 'done': {
+      // Close the current assistant bubble (mark it no longer streaming)
+      // and clear currentAssistantId so the next user message starts a
+      // fresh turn with a new bubble.
+      const messages = state.currentAssistantId
+        ? state.messages.map((m) =>
+            m.id === state.currentAssistantId ? { ...m, isStreaming: false } : m,
+          )
+        : state.messages;
+      return {
+        ...state,
+        messages,
+        currentAssistantId: null,
+        isStreaming: false,
+        isThinking: false,
+        conductorActive: false,
+        activePersonas: [],
+      };
+    }
 
     case 'conductor_status':
       return {
@@ -537,6 +665,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 
 const initialState: ChatState = {
   messages: [],
+  currentAssistantId: null,
   models: [],
   activeModel: null,
   isStreaming: false,

@@ -178,18 +178,66 @@ export interface ToolCallDisplay {
   arguments: string;
   status: 'pending_confirmation' | 'running' | 'success' | 'failed';
   result?: string;
+  /** Live output chunks streamed via tool_call_partial (bash stdout, file edit diff previews, etc). */
+  partialOutput?: string;
   confirmationId?: string;
   summary?: string;
   isAskUser?: boolean;
 }
 
+/**
+ * A single event in an assistant message's chronological timeline.
+ *
+ * Each turn (between two user messages) produces one assistant UIMessage.
+ * That message contains an ordered array of events showing exactly what
+ * happened in sequence: thinking → text → tool call → thinking → text etc.
+ *
+ * Consecutive events of the same kind are merged so the UI doesn't render
+ * 200 individual thinking chunks — one thinking event grows as new deltas
+ * arrive, and a new thinking event only starts when a non-thinking event
+ * breaks the run.
+ */
+export type MessageEvent =
+  | { kind: 'thinking'; content: string }
+  | { kind: 'text'; content: string }
+  | { kind: 'tool_call'; toolCall: ToolCallDisplay };
+
 export interface UIMessage {
   id: string;
   role: 'user' | 'assistant' | 'error' | 'system';
+  /**
+   * Simple text body. Used for user, system, error messages. For legacy
+   * assistant messages loaded from old conversation history this may
+   * hold the full concatenated text — new assistant messages use `events`.
+   */
   content: string;
+  /**
+   * Legacy field — kept for loaded history compatibility. New assistant
+   * messages from this session put thinking inside `events` as a
+   * `thinking` event so it can appear chronologically interleaved with
+   * text and tool calls.
+   */
   thinking?: string;
   images?: string[];
+  /**
+   * Legacy field — kept for loaded history compatibility. New assistant
+   * messages put tool calls inside `events` as `tool_call` events so
+   * they render in-order in the timeline.
+   */
   toolCalls: ToolCallDisplay[];
+  /**
+   * Canonical chronological timeline for assistant messages.
+   *
+   * When present, MessageBubble renders this instead of the legacy
+   * content/thinking/toolCalls fields. The reducer creates one
+   * assistant UIMessage per user turn and accumulates events into this
+   * array as the agent streams through think → tool → text → think → ...
+   *
+   * Undefined for user/system/error messages (they only use `content`)
+   * and for legacy assistant history messages loaded from disk before
+   * this refactor (they use the legacy fields above).
+   */
+  events?: MessageEvent[];
   isStreaming: boolean;
   errorCode?: string;
   errorSuggestion?: string;
@@ -198,8 +246,27 @@ export interface UIMessage {
   ratingReason?: string;
 }
 
+/** Helper: get all visible text from an assistant message (for copy, rating, etc). */
+export function getMessageText(msg: UIMessage): string {
+  if (msg.events) {
+    return msg.events
+      .filter((e): e is Extract<MessageEvent, { kind: 'text' }> => e.kind === 'text')
+      .map((e) => e.content)
+      .join('');
+  }
+  return msg.content || '';
+}
+
 export interface ChatState {
   messages: UIMessage[];
+  /**
+   * ID of the assistant message currently being built in the active turn.
+   * Set when the first stream_start of a turn creates the bubble, and
+   * cleared on `done` so the next turn creates a fresh bubble. While set,
+   * all streaming events (stream_delta, thinking_delta, tool_call_*) append
+   * to this single bubble's events array instead of spawning new bubbles.
+   */
+  currentAssistantId: string | null;
   models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;
   activeModel: string | null;
   isStreaming: boolean;

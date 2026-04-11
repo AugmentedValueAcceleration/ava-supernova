@@ -330,11 +330,22 @@ export interface ToolCallDisplay {
   arguments: string;
   status: 'pending_confirmation' | 'running' | 'success' | 'failed';
   result?: string;
+  /** Live output chunks streamed via tool_call_partial (bash stdout, file edit diff previews, etc). */
   partialOutput?: string;
   confirmationId?: string;
   summary?: string;
   isAskUser?: boolean;
 }
+
+/**
+ * A single event in an assistant message's chronological timeline.
+ * See webview-ui types for full docs — same model, mirrored here because
+ * dashboard-ui is a separate React app with its own type copy.
+ */
+export type MessageEvent =
+  | { kind: 'thinking'; content: string }
+  | { kind: 'text'; content: string }
+  | { kind: 'tool_call'; toolCall: ToolCallDisplay };
 
 export interface UIMessage {
   id: string;
@@ -343,12 +354,31 @@ export interface UIMessage {
   thinking?: string;
   images?: string[];
   toolCalls: ToolCallDisplay[];
+  /**
+   * Canonical chronological timeline for assistant messages.
+   * When present, MessageBubble renders this instead of the legacy
+   * content/thinking/toolCalls fields. One assistant UIMessage per user
+   * turn; events accumulate as the agent streams through think → tool →
+   * text → think → ... within a single turn.
+   */
+  events?: MessageEvent[];
   isStreaming: boolean;
   errorCode?: string;
   errorSuggestion?: string;
   timestamp?: number;
   rating?: 'up' | 'down';
   ratingReason?: string;
+}
+
+/** Helper: get all visible text from an assistant message (for copy, rating, etc). */
+export function getMessageText(msg: UIMessage): string {
+  if (msg.events) {
+    return msg.events
+      .filter((e): e is Extract<MessageEvent, { kind: 'text' }> => e.kind === 'text')
+      .map((e) => e.content)
+      .join('');
+  }
+  return msg.content || '';
 }
 
 export interface MemoryEntryUI {
@@ -396,6 +426,8 @@ export interface ChatModel {
 
 export interface ChatState {
   messages: UIMessage[];
+  /** ID of the assistant bubble currently being built in the active turn. Cleared on done/error/user_message_ack. */
+  currentAssistantId: string | null;
   models: ChatModel[];
   activeModel: string | null;
   isStreaming: boolean;

@@ -1,9 +1,11 @@
 import { readFile, writeFile, stat } from 'node:fs/promises';
+import { basename, relative } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { validatePath } from './security.js';
 
 const MAX_EDIT_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_PREVIEW_LINES = 10;
 
 export class FileEditTool implements Tool {
   readonly name = 'file_edit';
@@ -56,18 +58,22 @@ export class FileEditTool implements Tool {
       return { success: false, output: (err as Error).message };
     }
 
+    const emit = context.onOutput;
+    const relPath = (() => {
+      try { return relative(context.cwd, absolutePath) || basename(absolutePath); } catch { return absolutePath; }
+    })();
+
     try {
-      // Guard against reading extremely large files into memory
       const fileStat = await stat(absolutePath);
       if (fileStat.size > MAX_EDIT_FILE_BYTES) {
         return { success: false, output: `File is ${Math.round(fileStat.size / (1024 * 1024))} MB — exceeds the ${MAX_EDIT_FILE_BYTES / (1024 * 1024)} MB edit limit.` };
       }
 
       const content = await readFile(absolutePath, 'utf-8');
-
       const occurrences = content.split(oldString).length - 1;
 
       if (occurrences === 0) {
+        if (emit) emit(`✗ old_string not found in ${relPath}\n`);
         return {
           success: false,
           output: `old_string not found in "${absolutePath}". Make sure the string matches exactly, including whitespace and indentation.`,
@@ -75,10 +81,19 @@ export class FileEditTool implements Tool {
       }
 
       if (!replaceAll && occurrences > 1) {
+        if (emit) emit(`✗ old_string matched ${occurrences} times in ${relPath} — need more context or replace_all\n`);
         return {
           success: false,
           output: `old_string found ${occurrences} times in "${absolutePath}". Provide more context to make it unique, or set replace_all to true.`,
         };
+      }
+
+      if (emit) {
+        const label = replaceAll && occurrences > 1
+          ? `Editing ${relPath} · ${occurrences} occurrences`
+          : `Editing ${relPath}`;
+        emit(`${label}\n\n`);
+        emitDiff(emit, oldString, newString);
       }
 
       const updated = replaceAll
@@ -87,6 +102,10 @@ export class FileEditTool implements Tool {
 
       await writeFile(absolutePath, updated, 'utf-8');
 
+      if (emit) {
+        emit(`\n✓ Replaced ${replaceAll ? `${occurrences} occurrences` : '1 occurrence'} in ${relPath}\n`);
+      }
+
       return {
         success: true,
         output: `Edited ${absolutePath}: replaced ${replaceAll ? `all ${occurrences} occurrences` : '1 occurrence'}`,
@@ -94,7 +113,29 @@ export class FileEditTool implements Tool {
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
+      if (emit) emit(`\n✗ Failed: ${message}\n`);
       return { success: false, output: `Failed to edit file "${absolutePath}": ${message}` };
     }
+  }
+}
+
+function emitDiff(emit: (data: string) => void, oldString: string, newString: string): void {
+  const oldLines = oldString.split('\n');
+  const newLines = newString.split('\n');
+
+  const oldPreview = oldLines.slice(0, MAX_PREVIEW_LINES);
+  for (const line of oldPreview) {
+    emit(`- ${line}\n`);
+  }
+  if (oldLines.length > MAX_PREVIEW_LINES) {
+    emit(`- … +${oldLines.length - MAX_PREVIEW_LINES} more lines\n`);
+  }
+
+  const newPreview = newLines.slice(0, MAX_PREVIEW_LINES);
+  for (const line of newPreview) {
+    emit(`+ ${line}\n`);
+  }
+  if (newLines.length > MAX_PREVIEW_LINES) {
+    emit(`+ … +${newLines.length - MAX_PREVIEW_LINES} more lines\n`);
   }
 }

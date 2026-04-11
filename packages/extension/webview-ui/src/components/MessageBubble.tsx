@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import type { UIMessage } from '../types/messages';
+import type { UIMessage, MessageEvent, ToolCallDisplay } from '../types/messages';
+import { getMessageText } from '../types/messages';
 import { t, useLocale } from '../i18n';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ThinkingBlock } from './ThinkingBlock';
@@ -191,16 +192,45 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
     );
   }
 
-  // Assistant message
-  const hasThinking = !!message.thinking;
-  const isThinkingOnly = hasThinking && !message.content;
-  const getContent = useCallback(() => message.content, [message.content]);
+  // ── Assistant message — single bubble per turn with chronological timeline ──
+  //
+  // The source of truth is `message.events` (for messages produced by the
+  // current reducer). Legacy history loaded from disk may still use the old
+  // `content` / `thinking` / `toolCalls` fields — we derive an events list
+  // from those so the rendering path is unified.
 
-  // Secret redaction state for this message
+  const events: MessageEvent[] = message.events || legacyEventsFromMessage(message);
+
+  // Find the index of the last text event — that's where the streaming
+  // cursor goes while the message is still streaming.
+  let lastTextEventIdx = -1;
+  for (let i = events.length - 1; i >= 0; i--) {
+    if (events[i].kind === 'text') {
+      lastTextEventIdx = i;
+      break;
+    }
+  }
+
+  // Find the index of the last todo_write tool_call event so only the
+  // latest todo card is expanded by default.
+  let lastTodoIdx = -1;
+  for (let i = events.length - 1; i >= 0; i--) {
+    const e = events[i];
+    if (e.kind === 'tool_call' && e.toolCall.name === 'todo_write') {
+      lastTodoIdx = i;
+      break;
+    }
+  }
+
+  const fullText = getMessageText(message);
+  const getContent = useCallback(() => fullText, [fullText]);
+
+  // Secret redaction — check across all text events in the message
   const [secretsRevealed, setSecretsRevealed] = useState(false);
-  const redactedContent = message.content ? redact(message.content) : '';
-  const hasSecrets = message.content !== redactedContent;
-  const displayContent = secretsRevealed ? message.content : redactedContent;
+  const redactedFullText = fullText ? redact(fullText) : '';
+  const hasSecrets = fullText !== redactedFullText;
+  const redactTextEvent = (content: string): string =>
+    secretsRevealed ? content : redact(content);
 
   return (
     <div className="flex justify-start">
@@ -243,92 +273,60 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
           )}
         </div>
 
-        {hasThinking && (
-          <ThinkingBlock
-            content={message.thinking!}
-            isStreaming={message.isStreaming && isThinkingOnly}
-          />
-        )}
-
-        {message.content && (
-          <div className="relative group">
-            <div className="text-sm leading-relaxed">
-              <MarkdownRenderer content={displayContent} />
-              {message.isStreaming && (
-                <span className="inline-block w-2 h-4 animate-pulse ml-0.5" style={{ backgroundColor: 'var(--color-accent, #a855f7)' }} />
-              )}
-            </div>
-            {!message.isStreaming && (
-              <CopyButton
-                getText={getContent}
-                className="absolute top-1 right-1 w-6 h-6
-                           opacity-20 hover:opacity-80 transition-opacity"
+        {/* ── Chronological timeline of events ─────────────────────────── */}
+        {events.map((event, i) => {
+          if (event.kind === 'thinking') {
+            return (
+              <ThinkingBlock
+                key={`ev-${i}`}
+                content={event.content}
+                isStreaming={message.isStreaming && i === events.length - 1}
               />
-            )}
-          </div>
-        )}
-
-      {(() => {
-        // Find the last todo_write index so only the most recent one is expanded
-        const lastTodoIdx = message.toolCalls.reduce(
-          (acc, tc, i) => (tc.name === 'todo_write' ? i : acc), -1,
-        );
-
-        // Separate tool calls into special cards and timeline-eligible calls
-        const specialCards: React.ReactNode[] = [];
-        const timelineCalls: Array<{ tc: typeof message.toolCalls[0]; idx: number }> = [];
-
-        message.toolCalls.forEach((tc, i) => {
-          if (tc.name === 'todo_write') {
-            specialCards.push(<TodoCard key={tc.id} toolCall={tc} isLatest={i === lastTodoIdx} />);
-          } else if (tc.name === 'present_plan') {
-            specialCards.push(<PlanCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />);
-          } else if (tc.name === 'ask_user') {
-            specialCards.push(<AskUserCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />);
-          } else {
-            timelineCalls.push({ tc, idx: i });
+            );
           }
-        });
-
-        // Timeline header: show count + running status
-        const totalTimeline = timelineCalls.length;
-        const runningCount = timelineCalls.filter(({ tc }) => tc.status === 'running').length;
-        const completedCount = timelineCalls.filter(({ tc }) => tc.status === 'success').length;
-        const failedCount = timelineCalls.filter(({ tc }) => tc.status === 'failed').length;
-
-        let headerText = '';
-        if (totalTimeline > 0) {
-          if (runningCount > 0) {
-            headerText = `Running ${completedCount + runningCount} of ${totalTimeline}...`;
-          } else {
-            const parts: string[] = [];
-            parts.push(`${totalTimeline} tool call${totalTimeline !== 1 ? 's' : ''}`);
-            if (failedCount > 0) parts.push(`${failedCount} failed`);
-            headerText = parts.join(' \u00B7 ');
-          }
-        }
-
-        return (
-          <>
-            {/* Timeline block for regular tool calls */}
-            {totalTimeline > 0 && (
-              <div
-                className="mt-1"
-                style={{ borderLeft: '2px solid rgba(168, 85, 247, 0.3)', paddingLeft: '8px' }}
-              >
-                <div className="text-[10px] opacity-40 mb-0.5 select-none">
-                  {headerText}
+          if (event.kind === 'text') {
+            const isLastText = i === lastTextEventIdx;
+            const showStreamingCursor = message.isStreaming && isLastText;
+            return (
+              <div key={`ev-${i}`} className="relative group">
+                <div className="text-sm leading-relaxed">
+                  <MarkdownRenderer content={redactTextEvent(event.content)} />
+                  {showStreamingCursor && (
+                    <span
+                      className="inline-block w-2 h-4 animate-pulse ml-0.5"
+                      style={{ backgroundColor: 'var(--color-accent, #a855f7)' }}
+                    />
+                  )}
                 </div>
-                {timelineCalls.map(({ tc }) => (
-                  <ToolCallCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />
-                ))}
+                {!message.isStreaming && isLastText && (
+                  <CopyButton
+                    getText={getContent}
+                    className="absolute top-1 right-1 w-6 h-6 opacity-20 hover:opacity-80 transition-opacity"
+                  />
+                )}
               </div>
-            )}
-            {/* Special cards rendered outside the timeline */}
-            {specialCards}
-          </>
-        );
-      })()}
+            );
+          }
+          // tool_call event — render inline at its chronological position
+          const tc = event.toolCall;
+          if (tc.name === 'todo_write') {
+            return <TodoCard key={tc.id} toolCall={tc} isLatest={i === lastTodoIdx} />;
+          }
+          if (tc.name === 'present_plan') {
+            return <PlanCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />;
+          }
+          if (tc.name === 'ask_user') {
+            return <AskUserCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />;
+          }
+          return (
+            <div
+              key={tc.id}
+              style={{ borderLeft: '2px solid rgba(168, 85, 247, 0.3)', paddingLeft: '8px' }}
+            >
+              <ToolCallCard toolCall={tc} onConfirmation={onConfirmation} />
+            </div>
+          );
+        })}
 
         {/* Timestamp + Feedback */}
         {!message.isStreaming && (
@@ -350,4 +348,20 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
       </div>
     </div>
   );
+}
+
+/**
+ * Build an events array from the legacy `content` / `thinking` / `toolCalls`
+ * fields so conversation history loaded from disk (before the events refactor)
+ * still renders through the new timeline path. Ordering is best-effort:
+ * thinking first, then text, then tool calls.
+ */
+function legacyEventsFromMessage(msg: UIMessage): MessageEvent[] {
+  const events: MessageEvent[] = [];
+  if (msg.thinking) events.push({ kind: 'thinking', content: msg.thinking });
+  if (msg.content) events.push({ kind: 'text', content: msg.content });
+  for (const tc of msg.toolCalls || []) {
+    events.push({ kind: 'tool_call', toolCall: tc as ToolCallDisplay });
+  }
+  return events;
 }
