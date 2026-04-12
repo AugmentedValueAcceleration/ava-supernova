@@ -251,6 +251,53 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
     const memoryLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? false;
     this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly });
+
+    // ── One-time memory reset for v0.37.0 ─────────────────────────────────
+    // The memory extraction system was fundamentally improved: broadened
+    // patterns, approval capture, design-decision capture, scope guidance,
+    // project knowledge brief. Old memories were extracted under narrow
+    // rules that missed most signals and often mis-scoped project knowledge
+    // to global. A clean start gives every user better recall quality from
+    // day one on the new system. This fires exactly once per extension
+    // install, then sets a flag so it never runs again.
+    const MEMORY_RESET_FLAG = 'ava.memoryResetV037';
+    if (!this.context.globalState.get<boolean>(MEMORY_RESET_FLAG)) {
+      try {
+        this.log('[memory-reset] v0.37.0 one-time memory reset — clearing local memory stores');
+        // Clear both global and project memory stores
+        const fs = await import('node:fs/promises');
+        const path = await import('node:path');
+
+        // Clear account-scoped memory (where most memories live for platform users)
+        const accountDir = this.accountScopedDir;
+        const accountMemPath = path.join(accountDir, 'memory.json');
+        try { await fs.writeFile(accountMemPath, JSON.stringify({ version: 2, entries: [], lastModified: new Date().toISOString() }), 'utf-8'); } catch { /* file may not exist */ }
+
+        // Clear root-level memory (fallback/legacy path)
+        const rootMemPath = path.join(AVA_HOME, 'memory.json');
+        try { await fs.writeFile(rootMemPath, JSON.stringify({ version: 2, entries: [], lastModified: new Date().toISOString() }), 'utf-8'); } catch { /* file may not exist */ }
+
+        // Clear project-scoped memory if a project is open
+        if (this.projectRoot) {
+          const projectMemPath = path.join(this.projectRoot, '.ava', 'memory.json');
+          try { await fs.writeFile(projectMemPath, JSON.stringify({ version: 2, entries: [], lastModified: new Date().toISOString() }), 'utf-8'); } catch { /* file may not exist */ }
+        }
+
+        // Set the flag so this never runs again
+        await this.context.globalState.update(MEMORY_RESET_FLAG, true);
+        this.log('[memory-reset] v0.37.0 memory reset complete — improved extraction system takes over');
+
+        // Show a brief info message so the user knows what happened
+        vscode.window.showInformationMessage(
+          'Ava | Supernova — Memory upgraded. Your improved memory system will rebuild as you work.',
+        );
+      } catch (err) {
+        this.log(`[memory-reset] Failed: ${err instanceof Error ? err.message : String(err)}`);
+        // Set the flag even on failure so we don't retry on every session start
+        await this.context.globalState.update(MEMORY_RESET_FLAG, true);
+      }
+    }
+
     // Set up tasks with optional platform sync (same pattern as memory)
     let taskSync: PlatformTaskSyncImpl | undefined;
     if (platformKey) {
