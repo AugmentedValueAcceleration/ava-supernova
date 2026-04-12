@@ -135,26 +135,35 @@ export class MemoryAgent {
     const emptyBrief: MemoryBrief = { summary: '', availableTopics: [], consideredEntryCount: 0 };
 
     try {
-      // ── Project knowledge recall ─────────────────────────────────────
-      // Separate project-only recall ensures project-scoped memories are
-      // always visible in the brief rather than getting buried behind a
-      // larger pool of global memories. The top 5 project hits appear as
-      // a "[Project Context]" prefix before the general brief.
+      // ── v3 Project Brain (preferred over raw recall) ───────────────────
+      // If a project brain exists, use it as the primary context injection.
+      // It's pre-computed, ~200 tokens, always relevant, and doesn't depend
+      // on keyword matching against the user's first message. This is the
+      // "warm start guaranteed" upgrade from v3.
+      //
+      // Falls back to the v2.1 project-knowledge recall if no brain exists
+      // (e.g., fresh project with zero graph nodes yet).
       let projectPrefix = '';
       try {
-        const projectResults = await this.memoryManager.recall({
-          query: userMessage,
-          limit: 5,
-          scope: 'project',
-        });
-        if (projectResults && projectResults.length > 0) {
-          const projectLines = projectResults.map((r) => {
-            const entry = r.entry || r;
-            const content = entry.content || (r as any).content || '';
-            const category = entry.category || 'general';
-            return `- (${category}) ${content.slice(0, 200)}`;
+        const brain = this.memoryManager.getProjectBrain?.();
+        if (brain?.brief) {
+          projectPrefix = `[Project Brain]\n${brain.brief}\n\n`;
+        } else {
+          // Fallback: v2.1 project-only recall for projects without a brain yet
+          const projectResults = await this.memoryManager.recall({
+            query: userMessage,
+            limit: 5,
+            scope: 'project',
           });
-          projectPrefix = `[Project Context]\n${projectLines.join('\n')}\n\n`;
+          if (projectResults && projectResults.length > 0) {
+            const projectLines = projectResults.map((r) => {
+              const entry = r.entry || r;
+              const content = entry.content || (r as any).content || '';
+              const category = entry.category || 'general';
+              return `- (${category}) ${content.slice(0, 200)}`;
+            });
+            projectPrefix = `[Project Context]\n${projectLines.join('\n')}\n\n`;
+          }
         }
       } catch {
         // Non-critical — proceed without project prefix
@@ -303,6 +312,37 @@ export class MemoryAgent {
     } catch (err) {
       // LLM extraction failed — Layer 1 results are still saved
       logger.warn(`[memory-agent] LLM extraction failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    // ── v3 Ambient capture — evaluate this turn as a memory candidate ──
+    // Runs AFTER regex + LLM extraction so it benefits from dedup (ambient
+    // won't promote something that regex already captured). Uses heuristic
+    // scoring by default; LLM scoring is optional (provider-dependent).
+    try {
+      const ambientCapture = this.memoryManager.getAmbientCapture?.('project');
+      if (ambientCapture && messages.length >= 2) {
+        const lastUser = [...messages].reverse().find(m => m.role === 'user');
+        const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+        if (lastUser && lastAssistant) {
+          const candidate = {
+            userMessage: getTextContent(lastUser.content),
+            assistantMessage: getTextContent(lastAssistant.content),
+            toolsUsed: (lastAssistant as any).tool_calls
+              ? (lastAssistant as any).tool_calls.map((tc: any) => tc.function?.name).filter(Boolean)
+              : [],
+            turnIndex: messages.filter(m => m.role === 'user').length,
+            sessionId: conversationId,
+          };
+          const promoted = await ambientCapture.evaluate(candidate);
+          if (promoted) {
+            saved++;
+            logger.debug(`[memory-agent] Ambient capture promoted a node: ${promoted}`);
+          }
+        }
+      }
+    } catch (err) {
+      // Ambient capture is non-critical — never blocks the response
+      logger.debug(`[memory-agent] Ambient capture failed: ${err instanceof Error ? err.message : String(err)}`);
     }
 
     return saved;

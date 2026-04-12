@@ -776,6 +776,11 @@ export class Agent {
         // Dataset capture — silently record interaction as training data (fire-and-forget)
         captureInteraction(messages).catch(err => logger.debug(`[dataset] capture failed: ${err}`));
 
+        // v3: Feed procedural observer with the tool-call sequence from this run
+        // + save graphs at end of session
+        this.feedProceduralObserver(messages, runContext);
+        this.saveGraphState(runContext);
+
         onEvent({ type: 'done', finalMessage: assistantMessage });
         return messages;
       }
@@ -1009,6 +1014,8 @@ export class Agent {
     // Extract memories even on iteration limit — there's still valuable context to capture
     this.extractMemoriesFromRun(messages, runContext);
     captureInteraction(messages).catch(err => logger.debug(`[dataset] capture failed: ${err}`));
+    this.feedProceduralObserver(messages, runContext);
+    this.saveGraphState(runContext);
     return messages;
   }
 
@@ -1439,6 +1446,61 @@ export class Agent {
       '',
       `What you MUST NOT do: keep reading files silently. Either commit, or explain why you need more context. Stalling is the one unacceptable outcome.`,
     ].join('\n');
+  }
+
+  // ── v3 Memory graph integration ──────────────────────────────────────────
+
+  /**
+   * Feed the procedural observer with the tool-call sequence from this run.
+   * Fire-and-forget — never blocks the response.
+   */
+  private feedProceduralObserver(messages: Message[], runContext: ToolExecutionContext): void {
+    try {
+      const mm = runContext.sharedState?.memoryManager as
+        | { getProceduralObserver?: (scope: string) => { observe: (opts: any) => any } | null }
+        | undefined;
+      const observer = mm?.getProceduralObserver?.('project');
+      if (!observer) return;
+
+      // Extract tool-call sequence from the run's messages
+      const toolSequence: string[] = [];
+      for (const msg of messages) {
+        if (msg.role === 'assistant' && 'tool_calls' in msg && (msg as any).tool_calls) {
+          for (const tc of (msg as any).tool_calls) {
+            toolSequence.push(tc.function?.name ?? 'unknown');
+          }
+        }
+      }
+
+      if (toolSequence.length < 3) return; // Too short to be a meaningful pattern
+
+      observer.observe({
+        toolSequence,
+        taskType: undefined, // Auto-inferred from sequence
+        project: runContext.cwd,
+      });
+    } catch {
+      // Non-critical — never block the response
+    }
+  }
+
+  /**
+   * Save graph + procedural state at end of session.
+   * Fire-and-forget — never blocks the response.
+   */
+  private saveGraphState(runContext: ToolExecutionContext): void {
+    try {
+      const mm = runContext.sharedState?.memoryManager as
+        | { saveGraphs?: () => Promise<void>; runMaintenance?: () => Promise<void> }
+        | undefined;
+      if (mm?.saveGraphs) {
+        mm.saveGraphs().catch(err =>
+          logger.debug(`[agent] Graph save failed: ${err instanceof Error ? err.message : String(err)}`),
+        );
+      }
+    } catch {
+      // Non-critical
+    }
   }
 
   // ── Context usage ────────────────────────────────────────────────────────
