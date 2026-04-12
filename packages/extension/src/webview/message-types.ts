@@ -95,7 +95,15 @@ export type ExtToWebviewMessage =
   | { type: 'persona_status'; persona: string; phase: 'active' | 'complete' | 'error'; description?: string; output?: string }
   | { type: 'persona_tool_call'; persona: string; tool: string }
   | { type: 'persona_tool_result'; persona: string; tool: string; success: boolean }
-  | { type: 'briefing'; text: string; todayTasks: number; overdueTasks: number; totalActive: number };
+  | { type: 'briefing'; text: string; todayTasks: number; overdueTasks: number; totalActive: number }
+  // OAuth sign-in flow (v0.37.0)
+  | { type: 'sign_in_started' }
+  | {
+      type: 'sign_in_complete';
+      account: { id: string; email?: string; name?: string; avatar_url?: string; tier?: string };
+    }
+  | { type: 'sign_in_failed'; error: string }
+  | { type: 'sign_in_cancelled' };
 
 /** Structured memory entry for webview display. */
 export interface MemoryEntryUI {
@@ -147,4 +155,7 @@ export type WebviewToExtMessage =
   | { type: 'request_all_tasks' }
   | { type: 'toggle_task'; taskId: string }
   | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; model?: string; mode?: string }
-  | { type: 'accept_consent' };
+  | { type: 'accept_consent' }
+  // OAuth sign-in flow (v0.37.0)
+  | { type: 'start_sign_in'; method: 'github' | 'email' }
+  | { type: 'cancel_sign_in' };

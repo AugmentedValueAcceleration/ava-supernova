@@ -80,6 +80,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private projectRoot?: string;
   private projectInstructions?: string;
   private decisionsState?: import('@ava/core').DecisionsState;
+  private signInManager?: import('./sign-in-manager.js').SignInManager;
   private memoryManager?: MemoryManager;
   private taskManager?: TaskManager;
   private journalManager?: JournalManager;
@@ -112,6 +113,21 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   public getAccountScopedDir(): string {
     return this.accountScopedDir;
   }
+
+  /**
+   * Handle a vscode://.../auth callback from the website, delegating to the
+   * SignInManager. Called by the UriHandler registered in extension.ts.
+   * Returns true if the URI was consumed by a pending sign-in, false if
+   * it was for a different or stale attempt.
+   */
+  public async handleSignInCallback(uri: vscode.Uri): Promise<boolean> {
+    if (!this.signInManager) {
+      // Manager hasn't finished async import yet — wait briefly then retry
+      await new Promise(r => setTimeout(r, 100));
+    }
+    if (!this.signInManager) return false;
+    return this.signInManager.handleCallback(uri);
+  }
   private providerSource: ProviderSource = 'byok';
   private enabledModelIds: Set<string> | null = null;
   private heartbeatInterval?: ReturnType<typeof setInterval>;
@@ -131,6 +147,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.statusBarItem.command = 'ava-supernova.switchModel';
     this.updateStatusBar();
     this.statusBarItem.show();
+
+    // Sign-in manager — owns the OAuth device authorization flow for the
+    // extension. Created eagerly so the URI handler in extension.ts can
+    // delegate to it as soon as VS Code routes a vscode://...auth callback.
+    void (async () => {
+      const { SignInManager } = await import('./sign-in-manager.js');
+      this.signInManager = new SignInManager(this.context);
+      // Forward sign-in events to the webview so the UI can update state.
+      this.signInManager.onEvent((event) => {
+        this.postMessage(event as any);
+      });
+    })();
 
     // Detect project and load instructions (also creates historyManager)
     // Store the promise so initializeSession can await it before using managers
@@ -2054,6 +2082,34 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
               privacyVersion: '1.0',
             },
           }).catch(() => { /* consent recording is non-critical */ });
+        }
+        break;
+      }
+
+      case 'start_sign_in': {
+        // User clicked "Continue with GitHub" or "Sign in with email" in
+        // the sign-in UI. Delegate to SignInManager, which generates state,
+        // opens the browser, and tracks the pending attempt. Events flow
+        // back through the onEvent subscription wired in the constructor.
+        if (!this.signInManager) {
+          this.postMessage({ type: 'sign_in_failed', error: 'Sign-in manager not ready yet. Please try again.' });
+          break;
+        }
+        try {
+          await this.signInManager.startSignIn(message.method);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          this.log(`start_sign_in failed: ${msg}`);
+          // The SignInManager already emitted sign_in_failed — no need to
+          // post again here.
+        }
+        break;
+      }
+
+      case 'cancel_sign_in': {
+        // User clicked Cancel on the pending sign-in UI
+        if (this.signInManager) {
+          this.signInManager.cancelSignIn();
         }
         break;
       }

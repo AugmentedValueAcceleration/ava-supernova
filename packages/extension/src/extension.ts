@@ -30,6 +30,35 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
   );
 
+  // OAuth sign-in URI handler — catches vscode://augmentedvalueacceleration.ava-supernova/auth
+  // callbacks from the website's device authorization flow and delegates
+  // to AvaViewProvider.handleSignInCallback for state validation, code
+  // exchange, and platform key storage.
+  context.subscriptions.push(
+    vscode.window.registerUriHandler({
+      handleUri: async (uri: vscode.Uri) => {
+        try {
+          // Only handle the /auth path — leave room for future URI-handled
+          // actions (e.g. deep-linking a conversation, opening a specific
+          // memory, etc.) without touching this block
+          if (uri.path === '/auth') {
+            if (!viewProvider) return;
+            const consumed = await viewProvider.handleSignInCallback(uri);
+            if (consumed) {
+              // Surface a small notification so the user knows VS Code
+              // received the callback even if they can't immediately see
+              // the chat webview
+              vscode.window.showInformationMessage('Ava | Supernova — signed in successfully.');
+            }
+          }
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          vscode.window.showErrorMessage(`Ava sign-in callback failed: ${message}`);
+        }
+      },
+    }),
+  );
+
   // Journal Manager (shared instance)
   const journalManager = new JournalManager({ globalDir, projectRoot });
 

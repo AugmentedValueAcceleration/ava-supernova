@@ -140,7 +140,9 @@ type ChatAction =
   | { type: 'close_tasks' }
   | { type: 'set_tasks_width'; width: number }
   | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string }
-  | { type: 'confirmation_responded'; confirmationId: string; approved: boolean };
+  | { type: 'confirmation_responded'; confirmationId: string; approved: boolean }
+  | { type: 'clear_sign_in_error' }
+  | { type: 'start_sign_in_local'; method: 'github' | 'email' };
 
 let messageIdCounter = 0;
 function nextId(): string {
@@ -706,6 +708,48 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return { ...state, isCompressing: false };
     }
 
+    // ── OAuth sign-in flow (v0.37.0) ─────────────────────────────────────
+    case 'start_sign_in_local':
+      // User clicked a sign-in button. Set pending state before posting to
+      // extension host so the UI updates immediately rather than waiting
+      // for the round-trip sign_in_started event.
+      return { ...state, signInPending: action.method, signInError: null };
+
+    case 'sign_in_started':
+      // Confirmation from the extension host that the browser was opened
+      // and a pending attempt is tracked. No state change if we already
+      // optimistically set pending on the button click.
+      return state.signInPending ? state : { ...state, signInPending: 'github', signInError: null };
+
+    case 'sign_in_complete':
+      return {
+        ...state,
+        signInPending: null,
+        signInError: null,
+        signInAccount: action.account,
+        // Clearing needsSetup here lets the UI flip straight into the main
+        // chat view once sign-in succeeds. The extension host will send a
+        // fresh init message shortly after with the new model/account data.
+        needsSetup: false,
+      };
+
+    case 'sign_in_failed':
+      return {
+        ...state,
+        signInPending: null,
+        signInError: action.error,
+      };
+
+    case 'sign_in_cancelled':
+      return {
+        ...state,
+        signInPending: null,
+        signInError: null,
+      };
+
+    case 'clear_sign_in_error':
+      return { ...state, signInError: null };
+
     default:
       return state;
   }
@@ -741,6 +785,10 @@ const initialState: ChatState = {
   conductorActive: false,
   conductorMode: undefined as string | undefined,
   activePersonas: [] as Array<{ id: string; phase: 'active' | 'complete' | 'error'; description?: string; output?: string; tools?: Array<{ name: string; done: boolean; success?: boolean }> }>,
+  // OAuth sign-in flow (v0.37.0)
+  signInPending: null,
+  signInError: null,
+  signInAccount: null,
 };
 
 // ── Typing speed config ─────────────────────────────────────────────────────
@@ -947,6 +995,23 @@ export function App() {
     dispatch({ type: 'init', models: state.models, activeModel: state.activeModel, needsSetup: state.needsSetup, consentRequired: false } as any);
   }, [postMessage, state.models, state.activeModel, state.needsSetup]);
 
+  // OAuth sign-in handlers (v0.37.0)
+  const handleStartSignIn = useCallback((method: 'github' | 'email') => {
+    // Optimistically set pending state so the UI flips instantly,
+    // then post to extension host which will open the browser and
+    // confirm via sign_in_started event
+    dispatch({ type: 'start_sign_in_local', method });
+    postMessage({ type: 'start_sign_in', method });
+  }, [postMessage]);
+
+  const handleCancelSignIn = useCallback(() => {
+    postMessage({ type: 'cancel_sign_in' });
+  }, [postMessage]);
+
+  const handleClearSignInError = useCallback(() => {
+    dispatch({ type: 'clear_sign_in_error' });
+  }, []);
+
   const handleLoadConversation = useCallback(
     (conversationId: string) => {
       justLoadedRef.current = true;
@@ -1150,6 +1215,11 @@ export function App() {
           conductorActive={state.conductorActive}
           conductorMode={state.conductorMode}
           activePersonas={state.activePersonas}
+          signInPending={state.signInPending}
+          signInError={state.signInError}
+          onStartSignIn={handleStartSignIn}
+          onCancelSignIn={handleCancelSignIn}
+          onClearSignInError={handleClearSignInError}
         />
 
         <InputArea

@@ -3,6 +3,7 @@ import type { UIMessage } from '../types/messages';
 import { MessageBubble } from './MessageBubble';
 import { ThinkingIndicator } from './ThinkingIndicator';
 import { PersonaStatus } from './PersonaStatus';
+import { SignInScreen } from './SignInScreen';
 import { t, useLocale } from '../i18n';
 
 interface PersonaInfo {
@@ -31,6 +32,12 @@ interface ChatContainerProps {
   onOpenDashboard?: () => void;
   activeModel?: string | null;
   models?: Array<{ id: string; name: string; provider: string }>;
+  // OAuth sign-in (v0.37.0)
+  signInPending?: 'github' | 'email' | null;
+  signInError?: string | null;
+  onStartSignIn?: (method: 'github' | 'email') => void;
+  onCancelSignIn?: () => void;
+  onClearSignInError?: () => void;
 }
 
 const SUGGESTIONS = [
@@ -58,7 +65,7 @@ const MODE_INFO = [
   { icon: '**', label: 'Brainstorm', desc: 'welcome.mode.brainstorm_desc' },
 ];
 
-export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onSuggestion, onRate, chatEndRef, needsSetup, consentRequired, onAcceptConsent, initialized, onOpenDashboard, activeModel, models, conductorActive, conductorMode, activePersonas }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onSuggestion, onRate, chatEndRef, needsSetup, consentRequired, onAcceptConsent, initialized, onOpenDashboard, activeModel, models, conductorActive, conductorMode, activePersonas, signInPending, signInError, onStartSignIn, onCancelSignIn, onClearSignInError }: ChatContainerProps) {
   useLocale();
   const [consentChecked, setConsentChecked] = useState(false);
 
@@ -202,33 +209,40 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
             <p className="text-xs opacity-30">{t('welcome.tagline')}</p>
           </div>
 
-          {/* Setup banner — only if no provider configured */}
+          {/* Sign-in screen or setup banner — v0.37.0 replaces the old banner */}
           {needsSetup ? (
-            <button
-              onClick={onOpenDashboard}
-              className="w-full mb-6 p-4 rounded-xl text-left cursor-pointer transition-all duration-200
-                         border bg-transparent hover:bg-[rgba(168,85,247,0.05)]"
-              style={{
-                border: '1.5px dashed rgba(168, 85, 247, 0.4)',
-              }}
-            >
-              <div className="flex items-start gap-3">
-                <span className="text-lg mt-0.5">🔑</span>
-                <div>
-                  <p className="text-sm font-semibold text-[var(--vscode-foreground)] mb-1">{t('welcome.setup_title')}</p>
-                  <p className="text-xs opacity-50 leading-relaxed">{t('welcome.setup_desc')}</p>
-                  <span
-                    className="inline-block mt-2 text-xs font-medium px-3 py-1 rounded-lg"
-                    style={{
-                      background: 'linear-gradient(135deg, #A855F7, #7C3AED)',
-                      color: 'white',
-                    }}
-                  >
-                    {t('welcome.setup_cta')}
-                  </span>
-                </div>
+            onStartSignIn && onCancelSignIn && onClearSignInError ? (
+              <div className="mb-6">
+                <SignInScreen
+                  pendingMethod={signInPending ?? null}
+                  signInError={signInError ?? null}
+                  onStartSignIn={onStartSignIn}
+                  onCancelSignIn={onCancelSignIn}
+                  onOpenDashboard={onOpenDashboard ?? (() => {})}
+                  onClearError={onClearSignInError}
+                />
               </div>
-            </button>
+            ) : (
+              // Fallback for callers that haven't wired the sign-in handlers
+              // (shouldn't happen after v0.37.0 ships, but keeps the UI safe
+              // if the host code lags behind the webview)
+              <button
+                onClick={onOpenDashboard}
+                className="w-full mb-6 p-4 rounded-xl text-left cursor-pointer transition-all duration-200
+                           border bg-transparent hover:bg-[rgba(168,85,247,0.05)]"
+                style={{
+                  border: '1.5px dashed rgba(168, 85, 247, 0.4)',
+                }}
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-lg mt-0.5">🔑</span>
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--vscode-foreground)] mb-1">{t('welcome.setup_title')}</p>
+                    <p className="text-xs opacity-50 leading-relaxed">{t('welcome.setup_desc')}</p>
+                  </div>
+                </div>
+              </button>
+            )
           ) : activeModelObj ? (
             <div
               className="mb-6 px-4 py-2.5 rounded-lg flex items-center gap-2"

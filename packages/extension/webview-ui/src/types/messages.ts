@@ -274,6 +274,10 @@ export interface ChatState {
   needsSetup: boolean;
   consentRequired: boolean;
   initialized: boolean;
+  /** Sign-in state — v0.37.0 OAuth flow */
+  signInPending: 'github' | 'email' | null;
+  signInError: string | null;
+  signInAccount: { id: string; email?: string; name?: string; avatar_url?: string; tier?: string } | null;
   lastUsage: {
     prompt_tokens: number;
     completion_tokens: number;
