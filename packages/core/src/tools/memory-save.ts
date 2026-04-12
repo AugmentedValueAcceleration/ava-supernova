@@ -28,8 +28,12 @@ export class MemorySaveTool implements Tool {
           type: 'string',
           enum: ['global', 'project'],
           description:
-            'Where to save: "global" saves to ~/.ava/ (all projects), ' +
-            '"project" saves to <projectRoot>/.ava/ (this project only).',
+            'Where to save. Use "project" for: architectural decisions, code conventions, bug patterns, ' +
+            'past solutions, file structure notes, framework/library choices, design tokens, and anything ' +
+            'specific to THIS codebase. Use "global" for: personal preferences, workflow habits, ' +
+            'communication style, and patterns that apply across ALL projects. When in doubt, prefer "project" — ' +
+            'project knowledge that accidentally goes to global is invisible in other projects, while global ' +
+            'knowledge that accidentally goes to project just gets recalled in this project.',
         },
         content: {
           type: 'string',

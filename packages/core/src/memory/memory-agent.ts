@@ -135,14 +135,43 @@ export class MemoryAgent {
     const emptyBrief: MemoryBrief = { summary: '', availableTopics: [], consideredEntryCount: 0 };
 
     try {
-      // Recall raw candidates
+      // ── Project knowledge recall ─────────────────────────────────────
+      // Separate project-only recall ensures project-scoped memories are
+      // always visible in the brief rather than getting buried behind a
+      // larger pool of global memories. The top 5 project hits appear as
+      // a "[Project Context]" prefix before the general brief.
+      let projectPrefix = '';
+      try {
+        const projectResults = await this.memoryManager.recall({
+          query: userMessage,
+          limit: 5,
+          scope: 'project',
+        });
+        if (projectResults && projectResults.length > 0) {
+          const projectLines = projectResults.map((r) => {
+            const entry = r.entry || r;
+            const content = entry.content || (r as any).content || '';
+            const category = entry.category || 'general';
+            return `- (${category}) ${content.slice(0, 200)}`;
+          });
+          projectPrefix = `[Project Context]\n${projectLines.join('\n')}\n\n`;
+        }
+      } catch {
+        // Non-critical — proceed without project prefix
+      }
+
+      // Recall raw candidates (both scopes)
       const results = await this.memoryManager.recall({
         query: userMessage,
         limit: 15,
         scope: 'all',
       });
 
-      if (!results || results.length === 0) return emptyBrief;
+      if (!results || results.length === 0) {
+        // Even if general recall is empty, surface the project prefix
+        if (projectPrefix) return { summary: projectPrefix.trim(), availableTopics: [], consideredEntryCount: 0 };
+        return emptyBrief;
+      }
 
       // Format raw memories with relevance scores so the brief generator
       // knows which memories are strong matches vs. marginal
@@ -167,11 +196,15 @@ export class MemoryAgent {
           this.curateBrief(userMessage, rawMemories, conversationContext),
           3000,
         );
-        return { ...brief, consideredEntryCount: results.length };
+        // Prepend project context to the LLM brief
+        const fullSummary = projectPrefix ? projectPrefix + brief.summary : brief.summary;
+        return { ...brief, summary: fullSummary, consideredEntryCount: results.length };
       } catch {
         // Timeout or model failure — fall back to top 3 TF-IDF results
         logger.debug('[memory-agent] Brief generation timed out, using TF-IDF fallback');
-        return this.tfidfFallbackBrief(results);
+        const fallback = this.tfidfFallbackBrief(results);
+        if (projectPrefix) fallback.summary = projectPrefix + fallback.summary;
+        return fallback;
       }
     } catch {
       return emptyBrief;

@@ -69,12 +69,16 @@ const DECISION_PATTERNS = [
   /\bwe'?ll use\b/i,
 ];
 
-/** Patterns that indicate tech stack / architecture info */
+/** Patterns that indicate tech stack / architecture info.
+ * Framework list removed — was limited to 9 names and missed everything
+ * else (Tauri, Tailwind, Vite, esbuild, Supabase, pnpm, etc.). Now
+ * catches any "we use/chose/picked X" and lets Layer 2 LLM filter noise. */
 const ARCHITECTURE_PATTERNS = [
-  /\bwe (?:use|chose|picked|went with|switched to) (?:react|vue|angular|next|svelte|express|django|flask|spring)\b/i,
-  /\bour (?:stack|architecture|infra|database|backend|frontend) (?:is|uses)\b/i,
+  /\bwe (?:use|chose|picked|went with|switched to) \w+/i,
+  /\bour (?:stack|architecture|infra|database|backend|frontend|project|app|codebase) (?:is|uses|runs)\b/i,
   /\bdeployed (?:on|to|with|via)\b/i,
-  /\bwe (?:host|deploy|run) (?:on|with|in)\b/i,
+  /\bwe (?:host|deploy|run|build|ship) (?:on|with|in|to|via)\b/i,
+  /\bthe (?:project|app|codebase|repo) (?:is|uses|runs on|built with)\b/i,
 ];
 
 /** Negation words that appear before patterns — if found, the extraction includes the negation */
@@ -100,6 +104,24 @@ const EXPLICIT_REMEMBER_PATTERNS = [
   /\bmake sure (?:to|you) (?:always|never)\b/i,
 ];
 
+/** Patterns that indicate user approval of a proposal or decision.
+ * Captures the most common conversational approval signals. When matched,
+ * the distilled memory includes what was approved from the preceding
+ * assistant message, not just the approval phrase itself. */
+const APPROVAL_PATTERNS = [
+  /\bgo (?:for it|ahead|on|with)\b/i,
+  /\bsounds good\b/i,
+  /\b(?:yes|yeh|yeah|yep) (?:please|that|lets|do|go|perfect)\b/i,
+  /\bi agree\b/i,
+  /\bperfect[,.]?\s/i,
+  /\bthat(?:'s| is) (?:the one|it|right|correct|spot on|exactly)\b/i,
+  /\bapproved\b/i,
+  /\block(?:ed)? (?:in|it)\b/i,
+  /\bship it\b/i,
+  /\bdo it\b/i,
+  /\blets do\b/i,
+];
+
 /** Patterns that indicate project-specific knowledge */
 const PROJECT_KNOWLEDGE_PATTERNS = [
   // Note: password/key/token/secret patterns removed — they risk extracting actual credentials.
@@ -121,6 +143,20 @@ const DISCOVERY_PATTERNS = [
   /\bthe (?:solution|fix|answer) (?:is|was)\b/i,
 ];
 
+/** Patterns in assistant messages that indicate design decisions.
+ * When Ava makes a taste or architectural choice during work — palette,
+ * font, component shape, layout pattern — that's project knowledge
+ * worth saving. Previously only DISCOVERY_PATTERNS scanned assistant
+ * messages, so Ava's own design decisions were silently lost. */
+const DESIGN_DECISION_PATTERNS = [
+  /\bi(?:'ll| will) use .{3,60} (?:for|as|because)\b/i,
+  /\bchos(?:e|ing) .{3,60} (?:for|as|because|over)\b/i,
+  /\bgoing with .{3,60} (?:for|because|since)\b/i,
+  /\busing .{3,40} (?:for the|as the|because)\b/i,
+  /\bthe (?:accent|primary|secondary|background|text) (?:colou?r|font|spacing) (?:is|will be|should be)\b/i,
+  /\bset(?:ting)? .{3,30} to .{3,30} (?:for|because)\b/i,
+];
+
 interface PatternGroup {
   patterns: RegExp[];
   category: MemoryCategory;
@@ -137,10 +173,12 @@ const USER_PATTERN_GROUPS: PatternGroup[] = [
   { patterns: ARCHITECTURE_PATTERNS, category: 'architecture', scope: 'project', layer: 'project', tags: ['auto-extracted'] },
   { patterns: PERSONAL_PATTERNS, category: 'person', scope: 'global', layer: 'person', tags: ['auto-extracted'] },
   { patterns: PROJECT_KNOWLEDGE_PATTERNS, category: 'general', scope: 'project', layer: 'project', tags: ['auto-extracted', 'knowledge'] },
+  { patterns: APPROVAL_PATTERNS, category: 'decision', scope: 'project', layer: 'project', tags: ['auto-extracted', 'approval'] },
 ];
 
 const ASSISTANT_PATTERN_GROUPS: PatternGroup[] = [
   { patterns: DISCOVERY_PATTERNS, category: 'bug-fix', scope: 'project', layer: 'project', tags: ['auto-extracted', 'discovery'] },
+  { patterns: DESIGN_DECISION_PATTERNS, category: 'decision', scope: 'project', layer: 'project', tags: ['auto-extracted', 'design-decision'] },
 ];
 
 /** Category labels used as prefixes in distilled memories. */
@@ -152,6 +190,8 @@ const CATEGORY_PREFIXES: Record<string, string> = {
   person: 'Personal',
   general: 'Note',
   'bug-fix': 'Discovery',
+  approval: 'Approved',
+  'design-decision': 'Design',
 };
 
 /**
