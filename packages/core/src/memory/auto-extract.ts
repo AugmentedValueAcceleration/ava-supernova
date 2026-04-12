@@ -84,12 +84,32 @@ const ARCHITECTURE_PATTERNS = [
 /** Negation words that appear before patterns — if found, the extraction includes the negation */
 const NEGATION_PATTERN = /\b(?:don'?t|doesn'?t|not|never|no longer|stopped|quit|avoid|won'?t|can'?t|shouldn'?t)\b/i;
 
-/** Patterns that indicate personal info worth remembering */
+/** Patterns that indicate personal info worth remembering.
+ * Broadened for Chat mode — covers personal life, family, location,
+ * interests, health, lifestyle, not just professional role. */
 const PERSONAL_PATTERNS = [
   /\bmy (?:name|role|title|job|team) is\b/i,
   /\bi(?:'m| am) (?:a |an |the )?\w+(?:\s\w+)? (?:at|for|on|in)\b/i,
   /\bi work (?:on|at|for|with|in)\b/i,
   /\bmy email is\b/i,
+  // Family / relationships
+  /\bmy (?:wife|husband|partner|girlfriend|boyfriend|daughter|son|kid|child|children|mum|mom|dad|father|mother|brother|sister|family)\b/i,
+  // Location / living
+  /\bi (?:live|moved|grew up|am based|am from) (?:in|at|near)\b/i,
+  // Interests / hobbies
+  /\bi (?:love|enjoy|hate|collect|play|watch|follow|support)\b/i,
+  // Health / conditions
+  /\bi (?:deal|struggle|cope|live) with\b/i,
+  /\bi(?:'ve| have) (?:been diagnosed|been dealing|got|have) \w+/i,
+  // Pets
+  /\bmy (?:dog|cat|pet)\b/i,
+  /\bi have (?:a |two |three )?\w*(?:dog|cat|pet|bird|fish)\b/i,
+  // Birthday / age
+  /\bmy birthday\b/i,
+  /\bi(?:'m| am) \d{2,3}\b/i,
+  // Background / experience
+  /\bi(?:'ve| have) (?:been|spent) \d+ years?\b/i,
+  /\bmy background is\b/i,
 ];
 
 /** Patterns that indicate explicit memory requests */

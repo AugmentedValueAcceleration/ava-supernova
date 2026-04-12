@@ -99,6 +99,11 @@ Context clues:
 - "My name is..." → person
 - "I prefer TypeScript" → workflow
 - "The API uses REST not GraphQL" → project
+- "My daughter's name is Sophie" → person (family, remember for future reference)
+- "I live in Birmingham" → person (location)
+- "I deal with memory loss" → person (health context, shapes how Ava should communicate)
+- "I love hiking on weekends" → person (interests, useful for Chat mode rapport)
+- "My birthday is in April" → person (personal milestone)
 
 Rules:
 - Only extract non-obvious, useful information

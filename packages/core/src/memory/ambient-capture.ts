@@ -35,13 +35,20 @@ export function heuristicScore(
   const maxSimilarity = similar.length > 0 ? similar[0].similarity : 0;
   const novelty = 1 - maxSimilarity;
 
-  // Relevance
+  // Relevance — includes both technical AND personal signals so Chat
+  // mode turns get scored properly alongside coding conversations
   let relevance = 0.3;
   const relevanceKeywords = [
+    // Technical signals
     'decided', 'decision', 'chose', 'use', 'architecture', 'convention',
     'pattern', 'always', 'never', 'remember', 'important', 'prefer',
     'go for it', 'sounds good', 'agreed', 'approved', 'perfect',
     'the fix', 'the solution', 'the issue', 'we use', 'we chose', 'our stack',
+    // Personal / Chat mode signals
+    'my name', 'i live', 'i work', 'my family', 'my partner', 'my wife',
+    'my husband', 'my daughter', 'my son', 'my birthday', 'i love',
+    'i enjoy', 'i hate', 'i deal with', 'i struggle', 'my background',
+    'i have been', 'years experience', 'my dog', 'my cat',
   ];
   const matchCount = relevanceKeywords.filter(kw => lower.includes(kw)).length;
   relevance = Math.min(1.0, relevance + matchCount * 0.08);
