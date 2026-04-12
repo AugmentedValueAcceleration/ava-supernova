@@ -65,17 +65,10 @@ export class KnowledgePackManager {
     }
   }
 
-  /** Load all enabled packs, optionally filtered by mode and persona. Internal packs are always included. */
+  /** Load all enabled packs, optionally filtered by mode and persona. */
   async loadActive(mode?: string, persona?: string): Promise<KnowledgePack[]> {
     const enabled = await this.loadEnabled();
     const packs: KnowledgePack[] = [];
-
-    // Always include internal packs (self-knowledge, etc.) — no user activation needed
-    for (const pack of BUILTIN_PACKS) {
-      if (pack.domain === 'internal') {
-        packs.push(pack);
-      }
-    }
 
     // Add user-enabled packs
     for (const id of enabled) {
