@@ -272,6 +272,35 @@ export class Agent {
   }
 
   async run(messages: Message[], onEvent: AgentEventHandler, signal?: AbortSignal): Promise<Message[]> {
+    // ─── Stop-command detection ────────────────────────────────────────────
+    // If the user's latest message is an explicit stop command ("stop",
+    // "halt", "leave it", "don't touch", "how dare you i said stop", etc.),
+    // DO NOT start a new task. Acknowledge and return immediately. The
+    // previous run was already aborted by the signal; this new turn should
+    // not re-engage with the work the user told us to leave alone.
+    //
+    // This is the architectural enforcement of Rule 10. The prompt rule
+    // tells the model to stop; this code ensures the agent loop doesn't
+    // even give the model a chance to decide otherwise.
+    const earlyUserMsg = this.findLatestNonMetaUserMessage(messages);
+    if (earlyUserMsg) {
+      const stopLower = earlyUserMsg.toLowerCase().trim();
+      const isStopCommand = /\b(?:stop|halt|leave it|don'?t touch|quit|enough|i said stop|how dare you)\b/i.test(stopLower)
+        && stopLower.length < 200; // Only short messages — long messages with "stop" in them are probably about something else
+      if (isStopCommand) {
+        const stopResponse: AssistantMessage = {
+          role: 'assistant',
+          content: 'Stopped. Not touching anything else. Let me know when you want to continue.',
+        };
+        messages = [...messages, stopResponse];
+        onEvent({ type: 'stream_start' });
+        onEvent({ type: 'stream_delta', content: stopResponse.content! });
+        onEvent({ type: 'stream_end', message: stopResponse });
+        onEvent({ type: 'done', finalMessage: stopResponse });
+        return messages;
+      }
+    }
+
     // ─── Classify this task for directness discipline ─────────────────────
     // Find the latest non-meta user message and run the lightweight
     // classifier. The result sets the exploration budget for this run and
