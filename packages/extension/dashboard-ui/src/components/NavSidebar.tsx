@@ -269,7 +269,15 @@ export function NavSidebar({
             </button>
           </div>
         ) : (
-          <SidebarConnect />
+          <div>
+            <button
+              onClick={onConnectAccount}
+              className="w-full rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-90 mb-1.5"
+            >
+              {t('dash.auth.connect')}
+            </button>
+            <p className="text-center text-[10px] text-[var(--text-muted)]">{t('dash.auth.byok_hint')}</p>
+          </div>
         )}
       </div>
     </nav>
