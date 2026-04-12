@@ -35,6 +35,43 @@ export interface MemoryEntry {
   archived_at?: string | null;
   branch?: string | null;
   directory_scope?: string | null;
+  // v3 graph fields
+  confidence?: number;
+  confidence_source?: string;
+  source?: string;
+  archived_reason?: string | null;
+  reinforcement_count?: number;
+}
+
+/** v3 graph stats for the dashboard memory health display. */
+export interface GraphStats {
+  activeNodes: number;
+  archivedNodes: number;
+  edges: number;
+  avgConfidence: number;
+  categories: Record<string, number>;
+  contradictions: number;
+  proceduralPatterns: number;
+  crystallisedPatterns: number;
+}
+
+/** v3 contradiction pair for resolution UI. */
+export interface ContradictionPair {
+  nodeA: MemoryEntry;
+  nodeB: MemoryEntry;
+  similarity: number;
+  edgeId: string;
+}
+
+/** v3 procedural pattern for the learned patterns display. */
+export interface ProceduralPatternUI {
+  id: string;
+  taskType: string;
+  toolSequence: string[];
+  observationCount: number;
+  confidence: number;
+  crystallised: boolean;
+  lastObservedAt: string;
 }
 
 export interface ConnectionStatus {

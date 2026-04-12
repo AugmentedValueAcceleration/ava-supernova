@@ -221,6 +221,8 @@ export class DashboardPanel {
 
       case 'load_memories':
         await this.loadMemories();
+        // Also send v3 graph stats, contradictions, patterns, and brain
+        this.sendGraphData();
         break;
 
       case 'load_more_memories':
@@ -979,6 +981,57 @@ export class DashboardPanel {
       }
     } catch (err) {
       console.error('[Ava] loadMemories error:', err);
+    }
+  }
+
+  /** Send v3 graph stats, contradictions, patterns, and brain to the dashboard. */
+  private sendGraphData(): void {
+    try {
+      const mm = this.getMemoryManager() as any;
+      if (!mm?.getGraphStats) return;
+
+      // Graph stats for both scopes
+      const globalStats = mm.getGraphStats('global');
+      if (globalStats) this.post({ type: 'graph_stats', scope: 'global', stats: globalStats });
+
+      const projectStats = mm.getGraphStats('project');
+      if (projectStats) this.post({ type: 'graph_stats', scope: 'project', stats: projectStats });
+
+      // Contradictions (project scope — most relevant)
+      const contradictions = mm.getContradictions?.('project') ?? [];
+      if (contradictions.length > 0) {
+        this.post({ type: 'contradictions_loaded', contradictions });
+      }
+
+      // Procedural patterns
+      const patterns = (mm.getProceduralPatterns?.('project') ?? []).map((p: any) => ({
+        id: p.id,
+        taskType: p.taskType,
+        toolSequence: p.toolSequence,
+        observationCount: p.observationCount,
+        confidence: p.confidence,
+        crystallised: p.crystallised,
+        lastObservedAt: p.lastObservedAt,
+      }));
+      if (patterns.length > 0) {
+        this.post({ type: 'patterns_loaded', patterns });
+      }
+
+      // Project brain
+      const brain = mm.getProjectBrain?.();
+      this.post({
+        type: 'project_brain_loaded',
+        brain: brain ? {
+          brief: brain.brief,
+          stack: brain.stack,
+          keyDecisions: brain.keyDecisions,
+          confidenceAvg: brain.confidenceAvg,
+          nodeCount: brain.nodeCount,
+          lastSessionDate: brain.lastSessionDate,
+        } : null,
+      });
+    } catch {
+      // Non-critical — dashboard still shows basic memory list without graph data
     }
   }
 

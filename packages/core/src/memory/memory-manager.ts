@@ -893,10 +893,69 @@ export class MemoryManager {
 
   /** Get all entries for a scope (for dashboard display). */
   async getEntries(scope: 'global' | 'project'): Promise<MemoryEntry[]> {
+    // v3: prefer graph nodes when available (MemoryNode extends MemoryEntry
+    // so the return type is compatible). Falls back to v2 store if graph
+    // isn't initialized yet.
+    const graph = scope === 'global' ? this.graphGlobal : this.graphProject;
+    if (graph) {
+      return graph.getAllNodes();
+    }
     const store = scope === 'global'
       ? await this.loadGlobalStore()
       : await this.loadProjectStore();
     return store?.entries ?? [];
+  }
+
+  /** Get graph stats for the dashboard (v3). */
+  getGraphStats(scope: 'global' | 'project'): {
+    activeNodes: number;
+    archivedNodes: number;
+    edges: number;
+    avgConfidence: number;
+    categories: Record<string, number>;
+    contradictions: number;
+    proceduralPatterns: number;
+    crystallisedPatterns: number;
+  } | null {
+    const graph = scope === 'global' ? this.graphGlobal : this.graphProject;
+    if (!graph) return null;
+    const stats = graph.getStats();
+    const contradictions = graph.getAllEdges().filter(e => e.type === 'contradicts').length;
+    const observer = scope === 'global' ? this.proceduralGlobal : this.proceduralProject;
+    const allPatterns = observer?.getAllPatterns() ?? [];
+    return {
+      ...stats,
+      contradictions,
+      proceduralPatterns: allPatterns.length,
+      crystallisedPatterns: allPatterns.filter(p => p.crystallised).length,
+    };
+  }
+
+  /** Get contradictions for the dashboard resolution UI (v3). */
+  getContradictions(scope: 'global' | 'project'): Array<{
+    nodeA: MemoryEntry;
+    nodeB: MemoryEntry;
+    similarity: number;
+    edgeId: string;
+  }> {
+    const graph = scope === 'global' ? this.graphGlobal : this.graphProject;
+    if (!graph) return [];
+    const contradictEdges = graph.getAllEdges().filter(e => e.type === 'contradicts');
+    const results: Array<{ nodeA: MemoryEntry; nodeB: MemoryEntry; similarity: number; edgeId: string }> = [];
+    for (const edge of contradictEdges) {
+      const nodeA = graph.getNode(edge.fromNodeId);
+      const nodeB = graph.getNode(edge.toNodeId);
+      if (nodeA && nodeB && !nodeA.archived && !nodeB.archived) {
+        results.push({ nodeA, nodeB, similarity: edge.weight, edgeId: edge.id });
+      }
+    }
+    return results;
+  }
+
+  /** Get procedural patterns for the dashboard (v3). */
+  getProceduralPatterns(scope: 'global' | 'project'): import('./types.js').ProceduralPattern[] {
+    const observer = scope === 'global' ? this.proceduralGlobal : this.proceduralProject;
+    return observer?.getAllPatterns() ?? [];
   }
 
   /** Get file path for a scope (for display). */

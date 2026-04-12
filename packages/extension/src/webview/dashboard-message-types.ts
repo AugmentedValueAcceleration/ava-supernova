@@ -389,6 +389,11 @@ export type ExtToDashboardMessage =
   | { type: 'news_article_loaded'; post: Record<string, unknown> | null; related: Array<Record<string, unknown>>; loading?: boolean }
   | { type: 'latest_release_loaded'; release: { version: string; title: string; published_at: string } | null }
   | { type: 'error'; message: string }
+  // v3 Memory graph dashboard data
+  | { type: 'graph_stats'; scope: string; stats: { activeNodes: number; archivedNodes: number; edges: number; avgConfidence: number; categories: Record<string, number>; contradictions: number; proceduralPatterns: number; crystallisedPatterns: number } }
+  | { type: 'contradictions_loaded'; contradictions: Array<{ nodeA: any; nodeB: any; similarity: number; edgeId: string }> }
+  | { type: 'patterns_loaded'; patterns: Array<{ id: string; taskType: string; toolSequence: string[]; observationCount: number; confidence: number; crystallised: boolean; lastObservedAt: string }> }
+  | { type: 'project_brain_loaded'; brain: { brief: string; stack: string[]; keyDecisions: string[]; confidenceAvg: number; nodeCount: number; lastSessionDate: string } | null }
   // OAuth sign-in flow (v0.37.0) — same events as chat webview, routed to
   // the dashboard ConnectAccount screen via AvaViewProvider's externalPostMessage.
   | { type: 'sign_in_started' }

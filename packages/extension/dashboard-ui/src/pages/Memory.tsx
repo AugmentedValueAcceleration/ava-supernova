@@ -4,7 +4,7 @@ import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
 import { StorageBadge } from '../components/StorageBadge';
 import { SearchIcon, PencilIcon, TrashIcon } from '../components/Icons';
-import type { MemoryEntry, MemoryCategory } from '../types/messages';
+import type { MemoryEntry, MemoryCategory, GraphStats, ContradictionPair, ProceduralPatternUI } from '../types/messages';
 import { postData, postLoad, getDataMode } from '../lib/data-mode';
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -24,7 +24,83 @@ const ALL_CATEGORIES: MemoryCategory[] = [
   'convention', 'tool-config', 'decision', 'person', 'general',
 ];
 
-type ViewMode = 'active' | 'stale' | 'archived';
+type ViewMode = 'active' | 'stale' | 'archived' | 'contradictions' | 'patterns';
+
+/** Confidence badge — color-coded by confidence level. */
+function ConfidenceBadge({ confidence }: { confidence?: number }) {
+  if (confidence === undefined || confidence === null) return null;
+  const pct = Math.round(confidence * 100);
+  const color = confidence >= 0.7
+    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20'
+    : confidence >= 0.4
+      ? 'bg-amber-500/15 text-amber-400 border-amber-500/20'
+      : 'bg-red-500/15 text-red-400 border-red-500/20';
+  return (
+    <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${color}`}>
+      {pct}%
+    </span>
+  );
+}
+
+/** Source badge — shows how the memory was captured. */
+function SourceBadge({ source }: { source?: string }) {
+  if (!source) return null;
+  const labels: Record<string, string> = {
+    'user-explicit': 'explicit',
+    'auto-extract': 'auto',
+    'llm-extract': 'LLM',
+    'compression': 'compressed',
+    'procedural': 'learned',
+    'ambient': 'ambient',
+    'tool-save': 'tool',
+    'migrated': 'migrated',
+  };
+  return (
+    <span className="inline-block rounded-full border border-gray-500/20 bg-gray-500/10 px-2 py-0.5 text-[10px] font-medium text-gray-400">
+      {labels[source] ?? source}
+    </span>
+  );
+}
+
+/** Graph health stats bar. */
+function GraphStatsBar({ stats, brain }: {
+  stats: GraphStats | null;
+  brain: { brief: string; nodeCount: number; confidenceAvg: number; lastSessionDate: string } | null;
+}) {
+  if (!stats && !brain) return null;
+  return (
+    <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
+      {brain?.brief && (
+        <div className="mb-3 rounded-lg border border-purple-500/20 bg-purple-500/5 p-3">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-purple-400">Project Brain</p>
+          <p className="text-xs text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">{brain.brief}</p>
+        </div>
+      )}
+      {stats && (
+        <div className="grid grid-cols-4 gap-3">
+          <div className="text-center">
+            <p className="text-lg font-light text-white">{stats.activeNodes}</p>
+            <p className="text-[10px] text-[var(--text-muted)]">Active</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-light text-white">{stats.edges}</p>
+            <p className="text-[10px] text-[var(--text-muted)]">Edges</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-light" style={{ color: stats.avgConfidence >= 0.6 ? '#34d399' : stats.avgConfidence >= 0.3 ? '#fbbf24' : '#f87171' }}>
+              {Math.round(stats.avgConfidence * 100)}%
+            </p>
+            <p className="text-[10px] text-[var(--text-muted)]">Avg Confidence</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-light text-white">{stats.crystallisedPatterns}</p>
+            <p className="text-[10px] text-[var(--text-muted)]">Patterns</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function CategoryBadge({ category }: { category: string | null }) {
   const cat = category ?? 'general';
@@ -162,9 +238,14 @@ interface MemoryProps {
   mode?: 'platform' | 'byok';
   serverTotal?: number;
   serverHasMore?: boolean;
+  // v3 graph data
+  graphStats?: GraphStats | null;
+  contradictions?: ContradictionPair[];
+  patterns?: ProceduralPatternUI[];
+  projectBrain?: { brief: string; stack: string[]; keyDecisions: string[]; confidenceAvg: number; nodeCount: number; lastSessionDate: string } | null;
 }
 
-export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore }: MemoryProps) {
+export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore, graphStats, contradictions, patterns, projectBrain }: MemoryProps) {
   useLocale();
   const dataMode = getDataMode();
   const isLocal = dataMode === 'local';
@@ -431,13 +512,18 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
         </div>
       )}
 
+      {/* v3 Graph Stats + Brain Preview */}
+      <GraphStatsBar stats={graphStats ?? null} brain={projectBrain ?? null} />
+
       {/* View Mode Tabs */}
-      {memories.length > 0 && (
+      {(memories.length > 0 || (contradictions && contradictions.length > 0) || (patterns && patterns.length > 0)) && (
         <div className="mb-4 flex gap-1 rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] p-1">
           {[
             { key: 'active' as ViewMode, label: 'Active', count: activeEntries.length },
             { key: 'stale' as ViewMode, label: 'Stale', count: staleEntries.length },
             { key: 'archived' as ViewMode, label: 'Archived', count: archivedEntries.length },
+            ...(contradictions && contradictions.length > 0 ? [{ key: 'contradictions' as ViewMode, label: 'Conflicts', count: contradictions.length }] : []),
+            ...(patterns && patterns.length > 0 ? [{ key: 'patterns' as ViewMode, label: 'Patterns', count: patterns.length }] : []),
           ].map(tab => (
             <button
               key={tab.key}
@@ -483,7 +569,78 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
         </div>
       )}
 
-      {/* Search & List */}
+      {/* v3 Contradictions panel */}
+      {viewMode === 'contradictions' && contradictions && contradictions.length > 0 && (
+        <SectionGroup label="Contradictions" count={`${contradictions.length} conflicts to resolve`}>
+          <div className="space-y-4">
+            {contradictions.map((c, i) => (
+              <div key={c.edgeId} className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-red-400">
+                  Conflict {i + 1} — {Math.round(c.similarity * 100)}% similar
+                </p>
+                <div className="space-y-2">
+                  <div className="rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] p-3">
+                    <div className="mb-1 flex items-center gap-2">
+                      <CategoryBadge category={c.nodeA.category} />
+                      <ConfidenceBadge confidence={(c.nodeA as any).confidence} />
+                    </div>
+                    <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{c.nodeA.content.slice(0, 300)}</p>
+                  </div>
+                  <div className="text-center text-xs text-red-400">contradicts</div>
+                  <div className="rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] p-3">
+                    <div className="mb-1 flex items-center gap-2">
+                      <CategoryBadge category={c.nodeB.category} />
+                      <ConfidenceBadge confidence={(c.nodeB as any).confidence} />
+                    </div>
+                    <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{c.nodeB.content.slice(0, 300)}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionGroup>
+      )}
+
+      {/* v3 Procedural patterns panel */}
+      {viewMode === 'patterns' && patterns && patterns.length > 0 && (
+        <SectionGroup label="Learned Patterns" count={`${patterns.length} patterns (${patterns.filter(p => p.crystallised).length} crystallised)`}>
+          <div className="space-y-3">
+            {patterns.sort((a, b) => b.confidence - a.confidence).map(p => (
+              <div key={p.id} className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-white">{p.taskType}</span>
+                    {p.crystallised && (
+                      <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                        crystallised
+                      </span>
+                    )}
+                  </div>
+                  <ConfidenceBadge confidence={p.confidence} />
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {p.toolSequence.map((tool, i) => (
+                    <span key={i} className="flex items-center gap-1.5">
+                      <span className="rounded bg-[var(--bg-input)] px-2 py-0.5 text-[11px] font-mono text-[var(--text-secondary)]">
+                        {tool}
+                      </span>
+                      {i < p.toolSequence.length - 1 && (
+                        <span className="text-[10px] text-[var(--text-muted)]">→</span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-2 text-[10px] text-[var(--text-muted)]">
+                  Observed {p.observationCount}× · Last: {new Date(p.lastObservedAt).toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        </SectionGroup>
+      )}
+
+      {/* Search & List (for active/stale/archived tabs) */}
+      {(viewMode === 'active' || viewMode === 'stale' || viewMode === 'archived') && (
       <SectionGroup
         label={viewMode === 'active' ? 'Active Memories' : viewMode === 'stale' ? 'Stale Memories' : 'Archived Memories'}
         count={`${filtered.length} ${filtered.length === 1 ? 'memory' : 'memories'}${serverTotal && serverTotal > memories.length ? ` (${memories.length} of ${serverTotal} loaded)` : ''}${search ? ` matching "${search}"` : ''}${categoryFilter ? ` in ${categoryFilter}` : ''}`}
@@ -568,9 +725,11 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
                   </div>
                 ) : (
                   <div>
-                    {/* Header: category badge + branch + actions */}
+                    {/* Header: category badge + confidence + source + branch + actions */}
                     <div className="mb-2 flex items-center gap-2">
                       <CategoryBadge category={m.category} />
+                      <ConfidenceBadge confidence={m.confidence} />
+                      <SourceBadge source={m.source} />
                       {m.branch && <BranchBadge branch={m.branch} />}
                       {isStale(m) && !m.archived && (
                         <span className="text-[10px] text-amber-400 font-medium">
@@ -683,6 +842,7 @@ export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore
           </div>
         )}
       </SectionGroup>
+      )}
     </div>
   );
 }
