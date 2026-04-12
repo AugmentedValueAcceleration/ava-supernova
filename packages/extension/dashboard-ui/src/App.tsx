@@ -98,6 +98,10 @@ export function App() {
     }
   };
   const [account, setAccount] = useState<AccountInfo | null>(null);
+  // OAuth sign-in state (v0.37.0) — tracks in-flight attempts from the
+  // ConnectAccount screen so it can show the pending spinner and errors.
+  const [signInPending, setSignInPending] = useState<'github' | 'email' | null>(null);
+  const [signInError, setSignInError] = useState<string | null>(null);
   const [connections, setConnections] = useState<ConnectionStatus>({
     github: false,
     email: false,
@@ -228,6 +232,29 @@ export function App() {
         if (!msg.account && Object.values(providerKeys).some(Boolean)) {
           setByokMode(true);
         }
+        break;
+
+      // ── OAuth sign-in events (v0.37.0) ──────────────────────────────
+      case 'sign_in_started':
+        // Confirmation from the extension host that the browser was opened.
+        // Usually we've already optimistically set the pending state when
+        // the user clicked the button — this just ensures consistency.
+        if (!signInPending) setSignInPending('github');
+        setSignInError(null);
+        break;
+      case 'sign_in_complete':
+        setSignInPending(null);
+        setSignInError(null);
+        // Account update arrives separately via 'account_updated' — just
+        // clear the pending state here so the UI flips out of ConnectAccount.
+        break;
+      case 'sign_in_failed':
+        setSignInPending(null);
+        setSignInError(msg.error);
+        break;
+      case 'sign_in_cancelled':
+        setSignInPending(null);
+        setSignInError(null);
         break;
       case 'provider_keys_updated':
         setProviderKeys(msg.providerKeys);
@@ -659,7 +686,21 @@ export function App() {
 
   const renderPage = () => {
     if (!hasAccess) {
-      return <ConnectAccount onSkipAccount={handleSkipAccount} />;
+      return (
+        <ConnectAccount
+          onSkipAccount={handleSkipAccount}
+          pendingSignIn={signInPending}
+          signInError={signInError}
+          onClearSignInError={() => setSignInError(null)}
+          onStartSignIn={(method) => {
+            // Optimistic pending state so the UI flips instantly rather
+            // than waiting for the round-trip sign_in_started event
+            setSignInPending(method);
+            setSignInError(null);
+            post({ type: 'start_sign_in', method });
+          }}
+        />
+      );
     }
     const mode = account ? 'platform' as const : 'byok' as const;
     switch (page) {

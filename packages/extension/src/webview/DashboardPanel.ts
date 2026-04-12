@@ -192,6 +192,25 @@ export class DashboardPanel {
         // No-op on host — webview manages its own BYOK state
         break;
 
+      case 'start_sign_in':
+        // Delegate to AvaViewProvider's SignInManager. The resulting
+        // sign_in_started / sign_in_complete / sign_in_failed events
+        // flow back through AvaViewProvider.postMessage, which already
+        // forwards to the dashboard via externalPostMessage.
+        if (this.viewProvider) {
+          await this.viewProvider.startSignInFromDashboard(msg.method);
+        } else {
+          this.post({
+            type: 'sign_in_failed',
+            error: 'Dashboard is not connected to an active view provider. Please reload VS Code.',
+          });
+        }
+        break;
+
+      case 'cancel_sign_in':
+        this.viewProvider?.cancelSignInFromDashboard();
+        break;
+
       case 'save_provider_key':
         await this.saveProviderKey(msg.provider, msg.apiKey);
         break;

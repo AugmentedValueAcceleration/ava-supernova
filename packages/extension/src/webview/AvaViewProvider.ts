@@ -128,6 +128,39 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     if (!this.signInManager) return false;
     return this.signInManager.handleCallback(uri);
   }
+
+  /**
+   * Public entry points for DashboardPanel to delegate sign-in actions.
+   * The dashboard has its own ConnectAccount screen (separate webview
+   * from the chat panel), but both use the same underlying SignInManager
+   * instance so events flow through to both surfaces automatically via
+   * externalPostMessage.
+   */
+  public async startSignInFromDashboard(method: 'github' | 'email'): Promise<void> {
+    if (!this.signInManager) {
+      // Wait briefly for the async import to complete — guards the
+      // edge case where the dashboard opens before the manager is ready.
+      await new Promise(r => setTimeout(r, 100));
+    }
+    if (!this.signInManager) {
+      // Still not ready — report a failure event to keep the UI moving
+      this.postMessage({
+        type: 'sign_in_failed',
+        error: 'Sign-in manager not ready yet. Please try again.',
+      } as any);
+      return;
+    }
+    try {
+      await this.signInManager.startSignIn(method);
+    } catch (err) {
+      this.log(`startSignInFromDashboard failed: ${err instanceof Error ? err.message : String(err)}`);
+      // SignInManager already emitted sign_in_failed — no need to post again
+    }
+  }
+
+  public cancelSignInFromDashboard(): void {
+    this.signInManager?.cancelSignIn();
+  }
   private providerSource: ProviderSource = 'byok';
   private enabledModelIds: Set<string> | null = null;
   private heartbeatInterval?: ReturnType<typeof setInterval>;

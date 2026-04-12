@@ -388,7 +388,16 @@ export type ExtToDashboardMessage =
   | { type: 'news_loaded'; articles: Array<{ title: string; category: string; reading_time: number; slug: string; date: string }> }
   | { type: 'news_article_loaded'; post: Record<string, unknown> | null; related: Array<Record<string, unknown>>; loading?: boolean }
   | { type: 'latest_release_loaded'; release: { version: string; title: string; published_at: string } | null }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string }
+  // OAuth sign-in flow (v0.37.0) — same events as chat webview, routed to
+  // the dashboard ConnectAccount screen via AvaViewProvider's externalPostMessage.
+  | { type: 'sign_in_started' }
+  | {
+      type: 'sign_in_complete';
+      account: { id: string; email?: string; name?: string; avatar_url?: string; tier?: string };
+    }
+  | { type: 'sign_in_failed'; error: string }
+  | { type: 'sign_in_cancelled' };
 
 // ─── Dashboard Webview → Extension Host ──────────────────────────────────────
 
@@ -397,6 +406,11 @@ export type DashboardToExtMessage =
   | { type: 'connect_account'; key: string }
   | { type: 'disconnect_account' }
   | { type: 'skip_account' }
+  // OAuth sign-in flow (v0.37.0) — dashboard-side versions of the same
+  // messages the chat webview uses. Routed through DashboardPanel.handleMessage
+  // which delegates to AvaViewProvider's SignInManager.
+  | { type: 'start_sign_in'; method: 'github' | 'email' }
+  | { type: 'cancel_sign_in' }
   | { type: 'save_provider_key'; provider: string; apiKey: string }
   | { type: 'remove_provider_key'; provider: string }
   | { type: 'load_memories' }
