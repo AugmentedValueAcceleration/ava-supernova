@@ -74,9 +74,31 @@ export type {
   MemoryRecallResult,
   MemoryStoreSummary,
   MemoryConsolidationGroup,
+  // v3 graph types
+  MemoryNode,
+  MemoryEdge,
+  EdgeType,
+  MemoryGraphStore,
+  GraphRecallOptions,
+  ScoredNode,
+  ProceduralPattern,
+  ProjectBrain,
+  CaptureCandidate,
+  CandidateScore,
+  Contradiction,
+  AvaMode as MemoryAvaMode,
 } from './memory/types.js';
-export { MEMORY_CATEGORIES, MEMORY_LAYERS, LAYER_CATEGORY_MAP, inferLayer, createEmptyStore } from './memory/types.js';
+export { MEMORY_CATEGORIES, MEMORY_LAYERS, LAYER_CATEGORY_MAP, inferLayer, createEmptyStore, createEmptyGraphStore, EDGE_TYPES, CONFIDENCE_INITIAL } from './memory/types.js';
 export { TfIdfIndex, tokenize, cosineSimilarity } from './memory/tfidf.js';
+// v3 graph engine + subsystems
+export { MemoryGraph } from './memory/graph-engine.js';
+export { ProceduralObserver } from './memory/procedural.js';
+export { AmbientCaptureManager, heuristicScore, buildScoringPrompt, parseScoringResponse } from './memory/ambient-capture.js';
+export { synthesiseProjectBrain, loadProjectBrain, saveProjectBrain } from './memory/project-brain.js';
+export { needsMigration, migrateV2ToV3 } from './memory/migration-v3.js';
+export { exportTrainingData, toJsonlSft, toJsonlWithReasoning } from './memory/training-export.js';
+export type { TrainingExample } from './memory/training-export.js';
+export { MODE_CATEGORY_WEIGHTS } from './memory/mode-recall.js';
 export { detectPatterns, trackAndLearn, PatternAccumulatorManager } from './memory/patterns.js';
 export type { DetectedPattern, PatternState } from './memory/patterns.js';
 export { generateInsights, analyseAndSave } from './memory/insights.js';

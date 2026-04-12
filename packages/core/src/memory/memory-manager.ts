@@ -14,8 +14,15 @@ import type {
   MemoryRecallResult,
   MemoryStoreSummary,
   MemoryConsolidationGroup,
+  ProjectBrain,
 } from './types.js';
 import { MEMORY_CATEGORIES, createEmptyStore, inferLayer } from './types.js';
+import { MemoryGraph } from './graph-engine.js';
+import { needsMigration, migrateV2ToV3 } from './migration-v3.js';
+import { ProceduralObserver } from './procedural.js';
+import { synthesiseProjectBrain, loadProjectBrain, saveProjectBrain } from './project-brain.js';
+import { AmbientCaptureManager } from './ambient-capture.js';
+import { logger } from '../core/logger.js';
 
 const MEMORY_FILENAME_V1 = 'memory.md';
 const MEMORY_FILENAME_V2 = 'memory.json';
@@ -51,6 +58,20 @@ export class MemoryManager {
   /** When true, skip all platform sync — memories stay on disk only. Default: true (local-first). */
   private localOnly = true;
 
+  // ── v3 Graph layer ────────────────────────────────────────────────────────
+  // Runs alongside the v2 flat stores during the transition. New operations
+  // (recall, project brain, procedural learning, ambient capture) use the
+  // graph; existing operations (saveEntry, getEntries) write to both so
+  // backwards compat is preserved for dashboard and sync callers.
+  private graphGlobal: MemoryGraph | null = null;
+  private graphProject: MemoryGraph | null = null;
+  private graphInitialized = false;
+  private proceduralGlobal: ProceduralObserver | null = null;
+  private proceduralProject: ProceduralObserver | null = null;
+  private ambientGlobal: AmbientCaptureManager | null = null;
+  private ambientProject: AmbientCaptureManager | null = null;
+  private projectBrainCache: ProjectBrain | null = null;
+
   // ── Sync coalescing — debounce + in-flight guard ──────────────────────────
   // syncEntries() used to fire every store mutation, with each call doing a
   // full pull + per-entry POST/PATCH against the platform. With the Memory
@@ -75,6 +96,120 @@ export class MemoryManager {
     if (opts.projectRoot) {
       this.registerProject(opts.projectRoot).catch(() => {});
     }
+
+    // Initialize v3 graph layer (async, non-blocking)
+    this.initGraph().catch(err =>
+      logger.debug(`[memory] Graph init deferred: ${err instanceof Error ? err.message : String(err)}`),
+    );
+  }
+
+  /**
+   * Initialize the v3 graph layer. Creates MemoryGraph instances for
+   * global + project scopes, runs auto-migration from v2 if needed,
+   * and sets up procedural observers + ambient capture managers.
+   */
+  private async initGraph(): Promise<void> {
+    if (this.graphInitialized) return;
+
+    try {
+      // Global graph
+      const globalMemDir = join(this.globalDir, 'memory');
+      this.graphGlobal = new MemoryGraph(globalMemDir);
+      if (needsMigration(this.globalDir)) {
+        // v2 memory.json exists but no graph.json — migrate
+        await this.graphGlobal.load();
+        await migrateV2ToV3(this.globalDir, this.graphGlobal);
+      } else {
+        await this.graphGlobal.load();
+      }
+      this.proceduralGlobal = new ProceduralObserver(globalMemDir);
+      await this.proceduralGlobal.load();
+      this.ambientGlobal = new AmbientCaptureManager(this.graphGlobal);
+
+      // Project graph
+      if (this.projectDir) {
+        const projectMemDir = join(this.projectDir, 'memory');
+        this.graphProject = new MemoryGraph(projectMemDir);
+        if (needsMigration(this.projectDir)) {
+          await this.graphProject.load();
+          await migrateV2ToV3(this.projectDir, this.graphProject);
+        } else {
+          await this.graphProject.load();
+        }
+        this.proceduralProject = new ProceduralObserver(projectMemDir);
+        await this.proceduralProject.load();
+        this.ambientProject = new AmbientCaptureManager(this.graphProject);
+
+        // Load or generate project brain
+        const brainDir = join(this.projectDir, 'memory');
+        const graphHash = this.graphProject.getGraphHash();
+        this.projectBrainCache = await loadProjectBrain(brainDir, graphHash);
+        if (!this.projectBrainCache && this.graphProject.nodeCount > 0) {
+          const procedures = this.proceduralProject?.getAllPatterns() ?? [];
+          this.projectBrainCache = synthesiseProjectBrain(this.graphProject, this.projectDir, procedures);
+          await saveProjectBrain(brainDir, this.projectBrainCache);
+        }
+      }
+
+      this.graphInitialized = true;
+      logger.debug(`[memory] v3 graph initialized: global=${this.graphGlobal?.nodeCount ?? 0} nodes, project=${this.graphProject?.nodeCount ?? 0} nodes`);
+    } catch (err) {
+      logger.warn(`[memory] v3 graph init failed: ${err instanceof Error ? err.message : String(err)}`);
+      // Non-fatal — v2 stores still work as fallback
+    }
+  }
+
+  // ── v3 Public API — Graph-specific operations ─────────────────────────────
+
+  /** Get the project brain brief for session-start injection. */
+  getProjectBrain(): ProjectBrain | null {
+    return this.projectBrainCache;
+  }
+
+  /** Get the graph instance for a scope (for direct graph operations). */
+  getGraph(scope: 'global' | 'project'): MemoryGraph | null {
+    return scope === 'global' ? this.graphGlobal : this.graphProject;
+  }
+
+  /** Get the procedural observer for a scope. */
+  getProceduralObserver(scope: 'global' | 'project'): ProceduralObserver | null {
+    return scope === 'global' ? this.proceduralGlobal : this.proceduralProject;
+  }
+
+  /** Get the ambient capture manager for a scope. */
+  getAmbientCapture(scope: 'global' | 'project'): AmbientCaptureManager | null {
+    return scope === 'global' ? this.ambientGlobal : this.ambientProject;
+  }
+
+  /** Run confidence decay + forgetting pass on both graphs. Called on session end. */
+  async runMaintenance(): Promise<void> {
+    if (this.graphGlobal) {
+      this.graphGlobal.applyDecay();
+      this.graphGlobal.runForgettingPass();
+      await this.graphGlobal.save();
+    }
+    if (this.graphProject) {
+      this.graphProject.applyDecay();
+      this.graphProject.runForgettingPass();
+      await this.graphProject.save();
+
+      // Regenerate project brain after maintenance
+      if (this.projectDir && this.graphProject.nodeCount > 0) {
+        const procedures = this.proceduralProject?.getAllPatterns() ?? [];
+        this.projectBrainCache = synthesiseProjectBrain(this.graphProject, this.projectDir, procedures);
+        await saveProjectBrain(join(this.projectDir, 'memory'), this.projectBrainCache);
+      }
+    }
+    if (this.proceduralGlobal) await this.proceduralGlobal.save();
+    if (this.proceduralProject) await this.proceduralProject.save();
+  }
+
+  /** Save all graph state to disk (called at end of session). */
+  async saveGraphs(): Promise<void> {
+    if (this.graphGlobal) await this.graphGlobal.save();
+    if (this.graphProject) await this.graphProject.save();
+    if (this.proceduralGlobal) await this.proceduralGlobal.save();
+    if (this.proceduralProject) await this.proceduralProject.save();
   }
 
   // ── Public API — Load ──────────────────────────────────────────────────────
