@@ -245,8 +245,17 @@ export function App() {
       case 'sign_in_complete':
         setSignInPending(null);
         setSignInError(null);
-        // Account update arrives separately via 'account_updated' — just
-        // clear the pending state here so the UI flips out of ConnectAccount.
+        // Set the account directly from the sign-in completion event —
+        // this is what flips hasAccess from false to true and transitions
+        // the dashboard out of the ConnectAccount screen. Without this
+        // the user would see the sign-in page forever until manual reload.
+        if (msg.account) {
+          setAccount(msg.account as AccountInfo);
+        }
+        // Also tell DashboardPanel to refresh from the server so we get
+        // the full account data (tier, usage, etc.) that the exchange
+        // endpoint's minimal account payload might not include.
+        post({ type: 'refresh_account' });
         break;
       case 'sign_in_failed':
         setSignInPending(null);
