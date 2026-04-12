@@ -23,6 +23,7 @@ import {
   AVA_HOME,
   detectProjectRoot,
   loadProjectInstructions,
+  loadDecisionsState,
   setLocale,
   resolveLocale,
 } from '@ava/core';
@@ -37,6 +38,9 @@ async function main(): Promise<void> {
   const projectInstructions = projectRoot
     ? await loadProjectInstructions(projectRoot)
     : null;
+  const decisionsState = projectRoot
+    ? await loadDecisionsState(projectRoot)
+    : undefined;
 
   const config = new ConfigManager();
   const providerRegistry = new ProviderRegistry();
@@ -121,6 +125,9 @@ async function main(): Promise<void> {
       memory: memory || undefined,
       autoMemory: appConfig.preferences.autoMemory ?? true,
       language,
+      decisionsContext: decisionsState?.context ?? undefined,
+      decisionsFolderExists: decisionsState?.hasFolder ?? false,
+      decisionsOptInStatus: decisionsState?.optInStatus ?? 'not-asked',
     }),
   );
 
@@ -141,6 +148,11 @@ async function main(): Promise<void> {
     platformKey: appConfig.platformKey,
     getProviderKey,
     activeModelId: resolved.model.id,
+    // Active provider + model + tool registry — needed by specialist tools
+    // like curator that spawn fresh-context agents internally.
+    activeProvider: resolved.provider,
+    activeModel: resolved.model,
+    toolRegistry,
   };
 
   // Memory Agent — curates briefs instead of raw memory dumps

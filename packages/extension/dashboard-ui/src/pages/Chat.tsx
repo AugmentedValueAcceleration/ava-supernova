@@ -84,18 +84,39 @@ function findToolCallEventIndex(events: MessageEvent[], toolCallId: string): num
   return -1;
 }
 
-/** Update the events array of the message with the given ID. Returns a new messages array. */
+/**
+ * Update the events array of the message with the given ID. Returns a new
+ * messages array.
+ *
+ * Defensive re-attach: if messageId is null (current bubble was closed by
+ * a premature done), attach to the most recent assistant message instead
+ * of silently dropping events. Prevents the "Ava is working but UI is
+ * frozen" failure mode where post-done events hit a silent drop.
+ */
 function updateMessageEvents(
   messages: UIMessage[],
   messageId: string | null,
   updater: (events: MessageEvent[]) => MessageEvent[],
 ): UIMessage[] {
-  if (!messageId) return messages;
-  return messages.map((m) =>
-    m.id === messageId
-      ? { ...m, events: updater(m.events || []) }
-      : m,
-  );
+  if (messageId) {
+    return messages.map((m) =>
+      m.id === messageId
+        ? { ...m, events: updater(m.events || []) }
+        : m,
+    );
+  }
+  // Fallback: find the most recent assistant message and attach to it
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'assistant') {
+      const idx = i;
+      return messages.map((m, j) =>
+        j === idx
+          ? { ...m, events: updater(m.events || []) }
+          : m,
+      );
+    }
+  }
+  return messages;
 }
 
 /* ── Reducer ──────────────────────────────────────────────────────────────── */
@@ -147,10 +168,21 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 
     case 'stream_start': {
       // One assistant bubble per user turn. If a bubble already exists for
-      // this turn (second+ LLM iteration), keep using it. Only create a new
-      // bubble when currentAssistantId is null (start of turn).
+      // this turn (second+ LLM iteration), keep using it. If currentAssistantId
+      // is null but the last message is already an assistant bubble, re-attach
+      // to it (defensive — recovers from premature done events). Only create a
+      // new bubble as a last resort.
       if (state.currentAssistantId) {
         return { ...state, isStreaming: true, isThinking: true };
+      }
+      const lastMsg = state.messages[state.messages.length - 1];
+      if (lastMsg && lastMsg.role === 'assistant') {
+        return {
+          ...state,
+          currentAssistantId: lastMsg.id,
+          isStreaming: true,
+          isThinking: true,
+        };
       }
       const newId = nextId();
       const msg: UIMessage = {
@@ -172,17 +204,19 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     }
 
     case 'thinking_delta': {
+      // Defensive: restore streaming state if premature done cleared it.
       const messages = updateMessageEvents(state.messages, state.currentAssistantId, (events) =>
         appendToLastEventOfKind(events, 'thinking', action.content),
       );
-      return { ...state, messages, isThinking: false };
+      return { ...state, messages, isThinking: true, isStreaming: true };
     }
 
     case 'stream_delta': {
+      // Defensive: restore streaming state if premature done cleared it.
       const messages = updateMessageEvents(state.messages, state.currentAssistantId, (events) =>
         appendToLastEventOfKind(events, 'text', action.content),
       );
-      return { ...state, messages, isThinking: false };
+      return { ...state, messages, isThinking: false, isStreaming: true };
     }
 
     case 'stream_end': {
@@ -224,7 +258,8 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
           },
         ];
       });
-      return { ...state, messages };
+      // Defensive: tool call starting means the agent is active.
+      return { ...state, messages, isStreaming: true, isThinking: false };
     }
 
     case 'tool_call_partial': {

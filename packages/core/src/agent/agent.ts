@@ -19,11 +19,71 @@ import { trackAndLearn } from '../memory/patterns.js';
 import { analyseAndSave } from '../memory/insights.js';
 import type { MemoryManager } from '../memory/memory-manager.js';
 import { captureInteraction } from '../dataset/capture.js';
+import { maybeBuildDesignReinjection, isUIFilePath as isUIFilePathLocal } from './design-reinjection.js';
+import {
+  findOriginalUserTaskIndex,
+  formatSessionTasksBlock,
+  buildCompressionContinuationHeader,
+  extractStructuredFields,
+  trimMessageBody,
+  OLD_MESSAGE_BODY_MAX_CHARS,
+  isMetaPrefix,
+  type TaskEntrySnapshot,
+} from './context-continuity.js';
+import {
+  classifyTaskComplexity,
+  formatDirectnessHint,
+  COMPLEXITY_BUDGETS,
+  type TaskComplexity,
+} from './task-classifier.js';
 
 // ─── Mode-aware tool filtering ──────────────────────────────────────────────
 // When a non-work mode is active, restrict the tool schema sent to the model
 // so it can only call tools listed in that mode's system prompt.
 // Without this, the model sees all tools in the schema and ignores text restrictions.
+
+// ─── Continuation-stall detection ──────────────────────────────────────────
+// Identifies assistant responses that narrate intent ("Let me rewrite the
+// sidebar...") but terminate without making any tool calls. These are worse
+// than empty responses because the user sees a promise that never gets
+// fulfilled. Detected via prefix matching on common narration patterns.
+//
+// False positives (real closures that look like stalls) are preferable to
+// false negatives (stalls that slip through) because the cost of a redundant
+// "continue" nudge is small while the cost of invisible stalled work is
+// catastrophic for UX.
+
+const STALL_PREFIX_PATTERNS = [
+  'let me ',
+  "i'll ",
+  'i will ',
+  "i'm going to ",
+  'i am going to ',
+  'first, let me ',
+  'first, i',
+  'now let me ',
+  "now i'll ",
+  'okay, let me ',
+  'ok, let me ',
+  'right, let me ',
+  'alright, let me ',
+  'starting the ',
+  'starting with ',
+  'beginning the ',
+  "let's ",
+];
+
+function looksLikeContinuationStall(content: string): boolean {
+  const trimmed = content.trim().toLowerCase();
+  if (trimmed.length === 0) return false;
+  // Long responses are probably genuine explanations, not stalls
+  if (trimmed.length > 500) return false;
+  // Check known continuation-narration prefixes
+  for (const prefix of STALL_PREFIX_PATTERNS) {
+    if (trimmed.startsWith(prefix)) return true;
+  }
+  return false;
+}
 
 const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   plan: new Set([
@@ -120,6 +180,23 @@ export class Agent {
   private readonly pendingInterjections: string[] = [];
   private _inThinkTag = false;
 
+  // ─── Exploration budget tracking (token-cost discipline) ────────────────
+  // Per-run state: the task classification and how many read-only tool calls
+  // the agent has made before its first write-capable call. When the count
+  // exceeds the budget for the current task complexity, a soft nudge is
+  // injected into the next LLM call ("you're stalling — commit to a
+  // direction"). Reset on each Agent.run() call.
+  private currentTaskComplexity: TaskComplexity = 'moderate';
+  private readCountBeforeFirstWrite = 0;
+  private hasWrittenInThisRun = false;
+  private explorationNudgeFired = false;
+
+  // Design re-injection state — tracks last re-injection turn and file mtimes
+  // so we don't re-read the same design files 20 times in a single session.
+  private designReinjectionTurn = 0;
+  private designReinjectionLastTurn = -Infinity;
+  private designReinjectionLastMtimes = new Map<string, number>();
+
   constructor(opts: {
     provider: Provider;
     model: ModelDefinition;
@@ -150,10 +227,61 @@ export class Agent {
    * the user to steer, add context, or redirect without cancelling.
    */
   inject(message: string): void {
+    // Guard against empty or whitespace-only injections.
+    //
+    // Without this, any caller that accidentally passes an empty string
+    // (missing translation key, race condition on a programmatic send,
+    // stale callback, IPC edge case) ends up appending an empty user
+    // message into the conversation mid-run — and the model reasonably
+    // responds "did you send something?" to a blank turn. That's the
+    // "blonde moment" failure mode: not attention drift, just an empty
+    // turn being treated as a real one.
+    //
+    // Drop silently with a debug log so bugs upstream stay visible in
+    // logs but don't manifest as weird agent behaviour to the user.
+    if (typeof message !== 'string' || message.trim().length === 0) {
+      logger.debug('[agent] inject() called with empty/invalid message — dropped');
+      return;
+    }
     this.pendingInterjections.push(message);
   }
 
   async run(messages: Message[], onEvent: AgentEventHandler, signal?: AbortSignal): Promise<Message[]> {
+    // ─── Classify this task for directness discipline ─────────────────────
+    // Find the latest non-meta user message and run the lightweight
+    // classifier. The result sets the exploration budget for this run and
+    // is injected into the system prompt as a directness hint so Ava knows
+    // up front how aggressively to scope her work.
+    //
+    // Reset exploration budget state on each run — it's per-task, not
+    // per-session.
+    this.readCountBeforeFirstWrite = 0;
+    this.hasWrittenInThisRun = false;
+    this.explorationNudgeFired = false;
+
+    // Closure fallback state — if the agent exits the main loop with an
+    // empty final assistant message, we try once more with a forcing
+    // "one-sentence summary" nudge. Prevents the "she didn't say anything
+    // to close out" failure where the model terminates cleanly but leaves
+    // the user staring at a wall of tool calls with no visible confirmation.
+    let closureFallbackAttempted = false;
+
+    const latestUserMessage = this.findLatestNonMetaUserMessage(messages);
+    if (latestUserMessage) {
+      const classification = classifyTaskComplexity(latestUserMessage);
+      this.currentTaskComplexity = classification.complexity;
+      logger.debug(`[agent] Task classified as ${classification.complexity} (${classification.confidence} confidence) — ${classification.reasoning}`);
+
+      // Merge directness hint into the first system message. This keeps the
+      // hint anchored to the session identity rather than floating as a
+      // separate message that could be compressed away.
+      const hint = formatDirectnessHint(classification);
+      messages = this.appendToSystemMessage(messages, `\n\n${hint}`);
+    } else {
+      // No user task — default to moderate budget just in case.
+      this.currentTaskComplexity = 'moderate';
+    }
+
     const useNativeTools = this.model.supportsToolCalls !== false;
     const allSchemas = this.toolRegistry.getSchemas();
 
@@ -202,13 +330,22 @@ export class Agent {
       // Keep context lean by saving older exchanges to project memory and
       // removing them from the conversation. The model always has recent
       // context + can recall older work via memory_recall.
+      //
+      // The pinned original user task is preserved through this path too —
+      // if it's in the window being compressed, we prepend it back after
+      // the slide so the root intent always survives.
       const WINDOW_MAX = 30; // Max non-system messages before compression
       const WINDOW_KEEP = 16; // Messages to keep after compression
       const nonSystem = messages.filter(m => m.role !== 'system');
       if (nonSystem.length > WINDOW_MAX) {
         const systemMsgs = messages.filter(m => m.role === 'system');
+        const pinnedIdxFull = findOriginalUserTaskIndex(messages);
+        const pinnedMsg = pinnedIdxFull !== -1 ? messages[pinnedIdxFull] : null;
         const toCompress = nonSystem.slice(0, nonSystem.length - WINDOW_KEEP);
         const toKeep = nonSystem.slice(nonSystem.length - WINDOW_KEEP);
+        // Reference-equality check — cast to Message[] because toKeep's type
+        // is narrowed by the system filter and doesn't accept Message directly.
+        const pinnedInKeep = pinnedMsg ? (toKeep as Message[]).indexOf(pinnedMsg) !== -1 : false;
 
         // Summarise what's being compressed
         const summary = toCompress
@@ -243,24 +380,42 @@ export class Agent {
           } catch { /* non-critical */ }
         }
 
-        // Rebuild messages: system (with compression note merged in) + recent messages
-        // Merging into the first system message avoids Qwen's "system must be at beginning" error
+        // Rebuild messages: system (with compression note merged in) + pinned
+        // original task (if not already in the kept window) + recent messages.
+        // Merging the compression note into the first system message avoids
+        // Qwen's "system must be at beginning" error.
         const fixedKeep = this.fixToolPairing(toKeep);
         const compressionNote = [
-          `[${toCompress.length} earlier messages compressed to memory.]`,
+          `[${toCompress.length} earlier messages compressed to memory. Your active task is still in flight — continue from where you left off. Do NOT treat this as a new conversation.]`,
           'Your memory system has saved the important context from those messages.',
           'If the user references something from earlier in the conversation, use memory_recall to retrieve it.',
-          'Do NOT say you don\'t have context — check memory first.',
+          'Do NOT say you don\'t have context — check memory first. Do NOT greet the user.',
         ].join(' ');
+
+        // Session tasks re-injection — same pattern as compressContext()
+        let slidingTaskBlock: Message | null = null;
+        try {
+          const tm = (this.toolContext.sharedState as Record<string, unknown> | undefined)?.taskManager as
+            | { getSessionTasks: () => TaskEntrySnapshot[] }
+            | undefined;
+          if (tm && typeof tm.getSessionTasks === 'function') {
+            const block = formatSessionTasksBlock(tm.getSessionTasks());
+            if (block) slidingTaskBlock = { role: 'user', content: block };
+          }
+        } catch { /* non-critical */ }
+
+        const pinnedPrefix: Message[] = (pinnedMsg && !pinnedInKeep) ? [pinnedMsg] : [];
+        const tail: Message[] = slidingTaskBlock ? [slidingTaskBlock, ...fixedKeep] : fixedKeep;
 
         if (systemMsgs.length > 0) {
           const primary = systemMsgs[0];
           const mergedSystem = { ...primary, content: (typeof primary.content === 'string' ? primary.content : '') + '\n\n' + compressionNote };
-          messages = [mergedSystem, ...fixedKeep];
+          messages = [mergedSystem, ...pinnedPrefix, ...tail];
         } else {
           messages = [
             { role: 'system' as const, content: compressionNote },
-            ...fixedKeep,
+            ...pinnedPrefix,
+            ...tail,
           ];
         }
 
@@ -307,10 +462,21 @@ export class Agent {
       // Trim old tool results to save tokens — after 4 messages, collapse to summary
       messages = this.trimOldToolResults(messages);
 
-      // Auto-truncate to fit context window (reserve 30% for output + safety margin)
-      // The 30% buffer accounts for: model output tokens, estimation inaccuracy,
-      // and tool call overhead that's hard to predict.
-      const maxInputTokens = Math.floor(this.model.contextWindow * 0.7);
+      // Auto-compress at 40% of the model's context window.
+      //
+      // Previously we waited until 70% before compressing, which for a 1M
+      // context model meant every single turn could send up to 700,000
+      // tokens before anything got summarised. That's both expensive (real
+      // money per turn at managed-model pricing) and harmful to response
+      // quality — large contexts increase latency, hurt attention, and make
+      // it harder for the model to stay focused on the active task.
+      //
+      // 40% gives us a healthy active window (400k on a 1M model, 50k on a
+      // 128k model, proportional to whatever the model supports) while
+      // compressing aggressively enough to keep per-turn cost sane. Long
+      // sessions now compress multiple times with smaller summary passes
+      // instead of one giant last-minute compression right before overflow.
+      const maxInputTokens = Math.floor(this.model.contextWindow * 0.4);
       const estimatedTotal = this.estimateTokenCount(messages);
 
       // Emit context usage so UIs can show a progress bar
@@ -325,7 +491,21 @@ export class Agent {
         messages = await this.compressContext(messages, onEvent, signal);
       }
 
-      // Still over budget? Fall back to truncation — emit warning instead of silent drop
+      // Still over budget? Fall back to truncation.
+      //
+      // Previously this emitted a user-facing error telling them to
+      // "Consider starting a new chat for best results" — which was both
+      // misleading (compression is routine, not an error) and risky (if
+      // the agent ever saw that wording in its own context, it could
+      // interpret "start a new chat" as instruction and reset its
+      // behaviour, which is exactly the "she acted like it was a new
+      // chat" failure mode we're fixing).
+      //
+      // Now it emits a neutral info message that doesn't prompt the user
+      // or the agent to abandon the session. The agent's active task
+      // state is preserved via the pinned original user task, the
+      // re-injected session tasks block, and the continuation-first
+      // compression header elsewhere in this file.
       const preCount = messages.length;
       messages = this.truncateMessages(messages, maxInputTokens);
       const dropped = preCount - messages.length;
@@ -333,7 +513,7 @@ export class Agent {
         onEvent({
           type: 'error',
           error: Object.assign(
-            new Error(`Context window full — ${dropped} older messages were compressed away. Consider starting a new chat for best results.`),
+            new Error(`Context compressed: ${dropped} older messages summarised to memory. Continuing your current task.`),
             { code: 'context_compressed' },
           ),
         });
@@ -515,7 +695,75 @@ export class Agent {
 
       if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
         logger.debug(`[agent] No tool_calls in response. content=${(assistantMessage.content ?? '').length} chars, reasoning=${(assistantMessage.reasoning_content ?? '').length} chars`);
+
+        // ─── Closure fallback ─────────────────────────────────────────
+        // Detect two failure modes where the turn terminates without
+        // actually doing visible work:
+        //
+        // 1. Empty close — the model finished cleanly but produced zero
+        //    visible content. User sees silence after tool calls.
+        //
+        // 2. Continuation stall — the model produced text like "Let me
+        //    rewrite the sidebar" but terminated with no tool_calls.
+        //    It narrated intent but never acted. This is arguably worse
+        //    than an empty close because the user sees a promise that
+        //    never gets fulfilled.
+        //
+        // Both cases share the same fix: drop the stalled message, inject
+        // a forcing nudge, re-enter the loop for one more iteration.
+        // Guarded by closureFallbackAttempted so we never loop more than
+        // once per run. If the nudged response is ALSO stalled, fall
+        // through to the hardcoded "Done" substitution.
+        const contentText = typeof assistantMessage.content === 'string'
+          ? assistantMessage.content.trim()
+          : '';
+        const isEmptyClose = contentText.length === 0;
+        const isContinuationStall = !isEmptyClose && looksLikeContinuationStall(contentText);
+
+        if ((isEmptyClose || isContinuationStall) && !closureFallbackAttempted) {
+          closureFallbackAttempted = true;
+          const reason = isEmptyClose ? 'empty final message' : 'continuation stall (narrated intent without acting)';
+          logger.debug(`[agent] Closure fallback: ${reason}, re-prompting`);
+
+          // Drop the stalled assistant message from history
+          messages = messages.slice(0, -1);
+
+          // Inject the appropriate forcing nudge
+          const nudgeContent = isEmptyClose
+            ? '[Closure check — your previous response was empty. The user needs visible confirmation that you finished. Write ONE short sentence summarising what you just did in this turn. Example: "Done — sidebar.tsx updated with the new palette." or "Fixed the missing habitId arg on line 71 of App.tsx." No tool calls. Just one sentence of text. This is the minimum required to close out a turn.]'
+            : `[Continuation check — you said "${contentText.slice(0, 120)}${contentText.length > 120 ? '…' : ''}" but then stopped without making any tool calls. You NARRATED intent but never acted on it. The user sees a promise that never got fulfilled — the worst possible UX. Do the work NOW in this response: make the actual tool calls to accomplish what you said you would. If the work genuinely can't be done, explain clearly why ("I can't X because Y"). Silence or another narration loop is not acceptable — either act or explain, no middle ground.]`;
+
+          messages = [
+            ...messages,
+            { role: 'user' as const, content: nudgeContent },
+          ];
+          // Loop back for one more streaming call — the nudge will force
+          // either tool calls or a clear explanation. Normal flow resumes
+          // from there.
+          continue;
+        }
+
+        // If we already tried the closure fallback and STILL got a stall,
+        // substitute a hardcoded "Done." so the user sees something rather
+        // than a blank turn or a broken promise. This is belt-and-braces —
+        // the prompt rule should catch most cases, the fallback nudge
+        // catches more, and this final substitution catches the remaining
+        // edge cases where the model is genuinely broken on closure.
+        if ((isEmptyClose || isContinuationStall) && closureFallbackAttempted) {
+          logger.warn('[agent] Closure fallback exhausted — substituting hardcoded "Done."');
+          const substitute = isContinuationStall
+            ? contentText + ' [Agent stalled — closure fallback substituted this message.]'
+            : 'Done.';
+          assistantMessage = {
+            ...assistantMessage,
+            content: substitute,
+          };
+          messages = [...messages.slice(0, -1), assistantMessage];
+        }
+
         // Surface empty responses — model returned nothing visible to the user
+        // (kept for the edge case where both content AND reasoning are empty
+        // even after the closure fallback — genuinely broken model output)
         if (!assistantMessage.content && !assistantMessage.reasoning_content) {
           onEvent({
             type: 'error',
@@ -706,6 +954,47 @@ export class Agent {
               },
             ];
           }
+        }
+
+        // ─── Dynamic design context re-injection ─────────────────────────
+        // If any tool call in this batch wrote or edited a UI file, refresh
+        // the Decisions/design context into the message history so it's in
+        // attention for the NEXT turn — not buried behind whatever error
+        // recovery or other noise has accumulated. One injection per batch,
+        // even if multiple UI files were touched. Throttled by turn count
+        // and file mtime cache so we don't re-read the same files 20 times.
+        const uiBatchPath = this.findUIFilePathInBatch(autoCalls);
+        if (uiBatchPath) {
+          this.designReinjectionTurn++;
+          const reinject = await maybeBuildDesignReinjection(
+            runContext.cwd,
+            uiBatchPath,
+            {
+              currentTurn: this.designReinjectionTurn,
+              lastInjectedTurn: this.designReinjectionLastTurn,
+              lastMtimes: this.designReinjectionLastMtimes,
+            },
+          );
+          if (reinject) {
+            messages = [
+              ...messages,
+              { role: 'user' as const, content: reinject.content },
+            ];
+            this.designReinjectionLastTurn = this.designReinjectionTurn;
+            this.designReinjectionLastMtimes = reinject.updatedMtimes;
+          }
+        }
+
+        // ─── Exploration budget nudge ──────────────────────────────────
+        // Count read-only tool calls in this batch. If the agent has done
+        // too much exploration without committing to a write, inject a
+        // soft nudge telling her to commit or justify. Never hard-stops.
+        const nudge = this.maybeExplorationBudgetNudge(autoCalls);
+        if (nudge) {
+          messages = [
+            ...messages,
+            { role: 'user' as const, content: nudge },
+          ];
         }
       }
     }
@@ -979,7 +1268,177 @@ export class Agent {
       ];
     }
 
+    // Dynamic design context re-injection — same treatment as the parallel
+    // batch path. Throttled by turn count and mtime cache.
+    const uiPath = this.findUIFilePathInBatch([toolCall]);
+    if (uiPath) {
+      this.designReinjectionTurn++;
+      const reinject = await maybeBuildDesignReinjection(
+        runContext.cwd,
+        uiPath,
+        {
+          currentTurn: this.designReinjectionTurn,
+          lastInjectedTurn: this.designReinjectionLastTurn,
+          lastMtimes: this.designReinjectionLastMtimes,
+        },
+      );
+      if (reinject) {
+        messages = [
+          ...messages,
+          { role: 'user' as const, content: reinject.content },
+        ];
+        this.designReinjectionLastTurn = this.designReinjectionTurn;
+        this.designReinjectionLastMtimes = reinject.updatedMtimes;
+      }
+    }
+
+    // Exploration budget nudge — same as parallel path
+    const seqNudge = this.maybeExplorationBudgetNudge([toolCall]);
+    if (seqNudge) {
+      messages = [
+        ...messages,
+        { role: 'user' as const, content: seqNudge },
+      ];
+    }
+
     return messages;
+  }
+
+  /**
+   * Scan a batch of tool calls for a UI file write/edit and return the first
+   * matching file path. Returns undefined if no UI file was touched.
+   * Used by the design context re-injection hook to decide whether to refresh
+   * the Decisions/design/* content into the next LLM turn.
+   */
+  private findUIFilePathInBatch(toolCalls: ToolCall[]): string | undefined {
+    for (const tc of toolCalls) {
+      if (tc.function.name !== 'file_write' && tc.function.name !== 'file_edit') continue;
+      try {
+        const args = JSON.parse(tc.function.arguments);
+        const filePath = (args.file_path ?? args.path) as string | undefined;
+        if (filePath && isUIFilePathLocal(filePath)) return filePath;
+      } catch { /* malformed args — skip */ }
+    }
+    return undefined;
+  }
+
+  // ─── Task classification + exploration budget helpers ──────────────────
+
+  /**
+   * Walk the message array backwards to find the most recent user-role
+   * message that represents a real user request (not a meta injection like
+   * a memory brief or compression summary). Returns the text content, or
+   * null if nothing qualifies.
+   */
+  private findLatestNonMetaUserMessage(messages: Message[]): string | null {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.role !== 'user') continue;
+      const text = getTextContent(m.content);
+      if (!text.trim()) continue;
+      if (isMetaPrefix(text)) continue;
+      return text;
+    }
+    return null;
+  }
+
+  /**
+   * Append text to the first system-role message's content, or prepend a
+   * new system message if none exists. Used to merge the directness hint
+   * into the session prompt without creating a separate system message
+   * (which would break Qwen's "system must be at beginning" rule).
+   */
+  private appendToSystemMessage(messages: Message[], text: string): Message[] {
+    if (messages.length > 0 && messages[0].role === 'system') {
+      const existing = typeof messages[0].content === 'string' ? messages[0].content : '';
+      return [
+        { ...messages[0], content: existing + text },
+        ...messages.slice(1),
+      ];
+    }
+    // No system message — prepend one
+    return [
+      { role: 'system' as const, content: text.trimStart() },
+      ...messages,
+    ];
+  }
+
+  /**
+   * Classify a tool call as a read-only exploration call (file_read, glob,
+   * grep, list_directory, find_symbol, project_index) vs a write/action
+   * call (file_write, file_edit, bash, git_*, etc). Used by the exploration
+   * budget tracker to count "reads before first write" for each run.
+   */
+  private isReadOnlyToolCall(name: string): boolean {
+    return (
+      name === 'file_read' ||
+      name === 'glob' ||
+      name === 'grep' ||
+      name === 'list_directory' ||
+      name === 'find_symbol' ||
+      name === 'project_index' ||
+      name === 'git_status' ||
+      name === 'git_diff' ||
+      name === 'docs_lookup'
+    );
+  }
+
+  private isWriteCapableToolCall(name: string): boolean {
+    return (
+      name === 'file_write' ||
+      name === 'file_edit' ||
+      name === 'bash' ||
+      name === 'git_commit' ||
+      name === 'git_create_pr'
+    );
+  }
+
+  /**
+   * After each batch of tool calls, update the exploration budget state
+   * and return a nudge message if the budget has been exceeded. The nudge
+   * is a soft signal — it's injected into the next LLM call's context
+   * telling the agent "you're stalling, commit to a direction." It never
+   * hard-stops the run; graceful escalation is the design intent.
+   *
+   * Returns null if no nudge is needed, or the nudge message body if the
+   * caller should inject it before the next turn.
+   */
+  private maybeExplorationBudgetNudge(toolCalls: ToolCall[]): string | null {
+    // Count this batch's reads + detect any writes
+    let batchReads = 0;
+    let batchHadWrite = false;
+    for (const tc of toolCalls) {
+      if (this.isReadOnlyToolCall(tc.function.name)) batchReads++;
+      if (this.isWriteCapableToolCall(tc.function.name)) batchHadWrite = true;
+    }
+
+    // If she wrote at all, mark the run as "past the exploration phase"
+    // and stop counting. The budget is specifically about read-before-write.
+    if (batchHadWrite || this.hasWrittenInThisRun) {
+      this.hasWrittenInThisRun = true;
+      return null;
+    }
+
+    this.readCountBeforeFirstWrite += batchReads;
+
+    // Don't re-fire the nudge once it's fired — one soft signal per run
+    if (this.explorationNudgeFired) return null;
+
+    const budget = COMPLEXITY_BUDGETS[this.currentTaskComplexity];
+    if (this.readCountBeforeFirstWrite < budget.readCapBeforeFirstWrite) return null;
+
+    this.explorationNudgeFired = true;
+    logger.debug(`[agent] Exploration budget nudge: ${this.readCountBeforeFirstWrite} reads before first write (cap ${budget.readCapBeforeFirstWrite}) for ${this.currentTaskComplexity} task`);
+
+    return [
+      `[Exploration budget check — ${this.readCountBeforeFirstWrite} read-only tool calls and zero writes so far on a ${this.currentTaskComplexity} task.]`,
+      '',
+      `You're past the comfortable exploration window for this task size. Two honest options:`,
+      `  1. You have enough context now — commit to a direction and make the change. Pick the most likely correct path and execute. You can always iterate.`,
+      `  2. The task is actually bigger than it looked at first — say so clearly in your next response ("this looked focused but it needs broader changes because..."), then continue exploring with justification.`,
+      '',
+      `What you MUST NOT do: keep reading files silently. Either commit, or explain why you need more context. Stalling is the one unacceptable outcome.`,
+    ].join('\n');
   }
 
   // ── Context usage ────────────────────────────────────────────────────────
@@ -1025,6 +1484,20 @@ export class Agent {
       return messages;
     }
 
+    // ── Preserve the pinned original user task ─────────────────────────
+    // The first real user message (not a meta injection like a memory brief
+    // or compression summary) is the root intent of the whole session. It
+    // must survive every compression pass or the post-compression agent
+    // loses its sense of "what am I doing here" and fresh-greets the user.
+    //
+    // We find it by walking the pre-slice messages, and if it falls in the
+    // compress zone (not already in the recent window), we pin it to be
+    // re-added after the summary.
+    const pinnedIdxInMessages = findOriginalUserTaskIndex(messages);
+    const pinnedMessage = pinnedIdxInMessages !== -1 ? messages[pinnedIdxInMessages] : null;
+    const pinnedIsInRecentWindow = pinnedIdxInMessages !== -1
+      && pinnedIdxInMessages >= messages.length - KEEP_RECENT;
+
     const toCompress = rest.slice(0, -KEEP_RECENT);
     const toKeep = rest.slice(-KEEP_RECENT);
 
@@ -1036,15 +1509,26 @@ export class Agent {
       })
       .join('\n');
 
-    const compressionPrompt = `You are a conversation summarizer. Summarize this conversation transcript concisely while preserving:
-- Key decisions and conclusions reached
-- File paths, function names, and code identifiers mentioned
-- Tool calls made and their results (especially file edits, searches, and command outputs)
-- Current task state and what was accomplished vs. what remains
-- Any errors encountered and how they were resolved
-- Important technical context the assistant will need going forward
+    const compressionPrompt = `You are a conversation summarizer preparing a handoff for an AI agent that will continue the work. The agent will have zero memory of this transcript except for what you produce, so your summary must be structured and decision-focused, not narrative.
 
-Be concise but thorough. Use bullet points. Do NOT include pleasantries or meta-commentary.
+Produce your output in EXACTLY this format:
+
+CURRENT_TASK: <one sentence describing what the agent was actively working on at the end of the transcript. This is the single most important field — the agent uses it to decide what to do next. If multiple tasks were interleaved, pick the one that was most recently in flight.>
+
+LAST_STEP: <one sentence describing the most recent concrete action the agent completed. Example: "Wrote src/components/HabitTracker.tsx with Tauri invoke calls for get_habit_logs."</  >
+
+NEXT_STEP: <one sentence describing what the agent should do next to continue the task. Example: "Fix the missing habitId argument being passed to get_habit_logs in App.tsx."  >
+
+BLOCKERS: <any active blockers the agent needs to know about. Write "none" if there are none.>
+
+SUMMARY:
+<Free-form bullet-point summary of everything else worth preserving: key decisions, file paths, function names, tool results, errors and how they were resolved, technical context. Be thorough but concise. Do NOT repeat what you put in the structured fields above.>
+
+Rules:
+- Every field above is MANDATORY. If you can't extract a value for one, write "unclear" but never omit the field.
+- No pleasantries, no meta-commentary, no "Here's the summary" preamble.
+- Use plain text in the structured fields — no markdown, no bullet points, no multi-line values.
+- Keep the CURRENT_TASK, LAST_STEP, NEXT_STEP fields to a single sentence each.
 
 TRANSCRIPT:
 ${transcript}`;
@@ -1095,15 +1579,69 @@ ${transcript}`;
         // Memory save is non-critical — don't block compression
       }
 
+      // ── Build the continuation-first summary message ────────────────
+      // Extract structured CURRENT_TASK / LAST_STEP / NEXT_STEP / BLOCKERS
+      // fields from the summariser's output. The summariser prompt asks
+      // for these explicitly but LLMs paraphrase — the parser is lenient.
+      const structured = extractStructuredFields(summary);
+      const continuationHeader = buildCompressionContinuationHeader(summary, structured);
       const summaryMessage: Message = {
         role: 'user',
-        content: `[Context Summary — earlier conversation compressed]\n\n${summary}`,
+        content: continuationHeader,
       };
 
+      // ── Build the session-tasks re-injection block ──────────────────
+      // If the TaskManager has active session tasks, format them as a
+      // continuation-focused block for direct injection into the
+      // post-compression context. This is the single biggest signal that
+      // stops the agent from treating compression as a fresh chat.
+      let sessionTasksMessage: Message | null = null;
+      try {
+        const tm = (this.toolContext.sharedState as Record<string, unknown> | undefined)?.taskManager as
+          | { getSessionTasks: () => TaskEntrySnapshot[] }
+          | undefined;
+        if (tm && typeof tm.getSessionTasks === 'function') {
+          const tasks = tm.getSessionTasks();
+          const block = formatSessionTasksBlock(tasks);
+          if (block) {
+            sessionTasksMessage = { role: 'user', content: block };
+          }
+        }
+      } catch {
+        /* non-critical — proceed without the task block */
+      }
+
+      // ── Re-pin the original user task if compression would remove it ─
+      // The pinned message must be the first non-system message in the
+      // result so the post-compression agent sees the original intent
+      // before anything else. If the original task was already in the
+      // recent window (short session), toKeep will contain it and we
+      // don't need to re-pin. Otherwise, prepend it.
+      let pinnedPrefix: Message[] = [];
+      if (pinnedMessage && !pinnedIsInRecentWindow) {
+        pinnedPrefix = [pinnedMessage];
+      }
+
       const fixedTail = this.fixToolPairing(toKeep);
+
+      // Assembly order matters for attention physics:
+      //   1. system prompt (identity, rules, tools)
+      //   2. pinned original user task (root intent — never loses)
+      //   3. continuation header + summary (what happened, what's next)
+      //   4. active session tasks block (source of truth for current work)
+      //   5. recent 8 messages verbatim (most granular recent state)
+      //
+      // The post-compression model reads top to bottom and by the time it
+      // reaches the recent messages it's already seen (a) what the session
+      // is about, (b) a structured "continue from here" directive, and
+      // (c) the concrete task list. Greeting-fresh becomes structurally
+      // implausible.
+      const middle: Message[] = [summaryMessage];
+      if (sessionTasksMessage) middle.push(sessionTasksMessage);
+
       const result = systemMsg
-        ? [systemMsg, summaryMessage, ...fixedTail]
-        : [summaryMessage, ...fixedTail];
+        ? [systemMsg, ...pinnedPrefix, ...middle, ...fixedTail]
+        : [...pinnedPrefix, ...middle, ...fixedTail];
 
       const originalTokens = this.estimateTokenCount(messages);
       const compressedTokens = this.estimateTokenCount(result);
@@ -1172,6 +1710,29 @@ ${transcript}`;
    * KEEP_RECENT messages get trimmed to 200 chars + a note.
    * This prevents token bleed from accumulated file reads, grep results, etc.
    */
+  /**
+   * Trim older messages for token-cost control, preserving everything that
+   * matters for continuity:
+   *   - The system prompt is never touched.
+   *   - The pinned original user task is preserved verbatim (it's the root
+   *     intent of the whole session and must survive every trim pass).
+   *   - The last 8 messages are kept verbatim for recent context.
+   *   - `tool`-role messages older than the recent window are trimmed to
+   *     MAX_OLD_TOOL_CHARS (very aggressive — 200 chars — because tool
+   *     outputs rarely matter in full once the next turn has consumed them).
+   *   - `user` and `assistant` message bodies older than the recent window
+   *     get trimmed if they exceed OLD_MESSAGE_BODY_MAX_CHARS. The structural
+   *     "who said what" stays intact but verbose inlined content gets cut.
+   *   - `reasoning_content` on old assistant messages is stripped entirely.
+   *     Reasoning is working memory for the turn that produced it and has
+   *     zero value once the next turn has landed — but it can be 10x larger
+   *     than the actual response and was previously kept forever.
+   *
+   * This is the primary lever for keeping per-turn token cost in check on
+   * long sessions. Combined with the earlier compression trigger (40%
+   * instead of 70%), it dramatically reduces the cost of running an agent
+   * for 60+ minutes on a single conversation.
+   */
   private trimOldToolResults(messages: Message[]): Message[] {
     const KEEP_RECENT = 8; // Keep last 8 messages at full size
     const MAX_OLD_TOOL_CHARS = 200;
@@ -1179,18 +1740,58 @@ ${transcript}`;
     if (messages.length <= KEEP_RECENT + 1) return messages; // +1 for system
 
     const cutoff = messages.length - KEEP_RECENT;
+    const pinnedIdx = findOriginalUserTaskIndex(messages);
+
     return messages.map((m, i) => {
-      // Skip system prompt and recent messages
+      // Never touch the system prompt or messages in the recent window
       if (i === 0 || i >= cutoff) return m;
-      // Only trim tool result messages
-      if (m.role !== 'tool' || typeof m.content !== 'string') return m;
-      // Already short enough
-      if (m.content.length <= MAX_OLD_TOOL_CHARS) return m;
-      // Trim
-      return {
-        ...m,
-        content: m.content.slice(0, MAX_OLD_TOOL_CHARS) + `\n\n[Trimmed — original ${m.content.length} chars]`,
-      };
+      // Never touch the pinned original user task — it's the root of the
+      // whole session and must survive every trim pass
+      if (i === pinnedIdx) return m;
+
+      // ── Tool-role trimming (most aggressive) ─────────────────────────
+      if (m.role === 'tool' && typeof m.content === 'string') {
+        if (m.content.length <= MAX_OLD_TOOL_CHARS) return m;
+        return {
+          ...m,
+          content: m.content.slice(0, MAX_OLD_TOOL_CHARS) + `\n\n[Trimmed — original ${m.content.length} chars]`,
+        };
+      }
+
+      // ── Assistant-role: strip reasoning_content + trim body ───────────
+      if (m.role === 'assistant') {
+        const assistantMsg = m as AssistantMessage;
+        const hasReasoning = assistantMsg.reasoning_content !== undefined && assistantMsg.reasoning_content !== null;
+        const textContent = typeof assistantMsg.content === 'string' ? assistantMsg.content : null;
+        const needsBodyTrim = textContent !== null && textContent.length > OLD_MESSAGE_BODY_MAX_CHARS;
+
+        if (!hasReasoning && !needsBodyTrim) return m;
+
+        const trimmed: AssistantMessage = {
+          ...assistantMsg,
+          // Reasoning is always stripped from old messages — zero value once
+          // the next turn is live, and it's often the biggest single allocation
+          // in a long conversation's token budget.
+          reasoning_content: null,
+          // Body is trimmed only if it's over threshold
+          content: needsBodyTrim && textContent !== null
+            ? trimMessageBody(textContent)
+            : assistantMsg.content,
+        };
+        return trimmed;
+      }
+
+      // ── User-role: trim long bodies (skip meta-prefixed messages) ─────
+      if (m.role === 'user' && typeof m.content === 'string') {
+        // Don't trim meta-prefixed messages (compression summaries, memory
+        // briefs, system notices, task blocks) — their headers matter and
+        // they're usually already short enough anyway.
+        if (isMetaPrefix(m.content)) return m;
+        if (m.content.length <= OLD_MESSAGE_BODY_MAX_CHARS) return m;
+        return { ...m, content: trimMessageBody(m.content) };
+      }
+
+      return m;
     });
   }
 
@@ -1204,12 +1805,26 @@ ${transcript}`;
     const systemMsg = messages[0]?.role === 'system' ? messages[0] : null;
     const rest = systemMsg ? messages.slice(1) : [...messages];
     const systemTokens = systemMsg ? this.estimateMessageTokens(systemMsg) : 0;
-    const budget = maxTokens - systemTokens;
+
+    // ── Preserve the pinned original user task ──────────────────────
+    // Same reasoning as compression paths: the root intent of the session
+    // must survive even emergency truncation. We reserve tokens for it
+    // upfront and then fill the rest of the budget from the most recent
+    // messages backwards.
+    const pinnedIdx = findOriginalUserTaskIndex(messages);
+    const pinnedMsg = pinnedIdx !== -1 ? messages[pinnedIdx] : null;
+    const pinnedTokens = pinnedMsg ? this.estimateMessageTokens(pinnedMsg) : 0;
+
+    const budget = maxTokens - systemTokens - pinnedTokens;
 
     const kept: Message[] = [];
     let used = 0;
 
     for (let i = rest.length - 1; i >= 0; i--) {
+      // Skip the pinned message during the backward walk — it will be
+      // re-inserted at the pinned slot at the end. Including it twice
+      // would double-charge its tokens and confuse the final order.
+      if (pinnedMsg && rest[i] === pinnedMsg) continue;
       const msgTokens = this.estimateMessageTokens(rest[i]);
       if (used + msgTokens > budget) break;
       kept.unshift(rest[i]);
@@ -1222,7 +1837,13 @@ ${transcript}`;
     // Also drop any assistant messages whose tool_calls lost their results.
     const fixed = this.fixToolPairing(kept);
 
-    return systemMsg ? [systemMsg, ...fixed] : fixed;
+    // Re-insert the pinned task at the very start of the rest (right after
+    // system prompt). This guarantees the post-truncation agent sees the
+    // original task as the first non-system message — the root intent
+    // literally cannot be missed.
+    const withPinned = pinnedMsg ? [pinnedMsg, ...fixed] : fixed;
+
+    return systemMsg ? [systemMsg, ...withPinned] : withPinned;
   }
 
   /**

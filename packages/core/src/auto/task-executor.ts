@@ -40,6 +40,16 @@ export interface TaskExecutorOptions {
    * calls into the currently-running Builder.
    */
   onActiveAgentChange?: (agent: Agent | null) => void;
+  /**
+   * Project-scoped conventions the Builder needs to honour — currently the
+   * Decisions folder state, but this is where any future project-level
+   * convention flags should land. Routed through from AutoCoordinator's
+   * systemPromptOpts so the Builder's custom prompt picks up the same
+   * behavioural instructions the main agent's prompt carries.
+   */
+  decisionsContext?: string;
+  decisionsFolderExists?: boolean;
+  decisionsOptInStatus?: 'opted-in' | 'opted-out' | 'not-asked';
 }
 
 export interface TaskExecutionResult {
@@ -58,6 +68,9 @@ export class TaskExecutor {
   private readonly cwd: string;
   private readonly sharedState: Record<string, unknown>;
   private readonly onActiveAgentChange?: (agent: Agent | null) => void;
+  private readonly decisionsContext?: string;
+  private readonly decisionsFolderExists?: boolean;
+  private readonly decisionsOptInStatus?: 'opted-in' | 'opted-out' | 'not-asked';
 
   constructor(opts: TaskExecutorOptions) {
     this.provider = opts.provider;
@@ -67,6 +80,9 @@ export class TaskExecutor {
     this.cwd = opts.cwd;
     this.sharedState = opts.sharedState;
     this.onActiveAgentChange = opts.onActiveAgentChange;
+    this.decisionsContext = opts.decisionsContext;
+    this.decisionsFolderExists = opts.decisionsFolderExists;
+    this.decisionsOptInStatus = opts.decisionsOptInStatus;
   }
 
   /**
@@ -260,6 +276,43 @@ export class TaskExecutor {
   }
 
   private buildBuilderSystemPrompt(): string {
+    // Decisions folder convention — same rules the main agent follows, reproduced
+    // here because the Builder has its own prompt path independent of the main
+    // system-prompt. Silent when opted-out or irrelevant.
+    let decisionsBlock = '';
+    const optIn = this.decisionsOptInStatus ?? 'not-asked';
+    if (this.decisionsFolderExists) {
+      decisionsBlock = `
+
+## Decisions folder (active for this project)
+This project has a \`Decisions/\` folder — it's the project's declared direction
+(palette, voice, architecture, conventions). Treat its contents as law. When
+your task involves a design or architectural decision — choosing a palette,
+picking typography, generating an asset, committing to a pattern — record it to
+the appropriate file (\`Decisions/design/palette.md\`, \`Decisions/design/typography.md\`,
+\`Decisions/design/assets.md\` with the prompt used, or \`Decisions/records/NNNN-<topic>.md\`
+for ADR-style records). Write these updates as you work. Never write secrets —
+the folder is committed to git.${this.decisionsContext ? `\n\n### Project direction (from Decisions folder)\n${this.decisionsContext}` : ''}`;
+    } else if (optIn === 'not-asked') {
+      decisionsBlock = `
+
+## Decisions folder (not yet set up for this project)
+**BEFORE your first file_write or file_edit in this task**, call \`ask_user\` with
+exactly this question: "Want me to set up a Decisions folder for this project?
+It's where I'll track design choices, architecture decisions, and generated
+assets as we go — committed to git so the context travels with the code."
+Wait for the answer. If yes, create \`Decisions/\` at the project root with the
+canonical structure (overview.md, context.md, design/palette.md, design/typography.md,
+design/voice.md, design/assets.md, ideas.md, progress.md, records/) and then
+proceed with the original task, recording decisions as you make them. If no,
+proceed with the task without mentioning it again.
+
+**This is non-negotiable.** Even if your task is urgent, even if the plan says
+to start coding immediately — ask_user first, then proceed. The one question
+takes two seconds and saves project context for the life of the codebase.`;
+    }
+    // optIn === 'opted-out' → silent, don't mention it.
+
     return `${BUILDER.prompt}
 
 ## You are running as a focused sub-agent
@@ -272,11 +325,39 @@ You have access to the full execution toolset: file_read, file_write, file_edit,
 glob, grep, list_directory, bash, git_status, git_diff, git_commit, test_run,
 todo_write, and the rest. Use them.
 
+## Curator — the on-demand taste specialist
+You have a \`curator\` tool for design and taste decisions. **Before calling it,
+first check Decisions/design/*.md** — the project's declared direction lives
+in those files. If \`palette.md\` already says the primary accent is a specific
+colour and you need a primary colour, just use it — no curator call needed.
+If \`voice.md\` already defines the tone and you need a button label, follow
+it directly. The Decisions folder is the first source of truth; curator is a
+specialist called when the answer genuinely isn't there.
+
+**Call curator when:**
+- You face a taste decision the Decisions folder doesn't cover (new component
+  type not mentioned in existing design docs, novel visual element, new asset
+  generation, a decision that requires reconciling conflicting precedents).
+- You're about to default to a generic pattern (\`bg-blue-500\`, \`text-gray-500\`,
+  system-default font) because nothing better comes to mind. That's the signal
+  that you need taste input you don't have — call curator.
+
+**Do NOT call curator when:**
+- The Decisions folder already answers the question directly.
+- The decision is logic, data shape, auth, state management, or performance.
+- The question is correctness rather than subjective judgement.
+- You can apply an existing project pattern with confidence.
+
+Curator runs in a fresh context isolated from error-fix churn, so her attention
+is fully on the decision. She's expensive to spawn — one decision per call,
+only when genuinely needed. A Builder that calls curator 10 times in a task is
+usually a Builder that didn't read the Decisions folder first.
+
 ## Output discipline
 - The plan is already approved. Do not redesign. Do not propose alternatives.
 - When done: end your response with a one-paragraph summary of what you built. Stop.
 - When blocked: start your final response with "BLOCKED:" then explain clearly.
-- Do not narrate every tool call. Tools speak for themselves.`;
+- Do not narrate every tool call. Tools speak for themselves.${decisionsBlock}`;
   }
 
   private lastAssistantText(messages: Message[]): string | null {

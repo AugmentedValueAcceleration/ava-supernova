@@ -194,6 +194,13 @@ export class AutoCoordinator {
           // injections during execution land in the running Builder, not
           // the dead coordinator queue.
           onActiveAgentChange: (agent) => this.setActiveAgent(agent),
+          // Thread the Decisions folder state through to Builder agents so
+          // their custom prompt path picks up the same convention the main
+          // agent's prompt carries. Without this, Builders never see the
+          // decisions instruction and silently skip the opt-in flow.
+          decisionsContext: this.systemPromptOpts.decisionsContext as string | undefined,
+          decisionsFolderExists: this.systemPromptOpts.decisionsFolderExists as boolean | undefined,
+          decisionsOptInStatus: this.systemPromptOpts.decisionsOptInStatus as 'opted-in' | 'opted-out' | 'not-asked' | undefined,
         });
 
         const planContext = this.extractPlanContext(planResult);

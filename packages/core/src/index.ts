@@ -162,7 +162,24 @@ export {
   loadProjectInstructions,
   scaffoldProjectInstructions,
   getInstructionsPath,
+  // Decisions folder — durable project-scoped context layer
+  DECISIONS_DIR_NAME,
+  getDecisionsRoot,
+  hasDecisionsFolder,
+  loadDecisionsContext,
+  loadDecisionsState,
+  scaffoldDecisionsFolder,
+  type DecisionsState,
 } from './config/project.js';
+
+// Per-project config (decisionsOptIn etc.)
+export {
+  loadProjectConfig,
+  saveProjectConfig,
+  getProjectConfigPath,
+  type ProjectConfig,
+  type DecisionsOptInStatus,
+} from './config/project-config.js';
 
 // History
 export { HistoryManager } from './history/history-manager.js';

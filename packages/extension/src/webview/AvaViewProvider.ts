@@ -27,6 +27,9 @@ import {
   killBackgroundProcesses,
   detectProjectRoot,
   loadProjectInstructions,
+  loadDecisionsState,
+  scaffoldDecisionsFolder,
+  saveProjectConfig,
   setLocaleSync,
   resolveLocale,
   Conductor,
@@ -76,6 +79,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private readonly statusBarItem: vscode.StatusBarItem;
   private projectRoot?: string;
   private projectInstructions?: string;
+  private decisionsState?: import('@ava/core').DecisionsState;
   private memoryManager?: MemoryManager;
   private taskManager?: TaskManager;
   private journalManager?: JournalManager;
@@ -93,6 +97,21 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private panelStateCallback?: (isOpen: boolean) => void;
   private cachedAccount: AccountInfo | null = null;
   private accountScopedDir: string = AVA_HOME; // scoped per account when connected
+
+  /**
+   * Public getter for the account-scoped data directory — used by DashboardPanel
+   * and other companion panels to read/write user data from the correct location.
+   *
+   * When a platform account is connected: `AVA_HOME/users/<account-id>/`.
+   * When no account is connected (BYOK or fresh install): `AVA_HOME`.
+   *
+   * All data reads/writes that touch user memory, tasks, journal, learning,
+   * history, personality, sync-state, or config must go through this getter
+   * rather than using AVA_HOME directly.
+   */
+  public getAccountScopedDir(): string {
+    return this.accountScopedDir;
+  }
   private providerSource: ProviderSource = 'byok';
   private enabledModelIds: Set<string> | null = null;
   private heartbeatInterval?: ReturnType<typeof setInterval>;
@@ -198,6 +217,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     this.projectInstructions = this.projectRoot
       ? (await loadProjectInstructions(this.projectRoot)) ?? undefined
+      : undefined;
+    this.decisionsState = this.projectRoot
+      ? await loadDecisionsState(this.projectRoot)
       : undefined;
     this.cachedMemory = (await this.memoryManager.loadAll(this.projectInstructions)) || undefined;
   }
@@ -1114,6 +1136,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       platformKey,
       getProviderKey,
       activeModelId: model.id,
+      // Active provider + model + tool registry — needed by specialist tools
+      // (e.g. curator) that spawn fresh-context agents. Without these, any
+      // tool that needs to run an agent internally has no way to resolve
+      // the caller's provider and falls back to its own hardcoded guesses.
+      activeProvider: resilientProvider,
+      activeModel: model,
+      toolRegistry: this.toolRegistry,
     };
 
     // Memory Agent — curates memory briefs instead of raw dumps
@@ -1164,6 +1193,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         sharedState,
         availableProviders,
         platformKey,
+        // Thread Decisions folder state through to spawned task agents so
+        // Builder agents share the same project context as the conductor.
+        systemPromptOpts: {
+          decisionsContext: this.decisionsState?.context ?? undefined,
+          decisionsFolderExists: this.decisionsState?.hasFolder ?? false,
+          decisionsOptInStatus: this.decisionsState?.optInStatus ?? 'not-asked',
+        },
       });
     } else {
       this.autoCoordinator = undefined;
@@ -1466,6 +1502,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       sourceRoot,
       personality,
       knowledgeContext,
+      decisionsContext: this.decisionsState?.context ?? undefined,
+      decisionsFolderExists: this.decisionsState?.hasFolder ?? false,
+      decisionsOptInStatus: this.decisionsState?.optInStatus ?? 'not-asked',
       excludeTools: ['screenshot', 'computer_use'],
     });
   }
@@ -2027,6 +2066,26 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     attachments?: Array<{ type: 'image'; data: string; name: string }>,
   ): Promise<void> {
     this.log(`handleUserMessage called: text="${text.slice(0, 40)}", mode=${mode}, providerSource=${this.providerSource}`);
+
+    // Guard against empty / whitespace-only sends.
+    //
+    // Multiple webview paths can post send_message events — the main input
+    // area, the Continue button, suggestion buttons, the dashboard chat
+    // surface, and programmatic callbacks. Only InputArea's manual path
+    // explicitly blocks empty sends; every other path is a potential source
+    // of an accidentally-empty text field (missing i18n key, race on state
+    // loading, stale IPC payload). If any of them fire with empty text, the
+    // agent gets a blank user turn and responds "did you mean to send
+    // something?" — the "blonde moment" failure.
+    //
+    // Allow attachment-only sends through — the webview substitutes '(image)'
+    // when text is empty in that case, so we check the trimmed text here.
+    const hasAttachments = (attachments?.length ?? 0) > 0;
+    if ((typeof text !== 'string' || text.trim().length === 0) && !hasAttachments) {
+      this.log(`handleUserMessage: dropping empty send (no text, no attachments) — likely a spurious programmatic event`);
+      return;
+    }
+
     // Input validation
     if (text.length > 100_000) {
       this.postMessage({ type: 'error', message: 'Message too long (max 100K characters).' });

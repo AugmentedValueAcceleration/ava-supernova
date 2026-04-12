@@ -70,12 +70,33 @@ function updateMessageEvents(
   messageId: string | null,
   updater: (events: MessageEvent[]) => MessageEvent[],
 ): UIMessage[] {
-  if (!messageId) return messages;
-  return messages.map((m) =>
-    m.id === messageId
-      ? { ...m, events: updater(m.events || []) }
-      : m,
-  );
+  // Primary path — attach to the tracked current bubble
+  if (messageId) {
+    return messages.map((m) =>
+      m.id === messageId
+        ? { ...m, events: updater(m.events || []) }
+        : m,
+    );
+  }
+  // Defensive fallback — if the current bubble was closed (done fired) but
+  // more events are still arriving for the same turn (premature done,
+  // closure-fallback retry, late tool result, agent still executing after
+  // an early "finish" decision), attach the events to the most recent
+  // assistant message instead of silently dropping them. The previous
+  // behaviour returned messages unchanged, which meant users saw "Ava
+  // stopped responding" while she was actually still working — an
+  // invisible data loss that was indistinguishable from a hang.
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'assistant') {
+      const idx = i;
+      return messages.map((m, j) =>
+        j === idx
+          ? { ...m, events: updater(m.events || []) }
+          : m,
+      );
+    }
+  }
+  return messages;
 }
 import { useVSCodeApi } from './hooks/useVSCodeApi';
 import { ChatContainer } from './components/ChatContainer';
@@ -181,10 +202,29 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       // within the same turn), keep using it — stream_start just means the
       // next LLM round is about to write. Do NOT create a new bubble.
       //
-      // Only create a new bubble when currentAssistantId is null, which is
-      // true at the start of each turn after user_message_ack clears it.
+      // Only create a new bubble when currentAssistantId is null AND there
+      // isn't already an assistant message we should continue. The second
+      // condition is defensive: if done fired prematurely and then the
+      // agent resumed work (continuation stall recovery, closure fallback
+      // retry, etc.), we want to re-attach to the existing bubble rather
+      // than create a duplicate. user_message_ack is the ONLY path that
+      // should trigger a fresh bubble — it's what actually signals "new
+      // user turn" — and that handler creates the user message cleanly
+      // without touching currentAssistantId on the assistant side.
       if (state.currentAssistantId) {
         return { ...state, isStreaming: true, isThinking: true };
+      }
+      // Look for a recent assistant bubble to re-attach to. We only
+      // re-attach if the LAST message is an assistant (meaning no user
+      // message has arrived since — same turn, agent continuing).
+      const lastMsg = state.messages[state.messages.length - 1];
+      if (lastMsg && lastMsg.role === 'assistant') {
+        return {
+          ...state,
+          currentAssistantId: lastMsg.id,
+          isStreaming: true,
+          isThinking: true,
+        };
       }
       const newId = nextId();
       const msg: UIMessage = {
@@ -209,10 +249,14 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       // Append to the last thinking event in the current bubble. If the
       // previous event was a different kind (text or tool call), start a
       // new thinking event so the chronology is preserved.
+      //
+      // Defensive: if isStreaming was cleared (e.g. by a premature done
+      // event), flip it back. Activity is still happening — the UI
+      // should show that, not lie about it.
       const messages = updateMessageEvents(state.messages, state.currentAssistantId, (events) =>
         appendToLastEventOfKind(events, 'thinking', action.content),
       );
-      return { ...state, messages, isThinking: false };
+      return { ...state, messages, isThinking: true, isStreaming: true };
     }
 
     case 'stream_delta': {
@@ -220,10 +264,12 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       // bubble splitting on text-after-tools — the text becomes a new
       // text event inside the same timeline, appearing chronologically
       // after whatever tool events preceded it.
+      //
+      // Defensive: restore streaming state if it was prematurely cleared.
       const messages = updateMessageEvents(state.messages, state.currentAssistantId, (events) =>
         appendToLastEventOfKind(events, 'text', action.content),
       );
-      return { ...state, messages, isThinking: false };
+      return { ...state, messages, isThinking: false, isStreaming: true };
     }
 
     case 'stream_end': {
@@ -269,7 +315,9 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
           },
         ];
       });
-      return { ...state, messages };
+      // Defensive: a tool call starting means the agent is active. Restore
+      // running state if a premature done had cleared it.
+      return { ...state, messages, isStreaming: true, isThinking: false };
     }
 
     case 'tool_call_partial': {

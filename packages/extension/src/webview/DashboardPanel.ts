@@ -1743,11 +1743,27 @@ export class DashboardPanel {
     }
   }
 
+  // ─── User Data Directory ────────────────────────────────────────────────────
+  //
+  // All DashboardPanel data reads/writes go through this helper. It resolves to
+  // the account-scoped directory (`AVA_HOME/users/<account-id>/`) when a platform
+  // account is connected, and falls back to `AVA_HOME` for BYOK/no-account users.
+  //
+  // This used to be hardcoded to `AVA_HOME` in 15 different places, which meant
+  // account-connected users saw the wrong data everywhere in the dashboard — the
+  // sync tab showed zero memories while the memory page correctly showed the real
+  // (account-scoped) count. The fix is to route everything through this single
+  // getter which delegates to AvaViewProvider's account-scoping logic.
+
+  private getUserDataDir(): string {
+    return this.viewProvider?.getAccountScopedDir() ?? AVA_HOME;
+  }
+
   // ─── Local Memories (BYOK) ──────────────────────────────────────────────────
 
   private getMemoryManager(): MemoryManager {
     if (!this.memoryManager) {
-      const globalDir = AVA_HOME ?? path.join(os.homedir(), '.ava');
+      const globalDir = this.getUserDataDir();
       const projectRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
       this.memoryManager = new MemoryManager({ globalDir, projectRoot });
     }
@@ -1887,7 +1903,7 @@ export class DashboardPanel {
 
   private getTaskManager(): TaskManager {
     if (!this.taskManager) {
-      const globalDir = AVA_HOME ?? path.join(os.homedir(), '.ava');
+      const globalDir = this.getUserDataDir();
       const projectRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
       this.taskManager = new TaskManager({ globalDir, projectRoot });
     }
@@ -1939,7 +1955,7 @@ export class DashboardPanel {
   private async loadLearning(): Promise<void> {
     try {
       const fs = await import('node:fs/promises');
-      const learningPath = path.join(AVA_HOME, 'learning.json');
+      const learningPath = path.join(this.getUserDataDir(), 'learning.json');
       const raw = await fs.readFile(learningPath, 'utf-8');
       const store = JSON.parse(raw);
       const curriculums = Array.isArray(store.curriculums) ? store.curriculums : [];
@@ -1952,7 +1968,7 @@ export class DashboardPanel {
   private async deleteCurriculum(id: string): Promise<void> {
     try {
       const fs = await import('node:fs/promises');
-      const learningPath = path.join(AVA_HOME, 'learning.json');
+      const learningPath = path.join(this.getUserDataDir(), 'learning.json');
       const raw = await fs.readFile(learningPath, 'utf-8');
       const store = JSON.parse(raw);
       if (Array.isArray(store.curriculums)) {
@@ -2067,7 +2083,7 @@ export class DashboardPanel {
 
   private getJournalManager(): JournalManager {
     if (!this.journalManager) {
-      const globalDir = AVA_HOME ?? path.join(os.homedir(), '.ava');
+      const globalDir = this.getUserDataDir();
       const projectRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
       this.journalManager = new JournalManager({ globalDir, projectRoot });
     }
@@ -2429,7 +2445,7 @@ export class DashboardPanel {
   private async loadSyncState(): Promise<Record<string, { syncedCount: number; syncedAt: string }>> {
     const fs = await import('node:fs/promises');
     try {
-      const raw = await fs.readFile(path.join(AVA_HOME, 'sync-state.json'), 'utf-8');
+      const raw = await fs.readFile(path.join(this.getUserDataDir(), 'sync-state.json'), 'utf-8');
       return JSON.parse(raw);
     } catch { return {}; }
   }
@@ -2462,7 +2478,7 @@ export class DashboardPanel {
     const fs = await import('node:fs/promises');
     const state = await this.loadSyncState();
     state[dataType] = { syncedCount: count, syncedAt: new Date().toISOString() };
-    await fs.writeFile(path.join(AVA_HOME, 'sync-state.json'), JSON.stringify(state, null, 2));
+    await fs.writeFile(path.join(this.getUserDataDir(), 'sync-state.json'), JSON.stringify(state, null, 2));
   }
 
   private async loadSyncStatus(): Promise<void> {
@@ -2471,17 +2487,18 @@ export class DashboardPanel {
     const syncState = await this.loadSyncState();
     const data: Record<string, { available: boolean; lastSynced: string | null; localCount: number; syncedCount: number; newCount: number }> = {};
 
+    const dataDir = this.getUserDataDir();
     const types = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings', 'personality', 'creative'] as const;
     for (const t of types) {
       let localCount = 0;
       try {
-        const filePath = t === 'memory' ? path.join(AVA_HOME, 'memory.json')
-          : t === 'tasks' ? path.join(AVA_HOME, 'tasks.json')
-          : t === 'journal' ? path.join(AVA_HOME, 'journal')
-          : t === 'learning' ? path.join(AVA_HOME, 'learning.json')
-          : t === 'history' ? path.join(AVA_HOME, 'history')
-          : t === 'personality' ? path.join(AVA_HOME, 'personality.json')
-          : path.join(AVA_HOME, 'config.json');
+        const filePath = t === 'memory' ? path.join(dataDir, 'memory.json')
+          : t === 'tasks' ? path.join(dataDir, 'tasks.json')
+          : t === 'journal' ? path.join(dataDir, 'journal')
+          : t === 'learning' ? path.join(dataDir, 'learning.json')
+          : t === 'history' ? path.join(dataDir, 'history')
+          : t === 'personality' ? path.join(dataDir, 'personality.json')
+          : path.join(dataDir, 'config.json');
 
         if (t === 'journal' || t === 'history') {
           const entries = await fs.readdir(filePath).catch(() => []);
@@ -2527,7 +2544,7 @@ export class DashboardPanel {
         case 'memory': {
           const { PlatformMemorySync } = await import('@ava/core');
           const sync = new PlatformMemorySync('https://ava-supernova.com/api', platformKey);
-          const raw = await fs.readFile(path.join(AVA_HOME, 'memory.json'), 'utf-8');
+          const raw = await fs.readFile(path.join(this.getUserDataDir(), 'memory.json'), 'utf-8');
           const store = JSON.parse(raw);
           const entries = store.entries || [];
           await sync.pushEntries('global', entries);
@@ -2538,7 +2555,7 @@ export class DashboardPanel {
         }
 
         case 'tasks': {
-          const raw = await fs.readFile(path.join(AVA_HOME, 'tasks.json'), 'utf-8');
+          const raw = await fs.readFile(path.join(this.getUserDataDir(), 'tasks.json'), 'utf-8');
           const store = JSON.parse(raw);
           const tasks = store.tasks || [];
           const res = await apiFetch('/tasks/sync', {
@@ -2554,7 +2571,7 @@ export class DashboardPanel {
         }
 
         case 'journal': {
-          const journalDir = path.join(AVA_HOME, 'journal');
+          const journalDir = path.join(this.getUserDataDir(), 'journal');
           const files = await fs.readdir(journalDir).catch(() => []);
           let count = 0;
           for (const file of files) {
@@ -2584,7 +2601,7 @@ export class DashboardPanel {
         }
 
         case 'learning': {
-          const raw = await fs.readFile(path.join(AVA_HOME, 'learning.json'), 'utf-8');
+          const raw = await fs.readFile(path.join(this.getUserDataDir(), 'learning.json'), 'utf-8');
           const store = JSON.parse(raw);
           const curriculums = store.curriculums || [];
           const res = await apiFetch('/learning/sync', {
@@ -2600,7 +2617,7 @@ export class DashboardPanel {
         }
 
         case 'history': {
-          const historyDir = path.join(AVA_HOME, 'history');
+          const historyDir = path.join(this.getUserDataDir(), 'history');
           const files = await fs.readdir(historyDir).catch(() => []);
           let synced = 0;
           // Sync one conversation at a time to avoid payload size limits
@@ -3002,7 +3019,7 @@ export class DashboardPanel {
 
   private async handleExportData(dataType: string): Promise<void> {
     const fs = await import('node:fs/promises');
-    const avaDir = AVA_HOME;
+    const avaDir = this.getUserDataDir();
 
     try {
       let content = '';
@@ -3091,7 +3108,7 @@ export class DashboardPanel {
   private async handleExportBundle(types: string[]): Promise<void> {
     const fs = await import('node:fs/promises');
     const JSZip = require('jszip');
-    const avaDir = AVA_HOME;
+    const avaDir = this.getUserDataDir();
 
     try {
       const zip = new JSZip();
@@ -3158,7 +3175,7 @@ export class DashboardPanel {
 
   private async handleImportData(dataType: string, content: string): Promise<void> {
     const fs = await import('node:fs/promises');
-    const avaDir = AVA_HOME;
+    const avaDir = this.getUserDataDir();
 
     try {
       let count = 0;

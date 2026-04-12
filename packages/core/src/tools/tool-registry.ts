@@ -61,6 +61,7 @@ import { NewsTool } from './news.js';
 import { ComputerUseTool } from './computer-use.js';
 import { SwitchModeTool } from './switch-mode.js';
 import { BrowseLibraryTool } from './browse-library.js';
+import { CuratorTool } from './curator.js';
 
 // ── Tool → Category mapping ────────────────────────────────────────────────
 
@@ -89,6 +90,7 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   computer_use: 'system', get_datetime: 'system', detect_language: 'system',
   audit_dependencies: 'system', security: 'system',
   ask_user: 'system', support_request: 'system', propose_tool: 'system',
+  curator: 'system',
   // Documents — creation, planning, tasks
   document_manage: 'documents', presentation_create: 'documents',
   report_generate: 'documents', email_draft: 'documents',
@@ -333,6 +335,7 @@ export class ToolRegistry {
       new ComputerUseTool(),
       new SwitchModeTool(),
       new BrowseLibraryTool(),
+      new CuratorTool(),
     ];
     for (const tool of builtins) {
       if (!excludeSet.has(tool.name)) {
