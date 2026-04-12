@@ -85,6 +85,30 @@ function looksLikeContinuationStall(content: string): boolean {
   return false;
 }
 
+/**
+ * Detect context drift: the model produced a greeting or social response
+ * after a turn with tool usage. This happens when attention on the original
+ * task fades under the weight of many file reads / tool results and the
+ * model defaults to a safe social response instead of summarising findings.
+ *
+ * Only fires when the turn had 3+ tool calls AND the response is short
+ * and contains greeting patterns. A greeting in a zero-tool turn is fine
+ * (that's just a Chat-mode response).
+ */
+const GREETING_PATTERNS = [
+  /\bhey\b/i, /\bhello\b/i, /\bhi\b/i, /\bgood\s+(?:morning|afternoon|evening)\b/i,
+  /\bhow(?:'s| is) your (?:day|morning|evening|afternoon)\b/i,
+  /\bhow are you\b/i, /\bwhat(?:'s| is) up\b/i, /\bnice to (?:see|hear|meet)\b/i,
+];
+
+function looksLikePostToolDrift(content: string, toolCallCount: number): boolean {
+  if (toolCallCount < 3) return false; // Only relevant after real tool usage
+  const trimmed = content.trim();
+  if (trimmed.length > 200) return false; // Short response after many tools = suspicious
+  const lower = trimmed.toLowerCase();
+  return GREETING_PATTERNS.some(p => p.test(lower));
+}
+
 const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   plan: new Set([
     'file_read', 'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
@@ -719,10 +743,16 @@ export class Agent {
           : '';
         const isEmptyClose = contentText.length === 0;
         const isContinuationStall = !isEmptyClose && looksLikeContinuationStall(contentText);
+        // Count tool calls in this run so far (for drift detection)
+        const runToolCallCount = messages.filter(m => m.role === 'assistant' && (m as any).tool_calls?.length > 0)
+          .reduce((sum, m) => sum + ((m as any).tool_calls?.length ?? 0), 0);
+        const isPostToolDrift = !isEmptyClose && !isContinuationStall && looksLikePostToolDrift(contentText, runToolCallCount);
 
-        if ((isEmptyClose || isContinuationStall) && !closureFallbackAttempted) {
+        if ((isEmptyClose || isContinuationStall || isPostToolDrift) && !closureFallbackAttempted) {
           closureFallbackAttempted = true;
-          const reason = isEmptyClose ? 'empty final message' : 'continuation stall (narrated intent without acting)';
+          const reason = isEmptyClose ? 'empty final message'
+            : isContinuationStall ? 'continuation stall (narrated intent without acting)'
+            : 'post-tool drift (greeting/social response after tool usage)';
           logger.debug(`[agent] Closure fallback: ${reason}, re-prompting`);
 
           // Drop the stalled assistant message from history
@@ -731,6 +761,8 @@ export class Agent {
           // Inject the appropriate forcing nudge
           const nudgeContent = isEmptyClose
             ? '[Closure check — your previous response was empty. The user needs visible confirmation that you finished. Write ONE short sentence summarising what you just did in this turn. Example: "Done — sidebar.tsx updated with the new palette." or "Fixed the missing habitId arg on line 71 of App.tsx." No tool calls. Just one sentence of text. This is the minimum required to close out a turn.]'
+            : isPostToolDrift
+            ? `[Context drift detected — you just used ${runToolCallCount} tools (reading files, searching, etc.) but then produced a greeting/social response instead of summarising your findings. You were in the middle of a task. The user did NOT change the subject — your attention drifted under the weight of all those tool results. Go back to the ORIGINAL task. Summarise what you found in the files you just read, present your plan, or continue working. Never produce a greeting after research.]`
             : `[Continuation check — you said "${contentText.slice(0, 120)}${contentText.length > 120 ? '…' : ''}" but then stopped without making any tool calls. You NARRATED intent but never acted on it. The user sees a promise that never got fulfilled — the worst possible UX. Do the work NOW in this response: make the actual tool calls to accomplish what you said you would. If the work genuinely can't be done, explain clearly why ("I can't X because Y"). Silence or another narration loop is not acceptable — either act or explain, no middle ground.]`;
 
           messages = [
