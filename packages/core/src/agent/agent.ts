@@ -36,6 +36,7 @@ import {
   COMPLEXITY_BUDGETS,
   type TaskComplexity,
 } from './task-classifier.js';
+import { autoActivatePacks } from '../knowledge/pack-router.js';
 
 // ─── Mode-aware tool filtering ──────────────────────────────────────────────
 // When a non-work mode is active, restrict the tool schema sent to the model
@@ -304,6 +305,31 @@ export class Agent {
     } else {
       // No user task — default to moderate budget just in case.
       this.currentTaskComplexity = 'moderate';
+    }
+
+    // ─── Auto-activate knowledge packs based on user message ────────────
+    // Runs on EVERY user message (not just the first). If the user starts
+    // with "hey" and then says "redesign the layout", the app-development
+    // pack activates on the second message. Already-loaded packs are
+    // tracked so they're never re-added.
+    if (latestUserMessage) {
+      try {
+        const activatedPackIds = (this.toolContext.sharedState as any)?._activatedPackIds as Set<string> | undefined;
+        const loadedIds = activatedPackIds ?? new Set<string>();
+        const { packIds, content } = autoActivatePacks(latestUserMessage, loadedIds);
+        if (packIds.length > 0 && content) {
+          // Inject the pack content into the system message
+          messages = this.appendToSystemMessage(messages, `\n\n${content}`);
+          // Track which packs we've loaded so we don't re-add them
+          for (const id of packIds) loadedIds.add(id);
+          if (!(this.toolContext.sharedState as any)?._activatedPackIds) {
+            ((this.toolContext.sharedState as any) ?? {})._activatedPackIds = loadedIds;
+          }
+          logger.debug(`[agent] Auto-activated packs: ${packIds.join(', ')}`);
+        }
+      } catch {
+        // Non-critical — packs are additive, missing one doesn't break anything
+      }
     }
 
     const useNativeTools = this.model.supportsToolCalls !== false;

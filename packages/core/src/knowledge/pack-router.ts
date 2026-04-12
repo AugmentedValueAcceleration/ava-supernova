@@ -40,7 +40,14 @@ const DOMAIN_KEYWORDS: Record<KnowledgeDomain, string[]> = {
 
 /**
  * Given a user message, return the pack IDs that should be activated.
- * Excludes packs that are already loaded (via file detection or manual enable).
+ * Excludes packs that are already loaded (via file detection, manual
+ * enable, or previous router calls this session).
+ *
+ * Designed to run on EVERY user message, not just the first one. If
+ * the user starts with "hey" and later says "help me redesign the
+ * layout", the app-development pack activates on the second message.
+ * Already-loaded packs are tracked via alreadyLoadedIds and never
+ * re-added.
  */
 export function routePacks(
   userMessage: string,
