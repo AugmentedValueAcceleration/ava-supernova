@@ -3,6 +3,7 @@ import type { UIMessage } from '../../types/messages';
 import { MessageBubble } from './MessageBubble';
 import { ThinkingIndicator } from './ThinkingIndicator';
 import { PersonaStatus } from './PersonaStatus';
+import { ContextBar } from './ContextBar';
 import { t, useLocale } from '../../i18n';
 
 interface PersonaInfo {
@@ -29,6 +30,11 @@ interface ChatContainerProps {
   onOpenDashboard?: () => void;
   activeModel?: string | null;
   models?: Array<{ id: string; name: string; provider: string }>;
+  // Context bar (v0.39.x) — replaces the circular chip in InputArea.
+  contextUsage?: { used: number; limit: number; percent: number } | null;
+  isCompressing?: boolean;
+  isStreaming?: boolean;
+  onCompress?: () => void;
 }
 
 const SUGGESTIONS = [
@@ -54,7 +60,7 @@ const MODE_INFO = [
   { icon: '!!', label: 'Security', desc: 'welcome.mode.security_desc' },
 ];
 
-export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onSuggestion, onRate, chatEndRef, needsSetup, initialized, onOpenDashboard, activeModel, models, conductorActive, conductorMode, activePersonas }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onSuggestion, onRate, chatEndRef, needsSetup, initialized, onOpenDashboard, activeModel, models, conductorActive, conductorMode, activePersonas, contextUsage, isCompressing, isStreaming, onCompress }: ChatContainerProps) {
   useLocale();
   // Don't render welcome screen until init message arrives — prevents setup banner flash
   if (!initialized && messages.length === 0) {
@@ -225,25 +231,34 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3" role="log" aria-label="Chat messages" aria-live="polite">
-      {messages.map((msg, i) => (
-        <MessageBubble
-          key={msg.id}
-          message={msg}
-          onConfirmation={onConfirmation}
-          onContinue={msg.role === 'error' && i === messages.length - 1 ? onContinue : undefined}
-          onRate={msg.role === 'assistant' ? onRate : undefined}
-        />
-      ))}
-      {(conductorActive || (activePersonas && activePersonas.length > 0)) && (
-        <PersonaStatus
-          active={conductorActive || false}
-          mode={conductorMode}
-          personas={activePersonas || []}
-        />
-      )}
-      {isThinking && <ThinkingIndicator />}
-      <div ref={chatEndRef} />
+    <div className="flex-1 flex flex-col min-h-0">
+      <ContextBar
+        contextUsage={contextUsage ?? null}
+        isCompressing={isCompressing}
+        isStreaming={isStreaming}
+        onCompress={onCompress}
+      />
+
+      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3" role="log" aria-label="Chat messages" aria-live="polite">
+        {messages.map((msg, i) => (
+          <MessageBubble
+            key={msg.id}
+            message={msg}
+            onConfirmation={onConfirmation}
+            onContinue={msg.role === 'error' && i === messages.length - 1 ? onContinue : undefined}
+            onRate={msg.role === 'assistant' ? onRate : undefined}
+          />
+        ))}
+        {(conductorActive || (activePersonas && activePersonas.length > 0)) && (
+          <PersonaStatus
+            active={conductorActive || false}
+            mode={conductorMode}
+            personas={activePersonas || []}
+          />
+        )}
+        {isThinking && <ThinkingIndicator />}
+        <div ref={chatEndRef} />
+      </div>
     </div>
   );
 }

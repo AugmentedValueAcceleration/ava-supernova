@@ -10,6 +10,11 @@ export type { TaskCategory as AutoTaskCategory, ClassificationResult, RouteResul
 // Memory Agent
 export { MemoryAgent } from './memory/memory-agent.js';
 export type { MemoryBrief, MemoryAgentOptions } from './memory/memory-agent.js';
+
+// Intent Classifier (Qwen Flash tool-use gate)
+export { IntentClassifier } from './agent/intent-classifier.js';
+export type { UserIntent, IntentClassifierOptions } from './agent/intent-classifier.js';
+
 export type { SystemPromptOptions } from './agent/system-prompt.js';
 export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix } from './agent/system-prompt.js';
 

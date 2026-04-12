@@ -966,10 +966,6 @@ export function App() {
     [postMessage],
   );
 
-  const handleInterrupt = useCallback(() => {
-    postMessage({ type: 'interrupt' });
-  }, [postMessage]);
-
   const handleCancel = useCallback(() => {
     postMessage({ type: 'cancel' });
   }, [postMessage]);
@@ -1220,12 +1216,15 @@ export function App() {
           onStartSignIn={handleStartSignIn}
           onCancelSignIn={handleCancelSignIn}
           onClearSignInError={handleClearSignInError}
+          contextUsage={state.contextUsage}
+          isCompressing={state.isCompressing}
+          isStreaming={state.isStreaming}
+          onCompress={handleCompress}
         />
 
         <InputArea
           onSend={handleSend}
           onCancel={handleCancel}
-          onInterrupt={handleInterrupt}
           isStreaming={state.isStreaming}
           disabled={state.needsSetup}
           usage={state.lastUsage}

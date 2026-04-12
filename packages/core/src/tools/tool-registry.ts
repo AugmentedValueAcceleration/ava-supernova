@@ -348,15 +348,52 @@ export class ToolRegistry {
     this.tools.set(tool.name, tool);
   }
 
+  /**
+   * Model-facing aliases for tool names. The model's training data
+   * overwhelmingly uses short convention names (`write`, `read`, `edit`)
+   * rather than our internal prefixed names (`file_write`, `file_read`,
+   * `file_edit`). When the coordinator hallucinates `write` it's actually
+   * right — our schema was wrong. We now expose the short names to the
+   * model and keep the prefixed names internally so mode allowlists,
+   * persona definitions, memory patterns, and procedural learning don't
+   * need to be rewritten.
+   *
+   * Direction: model-side → internal.
+   */
+  private static readonly MODEL_NAME_ALIASES: Record<string, string> = {
+    write: 'file_write',
+    read: 'file_read',
+    edit: 'file_edit',
+  };
+
+  /** Inverse of MODEL_NAME_ALIASES — internal → model-facing. */
+  private static readonly INTERNAL_TO_MODEL_NAME: Record<string, string> = {
+    file_write: 'write',
+    file_read: 'read',
+    file_edit: 'edit',
+  };
+
+  private resolveToolName(name: string): string {
+    return ToolRegistry.MODEL_NAME_ALIASES[name] ?? name;
+  }
+
   getTool(name: string): Tool | undefined {
-    return this.tools.get(name);
+    return this.tools.get(this.resolveToolName(name));
   }
 
   getSchemas(): ToolSchema[] {
-    return Array.from(this.tools.values()).map((tool) => ({
-      type: 'function' as const,
-      function: tool.schema,
-    }));
+    return Array.from(this.tools.values()).map((tool) => {
+      const modelName = ToolRegistry.INTERNAL_TO_MODEL_NAME[tool.name];
+      if (!modelName) {
+        return { type: 'function' as const, function: tool.schema };
+      }
+      // Present the schema to the model under the short convention name
+      // while keeping the internal identity stable.
+      return {
+        type: 'function' as const,
+        function: { ...tool.schema, name: modelName },
+      };
+    });
   }
 
   // ── Permission check ────────────────────────────────────────────────────
@@ -386,7 +423,12 @@ export class ToolRegistry {
     args: Record<string, unknown>,
     context: ToolExecutionContext,
   ): Promise<ToolResult> {
-    const tool = this.tools.get(name);
+    // Resolve model-facing aliases (e.g. `write` → `file_write`) to the
+    // internal tool identity. From here on, all bookkeeping uses the
+    // canonical name so category lookups, permissions, and logging stay
+    // consistent with existing config.
+    const resolvedName = this.resolveToolName(name);
+    const tool = this.tools.get(resolvedName);
     if (!tool) {
       return {
         success: false,
@@ -394,9 +436,9 @@ export class ToolRegistry {
       };
     }
 
-    const category = this.getCategoryForTool(name);
+    const category = this.getCategoryForTool(resolvedName);
     const permission = this.getCategoryPermission(category);
-    const argsSummary = summariseArgs(name, args);
+    const argsSummary = summariseArgs(resolvedName, args);
 
     // Determine approval method for audit
     let approvalMethod: AuditLogEntry['approvalMethod'] = 'auto';

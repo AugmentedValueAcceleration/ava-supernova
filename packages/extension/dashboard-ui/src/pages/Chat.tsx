@@ -831,7 +831,6 @@ export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCol
     dispatch({ type: 'confirmation_responded', confirmationId, approved });
   }, []);
 
-  const handleInterrupt = useCallback(() => { post({ type: 'interrupt' }); }, []);
   const handleCancel = useCallback(() => { post({ type: 'cancel' }); }, []);
 
   const handleOpenHistory = useCallback(() => { post({ type: 'request_history' }); }, []);
@@ -986,6 +985,10 @@ export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCol
             conductorActive={state.conductorActive}
             conductorMode={state.conductorMode}
             activePersonas={state.activePersonas}
+            contextUsage={state.contextUsage}
+            isCompressing={state.isCompressing}
+            isStreaming={state.isStreaming}
+            onCompress={handleCompress}
           />
 
           {/* Compression indicator */}
@@ -1003,7 +1006,6 @@ export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCol
           <InputArea
             onSend={handleSend}
             onCancel={handleCancel}
-            onInterrupt={handleInterrupt}
             isStreaming={state.isStreaming}
             disabled={state.needsSetup}
             usage={state.lastUsage}

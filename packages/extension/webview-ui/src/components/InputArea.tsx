@@ -16,7 +16,6 @@ export interface ImageAttachment {
 interface InputAreaProps {
   onSend: (text: string, mode: AvaMode, attachments?: ImageAttachment[]) => void;
   onCancel: () => void;
-  onInterrupt?: () => void;
   isStreaming: boolean;
   disabled: boolean;
   usage?: {
@@ -61,7 +60,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   brainstorm: 'input.placeholder.brainstorm',
 };
 
-export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled, usage, isCompressing, onCompress, providerSource, platformStatus, onProviderSourceChange, contextUsage }: InputAreaProps) {
+export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCompressing, onCompress, providerSource, platformStatus, onProviderSourceChange, contextUsage }: InputAreaProps) {
   useLocale();
   const [text, setText] = useState('');
   const [mode, setMode] = useState<AvaMode>('code');
@@ -585,43 +584,9 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
                 </span>
               );
             })()}
-            {/* Circular context usage indicator */}
-            {(() => {
-              const pct = contextUsage?.percent ?? (usage?.contextWindow ? Math.round((usage.total_tokens / usage.contextWindow) * 100) : 0);
-              if (pct <= 0) return null;
-              const isWarning = pct >= 80;
-              const isCritical = pct >= 90;
-              const radius = 10;
-              const stroke = 2.5;
-              const circumference = 2 * Math.PI * radius;
-              const dashOffset = circumference - (pct / 100) * circumference;
-              const color = isCritical ? '#ef4444' : isWarning ? '#eab308' : '#A855F7';
-              return (
-                <button
-                  onClick={onCompress}
-                  disabled={isCompressing || disabled || isStreaming}
-                  className="relative flex items-center justify-center w-7 h-7 bg-transparent border-none cursor-pointer transition-opacity hover:opacity-80 disabled:cursor-default"
-                  title={isCompressing ? t('input.compressing') : `Context: ${pct}%${isCritical ? ' — click to compress' : ''}`}
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" className="transform -rotate-90">
-                    {/* Background circle */}
-                    <circle cx="12" cy="12" r={radius} fill="none" stroke="currentColor" strokeWidth={stroke} opacity={0.1} />
-                    {/* Progress circle */}
-                    <circle
-                      cx="12" cy="12" r={radius}
-                      fill="none"
-                      stroke={color}
-                      strokeWidth={stroke}
-                      strokeLinecap="round"
-                      strokeDasharray={circumference}
-                      strokeDashoffset={dashOffset}
-                      style={{ transition: 'stroke-dashoffset 0.5s ease' }}
-                    />
-                  </svg>
-                  <span className="absolute text-[7px] font-bold tabular-nums" style={{ color }}>{pct}</span>
-                </button>
-              );
-            })()}
+            {/* Context usage indicator moved to the top of the chat
+                container as a horizontal bar (ContextBar). The old
+                circular chip lived here and is gone. */}
 
             {/* Attach button */}
             <button
@@ -704,14 +669,9 @@ export function InputArea({ onSend, onCancel, onInterrupt, isStreaming, disabled
 
             {isStreaming ? (
               <button
-                onClick={onInterrupt || onCancel}
-                onMouseDown={() => {
-                  const timer = setTimeout(onCancel, 800);
-                  const up = () => { clearTimeout(timer); document.removeEventListener('mouseup', up); };
-                  document.addEventListener('mouseup', up);
-                }}
-                title={t('input.pause_title')}
-                aria-label={t('input.pause_aria')}
+                onClick={onCancel}
+                title={t('input.stop')}
+                aria-label={t('input.stop_aria')}
                 className="flex items-center justify-center w-9 h-9 rounded-lg
                            text-white
                            hover:opacity-90

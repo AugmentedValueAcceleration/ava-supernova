@@ -86,7 +86,7 @@ export class BrowserTool implements Tool {
         },
         full_page: {
           type: 'boolean',
-          description: 'Capture full scrollable page instead of viewport only (for screenshot). Default: true.',
+          description: 'Capture full scrollable page instead of viewport only (for screenshot). Default: false (viewport only — smaller, usually what you want). Set true only when you genuinely need content below the fold.',
         },
       },
       required: ['action'],
@@ -225,7 +225,11 @@ export class BrowserTool implements Tool {
   }
 
   private async doScreenshot(args: Record<string, unknown>): Promise<ToolResult> {
-    const fullPage = (args.full_page as boolean) ?? true;
+    // Default to viewport only (not fullPage). Full-page screenshots of
+    // scrollable pages can be 5-10x larger than viewport captures and the
+    // visible area is almost always what the model needs. Callers who
+    // genuinely need the whole scrollable page can pass full_page: true.
+    const fullPage = (args.full_page as boolean) ?? false;
     const selector = args.selector as string | undefined;
 
     let buffer: Buffer;

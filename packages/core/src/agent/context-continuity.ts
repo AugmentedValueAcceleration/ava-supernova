@@ -44,6 +44,7 @@ const META_PREFIXES = [
   '[Design context refresh',
   '[Image captured',
   '[Interjection]',
+  '[User pressed Stop',
 ];
 
 export function isMetaPrefix(content: string): boolean {

@@ -4,7 +4,7 @@ import { getMessageText } from '../../types/messages';
 import { t, useLocale } from '../../i18n';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ThinkingBlock } from './ThinkingBlock';
-import { ToolCallCard } from './ToolCallCard';
+import { ToolCallBlock } from './ToolCallBlock';
 import { PlanCard } from './PlanCard';
 import { TodoCard } from './TodoCard';
 import { AskUserCard } from './AskUserCard';
@@ -222,119 +222,187 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
   const redactTextEvent = (content: string): string =>
     secretsRevealed ? content : redact(content);
 
+  // ── Segment events for top-level tool-block rendering ──────────────────
+  // See webview-ui/MessageBubble.tsx for the full rationale. Tool events
+  // become sibling blocks outside the chat bubble; text/thinking events
+  // group into contiguous bubble segments.
+  type Segment =
+    | { kind: 'bubble'; events: MessageEvent[]; firstIdx: number; lastIdx: number }
+    | { kind: 'tool'; event: Extract<MessageEvent, { kind: 'tool_call' }>; idx: number };
+
+  const segments: Segment[] = [];
+  for (let i = 0; i < events.length; i++) {
+    const ev = events[i];
+    if (ev.kind === 'tool_call') {
+      segments.push({ kind: 'tool', event: ev, idx: i });
+    } else {
+      const last = segments[segments.length - 1];
+      if (last && last.kind === 'bubble') {
+        last.events.push(ev);
+        last.lastIdx = i;
+      } else {
+        segments.push({ kind: 'bubble', events: [ev], firstIdx: i, lastIdx: i });
+      }
+    }
+  }
+
+  const hasAnyBubble = segments.some((s) => s.kind === 'bubble');
+  const showNameHeaderAlone = !hasAnyBubble && segments.length > 0;
+  const lastSegmentIdx = segments.length - 1;
+
   return (
-    <div className="flex justify-start">
-      <div className="group max-w-[90%] rounded-2xl rounded-bl-sm bg-[var(--vscode-input-background)] border border-[var(--vscode-panel-border)] px-4 py-3 space-y-2">
-        {/* Name badge */}
-        <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-2 items-start w-full">
+      {showNameHeaderAlone && (
+        <div className="flex items-center gap-2 px-1">
           <span className="text-sm font-bold text-[var(--vscode-foreground)]">Ava</span>
-          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider"
-                style={{ color: 'var(--color-accent, #a855f7)', backgroundColor: 'rgba(168, 85, 247, 0.15)' }}>
+          <span
+            className="text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider"
+            style={{ color: 'var(--color-accent, #a855f7)', backgroundColor: 'rgba(168, 85, 247, 0.15)' }}
+          >
             SUPERNOVA
           </span>
-          {hasSecrets && !message.isStreaming && (
-            <button
-              onClick={() => setSecretsRevealed(!secretsRevealed)}
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium
-                         bg-transparent border-none cursor-pointer
-                         transition-all duration-150 ml-auto"
-              style={{
-                color: secretsRevealed ? '#ef4444' : '#A855F7',
-                background: secretsRevealed ? 'rgba(239, 68, 68, 0.08)' : 'rgba(168, 85, 247, 0.08)',
-                border: `1px solid ${secretsRevealed ? 'rgba(239, 68, 68, 0.15)' : 'rgba(168, 85, 247, 0.15)'}`,
-              }}
-              title={secretsRevealed ? t('secrets.hide') : t('secrets.reveal')}
-            >
-              {secretsRevealed ? (
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                  <line x1="1" y1="1" x2="23" y2="23" />
-                </svg>
-              ) : (
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              )}
-              {secretsRevealed ? t('secrets.hide') : t('secrets.reveal')}
-            </button>
-          )}
         </div>
+      )}
 
-        {/* ── Chronological timeline of events ─────────────────────────── */}
-        {events.map((event, i) => {
-          if (event.kind === 'thinking') {
-            return (
-              <ThinkingBlock
-                key={`ev-${i}`}
-                content={event.content}
-                isStreaming={message.isStreaming && i === events.length - 1}
-              />
-            );
-          }
-          if (event.kind === 'text') {
-            const isLastText = i === lastTextEventIdx;
-            const showStreamingCursor = message.isStreaming && isLastText;
-            return (
-              <div key={`ev-${i}`} className="relative group">
-                <div className="text-sm leading-relaxed">
-                  <MarkdownRenderer content={redactTextEvent(event.content)} />
-                  {showStreamingCursor && (
+      {segments.map((seg, segIdx) => {
+        const isLast = segIdx === lastSegmentIdx;
+
+        if (seg.kind === 'bubble') {
+          const isFirstBubble = !segments.slice(0, segIdx).some((s) => s.kind === 'bubble');
+          return (
+            <div key={`seg-${segIdx}`} className="flex justify-start w-full">
+              <div className="group max-w-[90%] rounded-2xl rounded-bl-sm bg-[var(--vscode-input-background)] border border-[var(--vscode-panel-border)] px-4 py-3 space-y-2">
+                {isFirstBubble && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-[var(--vscode-foreground)]">Ava</span>
                     <span
-                      className="inline-block w-2 h-4 animate-pulse ml-0.5"
-                      style={{ backgroundColor: 'var(--color-accent, #a855f7)' }}
-                    />
-                  )}
-                </div>
-                {!message.isStreaming && isLastText && (
-                  <CopyButton
-                    getText={getContent}
-                    className="absolute top-1 right-1 w-6 h-6 opacity-20 hover:opacity-80 transition-opacity"
-                  />
+                      className="text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider"
+                      style={{ color: 'var(--color-accent, #a855f7)', backgroundColor: 'rgba(168, 85, 247, 0.15)' }}
+                    >
+                      SUPERNOVA
+                    </span>
+                    {hasSecrets && !message.isStreaming && (
+                      <button
+                        onClick={() => setSecretsRevealed(!secretsRevealed)}
+                        className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium
+                                   bg-transparent border-none cursor-pointer
+                                   transition-all duration-150 ml-auto"
+                        style={{
+                          color: secretsRevealed ? '#ef4444' : '#A855F7',
+                          background: secretsRevealed ? 'rgba(239, 68, 68, 0.08)' : 'rgba(168, 85, 247, 0.08)',
+                          border: `1px solid ${secretsRevealed ? 'rgba(239, 68, 68, 0.15)' : 'rgba(168, 85, 247, 0.15)'}`,
+                        }}
+                        title={secretsRevealed ? t('secrets.hide') : t('secrets.reveal')}
+                      >
+                        {secretsRevealed ? (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                          </svg>
+                        ) : (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        )}
+                        {secretsRevealed ? t('secrets.hide') : t('secrets.reveal')}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {seg.events.map((event, i) => {
+                  const absIdx = seg.firstIdx + i;
+                  if (event.kind === 'thinking') {
+                    return (
+                      <ThinkingBlock
+                        key={`ev-${absIdx}`}
+                        content={event.content}
+                        isStreaming={message.isStreaming && absIdx === events.length - 1}
+                      />
+                    );
+                  }
+                  if (event.kind === 'text') {
+                    const isLastText = absIdx === lastTextEventIdx;
+                    const showStreamingCursor = message.isStreaming && isLastText;
+                    return (
+                      <div key={`ev-${absIdx}`} className="relative group">
+                        <div className="text-sm leading-relaxed">
+                          <MarkdownRenderer content={redactTextEvent(event.content)} />
+                          {showStreamingCursor && (
+                            <span
+                              className="inline-block w-2 h-4 animate-pulse ml-0.5"
+                              style={{ backgroundColor: 'var(--color-accent, #a855f7)' }}
+                            />
+                          )}
+                        </div>
+                        {!message.isStreaming && isLastText && (
+                          <CopyButton
+                            getText={getContent}
+                            className="absolute top-1 right-1 w-6 h-6 opacity-20 hover:opacity-80 transition-opacity"
+                          />
+                        )}
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+
+                {isLast && !message.isStreaming && (
+                  <div className="flex items-end justify-between mt-1">
+                    {onRate && (
+                      <FeedbackButtons
+                        messageId={message.id}
+                        rating={message.rating}
+                        onRate={onRate}
+                      />
+                    )}
+                    {message.timestamp && (
+                      <div className="text-[11px] opacity-40 text-right flex-shrink-0 ml-auto">
+                        {new Date(message.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
-            );
-          }
-          // tool_call event — inline at its chronological position
-          const tc = event.toolCall;
-          if (tc.name === 'todo_write') {
-            return <TodoCard key={tc.id} toolCall={tc} isLatest={i === lastTodoIdx} />;
-          }
-          if (tc.name === 'present_plan') {
-            return <PlanCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />;
-          }
-          if (tc.name === 'ask_user') {
-            return <AskUserCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />;
-          }
-          return (
-            <div
-              key={tc.id}
-              style={{ borderLeft: '2px solid rgba(168, 85, 247, 0.3)', paddingLeft: '8px' }}
-            >
-              <ToolCallCard toolCall={tc} onConfirmation={onConfirmation} />
             </div>
           );
-        })}
+        }
 
-        {/* Timestamp + Feedback */}
-        {!message.isStreaming && (
-          <div className="flex items-end justify-between mt-1">
-            {onRate && (
-              <FeedbackButtons
-                messageId={message.id}
-                rating={message.rating}
-                onRate={onRate}
-              />
-            )}
-            {message.timestamp && (
-              <div className="text-[11px] opacity-40 text-right flex-shrink-0 ml-auto">
-                {new Date(message.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
+        // Tool-call segment — rendered as top-level block.
+        const tc = seg.event.toolCall;
+        if (tc.name === 'todo_write') {
+          return <TodoCard key={tc.id} toolCall={tc} isLatest={seg.idx === lastTodoIdx} />;
+        }
+        if (tc.name === 'present_plan') {
+          return <PlanCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />;
+        }
+        if (tc.name === 'ask_user') {
+          return <AskUserCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />;
+        }
+        return (
+          <div key={tc.id} className="w-full">
+            <ToolCallBlock toolCall={tc} onConfirmation={onConfirmation} />
+            {isLast && !message.isStreaming && (
+              <div className="flex items-end justify-between mt-1 px-1">
+                {onRate && (
+                  <FeedbackButtons
+                    messageId={message.id}
+                    rating={message.rating}
+                    onRate={onRate}
+                  />
+                )}
+                {message.timestamp && (
+                  <div className="text-[11px] opacity-40 text-right flex-shrink-0 ml-auto">
+                    {new Date(message.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                  </div>
+                )}
               </div>
             )}
           </div>
-        )}
-      </div>
+        );
+      })}
     </div>
   );
 }

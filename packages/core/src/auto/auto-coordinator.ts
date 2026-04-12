@@ -180,7 +180,39 @@ export class AutoCoordinator {
         t => t.status === 'todo' && !pendingBefore.has(t.id),
       );
 
-      if (newlyPending.length > 0) {
+      // ── Orchestration gate ─────────────────────────────────────────────
+      // The planning agent may speculatively create session tasks in
+      // response to any substantive request. Previously, any newly-created
+      // task triggered the TaskExecutor dispatch. That's how "launch the
+      // dev app" turned into a 5-task redesign + fix + document + launch
+      // run — the planner created all five tasks speculatively, and the
+      // executor dutifully executed them without asking.
+      //
+      // The gate asks Qwen Flash one question: given the user's actual
+      // message and the tasks that were just proposed, does the user
+      // want these executed as a plan, or did they ask for something
+      // simpler? If the answer is "simpler", the speculative tasks are
+      // marked deferred (still visible to the user in the task list so
+      // they can kick them off manually if they wanted them) and the
+      // executor does not run.
+      let shouldDispatch = newlyPending.length > 0;
+      if (shouldDispatch && !(await this.shouldOrchestrate(messages, newlyPending.map(t => t.title)))) {
+        logger.info(`[auto-coordinator] Orchestration gate: ${newlyPending.length} tasks created speculatively — user intent does not match. Deferring them.`);
+        for (const task of newlyPending) {
+          try {
+            taskMgr.updateTask(task.id, { status: 'deferred' } as any);
+          } catch { /* best-effort */ }
+        }
+        onEvent({
+          type: 'auto_routing',
+          category: 'coding',
+          model: this.coordinatorModel.id,
+          reason: `Speculative task breakdown skipped — user request did not warrant orchestration. ${newlyPending.length} tasks saved as deferred for manual dispatch.`,
+        } as AutoEvent);
+        shouldDispatch = false;
+      }
+
+      if (shouldDispatch) {
         logger.debug(`[auto-coordinator] Dispatching TaskExecutor for ${newlyPending.length} new tasks`);
 
         const executor = new TaskExecutor({
@@ -332,6 +364,98 @@ export class AutoCoordinator {
   private getTaskManager(): TaskManager | undefined {
     const tm = this.sharedState.taskManager as TaskManager | undefined;
     return tm && typeof tm.getSessionTasks === 'function' ? tm : undefined;
+  }
+
+  /**
+   * Orchestration gate — decides whether to dispatch the TaskExecutor
+   * for speculatively-created session tasks.
+   *
+   * Uses Qwen Flash (via sharedState.intentClassifier's provider/model)
+   * to judge whether the user's actual message requested the kind of
+   * multi-step plan the coordinator speculatively created. Returns true
+   * if the executor should run, false if the tasks should be deferred.
+   *
+   * Falls open (returns true) on any failure so we preserve existing
+   * behaviour when classification is unavailable — the gate is a
+   * guard-rail enhancement, not a hard block.
+   */
+  private async shouldOrchestrate(messages: Message[], taskTitles: string[]): Promise<boolean> {
+    // Single task is always fine — it's not "speculative expansion" of
+    // a single request, it's just the one thing being tracked as a task.
+    if (taskTitles.length <= 1) return true;
+
+    // Find the latest user message text.
+    let userMessage = '';
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.role !== 'user') continue;
+      const content = m.content;
+      const text = typeof content === 'string'
+        ? content
+        : Array.isArray(content)
+          ? (content as ContentPart[]).filter(p => p.type === 'text').map(p => ('text' in p ? p.text : '')).join(' ')
+          : '';
+      if (text.trim() && !text.trimStart().startsWith('[')) {
+        userMessage = text.trim();
+        break;
+      }
+    }
+    if (!userMessage) return true;
+
+    // Pull the Qwen Flash provider/model via the intentClassifier already
+    // wired into sharedState. Reusing it here avoids a second resolution.
+    const classifier = this.sharedState?.intentClassifier as { provider?: Provider; model?: ModelDefinition } | undefined;
+    const provider = classifier?.provider;
+    const model = classifier?.model;
+    if (!provider || !model) {
+      // No Flash available — preserve existing behaviour (orchestrate).
+      return true;
+    }
+
+    const systemPrompt = `You are a gate for an AI coding agent. A user sent a message, and the agent speculatively created a multi-task plan. Your job: decide if the user actually wants all those tasks executed, or if they asked for something simpler.
+
+Output exactly one word:
+- yes — the user's message genuinely asked for a multi-step project or explicitly requested a plan/breakdown
+- no — the user asked for one thing (a single action like "launch the dev", "run tests", "show me X", "explain Y"), and the agent over-expanded the scope
+
+When in doubt, output "no". It's better to do the one thing the user asked and wait for follow-up than to execute a 5-task speculative plan they didn't request.`;
+
+    const userPrompt = `User's message:
+"""
+${userMessage.slice(0, 500)}
+"""
+
+Tasks the agent speculatively created:
+${taskTitles.map((t, i) => `${i + 1}. ${t}`).join('\n')}
+
+Should these tasks be executed as a plan? Output yes or no.`;
+
+    try {
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('orchestration gate timeout')), 2500),
+      );
+      const callPromise = provider.createCompletion({
+        model: model.id,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0,
+        max_tokens: 8,
+        stream: false,
+      });
+      const response = await Promise.race([callPromise, timeout]);
+      const resp = response as { choices?: Array<{ message?: { content?: string | unknown } }>; message?: { content?: string | unknown } };
+      const content = resp.choices?.[0]?.message?.content ?? resp.message?.content ?? '';
+      const raw = (typeof content === 'string' ? content : '').trim().toLowerCase();
+      if (raw.startsWith('yes')) return true;
+      if (raw.startsWith('no')) return false;
+      logger.debug(`[auto-coordinator] Orchestration gate returned unrecognised output: "${raw.slice(0, 40)}", defaulting to orchestrate`);
+      return true;
+    } catch (err) {
+      logger.debug(`[auto-coordinator] Orchestration gate failed, defaulting to orchestrate: ${err instanceof Error ? err.message : String(err)}`);
+      return true;
+    }
   }
 
   /**

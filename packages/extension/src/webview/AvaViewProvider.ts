@@ -35,6 +35,7 @@ import {
   Conductor,
   AutoCoordinator,
   MemoryAgent,
+  IntentClassifier,
   resolveCoordinatorModel,
   BriefingEngine,
   EventDetector,
@@ -88,6 +89,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private conductor?: Conductor;
   private autoCoordinator?: AutoCoordinator;
   private memoryAgent?: MemoryAgent;
+  private intentClassifier?: IntentClassifier;
   private briefingEngine?: BriefingEngine;
   private eventDetector?: EventDetector;
   private tickInterval?: ReturnType<typeof setInterval>;
@@ -1253,10 +1255,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       toolRegistry: this.toolRegistry,
     };
 
-    // Memory Agent — curates memory briefs instead of raw dumps
+    // Qwen Flash — lightweight auxiliary model for classification and
+    // curation. Shared by the Memory Agent (brief curation) and the
+    // Intent Classifier (tool-use gate). Using one resolution keeps the
+    // two wiring sites in lockstep.
     const qwenFlash = this.providerRegistry.resolveModel('platform:qwen3-omni-flash')
       || this.providerRegistry.resolveModel('platform:qwen-flash')
       || this.providerRegistry.resolveModel('qwen:qwen3-omni-flash');
+
+    // Memory Agent — curates memory briefs instead of raw dumps
     if (qwenFlash && this.memoryManager) {
       this.memoryAgent = new MemoryAgent({
         memoryManager: this.memoryManager,
@@ -1264,6 +1271,19 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         model: qwenFlash.model,
       });
       sharedState.memoryAgent = this.memoryAgent;
+    }
+
+    // Intent Classifier — tool-use gate. Classifies each user message
+    // as task/conversational/ambiguous before the coordinator sees it.
+    // Conversational and ambiguous messages get no tool schemas, so
+    // the model must respond in words — preventing short messages
+    // like "whats the issue" from triggering grep/bash/file_read.
+    if (qwenFlash) {
+      this.intentClassifier = new IntentClassifier({
+        provider: qwenFlash.provider,
+        model: qwenFlash.model,
+      });
+      sharedState.intentClassifier = this.intentClassifier;
     }
 
     this.agent = new Agent({
@@ -1543,60 +1563,23 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // Non-fatal — self-improvement is optional
     }
 
-    // Load knowledge packs — auto-detected + manually enabled
+    // Load knowledge packs — manually enabled only
+    // Auto-detection (game projects, app projects) removed: the model's
+    // native coding ability is stronger than pre-loaded framework dumps.
+    // Packs consumed context that should go to reading code and reasoning,
+    // degrading performance on complex tasks. Users can still manually
+    // enable packs via ~/.ava/knowledge-enabled.json for non-coding modes.
     let knowledgeContext: string | undefined;
     try {
       const fs = require('node:fs');
       const { BUILTIN_PACKS } = require('@ava/core');
       const packSections: string[] = [];
-      const loadedIds = new Set<string>();
-
-      // Skip internal packs (self-knowledge = 147KB = ~37K tokens).
-      // Ava accesses her own code via the self_inspect tool instead.
-
-      // Auto-detect game projects
-      if (cwd) {
-        const files = fs.readdirSync(cwd).map((f: string) => f.toLowerCase());
-        const isGameProject = files.some((f: string) =>
-          f.endsWith('.uproject') || f === 'project.godot' || f.endsWith('.sln') && files.some((g: string) => g === 'assets') ||
-          files.includes('content') && files.includes('source')
-        );
-        if (isGameProject) {
-          const gamePack = BUILTIN_PACKS?.find((p: { id: string }) => p.id === 'game-development');
-          if (gamePack) {
-            const engine = files.some((f: string) => f.endsWith('.uproject')) ? 'Unreal Engine (C++)'
-              : files.includes('project.godot') ? 'Godot (GDScript)'
-              : files.some((f: string) => f.endsWith('.csproj')) ? 'Unity (C#)'
-              : 'game engine';
-            packSections.push(`## Active Knowledge Pack: Game Development\nDetected: ${engine}\n\n${gamePack.context}`);
-            loadedIds.add('game-development');
-          }
-        }
-      }
-
-      // Auto-detect app projects (has pages/ or components/ or src/app/)
-      if (cwd && !loadedIds.has('app-development')) {
-        const files = fs.readdirSync(cwd).map((f: string) => f.toLowerCase());
-        const hasSrc = files.includes('src');
-        if (hasSrc) {
-          try {
-            const srcFiles = fs.readdirSync(require('node:path').join(cwd, 'src')).map((f: string) => f.toLowerCase());
-            const isAppProject = srcFiles.includes('pages') || srcFiles.includes('components') || srcFiles.includes('app') || srcFiles.includes('views') || srcFiles.includes('screens');
-            if (isAppProject) {
-              const appPack = BUILTIN_PACKS?.find((p: { id: string }) => p.id === 'app-development');
-              if (appPack) {
-                packSections.push(`## Active Knowledge Pack: App Development\n\n${appPack.context}`);
-                loadedIds.add('app-development');
-              }
-            }
-          } catch { /* src dir read failed */ }
-        }
-      }
 
       // Load manually enabled packs from ~/.ava/knowledge-enabled.json
       try {
         const enabledPath = require('node:path').join(AVA_HOME, 'knowledge-enabled.json');
         if (fs.existsSync(enabledPath)) {
+          const loadedIds = new Set<string>();
           const enabledIds: string[] = JSON.parse(fs.readFileSync(enabledPath, 'utf-8'));
           for (const id of enabledIds) {
             if (loadedIds.has(id)) continue;
@@ -2304,40 +2287,48 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const images = attachments?.map((a) => a.data);
     this.postMessage({ type: 'user_message_ack', text, ...(images?.length ? { images } : {}) });
 
-    // Inject memory brief (curated by Memory Agent) or fall back to raw recall
-    // Uses 'user' role to avoid Qwen's "system must be at beginning" error
-    try {
-      if (this.memoryAgent && text.length > 5) {
-        const brief = await this.memoryAgent.generateBrief(text);
-        if (brief.summary) {
-          const topicList = brief.availableTopics.length > 0
-            ? '\n\nAvailable memory topics (use memory_recall for detail): ' +
-              brief.availableTopics.map(t => t.topic).join(', ')
-            : '';
-          const msgs = this.conversation!.getMessages();
-          msgs.push({
-            role: 'user' as const,
-            content: `[Memory Brief]\n${brief.summary}${topicList}`,
-          });
-          this.conversation!.setMessages(msgs);
+    // Inject memory brief — but only in non-coding modes.
+    // In Work mode (code), every-turn memory injection consumes context
+    // that should go to reading code and reasoning. The model still has
+    // the memory_recall tool available — it can pull memories on demand
+    // when it actually needs them. In Chat/Teach/Plan/Brainstorm/Security
+    // modes, memory briefs genuinely help (personal context, learning
+    // history, project decisions).
+    const shouldInjectMemory = mode !== 'code';
+    if (shouldInjectMemory) {
+      try {
+        if (this.memoryAgent && text.length > 5) {
+          const brief = await this.memoryAgent.generateBrief(text);
+          if (brief.summary) {
+            const topicList = brief.availableTopics.length > 0
+              ? '\n\nAvailable memory topics (use memory_recall for detail): ' +
+                brief.availableTopics.map(t => t.topic).join(', ')
+              : '';
+            const msgs = this.conversation!.getMessages();
+            msgs.push({
+              role: 'user' as const,
+              content: `[Memory Brief]\n${brief.summary}${topicList}`,
+            });
+            this.conversation!.setMessages(msgs);
+          }
+        } else if (this.memoryManager && text.length > 5) {
+          // Fallback: raw recall (no Memory Agent available)
+          const recalled = await this.memoryManager.recall({ query: text, limit: 5, scope: 'all' });
+          if (recalled.length > 0) {
+            const memoryContext = recalled
+              .map((r: { scope: string; entry: { category: string; content: string } }) =>
+                `[${r.scope}/${r.entry.category}] ${r.entry.content.slice(0, 300)}`)
+              .join('\n');
+            const msgs = this.conversation!.getMessages();
+            msgs.push({
+              role: 'user' as const,
+              content: `[Memory context]\n${memoryContext}\n\nUse these if relevant. Don't mention them unless asked about memory.`,
+            });
+            this.conversation!.setMessages(msgs);
+          }
         }
-      } else if (this.memoryManager && text.length > 5) {
-        // Fallback: raw recall (no Memory Agent available)
-        const recalled = await this.memoryManager.recall({ query: text, limit: 5, scope: 'all' });
-        if (recalled.length > 0) {
-          const memoryContext = recalled
-            .map((r: { scope: string; entry: { category: string; content: string } }) =>
-              `[${r.scope}/${r.entry.category}] ${r.entry.content.slice(0, 300)}`)
-            .join('\n');
-          const msgs = this.conversation!.getMessages();
-          msgs.push({
-            role: 'user' as const,
-            content: `[Memory context]\n${memoryContext}\n\nUse these if relevant. Don't mention them unless asked about memory.`,
-          });
-          this.conversation!.setMessages(msgs);
-        }
-      }
-    } catch { /* non-fatal — memory is optional */ }
+      } catch { /* non-fatal — memory is optional */ }
+    }
 
     let streamStarted = false;
     let deltaCount = 0;
@@ -2936,6 +2927,25 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     for (const [id, pending] of this.pendingConfirmations) {
       pending.resolve(false);
       this.pendingConfirmations.delete(id);
+    }
+
+    // Inject a task-termination marker so Ava's momentum clears.
+    // Without this, the next user message carries all the baggage of the
+    // aborted task (classifier budget, tool-call history, architectural
+    // directness hints) and Ava tries to resume — which is exactly why
+    // users feel "she won't stop and listen." The marker tells her the
+    // prior task is dead: treat the next message as fresh context.
+    try {
+      if (this.conversation) {
+        const msgs = this.conversation.getMessages();
+        msgs.push({
+          role: 'user' as const,
+          content: '[User pressed Stop — previous task terminated. Do not resume it. Treat the next message as a fresh request on its own terms. If the user wants to continue the prior work, they will say so explicitly.]',
+        });
+        this.conversation.setMessages(msgs);
+      }
+    } catch {
+      // Non-fatal — marker is defensive, cancellation already succeeded
     }
   }
 

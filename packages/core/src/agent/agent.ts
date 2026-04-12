@@ -14,11 +14,8 @@ import { MAX_TOOL_CALL_ITERATIONS, ITERATION_WARNING_THRESHOLD } from '../core/c
 import { t } from '../i18n/index.js';
 import { logger } from '../core/logger.js';
 import { buildToolPrompt, parseToolCalls, formatToolResult } from './text-tool-parser.js';
-import { autoExtractAndSave, reflectAndSave } from '../memory/auto-extract.js';
-import { trackAndLearn } from '../memory/patterns.js';
-import { analyseAndSave } from '../memory/insights.js';
+import { autoExtractAndSave } from '../memory/auto-extract.js';
 import type { MemoryManager } from '../memory/memory-manager.js';
-import { captureInteraction } from '../dataset/capture.js';
 import { maybeBuildDesignReinjection, isUIFilePath as isUIFilePathLocal } from './design-reinjection.js';
 import {
   findOriginalUserTaskIndex,
@@ -37,6 +34,52 @@ import {
   type TaskComplexity,
 } from './task-classifier.js';
 import { autoActivatePacks } from '../knowledge/pack-router.js';
+import type { IntentClassifier, UserIntent } from './intent-classifier.js';
+import { PNG } from 'pngjs';
+
+// ─── Image downsampling ────────────────────────────────────────────────────
+// Screenshots at native resolution are the single biggest token sink in
+// vision-heavy sessions. A 1920×1080 full-page PNG encodes to ~100KB base64
+// = ~25K tokens. Re-sent across 10 turns = 250K tokens for one image.
+// Downsampling to max 1024px preserves all semantic information the model
+// needs (layout, hierarchy, colour, typography visibility) while cutting
+// the byte cost by 60-80%. Nearest-neighbor sampling is fine — this is not
+// photo restoration, it's context for reasoning.
+const IMAGE_MAX_DIMENSION = 1024;
+
+function downsampleScreenshotBase64(base64: string): string {
+  try {
+    const buffer = Buffer.from(base64, 'base64');
+    const src = PNG.sync.read(buffer);
+    const maxCurrent = Math.max(src.width, src.height);
+    if (maxCurrent <= IMAGE_MAX_DIMENSION) return base64;
+
+    const scale = IMAGE_MAX_DIMENSION / maxCurrent;
+    const newW = Math.max(1, Math.round(src.width * scale));
+    const newH = Math.max(1, Math.round(src.height * scale));
+    const dst = new PNG({ width: newW, height: newH });
+
+    for (let y = 0; y < newH; y++) {
+      const srcY = Math.min(src.height - 1, Math.floor(y / scale));
+      for (let x = 0; x < newW; x++) {
+        const srcX = Math.min(src.width - 1, Math.floor(x / scale));
+        const srcIdx = (src.width * srcY + srcX) << 2;
+        const dstIdx = (newW * y + x) << 2;
+        dst.data[dstIdx] = src.data[srcIdx];
+        dst.data[dstIdx + 1] = src.data[srcIdx + 1];
+        dst.data[dstIdx + 2] = src.data[srcIdx + 2];
+        dst.data[dstIdx + 3] = src.data[srcIdx + 3];
+      }
+    }
+
+    return PNG.sync.write(dst).toString('base64');
+  } catch (err) {
+    // If decode/resize fails for any reason, fall back to the original.
+    // Never block the vision pipeline on a resize failure.
+    logger.debug(`[agent] Image downsample failed, using original: ${err instanceof Error ? err.message : String(err)}`);
+    return base64;
+  }
+}
 
 // ─── Mode-aware tool filtering ──────────────────────────────────────────────
 // When a non-work mode is active, restrict the tool schema sent to the model
@@ -301,6 +344,27 @@ export class Agent {
       }
     }
 
+    // ─── Post-stop context restriction ─────────────────────────────────────
+    // When the user pressed Stop and has now sent a new message, the full
+    // prior conversation (could be 150K+ tokens) is still in `messages`.
+    // Sending all of that back to the model means it draws on the prior
+    // task context and continues the work the user asked us to stop.
+    //
+    // Fix: for the first turn after a stop marker, strip everything
+    // between the system message and the marker. Keep:
+    //   - system prompt (with marker content merged in as a directive)
+    //   - the new user message (the only non-meta user message after the marker)
+    //
+    // After this turn, normal accumulation resumes. Subsequent turns see
+    // the post-stop conversation as a fresh sub-thread — no leakage from
+    // the terminated task.
+    //
+    // Pairs with the intent gate (Fix E): if the post-stop message is
+    // short/conversational, the intent gate will disable tools too.
+    // Combined effect: user presses Stop → types something → Ava responds
+    // on the user's actual terms, not the prior task's terms.
+    messages = this.maybeRestrictPostStopContext(messages);
+
     // ─── Classify this task for directness discipline ─────────────────────
     // Find the latest non-meta user message and run the lightweight
     // classifier. The result sets the exploration budget for this run and
@@ -336,20 +400,22 @@ export class Agent {
       this.currentTaskComplexity = 'moderate';
     }
 
+    // Detect mode early — needed for both pack gating and tool filtering
+    const detectedMode = detectModeFromMessages(messages);
+
     // ─── Auto-activate knowledge packs based on user message ────────────
-    // Runs on EVERY user message (not just the first). If the user starts
-    // with "hey" and then says "redesign the layout", the app-development
-    // pack activates on the second message. Already-loaded packs are
-    // tracked so they're never re-added.
-    if (latestUserMessage) {
+    // Disabled in Work mode (detectedMode === null). The model's native
+    // coding ability is stronger than keyword-triggered framework dumps —
+    // packs consume context that should go to reading code and reasoning.
+    // Packs remain available in Plan, Chat, Teach, Brainstorm, and
+    // Security modes where domain frameworks genuinely add value.
+    if (latestUserMessage && detectedMode !== null) {
       try {
         const activatedPackIds = (this.toolContext.sharedState as any)?._activatedPackIds as Set<string> | undefined;
         const loadedIds = activatedPackIds ?? new Set<string>();
         const { packIds, content } = autoActivatePacks(latestUserMessage, loadedIds);
         if (packIds.length > 0 && content) {
-          // Inject the pack content into the system message
           messages = this.appendToSystemMessage(messages, `\n\n${content}`);
-          // Track which packs we've loaded so we don't re-add them
           for (const id of packIds) loadedIds.add(id);
           if (!(this.toolContext.sharedState as any)?._activatedPackIds) {
             ((this.toolContext.sharedState as any) ?? {})._activatedPackIds = loadedIds;
@@ -361,18 +427,60 @@ export class Agent {
       }
     }
 
+    // ─── Intent nudge (Qwen Flash classifier) ─────────────────────────────
+    // Soft preference, not a hard gate. Classifies the user's message as
+    // task/conversational/ambiguous and injects a brief guidance nudge
+    // into the system prompt. Tools remain available in all cases — the
+    // nudge shapes the default response style, but the model retains
+    // judgment to call tools when the request clearly warrants action.
+    //
+    // Why soft instead of hard: hard blocks fail catastrophically when
+    // the classifier is wrong (model can't use tools on a real task,
+    // users see "Tools are disabled this turn" leaking into output).
+    // Soft nudges fail gracefully — false positives waste a few tokens,
+    // false negatives still let the model do the right thing.
+    //
+    // The nudge wording is intentionally generic and non-recitable so
+    // the model won't quote it back to users.
+    let userIntent: UserIntent = 'task';
+    const intentClassifier = this.toolContext.sharedState?.intentClassifier as IntentClassifier | undefined;
+    if (intentClassifier && latestUserMessage) {
+      try {
+        userIntent = await intentClassifier.classify(latestUserMessage);
+        logger.info(`[agent] Intent classified as '${userIntent}' for message: "${latestUserMessage.slice(0, 80)}"`);
+      } catch {
+        userIntent = 'task';
+      }
+    }
+
     const useNativeTools = this.model.supportsToolCalls !== false;
     const allSchemas = this.toolRegistry.getSchemas();
 
     // Mode-aware filtering: restrict tool schemas to only those allowed in the active mode
-    const detectedMode = detectModeFromMessages(messages);
     const modeAllowed = detectedMode ? MODE_ALLOWED_TOOLS[detectedMode] : null;
     const filteredSchemas = modeAllowed
       ? allSchemas.filter(s => modeAllowed.has(s.function.name))
       : allSchemas;
 
+    // Tools always available when the model supports them. Intent shapes
+    // the response style via the nudge below, not via schema removal.
     const toolSchemas: ToolSchema[] = useNativeTools ? filteredSchemas : [];
-    logger.debug(`[agent] Starting run: model=${this.model.id} supportsToolCalls=${useNativeTools} toolSchemas=${toolSchemas.length}${detectedMode ? ` mode=${detectedMode}` : ''}`);
+
+    if (userIntent === 'conversational') {
+      // Brief, generic guidance. Not framed as a command so the model
+      // internalises it rather than quoting it back to the user.
+      messages = this.appendToSystemMessage(
+        messages,
+        `\n\nStyle note: this turn's message reads conversational. Lead with a worded reply. Reach for tools only if the request clearly requires concrete action on files, commands, or the project.`,
+      );
+    } else if (userIntent === 'ambiguous') {
+      messages = this.appendToSystemMessage(
+        messages,
+        `\n\nStyle note: this turn's message is ambiguous in intent. If you are not sure what action is wanted, ask a short clarifying question before acting. Tools remain available if action is clearly warranted.`,
+      );
+    }
+
+    logger.info(`[agent] Starting run: model=${this.model.id} supportsToolCalls=${useNativeTools} toolSchemas=${toolSchemas.length} intent=${userIntent}${detectedMode ? ` mode=${detectedMode}` : ''}`);
 
     // For models without native tool_calls, inject tool descriptions into the system prompt
     if (!useNativeTools && filteredSchemas.length > 0) {
@@ -405,18 +513,28 @@ export class Agent {
       iterations++;
       logger.debug(`[agent] ── Iteration ${iterations}/${MAX_TOOL_CALL_ITERATIONS} ── messages=${messages.length}`);
 
-      // ── Sliding Window — compress old messages to memory ─────────────────
-      // Keep context lean by saving older exchanges to project memory and
-      // removing them from the conversation. The model always has recent
-      // context + can recall older work via memory_recall.
+      // ── Sliding Window — compress old messages when context is genuinely full ─
       //
-      // The pinned original user task is preserved through this path too —
-      // if it's in the window being compressed, we prepend it back after
-      // the slide so the root intent always survives.
-      const WINDOW_MAX = 30; // Max non-system messages before compression
-      const WINDOW_KEEP = 16; // Messages to keep after compression
+      // Previously this fired whenever non-system message count exceeded
+      // 30, regardless of token usage. A single task with tool-use can
+      // produce 30+ messages in 3-5 user turns (each turn = user message +
+      // assistant messages + tool results). That made compression fire at
+      // ~2% token usage, destabilising the conversation every few turns
+      // and causing Ava to lose context mid-task.
+      //
+      // New rule: the window compresses only when BOTH conditions are
+      // true — message count is very high AND estimated tokens cross a
+      // meaningful threshold. Pure message count is no longer a trigger.
+      // Token-based thresholds compress when there's a real reason to,
+      // not on a schedule. The absolute token check below (at 70% of
+      // context) is the primary gate; this one is a secondary safety net
+      // for pathological cases with tons of tiny messages.
+      const WINDOW_MAX = 120; // Only extreme message counts hit this path
+      const WINDOW_KEEP = 24; // Keep more recent context when it does
       const nonSystem = messages.filter(m => m.role !== 'system');
-      if (nonSystem.length > WINDOW_MAX) {
+      const estimatedTokensForWindow = this.estimateTokenCount(messages);
+      const windowTokenFloor = Math.floor(this.model.contextWindow * 0.5);
+      if (nonSystem.length > WINDOW_MAX && estimatedTokensForWindow > windowTokenFloor) {
         const systemMsgs = messages.filter(m => m.role === 'system');
         const pinnedIdxFull = findOriginalUserTaskIndex(messages);
         const pinnedMsg = pinnedIdxFull !== -1 ? messages[pinnedIdxFull] : null;
@@ -426,38 +544,22 @@ export class Agent {
         // is narrowed by the system filter and doesn't accept Message directly.
         const pinnedInKeep = pinnedMsg ? (toKeep as Message[]).indexOf(pinnedMsg) !== -1 : false;
 
-        // Summarise what's being compressed
-        const summary = toCompress
-          .filter(m => m.role === 'user' || m.role === 'assistant')
-          .map(m => {
-            const content = typeof m.content === 'string' ? m.content : '';
-            return `[${m.role}]: ${content.slice(0, 200)}`;
-          })
-          .join('\n');
-
-        // Extract memories from messages being compressed BEFORE they're dropped
-        // Layer 1 (regex patterns) catches preferences, corrections, decisions
-        const mm = (this.toolContext.sharedState as Record<string, unknown> | undefined)?.memoryManager as
-          | { saveEntry: (opts: { scope: string; content: string; category: string; tags?: string[] }) => Promise<unknown> }
-          | undefined;
-        try {
-          const { autoExtractAndSave } = await import('../memory/auto-extract.js');
-          if (mm) {
-            await autoExtractAndSave(toCompress, mm as any);
-          }
-        } catch { /* non-critical */ }
-
-        // Also save the raw summary as project context
-        if (summary.length > 20 && mm?.saveEntry) {
-          try {
-            await mm.saveEntry({
-              scope: 'project',
-              content: `[Session context] ${summary.slice(0, 2000)}`,
-              category: 'general',
-              tags: ['session-context'],
-            });
-          } catch { /* non-critical */ }
-        }
+        // Memory policy: conversation content does NOT get saved to memory
+        // here. Compression is a working-state operation — the summary
+        // belongs in the conversation history (persisted per-conversation
+        // in ~/.ava/history/*.json), not in user or project memory.
+        //
+        // Previously this block called autoExtractAndSave on the compressed
+        // messages AND saved the raw summary as a "[Session context]"
+        // project memory entry. Both were category errors: memory should
+        // be distilled, durable facts about the user or project — not
+        // conversation transcripts that get re-injected on later turns and
+        // create a self-referential feedback loop.
+        //
+        // If something in the compressed context was worth remembering,
+        // the model already had the chance to call memory_save during the
+        // turn that produced it. Ambient extraction from compressed logs
+        // is not the mechanism for durable memory.
 
         // Rebuild messages: system (with compression note merged in) + pinned
         // original task (if not already in the kept window) + recent messages.
@@ -483,17 +585,33 @@ export class Agent {
           }
         } catch { /* non-critical */ }
 
-        const pinnedPrefix: Message[] = (pinnedMsg && !pinnedInKeep) ? [pinnedMsg] : [];
+        // Pinned original task: previously this re-injected the original
+        // user message VERBATIM as a user-role message. The model saw
+        // what looked like a freshly-sent user turn and responded to it
+        // as if it were new input — the classic "acts on the initial
+        // message again" bug after compression. Fix: fold the original
+        // task text into the system prompt's compression note as a
+        // reference ("the user's original ask was X"), never as a
+        // replayed user turn. The model knows the task context without
+        // interpreting the replay as a new request.
+        let pinnedNote = '';
+        if (pinnedMsg && !pinnedInKeep) {
+          const pinnedText = getTextContent(pinnedMsg.content);
+          if (pinnedText) {
+            pinnedNote = `\n\n[Original request at session start] "${pinnedText.slice(0, 800)}" — this is context for what the user initially asked. You were already in the middle of working on this; continue from where you left off. Do NOT treat this as a new request.`;
+          }
+        }
+
         const tail: Message[] = slidingTaskBlock ? [slidingTaskBlock, ...fixedKeep] : fixedKeep;
+        const mergedNote = compressionNote + pinnedNote;
 
         if (systemMsgs.length > 0) {
           const primary = systemMsgs[0];
-          const mergedSystem = { ...primary, content: (typeof primary.content === 'string' ? primary.content : '') + '\n\n' + compressionNote };
-          messages = [mergedSystem, ...pinnedPrefix, ...tail];
+          const mergedSystem = { ...primary, content: (typeof primary.content === 'string' ? primary.content : '') + '\n\n' + mergedNote };
+          messages = [mergedSystem, ...tail];
         } else {
           messages = [
-            { role: 'system' as const, content: compressionNote },
-            ...pinnedPrefix,
+            { role: 'system' as const, content: mergedNote },
             ...tail,
           ];
         }
@@ -550,12 +668,17 @@ export class Agent {
       // quality — large contexts increase latency, hurt attention, and make
       // it harder for the model to stay focused on the active task.
       //
-      // 40% gives us a healthy active window (400k on a 1M model, 50k on a
-      // 128k model, proportional to whatever the model supports) while
-      // compressing aggressively enough to keep per-turn cost sane. Long
-      // sessions now compress multiple times with smaller summary passes
-      // instead of one giant last-minute compression right before overflow.
-      const maxInputTokens = Math.floor(this.model.contextWindow * 0.4);
+      // Compression is costly and disruptive — it makes an LLM call, drops
+      // live conversation state, and every compression pass risks the
+      // model losing its place ("acts on the initial message again" is
+      // the classic symptom). Compression should be a last resort when
+      // we're genuinely pressing against context, not a routine event.
+      //
+      // 70% threshold gives 700K on a 1M-context model or ~90K on a
+      // 128K-context model — enough headroom for a few more turns before
+      // the window gets tight, while avoiding the every-few-turns
+      // compression thrash that destabilised long sessions.
+      const maxInputTokens = Math.floor(this.model.contextWindow * 0.7);
       const estimatedTotal = this.estimateTokenCount(messages);
 
       // Emit context usage so UIs can show a progress bar
@@ -565,7 +688,10 @@ export class Agent {
         context: { used: estimatedTotal, limit: this.model.contextWindow, percent: contextPercent },
       });
 
-      // Auto-compress at 70% of context window — proportional to model, no hard cap
+      // Auto-compress only when we've crossed the 70% threshold AND the
+      // conversation is long enough that compression has something to
+      // work with (< 6 messages means there's nothing meaningful to
+      // summarise — just skip).
       if (estimatedTotal > maxInputTokens && messages.length >= 6) {
         messages = await this.compressContext(messages, onEvent, signal);
       }
@@ -625,6 +751,22 @@ export class Agent {
           }
         }
 
+        // Strip empty tool_calls arrays from assistant messages. Qwen
+        // rejects `tool_calls: []` with a 400 error — the field must be
+        // either omitted or non-empty. Upstream mutations (mode blocking,
+        // budget enforcement, text-parser fallbacks) can leave an empty
+        // array on the message; this is the architectural guard at the
+        // API boundary so any future code path that reintroduces the bug
+        // gets caught here before it reaches the provider.
+        if (msg.role === 'assistant') {
+          const asst = msg as AssistantMessage;
+          if (Array.isArray(asst.tool_calls) && asst.tool_calls.length === 0) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { tool_calls: _empty, ...rest } = asst;
+            msg = rest as Message;
+          }
+        }
+
         // Text-based tool mode: strip tool_calls from assistant messages
         // The model doesn't understand these fields — they're our internal bookkeeping
         if (!useNativeTools && msg.role === 'assistant' && (msg as AssistantMessage).tool_calls) {
@@ -669,6 +811,15 @@ export class Agent {
         return m;
       });
 
+      // Age out old content before sending — biggest token lever in the
+      // agent loop. Without this, every screenshot and every verbose tool
+      // result stays in full fidelity for the rest of the session, costing
+      // 20-50K tokens per image × turns remaining and 1-5K tokens per
+      // stale tool result × turns remaining. The model's prior reasoning
+      // about these is preserved in the assistant messages; the raw
+      // payload almost never adds value after 2-3 turns.
+      sanitizedMessages = this.ageHistoryContent(sanitizedMessages);
+
       // Fix orphaned tool messages before sending — prevents 400 errors
       sanitizedMessages = this.fixToolPairing(sanitizedMessages);
 
@@ -697,25 +848,12 @@ export class Agent {
           finalMessages = systemMsg ? [systemMsg, ...fixedKept] : fixedKept;
           logger.warn(`[agent] Aggressive truncation: kept system + last ${fixedKept.length} messages, dropped ${dropped.length}`);
 
-          // Save dropped context to memory
-          try {
-            const mm = (this.toolContext.sharedState as Record<string, unknown> | undefined)?.memoryManager as { saveEntry?: (scope: string, entry: { key: string; content: string; category: string }) => Promise<void> } | undefined;
-            if (mm?.saveEntry && dropped.length > 0) {
-              const droppedSummary = dropped
-                .filter(m => m.role === 'user' || m.role === 'assistant')
-                .map(m => `[${m.role}]: ${typeof m.content === 'string' ? m.content.slice(0, 200) : '(tool use)'}`)
-                .join('\n');
-              if (droppedSummary.length > 50) {
-                const date = new Date().toISOString().slice(0, 10);
-                const time = new Date().toISOString().slice(11, 16);
-                await mm.saveEntry('global', {
-                  key: `truncated-context-${date}-${time}`,
-                  content: droppedSummary.slice(0, 2000),
-                  category: 'session',
-                });
-              }
-            }
-          } catch { /* non-critical */ }
+          // Memory policy: dropped conversation context does NOT get saved
+          // to memory. It lives in the conversation history file on disk
+          // (per-conversation, persistent) and that's where it belongs.
+          // Previously this saved a concatenated transcript of dropped
+          // messages to 'global' memory under a 'session' category —
+          // exactly the conversation-into-memory leak we are cutting.
         }
       }
 
@@ -857,16 +995,29 @@ export class Agent {
             error: new Error(t('error.msg.empty_response')),
           });
         }
-        // Auto-extract memories from the conversation (fire-and-forget, errors logged)
+        // Memory extraction — runs post-turn, extracts genuinely durable
+        // user/project facts (name, preferences, decisions, architecture).
+        // Bounded by the Memory Agent's regex + single LLM call.
         this.extractMemoriesFromRun(messages, runContext);
 
-        // Dataset capture — silently record interaction as training data (fire-and-forget)
-        captureInteraction(messages).catch(err => logger.debug(`[dataset] capture failed: ${err}`));
-
-        // v3: Feed procedural observer with the tool-call sequence from this run
-        // + save graphs at end of session
-        this.feedProceduralObserver(messages, runContext);
-        this.saveGraphState(runContext);
+        // Ambient hot-path writers DISABLED.
+        // The following used to fire on every turn, each reading the
+        // conversation and deriving persistent state from it:
+        //   captureInteraction(messages)     — dataset capture
+        //   this.feedProceduralObserver(...) — v3 procedural learning
+        //   this.saveGraphState(runContext)  — v3 graph persistence
+        //
+        // Collectively they were saving conversation-shaped content into
+        // memory, creating a feedback loop where earlier turns' text got
+        // re-injected on later turns and re-saved. They also ran 3+
+        // concurrent writers against the shared conversation state,
+        // which is the likely source of the empty-tool-call corruption
+        // we've been seeing in longer sessions.
+        //
+        // These capabilities are not deleted — they belong in a
+        // session-end or scheduled background job that reads memory
+        // (distilled facts only), not the live conversation. Wiring
+        // that up is follow-up work; for now, the hot path stays clean.
 
         onEvent({ type: 'done', finalMessage: assistantMessage });
         return messages;
@@ -903,18 +1054,78 @@ export class Agent {
         if (blocked.length > 0) {
           const blockedNames = blocked.map((tc: ToolCall) => tc.function.name).join(', ');
           logger.warn(`[agent] Mode ${detectedMode} blocked tools: ${blockedNames}`);
-          // Return error results for blocked tools so the model knows to stop
+          // assistantMessage is already in `messages` (pushed unconditionally
+          // earlier in the loop). The original code pushed it again inside
+          // the for-loop, producing duplicate assistant turns in history
+          // (one extra copy per blocked tool). Just push the tool results.
           for (const tc of blocked) {
-            messages.push(assistantMessage);
             messages.push({
               role: 'tool' as const,
               content: `Tool "${tc.function.name}" is not available in ${detectedMode} mode. This mode is read-only — use work mode (>>) to make changes.`,
               tool_call_id: tc.id,
             } as any);
           }
-          // Remove blocked calls, keep allowed ones
+          // Remove blocked calls, keep allowed ones.
           assistantMessage.tool_calls = assistantMessage.tool_calls.filter((tc: ToolCall) => modeAllowed.has(tc.function.name));
-          if (assistantMessage.tool_calls.length === 0) continue;
+          if (assistantMessage.tool_calls.length === 0) {
+            // Delete the field entirely — Qwen rejects `tool_calls: []`.
+            // Since assistantMessage is a reference already in `messages`,
+            // the deletion propagates to the history.
+            delete (assistantMessage as Partial<AssistantMessage>).tool_calls;
+            continue;
+          }
+        }
+      }
+
+      // ── Hard exploration budget enforcement ──────────────────────────────
+      // Soft nudge (maybeExplorationBudgetNudge) fires once as guidance,
+      // but the model can ignore it and keep reading. This block is the
+      // architectural floor: if reads-before-first-write exceed 2× the
+      // task-complexity budget, read-only calls are refused at the agent
+      // loop BEFORE they execute. The model receives a tool result telling
+      // it exactly why and what to do next. This prevents the "100 reads,
+      // still no code" failure mode that burns hundreds of thousands of
+      // tokens with nothing to show.
+      if (!this.hasWrittenInThisRun) {
+        const hardBudget = COMPLEXITY_BUDGETS[this.currentTaskComplexity];
+        const hardCap = hardBudget.readCapBeforeFirstWrite * 2;
+        const projectedReads = this.readCountBeforeFirstWrite
+          + assistantMessage.tool_calls.filter((tc: ToolCall) => this.isReadOnlyToolCall(tc.function.name)).length;
+        if (projectedReads > hardCap) {
+          const blockedReads = assistantMessage.tool_calls.filter((tc: ToolCall) => this.isReadOnlyToolCall(tc.function.name));
+          if (blockedReads.length > 0) {
+            logger.warn(`[agent] HARD BUDGET BLOCK: ${this.readCountBeforeFirstWrite} reads already done, ${blockedReads.length} more would exceed ${hardCap} cap for ${this.currentTaskComplexity} task`);
+            // Note: assistantMessage is already in `messages` (pushed
+            // unconditionally earlier in the loop). Do not push it again
+            // — that would produce a duplicate assistant turn.
+            const refusalBody = [
+              `Read budget hard-limit exceeded.`,
+              ``,
+              `You've made ${this.readCountBeforeFirstWrite} read-only tool calls without a single write on a ${this.currentTaskComplexity} task (hard cap: ${hardCap}).`,
+              ``,
+              `Further reads are blocked until you either:`,
+              `  1. Commit to a write — pick the most likely correct change and make it. You have enough context.`,
+              `  2. Explicitly re-scope — if this task is genuinely architectural, say so in your next response ("this is bigger than it looked because...") and the budget resets.`,
+              ``,
+              `Stalling on context-gathering is the failure mode. Act or explain.`,
+            ].join('\n');
+            for (const tc of blockedReads) {
+              messages.push({
+                role: 'tool' as const,
+                content: refusalBody,
+                tool_call_id: tc.id,
+              } as any);
+            }
+            // Remove blocked reads, keep any non-read tool calls (writes, etc.)
+            assistantMessage.tool_calls = assistantMessage.tool_calls.filter(
+              (tc: ToolCall) => !blockedReads.some(b => b.id === tc.id)
+            );
+            if (assistantMessage.tool_calls.length === 0) {
+              // Delete the field entirely — Qwen rejects `tool_calls: []`.
+              delete (assistantMessage as Partial<AssistantMessage>).tool_calls;
+              continue;
+            }
+          }
         }
       }
 
@@ -1031,8 +1242,12 @@ export class Agent {
             ];
           }
 
-          // Vision pipeline
+          // Vision pipeline — downsample before embedding to cap per-image
+          // token cost. Full-res screenshots burn 20-50K tokens each and
+          // get re-sent on every subsequent turn.
           if (result.metadata?.base64_image) {
+            const rawBase64 = result.metadata.base64_image as string;
+            const resizedBase64 = downsampleScreenshotBase64(rawBase64);
             messages = [
               ...messages,
               {
@@ -1040,7 +1255,7 @@ export class Agent {
                 content: [
                   { type: 'text' as const, text: `[Image captured by ${toolCall.function.name}]` },
                   { type: 'image_url' as const, image_url: {
-                    url: `data:${(result.metadata.mime_type as string) || 'image/png'};base64,${result.metadata.base64_image}`,
+                    url: `data:${(result.metadata.mime_type as string) || 'image/png'};base64,${resizedBase64}`,
                   }},
                 ],
               },
@@ -1098,11 +1313,11 @@ export class Agent {
     onEvent({ type: 'error', error: iterError });
     // Always emit done so the UI clears isStreaming
     onEvent({ type: 'done', finalMessage: { role: 'assistant', content: 'Stopped: tool call iteration limit reached.' } as any });
-    // Extract memories even on iteration limit — there's still valuable context to capture
+    // Extract memories on iteration limit — bounded extraction only.
+    // Dataset capture, procedural observer, graph state save: disabled
+    // from the hot path (see the clean-exit branch above for the full
+    // rationale).
     this.extractMemoriesFromRun(messages, runContext);
-    captureInteraction(messages).catch(err => logger.debug(`[dataset] capture failed: ${err}`));
-    this.feedProceduralObserver(messages, runContext);
-    this.saveGraphState(runContext);
     return messages;
   }
 
@@ -1125,29 +1340,25 @@ export class Agent {
         })
         .catch(err => logger.warn(`[memory] Memory Agent extraction failed: ${err instanceof Error ? err.message : String(err)}`));
     } else if (mm) {
-      // Legacy fallback: multi-layer extraction (when Memory Agent unavailable)
-      logger.debug('[memory] Running legacy memory extraction (no Memory Agent)');
+      // Legacy fallback (Memory Agent unavailable): regex extraction only.
+      // Previously this ran three additional passes — reflectAndSave
+      // (LLM reflection), trackAndLearn (pattern tracking), and every
+      // 6 user turns analyseAndSave (insights consolidation). Each was a
+      // concurrent writer reading the conversation and deriving memory
+      // from it. Together they (a) quadrupled the per-turn LLM spend on
+      // ambient memory work and (b) produced conversation-shaped memory
+      // entries that fed back into later turns.
+      //
+      // Keeping only autoExtractAndSave here: it's regex-based, bounded,
+      // and the narrowest path. If its heuristics still save conversation
+      // snippets rather than durable facts, that's a follow-up tightening.
+      logger.debug('[memory] Running legacy memory extraction (regex only)');
       autoExtractAndSave(messages, mm)
         .then(saved => {
           if (saved > 0) logger.info(`[memory] Auto-extract saved ${saved} ${saved === 1 ? 'memory' : 'memories'}`);
           else logger.debug('[memory] Auto-extract: 0 memories from regex patterns');
         })
         .catch(err => logger.warn(`[memory] Auto-extract failed: ${err instanceof Error ? err.message : String(err)}`));
-
-      reflectAndSave(messages, mm, this.provider, this.model)
-        .then(saved => {
-          if (saved > 0) logger.info(`[memory] LLM reflection saved ${saved} ${saved === 1 ? 'memory' : 'memories'}`);
-        })
-        .catch(err => logger.warn(`[memory] LLM reflection failed: ${err instanceof Error ? err.message : String(err)}`));
-
-      trackAndLearn(messages, mm)
-        .catch(err => logger.debug(`[memory] Pattern tracking failed: ${err instanceof Error ? err.message : String(err)}`));
-
-      const userTurns = messages.filter(m => m.role === 'user').length;
-      if (userTurns >= 6) {
-        analyseAndSave(mm, this.provider, this.model)
-          .catch(err => logger.debug(`[memory] Insights analysis failed: ${err instanceof Error ? err.message : String(err)}`));
-      }
     } else {
       logger.debug('[memory] No memoryManager in sharedState — skipping extraction. Is memory wired correctly?');
     }
@@ -1535,60 +1746,13 @@ export class Agent {
     ].join('\n');
   }
 
-  // ── v3 Memory graph integration ──────────────────────────────────────────
-
-  /**
-   * Feed the procedural observer with the tool-call sequence from this run.
-   * Fire-and-forget — never blocks the response.
-   */
-  private feedProceduralObserver(messages: Message[], runContext: ToolExecutionContext): void {
-    try {
-      const mm = runContext.sharedState?.memoryManager as
-        | { getProceduralObserver?: (scope: string) => { observe: (opts: any) => any } | null }
-        | undefined;
-      const observer = mm?.getProceduralObserver?.('project');
-      if (!observer) return;
-
-      // Extract tool-call sequence from the run's messages
-      const toolSequence: string[] = [];
-      for (const msg of messages) {
-        if (msg.role === 'assistant' && 'tool_calls' in msg && (msg as any).tool_calls) {
-          for (const tc of (msg as any).tool_calls) {
-            toolSequence.push(tc.function?.name ?? 'unknown');
-          }
-        }
-      }
-
-      if (toolSequence.length < 3) return; // Too short to be a meaningful pattern
-
-      observer.observe({
-        toolSequence,
-        taskType: undefined, // Auto-inferred from sequence
-        project: runContext.cwd,
-      });
-    } catch {
-      // Non-critical — never block the response
-    }
-  }
-
-  /**
-   * Save graph + procedural state at end of session.
-   * Fire-and-forget — never blocks the response.
-   */
-  private saveGraphState(runContext: ToolExecutionContext): void {
-    try {
-      const mm = runContext.sharedState?.memoryManager as
-        | { saveGraphs?: () => Promise<void>; runMaintenance?: () => Promise<void> }
-        | undefined;
-      if (mm?.saveGraphs) {
-        mm.saveGraphs().catch(err =>
-          logger.debug(`[agent] Graph save failed: ${err instanceof Error ? err.message : String(err)}`),
-        );
-      }
-    } catch {
-      // Non-critical
-    }
-  }
+  // v3 graph integration (feedProceduralObserver / saveGraphState) was
+  // removed from the hot path in the memory-cleanup sweep. Those features
+  // read the live conversation and wrote derived state on every turn —
+  // exactly the conversation→memory leak we are cutting. If procedural
+  // learning and graph persistence come back, they belong in a scheduled
+  // background job or an end-of-session hook, reading already-distilled
+  // memory entries, not the live conversation.
 
   // ── Context usage ────────────────────────────────────────────────────────
 
@@ -1699,34 +1863,16 @@ ${transcript}`;
       const summary = response.choices?.[0]?.message?.content || '';
       if (!summary) throw new Error('Empty compression response');
 
-      // ── Save compressed context to memory — nothing is lost ──────────
-      // Layer 2 reflection: extract structured memories from the messages
-      // being compressed (decisions, preferences, patterns, facts).
-      // These survive as project-scoped or global memories for future recall.
-      try {
-        const mm = (this.toolContext.sharedState as Record<string, unknown> | undefined)?.memoryManager as MemoryManager | undefined;
-        if (mm) {
-          // Run Layer 2 reflection on the messages being compressed
-          const saved = await reflectAndSave(toCompress, mm, this.provider, this.model);
-          if (saved > 0) {
-            logger.info(`[compression] Extracted ${saved} memories from compressed context`);
-          }
-
-          // Also save the raw summary as a session memory for continuity
-          const date = new Date().toISOString().slice(0, 10);
-          const time = new Date().toISOString().slice(11, 16);
-          await mm.saveEntry({
-            scope: 'project',
-            content: `[Session summary ${date} ${time}]\n${summary}`,
-            category: 'general',
-            tags: ['compression', 'summary'],
-            branch: null,
-          });
-          logger.debug('[compression] Saved session summary to project memory');
-        }
-      } catch {
-        // Memory save is non-critical — don't block compression
-      }
+      // Memory policy: see notes at the earlier compression site. The
+      // compression summary lives in the conversation history (persisted
+      // per-conversation) — it does NOT get pushed into user or project
+      // memory. Previously this block ran reflectAndSave on the compressed
+      // messages and dumped the raw summary as a project memory entry.
+      // Both paths created a conversation→memory feedback loop where
+      // earlier turns' text got re-injected via memory on later turns,
+      // shaping new responses, which then got saved again. Memory should
+      // be durable user/project facts the model (or user) explicitly
+      // chose to persist — not a rolling transcript of the conversation.
 
       // ── Build the continuation-first summary message ────────────────
       // Extract structured CURRENT_TASK / LAST_STEP / NEXT_STEP / BLOCKERS
@@ -1760,37 +1906,39 @@ ${transcript}`;
         /* non-critical — proceed without the task block */
       }
 
-      // ── Re-pin the original user task if compression would remove it ─
-      // The pinned message must be the first non-system message in the
-      // result so the post-compression agent sees the original intent
-      // before anything else. If the original task was already in the
-      // recent window (short session), toKeep will contain it and we
-      // don't need to re-pin. Otherwise, prepend it.
-      let pinnedPrefix: Message[] = [];
+      // ── Fold original task into the system prompt instead of replaying ──
+      // Previously this prepended the original user message verbatim as
+      // a user-role message — which the model then treated as a freshly
+      // sent user turn ("acts on the initial message again" bug). Fix:
+      // merge the original task text into the system message as a
+      // reference note. The model sees what the task was without
+      // interpreting its replay as a new request.
+      let pinnedNote = '';
       if (pinnedMessage && !pinnedIsInRecentWindow) {
-        pinnedPrefix = [pinnedMessage];
+        const pinnedText = getTextContent(pinnedMessage.content);
+        if (pinnedText) {
+          pinnedNote = `\n\n[Original request at session start] "${pinnedText.slice(0, 800)}" — context for what the user initially asked. You were already in the middle of working on this; continue from where you left off. Do NOT treat this as a new request.`;
+        }
       }
 
       const fixedTail = this.fixToolPairing(toKeep);
 
-      // Assembly order matters for attention physics:
-      //   1. system prompt (identity, rules, tools)
-      //   2. pinned original user task (root intent — never loses)
-      //   3. continuation header + summary (what happened, what's next)
-      //   4. active session tasks block (source of truth for current work)
-      //   5. recent 8 messages verbatim (most granular recent state)
-      //
-      // The post-compression model reads top to bottom and by the time it
-      // reaches the recent messages it's already seen (a) what the session
-      // is about, (b) a structured "continue from here" directive, and
-      // (c) the concrete task list. Greeting-fresh becomes structurally
-      // implausible.
+      // Assembly order — simplified to remove the replayed original user
+      // message. The continuation header (summaryMessage) now carries
+      // CURRENT_TASK / LAST_STEP / NEXT_STEP, and the system prompt
+      // carries the original-request note. The model reads top to bottom
+      // and gets the full context without seeing what looks like a new
+      // user turn.
       const middle: Message[] = [summaryMessage];
       if (sessionTasksMessage) middle.push(sessionTasksMessage);
 
-      const result = systemMsg
-        ? [systemMsg, ...pinnedPrefix, ...middle, ...fixedTail]
-        : [...pinnedPrefix, ...middle, ...fixedTail];
+      const enrichedSystem: Message | null = systemMsg
+        ? { ...systemMsg, content: (typeof systemMsg.content === 'string' ? systemMsg.content : '') + pinnedNote }
+        : (pinnedNote ? { role: 'system' as const, content: pinnedNote.trimStart() } : null);
+
+      const result = enrichedSystem
+        ? [enrichedSystem, ...middle, ...fixedTail]
+        : [...middle, ...fixedTail];
 
       const originalTokens = this.estimateTokenCount(messages);
       const compressedTokens = this.estimateTokenCount(result);
@@ -1986,13 +2134,171 @@ ${transcript}`;
     // Also drop any assistant messages whose tool_calls lost their results.
     const fixed = this.fixToolPairing(kept);
 
-    // Re-insert the pinned task at the very start of the rest (right after
-    // system prompt). This guarantees the post-truncation agent sees the
-    // original task as the first non-system message — the root intent
-    // literally cannot be missed.
-    const withPinned = pinnedMsg ? [pinnedMsg, ...fixed] : fixed;
+    // Fold the original task into the system prompt as a reference note
+    // instead of re-injecting it as a user message. Re-injection made the
+    // model treat the replay as a fresh user turn ("acts on initial
+    // message again"). A system-prompt note preserves the task context
+    // without the new-input signal.
+    let enrichedSystem: Message | null = systemMsg;
+    if (pinnedMsg && systemMsg) {
+      const pinnedText = getTextContent(pinnedMsg.content);
+      if (pinnedText) {
+        const pinnedNote = `\n\n[Original request at session start] "${pinnedText.slice(0, 800)}" — context for what the user initially asked. You were already in the middle of working on this; continue from where you left off. Do NOT treat this as a new request.`;
+        enrichedSystem = { ...systemMsg, content: (typeof systemMsg.content === 'string' ? systemMsg.content : '') + pinnedNote };
+      }
+    }
 
-    return systemMsg ? [systemMsg, ...withPinned] : withPinned;
+    return enrichedSystem ? [enrichedSystem, ...fixed] : fixed;
+  }
+
+  /**
+   * Detect the "first turn after Stop" pattern and strip prior conversation.
+   *
+   * When cancelRun() fires in the extension, a marker is pushed into the
+   * conversation: `[User pressed Stop — previous task terminated...]`.
+   * After the user's next real message, the conversation looks like:
+   *
+   *   [... prior task, maybe 150K tokens ...]
+   *   [User pressed Stop — ...]   (meta user message)
+   *   Actual new user message
+   *
+   * The prior 150K tokens are dead weight. Sending them back means the
+   * model re-draws on the task the user told us to abandon. The fix is
+   * to detect this pattern and return a restricted message array:
+   *
+   *   [system prompt + stop directive]
+   *   [new user message]
+   *
+   * Detection: find the most recent stop marker. If it exists AND there
+   * is exactly one non-meta user message after it (and the assistant
+   * hasn't yet responded to that message), we're in the first post-stop
+   * turn — restrict.
+   *
+   * If more messages exist after that point (assistant replies, tool
+   * results), we've already handled the first post-stop turn normally;
+   * further turns see full context and operate as normal.
+   */
+  private maybeRestrictPostStopContext(messages: Message[]): Message[] {
+    // Find the most recent stop marker (a user-role message starting with the marker prefix).
+    let markerIdx = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.role !== 'user') continue;
+      const text = getTextContent(m.content);
+      if (text.trimStart().startsWith('[User pressed Stop')) {
+        markerIdx = i;
+        break;
+      }
+    }
+    if (markerIdx < 0) return messages;
+
+    // Everything after the marker must be: exactly one non-meta user
+    // message, nothing else. If there's an assistant reply after the
+    // marker, we're past the first post-stop turn — don't restrict.
+    const afterMarker = messages.slice(markerIdx + 1);
+    const nonMetaUsers = afterMarker.filter(m =>
+      m.role === 'user' && !isMetaPrefix(getTextContent(m.content))
+    );
+    const hasAssistantResponse = afterMarker.some(m => m.role === 'assistant');
+    if (nonMetaUsers.length !== 1 || hasAssistantResponse) {
+      return messages;
+    }
+
+    const newUserMessage = nonMetaUsers[0];
+    const systemMsg = messages.find(m => m.role === 'system');
+
+    // Merge the stop directive into the system prompt so the model sees
+    // it at the highest-authority layer, not as a floating user message
+    // (which some providers reject when followed by another user msg).
+    const stopDirective = `\n\n[Post-stop context] The previous task was terminated by the user. Do not resume it. Treat the user's message below as a fresh request on its own terms. If they reference prior work ambiguously (e.g. "fix that", "continue"), ask them to be specific — you do not have the prior context and should not assume.`;
+
+    const restrictedSystem: Message | null = systemMsg
+      ? { ...systemMsg, content: (typeof systemMsg.content === 'string' ? systemMsg.content : '') + stopDirective }
+      : { role: 'system' as const, content: stopDirective.trimStart() };
+
+    logger.debug(`[agent] Post-stop context restriction: dropped ${messages.length - 2} prior messages, keeping system + new user message`);
+
+    return restrictedSystem ? [restrictedSystem, newUserMessage] : [newUserMessage];
+  }
+
+  /**
+   * Age out old images and old tool results to cut per-turn token cost.
+   *
+   * Keeps the N most recent image-bearing user messages and the M most
+   * recent tool results in full fidelity. Older ones become text-only
+   * placeholders. The assistant's prior reasoning about the content
+   * remains intact in the assistant messages — we're just dropping raw
+   * payloads that the model no longer needs pixel-for-pixel.
+   *
+   * Why this exists: a single 25K-token screenshot re-sent across 10
+   * turns burns 250K tokens for no informational gain after turn 2 or 3.
+   * Same applies to verbose bash/file_read output: after the assistant
+   * has reasoned about it, we don't need the full dump in context
+   * anymore. This is the single biggest lever on token consumption in
+   * the agent loop. Conservative keep counts (2 images, 5 tool results)
+   * preserve enough active context for normal multi-step work while
+   * eliminating the long tail of stale payloads.
+   */
+  private ageHistoryContent(messages: Message[]): Message[] {
+    const KEEP_RECENT_IMAGES = 2;
+    // DIAGNOSTIC: tool-result trimming disabled while we confirm it's
+    // corrupting Qwen's function-calling expectations. Leaving trimmed
+    // summaries in role:'tool' messages appears to make the model emit
+    // malformed tool_calls (empty function.name) and fall back to
+    // text-format tool calls. Image trimming stays on (biggest savings,
+    // doesn't touch tool-pair structure). If disabling this resolves
+    // the empty-name tool_call regression, the real fix is to collapse
+    // old tool_call + tool_result pairs into a single assistant text
+    // summary rather than leaving orphan-style summaries in tool slots.
+    const KEEP_RECENT_TOOL_RESULTS = Number.POSITIVE_INFINITY;
+    const TOOL_RESULT_TRIM_THRESHOLD = 300;
+
+    // Walk backward to find indices of the N most recent image-bearing
+    // user messages and tool results.
+    const imageIndicesSeen: number[] = [];
+    const toolIndicesSeen: number[] = [];
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.role === 'user' && Array.isArray(m.content)) {
+        const hasImage = (m.content as ContentPart[]).some(p => p.type === 'image_url');
+        if (hasImage) imageIndicesSeen.push(i);
+      }
+      if (m.role === 'tool') toolIndicesSeen.push(i);
+    }
+    const imageIndicesToStrip = new Set(imageIndicesSeen.slice(KEEP_RECENT_IMAGES));
+    const toolIndicesToTrim = new Set(toolIndicesSeen.slice(KEEP_RECENT_TOOL_RESULTS));
+
+    if (imageIndicesToStrip.size === 0 && toolIndicesToTrim.size === 0) {
+      return messages;
+    }
+
+    return messages.map((m, i) => {
+      // Strip image payload from old image-bearing user messages.
+      if (imageIndicesToStrip.has(i) && Array.isArray(m.content)) {
+        const textParts = (m.content as ContentPart[])
+          .filter(p => p.type === 'text')
+          .map(p => ('text' in p ? p.text : ''))
+          .filter(Boolean)
+          .join(' ')
+          .trim();
+        const placeholder = textParts
+          ? `${textParts} — image discarded from history to save context. Re-capture if you need to see it again.`
+          : '[Image previously captured — discarded from history to save context. Re-capture if needed.]';
+        return { ...m, content: placeholder };
+      }
+
+      // Trim old tool results to a short summary.
+      if (toolIndicesToTrim.has(i) && typeof m.content === 'string' && m.content.length > TOOL_RESULT_TRIM_THRESHOLD) {
+        const preview = m.content.slice(0, 160).replace(/\s+/g, ' ').trim();
+        const toolName = (m as any).name || 'tool';
+        return {
+          ...m,
+          content: `[${toolName} result from earlier turn — ${m.content.length} chars trimmed to save context. Preview: ${preview}...]`,
+        };
+      }
+
+      return m;
+    });
   }
 
   /**
