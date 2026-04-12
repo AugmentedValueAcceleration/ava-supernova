@@ -1574,6 +1574,25 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         }
       }
 
+      // Auto-detect app projects (has pages/ or components/ or src/app/)
+      if (cwd && !loadedIds.has('app-development')) {
+        const files = fs.readdirSync(cwd).map((f: string) => f.toLowerCase());
+        const hasSrc = files.includes('src');
+        if (hasSrc) {
+          try {
+            const srcFiles = fs.readdirSync(require('node:path').join(cwd, 'src')).map((f: string) => f.toLowerCase());
+            const isAppProject = srcFiles.includes('pages') || srcFiles.includes('components') || srcFiles.includes('app') || srcFiles.includes('views') || srcFiles.includes('screens');
+            if (isAppProject) {
+              const appPack = BUILTIN_PACKS?.find((p: { id: string }) => p.id === 'app-development');
+              if (appPack) {
+                packSections.push(`## Active Knowledge Pack: App Development\n\n${appPack.context}`);
+                loadedIds.add('app-development');
+              }
+            }
+          } catch { /* src dir read failed */ }
+        }
+      }
+
       // Load manually enabled packs from ~/.ava/knowledge-enabled.json
       try {
         const enabledPath = require('node:path').join(AVA_HOME, 'knowledge-enabled.json');

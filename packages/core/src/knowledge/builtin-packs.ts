@@ -758,4 +758,54 @@ Troubleshooting:
 - Build systems: Cargo (Rust), CMake (C/C++), go build (Go). Reproducible builds with lockfiles.
 - Docs: Rust Book (doc.rust-lang.org/book), C++ Reference (cppreference.com), Go (go.dev/doc).`,
   },
+  {
+    id: 'app-development',
+    name: 'App Development & UI Design Process',
+    description: 'The methodology of building and redesigning applications — audit, design system, component patterns, systematic execution. Not code syntax — the thinking process.',
+    domain: 'app-development',
+    version: '1.0.0',
+    builtIn: true,
+    modes: ['code', 'plan', 'chat', 'brainstorm'],
+    context: `When working on app development — building new features, redesigning UI, improving layouts, or creating new apps:
+
+**The process matters more than the code.** Reading files without a framework for what to do with the information leads to drift. Follow this methodology:
+
+**1. Audit before touching anything.**
+- Take a screenshot of the current state BEFORE making changes (use screenshot tool if available)
+- Identify specific problems: cramped spacing? inconsistent margins? mixed visual patterns? no hierarchy? too many font sizes?
+- List what works and what doesn't — don't redesign things that are already good
+
+**2. Design system first, pages second.**
+- Before editing ANY page, establish the design tokens: spacing scale (4/8/12/16/24/32px or 0.25/0.5/0.75/1/1.5/2rem), colour palette, border-radius convention, shadow depths, card/section patterns
+- Check the Decisions folder for existing tokens — if palette.md or typography.md exist, USE them as law
+- If no design system exists, DEFINE one and write it to the Decisions folder before proceeding
+- Call the curator tool for subjective taste decisions (palette, typography, visual weight)
+
+**3. Components before pages.**
+- Identify repeated patterns: cards, sections, headers, forms, buttons, navigation
+- Standardise shared components FIRST — same padding, same border-radius, same shadow, same spacing
+- Then apply the standardised components across pages. This prevents "each page looks different" inconsistency
+
+**4. Professional = consistent + breathing room.**
+- Consistent: same spacing scale everywhere, same card style, same text sizes for same purposes, same colour usage
+- Breathing room: generous padding inside sections (min 16px, prefer 24px), clear separation between sections (24-48px gap), whitespace between elements
+- Visual hierarchy: headings > subheadings > body > captions. Each level has distinct size, weight, and colour
+- Alignment: everything on the same grid. Mixed indentation and misaligned elements look amateur
+
+**5. Execute systematically.**
+- One page at a time, or one component type at a time. Never scatter edits across 5 files simultaneously
+- After each page: verify it compiles, verify it looks right (screenshot or visual check), then move to the next
+- Commit working states. Don't accumulate 10 file changes without a verification checkpoint
+
+**6. Common anti-patterns to fix on sight.**
+- Cramped cards: padding < 12px inside a card is always too tight. Use 16-24px
+- Missing section gaps: sections touching each other with no margin. Add 24-48px gap
+- Inconsistent border-radius: some cards rounded-lg, others rounded-xl, others sharp. Pick one
+- Too many font sizes: more than 4-5 distinct sizes on one page is visual noise. Consolidate
+- Colour soup: more than 3-4 accent colours competing. One primary, one secondary, one danger, one muted
+- No empty states: pages that show nothing when data is missing. Always design the empty state
+
+**7. When the user says "make it look professional":**
+This means: audit → design tokens → shared components → systematic page-by-page application → verification. It does NOT mean: read every file and then greet the user. The word "professional" is a design task, not a reading task. Act on it.`,
+  },
 ];
