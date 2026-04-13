@@ -37,6 +37,7 @@ import { avaEvents, withTrajectory, getTrajectory } from '../dataset/emitter.js'
 import type { AvaSurface, AvaMode } from '../dataset/events.js';
 import { summarizeToolArgs, summarizeToolResult, summarizeChainOutcome } from '../dataset/summarizers.js';
 import { pickVerificationTools, categorizeCorrection } from '../dataset/verification.js';
+import { matchToolError } from '../tools/error-guidance.js';
 import { randomUUID } from 'node:crypto';
 import { autoActivatePacks } from '../knowledge/pack-router.js';
 import type { IntentClassifier, UserIntent } from './intent-classifier.js';
@@ -1619,6 +1620,24 @@ export class Agent {
     const traj = getTrajectory();
     const prevTools = traj?.toolsSoFar ? [...traj.toolsSoFar] : [];
 
+    // ── Recovery-action emit ────────────────────────────────────────────
+    // If the previous tool in this trajectory failed, the upcoming choice
+    // is implicitly Ava's recovery move. Emit recovery_action linking
+    // back to the specific tool_error before the new choice fires so the
+    // ordering in the dataset reflects cause → response.
+    const recoveringFromErrorId = traj?.pendingErrorEventId;
+    if (recoveringFromErrorId) {
+      const lastTool = prevTools[prevTools.length - 1];
+      const recoveryKind: 'retry_same' | 'retry_with_change' | 'switch_tool' =
+        lastTool === toolName ? 'retry_same' : 'switch_tool';
+      avaEvents.emit('recovery_action', {
+        tool_error_event_id: recoveringFromErrorId,
+        recovery_kind: recoveryKind,
+        next_tool: toolName,
+      });
+      if (traj) traj.pendingErrorEventId = undefined;
+    }
+
     const choiceEventId = avaEvents.emit('tool_choice', {
       tool_name: toolName,
       args_summary: summarizeToolArgs(toolName, args),
@@ -1638,7 +1657,7 @@ export class Agent {
       };
     }
 
-    avaEvents.emit('tool_result', {
+    const resultEventId = avaEvents.emit('tool_result', {
       tool_name: toolName,
       tool_choice_event_id: choiceEventId,
       success: result.success,
@@ -1646,6 +1665,32 @@ export class Agent {
       duration_ms: Date.now() - start,
       error_summary: result.success ? undefined : result.output.slice(0, 200),
     });
+
+    // ── Tool-error + guidance emits ─────────────────────────────────────
+    // On failure, emit tool_error with the matched pattern key (if any),
+    // followed by error_guidance_applied if the pattern library produced
+    // user-facing fix advice. Stash the tool_error event_id on the
+    // trajectory so the next tool_choice can attach a recovery_action.
+    if (!result.success) {
+      const matched = matchToolError(result.output);
+      const errorEventId = avaEvents.emit('tool_error', {
+        tool_name: toolName,
+        tool_result_event_id: resultEventId,
+        error_pattern_match: matched?.pattern_key,
+        error_summary: result.output.slice(0, 200),
+      });
+      if (matched) {
+        avaEvents.emit('error_guidance_applied', {
+          tool_error_event_id: errorEventId,
+          pattern: matched.pattern_key,
+          // Guidance text is bounded and contains no user data — it's
+          // canonical advice strings from the pattern library — so
+          // capturing a short summary is safe.
+          guidance_summary: matched.guidance.slice(0, 200),
+        });
+      }
+      if (traj) traj.pendingErrorEventId = errorEventId;
+    }
 
     return result;
   }

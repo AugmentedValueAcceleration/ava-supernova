@@ -23,6 +23,10 @@ interface Guidance {
 }
 
 interface PatternEntry {
+  /** Stable, human-readable identifier for the pattern. Used by the
+   *  dataset capture layer to label tool_error events without having
+   *  to expose the regex source or the matched text. */
+  key: string;
   /** Regex tested against the raw tool output. */
   regex: RegExp;
   /** Either a static guidance object, or a builder that uses the regex match. */
@@ -36,6 +40,7 @@ const PATTERNS: PatternEntry[] = [
 
   // Playwright not installed — needed by the browser tool
   {
+    key: 'playwright-missing',
     regex: /playwright\s+is\s+not\s+installed|cannot\s+find\s+module\s+['"]playwright['"]|playwright[^.]*chromium[^.]*not\s+(?:installed|found)|browserType\.launch.*Executable\s+doesn['']?t\s+exist/i,
     guidance: {
       cause: "Playwright (the browser automation backend the browser tool uses) isn't installed yet. This is expected on a fresh machine — Playwright is an optional dependency that ships separately so it doesn't bloat the install for users who never need it.",
@@ -49,6 +54,7 @@ const PATTERNS: PatternEntry[] = [
   // Git Bash missing on Windows — surfaces as a COM "class not registered"
   // error when something tries to invoke bash via the Windows registry.
   {
+    key: 'win-git-bash-missing',
     regex: /class\s+not\s+registered|RegisteredClass|0x80040154|8908_E_CLASSNOTREG/i,
     guidance: {
       cause: "Bash isn't available on this Windows machine — Git for Windows isn't installed. Git for Windows includes the bash shell that I use to run commands.",
@@ -59,6 +65,7 @@ const PATTERNS: PatternEntry[] = [
 
   // Windows: 'X' is not recognized as an internal or external command
   {
+    key: 'win-command-not-recognized',
     regex: /'(\w[\w-]*)'\s+is\s+not\s+recognized\s+as\s+an\s+internal\s+or\s+external\s+command/i,
     guidance: (match) => commandNotFoundGuidance(match[1]),
   },
@@ -67,12 +74,14 @@ const PATTERNS: PatternEntry[] = [
 
   // bash: foo: command not found  /  sh: foo: command not found
   {
+    key: 'unix-command-not-found',
     regex: /(?:bash|sh|zsh|fish):\s*(?:line\s+\d+:\s*)?(\w[\w-]*):\s*command\s+not\s+found/i,
     guidance: (match) => commandNotFoundGuidance(match[1]),
   },
 
   // /bin/sh: 1: foo: not found  (Debian/Alpine variant)
   {
+    key: 'unix-binsh-not-found',
     regex: /\/bin\/(?:sh|bash):\s*\d+:\s*(\w[\w-]*):\s*not\s+found/i,
     guidance: (match) => commandNotFoundGuidance(match[1]),
   },
@@ -80,6 +89,7 @@ const PATTERNS: PatternEntry[] = [
   // ─── Permissions ─────────────────────────────────────────────────────────
 
   {
+    key: 'permission-denied',
     regex: /\bEACCES\b|permission\s+denied/i,
     guidance: {
       cause: "The command failed because of a file or directory permission issue.",
@@ -90,6 +100,7 @@ const PATTERNS: PatternEntry[] = [
   // ─── Port already in use ─────────────────────────────────────────────────
 
   {
+    key: 'port-in-use',
     regex: /\bEADDRINUSE\b|address\s+already\s+in\s+use|port\s+\d+\s+is\s+already\s+in\s+use/i,
     guidance: {
       cause: "Something is already running on the port the command tried to use.",
@@ -100,6 +111,7 @@ const PATTERNS: PatternEntry[] = [
   // ─── File / directory not found ──────────────────────────────────────────
 
   {
+    key: 'file-not-found',
     regex: /\bENOENT\b|no\s+such\s+file\s+or\s+directory|cannot\s+find\s+the\s+(?:file|path)\s+specified/i,
     guidance: {
       cause: "A file or directory the command needed doesn't exist at the given path.",
@@ -110,6 +122,7 @@ const PATTERNS: PatternEntry[] = [
   // ─── Out of memory ───────────────────────────────────────────────────────
 
   {
+    key: 'out-of-memory',
     regex: /\bENOMEM\b|out\s+of\s+memory|JavaScript\s+heap\s+out\s+of\s+memory/i,
     guidance: {
       cause: "The process ran out of memory.",
@@ -120,6 +133,7 @@ const PATTERNS: PatternEntry[] = [
   // ─── Network ─────────────────────────────────────────────────────────────
 
   {
+    key: 'network-error',
     regex: /\b(?:ENETUNREACH|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EHOSTUNREACH)\b|network\s+is\s+unreachable|connection\s+refused/i,
     guidance: {
       cause: "A network request failed — the server didn't respond, refused the connection, or you're offline.",
@@ -243,17 +257,27 @@ function commandNotFoundGuidance(command: string): Guidance {
  * the raw output unchanged.
  */
 export function explainToolError(rawOutput: string): string | null {
+  return matchToolError(rawOutput)?.guidance ?? null;
+}
+
+/**
+ * Like `explainToolError` but also returns the matched pattern's stable
+ * key. Used by the dataset capture layer so `tool_error` events carry
+ * an analytics-friendly category alongside the rendered guidance, and
+ * so the consumer can join `tool_error` rows to `error_guidance_applied`
+ * rows by pattern key.
+ */
+export function matchToolError(
+  rawOutput: string,
+): { pattern_key: string; guidance: string } | null {
   if (!rawOutput) return null;
 
   for (const entry of PATTERNS) {
     const match = rawOutput.match(entry.regex);
     if (!match) continue;
 
-    const guidance = typeof entry.guidance === 'function'
-      ? entry.guidance(match)
-      : entry.guidance;
-
-    return formatGuidance(guidance);
+    const g = typeof entry.guidance === 'function' ? entry.guidance(match) : entry.guidance;
+    return { pattern_key: entry.key, guidance: formatGuidance(g) };
   }
 
   return null;

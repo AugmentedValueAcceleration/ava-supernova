@@ -60,6 +60,13 @@ export interface TrajectoryContext {
    * to 'task_completed' if nothing set it.
    */
   outcome?: 'task_completed' | 'gave_up' | 'asked_user' | 'hit_loop_limit';
+  /**
+   * If the previous tool call in this trajectory failed, the event_id
+   * of its `tool_error` event. The next tool_choice consumes this to
+   * emit a `recovery_action` linking the recovery move back to the
+   * specific failure it's responding to. Cleared after consumption.
+   */
+  pendingErrorEventId?: string;
 }
 
 const trajectoryStorage = new AsyncLocalStorage<TrajectoryContext>();
