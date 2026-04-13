@@ -282,6 +282,12 @@ export class Agent {
    * had verified before answering. Reset across agent instances.
    */
   private lastTrajectoryMetadata: { trajectory_id: string; verified: boolean } | null = null;
+  /**
+   * The mode of the previous Agent.run() in this session. Used to fire
+   * `mode_switch` dataset events when the user changes modes between
+   * turns (e.g. switches from Work to Plan via the [Plan Mode] prefix).
+   */
+  private lastDetectedMode: AvaMode | null = null;
 
   constructor(opts: {
     provider: Provider;
@@ -351,6 +357,9 @@ export class Agent {
     // explicitly opted in via ~/.ava/datasets/config.json — defaults are
     // all-off so this scope opens but emits nothing for unconsenting users.
     const detectedMode = (detectModeFromMessages(messages) ?? 'work') as AvaMode;
+    const previousMode = this.lastDetectedMode;
+    this.lastDetectedMode = detectedMode;
+
     return withTrajectory(
       {
         session_id: this.sessionId,
@@ -361,6 +370,20 @@ export class Agent {
       async () => {
         const traj = getTrajectory()!;
         let finalContent: string | null = null;
+
+        // ── Dataset event: mode switched between turns ──────────────
+        // Mode is detected per-run from message prefixes ([Plan Mode]
+        // etc.). When this run's mode differs from the prior one, the
+        // user explicitly switched modes — capture that as a distinct
+        // event so we can train on the conditions under which mode
+        // shifts happen.
+        if (previousMode && previousMode !== detectedMode) {
+          avaEvents.emit('mode_switch', {
+            from_mode: previousMode,
+            to_mode: detectedMode,
+            trigger: 'user_prefix',
+          });
+        }
 
         // ── Dataset event: did the user just correct the prior turn? ──
         // Fires at the START of the new trajectory, references the
