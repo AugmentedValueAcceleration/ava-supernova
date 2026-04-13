@@ -12,7 +12,13 @@ import type {
   HistoryManager,
 } from '@ava/core';
 import type { PermissionMode } from '@ava/core';
-import { t, scaffoldProjectInstructions, detectProjectRoot, getInstructionsPath } from '@ava/core';
+import {
+  t, scaffoldProjectInstructions, detectProjectRoot, getInstructionsPath,
+  loadDatasetConfig, saveDatasetConfig, configPathFor, ALL_DATASETS,
+  AVA_HOME,
+  type DatasetConfig, type DatasetName, type AvaMode,
+} from '@ava/core';
+import { join } from 'node:path';
 
 interface Command {
   name: string;
@@ -557,6 +563,95 @@ export class CommandHandler {
     });
 
     this.registerCommand({
+      name: 'dataset',
+      aliases: ['datasets', 'capture'],
+      description: 'Manage Ava action-capture for the future own-model training run',
+      execute: async (args) => {
+        const sub = args.trim().split(/\s+/)[0] ?? '';
+        const datasetsDir = join(AVA_HOME, 'datasets');
+        const configPath = configPathFor(datasetsDir);
+        const cfg = await loadDatasetConfig(configPath);
+
+        if (!sub || sub === 'status' || sub === 'show') {
+          printDatasetStatus(cfg);
+          return true;
+        }
+
+        if (sub === 'on') {
+          // Enable everything by default. Granular off-toggles via subcommands.
+          const next: DatasetConfig = {
+            ...cfg,
+            enabled: true,
+            capture_modes: cfg.capture_modes.length > 0
+              ? cfg.capture_modes
+              : ['work', 'plan', 'chat', 'teach', 'security', 'brainstorm'],
+            capture_datasets: cfg.capture_datasets.length > 0
+              ? cfg.capture_datasets
+              : [...ALL_DATASETS],
+          };
+          await saveDatasetConfig(configPath, next);
+          console.log(chalk.green('  Dataset capture enabled.'));
+          printDatasetStatus(next);
+          return true;
+        }
+
+        if (sub === 'off') {
+          await saveDatasetConfig(configPath, { ...cfg, enabled: false });
+          console.log(chalk.yellow('  Dataset capture disabled (toggles preserved).'));
+          return true;
+        }
+
+        if (sub === 'mode') {
+          const action = (args.trim().split(/\s+/)[1] ?? '').toLowerCase() as AvaMode | '';
+          const ALL_MODES: AvaMode[] = ['work', 'plan', 'chat', 'teach', 'security', 'brainstorm'];
+          if (!action || !ALL_MODES.includes(action as AvaMode)) {
+            console.log('  Usage: /dataset mode <work|plan|chat|teach|security|brainstorm>');
+            return true;
+          }
+          const m = action as AvaMode;
+          const has = cfg.capture_modes.includes(m);
+          const next = {
+            ...cfg,
+            capture_modes: has
+              ? cfg.capture_modes.filter((x) => x !== m)
+              : [...cfg.capture_modes, m],
+          };
+          await saveDatasetConfig(configPath, next);
+          console.log(`  Mode ${chalk.bold(m)}: ${has ? chalk.yellow('off') : chalk.green('on')}`);
+          return true;
+        }
+
+        if (sub === 'kind') {
+          const action = (args.trim().split(/\s+/)[1] ?? '') as DatasetName;
+          if (!action || !ALL_DATASETS.includes(action)) {
+            console.log('  Usage: /dataset kind <name>');
+            console.log('  Available kinds:');
+            for (const d of ALL_DATASETS) console.log(`    ${d}`);
+            return true;
+          }
+          const has = cfg.capture_datasets.includes(action);
+          const next = {
+            ...cfg,
+            capture_datasets: has
+              ? cfg.capture_datasets.filter((x) => x !== action)
+              : [...cfg.capture_datasets, action],
+          };
+          await saveDatasetConfig(configPath, next);
+          console.log(`  Kind ${chalk.bold(action)}: ${has ? chalk.yellow('off') : chalk.green('on')}`);
+          return true;
+        }
+
+        console.log('  Usage:');
+        console.log('    /dataset            — show current capture config');
+        console.log('    /dataset on         — master enable + all modes/kinds on');
+        console.log('    /dataset off        — master disable (preserves toggles)');
+        console.log('    /dataset mode <m>   — toggle a mode (work/plan/chat/teach/security/brainstorm)');
+        console.log('    /dataset kind <k>   — toggle a dataset kind');
+        return true;
+      },
+    });
+
+    this.registerCommand({
       name: 'exit',
       aliases: ['quit', 'q'],
       description: t('cmd.exit.desc'),
@@ -614,4 +709,22 @@ function formatRelativeDate(date: Date): string {
   if (hours < 24) return t('history.hours_ago', { n: String(hours) });
   if (days < 7) return t('history.days_ago', { n: String(days) });
   return date.toLocaleDateString();
+}
+
+function printDatasetStatus(cfg: DatasetConfig): void {
+  const ALL_MODES: AvaMode[] = ['work', 'plan', 'chat', 'teach', 'security', 'brainstorm'];
+  console.log('');
+  console.log(`  ${chalk.bold('Dataset capture')}: ${cfg.enabled ? chalk.green('on') : chalk.yellow('off')}`);
+  console.log(`  ${chalk.bold('Modes captured')}:`);
+  for (const m of ALL_MODES) {
+    const on = cfg.capture_modes.includes(m);
+    console.log(`    ${on ? chalk.green('●') : chalk.dim('○')} ${m}`);
+  }
+  console.log(`  ${chalk.bold('Dataset kinds')}:`);
+  for (const d of ALL_DATASETS) {
+    const on = cfg.capture_datasets.includes(d);
+    console.log(`    ${on ? chalk.green('●') : chalk.dim('○')} ${d}`);
+  }
+  console.log(`  ${chalk.dim('Local-only — nothing leaves your machine. Files in ~/.ava/datasets/')}`);
+  console.log('');
 }
