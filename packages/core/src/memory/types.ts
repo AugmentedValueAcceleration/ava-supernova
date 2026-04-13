@@ -82,6 +82,13 @@ export interface MemorySaveOptions {
   branch?: string | null;
   /** Scope this memory to a specific directory within the project. */
   directoryScope?: string | null;
+  /**
+   * What triggered this save. Used for the dataset capture layer's
+   * memory_save event so we can train on which save sources produce
+   * memories that get recalled and used vs. which produce noise.
+   * Defaults to 'explicit' (a tool call from the model).
+   */
+  source?: 'explicit' | 'auto-extract' | 'reflection' | 'consolidation' | 'memory-agent';
 }
 
 /** Options for searching/recalling memories. */

@@ -23,6 +23,7 @@
 
 import type { MemoryManager } from './memory-manager.js';
 import type { MemoryEntry, MemoryCategory } from './types.js';
+import { avaEvents } from '../dataset/emitter.js';
 import { TfIdfIndex } from './tfidf.js';
 import { logger } from '../core/logger.js';
 
@@ -269,6 +270,27 @@ export async function runConsolidation(
         `stale ${report.staleTagged}, pruned ${report.pruned} | ` +
         `${formatBytes(report.memorySizeBefore)} → ${formatBytes(report.memorySizeAfter)}`
       );
+    }
+
+    // ── Dataset events ───────────────────────────────────────────────────
+    // Background memory consolidation is itself an Ava decision pass
+    // (which duplicates to merge, what to prune). Emit aggregated events
+    // so the dataset captures the outcome of each consolidation run
+    // alongside the per-entry memory_update / memory_save events that
+    // fire from inside the merge calls. Only emit when there's actually
+    // something to report — empty consolidations would be noise.
+    if (report.merged > 0 || report.contradictionsRemoved > 0) {
+      avaEvents.emit('memory_consolidation', {
+        count_before: Math.max(report.totalProcessed, 0),
+        count_after: Math.max(report.totalProcessed - report.merged - report.contradictionsRemoved, 0),
+        scope: 'global',
+      });
+    }
+    if (report.pruned > 0) {
+      avaEvents.emit('memory_forget', {
+        count_forgotten: report.pruned,
+        reason: 'age',
+      });
     }
 
     // Update state

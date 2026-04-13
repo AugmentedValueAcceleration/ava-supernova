@@ -220,7 +220,8 @@ export interface RecoveryActionPayload {
 /** Ava saved a memory. */
 export interface MemorySavePayload {
   scope: 'global' | 'project';
-  layer: 'flat' | 'graph' | 'procedural' | 'ambient';
+  /** Mirrors `MemoryLayer` from packages/core/src/memory/types.ts. */
+  layer: 'person' | 'workflow' | 'project';
   category: string;
   source: 'explicit' | 'auto-extract' | 'reflection' | 'consolidation' | 'memory-agent';
   content_signature: string;            // category/topic, never raw text

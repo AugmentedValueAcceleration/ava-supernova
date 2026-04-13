@@ -23,6 +23,7 @@ import { ProceduralObserver } from './procedural.js';
 import { synthesiseProjectBrain, loadProjectBrain, saveProjectBrain } from './project-brain.js';
 import { AmbientCaptureManager } from './ambient-capture.js';
 import { logger } from '../core/logger.js';
+import { avaEvents } from '../dataset/emitter.js';
 
 const MEMORY_FILENAME_V1 = 'memory.md';
 const MEMORY_FILENAME_V2 = 'memory.json';
@@ -406,6 +407,17 @@ export class MemoryManager {
     }
 
     this.syncEntries(effectiveScope, store.entries);
+
+    // ── Dataset event ──────────────────────────────────────────────────
+    avaEvents.emit('memory_save', {
+      scope: effectiveScope,
+      layer,
+      category: entry.category,
+      source: opts.source ?? 'explicit',
+      // content_signature is the category — never the raw content.
+      content_signature: entry.category,
+    });
+
     return entry;
   }
 
@@ -442,6 +454,21 @@ export class MemoryManager {
     }
 
     this.syncEntries(scope, store.entries);
+
+    // ── Dataset event ──────────────────────────────────────────────────
+    // what_changed reports the first explicit change; covers the common
+    // case where a single field is updated. Multi-field updates fire one
+    // event with the highest-signal field reported.
+    const changedField: 'content' | 'tags' | 'metadata' =
+      updates.content !== undefined ? 'content'
+      : updates.tags !== undefined ? 'tags'
+      : 'metadata';
+    avaEvents.emit('memory_update', {
+      scope,
+      what_changed: changedField,
+      reason: 'updateEntry',
+    });
+
     return entry;
   }
 
@@ -663,7 +690,26 @@ export class MemoryManager {
       // Recall just updates lastRecalledAt counters, not content
     }
 
-    return results.slice(0, limit);
+    const final = results.slice(0, limit);
+
+    // ── Dataset event ──────────────────────────────────────────────────
+    // query_signature is a coarse length category (single-word /
+    // short-phrase / long-query). Never the raw query. results_used_count
+    // is set to 0 here because we don't know at recall time which entries
+    // will end up in the response — the join happens at training time
+    // via trajectory_id correlation with subsequent assistant turns.
+    const wordCount = opts.query.trim().split(/\s+/).filter(Boolean).length;
+    const querySignature: string =
+      wordCount <= 1 ? 'single-word'
+      : wordCount <= 5 ? 'short-phrase'
+      : 'long-query';
+    avaEvents.emit('memory_recall', {
+      query_signature: querySignature,
+      results_count: final.length,
+      results_used_count: 0,
+    });
+
+    return final;
   }
 
   // ── Public API — Phase 3: Temporal & Scope ──────────────────────────────────
