@@ -33,6 +33,10 @@ import {
   COMPLEXITY_BUDGETS,
   type TaskComplexity,
 } from './task-classifier.js';
+import { avaEvents, withTrajectory, getTrajectory } from '../dataset/emitter.js';
+import type { AvaSurface, AvaMode } from '../dataset/events.js';
+import { summarizeToolArgs, summarizeToolResult, summarizeChainOutcome } from '../dataset/summarizers.js';
+import { randomUUID } from 'node:crypto';
 import { autoActivatePacks } from '../knowledge/pack-router.js';
 import type { IntentClassifier, UserIntent } from './intent-classifier.js';
 import { PNG } from 'pngjs';
@@ -265,12 +269,26 @@ export class Agent {
   private designReinjectionLastTurn = -Infinity;
   private designReinjectionLastMtimes = new Map<string, number>();
 
+  /** Which surface this Agent is running in (cli/extension/ide/companion). */
+  private readonly surface: AvaSurface;
+  /** Stable session UUID — one per Agent instance unless caller overrides. */
+  private readonly sessionId: string;
+
   constructor(opts: {
     provider: Provider;
     model: ModelDefinition;
     toolRegistry: ToolRegistry;
     cwd: string;
     sharedState?: Record<string, unknown>;
+    /**
+     * Surface this Agent runs in. Optional for backwards compatibility
+     * with existing callers, defaults to 'cli'. Each surface package
+     * (extension, ide, companion) should pass its own value so dataset
+     * events get the correct attribution.
+     */
+    surface?: AvaSurface;
+    /** Optional session UUID. Defaults to a fresh UUID per Agent. */
+    sessionId?: string;
   }) {
     this.provider = opts.provider;
     this.model = opts.model;
@@ -279,6 +297,8 @@ export class Agent {
       cwd: opts.cwd,
       sharedState: opts.sharedState,
     };
+    this.surface = opts.surface ?? 'cli';
+    this.sessionId = opts.sessionId ?? randomUUID();
   }
 
   /**
@@ -315,6 +335,47 @@ export class Agent {
   }
 
   async run(messages: Message[], onEvent: AgentEventHandler, signal?: AbortSignal): Promise<Message[]> {
+    // Open a dataset trajectory for the entire run. Every avaEvents.emit()
+    // inside (sync or async, in this method or any helper it calls) inherits
+    // this envelope. trajectory_id is auto-generated; the consumer in
+    // packages/core/src/dataset/consumer.ts only writes if a user has
+    // explicitly opted in via ~/.ava/datasets/config.json — defaults are
+    // all-off so this scope opens but emits nothing for unconsenting users.
+    const detectedMode = (detectModeFromMessages(messages) ?? 'work') as AvaMode;
+    return withTrajectory(
+      {
+        session_id: this.sessionId,
+        surface: this.surface,
+        mode: detectedMode,
+        model_id: this.model.id,
+      },
+      async () => {
+        const traj = getTrajectory()!;
+        let finalContent: string | null = null;
+        try {
+          const result = await this.runInner(messages, onEvent, signal);
+          // Best-effort: pull the final assistant text for the chain-complete
+          // summary. This is shape-only (word count, not content).
+          for (let i = result.length - 1; i >= 0; i--) {
+            if (result[i].role === 'assistant') {
+              finalContent = getTextContent(result[i].content);
+              break;
+            }
+          }
+          return result;
+        } finally {
+          avaEvents.emit('tool_chain_complete', {
+            tool_count: traj.toolsSoFar.length,
+            total_duration_ms: Date.now() - traj.startedAt,
+            outcome: traj.outcome ?? 'task_completed',
+            outcome_summary: summarizeChainOutcome(finalContent),
+          });
+        }
+      },
+    );
+  }
+
+  private async runInner(messages: Message[], onEvent: AgentEventHandler, signal?: AbortSignal): Promise<Message[]> {
     // ─── Stop-command detection ────────────────────────────────────────────
     // If the user's latest message is an explicit stop command ("stop",
     // "halt", "leave it", "don't touch", "how dare you i said stop", etc.),
@@ -1041,6 +1102,8 @@ export class Agent {
             type: 'done',
             finalMessage: { role: 'assistant', content: stopMsg } as any,
           });
+          const trajLoopStop = getTrajectory();
+          if (trajLoopStop) trajLoopStop.outcome = 'hit_loop_limit';
           return messages;
         }
       } else {
@@ -1202,7 +1265,7 @@ export class Agent {
                 onEvent({ type: 'tool_call_partial', toolCallId: tc.id, data });
               },
             };
-            return this.toolRegistry.execute(tc.function.name, parsedArgs, ctx);
+            return this.executeToolWithCapture(tc.function.name, parsedArgs, ctx);
           })
         );
 
@@ -1492,6 +1555,54 @@ export class Agent {
 
   // ── Single tool call execution (used by sequential confirmation phase) ──
 
+  /**
+   * Run a tool through the registry while emitting `tool_choice` /
+   * `tool_result` dataset events around the call. Returns the same
+   * shape `toolRegistry.execute` does — never throws (registry
+   * exceptions are converted to a failure result, mirroring the
+   * existing executeToolCall behaviour). Both the sequential and
+   * parallel tool paths in `runInner` go through this helper so the
+   * dataset trajectory captures every tool invocation in order.
+   */
+  private async executeToolWithCapture(
+    toolName: string,
+    args: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<{ output: string; success: boolean; metadata?: Record<string, unknown> }> {
+    const traj = getTrajectory();
+    const prevTools = traj?.toolsSoFar ? [...traj.toolsSoFar] : [];
+
+    const choiceEventId = avaEvents.emit('tool_choice', {
+      tool_name: toolName,
+      args_summary: summarizeToolArgs(toolName, args),
+      prev_tools_in_trajectory: prevTools,
+    });
+
+    if (traj?.toolsSoFar) traj.toolsSoFar.push(toolName);
+
+    const start = Date.now();
+    let result: { output: string; success: boolean; metadata?: Record<string, unknown> };
+    try {
+      result = await this.toolRegistry.execute(toolName, args, ctx);
+    } catch (err) {
+      result = {
+        output: `Tool error: ${err instanceof Error ? err.message : String(err)}`,
+        success: false,
+      };
+    }
+
+    avaEvents.emit('tool_result', {
+      tool_name: toolName,
+      tool_choice_event_id: choiceEventId,
+      success: result.success,
+      result_summary: summarizeToolResult(result.output, result.success),
+      duration_ms: Date.now() - start,
+      error_summary: result.success ? undefined : result.output.slice(0, 200),
+    });
+
+    return result;
+  }
+
   private async executeToolCall(
     toolCall: ToolCall,
     runContext: ToolExecutionContext,
@@ -1518,16 +1629,11 @@ export class Agent {
       },
     };
 
-    let result: { output: string; success: boolean; metadata?: Record<string, unknown> };
-    try {
-      result = await this.toolRegistry.execute(
-        toolCall.function.name,
-        parsedArgs,
-        toolRunContext,
-      );
-    } catch (err) {
-      result = { output: `Tool error: ${err instanceof Error ? err.message : String(err)}`, success: false };
-    }
+    const result = await this.executeToolWithCapture(
+      toolCall.function.name,
+      parsedArgs,
+      toolRunContext,
+    );
 
     onEvent({
       type: 'tool_call_end',

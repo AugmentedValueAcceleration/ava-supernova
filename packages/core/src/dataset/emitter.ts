@@ -43,6 +43,23 @@ export interface TrajectoryContext {
   surface: AvaSurface;
   mode: AvaMode;
   model_id: string;
+  /**
+   * Mutable list of tool names called so far in this trajectory. Used
+   * to populate `tool_choice.prev_tools_in_trajectory` without storing
+   * tool-specific state on the emitter. Mutated at emit time by the
+   * caller; safe because AsyncLocalStorage scopes the array to the
+   * trajectory's async chain.
+   */
+  toolsSoFar: string[];
+  /** When the trajectory opened — for total_duration_ms in tool_chain_complete. */
+  startedAt: number;
+  /**
+   * Outcome category for tool_chain_complete. Mutated by the agent when
+   * a non-default exit happens (loop limit, asked-user, gave-up). The
+   * trajectory wrapper reads this in its finally block and falls back
+   * to 'task_completed' if nothing set it.
+   */
+  outcome?: 'task_completed' | 'gave_up' | 'asked_user' | 'hit_loop_limit';
 }
 
 const trajectoryStorage = new AsyncLocalStorage<TrajectoryContext>();
@@ -53,11 +70,17 @@ const trajectoryStorage = new AsyncLocalStorage<TrajectoryContext>();
  * each top-level Agent.run() in this.
  */
 export function withTrajectory<T>(
-  ctx: Omit<TrajectoryContext, 'trajectory_id'> & { trajectory_id?: string },
+  ctx: Omit<TrajectoryContext, 'trajectory_id' | 'toolsSoFar' | 'startedAt'> & {
+    trajectory_id?: string;
+    toolsSoFar?: string[];
+    startedAt?: number;
+  },
   fn: () => T,
 ): T {
   const trajectory_id = ctx.trajectory_id ?? randomUUID();
-  return trajectoryStorage.run({ ...ctx, trajectory_id }, fn);
+  const toolsSoFar = ctx.toolsSoFar ?? [];
+  const startedAt = ctx.startedAt ?? Date.now();
+  return trajectoryStorage.run({ ...ctx, trajectory_id, toolsSoFar, startedAt }, fn);
 }
 
 /**
@@ -140,12 +163,14 @@ class AvaEventEmitter {
   /**
    * Emit an event. Caller must be inside a `withTrajectory(...)` scope —
    * if not, the emit is silently dropped (we don't throw because the
-   * agent shouldn't crash because of bookkeeping). Returns immediately;
-   * handlers run on a microtask.
+   * agent shouldn't crash because of bookkeeping). Returns the
+   * generated event_id so callers can cross-reference it from a
+   * follow-up event (e.g. `tool_result.tool_choice_event_id`).
+   * Handlers run on a microtask, so emit() is non-blocking.
    */
-  emit<T extends AvaEventType>(type: T, payload: AvaEventPayloadMap[T]): void {
+  emit<T extends AvaEventType>(type: T, payload: AvaEventPayloadMap[T]): string {
     const ctx = trajectoryStorage.getStore();
-    if (!ctx) return;
+    if (!ctx) return '';
 
     const event: AvaEvent<T> = {
       event_id: randomUUID(),
@@ -173,6 +198,8 @@ class AvaEventEmitter {
         this.runHandlerSafe(h, event);
       }
     });
+
+    return event.event_id;
   }
 
   /** For tests: drop every subscriber. */
