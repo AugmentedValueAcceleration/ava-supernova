@@ -33,7 +33,7 @@ import {
   COMPLEXITY_BUDGETS,
   type TaskComplexity,
 } from './task-classifier.js';
-import { avaEvents, withTrajectory, getTrajectory } from '../dataset/emitter.js';
+import { avaEvents, withTrajectory, withChildTrajectory, getTrajectory } from '../dataset/emitter.js';
 import type { AvaSurface, AvaMode } from '../dataset/events.js';
 import { summarizeToolArgs, summarizeToolResult, summarizeChainOutcome } from '../dataset/summarizers.js';
 import { pickVerificationTools, categorizeCorrection } from '../dataset/verification.js';
@@ -360,7 +360,14 @@ export class Agent {
     const previousMode = this.lastDetectedMode;
     this.lastDetectedMode = detectedMode;
 
-    return withTrajectory(
+    // If we're nested inside an outer trajectory (e.g. AutoCoordinator
+    // wrapped its own run), open a child trajectory so the chain is
+    // preserved via parent_trajectory_id. Otherwise open a fresh root.
+    const openTrajectory = getTrajectory()
+      ? withChildTrajectory
+      : withTrajectory;
+
+    return openTrajectory(
       {
         session_id: this.sessionId,
         surface: this.surface,

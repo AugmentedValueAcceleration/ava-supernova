@@ -18,6 +18,9 @@ import { resolveCoordinatorModel } from './coordinator-model.js';
 import { buildSystemPrompt } from '../agent/system-prompt.js';
 import { TaskExecutor } from './task-executor.js';
 import { logger } from '../core/logger.js';
+import { avaEvents, withTrajectory, withChildTrajectory, getTrajectory } from '../dataset/emitter.js';
+import type { AvaSurface, AvaMode } from '../dataset/events.js';
+import { randomUUID } from 'node:crypto';
 
 // Categories where Conductor orchestration may trigger on the spawned agent
 const ORCHESTRATED_CATEGORIES = new Set<TaskCategory>(['planning', 'security', 'brainstorm', 'teach']);
@@ -59,6 +62,9 @@ export class AutoCoordinator {
   // or a Builder spawned by TaskExecutor. inject() forwards to whichever is
   // active so user mid-run messages reach the agent that's actually running.
   private activeAgent: Agent | null = null;
+  /** Surface and session for dataset trajectory attribution. */
+  private readonly surface: AvaSurface;
+  private readonly sessionId: string;
 
   constructor(opts: {
     coordinatorProvider: Provider;
@@ -72,6 +78,11 @@ export class AutoCoordinator {
     userPreferences?: UserRoutePreferences;
     projectInstructions?: string;
     systemPromptOpts?: Record<string, unknown>;
+    /** Surface this coordinator runs in. Threaded into nested Agent's
+     *  trajectory envelopes for dataset event attribution. */
+    surface?: AvaSurface;
+    /** Optional session UUID. Defaults to a fresh one. */
+    sessionId?: string;
   }) {
     this.coordinatorProvider = opts.coordinatorProvider;
     this.coordinatorModel = opts.coordinatorModel;
@@ -80,6 +91,8 @@ export class AutoCoordinator {
     this.sharedState = opts.sharedState;
     this.projectInstructions = opts.projectInstructions || '';
     this.systemPromptOpts = opts.systemPromptOpts || {};
+    this.surface = opts.surface ?? 'cli';
+    this.sessionId = opts.sessionId ?? randomUUID();
 
     this.router = new ModelRouter(
       opts.providerRegistry,
@@ -140,6 +153,29 @@ export class AutoCoordinator {
    * Drop-in replacement for Agent.run() — same signature.
    */
   async run(
+    messages: Message[],
+    onEvent: AgentEventHandler,
+    signal?: AbortSignal,
+  ): Promise<Message[]> {
+    // Open a dataset trajectory for the entire coordinator run. Inner
+    // Agent.run() calls (planning agent + Builder agents) inherit this
+    // as their parent_trajectory_id so the orchestration tree can be
+    // reconstructed at training time. Mode is detected from the
+    // incoming messages so events get attributed correctly.
+    const mode = (this.detectMode(messages) ?? 'work') as AvaMode;
+    const openTrajectory = getTrajectory() ? withChildTrajectory : withTrajectory;
+    return openTrajectory(
+      {
+        session_id: this.sessionId,
+        surface: this.surface,
+        mode,
+        model_id: this.coordinatorModel.id,
+      },
+      () => this.runInner(messages, onEvent, signal),
+    );
+  }
+
+  private async runInner(
     messages: Message[],
     onEvent: AgentEventHandler,
     signal?: AbortSignal,
@@ -289,6 +325,23 @@ export class AutoCoordinator {
     // Classify the task
     const classification = classifyTask(userMsg.content, mode, tokenCount);
 
+    // ── Dataset event: classification decision ─────────────────────────
+    // Captures input shape (length category) and the classifier's pick.
+    // input_signature is intent category not raw text.
+    const userText = typeof userMsg.content === 'string'
+      ? userMsg.content
+      : userMsg.content.map(p => (p.type === 'text' ? p.text : '')).join(' ');
+    const userWordCount = userText.trim().split(/\s+/).filter(Boolean).length;
+    const inputSignature =
+      userWordCount <= 5 ? 'short'
+      : userWordCount <= 30 ? 'medium'
+      : 'long';
+    avaEvents.emit('task_classification', {
+      input_signature: inputSignature,
+      classified_as: classification.category,
+      classifier_model: 'task-classifier',
+    });
+
     // Direct handling — no spawn needed
     if (DIRECT_CATEGORIES.has(classification.category) && !classification.modelOverride) {
       return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
@@ -300,6 +353,13 @@ export class AutoCoordinator {
       // No model available — fallback to coordinator
       return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
     }
+
+    // ── Dataset event: routing decision ────────────────────────────────
+    avaEvents.emit('routing_decision', {
+      classification: classification.category,
+      chosen_model: route.model.id,
+      reason: route.reason,
+    });
 
     // If routed to the same model as coordinator, just run directly
     if (route.model.id === this.coordinatorModel.id && route.provider.name === this.coordinatorProvider.name) {
