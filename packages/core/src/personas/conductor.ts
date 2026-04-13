@@ -16,6 +16,7 @@ import type {
 } from './types.js';
 import { MODE_PERSONAS } from './definitions.js';
 import { logger } from '../core/logger.js';
+import { avaEvents } from '../dataset/emitter.js';
 
 const DEFAULT_CONFIG: Required<ConductorConfig> = {
   maxPersonas: 6,
@@ -133,6 +134,35 @@ export class Conductor {
     // Skip the Builder persona — that's the main Agent's job
     const planningTeam = sortedTeam.filter(p => p.id !== 'builder');
 
+    // ── Dataset event: Conductor decided which team to spawn ─────────────
+    // One persona_decision per orchestrate() call. Captures the mode that
+    // drove the decision and the ordered team Conductor chose.
+    avaEvents.emit('persona_decision', {
+      task_classification: mode,
+      chosen_team: planningTeam.map(p => p.id),
+      reasoning_summary: this.config.parallel
+        ? `mode=${mode}, parallel wave-based team`
+        : `mode=${mode}, sequential team by priority`,
+    });
+
+    // Tracks the most-recently-completed persona id so we can emit
+    // persona_handoff events between consecutive personas. Reset per
+    // orchestrate() call. Works for both sequential (clean handoff
+    // chain) and parallel (most recent wave member is informative
+    // enough as the from_persona).
+    let lastCompletedPersonaId: string | null = null;
+    const emitHandoff = (toPersona: PersonaDefinition, prevState: PersonaState | null): void => {
+      if (!lastCompletedPersonaId || !prevState) return;
+      const poolText = this.poolToString(contextPool);
+      const wordCount = poolText.trim().split(/\s+/).filter(Boolean).length;
+      avaEvents.emit('persona_handoff', {
+        from_persona: lastCompletedPersonaId,
+        to_persona: toPersona.id,
+        artifacts_produced: prevState.output ? [`${lastCompletedPersonaId}-output`] : [],
+        context_word_count: wordCount,
+      });
+    };
+
     if (this.config.parallel) {
       // ── Wave-based parallel execution ─────────────────────────────────
       // Group personas into waves based on dependency graph.
@@ -157,6 +187,14 @@ export class Conductor {
           if (signal?.aborted || vetoed) break;
           const batch = wave.slice(i, i + maxP);
 
+          // Dataset event: each persona in this wave hands off from
+          // the most-recently-completed persona of the previous wave.
+          // (In parallel mode "from" is informative not strict — wave
+          // siblings really start together.)
+          for (const persona of batch) {
+            emitHandoff(persona, personaStates[personaStates.length - 1] ?? null);
+          }
+
           const results = await Promise.allSettled(
             batch.map(persona =>
               this.runPersona(persona, contextPool, conversationHistory, onEvent, signal)
@@ -171,6 +209,14 @@ export class Conductor {
               const state = result.value;
               personaStates.push(state);
               completed.add(persona.id);
+              lastCompletedPersonaId = persona.id;
+
+              avaEvents.emit('persona_complete', {
+                persona: persona.id,
+                output_summary: state.output ? `produced, ${state.output.length}ch` : 'no-output',
+                success: state.output != null,
+                duration_ms: (state.completedAt ?? Date.now()) - (state.startedAt ?? Date.now()),
+              });
 
               if (state.output) {
                 this.updatePool(contextPool, persona.id, state.output);
@@ -186,6 +232,12 @@ export class Conductor {
             } else {
               // Failed — mark as complete to unblock dependents, but log error
               completed.add(persona.id);
+              avaEvents.emit('persona_complete', {
+                persona: persona.id,
+                output_summary: 'failed',
+                success: false,
+                duration_ms: 0,
+              });
               logger.debug(`[conductor] Persona ${persona.id} failed in parallel: ${result.reason}`);
             }
           }
@@ -193,12 +245,27 @@ export class Conductor {
       }
     } else {
       // ── Sequential execution (original behaviour) ─────────────────────
+      let prevState: PersonaState | null = null;
       for (const persona of planningTeam) {
         if (signal?.aborted) break;
         if (personaStates.length >= (this.config.maxPersonas ?? 6)) break;
 
+        // Dataset event: persona N starts after persona N-1 finished.
+        emitHandoff(persona, prevState);
+
         const state = await this.runPersona(persona, contextPool, conversationHistory, onEvent, signal);
         personaStates.push(state);
+        lastCompletedPersonaId = persona.id;
+        prevState = state;
+
+        // Dataset event: persona finished. Mirrors the existing onEvent
+        // 'persona_complete' but writes to the dataset stream too.
+        avaEvents.emit('persona_complete', {
+          persona: persona.id,
+          output_summary: state.output ? `produced, ${state.output.length}ch` : 'no-output',
+          success: state.output != null,
+          duration_ms: (state.completedAt ?? Date.now()) - (state.startedAt ?? Date.now()),
+        });
 
         // Update context pool based on persona output
         if (state.output) {
