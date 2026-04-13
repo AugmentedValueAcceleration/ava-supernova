@@ -18,7 +18,12 @@ function httpGetJson(url: string): Promise<unknown> {
     }).on('error', reject);
   });
 }
-import { MemoryManager, TaskManager, JournalManager, AVA_HOME, loadPersonality, savePersonality, resetPersonality } from '@ava/core';
+import {
+  MemoryManager, TaskManager, JournalManager, AVA_HOME,
+  loadPersonality, savePersonality, resetPersonality,
+  loadDatasetConfig, saveDatasetConfig, configPathFor,
+  type DatasetConfig,
+} from '@ava/core';
 import type { Personality } from '@ava/core';
 import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, JournalDay } from '@ava/core';
 import { getNonce } from '../utils/nonce.js';
@@ -280,6 +285,21 @@ export class DashboardPanel {
       case 'save_settings':
         this.saveSettings(msg.settings);
         break;
+
+      case 'dataset:get_config': {
+        const cfgPath = configPathFor(path.join(AVA_HOME, 'datasets'));
+        const cfg = await loadDatasetConfig(cfgPath);
+        this.post({ type: 'dataset:config', config: cfg } as any);
+        break;
+      }
+
+      case 'dataset:set_config': {
+        const cfgPath = configPathFor(path.join(AVA_HOME, 'datasets'));
+        const incoming = (msg as { config: DatasetConfig }).config;
+        await saveDatasetConfig(cfgPath, incoming);
+        this.post({ type: 'dataset:config', config: incoming } as any);
+        break;
+      }
 
       case 'set_category_permission':
         if ((this.viewProvider as any)?.toolRegistry && (msg as any).category && (msg as any).permission) {

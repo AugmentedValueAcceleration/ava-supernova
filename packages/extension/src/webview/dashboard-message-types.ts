@@ -440,6 +440,16 @@ export type DashboardToExtMessage =
   | { type: 'open_portal' }
   | { type: 'save_settings'; settings: DashboardSettings }
   | { type: 'open_chat' }
+  // Dataset capture (Ava action capture) — own granular schema in
+  // ~/.ava/datasets/config.json. See packages/core/src/dataset/config.ts.
+  | { type: 'dataset:get_config' }
+  | { type: 'dataset:set_config'; config: {
+      enabled: boolean;
+      capture_modes: string[];
+      capture_datasets: string[];
+      redact_patterns: string[];
+      min_trajectory_length: number;
+    } }
   | { type: 'open_url'; url: string }
   | { type: 'update_name'; name: string }
   | { type: 'refresh_account' }

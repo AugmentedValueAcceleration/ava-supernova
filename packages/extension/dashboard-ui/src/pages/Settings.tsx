@@ -140,6 +140,74 @@ export function Settings({
 
   useEffect(() => setLocal(settings), [settings]);
 
+  // ── Dataset capture config (separate from DashboardSettings) ─────────────
+  // Lives at ~/.ava/datasets/config.json with its own granular schema. The
+  // extension host owns the file; we sync via dataset:get_config /
+  // dataset:set_config messages.
+  type DatasetConfigShape = {
+    enabled: boolean;
+    capture_modes: string[];
+    capture_datasets: string[];
+    redact_patterns: string[];
+    min_trajectory_length: number;
+  };
+  const ALL_AVA_MODES = ['work', 'plan', 'chat', 'teach', 'security', 'brainstorm'];
+  const ALL_DATASET_KINDS = [
+    'tool-trajectories', 'persona-handoffs', 'verification-pairs',
+    'auto-mode-classification', 'error-recovery', 'memory-operations',
+    'continuation-recovery', 'mode-transitions', 'generation-effectiveness',
+    'knowledge-pack-effectiveness',
+  ];
+  const [datasetConfig, setDatasetConfig] = useState<DatasetConfigShape | null>(null);
+  useEffect(() => {
+    post({ type: 'dataset:get_config' } as any);
+    function onMessage(e: MessageEvent) {
+      const m = e.data;
+      if (m && m.type === 'dataset:config') setDatasetConfig(m.config);
+    }
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+  function saveDatasetConfig(next: DatasetConfigShape): void {
+    setDatasetConfig(next);
+    post({ type: 'dataset:set_config', config: next } as any);
+  }
+  function toggleDatasetMode(mode: string): void {
+    if (!datasetConfig) return;
+    const has = datasetConfig.capture_modes.includes(mode);
+    saveDatasetConfig({
+      ...datasetConfig,
+      capture_modes: has
+        ? datasetConfig.capture_modes.filter(m => m !== mode)
+        : [...datasetConfig.capture_modes, mode],
+    });
+  }
+  function toggleDatasetKind(kind: string): void {
+    if (!datasetConfig) return;
+    const has = datasetConfig.capture_datasets.includes(kind);
+    saveDatasetConfig({
+      ...datasetConfig,
+      capture_datasets: has
+        ? datasetConfig.capture_datasets.filter(k => k !== kind)
+        : [...datasetConfig.capture_datasets, kind],
+    });
+  }
+  function setDatasetMaster(enabled: boolean): void {
+    if (!datasetConfig) return;
+    // First-time enable auto-fills empty whitelists so capture isn't
+    // master-on-but-everything-still-off.
+    saveDatasetConfig({
+      ...datasetConfig,
+      enabled,
+      capture_modes: enabled && datasetConfig.capture_modes.length === 0
+        ? ALL_AVA_MODES
+        : datasetConfig.capture_modes,
+      capture_datasets: enabled && datasetConfig.capture_datasets.length === 0
+        ? ALL_DATASET_KINDS
+        : datasetConfig.capture_datasets,
+    });
+  }
+
   // ── Auto-save ────────────────────────────────────────────────────────────
 
   function saveImmediate<K extends keyof DashboardSettings>(key: K, value: DashboardSettings[K]) {
@@ -305,6 +373,77 @@ export function Settings({
               : t('dash.settings.learnings_local')}
           </p>
         </div>
+      </div>
+
+      {/* ── 3. Dataset capture (Ava action capture) ─────────────────────── */}
+      <SectionLabel>Help train Ava's own model</SectionLabel>
+      <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+        <ToggleRow
+          icon={<span className="text-base">&#x1f9ea;</span>}
+          title="Capture Ava's actions as training data"
+          description="Records Ava's tool choices, persona handoffs, memory ops, etc. to ~/.ava/datasets/. Local-only by default. Never captures your prompts or files — only her decisions and shape-only context."
+          value={datasetConfig?.enabled ?? false}
+          onChange={setDatasetMaster}
+        />
+
+        {datasetConfig?.enabled && (
+          <>
+            <Divider />
+            <p className="mb-2 text-xs font-semibold text-[var(--text-secondary)]">Modes captured</p>
+            <p className="mb-3 text-[11px] text-[var(--text-muted)]">
+              Choose which thought modes feed the dataset. Toggle any off to keep that mode private.
+            </p>
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {ALL_AVA_MODES.map(mode => {
+                const on = datasetConfig.capture_modes.includes(mode);
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => toggleDatasetMode(mode)}
+                    className={`rounded-full border px-3 py-1 text-[11px] transition ${
+                      on
+                        ? 'border-emerald-400 bg-emerald-400/10 text-emerald-300'
+                        : 'border-[var(--border-card)] text-[var(--text-muted)] hover:border-emerald-400/40'
+                    }`}
+                  >
+                    {mode}
+                  </button>
+                );
+              })}
+            </div>
+
+            <Divider />
+            <p className="mb-2 text-xs font-semibold text-[var(--text-secondary)]">Dataset kinds</p>
+            <p className="mb-3 text-[11px] text-[var(--text-muted)]">
+              The 10 distinct training datasets Ava generates. All on by default; uncheck any you'd rather not contribute to.
+            </p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {ALL_DATASET_KINDS.map(kind => {
+                const on = datasetConfig.capture_datasets.includes(kind);
+                return (
+                  <button
+                    key={kind}
+                    onClick={() => toggleDatasetKind(kind)}
+                    className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-left text-[11px] transition ${
+                      on
+                        ? 'border-emerald-400/40 bg-emerald-400/5 text-[var(--text-secondary)]'
+                        : 'border-[var(--border-card)] text-[var(--text-muted)] hover:border-emerald-400/30'
+                    }`}
+                  >
+                    <span className={on ? 'text-emerald-400' : 'text-[var(--text-muted)]'}>
+                      {on ? '\u25cf' : '\u25cb'}
+                    </span>
+                    <span className="truncate">{kind}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="mt-4 text-[10px] text-[var(--text-muted)]">
+              All capture is local and append-only. Nothing leaves your machine until you explicitly push to your private dataset repo (separate, opt-in).
+            </p>
+          </>
+        )}
       </div>
 
       {/* ── 4. Behavior ─────────────────────────────────────────────────── */}

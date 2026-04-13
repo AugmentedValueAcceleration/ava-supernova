@@ -564,6 +564,13 @@ export type ExtToDashboardMessage =
       locale: string;
     }
   | { type: 'account_updated'; account: AccountInfo | null }
+  | { type: 'dataset:config'; config: {
+      enabled: boolean;
+      capture_modes: string[];
+      capture_datasets: string[];
+      redact_patterns: string[];
+      min_trajectory_length: number;
+    } }
   | { type: 'provider_keys_updated'; providerKeys: ProviderKeyStatus }
   | { type: 'memories_loaded'; memories: MemoryEntry[]; total?: number; hasMore?: boolean }
   | { type: 'memories_more_loaded'; memories: MemoryEntry[]; total?: number; hasMore?: boolean }
@@ -700,6 +707,17 @@ export type DashboardToExtMessage =
   | { type: 'open_portal' }
   | { type: 'save_settings'; settings: DashboardSettings }
   | { type: 'open_chat' }
+  // Dataset capture (Ava action capture for the future own-model training run).
+  // Lives outside DashboardSettings because it has its own granular schema
+  // and writes to ~/.ava/datasets/config.json directly via core.
+  | { type: 'dataset:get_config' }
+  | { type: 'dataset:set_config'; config: {
+      enabled: boolean;
+      capture_modes: string[];
+      capture_datasets: string[];
+      redact_patterns: string[];
+      min_trajectory_length: number;
+    } }
   | { type: 'open_url'; url: string }
   | { type: 'update_name'; name: string }
   | { type: 'refresh_account' }
