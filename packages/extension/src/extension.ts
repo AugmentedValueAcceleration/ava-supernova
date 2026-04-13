@@ -5,7 +5,13 @@ import { AvaViewProvider } from './webview/AvaViewProvider.js';
 import { DocsPanel } from './webview/DocsPanel.js';
 import { DashboardPanel } from './webview/DashboardPanel.js';
 import { DocumentPreviewPanel } from './webview/DocumentPreviewPanel.js';
-import { killBackgroundProcesses, TaskManager, JournalManager, AVA_HOME } from '@ava/core';
+import {
+  killBackgroundProcesses,
+  TaskManager,
+  JournalManager,
+  AVA_HOME,
+  installDatasetConsumer,
+} from '@ava/core';
 
 let viewProvider: AvaViewProvider | undefined;
 
@@ -14,6 +20,12 @@ const DASHBOARD_STATE_KEY = 'avaSupernova.dashboardOpen';
 
 export function activate(context: vscode.ExtensionContext): void {
   try {
+  // Install the dataset capture consumer once at activation. No-op for
+  // any user who hasn't opted in via ~/.ava/datasets/config.json — defaults
+  // are all-off, so this is just opening the subscription. When the user
+  // toggles capture on, events start landing without restarting VS Code.
+  installDatasetConsumer();
+
   viewProvider = new AvaViewProvider(context.extensionUri, context);
 
   // Task Manager (shared instance)

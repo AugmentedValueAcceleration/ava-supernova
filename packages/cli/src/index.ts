@@ -26,6 +26,7 @@ import {
   loadDecisionsState,
   setLocale,
   resolveLocale,
+  installDatasetConsumer,
 } from '@ava/core';
 import type { ProviderSettings } from '@ava/core';
 import { runSetupWizard } from './setup-wizard.js';
@@ -33,6 +34,13 @@ import { Repl } from './cli/repl.js';
 import { CommandHandler } from './cli/commands.js';
 
 async function main(): Promise<void> {
+  // Install the dataset capture consumer once at boot. It's a no-op for
+  // any user who hasn't opted in via ~/.ava/datasets/config.json — the
+  // config defaults are all-off, so this just opens the subscription
+  // and waits. When the user later flips the toggle, capture starts
+  // working without a restart.
+  installDatasetConsumer();
+
   const cwd = process.cwd();
   const projectRoot = detectProjectRoot(cwd) ?? undefined;
   const projectInstructions = projectRoot

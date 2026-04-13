@@ -241,8 +241,28 @@ export {
 export { scanDependencies, scanSecrets, scanCodeVulns, runFullScan } from './security/index.js';
 export type { DependencyVuln, SecretFinding, CodeVuln, ScanReport } from './security/index.js';
 
-// Dataset
+// Dataset (legacy — kept for compat, currently unused in hot path)
 export { captureInteraction } from './dataset/capture.js';
+
+// Dataset capture v2 — typed event bus + opt-in consumer.
+// Surfaces install the consumer once at startup; the consumer's per-event
+// gate (driven by ~/.ava/datasets/config.json) decides whether to write.
+// Defaults are all-off — capture is fully inert until a user opts in.
+export {
+  installDatasetConsumer,
+  drainPendingWrites,
+  type ConsumerOptions,
+} from './dataset/consumer.js';
+export {
+  loadDatasetConfig,
+  saveDatasetConfig,
+  configPathFor,
+  invalidateConfigCache,
+  DEFAULT_CONFIG as DEFAULT_DATASET_CONFIG,
+  type DatasetConfig,
+} from './dataset/config.js';
+export { ALL_DATASETS, type DatasetName } from './dataset/routing.js';
+export type { AvaMode } from './dataset/events.js';
 
 // Generation
 export { GenerationManager } from './tools/generation-manager.js';
