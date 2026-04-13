@@ -310,7 +310,7 @@ export interface GenerationUserActionPayload {
 /** Auto-activation chose a knowledge pack to inject into the system prompt. */
 export interface KnowledgePackActivatedPayload {
   pack_name: string;
-  trigger_signal: 'file_type' | 'framework' | 'language' | 'manual';
+  trigger_signal: 'file_type' | 'framework' | 'language' | 'keyword' | 'manual';
   trigger_detail: string;               // e.g. 'detected: react, typescript'
   injected_token_count: number;
 }

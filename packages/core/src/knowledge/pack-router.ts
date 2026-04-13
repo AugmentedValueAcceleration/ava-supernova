@@ -14,6 +14,7 @@
 
 import type { KnowledgeDomain } from './types.js';
 import { BUILTIN_PACKS } from './builtin-packs.js';
+import { avaEvents } from '../dataset/emitter.js';
 
 /** Domain keywords — if any keyword matches the user's message, that domain's pack activates. */
 const DOMAIN_KEYWORDS: Record<KnowledgeDomain, string[]> = {
@@ -58,8 +59,8 @@ export function routePacks(
 
   for (const [domain, keywords] of Object.entries(DOMAIN_KEYWORDS)) {
     if (keywords.length === 0) continue;
-    const matches = keywords.some(kw => lower.includes(kw));
-    if (!matches) continue;
+    const matchedKeywords = keywords.filter(kw => lower.includes(kw));
+    if (matchedKeywords.length === 0) continue;
 
     // Find the pack for this domain
     const pack = BUILTIN_PACKS.find(p => p.domain === domain);
@@ -67,6 +68,16 @@ export function routePacks(
     if (alreadyLoadedIds.has(pack.id)) continue;
 
     activated.push(pack.id);
+
+    // ── Dataset event ──────────────────────────────────────────────
+    // Approximation: 4 chars per token.
+    const injectedTokens = Math.ceil((pack.context?.length ?? 0) / 4);
+    avaEvents.emit('knowledge_pack_activated', {
+      pack_name: pack.id,
+      trigger_signal: 'keyword',
+      trigger_detail: `domain=${domain}, matches=${matchedKeywords.length}`,
+      injected_token_count: injectedTokens,
+    });
   }
 
   return activated;
