@@ -2,6 +2,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
+import { startGenerationTracking } from '../dataset/generation-emit.js';
 
 /**
  * Generate AI music from a text prompt using MiniMax.
@@ -66,6 +67,13 @@ export class GenerateMusicTool implements Tool {
     genManager?.update(jobId, { status: 'generating', progress: 10 });
     context.onOutput?.('Generating music...\n');
 
+    const tracker = startGenerationTracking({
+      type: 'music',
+      model: 'minimax-music',
+      prompt,
+      paramsSummary: lyrics ? 'with-lyrics' : 'instrumental',
+    });
+
     try {
       const body: Record<string, unknown> = { prompt };
       if (lyrics) body.lyrics = lyrics;
@@ -103,6 +111,7 @@ export class GenerateMusicTool implements Tool {
 
       const meta = { path: relativePath, absolutePath: savePath, size: audioBuffer.length, prompt, hasLyrics: !!lyrics };
       genManager?.complete(jobId, meta);
+      tracker.complete({ fileSizeBytes: audioBuffer.length });
 
       return {
         success: true,
@@ -112,6 +121,7 @@ export class GenerateMusicTool implements Tool {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       genManager?.fail(jobId, message);
+      tracker.fail(message);
       return { success: false, output: `Music generation failed: ${message}` };
     }
   }

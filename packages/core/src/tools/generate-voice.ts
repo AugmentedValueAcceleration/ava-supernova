@@ -2,6 +2,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
+import { startGenerationTracking } from '../dataset/generation-emit.js';
 
 /**
  * Generate AI voice/speech from text using MiniMax TTS.
@@ -83,6 +84,13 @@ export class GenerateVoiceTool implements Tool {
     genManager?.update(jobId, { status: 'generating', progress: 10 });
     context.onOutput?.('Generating voice...\n');
 
+    const tracker = startGenerationTracking({
+      type: 'voice',
+      model: 'minimax-voice',
+      prompt: text,
+      paramsSummary: `voice=${voiceId}, speed=${speed}`,
+    });
+
     try {
       const res = await fetch(`${PLATFORM_URL}/generate-voice`, {
         method: 'POST',
@@ -117,6 +125,7 @@ export class GenerateVoiceTool implements Tool {
 
       const meta = { path: relativePath, absolutePath: savePath, size: audioBuffer.length, voiceId, speed, textLength: text.length };
       genManager?.complete(jobId, meta);
+      tracker.complete({ fileSizeBytes: audioBuffer.length });
 
       return {
         success: true,
@@ -126,6 +135,7 @@ export class GenerateVoiceTool implements Tool {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       genManager?.fail(jobId, message);
+      tracker.fail(message);
       return { success: false, output: `Voice generation failed: ${message}` };
     }
   }

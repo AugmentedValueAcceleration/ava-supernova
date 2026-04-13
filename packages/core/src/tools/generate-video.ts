@@ -2,6 +2,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
+import { startGenerationTracking } from '../dataset/generation-emit.js';
 
 /**
  * Generate a short AI video from a text prompt using MiniMax Hailuo.
@@ -72,6 +73,13 @@ export class GenerateVideoTool implements Tool {
     genManager?.update(jobId, { status: 'generating', progress: 10 });
     context.onOutput?.('Generating video (this may take a few minutes)...\n');
 
+    const tracker = startGenerationTracking({
+      type: 'video',
+      model: 'minimax-video',
+      prompt,
+      paramsSummary: `duration=${duration}s, resolution=${resolution}`,
+    });
+
     try {
       const res = await fetch(`${PLATFORM_URL}/generate-video`, {
         method: 'POST',
@@ -106,6 +114,7 @@ export class GenerateVideoTool implements Tool {
 
       const meta = { path: relativePath, absolutePath: savePath, size: videoBuffer.length, duration, resolution, prompt };
       genManager?.complete(jobId, meta);
+      tracker.complete({ fileSizeBytes: videoBuffer.length });
 
       return {
         success: true,
@@ -115,6 +124,7 @@ export class GenerateVideoTool implements Tool {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       genManager?.fail(jobId, message);
+      tracker.fail(message);
       return { success: false, output: `Video generation failed: ${message}` };
     }
   }

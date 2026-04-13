@@ -2,6 +2,7 @@ import { writeFile, mkdir, readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
+import { startGenerationTracking } from '../dataset/generation-emit.js';
 
 /**
  * Generate an AI image and save it to the project.
@@ -150,6 +151,12 @@ export class GenerateImageTool implements Tool {
     const enhancedPrompt = rawPrompt + promptAddition;
 
     const modelLabel = useMinimax ? 'MiniMax image-01' : 'Wan2.6';
+    const tracker = startGenerationTracking({
+      type: 'image',
+      model: modelLabel,
+      prompt: rawPrompt,
+      paramsSummary: `size=${sizeKey}, purpose=${purpose}`,
+    });
     genManager?.update(jobId, { status: 'generating', progress: 10 });
     context.onOutput?.(`Generating ${purpose} image with ${modelLabel}...\n`);
     if (promptAddition) {
@@ -231,6 +238,7 @@ export class GenerateImageTool implements Tool {
           purpose,
         };
         genManager?.complete(jobId, resultMeta);
+        tracker.complete({ fileSizeBytes: imageBuffer.length });
 
         return {
           success: true,
@@ -244,6 +252,7 @@ export class GenerateImageTool implements Tool {
     }
 
     genManager?.fail(jobId, lastError);
+    tracker.fail(lastError);
     return {
       success: false,
       output: `Image generation failed after ${MAX_VISION_RETRIES + 1} attempts. Last error: ${lastError}`,
