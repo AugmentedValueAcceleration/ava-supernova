@@ -16,6 +16,12 @@ const TOPUP_PACKAGES = [
   { id: 'pro_pack', label: '50M tokens', price: '$70', tokens: '50,000,000' },
 ] as const;
 
+const STORAGE_ADDONS = [
+  { id: '50gb', label: '+50 GB', price: '$3', unit: '/mo' },
+  { id: '250gb', label: '+250 GB', price: '$12', unit: '/mo' },
+  { id: '1tb', label: '+1 TB', price: '$45', unit: '/mo' },
+] as const;
+
 const PLAN_FEATURES: Record<string, string[]> = {
   pro: [
     'Managed API access — no keys needed',
@@ -125,6 +131,62 @@ export function Billing({ account }: BillingProps) {
       </SectionGroup>
       </div>
 
+      {/* Cloud Storage */}
+      {account.storage && (
+        <div className="mb-10">
+          <SectionGroup
+            label="Cloud Storage"
+            description="Syncs across every device you use Ava on. Local files always work, even at cap."
+          >
+            <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+              <div className="mb-4 flex items-baseline justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Used</p>
+                  <p className="mt-1 text-xl font-semibold">
+                    {formatStorage(account.storage.used_gb)} <span className="text-sm text-[var(--text-muted)]">of {formatStorage(account.storage.total_gb)}</span>
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-[var(--text-muted)]">
+                    {formatStorage(account.storage.base_gb)} plan
+                    {account.storage.addon_gb > 0 && ` + ${formatStorage(account.storage.addon_gb)} add-ons`}
+                  </p>
+                </div>
+              </div>
+              <UsageBar used={account.storage.used_gb} limit={account.storage.total_gb} accent />
+              <p className="mt-3 text-[11px] text-[var(--text-muted)]">
+                Hit the cap? Cloud sync pauses; local work keeps going. Add a top-up anytime to raise it.
+              </p>
+            </div>
+          </SectionGroup>
+        </div>
+      )}
+
+      {/* Storage Top-ups */}
+      {account.tier !== 'free' && account.tier !== 'admin' && (
+        <div className="mb-10">
+          <SectionGroup
+            label="Add Storage"
+            description="Recurring monthly add-ons. Stack multiple if you need more. Cancel anytime."
+          >
+            <div className="grid gap-3 sm:grid-cols-3">
+              {STORAGE_ADDONS.map(a => (
+                <button
+                  key={a.id}
+                  onClick={() => post({ type: 'open_storage_addon', size: a.id as '50gb' | '250gb' | '1tb' })}
+                  className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-input)] p-5 text-center transition hover:border-[var(--accent)]/30"
+                >
+                  <p className="text-xl font-bold text-[var(--gradient-start)]">
+                    {a.price}<span className="text-xs font-normal text-[var(--text-muted)]">{a.unit}</span>
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--text-secondary)]">{a.label}</p>
+                </button>
+              ))}
+            </div>
+          </SectionGroup>
+        </div>
+      )}
+
       {/* Top-ups (Pro only) */}
       {account.tier === 'pro' && (
         <div className="mb-10">
@@ -228,4 +290,11 @@ function formatNumber(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
   return String(n);
+}
+
+function formatStorage(gb: number): string {
+  if (gb >= 1000) return `${(gb / 1024).toFixed(2)} TB`;
+  if (gb >= 10) return `${Math.round(gb)} GB`;
+  if (gb >= 1) return `${gb.toFixed(1)} GB`;
+  return `${Math.round(gb * 1024)} MB`;
 }
