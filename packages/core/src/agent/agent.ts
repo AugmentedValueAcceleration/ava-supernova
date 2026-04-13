@@ -36,6 +36,7 @@ import {
 import { avaEvents, withTrajectory, getTrajectory } from '../dataset/emitter.js';
 import type { AvaSurface, AvaMode } from '../dataset/events.js';
 import { summarizeToolArgs, summarizeToolResult, summarizeChainOutcome } from '../dataset/summarizers.js';
+import { pickVerificationTools, categorizeCorrection } from '../dataset/verification.js';
 import { randomUUID } from 'node:crypto';
 import { autoActivatePacks } from '../knowledge/pack-router.js';
 import type { IntentClassifier, UserIntent } from './intent-classifier.js';
@@ -273,6 +274,13 @@ export class Agent {
   private readonly surface: AvaSurface;
   /** Stable session UUID — one per Agent instance unless caller overrides. */
   private readonly sessionId: string;
+  /**
+   * Trajectory metadata from the previous Agent.run() in this session.
+   * Used to attach `correction_received` events to the trajectory the
+   * user is correcting, and to record whether that prior trajectory
+   * had verified before answering. Reset across agent instances.
+   */
+  private lastTrajectoryMetadata: { trajectory_id: string; verified: boolean } | null = null;
 
   constructor(opts: {
     provider: Provider;
@@ -352,6 +360,23 @@ export class Agent {
       async () => {
         const traj = getTrajectory()!;
         let finalContent: string | null = null;
+
+        // ── Dataset event: did the user just correct the prior turn? ──
+        // Fires at the START of the new trajectory, references the
+        // previous trajectory's id so training-time joins know which
+        // response was the wrong one.
+        const latestUser = this.findLatestNonMetaUserMessage(messages);
+        if (latestUser && this.lastTrajectoryMetadata) {
+          const correctionKind = categorizeCorrection(latestUser);
+          if (correctionKind) {
+            avaEvents.emit('correction_received', {
+              corrected_trajectory_id: this.lastTrajectoryMetadata.trajectory_id,
+              original_verification: this.lastTrajectoryMetadata.verified,
+              correction_signature: correctionKind,
+            });
+          }
+        }
+
         try {
           const result = await this.runInner(messages, onEvent, signal);
           // Best-effort: pull the final assistant text for the chain-complete
@@ -364,12 +389,34 @@ export class Agent {
           }
           return result;
         } finally {
+          // ── Dataset event: did Ava verify before answering? ──────
+          const verifTools = pickVerificationTools(traj.toolsSoFar);
+          const responseWords = finalContent
+            ? finalContent.trim().split(/\s+/).filter(Boolean).length
+            : 0;
+          avaEvents.emit('verification_decision', {
+            verified: verifTools.length > 0,
+            verification_tools_used: verifTools,
+            response_word_count: responseWords,
+            // Question signature is mode + question-mark presence — never
+            // raw text. The mode is already on the envelope so this is a
+            // small additional categorisation.
+            question_signature: latestUser && /\?/.test(latestUser) ? 'question' : 'imperative',
+          });
+
           avaEvents.emit('tool_chain_complete', {
             tool_count: traj.toolsSoFar.length,
             total_duration_ms: Date.now() - traj.startedAt,
             outcome: traj.outcome ?? 'task_completed',
             outcome_summary: summarizeChainOutcome(finalContent),
           });
+
+          // Stash this trajectory's metadata so the NEXT run can attach
+          // correction_received events to it if the user pushes back.
+          this.lastTrajectoryMetadata = {
+            trajectory_id: traj.trajectory_id,
+            verified: verifTools.length > 0,
+          };
         }
       },
     );

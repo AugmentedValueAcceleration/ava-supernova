@@ -118,8 +118,13 @@ describe('Agent → dataset event wiring', () => {
     );
     await flushMicrotasks();
 
-    const types = captured.map((e) => e.event_type);
-    expect(types).toEqual(['tool_choice', 'tool_result', 'tool_chain_complete']);
+    // Tool events must appear in order. (verification_decision and other
+    // run-end events may interleave; the ordering we care about is
+    // choice → result → chain_complete.)
+    const toolTypes = captured
+      .map((e) => e.event_type)
+      .filter((t) => t === 'tool_choice' || t === 'tool_result' || t === 'tool_chain_complete');
+    expect(toolTypes).toEqual(['tool_choice', 'tool_result', 'tool_chain_complete']);
   });
 
   it('shares trajectory_id across all events from one run', async () => {
