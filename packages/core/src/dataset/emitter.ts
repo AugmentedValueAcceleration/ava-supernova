@@ -67,6 +67,16 @@ export interface TrajectoryContext {
    * specific failure it's responding to. Cleared after consumption.
    */
   pendingErrorEventId?: string;
+  /**
+   * If a continuation stall was detected and a nudge was fired during
+   * this trajectory, the stall's event_id. The trajectory wrapper's
+   * finally block emits `continuation_nudge_fired` with `recovered`
+   * derived from `nudgeRecovered` (defaults to true — if the run made
+   * it to the end without re-entering the closure-fallback path, the
+   * nudge succeeded).
+   */
+  pendingStallEventId?: string;
+  nudgeRecovered?: boolean;
 }
 
 const trajectoryStorage = new AsyncLocalStorage<TrajectoryContext>();

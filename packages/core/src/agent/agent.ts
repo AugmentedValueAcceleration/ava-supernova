@@ -442,6 +442,19 @@ export class Agent {
             outcome_summary: summarizeChainOutcome(finalContent),
           });
 
+          // ── Dataset event: continuation nudge outcome ───────────────
+          // If a stall was detected and a nudge fired during this run,
+          // report whether the nudge actually got things back on track.
+          // Optimistic default (recovered=true) is set at fire time and
+          // flipped to false by the fallback-exhausted branch.
+          if (traj.pendingStallEventId) {
+            avaEvents.emit('continuation_nudge_fired', {
+              stall_event_id: traj.pendingStallEventId,
+              nudge_action: 'forcing-prompt',
+              recovered: traj.nudgeRecovered ?? true,
+            });
+          }
+
           // Stash this trajectory's metadata so the NEXT run can attach
           // correction_received events to it if the user pushes back.
           this.lastTrajectoryMetadata = {
@@ -1087,6 +1100,26 @@ export class Agent {
             : 'post-tool drift (greeting/social response after tool usage)';
           logger.debug(`[agent] Closure fallback: ${reason}, re-prompting`);
 
+          // ── Dataset event: stall detected + nudge will fire ─────────
+          // Stash the stall event_id on the trajectory so the run
+          // wrapper's finally can emit continuation_nudge_fired with
+          // an accurate `recovered` flag once we know whether the
+          // nudge worked.
+          const stallPattern = isEmptyClose ? 'empty-close'
+            : isContinuationStall ? 'continuation-narration'
+            : 'post-tool-drift';
+          const stallEventId = avaEvents.emit('continuation_stall_detected', {
+            response_summary: `${stallPattern}, ${contentText.length}ch`,
+            stall_pattern: stallPattern,
+          });
+          const stallTraj = getTrajectory();
+          if (stallTraj) {
+            stallTraj.pendingStallEventId = stallEventId;
+            // Optimistic default — the wrapper's finally flips this to
+            // false if we hit the fallback-exhausted branch below.
+            stallTraj.nudgeRecovered = true;
+          }
+
           // Drop the stalled assistant message from history
           messages = messages.slice(0, -1);
 
@@ -1115,6 +1148,9 @@ export class Agent {
         // edge cases where the model is genuinely broken on closure.
         if ((isEmptyClose || isContinuationStall) && closureFallbackAttempted) {
           logger.warn('[agent] Closure fallback exhausted — substituting hardcoded "Done."');
+          // Mark the nudge as failed for the upcoming nudge_fired emit.
+          const exhaustedTraj = getTrajectory();
+          if (exhaustedTraj) exhaustedTraj.nudgeRecovered = false;
           const substitute = isContinuationStall
             ? contentText + ' [Agent stalled — closure fallback substituted this message.]'
             : 'Done.';
