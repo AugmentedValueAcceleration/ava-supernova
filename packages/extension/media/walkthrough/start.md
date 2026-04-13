@@ -4,7 +4,7 @@ You're all set. Here's what Ava can do:
 
 ## Six Modes — States of Thought
 
-- **Work** (`>>`) — Builder mindset. Full agent with all 56 tools. Ava reads, writes, searches, and executes.
+- **Work** (`>>`) — Builder mindset. Full agent with all 61 tools. Ava reads, writes, searches, and executes.
 - **Plan** (`::`) — Architect mindset. Read-only analysis. Ava reads your code and creates plans without modifying anything.
 - **Chat** (`..`) — Friend mindset. Personal conversation with memory, search, and journal. No work tools.
 - **Teach** (`??`) — Tutor mindset. Ava becomes your personal teacher. Full toolkit, but guides instead of doing.

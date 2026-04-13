@@ -177,7 +177,7 @@ She remembers your preferred tools, your conventions, the bugs you've fixed befo
 
 ---
 
-## 59 Tools
+## 61 Tools
 
 Grouped for the work you actually do:
 

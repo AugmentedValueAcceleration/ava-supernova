@@ -3,7 +3,7 @@ export const enStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Your open-source agentic coding assistant.',
-  'welcome.tagline': '52 tools \u00B7 7 providers \u00B7 2 free models \u00B7 20 languages',
+  'welcome.tagline': '61 tools \u00B7 7 providers \u00B7 2 free models \u00B7 20 languages',
 
   // Welcome — Setup
   'welcome.setup_title': 'Get Started — Add an API Key',
