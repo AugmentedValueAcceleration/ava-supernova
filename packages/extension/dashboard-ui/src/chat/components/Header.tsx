@@ -21,7 +21,7 @@ const KNOWLEDGE_PACKS = [
 ];
 
 const SYNC_INTERVAL = 15 * 60 * 1000; // 15 minutes
-const SYNC_TYPES = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings', 'personality', 'creative'] as const;
+const SYNC_TYPES = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings', 'personality'] as const;
 
 interface HeaderProps {
   models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;

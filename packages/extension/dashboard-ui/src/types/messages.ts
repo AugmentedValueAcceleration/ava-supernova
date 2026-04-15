@@ -773,7 +773,7 @@ export type DashboardToExtMessage =
   | { type: 'load_task_dates' }
   // Sync messages
   | { type: 'load_sync_status' }
-  | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' | 'profile' }
+  | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' }
   | { type: 'save_avatar'; data: string; mimeType: string }
   | { type: 'remove_avatar' }
   | { type: 'load_avatar' }

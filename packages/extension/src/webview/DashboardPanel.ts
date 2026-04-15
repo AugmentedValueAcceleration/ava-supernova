@@ -2595,29 +2595,6 @@ export class DashboardPanel {
     } catch { return {}; }
   }
 
-  private async scanCreativeDir(dir: string, projectRoot: string): Promise<Array<{ absolutePath: string; relativePath: string; type: string }>> {
-    const fsLib = await import('node:fs/promises');
-    const results: Array<{ absolutePath: string; relativePath: string; type: string }> = [];
-    const exts: Record<string, string> = {
-      '.png': 'image', '.jpg': 'image', '.jpeg': 'image', '.gif': 'image', '.webp': 'image', '.svg': 'image',
-      '.mp3': 'audio', '.wav': 'audio', '.ogg': 'audio',
-      '.mp4': 'video', '.webm': 'video',
-    };
-    try {
-      const entries = await fsLib.readdir(dir, { withFileTypes: true });
-      for (const entry of entries) {
-        const full = path.join(dir, entry.name);
-        if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
-          results.push(...await this.scanCreativeDir(full, projectRoot));
-        } else if (entry.isFile()) {
-          const ext = path.extname(entry.name).toLowerCase();
-          const type = exts[ext];
-          if (type) results.push({ absolutePath: full, relativePath: path.relative(projectRoot, full).replace(/\\/g, '/'), type });
-        }
-      }
-    } catch { /* dir doesn't exist */ }
-    return results;
-  }
 
   private async saveSyncState(dataType: string, count: number): Promise<void> {
     const fs = await import('node:fs/promises');
@@ -2633,7 +2610,7 @@ export class DashboardPanel {
     const data: Record<string, { available: boolean; lastSynced: string | null; localCount: number; syncedCount: number; newCount: number }> = {};
 
     const dataDir = this.getUserDataDir();
-    const types = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings', 'personality', 'creative'] as const;
+    const types = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings', 'personality'] as const;
     for (const t of types) {
       let localCount = 0;
       try {
@@ -2818,44 +2795,6 @@ export class DashboardPanel {
           break;
         }
 
-        case 'creative': {
-          // Sync local creative asset files to cloud storage
-          const workspaceFolders = vscode.workspace.workspaceFolders;
-          if (!workspaceFolders) {
-            this.post({ type: 'sync_completed', dataType, count: 0 });
-            break;
-          }
-          const projectRoot = workspaceFolders[0].uri.fsPath;
-          const creativeDirs = [
-            path.join(projectRoot, 'images'),
-            path.join(projectRoot, '.ava', 'creative'),
-          ];
-          let uploadCount = 0;
-          for (const dir of creativeDirs) {
-            try {
-              const entries = await this.scanCreativeDir(dir, projectRoot);
-              for (const entry of entries) {
-                try {
-                  const buf = await fs.readFile(entry.absolutePath);
-                  if (buf.length > 10 * 1024 * 1024) continue; // Skip files > 10MB
-                  // Upload via platform API
-                  const base64 = buf.toString('base64');
-                  const res = await apiFetch('/sync/creative', {
-                    platformKey,
-                    method: 'POST',
-                    body: { path: entry.relativePath, data: base64, type: entry.type, size: buf.length },
-                  });
-                  if (res.ok) uploadCount++;
-                } catch { /* skip individual file failures */ }
-              }
-            } catch { /* dir doesn't exist */ }
-          }
-          await this.saveSyncState('creative', uploadCount);
-          this.post({ type: 'sync_completed', dataType, count: uploadCount });
-          await this.loadSyncStatus();
-          break;
-        }
-
         case 'learnings': {
           // Push local self-improvement entries to the shared global pool
           const siPath = path.join(this.avaHome, 'self-improvement.json');
@@ -2888,44 +2827,6 @@ export class DashboardPanel {
           }
           await this.saveSyncState('learnings', pushed);
           this.post({ type: 'sync_completed', dataType, count: pushed });
-          await this.loadSyncStatus();
-          break;
-        }
-
-        case 'profile': {
-          // Upload local avatar to Supabase Storage + update users.avatar_url
-          const avatarPath = path.join(os.homedir(), '.ava', 'avatar.dat');
-          const avatarData = await fs.readFile(avatarPath, 'utf-8');
-          if (!avatarData.startsWith('data:image/')) {
-            this.post({ type: 'sync_error', dataType, message: 'No local avatar to sync.' });
-            break;
-          }
-          // Parse data URL → binary
-          const [header, base64] = avatarData.split(',');
-          const mimeMatch = header.match(/data:(image\/\w+)/);
-          const mime = mimeMatch?.[1] || 'image/png';
-          const ext = mime.split('/')[1] || 'png';
-          const buffer = Buffer.from(base64, 'base64');
-
-          // Get user ID
-          const { data: keyRow } = await apiFetch('/account-info', { platformKey });
-          const userId = keyRow?.id;
-          if (!userId) throw new Error('Could not determine user ID');
-
-          // Upload via platform API (base64 body)
-          const uploadRes = await apiFetch('/avatar/upload', {
-            platformKey,
-            method: 'POST',
-            body: { avatar: avatarData, extension: ext },
-          });
-          if (!uploadRes.ok) {
-            // Fallback: update avatar_url with data URL encoded (not ideal but works)
-            // In practice, the platform should have an /avatar/upload endpoint
-            // For now, just update the avatar_url directly
-            throw new Error('Avatar sync not yet supported on the platform API');
-          }
-          await this.saveSyncState('profile', 1);
-          this.post({ type: 'sync_completed', dataType, count: 1 });
           await this.loadSyncStatus();
           break;
         }

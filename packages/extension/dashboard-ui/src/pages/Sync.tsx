@@ -4,7 +4,7 @@ import { post } from '../App';
 import type { SyncStatus } from '../types/messages';
 import {
   Brain, CheckSquare, BookOpen, GraduationCap, ChatCircle,
-  GearSix, MaskHappy, Lightbulb, User, Palette,
+  GearSix, MaskHappy, Lightbulb,
 } from '@phosphor-icons/react';
 
 const SYNC_PREFS_KEY = 'ava-sync-preferences';
@@ -30,8 +30,6 @@ function getSyncDataTypes() {
     { key: 'settings',    label: t('dash.sync.settings'),         icon: <GearSix weight="duotone" size={18} />,  description: t('dash.sync.settings_desc') },
     { key: 'personality', label: t('dash.sync.personality'),       icon: <MaskHappy weight="duotone" size={18} />, description: t('dash.sync.personality_desc') },
     { key: 'learnings',   label: t('dash.sync.shared_learnings'), icon: <Lightbulb weight="duotone" size={18} />, description: t('dash.sync.shared_learnings_desc') },
-    { key: 'profile',     label: 'Profile',                       icon: <User weight="duotone" size={18} />, description: 'Avatar and display name — syncs your profile to the cloud for use across devices' },
-    { key: 'creative',    label: 'Creative Assets',               icon: <Palette weight="duotone" size={18} />, description: 'Generated images, videos, music, and voice — sync your creative library to the cloud' },
   ] as const;
 }
 
@@ -139,7 +137,7 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
 
                 {/* Push button */}
                 <button
-                  onClick={() => post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' | 'profile' })}
+                  onClick={() => post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' })}
                   disabled={!isConnected || syncing || localCount === 0 || (isUpToDate && !syncing) || !isSyncEnabled(key)}
                   className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-30 disabled:cursor-not-allowed"
                 >
@@ -179,7 +177,7 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
                 if (!isSyncEnabled(key)) continue; // Skip disabled sections
                 const status = syncStatus?.[key];
                 if (status && status.localCount > 0) {
-                  post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' | 'profile' });
+                  post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' });
                 }
               }
             }}
