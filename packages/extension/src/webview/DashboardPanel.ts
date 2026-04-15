@@ -84,6 +84,7 @@ export class DashboardPanel {
 
   private readonly panel: vscode.WebviewPanel;
   private readonly extensionUri: vscode.Uri;
+  private readonly context: vscode.ExtensionContext;
   private readonly secrets: vscode.SecretStorage;
   private disposables: vscode.Disposable[] = [];
   private supportPollInterval?: ReturnType<typeof setInterval>;
@@ -131,6 +132,7 @@ export class DashboardPanel {
   ) {
     this.panel = panel;
     this.extensionUri = extensionUri;
+    this.context = context;
     this.secrets = context.secrets;
     this.viewProvider = viewProvider;
 
@@ -2686,8 +2688,8 @@ export class DashboardPanel {
         case 'memory': {
           const { PlatformMemorySync } = await import('@ava/core');
           const sync = new PlatformMemorySync('https://ava-supernova.com/api', platformKey);
-          const raw = await fs.readFile(path.join(this.getUserDataDir(), 'memory.json'), 'utf-8');
-          const store = JSON.parse(raw);
+          const store = await fs.readFile(path.join(this.getUserDataDir(), 'memory.json'), 'utf-8')
+            .then(JSON.parse).catch(() => ({ entries: [] }));
           const entries = store.entries || [];
           await sync.pushEntries('global', entries);
           await this.saveSyncState('memory', entries.length);
@@ -2697,8 +2699,8 @@ export class DashboardPanel {
         }
 
         case 'tasks': {
-          const raw = await fs.readFile(path.join(this.getUserDataDir(), 'tasks.json'), 'utf-8');
-          const store = JSON.parse(raw);
+          const store = await fs.readFile(path.join(this.getUserDataDir(), 'tasks.json'), 'utf-8')
+            .then(JSON.parse).catch(() => ({ tasks: [] }));
           const tasks = store.tasks || [];
           const res = await apiFetch('/tasks/sync', {
             platformKey,
@@ -2743,8 +2745,8 @@ export class DashboardPanel {
         }
 
         case 'learning': {
-          const raw = await fs.readFile(path.join(this.getUserDataDir(), 'learning.json'), 'utf-8');
-          const store = JSON.parse(raw);
+          const store = await fs.readFile(path.join(this.getUserDataDir(), 'learning.json'), 'utf-8')
+            .then(JSON.parse).catch(() => ({ curriculums: [] }));
           const curriculums = store.curriculums || [];
           const res = await apiFetch('/learning/sync', {
             platformKey,
