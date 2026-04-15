@@ -52,6 +52,7 @@ import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, Message, Co
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus } from './message-types.js';
 import type { AccountInfo } from './dashboard-message-types.js';
 import { DashboardPanel } from './DashboardPanel.js';
+import { SecretAccess } from '../secrets/secret-access.js';
 import { DocumentPreviewPanel } from './DocumentPreviewPanel.js';
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
@@ -73,6 +74,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private isRunning = false;
   private runAbortController?: AbortController;
   private pendingConfirmations = new Map<string, { resolve: (result: boolean | string) => void; toolName: string; args?: Record<string, unknown> }>();
+  // Pending secret-grant prompts. Keyed by grantId; resolves when the webview
+  // posts secret_grant_response. Resolves with null on denial.
+  private pendingGrants = new Map<string, { resolve: (granted: { id: string; label: string } | null) => void; label: string }>();
   // Audit log — in-memory, cleared on new session
   private auditLog: Array<{ timestamp: string; toolName: string; category: string; riskLevel: string; approvalMethod: string; status: string; argsSummary: string; fullArgs?: Record<string, unknown>; result?: string }> = [];
   private settingsListener?: vscode.Disposable;
@@ -83,6 +87,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private projectInstructions?: string;
   private decisionsState?: import('@ava/core').DecisionsState;
   private signInManager?: import('./sign-in-manager.js').SignInManager;
+  /**
+   * Ava's working set of granted secrets — populated by user grants from the
+   * vault, scoped to the current chat session, wiped on new_chat. Used by
+   * tools (slice 2+) to fetch secret values by id without exposing the full
+   * vault. Source of truth is VSCode SecretStorage; this is just the runtime
+   * capability surface.
+   */
+  public readonly secretAccess = new SecretAccess();
   private memoryManager?: MemoryManager;
   private taskManager?: TaskManager;
   private journalManager?: JournalManager;
@@ -573,6 +585,16 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       case 'tool_confirmation_response':
         mapped = { type: 'tool_confirmation_response', confirmationId: msg.confirmationId as string, approved: msg.approved as boolean, alwaysAllowCategory: msg.alwaysAllowCategory as boolean | undefined, planSelection: msg.planSelection as string | undefined, userResponse: msg.userResponse as string | undefined };
         break;
+      case 'secret_grant_response':
+        // Resolve the pending grant Promise and place the value into Ava's
+        // working set. Routed directly here (no need to round-trip through
+        // the inner switch).
+        await this.handleSecretGrantResponse(
+          msg.grantId as string,
+          (msg.secretId as string) ?? '',
+          msg.alwaysForProject as boolean | undefined,
+        );
+        return;
       case 'switch_model':
         mapped = { type: 'switch_model', modelId: msg.modelId as string };
         break;
@@ -784,6 +806,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.conversation = new Conversation();
     this.conversation.setSystemPrompt(await this.buildCurrentSystemPrompt());
     this.setLastConversationId(undefined);
+
+    // Wipe Ava's granted secrets — fresh chat = fresh trust boundary.
+    // 'always grant for project' policies live on the vault entry itself
+    // (alwaysGrantProjects[]) so they survive this; only the in-memory
+    // working set resets here.
+    this.secretAccess.forgetAll();
+
     this.postMessage({ type: 'chat_cleared' });
     this.postMessage({ type: 'init', models: this.getModelList(), activeModel: this.getActiveModelId(), needsSetup: !this.agent, consentRequired: !this.context.globalState.get('ava.consentAccepted'), locale: this.currentLocale });
   }
@@ -1245,6 +1274,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       (toolName, args, toolCallId) => this.requestConfirmation(toolName, args, toolCallId),
     );
 
+    // Substitute {{secret:id}} handles with values from the working set just
+    // before each tool runs. Confirmation prompts still see the handle.
+    this.toolRegistry.setArgsPreprocessor(async (_toolName, args) => {
+      return this.substituteSecretHandles(args) as Record<string, unknown>;
+    });
+
     // Wire audit callback — log all tool executions for the Audit tab
     this.toolRegistry.setAuditCallback((entry) => {
       this.auditLog.push(entry);
@@ -1352,6 +1387,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       toolRegistry: this.toolRegistry,
       cwd,
       sharedState,
+      secretGranter: (label, reason) => this.requestSecretGrant(label, reason),
     });
 
     this.conductor = new Conductor({
@@ -3216,6 +3252,126 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         ...(toolName === 'ask_user' ? { isAskUser: true } : {}),
       });
     });
+  }
+
+  // ─── Secret grant flow ─────────────────────────────────────────────────────
+
+  /**
+   * Read all vault entries from SecretStorage. Used to surface candidate
+   * matches for a grant prompt. Never returns values — the prompt only
+   * shows labels/providers; values stay in the vault until granted.
+   */
+  private async readVaultEntries(): Promise<Array<{ id: string; label: string; provider?: string; createdAt?: string; value: string; alwaysGrantProjects?: string[] }>> {
+    try {
+      const raw = await this.context.secrets.get('ava-supernova.secretVault');
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Granter implementation passed into ToolExecutionContext.secretGranter.
+   * Filters vault candidates by case-insensitive label match, auto-grants
+   * when the user has set 'always grant for this project' on a single match,
+   * otherwise prompts the webview and awaits the response.
+   */
+  public async requestSecretGrant(label: string, reason?: string): Promise<{ id: string; label: string } | null> {
+    const entries = await this.readVaultEntries();
+    if (entries.length === 0) return null;
+
+    const needle = label.toLowerCase();
+    const candidates = entries.filter((e) => {
+      const haystack = `${e.label} ${e.provider ?? ''}`.toLowerCase();
+      return haystack.includes(needle);
+    });
+    // No matches → fall back to all entries so the user can still pick.
+    const shown = candidates.length > 0 ? candidates : entries;
+
+    // Auto-grant path: exactly one candidate AND user has 'always grant' for
+    // this project on it. Skip the prompt entirely.
+    const projectScope = this.projectRoot
+      ? crypto.createHash('sha256').update(this.projectRoot).digest('hex').slice(0, 16)
+      : '';
+    if (shown.length === 1 && projectScope && shown[0].alwaysGrantProjects?.includes(projectScope)) {
+      const e = shown[0];
+      this.secretAccess.grant(e.id, e.label, e.value);
+      return { id: e.id, label: e.label };
+    }
+
+    return new Promise<{ id: string; label: string } | null>((resolve) => {
+      const grantId = crypto.randomUUID();
+      this.pendingGrants.set(grantId, { resolve, label });
+      this.postMessage({
+        type: 'secret_grant_request',
+        grantId,
+        label,
+        reason,
+        candidates: shown.map((e) => ({ id: e.id, label: e.label, provider: e.provider, createdAt: e.createdAt })),
+      });
+    });
+  }
+
+  /** Called from the webview message router when user picks (or denies). */
+  private async handleSecretGrantResponse(grantId: string, secretId: string, alwaysForProject?: boolean): Promise<void> {
+    const pending = this.pendingGrants.get(grantId);
+    if (!pending) return;
+    this.pendingGrants.delete(grantId);
+
+    if (!secretId) {
+      pending.resolve(null);
+      return;
+    }
+
+    const entries = await this.readVaultEntries();
+    const entry = entries.find((e) => e.id === secretId);
+    if (!entry) {
+      pending.resolve(null);
+      return;
+    }
+
+    // Promote into the working set so downstream tool calls can substitute.
+    this.secretAccess.grant(entry.id, entry.label, entry.value);
+
+    // Persist 'always grant for this project' on the entry if requested.
+    if (alwaysForProject && this.projectRoot) {
+      const projectScope = crypto.createHash('sha256').update(this.projectRoot).digest('hex').slice(0, 16);
+      const updated = entries.map((e) => {
+        if (e.id !== entry.id) return e;
+        const list = new Set(e.alwaysGrantProjects ?? []);
+        list.add(projectScope);
+        return { ...e, alwaysGrantProjects: [...list] };
+      });
+      try { await this.context.secrets.store('ava-supernova.secretVault', JSON.stringify(updated)); } catch { /* best-effort */ }
+    }
+
+    pending.resolve({ id: entry.id, label: entry.label });
+  }
+
+  /**
+   * Tool-arg preprocessor: walks args and replaces every {{secret:<id>}}
+   * placeholder with the actual value from the working set. Strings only —
+   * the substitution recurses through arrays and objects so nested args
+   * (e.g. http_request headers) work too.
+   */
+  private substituteSecretHandles(value: unknown): unknown {
+    if (typeof value === 'string') {
+      return value.replace(/\{\{secret:([A-Za-z0-9_-]+)\}\}/g, (_match, id: string) => {
+        const granted = this.secretAccess.get(id);
+        return granted ? granted.value : _match;
+      });
+    }
+    if (Array.isArray(value)) return value.map((v) => this.substituteSecretHandles(v));
+    if (value && typeof value === 'object') {
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+        out[k] = this.substituteSecretHandles(v);
+      }
+      return out;
+    }
+    return value;
   }
 
   private handleConfirmationResponse(

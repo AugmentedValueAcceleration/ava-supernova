@@ -103,6 +103,7 @@ import { ChatContainer } from './components/ChatContainer';
 import { InputArea } from './components/InputArea';
 import { Header } from './components/Header';
 import { HistoryPanel } from './components/HistoryPanel';
+import { SecretGrantPrompt } from './components/SecretGrantPrompt';
 import { MemoryPanel } from './components/MemoryPanel';
 import { TasksPanel, DEFAULT_WIDTH } from './components/TasksPanel';
 // ContextBar removed — replaced by circular indicator in InputArea
@@ -659,6 +660,22 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ),
       };
 
+    // ── Secret vault — grant flow ────────────────────────────────────────
+
+    case 'secret_grant_request':
+      return {
+        ...state,
+        pendingSecretGrant: {
+          grantId: action.grantId,
+          label: action.label,
+          reason: action.reason,
+          candidates: action.candidates,
+        },
+      };
+
+    case 'clear_secret_grant':
+      return { ...state, pendingSecretGrant: null };
+
     // ── System messages ──────────────────────────────────────────────────
 
     case 'system_message': {
@@ -789,6 +806,8 @@ const initialState: ChatState = {
   signInPending: null,
   signInError: null,
   signInAccount: null,
+  // Vault grant prompt — populated when host posts secret_grant_request.
+  pendingSecretGrant: null,
 };
 
 // ── Typing speed config ─────────────────────────────────────────────────────
@@ -1265,6 +1284,26 @@ export function App() {
               onRename={handleRenameConversation}
               onPin={handlePinConversation}
               onExport={handleExportConversation}
+            />
+          </ErrorBoundary>
+        )}
+
+        {state.pendingSecretGrant && (
+          <ErrorBoundary>
+            <SecretGrantPrompt
+              request={state.pendingSecretGrant}
+              onRespond={(secretId, alwaysForProject) => {
+                postMessage({
+                  type: 'secret_grant_response',
+                  grantId: state.pendingSecretGrant!.grantId,
+                  secretId,
+                  alwaysForProject,
+                } as any);
+                dispatch({ type: 'clear_secret_grant' } as any);
+              }}
+              onOpenVault={() => {
+                postMessage({ type: 'open_dashboard' } as any);
+              }}
             />
           </ErrorBoundary>
         )}

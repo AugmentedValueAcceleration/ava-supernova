@@ -64,6 +64,8 @@ export type { FallbackEntry, ResilientProviderOptions } from './providers/resili
 export { ToolRegistry } from './tools/tool-registry.js';
 export { killBackgroundProcesses } from './tools/bash.js';
 export { BrowserTool } from './tools/browser.js';
+export { SecretRequestTool } from './tools/secret-request.js';
+export { EnvWriteTool, pickEnvFile, isGitignored, upsertEnvLine } from './tools/env-write.js';
 
 // Memory
 export { MemoryManager } from './memory/memory-manager.js';

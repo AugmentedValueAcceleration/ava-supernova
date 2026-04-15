@@ -77,6 +77,15 @@ export interface ToolExecutionContext {
    * exact tool call instance instead of guessing by name.
    */
   toolCallId?: string;
+  /**
+   * Capability granter for the secret_request tool. The host implementation
+   * resolves vault candidates by label, prompts the user, and returns the
+   * granted entry's id (handle) — never the value itself, which lives in the
+   * host's working set and is substituted into downstream tool args.
+   *
+   * Returns null when the user denies the grant.
+   */
+  secretGranter?: (label: string, reason?: string) => Promise<{ id: string; label: string } | null>;
 }
 
 // Returns boolean (true=approved, false=denied) or a string (approved with custom tool result).

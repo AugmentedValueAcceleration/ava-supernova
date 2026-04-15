@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 import type { ReactNode } from 'react';
 import type { SecretEntry } from '../components/SecretVault';
 import { post } from '../../App';
+import { findPatternHits } from '../../utils/secret-patterns';
 
 interface SecretsContextValue {
   secrets: SecretEntry[];
@@ -55,12 +56,27 @@ export function SecretsProvider({ children }: { children: ReactNode }) {
 
   const redact = useCallback(
     (text: string): string => {
-      if (!text || secrets.length === 0) return text;
+      if (!text) return text;
       let result = text;
+      // Pass 1 — known vault values get the bullet mask.
       for (const secret of secrets) {
         if (secret.value.length < 4) continue;
         const escaped = secret.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         result = result.replace(new RegExp(escaped, 'g'), '\u2022\u2022\u2022\u2022\u2022\u2022');
+      }
+      // Pass 2 — high-confidence patterns for keys we've never seen.
+      const hits = findPatternHits(result);
+      if (hits.length > 0) {
+        let out = '';
+        let cursor = 0;
+        for (const h of hits) {
+          if (h.start < cursor) continue;
+          out += result.slice(cursor, h.start);
+          out += `[REDACTED:${h.kind}]`;
+          cursor = h.end;
+        }
+        out += result.slice(cursor);
+        result = out;
       }
       return result;
     },
@@ -69,7 +85,7 @@ export function SecretsProvider({ children }: { children: ReactNode }) {
 
   const redactWithMeta = useCallback(
     (text: string): RedactedSegment[] => {
-      if (!text || secrets.length === 0) return [{ text, isSecret: false }];
+      if (!text) return [{ text, isSecret: false }];
 
       interface Match { start: number; end: number; label: string; value: string; }
       const matches: Match[] = [];
@@ -83,6 +99,11 @@ export function SecretsProvider({ children }: { children: ReactNode }) {
           matches.push({ start: found, end: found + secret.value.length, label: secret.label, value: secret.value });
           idx = found + secret.value.length;
         }
+      }
+
+      // Pattern hits for unknown keys.
+      for (const h of findPatternHits(text)) {
+        matches.push({ start: h.start, end: h.end, label: h.provider || h.kind, value: h.value });
       }
 
       if (matches.length === 0) return [{ text, isSecret: false }];

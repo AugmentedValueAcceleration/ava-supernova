@@ -62,6 +62,8 @@ import { ComputerUseTool } from './computer-use.js';
 import { SwitchModeTool } from './switch-mode.js';
 import { BrowseLibraryTool } from './browse-library.js';
 import { CuratorTool } from './curator.js';
+import { SecretRequestTool } from './secret-request.js';
+import { EnvWriteTool } from './env-write.js';
 
 // ── Tool → Category mapping ────────────────────────────────────────────────
 
@@ -180,11 +182,27 @@ export class ToolRegistry {
   private sessionFirstTimeApproved = new Set<ToolCategory>();
   // Audit callback
   private auditCallback?: AuditCallback;
+  // Args preprocessor — runs after user approval, before tool.execute().
+  // The host uses this to substitute capability handles (e.g. {{secret:id}})
+  // with their resolved values from the secret-access working set, so the
+  // confirmation prompt shows the handle (safe to display) but the tool
+  // gets the real value (needed to actually do the work).
+  private argsPreprocessor?: (toolName: string, args: Record<string, unknown>) => Promise<Record<string, unknown>> | Record<string, unknown>;
 
   // ── Configuration ───────────────────────────────────────────────────────
 
   setConfirmationHandler(handler: ToolConfirmationHandler): void {
     this.confirmationHandler = handler;
+  }
+
+  /**
+   * Register a hook that rewrites tool args after user approval but before
+   * the tool runs. Used to substitute secret handles with values from the
+   * host's working set without exposing values in the confirmation UI or
+   * conversation history.
+   */
+  setArgsPreprocessor(fn: (toolName: string, args: Record<string, unknown>) => Promise<Record<string, unknown>> | Record<string, unknown>): void {
+    this.argsPreprocessor = fn;
   }
 
   setPermissionMode(mode: PermissionMode): void {
@@ -336,6 +354,8 @@ export class ToolRegistry {
       new SwitchModeTool(),
       new BrowseLibraryTool(),
       new CuratorTool(),
+      new SecretRequestTool(),
+      new EnvWriteTool(),
     ];
     for (const tool of builtins) {
       if (!excludeSet.has(tool.name)) {
@@ -474,7 +494,21 @@ export class ToolRegistry {
     }
 
     try {
-      const toolResult = await tool.execute(args, context);
+      // Substitute capability handles (e.g. {{secret:id}}) just before the
+      // tool runs. The confirmation UI saw the handle (safe); the tool gets
+      // the resolved value. If the preprocessor throws, we surface the error
+      // as a tool failure rather than crashing the agent loop.
+      let runArgs = args;
+      if (this.argsPreprocessor) {
+        try {
+          runArgs = await this.argsPreprocessor(name, args);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          this.emitAudit(name, category, tool.riskLevel, approvalMethod, 'failed', argsSummary, args, message);
+          return { success: false, output: `Tool "${name}" args preprocessing failed: ${message}` };
+        }
+      }
+      const toolResult = await tool.execute(runArgs, context);
       this.emitAudit(
         name, category, tool.riskLevel, approvalMethod,
         toolResult.success ? 'success' : 'failed',

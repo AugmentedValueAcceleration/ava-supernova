@@ -278,6 +278,13 @@ export interface ChatState {
   signInPending: 'github' | 'email' | null;
   signInError: string | null;
   signInAccount: { id: string; email?: string; name?: string; avatar_url?: string; tier?: string } | null;
+  /** Active secret-grant prompt (slice 2 of vault overhaul). One at a time. */
+  pendingSecretGrant: {
+    grantId: string;
+    label: string;
+    reason?: string;
+    candidates: Array<{ id: string; label: string; provider?: string; createdAt?: string }>;
+  } | null;
   lastUsage: {
     prompt_tokens: number;
     completion_tokens: number;

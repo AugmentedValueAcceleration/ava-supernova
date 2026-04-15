@@ -304,6 +304,8 @@ export class Agent {
     surface?: AvaSurface;
     /** Optional session UUID. Defaults to a fresh UUID per Agent. */
     sessionId?: string;
+    /** Optional secret-grant callback for the secret_request tool. */
+    secretGranter?: (label: string, reason?: string) => Promise<{ id: string; label: string } | null>;
   }) {
     this.provider = opts.provider;
     this.model = opts.model;
@@ -311,6 +313,7 @@ export class Agent {
     this.toolContext = {
       cwd: opts.cwd,
       sharedState: opts.sharedState,
+      secretGranter: opts.secretGranter,
     };
     this.surface = opts.surface ?? 'cli';
     this.sessionId = opts.sessionId ?? randomUUID();

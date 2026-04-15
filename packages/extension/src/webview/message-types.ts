@@ -96,6 +96,16 @@ export type ExtToWebviewMessage =
   | { type: 'persona_tool_call'; persona: string; tool: string }
   | { type: 'persona_tool_result'; persona: string; tool: string; success: boolean }
   | { type: 'briefing'; text: string; todayTasks: number; overdueTasks: number; totalActive: number }
+  // Secret vault — Ava's grant flow. The host posts a request when she calls
+  // the secret_request tool; the webview shows a prompt listing vault entries
+  // matching the requested label and replies with secret_grant_response.
+  | {
+      type: 'secret_grant_request';
+      grantId: string;
+      label: string;
+      reason?: string;
+      candidates: Array<{ id: string; label: string; provider?: string; createdAt?: string }>;
+    }
   // OAuth sign-in flow (v0.37.0)
   | { type: 'sign_in_started' }
   | {
@@ -135,6 +145,14 @@ export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainst
 export type WebviewToExtMessage =
   | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }> }
   | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllowCategory?: boolean; planSelection?: string; userResponse?: string }
+  | {
+      type: 'secret_grant_response';
+      grantId: string;
+      /** When approved, the chosen vault entry's id. Empty string = denied. */
+      secretId: string;
+      /** When true, also persist 'always grant for this project' on the entry. */
+      alwaysForProject?: boolean;
+    }
   | { type: 'switch_model'; modelId: string }
   | { type: 'clear_chat' }
   | { type: 'cancel' }

@@ -1,10 +1,17 @@
 import { useState, useRef, useEffect } from 'react';
 import { t, useLocale } from '../i18n';
+import { detectProvider } from '../utils/secret-patterns';
 
 export interface SecretEntry {
   id: string;
   label: string;
   value: string;
+  /** Auto-detected provider when the value matches a known pattern. */
+  provider?: string;
+  /** ISO timestamp the entry was created. */
+  createdAt?: string;
+  /** Project root hashes where Ava is auto-granted access (slice 2). */
+  alwaysGrantProjects?: string[];
 }
 
 interface SecretVaultProps {
@@ -54,10 +61,13 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
     const trimValue = newValue.trim();
     if (!trimLabel || !trimValue) return;
 
+    const provider = detectProvider(trimValue);
     const entry: SecretEntry = {
       id: `secret-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       label: trimLabel,
       value: trimValue,
+      ...(provider ? { provider } : {}),
+      createdAt: new Date().toISOString(),
     };
     onSave([...secrets, entry]);
     setNewLabel('');
@@ -156,10 +166,17 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
                   className="flex items-center gap-2 px-3 py-2.5 rounded-lg group
                              hover:bg-[rgba(168,85,247,0.06)] transition-colors duration-150"
                 >
-                  {/* Label */}
-                  <span className="text-xs font-medium text-[var(--vscode-foreground)] opacity-70 min-w-[80px] shrink-0">
-                    {secret.label}
-                  </span>
+                  {/* Label + provider badge */}
+                  <div className="min-w-[80px] shrink-0 flex flex-col">
+                    <span className="text-xs font-medium text-[var(--vscode-foreground)] opacity-70">
+                      {secret.label}
+                    </span>
+                    {secret.provider && (
+                      <span className="text-[9px] uppercase tracking-wide text-[var(--accent,#A855F7)] opacity-70 mt-0.5">
+                        {secret.provider}
+                      </span>
+                    )}
+                  </div>
 
                   {/* Value (masked or revealed) */}
                   <span
@@ -174,6 +191,16 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
                   >
                     {isRevealed ? secret.value : '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
                   </span>
+
+                  {/* Always-grant indicator (set via the grant prompt) */}
+                  {secret.alwaysGrantProjects && secret.alwaysGrantProjects.length > 0 && (
+                    <span
+                      className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--accent,#A855F7)]/15 text-[var(--accent,#A855F7)] shrink-0"
+                      title="Auto-granted to Ava on this project — clear by deleting and re-adding the secret"
+                    >
+                      auto
+                    </span>
+                  )}
 
                   {/* Eye toggle */}
                   <button
