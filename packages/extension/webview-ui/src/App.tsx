@@ -799,12 +799,19 @@ export function App() {
 
   // Restore persisted panel state from vscode
   const [state, dispatch] = useReducer(chatReducer, initialState, (init) => {
-    const saved = getState() as { tasksOpen?: boolean; tasksPanelWidth?: number } | null;
+    const saved = getState() as {
+      tasksOpen?: boolean;
+      tasksPanelWidth?: number;
+      messages?: UIMessage[];
+      currentConversationId?: string | null;
+    } | null;
     if (saved) {
       return {
         ...init,
         tasksOpen: saved.tasksOpen ?? init.tasksOpen,
         tasksPanelWidth: saved.tasksPanelWidth ?? init.tasksPanelWidth,
+        messages: Array.isArray(saved.messages) ? saved.messages : init.messages,
+        currentConversationId: saved.currentConversationId ?? init.currentConversationId,
       };
     }
     return init;
@@ -815,6 +822,16 @@ export function App() {
     const prev = getState() as Record<string, unknown> | null;
     setState({ ...prev, tasksOpen: state.tasksOpen, tasksPanelWidth: state.tasksPanelWidth });
   }, [state.tasksOpen, state.tasksPanelWidth, getState, setState]);
+
+  // Persist chat messages + current conversation id (skip while streaming to
+  // avoid thrashing — the final state lands when streaming ends). Cap to the
+  // last 200 messages so the vscode webview state stays well under its quota.
+  useEffect(() => {
+    if (state.isStreaming) return;
+    const prev = getState() as Record<string, unknown> | null;
+    const trimmed = state.messages.length > 200 ? state.messages.slice(-200) : state.messages;
+    setState({ ...prev, messages: trimmed, currentConversationId: state.currentConversationId });
+  }, [state.messages, state.currentConversationId, state.isStreaming, getState, setState]);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const justLoadedRef = useRef(false);
