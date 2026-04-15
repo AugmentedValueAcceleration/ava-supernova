@@ -20,6 +20,11 @@ export class HistoryManager {
     await this.storage.init();
   }
 
+  /** Toggle cloud sync at runtime. */
+  setLocalOnly(value: boolean): void {
+    this.localOnly = value;
+  }
+
   async saveConversation(conversation: Conversation): Promise<void> {
     const messages = conversation.getMessages();
     if (messages.length <= 1) return; // don't save empty conversations (system prompt only)

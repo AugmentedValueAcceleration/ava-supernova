@@ -74,6 +74,11 @@ export class TaskManager {
     this.localOnly = opts.localOnly ?? true;
   }
 
+  /** Toggle cloud sync at runtime. */
+  setLocalOnly(value: boolean): void {
+    this.localOnly = value;
+  }
+
   // ── Public API — Load ──────────────────────────────────────────────────────
 
   /** Load global task store. */

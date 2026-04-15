@@ -16,7 +16,7 @@ export class JournalManager {
   private readonly globalDir: string;
   private readonly projectDir: string | null;
   private readonly sync?: PlatformJournalSync;
-  private readonly localOnly: boolean;
+  private localOnly: boolean;
 
   // LRU cache — recent days (cap at 30)
   private cache = new Map<string, JournalDay>();
@@ -27,6 +27,11 @@ export class JournalManager {
     this.projectDir = opts.projectRoot ? join(opts.projectRoot, '.ava', JOURNAL_DIR) : null;
     this.sync = opts.sync;
     this.localOnly = opts.localOnly ?? true;
+  }
+
+  /** Toggle cloud sync at runtime. */
+  setLocalOnly(value: boolean): void {
+    this.localOnly = value;
   }
 
   // ── Public API — Write ─────────────────────────────────────────────────────
