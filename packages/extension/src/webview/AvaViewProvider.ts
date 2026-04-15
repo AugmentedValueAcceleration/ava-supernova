@@ -312,18 +312,29 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       }
     }
 
-    // Set up tasks with optional platform sync (same pattern as memory)
+    // Set up tasks with optional platform sync (same pattern as memory).
+    // TaskManager and JournalManager default localOnly to true, so we
+    // have to explicitly opt in to sync here — matching how memory is
+    // wired via a preferences toggle and defaulting to on when the
+    // user has a platformKey present.
     let taskSync: PlatformTaskSyncImpl | undefined;
     if (platformKey) {
       taskSync = new PlatformTaskSyncImpl('https://ava-supernova.com/api', platformKey);
     }
-    this.taskManager = new TaskManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync: taskSync });
+    const taskLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.taskLocalOnly') ?? false;
+    this.taskManager = new TaskManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync: taskSync, localOnly: taskLocalOnly });
+    if (taskSync && !taskLocalOnly) {
+      // Pull on session start so tasks made on device A show up on B.
+      this.taskManager.pullLatest().catch(() => {});
+    }
+
     // Set up journal with optional platform sync
     let journalSync: PlatformJournalSyncImpl | undefined;
     if (platformKey) {
       journalSync = new PlatformJournalSyncImpl('https://ava-supernova.com/api', platformKey);
     }
-    this.journalManager = new JournalManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync: journalSync });
+    const journalLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.journalLocalOnly') ?? false;
+    this.journalManager = new JournalManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync: journalSync, localOnly: journalLocalOnly });
 
     // Generation manager — persists across page navigation, tracks creative jobs
     this.generationManager = new GenerationManager();
@@ -596,6 +607,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
       case 'delete_chat_memory_entry':
         mapped = { type: 'delete_memory_entry', scope: msg.scope as 'global' | 'project', id: msg.id as string };
+        break;
+      case 'refresh_memories':
+        mapped = { type: 'refresh_memories' };
+        break;
+      case 'refresh_tasks':
+        mapped = { type: 'refresh_tasks' };
         break;
       case 'pong':
         mapped = { type: 'pong' };
@@ -2135,6 +2152,22 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           } catch (err) {
             this.log(`[memory] refresh failed: ${err}`);
             this.postMessage({ type: 'memories_refreshed', global: 0, project: 0, error: String(err) });
+          }
+        }
+        break;
+
+      case 'refresh_tasks':
+        // Manual pull for tasks. Splits remote by project field —
+        // 'global' tasks into the global store, workspace-tagged tasks
+        // into the project store. Returns total merged count.
+        if (this.taskManager) {
+          try {
+            const count = await this.taskManager.pullLatest();
+            this.postMessage({ type: 'tasks_refreshed', count });
+            await this.sendAllTasks();
+          } catch (err) {
+            this.log(`[tasks] refresh failed: ${err}`);
+            this.postMessage({ type: 'tasks_refreshed', count: 0, error: String(err) });
           }
         }
         break;

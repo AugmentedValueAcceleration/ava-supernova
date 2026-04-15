@@ -103,7 +103,13 @@ export type ExtToWebviewMessage =
       account: { id: string; email?: string; name?: string; avatar_url?: string; tier?: string };
     }
   | { type: 'sign_in_failed'; error: string }
-  | { type: 'sign_in_cancelled' };
+  | { type: 'sign_in_cancelled' }
+  // Cloud-sync refresh responses — carry the number of entries that
+  // were merged into the local store. `error` is set when the pull
+  // threw (network, auth, etc); UIs should surface it distinctly
+  // from a zero-count success.
+  | { type: 'memories_refreshed'; global: number; project: number; error?: string }
+  | { type: 'tasks_refreshed'; count: number; error?: string };
 
 /** Structured memory entry for webview display. */
 export interface MemoryEntryUI {
@@ -150,6 +156,11 @@ export type WebviewToExtMessage =
   | { type: 'archive_memory'; scope: 'global' | 'project'; id: string }
   | { type: 'restore_memory'; scope: 'global' | 'project'; id: string }
   | { type: 'delete_memory_entry'; scope: 'global' | 'project'; id: string }
+  // Manual cloud sync pulls — user-initiated refresh from the Sync
+  // page (or a panel refresh button). Extension responds with
+  // 'memories_refreshed' / 'tasks_refreshed' carrying the merge count.
+  | { type: 'refresh_memories' }
+  | { type: 'refresh_tasks' }
   | { type: 'pong' }
   | { type: 'request_today_tasks' }
   | { type: 'request_all_tasks' }
