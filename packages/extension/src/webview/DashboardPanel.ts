@@ -2475,7 +2475,24 @@ export class DashboardPanel {
   private async handleLoadPersonality(): Promise<void> {
     try {
       const avaDir = path.join(os.homedir(), '.ava');
-      const personality = await loadPersonality(avaDir);
+      let personality = await loadPersonality(avaDir);
+
+      // Prefer cloud copy when signed in — write-through to local so subsequent
+      // offline loads stay coherent.
+      const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+      if (platformKey) {
+        try {
+          const res = await apiFetch('/settings', { platformKey });
+          if (res.ok && res.data && typeof res.data === 'object') {
+            const remote = (res.data as { personality?: Personality | null }).personality;
+            if (remote && typeof remote === 'object') {
+              personality = { ...personality, ...remote };
+              await savePersonality(avaDir, personality).catch(() => {});
+            }
+          }
+        } catch { /* offline — fall back to local */ }
+      }
+
       this.post({
         type: 'personality_loaded',
         personality: {
@@ -2497,6 +2514,7 @@ export class DashboardPanel {
       const avaDir = path.join(os.homedir(), '.ava');
       await savePersonality(avaDir, data);
       this.post({ type: 'personality_saved' });
+      this.pushPersonalityToCloud(data);
     } catch {
       this.post({ type: 'error', message: 'Failed to save personality.' });
     }
@@ -2517,9 +2535,19 @@ export class DashboardPanel {
           description: personality.description || '',
         },
       });
+      this.pushPersonalityToCloud(personality);
     } catch {
       this.post({ type: 'error', message: 'Failed to reset personality.' });
     }
+  }
+
+  /** Fire-and-forget push to /api/settings (uses the dedicated personality column). */
+  private async pushPersonalityToCloud(personality: Personality): Promise<void> {
+    try {
+      const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+      if (!platformKey) return;
+      await apiFetch('/settings', { platformKey, method: 'POST', body: { personality } });
+    } catch { /* best-effort */ }
   }
 
   // ─── Avatar (local file in ~/.ava/) ──────────────────────────────────────────
@@ -2778,10 +2806,10 @@ export class DashboardPanel {
         case 'personality': {
           const avaDir = path.join(os.homedir(), '.ava');
           const personality = await loadPersonality(avaDir);
-          const res = await apiFetch('/settings/sync', {
+          const res = await apiFetch('/settings', {
             platformKey,
             method: 'POST',
-            body: { settings: { personality } },
+            body: { personality },
           });
           if (!res.ok) throw new Error('Failed to sync personality');
           await this.saveSyncState('personality', 1);
