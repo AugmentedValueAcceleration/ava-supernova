@@ -335,6 +335,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
     const journalLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.journalLocalOnly') ?? false;
     this.journalManager = new JournalManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync: journalSync, localOnly: journalLocalOnly });
+    if (journalSync && !journalLocalOnly) {
+      // Pull journal entries on session start — same fire-and-forget
+      // pattern as memory and tasks. No date range = last 30 days by
+      // default on the server side.
+      this.journalManager.pullLatest().catch(() => {});
+    }
 
     // Generation manager — persists across page navigation, tracks creative jobs
     this.generationManager = new GenerationManager();
@@ -613,6 +619,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
       case 'refresh_tasks':
         mapped = { type: 'refresh_tasks' };
+        break;
+      case 'refresh_journal':
+        mapped = { type: 'refresh_journal' };
         break;
       case 'pong':
         mapped = { type: 'pong' };
@@ -2168,6 +2177,22 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           } catch (err) {
             this.log(`[tasks] refresh failed: ${err}`);
             this.postMessage({ type: 'tasks_refreshed', count: 0, error: String(err) });
+          }
+        }
+        break;
+
+      case 'refresh_journal':
+        // Manual pull for journal. Merges remote days into the global
+        // store entry-by-entry (userEntry + avaEntry compared
+        // independently against updatedAt). Returns count of changed
+        // days.
+        if (this.journalManager) {
+          try {
+            const count = await this.journalManager.pullLatest();
+            this.postMessage({ type: 'journal_refreshed', count });
+          } catch (err) {
+            this.log(`[journal] refresh failed: ${err}`);
+            this.postMessage({ type: 'journal_refreshed', count: 0, error: String(err) });
           }
         }
         break;

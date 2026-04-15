@@ -272,4 +272,58 @@ export class JournalManager {
     if (this.localOnly || !this.sync) return;
     this.sync.pushEntry(day).catch(() => {});
   }
+
+  /**
+   * Pull the latest journal entries from the platform and merge into
+   * the local global store. Each remote day is compared to the local
+   * copy and merged entry-by-entry; remote wins on newer updatedAt
+   * for both userEntry and avaEntry independently. Returns the count
+   * of days that changed.
+   *
+   * Optional date range narrows the request — same semantics as
+   * PlatformJournalSync.pullEntries. Writes land in globalDir because
+   * that's where pushes originate; project-scoped entries remain a
+   * local-only concept.
+   */
+  async pullLatest(from?: string, to?: string): Promise<number> {
+    if (!this.sync || this.localOnly) return 0;
+    try {
+      const remote = await this.sync.pullEntries(from, to);
+      if (remote.length === 0) return 0;
+
+      let updated = 0;
+      for (const r of remote) {
+        const local = await this.loadDay(this.globalDir, r.date);
+        let changed = false;
+
+        if (r.userEntry) {
+          if (!local?.userEntry || r.userEntry.updatedAt > local.userEntry.updatedAt) {
+            changed = true;
+          }
+        }
+        if (r.avaEntry) {
+          if (!local?.avaEntry || r.avaEntry.updatedAt > local.avaEntry.updatedAt) {
+            changed = true;
+          }
+        }
+
+        if (!changed) continue;
+
+        const merged: JournalDay = local ?? createEmptyJournalDay(r.date);
+        if (r.userEntry && (!merged.userEntry || r.userEntry.updatedAt > merged.userEntry.updatedAt)) {
+          merged.userEntry = r.userEntry;
+        }
+        if (r.avaEntry && (!merged.avaEntry || r.avaEntry.updatedAt > merged.avaEntry.updatedAt)) {
+          merged.avaEntry = r.avaEntry;
+        }
+        await this.persistDay(this.globalDir, merged);
+        this.cache.delete(r.date); // invalidate any stale cache entry
+        updated++;
+      }
+
+      return updated;
+    } catch {
+      return 0;
+    }
+  }
 }

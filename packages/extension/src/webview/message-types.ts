@@ -109,7 +109,8 @@ export type ExtToWebviewMessage =
   // threw (network, auth, etc); UIs should surface it distinctly
   // from a zero-count success.
   | { type: 'memories_refreshed'; global: number; project: number; error?: string }
-  | { type: 'tasks_refreshed'; count: number; error?: string };
+  | { type: 'tasks_refreshed'; count: number; error?: string }
+  | { type: 'journal_refreshed'; count: number; error?: string };
 
 /** Structured memory entry for webview display. */
 export interface MemoryEntryUI {
@@ -158,9 +159,11 @@ export type WebviewToExtMessage =
   | { type: 'delete_memory_entry'; scope: 'global' | 'project'; id: string }
   // Manual cloud sync pulls — user-initiated refresh from the Sync
   // page (or a panel refresh button). Extension responds with
-  // 'memories_refreshed' / 'tasks_refreshed' carrying the merge count.
+  // 'memories_refreshed' / 'tasks_refreshed' / 'journal_refreshed'
+  // carrying the merge count.
   | { type: 'refresh_memories' }
   | { type: 'refresh_tasks' }
+  | { type: 'refresh_journal' }
   | { type: 'pong' }
   | { type: 'request_today_tasks' }
   | { type: 'request_all_tasks' }
