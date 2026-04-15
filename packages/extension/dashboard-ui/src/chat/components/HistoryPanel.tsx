@@ -115,7 +115,7 @@ export function HistoryPanel({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  const menuBtnStyle = "flex items-center gap-2 w-full px-3 py-2 text-xs text-left bg-transparent border-none cursor-pointer text-[var(--vscode-foreground)] opacity-70 hover:opacity-100 hover:bg-white/[0.06] transition";
+  const menuBtnStyle = "flex items-center gap-2 w-full px-3 py-2 text-xs text-left bg-transparent border-none cursor-pointer text-[var(--text-secondary)] hover:text-white hover:bg-[var(--bg-input)] transition";
 
   return (
     <div
@@ -124,27 +124,21 @@ export function HistoryPanel({
       aria-modal="true"
       aria-label={t('history.title')}
       tabIndex={-1}
-      className="absolute inset-0 z-50 flex flex-col outline-none"
-      style={{
-        background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(168, 85, 247, 0.06) 0%, transparent 70%), var(--vscode-sideBar-background)',
-      }}
+      className="absolute inset-0 z-50 flex flex-col outline-none bg-[var(--bg-page,var(--vscode-sideBar-background))]"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'rgba(168, 85, 247, 0.12)' }}>
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-card)]">
         <div className="flex items-center gap-2">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="opacity-50">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" className="text-[var(--accent)]">
             <path d="M13.507 12.324a7 7 0 0 0 .065-8.56A7 7 0 0 0 2 4.393V2H1v3.5l.5.5H5V5H2.811a6.008 6.008 0 1 1-.135 5.77l-.887.462a7 7 0 0 0 11.718 1.092zM8 4h1v4.28l3.35 2.01-.51.858L8 8.72V4z"/>
           </svg>
-          <span className="text-sm font-semibold">{t('history.title')}</span>
+          <span className="text-sm font-bold text-white">{t('history.title')}</span>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={onNewChat}
             title={t('header.new_chat')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white cursor-pointer border-none transition"
-            style={{ background: '#A855F7' }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#9333EA')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '#A855F7')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white cursor-pointer border-none bg-[var(--accent)] hover:bg-[var(--accent-hover)] transition"
           >
             <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
               <path d="M14 7v1H8v6H7V8H1V7h6V1h1v6h6z"/>
@@ -154,7 +148,7 @@ export function HistoryPanel({
           <button
             onClick={onClose}
             title={t('history.close')}
-            className="flex items-center justify-center w-7 h-7 rounded-lg hover:bg-white/[0.06] text-[var(--vscode-foreground)] opacity-50 hover:opacity-100 bg-transparent border-none cursor-pointer transition"
+            className="flex items-center justify-center w-7 h-7 rounded-lg text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-input)] bg-transparent border-none cursor-pointer transition"
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
               <path d="M8 8.707l3.646 3.647.708-.707L8.707 8l3.647-3.646-.707-.708L8 7.293 4.354 3.646l-.707.708L7.293 8l-3.646 3.646.707.708L8 8.707z"/>
@@ -164,9 +158,9 @@ export function HistoryPanel({
       </div>
 
       {/* Search */}
-      <div className="px-4 py-3">
+      <div className="px-5 pt-4 pb-2">
         <div className="relative">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] opacity-60">
             <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
           </svg>
           <input
@@ -174,27 +168,26 @@ export function HistoryPanel({
             placeholder={t('history.search')}
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-xs rounded-lg bg-white/[0.04] text-[var(--vscode-foreground)] border border-white/[0.06] placeholder:opacity-30 outline-none transition"
-            style={{ borderColor: searchQuery ? 'rgba(168, 85, 247, 0.3)' : undefined }}
+            className="w-full pl-9 pr-3 py-2 text-xs rounded-lg bg-[var(--bg-input)] text-white border border-[var(--border-card)] placeholder:text-[var(--text-muted)] outline-none transition focus:border-[var(--accent)]"
           />
         </div>
       </div>
 
       {/* Conversation List */}
-      <div className="flex-1 overflow-y-auto px-2">
+      <div className="flex-1 overflow-y-auto px-3 pb-4">
         {sortedConversations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 opacity-40 text-xs gap-2">
-            <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor" className="opacity-30">
+          <div className="flex flex-col items-center justify-center h-40 text-xs gap-3 text-[var(--text-muted)]">
+            <svg width="28" height="28" viewBox="0 0 16 16" fill="currentColor" className="opacity-40">
               <path d="M13.507 12.324a7 7 0 0 0 .065-8.56A7 7 0 0 0 2 4.393V2H1v3.5l.5.5H5V5H2.811a6.008 6.008 0 1 1-.135 5.77l-.887.462a7 7 0 0 0 11.718 1.092zM8 4h1v4.28l3.35 2.01-.51.858L8 8.72V4z"/>
             </svg>
             {searchQuery ? t('history.no_match') : t('history.empty')}
           </div>
         ) : (
-          <div className="flex flex-col gap-1 py-1">
+          <div className="flex flex-col gap-2 py-2">
             {sortedConversations.map((conv) => (
               <div
                 key={conv.id}
-                className="group relative flex items-center gap-3 px-3 py-2.5 cursor-pointer rounded-lg hover:bg-white/[0.04] transition"
+                className="group relative flex items-center gap-3 px-4 py-3 cursor-pointer rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] hover:border-[var(--accent)]/30 transition"
                 onClick={() => {
                   if (editingId !== conv.id && menuId !== conv.id) {
                     onSelect(conv.id);
@@ -203,7 +196,7 @@ export function HistoryPanel({
               >
                 {/* Pin indicator */}
                 {conv.pinned && (
-                  <span className="text-xs flex-shrink-0" style={{ color: '#A855F7' }} title={t('history.pinned')}>
+                  <span className="text-xs flex-shrink-0 text-[var(--accent)]" title={t('history.pinned')}>
                     &#9733;
                   </span>
                 )}
@@ -227,16 +220,15 @@ export function HistoryPanel({
                         }
                         setEditingId(null);
                       }}
-                      className="w-full px-2 py-0.5 text-xs rounded-md bg-white/[0.06] text-[var(--vscode-foreground)] outline-none"
-                      style={{ border: '1px solid rgba(168, 85, 247, 0.3)' }}
+                      className="w-full px-2 py-1 text-xs rounded-md bg-[var(--bg-input)] text-white outline-none border border-[var(--accent)]/40"
                       onClick={(e) => e.stopPropagation()}
                     />
                   ) : (
-                    <p className="text-xs truncate m-0 text-[var(--vscode-foreground)]">
+                    <p className="text-xs font-medium truncate m-0 text-white">
                       {conv.title}
                     </p>
                   )}
-                  <p className="text-[10px] opacity-35 m-0 mt-0.5">
+                  <p className="text-[10px] m-0 mt-1 text-[var(--text-muted)]">
                     {formatRelativeDate(conv.updatedAt)}
                   </p>
                 </div>
@@ -247,7 +239,7 @@ export function HistoryPanel({
                     e.stopPropagation();
                     setMenuId(menuId === conv.id ? null : conv.id);
                   }}
-                  className="flex items-center justify-center w-7 h-7 rounded-md opacity-0 group-hover:opacity-50 hover:!opacity-100 hover:bg-white/[0.08] bg-transparent border-none cursor-pointer transition"
+                  className="flex items-center justify-center w-7 h-7 rounded-md opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-input)] bg-transparent border-none cursor-pointer transition"
                   style={menuId === conv.id ? { opacity: 1 } : undefined}
                 >
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
@@ -259,13 +251,8 @@ export function HistoryPanel({
                 {menuId === conv.id && (
                   <div
                     ref={menuRef}
-                    className="absolute right-2 top-full z-50 rounded-lg border overflow-hidden"
-                    style={{
-                      background: '#1e1e2e',
-                      borderColor: 'rgba(168, 85, 247, 0.2)',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-                      minWidth: 160,
-                    }}
+                    className="absolute right-2 top-full z-50 mt-1 rounded-lg border border-[var(--border-card)] overflow-hidden bg-[var(--bg-card)]"
+                    style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.5)', minWidth: 160 }}
                     onClick={(e) => e.stopPropagation()}
                   >
                     {/* Rename */}
@@ -310,7 +297,7 @@ export function HistoryPanel({
                     </button>
 
                     {/* Divider */}
-                    <div style={{ height: 1, background: 'rgba(168, 85, 247, 0.1)', margin: '2px 0' }} />
+                    <div className="h-px bg-[var(--border-card)] my-0.5" />
 
                     {/* Delete */}
                     <button

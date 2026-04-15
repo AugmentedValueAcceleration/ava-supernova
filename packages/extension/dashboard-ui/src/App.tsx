@@ -839,7 +839,7 @@ export function App() {
             onFlipSidebar={flipSidebar}
             sidebarSide={sidebarSide}
             onNewChat={() => post({ type: 'new_chat' })}
-            onOpenHistory={() => post({ type: 'request_history' })}
+            onOpenHistory={() => { setPagePersist('chat'); post({ type: 'request_history' }); }}
             supportUnread={supportUnread}
             avatarUrl={avatarDataUrl}
           />
