@@ -254,6 +254,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const memoryLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? false;
     this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly });
 
+    // Pull the latest memories from cloud on every session start where
+    // platform sync is active. Previously this only ran on sign-in /
+    // sign-out secret changes, which meant memories made on device A
+    // never appeared on device B until the user signed out and back
+    // in. Fire-and-forget — offline users and failures never block the
+    // session. Conflict resolution in pullLatest is remote-wins-on-
+    // newer-updatedAt, consistent with push semantics.
+    if (sync && !memoryLocalOnly) {
+      this.memoryManager.pullLatest('global').catch(() => {});
+      this.memoryManager.pullLatest('project').catch(() => {});
+    }
+
     // ── One-time memory reset for v0.37.0 ─────────────────────────────────
     // The memory extraction system was fundamentally improved: broadened
     // patterns, approval capture, design-decision capture, scope guidance,
@@ -2104,6 +2116,27 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
       case 'save_memory':
         await this.saveMemory(message.scope, message.content);
+        break;
+
+      case 'refresh_memories':
+        // Manual pull from cloud — user-initiated sync refresh from the
+        // dashboard Sync page or a Memory panel refresh button. Runs
+        // both scopes, reloads the local store, and echoes the counts
+        // back so the UI can show "Pulled N new entries".
+        if (this.memoryManager) {
+          try {
+            const [g, p] = await Promise.all([
+              this.memoryManager.pullLatest('global'),
+              this.memoryManager.pullLatest('project'),
+            ]);
+            this.postMessage({ type: 'memories_refreshed', global: g, project: p });
+            // Re-emit the memory views so the UI updates without a reload
+            await this.sendMemoryContent();
+          } catch (err) {
+            this.log(`[memory] refresh failed: ${err}`);
+            this.postMessage({ type: 'memories_refreshed', global: 0, project: 0, error: String(err) });
+          }
+        }
         break;
 
       case 'clear_memory':
