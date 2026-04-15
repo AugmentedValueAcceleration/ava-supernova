@@ -110,7 +110,8 @@ export type ExtToWebviewMessage =
   // from a zero-count success.
   | { type: 'memories_refreshed'; global: number; project: number; error?: string }
   | { type: 'tasks_refreshed'; count: number; error?: string }
-  | { type: 'journal_refreshed'; count: number; error?: string };
+  | { type: 'journal_refreshed'; count: number; error?: string }
+  | { type: 'history_refreshed'; count: number; error?: string };
 
 /** Structured memory entry for webview display. */
 export interface MemoryEntryUI {
@@ -164,6 +165,7 @@ export type WebviewToExtMessage =
   | { type: 'refresh_memories' }
   | { type: 'refresh_tasks' }
   | { type: 'refresh_journal' }
+  | { type: 'refresh_history' }
   | { type: 'pong' }
   | { type: 'request_today_tasks' }
   | { type: 'request_all_tasks' }

@@ -211,6 +211,8 @@ export {
 // History
 export { HistoryManager } from './history/history-manager.js';
 export type { ConversationRecord } from './history/storage.js';
+export { PlatformHistorySync } from './history/platform-sync.js';
+export type { RemoteConversationSummary } from './history/platform-sync.js';
 
 // i18n
 export { t, setLocale, setLocaleSync, loadLocaleStrings, getLocale, getSupportedLocales, getLanguageName, resolveLocale } from './i18n/index.js';

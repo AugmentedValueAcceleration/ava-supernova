@@ -12,6 +12,7 @@ import {
   TaskManager,
   PlatformMemorySync,
   PlatformTaskSyncImpl,
+  PlatformHistorySync,
   JournalManager,
   PlatformJournalSyncImpl,
   ProviderHealthTracker,
@@ -239,12 +240,25 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private async refreshProjectContext(): Promise<void> {
     const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
     this.projectRoot = detectProjectRoot(cwd) ?? undefined;
-    this.historyManager = new HistoryManager(this.projectRoot);
-    this.historyManager.init();
 
     // Set up memory with optional platform sync
     let sync: PlatformMemorySync | undefined;
     const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
+
+    // History sync — same pattern as memory/tasks/journal. Needs the
+    // platformKey resolved first so the manager can push on save.
+    let historySync: PlatformHistorySync | undefined;
+    if (platformKey) {
+      historySync = new PlatformHistorySync('https://ava-supernova.com/api', platformKey);
+    }
+    const historyLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.historyLocalOnly') ?? false;
+    this.historyManager = new HistoryManager(this.projectRoot, { sync: historySync, localOnly: historyLocalOnly });
+    this.historyManager.init();
+    if (historySync && !historyLocalOnly) {
+      // Pull conversations on session start so chats from other
+      // devices surface here. Fire-and-forget.
+      this.historyManager.pullLatest().catch(() => {});
+    }
     if (platformKey) {
       const projectId = this.projectRoot
         ? crypto.createHash('sha256').update(this.projectRoot).digest('hex').slice(0, 16)
@@ -622,6 +636,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
       case 'refresh_journal':
         mapped = { type: 'refresh_journal' };
+        break;
+      case 'refresh_history':
+        mapped = { type: 'refresh_history' };
         break;
       case 'pong':
         mapped = { type: 'pong' };
@@ -2194,6 +2211,20 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             this.log(`[journal] refresh failed: ${err}`);
             this.postMessage({ type: 'journal_refreshed', count: 0, error: String(err) });
           }
+        }
+        break;
+
+      case 'refresh_history':
+        // Manual pull for chat history. Lists remote first, then only
+        // fetches full bodies for anything newer than local.
+        try {
+          const count = await this.historyManager.pullLatest();
+          this.postMessage({ type: 'history_refreshed', count });
+          // Re-send the list so the UI picks up new conversations.
+          await this.sendHistoryList();
+        } catch (err) {
+          this.log(`[history] refresh failed: ${err}`);
+          this.postMessage({ type: 'history_refreshed', count: 0, error: String(err) });
         }
         break;
 
