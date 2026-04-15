@@ -284,6 +284,7 @@ export class DashboardPanel {
 
       case 'save_settings':
         this.saveSettings(msg.settings);
+        this.pushSettingsToCloud(msg.settings);
         break;
 
       case 'dataset:get_config': {
@@ -906,6 +907,11 @@ export class DashboardPanel {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
     const account = platformKey ? await this.fetchAccount(platformKey) : null;
     const connections = await this.getConnectionStatus();
+
+    // Cloud-pull settings before reading local — applies remote when cloud is
+    // newer than the last push from this device.
+    if (platformKey) await this.pullSettingsFromCloud(platformKey);
+
     const settings = this.readSettings();
     const providerKeys = await this.getProviderKeyStatus();
     const locale = vscode.workspace.getConfiguration('ava-supernova').get<string>('preferences.language') ?? 'auto';
@@ -2873,6 +2879,41 @@ export class DashboardPanel {
     cfg.update('preferences.memoryLocalOnly', settings.memoryLocalOnly, vscode.ConfigurationTarget.Global);
     cfg.update('contributeSharedLearning', settings.contributeSharedLearning, vscode.ConfigurationTarget.Global);
     cfg.update('preferences.streamResponses', settings.streamResponses, vscode.ConfigurationTarget.Global);
+  }
+
+  /** Fire-and-forget push of current settings to /api/settings/sync. */
+  private async pushSettingsToCloud(settings: DashboardSettings): Promise<void> {
+    try {
+      const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+      if (!platformKey) return;
+      const res = await apiFetch('/settings/sync', {
+        platformKey,
+        method: 'POST',
+        body: { settings },
+      });
+      if (res.ok) {
+        await this.context.globalState.update('ava.lastSettingsPushAt', new Date().toISOString());
+      }
+    } catch { /* best-effort */ }
+  }
+
+  /** Pull cloud settings; apply locally when cloud is newer than our last push. */
+  private async pullSettingsFromCloud(platformKey: string): Promise<void> {
+    try {
+      const res = await apiFetch('/settings/sync', { platformKey });
+      if (!res.ok || !res.data || typeof res.data !== 'object') return;
+      const { settings, updated_at } = res.data as { settings?: Partial<DashboardSettings> | null; updated_at?: string };
+      if (!settings || typeof settings !== 'object') return;
+
+      const lastPush = this.context.globalState.get<string>('ava.lastSettingsPushAt');
+      if (lastPush && updated_at && updated_at <= lastPush) return; // local is newer or same
+
+      const current = this.readSettings();
+      const merged: DashboardSettings = { ...current, ...settings };
+      this.saveSettings(merged);
+      // Avoid an immediate echo back to the cloud — record this as our new baseline.
+      if (updated_at) await this.context.globalState.update('ava.lastSettingsPushAt', updated_at);
+    } catch { /* offline — keep local */ }
   }
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
