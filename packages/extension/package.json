@@ -124,7 +124,60 @@
         "icon": "$(open-preview)"
       }
     ],
-    "walkthroughs": [],
+    "walkthroughs": [
+      {
+        "id": "ava-supernova.gettingStarted",
+        "title": "%walkthrough.title%",
+        "description": "%walkthrough.description%",
+        "steps": [
+          {
+            "id": "apiKey",
+            "title": "%walkthrough.step.apiKey.title%",
+            "description": "%walkthrough.step.apiKey.description%",
+            "media": { "markdown": "media/walkthrough/api-key.md" },
+            "completionEvents": [
+              "onCommand:ava-supernova.openChat"
+            ]
+          },
+          {
+            "id": "model",
+            "title": "%walkthrough.step.model.title%",
+            "description": "%walkthrough.step.model.description%",
+            "media": { "markdown": "media/walkthrough/select-model.md" },
+            "completionEvents": [
+              "onSettingChanged:ava-supernova.activeModel"
+            ]
+          },
+          {
+            "id": "language",
+            "title": "%walkthrough.step.language.title%",
+            "description": "%walkthrough.step.language.description%",
+            "media": { "markdown": "media/walkthrough/language.md" },
+            "completionEvents": [
+              "onSettingChanged:ava-supernova.preferences.language"
+            ]
+          },
+          {
+            "id": "permissions",
+            "title": "%walkthrough.step.permissions.title%",
+            "description": "%walkthrough.step.permissions.description%",
+            "media": { "markdown": "media/walkthrough/permissions.md" },
+            "completionEvents": [
+              "onSettingChanged:ava-supernova.preferences.permissionMode"
+            ]
+          },
+          {
+            "id": "start",
+            "title": "%walkthrough.step.start.title%",
+            "description": "%walkthrough.step.start.description%",
+            "media": { "markdown": "media/walkthrough/start.md" },
+            "completionEvents": [
+              "onCommand:ava-supernova.openChat"
+            ]
+          }
+        ]
+      }
+    ],
     "configuration": [
       {
         "title": "%setting.section.modelApi%",

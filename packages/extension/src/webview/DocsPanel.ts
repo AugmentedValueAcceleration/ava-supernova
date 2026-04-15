@@ -782,7 +782,7 @@ export class DocsPanel {
       <div class="card-grid">
         <div class="card">
           <h4>Work Mode</h4>
-          <p>Full agent with all 61 tools. Ava reads, writes, searches, executes, manages tasks, journals, and creates documents.</p>
+          <p>Full agent with all 63 tools. Ava reads, writes, searches, executes, manages tasks, journals, and creates documents.</p>
         </div>
         <div class="card">
           <h4>Plan Mode</h4>
@@ -803,7 +803,7 @@ export class DocsPanel {
     <!-- Permissions -->
     <section class="docs-section" id="permissions">
       <h2>Permission Modes</h2>
-      <p>All 61 tools are grouped into <strong>10 categories</strong> (File Ops, Shell, Git, Web, Media, Database, System, Documents, Memory, Learning). Each category has its own permission level. Three presets:</p>
+      <p>All 63 tools are grouped into <strong>10 categories</strong> (File Ops, Shell, Git, Web, Media, Database, System, Documents, Memory, Learning). Each category has its own permission level. Three presets:</p>
       <table>
         <thead><tr><th>Mode</th><th>File Ops</th><th>Shell</th><th>Git</th><th>Web</th><th>Database</th><th>System</th></tr></thead>
         <tbody>

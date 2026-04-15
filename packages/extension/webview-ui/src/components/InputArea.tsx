@@ -40,13 +40,13 @@ interface InputAreaProps {
   onProviderSourceChange?: (source: ProviderSource) => void;
 }
 
-const MODES: { id: AvaMode; labelKey: string; icon: string }[] = [
-  { id: 'code', labelKey: 'input.mode.code', icon: '>>' },
-  { id: 'plan', labelKey: 'input.mode.plan', icon: '::' },
-  { id: 'brainstorm', labelKey: 'input.mode.brainstorm', icon: '**' },
-  { id: 'chat', labelKey: 'input.mode.chat', icon: '..' },
-  { id: 'teach', labelKey: 'input.mode.teach', icon: '??' },
-  { id: 'security', labelKey: 'input.mode.security', icon: '!!' },
+const MODES: { id: AvaMode; labelKey: string; descKey: string; icon: string }[] = [
+  { id: 'code',       labelKey: 'input.mode.code',       descKey: 'input.mode.code.desc',       icon: '>>' },
+  { id: 'plan',       labelKey: 'input.mode.plan',       descKey: 'input.mode.plan.desc',       icon: '::' },
+  { id: 'brainstorm', labelKey: 'input.mode.brainstorm', descKey: 'input.mode.brainstorm.desc', icon: '**' },
+  { id: 'chat',       labelKey: 'input.mode.chat',       descKey: 'input.mode.chat.desc',       icon: '..' },
+  { id: 'teach',      labelKey: 'input.mode.teach',      descKey: 'input.mode.teach.desc',      icon: '??' },
+  { id: 'security',   labelKey: 'input.mode.security',   descKey: 'input.mode.security.desc',   icon: '!!' },
 ];
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -496,18 +496,24 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                     onClick={() => { setMode(m.id); setModesExpanded(false); }}
                     role="radio"
                     aria-checked={mode === m.id}
-                    className={`flex items-center justify-between w-full px-3 py-2 rounded-md text-xs font-medium
-                                cursor-pointer transition-all duration-150 border-none
+                    title={t(m.descKey)}
+                    className={`flex flex-col items-stretch w-full px-3 py-2 rounded-md text-xs font-medium
+                                cursor-pointer transition-all duration-150 border-none gap-1
                       ${mode === m.id
                         ? 'text-white bg-[rgba(168,85,247,0.2)]'
                         : 'text-[var(--vscode-foreground)] opacity-70 hover:opacity-100 hover:bg-[rgba(168,85,247,0.1)]'
                       }`}
                   >
-                    <span className="flex items-center gap-2">
-                      <span className="font-mono text-[10px] opacity-60 w-4 text-center">{m.icon}</span>
-                      {t(m.labelKey)}
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-2">
+                        <span className="font-mono text-[10px] opacity-60 w-4 text-center">{m.icon}</span>
+                        {t(m.labelKey)}
+                      </span>
+                      <span className="text-[9px] opacity-40 font-mono">Ctrl+Shift+{idx + 1}</span>
                     </span>
-                    <span className="text-[9px] opacity-40 font-mono">Ctrl+Shift+{idx + 1}</span>
+                    <span className="text-[10px] opacity-60 text-left font-normal leading-snug">
+                      {t(m.descKey)}
+                    </span>
                   </button>
                 ))}
               </div>

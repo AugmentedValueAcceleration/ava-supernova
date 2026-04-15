@@ -3,7 +3,7 @@ export const enStrings: Record<string, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Your open-source agentic coding assistant.',
-  'welcome.tagline': '61 tools \u00B7 7 providers \u00B7 2 free models \u00B7 20 languages',
+  'welcome.tagline': '63 tools \u00B7 7 providers \u00B7 2 free models \u00B7 20 languages',
 
   // Welcome — Setup
   'welcome.setup_title': 'Get Started — Add an API Key',
@@ -55,6 +55,13 @@ export const enStrings: Record<string, string> = {
   'input.mode.chat': 'Chat',
   'input.mode.teach': 'Teach',
   'input.mode.security': 'Security',
+  // Plain-English mode descriptions for non-coders. Surfaced in the mode picker.
+  'input.mode.code.desc': 'Ava builds it for you. Reads, writes, and runs code with all 63 tools.',
+  'input.mode.plan.desc': 'Ava maps it out before touching anything. Read-only \u2014 no file changes.',
+  'input.mode.brainstorm.desc': 'Ava throws ideas with you. Five specialists explore, refine, and challenge.',
+  'input.mode.chat.desc': 'Ava as a friend. Memory, search, journal, weather, news \u2014 no tools, just talk.',
+  'input.mode.teach.desc': 'Ava explains things at your level. Tutor, content writer, quiz master.',
+  'input.mode.security.desc': 'Ava audits your code. OWASP, CVE lookups, dependency scan, full report.',
   'input.send': 'Send (Enter)',
   'input.send_aria': 'Send message',
   'input.stop': 'Stop',
