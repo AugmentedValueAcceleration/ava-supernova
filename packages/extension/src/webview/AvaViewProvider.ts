@@ -251,7 +251,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     if (platformKey) {
       historySync = new PlatformHistorySync('https://ava-supernova.com/api', platformKey);
     }
-    const historyLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.historyLocalOnly') ?? false;
+    const syncPrefs = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
+    const historyLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.historyLocalOnly') ?? false)
+      || syncPrefs.history === false;
     this.historyManager = new HistoryManager(this.projectRoot, { sync: historySync, localOnly: historyLocalOnly });
     this.historyManager.init();
     if (historySync && !historyLocalOnly) {
@@ -265,7 +267,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         : undefined;
       sync = new PlatformMemorySync('https://ava-supernova.com/api', platformKey, projectId);
     }
-    const memoryLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? false;
+    const memoryLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? false)
+      || syncPrefs.memory === false;
     this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly });
 
     // Pull the latest memories from cloud on every session start where
@@ -335,7 +338,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     if (platformKey) {
       taskSync = new PlatformTaskSyncImpl('https://ava-supernova.com/api', platformKey);
     }
-    const taskLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.taskLocalOnly') ?? false;
+    const taskLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.taskLocalOnly') ?? false)
+      || syncPrefs.tasks === false;
     this.taskManager = new TaskManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync: taskSync, localOnly: taskLocalOnly });
     if (taskSync && !taskLocalOnly) {
       // Pull on session start so tasks made on device A show up on B.
@@ -347,7 +351,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     if (platformKey) {
       journalSync = new PlatformJournalSyncImpl('https://ava-supernova.com/api', platformKey);
     }
-    const journalLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.journalLocalOnly') ?? false;
+    const journalLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.journalLocalOnly') ?? false)
+      || syncPrefs.journal === false;
     this.journalManager = new JournalManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync: journalSync, localOnly: journalLocalOnly });
     if (journalSync && !journalLocalOnly) {
       // Pull journal entries on session start — same fire-and-forget
@@ -1891,6 +1896,27 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   /** Reset the memory manager — called after Delete All to prevent re-sync of cached entries. */
+  /**
+   * Apply a sync preference change live to the relevant manager so the user
+   * doesn't have to reload the window. Only memory/tasks/journal/history have
+   * background push paths driven by manager state — the rest are gated at the
+   * DashboardPanel push site.
+   */
+  public applySyncPref(
+    dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings',
+    enabled: boolean,
+  ): void {
+    const localOnly = !enabled;
+    switch (dataType) {
+      case 'memory': this.memoryManager?.setLocalOnly(localOnly); break;
+      case 'tasks':  this.taskManager?.setLocalOnly(localOnly); break;
+      case 'journal': this.journalManager?.setLocalOnly(localOnly); break;
+      case 'history': this.historyManager?.setLocalOnly(localOnly); break;
+      // learning/settings/personality/learnings have no background push — the
+      // DashboardPanel checks the pref directly before each push site.
+    }
+  }
+
   public async resetMemoryManager(): Promise<void> {
     if (this.memoryManager) {
       await this.memoryManager.clearEverything();

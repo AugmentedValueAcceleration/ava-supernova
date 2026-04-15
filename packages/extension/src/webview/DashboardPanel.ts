@@ -630,6 +630,14 @@ export class DashboardPanel {
         await this.loadSyncStatus();
         break;
 
+      case 'load_sync_prefs':
+        this.post({ type: 'sync_prefs_loaded', prefs: this.getSyncPrefs() });
+        break;
+
+      case 'set_sync_pref':
+        await this.setSyncPref(msg.dataType, msg.enabled);
+        break;
+
       case 'load_releases':
         await this.loadReleases();
         break;
@@ -909,8 +917,9 @@ export class DashboardPanel {
     const connections = await this.getConnectionStatus();
 
     // Cloud-pull settings before reading local — applies remote when cloud is
-    // newer than the last push from this device.
-    if (platformKey) await this.pullSettingsFromCloud(platformKey);
+    // newer than the last push from this device. Skipped when the user has
+    // disabled settings sync.
+    if (platformKey && this.isSyncEnabled('settings')) await this.pullSettingsFromCloud(platformKey);
 
     const settings = this.readSettings();
     const providerKeys = await this.getProviderKeyStatus();
@@ -2550,6 +2559,7 @@ export class DashboardPanel {
   /** Fire-and-forget push to /api/settings (uses the dedicated personality column). */
   private async pushPersonalityToCloud(personality: Personality): Promise<void> {
     try {
+      if (!this.isSyncEnabled('personality')) return;
       const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
       if (!platformKey) return;
       await apiFetch('/settings', { platformKey, method: 'POST', body: { personality } });
@@ -2661,6 +2671,10 @@ export class DashboardPanel {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
     if (!platformKey) {
       this.post({ type: 'sync_error', dataType, message: 'No platform account connected. Connect an account first.' });
+      return;
+    }
+    if (!this.isSyncEnabled(dataType)) {
+      this.post({ type: 'sync_error', dataType, message: 'Sync is disabled for this data type. Enable it in the Sync page.' });
       return;
     }
 
@@ -2881,9 +2895,40 @@ export class DashboardPanel {
     cfg.update('preferences.streamResponses', settings.streamResponses, vscode.ConfigurationTarget.Global);
   }
 
+  // ─── Sync preferences ──────────────────────────────────────────────────────
+
+  /** Read all sync prefs from globalState. Defaults: everything ON except `learnings`. */
+  private getSyncPrefs(): Record<string, boolean> {
+    const stored = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
+    const keys = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings', 'personality', 'learnings'] as const;
+    const out: Record<string, boolean> = {};
+    for (const k of keys) {
+      out[k] = stored[k] ?? (k === 'learnings' ? false : true);
+    }
+    return out;
+  }
+
+  private isSyncEnabled(dataType: string): boolean {
+    return this.getSyncPrefs()[dataType] ?? true;
+  }
+
+  /** Persist a sync pref + apply it live to the manager (where applicable). */
+  private async setSyncPref(
+    dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings',
+    enabled: boolean,
+  ): Promise<void> {
+    const stored = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
+    stored[dataType] = enabled;
+    await this.context.globalState.update('ava.syncPrefs', stored);
+    // Apply live to the manager so existing instances respect the change without restart.
+    this.viewProvider?.applySyncPref(dataType, enabled);
+    this.post({ type: 'sync_prefs_loaded', prefs: this.getSyncPrefs() });
+  }
+
   /** Fire-and-forget push of current settings to /api/settings/sync. */
   private async pushSettingsToCloud(settings: DashboardSettings): Promise<void> {
     try {
+      if (!this.isSyncEnabled('settings')) return;
       const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
       if (!platformKey) return;
       const res = await apiFetch('/settings/sync', {

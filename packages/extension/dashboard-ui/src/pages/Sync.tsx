@@ -1,24 +1,11 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
-import type { SyncStatus } from '../types/messages';
+import type { SyncStatus, ExtToDashboardMessage } from '../types/messages';
 import {
   Brain, CheckSquare, BookOpen, GraduationCap, ChatCircle,
   GearSix, MaskHappy, Lightbulb,
 } from '@phosphor-icons/react';
-
-const SYNC_PREFS_KEY = 'ava-sync-preferences';
-
-function loadSyncPrefs(): Record<string, boolean> {
-  try {
-    const raw = localStorage.getItem(SYNC_PREFS_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
-}
-
-function saveSyncPrefs(prefs: Record<string, boolean>) {
-  try { localStorage.setItem(SYNC_PREFS_KEY, JSON.stringify(prefs)); } catch {}
-}
 
 function getSyncDataTypes() {
   return [
@@ -42,17 +29,27 @@ interface Props {
 
 export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Props) {
   useLocale();
-  const [syncPrefs, setSyncPrefs] = useState<Record<string, boolean>>(loadSyncPrefs);
+  const [syncPrefs, setSyncPrefs] = useState<Record<string, boolean>>({});
+
+  // Source of truth lives in the extension host (globalState). Pull on mount
+  // and whenever the host pushes an updated set.
+  useEffect(() => {
+    post({ type: 'load_sync_prefs' });
+    const onMessage = (e: MessageEvent<ExtToDashboardMessage>) => {
+      if (e.data?.type === 'sync_prefs_loaded') setSyncPrefs(e.data.prefs);
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+
+  const isSyncEnabled = (key: string) => syncPrefs[key] ?? (key === 'learnings' ? false : true);
 
   const togglePref = (key: string) => {
-    setSyncPrefs(prev => {
-      const next = { ...prev, [key]: !(prev[key] ?? true) };
-      saveSyncPrefs(next);
-      return next;
-    });
+    const next = !isSyncEnabled(key);
+    // Optimistic UI; host echoes the authoritative state back via sync_prefs_loaded.
+    setSyncPrefs(prev => ({ ...prev, [key]: next }));
+    post({ type: 'set_sync_pref', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings', enabled: next });
   };
-
-  const isSyncEnabled = (key: string) => syncPrefs[key] ?? (key === 'learnings' ? false : true); // Shared learnings default OFF
 
   return (
     <div>

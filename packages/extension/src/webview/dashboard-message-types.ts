@@ -330,6 +330,7 @@ export type ExtToDashboardMessage =
     }
   | { type: 'account_updated'; account: AccountInfo | null }
   | { type: 'provider_keys_updated'; providerKeys: ProviderKeyStatus }
+  | { type: 'sync_prefs_loaded'; prefs: Record<string, boolean> }
   | { type: 'memories_loaded'; memories: MemoryEntry[] }
   | { type: 'memory_deleted'; id: string }
   | { type: 'memory_upserted'; memory: MemoryEntry }
@@ -511,6 +512,8 @@ export type DashboardToExtMessage =
   | { type: 'rate_library_path'; id: string; rating: number }
   // Sync messages
   | { type: 'load_sync_status' }
+  | { type: 'load_sync_prefs' }
+  | { type: 'set_sync_pref'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings'; enabled: boolean }
   | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' }
   // Release notes
   | { type: 'load_releases' }

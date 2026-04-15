@@ -572,6 +572,7 @@ export type ExtToDashboardMessage =
       min_trajectory_length: number;
     } }
   | { type: 'provider_keys_updated'; providerKeys: ProviderKeyStatus }
+  | { type: 'sync_prefs_loaded'; prefs: Record<string, boolean> }
   | { type: 'memories_loaded'; memories: MemoryEntry[]; total?: number; hasMore?: boolean }
   | { type: 'memories_more_loaded'; memories: MemoryEntry[]; total?: number; hasMore?: boolean }
   | { type: 'memory_deleted'; id: string }
@@ -773,6 +774,8 @@ export type DashboardToExtMessage =
   | { type: 'load_task_dates' }
   // Sync messages
   | { type: 'load_sync_status' }
+  | { type: 'load_sync_prefs' }
+  | { type: 'set_sync_pref'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings'; enabled: boolean }
   | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' }
   | { type: 'save_avatar'; data: string; mimeType: string }
   | { type: 'remove_avatar' }
