@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { t, useLocale } from '../i18n';
 import { Settings } from './Settings';
 import { Billing } from './Billing';
@@ -45,6 +45,18 @@ export function AccountPage({
   useLocale();
   const [activeTab, setActiveTab] = useState<AccountTab>('settings');
 
+  // Mirror the chat header's Local/Cloud/Both toggle so Sync can reflect it.
+  type DataMode = 'local' | 'cloud' | 'both';
+  const [dataMode, setDataMode] = useState<DataMode>(() => (localStorage.getItem('ava-data-mode') as DataMode) || 'local');
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'ava-data-mode' && e.newValue) setDataMode(e.newValue as DataMode);
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+  const syncDisabled = dataMode === 'local';
+
   const visibleTabs = getAccountTabs().filter(tab => !tab.platformOnly || isPlatform);
 
   return (
@@ -57,19 +69,25 @@ export function AccountPage({
 
       {/* Tab bar */}
       <div className="flex items-center gap-1 border-b border-[var(--border-card)] pb-px">
-        {visibleTabs.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setActiveTab(key)}
-            className={`px-3 pb-2 pt-1 text-xs font-medium transition ${
-              activeTab === key
-                ? 'border-b-2 border-[var(--accent)] text-white'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+        {visibleTabs.map(({ key, label }) => {
+          const isMutedSync = key === 'sync' && syncDisabled && activeTab !== 'sync';
+          return (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              title={key === 'sync' && syncDisabled ? 'Data Mode is set to Local — switch to Cloud or Both in the chat header to enable cloud sync' : undefined}
+              className={`px-3 pb-2 pt-1 text-xs font-medium transition ${
+                activeTab === key
+                  ? 'border-b-2 border-[var(--accent)] text-white'
+                  : isMutedSync
+                    ? 'text-[var(--text-muted)] opacity-40 hover:opacity-60'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab content */}
@@ -99,12 +117,19 @@ export function AccountPage({
       )}
 
       {activeTab === 'sync' && (
-        <Sync
-          syncStatus={syncStatus}
-          syncingTypes={syncingTypes}
-          syncResults={syncResults}
-          isConnected={!!account}
-        />
+        <>
+          {syncDisabled && (
+            <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-300 mb-4">
+              Data Mode is set to <span className="font-semibold">Local</span>. Cloud sync runs on whatever you toggle below, but the chat header gates auto-sync on cloud-or-both. Switch the data mode in the chat header to enable background sync.
+            </div>
+          )}
+          <Sync
+            syncStatus={syncStatus}
+            syncingTypes={syncingTypes}
+            syncResults={syncResults}
+            isConnected={!!account}
+          />
+        </>
       )}
     </div>
   );
