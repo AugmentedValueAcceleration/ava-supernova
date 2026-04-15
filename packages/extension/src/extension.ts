@@ -26,6 +26,13 @@ export function activate(context: vscode.ExtensionContext): void {
   // toggles capture on, events start landing without restarting VS Code.
   installDatasetConsumer();
 
+  // Defensive vault hygiene: older builds briefly stored the platform key
+  // in plaintext globalState. Evict any stragglers so SecretStorage stays
+  // the single source of truth. Safe no-op when the key was never written.
+  if (context.globalState.get('ava.platformKey') !== undefined) {
+    context.globalState.update('ava.platformKey', undefined);
+  }
+
   viewProvider = new AvaViewProvider(context.extensionUri, context);
 
   // Task Manager (shared instance)

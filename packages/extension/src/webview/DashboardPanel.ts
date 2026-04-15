@@ -557,7 +557,7 @@ export class DashboardPanel {
           params.set('limit', '30');
           const url = `/learning/library?${params.toString()}`;
           // Public endpoint — try with platform key if available, otherwise direct fetch
-          const platformKey = this.context.globalState.get<string>('ava.platformKey');
+          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
           if (platformKey) {
             const res = await apiFetch(url, { platformKey });
             this.postMessage({ type: 'library_paths_loaded', paths: res.paths || [], total: res.total || 0 });
@@ -585,7 +585,7 @@ export class DashboardPanel {
       }
 
       case 'fork_library_path': {
-        const platformKey = this.context.globalState.get<string>('ava.platformKey');
+        const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
         if (!platformKey) {
           this.postMessage({ type: 'error', message: 'Connect your Ava account to start learning paths from the library.' });
           break;
@@ -600,7 +600,7 @@ export class DashboardPanel {
       }
 
       case 'publish_to_library': {
-        const platformKey = this.context.globalState.get<string>('ava.platformKey');
+        const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
         if (!platformKey) {
           this.postMessage({ type: 'error', message: 'Connect your Ava account to publish learning paths.' });
           break;
@@ -615,7 +615,7 @@ export class DashboardPanel {
       }
 
       case 'rate_library_path': {
-        const platformKey = this.context.globalState.get<string>('ava.platformKey');
+        const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
         if (!platformKey) break;
         try {
           await apiFetch(`/learning/library/${msg.id}/rate`, { method: 'POST', body: { rating: msg.rating }, platformKey });
