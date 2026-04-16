@@ -1,6 +1,6 @@
 # Desktop Automation — Master Design Spec
 
-> **Status:** planning complete, prototype pending
+> **Status:** Phase 0 complete — all three prototypes validated. Ready for Phase A.
 > **Draft:** 1 · 2026-04-16
 > **Target:** v1.0 launch Windows-only, v1.5 macOS, v2+ Linux
 > **Audience:** maintainers and contributors working on desktop automation mode
@@ -157,7 +157,7 @@ Microsoft, MIT-licensed, Feb 2025 release. YOLOv8 detects interactable regions (
 Decision: run OmniParser as a **platform service**, same channel as managed Qwen models.
 
 - **VRAM** (~4–8 GB) is beyond most dev laptops; hosting gives every user equal access.
-- **Latency** (0.6s on RTX 4090, unusable on CPU); hosted infrastructure with batching gives consistent ~800ms.
+- **Latency** — measured in prototype F1 on Replicate T4: **0.8s simple UI → 2s medium → 8.3s dense UI** (167 elements on Hacker News). A100 is ~5–10× faster per Microsoft's paper (~0.6s on RTX 4090). **Hosting on A100-class GPU is required for usable latency.** T4 is too slow for dense UIs.
 - **Update path** — central model + prompt tuning beats shipping local bundles.
 - **Privacy** — mitigated via redaction + zero retention + explicit toggle (see below).
 
@@ -186,13 +186,15 @@ Perceptual hash of screenshot before calling — cursor position and subtle anim
 
 ### Cost ceiling
 
-- Free tier: OmniParser calls count against 3M monthly budget at flat **10K tokens equivalent per call** — a billing unit covering compute + margin.
+- Free tier: OmniParser calls count against 3M monthly budget at flat **10K tokens equivalent per call** — a billing unit covering compute + margin. At $0.011/call on T4 this is at-cost; on A100 self-host (~$0.0002/call) it's ~98% margin. **Hosting decision dominates the economics — measure A100 pricing before committing to a billing unit.**
 - Paid tiers: same flat rate, deducted from plan.
 - BYOK endpoint: free (user pays compute).
 
 ### Integration
 
-Sidecar POSTs to platform or BYOK endpoint: `{ image: base64_png, max_elements: 100 }`. Returns `{ elements: [...], parse_time_ms }`. No streaming.
+Sidecar POSTs to platform or BYOK endpoint: `{ image: base64_png, max_elements: 50 }`. Returns `{ elements: string, img: url, parse_time_ms }`. No streaming.
+
+**Output shape note (from prototype F1):** OmniParser v2 returns `elements` as a newline-separated text string, not a JSON array. Each line is `icon N: {type, bbox, interactivity, content}`. The Rust sidecar parses this into typed `ScreenState` elements before feeding to Scout. Dense UIs (167 elements on HN) produce ~28KB of output — exceeds Scout's ~3K token prompt budget. **Cap `max_elements` at 50 and filter by interactivity=true server-side.**
 
 ### Non-goals
 
@@ -524,10 +526,11 @@ OR'd — first-hit wins. User can override per-task at start. Budget breach neve
 
 ### Numbers to revalidate via prototype
 
-1. Per-step token count (depends on real prompt verbosity).
+1. ~~Per-step token count~~ — **measured in prototype C3: 11,071 tokens/step vs 11,600 estimate (within 5%).** ✓
 2. OmniParser fire rate (web-heavy ~5%, canvas-heavy ~50%).
 3. Step bloat (OSWorld-Human 1.4–2.7× population average; our persona arch may differ).
 4. OmniParser cache hit rate (~40% estimate; real UIs vary).
+5. ~~OmniParser per-call latency + cost~~ — **measured in prototype F1 via Replicate T4: 0.8–8.3s GPU predict (avg 3.7s), $0.011/call. Dense UIs (167 elements / 28KB output) blow Scout's 3K-token prompt budget — need `max_elements` cap at 50 + interactability filter. A100 self-host would be ~10× faster and ~50× cheaper per call.** ✓
 
 ---
 
@@ -865,7 +868,7 @@ Check items off as you complete them. Update status header at top of this doc wh
 
 - [x] Prototype C3: persona waves end-to-end with mock grounding — measure real token counts
 - [x] Prototype B3: Playwright from Tauri → Chromium driving demo site, clean shutdown
-- [ ] Prototype F1: OmniParser hosted, measure compute cost per call
+- [x] Prototype F1: OmniParser hosted, measure compute cost per call
 
 ### Phase A — Shared foundations
 
