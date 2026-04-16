@@ -189,12 +189,13 @@ Grouped for the work you actually do:
 | **Git** | `git_status`, `git_diff`, `rollback`, `git_commit`, `git_create_pr` |
 | **Web** | `web_search`, `http_request`, `browser` |
 | **Creative Studio** | `generate_image`, `generate_video`, `generate_music`, `generate_voice`, `remove_background`, `screenshot`, `browse_library` |
-| **Computer Use** | `computer_use`, `computer_use_blackboard` |
+| **Computer Use** | `computer_use` |
 | **Office** | `presentation_create`, `email_draft`, `report_generate`, `document_manage`, `doc_generate` |
-| **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete` |
-| **Tasks & Planning** | `present_plan`, `todo_write`, `task_manage`, `apply_plan` |
+| **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete`, `curator` |
+| **Tasks & Planning** | `present_plan`, `todo_write`, `task_manage`, `apply_plan`, `switch_mode` |
 | **Journal & Learning** | `journal_write`, `learning_create`, `learning_teach`, `learning_progress` |
-| **Testing & Quality** | `test_run`, `test_generate`, `benchmark`, `analyze_architecture`, `audit_dependencies`, `security`, `debug_logs` |
+| **Testing & Quality** | `test_run`, `test_generate`, `benchmark`, `analyze_architecture`, `audit_dependencies`, `debug_logs` |
+| **Secret Vault** | `secret_request`, `env_write` |
 | **Data** | `database_query` |
 | **Interaction** | `ask_user`, `support_request` |
 | **Self** | `docs_lookup`, `propose_tool`, `self_inspect`, `release_notes` |
@@ -234,9 +235,11 @@ Grouped for the work you actually do:
 
 ## Privacy
 
-- API keys encrypted in your OS keychain
+- API keys encrypted in your OS keychain (VSCode SecretStorage)
 - All memory and conversation data stored locally by default
 - Credentials blocked from memory at runtime
+- Streaming-safe redaction — high-confidence key patterns are scrubbed from chat output before they hit the screen, even for keys not yet in the vault
+- Capability-based secret access — Ava only sees secrets you grant for the current chat session, and receives opaque handles instead of raw values
 - Prompt injection resistance built in
 - No analytics, no telemetry, no screen captures
 - You control what syncs and when
