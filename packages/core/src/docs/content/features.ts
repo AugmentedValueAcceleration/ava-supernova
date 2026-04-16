@@ -1,0 +1,150 @@
+import type { DocPage } from '../types.js';
+
+// Section 4 — Features. Chunkable. Each page is a self-contained feature description.
+
+export const FEATURE_PAGES: DocPage[] = [
+  {
+    id: 'features.unified-panel',
+    title: 'Unified panel',
+    audience: ['both'],
+    surfaces: ['ext', 'ide'],
+    order: 10,
+    section: 'features',
+    body: [
+      { type: 'paragraph', text: 'One panel for chat, dashboard, memory, tasks, and journal. No context switching between windows. The sidebar picks what you are looking at; the main area swaps to match.' },
+      { type: 'paragraph', text: 'Conversation state persists when you navigate away — open memory, check a task, then come back. The chat is still there, still streaming if Ava is still running.' },
+      { type: 'callout', variant: 'note', text: 'Unified panel is an extension and IDE concept. The web surface uses browser tabs.' },
+    ],
+  },
+  {
+    id: 'features.knowledge-packs',
+    title: 'Knowledge packs',
+    audience: ['both'],
+    surfaces: ['web', 'ext', 'ide'],
+    order: 20,
+    section: 'features',
+    body: [
+      { type: 'paragraph', text: 'Drop a directory of reference material (specs, RFCs, meeting notes, API docs) into a knowledge pack. Ava can pull the relevant pieces into context when a conversation touches the topic.' },
+      { type: 'paragraph', text: 'Packs are indexed locally. Retrieval is semantic — Ava finds the right document by meaning, not filename. Packs can be shared with a team or kept private.' },
+    ],
+  },
+  {
+    id: 'features.creative-studio',
+    title: 'Creative Studio',
+    audience: ['both'],
+    surfaces: ['web', 'ext', 'ide'],
+    order: 30,
+    section: 'features',
+    body: [
+      { type: 'paragraph', text: 'Image, video, music, and voice generation — built into the same workflow as your code. Generate an icon, a product mockup, a demo video, a voiceover for a tutorial. Powered by MiniMax.' },
+      { type: 'heading', level: 3, text: 'What you can make' },
+      { type: 'list', ordered: false, items: [
+        'Images — prompt to PNG/JPG. Background removal one call away.',
+        'Video — short AI videos from a text prompt (MiniMax Hailuo).',
+        'Music — instrumental or vocal tracks with lyrics.',
+        'Voice — text-to-speech with selectable voices.',
+      ]},
+      { type: 'paragraph', text: 'Creative Studio costs deduct from the same token allowance as coding — one pool, one number. BYOK your own MiniMax key and it is free to your plan.' },
+      { type: 'callout', variant: 'tip', text: 'Creative Studio is free-tier eligible. Not a paid add-on.' },
+    ],
+  },
+  {
+    id: 'features.office-suite',
+    title: 'Office Suite',
+    audience: ['both'],
+    surfaces: ['web', 'ext', 'ide'],
+    order: 40,
+    section: 'features',
+    body: [
+      { type: 'paragraph', text: 'Presentations, reports, emails, and documents — drafted, formatted, and exported to native formats (.pptx, .docx, .xlsx, .pdf).' },
+      { type: 'list', ordered: false, items: [
+        'presentation_create — a .pptx deck from a brief.',
+        'report_generate — a structured .docx pulling from tasks, journal, memory, and project state.',
+        'email_draft — tone-controlled email to a .docx file.',
+        'document_manage — create, read, edit, export across Word, Excel, PDF, CSV, Markdown.',
+      ]},
+      { type: 'paragraph', text: 'Useful when Ava is writing on your behalf — status reports, kickoff decks, client updates. The .docx lands in your project where you can polish it.' },
+    ],
+  },
+  {
+    id: 'features.dashboard-library',
+    title: 'Dashboard library',
+    audience: ['both'],
+    surfaces: ['ext', 'ide'],
+    order: 50,
+    section: 'features',
+    body: [
+      { type: 'paragraph', text: 'A browsable view of everything Ava has produced with you — generated images, videos, audio, documents — alongside your conversations, memories, and tasks. One place to find a thing you made last week.' },
+    ],
+  },
+  {
+    id: 'features.document-preview',
+    title: 'Document preview',
+    audience: ['both'],
+    surfaces: ['ext', 'ide'],
+    order: 60,
+    section: 'features',
+    body: [
+      { type: 'paragraph', text: 'Right-click a Word doc, Excel sheet, PDF, CSV, HTML, or Markdown file in your project — preview it inline without leaving the editor. Useful for reading reference material Ava has generated or files a collaborator dropped in.' },
+    ],
+  },
+  {
+    id: 'features.daily-briefing',
+    title: 'Daily briefing',
+    audience: ['both'],
+    surfaces: ['web', 'ext', 'ide'],
+    order: 70,
+    section: 'features',
+    body: [
+      { type: 'paragraph', text: 'Morning summary: yesterday journal, open tasks, project state, and any reminders Ava has set. Optional — turn it on in settings.' },
+      { type: 'paragraph', text: 'The briefing uses memory to surface relevant context ("last time you worked on the auth flow, you noted you wanted to revisit the refresh token strategy"). Not a news feed — a focused catch-up.' },
+    ],
+  },
+  {
+    id: 'features.workflows',
+    title: 'Workflows',
+    audience: ['both'],
+    surfaces: ['web', 'ext', 'ide'],
+    order: 80,
+    section: 'features',
+    body: [
+      { type: 'paragraph', text: 'Save a sequence of steps you find yourself repeating — review PR → run tests → write release notes → draft the email. A workflow is a reusable plan Ava can replay with different inputs.' },
+      { type: 'paragraph', text: 'Workflows are stored per project in .ava/workflows/. Share them with your team by committing the directory.' },
+    ],
+  },
+  {
+    id: 'features.events',
+    title: 'Events and notifications',
+    audience: ['power'],
+    surfaces: ['web', 'ext', 'ide'],
+    order: 90,
+    section: 'features',
+    body: [
+      { type: 'paragraph', text: 'While Ava is running you see structured updates, not a wall of text. Each tool call, each persona handoff, each streamed delta is a discrete event in the UI — expandable for detail, collapsible for overview.' },
+      { type: 'paragraph', text: 'Background runs emit OS-level notifications when they complete. You can walk away from a long build and Ava will tell you when it is done.' },
+    ],
+  },
+  {
+    id: 'features.personality',
+    title: 'Personality Designer',
+    audience: ['both'],
+    surfaces: ['web', 'ext', 'ide'],
+    order: 100,
+    section: 'features',
+    body: [
+      { type: 'paragraph', text: 'Shape how Ava talks to you. Tone, energy, verbosity, formality, humour. Sliders and presets — terse engineer, warm mentor, dry colleague, or your own blend.' },
+      { type: 'paragraph', text: 'Personality affects phrasing, not competence. She still runs the same tools and follows the same permission rules. Her name is locked to Ava — that is non-negotiable.' },
+    ],
+  },
+  {
+    id: 'features.release-notes',
+    title: 'Release notes',
+    audience: ['both'],
+    surfaces: ['ext', 'ide'],
+    order: 110,
+    section: 'features',
+    body: [
+      { type: 'paragraph', text: 'In-app changelog. Every shipped version with its highlights, bug fixes, and breaking changes. The web surface maintains the public version at ava-supernova.com/releases.' },
+    ],
+  },
+];

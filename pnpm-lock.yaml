@@ -259,6 +259,9 @@ importers:
 
   packages/extension/dashboard-ui:
     dependencies:
+      '@ava/core':
+        specifier: workspace:*
+        version: link:../../core
       '@phosphor-icons/react':
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4)

@@ -10,6 +10,11 @@
       "import": "./dist/index.js",
       "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./docs": {
+      "import": "./dist/docs/index.js",
+      "require": "./dist/docs/index.js",
+      "types": "./dist/docs/index.d.ts"
     }
   },
   "scripts": {
@@ -17,7 +22,9 @@
     "dev": "tsc -p tsconfig.build.json --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "vitest run"
+    "test": "vitest run",
+    "docs:sync": "node docs/sync-to-web.mjs",
+    "docs:check": "node docs/sync-to-web.mjs && git -C ../web diff --quiet src/lib/docs || (echo 'docs corpus desynced — run pnpm docs:sync and commit the web submodule' && exit 1)"
   },
   "dependencies": {
     "glob": "^13.0.6",

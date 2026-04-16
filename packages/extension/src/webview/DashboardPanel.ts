@@ -325,6 +325,10 @@ export class DashboardPanel {
         vscode.commands.executeCommand('ava-supernova.openChat');
         break;
 
+      case 'open_docs':
+        vscode.commands.executeCommand('ava-supernova.openDocs');
+        break;
+
       case 'open_url': {
         // Validate URL with native URL parser for defence-in-depth
         try {
