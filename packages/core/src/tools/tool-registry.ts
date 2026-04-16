@@ -58,7 +58,10 @@ import { SelfInspectTool } from './self-inspect.js';
 import { ReleaseNotesTool } from './release-notes.js';
 import { WeatherTool } from './weather.js';
 import { NewsTool } from './news.js';
-import { ComputerUseTool } from './computer-use.js';
+// ComputerUseTool is no longer registered — Holo3 integration was pulled and
+// there is no working replacement yet. The implementation file is retained so
+// it can be re-registered when a vision+action provider ships.
+// import { ComputerUseTool } from './computer-use.js';
 import { SwitchModeTool } from './switch-mode.js';
 import { BrowseLibraryTool } from './browse-library.js';
 import { CuratorTool } from './curator.js';
@@ -89,7 +92,7 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   // Database
   database_query: 'database',
   // System — desktop control, utilities, security
-  computer_use: 'system', get_datetime: 'system', detect_language: 'system',
+  get_datetime: 'system', detect_language: 'system',
   audit_dependencies: 'system', security: 'system',
   ask_user: 'system', support_request: 'system', propose_tool: 'system',
   curator: 'system',
@@ -350,7 +353,6 @@ export class ToolRegistry {
       new GenerateVideoTool(),
       new GenerateVoiceTool(),
       new RemoveBackgroundTool(),
-      new ComputerUseTool(),
       new SwitchModeTool(),
       new BrowseLibraryTool(),
       new CuratorTool(),

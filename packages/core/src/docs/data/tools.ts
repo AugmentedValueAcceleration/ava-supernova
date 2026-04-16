@@ -1,4 +1,4 @@
-// Canonical tool fact table — single source of truth for all 63 built-in tools.
+// Canonical tool fact table — single source of truth for all 62 built-in tools.
 // Rendered by the website, extension DocsPanel, and IDE DocumentationPage.
 // Update here when tools are added/renamed/recategorised, not in any surface renderer.
 
@@ -24,7 +24,6 @@ export const TOOLS: ToolFact[] = [
   { name: 'benchmark', category: 'shell', description: 'Run a command and measure execution time, optionally comparing against a stored baseline.', risk: 'safe' },
   { name: 'browse_library', category: 'file_ops', description: 'Browse the project creative asset library — images, videos, audio, documents.', risk: 'safe' },
   { name: 'browser', category: 'web', description: 'Automate browser interactions — navigate, click, fill, screenshot, extract text, run JS.', risk: 'dangerous' },
-  { name: 'computer_use', category: 'system', description: 'See the screen and interact with desktop applications using vision-guided automation.', risk: 'dangerous' },
   { name: 'curator', category: 'system', description: 'Consult the Curator specialist for a design or taste decision.', risk: 'safe' },
   { name: 'database_query', category: 'database', description: 'Execute read-only database queries and visualise results in tables.', risk: 'dangerous' },
   { name: 'debug_logs', category: 'shell', description: 'Read and filter log files or command output for debugging.', risk: 'safe' },

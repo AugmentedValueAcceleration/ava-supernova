@@ -80,7 +80,7 @@ export const START_PAGES: DocPage[] = [
         'Watch her stream an answer. If she wants to make a change, she will show you the diff and wait for you to approve.',
         'Switch modes. Type >> to enter Work mode, then ?? to try Teach mode with the same question. Feel the difference.',
       ]},
-      { type: 'paragraph', text: 'That is it. You have used 4 of 63 tools and 2 of 6 modes. The rest is progressive — you learn what exists when you need it.' },
+      { type: 'paragraph', text: 'That is it. You have used 4 of 62 tools and 2 of 6 modes. The rest is progressive — you learn what exists when you need it.' },
       { type: 'callout', variant: 'note', text: 'Prefer structure? Jump to Core concepts for a proper tour. Prefer learning by doing? Keep going — Ava will ask before she does anything risky.' },
     ],
   },

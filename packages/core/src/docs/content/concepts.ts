@@ -72,7 +72,7 @@ export const CONCEPT_PAGES: DocPage[] = [
     order: 40,
     section: 'concepts',
     body: [
-      { type: 'paragraph', text: 'Ava has 63 tools. Every tool belongs to a category (file operations, shell, git, web, media, database, system, documents, memory, learning). Every tool call passes through the permission gate before it executes. You control what gets auto-approved, what asks once, and what always asks.' },
+      { type: 'paragraph', text: 'Ava has 62 tools. Every tool belongs to a category (file operations, shell, git, web, media, database, system, documents, memory, learning). Every tool call passes through the permission gate before it executes. You control what gets auto-approved, what asks once, and what always asks.' },
       { type: 'facts', kind: 'permissions' },
       { type: 'paragraph', text: 'Balanced is the default. Strict for when you are auditing her behaviour. Autonomous for when you want her to just go.' },
       { type: 'callout', variant: 'warning', text: 'Autonomous does not mean unchecked. Plans, clarifying questions, and explicit ask-user prompts still pause for your input. Irreversible operations (git force-push, database drops) always confirm regardless of mode.' },
