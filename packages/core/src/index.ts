@@ -245,6 +245,20 @@ export {
 export { scanDependencies, scanSecrets, scanCodeVulns, runFullScan } from './security/index.js';
 export type { DependencyVuln, SecretFinding, CodeVuln, ScanReport } from './security/index.js';
 
+// Desktop automation — safety ontology, budget tracking, trajectory types
+export {
+  classifyAction, decideApproval, isWhitelisted, IRREVERSIBLE_VERBS,
+  BudgetTracker, estimateCost, DEFAULT_BUDGET,
+} from './desktop/index.js';
+export type {
+  RiskClass, PermissionLevel, ActionClassificationInput, ClassificationResult as SafetyClassificationResult, ApprovalDecision,
+  BudgetConfig, BudgetSnapshot, BudgetBreachReason, StepTokens, CostEstimate,
+  GroundingSource, ConfidenceLevel, ScreenElement, ScreenState,
+  ActionKind, ProposedAction, ExecutionResult,
+  VerificationStatus, VerificationResult, UserUpdate,
+  TrajectoryStep as DesktopTrajectoryStep, Trajectory,
+} from './desktop/index.js';
+
 // Dataset (legacy — kept for compat, currently unused in hot path)
 export { captureInteraction } from './dataset/capture.js';
 
