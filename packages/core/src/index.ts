@@ -249,10 +249,13 @@ export type { DependencyVuln, SecretFinding, CodeVuln, ScanReport } from './secu
 export {
   classifyAction, decideApproval, isWhitelisted, IRREVERSIBLE_VERBS,
   BudgetTracker, estimateCost, DEFAULT_BUDGET,
+  DESKTOP_SCOUT, DESKTOP_PLANNER, DESKTOP_ACTOR, DESKTOP_VERIFIER, DESKTOP_NARRATOR,
+  DESKTOP_PERSONAS, DESKTOP_WAVE_ORDER, ESTIMATED_TOKENS_PER_STEP,
 } from './desktop/index.js';
 export type {
   RiskClass, PermissionLevel, ActionClassificationInput, ClassificationResult as SafetyClassificationResult, ApprovalDecision,
   BudgetConfig, BudgetSnapshot, BudgetBreachReason, StepTokens, CostEstimate,
+  DesktopPersonaName, DesktopPersonaDefinition,
   GroundingSource, ConfidenceLevel, ScreenElement, ScreenState,
   ActionKind, ProposedAction, ExecutionResult,
   VerificationStatus, VerificationResult, UserUpdate,

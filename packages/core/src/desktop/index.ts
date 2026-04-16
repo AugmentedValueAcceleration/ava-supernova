@@ -34,6 +34,23 @@ export type {
   CostEstimate,
 } from './budget.js';
 
+// Desktop personas
+export {
+  DESKTOP_SCOUT,
+  DESKTOP_PLANNER,
+  DESKTOP_ACTOR,
+  DESKTOP_VERIFIER,
+  DESKTOP_NARRATOR,
+  DESKTOP_PERSONAS,
+  DESKTOP_WAVE_ORDER,
+  ESTIMATED_TOKENS_PER_STEP,
+} from './personas.js';
+
+export type {
+  DesktopPersonaName,
+  DesktopPersonaDefinition,
+} from './personas.js';
+
 // Shared types
 export type {
   GroundingSource,
