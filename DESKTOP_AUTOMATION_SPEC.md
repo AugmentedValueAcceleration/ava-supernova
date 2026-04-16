@@ -226,7 +226,7 @@ Reliability jump is ~10×, not a nuance.
 **Dedicated headful Chromium launched on demand** by Rust sidecar. Not headless (user needs to see). Not Tauri WebView (too restrictive, no CDP).
 
 Lifecycle:
-- **Launch on demand** — cold start ~500ms when Planner decides next action is web.
+- **Launch on demand** — cold start ~1.5–2s when Planner decides next action is web (measured 1874ms on Windows 11 in prototype B3; the original 500ms estimate was optimistic). Consider pre-warming a Chromium at mode entry so the first web action feels instant.
 - **Idle timeout** — suspends after 2 min without Playwright action, reopens instantly.
 - **Window management** — Tauri positions next to Ava window, raises during trajectory, backgrounds when user focuses IDE.
 - **Clean shutdown** on mode exit.
@@ -863,8 +863,8 @@ Check items off as you complete them. Update status header at top of this doc wh
 
 ### Phase 0 — Prototypes (pre-commitment)
 
-- [ ] Prototype C3: persona waves end-to-end with mock grounding — measure real token counts
-- [ ] Prototype B3: Playwright from Tauri → Chromium driving demo site, clean shutdown
+- [x] Prototype C3: persona waves end-to-end with mock grounding — measure real token counts
+- [x] Prototype B3: Playwright from Tauri → Chromium driving demo site, clean shutdown
 - [ ] Prototype F1: OmniParser hosted, measure compute cost per call
 
 ### Phase A — Shared foundations

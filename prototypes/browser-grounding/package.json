@@ -1,0 +1,19 @@
+{
+  "name": "ava-browser-grounding-prototype",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Session 2 / Prototype B3 — Playwright subprocess lifecycle on Windows. Validates spawn, drive, clean shutdown, and orphan-process detection.",
+  "type": "module",
+  "scripts": {
+    "run": "tsx run.ts",
+    "worker": "tsx browser-worker.ts"
+  },
+  "dependencies": {
+    "playwright": "^1.48.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
