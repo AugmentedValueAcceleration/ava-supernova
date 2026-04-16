@@ -289,7 +289,7 @@ export function LearningLibrary({ paths, detail, onNavigate }: Props) {
           <p style={{ fontSize: 11, marginTop: 4 }}>Try a different search or ask Ava to create a custom learning path.</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
           {filtered.map(path => (
             <button
               key={path.id}
