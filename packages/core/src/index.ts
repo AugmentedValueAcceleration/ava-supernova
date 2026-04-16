@@ -289,6 +289,18 @@ export type { AvaMode } from './dataset/events.js';
 export { GenerationManager } from './tools/generation-manager.js';
 export type { GenerationJob, GenerationType, GenerationStatus, GenerationEventHandler } from './tools/generation-manager.js';
 
+// Remote pairing protocol
+export {
+  channelName, HEARTBEAT_INTERVAL_MS, SESSION_TIMEOUT_MS,
+  APPROVAL_FALLBACK_TIMEOUT_MS, RECONNECT_SHORT_MS,
+} from './remote/index.js';
+export type {
+  DesktopCapability, SessionRegister, SessionHeartbeat, SessionEnd,
+  PairRequest, PairGrant, PairDeny, PairTakeback,
+  TrajStep, TrajIntent, ApprovalRequest, ApprovalResponse,
+  KillMessage, NotifyMessage, RemoteMessage, RemoteMessageType,
+} from './remote/index.js';
+
 // Constants & Errors
 export {
   APP_NAME,

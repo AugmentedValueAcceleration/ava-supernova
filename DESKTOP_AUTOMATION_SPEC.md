@@ -873,7 +873,7 @@ Check items off as you complete them. Update status header at top of this doc wh
 ### Phase A — Shared foundations
 
 - [x] A1. Safety ontology implementation
-- [ ] A2. Remote protocol schema in `@ava/core/remote`
+- [x] A2. Remote protocol schema in `@ava/core/remote`
 - [x] A3. Persona definitions (Scout/Planner/Actor/Verifier/Narrator) registered in core
 - [x] A4. Token budget tracking infrastructure
 
