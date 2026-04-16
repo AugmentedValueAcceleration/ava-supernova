@@ -73,10 +73,11 @@ export const enStrings: Record<string, string> = {
   'input.compress_usage': 'Context usage \u2014 click to compress',
   'input.compress_click': 'Click to compress context',
 
-  // Header
-  'header.history': 'Chat History',
-  'header.settings': 'Settings',
-  'header.new_chat': 'New Chat',
+  // Header — used as tooltips on icon buttons. Keep these descriptive enough
+  // that hovering the icon explains what clicking will do, not just the label.
+  'header.history': 'Chat History — browse, search, pin, or delete past conversations',
+  'header.settings': 'Settings — model, language, permissions, and provider keys',
+  'header.new_chat': 'Start a new chat (clears the current conversation, saves it to history)',
 
   // Model Selector
   'model.no_providers': 'No providers configured.',
@@ -260,9 +261,9 @@ export const enStrings: Record<string, string> = {
   'memory.clear_all': 'Clear All',
   'memory.confirm_clear_all': 'Confirm Clear All',
 
-  // Header
-  'header.tasks': 'Tasks',
-  'header.dashboard': 'Dashboard',
+  // Header (lower set used elsewhere as plain labels)
+  'header.tasks': 'Tasks — toggle the side panel for today\'s, active, and completed tasks',
+  'header.dashboard': 'Open the full dashboard — account, billing, memory, history, sync, and more',
 
   // Feedback
   'feedback.good': 'Good response',
