@@ -214,6 +214,13 @@ export function LearningLibrary({ paths, detail, onNavigate }: Props) {
         >
           My Learning
         </button>
+        <button
+          onClick={() => { post({ type: 'load_library_paths' }); }}
+          style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-card)', background: 'transparent', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer' }}
+          title="Refresh library"
+        >
+          Refresh
+        </button>
       </div>
       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
         {t('dash.learning_library.subtitle')}
