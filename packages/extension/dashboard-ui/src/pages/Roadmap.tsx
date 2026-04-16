@@ -20,7 +20,7 @@ const themes: RoadmapTheme[] = [
     color: '#a855f7',
     colorBg: 'rgba(168, 85, 247, 0.08)',
     items: [
-      { label: 'Core agent loop with 63 tools', shipped: true },
+      { label: 'Core agent loop with 61 tools', shipped: true },
       { label: '6 thinking modes', shipped: true },
       { label: '24 specialist personas with conductor', shipped: true },
       { label: '5-layer memory with TF-IDF recall', shipped: true },

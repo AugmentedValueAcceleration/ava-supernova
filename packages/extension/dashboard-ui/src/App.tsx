@@ -28,6 +28,7 @@ import { LearningLibrary } from './pages/LearningLibrary';
 import { CreativeStudio } from './pages/CreativeStudio';
 import { AccountPage } from './pages/AccountPage';
 import { HelpPage } from './pages/HelpPage';
+import { DocumentationPage } from './pages/DocumentationPage';
 import { ArticleReader } from './pages/ArticleReader';
 import type { FullArticle, RelatedArticle } from './pages/ArticleReader';
 import type {
@@ -774,6 +775,9 @@ export function App() {
             supportUnread={supportUnread}
           />
         );
+
+      case 'documentation':
+        return <DocumentationPage />;
 
       // ── Standalone pages ────────────────────────────────────────────
       case 'overview':
