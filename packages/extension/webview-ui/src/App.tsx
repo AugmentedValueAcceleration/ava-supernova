@@ -373,6 +373,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
               status: 'pending_confirmation',
               confirmationId: action.confirmationId,
               summary: action.summary,
+              toolDescription: action.toolDescription,
               ...(action.isAskUser ? { isAskUser: true } : {}),
             },
           };
@@ -390,6 +391,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
               status: 'pending_confirmation',
               confirmationId: action.confirmationId,
               summary: action.summary,
+              toolDescription: action.toolDescription,
               ...(action.isAskUser ? { isAskUser: true } : {}),
             },
           },

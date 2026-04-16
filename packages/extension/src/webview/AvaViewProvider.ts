@@ -3237,6 +3237,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       const confirmationId = crypto.randomUUID();
       this.pendingConfirmations.set(confirmationId, { resolve, toolName, args });
 
+      // Pull the tool's own description so the confirmation card can show
+      // 'what does bash actually do?' instead of just the bare tool name.
+      // Truncate aggressively — most tool descriptions are 1-2 sentences but
+      // a few are mini-paragraphs and would bloat the confirmation card.
+      const toolDef = this.toolRegistry?.getTool(toolName);
+      const toolDescription = toolDef?.description
+        ? (toolDef.description.length > 220 ? toolDef.description.slice(0, 217) + '\u2026' : toolDef.description)
+        : undefined;
+
       this.postMessage({
         type: 'tool_confirmation_request',
         confirmationId,
@@ -3249,6 +3258,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         toolCategory,
         args,
         summary: this.formatToolSummary(toolName, args),
+        toolDescription,
         ...(toolName === 'ask_user' ? { isAskUser: true } : {}),
       });
     });

@@ -110,6 +110,13 @@ export function ToolCallBlock({ toolCall, onConfirmation }: ToolCallBlockProps) 
             <span className="opacity-70 block text-[11px]">
               {toolCall.summary || t('tool.allow_prompt', { tool: toolCall.name })}
             </span>
+            {/* Tool's own description — answers 'what does this tool actually do?'
+                instead of leaving the user staring at a bare tool name. */}
+            {toolCall.toolDescription && (
+              <span className="opacity-50 block text-[10px] italic leading-snug">
+                {toolCall.toolDescription}
+              </span>
+            )}
             <div className="flex items-center gap-1.5 flex-wrap">
               <button
                 className="px-3 py-1 rounded text-xs font-medium

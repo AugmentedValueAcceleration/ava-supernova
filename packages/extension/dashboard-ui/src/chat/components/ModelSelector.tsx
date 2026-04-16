@@ -117,7 +117,7 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
                            : m.available
                              ? 'bg-transparent hover:bg-[rgba(168,85,247,0.08)]'
                              : 'bg-transparent'}`}
-              title={m.available ? m.name : `Add ${m.provider} API key to unlock`}
+              title={m.available ? m.name : `Add ${m.provider} API key to use ${m.name}`}
             >
               <span
                 className={`w-[5px] h-[5px] rounded-full shrink-0

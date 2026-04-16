@@ -182,6 +182,8 @@ export interface ToolCallDisplay {
   partialOutput?: string;
   confirmationId?: string;
   summary?: string;
+  /** Tool's own schema description — shown beneath the summary on confirmation cards. */
+  toolDescription?: string;
   isAskUser?: boolean;
 }
 

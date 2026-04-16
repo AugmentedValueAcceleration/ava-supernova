@@ -53,6 +53,8 @@ export type ExtToWebviewMessage =
       toolCategory?: string;
       args: Record<string, unknown>;
       summary: string;
+      /** The tool's own description from its schema — surfaces 'what does this actually do?' on the confirmation card. */
+      toolDescription?: string;
       isAskUser?: boolean;
     }
   | {

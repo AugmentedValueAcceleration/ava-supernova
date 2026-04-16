@@ -2,6 +2,37 @@
 
 All notable changes to Ava | Supernova will be documented in this file.
 
+## Extension [0.41.0] - 2026-04-16
+
+### Secret Vault — Capability Model
+- **Owner-split vault** — your keys live in VSCode SecretStorage; Ava only sees secrets you explicitly grant for the current chat session. New chat = fresh trust boundary, working set wiped automatically.
+- **Streaming-safe redactor** — high-confidence patterns (Anthropic, OpenAI, GitHub, AWS, Stripe, SendGrid, Slack, JWT) are scrubbed from chat output before they hit the screen, even for keys that aren't in your vault yet.
+- **Capability handles** — Ava receives opaque `{{secret:<id>}}` references, never raw values. The host substitutes them into tool args at execution time, so secrets never enter conversation history.
+- **`secret_request` tool** — Ava asks for what she needs; you pick from a grant prompt; she gets a handle, you stay in control.
+- **`env_write` tool** — project-aware writer (Next.js → `.env.local`, others → `.env`); refuses to write unless the target file is `.gitignored`; rejects `NEXT_PUBLIC_/VITE_/PUBLIC_` prefixes for secrets.
+- **Per-secret "Always grant for this project"** — set once, skip future prompts for that vault entry.
+
+### Sync — Toggle Enforcement End-to-End
+- **Sync Page toggles now enforce** — previously the dashboard toggles were UI-only and background pushes ignored them. Now they gate every push site (memory/tasks/journal/history managers + settings/personality push helpers + manual Sync Now buttons).
+- **Phantom toggles removed** — Profile and Creative Assets sync rows pointed at endpoints that don't exist, surfaced silent errors, and the auto-sync interval was firing failed `creative` pushes every 15 minutes. Both removed; auto-sync stops trying.
+- **Personality cloud sync** — push on save fire-and-forget; pull on init prefers cloud copy and writes through to local; Sync Now button now uses the dedicated personality column instead of nesting in the settings JSONB.
+- **Settings cloud sync** — push on save with `lastSettingsPushAt` watermark; pull on init applies remote only when newer; prevents stale-cloud overwrite of newer local.
+- **Chat history persistence** — webview now restores messages and current conversation id across reloads (cap 200 messages to stay within VSCode's webview-state quota).
+- **Secret consolidation** — four DashboardPanel reads were pulling from `globalState['ava.platformKey']` (a key nobody ever wrote, silently 401'd those flows); switched to `secrets.get(PLATFORM_KEY_SECRET)` matching every other call site.
+
+### Documentation Audit (P0s shipped)
+- **Tool count drift** — every surface that mentioned a count (54, 59, 61) now reads 63 (the truth after the vault overhaul). Fixed across 19 files.
+- **Mode tooltips** — the chat-input mode picker now shows a plain-English description under each mode label, no jargon.
+- **Walkthrough registered** — first-time installers now get the 5-step Getting Started walkthrough (api key → model → language → permissions → start). Strings existed; the `walkthroughs[]` array was empty.
+
+### History Page
+- **Open from anywhere** — the History nav button now switches to the chat page first, then opens the history panel. Previously only worked when chat was already active.
+- **Design pass** — rewritten to use the dashboard token system (border-card / bg-card / accent) so it visually matches the rest of the extension.
+
+### Bug Fixes
+- **DashboardPanel `this.context` field** — was referenced in `set_working_hours` and the new sync-pref helpers but never declared / stored from the constructor; surfaced once the sync init path exercised it. Field added.
+- **Sync Now ENOENT guards** — memory / tasks / learning push handlers blew up with ENOENT when the local file didn't exist yet (fresh install + auto-sync racing on mount). All three now treat a missing file as 'nothing to sync'.
+
 ## IDE [0.7.3] - 2026-04-03
 
 ### Memory System — Project Safety + Context Recovery
