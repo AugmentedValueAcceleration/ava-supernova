@@ -222,7 +222,7 @@ export function LearningLibrary({ paths, detail, onNavigate }: Props) {
       {/* Search */}
       <input
         type="text"
-        placeholder="{t('dash.learning_library.search')}"
+        placeholder={t('dash.learning_library.search') || 'Search learning paths...'}
         value={search}
         onChange={e => setSearch(e.target.value)}
         style={{
@@ -288,46 +288,66 @@ export function LearningLibrary({ paths, detail, onNavigate }: Props) {
           <p style={{ fontSize: 11, marginTop: 4 }}>Try a different search or ask Ava to create a custom learning path.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
           {filtered.map(path => (
             <button
               key={path.id}
               onClick={() => handleSelect(path.id)}
               style={{
-                textAlign: 'left', padding: 14, borderRadius: 8, cursor: 'pointer',
+                textAlign: 'left', padding: 16, borderRadius: 12, cursor: 'pointer',
                 border: '1px solid var(--border-card)', background: 'var(--bg-card)',
-                transition: 'border-color 0.2s',
+                transition: 'all 0.2s', display: 'flex', flexDirection: 'column',
               }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(168,85,247,0.3)')}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-card)')}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(168,85,247,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-card)'; e.currentTarget.style.transform = 'none'; }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
-                <span style={{ cssText: sourceColors[path.source] || '', padding: '1px 6px', borderRadius: 3, fontSize: 9, fontWeight: 600, textTransform: 'uppercase' }}>
+              {/* Source + level badges */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                <span style={{
+                  padding: '2px 8px', borderRadius: 999, fontSize: 9, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.5px',
+                  background: path.source === 'curated' ? 'rgba(168,85,247,0.15)' : 'rgba(59,130,246,0.15)',
+                  color: path.source === 'curated' ? '#A855F7' : '#60A5FA',
+                }}>
                   {path.source === 'curated' ? t('dash.learning_library.curated') : 'Community'}
                 </span>
-                <span style={{ cssText: levelColors[path.level] || '', padding: '1px 6px', borderRadius: 3, fontSize: 9, fontWeight: 600, textTransform: 'uppercase' }}>
+                <span style={{
+                  padding: '2px 8px', borderRadius: 999, fontSize: 9, fontWeight: 600, textTransform: 'uppercase' as const,
+                  background: path.level === 'beginner' ? 'rgba(52,211,153,0.15)' : path.level === 'intermediate' ? 'rgba(251,191,36,0.15)' : 'rgba(239,68,68,0.15)',
+                  color: path.level === 'beginner' ? '#34D399' : path.level === 'intermediate' ? '#FBBF24' : '#F87171',
+                }}>
                   {path.level}
                 </span>
+              </div>
+
+              {/* Title */}
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#fff', marginBottom: 8, lineHeight: 1.3 }}>
+                {path.title}
+              </div>
+
+              {/* Description */}
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12, flex: 1 }}>
+                {path.description?.slice(0, 100)}{(path.description?.length || 0) > 100 ? '...' : ''}
+              </div>
+
+              {/* Subject + tags */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 12 }}>
                 {path.subject && (
-                  <span style={{ padding: '1px 6px', borderRadius: 3, fontSize: 9, fontWeight: 500, color: 'var(--text-secondary)', background: 'var(--bg-input)', border: '1px solid var(--border-card)' }}>
+                  <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: 9, fontWeight: 500, color: 'var(--text-secondary)', background: 'var(--bg-input)' }}>
                     {path.subject}
                   </span>
                 )}
-                {path.tags.slice(0, 3).map(tag => (
-                  <span key={tag} style={{ padding: '1px 6px', borderRadius: 3, fontSize: 9, color: 'var(--text-muted)', border: '1px solid var(--border-card)' }}>
+                {path.tags.slice(0, 2).map(tag => (
+                  <span key={tag} style={{ padding: '2px 8px', borderRadius: 999, fontSize: 9, color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)' }}>
                     {tag}
                   </span>
                 ))}
               </div>
-              <div style={{ fontSize: 14, fontWeight: 500, color: '#fff', marginBottom: 4 }}>{path.title}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 8 }}>
-                {path.description?.slice(0, 120)}{(path.description?.length || 0) > 120 ? '...' : ''}
-              </div>
-              <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--text-muted)' }}>
+
+              {/* Footer stats */}
+              <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--text-muted)', borderTop: '1px solid var(--border-card)', paddingTop: 10, marginTop: 'auto' }}>
                 {path.estimated_hours && <span>{path.estimated_hours}h</span>}
                 <span>{path.fork_count} learner{path.fork_count !== 1 ? 's' : ''}</span>
                 {path.average_rating && <span>{'\u2605'} {path.average_rating}/5</span>}
-                {path.author_name && <span>by {path.author_name}</span>}
               </div>
             </button>
           ))}

@@ -562,15 +562,16 @@ export class DashboardPanel {
           const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
           if (platformKey) {
             const res = await apiFetch(url, { platformKey });
-            this.postMessage({ type: 'library_paths_loaded', paths: res.paths || [], total: res.total || 0 });
+            const body = (res.data && typeof res.data === 'object') ? res.data as Record<string, unknown> : {};
+            this.post({ type: 'library_paths_loaded', paths: (body.paths as unknown[]) || [], total: (body.total as number) || 0 });
           } else {
             // Direct public fetch for BYOK users
             const res = await fetch(`https://ava-supernova.com/api${url}`);
             const data = await res.json();
-            this.postMessage({ type: 'library_paths_loaded', paths: data.paths || [], total: data.total || 0 });
+            this.post({ type: 'library_paths_loaded', paths: data.paths || [], total: data.total || 0 });
           }
         } catch {
-          this.postMessage({ type: 'library_paths_loaded', paths: [], total: 0 });
+          this.post({ type: 'library_paths_loaded', paths: [], total: 0 });
         }
         break;
       }
@@ -580,7 +581,7 @@ export class DashboardPanel {
           const res = await fetch(`https://ava-supernova.com/api/learning/library/${msg.id}`);
           const data = await res.json();
           if (data && data.id) {
-            this.postMessage({ type: 'library_path_detail_loaded', path: data });
+            this.post({ type: 'library_path_detail_loaded', path: data });
           }
         } catch { /* non-fatal */ }
         break;
@@ -589,14 +590,14 @@ export class DashboardPanel {
       case 'fork_library_path': {
         const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
         if (!platformKey) {
-          this.postMessage({ type: 'error', message: 'Connect your Ava account to start learning paths from the library.' });
+          this.post({ type: 'error', message: 'Connect your Ava account to start learning paths from the library.' });
           break;
         }
         try {
           const res = await apiFetch(`/learning/library/${msg.id}/fork`, { method: 'POST', platformKey });
-          this.postMessage({ type: 'library_path_forked', curriculumId: res.curriculum_id, title: res.message || 'Started!' });
+          this.post({ type: 'library_path_forked', curriculumId: res.curriculum_id, title: res.message || 'Started!' });
         } catch (err: any) {
-          this.postMessage({ type: 'error', message: err.message || 'Failed to fork learning path' });
+          this.post({ type: 'error', message: err.message || 'Failed to fork learning path' });
         }
         break;
       }
@@ -604,14 +605,14 @@ export class DashboardPanel {
       case 'publish_to_library': {
         const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
         if (!platformKey) {
-          this.postMessage({ type: 'error', message: 'Connect your Ava account to publish learning paths.' });
+          this.post({ type: 'error', message: 'Connect your Ava account to publish learning paths.' });
           break;
         }
         try {
           const res = await apiFetch('/learning/library', { method: 'POST', body: { curriculum_id: msg.curriculumId }, platformKey });
-          this.postMessage({ type: 'library_path_published', pathId: res.id, status: res.status, message: res.message });
+          this.post({ type: 'library_path_published', pathId: res.id, status: res.status, message: res.message });
         } catch (err: any) {
-          this.postMessage({ type: 'error', message: err.message || 'Failed to publish' });
+          this.post({ type: 'error', message: err.message || 'Failed to publish' });
         }
         break;
       }
@@ -621,7 +622,7 @@ export class DashboardPanel {
         if (!platformKey) break;
         try {
           await apiFetch(`/learning/library/${msg.id}/rate`, { method: 'POST', body: { rating: msg.rating }, platformKey });
-          this.postMessage({ type: 'library_path_rated', pathId: msg.id, rating: msg.rating });
+          this.post({ type: 'library_path_rated', pathId: msg.id, rating: msg.rating });
         } catch { /* non-fatal */ }
         break;
       }
