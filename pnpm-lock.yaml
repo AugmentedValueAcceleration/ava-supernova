@@ -490,6 +490,19 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  prototypes/desktop-mode:
+    dependencies:
+      '@ava/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+    devDependencies:
+      tsx:
+        specifier: ^4.0.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
 packages:
 
   '@alloc/quick-lru@5.2.0':

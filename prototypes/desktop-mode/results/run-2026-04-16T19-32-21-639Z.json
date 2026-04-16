@@ -1,0 +1,7 @@
+{
+  "provider": "platform",
+  "model": "qwen3.6-plus",
+  "task": "Open the GitHub notifications page and tell me the three newest ones.",
+  "startedAt": "2026-04-16T19-32-21-639Z",
+  "trajectory": []
+}

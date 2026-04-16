@@ -2,3 +2,4 @@ packages:
   - "packages/*"
   - "packages/extension/webview-ui"
   - "packages/extension/dashboard-ui"
+  - "prototypes/*"

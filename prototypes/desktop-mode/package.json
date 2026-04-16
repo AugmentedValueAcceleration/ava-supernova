@@ -1,0 +1,17 @@
+{
+  "name": "@ava/proto-desktop-mode",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Phase 0 prototype for desktop automation persona wave orchestration. Not shipped.",
+  "type": "module",
+  "scripts": {
+    "run": "tsx run.ts"
+  },
+  "dependencies": {
+    "@ava/core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.9.3"
+  }
+}
