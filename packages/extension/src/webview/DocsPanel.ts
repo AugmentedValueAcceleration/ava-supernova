@@ -70,9 +70,9 @@ export class DocsPanel {
       padding: 0;
     }
     .docs-container {
-      max-width: 820px;
-      margin: 0 auto;
-      padding: 32px 24px 64px;
+      max-width: 100%;
+      margin: 0;
+      padding: 0;
     }
 
     /* Header */
@@ -95,27 +95,49 @@ export class DocsPanel {
       font-size: 14px;
     }
 
-    /* Tab Navigation */
+    /* Layout: sidebar + content */
+    .docs-layout {
+      display: flex;
+      gap: 0;
+      min-height: 100vh;
+    }
+
+    /* Sidebar Navigation — sticky left column */
     .docs-nav {
       display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: center;
-      margin-bottom: 36px;
+      flex-direction: column;
+      gap: 2px;
+      width: 180px;
+      min-width: 180px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 16px 12px;
+      border-right: 1px solid var(--ava-border);
+      background: var(--vscode-sideBar-background, var(--ava-bg));
+    }
+    .docs-content {
+      flex: 1;
+      min-width: 0;
+      padding: 32px 24px 64px;
+      overflow-y: auto;
     }
     .tab-btn {
-      display: inline-block;
-      padding: 6px 14px;
+      display: block;
+      width: 100%;
+      padding: 7px 12px;
       border-radius: 6px;
-      background: var(--ava-card-bg);
-      color: var(--ava-link);
+      background: transparent;
+      color: var(--ava-muted);
       text-decoration: none;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 500;
-      border: 1px solid var(--ava-border);
+      border: none;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: all 0.15s;
       font-family: inherit;
+      text-align: left;
     }
     .tab-btn:hover {
       background: var(--ava-accent-dim);
@@ -315,7 +337,8 @@ export class DocsPanel {
       <p>Open-source AI coding agent &mdash; Full reference guide</p>
     </div>
 
-    <!-- Tab Navigation -->
+    <div class="docs-layout">
+    <!-- Sidebar Navigation -->
     <nav class="docs-nav">
       <button class="tab-btn active" data-tab="getting-started">Getting Started</button>
       <button class="tab-btn" data-tab="choosing-model">Choosing Your Model</button>
@@ -333,6 +356,7 @@ export class DocsPanel {
       <button class="tab-btn" data-tab="keys">Keyboard Shortcuts</button>
     </nav>
 
+    <div class="docs-content">
     <!-- Getting Started -->
     <section class="docs-section active" id="getting-started">
       <h2>Getting Started</h2>
@@ -412,84 +436,122 @@ export class DocsPanel {
     <!-- Choosing Your Model -->
     <section class="docs-section" id="choosing-model">
       <h2>Choosing Your Model</h2>
-      <p>Different models excel at different tasks. Here are our recommendations based on your needs:</p>
+      <p>Ava supports models from multiple providers. Some are managed (we handle the API, you use your token allowance). Others are BYOK (you bring your own API key, requests don't count against your plan).</p>
 
       <div class="model-category">
-        <h3>Best for Agentic Coding</h3>
-        <p>These models excel at multi-step tool calling and autonomous coding tasks.</p>
+        <h3>Ava Platform &mdash; Managed Models</h3>
+        <p>Available on every plan including Free. We handle the API keys &mdash; you just pick and go. The coordinator (Qwen 3.6 Plus) drives planning and tool dispatch in Auto Mode.</p>
         <div class="card-grid">
           <div class="card">
-            <h4>Kimi K2.5</h4>
-            <p>76.8% SWE-Bench. Best multi-step tool calling among open models. Excellent at planning and executing complex coding tasks.</p>
-            <p style="margin-top: 6px;"><strong>$0.60 / $2.00</strong> per 1M tokens</p>
+            <h4>Qwen 3.6 Plus <span style="font-size:10px;opacity:.6;">(conductor)</span></h4>
+            <p>Best agentic coding in the Qwen family. 1M context, native function calling. Drives Auto Mode planning and Builder dispatch.</p>
+            <p style="margin-top: 6px;"><strong>$0.20 / $1.20</strong> per 1M tokens</p>
           </div>
           <div class="card">
-            <h4>GLM-5</h4>
-            <p>77.8% SWE-Bench. Best tool-call reliability. Consistently formats tool calls correctly with minimal retries needed.</p>
-            <p style="margin-top: 6px;"><strong>$0.70 / $0.70</strong> per 1M tokens</p>
+            <h4>Qwen 3.5 Omni Plus</h4>
+            <p>Vision + reasoning. Understands screenshots, diagrams, and UI mockups alongside code.</p>
+            <p style="margin-top: 6px;"><strong>$0.26 / $1.56</strong> per 1M tokens</p>
           </div>
-        </div>
-      </div>
-
-      <div class="model-category">
-        <h3>Best Value</h3>
-        <p>High capability at the lowest cost. Great for everyday coding tasks.</p>
-        <div class="card-grid">
           <div class="card">
-            <h4>DeepSeek V3.2</h4>
-            <p>Best price/performance ratio. Strong coding ability with extremely low token costs. Ideal for high-volume usage.</p>
-            <p style="margin-top: 6px;"><strong>$0.14 / $0.28</strong> per 1M tokens</p>
+            <h4>Qwen 3.5 Plus</h4>
+            <p>1M context window. Great for analysing large codebases and multi-file refactoring.</p>
+            <p style="margin-top: 6px;"><strong>$0.40 / $1.20</strong> per 1M tokens</p>
+          </div>
+          <div class="card">
+            <h4>Qwen Omni Flash <span style="font-size:10px;opacity:.6;">(free default)</span></h4>
+            <p>Free-tier default. Fast, vision-capable, good for everyday tasks. 3M tokens/month with a free account.</p>
+            <p style="margin-top: 6px;"><strong>$0.065 / $0.26</strong> per 1M tokens</p>
           </div>
           <div class="card">
             <h4>Qwen Flash</h4>
-            <p>Free with account. Fast and capable for straightforward coding and Q&amp;A tasks. 3M free tokens to get started.</p>
-            <p style="margin-top: 6px;"><strong>Free</strong></p>
+            <p>Fastest and cheapest managed model. Great for quick questions, light tasks, and classification.</p>
+            <p style="margin-top: 6px;"><strong>$0.05 / $0.40</strong> per 1M tokens</p>
           </div>
         </div>
       </div>
 
       <div class="model-category">
-        <h3>Best Reasoning</h3>
-        <p>Extended thinking for complex problems that require deep analysis.</p>
+        <h3>Creative Studio &mdash; MiniMax</h3>
+        <p>Image, video, music, and voice generation runs exclusively on MiniMax. Costs deducted from the same single token pool as coding &mdash; one pool, one number.</p>
         <div class="card-grid">
           <div class="card">
-            <h4>DeepSeek R1</h4>
-            <p>Extended thinking and chain-of-thought reasoning. Excels at debugging, architecture decisions, and complex algorithmic problems.</p>
-            <p style="margin-top: 6px;"><strong>$0.14 / $2.19</strong> per 1M tokens</p>
+            <h4>MiniMax M2.7</h4>
+            <p>Chat + Creative Studio. 200K context, tool calls, thinking.</p>
+            <p style="margin-top: 6px;"><strong>$0.30 / $1.20</strong> per 1M tokens</p>
+          </div>
+          <div class="card">
+            <h4>MiniMax M2.5</h4>
+            <p>Chat + Creative Studio. 1M context, tool calls, thinking.</p>
+            <p style="margin-top: 6px;"><strong>$0.15 / $1.20</strong> per 1M tokens</p>
           </div>
         </div>
+        <h4 style="margin-top: 12px;">Per-generation token costs</h4>
+        <p>Each Creative Studio generation deducts a fixed token amount from your allowance:</p>
+        <table>
+          <thead><tr><th>Type</th><th>Tokens per generation</th><th>Approximate cost*</th></tr></thead>
+          <tbody>
+            <tr><td>Image</td><td>~18K&ndash;100K tokens</td><td>~$0.004&ndash;$0.02</td></tr>
+            <tr><td>Video</td><td>~500K tokens</td><td>~$0.10</td></tr>
+            <tr><td>Music</td><td>~250K tokens</td><td>~$0.05</td></tr>
+            <tr><td>Voice (TTS)</td><td>~50K tokens per request</td><td>~$0.01</td></tr>
+          </tbody>
+        </table>
+        <p class="small muted">*At managed platform rates. BYOK with your own MiniMax key &mdash; you pay MiniMax directly and tokens don't count against your Ava plan.</p>
       </div>
 
       <div class="model-category">
-        <h3>Frontier Intelligence</h3>
-        <p>The most capable models available, for when you need the best possible results.</p>
+        <h3>BYOK &mdash; Bring Your Own Key</h3>
+        <p>Use your own API keys from any provider below. BYOK requests don't count against your plan allowance. Available on every plan including Free.</p>
         <div class="card-grid">
           <div class="card">
-            <h4>Claude Opus 4.6</h4>
-            <p>Most capable overall. Vision support, 200K context. Best at nuanced understanding and complex multi-file refactoring.</p>
-            <p style="margin-top: 6px;"><strong>$15.00 / $75.00</strong> per 1M tokens</p>
+            <h4>Claude Opus 4.6 <span style="font-size:10px;opacity:.6;">Anthropic</span></h4>
+            <p>Most capable overall. Vision, 200K context. Best at nuanced understanding and complex multi-file work.</p>
+            <p style="margin-top: 6px;"><strong>$5.00 / $25.00</strong> per 1M tokens</p>
           </div>
           <div class="card">
-            <h4>Claude Sonnet 4.6</h4>
+            <h4>Claude Sonnet 4.6 <span style="font-size:10px;opacity:.6;">Anthropic</span></h4>
             <p>Best balance of speed and capability. Fast enough for interactive use with near-frontier quality.</p>
             <p style="margin-top: 6px;"><strong>$3.00 / $15.00</strong> per 1M tokens</p>
           </div>
-        </div>
-      </div>
-
-      <div class="model-category">
-        <h3>Best for Code</h3>
-        <p>Purpose-built for code generation, completion, and refactoring.</p>
-        <div class="card-grid">
           <div class="card">
-            <h4>Codestral</h4>
-            <p>Code-focused with 256K context. Excellent at code completion, generation, and understanding large codebases.</p>
+            <h4>Kimi K2.5 <span style="font-size:10px;opacity:.6;">Moonshot</span></h4>
+            <p>76.8% SWE-Bench. Excellent multi-step tool calling and planning.</p>
+            <p style="margin-top: 6px;"><strong>$0.60 / $2.50</strong> per 1M tokens</p>
+          </div>
+          <div class="card">
+            <h4>DeepSeek V3.2 <span style="font-size:10px;opacity:.6;">DeepSeek</span></h4>
+            <p>Best price-to-performance ratio. Strong coding at very low cost.</p>
+            <p style="margin-top: 6px;"><strong>$0.28 / $0.42</strong> per 1M tokens</p>
+          </div>
+          <div class="card">
+            <h4>DeepSeek Reasoner <span style="font-size:10px;opacity:.6;">DeepSeek</span></h4>
+            <p>Extended thinking and chain-of-thought. Excels at debugging and architecture decisions.</p>
+          </div>
+          <div class="card">
+            <h4>Mistral Large <span style="font-size:10px;opacity:.6;">Mistral</span></h4>
+            <p>Strong multilingual reasoning with 128K context.</p>
+            <p style="margin-top: 6px;"><strong>$2.00 / $6.00</strong> per 1M tokens</p>
+          </div>
+          <div class="card">
+            <h4>Codestral <span style="font-size:10px;opacity:.6;">Mistral</span></h4>
+            <p>Code-focused with 256K context. Excellent at code completion and generation.</p>
             <p style="margin-top: 6px;"><strong>$0.30 / $0.90</strong> per 1M tokens</p>
           </div>
           <div class="card">
-            <h4>Devstral 2</h4>
-            <p>Agentic coding specialist. Optimized for tool-augmented development workflows at very low cost.</p>
-            <p style="margin-top: 6px;"><strong>$0.10 / $0.30</strong> per 1M tokens</p>
+            <h4>Devstral 2 <span style="font-size:10px;opacity:.6;">Mistral</span></h4>
+            <p>Agentic coding specialist. Tool-augmented workflows at very low cost.</p>
+          </div>
+          <div class="card">
+            <h4>GLM-5 <span style="font-size:10px;opacity:.6;">Zhipu</span></h4>
+            <p>77.8% SWE-Bench. Best tool-call reliability &mdash; consistently formats calls correctly.</p>
+          </div>
+          <div class="card">
+            <h4>Claude Haiku 4.5 <span style="font-size:10px;opacity:.6;">Anthropic</span></h4>
+            <p>Fastest Anthropic model. Good for quick classification and light tasks.</p>
+          </div>
+          <div class="card">
+            <h4>Custom / Ollama / LM Studio</h4>
+            <p>Any endpoint that speaks the standard API format. Run local models via Ollama or LM Studio.</p>
           </div>
         </div>
       </div>
@@ -500,11 +562,11 @@ export class DocsPanel {
         <div class="card-grid">
           <div class="card">
             <h4>Qwen 3.5 Plus</h4>
-            <p>256K context with vision and thinking. Great for analyzing large codebases and multi-file refactoring.</p>
+            <p>1M context. Great for analysing large codebases and multi-file refactoring.</p>
             <p style="margin-top: 6px;"><strong>$0.40 / $1.20</strong> per 1M tokens</p>
           </div>
           <div class="card">
-            <h4>Mistral Large 3</h4>
+            <h4>Mistral Large</h4>
             <p>Flagship general-purpose model. Strong long-context performance for complex multi-file tasks.</p>
             <p style="margin-top: 6px;"><strong>$2.00 / $6.00</strong> per 1M tokens</p>
           </div>
@@ -515,36 +577,49 @@ export class DocsPanel {
     <!-- Models -->
     <section class="docs-section" id="models">
       <h2>Supported Models</h2>
-      <p>All models work on every plan. Use our managed service or bring your own API keys.</p>
+      <p>Every model on every plan. Managed models use your token allowance. BYOK models use your own API key and don't count against your plan.</p>
+
+      <h3>Managed (Ava Platform)</h3>
       <table>
         <thead>
-          <tr><th>Provider</th><th>Model</th><th>Highlights</th><th>Cost / 1M tokens*</th></tr>
+          <tr><th>Model</th><th>Role</th><th>Input / Output per 1M tokens</th></tr>
         </thead>
         <tbody>
-          <tr><td>Anthropic</td><td>Claude Opus 4.6</td><td>Most capable, vision, 200K context</td><td>$15.00 in / $75.00 out</td></tr>
-          <tr><td>Anthropic</td><td>Claude Sonnet 4.6</td><td>Best balance of speed and capability</td><td>$3.00 in / $15.00 out</td></tr>
-          <tr><td>Anthropic</td><td>Claude Haiku 4.5</td><td>Fast and affordable, vision</td><td>$0.80 in / $4.00 out</td></tr>
-          <tr><td>DeepSeek</td><td>DeepSeek V3</td><td>Best price/performance</td><td>$0.14 in / $0.28 out</td></tr>
-          <tr><td>DeepSeek</td><td>DeepSeek R1</td><td>Extended thinking, reasoning</td><td>$0.14 in / $2.19 out</td></tr>
-          <tr><td>Moonshot AI</td><td>Kimi K2.5</td><td>Best multi-step tool calling</td><td>$0.60 in / $2.00 out</td></tr>
-          <tr><td>Moonshot AI</td><td>Moonshot V1 128K</td><td>Long context</td><td>$2.00 in / $5.00 out</td></tr>
-          <tr><td>Zhipu AI</td><td>GLM-5</td><td>Best tool-call reliability, vision</td><td>$0.70 in / $0.70 out</td></tr>
-          <tr><td>Zhipu AI</td><td>GLM-4.7</td><td>Fast, affordable coding</td><td>$0.25 in / $0.25 out</td></tr>
-          <tr><td>Qwen</td><td>Qwen Flash</td><td>Free with account</td><td>Free</td></tr>
-          <tr><td>Alibaba</td><td>Qwen 3.5 Plus</td><td>Vision, thinking, 256K context</td><td>$0.40 in / $1.20 out</td></tr>
-          <tr><td>Alibaba</td><td>Qwen Turbo</td><td>Fast, up to 1M context</td><td>$0.05 in / $0.20 out</td></tr>
-          <tr><td>Mistral AI</td><td>Mistral Large 3</td><td>Flagship general-purpose</td><td>$2.00 in / $6.00 out</td></tr>
-          <tr><td>Mistral AI</td><td>Codestral</td><td>Code-focused, 256K context</td><td>$0.30 in / $0.90 out</td></tr>
-          <tr><td>Mistral AI</td><td>Devstral 2</td><td>Agentic coding specialist</td><td>$0.10 in / $0.30 out</td></tr>
+          <tr><td>Qwen 3.6 Plus</td><td>Coordinator &mdash; drives Auto Mode</td><td>$0.20 / $1.20</td></tr>
+          <tr><td>Qwen 3.5 Omni Plus</td><td>Vision + reasoning</td><td>$0.26 / $1.56</td></tr>
+          <tr><td>Qwen 3.5 Plus</td><td>1M context</td><td>$0.40 / $1.20</td></tr>
+          <tr><td>Qwen Omni Flash</td><td>Free-tier default (3M tokens/mo)</td><td>$0.065 / $0.26</td></tr>
+          <tr><td>Qwen Flash</td><td>Fast + cheap</td><td>$0.05 / $0.40</td></tr>
+          <tr><td>MiniMax M2.7</td><td>Creative Studio + chat (200K ctx)</td><td>$0.30 / $1.20</td></tr>
+          <tr><td>MiniMax M2.5</td><td>Creative Studio + chat (1M ctx)</td><td>$0.15 / $1.20</td></tr>
         </tbody>
       </table>
-      <p class="small muted">*Pricing is approximate and subject to change. Check each provider's website for current rates.</p>
-      <p class="small muted">You can also use any locally hosted model via Ollama, LM Studio, or any standard API format endpoint by configuring a custom <code>baseUrl</code> in your provider settings.</p>
+
+      <h3>BYOK (Bring Your Own Key)</h3>
+      <table>
+        <thead>
+          <tr><th>Provider</th><th>Model</th><th>Input / Output per 1M tokens</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Anthropic</td><td>Claude Opus 4.6</td><td>$5.00 / $25.00</td></tr>
+          <tr><td>Anthropic</td><td>Claude Sonnet 4.6</td><td>$3.00 / $15.00</td></tr>
+          <tr><td>Anthropic</td><td>Claude Haiku 4.5</td><td>$0.80 / $4.00</td></tr>
+          <tr><td>Moonshot</td><td>Kimi K2.5</td><td>$0.60 / $2.50</td></tr>
+          <tr><td>DeepSeek</td><td>DeepSeek V3.2</td><td>$0.28 / $0.42</td></tr>
+          <tr><td>DeepSeek</td><td>DeepSeek Reasoner</td><td>$0.14 / $2.19</td></tr>
+          <tr><td>Mistral</td><td>Mistral Large</td><td>$2.00 / $6.00</td></tr>
+          <tr><td>Mistral</td><td>Codestral</td><td>$0.30 / $0.90</td></tr>
+          <tr><td>Mistral</td><td>Devstral 2</td><td>$0.10 / $0.30</td></tr>
+          <tr><td>Zhipu</td><td>GLM-5</td><td>$0.70 / $0.70</td></tr>
+          <tr><td colspan="3">Ollama, LM Studio, or any standard API format endpoint</td></tr>
+        </tbody>
+      </table>
+      <p class="small muted">Pricing is approximate. Check each provider's website for current rates. BYOK requests never consume your Ava plan allowance.</p>
     </section>
 
     <!-- Tools -->
     <section class="docs-section" id="tools">
-      <h2>Built-in Tools (52)</h2>
+      <h2>Built-in Tools (63)</h2>
 
       <h3>Reading &amp; Searching</h3>
       <table>
@@ -939,9 +1014,12 @@ export class DocsPanel {
 
     <!-- Footer -->
     <div class="docs-header" style="margin-top: 48px; border-top: 1px solid var(--ava-border); border-bottom: none; padding-top: 24px;">
-      <p class="muted">Ava | Supernova v0.4.0 &mdash; Apache License 2.0</p>
+      <p class="muted">Ava | Supernova v0.42.0 &mdash; Apache License 2.0</p>
       <p class="muted small">Built with purpose. Agentic coding for everyone.</p>
     </div>
+
+    </div><!-- end docs-content -->
+    </div><!-- end docs-layout -->
 
   </div>
 
