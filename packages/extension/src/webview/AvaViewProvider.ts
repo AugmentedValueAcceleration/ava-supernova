@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import * as crypto from 'node:crypto';
-import { existsSync } from 'node:fs';
 import {
   Agent,
   Conversation,
@@ -18,8 +17,6 @@ import {
   ProviderHealthTracker,
   ResilientProvider,
   AVA_HOME,
-  ProviderError,
-  buildSystemPrompt,
   getChatModePrefix,
   getTeachModePrefix,
   getSecurityModePrefix,
@@ -40,15 +37,13 @@ import {
   resolveCoordinatorModel,
   BriefingEngine,
   EventDetector,
-  loadPersonality,
-  buildSelfImprovementPrompt,
   addLearning,
   loadSelfImprovementStore,
   saveSelfImprovementStore,
   getRelevantLearnings,
   GenerationManager,
 } from '@ava/core';
-import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, Message, ContentPart, PermissionMode } from '@ava/core';
+import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, ContentPart, PermissionMode } from '@ava/core';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus } from './message-types.js';
 import type { AccountInfo } from './dashboard-message-types.js';
 import { DashboardPanel } from './DashboardPanel.js';
@@ -57,6 +52,16 @@ import { DocumentPreviewPanel } from './DocumentPreviewPanel.js';
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
 import { sessionStats } from '../session-stats.js';
+import {
+  logTo,
+  readPermissionMode,
+  deriveErrorInfo as deriveErrorInfoFn,
+  formatToolSummary as formatToolSummaryFn,
+  getLearningContext as getLearningContextFn,
+} from './helpers.js';
+import { StatusBar, type StatusBarState } from './status-bar.js';
+import { buildCurrentSystemPrompt as buildCurrentSystemPromptFn } from './system-prompt-builder.js';
+import { HistoryCoordinator } from './history-coordinator.js';
 
 export class AvaViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'ava-supernova.chatView';
@@ -82,7 +87,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private settingsListener?: vscode.Disposable;
   private readonly disposables: vscode.Disposable[] = [];
   private readonly outputChannel: vscode.OutputChannel;
-  private readonly statusBarItem: vscode.StatusBarItem;
+  private readonly statusBar: StatusBar;
+  private history!: HistoryCoordinator;
   private projectRoot?: string;
   private projectInstructions?: string;
   private decisionsState?: import('@ava/core').DecisionsState;
@@ -108,7 +114,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private tickInterval?: ReturnType<typeof setInterval>;
   private tickEngine?: import('@ava/core').TickEngine;
   private projectContextReady?: Promise<void>;
-  private cachedMemory?: string;
   private currentLocale = 'en';
   private panelStateCallback?: (isOpen: boolean) => void;
   private cachedAccount: AccountInfo | null = null;
@@ -191,10 +196,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.providerRegistry = new ProviderRegistry();
     this.healthTracker = new ProviderHealthTracker();
     this.outputChannel = vscode.window.createOutputChannel('Ava | Supernova');
-    this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    this.statusBarItem.command = 'ava-supernova.switchModel';
-    this.updateStatusBar();
-    this.statusBarItem.show();
+    this.statusBar = new StatusBar('ava-supernova.switchModel');
 
     // Sign-in manager — owns the OAuth device authorization flow for the
     // extension. Created eagerly so the URI handler in extension.ts can
@@ -268,6 +270,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       || syncPrefs.history === false;
     this.historyManager = new HistoryManager(this.projectRoot, { sync: historySync, localOnly: historyLocalOnly });
     this.historyManager.init();
+    this.history = new HistoryCoordinator({
+      context: this.context,
+      historyManager: this.historyManager,
+      postMessage: (m) => this.postMessage(m),
+      getConversation: () => this.conversation,
+      setConversation: (c) => { this.conversation = c; },
+      buildSystemPrompt: () => this.buildCurrentSystemPrompt(),
+    });
     if (historySync && !historyLocalOnly) {
       // Pull conversations on session start so chats from other
       // devices surface here. Fire-and-forget.
@@ -391,7 +401,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.decisionsState = this.projectRoot
       ? await loadDecisionsState(this.projectRoot)
       : undefined;
-    this.cachedMemory = (await this.memoryManager.loadAll(this.projectInstructions)) || undefined;
+    await this.memoryManager.loadAll(this.projectInstructions);
   }
 
   private async onWorkspaceChanged(): Promise<void> {
@@ -438,8 +448,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   private log(message: string): void {
-    const timestamp = new Date().toISOString().slice(11, 23);
-    this.outputChannel.appendLine(`[${timestamp}] ${message}`);
+    logTo(this.outputChannel, message);
   }
 
   /** Report token usage to the platform API and update webview with pool state */
@@ -856,7 +865,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.stopHeartbeat();
     killBackgroundProcesses();
     this.settingsListener?.dispose();
-    this.statusBarItem.dispose();
+    this.statusBar.dispose();
     this.panel?.dispose();
     this.outputChannel.dispose();
     for (const d of this.disposables) d.dispose();
@@ -891,19 +900,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.missedPongs = 0;
   }
 
-  private updateStatusBar(state: 'ready' | 'busy' | 'error' = 'ready'): void {
-    const modelName = this.activeModelDef?.name || 'No model';
-    switch (state) {
-      case 'busy':
-        this.statusBarItem.text = `$(loading~spin) Ava: ${modelName}`;
-        break;
-      case 'error':
-        this.statusBarItem.text = `$(error) Ava: ${modelName}`;
-        break;
-      default:
-        this.statusBarItem.text = `$(sparkle) Ava: ${modelName}`;
-    }
-    this.statusBarItem.tooltip = `Ava | Supernova — ${modelName}\nClick to switch model`;
+  private updateStatusBar(state: StatusBarState = 'ready', detail?: string): void {
+    this.statusBar.setModel(this.activeModelDef);
+    this.statusBar.setState(state, detail);
   }
 
   // ── Private Methods ────────────────────────────────────────────────────────
@@ -994,7 +993,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
                 this.taskManager = new TaskManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: taskSync });
                 const journalSync = new PlatformJournalSyncImpl('https://ava-supernova.com/api', platformKey);
                 this.journalManager = new JournalManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: journalSync });
-                this.cachedMemory = (await this.memoryManager.loadAll(this.projectInstructions)) || undefined;
+                await this.memoryManager.loadAll(this.projectInstructions);
               }
             } catch (scopeErr) {
               this.log(`Account scoping failed, using default directory: ${scopeErr}`);
@@ -1431,8 +1430,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   private getPermissionMode(): PermissionMode {
-    const config = vscode.workspace.getConfiguration('ava-supernova');
-    return (config.get<string>('preferences.permissionMode') || 'strict') as PermissionMode;
+    return readPermissionMode();
   }
 
   private async setActiveModel(modelId: string): Promise<void> {
@@ -1564,286 +1562,58 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   private async buildCurrentSystemPrompt(): Promise<string> {
-    const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
-    const cfg = vscode.workspace.getConfiguration('ava-supernova');
-    const isAdmin = this.cachedAccount?.tier === 'admin';
-
-    // Detect if workspace is the Ava monorepo — let Ava read her own source
-    let sourceRoot: string | undefined;
-    const join = require('node:path').join;
-    if (existsSync(join(cwd, 'packages/core/src/agent/agent.ts'))) {
-      sourceRoot = cwd;
-    }
-
-    this.log(`System prompt build — userName: ${this.cachedAccount?.name || this.cachedAccount?.email?.split('@')[0] || 'none'}, isAdmin: ${isAdmin}, sourceRoot: ${sourceRoot || 'none'}`);
-
-    // Load active tasks for context (max 10, capped to avoid bloating prompt)
-    let activeTasks: string | undefined;
-    if (this.taskManager) {
-      try {
-        const today = await this.taskManager.getTodayTasks();
-        const all = await this.taskManager.listTasks({ status: ['todo', 'in-progress'] });
-        // Merge: today tasks first, then other active ones, dedup by id, cap at 10
-        const seen = new Set<string>();
-        const merged: Array<{ title: string; priority: string; status: string; dueDate?: string; category: string }> = [];
-        for (const t of [...today, ...all]) {
-          if (seen.has(t.id) || merged.length >= 10) continue;
-          seen.add(t.id);
-          merged.push({ title: t.title, priority: t.priority, status: t.status, dueDate: t.dueDate, category: t.category });
-        }
-        const lines: string[] = [];
-        if (merged.length > 0) {
-          for (const t of merged) {
-            const parts = [`- [${t.status === 'in-progress' ? 'IN PROGRESS' : 'TODO'}] ${t.title}`];
-            if (t.priority === 'urgent' || t.priority === 'high') parts.push(`(${t.priority})`);
-            if (t.dueDate) parts.push(`— due ${t.dueDate}`);
-            lines.push(parts.join(' '));
-          }
-        }
-        // Add recently completed Ava tasks so you know what you've already done
-        const completed = await this.taskManager.listTasks({ status: ['done'], source: 'ava', includeArchived: false });
-        const recent = completed
-          .filter(t => t.completedAt)
-          .sort((a, b) => new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime())
-          .slice(0, 10);
-        if (recent.length > 0) {
-          lines.push('');
-          lines.push('Recently completed by you (Ava):');
-          for (const t of recent) {
-            lines.push(`- [DONE] ${t.title}`);
-          }
-        }
-        if (lines.length > 0) {
-          activeTasks = lines.join('\n');
-        }
-      } catch (err) { this.log(`Tasks context load failed: ${err}`); }
-    }
-
-    // Load recent journal entries for context (last 3 days)
-    let journalContext: string | undefined;
-    if (this.journalManager) {
-      try {
-        const recent = await this.journalManager.getRecentDays(3);
-        if (recent.length > 0) {
-          journalContext = recent.map(d => {
-            const parts = [`### ${d.date}`];
-            if (d.userEntry) {
-              parts.push(`**User:** ${d.userEntry.content.slice(0, 300)}`);
-              if (d.userEntry.mood) parts.push(`(mood: ${d.userEntry.mood}/5)`);
-            }
-            if (d.avaEntry) {
-              parts.push(`**Ava:** ${d.avaEntry.content.slice(0, 300)}`);
-            }
-            return parts.join('\n');
-          }).join('\n\n');
-        }
-      } catch (err) { this.log(`Journal context load failed: ${err}`); }
-    }
-
-    // Load personality from ~/.ava/personality.json
-    let personality;
-    try {
-      personality = await loadPersonality(AVA_HOME);
-    } catch {
-      // Non-fatal — will use default personality
-    }
-
-    // Load self-improvement learnings
-    let selfImprovementContext: string | undefined;
-    try {
-      const conversationContext = this.projectRoot
-        ? `project:${require('node:path').basename(this.projectRoot)}`
-        : undefined;
-      selfImprovementContext = buildSelfImprovementPrompt(AVA_HOME, conversationContext) || undefined;
-    } catch {
-      // Non-fatal — self-improvement is optional
-    }
-
-    // Load knowledge packs — manually enabled only
-    // Auto-detection (game projects, app projects) removed: the model's
-    // native coding ability is stronger than pre-loaded framework dumps.
-    // Packs consumed context that should go to reading code and reasoning,
-    // degrading performance on complex tasks. Users can still manually
-    // enable packs via ~/.ava/knowledge-enabled.json for non-coding modes.
-    let knowledgeContext: string | undefined;
-    try {
-      const fs = require('node:fs');
-      const { BUILTIN_PACKS } = require('@ava/core');
-      const packSections: string[] = [];
-
-      // Load manually enabled packs from ~/.ava/knowledge-enabled.json
-      try {
-        const enabledPath = require('node:path').join(AVA_HOME, 'knowledge-enabled.json');
-        if (fs.existsSync(enabledPath)) {
-          const loadedIds = new Set<string>();
-          const enabledIds: string[] = JSON.parse(fs.readFileSync(enabledPath, 'utf-8'));
-          for (const id of enabledIds) {
-            if (loadedIds.has(id)) continue;
-            const pack = BUILTIN_PACKS?.find((p: { id: string }) => p.id === id);
-            if (pack) {
-              packSections.push(`## Knowledge Pack: ${pack.name}\n\n${pack.context}`);
-              loadedIds.add(id);
-            }
-          }
-        }
-      } catch { /* no enabled packs file */ }
-
-      if (packSections.length > 0) {
-        knowledgeContext = packSections.join('\n\n');
-      }
-    } catch { /* non-fatal */ }
-
-    return buildSystemPrompt({
-      cwd,
-      platform: process.platform,
-      shell: 'bash',
-      permissionMode: this.getPermissionMode(),
-      supportsVision: this.activeModelDef?.supportsVision,
+    return buildCurrentSystemPromptFn({
+      cachedAccount: this.cachedAccount,
+      taskManager: this.taskManager,
+      journalManager: this.journalManager,
       projectInstructions: this.projectInstructions,
-      autoMemory: cfg.get<boolean>('preferences.autoMemory') ?? true,
-      language: this.currentLocale,
-      userName: this.cachedAccount?.name || this.cachedAccount?.email?.split('@')[0],
-      userEmail: this.cachedAccount?.email,
-      isAdmin,
-      sourceRoot,
-      personality,
-      knowledgeContext,
-      decisionsContext: this.decisionsState?.context ?? undefined,
-      decisionsFolderExists: this.decisionsState?.hasFolder ?? false,
-      decisionsOptInStatus: this.decisionsState?.optInStatus ?? 'not-asked',
-      excludeTools: ['screenshot', 'computer_use'],
+      projectRoot: this.projectRoot,
+      decisionsState: this.decisionsState,
+      activeModelDef: this.activeModelDef,
+      currentLocale: this.currentLocale,
+      permissionMode: this.getPermissionMode(),
+      log: (msg) => this.log(msg),
     });
   }
 
   // ── Session Persistence ───────────────────────────────────────────────────
 
-  private getLastConversationId(): string | undefined {
-    return this.context.globalState.get<string>('lastConversationId');
-  }
-
   private setLastConversationId(id: string | undefined): void {
-    this.context.globalState.update('lastConversationId', id);
+    this.history.setLastConversationId(id);
   }
 
   private async restoreLastConversation(): Promise<void> {
-    // If we already have a conversation with content, re-send it to the webview
-    if (this.conversation) {
-      const msgs = this.conversation.getMessages();
-      if (msgs.length > 1) {
-        this.postMessage({
-          type: 'conversation_loaded',
-          conversationId: this.conversation.id,
-          title: '',
-          messages: this.buildUIMessages(msgs),
-        });
-        return;
-      }
-    }
-
-    // Otherwise try to restore the last active conversation from disk
-    const lastId = this.getLastConversationId();
-    if (!lastId) return;
-
-    const record = await this.historyManager.resumeConversation(lastId);
-    if (!record) {
-      // Conversation was deleted — clear the stale reference
-      this.setLastConversationId(undefined);
-      return;
-    }
-
-    // Restore it silently
-    this.conversation = new Conversation(record.id);
-
-    const messages = record.messages;
-    if (messages.length > 0 && messages[0].role === 'system') {
-      messages[0] = {
-        role: 'system' as const,
-        content: await this.buildCurrentSystemPrompt(),
-      };
-    }
-    this.conversation.setMessages(messages);
-
-    this.postMessage({
-      type: 'conversation_loaded',
-      conversationId: record.id,
-      title: record.title,
-      messages: this.buildUIMessages(record.messages),
-    });
+    return this.history.restoreLast();
   }
 
   // ── History ──────────────────────────────────────────────────────────────────
 
   private async sendHistoryList(): Promise<void> {
-    const conversations = await this.historyManager.listConversations(false);
-    this.postMessage({ type: 'history_list', conversations });
+    return this.history.sendList();
   }
 
   private async loadConversation(conversationId: string): Promise<void> {
-    const record = await this.historyManager.resumeConversation(conversationId);
-    if (!record) {
-      this.postMessage({ type: 'error', message: 'Conversation not found.' });
-      return;
-    }
-
-    this.conversation = new Conversation(record.id);
-
-    const messages = record.messages;
-    if (messages.length > 0 && messages[0].role === 'system') {
-      messages[0] = {
-        role: 'system' as const,
-        content: await this.buildCurrentSystemPrompt(),
-      };
-    }
-    this.conversation.setMessages(messages);
-
-    this.setLastConversationId(record.id);
-
-    this.postMessage({
-      type: 'conversation_loaded',
-      conversationId: record.id,
-      title: record.title,
-      messages: this.buildUIMessages(record.messages),
-    });
+    return this.history.load(conversationId);
   }
 
   private async deleteConversation(conversationId: string): Promise<void> {
-    await this.historyManager.deleteConversation(conversationId);
-    await this.sendHistoryList();
+    return this.history.delete(conversationId);
   }
 
   private async searchHistory(query: string): Promise<void> {
-    const results = await this.historyManager.searchConversations(query, false);
-    this.postMessage({ type: 'history_search_results', conversations: results });
+    return this.history.search(query);
   }
 
   private async renameConversation(conversationId: string, newTitle: string): Promise<void> {
-    await this.historyManager.renameConversation(conversationId, newTitle);
-    await this.sendHistoryList();
+    return this.history.rename(conversationId, newTitle);
   }
 
   private async pinConversation(conversationId: string, pinned: boolean): Promise<void> {
-    await this.historyManager.pinConversation(conversationId, pinned);
-    await this.sendHistoryList();
+    return this.history.pin(conversationId, pinned);
   }
 
   private async exportConversation(conversationId: string, format: 'markdown' | 'json'): Promise<void> {
-    const content = await this.historyManager.exportConversation(conversationId, format);
-    if (!content) {
-      this.postMessage({ type: 'error', message: 'Failed to export conversation.' });
-      return;
-    }
-    const ext = format === 'json' ? 'json' : 'md';
-    const defaultUri = vscode.Uri.file(`conversation-export.${ext}`);
-    const uri = await vscode.window.showSaveDialog({
-      defaultUri,
-      filters: format === 'json'
-        ? { 'JSON': ['json'] }
-        : { 'Markdown': ['md'] },
-    });
-    if (uri) {
-      await vscode.workspace.fs.writeFile(uri, Buffer.from(content, 'utf-8'));
-      vscode.window.showInformationMessage(`Conversation exported to ${uri.fsPath}`);
-    }
+    return this.history.export(conversationId, format);
   }
 
   // ── Memory Management ────────────────────────────────────────────────────────
@@ -1959,7 +1729,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
     // Recreate with sync disabled until next session
     this.memoryManager = new MemoryManager({ globalDir: this.accountScopedDir, projectRoot: this.projectRoot, localOnly: true });
-    this.cachedMemory = undefined;
   }
 
   private async saveMemory(scope: 'global' | 'project', content: string): Promise<void> {
@@ -1969,7 +1738,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     } else {
       await this.memoryManager.saveProjectMemory(content);
     }
-    this.cachedMemory = (await this.memoryManager.loadAll()) || undefined;
+    await this.memoryManager.loadAll();
     await this.sendMemoryContent();
   }
 
@@ -1980,28 +1749,28 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     } else {
       await this.memoryManager.saveProjectMemory('');
     }
-    this.cachedMemory = (await this.memoryManager.loadAll()) || undefined;
+    await this.memoryManager.loadAll();
     await this.sendMemoryContent();
   }
 
   private async archiveMemory(scope: 'global' | 'project', id: string): Promise<void> {
     if (!this.memoryManager) return;
     await this.memoryManager.archiveEntry(scope, id);
-    this.cachedMemory = (await this.memoryManager.loadAll()) || undefined;
+    await this.memoryManager.loadAll();
     await this.sendMemoryContent();
   }
 
   private async restoreMemory(scope: 'global' | 'project', id: string): Promise<void> {
     if (!this.memoryManager) return;
     await this.memoryManager.restoreEntry(scope, id);
-    this.cachedMemory = (await this.memoryManager.loadAll()) || undefined;
+    await this.memoryManager.loadAll();
     await this.sendMemoryContent();
   }
 
   private async deleteMemoryEntry(scope: 'global' | 'project', id: string): Promise<void> {
     if (!this.memoryManager) return;
     await this.memoryManager.deleteEntry(scope, id);
-    this.cachedMemory = (await this.memoryManager.loadAll()) || undefined;
+    await this.memoryManager.loadAll();
     await this.sendMemoryContent();
   }
 
@@ -2109,22 +1878,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     } catch {
       // Self-improvement is non-critical
     }
-  }
-
-  private buildUIMessages(messages: Message[]): Array<{ role: 'user' | 'assistant'; content: string }> {
-    return messages
-      .filter((m) =>
-        (m.role === 'user' || m.role === 'assistant') && !!m.content,
-      )
-      .map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content: typeof m.content === 'string'
-          ? m.content
-          : (m.content ?? [])
-              .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
-              .map((p) => p.text)
-              .join('') || '[image]',
-      }));
   }
 
   // ── Message Handling ─────────────────────────────────────────────────────────
@@ -3203,23 +2956,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   private getLearningContext(): string | undefined {
-    try {
-      const fs = require('node:fs');
-      const learningPath = require('node:path').join(AVA_HOME, 'learning.json');
-      if (!fs.existsSync(learningPath)) return undefined;
-      const store = JSON.parse(fs.readFileSync(learningPath, 'utf-8'));
-      const active = (store.curriculums || []).filter((c: { status: string }) => c.status === 'active');
-      if (active.length === 0) return undefined;
-      return active.map((c: { title: string; subject: string; level: string; progress_percent: number; modules: Array<{ title: string; status: string; lessons: Array<{ title: string; status: string; type: string }> }> }) => {
-        const currentModule = c.modules.find((m: { status: string }) => m.status === 'in_progress' || m.status === 'available');
-        const nextLesson = currentModule?.lessons.find((l: { status: string }) => l.status === 'not_started' || l.status === 'in_progress');
-        return `**${c.title}** (${c.subject}, ${c.level}, ${Math.round(c.progress_percent)}% complete)\n` +
-          (currentModule ? `  Current module: ${currentModule.title}\n` : '') +
-          (nextLesson ? `  Next lesson: ${nextLesson.title} (${nextLesson.type})` : '  All lessons in current module complete — ready to unlock next module');
-      }).join('\n\n');
-    } catch {
-      return undefined;
-    }
+    return getLearningContextFn();
   }
 
   // ── Tool Confirmation Bridge ───────────────────────────────────────────────
@@ -3510,79 +3247,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   private deriveErrorInfo(error: unknown): { message: string; code: string; suggestion: string } {
-    if (error instanceof ProviderError) {
-      const msg = error.humanMessage;
-      switch (error.statusCode) {
-        case 400: {
-          const raw400 = `${error.message} ${typeof error.responseBody === 'string' ? error.responseBody : ''}`.toLowerCase();
-          if (raw400.includes('context') || raw400.includes('token') || raw400.includes('length') || raw400.includes('too long') || raw400.includes('maximum')) {
-            return { message: msg, code: 'context_truncated', suggestion: 'This conversation has gotten too long for the model. Click the + button to start a fresh chat.' };
-          }
-          return { message: msg, code: 'bad_request', suggestion: 'Try starting a new chat or switching to a different model.' };
-        }
-        case 401:
-          return { message: msg, code: 'auth', suggestion: 'Go to the Dashboard and check that your API key is correct and hasn\'t expired.' };
-        case 402:
-          return { message: msg, code: 'credits', suggestion: 'Add credits to your provider account, or sign up for 3M free Qwen tokens, or add your own API key.' };
-        case 403:
-          return { message: msg, code: 'forbidden', suggestion: 'Your API key may not have the right permissions. Check your provider dashboard.' };
-        case 413:
-          return { message: 'Conversation too large to send.', code: 'payload_too_large', suggestion: 'Start a new chat with the + button. Your conversation history has grown too large for the API.' };
-        case 404:
-          return { message: msg, code: 'model_not_found', suggestion: 'Click the model name in the header to switch to a different model.' };
-        case 429:
-          return { message: msg, code: 'rate_limit', suggestion: 'Wait about 30 seconds and try again, or switch to a different provider.' };
-        case 500: case 502: case 503:
-          return { message: msg, code: 'server_error', suggestion: 'This is on the provider\'s side, not yours. Wait a few minutes and try again, or switch providers.' };
-        default: {
-          const raw = error.message.toLowerCase();
-          if (raw.includes('timed out') || raw.includes('timeout')) {
-            return { message: msg, code: 'timeout', suggestion: 'The AI took too long to respond. This can happen with complex requests — try again or simplify your message.' };
-          }
-          if (raw.includes('stream stalled')) {
-            return { message: msg, code: 'stream_stall', suggestion: 'The connection to the AI was interrupted. Click Try Again to resend your message.' };
-          }
-          if (raw.includes('network error') || raw.includes('fetch failed') || raw.includes('econnrefused')) {
-            return { message: msg, code: 'network', suggestion: 'Check your internet connection. If you\'re using a local model, make sure the server is running.' };
-          }
-          return { message: msg, code: 'provider_error', suggestion: 'Something unexpected happened. Try again, or check Output > "Ava | Supernova" for technical details.' };
-        }
-      }
-    }
-
-    const rawMsg = error instanceof Error ? error.message : String(error);
-    const errorCode = error instanceof Error ? (error as Error & { code?: string }).code : undefined;
-
-    if (errorCode === 'iterations_exceeded') {
-      return { message: rawMsg, code: 'iterations_exceeded', suggestion: 'Click Try Again to let Ava keep working, or break the task into smaller pieces.' };
-    }
-
-    return { message: rawMsg, code: 'unknown', suggestion: 'Something unexpected happened. Try again, or check Output > "Ava | Supernova" for technical details.' };
+    return deriveErrorInfoFn(error);
   }
 
   private formatToolSummary(toolName: string, args: Record<string, unknown>): string {
-    switch (toolName) {
-      case 'bash':
-        return `Execute: ${String(args.command ?? '').slice(0, 100)}`;
-      case 'file_write':
-        return `Write to ${args.file_path}`;
-      case 'file_edit':
-        return `Edit ${args.file_path}`;
-      case 'present_plan':
-        return `Plan: ${String(args.title ?? 'Untitled')}`;
-      case 'ask_user':
-        return String(args.question ?? 'Question');
-      case 'list_directory':
-        return `List ${args.path}`;
-      case 'web_search':
-        return `Search: ${String(args.query ?? '').slice(0, 80)}`;
-      case 'git_status':
-        return `git ${args.command}${args.args ? ' ' + String(args.args).slice(0, 60) : ''}`;
-      case 'http_request':
-        return `${args.method ?? 'GET'} ${String(args.url ?? '').slice(0, 80)}`;
-      default:
-        return `${toolName}: ${JSON.stringify(args).slice(0, 100)}`;
-    }
+    return formatToolSummaryFn(toolName, args);
   }
 
   // ── Webview HTML ───────────────────────────────────────────────────────────
