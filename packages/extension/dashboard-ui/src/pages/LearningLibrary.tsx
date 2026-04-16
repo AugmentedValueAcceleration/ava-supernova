@@ -209,12 +209,6 @@ export function LearningLibrary({ paths, detail, onNavigate }: Props) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
         <h1 style={{ fontSize: 18, fontWeight: 600, color: '#fff' }}>Learning Library</h1>
         <button
-          onClick={() => onNavigate('learning')}
-          style={{ background: 'none', border: '1px solid var(--border-card)', borderRadius: 6, padding: '4px 12px', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 11 }}
-        >
-          My Learning
-        </button>
-        <button
           onClick={() => { post({ type: 'load_library_paths' }); }}
           style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-card)', background: 'transparent', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer' }}
           title="Refresh library"
