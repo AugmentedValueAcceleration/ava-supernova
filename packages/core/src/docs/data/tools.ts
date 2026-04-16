@@ -1,4 +1,4 @@
-// Canonical tool fact table — single source of truth for all 62 built-in tools.
+// Canonical tool fact table — single source of truth for all 61 built-in tools.
 // Rendered by the website, extension DocsPanel, and IDE DocumentationPage.
 // Update here when tools are added/renamed/recategorised, not in any surface renderer.
 
@@ -66,7 +66,6 @@ export const TOOLS: ToolFact[] = [
   { name: 'remove_background', category: 'media', description: 'Remove the background from an image, making it transparent.', risk: 'write' },
   { name: 'report_generate', category: 'documents', description: 'Generate a structured .docx report from tasks, journal, memory, and project data.', risk: 'write' },
   { name: 'rollback', category: 'git', description: 'Restore, discard, or check the status of a git checkpoint.', risk: 'dangerous' },
-  { name: 'screenshot', category: 'media', description: 'Capture a screenshot of the current screen for visual analysis.', risk: 'safe' },
   { name: 'secret_request', category: 'system', description: 'Request access to a secret from the user vault. Returns an opaque handle the host substitutes at execution time.', risk: 'safe' },
   { name: 'self_inspect', category: 'file_ops', description: 'Read Ava own source code when the actual implementation needs to be quoted or examined.', risk: 'safe' },
   { name: 'support_request', category: 'system', description: 'Submit a support ticket to the Ava development team.', risk: 'write' },

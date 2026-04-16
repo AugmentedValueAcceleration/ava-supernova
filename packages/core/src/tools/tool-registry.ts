@@ -17,7 +17,11 @@ import { AskUserTool } from './ask-user.js';
 import { GitStatusTool } from './git.js';
 import { HttpRequestTool } from './http-request.js';
 import { GitDiffTool } from './git-diff.js';
-import { ScreenshotTool } from './screenshot.js';
+// ScreenshotTool is no longer registered — the screenshot-desktop native
+// binaries it depends on triggered Microsoft's malware scanner. Image input
+// to vision-capable models still works via direct upload/paste; this tool
+// is only for agent-initiated captures and isn't needed for that flow.
+// import { ScreenshotTool } from './screenshot.js';
 import { DatabaseQueryTool } from './database-query.js';
 import { BrowserTool } from './browser.js';
 import { MemorySaveTool } from './memory-save.js';
@@ -86,8 +90,8 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   // Web — search, HTTP, browsing, real-world data
   web_search: 'web', http_request: 'web', browser: 'web',
   weather: 'web', news: 'web', release_notes: 'web',
-  // Media — images, audio, video, screen capture
-  screenshot: 'media', generate_image: 'media', generate_music: 'media',
+  // Media — images, audio, video
+  generate_image: 'media', generate_music: 'media',
   generate_video: 'media', generate_voice: 'media', remove_background: 'media',
   // Database
   database_query: 'database',
@@ -310,7 +314,6 @@ export class ToolRegistry {
       new GitStatusTool(),
       new HttpRequestTool(),
       new GitDiffTool(),
-      new ScreenshotTool(),
       new DatabaseQueryTool(),
       new BrowserTool(),
       new MemorySaveTool(),
