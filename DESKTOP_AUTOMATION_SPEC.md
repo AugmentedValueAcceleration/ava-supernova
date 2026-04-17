@@ -895,10 +895,10 @@ Check items off as you complete them. Update status header at top of this doc wh
 
 ### Phase D — IDE frontend
 
-- [ ] D1. Mode picker + `@@` prefix entry
-- [ ] D2. First-run conversation (three-question intake)
-- [ ] D3. Live trajectory view (step cards, expandable detail, state bar)
-- [ ] D4. Approval cards + pause/stop/panic UI
+- [x] D1. Mode picker + `@@` prefix entry
+- [x] D2. First-run conversation (three-question intake)
+- [x] D3. Live trajectory view (step cards, expandable detail, state bar)
+- [x] D4. Approval cards + pause/stop/panic UI
 - [ ] D5. Inline whitelist authoring
 - [ ] D6. Failure recovery UX (stuck, budget hit, captcha)
 - [ ] D7. Settings → Remote Devices page
