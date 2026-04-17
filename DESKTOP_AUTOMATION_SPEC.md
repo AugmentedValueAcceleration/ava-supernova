@@ -887,10 +887,10 @@ Check items off as you complete them. Update status header at top of this doc wh
 
 ### Phase C — Sidecar orchestration
 
-- [ ] C1. Grounding layer (UIA/Playwright/OmniParser clients, decision tree)
-- [ ] C2. Executor layer (Playwright actions, UIA invoke, mouse/keyboard)
-- [ ] C3. Conductor wave orchestration for per-step personas
-- [ ] C4. Session whitelist + budget enforcement gates
+- [x] C1. Grounding layer (UIA/Playwright/OmniParser clients, decision tree)
+- [x] C2. Executor layer (Playwright actions, UIA invoke, mouse/keyboard)
+- [x] C3. Conductor wave orchestration for per-step personas
+- [x] C4. Session whitelist + budget enforcement gates
 - [ ] C5. Supabase realtime client for companion pairing
 
 ### Phase D — IDE frontend
