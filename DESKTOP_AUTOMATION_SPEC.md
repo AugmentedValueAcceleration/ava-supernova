@@ -905,10 +905,10 @@ Check items off as you complete them. Update status header at top of this doc wh
 
 ### Phase E — Companion frontend
 
-- [ ] E1. Desktop sessions list + pair request flow
-- [ ] E2. Mobile trajectory view
-- [ ] E3. Mobile approval cards (full-screen)
-- [ ] E4. Take-back-control driver-flip state management
+- [x] E1. Desktop sessions list + pair request flow
+- [x] E2. Mobile trajectory view
+- [x] E3. Mobile approval cards (full-screen)
+- [x] E4. Take-back-control driver-flip state management
 
 ### Phase F — Platform / web
 
