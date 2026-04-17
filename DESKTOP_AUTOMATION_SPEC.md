@@ -899,9 +899,9 @@ Check items off as you complete them. Update status header at top of this doc wh
 - [x] D2. First-run conversation (three-question intake)
 - [x] D3. Live trajectory view (step cards, expandable detail, state bar)
 - [x] D4. Approval cards + pause/stop/panic UI
-- [ ] D5. Inline whitelist authoring
-- [ ] D6. Failure recovery UX (stuck, budget hit, captcha)
-- [ ] D7. Settings → Remote Devices page
+- [x] D5. Inline whitelist authoring
+- [x] D6. Failure recovery UX (stuck, budget hit, captcha)
+- [x] D7. Settings → Remote Devices page
 
 ### Phase E — Companion frontend
 
