@@ -881,7 +881,7 @@ Check items off as you complete them. Update status header at top of this doc wh
 
 - [x] B1. UIA bridge restored from reverted Agent S3 commit
 - [x] B2. Input simulation + screen capture (enigo + Desktop Duplication API)
-- [ ] B3. Playwright subprocess lifecycle management
+- [x] B3. Playwright subprocess lifecycle management
 - [ ] B4. Ava profile encryption (OS keychain)
 - [x] B5. Tray mode + panic kill global hotkey
 
