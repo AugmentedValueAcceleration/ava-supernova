@@ -274,6 +274,13 @@ export type {
   BrowserSnapshotElement, BrowserSnapshot, BrowserProvider,
 } from './tools/desktop-providers.js';
 
+// Desktop-automation safety gate — hosts populate desktopApprovalHandler
+// and (optionally) desktopBudget / desktopPermissionLevel on sharedState
+// to drive per-action classification + approval + budget enforcement.
+export type {
+  DesktopApprovalHandler, DesktopSafetyState, GateOutcome,
+} from './tools/desktop-safety-gate.js';
+
 // Dataset (legacy — kept for compat, currently unused in hot path)
 export { captureInteraction } from './dataset/capture.js';
 

@@ -1,6 +1,7 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import type { BrowserProvider } from './desktop-providers.js';
+import { gateDesktopAction, tickBudget, blockedResult } from './desktop-safety-gate.js';
 
 export class BrowserNavigateTool implements Tool {
   readonly name = 'browser_navigate';
@@ -51,12 +52,22 @@ export class BrowserNavigateTool implements Tool {
       };
     }
 
+    // URL substring signals for classification (payment, admin, settings paths
+    // lean irreversible). Baseline is mutative-reversible — the page hasn't
+    // done anything yet, the user can just close the tab.
+    const gate = await gateDesktopAction(
+      { kind: 'navigate', targetName: parsed.hostname + parsed.pathname },
+      this.name, args, context,
+    );
+    if (!gate.allowed) return blockedResult(gate);
+
     try {
       const result = await browser.navigate(url);
+      tickBudget(context);
       return {
         success: true,
         output: `Navigated to ${result.url} — "${result.title}". Call browser_snapshot to see what\'s on the page.`,
-        metadata: { url: result.url, title: result.title },
+        metadata: { url: result.url, title: result.title, classification: gate.classification },
       };
     } catch (err) {
       return { success: false, output: `navigate failed: ${err instanceof Error ? err.message : String(err)}` };

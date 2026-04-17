@@ -1,6 +1,7 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import type { InputProvider } from './desktop-providers.js';
+import { gateDesktopAction, tickBudget, blockedResult } from './desktop-safety-gate.js';
 
 const MAX_CHARS = 10_000;
 
@@ -21,6 +22,10 @@ export class DesktopTypeTool implements Tool {
         text: {
           type: 'string',
           description: 'Text to type. Special characters are typed literally; for key combos or named keys, use desktop_key_press instead.',
+        },
+        field_hint: {
+          type: 'string',
+          description: 'Optional accessible name of the focused field (from desktop_list_elements), used for safety classification — e.g. "Password", "Email". Pass it so Ava can detect sensitive fields and route secrets through the capability handle flow.',
         },
       },
       required: ['text'],
@@ -46,13 +51,21 @@ export class DesktopTypeTool implements Tool {
       };
     }
 
+    const fieldHint = (args.field_hint as string | undefined)?.trim();
+    const gate = await gateDesktopAction(
+      { kind: 'type', fieldName: fieldHint, targetName: fieldHint },
+      this.name, args, context,
+    );
+    if (!gate.allowed) return blockedResult(gate);
+
     try {
       await input.typeText(text);
+      tickBudget(context);
       const preview = text.length > 60 ? `${text.slice(0, 60)}…` : text;
       return {
         success: true,
         output: `Typed ${text.length} character${text.length === 1 ? '' : 's'}: "${preview}"`,
-        metadata: { length: text.length },
+        metadata: { length: text.length, classification: gate.classification },
       };
     } catch (err) {
       return { success: false, output: `type failed: ${err instanceof Error ? err.message : String(err)}` };

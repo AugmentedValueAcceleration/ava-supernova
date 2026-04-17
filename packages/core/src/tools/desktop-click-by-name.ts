@@ -1,12 +1,17 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import type { UIAProvider } from './desktop-providers.js';
+import { gateDesktopAction, tickBudget, blockedResult } from './desktop-safety-gate.js';
 
 export class DesktopClickByNameTool implements Tool {
   readonly name = 'desktop_click_by_name';
   readonly description = 'Click a native UI element by its Windows UI Automation accessible name (stable — not a pixel coordinate).';
+  // riskLevel + requiresConfirmation are STATIC tool metadata. The
+  // per-invocation decision runs through gateDesktopAction below, which
+  // classifies the target name against the irreversible verb blocklist
+  // and prompts the user only when the dynamic class demands it.
   readonly riskLevel: ToolRiskLevel = 'dangerous';
-  readonly requiresConfirmation = true;
+  readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'desktop_click_by_name',
@@ -42,6 +47,12 @@ export class DesktopClickByNameTool implements Tool {
       };
     }
 
+    const gate = await gateDesktopAction(
+      { kind: 'click', targetName: name, targetType: 'button' },
+      this.name, args, context,
+    );
+    if (!gate.allowed) return blockedResult(gate);
+
     try {
       const element = await uia.clickElement(name);
       if (!element) {
@@ -50,10 +61,11 @@ export class DesktopClickByNameTool implements Tool {
           output: `No element matching "${name}" found in the foreground window. Run desktop_list_elements to see available targets.`,
         };
       }
+      tickBudget(context);
       return {
         success: true,
         output: `Clicked "${element.name}" at (${element.cx}, ${element.cy}).`,
-        metadata: { name: element.name, cx: element.cx, cy: element.cy },
+        metadata: { name: element.name, cx: element.cx, cy: element.cy, classification: gate.classification },
       };
     } catch (err) {
       return { success: false, output: `click_by_name failed: ${err instanceof Error ? err.message : String(err)}` };

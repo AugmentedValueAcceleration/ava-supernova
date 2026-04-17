@@ -1,12 +1,36 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import type { InputProvider } from './desktop-providers.js';
+import { gateDesktopAction, tickBudget, blockedResult } from './desktop-safety-gate.js';
+
+// Known destructive combos — mapped to the irreversible-verb text so the
+// existing classifyAction blocklist picks them up. Normalised to lowercase,
+// modifier order doesn't matter.
+const DESTRUCTIVE_COMBO_HINTS: Record<string, string> = {
+  'alt+f4': 'close window',
+  'ctrl+w': 'close tab',
+  'ctrl+shift+w': 'close window',
+  'ctrl+q': 'quit application',
+  'cmd+q': 'quit application',
+  'meta+q': 'quit application',
+  'ctrl+shift+delete': 'delete history',
+  'shift+delete': 'delete permanently',
+};
+
+function comboHint(key: string): string | undefined {
+  const normalised = key.toLowerCase().split('+').map(s => s.trim()).sort().join('+');
+  for (const [combo, hint] of Object.entries(DESTRUCTIVE_COMBO_HINTS)) {
+    const comboNorm = combo.toLowerCase().split('+').map(s => s.trim()).sort().join('+');
+    if (normalised === comboNorm) return hint;
+  }
+  return undefined;
+}
 
 export class DesktopKeyPressTool implements Tool {
   readonly name = 'desktop_key_press';
   readonly description = 'Press a named key or key combination on the focused window (e.g. "Enter", "ctrl+s", "alt+f4").';
   readonly riskLevel: ToolRiskLevel = 'dangerous';
-  readonly requiresConfirmation = true;
+  readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'desktop_key_press',
@@ -42,9 +66,17 @@ export class DesktopKeyPressTool implements Tool {
       };
     }
 
+    const hint = comboHint(key);
+    const gate = await gateDesktopAction(
+      { kind: 'key', targetName: hint ?? key },
+      this.name, args, context,
+    );
+    if (!gate.allowed) return blockedResult(gate);
+
     try {
       await input.keyPress(key);
-      return { success: true, output: `Pressed ${key}.`, metadata: { key } };
+      tickBudget(context, 200);
+      return { success: true, output: `Pressed ${key}.`, metadata: { key, classification: gate.classification } };
     } catch (err) {
       return { success: false, output: `key_press failed: ${err instanceof Error ? err.message : String(err)}` };
     }

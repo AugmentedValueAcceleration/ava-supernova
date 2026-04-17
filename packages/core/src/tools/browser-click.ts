@@ -1,12 +1,13 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import type { BrowserProvider } from './desktop-providers.js';
+import { gateDesktopAction, tickBudget, blockedResult } from './desktop-safety-gate.js';
 
 export class BrowserClickTool implements Tool {
   readonly name = 'browser_click';
   readonly description = 'Click an element on the current browser page by CSS selector (from browser_snapshot).';
   readonly riskLevel: ToolRiskLevel = 'dangerous';
-  readonly requiresConfirmation = true;
+  readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'browser_click',
@@ -19,6 +20,10 @@ export class BrowserClickTool implements Tool {
         selector: {
           type: 'string',
           description: 'CSS selector from browser_snapshot (e.g. "button#login", \"a[href=\\\"/compose\\\"]\").',
+        },
+        target_text: {
+          type: 'string',
+          description: 'Optional: the visible text of the element (from the snapshot), used for safety classification. Pass it so Ava can detect irreversible verbs like Send, Submit, Delete, Pay and prompt accordingly.',
         },
       },
       required: ['selector'],
@@ -41,9 +46,21 @@ export class BrowserClickTool implements Tool {
       };
     }
 
+    const targetText = (args.target_text as string | undefined)?.trim();
+    const gate = await gateDesktopAction(
+      { kind: 'click', targetName: targetText || selector, targetType: 'button' },
+      this.name, args, context,
+    );
+    if (!gate.allowed) return blockedResult(gate);
+
     try {
       await browser.click(selector);
-      return { success: true, output: `Clicked ${selector}.`, metadata: { selector } };
+      tickBudget(context);
+      return {
+        success: true,
+        output: `Clicked ${selector}${targetText ? ` ("${targetText}")` : ''}.`,
+        metadata: { selector, targetText, classification: gate.classification },
+      };
     } catch (err) {
       return { success: false, output: `click failed: ${err instanceof Error ? err.message : String(err)}. Re-run browser_snapshot — the selector may be stale.` };
     }
