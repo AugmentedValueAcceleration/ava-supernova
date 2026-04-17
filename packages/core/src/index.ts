@@ -16,7 +16,7 @@ export { IntentClassifier } from './agent/intent-classifier.js';
 export type { UserIntent, IntentClassifierOptions } from './agent/intent-classifier.js';
 
 export type { SystemPromptOptions } from './agent/system-prompt.js';
-export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix } from './agent/system-prompt.js';
+export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix, getDesktopModePrefix } from './agent/system-prompt.js';
 
 // Personality
 export type { Personality } from './config/personality.js';
@@ -245,16 +245,15 @@ export {
 export { scanDependencies, scanSecrets, scanCodeVulns, runFullScan } from './security/index.js';
 export type { DependencyVuln, SecretFinding, CodeVuln, ScanReport } from './security/index.js';
 
-// Desktop automation — safety ontology, budget tracking, trajectory types
+// Desktop automation — safety ontology + budget tracking are retained as
+// shared primitives for the safety middleware layer we'll build on top of
+// the sidecar's agent loop. The custom Conductor / Grounding / Executor
+// layers were removed once desktop mode folded into the chat mode system.
 export {
   classifyAction, decideApproval, isWhitelisted, IRREVERSIBLE_VERBS,
   BudgetTracker, estimateCost, DEFAULT_BUDGET,
   DESKTOP_SCOUT, DESKTOP_PLANNER, DESKTOP_ACTOR, DESKTOP_VERIFIER, DESKTOP_NARRATOR,
   DESKTOP_PERSONAS, DESKTOP_WAVE_ORDER, ESTIMATED_TOKENS_PER_STEP,
-  GroundingLayer, DEFAULT_GROUNDING_CONFIG,
-  ExecutorLayer,
-  DesktopConductor,
-  runGates,
 } from './desktop/index.js';
 export type {
   RiskClass, PermissionLevel, ActionClassificationInput, ClassificationResult as SafetyClassificationResult, ApprovalDecision,
@@ -264,11 +263,16 @@ export type {
   ActionKind, ProposedAction, ExecutionResult,
   VerificationStatus, VerificationResult, UserUpdate,
   TrajectoryStep as DesktopTrajectoryStep, Trajectory,
-  GroundingBackend, GroundingConfig, GroundingResult,
-  ExecutorBackend,
-  DesktopConductorEvent, DesktopConductorEventHandler, PersonaLLM, ApprovalHandler, DesktopConductorConfig,
-  GateVerdict, GateResult, GateConfig,
 } from './desktop/index.js';
+
+// Desktop-automation host-side provider contracts.
+// The Ava IDE (Tauri) fulfils these on ToolExecutionContext.sharedState —
+// the desktop_* and browser_* tools consume them via duck-typed lookups.
+export type {
+  UIAElement, UIAProvider,
+  InputProvider,
+  BrowserSnapshotElement, BrowserSnapshot, BrowserProvider,
+} from './tools/desktop-providers.js';
 
 // Dataset (legacy — kept for compat, currently unused in hot path)
 export { captureInteraction } from './dataset/capture.js';

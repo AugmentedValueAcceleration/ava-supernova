@@ -75,7 +75,14 @@ export class BudgetTracker {
   private steps: StepTokens[] = [];
 
   constructor(config: Partial<BudgetConfig> = {}) {
-    this.config = { ...DEFAULT_BUDGET, ...config };
+    // Skip undefined entries so `{ maxSteps: undefined }` doesn't clobber
+    // the default. Callers sometimes pass the un-narrowed config object
+    // (e.g. from DesktopConductorConfig where maxSteps is optional).
+    const cleaned: Partial<BudgetConfig> = {};
+    if (config.maxSteps !== undefined) cleaned.maxSteps = config.maxSteps;
+    if (config.maxTokens !== undefined) cleaned.maxTokens = config.maxTokens;
+    if (config.maxWallMs !== undefined) cleaned.maxWallMs = config.maxWallMs;
+    this.config = { ...DEFAULT_BUDGET, ...cleaned };
     this.startedAt = Date.now();
   }
 

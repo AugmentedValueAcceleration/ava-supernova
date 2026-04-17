@@ -71,6 +71,19 @@ import { BrowseLibraryTool } from './browse-library.js';
 import { CuratorTool } from './curator.js';
 import { SecretRequestTool } from './secret-request.js';
 import { EnvWriteTool } from './env-write.js';
+// Desktop automation — native UIA tree + Playwright DOM (no screenshots).
+// Tool classes are thin wrappers over host-side providers populated by the
+// Ava IDE (Tauri) on sharedState. Mode-gated: only exposed in `desktop` mode.
+import { DesktopListElementsTool } from './desktop-list-elements.js';
+import { DesktopClickByNameTool } from './desktop-click-by-name.js';
+import { DesktopFocusWindowTool } from './desktop-focus-window.js';
+import { DesktopTypeTool } from './desktop-type.js';
+import { DesktopKeyPressTool } from './desktop-key-press.js';
+import { BrowserNavigateTool } from './browser-navigate.js';
+import { BrowserSnapshotTool } from './browser-snapshot.js';
+import { BrowserClickTool } from './browser-click.js';
+import { BrowserTypeTool } from './browser-type.js';
+import { BrowserCloseTool } from './browser-close.js';
 
 // ── Tool → Category mapping ────────────────────────────────────────────────
 
@@ -90,6 +103,9 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   // Web — search, HTTP, browsing, real-world data
   web_search: 'web', http_request: 'web', browser: 'web',
   weather: 'web', news: 'web', release_notes: 'web',
+  // Browser automation (Desktop mode) — Playwright DOM via Tauri subprocess
+  browser_navigate: 'web', browser_snapshot: 'web', browser_click: 'web',
+  browser_type: 'web', browser_close: 'web',
   // Media — images, audio, video
   generate_image: 'media', generate_music: 'media',
   generate_video: 'media', generate_voice: 'media', remove_background: 'media',
@@ -100,6 +116,10 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   audit_dependencies: 'system', security: 'system',
   ask_user: 'system', support_request: 'system', propose_tool: 'system',
   curator: 'system',
+  // Desktop automation (Desktop mode) — UIA tree + input via Tauri
+  desktop_list_elements: 'system', desktop_click_by_name: 'system',
+  desktop_focus_window: 'system', desktop_type: 'system',
+  desktop_key_press: 'system',
   // Documents — creation, planning, tasks
   document_manage: 'documents', presentation_create: 'documents',
   report_generate: 'documents', email_draft: 'documents',
@@ -361,6 +381,17 @@ export class ToolRegistry {
       new CuratorTool(),
       new SecretRequestTool(),
       new EnvWriteTool(),
+      // Desktop automation — native (UIA) + browser (Playwright DOM)
+      new DesktopListElementsTool(),
+      new DesktopClickByNameTool(),
+      new DesktopFocusWindowTool(),
+      new DesktopTypeTool(),
+      new DesktopKeyPressTool(),
+      new BrowserNavigateTool(),
+      new BrowserSnapshotTool(),
+      new BrowserClickTool(),
+      new BrowserTypeTool(),
+      new BrowserCloseTool(),
     ];
     for (const tool of builtins) {
       if (!excludeSet.has(tool.name)) {

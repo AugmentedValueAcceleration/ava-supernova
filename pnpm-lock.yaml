@@ -369,6 +369,9 @@ importers:
       '@tauri-apps/plugin-updater':
         specifier: ^2.10.0
         version: 2.10.0
+      playwright:
+        specifier: ^1.58.2
+        version: 1.58.2
       react:
         specifier: ^19.1.0
         version: 19.2.4
@@ -490,6 +493,22 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  prototypes/browser-grounding:
+    dependencies:
+      playwright:
+        specifier: ^1.48.0
+        version: 1.58.2
+    devDependencies:
+      '@types/node':
+        specifier: ^22.7.0
+        version: 22.19.11
+      tsx:
+        specifier: ^4.19.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+
   prototypes/desktop-mode:
     dependencies:
       '@ava/core':
@@ -501,6 +520,22 @@ importers:
         version: 4.21.0
       typescript:
         specifier: ^5.9.3
+        version: 5.9.3
+
+  prototypes/omni-parser:
+    dependencies:
+      playwright:
+        specifier: ^1.48.0
+        version: 1.58.2
+    devDependencies:
+      '@types/node':
+        specifier: ^22.7.0
+        version: 22.19.11
+      tsx:
+        specifier: ^4.19.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.6.0
         version: 5.9.3
 
 packages:
@@ -7799,11 +7834,11 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 25.3.0
+      '@types/node': 22.19.11
 
   '@types/yauzl@2.10.3':
     dependencies:
-      '@types/node': 25.3.0
+      '@types/node': 22.19.11
     optional: true
 
   '@typescript-eslint/eslint-plugin@8.56.0(@typescript-eslint/parser@8.56.0(eslint@10.0.1(jiti@2.6.1))(typescript@5.9.3))(eslint@10.0.1(jiti@2.6.1))(typescript@5.9.3)':
@@ -10442,7 +10477,7 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
-      '@types/node': 25.3.0
+      '@types/node': 22.19.11
       long: 5.3.2
 
   proxy-agent@6.5.0:

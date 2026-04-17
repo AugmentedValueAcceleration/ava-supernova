@@ -20,7 +20,7 @@ export class SwitchModeTool implements Tool {
       properties: {
         target_mode: {
           type: 'string',
-          enum: ['work', 'plan', 'chat', 'teach', 'security', 'brainstorm'],
+          enum: ['work', 'plan', 'chat', 'teach', 'security', 'brainstorm', 'desktop'],
           description: 'The mode to transition to',
         },
         reason: {

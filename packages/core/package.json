@@ -15,6 +15,11 @@
       "import": "./dist/docs/index.js",
       "require": "./dist/docs/index.js",
       "types": "./dist/docs/index.d.ts"
+    },
+    "./desktop": {
+      "import": "./dist/desktop/index.js",
+      "require": "./dist/desktop/index.js",
+      "types": "./dist/desktop/index.d.ts"
     }
   },
   "scripts": {
