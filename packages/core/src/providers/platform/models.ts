@@ -58,10 +58,10 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsVision: true,
     pricing: { inputPerMillion: 0.26, outputPerMillion: 1.56 },
   },
-  // Qwen Omni Flash — free accounts default
+  // Qwen 3.5 Omni Flash — multimodal fast-path (vision + audio)
   {
-    id: 'qwen3-omni-flash',
-    name: 'Qwen Omni Flash',
+    id: 'qwen3.5-omni-flash',
+    name: 'Qwen 3.5 Omni Flash',
     provider: 'platform',
     contextWindow: 256000,
     maxOutputTokens: 8192,
@@ -83,10 +83,10 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsVision: true,
     pricing: { inputPerMillion: 0.20, outputPerMillion: 1.20 },
   },
-  // Qwen Flash — fast, lightweight
+  // Qwen 3.5 Flash — fast, lightweight, text-only
   {
-    id: 'qwen-flash',
-    name: 'Qwen Flash',
+    id: 'qwen3.5-flash',
+    name: 'Qwen 3.5 Flash',
     provider: 'platform',
     contextWindow: 256000,
     maxOutputTokens: 8192,

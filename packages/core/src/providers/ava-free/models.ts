@@ -14,8 +14,8 @@ export const AVA_FREE_MODELS: ModelDefinition[] = [
     pricing: { inputPerMillion: 0, outputPerMillion: 0 },
   },
   {
-    id: 'qwen3-omni-flash',
-    name: 'Qwen Omni Flash (Free)',
+    id: 'qwen3.5-omni-flash',
+    name: 'Qwen 3.5 Omni Flash (Free)',
     provider: 'ava-free',
     contextWindow: 256000,
     maxOutputTokens: 8192,
@@ -49,8 +49,8 @@ export const AVA_FREE_MODELS: ModelDefinition[] = [
     pricing: { inputPerMillion: 0, outputPerMillion: 0 },
   },
   {
-    id: 'qwen-flash',
-    name: 'Qwen Flash (Free)',
+    id: 'qwen3.5-flash',
+    name: 'Qwen 3.5 Flash (Free)',
     provider: 'ava-free',
     contextWindow: 256000,
     maxOutputTokens: 8192,

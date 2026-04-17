@@ -30,7 +30,7 @@
 // ─── Common envelope ────────────────────────────────────────────────────────
 
 export type AvaSurface = 'cli' | 'extension' | 'ide' | 'companion';
-export type AvaMode = 'work' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm';
+export type AvaMode = 'work' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'desktop';
 
 /**
  * Every event carries this envelope. The discriminator is `event_type`;
@@ -178,7 +178,7 @@ export interface CorrectionReceivedPayload {
 export interface TaskClassificationPayload {
   input_signature: string;              // intent category, never raw user text
   classified_as: string;                // 'coding' | 'planning' | 'vision' | etc.
-  classifier_model: string;             // typically 'qwen-flash'
+  classifier_model: string;             // typically 'qwen3.5-flash'
   confidence?: number;
 }
 

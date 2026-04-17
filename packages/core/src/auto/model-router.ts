@@ -18,7 +18,7 @@ const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
   image_gen:    { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — image generation via generate_image tool', fallbackModelId: 'qwen3.5-omni-plus' },
   computer_use: { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — conductor plans, Holo3 executes', fallbackModelId: 'qwen3.5-omni-plus', requiresVision: true },
   planning:     { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — 1M context for architecture + planning', fallbackModelId: 'qwen3.5-omni-plus' },
-  chat:         { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — conversational with full context', fallbackModelId: 'qwen3-omni-flash' },
+  chat:         { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — conversational with full context', fallbackModelId: 'qwen3.5-flash' },
   long_context: { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — 1M context', fallbackModelId: 'qwen3.5-omni-plus' },
   teach:        { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — patient structured teaching', fallbackModelId: 'qwen3.5-omni-plus' },
   security:     { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — security analysis with full codebase context', fallbackModelId: 'qwen3.5-omni-plus' },
@@ -134,7 +134,7 @@ export class ModelRouter {
     // Platform models (preferred order: coding-capable first)
     if (this.hasPlatform) {
       // MiniMax excluded from reasoning fallback — reserved for creative generation
-      const platformModels = ['qwen3.6-plus', 'qwen3.5-omni-plus', 'qwen3-omni-flash', 'kimi-k2.5'];
+      const platformModels = ['qwen3.6-plus', 'qwen3.5-omni-plus', 'qwen3.5-omni-flash', 'qwen3.5-flash', 'kimi-k2.5'];
       for (const id of platformModels) {
         const result = this.providerRegistry.resolveModel(`platform:${id}`);
         if (result) return { modelId: `platform:${id}`, provider: result.provider, model: result.model, reason };
@@ -143,7 +143,7 @@ export class ModelRouter {
 
     // BYOK models (dynamic — try whatever providers are available, best first)
     // MiniMax excluded — reserved for creative generation only
-    const byokModels = ['kimi-k2.5', 'claude-sonnet-4-6', 'deepseek-chat', 'mistral-large-latest', 'qwen3.5-omni-plus', 'qwen3-omni-flash'];
+    const byokModels = ['kimi-k2.5', 'claude-sonnet-4-6', 'deepseek-chat', 'mistral-large-latest', 'qwen3.5-omni-plus', 'qwen3.5-omni-flash', 'qwen3.5-flash'];
     for (const id of byokModels) {
       const result = this.providerRegistry.resolveModel(id);
       if (result && this.isProviderAvailable(result.provider.name)) {

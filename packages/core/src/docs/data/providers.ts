@@ -27,13 +27,13 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'qwen',
     name: 'Qwen (Alibaba Cloud)',
     kind: 'managed',
-    notes: 'Qwen 3.6 Plus coordinates Auto Mode; Omni Flash is the free-tier default.',
+    notes: 'Qwen 3.6 Plus coordinates Auto Mode; 3.5 Flash and 3.5 Omni Flash are the fast-path options. All models available on every plan.',
     models: [
       { id: 'qwen3.6-plus', displayName: 'Qwen 3.6 Plus', inputPricePerM: 0.29, outputPricePerM: 1.70, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.5-omni-plus', displayName: 'Qwen 3.5 Omni Plus', inputPricePerM: 0.26, outputPricePerM: 1.56, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen3-omni-flash', displayName: 'Qwen Omni Flash', inputPricePerM: 0.065, outputPricePerM: 0.26, contextWindow: 256_000, capabilities: ['tools', 'vision', 'streaming'] },
+      { id: 'qwen3.5-omni-flash', displayName: 'Qwen 3.5 Omni Flash', inputPricePerM: 0.065, outputPricePerM: 0.26, contextWindow: 256_000, capabilities: ['tools', 'vision', 'streaming'] },
       { id: 'qwen3.5-plus', displayName: 'Qwen 3.5 Plus', inputPricePerM: 0.20, outputPricePerM: 1.20, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'qwen-flash', displayName: 'Qwen Flash', inputPricePerM: 0.05, outputPricePerM: 0.40, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
+      { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash', inputPricePerM: 0.05, outputPricePerM: 0.40, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
     ],
   },
   {

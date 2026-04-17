@@ -209,10 +209,11 @@ Grouped for the work you actually do:
 
 **Creative Studio** — runs MiniMax exclusively. Image, video, music, voice. Kept separate from the chat coordinator so creative work and code work never compete for the same context window.
 
-| Tier | Models |
+Every plan gets every model. Tiers differ only on monthly token allowance (Free 3M · Pro 15M · Ultra 40M · Enterprise 100M) — never on which models are available.
+
+| Source | Models |
 |---|---|
-| **Ava Free** | Qwen Omni Flash — **3M free tokens with an account** |
-| **Ava Platform** | Qwen 3.6 Plus, Qwen 3.5 Plus, Qwen 3.5 Omni Plus, Qwen Flash, MiniMax M2.7, MiniMax M2.5 |
+| **Ava Managed** | Qwen 3.6 Plus, Qwen 3.5 Plus, Qwen 3.5 Omni Plus, Qwen 3.5 Omni Flash, Qwen 3.5 Flash, MiniMax M2.7, MiniMax M2.5 |
 | **BYOK — Anthropic** | Claude Opus 4.6, Sonnet 4.6, Haiku 4.5 |
 | **BYOK — Moonshot** | Kimi K2.5 |
 | **BYOK — DeepSeek** | V3.2, Reasoner |

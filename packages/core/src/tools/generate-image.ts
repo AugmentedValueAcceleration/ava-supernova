@@ -104,7 +104,7 @@ export class GenerateImageTool implements Tool {
     if (activeModel.startsWith('qwen') || activeModel.startsWith('wan')) return 'wan2.6';
 
     // Platform models — check prefix
-    if (activeModel === 'qwen3-omni-flash' || activeModel === 'qwen3.5-omni-plus' || activeModel === 'qwen3.5-plus' || activeModel === 'qwen-flash') return 'wan2.6';
+    if (activeModel === 'qwen3.5-omni-flash' || activeModel === 'qwen3.5-omni-plus' || activeModel === 'qwen3.5-plus' || activeModel === 'qwen3.5-flash') return 'wan2.6';
 
     return null;
   }

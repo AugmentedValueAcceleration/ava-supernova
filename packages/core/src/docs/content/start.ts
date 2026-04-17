@@ -107,8 +107,8 @@ export const START_PAGES: DocPage[] = [
     body: [
       { type: 'paragraph', text: 'You do not need to pick the perfect model. You need to pick a model that works for today and switch later when you notice limits. Here is the short version:' },
       { type: 'list', ordered: false, items: [
-        'Just starting / free tier — Qwen Omni Flash is the default. Fast, cheap, good enough for most tasks. 3M tokens/month at no cost.',
-        'Serious coding work — Qwen 3.6 Plus is the agentic coding champion. Coordinates Auto Mode and drives multi-file work.',
+        'Lightweight / cheap tasks — Qwen 3.5 Flash. Fast, text-only, good enough for most day-to-day work. Free accounts get 3M tokens/month.',
+        'Serious coding work — Qwen 3.6 Plus is the agentic coding champion. Coordinates Auto Mode and drives multi-file work. Available on every plan.',
         'Best possible quality — bring your own Anthropic key and use Claude Opus 4.6. Higher cost, higher ceiling.',
         'Cheapest ceiling — bring your own DeepSeek key. Very capable, very low cost.',
       ]},

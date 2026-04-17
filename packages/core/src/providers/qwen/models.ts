@@ -26,8 +26,8 @@ export const QWEN_MODELS: ModelDefinition[] = [
     pricing: { inputPerMillion: 0.26, outputPerMillion: 1.56 },
   },
   {
-    id: 'qwen3-omni-flash',
-    name: 'Qwen Omni Flash',
+    id: 'qwen3.5-omni-flash',
+    name: 'Qwen 3.5 Omni Flash',
     provider: 'qwen',
     contextWindow: 256000,
     maxOutputTokens: 8192,
@@ -50,8 +50,8 @@ export const QWEN_MODELS: ModelDefinition[] = [
     pricing: { inputPerMillion: 0.20, outputPerMillion: 1.20 },
   },
   {
-    id: 'qwen-flash',
-    name: 'Qwen Flash',
+    id: 'qwen3.5-flash',
+    name: 'Qwen 3.5 Flash',
     provider: 'qwen',
     contextWindow: 256000,
     maxOutputTokens: 8192,

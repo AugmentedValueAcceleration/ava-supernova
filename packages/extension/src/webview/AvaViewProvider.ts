@@ -1353,9 +1353,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // curation. Shared by the Memory Agent (brief curation) and the
     // Intent Classifier (tool-use gate). Using one resolution keeps the
     // two wiring sites in lockstep.
-    const qwenFlash = this.providerRegistry.resolveModel('platform:qwen3-omni-flash')
-      || this.providerRegistry.resolveModel('platform:qwen-flash')
-      || this.providerRegistry.resolveModel('qwen:qwen3-omni-flash');
+    const qwenFlash = this.providerRegistry.resolveModel('platform:qwen3.5-flash')
+      || this.providerRegistry.resolveModel('platform:qwen3.5-omni-flash')
+      || this.providerRegistry.resolveModel('qwen:qwen3.5-flash');
 
     // Memory Agent — curates memory briefs instead of raw dumps
     if (qwenFlash && this.memoryManager) {

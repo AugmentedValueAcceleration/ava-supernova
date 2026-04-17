@@ -189,6 +189,26 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'test_run', 'ask_user',
     'switch_mode',
   ]),
+  // Desktop Automation mode. Two layers of hands:
+  //   - bash for launching apps, running shell one-shots
+  //   - browser_* for driving the visible Ava Chromium via DOM
+  // File-editing and coordinate-based native input are deliberately absent
+  // here — file changes go through Work mode, and native UIA input is a
+  // later layer behind the same bridge.
+  desktop: new Set([
+    'bash',
+    // Native desktop via UIA tree — stable selectors, not pixel coords.
+    // No desktop_screenshot or desktop_click_xy: those are computer-use
+    // cop-outs (vision + coordinate guessing) and the spec §2 calls them
+    // a failure mode. Ava must use tree/DOM-based targeting here.
+    'desktop_list_elements', 'desktop_click_by_name', 'desktop_focus_window',
+    'desktop_type', 'desktop_key_press',
+    // Browser automation via Playwright DOM — visible Chromium, stable.
+    'browser_navigate', 'browser_snapshot', 'browser_click', 'browser_type', 'browser_close',
+    // Light support
+    'web_search', 'memory_recall', 'ask_user', 'get_datetime',
+    'switch_mode',
+  ]),
 };
 
 function detectModeFromMessages(messages: Message[]): string | null {
@@ -200,6 +220,9 @@ function detectModeFromMessages(messages: Message[]): string | null {
     if (text.startsWith('[Plan Mode]')) return 'plan';
     if (text.startsWith('[Chat Mode]')) return 'chat';
     if (text.startsWith('[Brainstorm Mode]')) return 'brainstorm';
+    if (text.startsWith('[Teach Mode]')) return 'teach';
+    if (text.startsWith('[Security Audit Mode]')) return 'security';
+    if (text.startsWith('[Desktop Automation Mode]')) return 'desktop';
     break;
   }
   return null;
@@ -896,7 +919,7 @@ export class Agent {
             '- Qwen 3.6 Plus (best quality, 1M context)',
             '- Qwen 3.5 Plus (1M context)',
             '- Qwen 3.5 Omni Plus (multimodal)',
-            '- Qwen Omni Flash (free tier)',
+            '- Qwen 3.5 Omni Flash (multimodal, fast)',
             '- Kimi K2.5, GLM-5, Mistral Large, Claude (BYOK)',
           ].join('\n');
           if (textParts.length === 0) {

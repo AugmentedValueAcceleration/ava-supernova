@@ -16,8 +16,8 @@ import { avaEvents } from '../src/dataset/emitter.js';
 import type { AvaEvent } from '../src/dataset/events.js';
 
 const COORDINATOR_MODEL: ModelDefinition = {
-  id: 'qwen-flash',
-  name: 'Qwen Flash',
+  id: 'qwen3.5-flash',
+  name: 'Qwen 3.5 Flash',
   provider: 'mock-platform',
   contextWindow: 128000,
   maxOutputTokens: 4096,

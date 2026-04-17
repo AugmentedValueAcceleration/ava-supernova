@@ -164,9 +164,9 @@ async function main(): Promise<void> {
   };
 
   // Memory Agent — curates briefs instead of raw memory dumps
-  const qwenFlash = providerRegistry.resolveModel('platform:qwen3-omni-flash')
-    || providerRegistry.resolveModel('platform:qwen-flash')
-    || providerRegistry.resolveModel('qwen:qwen3-omni-flash');
+  const qwenFlash = providerRegistry.resolveModel('platform:qwen3.5-flash')
+    || providerRegistry.resolveModel('platform:qwen3.5-omni-flash')
+    || providerRegistry.resolveModel('qwen:qwen3.5-flash');
   if (qwenFlash && memoryManager) {
     const memoryAgent = new MemoryAgent({
       memoryManager,

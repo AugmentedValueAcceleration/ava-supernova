@@ -10,10 +10,10 @@ import type { ModelDefinition } from '../core/types.js';
  *
  * MiniMax is NEVER used as a coordinator — it is reserved exclusively for Creative Studio.
  *
- * Priority (all coordinator-eligible models must be 1M context to avoid fallback cliffs):
- *   Platform paid  → Qwen 3.6 Plus (1M) → Qwen 3.5 Plus (1M)
- *   Platform free  → Qwen Omni Flash
- *   BYOK           → Claude > Kimi > DeepSeek > Mistral > Qwen Plus > Qwen Flash
+ * Priority (all coordinator-eligible Plus models are 1M context; Flash tiers are 256K).
+ * Every plan has access to every model — tier differs by token allowance, not model access.
+ *   Platform  → Qwen 3.6 Plus (1M) → Qwen 3.5 Plus (1M) → Qwen 3.5 Flash (256K)
+ *   BYOK      → Claude > Kimi > DeepSeek > Mistral > Qwen Plus > Qwen Flash
  */
 
 export interface CoordinatorModelResult {
@@ -27,7 +27,7 @@ export interface CoordinatorModelResult {
 const PLATFORM_PRIORITY = [
   { id: 'qwen3.6-plus',     reason: 'Qwen 3.6 Plus — best agentic coding, 1M context, native function calling' },
   { id: 'qwen3.5-plus',     reason: 'Qwen 3.5 Plus — 1M context fallback conductor' },
-  { id: 'qwen3-omni-flash', reason: 'Qwen Omni Flash — free tier default' },
+  { id: 'qwen3.5-flash',    reason: 'Qwen 3.5 Flash — lightweight fallback' },
 ];
 
 const BYOK_PRIORITY = [
@@ -37,7 +37,7 @@ const BYOK_PRIORITY = [
   { id: 'deepseek-chat',        reason: 'DeepSeek — capable coding model' },
   { id: 'mistral-large-latest', reason: 'Mistral Large — reasoning fallback' },
   { id: 'qwen3.5-plus',         reason: 'Qwen 3.5 Plus — 1M context fallback' },
-  { id: 'qwen3-omni-flash',     reason: 'Qwen Omni Flash — lightweight fallback' },
+  { id: 'qwen3.5-flash',        reason: 'Qwen 3.5 Flash — lightweight fallback' },
 ];
 
 export function resolveCoordinatorModel(
