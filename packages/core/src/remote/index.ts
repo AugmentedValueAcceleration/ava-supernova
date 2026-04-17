@@ -11,6 +11,9 @@ export {
   RECONNECT_SHORT_MS,
 } from './schema.js';
 
+export { RemoteClient, makeMessage, dispatch } from './client.js';
+export type { ChannelTransport, RemoteClientOptions, MessageHandlers } from './client.js';
+
 export type {
   DesktopCapability,
   SessionRegister,

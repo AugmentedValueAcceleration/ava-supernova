@@ -891,7 +891,7 @@ Check items off as you complete them. Update status header at top of this doc wh
 - [x] C2. Executor layer (Playwright actions, UIA invoke, mouse/keyboard)
 - [x] C3. Conductor wave orchestration for per-step personas
 - [x] C4. Session whitelist + budget enforcement gates
-- [ ] C5. Supabase realtime client for companion pairing
+- [x] C5. Supabase realtime client for companion pairing
 
 ### Phase D — IDE frontend
 

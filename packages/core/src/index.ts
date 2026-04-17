@@ -293,12 +293,14 @@ export type { GenerationJob, GenerationType, GenerationStatus, GenerationEventHa
 export {
   channelName, HEARTBEAT_INTERVAL_MS, SESSION_TIMEOUT_MS,
   APPROVAL_FALLBACK_TIMEOUT_MS, RECONNECT_SHORT_MS,
+  RemoteClient, makeMessage, dispatch,
 } from './remote/index.js';
 export type {
   DesktopCapability, SessionRegister, SessionHeartbeat, SessionEnd,
   PairRequest, PairGrant, PairDeny, PairTakeback,
   TrajStep, TrajIntent, ApprovalRequest, ApprovalResponse,
   KillMessage, NotifyMessage, RemoteMessage, RemoteMessageType,
+  ChannelTransport, RemoteClientOptions, MessageHandlers,
 } from './remote/index.js';
 
 // Constants & Errors
