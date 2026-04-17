@@ -22,6 +22,21 @@ export type DesktopApprovalHandler = (
   classification: ClassificationResult,
 ) => Promise<boolean>;
 
+export interface ActivePlanStep {
+  description: string;
+}
+
+export interface ActivePlan {
+  id: string;
+  summary: string;
+  steps: ActivePlanStep[];
+  /** Epoch ms. Used by the gate to enforce a TTL so a forgotten plan can't
+   *  blanket-approve actions indefinitely. */
+  approvedAt: number;
+  /** ms — typically 5 minutes. Gate rejects a plan older than this. */
+  ttlMs: number;
+}
+
 export interface DesktopSafetyState {
   /** 'watch' | 'ask' | 'drive'. Default 'ask' if absent. */
   desktopPermissionLevel?: PermissionLevel;
@@ -31,6 +46,18 @@ export interface DesktopSafetyState {
   desktopApprovalHandler?: DesktopApprovalHandler;
   /** Budget tracker for the current desktop session. When absent, ticking is skipped. */
   desktopBudget?: BudgetTracker;
+  /** Currently-approved trajectory plan. While set and un-expired, the gate
+   *  auto-approves mutative-reversible actions — the user already approved
+   *  the whole sequence up front. Irreversible actions still prompt fresh,
+   *  per spec. Set by desktop_plan_approve, cleared on new user turn,
+   *  irreversible hit, or TTL expiry. */
+  desktopActivePlan?: ActivePlan | null;
+  /** Number of mutative actions that have already been approved in the
+   *  current turn. The gate uses this to enforce the plan-first rule: if
+   *  Ava ignored the system prompt and is about to take action #2 with no
+   *  active plan, we return an educational error so she corrects on the
+   *  next loop. Reset to 0 on every new user message in the sidecar. */
+  desktopMutativeActionsThisTurn?: number;
 }
 
 export interface GateOutcome {
@@ -91,6 +118,44 @@ export async function gateDesktopAction(
   }
 
   if (decision.requiresApproval) {
+    // Trajectory-plan short-circuit: if the user already approved a plan
+    // that covers reversible actions, auto-approve here. Irreversible
+    // actions NEVER short-circuit on a plan — spec rule, they always
+    // prompt fresh. An irreversible hit ALSO invalidates the plan so
+    // subsequent reversible steps have to re-approve too (prevents a
+    // dangerous action mid-plan from silently continuing).
+    if (
+      classification.riskClass === 'mutative-reversible' &&
+      state.desktopActivePlan &&
+      Date.now() - state.desktopActivePlan.approvedAt < state.desktopActivePlan.ttlMs
+    ) {
+      return { allowed: true, classification };
+    }
+    if (classification.riskClass === 'mutative-irreversible' && state.desktopActivePlan) {
+      // Invalidate the plan — an irreversible action ends the batch
+      state.desktopActivePlan = null;
+    }
+
+    // Plan-first enforcement: EVERY mutative-reversible action requires
+    // an active plan. No exceptions for the first action, no "ceremony"
+    // exemption for single-step plans. This gives the user exactly one
+    // approval per task (the plan card) and all the reversible follow-ups
+    // run silently under it. Irreversible actions are exempt from the
+    // plan requirement — they always prompt individually per spec, and
+    // forcing a plan for an irreversible-only task would just add an
+    // extra prompt without helping.
+    if (classification.riskClass === 'mutative-reversible' && !state.desktopActivePlan) {
+      return {
+        allowed: false,
+        classification,
+        blockedOutput:
+          `This is a mutative action and there's no approved plan yet. ` +
+          `Call desktop_plan_approve({ summary, steps }) FIRST with every action you intend to take (including this one). ` +
+          `The user will see one approval card for the whole task; after they approve, reversible actions run silently. ` +
+          `Irreversible actions still prompt individually.`,
+      };
+    }
+
     const handler = state.desktopApprovalHandler;
     if (!handler) {
       // Fail closed — if the host can't prompt, we don't assume consent.

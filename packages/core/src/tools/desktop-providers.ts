@@ -61,3 +61,13 @@ export interface BrowserProvider {
   key(key: string): Promise<void>;
   close(): Promise<void>;
 }
+
+export interface AppLauncherProvider {
+  /**
+   * Launch a named executable or full path. The host MUST reject shell
+   * interpreters and admin / registry tools by basename — this is the
+   * trust boundary, not a convenience. No shell interpolation, no args
+   * string, no env injection.
+   */
+  launch(app: string): Promise<{ pid?: number; launched: string }>;
+}

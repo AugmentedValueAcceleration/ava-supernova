@@ -12,6 +12,7 @@ export class DesktopClickByNameTool implements Tool {
   // and prompts the user only when the dynamic class demands it.
   readonly riskLevel: ToolRiskLevel = 'dangerous';
   readonly requiresConfirmation = false;
+  readonly usesDynamicConfirmation = true;
 
   readonly schema: FunctionSchema = {
     name: 'desktop_click_by_name',

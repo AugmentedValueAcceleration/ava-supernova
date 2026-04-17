@@ -79,6 +79,8 @@ import { DesktopClickByNameTool } from './desktop-click-by-name.js';
 import { DesktopFocusWindowTool } from './desktop-focus-window.js';
 import { DesktopTypeTool } from './desktop-type.js';
 import { DesktopKeyPressTool } from './desktop-key-press.js';
+import { DesktopLaunchAppTool } from './desktop-launch-app.js';
+import { DesktopPlanApproveTool } from './desktop-plan-approve.js';
 import { BrowserNavigateTool } from './browser-navigate.js';
 import { BrowserSnapshotTool } from './browser-snapshot.js';
 import { BrowserClickTool } from './browser-click.js';
@@ -117,6 +119,8 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   ask_user: 'system', support_request: 'system', propose_tool: 'system',
   curator: 'system',
   // Desktop automation (Desktop mode) — UIA tree + input via Tauri
+  desktop_plan_approve: 'system',
+  desktop_launch_app: 'system',
   desktop_list_elements: 'system', desktop_click_by_name: 'system',
   desktop_focus_window: 'system', desktop_type: 'system',
   desktop_key_press: 'system',
@@ -382,6 +386,8 @@ export class ToolRegistry {
       new SecretRequestTool(),
       new EnvWriteTool(),
       // Desktop automation — native (UIA) + browser (Playwright DOM)
+      new DesktopPlanApproveTool(),
+      new DesktopLaunchAppTool(),
       new DesktopListElementsTool(),
       new DesktopClickByNameTool(),
       new DesktopFocusWindowTool(),
@@ -457,6 +463,11 @@ export class ToolRegistry {
   needsConfirmation(tool: Tool): boolean {
     // Plans, ask_user, and switch_mode always require confirmation — collaboration checkpoints
     if (tool.name === 'present_plan' || tool.name === 'ask_user' || tool.name === 'switch_mode') return true;
+
+    // Tools that handle approval inside their own execute() (desktop-safety-gate
+    // pattern) skip the generic flow — they carry richer per-invocation
+    // classification and prompting here would double-ask the user.
+    if (tool.usesDynamicConfirmation) return false;
 
     // Safe tools never require confirmation — they have no real-world side effects.
     // This honors the riskLevel contract from types.ts and prevents safe tools like

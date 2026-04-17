@@ -190,13 +190,18 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'switch_mode',
   ]),
   // Desktop Automation mode. Two layers of hands:
-  //   - bash for launching apps, running shell one-shots
+  //   - desktop_launch_app to open apps (denylist-scoped — no shell)
+  //   - desktop_* for UIA-tree targeting of native windows
   //   - browser_* for driving the visible Ava Chromium via DOM
   // File-editing and coordinate-based native input are deliberately absent
-  // here — file changes go through Work mode, and native UIA input is a
-  // later layer behind the same bridge.
+  // here — file changes go through Work mode, and native UIA input is the
+  // stable targeting layer. `bash` is intentionally OUT: it's too broad
+  // for this surface and gives the model an escape hatch we don't want.
   desktop: new Set([
-    'bash',
+    // Trajectory-level plan approval (one card, many steps)
+    'desktop_plan_approve',
+    // Launch apps — scoped, no shell interpreter
+    'desktop_launch_app',
     // Native desktop via UIA tree — stable selectors, not pixel coords.
     // No desktop_screenshot or desktop_click_xy: those are computer-use
     // cop-outs (vision + coordinate guessing) and the spec §2 calls them

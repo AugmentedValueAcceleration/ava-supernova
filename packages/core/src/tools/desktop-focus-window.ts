@@ -7,6 +7,12 @@ export class DesktopFocusWindowTool implements Tool {
   readonly description = 'Bring a window to the foreground by its title (partial, case-insensitive match).';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = false;
+  // Focusing a window is navigational — no data mutation, no prompt needed.
+  // We bypass the generic category-level confirmation ("system" category
+  // defaults to always_ask in balanced mode) the same way the gated tools
+  // do. No gateDesktopAction call either — nav actions auto-approve across
+  // the board per the safety ontology.
+  readonly usesDynamicConfirmation = true;
 
   readonly schema: FunctionSchema = {
     name: 'desktop_focus_window',

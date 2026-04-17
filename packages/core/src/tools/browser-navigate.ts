@@ -8,6 +8,7 @@ export class BrowserNavigateTool implements Tool {
   readonly description = 'Open a URL in the Ava-driven browser window (visible, persistent).';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = false;
+  readonly usesDynamicConfirmation = true;
 
   readonly schema: FunctionSchema = {
     name: 'browser_navigate',

@@ -8,6 +8,7 @@ export class BrowserClickTool implements Tool {
   readonly description = 'Click an element on the current browser page by CSS selector (from browser_snapshot).';
   readonly riskLevel: ToolRiskLevel = 'dangerous';
   readonly requiresConfirmation = false;
+  readonly usesDynamicConfirmation = true;
 
   readonly schema: FunctionSchema = {
     name: 'browser_click',

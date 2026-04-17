@@ -272,6 +272,7 @@ export type {
   UIAElement, UIAProvider,
   InputProvider,
   BrowserSnapshotElement, BrowserSnapshot, BrowserProvider,
+  AppLauncherProvider,
 } from './tools/desktop-providers.js';
 
 // Desktop-automation safety gate — hosts populate desktopApprovalHandler

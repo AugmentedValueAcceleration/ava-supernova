@@ -10,6 +10,7 @@ export class DesktopTypeTool implements Tool {
   readonly description = 'Type text into the currently focused native UI element.';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = false;
+  readonly usesDynamicConfirmation = true;
 
   readonly schema: FunctionSchema = {
     name: 'desktop_type',

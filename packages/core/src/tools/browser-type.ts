@@ -10,6 +10,7 @@ export class BrowserTypeTool implements Tool {
   readonly description = 'Type text into the currently focused browser input (focus it with browser_click first).';
   readonly riskLevel: ToolRiskLevel = 'write';
   readonly requiresConfirmation = false;
+  readonly usesDynamicConfirmation = true;
 
   readonly schema: FunctionSchema = {
     name: 'browser_type',

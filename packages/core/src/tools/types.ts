@@ -59,6 +59,14 @@ export interface Tool {
   readonly riskLevel: ToolRiskLevel;
   /** @deprecated Use riskLevel instead. Kept for backwards compat. */
   readonly requiresConfirmation: boolean;
+  /**
+   * When true, the tool handles approval inside its own execute() (e.g. the
+   * desktop-safety-gate pattern) and the generic ToolRegistry confirmation
+   * flow is skipped. Avoids double-prompting the user when per-invocation
+   * classification is richer than static category-level permission.
+   * Default: false.
+   */
+  readonly usesDynamicConfirmation?: boolean;
   execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult>;
 }
 

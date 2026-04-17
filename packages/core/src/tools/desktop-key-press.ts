@@ -31,6 +31,7 @@ export class DesktopKeyPressTool implements Tool {
   readonly description = 'Press a named key or key combination on the focused window (e.g. "Enter", "ctrl+s", "alt+f4").';
   readonly riskLevel: ToolRiskLevel = 'dangerous';
   readonly requiresConfirmation = false;
+  readonly usesDynamicConfirmation = true;
 
   readonly schema: FunctionSchema = {
     name: 'desktop_key_press',
