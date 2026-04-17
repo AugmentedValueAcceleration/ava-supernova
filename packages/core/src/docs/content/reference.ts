@@ -155,4 +155,52 @@ export const REFERENCE_PAGES: DocPage[] = [
       { type: 'callout', variant: 'tip', text: 'Put conventions in instructions.md. Put notes in context.md. Let memory capture the rest on its own.' },
     ],
   },
+
+  // ── Desktop Automation (Preview) reference ──────────────────────────────
+
+  {
+    id: 'reference.desktop-budget',
+    title: 'Desktop budget caps (Preview)',
+    audience: ['both'],
+    surfaces: ['web', 'ide'],
+    order: 500,
+    section: 'reference',
+    body: [
+      { type: 'callout', variant: 'warning', text: 'Preview — budget limits for desktop automation trajectories. Numbers may adjust at launch.' },
+      { type: 'paragraph', text: 'Every trajectory runs under three simultaneous caps. The first one hit wins. The trajectory never silently continues past a breach — Narrator pauses and asks what to do.' },
+      { type: 'heading', level: 3, text: 'Three hard caps (default)' },
+      { type: 'list', ordered: false, items: [
+        'Step count — 30 steps',
+        'Token budget — 500,000 tokens',
+        'Wall-clock — 5 minutes',
+      ]},
+      { type: 'heading', level: 3, text: 'Task cost bands' },
+      { type: 'list', ordered: false, items: [
+        'Simple (search docs, open a page) — 5–10 steps, ~70–135K tokens, ~$0.04–0.08',
+        'Medium (log in, check logs, download output) — 15–25 steps, ~205–340K tokens, ~$0.12–0.21',
+        'Complex (triage three GitHub issues) — 25–30 steps, ~340–410K tokens, ~$0.21–0.25',
+      ]},
+      { type: 'paragraph', text: 'Free tier includes 3M tokens monthly — roughly 15 medium tasks or 21 complex ones if you only use desktop automation. Mixed use (chat + code + a few automations) is comfortable.' },
+      { type: 'callout', variant: 'tip', text: 'You can override caps per-task at start, but breaches always surface a decision point. Budget is never silently burned.' },
+    ],
+  },
+
+  {
+    id: 'reference.desktop-whitelist',
+    title: 'Desktop session whitelist (Preview)',
+    audience: ['both'],
+    surfaces: ['web', 'ide'],
+    order: 510,
+    section: 'reference',
+    body: [
+      { type: 'callout', variant: 'warning', text: 'Preview — scoped app/site permissions for desktop trajectories.' },
+      { type: 'paragraph', text: 'At mode entry Ava asks where she is allowed to act. Natural language works: "Gmail, Cursor, the Azure portal." She parses and confirms the match ("Gmail web, Cursor the app, portal.azure.com").' },
+      { type: 'heading', level: 3, text: 'How it enforces' },
+      { type: 'paragraph', text: 'Observational actions (screenshots, reading the UIA tree) are allowed everywhere — you need to see what is on screen to decide whether to add an app to the whitelist. Mutative actions are blocked outside the list; Ava pauses and asks whether to add it.' },
+      { type: 'heading', level: 3, text: 'Session-scoped, deliberately' },
+      { type: 'paragraph', text: 'The whitelist does NOT persist across sessions. There is no "remember this app" option. Every new trajectory starts with a fresh scope. Inconvenient by design — forgetting to reauthorise is a feature, not a bug.' },
+      { type: 'heading', level: 3, text: 'Mid-trajectory additions' },
+      { type: 'paragraph', text: 'During a trajectory you can add apps from the header: "+ Allow app" opens a small input. Tap Add and the new app is live for the rest of the session.' },
+    ],
+  },
 ];

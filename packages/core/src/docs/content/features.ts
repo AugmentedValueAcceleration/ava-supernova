@@ -147,4 +147,22 @@ export const FEATURE_PAGES: DocPage[] = [
       { type: 'paragraph', text: 'In-app changelog. Every shipped version with its highlights, bug fixes, and breaking changes. The web surface maintains the public version at ava-supernova.com/releases.' },
     ],
   },
+  {
+    id: 'features.desktop-automation',
+    title: 'Desktop Automation (Preview)',
+    audience: ['both'],
+    surfaces: ['web', 'ide'],
+    order: 120,
+    section: 'features',
+    body: [
+      { type: 'callout', variant: 'warning', text: 'In development — described here for reference. Not yet available in any release. The underlying foundations (safety ontology, persona system, Playwright and OmniParser integrations, kill switches) are all built, but end-to-end trajectories are still being wired up.' },
+      { type: 'paragraph', text: 'A new mode for Ava, prefix @@. She observes the desktop, decides what to do, and drives UI automation to get it done. Runs on your actual machine with your actual credentials — not a cloud browser. Available on every tier once shipped.' },
+      { type: 'heading', level: 3, text: 'Why another one' },
+      { type: 'paragraph', text: 'Every other desktop-automation product is something you start when you\'re at your desk. Ava is the one that\'s still there when your error tracker fires at 2am — IDE keeps running, your phone pairs over a secure channel, you approve irreversibles with a tap.' },
+      { type: 'paragraph', text: 'She also remembers how to navigate your apps across sessions. Every other agent relearns them every time. The memory differentiator compounds with use.' },
+      { type: 'heading', level: 3, text: 'How it works' },
+      { type: 'paragraph', text: 'Each step runs a five-persona wave: Scout observes, Planner picks the next action, Actor executes, Verifier checks, Narrator tells you what happened. The sidecar chooses the cheapest reliable grounding — UIA for native apps, Playwright for browsers, OmniParser vision when nothing else has a useful tree.' },
+      { type: 'paragraph', text: 'See the concepts pages for safety ontology, grounding hierarchy, kill switches, and the session whitelist model.' },
+    ],
+  },
 ];

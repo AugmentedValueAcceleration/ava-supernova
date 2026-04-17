@@ -913,9 +913,9 @@ Check items off as you complete them. Update status header at top of this doc wh
 ### Phase F — Platform / web
 
 - [ ] F1. OmniParser v2 hosted endpoint
-- [ ] F2. OmniParser billing hook (10K-unit-per-call deduction)
-- [ ] F3. Public `/desktop-automation` feature page
-- [ ] F4. Docs corpus pages for each sub-spec
+- [x] F2. OmniParser billing hook (10K-unit-per-call deduction)
+- [x] F3. Public `/desktop-automation` feature page
+- [x] F4. Docs corpus pages for each sub-spec
 
 ### Phase G — Post-v1.0 watchers
 
