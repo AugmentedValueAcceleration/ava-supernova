@@ -251,6 +251,10 @@ export {
   BudgetTracker, estimateCost, DEFAULT_BUDGET,
   DESKTOP_SCOUT, DESKTOP_PLANNER, DESKTOP_ACTOR, DESKTOP_VERIFIER, DESKTOP_NARRATOR,
   DESKTOP_PERSONAS, DESKTOP_WAVE_ORDER, ESTIMATED_TOKENS_PER_STEP,
+  GroundingLayer, DEFAULT_GROUNDING_CONFIG,
+  ExecutorLayer,
+  DesktopConductor,
+  runGates,
 } from './desktop/index.js';
 export type {
   RiskClass, PermissionLevel, ActionClassificationInput, ClassificationResult as SafetyClassificationResult, ApprovalDecision,
@@ -260,6 +264,10 @@ export type {
   ActionKind, ProposedAction, ExecutionResult,
   VerificationStatus, VerificationResult, UserUpdate,
   TrajectoryStep as DesktopTrajectoryStep, Trajectory,
+  GroundingBackend, GroundingConfig, GroundingResult,
+  ExecutorBackend,
+  DesktopConductorEvent, DesktopConductorEventHandler, PersonaLLM, ApprovalHandler, DesktopConductorConfig,
+  GateVerdict, GateResult, GateConfig,
 } from './desktop/index.js';
 
 // Dataset (legacy — kept for compat, currently unused in hot path)
