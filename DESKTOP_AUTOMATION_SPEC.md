@@ -879,11 +879,11 @@ Check items off as you complete them. Update status header at top of this doc wh
 
 ### Phase B — Rust / native layer
 
-- [ ] B1. UIA bridge restored from reverted Agent S3 commit
-- [ ] B2. Input simulation + screen capture (enigo + Desktop Duplication API)
+- [x] B1. UIA bridge restored from reverted Agent S3 commit
+- [x] B2. Input simulation + screen capture (enigo + Desktop Duplication API)
 - [ ] B3. Playwright subprocess lifecycle management
 - [ ] B4. Ava profile encryption (OS keychain)
-- [ ] B5. Tray mode + panic kill global hotkey
+- [x] B5. Tray mode + panic kill global hotkey
 
 ### Phase C — Sidecar orchestration
 
