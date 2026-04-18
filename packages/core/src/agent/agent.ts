@@ -213,6 +213,12 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // Light support
     'web_search', 'memory_recall', 'ask_user', 'get_datetime',
     'switch_mode',
+    // Capability-style secret grant — required so Ava can fetch a
+    // {{secret:<id>}} handle when the safety gate blocks typing into
+    // a sensitive field. Without this in the allowlist the fix below
+    // would be a dead end — Ava would be told to call secret_request
+    // but the registry would reject the call for being out-of-mode.
+    'secret_request',
   ]),
 };
 

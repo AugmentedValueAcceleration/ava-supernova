@@ -117,6 +117,42 @@ export async function gateDesktopAction(
     };
   }
 
+  // Secret-handle guard — runs BEFORE approval logic because no amount
+  // of user approval should let raw credentials flow through a text arg.
+  // When the classifier flags a sensitive field (password, secret, token,
+  // API key, 2FA code — either by `isMaskedField` or by field-name
+  // pattern match), the `text` value must be a `{{secret:<id>}}` handle
+  // returned by `secret_request`. The host substitutes the real value at
+  // execution time, so the actual credential never enters the model's
+  // tool args or reasoning history.
+  //
+  // If Ava tries to pass raw text into a sensitive field, block with an
+  // educational error. She'll see it in her next loop and call
+  // secret_request for a handle, then retry the tool.
+  if (classification.requiresSecretHandle) {
+    const text = typeof args.text === 'string' ? args.text : '';
+    const hasSecretHandle = /\{\{secret:[^}\s]+\}\}/.test(text);
+    if (!hasSecretHandle) {
+      return {
+        allowed: false,
+        classification,
+        blockedOutput:
+          `This field is sensitive (${classification.reasons.join('; ') || 'password / secret / token'}). ` +
+          `Do NOT type raw credentials into it. Choose ONE of:\n\n` +
+          `(A) Vault flow — preferred when available:\n` +
+          `  1. Call secret_request({ label: "<what this is>", reason: "<why you need it>" }).\n` +
+          `  2. The user picks a vault entry; you receive an opaque handle like {{secret:abc123}}.\n` +
+          `  3. Call this tool again with text: "{{secret:abc123}}" (just the handle — nothing else).\n` +
+          `  4. The host substitutes the real value at execution time. The credential never appears in your tool args, thinking, or chat history.\n\n` +
+          `(B) User-types-it themselves — use this if secret_request returns "vault not available":\n` +
+          `  1. Stop trying to type into the field.\n` +
+          `  2. Tell the user plainly: "I'll let you type that one — it's a sensitive field and I shouldn't handle raw credentials."\n` +
+          `  3. Wait for them to continue the task or give you the next step.\n` +
+          `  DO NOT ask the user to paste the credential into chat — that puts it in conversation history, same problem.`,
+      };
+    }
+  }
+
   if (decision.requiresApproval) {
     // Trajectory-plan short-circuit: if the user already approved a plan
     // that covers reversible actions, auto-approve here. Irreversible
