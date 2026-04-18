@@ -2606,6 +2606,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       const conductorMode = modeMap[mode] || 'work';
 
       if (this.conductor && this.conductor.needsOrchestration(text, conductorMode)) {
+        // Depth detection happens inside orchestrate() based on the user
+        // message — light by default (saves ~3-5K tokens per skipped
+        // persona), full when the user asks for "comprehensive review",
+        // "full team", "deep audit", etc. Plan + Teach ignore this since
+        // their persona counts are already at intended minimum.
         this.log(`Conductor: orchestrating ${conductorMode} team for: "${text.slice(0, 60)}"`);
         this.postMessage({ type: 'conductor_status', active: true, mode: conductorMode });
 

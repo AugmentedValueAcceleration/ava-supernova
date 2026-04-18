@@ -14,7 +14,37 @@ import type {
   ConductorEventHandler,
   PersonaId,
 } from './types.js';
-import { MODE_PERSONAS } from './definitions.js';
+import { MODE_PERSONAS, MODE_PERSONAS_LIGHT } from './definitions.js';
+
+/**
+ * How much of the persona pipeline to run.
+ *
+ * - `light` (default) — minimum viable team for the mode. Saves ~3-5K tokens
+ *   per persona skipped. Fine for typical requests.
+ * - `full` — the complete pipeline defined in MODE_PERSONAS. User opts in
+ *   when the task actually needs all of it ("comprehensive review", "full
+ *   audit", etc.). Security + Work especially have a long tail of personas
+ *   that only matter for the heaviest tasks.
+ *
+ * Modes without a light variant (plan, teach) ignore this option — their
+ * full team is already their intended minimum.
+ */
+export type ConductorDepth = 'light' | 'full';
+
+/**
+ * Detect whether the user's message asks for the full persona team. The
+ * signal has to be explicit — brevity / ambiguity defaults to 'light' so
+ * tokens stay low unless someone genuinely wants the deep pipeline.
+ */
+export function detectConductorDepth(userMessage: string): ConductorDepth {
+  const msg = userMessage.toLowerCase();
+  const fullDepthSignals = [
+    /\b(full (team|audit|review|analysis)|comprehensive (review|audit|analysis))\b/,
+    /\b(run the full (team|pipeline|personas?)|deep (audit|review|dive|analysis))\b/,
+    /\b(exhaustive|thorough review|complete analysis)\b/,
+  ];
+  return fullDepthSignals.some((re) => re.test(msg)) ? 'full' : 'light';
+}
 import { logger } from '../core/logger.js';
 import { avaEvents } from '../dataset/emitter.js';
 
@@ -95,9 +125,16 @@ export class Conductor {
   }
 
   /**
-   * Get the persona team for a given mode.
+   * Get the persona team for a given mode. Defaults to the light variant
+   * when one is defined for the mode — callers opt into the full team by
+   * passing `'full'` (detected from user keywords upstream). Modes without
+   * a light variant (plan, teach) return their full team unchanged since
+   * they're already at their intended minimum.
    */
-  getTeam(mode: string): PersonaDefinition[] {
+  getTeam(mode: string, depth: ConductorDepth = 'light'): PersonaDefinition[] {
+    if (depth === 'light' && MODE_PERSONAS_LIGHT[mode]) {
+      return MODE_PERSONAS_LIGHT[mode];
+    }
     return MODE_PERSONAS[mode] || [];
   }
 
@@ -114,8 +151,13 @@ export class Conductor {
     conversationHistory: Message[],
     onEvent: ConductorEventHandler,
     signal?: AbortSignal,
+    options?: { depth?: ConductorDepth },
   ): Promise<{ contextPool: ContextPool; personaStates: PersonaState[]; synthesisPrompt: string }> {
-    const team = this.getTeam(mode);
+    // Prefer explicit caller choice; otherwise detect from the message. An
+    // explicit 'full' always wins — a caller that sets it has already made
+    // the decision and shouldn't be overridden by keyword heuristics.
+    const depth: ConductorDepth = options?.depth ?? detectConductorDepth(userMessage);
+    const team = this.getTeam(mode, depth);
     if (team.length === 0) {
       return {
         contextPool: this.createEmptyPool(userMessage),

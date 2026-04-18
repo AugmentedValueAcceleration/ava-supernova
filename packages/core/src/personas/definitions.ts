@@ -597,6 +597,8 @@ Turn "interesting idea" into "here's what you do Monday morning."`,
 
 // ── Persona collections per mode ───────────────────────────────────────────
 
+// ── Full persona teams — the complete pipeline per mode ───────────────────
+
 export const WORK_PERSONAS: PersonaDefinition[] = [
   SCOUT, ARCHITECT, VERIFIER, SEQUENCER, CHALLENGER, BUILDER,
   TESTER, CODE_REVIEWER, DESIGN_REVIEWER,
@@ -618,7 +620,28 @@ export const BRAINSTORM_PERSONAS: PersonaDefinition[] = [
   EXPLORER, RESEARCHER, IDEATOR, CHALLENGER, REFINER,
 ];
 
-/** Map mode names to their persona teams */
+// ── Light persona teams — default pairing when depth !== 'full' ───────────
+// The minimum viable pipeline that still honours the mode's intent. Users
+// opt into the full team via keywords ("full team", "comprehensive review",
+// "deep audit", etc.) — see Conductor depth detection. Token cost drops by
+// roughly persona-count × 3-5K on every orchestrated turn that doesn't ask
+// for depth. Plan + Teach are intentionally omitted here: Plan is already
+// 3 personas (can't get lighter without breaking the feature), and Teach's
+// 5-stage curriculum pipeline is the product itself.
+
+export const WORK_PERSONAS_LIGHT: PersonaDefinition[] = [
+  SCOUT, ARCHITECT, CHALLENGER, BUILDER,
+];
+
+export const SECURITY_PERSONAS_LIGHT: PersonaDefinition[] = [
+  RECON, SCANNER, SECURITY_REPORTER,
+];
+
+export const BRAINSTORM_PERSONAS_LIGHT: PersonaDefinition[] = [
+  EXPLORER, IDEATOR, CHALLENGER,
+];
+
+/** Map mode names to their full persona teams. */
 export const MODE_PERSONAS: Record<string, PersonaDefinition[]> = {
   work: WORK_PERSONAS,
   plan: PLAN_PERSONAS,
@@ -626,4 +649,16 @@ export const MODE_PERSONAS: Record<string, PersonaDefinition[]> = {
   security: SECURITY_PERSONAS,
   brainstorm: BRAINSTORM_PERSONAS,
   // Chat mode has no personas — it's just Ava being a friend
+};
+
+/**
+ * Map mode names to their light persona teams. Used by default unless the
+ * caller signals full-depth via keyword or explicit option. Modes not in
+ * this map (plan, teach) have no light variant — they fall back to the
+ * full team from MODE_PERSONAS, which is already their intended size.
+ */
+export const MODE_PERSONAS_LIGHT: Record<string, PersonaDefinition[]> = {
+  work: WORK_PERSONAS_LIGHT,
+  security: SECURITY_PERSONAS_LIGHT,
+  brainstorm: BRAINSTORM_PERSONAS_LIGHT,
 };
