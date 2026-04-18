@@ -1906,6 +1906,29 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         await this.handleUserMessage(message.text, message.mode, message.attachments);
         break;
 
+      case 'retry_after_error':
+        // Repair the live conversation BEFORE issuing another request.
+        // A 400 typically leaves orphan tool_calls or mismatched tool
+        // results in history — sending an untouched retry would just
+        // hit the same 400. Agent.repairMessages runs fixToolPairing
+        // on the stored messages and replaces them with the cleaned
+        // set, so the next request goes out in a legal shape.
+        if (this.agent && this.conversation) {
+          const before = this.conversation.getMessages();
+          const repaired = this.agent.repairMessages(before);
+          if (repaired.length !== before.length) {
+            this.log(`retry_after_error: conversation repaired — ${before.length} → ${repaired.length} messages`);
+            this.conversation.setMessages(repaired);
+          }
+        }
+        // Intentionally no user text — Retry is "try the last turn again
+        // with a clean state", not "inject a new user message". Passing
+        // an empty string would break handleUserMessage's validation, so
+        // pass a low-signal instruction the model can ignore if the
+        // prior turn already has a user message to continue from.
+        await this.handleUserMessage('continue', message.mode);
+        break;
+
       case 'tool_confirmation_response':
         this.handleConfirmationResponse(message.confirmationId, message.approved, message.alwaysAllowCategory, message.planSelection, message.userResponse);
         break;

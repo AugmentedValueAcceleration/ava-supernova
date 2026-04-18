@@ -2661,6 +2661,18 @@ ${transcript}`;
   }
 
   /**
+   * Public wrapper around fixToolPairing for post-error recovery flows.
+   * When a provider returns 400, the message history may have landed in
+   * an invalid shape (orphan tool_calls, unmatched tool results). The
+   * extension's Retry handler calls this on the live conversation before
+   * issuing another request so the user isn't stuck in a loop of the
+   * same broken payload bouncing off the provider.
+   */
+  repairMessages(messages: Message[]): Message[] {
+    return this.fixToolPairing(messages);
+  }
+
+  /**
    * Ensure every `tool` message has a preceding `assistant` with a matching
    * `tool_calls` entry, and every `assistant` with `tool_calls` has all its
    * `tool` results following it. Drops orphans from the front.

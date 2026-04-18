@@ -146,6 +146,14 @@ export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainst
 
 export type WebviewToExtMessage =
   | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }> }
+  /**
+   * Sent by the error-message Retry button. Unlike send_message, the
+   * extension first runs a conversation repair pass (fix orphan tool
+   * pairings, prune null-content assistants) before issuing the request.
+   * Without this, clicking Retry on a 400-error just re-sends the same
+   * broken state and hits the same 400 again — the canonical stuck loop.
+   */
+  | { type: 'retry_after_error'; mode: AvaMode }
   | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllowCategory?: boolean; planSelection?: string; userResponse?: string }
   | {
       type: 'secret_grant_response';

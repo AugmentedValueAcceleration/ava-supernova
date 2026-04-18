@@ -119,7 +119,7 @@ export const enStrings: Record<string, string> = {
   'error.context_truncated': 'Context Truncated',
   'error.provider_error': 'Provider Error',
   'error.unknown': 'Error',
-  'error.continue': 'Continue',
+  'error.continue': 'Retry',
 
   // Tool UI
   'tool.allow': 'Allow',

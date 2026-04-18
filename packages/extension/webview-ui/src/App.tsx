@@ -1094,7 +1094,11 @@ export function App() {
   );
 
   const handleContinue = useCallback(() => {
-    postMessage({ type: 'send_message', text: t('app.continue'), mode: 'code' });
+    // Retry after an error — the extension will repair conversation
+    // state (fix orphan tool_calls, prune null-content) before issuing
+    // the next request. Without this path, pressing "Retry" on a
+    // stuck 400 just re-sends the same broken payload.
+    postMessage({ type: 'retry_after_error', mode: 'code' });
   }, [postMessage]);
 
   const handleSuggestion = useCallback(
