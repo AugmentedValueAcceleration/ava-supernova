@@ -96,7 +96,7 @@ export function ContextBar({ contextUsage, isCompressing, isStreaming, onCompres
           pct >= 25 ? 'opacity-100' : 'opacity-0 group-hover:opacity-80'
         }`}
       >
-        <span className="text-[10px] opacity-50 tracking-wide">Context</span>
+        <span className="text-[10px] opacity-50 tracking-wide">{t('context.label')}</span>
         <span
           className="text-[10px] font-medium tabular-nums tracking-wide"
           style={{ color: fillColor, opacity: disabled ? 0.5 : 0.85 }}

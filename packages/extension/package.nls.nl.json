@@ -2,7 +2,7 @@
   "displayName": "Ava | Supernova",
   "description": "Open-source AI-programmeeragent — DeepSeek, Kimi en Qwen in je editor",
   "viewContainer.title": "Ava | Supernova",
-  "view.chat.name": "Chat",
+  "view.chat.name": "Gesprek",
   "command.openChat.title": "Chat openen",
   "command.newChat.title": "Nieuwe chat",
   "command.clearChat.title": "Chat wissen",

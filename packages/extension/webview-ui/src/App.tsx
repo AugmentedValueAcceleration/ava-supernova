@@ -1215,7 +1215,7 @@ export function App() {
                      focus:text-white focus:no-underline"
           style={{ background: '#A855F7' }}
         >
-          Skip to chat input
+          {t('chat.skip_link')}
         </a>
 
         {/* ARIA live region for error announcements */}

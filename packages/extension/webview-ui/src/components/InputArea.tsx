@@ -488,7 +488,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                   zIndex: 9999,
                 }}
                 role="radiogroup"
-                aria-label="Input mode"
+                aria-label={t('input.mode_select_aria')}
               >
                 {MODES.map((m, idx) => (
                   <button

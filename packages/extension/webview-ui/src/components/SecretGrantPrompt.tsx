@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { t, useLocale } from '../i18n';
 
 interface SecretGrantPromptProps {
   request: {
@@ -21,6 +22,7 @@ interface SecretGrantPromptProps {
  * project" to auto-grant in future without prompting.
  */
 export function SecretGrantPrompt({ request, onRespond, onOpenVault }: SecretGrantPromptProps) {
+  useLocale();
   const [selectedId, setSelectedId] = useState<string>(request.candidates[0]?.id ?? '');
   const [alwaysForProject, setAlwaysForProject] = useState(false);
 
@@ -28,7 +30,7 @@ export function SecretGrantPrompt({ request, onRespond, onOpenVault }: SecretGra
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Grant secret access"
+      aria-label={t('secret_grant.aria')}
       className="absolute inset-0 z-[60] flex items-center justify-center bg-black/40 px-4"
     >
       <div className="w-full max-w-md rounded-xl border border-[var(--border-card,rgba(168,85,247,0.2))] bg-[var(--bg-card,#1e1e2e)] shadow-2xl">
@@ -38,10 +40,10 @@ export function SecretGrantPrompt({ request, onRespond, onOpenVault }: SecretGra
             <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" className="text-[var(--accent,#A855F7)]">
               <path d="M3 5.5v-3a2.5 2.5 0 0 1 5 0v3h.5a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5h-6A1.5 1.5 0 0 1 1 13V7a1.5 1.5 0 0 1 1.5-1.5H3zm1 0h3v-3a1.5 1.5 0 0 0-3 0v3z"/>
             </svg>
-            <span className="text-sm font-bold text-white">Ava is requesting a secret</span>
+            <span className="text-sm font-bold text-white">{t('secret_grant.title')}</span>
           </div>
           <p className="mt-2 text-xs text-[var(--text-secondary,#cbd5e1)]">
-            <span className="font-semibold">Label:</span> <span className="font-mono">{request.label}</span>
+            <span className="font-semibold">{t('secret_grant.label')}</span> <span className="font-mono">{request.label}</span>
           </p>
           {request.reason && (
             <p className="mt-1 text-xs text-[var(--text-muted,#94a3b8)] italic">
@@ -54,18 +56,18 @@ export function SecretGrantPrompt({ request, onRespond, onOpenVault }: SecretGra
         <div className="px-5 py-4 max-h-64 overflow-y-auto">
           {request.candidates.length === 0 ? (
             <div className="text-xs text-[var(--text-muted,#94a3b8)] py-4 text-center">
-              No matching entries in your vault.
+              {t('secret_grant.no_entries')}
               <br />
               <button
                 onClick={onOpenVault}
                 className="mt-2 text-[var(--accent,#A855F7)] underline hover:opacity-80 bg-transparent border-none cursor-pointer text-xs"
               >
-                Open the vault to add one
+                {t('secret_grant.open_vault')}
               </button>
             </div>
           ) : (
             <>
-              <p className="text-[10px] uppercase tracking-wide text-[var(--text-muted,#94a3b8)] mb-2">Choose vault entry</p>
+              <p className="text-[10px] uppercase tracking-wide text-[var(--text-muted,#94a3b8)] mb-2">{t('secret_grant.choose_entry')}</p>
               <div className="flex flex-col gap-1">
                 {request.candidates.map((c) => (
                   <label
@@ -107,7 +109,7 @@ export function SecretGrantPrompt({ request, onRespond, onOpenVault }: SecretGra
                 onChange={(e) => setAlwaysForProject(e.target.checked)}
                 className="accent-[var(--accent,#A855F7)]"
               />
-              Always grant this entry for the current project (skip future prompts)
+              {t('secret_grant.always_for_project')}
             </label>
           )}
           <div className="flex justify-end gap-2">
@@ -115,14 +117,14 @@ export function SecretGrantPrompt({ request, onRespond, onOpenVault }: SecretGra
               onClick={() => onRespond('', false)}
               className="px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary,#cbd5e1)] border border-[var(--border-card,rgba(168,85,247,0.2))] bg-transparent cursor-pointer hover:bg-white/[0.04] transition"
             >
-              Deny
+              {t('secret_grant.deny')}
             </button>
             <button
               onClick={() => selectedId && onRespond(selectedId, alwaysForProject)}
               disabled={!selectedId}
               className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-[var(--accent,#A855F7)] border-none cursor-pointer hover:opacity-90 transition disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              Grant
+              {t('secret_grant.allow')}
             </button>
           </div>
         </div>

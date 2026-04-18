@@ -147,7 +147,7 @@ export function MemoryPanel({
       ref={panelRef}
       role="dialog"
       aria-modal="true"
-      aria-label="Memory"
+      aria-label={t('memory_panel.aria')}
       tabIndex={-1}
       className="absolute inset-0 z-50 flex flex-col bg-[var(--vscode-sideBar-background)] outline-none"
     >

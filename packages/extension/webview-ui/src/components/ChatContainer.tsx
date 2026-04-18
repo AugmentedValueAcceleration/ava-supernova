@@ -96,10 +96,10 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
                   border: '1px solid rgba(168,85,247,0.2)',
                 }}
               >
-                Supernova
+                {t('brand.supernova')}
               </span>
             </div>
-            <p className="text-sm opacity-60 mb-1">Welcome to Ava</p>
+            <p className="text-sm opacity-60 mb-1">{t('consent.welcome')}</p>
           </div>
 
           {/* Privacy summary */}
@@ -110,20 +110,20 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
               border: '1px solid rgba(168, 85, 247, 0.15)',
             }}
           >
-            <p className="text-xs font-semibold opacity-70 mb-3">Before you get started</p>
+            <p className="text-xs font-semibold opacity-70 mb-3">{t('consent.header')}</p>
             <div className="space-y-2.5 text-[11px] opacity-50 leading-relaxed">
-              <p>Ava is built by <span className="opacity-80 font-medium">Augmented Value Acceleration Ltd</span>, registered in England and Wales.</p>
+              <p>{t('consent.builder')}</p>
               <div className="space-y-1.5">
-                <p className="font-medium opacity-70">How your data is handled:</p>
+                <p className="font-medium opacity-70">{t('consent.data_title')}</p>
                 <ul className="list-disc pl-4 space-y-1">
-                  <li>All conversations, memory, and settings are <span className="font-medium opacity-80">stored locally on your machine</span> by default</li>
-                  <li>Cloud sync is <span className="font-medium opacity-80">opt-in only</span> — nothing leaves your device unless you choose to connect an account</li>
-                  <li>Your code is <span className="font-medium opacity-80">never used to train AI models</span></li>
-                  <li>API keys are stored in your system keychain, <span className="font-medium opacity-80">never transmitted</span> to our servers</li>
-                  <li>No third-party analytics or tracking</li>
+                  <li>{t('consent.data.local')}</li>
+                  <li>{t('consent.data.cloud')}</li>
+                  <li>{t('consent.data.code')}</li>
+                  <li>{t('consent.data.keys')}</li>
+                  <li>{t('consent.data.analytics')}</li>
                 </ul>
               </div>
-              <p>You can exercise your UK GDPR rights at any time through Settings.</p>
+              <p>{t('consent.gdpr')}</p>
             </div>
           </div>
 
@@ -134,7 +134,7 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
               className="text-[11px] font-medium opacity-60 hover:opacity-100 transition-opacity"
               style={{ color: '#C084FC' }}
             >
-              Terms of Service
+              {t('consent.terms')}
             </a>
             <span className="text-[11px] opacity-20">|</span>
             <a
@@ -142,7 +142,7 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
               className="text-[11px] font-medium opacity-60 hover:opacity-100 transition-opacity"
               style={{ color: '#C084FC' }}
             >
-              Privacy Policy
+              {t('consent.privacy')}
             </a>
           </div>
 
@@ -161,7 +161,7 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
               className="mt-0.5 accent-purple-500"
             />
             <span className="text-[11px] opacity-60 leading-relaxed">
-              I have read and agree to the <span className="font-medium opacity-80">Terms of Service</span> and <span className="font-medium opacity-80">Privacy Policy</span>
+              {t('consent.agree')}
             </span>
           </label>
 
@@ -177,11 +177,11 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
                 : 'rgba(168, 85, 247, 0.3)',
             }}
           >
-            Get Started
+            {t('consent.cta')}
           </button>
 
           <p className="text-center text-[9px] opacity-20 mt-3">
-            You can withdraw consent and delete your data at any time in Settings.
+            {t('consent.withdraw')}
           </p>
 
         </div>
@@ -208,7 +208,7 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
                   border: '1px solid rgba(168,85,247,0.2)',
                 }}
               >
-                Supernova
+                {t('brand.supernova')}
               </span>
             </div>
             <p className="text-sm opacity-50 mb-1">{t('welcome.subtitle')}</p>
@@ -342,10 +342,9 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
 
           {/* Shared learning info */}
           <div className="mt-4 rounded-lg px-4 py-3" style={{ background: 'rgba(168, 85, 247, 0.05)', border: '1px solid rgba(168, 85, 247, 0.1)' }}>
-            <p className="text-[10px] font-semibold opacity-50 mb-1">💡 Shared Learning</p>
+            <p className="text-[10px] font-semibold opacity-50 mb-1">{t('shared_learning.title')}</p>
             <p className="text-[9px] opacity-30 leading-relaxed">
-              Ava learns from every session. You can help improve her for everyone by enabling Shared Learning in Settings.
-              Only anonymised technical patterns are shared — never personal data, code, or preferences. Off by default.
+              {t('shared_learning.body')}
             </p>
           </div>
 
@@ -371,7 +370,7 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
         onCompress={onCompress}
       />
 
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3" role="log" aria-label="Chat messages" aria-live="polite">
+      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3" role="log" aria-label={t('chat.messages_aria')} aria-live="polite">
         {messages.map((msg, i) => (
           <MessageBubble
             key={msg.id}

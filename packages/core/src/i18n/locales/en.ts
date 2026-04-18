@@ -1,5 +1,5 @@
 /** English strings — source of truth. All other locales mirror this key set. */
-export const enStrings: Record<string, string> = {
+export const enStrings = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Ask anything about your code.',
@@ -1368,3 +1368,5 @@ export const enStrings: Record<string, string> = {
 
   // ── Weather Conditions ────────────────────────────────────────────────
 };
+
+export type StringKey = keyof typeof enStrings;

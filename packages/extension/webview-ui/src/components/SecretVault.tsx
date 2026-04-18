@@ -127,7 +127,7 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
                      bg-transparent border-none cursor-pointer
                      text-[var(--vscode-foreground)] opacity-40 hover:opacity-80
                      transition-opacity duration-150"
-          aria-label="Close"
+          aria-label={t('secret_vault.close_aria')}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="6" x2="6" y2="18" />
@@ -196,7 +196,7 @@ export function SecretVault({ secrets, onSave, onClose }: SecretVaultProps) {
                   {secret.alwaysGrantProjects && secret.alwaysGrantProjects.length > 0 && (
                     <span
                       className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--accent,#A855F7)]/15 text-[var(--accent,#A855F7)] shrink-0"
-                      title="Auto-granted to Ava on this project — clear by deleting and re-adding the secret"
+                      title={t('secret_vault.auto_granted_tip')}
                     >
                       auto
                     </span>

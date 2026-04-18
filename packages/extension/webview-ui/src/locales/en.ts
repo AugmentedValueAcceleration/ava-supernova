@@ -1,5 +1,5 @@
 /** Webview English strings — subset of the full locale used by UI components. */
-export const enStrings: Record<string, string> = {
+export const enStrings = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Your open-source agentic coding assistant.',
@@ -298,4 +298,82 @@ export const enStrings: Record<string, string> = {
   'app.model_switched': 'Switched to {model}',
   'app.context_compressed': 'Context compressed: ~{original} \u2192 ~{compressed} tokens',
   'app.continue': 'Continue where you left off.',
+
+  // Brand wordmarks (kept English in every locale — see keep-english.ts)
+  'brand.supernova': 'Supernova',
+  'brand.supernova_caps': 'SUPERNOVA',
+
+  // Context / capacity indicator
+  'context.label': 'Context',
+
+  // Shared learning opt-in copy (home screen)
+  'shared_learning.title': '💡 Shared Learning',
+  'shared_learning.body': 'Ava learns from every session. You can help improve her for everyone by enabling Shared Learning in Settings. Only anonymised technical patterns are shared \u2014 never personal data, code, or preferences. Off by default.',
+
+  // Accessibility — aria-labels
+  'chat.messages_aria': 'Chat messages',
+  'chat.skip_link': 'Skip to chat input',
+  'header.controls_aria': 'Chat controls',
+  'input.mode_select_aria': 'Input mode',
+  'memory_panel.aria': 'Memory',
+  'secret_vault.close_aria': 'Close',
+  'secret_vault.auto_granted_tip': 'Auto-granted to Ava on this project \u2014 clear by deleting and re-adding the secret',
+
+  // Persona status (conductor team planning)
+  'persona.team_planning': "Ava's {mode} team is planning",
+  'persona.complete': 'Planning complete',
+  'persona.preparing_next': 'Preparing next specialist...',
+  'persona.label.scout': 'Scout',
+  'persona.label.recon': 'Recon',
+  'persona.label.researcher': 'Researcher',
+  'persona.label.architect': 'Architect',
+  'persona.label.verifier': 'Verifier',
+  'persona.label.sequencer': 'Sequencer',
+  'persona.label.challenger': 'Challenger',
+  'persona.label.builder': 'Builder',
+  'persona.label.content_writer': 'Content Writer',
+  'persona.label.quiz_master': 'Quiz Master',
+  'persona.label.tutor': 'Tutor',
+  'persona.verb.scout': 'Mapping the codebase',
+  'persona.verb.recon': 'Scanning the attack surface',
+  'persona.verb.researcher': 'Researching',
+  'persona.verb.architect': 'Designing the approach',
+  'persona.verb.verifier': 'Fact-checking the plan',
+  'persona.verb.sequencer': 'Ordering the steps',
+  'persona.verb.challenger': 'Questioning the plan',
+  'persona.verb.builder': 'Ready to build',
+  'persona.verb.content_writer': 'Writing content',
+  'persona.verb.quiz_master': 'Creating assessments',
+  'persona.verb.tutor': 'Preparing to teach',
+  'persona.verb.default': 'Working',
+
+  // Secret grant prompt (Ava requesting credential)
+  'secret_grant.aria': 'Grant secret access',
+  'secret_grant.title': 'Ava is requesting a secret',
+  'secret_grant.label': 'Label:',
+  'secret_grant.no_entries': 'No matching entries in your vault.',
+  'secret_grant.open_vault': 'Open the vault to add one',
+  'secret_grant.choose_entry': 'Choose vault entry',
+  'secret_grant.always_for_project': 'Always grant this entry for the current project (skip future prompts)',
+  'secret_grant.deny': 'Deny',
+  'secret_grant.allow': 'Grant',
+
+  // Consent / onboarding gate
+  'consent.welcome': 'Welcome to Ava',
+  'consent.header': 'Before you get started',
+  'consent.builder': 'Ava is built by Augmented Value Acceleration Ltd, registered in England and Wales.',
+  'consent.data_title': 'How your data is handled:',
+  'consent.data.local': 'All conversations, memory, and settings are stored locally on your machine by default',
+  'consent.data.cloud': 'Cloud sync is opt-in only \u2014 nothing leaves your device unless you choose to connect an account',
+  'consent.data.code': 'Your code is never used to train AI models',
+  'consent.data.keys': 'API keys are stored in your system keychain, never transmitted to our servers',
+  'consent.data.analytics': 'No third-party analytics or tracking',
+  'consent.gdpr': 'You can exercise your UK GDPR rights at any time through Settings.',
+  'consent.terms': 'Terms of Service',
+  'consent.privacy': 'Privacy Policy',
+  'consent.agree': 'I have read and agree to the Terms of Service and Privacy Policy',
+  'consent.cta': 'Get Started',
+  'consent.withdraw': 'You can withdraw consent and delete your data at any time in Settings.',
 };
+
+export type StringKey = keyof typeof enStrings;

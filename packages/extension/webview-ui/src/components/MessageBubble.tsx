@@ -277,7 +277,7 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
             className="text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider"
             style={{ color: 'var(--color-accent, #a855f7)', backgroundColor: 'rgba(168, 85, 247, 0.15)' }}
           >
-            SUPERNOVA
+            {t('brand.supernova_caps')}
           </span>
         </div>
       )}
@@ -299,7 +299,7 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
                       className="text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider"
                       style={{ color: 'var(--color-accent, #a855f7)', backgroundColor: 'rgba(168, 85, 247, 0.15)' }}
                     >
-                      SUPERNOVA
+                      {t('brand.supernova_caps')}
                     </span>
                     {hasSecrets && !message.isStreaming && (
                       <button

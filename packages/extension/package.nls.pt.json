@@ -2,7 +2,7 @@
   "displayName": "Ava | Supernova",
   "description": "Agente de codificação AI de código aberto — DeepSeek, Kimi e Qwen no seu editor",
   "viewContainer.title": "Ava | Supernova",
-  "view.chat.name": "Chat",
+  "view.chat.name": "Conversa",
   "command.openChat.title": "Abrir chat",
   "command.newChat.title": "Novo chat",
   "command.clearChat.title": "Limpar chat",

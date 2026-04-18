@@ -31,11 +31,11 @@ export function Header({
                    bg-transparent border-none cursor-pointer text-sm`;
 
   return (
-    <div className="flex items-center gap-1 px-3 py-2 border-b" style={{ borderColor: 'rgba(168, 85, 247, 0.12)' }} role="toolbar" aria-label="Chat controls">
+    <div className="flex items-center gap-1 px-3 py-2 border-b" style={{ borderColor: 'rgba(168, 85, 247, 0.12)' }} role="toolbar" aria-label={t('header.controls_aria')}>
       {/* Branding */}
       <div className="flex items-baseline gap-1 mr-2 select-none flex-shrink-0">
         <span className="text-[15px] font-bold text-[var(--vscode-foreground)]">Ava</span>
-        <span className="text-[9px] uppercase tracking-[2px] opacity-40 text-[var(--vscode-foreground)]">Supernova</span>
+        <span className="text-[9px] uppercase tracking-[2px] opacity-40 text-[var(--vscode-foreground)]">{t('brand.supernova')}</span>
       </div>
 
       <div className="flex-1 min-w-0 flex justify-end">

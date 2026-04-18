@@ -10,7 +10,9 @@
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "i18n:check": "node scripts/i18n-check.mjs",
+    "i18n:translate": "node scripts/i18n-translate.mjs"
   },
   "engines": {
     "node": ">=20.0.0"

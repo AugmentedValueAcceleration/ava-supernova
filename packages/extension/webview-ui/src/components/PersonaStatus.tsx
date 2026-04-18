@@ -1,3 +1,6 @@
+import { t, useLocale } from '../i18n';
+import type { StringKey } from '../locales/en';
+
 interface PersonaTool {
   name: string;
   done: boolean;
@@ -32,38 +35,37 @@ const PERSONA_ICONS: Record<string, string> = {
   tutor: '👩‍🏫',
 };
 
-const PERSONA_LABELS: Record<string, string> = {
-  scout: 'Scout',
-  recon: 'Recon',
-  researcher: 'Researcher',
-  architect: 'Architect',
-  verifier: 'Verifier',
-  sequencer: 'Sequencer',
-  challenger: 'Challenger',
-  builder: 'Builder',
-  content_writer: 'Content Writer',
-  quiz_master: 'Quiz Master',
-  tutor: 'Tutor',
-};
+/**
+ * Known persona ids — used to guard dynamic `persona.label.{id}` /
+ * `persona.verb.{id}` key lookups so TypeScript confirms both maps exist.
+ */
+const PERSONA_IDS = [
+  'scout', 'recon', 'researcher', 'architect', 'verifier', 'sequencer',
+  'challenger', 'builder', 'content_writer', 'quiz_master', 'tutor',
+] as const;
+type PersonaId = (typeof PERSONA_IDS)[number];
 
-const PERSONA_VERBS: Record<string, string> = {
-  scout: 'Mapping the codebase',
-  recon: 'Scanning the attack surface',
-  researcher: 'Researching',
-  architect: 'Designing the approach',
-  verifier: 'Fact-checking the plan',
-  sequencer: 'Ordering the steps',
-  challenger: 'Questioning the plan',
-  builder: 'Ready to build',
-  content_writer: 'Writing content',
-  quiz_master: 'Creating assessments',
-  tutor: 'Preparing to teach',
-};
+function personaLabel(id: string): string {
+  if ((PERSONA_IDS as readonly string[]).includes(id)) {
+    return t(`persona.label.${id as PersonaId}` as StringKey);
+  }
+  return id;
+}
+
+function personaVerb(id: string): string {
+  if ((PERSONA_IDS as readonly string[]).includes(id)) {
+    return t(`persona.verb.${id as PersonaId}` as StringKey);
+  }
+  return t('persona.verb.default');
+}
 
 export function PersonaStatus({ active, mode, personas }: PersonaStatusProps) {
+  useLocale();
   if (!active && personas.length === 0) return null;
 
-  const modeLabel = mode ? mode.charAt(0).toUpperCase() + mode.slice(1) : '';
+  // Reuse existing mode labels from input.mode.* (already translated).
+  const modeKey = mode ? `input.mode.${mode}` as StringKey : null;
+  const modeLabel = modeKey ? t(modeKey) : '';
   const completedCount = personas.filter(p => p.phase === 'complete').length;
   const totalExpected = active ? Math.max(personas.length + 1, 3) : personas.length;
 
@@ -78,7 +80,7 @@ export function PersonaStatus({ active, mode, personas }: PersonaStatusProps) {
             <span className="inline-block w-2 h-2 rounded-full bg-[var(--vscode-terminal-ansiGreen)]" />
           )}
           <span className="font-medium text-[var(--vscode-foreground)]">
-            {active ? `Ava's ${modeLabel} team is planning` : 'Planning complete'}
+            {active ? t('persona.team_planning', { mode: modeLabel }) : t('persona.complete')}
           </span>
         </div>
         <span className="text-[10px] text-[var(--vscode-descriptionForeground)]">
@@ -107,7 +109,7 @@ export function PersonaStatus({ active, mode, personas }: PersonaStatusProps) {
         {active && personas.every(p => p.phase !== 'active') && (
           <div className="flex items-center gap-2 py-1 text-[var(--vscode-descriptionForeground)]">
             <span className="w-4 text-center animate-pulse">⏳</span>
-            <span className="italic">Preparing next specialist...</span>
+            <span className="italic">{t('persona.preparing_next')}</span>
           </div>
         )}
       </div>
@@ -117,8 +119,8 @@ export function PersonaStatus({ active, mode, personas }: PersonaStatusProps) {
 
 function PersonaRow({ persona }: { persona: PersonaInfo }) {
   const icon = PERSONA_ICONS[persona.id] || '🤖';
-  const label = PERSONA_LABELS[persona.id] || persona.id;
-  const verb = PERSONA_VERBS[persona.id] || 'Working';
+  const label = personaLabel(persona.id);
+  const verb = personaVerb(persona.id);
   const isActive = persona.phase === 'active';
   const isComplete = persona.phase === 'complete';
   const isError = persona.phase === 'error';
