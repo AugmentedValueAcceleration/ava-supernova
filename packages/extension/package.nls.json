@@ -1,9 +1,9 @@
 {
   "displayName": "Ava | Supernova",
-  "description": "Open-source AI coding agent — 63 tools, 6 modes, specialist personas, custom personality designer. Memory that persists. Free personal tutor. Image generation. Office suite. Command centre dashboard. 14 models, 7 providers. 3M free Qwen tokens with account.",
+  "description": "Open-source AI coding agent — 6 modes, specialist personas, custom personality designer. Memory that persists across sessions. Free personal tutor. Image generation. Office suite. Multi-provider (Qwen, Kimi, DeepSeek, Claude, Mistral, Zhipu, MiniMax) with BYOK on any plan. 3M free Qwen tokens with account.",
   "viewContainer.title": "Ava | Supernova",
   "view.chat.name": "Chat",
-  "command.openChat.title": "Open Chat — Start an AI coding session with 63 tools and 6 modes",
+  "command.openChat.title": "Open Chat — Start an AI coding session",
   "command.newChat.title": "New Chat — Fresh conversation with full context reset",
   "command.clearChat.title": "Clear Chat — Remove all messages from the current session",
   "command.switchModel.title": "Switch Model — Choose from 14 models across 7 providers",

@@ -17,7 +17,7 @@ Ava isn't a single tool. She's a partner who plays multiple roles depending on w
 - **Tutor** — builds personalised learning paths from scratch and teaches them like a real human teacher
 - **Strategist** — plans features, audits architecture, researches your competitors
 - **Security auditor** — full OWASP-aligned scan with verified findings, not noise
-- **Assistant** — drafts emails, builds slide decks, writes reports, controls your browser or desktop
+- **Assistant** — drafts emails, builds slide decks, writes reports, drives a browser
 - **Friend** — checks in, remembers your goals, journals with you
 
 Switch roles with a keystroke. Same brain. Same memory. Different mindset.
@@ -129,7 +129,7 @@ The work that isn't code, but still has to happen:
   - **Slide decks** (`.pptx`) with speaker notes and accent colours
   - **Emails** (`.docx`) with tone-aware fonts (serif for formal, sans-serif for casual)
   - **Reports** (`.docx`) — board briefs, sprint reviews, weekly status pulled from your tasks, journal, memory, and git history
-- **Computer use** — drives a browser or your desktop when the task can't be solved by editing files. Navigates pages, fills forms, scrapes data, opens apps, captures screen state. Fully opt-in, every session approved.
+- **Browser automation** — drives a visible Chromium window via Playwright when a task needs real-world interaction. Navigates pages, snapshots structured DOM, clicks elements, fills forms, scrapes data. Fully opt-in, approved on first use. Desktop-level automation (app control, screen capture) lives in the dedicated Ava IDE, not this extension.
 - **Tasks** — track work across global and project scopes, sync to the dashboard, flag overdue items in the daily briefing
 - **Journal** — your entry and Ava's, side by side, with mood tracking and streak counting
 - **Daily briefing** — proactive morning check-in: today's tasks, overdue items, journal streak, learning progress
@@ -177,7 +177,7 @@ She remembers your preferred tools, your conventions, the bugs you've fixed befo
 
 ---
 
-## 63 Tools
+## Tools
 
 Grouped for the work you actually do:
 
@@ -188,8 +188,7 @@ Grouped for the work you actually do:
 | **Shell** | `bash` |
 | **Git** | `git_status`, `git_diff`, `rollback`, `git_commit`, `git_create_pr` |
 | **Web** | `web_search`, `http_request`, `browser` |
-| **Creative Studio** | `generate_image`, `generate_video`, `generate_music`, `generate_voice`, `remove_background`, `screenshot`, `browse_library` |
-| **Computer Use** | `computer_use` |
+| **Creative Studio** | `generate_image`, `generate_video`, `generate_music`, `generate_voice`, `remove_background`, `browse_library` |
 | **Office** | `presentation_create`, `email_draft`, `report_generate`, `document_manage`, `doc_generate` |
 | **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete`, `curator` |
 | **Tasks & Planning** | `present_plan`, `todo_write`, `task_manage`, `apply_plan`, `switch_mode` |
