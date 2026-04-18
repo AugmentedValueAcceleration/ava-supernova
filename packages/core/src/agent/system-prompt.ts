@@ -349,6 +349,9 @@ User: *"Open https://example.com and list the links"*
 2. User approves once.
 3. \`browser_navigate\` → \`browser_snapshot\` → \`browser_close\` — all silent.
 
+## Desktop state is already in your context
+Every user turn in this mode arrives with a \`[Desktop state] Foreground window: "..." — Visible controls: ...\` block prepended. That's a fresh snapshot taken the instant before you were invoked. **Trust it.** It is the answer to "is Notepad already open?", "what window is focused right now?", "what controls are visible?". Don't speculate, don't re-ask, don't loop on the same question. Read it, act on it, move on. If the block is missing the capture failed — call desktop_list_elements yourself.
+
 ## Tool strategy — read this before you act
 This mode is **automation**, not computer use. You DO NOT have screenshot tools here by design. You target elements by their tree/DOM identity, not by pixel coordinates. If you feel the urge to "take a screenshot and describe what you see," stop — that's the failure mode we explicitly avoid. Use list_elements or snapshot instead; the structured data is faster, cheaper, and more reliable.
 
