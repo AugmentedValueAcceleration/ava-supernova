@@ -60,5 +60,5 @@
   "setting.section.help": "المساعدة والتوثيق",
   "setting.help.docs": "**[فتح التوثيق](command:ava-supernova.openDocs)** — دليل مرجعي شامل للنماذج والأدوات والأوامر والإعدادات.",
   "setting.help.gettingStarted": "**[فتح دليل البدء](command:ava-supernova.gettingStarted)** — شرح خطوة بخطوة لإعداد المستخدمين الجدد.",
-  "setting.memoryLocalOnly.description": "Keep all memories stored locally only. When enabled, memories will not sync to the Ava platform even with a connected account."
+  "setting.memoryLocalOnly.description": "احتفظ بجميع الذكريات مخزنة محلياً فقط. عند التمكين، لن تتم مزامنة الذكريات مع منصة Ava حتى مع حساب متصل."
 }

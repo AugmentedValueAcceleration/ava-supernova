@@ -60,5 +60,5 @@
   "setting.section.help": "Aiuto e documentazione",
   "setting.help.docs": "**[Apri documentazione](command:ava-supernova.openDocs)** — Guida di riferimento completa per modelli, strumenti, comandi e configurazione.",
   "setting.help.gettingStarted": "**[Apri per iniziare](command:ava-supernova.gettingStarted)** — Guida passo passo alla configurazione per i nuovi utenti.",
-  "setting.memoryLocalOnly.description": "Keep all memories stored locally only. When enabled, memories will not sync to the Ava platform even with a connected account."
+  "setting.memoryLocalOnly.description": "Mantieni tutte le memorie memorizzate solo localmente. Quando attivato, le memorie non si sincronizzeranno con la piattaforma Ava nemmeno con un account connesso."
 }

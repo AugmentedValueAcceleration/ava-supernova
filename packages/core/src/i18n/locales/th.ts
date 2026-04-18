@@ -88,7 +88,7 @@ export const thStrings: Record<string, string> = {
   // ── Tool UI ───────────────────────────────────────────────────────────────
   'tool.allow': 'อนุญาต',
   'tool.always_allow': 'อนุญาตเสมอ',
-  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
+  'tool.always_allow_category_tip': 'อนุมัติหมวดหมู่เครื่องมือนี้โดยอัตโนมัติสำหรับช่วงเวลาที่เหลือของเซสชัน',
   'tool.deny': 'ปฏิเสธ',
   'tool.allow_prompt': 'อนุญาต {tool}?',
   'tool.arguments': 'อาร์กิวเมนต์',

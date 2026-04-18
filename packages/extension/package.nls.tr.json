@@ -60,5 +60,5 @@
   "setting.section.help": "Yardım ve Belgeler",
   "setting.help.docs": "**[Belgeleri aç](command:ava-supernova.openDocs)** — Modeller, araçlar, komutlar ve yapılandırma için eksiksiz başvuru kılavuzu.",
   "setting.help.gettingStarted": "**[Başlangıç kılavuzunu aç](command:ava-supernova.gettingStarted)** — Yeni kullanıcılar için adım adım kurulum rehberi.",
-  "setting.memoryLocalOnly.description": "Keep all memories stored locally only. When enabled, memories will not sync to the Ava platform even with a connected account."
+  "setting.memoryLocalOnly.description": "Tüm hafızayı yalnızca yerel olarak saklayın. Etkinleştirildiğinde, bağlı bir hesapla bile hafıza Ava platformuna senkronize edilmez."
 }

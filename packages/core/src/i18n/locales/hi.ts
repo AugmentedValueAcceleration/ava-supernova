@@ -88,7 +88,7 @@ export const hiStrings: Record<string, string> = {
   // ── Tool UI ───────────────────────────────────────────────────────────────
   'tool.allow': 'अनुमति दें',
   'tool.always_allow': 'हमेशा अनुमति दें',
-  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
+  'tool.always_allow_category_tip': 'इस टूल श्रेणी को शेष सत्र के लिए स्वतः अनुमोदित करें',
   'tool.deny': 'अस्वीकार करें',
   'tool.allow_prompt': '{tool} को अनुमति दें?',
   'tool.arguments': 'आर्गुमेंट',

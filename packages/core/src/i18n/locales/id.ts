@@ -88,7 +88,7 @@ export const idStrings: Record<string, string> = {
   // ── Tool UI ───────────────────────────────────────────────────────────────
   'tool.allow': 'Izinkan',
   'tool.always_allow': 'Selalu Izinkan',
-  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
+  'tool.always_allow_category_tip': 'Setujui otomatis kategori alat ini untuk sisa sesi',
   'tool.deny': 'Tolak',
   'tool.allow_prompt': 'Izinkan {tool}?',
   'tool.arguments': 'Argumen',

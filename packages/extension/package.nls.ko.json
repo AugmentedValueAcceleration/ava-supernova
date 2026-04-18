@@ -60,5 +60,5 @@
   "setting.section.help": "도움말 및 문서",
   "setting.help.docs": "**[문서 열기](command:ava-supernova.openDocs)** — 모델, 도구, 명령어 및 설정에 대한 전체 참조 가이드.",
   "setting.help.gettingStarted": "**[시작하기 열기](command:ava-supernova.gettingStarted)** — 신규 사용자를 위한 단계별 설정 안내.",
-  "setting.memoryLocalOnly.description": "Keep all memories stored locally only. When enabled, memories will not sync to the Ava platform even with a connected account."
+  "setting.memoryLocalOnly.description": "모든 메모리를 로컬에만 저장합니다. 활성화되면 연결된 계정이 있어도 메모리가 Ava 플랫폼과 동기화되지 않습니다."
 }

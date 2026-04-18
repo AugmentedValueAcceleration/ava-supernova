@@ -88,7 +88,7 @@ export const arStrings: Record<string, string> = {
   // ── Tool UI ───────────────────────────────────────────────────────────────
   'tool.allow': 'سماح',
   'tool.always_allow': 'السماح دائماً',
-  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
+  'tool.always_allow_category_tip': 'الموافقة التلقائية على فئة الأدوات هذه لبقية الجلسة',
   'tool.deny': 'رفض',
   'tool.allow_prompt': 'السماح بـ {tool}؟',
   'tool.arguments': 'المعاملات',

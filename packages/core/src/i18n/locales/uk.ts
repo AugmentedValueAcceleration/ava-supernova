@@ -88,7 +88,7 @@ export const ukStrings: Record<string, string> = {
   // ── Tool UI ───────────────────────────────────────────────────────────────
   'tool.allow': 'Дозволити',
   'tool.always_allow': 'Завжди дозволяти',
-  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
+  'tool.always_allow_category_tip': 'Автоматично схвалювати цю категорію інструментів до кінця сесії',
   'tool.deny': 'Відхилити',
   'tool.allow_prompt': 'Дозволити {tool}?',
   'tool.arguments': 'Аргументи',

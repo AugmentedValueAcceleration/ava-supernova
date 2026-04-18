@@ -88,7 +88,7 @@ export const zhCNStrings: Record<string, string> = {
   // ── Tool UI ───────────────────────────────────────────────────────────────
   'tool.allow': '允许',
   'tool.always_allow': '始终允许',
-  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
+  'tool.always_allow_category_tip': '在本次会话的其余时间内自动批准此工具类别',
   'tool.deny': '拒绝',
   'tool.allow_prompt': '允许 {tool}？',
   'tool.arguments': '参数',

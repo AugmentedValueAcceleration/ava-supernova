@@ -88,7 +88,7 @@ export const zhTWStrings: Record<string, string> = {
   // ── Tool UI ───────────────────────────────────────────────────────────────
   'tool.allow': '允許',
   'tool.always_allow': '一律允許',
-  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
+  'tool.always_allow_category_tip': '在本次工作階段的其餘時間內自動批准此工具類別',
   'tool.deny': '拒絕',
   'tool.allow_prompt': '允許 {tool}？',
   'tool.arguments': '參數',

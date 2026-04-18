@@ -88,7 +88,7 @@ export const ptStrings: Record<string, string> = {
   // \u2500\u2500 Tool UI \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   'tool.allow': 'Permitir',
   'tool.always_allow': 'Permitir sempre',
-  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
+  'tool.always_allow_category_tip': 'Aprovar automaticamente esta categoria de ferramentas para o resto da sessão',
   'tool.deny': 'Negar',
   'tool.allow_prompt': 'Permitir {tool}?',
   'tool.arguments': 'Argumentos',

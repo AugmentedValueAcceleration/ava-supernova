@@ -88,7 +88,7 @@ export const nlStrings: Record<string, string> = {
   // ── Tool UI ───────────────────────────────────────────────────────────────
   'tool.allow': 'Toestaan',
   'tool.always_allow': 'Altijd toestaan',
-  'tool.always_allow_category_tip': 'Auto-approve this tool category for the rest of the session',
+  'tool.always_allow_category_tip': 'Deze toolcategorie automatisch goedkeuren voor de rest van de sessie',
   'tool.deny': 'Weigeren',
   'tool.allow_prompt': '{tool} toestaan?',
   'tool.arguments': 'Argumenten',

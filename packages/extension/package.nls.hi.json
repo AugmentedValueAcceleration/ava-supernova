@@ -60,5 +60,5 @@
   "setting.section.help": "सहायता और दस्तावेज़ीकरण",
   "setting.help.docs": "**[दस्तावेज़ीकरण खोलें](command:ava-supernova.openDocs)** — मॉडल, टूल, कमांड और कॉन्फ़िगरेशन के लिए संपूर्ण संदर्भ गाइड।",
   "setting.help.gettingStarted": "**[शुरुआत गाइड खोलें](command:ava-supernova.gettingStarted)** — नए उपयोगकर्ताओं के लिए चरण-दर-चरण सेटअप वॉकथ्रू।",
-  "setting.memoryLocalOnly.description": "Keep all memories stored locally only. When enabled, memories will not sync to the Ava platform even with a connected account."
+  "setting.memoryLocalOnly.description": "सभी मेमोरी को केवल स्थानीय रूप से संग्रहीत रखें। जब सक्षम हो, तो कनेक्ट किए गए खाते के साथ भी मेमोरी Ava प्लेटफ़ॉर्म पर सिंक नहीं होगी।"
 }
