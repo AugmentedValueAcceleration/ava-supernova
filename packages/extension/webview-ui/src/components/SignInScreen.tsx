@@ -186,20 +186,10 @@ export function SignInScreen({
         {t('signin.continue_local') || 'Continue without an account'}
       </button>
 
-      {/* Fallback: paste API key manually (30-day sunset) */}
-      <button
-        onClick={onOpenDashboard}
-        className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs transition-colors"
-        style={{ color: 'var(--vscode-foreground)', opacity: 0.45 }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.opacity = '0.75';
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.opacity = '0.45';
-        }}
-      >
-        {t('signin.paste_key') || 'Have an API key? Paste it instead'}
-      </button>
+      {/* Manual API-key paste has been removed. The sunset window from the
+          v0.37.0 ship date ended; GitHub or email sign-in is the only
+          account path now. Existing users still using a manually-pasted
+          key continue to work until they next sign in. */}
 
       <div className="mt-6 text-center">
         <p className="text-[10px] opacity-30 leading-relaxed max-w-xs mx-auto">

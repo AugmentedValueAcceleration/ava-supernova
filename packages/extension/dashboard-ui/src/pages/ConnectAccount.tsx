@@ -1,30 +1,23 @@
 /**
- * ConnectAccount — dashboard-side sign-in screen (v0.37.0).
+ * ConnectAccount — dashboard-side sign-in screen.
  *
- * Mirrors the webview-ui SignInScreen component: four options for how
- * to connect, with browser-based OAuth as the primary path instead of
- * the old paste-your-API-key-manually flow.
+ * Mirrors the webview-ui SignInScreen component. Three options now that
+ * the manual paste-API-key fallback has been removed:
  *
- * Options:
  *   1. Continue with GitHub (primary) — opens /auth/extension?hint=github
  *   2. Sign in with email (secondary) — opens /auth/extension?hint=email
  *   3. Continue without an account — dismisses, routes to BYOK config
- *   4. Have an API key? Paste it instead — expands a collapsible
- *      sk-ava-... input for users who prefer manual entry (30-day sunset)
  *
  * Two display states:
- *   - idle: the four options visible (with optional expanded manual
- *     paste form)
+ *   - idle: the three options visible
  *   - pending: spinner + "Waiting for browser..." + Cancel button
  *
  * Receives the pending state and events via props from App.tsx, which
  * manages the actual sign-in state in its reducer.
  */
 
-import { useState } from 'react';
-import { t, useLocale } from '../i18n';
+import { useLocale } from '../i18n';
 import { post } from '../App';
-import { KeyIcon } from '../components/Icons';
 
 interface ConnectAccountProps {
   onSkipAccount: () => void;
@@ -43,10 +36,6 @@ export function ConnectAccount({
   onStartSignIn,
 }: ConnectAccountProps) {
   useLocale();
-  const [showManualKey, setShowManualKey] = useState(false);
-  const [key, setKey] = useState('');
-  const [keyError, setKeyError] = useState<string | null>(null);
-  const [manualLoading, setManualLoading] = useState(false);
 
   // ── Pending state ──────────────────────────────────────────────────────
   if (pendingSignIn) {
@@ -82,18 +71,6 @@ export function ConnectAccount({
       </div>
     );
   }
-
-  const handleManualConnect = () => {
-    const trimmed = key.trim();
-    if (!trimmed.startsWith('sk-ava-')) {
-      setKeyError('Key must start with sk-ava-');
-      return;
-    }
-    setKeyError(null);
-    setManualLoading(true);
-    post({ type: 'connect_account', key: trimmed });
-    setTimeout(() => setManualLoading(false), 8000);
-  };
 
   return (
     <div className="mx-auto mt-12 max-w-md">
@@ -162,59 +139,6 @@ export function ConnectAccount({
           Configure API Keys &rarr;
         </button>
       </div>
-
-      {/* Manual key fallback — collapsible (30-day sunset) */}
-      {!showManualKey ? (
-        <button
-          onClick={() => setShowManualKey(true)}
-          className="mt-3 block w-full text-center text-xs text-[var(--text-muted)] transition hover:text-[var(--text-secondary)]"
-        >
-          Have an API key? Paste it instead
-        </button>
-      ) : (
-        <div className="mt-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              Manual API key
-            </p>
-            <button
-              onClick={() => { setShowManualKey(false); setKey(''); setKeyError(null); }}
-              className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-            >
-              Hide
-            </button>
-          </div>
-
-          <div className="relative mb-3">
-            <KeyIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
-            <input
-              type="password"
-              value={key}
-              onChange={(e) => { setKey(e.target.value); setKeyError(null); }}
-              onKeyDown={(e) => e.key === 'Enter' && handleManualConnect()}
-              placeholder={t('dash.auth.enter_key')}
-              className={`w-full rounded-lg border bg-[var(--bg-input)] py-2.5 pl-10 pr-4 font-mono text-sm text-white placeholder-[var(--text-muted)] outline-none transition ${
-                keyError ? 'border-red-500' : 'border-[var(--border-input)] focus:border-[var(--accent)]'
-              }`}
-            />
-          </div>
-          {keyError && (
-            <p className="mb-2 text-xs text-red-400">{keyError}</p>
-          )}
-
-          <button
-            onClick={handleManualConnect}
-            disabled={manualLoading || !key.trim()}
-            className="w-full rounded-lg bg-[var(--accent)] py-2 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {manualLoading ? 'Connecting...' : t('dash.auth.connect')}
-          </button>
-
-          <p className="mt-3 text-[10px] text-[var(--text-muted)]">
-            Note: manual API key entry will be deprecated — please sign in with GitHub or email when possible.
-          </p>
-        </div>
-      )}
 
       {/* Footer */}
       <p className="mt-6 text-center text-xs text-[var(--text-muted)]">
