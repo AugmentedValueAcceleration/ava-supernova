@@ -444,6 +444,14 @@ export class AutoCoordinator {
     // a single request, it's just the one thing being tracked as a task.
     if (taskTitles.length <= 1) return true;
 
+    // Short-circuit: if the Conductor already ran this turn and produced
+    // a synthesis, the 5-persona team has already validated the user's
+    // intent — asking Flash "should we orchestrate?" on top of that is
+    // pure redundancy. Saves the Flash call (~300 tokens, ~2.5s).
+    if (this.sharedState?.conductorSynthesizedThisTurn) {
+      return true;
+    }
+
     // Find the latest user message text.
     let userMessage = '';
     for (let i = messages.length - 1; i >= 0; i--) {

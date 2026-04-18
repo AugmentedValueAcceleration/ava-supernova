@@ -160,6 +160,64 @@ function looksLikePostToolDrift(content: string, toolCallCount: number): boolean
 }
 
 const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
+  // Work mode — the bread-and-butter coding surface. Ships every turn
+  // to users writing code, so the schema list is the single biggest
+  // per-turn token line item. Keep what a coder actually reaches for;
+  // push anything that belongs to a different state-of-thought out.
+  // Cross-mode asks (image generation, email drafts, weather) still
+  // work — Ava calls switch_mode. The friction of one switch is worth
+  // the 2-3K tokens saved on every single coding turn.
+  //
+  // Deliberately OUT:
+  // - screenshot / computer_use — the extension can't ship screen
+  //   capture at all (marketplace rule) and already excludes them at
+  //   registry level; the IDE has a dedicated Desktop mode for that
+  //   flow, so they don't belong in Work either.
+  // - journal_write / learning / weather / news — Chat / Teach.
+  // - presentation_create / email_draft / report_generate /
+  //   document_manage / document_templates — office work, rarely mixed
+  //   with coding.
+  // - memory_delete — destructive, never a normal-flow tool.
+  work: new Set([
+    // File operations
+    'file_read', 'file_write', 'file_edit',
+    // Search
+    'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
+    // Shell
+    'bash',
+    // Git
+    'git_status', 'git_diff', 'rollback', 'git_commit', 'git_create_pr',
+    // Web
+    'web_search', 'http_request', 'browser',
+    // Creative Studio — generation (not capture) stays available for
+    // UI / media work done inline with code.
+    'generate_image', 'generate_music', 'generate_video', 'generate_voice',
+    'remove_background',
+    // Data
+    'database_query',
+    // Memory — delete is out (rare, destructive)
+    'memory_save', 'memory_recall', 'memory_update',
+    // Planning / tasks
+    'present_plan', 'todo_write', 'task_manage', 'apply_plan',
+    // Testing
+    'test_run', 'test_generate',
+    // Architecture / docs gen
+    'analyze_architecture', 'doc_generate',
+    // Security audits
+    'audit_dependencies', 'security',
+    // Performance
+    'benchmark',
+    // Debug
+    'debug_logs',
+    // Interaction
+    'ask_user', 'support_request',
+    // Self
+    'docs_lookup', 'propose_tool', 'self_inspect', 'release_notes',
+    // Utility
+    'get_datetime', 'detect_language',
+    // Mode switch
+    'switch_mode',
+  ]),
   plan: new Set([
     'file_read', 'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
     'web_search', 'memory_save', 'memory_recall', 'present_plan', 'analyze_architecture',

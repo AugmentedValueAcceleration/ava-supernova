@@ -70,6 +70,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
   private panel?: vscode.WebviewPanel;
   private agent?: Agent;
+  /** Shared state object mirrored by the running Agent / AutoCoordinator /
+   *  Conductor. Keeping a reference on the provider lets us flip per-turn
+   *  flags (e.g. `conductorSynthesizedThisTurn` for the orchestration-gate
+   *  dedupe) without re-threading the object through more signatures. */
+  private sharedState?: Record<string, unknown>;
   private activeModelDef?: ModelDefinition;
   private conversation?: Conversation;
   private toolRegistry?: ToolRegistry;
@@ -1397,6 +1402,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       sharedState,
     });
 
+    // Stash the shared reference so per-turn handlers can flip flags
+    // (see orchestration-gate dedupe below) without re-threading.
+    this.sharedState = sharedState;
+
     // Auto Mode — detect available providers and create coordinator
     const availableProviders = new Set<string>();
     if (platformKey) availableProviders.add('platform');
@@ -2203,6 +2212,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
     this.isRunning = true;
     this.runAbortController = new AbortController();
+
+    // Clear per-turn flags before the turn starts. The Conductor-gate
+    // dedupe only applies within a single turn — a fresh user message
+    // must re-earn the skip on its own.
+    if (this.sharedState) {
+      this.sharedState.conductorSynthesizedThisTurn = false;
+    }
     sessionStats.recordMessage();
     this.updateStatusBar('busy');
 
@@ -2636,6 +2652,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             const messages = this.conversation.getMessages();
             messages.push({ role: 'user', content: `[Internal Planning — from Ava's persona team]\n\n${synthesisPrompt}` });
             this.conversation.setMessages(messages);
+
+            // Signal to the downstream AutoCoordinator orchestration gate
+            // that the 5-persona team already validated the user's intent.
+            // Without this, the gate would spend another Flash call asking
+            // "should we orchestrate?" — an obviously-yes question after
+            // the personas just synthesised a plan.
+            if (this.sharedState) {
+              this.sharedState.conductorSynthesizedThisTurn = true;
+            }
           }
         } catch (err) {
           this.log(`Conductor error: ${err instanceof Error ? err.message : String(err)}`);
