@@ -29,6 +29,10 @@ export type ExtToWebviewMessage =
       localeStrings?: Record<string, string>;
       providerSource?: ProviderSource;
       platformStatus?: PlatformStatus;
+      /** True when this install has never completed the first-run
+       *  welcome modal. Shown once on first initialization after
+       *  sign-in / setup; dismissed permanently via mark_onboarded. */
+      showWelcome?: boolean;
     }
   | ({ type: 'platform_status' } & PlatformStatus)
   | { type: 'user_message_ack'; text: string; images?: string[] }
@@ -169,6 +173,13 @@ export type WebviewToExtMessage =
   | { type: 'interrupt' }
   | { type: 'open_dashboard' }
   | { type: 'open_docs' }
+  /** Fired by the webview when the first-run welcome modal is
+   *  dismissed / completed. Host persists the flag in globalState so
+   *  future sessions skip the modal. */
+  | { type: 'mark_onboarded' }
+  /** Dashboard-page deep-links triggered from the welcome modal's
+   *  "Open docs" / "Creative Studio" / "Settings" shortcuts. */
+  | { type: 'open_dashboard_page'; page: 'documentation' | 'creative-studio' | 'account' }
   | { type: 'request_history' }
   | { type: 'load_conversation'; conversationId: string }
   | { type: 'delete_conversation'; conversationId: string }

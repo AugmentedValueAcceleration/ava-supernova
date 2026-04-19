@@ -107,6 +107,7 @@ import { SecretGrantPrompt } from './components/SecretGrantPrompt';
 import { MemoryPanel } from './components/MemoryPanel';
 import { TasksPanel, DEFAULT_WIDTH } from './components/TasksPanel';
 import { ContextBar } from './components/ContextBar';
+import { WelcomeModal } from './components/WelcomeModal';
 import type { AvaMode, ImageAttachment } from './components/InputArea';
 import { t, setLocale, loadStrings } from './i18n';
 import { SecretsProvider } from './hooks/useSecrets';
@@ -176,6 +177,11 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
               freeTokensLimit: action.platformStatus.freeTokensLimit,
             }
           : state.platformStatus,
+        // showWelcome is a one-shot from the host on first init after
+        // setup. Once we've stored it once we latch and don't clear it
+        // on later init messages (e.g. after a model switch) so the
+        // modal doesn't reappear mid-session.
+        showWelcome: state.showWelcome || !!(action as { showWelcome?: boolean }).showWelcome,
       };
 
     case 'user_message_ack': {
@@ -467,6 +473,11 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
           freeTokensLimit: action.freeTokensLimit,
         },
       };
+
+    case 'dismiss_welcome':
+      // Local flag flip. The host was already notified via
+      // mark_onboarded when the modal's close path fired.
+      return { ...state, showWelcome: false };
 
     case 'error': {
       const msg: UIMessage = {
@@ -792,6 +803,7 @@ const initialState: ChatState = {
   currentConversationId: null,
   providerSource: 'byok',
   platformStatus: null,
+  showWelcome: false,
   memoryOpen: false,
   memoryGlobal: [],
   memoryProject: [],
@@ -1202,8 +1214,27 @@ export function App() {
   // Track last error for ARIA announcements
   const lastError = state.messages.filter(m => m.role === 'error').at(-1);
 
+  // First-run welcome modal — renders above everything when the host
+  // signalled it on the initial init message and the user hasn't
+  // dismissed it yet. The host owns the persisted "has onboarded"
+  // flag; the webview just renders if told to.
+  const activeModelName = state.models.find(m => m.id === state.activeModel)?.name ?? state.activeModel;
+
   return (
     <SecretsProvider>
+    {state.showWelcome && !state.needsSetup && !state.consentRequired && (
+      <WelcomeModal
+        modelName={activeModelName}
+        freeTokensLimit={state.platformStatus?.freeTokensLimit ?? null}
+        freeTokensUsed={state.platformStatus?.freeTokensUsed ?? null}
+        isConnected={!!state.platformStatus?.connected}
+        onClose={() => {
+          postMessage({ type: 'mark_onboarded' });
+          dispatch({ type: 'dismiss_welcome' } as never);
+        }}
+        onOpenDashboardPage={(page) => postMessage({ type: 'open_dashboard_page', page })}
+      />
+    )}
     <div className="relative flex flex-row h-screen">
       {/* Main chat column */}
       <div className="relative flex flex-col flex-1 min-w-0 h-full">

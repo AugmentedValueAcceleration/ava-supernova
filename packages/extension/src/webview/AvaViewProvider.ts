@@ -1144,6 +1144,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       locale: this.currentLocale,
       providerSource: this.providerSource,
       platformStatus,
+      // First-run welcome modal gate. Appears once after the user has
+      // passed setup (so the modal isn't racing with SignInScreen /
+      // needsSetup states). Dismissed via the mark_onboarded message,
+      // which flips ava.onboardedV1 in globalState forever on this
+      // install.
+      showWelcome: !this.context.globalState.get('ava.onboardedV1') && !!this.agent,
     });
 
     // Daily briefing — proactive greeting (fire-and-forget)
@@ -1989,6 +1995,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
 
       case 'open_dashboard':
+        vscode.commands.executeCommand('ava-supernova.openDashboard');
+        break;
+
+      case 'mark_onboarded':
+        await this.context.globalState.update('ava.onboardedV1', true);
+        break;
+
+      case 'open_dashboard_page':
+        // Open the dashboard and hand off which page to jump to — the
+        // welcome modal's shortcuts route through here so "Open docs" /
+        // "Creative Studio" / "Settings" take the user straight there.
+        await this.context.globalState.update('ava.dashboardPageAfterOpen', message.page);
         vscode.commands.executeCommand('ava-supernova.openDashboard');
         break;
 

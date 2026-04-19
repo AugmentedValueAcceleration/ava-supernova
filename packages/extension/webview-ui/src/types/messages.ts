@@ -22,6 +22,7 @@ export type ExtToWebviewMessage =
       localeStrings?: Record<string, string>;
       providerSource?: ProviderSource;
       platformStatus?: PlatformStatus;
+      showWelcome?: boolean;
     }
   | ({ type: 'platform_status' } & PlatformStatus)
   | { type: 'user_message_ack'; text: string; images?: string[] }
@@ -145,6 +146,8 @@ export type WebviewToExtMessage =
   | { type: 'interrupt' }
   | { type: 'open_dashboard' }
   | { type: 'open_docs' }
+  | { type: 'mark_onboarded' }
+  | { type: 'open_dashboard_page'; page: 'documentation' | 'creative-studio' | 'account' }
   | { type: 'request_history' }
   | { type: 'load_conversation'; conversationId: string }
   | { type: 'delete_conversation'; conversationId: string }
