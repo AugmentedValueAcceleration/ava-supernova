@@ -20,6 +20,11 @@
       "import": "./dist/desktop/index.js",
       "require": "./dist/desktop/index.js",
       "types": "./dist/desktop/index.d.ts"
+    },
+    "./billing": {
+      "import": "./dist/billing/plans.js",
+      "require": "./dist/billing/plans.js",
+      "types": "./dist/billing/plans.d.ts"
     }
   },
   "scripts": {

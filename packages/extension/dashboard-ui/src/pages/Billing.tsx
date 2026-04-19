@@ -1,3 +1,18 @@
+// Browser-safe subpath — pulls ONLY the billing data module, not the
+// node-side tool surface that @ava/core's main entry also exports.
+import {
+  PLANS,
+  TOKEN_TOPUPS,
+  STORAGE_ADDONS,
+  pricingUrl,
+  dashboardBillingUrl,
+  upgradeUrl,
+  tokenTopupUrl,
+  storageAddonUrl,
+  type PlanTier,
+  type TokenTopupDefinition,
+  type StorageAddonDefinition,
+} from '@ava/core/billing';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { AccountInfo } from '../types/messages';
@@ -6,38 +21,17 @@ import { TierBadge } from '../components/TierBadge';
 import { SectionGroup } from '../components/SectionGroup';
 import { CheckIcon } from '../components/Icons';
 
+// Every pricing/upgrade CTA opens the canonical website page in the user's
+// browser rather than firing an in-extension Stripe flow. Keeps the extension
+// out of the checkout business and guarantees the user sees the same prices
+// they'd see on the marketing site.
+function openUrl(url: string) {
+  post({ type: 'open_url', url });
+}
+
 interface BillingProps {
   account: AccountInfo;
 }
-
-const TOPUP_PACKAGES = [
-  { id: 'starter', label: '2.5M tokens', price: '$5', tokens: '2,500,000' },
-  { id: 'standard', label: '12M tokens', price: '$20', tokens: '12,000,000' },
-  { id: 'pro_pack', label: '50M tokens', price: '$70', tokens: '50,000,000' },
-] as const;
-
-const STORAGE_ADDONS = [
-  { id: '50gb', label: '+50 GB', price: '$3', unit: '/mo' },
-  { id: '250gb', label: '+250 GB', price: '$12', unit: '/mo' },
-  { id: '1tb', label: '+1 TB', price: '$45', unit: '/mo' },
-] as const;
-
-const PLAN_FEATURES: Record<string, string[]> = {
-  pro: [
-    'Managed API access — no keys needed',
-    '5M tokens / month included',
-    'All supported models',
-    'Top-up tokens anytime',
-    'Priority support',
-  ],
-  ultra: [
-    'Everything in Pro',
-    'Unlimited tokens',
-    'Highest-priority routing',
-    'Early access to new models',
-    'Rate-limited only during extreme load',
-  ],
-};
 
 export function Billing({ account }: BillingProps) {
   useLocale();
@@ -121,7 +115,7 @@ export function Billing({ account }: BillingProps) {
 
         {account.tier !== 'free' && account.tier !== 'admin' && (
           <button
-            onClick={() => post({ type: 'open_portal' })}
+            onClick={() => openUrl(dashboardBillingUrl())}
             className="rounded-lg border border-[var(--border-input)] px-4 py-2 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)] hover:text-white"
           >
             Manage Subscription &rarr;
@@ -162,7 +156,7 @@ export function Billing({ account }: BillingProps) {
         </div>
       )}
 
-      {/* Storage Top-ups */}
+      {/* Storage Top-ups — paid users only */}
       {account.tier !== 'free' && account.tier !== 'admin' && (
         <div className="mb-10">
           <SectionGroup
@@ -170,14 +164,14 @@ export function Billing({ account }: BillingProps) {
             description="Recurring monthly add-ons. Stack multiple if you need more. Cancel anytime."
           >
             <div className="grid gap-3 sm:grid-cols-3">
-              {STORAGE_ADDONS.map(a => (
+              {STORAGE_ADDONS.map((a: StorageAddonDefinition) => (
                 <button
                   key={a.id}
-                  onClick={() => post({ type: 'open_storage_addon', size: a.id as '50gb' | '250gb' | '1tb' })}
+                  onClick={() => openUrl(storageAddonUrl(a.id))}
                   className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-input)] p-5 text-center transition hover:border-[var(--accent)]/30"
                 >
                   <p className="text-xl font-bold text-[var(--gradient-start)]">
-                    {a.price}<span className="text-xs font-normal text-[var(--text-muted)]">{a.unit}</span>
+                    ${a.price}<span className="text-xs font-normal text-[var(--text-muted)]">/mo</span>
                   </p>
                   <p className="mt-1 text-xs text-[var(--text-secondary)]">{a.label}</p>
                 </button>
@@ -187,18 +181,18 @@ export function Billing({ account }: BillingProps) {
         </div>
       )}
 
-      {/* Top-ups (Pro only) */}
-      {account.tier === 'pro' && (
+      {/* Token top-ups — paid users only, canonical pricing from @ava/core */}
+      {account.tier !== 'free' && account.tier !== 'admin' && (
         <div className="mb-10">
         <SectionGroup label="Top Up Tokens" description="Running low? Add extra tokens — they never expire.">
           <div className="grid gap-3 sm:grid-cols-3">
-            {TOPUP_PACKAGES.map(pkg => (
+            {TOKEN_TOPUPS.map((pkg: TokenTopupDefinition) => (
               <button
                 key={pkg.id}
-                onClick={() => post({ type: 'open_topup', package: pkg.id as 'starter' | 'standard' | 'pro_pack' })}
+                onClick={() => openUrl(tokenTopupUrl(pkg.id))}
                 className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-input)] p-5 text-center transition hover:border-[var(--accent)]/30"
               >
-                <p className="text-xl font-bold text-[var(--gradient-start)]">{pkg.price}</p>
+                <p className="text-xl font-bold text-[var(--gradient-start)]">${pkg.price}</p>
                 <p className="mt-1 text-xs text-[var(--text-secondary)]">{pkg.label}</p>
               </button>
             ))}
@@ -207,28 +201,18 @@ export function Billing({ account }: BillingProps) {
         </div>
       )}
 
-      {/* Upgrade Cards */}
-      {account.tier !== 'ultra' && account.tier !== 'admin' && (
+      {/* Upgrade Cards — every tier above the user's current one */}
+      {account.tier !== 'enterprise' && account.tier !== 'admin' && (
         <SectionGroup label="Upgrade">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {account.tier === 'free' && (
+          <div className={`grid gap-3 ${upgradeTargets(account.tier).length > 2 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+            {upgradeTargets(account.tier).map((tier) => (
               <UpgradeCard
-                title="Pro"
-                price="$19"
-                period="/mo"
-                features={PLAN_FEATURES.pro}
-                highlight={false}
-                onUpgrade={() => post({ type: 'open_checkout', plan: 'pro' })}
+                key={tier}
+                tier={tier}
+                highlight={tier === 'ultra'}
+                onUpgrade={() => openUrl(upgradeUrl(tier))}
               />
-            )}
-            <UpgradeCard
-              title="Ultra"
-              price="$49"
-              period="/mo"
-              features={PLAN_FEATURES.ultra}
-              highlight={true}
-              onUpgrade={() => post({ type: 'open_checkout', plan: 'ultra' })}
-            />
+            ))}
           </div>
         </SectionGroup>
       )}
@@ -236,35 +220,38 @@ export function Billing({ account }: BillingProps) {
   );
 }
 
+/** The paid tiers a user on the given tier can upgrade to. */
+function upgradeTargets(current: PlanTier): Array<'pro' | 'ultra' | 'enterprise'> {
+  if (current === 'free') return ['pro', 'ultra', 'enterprise'];
+  if (current === 'pro') return ['ultra', 'enterprise'];
+  if (current === 'ultra') return ['enterprise'];
+  return [];
+}
+
 function UpgradeCard({
-  title,
-  price,
-  period,
-  features,
+  tier,
   highlight,
   onUpgrade,
 }: {
-  title: string;
-  price: string;
-  period: string;
-  features: string[];
+  tier: 'pro' | 'ultra' | 'enterprise';
   highlight: boolean;
   onUpgrade: () => void;
 }) {
+  const plan = PLANS[tier];
   return (
     <div
       className={`flex flex-col rounded-xl border p-5 ${
         highlight ? 'border-[var(--accent)]/40 bg-[var(--bg-card)]' : 'border-[var(--border-card)] bg-[var(--bg-card)]'
       }`}
     >
-      <TierBadge tier={title.toLowerCase() as 'pro' | 'ultra'} />
+      <TierBadge tier={tier} />
       <div className="mt-3">
-        <span className="text-3xl font-bold">{price}</span>
-        <span className="text-xs text-[var(--text-muted)]">{period}</span>
+        <span className="text-3xl font-bold">${plan.price}</span>
+        <span className="text-xs text-[var(--text-muted)]">/mo</span>
       </div>
 
       <ul className="mt-4 flex-1 space-y-2.5">
-        {features.map(f => (
+        {plan.features.map((f: string) => (
           <li key={f} className="flex items-start gap-2 text-xs text-[var(--text-secondary)]">
             <CheckIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--gradient-start)]" />
             {f}
@@ -280,7 +267,7 @@ function UpgradeCard({
             : 'bg-[var(--accent)] hover:bg-[var(--accent-hover)]'
         }`}
       >
-        Upgrade to {title}
+        Upgrade to {plan.name}
       </button>
     </div>
   );
@@ -298,3 +285,7 @@ function formatStorage(gb: number): string {
   if (gb >= 1) return `${gb.toFixed(1)} GB`;
   return `${Math.round(gb * 1024)} MB`;
 }
+
+// Re-export so callers can reach the website URL helpers without pulling
+// @ava/core directly (e.g. DashboardPage and routing components).
+export { pricingUrl };

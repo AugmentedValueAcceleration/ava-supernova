@@ -67,6 +67,25 @@ export { BrowserTool } from './tools/browser.js';
 export { SecretRequestTool } from './tools/secret-request.js';
 export { EnvWriteTool, pickEnvFile, isGitignored, upsertEnvLine } from './tools/env-write.js';
 
+// Billing — canonical plan data + website redirect URL builders
+export {
+  PLANS,
+  TOKEN_TOPUPS,
+  STORAGE_ADDONS,
+  AVA_SITE_BASE,
+  pricingUrl,
+  dashboardBillingUrl,
+  upgradeUrl,
+  tokenTopupUrl,
+  storageAddonUrl,
+} from './billing/plans.js';
+export type {
+  PlanTier,
+  PlanDefinition,
+  TokenTopupDefinition,
+  StorageAddonDefinition,
+} from './billing/plans.js';
+
 // Memory
 export { MemoryManager } from './memory/memory-manager.js';
 export { PlatformMemorySync } from './memory/platform-sync.js';
