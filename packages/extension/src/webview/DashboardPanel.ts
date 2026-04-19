@@ -3184,9 +3184,19 @@ export class DashboardPanel {
         this.post({ type: 'creative_result', success: false, error: 'Not connected. Add your account in Settings.' } as any);
         return;
       }
+      // Data Mode hard gate — when Local is set, the server skips the
+      // Storage bucket upload + creative_assets insert and returns a
+      // short-lived provider URL. The client is expected to save to
+      // disk before the URL expires (see Creative Studio local save path).
+      const { getDataMode } = await import('./data-mode.js');
+      const mode = getDataMode(this.context);
       const res = await fetch(`https://ava-supernova.com/api/${endpoint}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${platformKey}` },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${platformKey}`,
+          'X-Ava-Data-Mode': mode,
+        },
         body: JSON.stringify(body),
       });
       if (!res.ok) {
