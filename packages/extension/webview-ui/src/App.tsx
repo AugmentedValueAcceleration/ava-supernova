@@ -106,7 +106,7 @@ import { HistoryPanel } from './components/HistoryPanel';
 import { SecretGrantPrompt } from './components/SecretGrantPrompt';
 import { MemoryPanel } from './components/MemoryPanel';
 import { TasksPanel, DEFAULT_WIDTH } from './components/TasksPanel';
-// ContextBar removed — replaced by circular indicator in InputArea
+import { ContextBar } from './components/ContextBar';
 import type { AvaMode, ImageAttachment } from './components/InputArea';
 import { t, setLocale, loadStrings } from './i18n';
 import { SecretsProvider } from './hooks/useSecrets';
@@ -1259,6 +1259,16 @@ export function App() {
           onCancelSignIn={handleCancelSignIn}
           onClearSignInError={handleClearSignInError}
           contextUsage={state.contextUsage}
+          isCompressing={state.isCompressing}
+          isStreaming={state.isStreaming}
+          onCompress={handleCompress}
+        />
+
+        {/* Context usage — sits flush above the composer so the bar is
+            right where the next turn is being written. Click-to-compress
+            when pct ≥ 25%. */}
+        <ContextBar
+          contextUsage={state.contextUsage ?? null}
           isCompressing={state.isCompressing}
           isStreaming={state.isStreaming}
           onCompress={handleCompress}

@@ -4,7 +4,6 @@ import { MessageBubble } from './MessageBubble';
 import { ThinkingIndicator } from './ThinkingIndicator';
 import { PersonaStatus } from './PersonaStatus';
 import { SignInScreen } from './SignInScreen';
-import { ContextBar } from './ContextBar';
 import { t, useLocale } from '../i18n';
 
 interface PersonaInfo {
@@ -360,15 +359,9 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {/* Context bar — thin progress indicator at the top of the chat.
-          Replaces the circular chip that used to live in the input area.
-          Clicks trigger manual compression. */}
-      <ContextBar
-        contextUsage={contextUsage ?? null}
-        isCompressing={isCompressing}
-        isStreaming={isStreaming}
-        onCompress={onCompress}
-      />
+      {/* ContextBar moved out — now rendered in App.tsx directly above the
+          composer so the bar sits next to where the user is typing, not at
+          the far top of the message list where it was easy to forget. */}
 
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3" role="log" aria-label={t('chat.messages_aria')} aria-live="polite">
         {messages.map((msg, i) => (
