@@ -29,7 +29,7 @@ import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, Journa
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
 import { sessionStats } from '../session-stats.js';
-import { setDataMode as setHostDataMode } from './data-mode.js';
+import { setDataMode as setHostDataMode, includesCloud as dataModeIncludesCloud } from './data-mode.js';
 import type { AvaViewProvider } from './AvaViewProvider.js';
 import type {
   ExtToDashboardMessage,
@@ -954,9 +954,16 @@ export class DashboardPanel {
     const connections = await this.getConnectionStatus();
 
     // Cloud-pull settings before reading local — applies remote when cloud is
-    // newer than the last push from this device. Skipped when the user has
-    // disabled settings sync.
-    if (platformKey && this.isSyncEnabled('settings')) await this.pullSettingsFromCloud(platformKey);
+    // newer than the last push from this device. Skipped in Local mode
+    // (Data Mode is the hard gate) and when the user has disabled
+    // settings sync (the per-category narrower).
+    if (
+      platformKey
+      && dataModeIncludesCloud(this.context)
+      && this.isSyncEnabled('settings')
+    ) {
+      await this.pullSettingsFromCloud(platformKey);
+    }
 
     const settings = this.readSettings();
     const providerKeys = await this.getProviderKeyStatus();
@@ -2642,6 +2649,11 @@ export class DashboardPanel {
   /** Fire-and-forget push to /api/settings (uses the dedicated personality column). */
   private async pushPersonalityToCloud(personality: Personality): Promise<void> {
     try {
+      // Data Mode is the hard gate; the per-category sync pref narrows.
+      // Previously this only checked isSyncEnabled, so choosing "Local"
+      // in the chat header still pushed personality to the cloud whenever
+      // the user edited Ava's style — a silent leak.
+      if (!dataModeIncludesCloud(this.context)) return;
       if (!this.isSyncEnabled('personality')) return;
       const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
       if (!platformKey) return;
@@ -2751,6 +2763,14 @@ export class DashboardPanel {
   }
 
   private async pushToCloud(dataType: string): Promise<void> {
+    // Defence in depth: the UI already gates this on Data Mode before
+    // firing push_to_cloud, but any future caller (internal retries,
+    // scheduled sync, a tool that wants to force-push) needs the
+    // gate here too so Local mode stays truly local no matter what.
+    if (!dataModeIncludesCloud(this.context)) {
+      this.post({ type: 'sync_error', dataType, message: 'Data Mode is Local — cloud sync is disabled. Switch to Cloud or Both in the chat header.' });
+      return;
+    }
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
     if (!platformKey) {
       this.post({ type: 'sync_error', dataType, message: 'No platform account connected. Connect an account first.' });
@@ -3011,6 +3031,8 @@ export class DashboardPanel {
   /** Fire-and-forget push of current settings to /api/settings/sync. */
   private async pushSettingsToCloud(settings: DashboardSettings): Promise<void> {
     try {
+      // Data Mode hard gate first, then the per-category sync pref.
+      if (!dataModeIncludesCloud(this.context)) return;
       if (!this.isSyncEnabled('settings')) return;
       const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
       if (!platformKey) return;
