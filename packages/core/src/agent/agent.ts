@@ -906,26 +906,29 @@ export class Agent {
       // Trim old tool results to save tokens — after 4 messages, collapse to summary
       messages = this.trimOldToolResults(messages);
 
-      // Auto-compress at 40% of the model's context window.
+      // Auto-compress at 70% of the model's context window, capped at
+      // 400K tokens as an absolute ceiling.
       //
-      // Previously we waited until 70% before compressing, which for a 1M
-      // context model meant every single turn could send up to 700,000
-      // tokens before anything got summarised. That's both expensive (real
-      // money per turn at managed-model pricing) and harmful to response
-      // quality — large contexts increase latency, hurt attention, and make
-      // it harder for the model to stay focused on the active task.
+      // The 70% ratio is preserved for small-to-mid-sized context models
+      // (128K → ~90K trigger, 256K → ~180K trigger) because the author
+      // deliberately chose it to avoid compression thrash: each
+      // compression pass is an LLM call that can destabilise a session
+      // ("acts on the initial message again" regression). Firing too
+      // eagerly is worse than firing late.
       //
-      // Compression is costly and disruptive — it makes an LLM call, drops
-      // live conversation state, and every compression pass risks the
-      // model losing its place ("acts on the initial message again" is
-      // the classic symptom). Compression should be a last resort when
-      // we're genuinely pressing against context, not a routine event.
+      // The 400K ceiling fixes the 1M-context degenerate case — at 70%
+      // of 1M every turn would send up to 700K tokens before anything
+      // got summarised. On managed Qwen Plus ($0.20 / $1.20 per 1M),
+      // that's ~$0.14 per turn of raw input cost, and 700K of context
+      // slows every response substantially. Capping at 400K means one
+      // earlier compression pass vs. carrying an extra 300K per turn
+      // for 20+ turns.
       //
-      // 70% threshold gives 700K on a 1M-context model or ~90K on a
-      // 128K-context model — enough headroom for a few more turns before
-      // the window gets tight, while avoiding the every-few-turns
-      // compression thrash that destabilised long sessions.
-      const maxInputTokens = Math.floor(this.model.contextWindow * 0.7);
+      // Math: trigger = min(contextWindow × 0.7, 400_000)
+      const maxInputTokens = Math.min(
+        Math.floor(this.model.contextWindow * 0.7),
+        400_000,
+      );
       const estimatedTotal = this.estimateTokenCount(messages);
 
       // Emit context usage so UIs can show a progress bar

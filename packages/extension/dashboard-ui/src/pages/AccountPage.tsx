@@ -4,13 +4,13 @@ import { Settings } from './Settings';
 import { Billing } from './Billing';
 import { Connections } from './Connections';
 import { Personality } from './Personality';
-import { Sync } from './Sync';
+import { Cloud } from './Cloud';
 import type {
   DashboardSettings, ProviderKeyStatus, PersonalityData,
-  ConnectionStatus, SyncStatus, Page,
+  ConnectionStatus, SyncStatus, Page, AccountInfo,
 } from '../types/messages';
 
-type AccountTab = 'settings' | 'billing' | 'connections' | 'personality' | 'sync';
+type AccountTab = 'settings' | 'billing' | 'connections' | 'personality' | 'cloud';
 
 interface AccountPageProps {
   settings: DashboardSettings;
@@ -18,7 +18,12 @@ interface AccountPageProps {
   providerKeys: ProviderKeyStatus;
   onNavigate?: (page: Page) => void;
   personality?: PersonalityData | null;
-  account?: { email?: string; name?: string } | null;
+  /** Full account object from the platform — powers the Billing tab and
+   *  the Cloud Management panel (storage totals, addons). The narrower
+   *  {email,name} shape the page historically used wasn't enough for
+   *  Cloud Management, so callers now pass the full AccountInfo when
+   *  available. Optional: Account page still works signed-out. */
+  account?: AccountInfo | null;
   avatarDataUrl?: string;
   connections: ConnectionStatus;
   syncStatus: SyncStatus | null;
@@ -33,7 +38,10 @@ function getAccountTabs(): { key: AccountTab; label: string; platformOnly?: bool
     { key: 'billing', label: t('dash.account.tab_billing'), platformOnly: true },
     { key: 'connections', label: t('dash.account.tab_connections') },
     { key: 'personality', label: "Ava's Style" },
-    { key: 'sync', label: t('dash.account.tab_sync'), platformOnly: true },
+    // Renamed from "Sync" — the tab now hosts both the per-category sync
+    // prefs AND a Cloud Management view for inspecting / deleting what's
+    // synced. "Cloud" is the umbrella; the sub-tabs inside split them.
+    { key: 'cloud', label: 'Cloud', platformOnly: true },
   ];
 }
 
@@ -70,16 +78,16 @@ export function AccountPage({
       {/* Tab bar */}
       <div className="flex items-center gap-1 border-b border-[var(--border-card)] pb-px">
         {visibleTabs.map(({ key, label }) => {
-          const isMutedSync = key === 'sync' && syncDisabled && activeTab !== 'sync';
+          const isMutedCloud = key === 'cloud' && syncDisabled && activeTab !== 'cloud';
           return (
             <button
               key={key}
               onClick={() => setActiveTab(key)}
-              title={key === 'sync' && syncDisabled ? 'Data Mode is set to Local — switch to Cloud or Both in the chat header to enable cloud sync' : undefined}
+              title={key === 'cloud' && syncDisabled ? 'Data Mode is set to Local — switch to Cloud or Both in the chat header to enable cloud sync' : undefined}
               className={`px-3 pb-2 pt-1 text-xs font-medium transition ${
                 activeTab === key
                   ? 'border-b-2 border-[var(--accent)] text-white'
-                  : isMutedSync
+                  : isMutedCloud
                     ? 'text-[var(--text-muted)] opacity-40 hover:opacity-60'
                     : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
               }`}
@@ -116,20 +124,15 @@ export function AccountPage({
         <Personality personality={personality ?? null} />
       )}
 
-      {activeTab === 'sync' && (
-        <>
-          {syncDisabled && (
-            <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-300 mb-4">
-              Data Mode is set to <span className="font-semibold">Local</span>. Cloud sync runs on whatever you toggle below, but the chat header gates auto-sync on cloud-or-both. Switch the data mode in the chat header to enable background sync.
-            </div>
-          )}
-          <Sync
-            syncStatus={syncStatus}
-            syncingTypes={syncingTypes}
-            syncResults={syncResults}
-            isConnected={!!account}
-          />
-        </>
+      {activeTab === 'cloud' && (
+        <Cloud
+          syncStatus={syncStatus}
+          syncingTypes={syncingTypes}
+          syncResults={syncResults}
+          isConnected={!!account}
+          account={account ?? null}
+          syncDisabled={syncDisabled}
+        />
       )}
     </div>
   );
