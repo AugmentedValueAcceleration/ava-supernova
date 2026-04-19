@@ -207,12 +207,20 @@ export class AnthropicProvider extends BaseProvider {
       }
     }
 
-    // Convert tools
-    const tools = request.tools?.map(t => ({
-      name: t.function.name,
-      description: t.function.description,
-      input_schema: t.function.parameters || { type: 'object', properties: {} },
-    }));
+    // Convert tools — mark the last one with cache_control so the entire
+    // tools block (large and static across a session) hits Anthropic's
+    // prompt cache. One breakpoint covers everything up to and including
+    // the tagged block, so we only need it on the final tool.
+    const tools = request.tools?.map((t, i, arr) => {
+      const base = {
+        name: t.function.name,
+        description: t.function.description,
+        input_schema: t.function.parameters || { type: 'object', properties: {} },
+      };
+      return i === arr.length - 1
+        ? { ...base, cache_control: { type: 'ephemeral' } }
+        : base;
+    });
 
     // Convert tool_choice
     let toolChoice: unknown;
@@ -220,11 +228,20 @@ export class AnthropicProvider extends BaseProvider {
     else if (request.tool_choice === 'none') toolChoice = { type: 'none' };
     else if (request.tool_choice === 'required') toolChoice = { type: 'any' };
 
+    // System prompt: promote to the structured-block form so we can cache it.
+    // Anthropic caches everything up to (and including) the tagged block, so
+    // wrapping the whole system in one cached block is the cleanest win. The
+    // 1,024-token minimum is comfortably exceeded by L0 + mode prefix + tool
+    // list in every real session.
+    const systemBlock = systemPrompt
+      ? [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }]
+      : undefined;
+
     return {
       model: request.model,
       messages,
       max_tokens: request.max_tokens || 4096,
-      ...(systemPrompt && { system: systemPrompt }),
+      ...(systemBlock && { system: systemBlock }),
       ...(request.temperature !== undefined && { temperature: request.temperature }),
       ...(request.top_p !== undefined && { top_p: request.top_p }),
       ...(request.stop && { stop_sequences: Array.isArray(request.stop) ? request.stop : [request.stop] }),
