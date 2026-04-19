@@ -104,12 +104,26 @@ export function Header({
     return (localStorage.getItem('ava-data-mode') as DataMode) || 'local';
   });
 
+  // Notify the extension host of the current mode on mount so its save
+  // handlers know whether to write locally, to the cloud, or both. Without
+  // this the host's default ('local') stays in place until the user
+  // clicks the toggle for the first time — and any sync in the meantime
+  // would ignore the user's actual pref stored in localStorage.
+  useEffect(() => {
+    post({ type: 'set_data_mode', mode: dataMode });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const cycleDataMode = useCallback(() => {
     if (!platformStatus?.connected) return;
     setDataMode(prev => {
       const idx = DATA_MODES.indexOf(prev);
       const next = DATA_MODES[(idx + 1) % DATA_MODES.length];
       localStorage.setItem('ava-data-mode', next);
+      // Tell the host immediately — save handlers read this before every
+      // write, so a delayed post would mean the first write after a
+      // toggle could still go the old direction.
+      post({ type: 'set_data_mode', mode: next });
       return next;
     });
   }, [platformStatus?.connected]);

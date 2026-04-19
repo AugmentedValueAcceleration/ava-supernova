@@ -456,6 +456,12 @@ export type DashboardToExtMessage =
   | { type: 'update_name'; name: string }
   | { type: 'refresh_account' }
   | { type: 'refresh_storage' }
+  // User toggled Data Mode in the chat header. Host persists the value
+  // and every save-path handler reads it via getDataMode() / includesLocal()
+  // / includesCloud() before writing. Single source of truth — previously
+  // the toggle lived only in localStorage and most save paths ignored it,
+  // leaking to the cloud regardless of the user's choice.
+  | { type: 'set_data_mode'; mode: 'local' | 'cloud' | 'both' }
   // Cloud-data wipes. Each posts to the corresponding /api/<category>/all
   // DELETE endpoint on the platform, then pushes a refreshed account
   // snapshot so storage totals reflect the drop.

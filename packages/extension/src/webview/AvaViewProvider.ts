@@ -62,6 +62,7 @@ import {
 import { StatusBar, type StatusBarState } from './status-bar.js';
 import { buildCurrentSystemPrompt as buildCurrentSystemPromptFn } from './system-prompt-builder.js';
 import { HistoryCoordinator } from './history-coordinator.js';
+import { includesCloud as dataModeIncludesCloud } from './data-mode.js';
 
 export class AvaViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'ava-supernova.chatView';
@@ -271,8 +272,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       historySync = new PlatformHistorySync('https://ava-supernova.com/api', platformKey);
     }
     const syncPrefs = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
+    // Data Mode is the hard gate: when user chose Local, every manager
+    // runs localOnly regardless of per-category sync prefs. When Cloud or
+    // Both, the per-category sync pref is the finer-grained narrower.
+    const cloudAllowed = dataModeIncludesCloud(this.context);
     const historyLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.historyLocalOnly') ?? false)
-      || syncPrefs.history === false;
+      || syncPrefs.history === false
+      || !cloudAllowed;
     this.historyManager = new HistoryManager(this.projectRoot, { sync: historySync, localOnly: historyLocalOnly });
     this.historyManager.init();
     this.history = new HistoryCoordinator({
@@ -299,7 +305,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       sync = new PlatformMemorySync('https://ava-supernova.com/api', platformKey, projectId);
     }
     const memoryLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? false)
-      || syncPrefs.memory === false;
+      || syncPrefs.memory === false
+      || !cloudAllowed;
     this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly });
 
     // Pull the latest memories from cloud on every session start where
@@ -370,7 +377,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       taskSync = new PlatformTaskSyncImpl('https://ava-supernova.com/api', platformKey);
     }
     const taskLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.taskLocalOnly') ?? false)
-      || syncPrefs.tasks === false;
+      || syncPrefs.tasks === false
+      || !cloudAllowed;
     this.taskManager = new TaskManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync: taskSync, localOnly: taskLocalOnly });
     if (taskSync && !taskLocalOnly) {
       // Pull on session start so tasks made on device A show up on B.
@@ -383,7 +391,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       journalSync = new PlatformJournalSyncImpl('https://ava-supernova.com/api', platformKey);
     }
     const journalLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.journalLocalOnly') ?? false)
-      || syncPrefs.journal === false;
+      || syncPrefs.journal === false
+      || !cloudAllowed;
     this.journalManager = new JournalManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync: journalSync, localOnly: journalLocalOnly });
     if (journalSync && !journalLocalOnly) {
       // Pull journal entries on session start — same fire-and-forget
@@ -1732,7 +1741,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings',
     enabled: boolean,
   ): void {
-    const localOnly = !enabled;
+    // Combine with Data Mode — pref can only narrow, not broaden. If Data
+    // Mode is Local the manager stays localOnly regardless of the pref.
+    const cloudAllowed = dataModeIncludesCloud(this.context);
+    const localOnly = !(enabled && cloudAllowed);
     switch (dataType) {
       case 'memory': this.memoryManager?.setLocalOnly(localOnly); break;
       case 'tasks':  this.taskManager?.setLocalOnly(localOnly); break;
@@ -1741,6 +1753,22 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // learning/settings/personality/learnings have no background push — the
       // DashboardPanel checks the pref directly before each push site.
     }
+  }
+
+  /** Apply a Data Mode change to every background-sync manager so the
+   *  toggle in the chat header takes effect immediately without a reload.
+   *  Hard gate: when mode is 'local' every manager goes localOnly, period.
+   *  Per-category sync prefs can narrow further but can't override. */
+  public applyDataMode(mode: 'local' | 'cloud' | 'both'): void {
+    const cloudAllowed = mode === 'cloud' || mode === 'both';
+    const syncPrefs = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
+    // Default to enabled (true) when the pref hasn't been explicitly set —
+    // matches the "enabled by default" shape used at init time.
+    const resolve = (type: string) => !(cloudAllowed && (syncPrefs[type] !== false));
+    this.memoryManager?.setLocalOnly(resolve('memory'));
+    this.taskManager?.setLocalOnly(resolve('tasks'));
+    this.journalManager?.setLocalOnly(resolve('journal'));
+    this.historyManager?.setLocalOnly(resolve('history'));
   }
 
   public async resetMemoryManager(): Promise<void> {

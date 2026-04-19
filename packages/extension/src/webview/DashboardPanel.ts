@@ -29,6 +29,7 @@ import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, Journa
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
 import { sessionStats } from '../session-stats.js';
+import { setDataMode as setHostDataMode } from './data-mode.js';
 import type { AvaViewProvider } from './AvaViewProvider.js';
 import type {
   ExtToDashboardMessage,
@@ -353,6 +354,15 @@ export class DashboardPanel {
       case 'refresh_storage':
         await this.refreshStorage();
         break;
+
+      case 'set_data_mode': {
+        await setHostDataMode(this.context, msg.mode);
+        // Flip each manager's localOnly state immediately so the toggle
+        // takes effect without a reload. AvaViewProvider owns the
+        // managers, so route through it.
+        this.viewProvider?.applyDataMode(msg.mode);
+        break;
+      }
 
       case 'delete_all_cloud_conversations':
         await this.wipeCloudCategory('/conversations/all', 'chat history');

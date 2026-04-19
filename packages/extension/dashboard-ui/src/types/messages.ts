@@ -724,6 +724,7 @@ export type DashboardToExtMessage =
   | { type: 'update_name'; name: string }
   | { type: 'refresh_account' }
   | { type: 'refresh_storage' }
+  | { type: 'set_data_mode'; mode: 'local' | 'cloud' | 'both' }
   | { type: 'delete_all_cloud_conversations' }
   | { type: 'delete_all_cloud_tasks' }
   | { type: 'delete_all_cloud_journal' }
