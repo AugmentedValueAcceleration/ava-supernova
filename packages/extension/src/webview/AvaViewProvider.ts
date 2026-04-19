@@ -2288,17 +2288,20 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             this.conversation!.setMessages(msgs);
           }
         } else if (this.memoryManager && text.length > 5) {
-          // Fallback: raw recall (no Memory Agent available)
+          // Fallback pointer (no Memory Agent available). Mirrors the IDE
+          // sidecar: instead of dumping 5 × 300 chars of raw content every
+          // turn (~500 tokens of speculative context), emit a category
+          // pointer so Ava knows memory exists and reaches for memory_recall
+          // only when the conversation touches something worth searching.
           const recalled = await this.memoryManager.recall({ query: text, limit: 5, scope: 'all' });
           if (recalled.length > 0) {
-            const memoryContext = recalled
-              .map((r: { scope: string; entry: { category: string; content: string } }) =>
-                `[${r.scope}/${r.entry.category}] ${r.entry.content.slice(0, 300)}`)
-              .join('\n');
+            const categories = [...new Set(
+              recalled.map((r: { entry: { category: string } }) => r.entry.category)
+            )];
             const msgs = this.conversation!.getMessages();
             msgs.push({
               role: 'user' as const,
-              content: `[Memory context]\n${memoryContext}\n\nUse these if relevant. Don't mention them unless asked about memory.`,
+              content: `[Memory pointer] ${recalled.length} related memor${recalled.length === 1 ? 'y' : 'ies'} found across: ${categories.join(', ')}. Call memory_recall with a specific query if it's relevant to the user's question.`,
             });
             this.conversation!.setMessages(msgs);
           }
