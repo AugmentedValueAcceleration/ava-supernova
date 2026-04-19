@@ -507,7 +507,7 @@ describe('Anthropic contract', () => {
     expect(headers.Authorization).toBeUndefined();
   });
 
-  it('extracts system messages to top-level system field', async () => {
+  it('extracts system messages to top-level system field with cache_control', async () => {
     mockFetch.mockResolvedValue(jsonResponse({
       id: 'msg_1', type: 'message', role: 'assistant',
       content: [{ type: 'text', text: 'OK' }],
@@ -522,10 +522,41 @@ describe('Anthropic contract', () => {
       ],
     });
     const body = lastFetchBody();
-    expect(body.system).toBe('You are helpful.');
+    // System is promoted to a structured content-block array so we can tag
+    // it with cache_control: ephemeral — this is what gives every
+    // subsequent turn the ~90% prompt-cache discount.
+    expect(Array.isArray(body.system)).toBe(true);
+    const systemBlocks = body.system as Array<{ type: string; text: string; cache_control?: unknown }>;
+    expect(systemBlocks).toHaveLength(1);
+    expect(systemBlocks[0].type).toBe('text');
+    expect(systemBlocks[0].text).toBe('You are helpful.');
+    expect(systemBlocks[0].cache_control).toEqual({ type: 'ephemeral' });
     // System message should not appear in messages array
     const msgs = body.messages as any[];
     expect(msgs.every((m: any) => m.role !== 'system')).toBe(true);
+  });
+
+  it('tags the last tool with cache_control so tool schemas are cached', async () => {
+    mockFetch.mockResolvedValue(jsonResponse({
+      id: 'msg_1', type: 'message', role: 'assistant',
+      content: [{ type: 'text', text: 'OK' }],
+      stop_reason: 'end_turn', usage: { input_tokens: 10, output_tokens: 2 },
+    }));
+    const p = new AnthropicProvider({ apiKey: 'sk-test' });
+    await p.createCompletion({
+      model: 'claude-sonnet-4-6-20250514',
+      messages: [{ role: 'user', content: 'go' }],
+      tools: [
+        { type: 'function', function: { name: 'a', description: 'A', parameters: { type: 'object', properties: {} } } },
+        { type: 'function', function: { name: 'b', description: 'B', parameters: { type: 'object', properties: {} } } },
+      ],
+    });
+    const body = lastFetchBody();
+    const tools = body.tools as Array<{ name: string; cache_control?: unknown }>;
+    expect(tools).toHaveLength(2);
+    // One breakpoint on the final tool caches the whole tool block + system.
+    expect(tools[0].cache_control).toBeUndefined();
+    expect(tools[1].cache_control).toEqual({ type: 'ephemeral' });
   });
 
   it('converts tools to Anthropic format (input_schema)', async () => {

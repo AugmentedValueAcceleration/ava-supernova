@@ -94,6 +94,61 @@ describe('FileReadTool', () => {
     const result = await tool.execute({ file_path: '/empty.ts' }, ctx);
     expect(result.success).toBe(true);
   });
+
+  // ── Default limit + paging hint (token-reduction changes) ─────────────────
+
+  it('defaults to 500-line limit when no limit is passed', async () => {
+    const lines = Array.from({ length: 1200 }, (_, i) => `line${i + 1}`).join('\n');
+    mockReadFile.mockResolvedValue(lines);
+    const result = await tool.execute({ file_path: '/big.ts' }, ctx);
+    expect(result.metadata?.shownLines).toBe(500);
+    expect(result.metadata?.totalLines).toBe(1200);
+  });
+
+  it('flags truncated=true in metadata when the slice is partial', async () => {
+    const lines = Array.from({ length: 600 }, (_, i) => `l${i + 1}`).join('\n');
+    mockReadFile.mockResolvedValue(lines);
+    const result = await tool.execute({ file_path: '/f.ts' }, ctx);
+    expect(result.metadata?.truncated).toBe(true);
+  });
+
+  it('does not flag truncated when the full file is shown', async () => {
+    mockReadFile.mockResolvedValue('one\ntwo\nthree');
+    const result = await tool.execute({ file_path: '/f.ts' }, ctx);
+    expect(result.metadata?.truncated).toBe(false);
+  });
+
+  it('includes a paging hint in output when truncated', async () => {
+    const lines = Array.from({ length: 600 }, () => 'x').join('\n');
+    mockReadFile.mockResolvedValue(lines);
+    const result = await tool.execute({ file_path: '/f.ts' }, ctx);
+    expect(result.output).toContain('showing lines 1–500 of 600');
+    expect(result.output).toContain('offset:501');
+  });
+
+  it('omits the paging hint when full file fits under the limit', async () => {
+    mockReadFile.mockResolvedValue('a\nb\nc');
+    const result = await tool.execute({ file_path: '/f.ts' }, ctx);
+    expect(result.output).not.toContain('showing lines');
+    expect(result.output).not.toContain('offset:');
+  });
+
+  it('still honours explicit limit above the default', async () => {
+    const lines = Array.from({ length: 1500 }, () => 'y').join('\n');
+    mockReadFile.mockResolvedValue(lines);
+    const result = await tool.execute({ file_path: '/f.ts', limit: 1000 }, ctx);
+    expect(result.metadata?.shownLines).toBe(1000);
+    expect(result.metadata?.truncated).toBe(true);
+  });
+
+  it('offset + default limit shows the right window with correct paging hint', async () => {
+    const lines = Array.from({ length: 2000 }, (_, i) => `L${i + 1}`).join('\n');
+    mockReadFile.mockResolvedValue(lines);
+    const result = await tool.execute({ file_path: '/f.ts', offset: 501 }, ctx);
+    expect(result.metadata?.shownLines).toBe(500);
+    expect(result.output).toContain('showing lines 501–1000 of 2000');
+    expect(result.output).toContain('offset:1001');
+  });
 });
 
 // ── FileWriteTool ────────────────────────────────────────────────────────────

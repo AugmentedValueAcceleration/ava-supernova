@@ -154,4 +154,58 @@ describe('GrepTool', () => {
     await tool.execute({ pattern: 'test', file_pattern: '*.spec.ts' }, ctx);
     expect(mockGlob).toHaveBeenCalledWith('*.spec.ts', expect.anything());
   });
+
+  // ── Output ceilings (token-reduction changes) ──────────────────────────────
+
+  it('truncates a single matching line at ~400 bytes', async () => {
+    mockGlob.mockResolvedValue(['/src/min.js']);
+    const longLine = 'match' + 'x'.repeat(10_000);
+    mockReadFile.mockResolvedValue(longLine);
+
+    const result = await tool.execute({ pattern: 'match' }, ctx);
+    expect(result.success).toBe(true);
+    // Each result entry = `path:line: ` prefix (~15 chars) + line snippet
+    // The snippet itself is capped at 400 chars with the truncation marker appended.
+    expect(result.output).toContain('[line truncated]');
+    // Total output for the single hit should be under a comfortable ceiling —
+    // the 10K char line must NOT come through verbatim.
+    expect(result.output.length).toBeLessThan(1_000);
+  });
+
+  it('stops at the 20KB byte ceiling before reaching the 200-result cap', async () => {
+    // 100 matching lines × 400 bytes each = 40KB worth of hits, so the byte
+    // cap should fire first, well before 200 results are collected.
+    mockGlob.mockResolvedValue(['/src/file.ts']);
+    const lineBody = 'match' + 'y'.repeat(500); // will itself be trimmed to 400
+    const lines = Array.from({ length: 100 }, () => lineBody).join('\n');
+    mockReadFile.mockResolvedValue(lines);
+
+    const result = await tool.execute({ pattern: 'match' }, ctx);
+    expect(result.metadata?.truncated).toBe(true);
+    expect(result.metadata?.truncReason).toContain('KB output cap');
+    expect(result.output).toContain('KB output cap');
+    // Must fewer than 200 entries — the byte cap fired first.
+    expect((result.metadata?.count as number)).toBeLessThan(200);
+  });
+
+  it('reports "200 results" as the truncation reason when count cap fires first', async () => {
+    // Short matching lines => byte cap is comfortable; count cap hits first.
+    mockGlob.mockResolvedValue(['/src/tiny.ts']);
+    const lines = Array.from({ length: 250 }, () => 'hit').join('\n');
+    mockReadFile.mockResolvedValue(lines);
+
+    const result = await tool.execute({ pattern: 'hit' }, ctx);
+    expect(result.metadata?.truncated).toBe(true);
+    expect(result.metadata?.count).toBe(200);
+    expect(result.metadata?.truncReason).toContain('200 results');
+  });
+
+  it('does not set truncReason when the full result set fits under every cap', async () => {
+    mockGlob.mockResolvedValue(['/src/small.ts']);
+    mockReadFile.mockResolvedValue('match\nno\nmatch');
+
+    const result = await tool.execute({ pattern: 'match' }, ctx);
+    expect(result.metadata?.truncated).toBe(false);
+    expect(result.metadata?.truncReason).toBeUndefined();
+  });
 });
