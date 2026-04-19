@@ -644,6 +644,7 @@ export type ExtToDashboardMessage =
   | { type: 'news_article_loaded'; post: Record<string, unknown> | null; related: Array<Record<string, unknown>>; loading?: boolean }
   | { type: 'latest_release_loaded'; release: { version: string; title: string; published_at: string } | null }
   | { type: 'error'; message: string }
+  | { type: 'info'; message: string }
   // ── Chat messages (Extension → Chat page) ───────────────────────────────
   | { type: 'chat_init'; models: ChatModel[]; activeModel: string | null; needsSetup: boolean; locale?: string; localeStrings?: Record<string, string>; providerSource?: ProviderSource; platformStatus?: ChatPlatformStatus }
   | ({ type: 'chat_platform_status' } & ChatPlatformStatus)
@@ -723,6 +724,10 @@ export type DashboardToExtMessage =
   | { type: 'update_name'; name: string }
   | { type: 'refresh_account' }
   | { type: 'refresh_storage' }
+  | { type: 'delete_all_cloud_conversations' }
+  | { type: 'delete_all_cloud_tasks' }
+  | { type: 'delete_all_cloud_journal' }
+  | { type: 'delete_all_cloud_creative' }
   | { type: 'load_conversations' }
   | { type: 'delete_conversation'; id: string }
   | { type: 'toggle_pin_conversation'; id: string }

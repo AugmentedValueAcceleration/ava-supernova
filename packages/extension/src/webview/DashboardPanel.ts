@@ -354,6 +354,22 @@ export class DashboardPanel {
         await this.refreshStorage();
         break;
 
+      case 'delete_all_cloud_conversations':
+        await this.wipeCloudCategory('/conversations/all', 'chat history');
+        break;
+
+      case 'delete_all_cloud_tasks':
+        await this.wipeCloudCategory('/tasks/all', 'tasks');
+        break;
+
+      case 'delete_all_cloud_journal':
+        await this.wipeCloudCategory('/journal/all', 'journal entries');
+        break;
+
+      case 'delete_all_cloud_creative':
+        await this.wipeCloudCategory('/creative-assets', 'creative assets');
+        break;
+
       case 'load_conversations':
         await this.loadConversations();
         break;
@@ -1002,6 +1018,34 @@ export class DashboardPanel {
       // Non-fatal — fall through to whatever the account-info endpoint returns.
     }
     await this.refreshAccount();
+  }
+
+  /** Shared helper for the Cloud Management "Clear all X from cloud"
+   *  buttons. DELETE the given path on the platform, surface the result
+   *  to the webview as a clear_result message, then recalculate storage
+   *  and push a fresh account snapshot so totals drop immediately.
+   *
+   *  Intentionally does NOT touch local data — these buttons wipe the
+   *  cloud copy only. Users re-upload by re-enabling sync. */
+  private async wipeCloudCategory(path: string, humanName: string): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) {
+      this.post({ type: 'error', message: `Sign in to clear ${humanName} from the cloud.` });
+      return;
+    }
+    try {
+      const res = await apiFetch(path, { method: 'DELETE', platformKey });
+      if (!res.ok) {
+        this.post({ type: 'error', message: `Failed to clear ${humanName} (${res.status})` });
+        return;
+      }
+      this.post({ type: 'info', message: `Cleared all ${humanName} from the cloud.` });
+    } catch (err) {
+      this.post({ type: 'error', message: `Failed to clear ${humanName}: ${err instanceof Error ? err.message : String(err)}` });
+      return;
+    }
+    // Refresh the storage snapshot so the UI reflects the drop.
+    await this.refreshStorage();
   }
 
   private async updateName(name: string): Promise<void> {

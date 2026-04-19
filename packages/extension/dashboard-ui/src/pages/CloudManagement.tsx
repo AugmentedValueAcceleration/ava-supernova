@@ -1,17 +1,12 @@
-import { useEffect } from 'react';
-import { AVA_SITE_BASE } from '@ava/core/billing';
+import { useEffect, useState } from 'react';
 import { post } from '../App';
-import type { AccountInfo } from '../types/messages';
+import type { AccountInfo, ExtToDashboardMessage } from '../types/messages';
 import { SectionGroup } from '../components/SectionGroup';
-import { ArrowTopRightIcon, TrashIcon } from '../components/Icons';
+import { TrashIcon } from '../components/Icons';
 
 interface CloudManagementProps {
   account: AccountInfo | null;
   isConnected: boolean;
-}
-
-function openUrl(url: string) {
-  post({ type: 'open_url', url });
 }
 
 function fmtStorage(gb: number): string {
@@ -21,56 +16,98 @@ function fmtStorage(gb: number): string {
   return `${Math.round(gb * 1024)} MB`;
 }
 
-// Each card corresponds to one bucket of data the server sums into
-// usage.storage_gb_used. Managing items individually lives on the website
-// today — each "Manage" button opens the corresponding dashboard page.
-// Per-item deletion from inside the extension can land in a follow-up
-// once the host-side delete wiring per category is in place.
+type WipeMessageType =
+  | 'delete_all_memories'
+  | 'delete_all_cloud_conversations'
+  | 'delete_all_cloud_tasks'
+  | 'delete_all_cloud_journal'
+  | 'delete_all_cloud_creative';
+
+// One card per cloud-stored category. Each card gets a "Clear all from
+// cloud" button that wipes the server-side copy. Local files never leave
+// the user's machine — that's the one-line safety guarantee every button
+// repeats. If we later wire a listing view (per-item browse + delete),
+// it slots into the same card structure.
 const CATEGORIES: Array<{
   id: string;
   label: string;
   description: string;
-  managePath: string;
+  wipe: WipeMessageType;
+  confirmCopy: string;
 }> = [
   {
     id: 'memories',
     label: 'Memories',
     description: 'Learned preferences, patterns, architecture decisions, and people Ava remembers.',
-    managePath: '/dashboard/memories',
+    wipe: 'delete_all_memories',
+    confirmCopy: 'Delete all memories from the cloud? Local memory files stay on your machine and can re-sync if you re-enable sync.',
   },
   {
     id: 'conversations',
     label: 'Chat History',
     description: 'Every synced chat session — titles, messages, tool calls, and attachments.',
-    managePath: '/dashboard/history',
+    wipe: 'delete_all_cloud_conversations',
+    confirmCopy: 'Delete all chat history from the cloud? Local conversation files stay on your machine.',
   },
   {
     id: 'tasks',
     label: 'Tasks',
     description: 'Your life-management task list — priorities, categories, due dates, subtasks.',
-    managePath: '/dashboard/tasks',
+    wipe: 'delete_all_cloud_tasks',
+    confirmCopy: 'Delete all tasks from the cloud? Local task data stays on your machine.',
   },
   {
     id: 'journal',
     label: 'Journal',
     description: 'Daily entries from both sides — yours and Ava\'s.',
-    managePath: '/dashboard/journal',
+    wipe: 'delete_all_cloud_journal',
+    confirmCopy: 'Delete all journal entries from the cloud? Local entries stay on your machine.',
   },
   {
     id: 'creative',
     label: 'Creative Assets',
     description: 'AI-generated images, music, video, and voice from Creative Studio.',
-    managePath: '/dashboard/creative',
+    wipe: 'delete_all_cloud_creative',
+    confirmCopy: 'Delete all creative assets from the cloud? Local files stay; only the cloud copy is removed.',
   },
 ];
 
 export function CloudManagement({ account, isConnected }: CloudManagementProps) {
-  // Refresh the storage snapshot whenever this tab mounts so the totals at
-  // the top reflect reality instead of whatever the nightly pg_cron last
-  // wrote. Matches Billing's behaviour. Silent + fire-and-forget.
+  const [toast, setToast] = useState<{ kind: 'info' | 'error'; text: string } | null>(null);
+  const [pendingWipe, setPendingWipe] = useState<string | null>(null);
+
   useEffect(() => {
     if (isConnected) post({ type: 'refresh_storage' });
   }, [isConnected]);
+
+  // Surface wipe results via simple toast, then auto-clear after a few seconds.
+  useEffect(() => {
+    const onMsg = (e: MessageEvent<ExtToDashboardMessage>) => {
+      const data = e.data;
+      if (!data) return;
+      if (data.type === 'info' && typeof data.message === 'string') {
+        setToast({ kind: 'info', text: data.message });
+        setPendingWipe(null);
+      } else if (data.type === 'error' && typeof data.message === 'string') {
+        setToast({ kind: 'error', text: data.message });
+        setPendingWipe(null);
+      }
+    };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const triggerWipe = (cat: (typeof CATEGORIES)[number]) => {
+    if (!window.confirm(cat.confirmCopy)) return;
+    setPendingWipe(cat.id);
+    post({ type: cat.wipe });
+  };
 
   if (!isConnected) {
     return (
@@ -86,14 +123,26 @@ export function CloudManagement({ account, isConnected }: CloudManagementProps) 
 
   return (
     <div className="space-y-6">
+      {toast && (
+        <div
+          className={`rounded-lg border px-4 py-2 text-xs ${
+            toast.kind === 'error'
+              ? 'border-red-500/30 bg-red-500/10 text-red-300'
+              : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+          }`}
+        >
+          {toast.text}
+        </div>
+      )}
+
       {/* Header + total storage */}
       <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h3 className="text-sm font-semibold text-white">Cloud Storage</h3>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              Your cloud copy. Every item here is mirrored locally — deleting
-              from the cloud never touches your local data.
+              Your cloud copy. Clearing anything here only touches the cloud —
+              local files always stay on your machine.
             </p>
           </div>
           <button
@@ -122,59 +171,36 @@ export function CloudManagement({ account, isConnected }: CloudManagementProps) 
       {/* Per-category cards */}
       <SectionGroup
         label="By type"
-        description="Manage each category on the web dashboard — delete individually, bulk-clear, or export."
+        description="Clear everything in a category from your cloud copy. Local data is never touched."
       >
         <div className="grid gap-3 sm:grid-cols-2">
-          {CATEGORIES.map((cat) => (
-            <div
-              key={cat.id}
-              className="flex flex-col rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-white">{cat.label}</span>
-                <span className="rounded-full bg-[var(--bg-input)] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                  Cloud
-                </span>
+          {CATEGORIES.map((cat) => {
+            const inFlight = pendingWipe === cat.id;
+            return (
+              <div
+                key={cat.id}
+                className="flex flex-col rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-white">{cat.label}</span>
+                  <span className="rounded-full bg-[var(--bg-input)] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                    Cloud
+                  </span>
+                </div>
+                <p className="mt-1.5 flex-1 text-[11px] text-[var(--text-muted)] leading-relaxed">
+                  {cat.description}
+                </p>
+                <button
+                  onClick={() => triggerWipe(cat)}
+                  disabled={inFlight}
+                  className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border-input)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] transition hover:border-red-500/30 hover:text-red-300 bg-transparent cursor-pointer disabled:cursor-wait disabled:opacity-50"
+                >
+                  <TrashIcon className="h-3 w-3" />
+                  {inFlight ? 'Clearing…' : 'Clear all from cloud'}
+                </button>
               </div>
-              <p className="mt-1.5 flex-1 text-[11px] text-[var(--text-muted)] leading-relaxed">
-                {cat.description}
-              </p>
-              <button
-                onClick={() => openUrl(`${AVA_SITE_BASE}${cat.managePath}`)}
-                className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border-input)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] transition hover:border-[var(--accent)]/30 hover:text-white bg-transparent cursor-pointer"
-              >
-                Manage on web
-                <ArrowTopRightIcon className="h-3 w-3" />
-              </button>
-            </div>
-          ))}
-        </div>
-      </SectionGroup>
-
-      {/* Nuclear option — wipe everything */}
-      <SectionGroup
-        label="Danger zone"
-        description="Wipe every category from the cloud at once. Local copies always stay on your machine."
-      >
-        <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
-          <div className="flex items-start gap-3">
-            <TrashIcon className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
-            <div className="flex-1">
-              <p className="text-xs font-medium text-white">Clear all cloud data</p>
-              <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-                Removes memories, chats, tasks, journal entries, and creative
-                assets from the cloud. Nothing leaves your local machine.
-                Handled via the website to keep destructive actions
-                out-of-band.
-              </p>
-              <button
-                onClick={() => openUrl(`${AVA_SITE_BASE}/dashboard/cloud?action=clear-all`)}
-                className="mt-3 rounded-md border border-red-500/30 px-3 py-1.5 text-[11px] font-medium text-red-300 transition hover:bg-red-500/10 bg-transparent cursor-pointer"
-              >
-                Open clear-all flow on web
-              </button>
-            </div>
-          </div>
+            );
+          })}
         </div>
       </SectionGroup>
     </div>

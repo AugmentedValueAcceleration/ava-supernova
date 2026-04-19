@@ -397,6 +397,7 @@ export type ExtToDashboardMessage =
   | { type: 'news_article_loaded'; post: Record<string, unknown> | null; related: Array<Record<string, unknown>>; loading?: boolean }
   | { type: 'latest_release_loaded'; release: { version: string; title: string; published_at: string } | null }
   | { type: 'error'; message: string }
+  | { type: 'info'; message: string }
   // v3 Memory graph dashboard data
   | { type: 'graph_stats'; scope: string; stats: { activeNodes: number; archivedNodes: number; edges: number; avgConfidence: number; categories: Record<string, number>; contradictions: number; proceduralPatterns: number; crystallisedPatterns: number } }
   | { type: 'contradictions_loaded'; contradictions: Array<{ nodeA: any; nodeB: any; similarity: number; edgeId: string }> }
@@ -455,6 +456,13 @@ export type DashboardToExtMessage =
   | { type: 'update_name'; name: string }
   | { type: 'refresh_account' }
   | { type: 'refresh_storage' }
+  // Cloud-data wipes. Each posts to the corresponding /api/<category>/all
+  // DELETE endpoint on the platform, then pushes a refreshed account
+  // snapshot so storage totals reflect the drop.
+  | { type: 'delete_all_cloud_conversations' }
+  | { type: 'delete_all_cloud_tasks' }
+  | { type: 'delete_all_cloud_journal' }
+  | { type: 'delete_all_cloud_creative' }
   | { type: 'load_conversations' }
   | { type: 'delete_conversation'; id: string }
   | { type: 'toggle_pin_conversation'; id: string }
