@@ -13,7 +13,8 @@ export class FileReadTool implements Tool {
     name: 'file_read',
     description:
       'Read a file from the filesystem. Returns the file contents with line numbers. ' +
-      'Use offset and limit to read specific portions of large files.',
+      'Default limit is 500 lines — raise it explicitly with `limit` if you genuinely need more, ' +
+      'or use `offset` to page through large files.',
     parameters: {
       type: 'object',
       properties: {
@@ -27,7 +28,7 @@ export class FileReadTool implements Tool {
         },
         limit: {
           type: 'number',
-          description: 'Maximum number of lines to read. Default: 2000',
+          description: 'Maximum number of lines to read. Default: 500. Set higher only when you need more.',
         },
       },
       required: ['file_path'],
@@ -37,7 +38,11 @@ export class FileReadTool implements Tool {
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const filePath = args.file_path as string;
     const offset = (args.offset as number) ?? 1;
-    const limit = (args.limit as number) ?? 2000;
+    // Default dropped from 2000 → 500 lines. Most reads want a specific
+    // region; the old default was wide enough to routinely pull 8K+ tokens
+    // of file content the model didn't end up needing. Callers can still
+    // pass limit:2000 explicitly when the whole file is warranted.
+    const limit = (args.limit as number) ?? 500;
 
     let absolutePath: string;
     try {
@@ -57,13 +62,23 @@ export class FileReadTool implements Tool {
         .map((line, i) => `${String(startIdx + i + 1).padStart(6, ' ')}  ${line}`)
         .join('\n');
 
+      // When the returned slice isn't the whole file, tell the model
+      // explicitly so it knows to re-call with an offset if it needs more.
+      // Quieter than leaving the caller to compare metadata counts.
+      const shownEnd = startIdx + selectedLines.length;
+      const hasMore = shownEnd < lines.length;
+      const output = hasMore
+        ? `${numbered}\n\n[file_read: showing lines ${startIdx + 1}–${shownEnd} of ${lines.length}. Call again with offset:${shownEnd + 1} for more.]`
+        : numbered;
+
       return {
         success: true,
-        output: numbered,
+        output,
         metadata: {
           totalLines: lines.length,
           shownLines: selectedLines.length,
           path: absolutePath,
+          truncated: hasMore,
         },
       };
     } catch (error: unknown) {
