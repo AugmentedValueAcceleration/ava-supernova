@@ -18,6 +18,11 @@ export interface HistoryCoordinatorDeps {
   setConversation: (conversation: Conversation) => void;
   /** Produce a fresh system prompt for a loaded conversation. */
   buildSystemPrompt: () => Promise<string>;
+  /** Emit a context_usage event based on the current active conversation
+   *  and model. Called after load/restore so the context bar reflects the
+   *  loaded history instead of sitting at "awaiting first turn" until the
+   *  user sends the next message. Owner computes used/limit/percent. */
+  emitContextUsage?: () => void;
 }
 
 export class HistoryCoordinator {
@@ -74,6 +79,10 @@ export class HistoryCoordinator {
       title: record.title,
       messages: buildUIMessages(record.messages),
     });
+
+    // Recompute the context bar from the restored messages so users don't
+    // see "awaiting first turn" on a conversation with real content.
+    this.deps.emitContextUsage?.();
   }
 
   async sendList(): Promise<void> {
@@ -104,6 +113,9 @@ export class HistoryCoordinator {
       title: record.title,
       messages: buildUIMessages(record.messages),
     });
+
+    // Refresh the context bar now that a potentially-large history is loaded.
+    this.deps.emitContextUsage?.();
   }
 
   async delete(conversationId: string): Promise<void> {

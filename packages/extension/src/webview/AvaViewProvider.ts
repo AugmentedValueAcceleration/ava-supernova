@@ -282,6 +282,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       getConversation: () => this.conversation,
       setConversation: (c) => { this.conversation = c; },
       buildSystemPrompt: () => this.buildCurrentSystemPrompt(),
+      // Refresh the context bar whenever a conversation is loaded /
+      // restored. Without this the bar stays at "awaiting first turn"
+      // on a chat with real content until the user sends another message.
+      emitContextUsage: () => this.emitContextUsageFromCurrent(),
     });
     if (historySync && !historyLocalOnly) {
       // Pull conversations on session start so chats from other
@@ -1505,18 +1509,25 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     });
 
     // Recalculate context bar with new model's context window
-    if (this.agent && this.conversation) {
-      const messages = this.conversation.getMessages();
-      const used = this.agent.estimateTokenCount(messages);
-      const limit = resolved.model.contextWindow;
-      const percent = limit > 0 ? Math.round((used / limit) * 100) : 0;
-      this.postMessage({
-        type: 'context_usage',
-        used,
-        limit,
-        percent: Math.min(percent, 100),
-      });
-    }
+    this.emitContextUsageFromCurrent();
+  }
+
+  /** Compute used/limit/percent from the live conversation + active model
+   *  and post a context_usage event. Shared by the model-switch, history-
+   *  load, and restore-last code paths so the context bar always matches
+   *  what the user sees on screen. */
+  private emitContextUsageFromCurrent(): void {
+    if (!this.agent || !this.conversation) return;
+    const messages = this.conversation.getMessages();
+    const used = this.agent.estimateTokenCount(messages);
+    const limit = this.activeModelDef?.contextWindow ?? 128000;
+    const percent = limit > 0 ? Math.round((used / limit) * 100) : 0;
+    this.postMessage({
+      type: 'context_usage',
+      used,
+      limit,
+      percent: Math.min(percent, 100),
+    });
   }
 
   private getModelList(): Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }> {
