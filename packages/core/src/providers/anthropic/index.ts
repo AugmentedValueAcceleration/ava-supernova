@@ -97,6 +97,8 @@ export class AnthropicProvider extends BaseProvider {
     let buffer = '';
     let inputTokens = 0;
     let outputTokens = 0;
+    let cacheReadTokens = 0;
+    let cacheCreationTokens = 0;
 
     try {
       while (true) {
@@ -121,9 +123,15 @@ export class AnthropicProvider extends BaseProvider {
             continue;
           }
 
-          // Track usage
+          // Track usage — including prompt-cache stats so we can verify
+          // cache hits are happening. cache_read_input_tokens is what got
+          // a 90% discount; cache_creation_input_tokens is a one-time cost
+          // the first turn of a fresh cache segment.
           if (event.type === 'message_start' && event.message?.usage) {
-            inputTokens = event.message.usage.input_tokens || 0;
+            const u = event.message.usage;
+            inputTokens = u.input_tokens || 0;
+            cacheReadTokens = u.cache_read_input_tokens || 0;
+            cacheCreationTokens = u.cache_creation_input_tokens || 0;
           }
           if (event.type === 'message_delta' && event.usage) {
             outputTokens = event.usage.output_tokens || 0;
@@ -136,7 +144,25 @@ export class AnthropicProvider extends BaseProvider {
     } finally {
       try { reader.cancel(); } catch { /* already closed */ }
       reader.releaseLock();
+      this.logCacheStats(request.model, inputTokens, cacheReadTokens, cacheCreationTokens);
     }
+  }
+
+  // Log cache hit / miss / creation stats at INFO so operators can verify
+  // prompt caching is actually kicking in. Cache hit rate = read / (read + input).
+  // Prints a single line per request: easy to grep, easy to eyeball, no schema.
+  private logCacheStats(
+    model: string,
+    freshInputTokens: number,
+    cacheReadTokens: number,
+    cacheCreationTokens: number,
+  ): void {
+    const totalInput = freshInputTokens + cacheReadTokens + cacheCreationTokens;
+    if (totalInput === 0) return;
+    const hitPct = totalInput > 0 ? Math.round((cacheReadTokens / totalInput) * 100) : 0;
+    logger.info(
+      `[anthropic:cache] model=${model} input=${freshInputTokens} cache_read=${cacheReadTokens} cache_create=${cacheCreationTokens} hit=${hitPct}%`
+    );
   }
 
   // ── Request conversion: OpenAI → Anthropic ─────────────────────────────
@@ -280,8 +306,20 @@ export class AnthropicProvider extends BaseProvider {
       }
     }
 
-    const usage = data.usage as { input_tokens?: number; output_tokens?: number } | undefined;
+    const usage = data.usage as {
+      input_tokens?: number;
+      output_tokens?: number;
+      cache_read_input_tokens?: number;
+      cache_creation_input_tokens?: number;
+    } | undefined;
     const stopReason = data.stop_reason as string;
+
+    this.logCacheStats(
+      model,
+      usage?.input_tokens || 0,
+      usage?.cache_read_input_tokens || 0,
+      usage?.cache_creation_input_tokens || 0,
+    );
 
     return {
       id: (data.id as string) || `chatcmpl-${Date.now()}`,
