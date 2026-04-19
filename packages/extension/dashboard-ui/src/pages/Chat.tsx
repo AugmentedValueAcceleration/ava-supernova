@@ -15,6 +15,7 @@ import type {
 } from '../types/messages';
 import type { AvaMode } from '../types/messages';
 import { ChatContainer } from '../chat/components/ChatContainer';
+import { ContextBar } from '../chat/components/ContextBar';
 import { InputArea } from '../chat/components/InputArea';
 import type { ImageAttachment } from '../chat/components/InputArea';
 import { Header } from '../chat/components/Header';
@@ -1002,6 +1003,16 @@ export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCol
               <span className="opacity-40">Ava is summarising older messages to free up space</span>
             </div>
           )}
+
+          {/* Context usage — sits flush above the composer so the bar lives
+              right where the next turn is being written. Click-to-compress
+              when pct ≥ 25%. */}
+          <ContextBar
+            contextUsage={state.contextUsage}
+            isCompressing={state.isCompressing}
+            isStreaming={state.isStreaming}
+            onCompress={handleCompress}
+          />
 
           <InputArea
             onSend={handleSend}

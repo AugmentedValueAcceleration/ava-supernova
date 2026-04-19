@@ -1,10 +1,7 @@
 /**
- * ContextBar — horizontal context-usage indicator rendered above the chat.
- *
- * Replaces the circular usage chip previously tucked into the input area.
- * Sits at the top of the chat panel as a thin progress bar, stays out of
- * the way when usage is low, escalates colour as the window fills, and
- * clicks to trigger manual compression.
+ * ContextBar — context-window usage indicator rendered just above the
+ * composer (was previously at the top of the chat). Slim, no wrapping
+ * frame, transparent — the composer below owns the visual container.
  */
 
 import { t, useLocale } from '../../i18n';
@@ -19,17 +16,13 @@ interface ContextBarProps {
 export function ContextBar({ contextUsage, isCompressing, isStreaming, onCompress }: ContextBarProps) {
   useLocale();
 
-  // Always render the track so users see WHERE the bar lives, even on
-  // the first turn before any context_usage event has arrived. If
-  // contextUsage is null we show an empty track with muted styling; as
-  // soon as the first event arrives the fill animates in.
   const hasUsage = !!contextUsage && contextUsage.limit > 0;
   const preciseFraction = hasUsage ? (contextUsage!.used / contextUsage!.limit) : 0;
   const pct = hasUsage ? Math.min(100, Math.max(0, contextUsage!.percent)) : 0;
   const visualPct = Math.max(pct, preciseFraction * 100);
   const isWarning = pct >= 80;
   const isCritical = pct >= 90;
-  const disabled = isCompressing || isStreaming;
+  const compressable = !isCompressing && !isStreaming && pct >= 25 && !!onCompress;
 
   const fillColor = isCritical
     ? '#ef4444'
@@ -43,55 +36,61 @@ export function ContextBar({ contextUsage, isCompressing, isStreaming, onCompres
   const tooltip = isCompressing
     ? t('input.compressing')
     : hasUsage
-      ? `Context: ${usedDisplay} / ${limitDisplay} (${pct}%) — click to compress`
-      : 'Context bar — awaiting first turn';
+      ? `Context: ${usedDisplay} / ${limitDisplay} (${pct}%)${compressable ? ' — click to compress' : ''}`
+      : 'Context — awaiting first turn';
 
-  return (
-    <button
-      type="button"
-      aria-label={tooltip}
-      title={tooltip}
-      onClick={onCompress}
-      disabled={disabled || !onCompress}
-      className="w-full block border-b border-[var(--vscode-panel-border)]
-                 bg-transparent px-0 py-0 cursor-pointer disabled:cursor-default
-                 hover:bg-[var(--vscode-list-hoverBackground)] transition-colors group"
-      style={{ WebkitAppearance: 'none' }}
-    >
+  const Strip = (
+    <div className="w-full select-none" style={{ lineHeight: 1 }}>
       <div
         className="relative w-full"
-        style={{
-          height: '4px',
-          backgroundColor: 'rgba(168, 85, 247, 0.10)',
-        }}
+        style={{ height: '2px', backgroundColor: 'rgba(168, 85, 247, 0.10)' }}
       >
         <div
           className="absolute top-0 left-0 h-full transition-[width,background-color] duration-500 ease-out"
           style={{
             width: `${Math.max(visualPct, 0.5)}%`,
             backgroundColor: fillColor,
-            opacity: disabled ? 0.5 : 1,
-            minWidth: hasUsage && contextUsage!.used > 0 ? '3px' : '0px',
+            opacity: (isCompressing || isStreaming) ? 0.5 : 1,
+            minWidth: hasUsage && contextUsage!.used > 0 ? '2px' : '0px',
           }}
         />
       </div>
-
       <div
-        className={`flex items-center justify-between px-3 py-0.5 transition-opacity ${
-          pct >= 25 ? 'opacity-100' : 'opacity-0 group-hover:opacity-80'
+        className={`flex items-center justify-end px-3 pt-0.5 h-3 transition-opacity ${
+          pct >= 25 ? 'opacity-90' : 'opacity-0'
         }`}
       >
-        <span className="text-[10px] opacity-50 tracking-wide">Context</span>
         <span
-          className="text-[10px] font-medium tabular-nums tracking-wide"
-          style={{ color: fillColor, opacity: disabled ? 0.5 : 0.85 }}
+          className="text-[9px] tabular-nums tracking-wide"
+          style={{ color: fillColor }}
         >
           {isCompressing
             ? t('input.compressing')
-            : `${usedDisplay} / ${limitDisplay} · ${pct}%${pct >= 25 ? ' · click to compress' : ''}`}
+            : `${usedDisplay} / ${limitDisplay} · ${pct}%${compressable ? ' · click to compress' : ''}`}
         </span>
       </div>
-    </button>
+    </div>
+  );
+
+  if (compressable) {
+    return (
+      <button
+        type="button"
+        aria-label={tooltip}
+        title={tooltip}
+        onClick={onCompress}
+        className="w-full block bg-transparent border-none p-0 cursor-pointer hover:opacity-90 transition-opacity group"
+        style={{ WebkitAppearance: 'none' }}
+      >
+        {Strip}
+      </button>
+    );
+  }
+
+  return (
+    <div aria-label={tooltip} title={tooltip} className="w-full">
+      {Strip}
+    </div>
   );
 }
 
