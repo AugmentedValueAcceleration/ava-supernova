@@ -6,10 +6,6 @@ import {
   STORAGE_ADDONS,
   pricingUrl,
   dashboardBillingUrl,
-  upgradeUrl,
-  tokenTopupUrl,
-  storageAddonUrl,
-  type PlanTier,
   type TokenTopupDefinition,
   type StorageAddonDefinition,
 } from '@ava/core/billing';
@@ -88,30 +84,34 @@ export function Billing({ account }: BillingProps) {
           )}
         </div>
 
-        {/* Plan Tokens */}
-        <div className="mb-4">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              {account.tier.charAt(0).toUpperCase() + account.tier.slice(1)} Plan
-            </p>
-            {account.tier === 'admin' ? (
-              <span className="text-xs font-medium text-[var(--gradient-start)]">Unlimited</span>
-            ) : usage.tokens_limit !== null ? (
-              <span className="text-xs text-[var(--text-muted)]">
-                {formatNumber(usage.tokens_limit - usage.tokens_used)} remaining
-              </span>
-            ) : (
-              <span className="text-xs text-[var(--text-muted)]">BYOK — no limit</span>
-            )}
-          </div>
-          {account.tier === 'admin' ? (
-            <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
-              <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
+        {/* Plan Tokens — hidden for Free. Free users have only the 3M free pool;
+            a second bar for a non-existent plan pool was meaningless and ran
+            against stale placeholder limits. */}
+        {account.tier !== 'free' && (
+          <div className="mb-4">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                {account.tier.charAt(0).toUpperCase() + account.tier.slice(1)} Plan
+              </p>
+              {account.tier === 'admin' ? (
+                <span className="text-xs font-medium text-[var(--gradient-start)]">Unlimited</span>
+              ) : usage.tokens_limit !== null ? (
+                <span className="text-xs text-[var(--text-muted)]">
+                  {formatNumber(usage.tokens_limit - usage.tokens_used)} remaining
+                </span>
+              ) : (
+                <span className="text-xs text-[var(--text-muted)]">BYOK — no limit</span>
+              )}
             </div>
-          ) : usage.tokens_limit !== null ? (
-            <UsageBar used={usage.tokens_used} limit={usage.tokens_limit} accent />
-          ) : null}
-        </div>
+            {account.tier === 'admin' ? (
+              <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
+                <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
+              </div>
+            ) : usage.tokens_limit !== null ? (
+              <UsageBar used={usage.tokens_used} limit={usage.tokens_limit} accent />
+            ) : null}
+          </div>
+        )}
 
         {account.tier !== 'free' && account.tier !== 'admin' && (
           <button
@@ -156,61 +156,59 @@ export function Billing({ account }: BillingProps) {
         </div>
       )}
 
-      {/* Storage Top-ups — paid users only */}
-      {account.tier !== 'free' && account.tier !== 'admin' && (
+      {/* Storage Add-ons — visible to everyone; Pro plan gets them included,
+          Free users see what's coming. Paid checkout isn't live yet, so the
+          buttons land on "Coming soon" until the website Stripe flow opens. */}
+      {account.tier !== 'admin' && (
         <div className="mb-10">
           <SectionGroup
             label="Add Storage"
-            description="Recurring monthly add-ons. Stack multiple if you need more. Cancel anytime."
+            description="Recurring monthly add-ons. Stack multiple if you need more."
           >
             <div className="grid gap-3 sm:grid-cols-3">
               {STORAGE_ADDONS.map((a: StorageAddonDefinition) => (
-                <button
+                <ComingSoonTile
                   key={a.id}
-                  onClick={() => openUrl(storageAddonUrl(a.id))}
-                  className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-input)] p-5 text-center transition hover:border-[var(--accent)]/30"
-                >
-                  <p className="text-xl font-bold text-[var(--gradient-start)]">
-                    ${a.price}<span className="text-xs font-normal text-[var(--text-muted)]">/mo</span>
-                  </p>
-                  <p className="mt-1 text-xs text-[var(--text-secondary)]">{a.label}</p>
-                </button>
+                  title={a.label}
+                  price={`$${a.price}`}
+                  suffix="/mo"
+                />
               ))}
             </div>
           </SectionGroup>
         </div>
       )}
 
-      {/* Token top-ups — paid users only, canonical pricing from @ava/core */}
-      {account.tier !== 'free' && account.tier !== 'admin' && (
+      {/* Token top-ups — visible to everyone, canonical pricing from @ava/core */}
+      {account.tier !== 'admin' && (
         <div className="mb-10">
         <SectionGroup label="Top Up Tokens" description="Running low? Add extra tokens — they never expire.">
           <div className="grid gap-3 sm:grid-cols-3">
             {TOKEN_TOPUPS.map((pkg: TokenTopupDefinition) => (
-              <button
+              <ComingSoonTile
                 key={pkg.id}
-                onClick={() => openUrl(tokenTopupUrl(pkg.id))}
-                className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-input)] p-5 text-center transition hover:border-[var(--accent)]/30"
-              >
-                <p className="text-xl font-bold text-[var(--gradient-start)]">${pkg.price}</p>
-                <p className="mt-1 text-xs text-[var(--text-secondary)]">{pkg.label}</p>
-              </button>
+                title={pkg.label}
+                price={`$${pkg.price}`}
+              />
             ))}
           </div>
         </SectionGroup>
         </div>
       )}
 
-      {/* Upgrade Cards — every tier above the user's current one */}
-      {account.tier !== 'enterprise' && account.tier !== 'admin' && (
-        <SectionGroup label="Upgrade">
-          <div className={`grid gap-3 ${upgradeTargets(account.tier).length > 2 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
-            {upgradeTargets(account.tier).map((tier) => (
-              <UpgradeCard
+      {/* Plans — every tier shown for full transparency. Current tier is
+          flagged "Your plan". Free is always visible so paid users can see
+          where they'd land on cancellation / missed renewal. All buttons
+          are Coming Soon until the checkout flow is live end to end. */}
+      {account.tier !== 'admin' && (
+        <SectionGroup label="Plans">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {(['free', 'pro', 'ultra', 'enterprise'] as const).map((tier) => (
+              <PlanCard
                 key={tier}
                 tier={tier}
+                isCurrent={tier === account.tier}
                 highlight={tier === 'ultra'}
-                onUpgrade={() => openUrl(upgradeUrl(tier))}
               />
             ))}
           </div>
@@ -220,31 +218,51 @@ export function Billing({ account }: BillingProps) {
   );
 }
 
-/** The paid tiers a user on the given tier can upgrade to. */
-function upgradeTargets(current: PlanTier): Array<'pro' | 'ultra' | 'enterprise'> {
-  if (current === 'free') return ['pro', 'ultra', 'enterprise'];
-  if (current === 'pro') return ['ultra', 'enterprise'];
-  if (current === 'ultra') return ['enterprise'];
-  return [];
+/** Small tile used for Coming-Soon top-up / storage items. Non-interactive —
+ *  keeps the pricing surface honest until checkout actually ships. */
+function ComingSoonTile({ title, price, suffix }: { title: string; price: string; suffix?: string }) {
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-[var(--border-card)] bg-[var(--bg-input)] p-5 text-center opacity-70">
+      <span className="absolute right-2 top-2 rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--accent)]">
+        Coming soon
+      </span>
+      <p className="text-xl font-bold text-[var(--gradient-start)]">
+        {price}
+        {suffix && <span className="text-xs font-normal text-[var(--text-muted)]">{suffix}</span>}
+      </p>
+      <p className="mt-1 text-xs text-[var(--text-secondary)]">{title}</p>
+    </div>
+  );
 }
 
-function UpgradeCard({
+function PlanCard({
   tier,
+  isCurrent,
   highlight,
-  onUpgrade,
 }: {
-  tier: 'pro' | 'ultra' | 'enterprise';
+  tier: 'free' | 'pro' | 'ultra' | 'enterprise';
+  isCurrent: boolean;
   highlight: boolean;
-  onUpgrade: () => void;
 }) {
   const plan = PLANS[tier];
   return (
     <div
       className={`flex flex-col rounded-xl border p-5 ${
-        highlight ? 'border-[var(--accent)]/40 bg-[var(--bg-card)]' : 'border-[var(--border-card)] bg-[var(--bg-card)]'
+        isCurrent
+          ? 'border-[var(--gradient-start)]/50 bg-[var(--bg-card)]'
+          : highlight
+          ? 'border-[var(--accent)]/40 bg-[var(--bg-card)]'
+          : 'border-[var(--border-card)] bg-[var(--bg-card)]'
       }`}
     >
-      <TierBadge tier={tier} />
+      <div className="flex items-center justify-between">
+        <TierBadge tier={tier} />
+        {isCurrent && (
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--gradient-start)]">
+            Your plan
+          </span>
+        )}
+      </div>
       <div className="mt-3">
         <span className="text-3xl font-bold">${plan.price}</span>
         <span className="text-xs text-[var(--text-muted)]">/mo</span>
@@ -259,16 +277,18 @@ function UpgradeCard({
         ))}
       </ul>
 
-      <button
-        onClick={onUpgrade}
-        className={`mt-4 w-full rounded-lg py-2.5 text-sm font-semibold text-white transition ${
-          highlight
-            ? 'bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] hover:opacity-90'
-            : 'bg-[var(--accent)] hover:bg-[var(--accent-hover)]'
-        }`}
-      >
-        Upgrade to {plan.name}
-      </button>
+      {isCurrent ? (
+        <div className="mt-4 w-full rounded-lg border border-[var(--border-input)] py-2.5 text-center text-xs text-[var(--text-muted)]">
+          Current plan
+        </div>
+      ) : (
+        <button
+          disabled
+          className="mt-4 w-full cursor-not-allowed rounded-lg border border-[var(--border-input)] bg-[var(--bg-input)] py-2.5 text-sm font-semibold text-[var(--text-muted)]"
+        >
+          Coming soon
+        </button>
+      )}
     </div>
   );
 }
