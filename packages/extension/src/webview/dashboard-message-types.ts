@@ -454,6 +454,7 @@ export type DashboardToExtMessage =
   | { type: 'open_url'; url: string }
   | { type: 'update_name'; name: string }
   | { type: 'refresh_account' }
+  | { type: 'refresh_storage' }
   | { type: 'load_conversations' }
   | { type: 'delete_conversation'; id: string }
   | { type: 'toggle_pin_conversation'; id: string }

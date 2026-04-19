@@ -1,5 +1,6 @@
 // Browser-safe subpath — pulls ONLY the billing data module, not the
 // node-side tool surface that @ava/core's main entry also exports.
+import { useEffect } from 'react';
 import {
   PLANS,
   TOKEN_TOPUPS,
@@ -31,6 +32,18 @@ interface BillingProps {
 
 export function Billing({ account }: BillingProps) {
   useLocale();
+
+  // Trigger a fresh storage calculation whenever the Billing tab mounts.
+  // The server endpoint re-sums pg_column_size across all the user's
+  // cloud-synced objects and writes the result to usage.storage_gb_used,
+  // then the host pushes an updated account snapshot back to the webview.
+  // Silent + fire-and-forget — never blocks initial render, never surfaces
+  // errors. If the platform is unreachable the user keeps seeing whatever
+  // cached value they had.
+  useEffect(() => {
+    post({ type: 'refresh_storage' });
+  }, []);
+
   const usage = account.usage ?? {
     tokens_used: 0,
     tokens_limit: null as number | null,
@@ -145,6 +158,13 @@ export function Billing({ account }: BillingProps) {
                     {formatStorage(account.storage.base_gb)} plan
                     {account.storage.addon_gb > 0 && ` + ${formatStorage(account.storage.addon_gb)} add-ons`}
                   </p>
+                  <button
+                    onClick={() => post({ type: 'refresh_storage' })}
+                    title="Recalculate storage usage"
+                    className="mt-1 text-[10px] text-[var(--text-muted)] transition hover:text-[var(--text-secondary)] bg-transparent border-none cursor-pointer p-0"
+                  >
+                    Refresh &#x21bb;
+                  </button>
                 </div>
               </div>
               <UsageBar used={account.storage.used_gb} limit={account.storage.total_gb} accent />

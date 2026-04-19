@@ -819,36 +819,38 @@ export function App() {
 
   return (
     <div className="flex h-screen overflow-hidden text-sm">
-      {/* Sidebar — uses CSS order to flip sides without remounting */}
-      {!sidebarCollapsed && (
-        <div style={{ order: sidebarSide === 'left' ? 0 : 2 }}>
-          <NavSidebar
-            currentPage={page}
-            onNavigate={setPagePersist}
-            mode={account ? 'platform' : 'byok'}
-            email={account?.email}
-            isAdmin={account?.tier === 'admin'}
-            onConnectAccount={handleConnectAccount}
-            aiName={personalityData?.name}
-            journalSummaries={journalSummaries}
-            selectedJournalDate={selectedJournalDate}
-            onSelectJournalDate={(date) => {
-              setSelectedJournalDate(date);
-              post({ type: 'load_journal_day', date });
-            }}
-            onLoadJournalSummaries={(from, to) => post({ type: 'load_journal_summaries', from, to })}
-            taskDates={taskDates}
-            onLoadTaskDates={() => post({ type: 'load_task_dates' })}
-            onToggleSidebar={toggleSidebar}
-            onFlipSidebar={flipSidebar}
-            sidebarSide={sidebarSide}
-            onNewChat={() => post({ type: 'new_chat' })}
-            onOpenHistory={() => { setPagePersist('chat'); post({ type: 'request_history' }); }}
-            supportUnread={supportUnread}
-            avatarUrl={avatarDataUrl}
-          />
-        </div>
-      )}
+      {/* Sidebar — always rendered. When `sidebarCollapsed` is true the
+          component renders a narrow icon rail so users can still navigate
+          without first expanding. CSS order flips it between left/right. */}
+      <div style={{ order: sidebarSide === 'left' ? 0 : 2 }}>
+        <NavSidebar
+          currentPage={page}
+          onNavigate={setPagePersist}
+          mode={account ? 'platform' : 'byok'}
+          email={account?.email}
+          isAdmin={account?.tier === 'admin'}
+          onConnectAccount={handleConnectAccount}
+          aiName={personalityData?.name}
+          journalSummaries={journalSummaries}
+          selectedJournalDate={selectedJournalDate}
+          onSelectJournalDate={(date) => {
+            setSelectedJournalDate(date);
+            post({ type: 'load_journal_day', date });
+          }}
+          onLoadJournalSummaries={(from, to) => post({ type: 'load_journal_summaries', from, to })}
+          taskDates={taskDates}
+          onLoadTaskDates={() => post({ type: 'load_task_dates' })}
+          onToggleSidebar={toggleSidebar}
+          onFlipSidebar={flipSidebar}
+          sidebarSide={sidebarSide}
+          onNewChat={() => post({ type: 'new_chat' })}
+          onOpenHistory={() => { setPagePersist('chat'); post({ type: 'request_history' }); }}
+          supportUnread={supportUnread}
+          avatarUrl={avatarDataUrl}
+          collapsed={sidebarCollapsed}
+        />
+      </div>
+
 
       {/* Chat page — always mounted to preserve state, hidden when not active */}
       {hasAccess && (

@@ -29,7 +29,15 @@ interface NavSidebarProps {
   onOpenHistory?: () => void;
   supportUnread?: number;
   avatarUrl?: string;
+  /** When true the sidebar renders as a narrow icon rail. Click any icon
+   *  to navigate; click the rail's toggle to expand back. Previously a
+   *  collapsed sidebar was removed from the DOM entirely, which made it
+   *  impossible to navigate without first clicking "expand" from inside
+   *  the chat header — the rail fixes that. */
+  collapsed?: boolean;
 }
+
+const RAIL_WIDTH = 56;
 
 /* ── Nav structure ────────────────────────────────────────────────────── */
 
@@ -106,17 +114,101 @@ export function NavSidebar({
   onOpenHistory,
   supportUnread,
   avatarUrl,
+  collapsed,
 }: NavSidebarProps) {
   useLocale();
 
-  // Load task dates for calendar on mount
-  useEffect(() => { onLoadTaskDates?.(); }, []);
+  // Load task dates for calendar on mount. Skip in collapsed mode — the
+  // calendar isn't rendered so the round-trip is wasted.
+  useEffect(() => { if (!collapsed) onLoadTaskDates?.(); }, [collapsed]);
 
   const handleNavigate = (page: Page) => {
     onNavigate(page);
   };
 
   const navItems = getNavItems(isAdmin);
+
+  // ── Collapsed rail: icons-only, fixed 56px width ──────────────────────
+  if (collapsed) {
+    return (
+      <nav
+        className="flex shrink-0 flex-col h-full border-r border-[var(--border-card)] bg-[var(--bg-card)] items-center py-3 gap-1"
+        style={{ width: RAIL_WIDTH }}
+      >
+        {/* Expand button */}
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            title="Expand sidebar"
+            className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-[rgba(168,85,247,0.15)] text-[var(--text-muted)] hover:text-white bg-transparent border-none cursor-pointer mb-1"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style={sidebarSide === 'right' ? { transform: 'scaleX(-1)' } : undefined}>
+              <path d="M1 2h14v12H1V2zm1 1v10h4V3H2zm5 0v10h7V3H7z" />
+            </svg>
+          </button>
+        )}
+
+        {/* New chat shortcut */}
+        {onNewChat && (
+          <button
+            onClick={onNewChat}
+            title="New chat"
+            className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-[rgba(168,85,247,0.15)] text-[var(--text-muted)] hover:text-white bg-transparent border-none cursor-pointer mb-2"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M14 7v1H8v6H7V8H1V7h6V1h1v6h6z" />
+            </svg>
+          </button>
+        )}
+
+        {/* Nav icons */}
+        <div className="flex-1 flex flex-col gap-0.5 items-center overflow-y-auto">
+          {navItems.map(item => (
+            <button
+              key={item.page}
+              onClick={() => handleNavigate(item.page)}
+              disabled={item.comingSoon}
+              title={`${item.label}${item.comingSoon ? ' (coming soon)' : ''}`}
+              className={`relative flex items-center justify-center w-9 h-9 rounded-lg cursor-pointer transition border-none ${
+                currentPage === item.page
+                  ? 'bg-[var(--bg-input)] text-white'
+                  : 'bg-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-input)]/50 hover:text-white'
+              } ${item.comingSoon ? 'opacity-40 cursor-not-allowed' : ''}`}
+            >
+              {item.icon}
+              {item.page === 'help' && supportUnread && supportUnread > 0 ? (
+                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[14px] h-[14px] rounded-full bg-[var(--accent)] px-0.5 text-[7px] font-bold text-white">{supportUnread}</span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+
+        {/* Account avatar at the bottom */}
+        <div className="mt-auto pt-2 border-t border-[var(--border-card)] w-full flex justify-center">
+          {mode === 'platform' ? (
+            avatarUrl ? (
+              <img src={avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" title={email || undefined} />
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/20 text-xs font-light text-purple-400" title={email || undefined}>
+                {email?.[0]?.toUpperCase() || '?'}
+              </div>
+            )
+          ) : (
+            <button
+              onClick={onConnectAccount}
+              title={t('dash.auth.connect')}
+              className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--accent)] text-white text-xs font-medium border-none cursor-pointer"
+            >
+              {'\u2192'}
+            </button>
+          )}
+        </div>
+      </nav>
+    );
+  }
+  // Suppress unused-variable warnings for handlers only needed in expanded mode
+  void journalSummaries; void selectedJournalDate; void onSelectJournalDate;
+  void onLoadJournalSummaries;
 
   // Resizable sidebar width — persisted
   const [dataPortOpen, setDataPortOpen] = useState(false);

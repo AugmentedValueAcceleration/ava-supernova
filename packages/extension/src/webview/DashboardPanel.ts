@@ -350,6 +350,10 @@ export class DashboardPanel {
         await this.refreshAccount();
         break;
 
+      case 'refresh_storage':
+        await this.refreshStorage();
+        break;
+
       case 'load_conversations':
         await this.loadConversations();
         break;
@@ -980,6 +984,24 @@ export class DashboardPanel {
     if (account) {
       this.post({ type: 'account_updated', account });
     }
+  }
+
+  /** Triggers /api/usage/recalculate-storage so the server re-sums the
+   *  user's memories, conversations, tasks, journal, and creative assets
+   *  into usage.storage_gb_used before refreshing the account snapshot.
+   *  Without this call the storage bar only updates when the nightly
+   *  pg_cron fires, which makes the Billing tab look permanently at
+   *  0 MB for active users between cron runs. Best-effort — server
+   *  failures never surface to the user, they just see the cached value. */
+  private async refreshStorage(): Promise<void> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return;
+    try {
+      await apiFetch('/usage/recalculate-storage', { method: 'POST', platformKey });
+    } catch {
+      // Non-fatal — fall through to whatever the account-info endpoint returns.
+    }
+    await this.refreshAccount();
   }
 
   private async updateName(name: string): Promise<void> {
