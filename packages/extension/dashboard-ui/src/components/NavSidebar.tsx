@@ -118,9 +118,54 @@ export function NavSidebar({
 }: NavSidebarProps) {
   useLocale();
 
+  // ── All hooks declared up-front so the count stays constant across
+  // collapsed/expanded transitions. Previously I returned early for the
+  // collapsed branch AFTER useLocale + useEffect but BEFORE the useState,
+  // useRef and useCallback hooks below — toggling collapse changed the
+  // hook count mid-render and React threw #300. Keep hooks above any
+  // conditional returns. (Rules of Hooks.) ────────────────────────────────
+  const [dataPortOpen, setDataPortOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem('ava-sidebar-width');
+    return saved ? Math.max(180, Math.min(400, Number(saved))) : 224;
+  });
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(224);
+
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = sidebarWidth;
+    const isRight = sidebarSide === 'right';
+
+    const onMove = (ev: MouseEvent) => {
+      if (!isDragging.current) return;
+      const delta = ev.clientX - dragStartX.current;
+      const newWidth = Math.max(180, Math.min(400, dragStartWidth.current + (isRight ? -delta : delta)));
+      setSidebarWidth(newWidth);
+    };
+
+    const onUp = () => {
+      isDragging.current = false;
+      localStorage.setItem('ava-sidebar-width', String(sidebarWidth));
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [sidebarWidth, sidebarSide]);
+
   // Load task dates for calendar on mount. Skip in collapsed mode — the
   // calendar isn't rendered so the round-trip is wasted.
   useEffect(() => { if (!collapsed) onLoadTaskDates?.(); }, [collapsed]);
+
+  // Persist sidebar width changes.
+  useEffect(() => {
+    localStorage.setItem('ava-sidebar-width', String(sidebarWidth));
+  }, [sidebarWidth]);
 
   const handleNavigate = (page: Page) => {
     onNavigate(page);
@@ -206,50 +251,6 @@ export function NavSidebar({
       </nav>
     );
   }
-  // Suppress unused-variable warnings for handlers only needed in expanded mode
-  void journalSummaries; void selectedJournalDate; void onSelectJournalDate;
-  void onLoadJournalSummaries;
-
-  // Resizable sidebar width — persisted
-  const [dataPortOpen, setDataPortOpen] = useState(false);
-
-  const [sidebarWidth, setSidebarWidth] = useState(() => {
-    const saved = localStorage.getItem('ava-sidebar-width');
-    return saved ? Math.max(180, Math.min(400, Number(saved))) : 224;
-  });
-  const isDragging = useRef(false);
-  const dragStartX = useRef(0);
-  const dragStartWidth = useRef(224);
-
-  const handleDragStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    isDragging.current = true;
-    dragStartX.current = e.clientX;
-    dragStartWidth.current = sidebarWidth;
-    const isRight = sidebarSide === 'right';
-
-    const onMove = (ev: MouseEvent) => {
-      if (!isDragging.current) return;
-      const delta = ev.clientX - dragStartX.current;
-      const newWidth = Math.max(180, Math.min(400, dragStartWidth.current + (isRight ? -delta : delta)));
-      setSidebarWidth(newWidth);
-    };
-
-    const onUp = () => {
-      isDragging.current = false;
-      localStorage.setItem('ava-sidebar-width', String(sidebarWidth));
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    };
-
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  }, [sidebarWidth, sidebarSide]);
-
-  // Save width on change (debounced via mouseup above)
-  useEffect(() => {
-    localStorage.setItem('ava-sidebar-width', String(sidebarWidth));
-  }, [sidebarWidth]);
 
   return (
     <nav className="relative flex shrink-0 flex-col h-full border-r border-[var(--border-card)] bg-[var(--bg-card)]" style={{ width: sidebarWidth }}>
