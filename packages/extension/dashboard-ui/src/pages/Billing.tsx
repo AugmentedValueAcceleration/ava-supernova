@@ -156,9 +156,9 @@ export function Billing({ account }: BillingProps) {
         </div>
       )}
 
-      {/* Storage Add-ons — unified PurchaseCard. Non-interactive state
-          today ("Coming soon"); flip to 'live' + hook onClick when the
-          checkout flow ships. "Best value" marker on the mid-tier. */}
+      {/* Storage Add-ons — every CTA opens the web billing dashboard in
+          the browser. The extension stays out of the Stripe flow and the
+          user sees identical prices to the marketing site. */}
       {account.tier !== 'admin' && (
         <div className="mb-10">
           <SectionGroup
@@ -175,8 +175,9 @@ export function Billing({ account }: BillingProps) {
                   priceSuffix="/mo"
                   effectiveRate={a.effectiveRate}
                   popular={a.popular}
-                  state="coming_soon"
-                  ctaLabel="Coming soon"
+                  state="live"
+                  ctaLabel="Add storage"
+                  onClick={() => openUrl(dashboardBillingUrl())}
                 />
               ))}
             </div>
@@ -184,9 +185,9 @@ export function Billing({ account }: BillingProps) {
         </div>
       )}
 
-      {/* Token top-ups — unified PurchaseCard. Canonical data + effective
-          rate makes the 10M "Best value" label honest (60–80% per-token
-          savings over the 3M quick-boost). */}
+      {/* Token top-ups — CTAs deep-link to the dashboard billing page
+          (same flow used by Pricing). Canonical data + effective rate
+          makes the 10M "Best value" label honest. */}
       {account.tier !== 'admin' && (
         <div className="mb-10">
         <SectionGroup label="Top Up Tokens" description="Running low? Add extra tokens — they never expire.">
@@ -199,8 +200,9 @@ export function Billing({ account }: BillingProps) {
                 price={`$${pkg.price}`}
                 effectiveRate={pkg.effectiveRate}
                 popular={pkg.popular}
-                state="coming_soon"
-                ctaLabel="Coming soon"
+                state="live"
+                ctaLabel="Buy tokens"
+                onClick={() => openUrl(dashboardBillingUrl())}
               />
             ))}
           </div>
@@ -210,8 +212,8 @@ export function Billing({ account }: BillingProps) {
 
       {/* Plans — every tier shown for full transparency. Current tier is
           flagged "Your plan". Free is always visible so paid users can see
-          where they'd land on cancellation / missed renewal. All buttons
-          are Coming Soon until the checkout flow is live end to end. */}
+          where they'd land on cancellation. Upgrade buttons deep-link to
+          the web billing dashboard where Stripe checkout runs. */}
       {account.tier !== 'admin' && (
         <SectionGroup label="Plans">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -221,6 +223,7 @@ export function Billing({ account }: BillingProps) {
                 tier={tier}
                 isCurrent={tier === account.tier}
                 highlight={tier === 'ultra'}
+                onUpgrade={() => openUrl(dashboardBillingUrl())}
               />
             ))}
           </div>
@@ -234,10 +237,12 @@ function PlanCard({
   tier,
   isCurrent,
   highlight,
+  onUpgrade,
 }: {
   tier: 'free' | 'pro' | 'ultra' | 'enterprise';
   isCurrent: boolean;
   highlight: boolean;
+  onUpgrade: () => void;
 }) {
   const plan = PLANS[tier];
   return (
@@ -276,12 +281,16 @@ function PlanCard({
         <div className="mt-4 w-full rounded-lg border border-[var(--border-input)] py-2.5 text-center text-xs text-[var(--text-muted)]">
           Current plan
         </div>
+      ) : tier === 'free' ? (
+        <div className="mt-4 w-full rounded-lg border border-[var(--border-input)] py-2.5 text-center text-xs text-[var(--text-muted)]">
+          Free plan
+        </div>
       ) : (
         <button
-          disabled
-          className="mt-4 w-full cursor-not-allowed rounded-lg border border-[var(--border-input)] bg-[var(--bg-input)] py-2.5 text-sm font-semibold text-[var(--text-muted)]"
+          onClick={onUpgrade}
+          className="mt-4 w-full rounded-lg bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
         >
-          Coming soon
+          Upgrade to {tier.charAt(0).toUpperCase() + tier.slice(1)}
         </button>
       )}
     </div>
