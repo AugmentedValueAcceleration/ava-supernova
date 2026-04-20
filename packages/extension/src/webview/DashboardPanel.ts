@@ -811,7 +811,6 @@ export class DashboardPanel {
               await fs.writeFile(filePath, '');
             }
             this.post({ type: 'info', message: `Created documents/${filename}` });
-            await vscode.workspace.openTextDocument(vscode.Uri.file(filePath)).then(doc => vscode.window.showTextDocument(doc));
             await this.loadLibraryFiles();
           } catch (err: any) {
             this.post({ type: 'error', message: `Failed to create document: ${err.message}` });
@@ -845,8 +844,6 @@ export class DashboardPanel {
               format: 'docx',
             }, { cwd: projectRoot, sharedState: {} });
             this.post({ type: 'info', message: `Created documents/${filename} from ${msg.template} template` });
-            const absPath = path.join(projectRoot, filePath);
-            await vscode.workspace.openTextDocument(vscode.Uri.file(absPath)).then(doc => vscode.window.showTextDocument(doc));
             await this.loadLibraryFiles();
           }
         } catch (err: any) {
@@ -866,7 +863,25 @@ export class DashboardPanel {
             this.post({ type: 'error', message: 'Invalid path: access restricted to workspace and home directory.' });
             break;
           }
-          await vscode.env.openExternal(vscode.Uri.file(fullPath));
+          // Prefer LibreOffice / OpenOffice for office documents — keeps the
+          // open-source story intact. Falls back to OS default (which may be
+          // Word/Excel) when neither is installed.
+          const ext = path.extname(fullPath).toLowerCase();
+          const officeExts = new Set(['.docx', '.doc', '.odt', '.xlsx', '.xls', '.ods', '.csv', '.pptx', '.ppt', '.odp', '.pdf']);
+          let opened = false;
+          if (officeExts.has(ext)) {
+            const soffice = await this.findLibreOfficeBinary();
+            if (soffice) {
+              try {
+                const cp = await import('node:child_process');
+                cp.spawn(soffice, [fullPath], { detached: true, stdio: 'ignore' }).unref();
+                opened = true;
+              } catch { /* fall through to system default */ }
+            }
+          }
+          if (!opened) {
+            await vscode.env.openExternal(vscode.Uri.file(fullPath));
+          }
         }
         break;
       }
@@ -2423,6 +2438,54 @@ export class DashboardPanel {
     } catch {
       this.post({ type: 'releases_loaded', releases: [] });
     }
+  }
+
+  /**
+   * Locate a LibreOffice (soffice) or OpenOffice binary on disk. Returns the
+   * absolute path if found, else null. Caches the result for the session so
+   * we don't stat the same paths repeatedly.
+   *
+   * We prefer LibreOffice / OpenOffice because they're the open-source
+   * office suites — aligns with the project's open-source stance instead
+   * of handing documents straight to Word / Excel via the OS default.
+   */
+  private cachedOfficeBinary: string | null | undefined;
+  private async findLibreOfficeBinary(): Promise<string | null> {
+    if (this.cachedOfficeBinary !== undefined) return this.cachedOfficeBinary;
+
+    const fs = await import('node:fs/promises');
+    const candidates: string[] = [];
+    if (process.platform === 'win32') {
+      const pf = process.env['ProgramFiles'] || 'C:\\Program Files';
+      const pfx86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+      candidates.push(
+        path.join(pf, 'LibreOffice', 'program', 'soffice.exe'),
+        path.join(pfx86, 'LibreOffice', 'program', 'soffice.exe'),
+        path.join(pf, 'OpenOffice 4', 'program', 'soffice.exe'),
+        path.join(pfx86, 'OpenOffice 4', 'program', 'soffice.exe'),
+      );
+    } else if (process.platform === 'darwin') {
+      candidates.push(
+        '/Applications/LibreOffice.app/Contents/MacOS/soffice',
+        '/Applications/OpenOffice.app/Contents/MacOS/soffice',
+      );
+    } else {
+      candidates.push(
+        '/usr/bin/soffice', '/usr/bin/libreoffice',
+        '/usr/local/bin/soffice', '/usr/local/bin/libreoffice',
+        '/snap/bin/libreoffice',
+      );
+    }
+
+    for (const c of candidates) {
+      try {
+        await fs.access(c);
+        this.cachedOfficeBinary = c;
+        return c;
+      } catch { /* not found, try next */ }
+    }
+    this.cachedOfficeBinary = null;
+    return null;
   }
 
   // ─── Library (project files — images, documents, spreadsheets) ─
