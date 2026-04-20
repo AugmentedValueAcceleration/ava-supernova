@@ -748,13 +748,24 @@ export class DashboardPanel {
       }
       case 'create_blank_document': {
         const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (workspaceFolders) {
+        if (!workspaceFolders || workspaceFolders.length === 0) {
+          this.post({ type: 'error', message: 'Open a workspace folder first — documents need somewhere to live.' });
+          break;
+        }
+        const name = await vscode.window.showInputBox({
+          prompt: `Name for the new .${msg.format} file`,
+          value: 'untitled',
+          validateInput: (v) => v.trim() ? null : 'Enter a filename',
+        });
+        if (!name?.trim()) break;
+        const filename = `${name.trim()}.${msg.format}`;
+        {
           const projectRoot = workspaceFolders[0].uri.fsPath;
           const docsDir = path.join(projectRoot, 'documents');
-          const filePath = path.join(docsDir, msg.filename);
+          const filePath = path.join(docsDir, filename);
           try {
             await fs.mkdir(docsDir, { recursive: true });
-            const ext = path.extname(msg.filename).toLowerCase();
+            const ext = path.extname(filename).toLowerCase();
             if (ext === '.docx') {
               try {
                 const { Document, Packer, Paragraph } = await import('docx');
@@ -798,7 +809,7 @@ export class DashboardPanel {
             } else {
               await fs.writeFile(filePath, '');
             }
-            this.post({ type: 'info', message: `Created documents/${msg.filename}` });
+            this.post({ type: 'info', message: `Created documents/${filename}` });
             await vscode.workspace.openTextDocument(vscode.Uri.file(filePath)).then(doc => vscode.window.showTextDocument(doc));
             await this.loadLibraryFiles();
           } catch (err: any) {
@@ -809,26 +820,36 @@ export class DashboardPanel {
       }
       case 'create_from_template': {
         const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (workspaceFolders && this.toolRegistry) {
-          const projectRoot = workspaceFolders[0].uri.fsPath;
-          const filePath = path.join('documents', msg.filename);
-          try {
-            const tool = this.toolRegistry.getTool('document_manage');
-            if (tool) {
-              await tool.execute({
-                action: 'from_template',
-                template: msg.template,
-                file_path: filePath,
-                format: 'docx',
-              }, { cwd: projectRoot, sharedState: {} });
-              this.post({ type: 'info', message: `Created documents/${msg.filename} from ${msg.template} template` });
-              const absPath = path.join(projectRoot, filePath);
-              await vscode.workspace.openTextDocument(vscode.Uri.file(absPath)).then(doc => vscode.window.showTextDocument(doc));
-              await this.loadLibraryFiles();
-            }
-          } catch (err: any) {
-            this.post({ type: 'error', message: `Failed to create from template: ${err.message}` });
+        if (!workspaceFolders || workspaceFolders.length === 0) {
+          this.post({ type: 'error', message: 'Open a workspace folder first — documents need somewhere to live.' });
+          break;
+        }
+        if (!this.toolRegistry) break;
+        const name = await vscode.window.showInputBox({
+          prompt: `Name for the new ${msg.template.replace('_', ' ')} document`,
+          value: msg.template,
+          validateInput: (v) => v.trim() ? null : 'Enter a filename',
+        });
+        if (!name?.trim()) break;
+        const filename = `${name.trim()}.docx`;
+        const projectRoot = workspaceFolders[0].uri.fsPath;
+        const filePath = path.join('documents', filename);
+        try {
+          const tool = this.toolRegistry.getTool('document_manage');
+          if (tool) {
+            await tool.execute({
+              action: 'from_template',
+              template: msg.template,
+              file_path: filePath,
+              format: 'docx',
+            }, { cwd: projectRoot, sharedState: {} });
+            this.post({ type: 'info', message: `Created documents/${filename} from ${msg.template} template` });
+            const absPath = path.join(projectRoot, filePath);
+            await vscode.workspace.openTextDocument(vscode.Uri.file(absPath)).then(doc => vscode.window.showTextDocument(doc));
+            await this.loadLibraryFiles();
           }
+        } catch (err: any) {
+          this.post({ type: 'error', message: `Failed to create from template: ${err.message}` });
         }
         break;
       }

@@ -1227,9 +1227,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                 <button
                   key={item.ext}
                   onClick={() => {
-                    const name = prompt(`Filename (without .${item.ext}):`, `untitled`);
-                    if (!name?.trim()) return;
-                    post({ type: 'create_blank_document', format: item.ext, filename: `${name.trim()}.${item.ext}` } as any);
+                    post({ type: 'create_blank_document', format: item.ext as 'docx' | 'xlsx' | 'csv' | 'md' | 'pdf' });
                   }}
                   className="flex flex-col items-center gap-2 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-center transition hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/5 cursor-pointer"
                 >
@@ -1258,9 +1256,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                 <button
                   key={tmpl.id}
                   onClick={() => {
-                    const name = prompt(`Filename (without .docx):`, tmpl.id);
-                    if (!name?.trim()) return;
-                    post({ type: 'create_from_template', template: tmpl.id, filename: `${name.trim()}.docx` } as any);
+                    post({ type: 'create_from_template', template: tmpl.id as 'proposal' | 'report' | 'invoice' | 'letter' | 'meeting_notes' | 'resume' });
                   }}
                   className="flex items-start gap-3 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-left transition hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/5 cursor-pointer"
                 >
