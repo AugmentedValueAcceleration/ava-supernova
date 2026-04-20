@@ -17,6 +17,7 @@ import { UsageBar } from '../components/UsageBar';
 import { TierBadge } from '../components/TierBadge';
 import { SectionGroup } from '../components/SectionGroup';
 import { CheckIcon } from '../components/Icons';
+import { PurchaseCard } from '../components/PurchaseCard';
 
 // Every pricing/upgrade CTA opens the canonical website page in the user's
 // browser rather than firing an in-extension Stripe flow. Keeps the extension
@@ -176,9 +177,9 @@ export function Billing({ account }: BillingProps) {
         </div>
       )}
 
-      {/* Storage Add-ons — visible to everyone; Pro plan gets them included,
-          Free users see what's coming. Paid checkout isn't live yet, so the
-          buttons land on "Coming soon" until the website Stripe flow opens. */}
+      {/* Storage Add-ons — unified PurchaseCard. Non-interactive state
+          today ("Coming soon"); flip to 'live' + hook onClick when the
+          checkout flow ships. "Best value" marker on the mid-tier. */}
       {account.tier !== 'admin' && (
         <div className="mb-10">
           <SectionGroup
@@ -187,11 +188,16 @@ export function Billing({ account }: BillingProps) {
           >
             <div className="grid gap-3 sm:grid-cols-3">
               {STORAGE_ADDONS.map((a: StorageAddonDefinition) => (
-                <ComingSoonTile
+                <PurchaseCard
                   key={a.id}
                   title={a.label}
+                  subtitle={a.subtitle}
                   price={`$${a.price}`}
-                  suffix="/mo"
+                  priceSuffix="/mo"
+                  effectiveRate={a.effectiveRate}
+                  popular={a.popular}
+                  state="coming_soon"
+                  ctaLabel="Coming soon"
                 />
               ))}
             </div>
@@ -199,16 +205,23 @@ export function Billing({ account }: BillingProps) {
         </div>
       )}
 
-      {/* Token top-ups — visible to everyone, canonical pricing from @ava/core */}
+      {/* Token top-ups — unified PurchaseCard. Canonical data + effective
+          rate makes the 10M "Best value" label honest (60–80% per-token
+          savings over the 3M quick-boost). */}
       {account.tier !== 'admin' && (
         <div className="mb-10">
         <SectionGroup label="Top Up Tokens" description="Running low? Add extra tokens — they never expire.">
           <div className="grid gap-3 sm:grid-cols-3">
             {TOKEN_TOPUPS.map((pkg: TokenTopupDefinition) => (
-              <ComingSoonTile
+              <PurchaseCard
                 key={pkg.id}
                 title={pkg.label}
+                subtitle={pkg.subtitle}
                 price={`$${pkg.price}`}
+                effectiveRate={pkg.effectiveRate}
+                popular={pkg.popular}
+                state="coming_soon"
+                ctaLabel="Coming soon"
               />
             ))}
           </div>
@@ -234,23 +247,6 @@ export function Billing({ account }: BillingProps) {
           </div>
         </SectionGroup>
       )}
-    </div>
-  );
-}
-
-/** Small tile used for Coming-Soon top-up / storage items. Non-interactive —
- *  keeps the pricing surface honest until checkout actually ships. */
-function ComingSoonTile({ title, price, suffix }: { title: string; price: string; suffix?: string }) {
-  return (
-    <div className="relative overflow-hidden rounded-xl border border-[var(--border-card)] bg-[var(--bg-input)] p-5 text-center opacity-70">
-      <span className="absolute right-2 top-2 rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--accent)]">
-        Coming soon
-      </span>
-      <p className="text-xl font-bold text-[var(--gradient-start)]">
-        {price}
-        {suffix && <span className="text-xs font-normal text-[var(--text-muted)]">{suffix}</span>}
-      </p>
-      <p className="mt-1 text-xs text-[var(--text-secondary)]">{title}</p>
     </div>
   );
 }

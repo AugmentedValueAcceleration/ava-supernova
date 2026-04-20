@@ -95,12 +95,20 @@ export interface TokenTopupDefinition {
   tokens: number;
   price: number;
   label: string;
+  /** One-line pitch surfaced under the title on purchase cards. */
+  subtitle: string;
+  /** Effective rate for value comparison. Pre-computed so UIs don't
+   *  duplicate the "$X per 1M" maths across surfaces. */
+  effectiveRate: string;
+  /** Flagged in UIs with a subtle "Best value" marker + border
+   *  treatment. Only one per category should carry this. */
+  popular?: boolean;
 }
 
 export const TOKEN_TOPUPS: TokenTopupDefinition[] = [
-  { id: 'tokens_3m', tokens: 3_000_000, price: 3, label: '3M tokens' },
-  { id: 'tokens_10m', tokens: 10_000_000, price: 8, label: '10M tokens' },
-  { id: 'tokens_25m', tokens: 25_000_000, price: 15, label: '25M tokens' },
+  { id: 'tokens_3m',  tokens: 3_000_000,  price: 3,  label: '3M tokens',  subtitle: 'Quick boost',   effectiveRate: '$1.00 per 1M' },
+  { id: 'tokens_10m', tokens: 10_000_000, price: 8,  label: '10M tokens', subtitle: 'Best value',    effectiveRate: '$0.80 per 1M', popular: true },
+  { id: 'tokens_25m', tokens: 25_000_000, price: 15, label: '25M tokens', subtitle: 'Power user',    effectiveRate: '$0.60 per 1M' },
 ];
 
 export interface StorageAddonDefinition {
@@ -108,12 +116,18 @@ export interface StorageAddonDefinition {
   gb: number;
   price: number;
   label: string;
+  /** One-line pitch surfaced under the title on purchase cards. */
+  subtitle: string;
+  /** Monthly cost per GB. Lets users see that +1TB is 4c/GB vs +50GB at 6c/GB. */
+  effectiveRate: string;
+  /** Subtle "Best value" marker in the UI. */
+  popular?: boolean;
 }
 
 export const STORAGE_ADDONS: StorageAddonDefinition[] = [
-  { id: '50gb', gb: 50, price: 3, label: '+50 GB' },
-  { id: '250gb', gb: 250, price: 12, label: '+250 GB' },
-  { id: '1tb', gb: 1024, price: 45, label: '+1 TB' },
+  { id: '50gb',  gb: 50,   price: 3,  label: '+50 GB',  subtitle: 'A little more room',        effectiveRate: '$0.06 / GB / mo' },
+  { id: '250gb', gb: 250,  price: 12, label: '+250 GB', subtitle: 'Creative Studio scale',     effectiveRate: '$0.048 / GB / mo', popular: true },
+  { id: '1tb',   gb: 1024, price: 45, label: '+1 TB',   subtitle: 'Power user',                effectiveRate: '$0.044 / GB / mo' },
 ];
 
 // ── Website URL builders ──────────────────────────────────────────────────
