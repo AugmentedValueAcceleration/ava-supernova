@@ -811,6 +811,20 @@ export class DashboardPanel {
               await fs.writeFile(filePath, '');
             }
             this.post({ type: 'info', message: `Created documents/${filename}` });
+            // Register in Creative Studio's local asset store so the Library
+            // tab shows it immediately (same flow generate_image / _music /
+            // _video use). Type picks up the filter bucket.
+            const assetType = msg.format === 'xlsx' ? 'spreadsheet' : 'document';
+            this.post({
+              type: 'creative_asset_created',
+              asset: {
+                type: assetType,
+                path: `documents/${filename}`,
+                absolutePath: filePath,
+                prompt: '',
+                size: 0,
+              },
+            } as any);
             await this.loadLibraryFiles();
           } catch (err: any) {
             this.post({ type: 'error', message: `Failed to create document: ${err.message}` });
@@ -844,6 +858,19 @@ export class DashboardPanel {
               format: 'docx',
             }, { cwd: projectRoot, sharedState: {} });
             this.post({ type: 'info', message: `Created documents/${filename} from ${msg.template} template` });
+            // Register in Creative Studio's local asset store (templates are
+            // always .docx so type is always 'document').
+            const absPath = path.join(projectRoot, filePath);
+            this.post({
+              type: 'creative_asset_created',
+              asset: {
+                type: 'document',
+                path: filePath,
+                absolutePath: absPath,
+                prompt: msg.template,
+                size: 0,
+              },
+            } as any);
             await this.loadLibraryFiles();
           }
         } catch (err: any) {

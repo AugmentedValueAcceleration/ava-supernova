@@ -516,6 +516,10 @@ export function App() {
               size: asset.size,
             });
             localStorage.setItem('ava-creative-assets', JSON.stringify(assets));
+            // Signal open Creative Studio pages to re-read localStorage —
+            // the native 'storage' event only fires cross-tab, not in the
+            // tab that wrote, so we need our own bus.
+            window.dispatchEvent(new CustomEvent('ava-creative-assets-updated'));
           } catch { /* quota */ }
           // Also trigger a library refresh so the Library page picks it up
           post({ type: 'load_library' } as any);

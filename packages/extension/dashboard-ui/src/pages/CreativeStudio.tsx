@@ -495,6 +495,17 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     }
   }, [activeTab, librarySource]);
 
+  // Re-read local assets when App.tsx fires the bus event after the host
+  // writes a new asset (e.g. Documents tab file creation). Without this the
+  // library tab only refreshes on tab switch, so the new file would be
+  // invisible until the user clicks away and back.
+  useEffect(() => {
+    if (librarySource !== 'local') return;
+    const refresh = () => setLibraryAssets(loadLocalAssets());
+    window.addEventListener('ava-creative-assets-updated', refresh);
+    return () => window.removeEventListener('ava-creative-assets-updated', refresh);
+  }, [librarySource]);
+
   /* ── Auth gate ────────────────────────────────────────────────────── */
 
   function requiresAuth(): boolean {
