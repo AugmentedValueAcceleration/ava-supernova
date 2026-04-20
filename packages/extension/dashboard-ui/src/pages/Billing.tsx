@@ -45,6 +45,9 @@ export function Billing({ account }: BillingProps) {
     post({ type: 'refresh_storage' });
   }, []);
 
+  // Defensive fallback — used only when /api/account-info returns no
+  // usage row. Free tier's base allowance is 3M (not 500K — that was
+  // a stale placeholder from before the free cap moved to 3M).
   const usage = account.usage ?? {
     tokens_used: 0,
     tokens_limit: null as number | null,
@@ -52,7 +55,7 @@ export function Billing({ account }: BillingProps) {
     period_start: null as string | null,
     period_end: null as string | null,
     free_tokens_used: 0,
-    free_tokens_limit: 500_000,
+    free_tokens_limit: 3_000_000,
   };
 
   return (
