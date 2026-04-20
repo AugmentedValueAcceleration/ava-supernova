@@ -15,6 +15,7 @@ import { ModelRouter } from './model-router.js';
 import { generateBrief, formatBriefAsSystem } from './brief-generator.js';
 import { ContextTracker } from './context-tracker.js';
 import { resolveCoordinatorModel } from './coordinator-model.js';
+import { classifyIntent, resolveIntentGateModel } from './intent-gate.js';
 import { buildSystemPrompt } from '../agent/system-prompt.js';
 import { TaskExecutor } from './task-executor.js';
 import { logger } from '../core/logger.js';
@@ -58,6 +59,15 @@ export class AutoCoordinator {
   private router: ModelRouter;
   private projectInstructions: string;
   private systemPromptOpts: Record<string, unknown>;
+  /**
+   * Cheap fast model (Qwen 3.5 Flash preferred) for upstream intent
+   * classification. If available, runs before the spawn decision to
+   * decide whether the coordinator can handle the prompt directly or
+   * whether to route to the specialist team. Null when no suitable
+   * model is reachable — the caller then falls back to the regex-based
+   * Conductor.needsOrchestration gate.
+   */
+  private intentGate: { provider: Provider; model: ModelDefinition } | null;
   // The Agent currently executing inside run(). May be the planning task agent
   // or a Builder spawned by TaskExecutor. inject() forwards to whichever is
   // active so user mid-run messages reach the agent that's actually running.
@@ -99,6 +109,16 @@ export class AutoCoordinator {
       opts.availableProviders,
       opts.platformKey,
       opts.userPreferences,
+    );
+
+    // Resolve a cheap fast model for the upstream intent gate.
+    // Prefers Qwen 3.5 Flash on platform; falls through to Haiku/DeepSeek
+    // on BYOK. Null if nothing viable is reachable — in that case the
+    // spawn decision falls back to the regex-based Conductor gate only.
+    this.intentGate = resolveIntentGateModel(
+      opts.providerRegistry,
+      opts.availableProviders,
+      !!opts.platformKey || opts.availableProviders.has('platform'),
     );
 
     // The coordinator's own agent — handles direct tasks (chat, simple questions)
@@ -345,6 +365,27 @@ export class AutoCoordinator {
     // Direct handling — no spawn needed
     if (DIRECT_CATEGORIES.has(classification.category) && !classification.modelOverride) {
       return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
+    }
+
+    // ── Upstream Flash intent gate ────────────────────────────────────
+    // Before we route + spawn, ask a cheap fast model (Qwen 3.5 Flash)
+    // whether the coordinator can handle this directly or whether the
+    // specialist team is genuinely warranted. Most prompts do NOT need
+    // the team — a ~200-token Flash call saves 10K–20K tokens of
+    // persona orchestration on those. Explicit model override bypasses
+    // the gate (the user asked for a specific model, respect it).
+    if (this.intentGate && !classification.modelOverride) {
+      const intent = await classifyIntent({
+        userMessage: userText,
+        mode,
+        provider: this.intentGate.provider,
+        model: this.intentGate.model,
+        signal,
+      });
+      if (intent && !intent.needsTeam) {
+        logger.info(`[auto-coordinator] Intent gate: direct (${intent.reasoning})`);
+        return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
+      }
     }
 
     // Route to best model

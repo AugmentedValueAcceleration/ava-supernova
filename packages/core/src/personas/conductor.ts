@@ -90,36 +90,85 @@ export class Conductor {
   }
 
   /**
-   * Determine if a task needs the full persona team or can be handled directly.
+   * Determine if a task needs the full persona team or if the coordinator
+   * can handle it directly with its own tools.
    *
-   * Plan, brainstorm, teach, security ALWAYS use personas.
-   * Work mode uses personas for complex tasks (multi-file, architecture, systems).
-   * Chat mode never uses personas.
-   * Simple work tasks (one-line fixes, quick questions) skip orchestration.
+   * The hard rules are:
+   *   - Chat → never orchestrates. Casual conversation, no team.
+   *   - Teach → always orchestrates. Curriculum building genuinely needs
+   *     the Curriculum Architect → Content Writer → Fact Checker →
+   *     Quiz Master → Tutor chain. Teach is a low-volume, high-value
+   *     call; the cost is justified per invocation.
+   *
+   * Every other mode (work, plan, security, brainstorm) is gated on an
+   * explicit-signal regex — the user has to ask for the team. Most prompts
+   * in those modes are things the coordinator (Qwen 3.6 Plus) can handle
+   * directly with file reads + writes + tool calls, without spawning 3–9
+   * specialists on an expensive model. That was the old token sink: a
+   * casual "plan adding a settings button" in Plan mode was triggering
+   * Researcher + Architect + Challenger each on the expensive coordinator
+   * model, ~15K–20K tokens before any real work happened.
+   *
+   * If the user genuinely wants the team, they say so — "full plan",
+   * "deep audit", "comprehensive review", etc. — and the regex lights up.
    */
   needsOrchestration(userMessage: string, mode: string): boolean {
-    // Chat never orchestrates
     if (mode === 'chat') return false;
+    if (mode === 'teach') return true;
 
-    // Work mode: almost never orchestrate. Ava should just do the work.
-    // Only orchestrate when the user explicitly asks for planning or it's a massive task.
+    const msg = userMessage.toLowerCase();
+
+    // Mode-specific signals — shared root of "give me the full treatment"
+    // plus mode-specific phrases users actually say.
+    const commonFullSignals = [
+      /\bfull (team|audit|review|analysis|plan|breakdown)\b/,
+      /\bcomprehensive (review|audit|analysis|plan)\b/,
+      /\b(deep|exhaustive|thorough) (audit|review|dive|analysis|plan)\b/,
+      /\brun the full (team|pipeline|personas?)\b/,
+      /\buse the (whole|full) team\b/,
+    ];
+
     if (mode === 'work') {
-      const msg = userMessage.toLowerCase();
-
-      // Only orchestrate if the user explicitly asks for a plan or review
-      const explicitPlanSignals = [
+      const workSignals = [
         /\b(plan this|let'?s plan|create a plan|design the architecture|review the codebase)\b/,
         /\b(full audit|security audit|comprehensive review)\b/,
       ];
-
-      return explicitPlanSignals.some(re => re.test(msg));
+      return [...commonFullSignals, ...workSignals].some((re) => re.test(msg));
     }
 
-    // Plan, brainstorm, security always orchestrate — that's their purpose
-    if (['plan', 'brainstorm', 'security'].includes(mode)) return true;
+    if (mode === 'plan') {
+      // Plan mode defaults to coordinator-direct. User explicitly asks
+      // for multi-persona planning with a "full plan" style phrase.
+      const planSignals = [
+        /\b(design the architecture|architect the system|architecture review)\b/,
+        /\b(research and plan|full planning (pass|run|workflow))\b/,
+      ];
+      return [...commonFullSignals, ...planSignals].some((re) => re.test(msg));
+    }
 
-    // Teach mode orchestrates for curriculum building
-    if (mode === 'teach') return true;
+    if (mode === 'security') {
+      // Security mode defaults to coordinator-direct. A one-line question
+      // like "what's the risk of hardcoded passwords" doesn't need Recon +
+      // Scanner + CVE Researcher + Verifier + Reporter.
+      const securitySignals = [
+        /\b(full security audit|deep security (review|scan))\b/,
+        /\b(scan the (project|codebase|repo)|audit the codebase)\b/,
+        /\b(security report|threat model)\b/,
+      ];
+      return [...commonFullSignals, ...securitySignals].some((re) => re.test(msg));
+    }
+
+    if (mode === 'brainstorm') {
+      // Brainstorm mode defaults to coordinator-direct. Quick ideation
+      // or "what do you think about X" doesn't need Explorer + Researcher
+      // + Ideator + Challenger + Refiner.
+      const brainstormSignals = [
+        /\b(full brainstorm|deep brainstorm|brainstorm session)\b/,
+        /\b(explore ideas for|ideate (on|around))\b/,
+        /\b(five ideas|list of ideas)\b/,
+      ];
+      return [...commonFullSignals, ...brainstormSignals].some((re) => re.test(msg));
+    }
 
     return false;
   }
