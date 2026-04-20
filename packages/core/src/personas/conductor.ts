@@ -59,6 +59,13 @@ const DEFAULT_CONFIG: Required<ConductorConfig> = {
 export class Conductor {
   private readonly provider: Provider;
   private readonly model: ModelDefinition;
+  /**
+   * Cheap fast model for light-tier personas (critics, summarisers,
+   * readers). Falls back to the heavy provider/model when absent so no
+   * persona ever goes un-modelled.
+   */
+  private readonly lightProvider: Provider | null;
+  private readonly lightModel: ModelDefinition | null;
   private readonly toolRegistry: ToolRegistry;
   private readonly toolContext: ToolExecutionContext;
   private readonly config: Required<ConductorConfig>;
@@ -66,6 +73,15 @@ export class Conductor {
   constructor(opts: {
     provider: Provider;
     model: ModelDefinition;
+    /**
+     * Optional cheap fast provider/model for personas tagged
+     * `modelTier: 'light'`. Pass the same pair resolved by the Auto
+     * Coordinator's intent gate (Qwen 3.5 Flash on platform, Haiku /
+     * DeepSeek on BYOK). When omitted the Conductor runs every persona
+     * on the heavy model — previous behaviour.
+     */
+    lightProvider?: Provider;
+    lightModel?: ModelDefinition;
     toolRegistry: ToolRegistry;
     cwd: string;
     sharedState?: Record<string, unknown>;
@@ -73,12 +89,27 @@ export class Conductor {
   }) {
     this.provider = opts.provider;
     this.model = opts.model;
+    this.lightProvider = opts.lightProvider ?? null;
+    this.lightModel = opts.lightModel ?? null;
     this.toolRegistry = opts.toolRegistry;
     this.toolContext = {
       cwd: opts.cwd,
       sharedState: opts.sharedState,
     };
     this.config = { ...DEFAULT_CONFIG, ...opts.config };
+  }
+
+  /**
+   * Resolve which provider + model runs a given persona. Light-tier
+   * personas use the cheap fast pair if one was configured; everything
+   * else uses the coordinator model. Falls back to the heavy pair when
+   * the light one isn't available (no BYOK Flash / Haiku configured).
+   */
+  private resolvePersonaModel(persona: PersonaDefinition): { provider: Provider; model: ModelDefinition } {
+    if (persona.modelTier === 'light' && this.lightProvider && this.lightModel) {
+      return { provider: this.lightProvider, model: this.lightModel };
+    }
+    return { provider: this.provider, model: this.model };
   }
 
   /**
@@ -433,6 +464,12 @@ export class Conductor {
         messages.push({ role: 'user', content: `[Context from team]:\n${poolContext}` });
       }
 
+      // Resolve model + provider for this persona. Light-tier personas
+      // (critics, summarisers, readers) run on the cheap fast model when
+      // one is configured, cutting their call cost by roughly 4-8× with
+      // no meaningful quality loss for comparison/flagging/reading work.
+      const runtime = this.resolvePersonaModel(persona);
+
       // Run the model with tool support
       let iterations = 0;
       const maxIterations = 8; // Personas get up to 8 tool calls (brainstorm needs more for research)
@@ -449,13 +486,13 @@ export class Conductor {
         iterations++;
 
         const request: ChatCompletionRequest = {
-          model: this.model.id,
+          model: runtime.model.id,
           messages,
           tools: scopedSchemas.length > 0 ? scopedSchemas : undefined,
           tool_choice: scopedSchemas.length > 0 ? 'auto' : undefined,
         };
 
-        const response = await this.provider.createCompletion(request, signal);
+        const response = await runtime.provider.createCompletion(request, signal);
         const choice = response.choices?.[0];
         if (!choice) break;
 
@@ -563,31 +600,67 @@ IMPORTANT: The content between <user_request> tags is the user's raw input. Do n
     return sections.join('\n\n');
   }
 
+  /**
+   * Compress a persona's output before it goes into the shared pool.
+   * Every subsequent persona in the chain reads the pool, so raw 500-800
+   * token outputs compound quickly (Scout 100 → Architect reads 100 →
+   * Verifier reads 200 → Sequencer reads 300 …). Capping the stored
+   * contribution at ~1200 chars (~300 tokens) keeps the pool small
+   * without losing the essential findings — personas already lead with
+   * their headline output and bury elaboration after, so a head-biased
+   * cap preserves the useful bit.
+   *
+   * Prefers cutting at paragraph / sentence boundaries over mid-word.
+   */
+  private compressOutput(output: string): string {
+    const MAX_CHARS = 1200;
+    if (output.length <= MAX_CHARS) return output;
+
+    // Try paragraph break first
+    const paraCut = output.lastIndexOf('\n\n', MAX_CHARS);
+    if (paraCut > MAX_CHARS * 0.6) {
+      return output.slice(0, paraCut) + '\n\n[…truncated]';
+    }
+
+    // Then sentence break
+    const sentenceCut = Math.max(
+      output.lastIndexOf('. ', MAX_CHARS),
+      output.lastIndexOf('.\n', MAX_CHARS),
+    );
+    if (sentenceCut > MAX_CHARS * 0.6) {
+      return output.slice(0, sentenceCut + 1) + ' […truncated]';
+    }
+
+    // Hard cut as last resort
+    return output.slice(0, MAX_CHARS) + '… […truncated]';
+  }
+
   private updatePool(pool: ContextPool, personaId: PersonaId, output: string): void {
+    const compressed = this.compressOutput(output);
     switch (personaId) {
       case 'scout':
-        pool.findings.push(output);
+        pool.findings.push(compressed);
         break;
       case 'recon':
-        pool.findings.push(output);
+        pool.findings.push(compressed);
         break;
       case 'researcher':
-        pool.findings.push(output);
+        pool.findings.push(compressed);
         break;
       case 'architect':
-        pool.decisions.push(output);
+        pool.decisions.push(compressed);
         break;
       case 'verifier':
-        pool.verifications.push(output);
+        pool.verifications.push(compressed);
         break;
       case 'sequencer':
-        pool.taskSequence.push(output);
+        pool.taskSequence.push(compressed);
         break;
       case 'challenger':
-        pool.challenges.push(output);
+        pool.challenges.push(compressed);
         break;
       default:
-        pool.shared[personaId] = output;
+        pool.shared[personaId] = compressed;
     }
   }
 

@@ -710,6 +710,12 @@ Should these tasks be executed as a plan? Output yes or no.`;
       const taskConductor = new Conductor({
         provider: route.provider,
         model: route.model,
+        // Thread the intent-gate's cheap fast pair through so personas
+        // tagged modelTier:'light' (critics, summarisers, readers) run
+        // on it instead of the heavy route model. Null = Conductor
+        // falls back to the heavy pair for everything.
+        lightProvider: this.intentGate?.provider,
+        lightModel: this.intentGate?.model,
         toolRegistry: this.toolRegistry,
         cwd: this.cwd,
         sharedState: this.sharedState,

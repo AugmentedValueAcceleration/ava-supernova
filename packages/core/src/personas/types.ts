@@ -6,6 +6,22 @@ export type PersonaId = 'researcher' | 'architect' | 'builder' | 'recon' | 'scou
 
 export type PersonaPhase = 'idle' | 'active' | 'complete' | 'error';
 
+/**
+ * Model tier a persona runs on.
+ * - 'heavy' = coordinator model (Qwen 3.6 Plus / Claude Sonnet / Kimi K2.5).
+ *   Architects, Builders, Researchers — the personas doing real reasoning
+ *   or generating code. Pays the premium for quality.
+ * - 'light' = cheap fast model (Qwen 3.5 Flash / Claude Haiku).
+ *   Critics, gatekeepers, routers, summarisers — personas whose job is to
+ *   read, compare, flag, and synthesise. Flash handles these competently
+ *   at roughly an eighth of the input cost and a quarter of the output.
+ *
+ * When the light tier model can't be resolved (BYOK user with no light
+ * model configured), Conductor falls back transparently to the heavy tier.
+ * No persona is ever starved of a model.
+ */
+export type PersonaModelTier = 'light' | 'heavy';
+
 export interface PersonaDefinition {
   readonly id: PersonaId;
   readonly name: string;
@@ -20,6 +36,14 @@ export interface PersonaDefinition {
   readonly priority: number;
   /** Persona IDs that must complete before this one starts (for parallel execution). */
   readonly dependsOn?: PersonaId[];
+  /**
+   * Model tier this persona prefers. Defaults to 'heavy' for historic
+   * behaviour — every persona ran on the coordinator model. Tagging a
+   * persona 'light' opts it onto the cheap fast tier, cutting its call
+   * cost by roughly 4-8× without meaningful quality loss for critic /
+   * gatekeeper / summariser roles.
+   */
+  readonly modelTier?: PersonaModelTier;
 }
 
 export interface PersonaState {
