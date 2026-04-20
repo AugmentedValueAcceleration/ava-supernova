@@ -39,7 +39,7 @@ interface HeaderProps {
   sidebarSide?: 'left' | 'right';
   sessionTokens?: number;
   providerSource?: ProviderSource;
-  platformStatus?: { connected: boolean; tier: string | null; freeTokensUsed: number; freeTokensLimit: number } | null;
+  platformStatus?: { connected: boolean; tier: string | null; freeTokensUsed: number; freeTokensLimit: number; subTokensUsed: number; subTokensLimit: number | null } | null;
   onProviderSourceChange?: (source: ProviderSource) => void;
 }
 
@@ -316,10 +316,14 @@ export function Header({
       </div>
     </div>
 
-      {/* Token usage bar — full width below header */}
+      {/* Token usage bar — full width below header. Unified total covering
+          free + subscription + top-ups so Pro/Ultra users see their real
+          balance, not just the 3M free pool. */}
       {platformStatus?.connected && platformStatus.freeTokensLimit > 0 && platformStatus.freeTokensLimit < 999_999_999 && (() => {
-        const remaining = Math.max(0, platformStatus.freeTokensLimit - platformStatus.freeTokensUsed);
-        const pct = Math.max(0, Math.min(100, (remaining / platformStatus.freeTokensLimit) * 100));
+        const totalLimit = platformStatus.freeTokensLimit + (platformStatus.subTokensLimit ?? 0);
+        const totalUsed = platformStatus.freeTokensUsed + platformStatus.subTokensUsed;
+        const remaining = Math.max(0, totalLimit - totalUsed);
+        const pct = totalLimit > 0 ? Math.max(0, Math.min(100, (remaining / totalLimit) * 100)) : 0;
         const color = pct <= 5 ? '#ef4444' : pct <= 20 ? '#eab308' : '#a855f7';
         return (
           <div className="px-3 pb-1.5">

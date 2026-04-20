@@ -5,7 +5,7 @@ export interface AccountInfo {
   id: string;
   email: string;
   name: string | null;
-  tier: 'free' | 'pro' | 'ultra' | 'admin';
+  tier: 'free' | 'pro' | 'ultra' | 'enterprise' | 'admin';
   usage: {
     tokens_used: number;
     tokens_limit: number | null;
@@ -22,6 +22,17 @@ export interface AccountInfo {
     total_gb: number;
     percent_used: number;
   };
+  /**
+   * Active subscription, if any. Drives the "Renews <date>" line on the
+   * billing card — usage.period_end tracks the usage-tracking window
+   * (calendar month for free, sub cycle for paid) and is NOT the
+   * renewal date. Null for free / admin / cancelled accounts.
+   */
+  subscription?: {
+    status: string;
+    current_period_start: string | null;
+    current_period_end: string | null;
+  } | null;
 }
 
 export type MemoryCategory = 'pattern' | 'preference' | 'architecture' | 'bug-fix' | 'convention' | 'tool-config' | 'decision' | 'person' | 'general';

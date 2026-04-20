@@ -108,62 +108,43 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
       </SectionGroup>
       </div>
 
-      {/* Token Bars */}
+      {/* Unified token bar — free + subscription + top-ups in one view.
+          Backend still splits pools (free burns first, overflows to
+          tokens_limit), but users only need the combined total. */}
       <div className="mb-6">
       <SectionGroup label={t('dash.usage.token_pools')}>
       <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-          {/* Free Pool */}
-          <div className="mb-2 flex justify-between text-xs">
-            <span className="text-[var(--text-secondary)]">
-              Tokens Remaining
-            </span>
-            {account.tier === 'admin' ? (
-              <span className="font-medium text-[var(--gradient-start)]">{t('dash.usage.unlimited')}</span>
-            ) : (
-              <span className="text-white font-semibold">
-                {formatNumber(Math.max(0, usage.free_tokens_limit - usage.free_tokens_used))}
-              </span>
-            )}
-          </div>
-          {account.tier === 'admin' ? (
-            <div className="h-3 overflow-hidden rounded-full bg-[var(--bg-input)]">
-              <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
-            </div>
-          ) : (
-            <UsageBar used={usage.free_tokens_used} limit={usage.free_tokens_limit} />
-          )}
-          <div className="mt-1 mb-5 flex justify-between text-[10px] text-[var(--text-muted)]">
-            <span>{formatNumber(usage.free_tokens_used)} used</span>
-            <span>{formatNumber(usage.free_tokens_limit)} limit</span>
-          </div>
-
-          {/* Subscription Pool */}
-          {(account.tier !== 'free' || usage.tokens_limit !== null) && (
+        {(() => {
+          const totalUsed = usage.free_tokens_used + usage.tokens_used;
+          const totalLimit = usage.free_tokens_limit + (usage.tokens_limit ?? 0);
+          const remaining = Math.max(0, totalLimit - totalUsed);
+          return (
             <>
               <div className="mb-2 flex justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">
-                  {account.tier.charAt(0).toUpperCase() + account.tier.slice(1)} Plan — Tokens Remaining
-                </span>
+                <span className="text-[var(--text-secondary)]">Tokens Remaining</span>
                 {account.tier === 'admin' ? (
                   <span className="font-medium text-[var(--gradient-start)]">{t('dash.usage.unlimited')}</span>
-                ) : usage.tokens_limit !== null ? (
-                  <span className="text-white font-semibold">
-                    {formatNumber(Math.max(0, usage.tokens_limit - usage.tokens_used))}
-                  </span>
                 ) : (
-                  <span className="text-[var(--text-muted)]">{t('dash.usage.byok_no_limit')}</span>
+                  <span className="text-white font-semibold">
+                    {formatNumber(remaining)}
+                  </span>
                 )}
               </div>
               {account.tier === 'admin' ? (
                 <div className="h-3 overflow-hidden rounded-full bg-[var(--bg-input)]">
                   <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
                 </div>
-              ) : usage.tokens_limit !== null ? (
-                <UsageBar used={usage.tokens_used} limit={usage.tokens_limit} />
-              ) : null}
+              ) : (
+                <UsageBar used={totalUsed} limit={totalLimit} accent />
+              )}
+              <div className="mt-1 flex justify-between text-[10px] text-[var(--text-muted)]">
+                <span>{formatNumber(totalUsed)} used</span>
+                <span>{formatNumber(totalLimit)} limit</span>
+              </div>
             </>
-          )}
-        </div>
+          );
+        })()}
+      </div>
       </SectionGroup>
       </div>
 

@@ -36,7 +36,10 @@ function getAccountTabs(): { key: AccountTab; label: string; platformOnly?: bool
   return [
     { key: 'settings', label: t('dash.account.tab_settings') },
     { key: 'billing', label: t('dash.account.tab_billing'), platformOnly: true },
-    { key: 'connections', label: t('dash.account.tab_connections') },
+    // Connections — hidden until the integrations surface is ready.
+    // Component, route, and reducer are all intact; only the tab-bar
+    // entry is omitted. Uncomment this line when integrations ship.
+    // { key: 'connections', label: t('dash.account.tab_connections') },
     { key: 'personality', label: "Ava's Style" },
     // Renamed from "Sync" — the tab now hosts both the per-category sync
     // prefs AND a Cloud Management view for inspecting / deleting what's

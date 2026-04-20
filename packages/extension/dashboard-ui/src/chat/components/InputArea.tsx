@@ -34,6 +34,8 @@ interface InputAreaProps {
     tier: string | null;
     freeTokensUsed: number;
     freeTokensLimit: number;
+    subTokensUsed: number;
+    subTokensLimit: number | null;
     warning?: 'none' | 'approaching' | 'critical' | 'exhausted';
     warningMessage?: string;
   } | null;
@@ -517,7 +519,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
           {/* Right side: attach + usage + send/stop */}
           <div className="flex items-center gap-2 shrink-0">
           <div className="flex items-center gap-2">
-            {/* Token balance */}
+            {/* Unified token balance — free + subscription + top-ups. */}
             {platformStatus?.connected && (() => {
               // Admin/unlimited accounts
               if (platformStatus.freeTokensLimit >= 999_999_999) {
@@ -527,15 +529,17 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                   </span>
                 );
               }
-              const remaining = Math.max(0, platformStatus.freeTokensLimit - platformStatus.freeTokensUsed);
-              const pct = platformStatus.freeTokensLimit > 0 ? (platformStatus.freeTokensUsed / platformStatus.freeTokensLimit) * 100 : 0;
+              const totalLimit = platformStatus.freeTokensLimit + (platformStatus.subTokensLimit ?? 0);
+              const totalUsed = platformStatus.freeTokensUsed + platformStatus.subTokensUsed;
+              const remaining = Math.max(0, totalLimit - totalUsed);
+              const pct = totalLimit > 0 ? (totalUsed / totalLimit) * 100 : 0;
               const isLow = pct >= 80;
               const color = pct >= 95 ? '#ef4444' : pct >= 80 ? '#eab308' : undefined;
               return (
                 <span
                   className={`text-[10px] tabular-nums ${isLow ? 'opacity-80' : 'opacity-30'}`}
                   style={color ? { color } : undefined}
-                  title={`${remaining.toLocaleString()} / ${platformStatus.freeTokensLimit.toLocaleString()} tokens remaining`}
+                  title={`${remaining.toLocaleString()} / ${totalLimit.toLocaleString()} tokens remaining`}
                 >
                   {remaining >= 1_000_000 ? `${(remaining / 1_000_000).toFixed(1)}M` : remaining >= 1000 ? `${Math.round(remaining / 1000)}K` : remaining} left
                 </span>

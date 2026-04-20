@@ -383,11 +383,13 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
   useLocale();
 
   const usage = account?.usage;
-  // Exact same calculation as chat header bar (Header.tsx line 291)
-  const freeUsed = usage?.free_tokens_used || 0;
-  const freeLimit = usage?.free_tokens_limit || 0;
-  const tokensRemaining = Math.max(0, freeLimit - freeUsed);
-  const remainPct = freeLimit > 0 ? Math.min((tokensRemaining / freeLimit) * 100, 100) : 0;
+  // Unified total — free + subscription + top-ups. Backend still burns
+  // free pool first then overflows, but users only see the combined
+  // number here.
+  const totalUsed = (usage?.free_tokens_used || 0) + (usage?.tokens_used || 0);
+  const totalLimit = (usage?.free_tokens_limit || 0) + (usage?.tokens_limit || 0);
+  const tokensRemaining = Math.max(0, totalLimit - totalUsed);
+  const remainPct = totalLimit > 0 ? Math.min((tokensRemaining / totalLimit) * 100, 100) : 0;
 
   // API helper: send request through extension host (avoids CORS)
   const pendingResolve = useRef<((data: any) => void) | null>(null);
@@ -638,8 +640,8 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                 />
               </div>
               <div className="flex justify-between text-[9px] text-[var(--text-muted)] mt-0.5">
-                <span>{formatTokens(freeUsed)} used</span>
-                <span>{formatTokens(freeLimit)} limit</span>
+                <span>{formatTokens(totalUsed)} used</span>
+                <span>{formatTokens(totalLimit)} limit</span>
               </div>
             </div>
           )}

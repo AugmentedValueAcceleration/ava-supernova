@@ -175,6 +175,8 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
               tier: action.platformStatus.tier,
               freeTokensUsed: action.platformStatus.freeTokensUsed,
               freeTokensLimit: action.platformStatus.freeTokensLimit,
+              subTokensUsed: action.platformStatus.subTokensUsed,
+              subTokensLimit: action.platformStatus.subTokensLimit,
             }
           : state.platformStatus,
         // showWelcome is a one-shot from the host on first init after
@@ -471,6 +473,8 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
           tier: action.tier,
           freeTokensUsed: action.freeTokensUsed,
           freeTokensLimit: action.freeTokensLimit,
+          subTokensUsed: action.subTokensUsed,
+          subTokensLimit: action.subTokensLimit,
         },
       };
 

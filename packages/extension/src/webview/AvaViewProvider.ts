@@ -1132,6 +1132,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           freeTokensLimit: this.cachedAccount.tier === 'admin' ? 999_999_999_999 : (this.cachedAccount.usage?.free_tokens_limit ?? 3_000_000),
           subTokensUsed: this.cachedAccount.usage?.tokens_used ?? 0,
           subTokensLimit: this.cachedAccount.usage?.tokens_limit ?? null,
+          warning: 'none',
+          warningPct: 0,
+          warningMessage: '',
         }
       : undefined;
 

@@ -64,68 +64,47 @@ export function Billing({ account }: BillingProps) {
         </p>
       </div>
 
-      {/* Current Plan */}
+      {/* Current Plan — one unified bar covering free + subscription + top-ups.
+          Paid users see the renewal date from the subscription cycle (not the
+          calendar-month usage window). Free users see no renewal date. */}
       <div className="mb-10">
       <SectionGroup label={t('dash.billing.current_plan')}>
       <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <div className="mb-4 flex items-center justify-between">
           <TierBadge tier={account.tier} />
-          {usage.period_end && (
+          {account.subscription?.current_period_end && (
             <span className="text-xs text-[var(--text-muted)]">
-              Renews {new Date(usage.period_end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+              Renews {new Date(account.subscription.current_period_end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
           )}
         </div>
 
-        {/* Free Token Pool */}
-        <div className="mb-4">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Free Tokens</p>
-            {account.tier === 'admin' ? (
-              <span className="text-xs font-medium text-[var(--gradient-start)]">Unlimited</span>
-            ) : (
-              <span className="text-xs text-[var(--text-muted)]">
-                {formatNumber(usage.free_tokens_limit - usage.free_tokens_used)} remaining
-              </span>
-            )}
-          </div>
-          {account.tier === 'admin' ? (
-            <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
-              <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
-            </div>
-          ) : (
-            <UsageBar used={usage.free_tokens_used} limit={usage.free_tokens_limit} />
-          )}
-        </div>
-
-        {/* Plan Tokens — hidden for Free. Free users have only the 3M free pool;
-            a second bar for a non-existent plan pool was meaningless and ran
-            against stale placeholder limits. */}
-        {account.tier !== 'free' && (
-          <div className="mb-4">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                {account.tier.charAt(0).toUpperCase() + account.tier.slice(1)} Plan
-              </p>
+        {(() => {
+          const totalUsed = usage.free_tokens_used + usage.tokens_used;
+          const totalLimit = usage.free_tokens_limit + (usage.tokens_limit ?? 0);
+          const remaining = Math.max(0, totalLimit - totalUsed);
+          return (
+            <div className="mb-4">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Tokens Remaining</p>
+                {account.tier === 'admin' ? (
+                  <span className="text-xs font-medium text-[var(--gradient-start)]">Unlimited</span>
+                ) : (
+                  <span className="text-xs text-[var(--text-muted)]">
+                    {formatNumber(remaining)} of {formatNumber(totalLimit)}
+                  </span>
+                )}
+              </div>
               {account.tier === 'admin' ? (
-                <span className="text-xs font-medium text-[var(--gradient-start)]">Unlimited</span>
-              ) : usage.tokens_limit !== null ? (
-                <span className="text-xs text-[var(--text-muted)]">
-                  {formatNumber(usage.tokens_limit - usage.tokens_used)} remaining
-                </span>
+                <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
+                  <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
+                </div>
               ) : (
-                <span className="text-xs text-[var(--text-muted)]">BYOK — no limit</span>
+                <UsageBar used={totalUsed} limit={totalLimit} accent />
               )}
             </div>
-            {account.tier === 'admin' ? (
-              <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
-                <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
-              </div>
-            ) : usage.tokens_limit !== null ? (
-              <UsageBar used={usage.tokens_used} limit={usage.tokens_limit} accent />
-            ) : null}
-          </div>
-        )}
+          );
+        })()}
 
         {account.tier !== 'free' && account.tier !== 'admin' && (
           <button

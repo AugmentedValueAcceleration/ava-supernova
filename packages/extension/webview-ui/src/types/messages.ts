@@ -308,6 +308,8 @@ export interface ChatState {
     tier: string | null;
     freeTokensUsed: number;
     freeTokensLimit: number;
+    subTokensUsed: number;
+    subTokensLimit: number | null;
   } | null;
   memoryOpen: boolean;
   memoryGlobal: MemoryEntryUI[];

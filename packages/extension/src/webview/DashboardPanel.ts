@@ -1373,11 +1373,13 @@ export class DashboardPanel {
         totals: { tokens: number; requests: number; active_days: number };
       };
 
-      // Free tier: show free pool only. Paid tiers: show subscription pool (free pool is bonus).
-      const hasSub = summary.period.tokens_limit !== null && summary.period.tokens_limit > 0 && summary.tier !== 'free';
+      // Unified balance — sum free pool + subscription pool so the All-Time
+      // Token Balance card matches the single bar shown on Billing / Usage
+      // tabs. Backend still burns free first then overflows, but the UI
+      // presents one number.
       const balance = {
-        used: hasSub ? summary.period.tokens_used : summary.period.free_tokens_used,
-        limit: hasSub ? summary.period.tokens_limit! : summary.period.free_tokens_limit,
+        used: summary.period.free_tokens_used + summary.period.tokens_used,
+        limit: summary.period.free_tokens_limit + (summary.period.tokens_limit ?? 0),
         tier: summary.tier,
       };
 

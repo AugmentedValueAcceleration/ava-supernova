@@ -34,6 +34,8 @@ interface InputAreaProps {
     tier: string | null;
     freeTokensUsed: number;
     freeTokensLimit: number;
+    subTokensUsed: number;
+    subTokensLimit: number | null;
     warning?: 'none' | 'approaching' | 'critical' | 'exhausted';
     warningMessage?: string;
   } | null;
@@ -527,11 +529,14 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
             <div className="flex items-center gap-0.5 rounded-lg bg-[rgba(168,85,247,0.06)] p-0.5 border border-[rgba(168,85,247,0.1)]">
               <button
                 onClick={() => onProviderSourceChange('platform')}
-                disabled={
-                  providerSource !== 'platform' &&
-                  platformStatus.tier === 'free' &&
-                  platformStatus.freeTokensUsed >= platformStatus.freeTokensLimit
-                }
+                disabled={(() => {
+                  if (providerSource === 'platform') return false;
+                  // Disabled only when the *entire* balance is exhausted —
+                  // free pool + subscription pool + top-ups combined.
+                  const totalUsed = platformStatus.freeTokensUsed + platformStatus.subTokensUsed;
+                  const totalLimit = platformStatus.freeTokensLimit + (platformStatus.subTokensLimit ?? 0);
+                  return totalUsed >= totalLimit;
+                })()}
                 className={`px-2.5 py-1 rounded-md text-[10px] font-medium border-none cursor-pointer transition-all duration-150
                   disabled:opacity-20 disabled:cursor-not-allowed
                   ${providerSource === 'platform'
@@ -539,7 +544,11 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                     : 'bg-transparent text-[var(--vscode-foreground)] opacity-40 hover:opacity-70'
                   }`}
                 title={providerSource === 'platform'
-                  ? t('input.tokens_remaining', { remaining: Math.max(0, platformStatus.freeTokensLimit - platformStatus.freeTokensUsed).toLocaleString() })
+                  ? t('input.tokens_remaining', { remaining: Math.max(
+                      0,
+                      (platformStatus.freeTokensLimit + (platformStatus.subTokensLimit ?? 0))
+                      - (platformStatus.freeTokensUsed + platformStatus.subTokensUsed),
+                    ).toLocaleString() })
                   : t('input.provider_switch_free')}
               >
                 {platformStatus.tier === 'free' ? t('input.provider_free') : t('input.provider_platform')}
@@ -560,7 +569,9 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
 
           {/* Right side: attach + usage + send/stop */}
           <div className="flex items-center gap-2">
-            {/* Token balance */}
+            {/* Unified token balance — free + subscription + top-ups combined.
+                Backend still burns the free pool first and overflows to the
+                subscription pool, but users see one number here. */}
             {providerSource === 'platform' && platformStatus?.connected && (() => {
               // Admin/unlimited accounts
               if (platformStatus.freeTokensLimit >= 999_999_999) {
@@ -570,13 +581,11 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                   </span>
                 );
               }
-              // Paid plan: show sub tokens if they have a subscription limit
-              const isSub = platformStatus.subTokensLimit && platformStatus.subTokensLimit > 0;
-              const used = isSub ? platformStatus.subTokensUsed : platformStatus.freeTokensUsed;
-              const limit = isSub ? platformStatus.subTokensLimit! : platformStatus.freeTokensLimit;
-              const remaining = Math.max(0, limit - used);
+              const subLimit = platformStatus.subTokensLimit ?? 0;
+              const totalUsed = platformStatus.freeTokensUsed + platformStatus.subTokensUsed;
+              const totalLimit = platformStatus.freeTokensLimit + subLimit;
+              const remaining = Math.max(0, totalLimit - totalUsed);
               const isLow = remaining <= 500_000;
-              const label = isSub ? '' : ' free';
               return (
                 <span
                   className={`text-[10px] tabular-nums ${
@@ -584,9 +593,9 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                       ? 'text-[var(--vscode-editorWarning-foreground,#cca700)] opacity-80'
                       : 'opacity-30'
                   }`}
-                  title={`${remaining.toLocaleString()} / ${limit.toLocaleString()} tokens remaining`}
+                  title={`${remaining.toLocaleString()} / ${totalLimit.toLocaleString()} tokens remaining`}
                 >
-                  {remaining >= 1_000_000 ? `${(remaining / 1_000_000).toFixed(2)}M` : remaining >= 1000 ? `${(remaining / 1000).toFixed(1)}K` : remaining}{label}
+                  {remaining >= 1_000_000 ? `${(remaining / 1_000_000).toFixed(2)}M` : remaining >= 1000 ? `${(remaining / 1000).toFixed(1)}K` : remaining}
                 </span>
               );
             })()}
