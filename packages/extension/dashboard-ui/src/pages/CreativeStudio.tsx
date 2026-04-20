@@ -4,7 +4,9 @@ import { post } from '../App';
 import type { AccountInfo } from '../types/messages';
 import {
   FolderOpen, Image as ImageIcon, MusicNotes, Microphone, VideoCamera,
-  FileText, GridFour, Table, FilePdf, FileCode,
+  FileText, GridFour, Table, FilePdf,
+  FileDoc, FileXls, FileCsv, FileMd,
+  Briefcase, ChartLineUp, Receipt, EnvelopeSimple, NotePencil, IdentificationCard,
 } from '@phosphor-icons/react';
 
 function formatTokens(n: number): string {
@@ -1216,10 +1218,10 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
             <h3 className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-medium mb-3">New Blank File</h3>
             <div className="grid grid-cols-3 gap-3">
               {[
-                { ext: 'docx', label: 'Word Document', icon: <FileText weight="duotone" size={24} />, color: '#60a5fa' },
-                { ext: 'xlsx', label: 'Spreadsheet', icon: <Table weight="duotone" size={24} />, color: '#4ade80' },
-                { ext: 'csv', label: 'CSV File', icon: <GridFour weight="duotone" size={24} />, color: '#a78bfa' },
-                { ext: 'md', label: 'Markdown', icon: <FileCode weight="duotone" size={24} />, color: '#f472b6' },
+                { ext: 'docx', label: 'Word Document', icon: <FileDoc weight="duotone" size={24} />, color: '#60a5fa' },
+                { ext: 'xlsx', label: 'Spreadsheet', icon: <FileXls weight="duotone" size={24} />, color: '#4ade80' },
+                { ext: 'csv', label: 'CSV File', icon: <FileCsv weight="duotone" size={24} />, color: '#a78bfa' },
+                { ext: 'md', label: 'Markdown', icon: <FileMd weight="duotone" size={24} />, color: '#f472b6' },
                 { ext: 'pdf', label: 'PDF Document', icon: <FilePdf weight="duotone" size={24} />, color: '#f87171' },
               ].map(item => (
                 <button
@@ -1246,12 +1248,12 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
             <h3 className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-medium mb-3">From Template</h3>
             <div className="grid grid-cols-3 gap-3">
               {[
-                { id: 'proposal', label: 'Project Proposal', desc: 'Executive summary, objectives, timeline, budget', icon: '📋' },
-                { id: 'report', label: 'Status Report', desc: 'Progress, issues, next steps', icon: '📊' },
-                { id: 'invoice', label: 'Invoice', desc: 'Items table, payment terms', icon: '💰' },
-                { id: 'letter', label: 'Formal Letter', desc: 'Recipient, body, closing', icon: '✉️' },
-                { id: 'meeting_notes', label: 'Meeting Notes', desc: 'Agenda, discussion, action items', icon: '📝' },
-                { id: 'resume', label: 'Resume', desc: 'Contact, experience, education, skills', icon: '👤' },
+                { id: 'proposal', label: 'Project Proposal', desc: 'Executive summary, objectives, timeline, budget', icon: <Briefcase weight="duotone" size={22} />, color: '#60a5fa' },
+                { id: 'report', label: 'Status Report', desc: 'Progress, issues, next steps', icon: <ChartLineUp weight="duotone" size={22} />, color: '#4ade80' },
+                { id: 'invoice', label: 'Invoice', desc: 'Items table, payment terms', icon: <Receipt weight="duotone" size={22} />, color: '#fbbf24' },
+                { id: 'letter', label: 'Formal Letter', desc: 'Recipient, body, closing', icon: <EnvelopeSimple weight="duotone" size={22} />, color: '#a78bfa' },
+                { id: 'meeting_notes', label: 'Meeting Notes', desc: 'Agenda, discussion, action items', icon: <NotePencil weight="duotone" size={22} />, color: '#f472b6' },
+                { id: 'resume', label: 'Resume', desc: 'Contact, experience, education, skills', icon: <IdentificationCard weight="duotone" size={22} />, color: '#22d3ee' },
               ].map(tmpl => (
                 <button
                   key={tmpl.id}
@@ -1262,8 +1264,10 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                   }}
                   className="flex items-start gap-3 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-left transition hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/5 cursor-pointer"
                 >
-                  <span className="text-xl mt-0.5">{tmpl.icon}</span>
-                  <div>
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: `${tmpl.color}15`, color: tmpl.color }}>
+                    {tmpl.icon}
+                  </div>
+                  <div className="min-w-0">
                     <span className="text-xs font-medium text-white block">{tmpl.label}</span>
                     <span className="text-[10px] text-[var(--text-muted)] leading-relaxed">{tmpl.desc}</span>
                   </div>
