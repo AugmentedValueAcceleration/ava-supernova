@@ -583,6 +583,20 @@ export function App() {
     return () => window.removeEventListener('message', handleMessage);
   }, [handleMessage]);
 
+  // Re-fetch account info whenever the webview becomes visible — covers
+  // the "upgraded on the website in a browser tab, came back to VSCode"
+  // flow so tier / token allowance reflects the new plan without waiting
+  // for the user to navigate to the Billing tab.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        post({ type: 'refresh_account' });
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+
   // Load data when navigating to pages
   useEffect(() => {
     if (page === 'history') {
