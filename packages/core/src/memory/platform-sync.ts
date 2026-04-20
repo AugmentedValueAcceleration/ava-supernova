@@ -48,7 +48,7 @@ export class PlatformMemorySync {
 
   /** Fetch all memories for a given scope from the platform. */
   async pull(scope: 'global' | 'project'): Promise<PlatformMemory[]> {
-    const params = new URLSearchParams({ scope });
+    const params = new URLSearchParams({ scope, limit: '1000' });
     if (scope === 'project' && this.projectId) {
       params.set('project_id', this.projectId);
     }
@@ -60,7 +60,12 @@ export class PlatformMemorySync {
     if (!res.ok) return [];
 
     const data = await res.json();
-    return Array.isArray(data) ? data : [];
+    // GET /api/memories returns { memories, total, limit, offset, hasMore }.
+    // Older response shape was a bare array — tolerate both so we keep
+    // working if the server shape changes again.
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.memories)) return data.memories;
+    return [];
   }
 
   /** Push a memory entry to the platform (upsert by key + scope). */
@@ -138,11 +143,14 @@ export class PlatformMemorySync {
       }
     }
 
-    // Clean up: delete remote entries that no longer exist locally
-    // Also delete legacy 'memory.json' blob records from old sync format
-    const localIds = new Set(entries.map((e) => e.id));
+    // Clean up legacy 'memory.json' blob records from the old sync format.
+    // Previously this block also deleted any remote row whose key wasn't in
+    // the current local store — that was catastrophic once the local store
+    // was ever wiped or regenerated with fresh UUIDs (every surviving cloud
+    // memory would be deleted on next push). Memory is additive: if the user
+    // wants a cloud row gone, they delete it explicitly.
     for (const remote of existing) {
-      if (remote.key === 'memory.json' || !localIds.has(remote.key)) {
+      if (remote.key === 'memory.json') {
         await this.delete(remote.id);
       }
     }
