@@ -56,9 +56,8 @@ export const FEATURE_PAGES: DocPage[] = [
     order: 40,
     section: 'features',
     body: [
-      { type: 'paragraph', text: 'Presentations, reports, emails, and documents — drafted, formatted, and exported to native formats (.pptx, .docx, .xlsx, .pdf).' },
+      { type: 'paragraph', text: 'Reports, emails, and documents — drafted, formatted, and exported to native formats (.docx, .xlsx, .pdf).' },
       { type: 'list', ordered: false, items: [
-        'presentation_create — a .pptx deck from a brief.',
         'report_generate — a structured .docx pulling from tasks, journal, memory, and project state.',
         'email_draft — tone-controlled email to a .docx file.',
         'document_manage — create, read, edit, export across Word, Excel, PDF, CSV, Markdown.',

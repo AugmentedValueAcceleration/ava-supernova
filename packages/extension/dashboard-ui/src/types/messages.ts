@@ -531,8 +531,8 @@ export interface ChatState {
   }>;
 }
 
-// Library (project files — images, documents, spreadsheets, presentations)
-export type LibraryFileType = 'image' | 'document' | 'spreadsheet' | 'presentation';
+// Library (project files — images, documents, spreadsheets)
+export type LibraryFileType = 'image' | 'document' | 'spreadsheet';
 
 export interface LibraryImage {
   path: string;         // Relative path from project root (e.g. "images/icons/settings.png")

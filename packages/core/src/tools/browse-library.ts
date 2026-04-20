@@ -19,7 +19,7 @@ const ASSET_EXTENSIONS: Record<string, string> = {
   // Audio
   '.mp3': 'audio', '.wav': 'audio', '.ogg': 'audio', '.m4a': 'audio',
   // Documents
-  '.pdf': 'document', '.docx': 'document', '.pptx': 'presentation',
+  '.pdf': 'document', '.docx': 'document',
   '.xlsx': 'spreadsheet',
 };
 
@@ -58,7 +58,7 @@ export class BrowseLibraryTool implements Tool {
       properties: {
         type: {
           type: 'string',
-          enum: ['all', 'image', 'video', 'audio', 'document', 'presentation'],
+          enum: ['all', 'image', 'video', 'audio', 'document', 'spreadsheet'],
           description: 'Filter by asset type. Default: all.',
         },
         directory: {

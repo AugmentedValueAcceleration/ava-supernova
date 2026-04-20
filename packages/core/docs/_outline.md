@@ -48,7 +48,7 @@ Each feature is its own page so the sidebar stays browsable. Features that don't
 - **4.1 Unified panel** — the single panel that unifies chat, dashboard, memory, tasks. ext + ide only.
 - **4.2 Knowledge packs** — structured reference material Ava can pull into context.
 - **4.3 Creative Studio** — image, video, music, voice generation via MiniMax.
-- **4.4 Office Suite** — presentations, reports, emails, documents.
+- **4.4 Office Suite** — reports, emails, documents.
 - **4.5 Dashboard library** — your projects, assets, conversations, memories in one browsable view.
 - **4.6 Document preview** — read Word, Excel, PDF, CSV, HTML, Markdown inline.
 - **4.7 Daily briefing** — morning summary of tasks, journal, project state.

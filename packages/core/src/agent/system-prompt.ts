@@ -55,7 +55,7 @@ const ALL_TOOL_NAMES = [
   'audit_dependencies', 'security', 'benchmark', 'apply_plan', 'debug_logs',
   'ask_user', 'support_request', 'docs_lookup', 'propose_tool', 'self_inspect', 'release_notes', 'curator',
   'get_datetime', 'detect_language', 'weather', 'news',
-  'presentation_create', 'email_draft', 'report_generate',
+  'email_draft', 'report_generate',
 ];
 
 function getToolInfo(exclude?: string[]): { names: string; count: number } {

@@ -496,7 +496,7 @@ export function Settings({
               { id: 'media', icon: '🎨', label: 'Media', desc: 'screenshot, generate_image, remove_bg' },
               { id: 'database', icon: '🗄️', label: 'Database', desc: 'database_query' },
               { id: 'system', icon: '🖥️', label: 'System', desc: 'computer_use' },
-              { id: 'documents', icon: '📄', label: 'Documents', desc: 'docs, presentations, reports' },
+              { id: 'documents', icon: '📄', label: 'Documents', desc: 'docs, reports, emails' },
               { id: 'memory', icon: '🧠', label: 'Memory', desc: 'save, recall, update, delete' },
               { id: 'learning', icon: '🎓', label: 'Learning', desc: 'create, teach, progress' },
             ] as const).map(cat => {

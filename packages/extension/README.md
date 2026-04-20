@@ -126,9 +126,9 @@ The output isn't generic noise. Every finding references real code in your repo.
 The work that isn't code, but still has to happen:
 
 - **Office suite** — generates real native files, not screenshots:
-  - **Slide decks** (`.pptx`) with speaker notes and accent colours
   - **Emails** (`.docx`) with tone-aware fonts (serif for formal, sans-serif for casual)
   - **Reports** (`.docx`) — board briefs, sprint reviews, weekly status pulled from your tasks, journal, memory, and git history
+  - **Documents & spreadsheets** (`.docx`, `.xlsx`, `.pdf`, `.csv`, `.md`) via `document_manage`
 - **Browser automation** — drives a visible Chromium window via Playwright when a task needs real-world interaction. Navigates pages, snapshots structured DOM, clicks elements, fills forms, scrapes data. Fully opt-in, approved on first use. Desktop-level automation (app control, screen capture) lives in the dedicated Ava IDE, not this extension.
 - **Tasks** — track work across global and project scopes, sync to the dashboard, flag overdue items in the daily briefing
 - **Journal** — your entry and Ava's, side by side, with mood tracking and streak counting
@@ -189,7 +189,7 @@ Grouped for the work you actually do:
 | **Git** | `git_status`, `git_diff`, `rollback`, `git_commit`, `git_create_pr` |
 | **Web** | `web_search`, `http_request`, `browser` |
 | **Creative Studio** | `generate_image`, `generate_video`, `generate_music`, `generate_voice`, `remove_background`, `browse_library` |
-| **Office** | `presentation_create`, `email_draft`, `report_generate`, `document_manage`, `doc_generate` |
+| **Office** | `email_draft`, `report_generate`, `document_manage`, `doc_generate` |
 | **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete`, `curator` |
 | **Tasks & Planning** | `present_plan`, `todo_write`, `task_manage`, `apply_plan`, `switch_mode` |
 | **Journal & Learning** | `journal_write`, `learning_create`, `learning_teach`, `learning_progress` |

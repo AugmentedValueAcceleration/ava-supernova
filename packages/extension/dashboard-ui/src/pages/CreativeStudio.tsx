@@ -4,7 +4,7 @@ import { post } from '../App';
 import type { AccountInfo } from '../types/messages';
 import {
   FolderOpen, Image as ImageIcon, MusicNotes, Microphone, VideoCamera,
-  FileText, GridFour, Table, FilePdf, FileCode, Presentation,
+  FileText, GridFour, Table, FilePdf, FileCode,
 } from '@phosphor-icons/react';
 
 function formatTokens(n: number): string {
@@ -44,7 +44,7 @@ const VOICES = [
   { id: 'Determined_Man', label: 'Determined' },
 ];
 
-type LibraryFilter = 'all' | 'images' | 'music' | 'video' | 'voice' | 'documents' | 'spreadsheets' | 'presentations';
+type LibraryFilter = 'all' | 'images' | 'music' | 'video' | 'voice' | 'documents' | 'spreadsheets';
 
 const FILTER_ICONS: Record<string, ReactNode> = {
   all: <GridFour weight="duotone" size={16} />,
@@ -54,7 +54,6 @@ const FILTER_ICONS: Record<string, ReactNode> = {
   voice: <Microphone weight="duotone" size={16} />,
   documents: <FileText weight="duotone" size={16} />,
   spreadsheets: <Table weight="duotone" size={16} />,
-  presentations: <Presentation weight="duotone" size={16} />,
 };
 
 const LIBRARY_FILTERS: { key: LibraryFilter; label: string }[] = [
@@ -65,7 +64,6 @@ const LIBRARY_FILTERS: { key: LibraryFilter; label: string }[] = [
   { key: 'voice', label: 'Voice' },
   { key: 'documents', label: 'Documents' },
   { key: 'spreadsheets', label: 'Spreadsheets' },
-  { key: 'presentations', label: 'Presentations' },
 ];
 
 /* ── Auth helpers ──────────────────────────────────────────────────── */
@@ -93,7 +91,6 @@ function typeIcon(type: string): string {
   if (type === 'voice') return '\uD83C\uDF99\uFE0F';
   if (['document', 'content'].includes(type)) return '\uD83D\uDCC4';
   if (type === 'spreadsheet') return '\uD83D\uDCCA';
-  if (type === 'presentation') return '\uD83D\uDCBD';
   return '\uD83D\uDCC1';
 }
 
@@ -598,7 +595,6 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     if (libraryFilter === 'voice') return aType === 'voice';
     if (libraryFilter === 'documents') return ['document', 'content'].includes(aType) || ['docx', 'pdf', 'md', 'txt', 'csv'].includes(ext);
     if (libraryFilter === 'spreadsheets') return aType === 'spreadsheet' || ['xlsx', 'xls'].includes(ext);
-    if (libraryFilter === 'presentations') return aType === 'presentation' || ['pptx', 'ppt'].includes(ext);
     return false;
   });
 
@@ -1222,7 +1218,6 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
               {[
                 { ext: 'docx', label: 'Word Document', icon: <FileText weight="duotone" size={24} />, color: '#60a5fa' },
                 { ext: 'xlsx', label: 'Spreadsheet', icon: <Table weight="duotone" size={24} />, color: '#4ade80' },
-                { ext: 'pptx', label: 'Presentation', icon: <Presentation weight="duotone" size={24} />, color: '#fb923c' },
                 { ext: 'csv', label: 'CSV File', icon: <GridFour weight="duotone" size={24} />, color: '#a78bfa' },
                 { ext: 'md', label: 'Markdown', icon: <FileCode weight="duotone" size={24} />, color: '#f472b6' },
                 { ext: 'pdf', label: 'PDF Document', icon: <FilePdf weight="duotone" size={24} />, color: '#f87171' },

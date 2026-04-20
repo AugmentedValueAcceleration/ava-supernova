@@ -2462,7 +2462,6 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           // Auto-open document preview for office suite tools
           if (event.success) {
             const docTools: Record<string, string> = {
-              presentation_create: 'presentation',
               email_draft: 'email',
               report_generate: 'report',
               document_manage: 'document',
@@ -2474,7 +2473,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
                 const meta = typeof event.metadata === 'object' && event.metadata ? event.metadata as Record<string, unknown> : {};
                 DocumentPreviewPanel.show(this.extensionUri, {
                   title: (meta.path as string)?.split(/[/\\]/).pop() || event.toolCall.function.name,
-                  type: docType as 'presentation' | 'email' | 'report' | 'document',
+                  type: docType as 'email' | 'report' | 'document',
                   content: event.result || '',
                   filePath: meta.path as string | undefined,
                   metadata: meta,

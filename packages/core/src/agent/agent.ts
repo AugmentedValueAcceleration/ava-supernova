@@ -174,9 +174,8 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   //   registry level; the IDE has a dedicated Desktop mode for that
   //   flow, so they don't belong in Work either.
   // - journal_write / learning / weather / news — Chat / Teach.
-  // - presentation_create / email_draft / report_generate /
-  //   document_manage / document_templates — office work, rarely mixed
-  //   with coding.
+  // - email_draft / report_generate / document_manage /
+  //   document_templates — office work, rarely mixed with coding.
   // - memory_delete — destructive, never a normal-flow tool.
   work: new Set([
     // File operations

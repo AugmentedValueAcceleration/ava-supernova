@@ -7,7 +7,7 @@ export interface DocumentPreview {
   /** Display title for the tab. */
   title: string;
   /** Document type for layout selection. */
-  type: 'presentation' | 'email' | 'report' | 'markdown' | 'document';
+  type: 'email' | 'report' | 'markdown' | 'document';
   /** Raw content (markdown). */
   content: string;
   /** File path where the document was saved. */
@@ -206,7 +206,6 @@ export class DocumentPreviewPanel {
       border-radius: 4px;
       letter-spacing: 0.5px;
     }
-    .badge-presentation { background: #7c3aed20; color: #a78bfa; }
     .badge-email { background: #06b6d420; color: #67e8f9; }
     .badge-report { background: #10b98120; color: #6ee7b7; }
     .badge-document { background: #f59e0b20; color: #fcd34d; }
@@ -240,42 +239,6 @@ export class DocumentPreviewPanel {
       padding: 8px 16px;
       margin: 12px 0;
       color: var(--vscode-descriptionForeground, #aaa);
-    }
-
-    /* Slide layout (presentations) */
-    .slide {
-      background: var(--vscode-sideBar-background, #252526);
-      border: 1px solid var(--vscode-panel-border, #333);
-      border-radius: 8px;
-      padding: 24px 32px;
-      margin: 16px 0;
-      min-height: 200px;
-    }
-    .slide h2 { border: none; padding: 0; margin: 0 0 16px; }
-    .slide-nav {
-      display: flex;
-      justify-content: center;
-      gap: 8px;
-      margin: 16px 0;
-    }
-    .slide-nav button {
-      background: var(--vscode-button-secondaryBackground, #333);
-      color: var(--vscode-button-secondaryForeground, #ccc);
-      border: none;
-      border-radius: 4px;
-      padding: 6px 14px;
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .slide-counter { font-size: 11px; color: var(--vscode-descriptionForeground, #888); }
-    .speaker-notes {
-      font-size: 11px;
-      color: var(--vscode-descriptionForeground, #888);
-      font-style: italic;
-      padding: 8px 12px;
-      background: var(--vscode-textCodeBlock-background, #2d2d2d);
-      border-radius: 4px;
-      margin-top: 12px;
     }
 
     /* Email layout */
@@ -315,19 +278,6 @@ export class DocumentPreviewPanel {
     function openFile() { vscode.postMessage({ type: 'open_file' }); }
     function copyContent() { vscode.postMessage({ type: 'copy' }); }
 
-    // Slide navigation
-    let currentSlide = 0;
-    const slides = document.querySelectorAll('.slide');
-    const counter = document.getElementById('slide-counter');
-    function showSlide(n) {
-      if (slides.length === 0) return;
-      currentSlide = Math.max(0, Math.min(n, slides.length - 1));
-      slides.forEach((s, i) => s.style.display = i === currentSlide ? 'block' : 'none');
-      if (counter) counter.textContent = (currentSlide + 1) + ' / ' + slides.length;
-    }
-    function prevSlide() { showSlide(currentSlide - 1); }
-    function nextSlide() { showSlide(currentSlide + 1); }
-    if (slides.length > 1) showSlide(0);
   </script>
 </body>
 </html>`;
@@ -340,32 +290,9 @@ export class DocumentPreviewPanel {
     if (doc.metadata?.rawHtml) return doc.content;
 
     switch (doc.type) {
-      case 'presentation': return this.renderPresentation(doc.content);
       case 'email': return this.renderEmail(doc.content);
       default: return this.renderMarkdown(doc.content);
     }
-  }
-
-  private renderPresentation(content: string): string {
-    // Parse Marp-style slides (separated by ---)
-    const slides = content.split(/\n---\n/).filter(s => s.trim());
-    const slideHtml = slides.map((slide, i) => {
-      const rendered = this.renderMarkdown(slide.replace(/^marp:.*\n|^theme:.*\n|^paginate:.*\n/gm, '').trim());
-      // Extract speaker notes (HTML comments)
-      const notesMatch = slide.match(/<!--\s*(.*?)\s*-->/s);
-      const notes = notesMatch ? `<div class="speaker-notes">${this.escHtml(notesMatch[1])}</div>` : '';
-      return `<div class="slide" ${i > 0 ? 'style="display:none"' : ''}>${rendered}${notes}</div>`;
-    }).join('\n');
-
-    const nav = slides.length > 1
-      ? `<div class="slide-nav">
-          <button onclick="prevSlide()">← Prev</button>
-          <span id="slide-counter" class="slide-counter">1 / ${slides.length}</span>
-          <button onclick="nextSlide()">Next →</button>
-        </div>`
-      : '';
-
-    return slideHtml + nav;
   }
 
   private renderEmail(content: string): string {

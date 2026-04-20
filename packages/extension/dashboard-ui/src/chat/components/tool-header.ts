@@ -127,8 +127,6 @@ export function getToolHeader(name: string, argsJson: string | undefined): ToolH
       return { verb: 'Document', target: (args.action as string) || '' };
     case 'document_templates':
       return { verb: 'Document template', target: (args.name as string) || '' };
-    case 'presentation_create':
-      return { verb: 'Create presentation', target: truncate((args.title as string) || '', 80) };
     case 'email_draft':
       return { verb: 'Draft email', target: truncate((args.subject as string) || '', 80) };
     case 'report_generate':

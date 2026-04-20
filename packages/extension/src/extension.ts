@@ -225,9 +225,8 @@ export function activate(context: vscode.ExtensionContext): void {
       const text = Buffer.from(content).toString('utf-8');
 
       // Detect type from content
-      let type: 'presentation' | 'email' | 'report' | 'markdown' = 'markdown';
-      if (text.includes('marp: true') || text.includes('\n---\n')) type = 'presentation';
-      else if (text.includes('**To:**') || text.includes('**Subject:**')) type = 'email';
+      let type: 'email' | 'report' | 'markdown' = 'markdown';
+      if (text.includes('**To:**') || text.includes('**Subject:**')) type = 'email';
       else if (text.includes('Weekly Status Report') || text.includes('Sprint Review') || text.includes('Board Brief')) type = 'report';
 
       DocumentPreviewPanel.show(context.extensionUri, {

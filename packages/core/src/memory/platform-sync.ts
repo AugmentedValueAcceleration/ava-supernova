@@ -59,12 +59,14 @@ export class PlatformMemorySync {
 
     if (!res.ok) return [];
 
-    const data = await res.json();
+    const data: unknown = await res.json();
     // GET /api/memories returns { memories, total, limit, offset, hasMore }.
     // Older response shape was a bare array — tolerate both so we keep
     // working if the server shape changes again.
-    if (Array.isArray(data)) return data;
-    if (data && Array.isArray(data.memories)) return data.memories;
+    if (Array.isArray(data)) return data as PlatformMemory[];
+    if (data && typeof data === 'object' && Array.isArray((data as { memories?: unknown }).memories)) {
+      return (data as { memories: PlatformMemory[] }).memories;
+    }
     return [];
   }
 

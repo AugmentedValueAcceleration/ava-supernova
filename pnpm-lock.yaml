@@ -81,6 +81,9 @@ importers:
       '@tauri-apps/plugin-opener':
         specifier: ^2
         version: 2.5.3
+      '@tauri-apps/plugin-shell':
+        specifier: ^2.3.5
+        version: 2.3.5
       '@twick/2d':
         specifier: ^0.15.27
         version: 0.15.27

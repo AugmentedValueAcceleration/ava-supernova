@@ -126,11 +126,11 @@ This works with Ollama, LM Studio, vLLM, or any OpenAI-compatible API endpoint.
   // ── Tools ─────────────────────────────────────────────────────────────────
   {
     topic: 'tools',
-    keywords: ['tool', 'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'bash', 'web_search', 'browser', 'screenshot', 'database', 'git', 'memory_save', 'memory_recall', 'memory_update', 'memory_delete', 'present_plan', 'todo_write', 'ask_user', 'rollback', 'http_request', 'project_index', 'find_symbol', 'list_directory', 'docs_lookup', 'support_request', 'task_manage', 'journal_write', 'document_manage', 'propose_tool', 'get_datetime', 'detect_language', 'learning_create', 'learning_teach', 'learning_progress', 'weather', 'news', 'self_inspect', 'release_notes', 'presentation_create', 'email_draft', 'report_generate'],
+    keywords: ['tool', 'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'bash', 'web_search', 'browser', 'screenshot', 'database', 'git', 'memory_save', 'memory_recall', 'memory_update', 'memory_delete', 'present_plan', 'todo_write', 'ask_user', 'rollback', 'http_request', 'project_index', 'find_symbol', 'list_directory', 'docs_lookup', 'support_request', 'task_manage', 'journal_write', 'document_manage', 'propose_tool', 'get_datetime', 'detect_language', 'learning_create', 'learning_teach', 'learning_progress', 'weather', 'news', 'self_inspect', 'release_notes', 'email_draft', 'report_generate'],
     title: 'Built-in Tools',
-    content: `# Built-in Tools (54)
+    content: `# Built-in Tools (53)
 
-Ava has 54 built-in tools organized by category. Tool availability depends on the current mode and permission settings.
+Ava has 53 built-in tools organized by category. Tool availability depends on the current mode and permission settings.
 
 ## Reading & Searching (always auto-approved)
 | Tool | Description |
@@ -207,7 +207,6 @@ Ava has 54 built-in tools organized by category. Tool availability depends on th
 ## Office Suite (permission mode dependent)
 | Tool | Description |
 |------|-------------|
-| presentation_create | Create native .pptx slide decks with branded slides, speaker notes, and accent colours (via pptxgenjs). Supports themes and layouts. |
 | email_draft | Draft emails as native .docx files with tone-aware fonts — serif for formal, sans-serif for casual. Supports recipients, CC, subject, and body. |
 | report_generate | Generate reports as native .docx files from tasks, journal entries, and memory. Includes title page, task tables, journal sections, and decision bullets. Formats: board brief, sprint review, progress report. |
 
@@ -790,7 +789,7 @@ The Dashboard is your control center for Ava. Pages are organised into 7 sidebar
 - **Learning** — Curricula, lessons, and progress
 
 ### Creative
-- **Library** — All generated files (images, documents, spreadsheets, presentations) with filter tabs
+- **Library** — All generated files (images, documents, spreadsheets) with filter tabs
 
 ### Memory
 - **Memory** — View, edit, and delete saved memories (global and project scope)
@@ -808,7 +807,7 @@ The Dashboard is your control center for Ava. Pages are organised into 7 sidebar
 - **IDE**: Ctrl+Shift+D, or the Dashboard tab in the Ava panel
 
 ## Library Panel
-The Library shows everything Ava creates — images, documents, spreadsheets, and presentations. Filter tabs: All, Images, Documents, Spreadsheets, Presentations — each with count badges. Non-image files show type icons. Grid or list view. Features: image preview, open in editor, copy path, delete, and "Open Externally" to launch files in your default app (LibreOffice recommended for full editing). Scan button shows spinner and completion feedback.
+The Library shows everything Ava creates — images, documents, and spreadsheets. Filter tabs: All, Images, Documents, Spreadsheets — each with count badges. Non-image files show type icons. Grid or list view. Features: image preview, open in editor, copy path, delete, and "Open Externally" to launch files in your default app (LibreOffice recommended for full editing). Scan button shows spinner and completion feedback.
 
 ## Document Preview
 Preview generated documents (Word, Excel, PDF, Markdown) directly in the Dashboard without leaving VS Code. Click any document from the Library or file explorer to open a rich preview.
@@ -967,17 +966,11 @@ The daily briefing is enabled by default. Disable it in Dashboard > Settings if 
   // ── Office Suite ──────────────────────────────────────────────────────────
   {
     topic: 'office-suite',
-    keywords: ['office', 'presentation', 'slides', 'email', 'report', 'board brief', 'sprint review'],
+    keywords: ['office', 'email', 'report', 'board brief', 'sprint review'],
     title: 'Office Suite',
     content: `# Office Suite
 
-Ava can create presentations, draft emails, and generate reports — bringing office productivity into the agent workflow.
-
-## presentation_create
-Create native .pptx slide decks with branded slides, speaker notes, and accent colours (via pptxgenjs).
-- Supports themes, layouts, and speaker notes
-- Output as native \`.pptx\` — no more Marp markdown
-- Use in Work Mode: "Create a 10-slide deck on our Q1 results"
+Ava can draft emails and generate reports — bringing office productivity into the agent workflow.
 
 ## email_draft
 Draft emails as native .docx files with tone-aware fonts.
@@ -1189,10 +1182,10 @@ Preview documents directly inside VS Code without leaving the editor.
 ## How to Use
 - Right-click a file in the Explorer > "Preview with Ava"
 - Or use the command palette: "Ava: Preview Document"
-- Documents created by Ava (presentations, emails, reports) can be previewed immediately after creation
+- Documents created by Ava (emails, reports) can be previewed immediately after creation
 
 ## Integration with Office Suite
-When Ava creates a .docx, .xlsx, or .pptx file, you can preview it directly in the editor panel without opening an external application.`,
+When Ava creates a .docx or .xlsx file, you can preview it directly in the editor panel without opening an external application.`,
   },
 
   // ── Interjection ──────────────────────────────────────────────────────

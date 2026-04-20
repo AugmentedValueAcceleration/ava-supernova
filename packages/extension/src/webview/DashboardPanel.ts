@@ -773,16 +773,6 @@ export class DashboardPanel {
               } catch {
                 await fs.writeFile(filePath, '');
               }
-            } else if (ext === '.pptx') {
-              try {
-                const PptxGenJS = (await import('pptxgenjs')).default;
-                const pptx = new PptxGenJS();
-                pptx.addSlide();
-                const buf = await pptx.write({ outputType: 'nodebuffer' }) as Buffer;
-                await fs.writeFile(filePath, buf);
-              } catch {
-                await fs.writeFile(filePath, '');
-              }
             } else if (ext === '.csv') {
               await fs.writeFile(filePath, 'Column1,Column2,Column3\n');
             } else if (ext === '.md') {
@@ -2413,7 +2403,7 @@ export class DashboardPanel {
     }
   }
 
-  // ─── Library (project files — images, documents, spreadsheets, presentations) ─
+  // ─── Library (project files — images, documents, spreadsheets) ─
 
   private async loadLibraryFiles(): Promise<void> {
     try {
@@ -2439,9 +2429,8 @@ export class DashboardPanel {
       const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.ogg', '.m4a']);
       const DOCUMENT_EXTENSIONS = new Set(['.docx', '.doc', '.pdf', '.txt', '.md', '.rtf']);
       const SPREADSHEET_EXTENSIONS = new Set(['.xlsx', '.xls', '.csv']);
-      const PRESENTATION_EXTENSIONS = new Set(['.pptx', '.ppt']);
 
-      type FileType = 'image' | 'video' | 'audio' | 'document' | 'spreadsheet' | 'presentation';
+      type FileType = 'image' | 'video' | 'audio' | 'document' | 'spreadsheet';
 
       const getFileType = (ext: string): FileType | null => {
         if (IMAGE_EXTENSIONS.has(ext)) return 'image';
@@ -2449,11 +2438,10 @@ export class DashboardPanel {
         if (AUDIO_EXTENSIONS.has(ext)) return 'audio';
         if (DOCUMENT_EXTENSIONS.has(ext)) return 'document';
         if (SPREADSHEET_EXTENSIONS.has(ext)) return 'spreadsheet';
-        if (PRESENTATION_EXTENSIONS.has(ext)) return 'presentation';
         return null;
       };
 
-      const ALL_EXTENSIONS = new Set([...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS, ...AUDIO_EXTENSIONS, ...DOCUMENT_EXTENSIONS, ...SPREADSHEET_EXTENSIONS, ...PRESENTATION_EXTENSIONS]);
+      const ALL_EXTENSIONS = new Set([...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS, ...AUDIO_EXTENSIONS, ...DOCUMENT_EXTENSIONS, ...SPREADSHEET_EXTENSIONS]);
 
       const files: Array<{ path: string; name: string; folder: string; size: number; modified: string; fileType: FileType; dataUri?: string }> = [];
 

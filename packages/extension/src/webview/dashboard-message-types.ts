@@ -314,8 +314,8 @@ export interface UsageHistoryData {
 
 export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'creative-studio' | 'library' | 'personality' | 'sync' | 'releases' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals' | 'planner' | 'account' | 'help' | 'chat';
 
-// Library (project files — images, documents, spreadsheets, presentations)
-export type LibraryFileType = 'image' | 'document' | 'spreadsheet' | 'presentation';
+// Library (project files — images, documents, spreadsheets)
+export type LibraryFileType = 'image' | 'document' | 'spreadsheet';
 
 export interface LibraryImage {
   path: string;

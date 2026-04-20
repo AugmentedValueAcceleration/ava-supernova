@@ -10,12 +10,11 @@ interface Props {
   hasImagesFolder?: boolean;
 }
 
-type FilterTab = 'all' | 'image' | 'document' | 'spreadsheet' | 'presentation';
+type FilterTab = 'all' | 'image' | 'document' | 'spreadsheet';
 
 const FILE_TYPE_ICONS: Record<string, string> = {
   document: '\u{1F4C4}',
   spreadsheet: '\u{1F4CA}',
-  presentation: '\u{1F4BD}',
 };
 
 function getFileTypeLabels(): Record<FilterTab, string> {
@@ -24,7 +23,6 @@ function getFileTypeLabels(): Record<FilterTab, string> {
     image: t('dash.library.images'),
     document: t('dash.library.docs'),
     spreadsheet: t('dash.library.sheets'),
-    presentation: t('dash.library.slides'),
   };
 }
 
@@ -71,7 +69,7 @@ export function Library({ images, projectRoot, hasImagesFolder = true }: Props) 
 
   // Count by file type
   const typeCounts = useMemo(() => {
-    const counts: Record<FilterTab, number> = { all: images.length, image: 0, document: 0, spreadsheet: 0, presentation: 0 };
+    const counts: Record<FilterTab, number> = { all: images.length, image: 0, document: 0, spreadsheet: 0 };
     for (const img of images) {
       const ft = getFileType(img);
       if (ft in counts) counts[ft as FilterTab]++;
@@ -129,7 +127,7 @@ export function Library({ images, projectRoot, hasImagesFolder = true }: Props) 
 
       {/* File type filter tabs */}
       <div className="mb-4 flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-1 overflow-x-auto">
-        {(['all', 'image', 'document', 'spreadsheet', 'presentation'] as FilterTab[]).map(tab => {
+        {(['all', 'image', 'document', 'spreadsheet'] as FilterTab[]).map(tab => {
           const labels = getFileTypeLabels();
           return (
           <button
@@ -379,7 +377,6 @@ export function Library({ images, projectRoot, hasImagesFolder = true }: Props) 
           {typeCounts.image > 0 && ` \u00B7 ${typeCounts.image} image${typeCounts.image !== 1 ? 's' : ''}`}
           {typeCounts.document > 0 && ` \u00B7 ${typeCounts.document} document${typeCounts.document !== 1 ? 's' : ''}`}
           {typeCounts.spreadsheet > 0 && ` \u00B7 ${typeCounts.spreadsheet} spreadsheet${typeCounts.spreadsheet !== 1 ? 's' : ''}`}
-          {typeCounts.presentation > 0 && ` \u00B7 ${typeCounts.presentation} presentation${typeCounts.presentation !== 1 ? 's' : ''}`}
         </p>
       )}
     </div>
