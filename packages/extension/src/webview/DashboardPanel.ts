@@ -814,7 +814,7 @@ export class DashboardPanel {
             // Register in Creative Studio's local asset store so the Library
             // tab shows it immediately (same flow generate_image / _music /
             // _video use). Type picks up the filter bucket.
-            const assetType = msg.format === 'xlsx' ? 'spreadsheet' : 'document';
+            const assetType: 'document' | 'spreadsheet' = msg.format === 'xlsx' ? 'spreadsheet' : 'document';
             this.post({
               type: 'creative_asset_created',
               asset: {
@@ -826,6 +826,10 @@ export class DashboardPanel {
               },
             } as any);
             await this.loadLibraryFiles();
+            // Cloud side — if Data Mode includes cloud and user is signed
+            // in, upload the file so it shows on the cloud Library tab too.
+            // Fire-and-forget so we don't hold up the UI.
+            void this.uploadDocumentToCloud(filePath, filename, msg.format, assetType, '');
           } catch (err: any) {
             this.post({ type: 'error', message: `Failed to create document: ${err.message}` });
           }
@@ -872,6 +876,9 @@ export class DashboardPanel {
               },
             } as any);
             await this.loadLibraryFiles();
+            // Cloud side — same fire-and-forget upload as blank docs. Template
+            // output is always .docx so format/assetType are fixed.
+            void this.uploadDocumentToCloud(absPath, filename, 'docx', 'document', msg.template);
           }
         } catch (err: any) {
           this.post({ type: 'error', message: `Failed to create from template: ${err.message}` });
@@ -2464,6 +2471,59 @@ export class DashboardPanel {
       this.post({ type: 'releases_loaded', releases });
     } catch {
       this.post({ type: 'releases_loaded', releases: [] });
+    }
+  }
+
+  /**
+   * Upload a locally-created document to the cloud Creative Studio library
+   * when Data Mode is Cloud or Both. Fire-and-forget from the caller's POV
+   * — failures surface as a toast but never roll back the local file.
+   *
+   * Mirrors the behaviour the generate_* tools get for free from the
+   * platform's generation API; for blank/templated docs we do the upload
+   * client-side because there's no generation round-trip.
+   */
+  private async uploadDocumentToCloud(
+    filePath: string,
+    filename: string,
+    format: 'docx' | 'xlsx' | 'csv' | 'md' | 'pdf',
+    assetType: 'document' | 'spreadsheet',
+    prompt: string,
+  ): Promise<void> {
+    if (!dataModeIncludesCloud(this.context)) return;
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (!platformKey) return; // not signed in — cloud is opt-in, silently skip
+
+    const CONTENT_TYPES: Record<string, string> = {
+      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      csv: 'text/csv',
+      md: 'text/markdown',
+      pdf: 'application/pdf',
+    };
+
+    try {
+      const fs = await import('node:fs/promises');
+      const buffer = await fs.readFile(filePath);
+      const contentBase64 = buffer.toString('base64');
+      const res = await apiFetch('/creative-assets', {
+        method: 'POST',
+        platformKey,
+        body: {
+          filename,
+          contentType: CONTENT_TYPES[format],
+          contentBase64,
+          assetType,
+          title: filename,
+          prompt,
+        },
+      });
+      if (!res.ok) {
+        const msg = (res.data as { error?: string })?.error || `HTTP ${res.status}`;
+        this.post({ type: 'error', message: `Cloud upload failed (${msg}). Local file saved.` });
+      }
+    } catch (err: any) {
+      this.post({ type: 'error', message: `Cloud upload failed: ${err?.message || err}. Local file saved.` });
     }
   }
 
