@@ -282,9 +282,16 @@ function PlanCard({
           Current plan
         </div>
       ) : tier === 'free' ? (
-        <div className="mt-4 w-full rounded-lg border border-[var(--border-input)] py-2.5 text-center text-xs text-[var(--text-muted)]">
-          Free plan
-        </div>
+        // Paid users always see a clean exit. Deep-link to the web
+        // dashboard which runs the actual Stripe cancel_at_period_end
+        // flow (/api/billing/downgrade). The extension stays out of
+        // billing mutations by design, same as for upgrade / top-up.
+        <button
+          onClick={onUpgrade}
+          className="mt-4 w-full rounded-lg border border-[var(--border-input)] py-2.5 text-center text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)]"
+        >
+          Downgrade to Free
+        </button>
       ) : (
         <button
           onClick={onUpgrade}
