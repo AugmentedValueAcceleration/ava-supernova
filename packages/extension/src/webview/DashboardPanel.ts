@@ -760,6 +760,7 @@ export class DashboardPanel {
         if (!name?.trim()) break;
         const filename = `${name.trim()}.${msg.format}`;
         {
+          const fs = await import('node:fs/promises');
           const projectRoot = workspaceFolders[0].uri.fsPath;
           const docsDir = path.join(projectRoot, 'documents');
           const filePath = path.join(docsDir, filename);
@@ -787,7 +788,7 @@ export class DashboardPanel {
             } else if (ext === '.csv') {
               await fs.writeFile(filePath, 'Column1,Column2,Column3\n');
             } else if (ext === '.md') {
-              await fs.writeFile(filePath, `# ${path.basename(msg.filename, ext)}\n\n`);
+              await fs.writeFile(filePath, `# ${path.basename(filename, ext)}\n\n`);
             } else if (ext === '.pdf') {
               try {
                 const PDFDocument = (await import('pdfkit')).default;
