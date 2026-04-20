@@ -107,12 +107,20 @@ export function Billing({ account }: BillingProps) {
         })()}
 
         {account.tier !== 'free' && account.tier !== 'admin' && (
-          <button
-            onClick={() => openUrl(dashboardBillingUrl())}
-            className="rounded-lg border border-[var(--border-input)] px-4 py-2 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)] hover:text-white"
-          >
-            Manage Subscription &rarr;
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => openUrl(dashboardBillingUrl())}
+              className="rounded-lg border border-[var(--border-input)] px-4 py-2 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)] hover:text-white"
+            >
+              Manage Subscription &rarr;
+            </button>
+            <button
+              onClick={() => openUrl(dashboardBillingUrl())}
+              className="rounded-lg border border-[var(--border-input)] px-4 py-2 text-xs text-[var(--text-muted)] transition hover:bg-[var(--bg-input)] hover:text-white"
+            >
+              View billing history &rarr;
+            </button>
+          </div>
         )}
       </div>
       </SectionGroup>
