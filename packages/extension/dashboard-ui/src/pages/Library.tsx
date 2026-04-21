@@ -476,9 +476,23 @@ function PreviewModal({
   const handleDownload = () => {
     if (isLocal && localPath) {
       post({ type: 'download_asset', path: localPath });
-    } else if (cloudUrl) {
-      // Cloud URLs are direct-downloadable via the browser's own handler.
-      post({ type: 'open_url', url: cloudUrl });
+      return;
+    }
+    if (cloudUrl) {
+      // Supabase Storage honours ?download=<filename> by setting
+      // Content-Disposition: attachment on the response, which makes
+      // the browser save the file instead of rendering inline. Without
+      // it, images/audio/video would just open in a new tab.
+      // Derive a filename from the storage path so the user gets the
+      // original .png / .mp4 / etc. rather than a cryptic default.
+      let filename = item.title || 'download';
+      try {
+        const last = new URL(cloudUrl).pathname.split('/').pop();
+        if (last && last.includes('.')) filename = last;
+      } catch { /* malformed URL — fall back to title */ }
+      const sep = cloudUrl.includes('?') ? '&' : '?';
+      const downloadUrl = `${cloudUrl}${sep}download=${encodeURIComponent(filename)}`;
+      post({ type: 'open_url', url: downloadUrl });
     }
   };
 
