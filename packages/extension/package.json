@@ -416,7 +416,10 @@
   },
   "dependencies": {
     "@ava/core": "workspace:*",
-    "jszip": "^3.10.1"
+    "docx": "^9.5.0",
+    "exceljs": "^4.4.0",
+    "jszip": "^3.10.1",
+    "pdfkit": "^0.15.0"
   },
   "devDependencies": {
     "@types/node": "^25.3.0",
