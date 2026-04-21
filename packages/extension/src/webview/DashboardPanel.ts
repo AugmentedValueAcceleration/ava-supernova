@@ -703,6 +703,7 @@ export class DashboardPanel {
       case 'download_asset': {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (workspaceFolders && msg.path) {
+          const fs = await import('node:fs/promises');
           const projectRoot = workspaceFolders[0].uri.fsPath;
           const sourcePath = path.resolve(projectRoot, msg.path);
           const fileName = path.basename(sourcePath);
@@ -725,6 +726,7 @@ export class DashboardPanel {
         // Creative Studio generated an asset — download URL and save to project
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (workspaceFolders && msg.url && msg.filename) {
+          const fs = await import('node:fs/promises');
           const projectRoot = workspaceFolders[0].uri.fsPath;
           const savePath = path.join(projectRoot, msg.filename);
           try {
@@ -3129,11 +3131,14 @@ export class DashboardPanel {
         case 'learnings': {
           // Push local self-improvement entries to the shared global pool
           const siPath = path.join(this.avaHome, 'self-improvement.json');
-          if (!fs.existsSync(siPath)) {
+          let siRaw: string;
+          try {
+            siRaw = await fs.readFile(siPath, 'utf-8');
+          } catch {
             this.post({ type: 'sync_completed', dataType, count: 0 });
             break;
           }
-          const siData = JSON.parse(fs.readFileSync(siPath, 'utf-8'));
+          const siData = JSON.parse(siRaw);
           const entries: any[] = Array.isArray(siData) ? siData : (siData.entries || []);
           // Only share safe types (no preferences, no code)
           const shareable = entries.filter((e: any) =>
