@@ -139,6 +139,52 @@ async function saveStore(globalDir: string, store: LearningStore): Promise<void>
   await writeFile(join(globalDir, LEARNING_FILENAME), JSON.stringify(store, null, 2), 'utf-8');
 }
 
+/**
+ * Save the learning store locally, then (if Data Mode allows and the user
+ * is signed in to the platform) fire an idempotent sync to the cloud so
+ * the same curriculums appear on other devices and in the web dashboard.
+ *
+ * Local-first is sacred: the local write always happens first and its
+ * errors surface. The cloud push is fire-and-forget — a failed sync
+ * never rolls back the on-disk copy.
+ *
+ * Gated on two pieces of sharedState wired by the extension host:
+ *   - platformKey        — user is signed in
+ *   - learningLocalOnly  — Data Mode toggle resolved to local (or the
+ *                          user turned off learning sync specifically)
+ *
+ * When either is missing or localOnly is truthy, we skip cloud entirely
+ * — matches how Memory / Tasks / Journal behave.
+ */
+async function persist(
+  globalDir: string,
+  store: LearningStore,
+  context: ToolExecutionContext,
+): Promise<void> {
+  await saveStore(globalDir, store);
+
+  const shared = context.sharedState ?? {};
+  const platformKey = shared.platformKey as string | undefined;
+  const localOnly = shared.learningLocalOnly as boolean | undefined;
+  if (!platformKey || localOnly) return;
+
+  // Fire-and-forget cloud push. The sync endpoint is idempotent (upsert
+  // on title) so calling it after every save is safe — no deduping
+  // ceremony required client-side.
+  void (async () => {
+    try {
+      await fetch('https://ava-supernova.com/api/learning/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${platformKey}`,
+        },
+        body: JSON.stringify({ curriculums: store.curriculums }),
+      });
+    } catch { /* non-critical — local copy is the source of truth */ }
+  })();
+}
+
 function generateId(): string {
   return crypto.randomUUID();
 }
@@ -464,7 +510,7 @@ export class LearningCreateTool implements Tool {
     recalculateProgress(curriculum);
 
     store.curriculums.unshift(curriculum);
-    await saveStore(globalDir, store);
+    await persist(globalDir, store, context);
 
     const totalLessons = curriculum.modules.reduce((sum, m) => sum + m.lessons.length, 0);
     const totalQuizzes = curriculum.modules.reduce((sum, m) => sum + m.lessons.filter(l => l.type === 'quiz').length, 0);
@@ -612,7 +658,7 @@ export class LearningTeachTool implements Tool {
         curriculum.updated_at = new Date().toISOString();
         updateStreak(store);
         recalculateProgress(curriculum);
-        await saveStore(globalDir, store);
+        await persist(globalDir, store, context);
 
         let out = `**${lesson.title}** (${lesson.type} · ${lesson.difficulty})`;
         if (lesson.estimated_minutes) out += ` · ~${lesson.estimated_minutes} min`;
@@ -672,7 +718,7 @@ export class LearningTeachTool implements Tool {
 
         lesson.content = content;
         curriculum.updated_at = new Date().toISOString();
-        await saveStore(globalDir, store);
+        await persist(globalDir, store, context);
 
         let out = `Updated content for "${lesson.title}" (${content.length} chars)`;
         if (warnings.length > 0) {
@@ -697,7 +743,7 @@ export class LearningTeachTool implements Tool {
           curriculum.updated_at = new Date().toISOString();
           curriculum.adaptive_level = getAdaptiveDifficulty(curriculum);
           recalculateProgress(curriculum);
-          await saveStore(globalDir, store);
+          await persist(globalDir, store, context);
           return {
             success: true,
             output: `"${lesson.title}" — needs more work.` +
@@ -720,7 +766,7 @@ export class LearningTeachTool implements Tool {
           curriculum.completed_at = new Date().toISOString();
           curriculum.status = 'completed';
         }
-        await saveStore(globalDir, store);
+        await persist(globalDir, store, context);
 
         let feedbackOut = `"${lesson.title}" — completed!` +
           (score !== undefined ? ` Score: ${score}%` : '') +
@@ -741,7 +787,7 @@ export class LearningTeachTool implements Tool {
           }
           lesson.status = 'in_progress';
           curriculum.updated_at = new Date().toISOString();
-          await saveStore(globalDir, store);
+          await persist(globalDir, store, context);
 
           let out = `**Quiz: ${lesson.title}**\n\n`;
           out += lesson.quiz_questions.map((q, i) => {
@@ -799,7 +845,7 @@ export class LearningTeachTool implements Tool {
 
         curriculum.updated_at = new Date().toISOString();
         recalculateProgress(curriculum);
-        await saveStore(globalDir, store);
+        await persist(globalDir, store, context);
 
         return {
           success: true,
@@ -817,7 +863,7 @@ export class LearningTeachTool implements Tool {
         lesson.last_reviewed_at = new Date().toISOString();
         lesson.review_count++;
         curriculum.updated_at = new Date().toISOString();
-        await saveStore(globalDir, store);
+        await persist(globalDir, store, context);
 
         let out = `**Review: ${lesson.title}** (review #${lesson.review_count})\n\n`;
         if (lesson.content) {

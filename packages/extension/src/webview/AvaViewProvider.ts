@@ -1359,12 +1359,23 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       }
     };
 
+    // Learning tool writes to ~/.ava/learning.json on every call and (when
+    // this flag is false) also pushes the full store to the platform's
+    // /api/learning/sync endpoint. Same formula as memory / tasks / journal
+    // — per-category user pref OR the global Data Mode toggle resolved to
+    // local. Picks up syncPrefs.learning too, so users can keep a cloud
+    // account but decide curriculums stay on-device.
+    const learningLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.learningLocalOnly') ?? false)
+      || syncPrefs.learning === false
+      || !cloudAllowed;
+
     const sharedState: Record<string, unknown> = {
       memoryManager: this.memoryManager,
       taskManager: this.taskManager,
       journalManager: this.journalManager,
       generationManager: this.generationManager,
       platformKey,
+      learningLocalOnly,
       getProviderKey,
       activeModelId: model.id,
       // Active provider + model + tool registry — needed by specialist tools
