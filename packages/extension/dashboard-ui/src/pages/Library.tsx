@@ -319,6 +319,190 @@ export function Library({
           )}
         </div>
       )}
+
+      {/* Preview + actions modal. Renders for Assets and Documents tabs;
+          Courses delegates to LearningLibrary which has its own detail view. */}
+      {selected && (tab === 'assets' || tab === 'documents') && (
+        <PreviewModal item={selected} onClose={() => setSelected(null)} />
+      )}
+    </div>
+  );
+}
+
+// ── Preview modal ────────────────────────────────────────────────────────
+//
+// Full-screen overlay matching Creative Studio's preview style. Actions
+// are contextual to the item's source + kind:
+//
+//   Local images         → Open (viewer) · Reveal · Download · Delete
+//   Local docs/sheets    → Open (LibreOffice preferred) · Reveal · Download · Delete
+//   Cloud any            → Open URL · Copy URL
+//
+// All local actions route through the existing dashboard-message-types
+// handlers (open_library_image / open_external / reveal_in_explorer /
+// download_asset / delete_library_image) so we don't duplicate the file
+// plumbing. Cloud items use open_url for the public storage URL.
+function PreviewModal({
+  item,
+  onClose,
+}: {
+  item: UnifiedItem;
+  onClose: () => void;
+}) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const isLocal = item.source === 'local';
+  const isImage = item.kind === 'image' || item.kind === 'graphic';
+  const isOfficeDoc = item.kind === 'document' || item.kind === 'spreadsheet';
+
+  const localPath = isLocal ? (item.raw as LibraryImage).path : undefined;
+  const cloudUrl = !isLocal ? (item.raw as CreativeAsset).url ?? undefined : undefined;
+
+  const handleOpen = () => {
+    if (isLocal && localPath) {
+      // Office docs get the LibreOffice-preferred handler; everything
+      // else (images, audio, video) opens in the OS default viewer.
+      if (isOfficeDoc) post({ type: 'open_external', path: localPath });
+      else if (isImage) post({ type: 'open_library_image', path: localPath });
+      else post({ type: 'open_external', path: localPath });
+      onClose();
+    } else if (cloudUrl) {
+      post({ type: 'open_url', url: cloudUrl });
+    }
+  };
+
+  const handleReveal = () => {
+    if (isLocal && localPath) {
+      post({ type: 'reveal_in_explorer', path: localPath });
+      onClose();
+    }
+  };
+
+  const handleDownload = () => {
+    if (isLocal && localPath) {
+      post({ type: 'download_asset', path: localPath });
+    } else if (cloudUrl) {
+      // Cloud URLs are direct-downloadable via the browser's own handler.
+      post({ type: 'open_url', url: cloudUrl });
+    }
+  };
+
+  const handleDelete = () => {
+    if (!confirmDelete) { setConfirmDelete(true); return; }
+    if (isLocal && localPath) {
+      post({ type: 'delete_library_image', path: localPath });
+      onClose();
+    }
+  };
+
+  const handleCopyUrl = async () => {
+    if (!cloudUrl) return;
+    try {
+      await navigator.clipboard.writeText(cloudUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* webview may block clipboard; fall through silently */ }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6"
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-[var(--border-card)] bg-[var(--bg-card)] shadow-2xl"
+      >
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center text-lg border-none cursor-pointer transition"
+          aria-label="Close preview"
+        >
+          ×
+        </button>
+
+        {/* Preview area */}
+        {item.thumbnail && isImage ? (
+          <img src={item.thumbnail} alt={item.title} className="w-full max-h-[50vh] object-contain bg-black/20" />
+        ) : (
+          <div className="flex items-center justify-center py-16 bg-[var(--bg-input)]">
+            <span className="text-6xl opacity-40">{ASSET_TYPE_ICONS[item.kind] || '\u{1F4C4}'}</span>
+          </div>
+        )}
+
+        {/* Meta */}
+        <div className="p-5">
+          <h3 className="text-base font-semibold text-[var(--text-primary)] truncate">{item.title}</h3>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px]">
+            <span className={`rounded px-1.5 py-0.5 font-medium ${
+              isLocal
+                ? 'bg-[var(--text-muted)]/10 text-[var(--text-muted)]'
+                : 'bg-[var(--accent)]/10 text-[var(--accent)]'
+            }`}>
+              {isLocal ? '\u{1F4BE} local' : '☁ cloud'}
+            </span>
+            <span className="rounded px-1.5 py-0.5 font-medium bg-[var(--border)] text-[var(--text-secondary)]">
+              {item.kind}
+            </span>
+            {item.createdAt && (
+              <span className="text-[var(--text-muted)]">
+                {new Date(item.createdAt).toLocaleString()}
+              </span>
+            )}
+          </div>
+          {item.subtitle && (
+            <p className="mt-3 text-xs text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">
+              {item.subtitle}
+            </p>
+          )}
+
+          {/* Actions */}
+          <div className="mt-5 flex flex-wrap gap-2">
+            <button
+              onClick={handleOpen}
+              className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
+            >
+              {isOfficeDoc && isLocal ? 'Open (LibreOffice)' : isLocal ? 'Open' : 'Open in browser'}
+            </button>
+            {isLocal && (
+              <button
+                onClick={handleReveal}
+                className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition"
+              >
+                Reveal
+              </button>
+            )}
+            <button
+              onClick={handleDownload}
+              className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition"
+            >
+              Download
+            </button>
+            {!isLocal && cloudUrl && (
+              <button
+                onClick={handleCopyUrl}
+                className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition"
+              >
+                {copied ? 'Copied ✓' : 'Copy URL'}
+              </button>
+            )}
+            {isLocal && (
+              <button
+                onClick={handleDelete}
+                className={`ml-auto rounded-lg px-3 py-1.5 text-xs font-medium transition border ${
+                  confirmDelete
+                    ? 'border-red-500/60 bg-red-500/15 text-red-400 hover:bg-red-500/25'
+                    : 'border-[var(--border)] text-[var(--text-muted)] hover:text-red-400 hover:border-red-500/40'
+                }`}
+              >
+                {confirmDelete ? 'Confirm delete' : 'Delete'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
