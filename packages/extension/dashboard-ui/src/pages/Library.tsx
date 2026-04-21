@@ -454,16 +454,15 @@ function PreviewModal({
   const mediaSrc: string | undefined = isLocal ? localDataUri : cloudUrl ?? undefined;
 
   const handleOpen = () => {
-    if (isLocal && localPath) {
-      // Office docs get the LibreOffice-preferred handler; everything
-      // else (images, audio, video) opens in the OS default viewer.
-      if (isOfficeDoc) post({ type: 'open_external', path: localPath });
-      else if (isImage) post({ type: 'open_library_image', path: localPath });
-      else post({ type: 'open_external', path: localPath });
-      onClose();
-    } else if (cloudUrl) {
-      post({ type: 'open_url', url: cloudUrl });
-    }
+    // Local-only path. Cloud items don't expose a browser-open action —
+    // previewing in-modal and Download are the user-facing flows; the
+    // raw Supabase storage URL is infrastructure the user should never
+    // see unless they explicitly choose Copy URL.
+    if (!isLocal || !localPath) return;
+    if (isOfficeDoc) post({ type: 'open_external', path: localPath });
+    else if (isImage) post({ type: 'open_library_image', path: localPath });
+    else post({ type: 'open_external', path: localPath });
+    onClose();
   };
 
   const handleReveal = () => {
@@ -586,14 +585,23 @@ function PreviewModal({
             </p>
           )}
 
-          {/* Actions */}
+          {/* Actions
+              Local: Open (LibreOffice for office docs / default viewer
+                otherwise) · Reveal · Download · Delete
+              Cloud: Download · Copy URL
+                — no "Open in browser" — users get inline playback in
+                the modal above for all media, and Download for keeping
+                a copy. Raw Supabase URLs are only exposed via Copy URL
+                when the user explicitly asks for them. */}
           <div className="mt-5 flex flex-wrap gap-2">
-            <button
-              onClick={handleOpen}
-              className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
-            >
-              {isOfficeDoc && isLocal ? 'Open (LibreOffice)' : isLocal ? 'Open' : 'Open in browser'}
-            </button>
+            {isLocal && (
+              <button
+                onClick={handleOpen}
+                className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
+              >
+                {isOfficeDoc ? 'Open (LibreOffice)' : 'Open'}
+              </button>
+            )}
             {isLocal && (
               <button
                 onClick={handleReveal}
@@ -604,7 +612,11 @@ function PreviewModal({
             )}
             <button
               onClick={handleDownload}
-              className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition"
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                !isLocal
+                  ? 'border border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20'
+                  : 'border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+              }`}
             >
               Download
             </button>
