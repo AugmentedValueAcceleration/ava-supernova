@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.48.2 — 2026-04-21
+
+### Fixed
+- **Critical: chat input disabled, tokens show zero, model picker stuck on startup.** `setupAgent()` threw `ReferenceError: syncPrefs is not defined` because the Learning Data Mode gate added in v0.47.0 referenced `syncPrefs` and `cloudAllowed` from a sibling function's scope. Every call to `setupAgent()` crashed silently, so the agent never initialised → `needsSetup: true` locked the chat textarea → platform status never flowed through → model picker stayed on whatever default resolved before the crash. Declarations added locally inside `setupAgent()` matching the pattern in `refreshProjectContext()`. All users on v0.48.0 and v0.48.1 must update.
+
 ## 0.48.1 — 2026-04-21
 
 ### Fixed

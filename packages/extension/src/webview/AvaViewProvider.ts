@@ -1365,6 +1365,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // — per-category user pref OR the global Data Mode toggle resolved to
     // local. Picks up syncPrefs.learning too, so users can keep a cloud
     // account but decide curriculums stay on-device.
+    //
+    // syncPrefs + cloudAllowed are scoped to this function; the
+    // matching names in refreshProjectContext() are separate scopes. A
+    // prior refactor dropped these declarations here and caused every
+    // setupAgent() call to throw ReferenceError, which stranded users
+    // with a disabled chat input and zero token display in v0.48.x.
+    const syncPrefs = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
+    const cloudAllowed = dataModeIncludesCloud(this.context);
     const learningLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.learningLocalOnly') ?? false)
       || syncPrefs.learning === false
       || !cloudAllowed;
