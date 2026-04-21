@@ -38,6 +38,9 @@ interface Props {
 type TopTab = 'courses' | 'assets' | 'documents';
 type AssetTypeFilter = 'all' | 'image' | 'music' | 'video' | 'voice';
 type AssetSource = 'all' | 'cloud' | 'local';
+type DocTypeFilter = 'all' | 'document' | 'spreadsheet';
+type BlankFormat = 'docx' | 'xlsx' | 'csv' | 'md' | 'pdf';
+type TemplateId = 'proposal' | 'report' | 'invoice' | 'letter' | 'meeting_notes' | 'resume';
 
 const ASSET_TYPE_ICONS: Record<string, string> = {
   image: '\u{1F5BC}\u{FE0F}',
@@ -117,6 +120,9 @@ export function Library({
   const [tab, setTab] = useState<TopTab>('assets');
   const [typeFilter, setTypeFilter] = useState<AssetTypeFilter>('all');
   const [sourceFilter, setSourceFilter] = useState<AssetSource>('all');
+  const [docType, setDocType] = useState<DocTypeFilter>('all');
+  const [docSource, setDocSource] = useState<AssetSource>('all');
+  const [newDocOpen, setNewDocOpen] = useState(false);
   const [selected, setSelected] = useState<UnifiedItem | null>(null);
   const [scanning, setScanning] = useState(false);
   const scanningRef = useRef(false);
@@ -158,19 +164,25 @@ export function Library({
       : list.filter(i => i.kind === typeFilter || (typeFilter === 'image' && i.kind === 'graphic'));
   }, [cloudAssets, images, projectRoot, sourceFilter, typeFilter]);
 
-  // Documents tab — office docs from both sources.
+  // Documents tab — office docs from both sources, filterable by source
+  // (cloud/local) and kind (document/spreadsheet). Matches the Assets tab
+  // filter shape so users learn one pattern.
   const documentItems = useMemo(() => {
     const list: UnifiedItem[] = [];
-    for (const a of cloudAssets) {
-      const k = cloudAssetKind(a);
-      if (['document', 'spreadsheet'].includes(k)) list.push(unifyCloudAsset(a));
+    if (docSource === 'all' || docSource === 'cloud') {
+      for (const a of cloudAssets) {
+        const k = cloudAssetKind(a);
+        if (['document', 'spreadsheet'].includes(k)) list.push(unifyCloudAsset(a));
+      }
     }
-    for (const img of images) {
-      const k = localFileKind(img);
-      if (k === 'document' || k === 'spreadsheet') list.push(unifyLocalImage(img, projectRoot));
+    if (docSource === 'all' || docSource === 'local') {
+      for (const img of images) {
+        const k = localFileKind(img);
+        if (k === 'document' || k === 'spreadsheet') list.push(unifyLocalImage(img, projectRoot));
+      }
     }
-    return list;
-  }, [cloudAssets, images, projectRoot]);
+    return docType === 'all' ? list : list.filter(i => i.kind === docType);
+  }, [cloudAssets, images, projectRoot, docSource, docType]);
 
   const handleScan = () => {
     setScanning(true);
@@ -310,12 +322,60 @@ export function Library({
 
       {tab === 'documents' && (
         <div>
+          {/* Sub-filters + New button — filter style matches Assets tab;
+              New button sits on the right so it reads as an action, not a
+              filter. Opens a modal with the same blank+template options
+              Creative Studio's Documents tab exposes, without duplicating
+              the card layout. */}
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-[var(--border-card)]">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              <div className="flex items-center gap-1">
+                <span className="mr-1 text-[10px] uppercase tracking-wider text-[var(--text-muted)] self-end pb-2">Source</span>
+                {(['all', 'cloud', 'local'] as AssetSource[]).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setDocSource(s)}
+                    className={`px-2.5 py-2 text-[11px] font-medium border-b-2 transition ${
+                      docSource === s
+                        ? 'border-[var(--accent)] text-[var(--accent)]'
+                        : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    {s === 'all' ? 'All' : s === 'cloud' ? 'Cloud' : 'Local'}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="mr-1 text-[10px] uppercase tracking-wider text-[var(--text-muted)] self-end pb-2">Type</span>
+                {(['all', 'document', 'spreadsheet'] as DocTypeFilter[]).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setDocType(t)}
+                    className={`px-2.5 py-2 text-[11px] font-medium border-b-2 transition ${
+                      docType === t
+                        ? 'border-[var(--accent)] text-[var(--accent)]'
+                        : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    {t === 'all' ? 'All' : t === 'document' ? 'Documents' : 'Spreadsheets'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={() => setNewDocOpen(true)}
+              className="mb-1 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
+            >
+              + New document
+            </button>
+          </div>
+
           {documentItems.length === 0 ? (
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
               <div className="text-4xl mb-3">{'\u{1F4C4}'}</div>
               <p className="text-sm font-medium text-[var(--text-primary)]">No documents yet</p>
               <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                Create documents from templates in Creative Studio, or ask Ava to write one for you.
+                Click <span className="font-medium text-[var(--accent)]">+ New document</span> to start from blank or a template — or ask Ava to write one for you.
               </p>
             </div>
           ) : (
@@ -326,6 +386,13 @@ export function Library({
             </div>
           )}
         </div>
+      )}
+
+      {/* New document modal — blank formats + templates. Routes through
+          create_blank_document / create_from_template host messages which
+          handle the filename prompt + write to disk. */}
+      {newDocOpen && (
+        <NewDocumentModal onClose={() => setNewDocOpen(false)} />
       )}
 
       {/* Preview + actions modal. Renders for Assets and Documents tabs;
@@ -509,6 +576,101 @@ function PreviewModal({
               </button>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── New document modal ──────────────────────────────────────────────────
+//
+// Small create flow for the Library's Documents tab. Exposes the same
+// blank-format and template options as Creative Studio's Documents tab
+// without duplicating the rich card layout — Library is a browse surface
+// first, creation second. Both actions route through existing host
+// messages (create_blank_document / create_from_template) which handle
+// the filename prompt (vscode.window.showInputBox) and write to
+// documents/ on disk. After the write fires, the local library scan
+// picks up the new file and it surfaces in this tab.
+const BLANK_FORMATS: { id: BlankFormat; label: string; icon: string; ext: string }[] = [
+  { id: 'docx', label: 'Word Document',  icon: '\u{1F4C4}', ext: '.docx' },
+  { id: 'xlsx', label: 'Spreadsheet',    icon: '\u{1F4CA}', ext: '.xlsx' },
+  { id: 'csv',  label: 'CSV',            icon: '\u{1F4C8}', ext: '.csv'  },
+  { id: 'md',   label: 'Markdown',       icon: '\u{1F4DD}', ext: '.md'   },
+  { id: 'pdf',  label: 'PDF',            icon: '\u{1F4D1}', ext: '.pdf'  },
+];
+
+const TEMPLATES: { id: TemplateId; label: string; desc: string; icon: string }[] = [
+  { id: 'proposal',      label: 'Project Proposal', desc: 'Executive summary, objectives, timeline', icon: '\u{1F4BC}' },
+  { id: 'report',        label: 'Status Report',    desc: 'Progress, issues, next steps',            icon: '\u{1F4C8}' },
+  { id: 'invoice',       label: 'Invoice',          desc: 'Items table, payment terms',              icon: '\u{1F9FE}' },
+  { id: 'letter',        label: 'Formal Letter',    desc: 'Recipient, body, closing',                icon: '\u{2709}\u{FE0F}' },
+  { id: 'meeting_notes', label: 'Meeting Notes',    desc: 'Agenda, discussion, action items',        icon: '\u{1F5D2}\u{FE0F}' },
+  { id: 'resume',        label: 'Resume',           desc: 'Contact, experience, education, skills',  icon: '\u{1F465}' },
+];
+
+function NewDocumentModal({ onClose }: { onClose: () => void }) {
+  const createBlank = (format: BlankFormat) => {
+    post({ type: 'create_blank_document', format });
+    onClose();
+  };
+  const createTemplate = (template: TemplateId) => {
+    post({ type: 'create_from_template', template });
+    onClose();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6"
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-[var(--border-card)] bg-[var(--bg-card)] shadow-2xl p-6"
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 text-[var(--text-muted)] hover:text-white flex items-center justify-center text-lg border-none cursor-pointer transition"
+          aria-label="Close"
+        >
+          ×
+        </button>
+
+        <h2 className="text-base font-semibold text-[var(--text-primary)] mb-1">New document</h2>
+        <p className="text-xs text-[var(--text-muted)] mb-5">
+          Files save to your project's <code className="font-mono text-[10px] px-1 rounded bg-[var(--bg-input)]">documents/</code> folder and appear here.
+        </p>
+
+        <h3 className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-medium mb-2">Blank file</h3>
+        <div className="grid grid-cols-3 gap-2 mb-5">
+          {BLANK_FORMATS.map(f => (
+            <button
+              key={f.id}
+              onClick={() => createBlank(f.id)}
+              className="flex flex-col items-center gap-1.5 rounded-xl border border-[var(--border-card)] bg-[var(--bg-input)] p-3 text-center transition hover:border-[var(--accent)]/50 hover:bg-[var(--accent)]/5 cursor-pointer"
+            >
+              <span className="text-2xl">{f.icon}</span>
+              <span className="text-[11px] font-medium text-[var(--text-primary)]">{f.label}</span>
+              <span className="text-[9px] text-[var(--text-muted)]">{f.ext}</span>
+            </button>
+          ))}
+        </div>
+
+        <h3 className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-medium mb-2">From template</h3>
+        <div className="grid grid-cols-2 gap-2">
+          {TEMPLATES.map(tmpl => (
+            <button
+              key={tmpl.id}
+              onClick={() => createTemplate(tmpl.id)}
+              className="flex items-start gap-2.5 rounded-xl border border-[var(--border-card)] bg-[var(--bg-input)] p-3 text-left transition hover:border-[var(--accent)]/50 hover:bg-[var(--accent)]/5 cursor-pointer"
+            >
+              <span className="text-xl shrink-0">{tmpl.icon}</span>
+              <div className="min-w-0">
+                <span className="block text-[11px] font-medium text-[var(--text-primary)]">{tmpl.label}</span>
+                <span className="block text-[10px] text-[var(--text-muted)] leading-snug">{tmpl.desc}</span>
+              </div>
+            </button>
+          ))}
         </div>
       </div>
     </div>
