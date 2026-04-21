@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.48.1 — 2026-04-21
+
+### Fixed
+- **Copy canon sweep across every surface.** Reported on X — "bugs with your headline and some texts." Tool count converged to **60** everywhere (previously drifting between 45 / 61 / 63 across marketplace description, walkthrough, webview, dashboard, and all 20 locale files). Language count corrected from 21 → **20** in the README. Plan mode tagline in WelcomeModal now reads **"Architect. Read-only. Thinks first."** (was "Strategist") — matches the one-word role-noun pattern of every other mode. Brainstorm tagline reads **"Ideator. Challenges ideas."** (was "Ideation partner"). Core system prompts updated to match so the model's self-reference stays consistent with the UI.
+
 ## 0.48.0 — 2026-04-21
 
 ### Changed
