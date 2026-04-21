@@ -696,6 +696,10 @@ export class DashboardPanel {
         await this.loadCloudAssets();
         break;
 
+      case 'download_cloud_asset':
+        await this.downloadCloudAsset(msg.url, msg.filename);
+        break;
+
       case 'delete_library_image':
         await this.deleteLibraryImage(msg.path);
         break;
@@ -2781,6 +2785,89 @@ export class DashboardPanel {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.post({ type: 'cloud_assets_error', message });
+    }
+  }
+
+  /**
+   * Silently fetch a cloud creative asset and write it to the user's
+   * Downloads folder. Powers the Library's cloud Download button —
+   * bypasses the browser entirely so:
+   *
+   *   1. VS Code never prompts "Do you want Code to open the external
+   *      website?" with the raw Supabase URL visible
+   *   2. The file lands in Downloads without the user having to click
+   *      through a picker or wait for a browser tab to open
+   *   3. The bucket stays behind our extension — users see infrastructure
+   *      URLs only if they explicitly choose Copy URL in the preview
+   *
+   * Host-side fetch means we can also show a native toast on completion
+   * with a Reveal action.
+   *
+   * Defence in depth: only allows hostnames that look like Supabase
+   * storage or our own domain, so a compromised webview can't coerce
+   * the host into fetching arbitrary URLs (SSRF).
+   */
+  private async downloadCloudAsset(url: string, filename: string): Promise<void> {
+    try {
+      // Validate hostname — must be Supabase storage or ava-supernova.com.
+      let parsed: URL;
+      try { parsed = new URL(url); }
+      catch { this.post({ type: 'error', message: 'Invalid URL' }); return; }
+      const host = parsed.hostname.toLowerCase();
+      const allowed = /\.supabase\.co$/.test(host) || host === 'ava-supernova.com';
+      if (!allowed) {
+        this.post({ type: 'error', message: 'Download blocked: URL not on an allowed host.' });
+        return;
+      }
+
+      // Sanitise filename — strip path components, restrict character set,
+      // fall back to a generic name if empty after cleaning.
+      const safeName = filename
+        .replace(/[\\/]/g, '_')
+        .replace(/[^a-zA-Z0-9._ -]/g, '_')
+        .slice(0, 200) || 'download';
+
+      const fs = await import('node:fs/promises');
+      const os = await import('node:os');
+      const downloadsDir = path.join(os.homedir(), 'Downloads');
+      await fs.mkdir(downloadsDir, { recursive: true });
+
+      // Avoid overwriting existing files by suffixing " (N)" before the
+      // extension. Same convention browsers use.
+      const extIdx = safeName.lastIndexOf('.');
+      const baseName = extIdx > 0 ? safeName.slice(0, extIdx) : safeName;
+      const ext = extIdx > 0 ? safeName.slice(extIdx) : '';
+      let savePath = path.join(downloadsDir, safeName);
+      let counter = 1;
+      while (true) {
+        const exists = await fs.access(savePath).then(() => true).catch(() => false);
+        if (!exists) break;
+        savePath = path.join(downloadsDir, `${baseName} (${counter})${ext}`);
+        counter++;
+        if (counter > 100) break; // sanity stop
+      }
+
+      // Fetch the file.
+      const res = await fetch(url);
+      if (!res.ok) {
+        this.post({ type: 'error', message: `Download failed: HTTP ${res.status}` });
+        return;
+      }
+      const arrayBuffer = await res.arrayBuffer();
+      await fs.writeFile(savePath, Buffer.from(arrayBuffer));
+
+      // Friendly toast with Reveal — revealFileInOS is the same command
+      // used elsewhere for the Reveal button on local files.
+      const action = await vscode.window.showInformationMessage(
+        `Downloaded: ${path.basename(savePath)}`,
+        'Reveal',
+      );
+      if (action === 'Reveal') {
+        await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(savePath));
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.post({ type: 'error', message: `Download failed: ${message}` });
     }
   }
 
