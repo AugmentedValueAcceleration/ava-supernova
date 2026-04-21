@@ -3,6 +3,7 @@ import { join, dirname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { startGenerationTracking } from '../dataset/generation-emit.js';
+import { persistCreativeAsset } from './creative-asset-sync.js';
 
 /**
  * Generate an AI image and save it to the project.
@@ -239,6 +240,19 @@ export class GenerateImageTool implements Tool {
         };
         genManager?.complete(jobId, resultMeta);
         tracker.complete({ fileSizeBytes: imageBuffer.length });
+
+        // Fire-and-forget cloud push so the asset surfaces on the Library
+        // across the web dashboard / companion when Data Mode is Cloud or
+        // Both. Local write is the source of truth; a failed sync never
+        // rolls back the on-disk copy.
+        persistCreativeAsset(context, {
+          assetType: 'image',
+          filename,
+          contentType: 'image/png',
+          bytes: imageBuffer,
+          title: `${purpose}: ${rawPrompt.slice(0, 80)}`,
+          prompt: enhancedPrompt,
+        });
 
         return {
           success: true,

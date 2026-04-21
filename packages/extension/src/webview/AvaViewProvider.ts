@@ -1384,6 +1384,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       generationManager: this.generationManager,
       platformKey,
       learningLocalOnly,
+      generationLocalOnly,
+      clientSurface: 'extension',
       getProviderKey,
       activeModelId: model.id,
       // Active provider + model + tool registry — needed by specialist tools
@@ -1766,7 +1768,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    * DashboardPanel push site.
    */
   public applySyncPref(
-    dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings',
+    dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' | 'generations',
     enabled: boolean,
   ): void {
     // Combine with Data Mode — pref can only narrow, not broaden. If Data
@@ -1778,6 +1780,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       case 'tasks':  this.taskManager?.setLocalOnly(localOnly); break;
       case 'journal': this.journalManager?.setLocalOnly(localOnly); break;
       case 'history': this.historyManager?.setLocalOnly(localOnly); break;
+      case 'generations':
+        // No background manager to flip — the flag is read out of sharedState
+        // at tool-call time. Persisted pref change will take effect on the
+        // next setupAgent() run. Nothing to do here beyond that.
+        break;
       // learning/settings/personality/learnings have no background push — the
       // DashboardPanel checks the pref directly before each push site.
     }
@@ -1797,6 +1804,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.taskManager?.setLocalOnly(resolve('tasks'));
     this.journalManager?.setLocalOnly(resolve('journal'));
     this.historyManager?.setLocalOnly(resolve('history'));
+    // Creative generations (image / music / video / voice) read
+    // generationLocalOnly out of sharedState, which is rebuilt on the
+    // next setupAgent() run — typically triggered by a model switch or a
+    // webview reload. In-session toggling is rare enough that we don't
+    // force-rebuild here; the flag flips on the next natural agent
+    // refresh. The pref itself is already persisted above, so nothing
+    // is lost.
   }
 
   public async resetMemoryManager(): Promise<void> {

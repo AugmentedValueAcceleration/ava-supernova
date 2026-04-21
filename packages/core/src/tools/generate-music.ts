@@ -1,4 +1,5 @@
 import { writeFile, mkdir } from 'node:fs/promises';
+import { persistCreativeAsset } from './creative-asset-sync.js';
 import { join, dirname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
@@ -112,6 +113,15 @@ export class GenerateMusicTool implements Tool {
       const meta = { path: relativePath, absolutePath: savePath, size: audioBuffer.length, prompt, hasLyrics: !!lyrics };
       genManager?.complete(jobId, meta);
       tracker.complete({ fileSizeBytes: audioBuffer.length });
+
+      persistCreativeAsset(context, {
+        assetType: 'music',
+        filename: relativePath.split(/[\\/]/).pop() || 'track.mp3',
+        contentType: 'audio/mpeg',
+        bytes: audioBuffer,
+        title: prompt.slice(0, 100),
+        prompt,
+      });
 
       return {
         success: true,

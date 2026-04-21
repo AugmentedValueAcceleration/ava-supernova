@@ -3216,7 +3216,7 @@ export class DashboardPanel {
   /** Read all sync prefs from globalState. Defaults: everything ON except `learnings`. */
   private getSyncPrefs(): Record<string, boolean> {
     const stored = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
-    const keys = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings', 'personality', 'learnings'] as const;
+    const keys = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings', 'personality', 'learnings', 'generations'] as const;
     const out: Record<string, boolean> = {};
     for (const k of keys) {
       out[k] = stored[k] ?? (k === 'learnings' ? false : true);
@@ -3230,7 +3230,7 @@ export class DashboardPanel {
 
   /** Persist a sync pref + apply it live to the manager (where applicable). */
   private async setSyncPref(
-    dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings',
+    dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' | 'generations',
     enabled: boolean,
   ): Promise<void> {
     const stored = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
