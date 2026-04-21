@@ -900,6 +900,24 @@ export class DashboardPanel {
         }
         break;
       }
+      case 'reveal_in_explorer': {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || !msg.path) break;
+        const projectRoot = workspaceFolders[0].uri.fsPath;
+        const fullPath = path.resolve(projectRoot, msg.path);
+        const home = process.env.HOME || process.env.USERPROFILE || '';
+        if (!fullPath.toLowerCase().startsWith(projectRoot.toLowerCase()) &&
+            !(home && fullPath.toLowerCase().startsWith(home.toLowerCase()))) {
+          this.post({ type: 'error', message: 'Invalid path: access restricted to workspace and home directory.' });
+          break;
+        }
+        try {
+          await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(fullPath));
+        } catch (err: any) {
+          this.post({ type: 'error', message: `Reveal failed: ${err?.message || err}` });
+        }
+        break;
+      }
       case 'open_external': {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (workspaceFolders) {

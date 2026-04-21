@@ -96,6 +96,27 @@ function typeIcon(type: string): string {
   return '\uD83D\uDCC1';
 }
 
+/** Config for rendering a non-media asset card (docs, spreadsheets).
+ * Mirrors the Documents tab colour scheme so file type is readable at a
+ * glance. Keeps all media-less previews consistent in shape. */
+function docCardConfig(asset: { asset_type?: string; type?: string; path?: string; title?: string; name?: string }): {
+  label: string;
+  accent: string;
+  icon: ReactNode;
+} | null {
+  const ext = (asset.path || asset.title || asset.name || '').split('.').pop()?.toLowerCase() || '';
+  const type = (asset.asset_type || asset.type || '').toLowerCase();
+
+  if (ext === 'docx' || ext === 'doc') return { label: 'Word Document', accent: '#60a5fa', icon: <FileDoc weight="duotone" size={56} /> };
+  if (ext === 'xlsx' || ext === 'xls') return { label: 'Spreadsheet', accent: '#4ade80', icon: <FileXls weight="duotone" size={56} /> };
+  if (ext === 'csv') return { label: 'CSV', accent: '#a78bfa', icon: <FileCsv weight="duotone" size={56} /> };
+  if (ext === 'md') return { label: 'Markdown', accent: '#f472b6', icon: <FileMd weight="duotone" size={56} /> };
+  if (ext === 'pdf') return { label: 'PDF Document', accent: '#f87171', icon: <FilePdf weight="duotone" size={56} /> };
+  if (type === 'spreadsheet') return { label: 'Spreadsheet', accent: '#4ade80', icon: <FileXls weight="duotone" size={56} /> };
+  if (['document', 'content'].includes(type)) return { label: 'Document', accent: '#60a5fa', icon: <FileDoc weight="duotone" size={56} /> };
+  return null;
+}
+
 /* ── Custom Video Player ──────────────────────────────────────────── */
 
 function VideoPlayer({ src, hideFullscreen }: { src: string; hideFullscreen?: boolean }) {
@@ -807,91 +828,143 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
                     </button>
 
-                    {/* Preview area */}
-                    <div className="bg-black/30">
-                      {['image', 'graphic'].includes(selectedAsset.asset_type || '') && selectedAsset.url ? (
-                        <img
-                          src={selectedAsset.url}
-                          alt=""
-                          className="w-full max-h-[60vh] object-contain"
-                        />
-                      ) : ['music', 'voice', 'sfx'].includes(selectedAsset.asset_type || '') && selectedAsset.url ? (
-                        <div className="p-6">
-                          <div className="flex items-center justify-center h-32 mb-4">
-                            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[var(--accent)]/15 text-[var(--accent)]">
-                              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/>
-                              </svg>
+                    {(() => {
+                      const docCfg = docCardConfig(selectedAsset);
+                      const isImage = ['image', 'graphic'].includes(selectedAsset.asset_type || '') && selectedAsset.url;
+                      const isAudio = ['music', 'voice', 'sfx'].includes(selectedAsset.asset_type || '') && selectedAsset.url;
+                      const isVideo = selectedAsset.asset_type === 'video' && selectedAsset.url;
+                      return (
+                        <>
+                          {/* Preview area */}
+                          <div className={docCfg ? '' : 'bg-black/30'} style={docCfg ? { background: `linear-gradient(135deg, ${docCfg.accent}10 0%, ${docCfg.accent}04 100%)` } : undefined}>
+                            {isImage ? (
+                              <img src={selectedAsset.url} alt="" className="w-full max-h-[60vh] object-contain" />
+                            ) : isAudio ? (
+                              <div className="p-6">
+                                <div className="flex items-center justify-center h-32 mb-4">
+                                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[var(--accent)]/15 text-[var(--accent)]">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z"/>
+                                    </svg>
+                                  </div>
+                                </div>
+                                <AudioPlayer src={selectedAsset.url} />
+                              </div>
+                            ) : isVideo ? (
+                              <VideoPlayer src={selectedAsset.url} hideFullscreen />
+                            ) : docCfg ? (
+                              <div className="flex flex-col items-center justify-center py-12 px-6">
+                                <div
+                                  className="flex h-24 w-24 items-center justify-center rounded-2xl mb-5"
+                                  style={{ background: `${docCfg.accent}18`, color: docCfg.accent, boxShadow: `0 0 0 1px ${docCfg.accent}22 inset` }}
+                                >
+                                  {docCfg.icon}
+                                </div>
+                                <div className="text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: docCfg.accent }}>
+                                  {docCfg.label}
+                                </div>
+                                <div className="mt-1 text-sm font-medium text-white max-w-[90%] truncate text-center">
+                                  {selectedAsset.title || selectedAsset.name || 'Untitled'}
+                                </div>
+                                {selectedAsset.path && (
+                                  <div className="mt-2 text-[10px] text-[var(--text-muted)] font-mono max-w-[90%] truncate">
+                                    {selectedAsset.path}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex h-48 items-center justify-center text-5xl opacity-20">
+                                {typeIcon(selectedAsset.asset_type || selectedAsset.type || '')}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Info + actions */}
+                          <div className="p-5">
+                            {/* Only show title block when not already shown by the doc card */}
+                            {!docCfg && (
+                              <h3 className="text-sm font-semibold text-white mb-1">
+                                {selectedAsset.title || selectedAsset.name || 'Untitled'}
+                              </h3>
+                            )}
+
+                            {selectedAsset.prompt && (
+                              <p className="text-[11px] leading-relaxed text-[var(--text-secondary)] mb-2">
+                                {selectedAsset.prompt}
+                              </p>
+                            )}
+
+                            <div className="flex items-center gap-3 text-[10px] text-[var(--text-muted)] mb-4">
+                              <span className="capitalize">{selectedAsset.asset_type || selectedAsset.type}</span>
+                              {selectedAsset.created_at && (
+                                <>
+                                  <span className="opacity-30">&middot;</span>
+                                  <span>{new Date(selectedAsset.created_at).toLocaleDateString()}</span>
+                                </>
+                              )}
+                            </div>
+
+                            {/* Actions — grid so icon buttons line up evenly on all asset types */}
+                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                              {selectedAsset.path && (
+                                <button
+                                  onClick={() => post({ type: 'open_external', path: selectedAsset.path } as any)}
+                                  title="Opens LibreOffice / OpenOffice when installed, falls back to the OS default"
+                                  className="flex items-center justify-center gap-1.5 rounded-lg bg-[var(--accent)] py-2.5 px-3 text-xs font-medium text-white transition hover:opacity-90 border-none cursor-pointer"
+                                >
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                                  Open
+                                </button>
+                              )}
+                              {selectedAsset.path && (
+                                <button
+                                  onClick={() => post({ type: 'reveal_in_explorer', path: selectedAsset.path } as any)}
+                                  title="Show this file in your OS file browser"
+                                  className="flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] py-2.5 px-3 text-xs font-medium text-[var(--text-secondary)] transition hover:border-[var(--accent)]/40 hover:text-white cursor-pointer"
+                                >
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 4h5l2 2h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>
+                                  Reveal
+                                </button>
+                              )}
+                              {selectedAsset.path && (
+                                <button
+                                  onClick={() => post({ type: 'download_asset', path: selectedAsset.path } as any)}
+                                  title="Save a copy to your Downloads folder"
+                                  className="flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] py-2.5 px-3 text-xs font-medium text-[var(--text-secondary)] transition hover:border-[var(--accent)]/40 hover:text-white cursor-pointer"
+                                >
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                  Download
+                                </button>
+                              )}
+                              {!confirmDelete ? (
+                                <button
+                                  onClick={() => setConfirmDelete(true)}
+                                  className="flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] py-2.5 px-3 text-xs font-medium text-[var(--text-secondary)] transition hover:border-red-400/50 hover:text-red-400 cursor-pointer"
+                                >
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                                  Delete
+                                </button>
+                              ) : (
+                                <div className="col-span-2 sm:col-span-1 flex gap-2">
+                                  <button
+                                    onClick={() => setConfirmDelete(false)}
+                                    className="flex-1 rounded-lg border border-[var(--border-card)] py-2.5 text-xs text-[var(--text-secondary)] transition hover:text-white cursor-pointer"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteAsset(selectedAsset)}
+                                    className="flex-1 rounded-lg bg-red-500/20 py-2.5 text-xs font-medium text-red-400 transition hover:bg-red-500/30 border-none cursor-pointer"
+                                  >
+                                    Confirm
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
-                          <AudioPlayer src={selectedAsset.url} />
-                        </div>
-                      ) : selectedAsset.asset_type === 'video' && selectedAsset.url ? (
-                        <VideoPlayer src={selectedAsset.url} hideFullscreen />
-                      ) : (
-                        <div className="flex h-48 items-center justify-center text-5xl opacity-20">
-                          {typeIcon(selectedAsset.asset_type || selectedAsset.type || '')}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Info + actions */}
-                    <div className="p-5">
-                      <h3 className="text-sm font-semibold text-white mb-1">
-                        {selectedAsset.title || selectedAsset.name || 'Untitled'}
-                      </h3>
-
-                      {selectedAsset.prompt && (
-                        <p className="text-[11px] leading-relaxed text-[var(--text-secondary)] mb-2">
-                          {selectedAsset.prompt}
-                        </p>
-                      )}
-
-                      <div className="flex items-center gap-3 text-[10px] text-[var(--text-muted)] mb-4">
-                        <span className="capitalize">{selectedAsset.asset_type || selectedAsset.type}</span>
-                        {selectedAsset.created_at && (
-                          <>
-                            <span className="opacity-30">&middot;</span>
-                            <span>{new Date(selectedAsset.created_at).toLocaleDateString()}</span>
-                          </>
-                        )}
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex gap-2">
-                        {selectedAsset.path && (
-                          <button
-                            onClick={() => post({ type: 'download_asset', path: selectedAsset.path } as any)}
-                            className="flex-1 rounded-lg bg-[var(--accent)] py-2.5 text-center text-xs font-medium text-white transition hover:opacity-90 border-none cursor-pointer"
-                          >
-                            Download
-                          </button>
-                        )}
-                        {!confirmDelete ? (
-                          <button
-                            onClick={() => setConfirmDelete(true)}
-                            className="rounded-lg border border-[var(--border-card)] px-4 py-2.5 text-xs font-medium text-[var(--text-secondary)] transition hover:border-red-400/50 hover:text-red-400 cursor-pointer"
-                          >
-                            Delete
-                          </button>
-                        ) : (
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => setConfirmDelete(false)}
-                              className="rounded-lg border border-[var(--border-card)] px-4 py-2.5 text-xs text-[var(--text-secondary)] transition hover:text-white cursor-pointer"
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              onClick={() => handleDeleteAsset(selectedAsset)}
-                              className="rounded-lg bg-red-500/20 px-4 py-2.5 text-xs font-medium text-red-400 transition hover:bg-red-500/30 border-none cursor-pointer"
-                            >
-                              Confirm Delete
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               )}

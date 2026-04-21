@@ -807,6 +807,7 @@ export type DashboardToExtMessage =
   | { type: 'delete_library_image'; path: string }
   | { type: 'open_library_image'; path: string }
   | { type: 'open_external'; path: string }
+  | { type: 'reveal_in_explorer'; path: string }
   // Creative Studio — Documents tab (host prompts for filename via showInputBox
   // because webviews can't use window.prompt)
   | { type: 'create_blank_document'; format: 'docx' | 'xlsx' | 'csv' | 'md' | 'pdf' }
