@@ -773,7 +773,8 @@ export class DashboardPanel {
                 const doc = new Document({ sections: [{ children: [new Paragraph({ text: '' })] }] });
                 const buf = await Packer.toBuffer(doc);
                 await fs.writeFile(filePath, buf);
-              } catch {
+              } catch (e) {
+                console.warn('[ava] docx create failed, writing empty file:', e);
                 await fs.writeFile(filePath, '');
               }
             } else if (ext === '.xlsx') {
@@ -782,7 +783,8 @@ export class DashboardPanel {
                 const wb = new ExcelJS.default.Workbook();
                 wb.addWorksheet('Sheet1');
                 await wb.xlsx.writeFile(filePath);
-              } catch {
+              } catch (e) {
+                console.warn('[ava] exceljs create failed, writing empty file:', e);
                 await fs.writeFile(filePath, '');
               }
             } else if (ext === '.csv') {
@@ -804,7 +806,8 @@ export class DashboardPanel {
                   doc.text(' ');
                   doc.end();
                 });
-              } catch {
+              } catch (e) {
+                console.warn('[ava] pdfkit create failed, writing empty file:', e);
                 await fs.writeFile(filePath, '');
               }
             } else {
@@ -2505,6 +2508,17 @@ export class DashboardPanel {
     try {
       const fs = await import('node:fs/promises');
       const buffer = await fs.readFile(filePath);
+      if (buffer.length === 0) {
+        // Almost always means the office binary dep (docx/exceljs/pdfkit)
+        // failed to load and the local writer fell through to an empty
+        // placeholder. No point uploading garbage — tell the user loudly so
+        // they notice, instead of silently putting 0-byte files in cloud.
+        this.post({
+          type: 'error',
+          message: `Local file was written empty — ${path.basename(filePath)} has 0 bytes. Office deps (docx/exceljs/pdfkit) may not be loading. Check the Extension Host console for details.`,
+        });
+        return;
+      }
       const contentBase64 = buffer.toString('base64');
       const res = await apiFetch('/creative-assets', {
         method: 'POST',
