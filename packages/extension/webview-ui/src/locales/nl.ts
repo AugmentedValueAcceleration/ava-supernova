@@ -4,7 +4,7 @@ export const nlStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Stel een vraag over je code.',
-  'welcome.tagline': '61 tools \u00b7 7 providers \u00b7 2 gratis modellen \u00b7 20 talen',
+  'welcome.tagline': '60 tools \u00b7 7 providers \u00b7 2 gratis modellen \u00b7 20 talen',
 
   // Welcome — Setup
   'welcome.setup_title': 'Aan de slag \u2014 Voeg een API-sleutel toe',
@@ -294,7 +294,7 @@ export const nlStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': 'Brainstorm',
   'welcome.mode.brainstorm_desc': 'Ideeën & creatief denken',
-  'input.mode.code.desc': 'Ava bouwt het voor je. Leest, schrijft en runt code met alle 61 tools.',
+  'input.mode.code.desc': 'Ava bouwt het voor je. Leest, schrijft en runt code met alle 60 tools.',
   'input.mode.plan.desc': 'Ava maakt een plan voordat ze iets wijzigt. Alleen-lezen — geen bestandswijzigingen.',
   'input.mode.brainstorm.desc': 'Ava deelt ideeën met jou. Vijf specialisten verkennen, verfijnen en dagen uit.',
   'input.mode.chat.desc': 'Ava als vriend. Geheugen, zoeken, dagboek, weer, nieuws — geen tools, gewoon praten.',

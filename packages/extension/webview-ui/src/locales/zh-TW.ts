@@ -4,7 +4,7 @@ export const zhTWStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': '關於你的程式碼，隨時提問。',
-  'welcome.tagline': '45 個工具 · 7 個供應商 · 2 個免費模型 · 20 種語言',
+  'welcome.tagline': '60 個工具 · 7 個供應商 · 2 個免費模型 · 20 種語言',
 
   // Welcome — Setup
   'welcome.setup_title': '開始使用 — 新增 API 金鑰',
@@ -294,7 +294,7 @@ export const zhTWStrings: Record<StringKey, string> = {
   // ── Backfilled (needs translation) ──
   'welcome.mode.brainstorm': '發想',
   'welcome.mode.brainstorm_desc': '發想與創意思考',
-  'input.mode.code.desc': 'Ava 為您構建。使用全部 61 項工具讀取、編寫及執行代碼。',
+  'input.mode.code.desc': 'Ava 為您構建。使用全部 60 項工具讀取、編寫及執行代碼。',
   'input.mode.plan.desc': 'Ava 在操作前先規劃藍圖。唯讀模式 — 不修改檔案。',
   'input.mode.brainstorm.desc': 'Ava 與您共同發想。五位專家探索、優化並提出挑戰。',
   'input.mode.chat.desc': '像朋友般的 Ava。記憶、搜尋、日誌、天氣、新聞 — 無工具，僅聊天。',

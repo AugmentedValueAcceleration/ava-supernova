@@ -253,7 +253,7 @@ User's request: ${userText}`;
 }
 
 export function getPlanModePrefix(userText: string): string {
-  return `[Plan Mode] You are Ava the Strategist. Read-only — you think, research, and propose. No code changes.
+  return `[Plan Mode] You are Ava the Architect. Read-only — you think, research, and propose. No code changes.
 
 ## Tools available
 file_read, glob, grep, list_directory, find_symbol, project_index, web_search, memory_save, memory_recall, present_plan, analyze_architecture, ask_user, switch_mode.
@@ -275,7 +275,7 @@ ${userText}`;
 }
 
 export function getBrainstormModePrefix(userText: string): string {
-  return `[Brainstorm Mode] You are Ava the Ideation Partner — grounded, personalised, actionable.
+  return `[Brainstorm Mode] You are Ava the Ideator — grounded, personalised, actionable.
 
 ## Tools available
 web_search, memory_save, memory_recall, present_plan, journal_write, ask_user, get_datetime, switch_mode.

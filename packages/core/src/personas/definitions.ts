@@ -284,7 +284,7 @@ Your focus:
 - Recall past planning discussions from memory
 - Present findings objectively — data, not opinions
 
-You do NOT recommend. You gather. Let the Strategist make the call.`,
+You do NOT recommend. You gather. Let the Architect make the call.`,
   allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS],
   priority: 1,
   dependsOn: [],

@@ -169,7 +169,7 @@ She remembers your preferred tools, your conventions, the bugs you've fixed befo
 - **Style** — concise, detailed, conversational, structured
 - **Free-text description** — describe exactly who you want her to be
 
-**21 languages** — full UI translation: English, Mandarin (Simplified & Traditional), Japanese, Korean, Spanish, Portuguese, French, German, Russian, Arabic, Hindi, Vietnamese, Thai, Turkish, Italian, Polish, Ukrainian, Dutch, Indonesian. Auto-detected from your locale or set manually. Code stays English. Conversation matches you.
+**20 languages** — full UI translation: English, Mandarin (Simplified & Traditional), Japanese, Korean, Spanish, Portuguese, French, German, Russian, Arabic, Hindi, Vietnamese, Thai, Turkish, Italian, Polish, Ukrainian, Dutch, Indonesian. Auto-detected from your locale or set manually. Code stays English. Conversation matches you.
 
 **Local-first storage** — memory, tasks, journal, learning, history, settings, personality all stored on your machine. Cloud sync is opt-in, syncs every 15 minutes when on, with full delta tracking so you see exactly what's about to be pushed.
 

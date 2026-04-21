@@ -44,11 +44,11 @@ type Mode = {
 
 const MODES: Mode[] = [
   { id: 'code', name: 'Work', prefix: '>>', tagline: 'Builder mindset. Ships code.', example: 'add a cancel button to the upload form' },
-  { id: 'plan', name: 'Plan', prefix: '::', tagline: 'Strategist. Read-only. Thinks first.', example: 'should I extract this logic into a service?' },
+  { id: 'plan', name: 'Plan', prefix: '::', tagline: 'Architect. Read-only. Thinks first.', example: 'should I extract this logic into a service?' },
   { id: 'chat', name: 'Chat', prefix: '..', tagline: 'Friend mindset. No tools.', example: 'how do I feel about this launch date?' },
   { id: 'teach', name: 'Teach', prefix: '??', tagline: 'Tutor. Builds a curriculum for you.', example: 'teach me Rust async from zero' },
   { id: 'security', name: 'Security', prefix: '!!', tagline: 'Auditor. OWASP scan + report.', example: 'audit this API for injection risks' },
-  { id: 'brainstorm', name: 'Brainstorm', prefix: '**', tagline: 'Ideation partner. Challenges ideas.', example: 'what should I build with 2 weeks free?' },
+  { id: 'brainstorm', name: 'Brainstorm', prefix: '**', tagline: 'Ideator. Challenges ideas.', example: 'what should I build with 2 weeks free?' },
 ];
 
 function formatTokens(n: number | null): string {
