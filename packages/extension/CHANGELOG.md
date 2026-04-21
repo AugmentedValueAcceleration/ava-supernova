@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.48.3 — 2026-04-21
+
+### Fixed
+- **Critical (second occurrence): chat input disabled again.** Same class of bug as v0.48.2 — a scope-level variable referenced in `setupAgent()`'s sharedState without being declared in the enclosing function. This time it was `generationLocalOnly`, which landed for the creative-asset cloud sync work but had its declaration dropped somewhere between commits. esbuild transpiles without type-checking so the reference compiled cleanly but threw `ReferenceError` at runtime on every agent setup. Declaration restored with a load-bearing comment warning future edits not to remove it without also removing the reference. Lesson filed: extension build needs a `pnpm typecheck` gate in CI before this ships a third time.
+
+### Added
+- **Unified Library** (dashboard) — Courses / Assets / Documents in a single nav entry, replacing the separate Learning Library + Creative Studio library tab. Cloud + local items in one view, filterable by source and type.
+- **Preview modal** with context-aware actions — Open (LibreOffice for office docs), Reveal, Download, Delete. Inline custom-styled media player for images / audio / video / voice. Silent cloud download to `~/Downloads` (no browser, no URL prompt). Delete works on both cloud and local items with two-click confirmation.
+- **Creative asset cloud sync** — `generate_image` / `_music` / `_video` / `_voice` now push to `/api/creative-assets` after local write when Data Mode is Cloud or Both. Shared `creative-asset-sync` helper, gated on `generationLocalOnly` in sharedState. Matches the Memory / Tasks / Journal sync pattern.
+- **Creative Studio** simplified to creation-only — library tab removed (it lives in the unified Library now).
+
 ## 0.48.2 — 2026-04-21
 
 ### Fixed

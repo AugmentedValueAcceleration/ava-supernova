@@ -1377,6 +1377,23 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       || syncPrefs.learning === false
       || !cloudAllowed;
 
+    // generationLocalOnly gates the creative-asset-sync helper inside the
+    // generator tools (generate_image / _music / _video / _voice). Same
+    // formula as learning / memory / tasks / journal: the config-level
+    // pref OR the per-category sync pref OR the global Data Mode toggle
+    // resolving to local. Any one tips the scale to localOnly.
+    //
+    // This declaration is load-bearing — the cloud-sync commit that added
+    // it referenced the variable in sharedState below but the
+    // declaration went missing somewhere between commits, and since
+    // esbuild doesn't type-check, every setupAgent() call threw
+    // ReferenceError at runtime with the same "chat is dead" symptom
+    // as the earlier syncPrefs scope bug. Do not remove without
+    // removing the reference too.
+    const generationLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.generationLocalOnly') ?? false)
+      || syncPrefs.generations === false
+      || !cloudAllowed;
+
     const sharedState: Record<string, unknown> = {
       memoryManager: this.memoryManager,
       taskManager: this.taskManager,
