@@ -2533,8 +2533,10 @@ export class DashboardPanel {
         },
       });
       if (!res.ok) {
-        const msg = (res.data as { error?: string })?.error || `HTTP ${res.status}`;
-        this.post({ type: 'error', message: `Cloud upload failed (${msg}). Local file saved.` });
+        const d = res.data as { error?: string; details?: string };
+        const msg = d?.error || `HTTP ${res.status}`;
+        const details = d?.details ? ` — ${d.details}` : '';
+        this.post({ type: 'error', message: `Cloud upload failed (${msg}${details}). Local file saved.` });
       }
     } catch (err: any) {
       this.post({ type: 'error', message: `Cloud upload failed: ${err?.message || err}. Local file saved.` });
