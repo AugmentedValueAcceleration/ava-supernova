@@ -522,21 +522,13 @@ function PreviewModal({
         {isImage && item.thumbnail ? (
           <img src={item.thumbnail} alt={item.title} className="w-full max-h-[50vh] object-contain bg-black/20" />
         ) : isVideo && mediaSrc ? (
-          <video
-            src={mediaSrc}
-            controls
-            preload="metadata"
-            className="w-full max-h-[60vh] bg-black"
-          />
+          <MediaPlayer src={mediaSrc} kind="video" />
         ) : isAudio && mediaSrc ? (
-          <div className="flex flex-col items-center gap-4 py-12 bg-[var(--bg-input)]">
+          <div className="flex flex-col items-center gap-5 py-10 bg-[var(--bg-input)]">
             <span className="text-5xl opacity-60">{ASSET_TYPE_ICONS[item.kind] || '\u{1F3B5}'}</span>
-            <audio
-              src={mediaSrc}
-              controls
-              preload="metadata"
-              className="w-[min(90%,420px)]"
-            />
+            <div className="w-[min(92%,480px)]">
+              <MediaPlayer src={mediaSrc} kind="audio" />
+            </div>
           </div>
         ) : isVideo || isAudio ? (
           // Media item without an inline source — local video (skipped by
@@ -624,6 +616,169 @@ function PreviewModal({
             )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Media player ────────────────────────────────────────────────────────
+//
+// Custom player replacing the native browser controls, which look jarring
+// against the dark purple dashboard theme. Minimal surface: play/pause,
+// scrubber with played portion + hover preview, time readout, and (for
+// video) a fullscreen toggle. Volume is intentionally out — users keep
+// it at the OS level for AI-generated media and the bar bloats fast.
+//
+// The <video> element stays visible in the card with controls overlaid
+// at the bottom; <audio> renders just the control bar on a transparent
+// background because the surrounding modal already carries the icon and
+// title above it.
+function formatClockTime(seconds: number): string {
+  if (!isFinite(seconds) || seconds < 0) return '0:00';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function MediaPlayer({ src, kind }: { src: string; kind: 'audio' | 'video' }) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const [current, setCurrent] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [hoverPct, setHoverPct] = useState<number | null>(null);
+
+  const el = (): HTMLMediaElement | null => (kind === 'audio' ? audioRef.current : videoRef.current);
+
+  useEffect(() => {
+    const m = el();
+    if (!m) return;
+    const onTime = () => setCurrent(m.currentTime);
+    const onMeta = () => setDuration(m.duration || 0);
+    const onPlay = () => setPlaying(true);
+    const onPause = () => setPlaying(false);
+    const onEnded = () => setPlaying(false);
+    m.addEventListener('timeupdate', onTime);
+    m.addEventListener('loadedmetadata', onMeta);
+    m.addEventListener('durationchange', onMeta);
+    m.addEventListener('play', onPlay);
+    m.addEventListener('pause', onPause);
+    m.addEventListener('ended', onEnded);
+    return () => {
+      m.removeEventListener('timeupdate', onTime);
+      m.removeEventListener('loadedmetadata', onMeta);
+      m.removeEventListener('durationchange', onMeta);
+      m.removeEventListener('play', onPlay);
+      m.removeEventListener('pause', onPause);
+      m.removeEventListener('ended', onEnded);
+    };
+  }, [kind]);
+
+  const toggle = () => {
+    const m = el();
+    if (!m) return;
+    if (playing) m.pause(); else void m.play();
+  };
+
+  const scrubTo = (clientX: number) => {
+    const track = trackRef.current;
+    const m = el();
+    if (!track || !m || !duration) return;
+    const rect = track.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    m.currentTime = pct * duration;
+  };
+
+  const onTrackMove = (e: React.MouseEvent) => {
+    const track = trackRef.current;
+    if (!track) return;
+    const rect = track.getBoundingClientRect();
+    setHoverPct(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)));
+  };
+
+  const toggleFullscreen = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void v.requestFullscreen();
+  };
+
+  const playedPct = duration > 0 ? (current / duration) * 100 : 0;
+
+  return (
+    <div className={`relative w-full rounded-lg overflow-hidden ${kind === 'video' ? 'bg-black' : 'bg-[var(--bg-card)] border border-[var(--border-card)]'}`}>
+      {kind === 'video' ? (
+        <video
+          ref={videoRef}
+          src={src}
+          preload="metadata"
+          onClick={toggle}
+          className="w-full max-h-[60vh] block cursor-pointer"
+        />
+      ) : (
+        <audio ref={audioRef} src={src} preload="metadata" className="hidden" />
+      )}
+
+      {/* Control bar */}
+      <div
+        className={`${kind === 'video'
+          ? 'absolute left-0 right-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-3 py-2.5'
+          : 'px-3 py-2.5'
+        } flex items-center gap-3 text-[11px] text-[var(--text-primary)]`}
+      >
+        <button
+          onClick={toggle}
+          aria-label={playing ? 'Pause' : 'Play'}
+          className="flex-shrink-0 w-8 h-8 rounded-full bg-[var(--accent)] hover:bg-[var(--accent)]/90 text-white flex items-center justify-center border-none cursor-pointer transition"
+        >
+          {playing ? (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+          ) : (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72c0 .78.86 1.25 1.52.83l10.76-6.86a1 1 0 000-1.66L9.52 4.31C8.86 3.89 8 4.36 8 5.14z"/></svg>
+          )}
+        </button>
+
+        <span className="tabular-nums text-[10px] opacity-70 min-w-[34px] text-right">{formatClockTime(current)}</span>
+
+        {/* Scrubber track */}
+        <div
+          ref={trackRef}
+          onClick={e => scrubTo(e.clientX)}
+          onMouseMove={onTrackMove}
+          onMouseLeave={() => setHoverPct(null)}
+          className={`relative flex-1 h-1.5 rounded-full cursor-pointer ${kind === 'video' ? 'bg-white/20' : 'bg-[var(--border)]'}`}
+        >
+          {/* Played portion */}
+          <div
+            className="absolute inset-y-0 left-0 bg-[var(--accent)] rounded-full"
+            style={{ width: `${playedPct}%` }}
+          />
+          {/* Hover marker */}
+          {hoverPct !== null && (
+            <div
+              className="absolute top-1/2 -translate-y-1/2 w-0.5 h-3 bg-[var(--accent)]/60 pointer-events-none"
+              style={{ left: `${hoverPct * 100}%` }}
+            />
+          )}
+          {/* Thumb on played end */}
+          <div
+            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-[var(--accent)] shadow-md pointer-events-none"
+            style={{ left: `${playedPct}%` }}
+          />
+        </div>
+
+        <span className="tabular-nums text-[10px] opacity-70 min-w-[34px]">{formatClockTime(duration)}</span>
+
+        {kind === 'video' && (
+          <button
+            onClick={toggleFullscreen}
+            aria-label="Fullscreen"
+            className="flex-shrink-0 w-7 h-7 rounded hover:bg-white/10 text-white flex items-center justify-center border-none cursor-pointer transition"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 14v6h6M20 10V4h-6M20 4l-7 7M4 20l7-7"/></svg>
+          </button>
+        )}
       </div>
     </div>
   );
