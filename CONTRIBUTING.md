@@ -17,6 +17,13 @@ git clone https://github.com/AugmentedValueAcceleration/ava-supernova.git
 cd ava-supernova
 pnpm install
 pnpm build
+
+# One-time: enable the repo-local git hooks. The pre-push hook runs
+# a targeted typecheck on the extension and blocks pushes that would
+# ship undefined-identifier bugs (the class of regression that broke
+# v0.48.2 and v0.48.3). Same check runs again in CI — local hook is
+# fast feedback before you push.
+git config core.hooksPath .githooks
 ```
 
 ### Project Structure

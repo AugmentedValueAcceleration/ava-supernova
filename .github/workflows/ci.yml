@@ -35,6 +35,31 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      # Dedicated gate for the class of bug that twice shipped to the
+      # marketplace in v0.48.x: a scope-level variable referenced inside
+      # setupAgent()'s sharedState without being declared in the enclosing
+      # function. esbuild transpiles the extension without type-checking,
+      # so those references compiled cleanly and only threw at runtime,
+      # stranding every user with a disabled chat input.
+      #
+      # This step runs tsc against the extension and fails the build on
+      # TS2304 (cannot find name) or TS18004 (shorthand property not in
+      # scope). Runs even if the general typecheck is red for unrelated
+      # reasons — pre-existing type errors in the extension shouldn't
+      # block the regression gate.
+      - name: Undefined-identifier gate (extension)
+        if: always()
+        run: |
+          set +e
+          OUTPUT=$(cd packages/extension && pnpm typecheck 2>&1)
+          FILTERED=$(echo "$OUTPUT" | grep -E "error TS2304|error TS18004" || true)
+          if [ -n "$FILTERED" ]; then
+            echo "::error::Undefined identifier(s) detected in the extension — would throw at runtime."
+            echo "$FILTERED"
+            exit 1
+          fi
+          echo "✓ No undefined-identifier errors in the extension."
+
       - name: Lint
         run: pnpm lint
 
