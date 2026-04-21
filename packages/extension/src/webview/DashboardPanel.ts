@@ -845,7 +845,15 @@ export class DashboardPanel {
           this.post({ type: 'error', message: 'Open a workspace folder first — documents need somewhere to live.' });
           break;
         }
-        if (!this.toolRegistry) break;
+        // toolRegistry lives on the view provider — the dashboard panel
+        // doesn't own one of its own. Earlier code referenced
+        // `this.toolRegistry` which was always undefined, so clicks on the
+        // template buttons broke silently.
+        const toolRegistry = (this.viewProvider as any)?.toolRegistry;
+        if (!toolRegistry) {
+          this.post({ type: 'error', message: 'Tool registry not ready yet — open the Ava chat panel once, then try again.' });
+          break;
+        }
         const name = await vscode.window.showInputBox({
           prompt: `Name for the new ${msg.template.replace('_', ' ')} document`,
           value: msg.template,
@@ -856,8 +864,12 @@ export class DashboardPanel {
         const projectRoot = workspaceFolders[0].uri.fsPath;
         const filePath = path.join('documents', filename);
         try {
-          const tool = this.toolRegistry.getTool('document_manage');
-          if (tool) {
+          const tool = toolRegistry.getTool('document_manage');
+          if (!tool) {
+            this.post({ type: 'error', message: 'document_manage tool not available.' });
+            break;
+          }
+          {
             await tool.execute({
               action: 'from_template',
               template: msg.template,
