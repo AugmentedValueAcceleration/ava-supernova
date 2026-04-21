@@ -57,9 +57,15 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-/** Map a local file's type to the unified asset-kind vocabulary. */
-function localFileKind(img: LibraryImage): 'image' | 'document' | 'spreadsheet' {
-  return img.fileType || 'image';
+/** Map a local file's type to the unified asset-kind vocabulary.
+ *  The local scan can't distinguish music from voice (both are audio on disk),
+ *  so local audio lands under 'music' — users can rename / move the file if
+ *  they want a voice clip to surface on the Voice filter. */
+function localFileKind(img: LibraryImage): 'image' | 'document' | 'spreadsheet' | 'music' | 'video' {
+  const ft = img.fileType;
+  if (ft === 'audio') return 'music';
+  if (ft === 'video') return 'video';
+  return (ft as 'image' | 'document' | 'spreadsheet' | undefined) || 'image';
 }
 
 /** Items unified for the Assets / Documents grid. */
@@ -156,7 +162,8 @@ export function Library({
     }
     if (sourceFilter === 'all' || sourceFilter === 'local') {
       for (const img of images) {
-        if (localFileKind(img) === 'image') list.push(unifyLocalImage(img, projectRoot));
+        const k = localFileKind(img);
+        if (['image', 'music', 'video'].includes(k)) list.push(unifyLocalImage(img, projectRoot));
       }
     }
     return typeFilter === 'all'
@@ -430,9 +437,21 @@ function PreviewModal({
   const isLocal = item.source === 'local';
   const isImage = item.kind === 'image' || item.kind === 'graphic';
   const isOfficeDoc = item.kind === 'document' || item.kind === 'spreadsheet';
+  const isVideo = item.kind === 'video';
+  const isMusic = item.kind === 'music';
+  const isVoice = item.kind === 'voice';
+  const isAudio = isMusic || isVoice;
 
   const localPath = isLocal ? (item.raw as LibraryImage).path : undefined;
   const cloudUrl = !isLocal ? (item.raw as CreativeAsset).url ?? undefined : undefined;
+
+  // Playback source — cloud assets use their public URL; local audio
+  // gets a base64 dataUri from the library scan (videos are skipped
+  // for size, so local video items have no inline preview and rely on
+  // the Open button instead). Webview CSP allows data:, https:, blob:
+  // for media-src, so both paths work.
+  const localDataUri = isLocal ? (item.raw as LibraryImage).dataUri : undefined;
+  const mediaSrc: string | undefined = isLocal ? localDataUri : cloudUrl ?? undefined;
 
   const handleOpen = () => {
     if (isLocal && localPath) {
@@ -498,9 +517,37 @@ function PreviewModal({
           ×
         </button>
 
-        {/* Preview area */}
-        {item.thumbnail && isImage ? (
+        {/* Preview area — images render inline, audio/video get playback
+            controls, office docs + unknowns show the type icon. */}
+        {isImage && item.thumbnail ? (
           <img src={item.thumbnail} alt={item.title} className="w-full max-h-[50vh] object-contain bg-black/20" />
+        ) : isVideo && mediaSrc ? (
+          <video
+            src={mediaSrc}
+            controls
+            preload="metadata"
+            className="w-full max-h-[60vh] bg-black"
+          />
+        ) : isAudio && mediaSrc ? (
+          <div className="flex flex-col items-center gap-4 py-12 bg-[var(--bg-input)]">
+            <span className="text-5xl opacity-60">{ASSET_TYPE_ICONS[item.kind] || '\u{1F3B5}'}</span>
+            <audio
+              src={mediaSrc}
+              controls
+              preload="metadata"
+              className="w-[min(90%,420px)]"
+            />
+          </div>
+        ) : isVideo || isAudio ? (
+          // Media item without an inline source — local video (skipped by
+          // the scan for size) or a cloud asset whose URL didn't come back.
+          // Show the icon + a hint to use the Open button.
+          <div className="flex flex-col items-center justify-center gap-2 py-14 bg-[var(--bg-input)]">
+            <span className="text-6xl opacity-40">{ASSET_TYPE_ICONS[item.kind] || '\u{1F4C4}'}</span>
+            <p className="text-[11px] text-[var(--text-muted)]">
+              Inline playback unavailable — use Open to play in your default app.
+            </p>
+          </div>
         ) : (
           <div className="flex items-center justify-center py-16 bg-[var(--bg-input)]">
             <span className="text-6xl opacity-40">{ASSET_TYPE_ICONS[item.kind] || '\u{1F4C4}'}</span>
