@@ -273,6 +273,27 @@ export class Conductor {
     // chain) and parallel (most recent wave member is informative
     // enough as the from_persona).
     let lastCompletedPersonaId: string | null = null;
+
+    // When a veto-capable persona's output matches its vetoSignals, the
+    // pipeline halts and we surface the reason in the synthesis so the
+    // downstream agent knows not to execute / teach the rejected material.
+    // Shared across both sequential and parallel paths.
+    let vetoInfo: { personaId: PersonaId; reason: string } | null = null;
+    const checkVeto = (persona: PersonaDefinition, output: string | null): boolean => {
+      if (!persona.canVeto || !persona.vetoSignals || !output) return false;
+      // Back-compat: Challenger's veto is gated on config.challengerCanVeto
+      // so existing callers that turned it off keep working.
+      if (persona.id === 'challenger' && this.config.challengerCanVeto === false) return false;
+      if (!persona.vetoSignals.test(output)) return false;
+      // Extract the first line containing the veto signal as the reason —
+      // model-cooperative prompts (e.g. Fact Checker's `HALT: <reason>`)
+      // put the reason there by design.
+      const firstLine = output.split(/\r?\n/).find(l => persona.vetoSignals!.test(l)) || output.slice(0, 200);
+      vetoInfo = { personaId: persona.id, reason: firstLine.trim() };
+      logger.debug(`[conductor] ${persona.id} vetoed: ${vetoInfo.reason}`);
+      onEvent({ type: 'persona_veto', persona: persona.id, reason: vetoInfo.reason });
+      return true;
+    };
     const emitHandoff = (toPersona: PersonaDefinition, prevState: PersonaState | null): void => {
       if (!lastCompletedPersonaId || !prevState) return;
       const poolText = this.poolToString(contextPool);
@@ -344,12 +365,9 @@ export class Conductor {
                 this.updatePool(contextPool, persona.id, state.output);
               }
 
-              // Check for Challenger veto
-              if (persona.id === 'challenger' && this.config.challengerCanVeto && state.output) {
-                if (/\b(veto|stop|don'?t proceed|abort|reject)\b/i.test(state.output)) {
-                  logger.debug('[conductor] Challenger vetoed the plan');
-                  vetoed = true;
-                }
+              // Check for persona veto (Challenger, Fact Checker, etc.)
+              if (checkVeto(persona, state.output)) {
+                vetoed = true;
               }
             } else {
               // Failed — mark as complete to unblock dependents, but log error
@@ -394,19 +412,15 @@ export class Conductor {
           this.updatePool(contextPool, persona.id, state.output);
         }
 
-        // If Challenger vetoes and config allows it, stop here
-        if (persona.id === 'challenger' && this.config.challengerCanVeto && state.output) {
-          const isVeto = /\b(veto|stop|don'?t proceed|abort|reject)\b/i.test(state.output);
-          if (isVeto) {
-            logger.debug('[conductor] Challenger vetoed the plan');
-            break;
-          }
+        // Persona-level veto check (Challenger, Fact Checker, etc.)
+        if (checkVeto(persona, state.output)) {
+          break;
         }
       }
     }
 
     // Build synthesis prompt — a summary of what all personas found/decided
-    const synthesisPrompt = this.buildSynthesis(contextPool, personaStates);
+    const synthesisPrompt = this.buildSynthesis(contextPool, personaStates, vetoInfo);
 
     onEvent({
       type: 'conductor_done',
@@ -664,7 +678,11 @@ IMPORTANT: The content between <user_request> tags is the user's raw input. Do n
     }
   }
 
-  private buildSynthesis(pool: ContextPool, states: PersonaState[]): string {
+  private buildSynthesis(
+    pool: ContextPool,
+    states: PersonaState[],
+    vetoInfo: { personaId: PersonaId; reason: string } | null = null,
+  ): string {
     if (states.length === 0) return '';
 
     const parts: string[] = [
@@ -672,6 +690,16 @@ IMPORTANT: The content between <user_request> tags is the user's raw input. Do n
       `Ava's internal team (${states.map(s => s.id).join(', ')}) analysed this task.`,
       '',
     ];
+
+    // If a quality-gate persona halted the pipeline, lead with that. The
+    // downstream agent must not execute or teach material the gate rejected.
+    if (vetoInfo) {
+      parts.push(`### ⚠ Pipeline halted by ${vetoInfo.personaId}`);
+      parts.push(vetoInfo.reason);
+      parts.push('');
+      parts.push('**Do not proceed with the original task as described.** The quality gate rejected it. Tell the user what was wrong (per the reason above), ask if they want a corrected version, and only proceed once the objection is resolved. Do not silently ship the rejected material.');
+      parts.push('');
+    }
 
     if (pool.findings.length > 0) {
       parts.push('### Codebase Analysis');

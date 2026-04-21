@@ -44,6 +44,22 @@ export interface PersonaDefinition {
    * gatekeeper / summariser roles.
    */
   readonly modelTier?: PersonaModelTier;
+  /**
+   * Whether this persona can halt the pipeline. When true, if the
+   * persona's output matches `vetoSignals`, the Conductor stops executing
+   * downstream personas and the veto reason is surfaced in the synthesis
+   * prompt so the downstream agent knows not to proceed on rejected
+   * material (for Fact Checker: don't teach something wrong; for
+   * Challenger: don't execute a plan that got vetoed).
+   */
+  readonly canVeto?: boolean;
+  /**
+   * Regex applied to this persona's output when `canVeto` is true.
+   * A match stops the pipeline. Design these to be model-cooperative —
+   * e.g. Fact Checker's prompt tells it to start blocking errors with
+   * `HALT:` rather than hoping it uses one of several synonyms.
+   */
+  readonly vetoSignals?: RegExp;
 }
 
 export interface PersonaState {
@@ -87,6 +103,7 @@ export type ConductorEvent =
   | { type: 'persona_tool_result'; persona: PersonaId; tool: string; result: string; success: boolean }
   | { type: 'persona_complete'; persona: PersonaId; output: string }
   | { type: 'persona_error'; persona: PersonaId; error: string }
+  | { type: 'persona_veto'; persona: PersonaId; reason: string }
   | { type: 'synthesis_start' }
   | { type: 'synthesis_complete'; output: string }
   | { type: 'conductor_done'; totalPersonas: number; totalTime: number };
