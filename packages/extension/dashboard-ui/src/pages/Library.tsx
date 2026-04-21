@@ -497,6 +497,14 @@ function PreviewModal({
     if (isLocal && localPath) {
       post({ type: 'delete_library_image', path: localPath });
       onClose();
+      return;
+    }
+    if (!isLocal) {
+      const cloudId = (item.raw as CreativeAsset).id;
+      if (cloudId) {
+        post({ type: 'delete_cloud_asset', id: cloudId });
+        onClose();
+      }
     }
   };
 
@@ -625,18 +633,16 @@ function PreviewModal({
                 {copied ? 'Copied ✓' : 'Copy URL'}
               </button>
             )}
-            {isLocal && (
-              <button
-                onClick={handleDelete}
-                className={`ml-auto rounded-lg px-3 py-1.5 text-xs font-medium transition border ${
-                  confirmDelete
-                    ? 'border-red-500/60 bg-red-500/15 text-red-400 hover:bg-red-500/25'
-                    : 'border-[var(--border)] text-[var(--text-muted)] hover:text-red-400 hover:border-red-500/40'
-                }`}
-              >
-                {confirmDelete ? 'Confirm delete' : 'Delete'}
-              </button>
-            )}
+            <button
+              onClick={handleDelete}
+              className={`ml-auto rounded-lg px-3 py-1.5 text-xs font-medium transition border ${
+                confirmDelete
+                  ? 'border-red-500/60 bg-red-500/15 text-red-400 hover:bg-red-500/25'
+                  : 'border-[var(--border)] text-[var(--text-muted)] hover:text-red-400 hover:border-red-500/40'
+              }`}
+            >
+              {confirmDelete ? 'Confirm delete' : 'Delete'}
+            </button>
           </div>
         </div>
       </div>

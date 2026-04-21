@@ -700,6 +700,10 @@ export class DashboardPanel {
         await this.downloadCloudAsset(msg.url, msg.filename);
         break;
 
+      case 'delete_cloud_asset':
+        await this.deleteCloudAsset(msg.id);
+        break;
+
       case 'delete_library_image':
         await this.deleteLibraryImage(msg.path);
         break;
@@ -2868,6 +2872,38 @@ export class DashboardPanel {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.post({ type: 'error', message: `Download failed: ${message}` });
+    }
+  }
+
+  /**
+   * Remove a cloud creative asset — deletes both the row in
+   * creative_assets and the backing blob in the creative-media bucket
+   * (the DELETE /api/creative-assets/[id] route now handles both).
+   * Ownership is enforced server-side via the auth.userId filter, so
+   * one user can't wipe another's assets even if they guess an ID.
+   *
+   * On success, echoes a cloud_asset_deleted event so the dashboard
+   * can prune its local list without a full refetch.
+   */
+  private async deleteCloudAsset(id: string): Promise<void> {
+    try {
+      const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+      if (!platformKey) {
+        this.post({ type: 'error', message: 'Sign in to manage cloud assets.' });
+        return;
+      }
+      const res = await apiFetch(`/creative-assets/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        platformKey,
+      });
+      if (!res.ok) {
+        this.post({ type: 'error', message: `Delete failed: HTTP ${res.status}` });
+        return;
+      }
+      this.post({ type: 'cloud_asset_deleted', id });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.post({ type: 'error', message: `Delete failed: ${message}` });
     }
   }
 

@@ -505,6 +505,9 @@ export function App() {
       case 'cloud_assets_error':
         setLibraryCloudAssetsLoading(false);
         break;
+      case 'cloud_asset_deleted':
+        setLibraryCloudAssets(prev => prev.filter(a => a.id !== msg.id));
+        break;
       case 'library_image_deleted':
         setLibraryImages(prev => prev.filter(i => i.path !== msg.path));
         break;

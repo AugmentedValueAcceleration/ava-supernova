@@ -663,6 +663,7 @@ export type ExtToDashboardMessage =
   | { type: 'library_image_deleted'; path: string }
   | { type: 'cloud_assets_loaded'; assets: CreativeAsset[] }
   | { type: 'cloud_assets_error'; message: string }
+  | { type: 'cloud_asset_deleted'; id: string }
   // Personality
   | { type: 'personality_loaded'; personality: PersonalityData }
   | { type: 'personality_saved' }
@@ -822,6 +823,7 @@ export type DashboardToExtMessage =
   | { type: 'load_library' }
   | { type: 'load_cloud_assets' }
   | { type: 'download_cloud_asset'; url: string; filename: string }
+  | { type: 'delete_cloud_asset'; id: string }
   | { type: 'delete_library_image'; path: string }
   | { type: 'open_library_image'; path: string }
   | { type: 'open_external'; path: string }

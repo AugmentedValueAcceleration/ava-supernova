@@ -547,6 +547,7 @@ export type DashboardToExtMessage =
   | { type: 'load_library' }
   | { type: 'load_cloud_assets' }
   | { type: 'download_cloud_asset'; url: string; filename: string }
+  | { type: 'delete_cloud_asset'; id: string }
   | { type: 'delete_library_image'; path: string }
   | { type: 'open_library_image'; path: string }
   | { type: 'open_external'; path: string }
