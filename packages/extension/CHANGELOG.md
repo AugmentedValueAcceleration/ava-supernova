@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.48.0 — 2026-04-21
+
+### Changed
+- **Teach mode — Fact Checker actually halts the pipeline.** Previously the Fact Checker persona produced verification output that downstream personas ignored — it could flag an error and Quiz Master / Tutor would still ship the wrong material. Now the Conductor has a generalised veto mechanism: any persona can opt in via `canVeto` + `vetoSignals`, and the synthesis prompt surfaces the halt reason with an explicit instruction to the downstream agent not to teach the rejected content. Fact Checker's prompt teaches the model to emit `HALT: <reason>` when it finds a blocking error — model cooperation over regex-lottery. Challenger's existing veto semantics are preserved.
+- **Quiz Master persists questions properly.** A new `set_quiz` action on `learning_teach` accepts an array of quiz questions and writes them onto the lesson. Quiz Master's prompt now explicitly instructs the model to call this action for every quiz lesson it designs, closing the loop from "model generated questions" to "questions exist on the lesson and survive restart". The `write_content` template for quiz lessons previously pointed at a dead mechanism — rewritten to point at `set_quiz`.
+
+### Fixed
+- **Learning now honours Data Mode end to end.** Memory / Tasks / Journal all respected Local / Cloud / Both. Learning did not — writes always stayed on disk regardless. A signed-in user with Data Mode set to Cloud got nothing synced; curriculums were stranded in `~/.ava/learning.json`. A new `persist()` helper wraps every save with a fire-and-forget push to `/api/learning/sync` when cloud is allowed, gated on a `learningLocalOnly` flag the extension computes the same way it does for the other feature managers. Local-first is preserved — disk write always succeeds first; cloud failure never rolls back the on-disk copy.
+- **`/api/learning/sync` accepts Supabase JWTs and enforces Data Mode server-side.** Now on `validateAuth` (JWT or platform key) with an `isLocalOnlyRequest` gate that rejects writes from any client that declared local-only. Matches Memory / Tasks / Journal.
+- **Quiz questions now sync to the cloud.** New `quiz_questions JSONB` column on `learning_lessons` (migration 198) — the local store already carried inline questions, but the sync endpoint silently dropped them. Sync now carries the field so quiz definitions round-trip to the web dashboard.
+
+### Added
+- **Rate limits on `/api/learning/generate`** so "free for everyone" stays sustainable. Three layers: 15 req/hour per IP (spam), 30 req/day per signed-in user (fairness on shared NATs), 5 req/hour per IP for guests (tightest lane — most-abused surface). Sized around normal use (1-3 curriculums / week / real learner).
+- **`persona_veto` conductor event** so chat surfaces can render "Fact Checker halted: X is wrong" inline instead of the pipeline just stopping silently.
+
 ## 0.47.0 — 2026-04-21
 
 ### Removed
