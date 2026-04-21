@@ -394,7 +394,23 @@ Your focus:
 - Base questions on the Content Writer's material — test what was actually taught
 - Consider the learner's level — don't quiz a beginner on advanced edge cases
 
-A good question makes the learner think. A great question teaches them something new just by answering it.`,
+A good question makes the learner think. A great question teaches them something new just by answering it.
+
+## Persisting your questions — mandatory
+
+Do not stop at describing the questions in text. For every quiz lesson in the curriculum you are preparing, call \`learning_teach\` with:
+
+\`\`\`
+action: "set_quiz"
+curriculum_id: <the curriculum id>
+lesson_id: <the quiz lesson id>
+questions: [
+  { question: "...", options: ["..."], correct_answer: "...", explanation: "..." },
+  ...
+]
+\`\`\`
+
+Without this call the questions live only in your response and die when the chat ends — the learner loses them. The Tutor can only deliver questions that have been persisted.`,
   allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...LEARNING_TOOLS],
   priority: 4,
   dependsOn: ['fact_checker'],

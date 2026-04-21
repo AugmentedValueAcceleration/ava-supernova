@@ -553,6 +553,7 @@ export class LearningTeachTool implements Tool {
       'Teach the user by delivering lesson content, providing feedback, running quizzes, or triggering reviews. ' +
       'Use this after the user says they want to continue learning or asks about a specific topic. ' +
       'Actions: assess (diagnostic before creating curriculum), deliver (present lesson), write_content (update lesson content — follow the content template for the lesson type), ' +
+      'set_quiz (persist quiz questions on a lesson — call this when you generate quiz questions so they survive restarts), ' +
       'feedback (give feedback — pass or fail), quiz (run quiz questions and grade), review (spaced repetition review of completed lessons).',
     parameters: {
       type: 'object',
@@ -561,8 +562,8 @@ export class LearningTeachTool implements Tool {
         lesson_id: { type: 'string', description: 'ID of the lesson to teach or update' },
         action: {
           type: 'string',
-          enum: ['assess', 'deliver', 'feedback', 'write_content', 'quiz', 'review'],
-          description: 'assess = diagnostic quiz before curriculum creation (curriculum_id can be empty), deliver = present lesson, feedback = pass/fail, write_content = update content (follow content template), quiz = run quiz, review = spaced repetition',
+          enum: ['assess', 'deliver', 'feedback', 'write_content', 'set_quiz', 'quiz', 'review'],
+          description: 'assess = diagnostic quiz before curriculum creation (curriculum_id can be empty), deliver = present lesson, feedback = pass/fail, write_content = update content (follow content template), set_quiz = persist quiz questions on a lesson, quiz = run quiz, review = spaced repetition',
         },
         subject: { type: 'string', description: 'For assess: the subject to assess knowledge in' },
         assessment_level: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'], description: 'For assess: claimed level to verify' },
@@ -573,6 +574,20 @@ export class LearningTeachTool implements Tool {
           type: 'array',
           items: { type: 'string' },
           description: 'For quiz: user\'s answers in order matching quiz_questions',
+        },
+        questions: {
+          type: 'array',
+          description: 'For set_quiz: the quiz questions to persist on this lesson. Replaces any existing questions. Fails if the array is empty.',
+          items: {
+            type: 'object',
+            properties: {
+              question: { type: 'string', description: 'The question text' },
+              options: { type: 'array', items: { type: 'string' }, description: 'Multiple-choice options (optional for open-ended questions)' },
+              correct_answer: { type: 'string', description: 'The correct answer. For multiple-choice, either the letter (A/B/C/D) or the full option text.' },
+              explanation: { type: 'string', description: 'Why this answer is correct — shown to the learner after grading. Makes the quiz itself teach.' },
+            },
+            required: ['question', 'correct_answer'],
+          },
         },
       },
       required: ['curriculum_id', 'lesson_id', 'action'],
@@ -590,6 +605,12 @@ export class LearningTeachTool implements Tool {
     const passed = args.passed as boolean | undefined;
     const score = args.score as number | undefined;
     const quizAnswers = args.quiz_answers as string[] | undefined;
+    const questions = args.questions as Array<{
+      question: string;
+      options?: string[];
+      correct_answer: string;
+      explanation?: string;
+    }> | undefined;
 
     const curriculum = store.curriculums.find(c => c.id === currId);
     if (!curriculum) return { success: false, output: `Curriculum not found: ${currId}` };
@@ -701,7 +722,7 @@ export class LearningTeachTool implements Tool {
           concept: '**Template: Concept Lesson**\n1. Explain the concept clearly\n2. Give 2-3 concrete examples\n3. Show a common mistake and how to avoid it\n4. Summarise the key takeaway',
           exercise: '**Template: Exercise**\n1. Describe the problem clearly\n2. State the expected input/output\n3. Give a hint (not the answer)\n4. Provide acceptance criteria',
           project: '**Template: Project**\n1. Project requirements (what to build)\n2. Starter code or setup steps\n3. Milestones to work through\n4. Acceptance criteria for completion',
-          quiz: '**Template: Quiz**\nQuiz content is set via quiz_questions, not write_content. Use feedback action after grading.',
+          quiz: '**Template: Quiz**\nQuestions themselves are set via action "set_quiz" (pass a `questions` array). Use `write_content` on a quiz lesson only to set a short intro / instructions shown above the questions.',
           recap: '**Template: Recap**\n1. Summary of key concepts from previous lessons\n2. How they connect together\n3. Quick self-check questions',
           challenge: '**Template: Challenge**\n1. Advanced problem combining multiple concepts\n2. Constraints that make it harder\n3. No hints — the user should apply what they\'ve learned\n4. Bonus criteria for excellence',
         };
@@ -726,6 +747,34 @@ export class LearningTeachTool implements Tool {
           out += `\n\nReference template for ${lesson.type} lessons:\n${contentTemplates[lesson.type] || ''}`;
         }
         return { success: true, output: out };
+      }
+
+      case 'set_quiz': {
+        if (!questions || questions.length === 0) {
+          return { success: false, output: 'set_quiz requires at least one question. Pass `questions` as a non-empty array.' };
+        }
+        // Validate each question has the required fields. Fail loudly on
+        // malformed input so the Quiz Master notices rather than silently
+        // persisting an unusable quiz.
+        for (let i = 0; i < questions.length; i++) {
+          const q = questions[i];
+          if (!q.question || !q.correct_answer) {
+            return { success: false, output: `Question ${i + 1} is missing question or correct_answer.` };
+          }
+        }
+        lesson.quiz_questions = questions.map(q => ({
+          question: q.question,
+          options: q.options,
+          correct_answer: q.correct_answer,
+          explanation: q.explanation,
+        }));
+        curriculum.updated_at = new Date().toISOString();
+        await persist(globalDir, store, context);
+        return {
+          success: true,
+          output: `Persisted ${questions.length} quiz question${questions.length === 1 ? '' : 's'} on "${lesson.title}". ` +
+            `They now survive restarts and sync to the cloud when Data Mode allows.`,
+        };
       }
 
       case 'feedback': {
