@@ -208,8 +208,9 @@ export function Library({
         </div>
       </div>
 
-      {/* Top-level tabs */}
-      <div className="mb-6 flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-1">
+      {/* Top-level tabs — matches Creative Studio / house style: underlined
+          bottom border, accent colour on active, no pill backgrounds. */}
+      <div className="mb-6 flex gap-1 border-b border-[var(--border-card)]">
         {([
           { key: 'courses',   label: 'Courses',   count: paths.length },
           { key: 'assets',    label: 'Assets',    count: assetItems.length },
@@ -218,17 +219,21 @@ export function Library({
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition ${
+            className={`px-3 py-2 text-xs font-medium border-b-2 transition ${
               tab === t.key
-                ? 'bg-[var(--accent)] text-white'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+                ? 'border-[var(--accent)] text-[var(--accent)]'
+                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
             }`}
           >
-            {t.label}
-            <span className={`inline-flex items-center justify-center min-w-[20px] h-[20px] rounded-full text-[10px] font-bold px-1.5 ${
-              tab === t.key ? 'bg-white/20 text-white' : 'bg-[var(--border)] text-[var(--text-muted)]'
-            }`}>
-              {t.count}
+            <span className="inline-flex items-center gap-1.5">
+              {t.label}
+              <span className={`inline-flex items-center justify-center min-w-[18px] h-[16px] rounded text-[9px] font-bold px-1 ${
+                tab === t.key
+                  ? 'bg-[var(--accent)]/15 text-[var(--accent)]'
+                  : 'bg-[var(--border)] text-[var(--text-muted)]'
+              }`}>
+                {t.count}
+              </span>
             </span>
           </button>
         ))}
