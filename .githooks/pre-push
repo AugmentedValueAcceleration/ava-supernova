@@ -1,0 +1,57 @@
+#!/bin/sh
+# Pre-push typecheck gate for the VS Code extension.
+#
+# Background: v0.48.2 and v0.48.3 both shipped a ReferenceError bug
+# where a scope-level variable was referenced in AvaViewProvider's
+# setupAgent() without being declared. esbuild transpiles the
+# extension without type-checking, so these undefined-identifier
+# references compiled cleanly and only threw at runtime — leaving
+# users with a disabled chat input and zero token display.
+#
+# This hook runs `pnpm typecheck` against the extension package and
+# fails the push if it finds errors in the specific class of bug:
+#
+#   TS2304  — Cannot find name
+#   TS18004 — No value exists in scope for the shorthand property
+#
+# Other pre-existing type errors in the extension (unused locals,
+# private-access violations, message-type narrowing) are filtered
+# out deliberately so this gate doesn't block every push until those
+# are cleaned up.
+#
+# Setup: runs automatically once you've told git to use this hooks
+# directory:
+#     git config core.hooksPath .githooks
+# Done once per clone. This repo's README lists it under contributor
+# setup.
+
+set -e
+
+# Only run when there's actually something to check — fresh clones
+# without the extension compiled can still push the monorepo root.
+if [ ! -f packages/extension/package.json ]; then
+  exit 0
+fi
+
+echo "[pre-push] Running typecheck on packages/extension..."
+
+OUTPUT=$(cd packages/extension && pnpm typecheck 2>&1 || true)
+
+# Match the undefined-identifier error codes only. Anything else is
+# out of scope for this gate today.
+FILTERED=$(echo "$OUTPUT" | grep -E "error TS2304|error TS18004" || true)
+
+if [ -n "$FILTERED" ]; then
+  echo ""
+  echo "⛔  Push blocked: undefined identifier(s) detected in the extension."
+  echo "    These compile cleanly under esbuild but throw at runtime."
+  echo ""
+  echo "$FILTERED"
+  echo ""
+  echo "    Fix the references or add the missing declarations, then re-push."
+  echo "    To bypass in an emergency: git push --no-verify (not recommended)."
+  exit 1
+fi
+
+echo "[pre-push] ✓ No undefined-identifier errors."
+exit 0

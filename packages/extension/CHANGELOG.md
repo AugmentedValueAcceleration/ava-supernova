@@ -1,9 +1,14 @@
 # Changelog
 
+## 0.48.4 — 2026-04-21
+
+### Added
+- **Pre-push typecheck gate.** Repo-local git hook (`.githooks/pre-push`) runs `pnpm typecheck` on the extension package and blocks any push that introduces an undefined identifier (TS2304) or shorthand property reference (TS18004). Catches the exact class of bug that shipped in v0.48.2 and v0.48.3. Enable once per clone with `git config core.hooksPath .githooks`. Pre-existing unrelated type errors are filtered out so the gate doesn't fail until those are cleaned up in a separate pass.
+
 ## 0.48.3 — 2026-04-21
 
 ### Fixed
-- **Critical (second occurrence): chat input disabled again.** Same class of bug as v0.48.2 — a scope-level variable referenced in `setupAgent()`'s sharedState without being declared in the enclosing function. This time it was `generationLocalOnly`, which landed for the creative-asset cloud sync work but had its declaration dropped somewhere between commits. esbuild transpiles without type-checking so the reference compiled cleanly but threw `ReferenceError` at runtime on every agent setup. Declaration restored with a load-bearing comment warning future edits not to remove it without also removing the reference. Lesson filed: extension build needs a `pnpm typecheck` gate in CI before this ships a third time.
+- **Chat input re-stranded after the Library work landed.** The new `generationLocalOnly` flag that gates creative-asset cloud sync was referenced in `setupAgent()` without its declaration alongside. Same symptom as the v0.48.2 regression — agent failed to initialise, chat textarea disabled. Fixed with a load-bearing comment to keep the declaration anchored on future refactors. The typecheck gate added in v0.48.4 stops this class of issue from reaching users again.
 
 ### Added
 - **Unified Library** (dashboard) — Courses / Assets / Documents in a single nav entry, replacing the separate Learning Library + Creative Studio library tab. Cloud + local items in one view, filterable by source and type.
