@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.47.0 — 2026-04-21
+
+### Removed
+- **`presentation_create` tool removed.** LLM-generated `.pptx` decks consistently fell short for the high-stakes use cases the tool was marketed for (pitch decks, board briefs, sprint reviews). Rather than ship a feature we couldn't stand behind, the tool is gone — reports, emails, and document_manage (covering `.docx` / `.xlsx` / `.pdf` / `.csv` / `.md`) continue to be the Office Suite. Tool count drops 61 → 60.
+
+### Added
+- **Documents tab in Creative Studio.** Create blank `.docx` / `.xlsx` / `.csv` / `.md` / `.pdf` files from the dashboard, or start from one of six templates (Project Proposal, Status Report, Invoice, Formal Letter, Meeting Notes, Resume). Each tile has a format-specific Phosphor icon in the Documents colour scheme. Files land in your project's `documents/` folder and appear in the Library tab immediately.
+- **Open Externally prefers LibreOffice / OpenOffice** when installed. Falls back to the OS default when neither is found. Honours the open-source stance without punishing users who don't have an OSS office suite on disk.
+- **Redesigned asset preview.** Docs and spreadsheets now render a branded card (colour-matched Phosphor icon, format label, full path) instead of a bland fallback emoji. All asset types share the same action row — **Open** (LibreOffice-first), **Reveal** (OS file browser), **Download**, **Delete** — laid out on a 4-column grid.
+- **Data Mode "Both" parity for documents.** Blank and templated docs now also upload to cloud storage when Data Mode is Cloud or Both, matching what the `generate_*` tools already did for images / music / video / voice. Local-first is preserved: the file always lands on disk regardless.
+
+### Fixed
+- **Memory cloud sync was silently duplicating rows.** `PlatformMemorySync.pull()` was reading a paginated response as a bare array (shape mismatch), so the client dedup map was always empty and every periodic push created fresh rows. 9,034 rows across all users collapsed to 1,019 (89% reduction) after the dedupe migration. DB-level unique index on `(user_id, key)` now blocks any future regression at the source, and the POST endpoint is idempotent on conflict.
+- **Downloads now work.** `download_asset` and several other handlers referenced `fs.*` without the required dynamic import — threw "fs is not defined" at runtime. All confirmed handlers now have their imports in scope.
+- **Companion mobile memories** were invisible on signed-in iPhone Safari because the service worker cached API responses and served stale empty arrays on any backgrounded fetch miss. SW now bypasses `/api/*` entirely — always live, never cached.
+- **Billing polish.** Downgrade to Free surfaces as a Reactivate banner when a paid plan is cancel-at-period-end. Single unified token bar across extension / web / companion / hub. Stale 500K fallback replaced with the real 3M free allowance. Billing tab splits into Overview and History sub-tabs with Stripe invoices + local top-ups in one timeline.
+- **Data Mode enforcement** tightened server-side on `/api/tasks`, `/api/journal`, `/api/memories` — endpoints now honour the `X-Ava-Data-Mode: local` header, rejecting writes from a client that claims local-only mode. Defense in depth against a buggy client.
+- Authentication on those same endpoints accepts both `sk-ava-*` platform keys and Supabase JWTs, unblocking the companion which was getting 401s on every read.
+
+### Changed
+- **Auto Mode token burn reduced** via a Flash-based intent gate upstream of the coordinator, tighter orchestration thresholds (Work / Security / Brainstorm default to minimum-viable persona pipelines unless the user asks for the full team), and per-persona model tiering. Estimated 70-80% reduction on a typical orchestrated turn.
+- **Documents tab icons upgraded** to format-specific Phosphor icons (`FileDoc`, `FileXls`, `FileCsv`, `FileMd`, `FilePdf`) — matches the Documents tab in the asset preview for visual consistency.
+- **Creative Studio Library tab refreshes instantly** after a document is created. Previously only updated on tab switch.
+
+### Docs
+- Extension README, core ava-docs, and website marketing pages (meet-ava, extension, use-cases) swept for references to the removed presentation_create tool. All 20 i18n locale files updated — 5 keys per file (2 deleted, 3 sentence strings rewritten so "presentations" no longer appears in the Library copy).
+
+## 0.46.0 — 2026-04-20
+
+### Added
+- **Data Mode gating.** Memory, tasks, journal, history, and creative assets all respect the Local / Cloud / Both toggle end to end — both the extension and server honour the `X-Ava-Data-Mode` header so local-first stays truly local regardless of platform.
+- **Cloud Management tab** in the dashboard with inline bulk delete per category, storage refresh on mount, and a refresh button.
+- **Context bar redesign.** Moved above the composer with a slimmer visual treatment; emits context_usage on conversation load/restore so the bar doesn't stay at "awaiting first turn" on a restored chat with real content.
+- **Coupons** wired into all three checkout flows (plan, top-up, storage add-on) with a new admin endpoint for managing the pool.
+- **Collapsed sidebar** becomes a 56px icon rail instead of disappearing entirely.
+
+### Changed
+- **Billing tab.** Canonical plan data across all surfaces, "Coming Soon" state on purchases, UsageBar inverted to standard progress-bar semantics (% used rather than % remaining), all 4 plans visible with the current one flagged.
+- **Token reduction.** Anthropic prompt caching, PLATFORM_FACTS gating, history cap, context-dump → summary, `file_read` / `grep` output ceilings.
+
 ## 0.45.0 — 2026-04-19
 
 ### Changed

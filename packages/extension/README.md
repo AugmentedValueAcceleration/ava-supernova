@@ -17,7 +17,7 @@ Ava isn't a single tool. She's a partner who plays multiple roles depending on w
 - **Tutor** — builds personalised learning paths from scratch and teaches them like a real human teacher
 - **Strategist** — plans features, audits architecture, researches your competitors
 - **Security auditor** — full OWASP-aligned scan with verified findings, not noise
-- **Assistant** — drafts emails, builds slide decks, writes reports, drives a browser
+- **Assistant** — drafts emails, writes reports, builds spreadsheets, drives a browser
 - **Friend** — checks in, remembers your goals, journals with you
 
 Switch roles with a keystroke. Same brain. Same memory. Different mindset.
