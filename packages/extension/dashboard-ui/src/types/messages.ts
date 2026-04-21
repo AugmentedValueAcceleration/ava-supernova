@@ -545,6 +545,20 @@ export interface LibraryImage {
   fileType?: LibraryFileType;  // File category (defaults to 'image' for backwards compat)
 }
 
+/** Cloud-synced creative asset row returned by /api/creative-assets GET.
+ *  Shape matches the select in packages/web/src/app/api/creative-assets/route.ts. */
+export interface CreativeAsset {
+  id: string;
+  type?: string;            // legacy column, historical values ('image' | 'post' | etc.)
+  asset_type?: string;      // newer column, matches ALLOWED_ASSET_TYPES on the server
+  title?: string | null;
+  prompt?: string | null;
+  url?: string | null;         // public storage URL
+  thumbnail_url?: string | null;
+  source?: string | null;      // e.g. "Creative Studio", "Chat"
+  created_at: string;
+}
+
 export interface ReleaseNote {
   id: string;
   version: string;
@@ -647,6 +661,8 @@ export type ExtToDashboardMessage =
   // Library
   | { type: 'library_loaded'; images: LibraryImage[]; projectRoot: string; hasFolder?: boolean }
   | { type: 'library_image_deleted'; path: string }
+  | { type: 'cloud_assets_loaded'; assets: CreativeAsset[] }
+  | { type: 'cloud_assets_error'; message: string }
   // Personality
   | { type: 'personality_loaded'; personality: PersonalityData }
   | { type: 'personality_saved' }
@@ -804,6 +820,7 @@ export type DashboardToExtMessage =
   | { type: 'load_releases' }
   // Library
   | { type: 'load_library' }
+  | { type: 'load_cloud_assets' }
   | { type: 'delete_library_image'; path: string }
   | { type: 'open_library_image'; path: string }
   | { type: 'open_external'; path: string }

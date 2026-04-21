@@ -24,7 +24,8 @@ import { Library } from './pages/Library';
 import { Personality } from './pages/Personality';
 import { Chat } from './pages/Chat';
 import { Planner } from './pages/Planner';
-import { LearningLibrary } from './pages/LearningLibrary';
+// LearningLibrary is no longer rendered directly — it's composed inside
+// the unified Library page as the Courses tab.
 import { CreativeStudio } from './pages/CreativeStudio';
 import { AccountPage } from './pages/AccountPage';
 import { HelpPage } from './pages/HelpPage';
@@ -56,6 +57,7 @@ import type {
   LibraryImage,
   LibraryPath,
   LibraryPathDetail,
+  CreativeAsset,
   PersonalityData,
 } from './types/messages';
 
@@ -174,6 +176,8 @@ export function App() {
   const [libraryImages, setLibraryImages] = useState<LibraryImage[]>([]);
   const [libraryProjectRoot, setLibraryProjectRoot] = useState('');
   const [libraryHasFolder, setLibraryHasFolder] = useState(true);
+  const [libraryCloudAssets, setLibraryCloudAssets] = useState<CreativeAsset[]>([]);
+  const [libraryCloudAssetsLoading, setLibraryCloudAssetsLoading] = useState(false);
   // Personality state
   const [personalityData, setPersonalityData] = useState<PersonalityData | null>(() => {
     try { const saved = localStorage.getItem('ava-dash-personality'); return saved ? JSON.parse(saved) : null; } catch { return null; }
@@ -494,6 +498,13 @@ export function App() {
         setLibraryProjectRoot(msg.projectRoot);
         setLibraryHasFolder(msg.hasFolder ?? true);
         break;
+      case 'cloud_assets_loaded':
+        setLibraryCloudAssets(msg.assets);
+        setLibraryCloudAssetsLoading(false);
+        break;
+      case 'cloud_assets_error':
+        setLibraryCloudAssetsLoading(false);
+        break;
       case 'library_image_deleted':
         setLibraryImages(prev => prev.filter(i => i.path !== msg.path));
         break;
@@ -671,12 +682,21 @@ export function App() {
     if ((page === 'usage' || page === 'overview') && byokMode && !account) {
       post({ type: 'load_session_stats' });
     }
-    // Load library images when navigating to library page
+    // Unified Library — load all three data sources when the page opens.
+    // Cloud assets and local images power the Assets / Documents tabs;
+    // courses power the Courses tab.
     if (page === 'library') {
       post({ type: 'load_library' });
-    }
-    if (page === 'learning-library') {
+      setLibraryCloudAssetsLoading(true);
+      post({ type: 'load_cloud_assets' });
       post({ type: 'load_library_paths' });
+    }
+    // Back-compat: 'learning-library' is the legacy nav target. Any
+    // bookmarked / persisted page value that still points here redirects
+    // to the unified Library, which defaults its tab to Assets but keeps
+    // Courses one click away.
+    if (page === 'learning-library') {
+      setPagePersist('library');
     }
     // Load personality when navigating to personality page
     if (page === 'personality') {
@@ -821,9 +841,23 @@ export function App() {
       case 'history':
         return <History sessionStats={sessionStatsData} usageHistory={usageHistoryData} mode={account ? 'platform' : 'byok'} account={account} auditLog={auditLog} />;
       case 'library':
-        return <Library images={libraryImages} projectRoot={libraryProjectRoot} hasImagesFolder={libraryHasFolder} />;
+        return (
+          <Library
+            paths={libraryPaths}
+            pathDetail={libraryPathDetail}
+            onNavigate={setPagePersist}
+            cloudAssets={libraryCloudAssets}
+            cloudAssetsLoading={libraryCloudAssetsLoading}
+            images={libraryImages}
+            projectRoot={libraryProjectRoot}
+            hasImagesFolder={libraryHasFolder}
+          />
+        );
+      // 'learning-library' is redirected to 'library' in the page-change
+      // effect above — this case is kept only to satisfy the type switch
+      // for any stale persisted value on its way to redirect.
       case 'learning-library':
-        return <LearningLibrary paths={libraryPaths} detail={libraryPathDetail} onNavigate={setPagePersist} />;
+        return null;
       case 'creative-studio':
         return <CreativeStudio account={account} />;
 

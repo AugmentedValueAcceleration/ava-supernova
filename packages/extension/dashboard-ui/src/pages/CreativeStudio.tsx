@@ -24,8 +24,10 @@ const TAB_ICONS: Record<string, ReactNode> = {
   documents: <FileText weight="duotone" size={16} />,
 };
 
+// Creative Studio is a pure creation surface — no library tab. Browsing
+// generated assets lives in the top-level Library page which rolls up
+// cloud assets, courses, and documents into a single navigable view.
 const TABS = [
-  { key: 'library', label: 'Library' },
   { key: 'images', label: 'Images' },
   { key: 'audio', label: 'Audio' },
   { key: 'voice', label: 'Voice' },
@@ -443,7 +445,16 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     return result;
   }, []);
 
-  const [activeTab, setActiveTab] = useState<string>('library');
+  // Default to Images. Any stale 'library' value from localStorage (prior
+  // default) gets normalised below — the tab is gone from this surface
+  // entirely now that the top-level Library page owns asset browsing.
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    try {
+      const stored = localStorage.getItem('ava-creative-studio-tab');
+      if (stored && TABS.some(t => t.key === stored)) return stored;
+    } catch { /* ignore storage access failures */ }
+    return 'images';
+  });
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

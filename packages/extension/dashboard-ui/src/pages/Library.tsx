@@ -1,30 +1,52 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { t, useLocale } from '../i18n';
+import { useLocale } from '../i18n';
 import { post } from '../App';
-import { Select } from '../components/Select';
-import type { LibraryImage, LibraryFileType } from '../types/messages';
+import type { LibraryImage, LibraryPath, LibraryPathDetail, CreativeAsset } from '../types/messages';
+import { LearningLibrary } from './LearningLibrary';
+
+/**
+ * Unified Library — single entry point for everything Ava has made for the
+ * user. Replaces the prior split between "Creative Library" (inside Creative
+ * Studio) and "Learning Library" (top-level nav). Creative Studio stays as
+ * a pure creation surface; browsing/managing generated output lives here.
+ *
+ * Top-level tabs:
+ *   - Courses    — learning paths (delegates to LearningLibrary)
+ *   - Assets     — cloud-synced creative assets + local project files,
+ *                  filterable by type (image / music / video / voice)
+ *   - Documents  — office docs (cloud + local)
+ *
+ * The tab bar is intentionally flat. Previous surfaces buried the library
+ * two clicks deep inside Creative Studio; this exposes everything at one
+ * navigation level.
+ */
 
 interface Props {
+  /** Courses from the Learning Library backend (/api/learning/library). */
+  paths: LibraryPath[];
+  pathDetail: LibraryPathDetail | null;
+  onNavigate: (page: string) => void;
+  /** Cloud-synced creative assets from /api/creative-assets. */
+  cloudAssets: CreativeAsset[];
+  cloudAssetsLoading?: boolean;
+  /** Local project files from the workspace scan. */
   images: LibraryImage[];
   projectRoot: string;
   hasImagesFolder?: boolean;
 }
 
-type FilterTab = 'all' | 'image' | 'document' | 'spreadsheet';
+type TopTab = 'courses' | 'assets' | 'documents';
+type AssetTypeFilter = 'all' | 'image' | 'music' | 'video' | 'voice';
+type AssetSource = 'all' | 'cloud' | 'local';
 
-const FILE_TYPE_ICONS: Record<string, string> = {
+const ASSET_TYPE_ICONS: Record<string, string> = {
+  image: '\u{1F5BC}\u{FE0F}',
+  music: '\u{1F3B5}',
+  video: '\u{1F3AC}',
+  voice: '\u{1F3A4}',
   document: '\u{1F4C4}',
   spreadsheet: '\u{1F4CA}',
 };
-
-function getFileTypeLabels(): Record<FilterTab, string> {
-  return {
-    all: t('dash.library.all'),
-    image: t('dash.library.images'),
-    document: t('dash.library.docs'),
-    spreadsheet: t('dash.library.sheets'),
-  };
-}
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -32,353 +54,315 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function getFileType(item: LibraryImage): LibraryFileType {
-  return item.fileType || 'image';
+/** Map a local file's type to the unified asset-kind vocabulary. */
+function localFileKind(img: LibraryImage): 'image' | 'document' | 'spreadsheet' {
+  return img.fileType || 'image';
 }
 
-function isImageFile(item: LibraryImage): boolean {
-  return getFileType(item) === 'image';
+/** Items unified for the Assets / Documents grid. */
+interface UnifiedItem {
+  id: string;
+  source: 'cloud' | 'local';
+  kind: string;
+  title: string;
+  subtitle: string;
+  thumbnail?: string;
+  createdAt?: string;
+  raw: CreativeAsset | LibraryImage;
 }
 
-export function Library({ images, projectRoot, hasImagesFolder = true }: Props) {
+function cloudAssetKind(a: CreativeAsset): string {
+  return (a.asset_type || a.type || 'image').toLowerCase();
+}
+
+function unifyCloudAsset(a: CreativeAsset): UnifiedItem {
+  const kind = cloudAssetKind(a);
+  return {
+    id: `cloud:${a.id}`,
+    source: 'cloud',
+    kind,
+    title: a.title || 'Untitled',
+    subtitle: a.prompt?.slice(0, 80) || '',
+    thumbnail: (kind === 'image' ? (a.thumbnail_url || a.url) : undefined) || undefined,
+    createdAt: a.created_at,
+    raw: a,
+  };
+}
+
+function unifyLocalImage(img: LibraryImage, projectRoot: string): UnifiedItem {
+  const kind = localFileKind(img);
+  return {
+    id: `local:${img.path}`,
+    source: 'local',
+    kind,
+    title: img.name,
+    subtitle: `${img.folder} · ${formatSize(img.size)}`,
+    thumbnail: kind === 'image' ? (img.dataUri || `${projectRoot}/${img.path}`) : undefined,
+    createdAt: img.modified,
+    raw: img,
+  };
+}
+
+export function Library({
+  paths,
+  pathDetail,
+  onNavigate,
+  cloudAssets,
+  cloudAssetsLoading,
+  images,
+  projectRoot,
+  hasImagesFolder = true,
+}: Props) {
   useLocale();
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  const [filterFolder, setFilterFolder] = useState<string>('all');
-  const [filterType, setFilterType] = useState<FilterTab>('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [tab, setTab] = useState<TopTab>('assets');
+  const [typeFilter, setTypeFilter] = useState<AssetTypeFilter>('all');
+  const [sourceFilter, setSourceFilter] = useState<AssetSource>('all');
+  const [selected, setSelected] = useState<UnifiedItem | null>(null);
   const [scanning, setScanning] = useState(false);
-  const [scanComplete, setScanComplete] = useState(false);
   const scanningRef = useRef(false);
 
-  // Detect scan completion when images prop updates while scanning
+  // Pull cloud assets once the tab opens to assets/documents, and re-request
+  // whenever the user explicitly refreshes.
+  useEffect(() => {
+    if (tab === 'assets' || tab === 'documents') {
+      post({ type: 'load_cloud_assets' });
+    }
+  }, [tab]);
+
   useEffect(() => {
     if (scanningRef.current) {
       scanningRef.current = false;
       setScanning(false);
-      setScanComplete(true);
-      const timer = setTimeout(() => setScanComplete(false), 2000);
-      return () => clearTimeout(timer);
     }
-  }, [images]);
+  }, [images, cloudAssets]);
 
-  // Extract unique folders
-  const folders = useMemo(() => {
-    const set = new Set(images.map(i => i.folder));
-    return ['all', ...Array.from(set).sort()];
-  }, [images]);
+  // Unified item list for Assets tab — excludes office documents, those
+  // live on the Documents tab to match what the user expects.
+  const assetItems = useMemo(() => {
+    const list: UnifiedItem[] = [];
+    if (sourceFilter === 'all' || sourceFilter === 'cloud') {
+      for (const a of cloudAssets) {
+        const k = cloudAssetKind(a);
+        if (['image', 'music', 'video', 'voice', 'graphic'].includes(k)) {
+          list.push(unifyCloudAsset(a));
+        }
+      }
+    }
+    if (sourceFilter === 'all' || sourceFilter === 'local') {
+      for (const img of images) {
+        if (localFileKind(img) === 'image') list.push(unifyLocalImage(img, projectRoot));
+      }
+    }
+    return typeFilter === 'all'
+      ? list
+      : list.filter(i => i.kind === typeFilter || (typeFilter === 'image' && i.kind === 'graphic'));
+  }, [cloudAssets, images, projectRoot, sourceFilter, typeFilter]);
 
-  // Count by file type
-  const typeCounts = useMemo(() => {
-    const counts: Record<FilterTab, number> = { all: images.length, image: 0, document: 0, spreadsheet: 0 };
+  // Documents tab — office docs from both sources.
+  const documentItems = useMemo(() => {
+    const list: UnifiedItem[] = [];
+    for (const a of cloudAssets) {
+      const k = cloudAssetKind(a);
+      if (['document', 'spreadsheet'].includes(k)) list.push(unifyCloudAsset(a));
+    }
     for (const img of images) {
-      const ft = getFileType(img);
-      if (ft in counts) counts[ft as FilterTab]++;
+      const k = localFileKind(img);
+      if (k === 'document' || k === 'spreadsheet') list.push(unifyLocalImage(img, projectRoot));
     }
-    return counts;
-  }, [images]);
+    return list;
+  }, [cloudAssets, images, projectRoot]);
 
-  // Filter by folder and type
-  const filtered = useMemo(() => {
-    let result = images;
-    if (filterFolder !== 'all') result = result.filter(i => i.folder === filterFolder);
-    if (filterType !== 'all') result = result.filter(i => getFileType(i) === filterType);
-    return result;
-  }, [images, filterFolder, filterType]);
-
-  const selected = images.find(i => i.path === selectedPath);
+  const handleScan = () => {
+    setScanning(true);
+    scanningRef.current = true;
+    post({ type: 'load_library' });
+    post({ type: 'load_cloud_assets' });
+    setTimeout(() => setScanning(false), 10000);
+  };
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
+    <div className="mx-auto w-full max-w-6xl">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{t('dash.library.title')}</h1>
+          <h1 className="text-2xl font-bold">Library</h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            {t('dash.library.subtitle')}
+            Your courses, assets, and documents — everything Ava has made for you.
           </p>
         </div>
-        <button
-          onClick={() => {
-            setScanning(true);
-            setScanComplete(false);
-            scanningRef.current = true;
-            post({ type: 'load_library' });
-            // The library_loaded message will trigger a re-render with new data
-            // Use a timeout as a safety net in case the message is slow
-            setTimeout(() => setScanning(false), 10000);
-          }}
-          disabled={scanning}
-          className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition disabled:opacity-50"
-        >
-          {scanning ? (
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 border-2 border-[var(--text-muted)] border-t-[var(--accent)] rounded-full animate-spin" />
-              Scanning...
-            </span>
-          ) : scanComplete ? (
-            <span className="flex items-center gap-1.5 text-emerald-400">
-              ✓ Done
-            </span>
-          ) : (
-            'Scan'
+        <div className="flex items-center gap-2">
+          {tab !== 'courses' && (
+            <button
+              onClick={handleScan}
+              disabled={scanning}
+              className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition disabled:opacity-50"
+            >
+              {scanning ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-3 h-3 border-2 border-[var(--text-muted)] border-t-[var(--accent)] rounded-full animate-spin" />
+                  Refreshing...
+                </span>
+              ) : 'Refresh'}
+            </button>
           )}
-        </button>
+        </div>
       </div>
 
-      {/* File type filter tabs */}
-      <div className="mb-4 flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-1 overflow-x-auto">
-        {(['all', 'image', 'document', 'spreadsheet'] as FilterTab[]).map(tab => {
-          const labels = getFileTypeLabels();
-          return (
+      {/* Top-level tabs */}
+      <div className="mb-6 flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-1">
+        {([
+          { key: 'courses',   label: 'Courses',   count: paths.length },
+          { key: 'assets',    label: 'Assets',    count: assetItems.length },
+          { key: 'documents', label: 'Documents', count: documentItems.length },
+        ] as const).map(t => (
           <button
-            key={tab}
-            onClick={() => setFilterType(tab)}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition whitespace-nowrap ${
-              filterType === tab
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition ${
+              tab === t.key
                 ? 'bg-[var(--accent)] text-white'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
             }`}
           >
-            {labels[tab]}
-            <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full text-[10px] font-bold px-1 ${
-              filterType === tab
-                ? 'bg-white/20 text-white'
-                : 'bg-[var(--border)] text-[var(--text-muted)]'
+            {t.label}
+            <span className={`inline-flex items-center justify-center min-w-[20px] h-[20px] rounded-full text-[10px] font-bold px-1.5 ${
+              tab === t.key ? 'bg-white/20 text-white' : 'bg-[var(--border)] text-[var(--text-muted)]'
             }`}>
-              {typeCounts[tab]}
+              {t.count}
             </span>
           </button>
-        );
-        })}
+        ))}
       </div>
 
-      {/* Toolbar */}
-      <div className="mb-4 flex items-center gap-3">
-        {/* Folder filter */}
-        <div className="w-52">
-          <Select
-            value={filterFolder}
-            onChange={setFilterFolder}
-            options={folders.map(f => ({
-              value: f,
-              label: f === 'all' ? `All folders (${images.length})` : `${f} (${images.filter(i => i.folder === f).length})`,
-            }))}
-          />
-        </div>
-
-        {/* View toggle */}
-        <div className="ml-auto flex rounded-lg border border-[var(--border)] overflow-hidden">
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`px-2.5 py-1.5 text-xs ${viewMode === 'grid' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)]'}`}
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-            </svg>
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`px-2.5 py-1.5 text-xs ${viewMode === 'list' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)]'}`}
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Empty state */}
-      {images.length === 0 && (
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
-          <div className="text-4xl mb-3">{hasImagesFolder ? '\u{1F3A8}' : '\u{1F4C1}'}</div>
-          <p className="text-sm font-medium text-[var(--text-primary)]">
-            {hasImagesFolder ? t('dash.library.no_files') : t('dash.library.no_files')}
-          </p>
-          <p className="mt-1 text-xs text-[var(--text-secondary)]">
-            {t('dash.library.ask_ava')}
-          </p>
-          <p className="mt-3 text-xs text-[var(--text-muted)]">
-            Scans: images/ and documents/ folders and all subfolders
-          </p>
-        </div>
+      {/* Tab content */}
+      {tab === 'courses' && (
+        <LearningLibrary paths={paths} detail={pathDetail} onNavigate={onNavigate} />
       )}
 
-      {/* Grid view */}
-      {filtered.length > 0 && viewMode === 'grid' && (
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-          {filtered.map(img => (
-            <button
-              key={img.path}
-              onClick={() => setSelectedPath(selectedPath === img.path ? null : img.path)}
-              className={`group relative aspect-square rounded-xl overflow-hidden border transition hover:border-[var(--accent)]/50 ${
-                selectedPath === img.path ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]/30' : 'border-[var(--border)]'
-              }`}
-            >
-              {isImageFile(img) ? (
-                <img
-                  src={img.dataUri || `${projectRoot}/${img.path}`}
-                  alt={img.name}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center bg-[var(--bg-card)] gap-2 p-3">
-                  <span className="text-4xl">{FILE_TYPE_ICONS[getFileType(img)] || '\u{1F4C4}'}</span>
-                  <p className="text-[10px] text-[var(--text-secondary)] font-medium truncate w-full text-center">{img.name}</p>
-                </div>
-              )}
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition">
-                <p className="text-[10px] text-white font-medium truncate">{img.name}</p>
-                <p className="text-[9px] text-white/60">{formatSize(img.size)}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* List view */}
-      {filtered.length > 0 && viewMode === 'list' && (
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden">
-          {filtered.map((img, i) => (
-            <button
-              key={img.path}
-              onClick={() => setSelectedPath(selectedPath === img.path ? null : img.path)}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition hover:bg-[var(--bg-hover)] ${
-                i > 0 ? 'border-t border-[var(--border)]' : ''
-              } ${selectedPath === img.path ? 'bg-[var(--accent)]/5' : ''}`}
-            >
-              {isImageFile(img) ? (
-                <img
-                  src={img.dataUri || `${projectRoot}/${img.path}`}
-                  alt={img.name}
-                  className="w-10 h-10 rounded-lg object-cover border border-[var(--border)]"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-lg border border-[var(--border)] flex items-center justify-center bg-[var(--bg-hover)] text-xl">
-                  {FILE_TYPE_ICONS[getFileType(img)] || '\u{1F4C4}'}
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[var(--text-primary)] truncate">{img.name}</p>
-                <p className="text-[11px] text-[var(--text-muted)]">{img.folder}</p>
-              </div>
-              <div className="text-right shrink-0">
-                <p className="text-[11px] text-[var(--text-secondary)]">{formatSize(img.size)}</p>
-                {isImageFile(img) && img.dimensions && <p className="text-[10px] text-[var(--text-muted)]">{img.dimensions}</p>}
-                {!isImageFile(img) && (
-                  <p className="text-[10px] text-[var(--text-muted)] capitalize">{getFileType(img)}</p>
-                )}
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Selected file detail */}
-      {selected && (
-        <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 relative">
-          <button
-            onClick={() => setSelectedPath(null)}
-            className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white text-xs"
-          >{'\u2715'}</button>
-          <div className="flex gap-4">
-            {isImageFile(selected) ? (
-              <img
-                src={selected.dataUri || `${projectRoot}/${selected.path}`}
-                alt={selected.name}
-                className="w-48 h-48 rounded-lg object-contain bg-black/20 border border-[var(--border)]"
-              />
-            ) : (
-              <div className="w-48 h-48 rounded-lg bg-[var(--bg-hover)] border border-[var(--border)] flex flex-col items-center justify-center gap-3">
-                <span className="text-6xl">{FILE_TYPE_ICONS[getFileType(selected)] || '\u{1F4C4}'}</span>
-                <span className="text-xs font-medium text-[var(--text-secondary)] capitalize">{getFileType(selected)}</span>
-              </div>
-            )}
-            <div className="flex-1">
-              <h3 className="text-sm font-bold text-[var(--text-primary)]">{selected.name}</h3>
-              <p className="text-xs text-[var(--text-muted)] mt-1">{selected.path}</p>
-
-              <div className="mt-3 space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className="text-[var(--text-secondary)]">Size</span>
-                  <span className="text-[var(--text-primary)]">{formatSize(selected.size)}</span>
-                </div>
-                {isImageFile(selected) && selected.dimensions && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-[var(--text-secondary)]">Dimensions</span>
-                    <span className="text-[var(--text-primary)]">{selected.dimensions}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-xs">
-                  <span className="text-[var(--text-secondary)]">Type</span>
-                  <span className="text-[var(--text-primary)] capitalize">{getFileType(selected)}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-[var(--text-secondary)]">Modified</span>
-                  <span className="text-[var(--text-primary)]">{new Date(selected.modified).toLocaleDateString()}</span>
-                </div>
-              </div>
-
-              <div className="mt-4 flex gap-2 flex-wrap">
+      {tab === 'assets' && (
+        <div>
+          {/* Sub-filters: source + type */}
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--bg-card)] p-0.5">
+              {(['all', 'cloud', 'local'] as AssetSource[]).map(s => (
                 <button
-                  onClick={() => post({ type: 'open_library_image', path: selected.path })}
-                  className="flex-1 py-2 rounded-lg text-xs font-medium bg-[var(--accent)] text-white hover:opacity-90 transition"
+                  key={s}
+                  onClick={() => setSourceFilter(s)}
+                  className={`px-2.5 py-1 rounded text-[11px] font-medium transition ${
+                    sourceFilter === s ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
                 >
-                  Open in Editor
+                  {s === 'all' ? 'All' : s === 'cloud' ? 'Cloud' : 'Local'}
                 </button>
-                {!isImageFile(selected) && (
-                  <button
-                    onClick={() => post({ type: 'open_external', path: selected.path })}
-                    className="flex-1 py-2 rounded-lg text-xs font-medium border border-[var(--accent)]/50 text-[var(--accent)] hover:bg-[var(--accent)]/10 transition"
-                  >
-                    Open Externally
-                  </button>
-                )}
+              ))}
+            </div>
+            <div className="flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--bg-card)] p-0.5">
+              {(['all', 'image', 'music', 'video', 'voice'] as AssetTypeFilter[]).map(t => (
                 <button
-                  onClick={() => post({ type: 'download_asset', path: selected.path } as any)}
-                  className="px-3 py-2 rounded-lg text-xs font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
+                  key={t}
+                  onClick={() => setTypeFilter(t)}
+                  className={`px-2.5 py-1 rounded text-[11px] font-medium transition ${
+                    typeFilter === t ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
                 >
-                  Download
+                  {t === 'all' ? 'All types' : t[0].toUpperCase() + t.slice(1)}
                 </button>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(selected.path);
-                  }}
-                  className="px-3 py-2 rounded-lg text-xs font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
-                >
-                  Copy Path
-                </button>
-                <button
-                  onClick={() => {
-                    post({ type: 'delete_library_image', path: selected.path });
-                    setSelectedPath(null);
-                  }}
-                  className="px-3 py-2 rounded-lg text-xs font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:text-red-400 hover:border-red-400/50 transition"
-                >
-                  Delete
-                </button>
-              </div>
-
-              {!isImageFile(selected) && (
-                <p className="mt-3 text-[10px] text-[var(--text-muted)]">
-                  For full editing, we recommend <a href="#" onClick={(e) => { e.preventDefault(); post({ type: 'open_url', url: 'https://libreoffice.org' }); }} className="text-[var(--accent)] hover:underline">LibreOffice</a> (free, open source) — libreoffice.org
-                </p>
-              )}
+              ))}
             </div>
           </div>
+
+          {cloudAssetsLoading && cloudAssets.length === 0 && (
+            <div className="py-12 text-center text-sm text-[var(--text-muted)]">Loading cloud assets...</div>
+          )}
+
+          {!cloudAssetsLoading && assetItems.length === 0 && (
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
+              <div className="text-4xl mb-3">{hasImagesFolder ? '\u{1F3A8}' : '\u{1F4C1}'}</div>
+              <p className="text-sm font-medium text-[var(--text-primary)]">No assets yet</p>
+              <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                Ask Ava to generate an image, or head to Creative Studio to start.
+              </p>
+            </div>
+          )}
+
+          {assetItems.length > 0 && (
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+              {assetItems.map(item => (
+                <AssetCard key={item.id} item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Footer */}
-      {images.length > 0 && (
-        <p className="mt-4 text-center text-[11px] text-[var(--text-muted)]">
-          {images.length} file{images.length !== 1 ? 's' : ''} across {folders.length - 1} folder{folders.length - 1 !== 1 ? 's' : ''}
-          {typeCounts.image > 0 && ` \u00B7 ${typeCounts.image} image${typeCounts.image !== 1 ? 's' : ''}`}
-          {typeCounts.document > 0 && ` \u00B7 ${typeCounts.document} document${typeCounts.document !== 1 ? 's' : ''}`}
-          {typeCounts.spreadsheet > 0 && ` \u00B7 ${typeCounts.spreadsheet} spreadsheet${typeCounts.spreadsheet !== 1 ? 's' : ''}`}
-        </p>
+      {tab === 'documents' && (
+        <div>
+          {documentItems.length === 0 ? (
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
+              <div className="text-4xl mb-3">{'\u{1F4C4}'}</div>
+              <p className="text-sm font-medium text-[var(--text-primary)]">No documents yet</p>
+              <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                Create documents from templates in Creative Studio, or ask Ava to write one for you.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {documentItems.map(item => (
+                <AssetCard key={item.id} item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
+  );
+}
+
+// ── Asset card ──────────────────────────────────────────────────────────
+
+function AssetCard({
+  item,
+  selected,
+  onSelect,
+}: {
+  item: UnifiedItem;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      onClick={onSelect}
+      className={`group relative rounded-xl overflow-hidden border bg-[var(--bg-card)] text-left transition hover:border-[var(--accent)]/50 ${
+        selected ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]/30' : 'border-[var(--border)]'
+      }`}
+    >
+      {item.thumbnail ? (
+        <img
+          src={item.thumbnail}
+          alt={item.title}
+          className="h-28 w-full object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <div className="flex h-28 w-full items-center justify-center text-4xl opacity-40">
+          {ASSET_TYPE_ICONS[item.kind] || '\u{1F4C4}'}
+        </div>
+      )}
+      <div className="p-2.5">
+        <p className="truncate text-[11px] font-medium text-[var(--text-primary)]">{item.title}</p>
+        <div className="mt-1 flex items-center justify-between gap-1">
+          <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${
+            item.source === 'cloud'
+              ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
+              : 'bg-[var(--text-muted)]/10 text-[var(--text-muted)]'
+          }`}>
+            {item.source === 'cloud' ? '☁ cloud' : '\u{1F4BE} local'}
+          </span>
+          <span className="text-[9px] text-[var(--text-muted)]">
+            {item.kind}
+          </span>
+        </div>
+      </div>
+    </button>
   );
 }

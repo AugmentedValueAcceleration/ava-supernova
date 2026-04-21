@@ -692,6 +692,10 @@ export class DashboardPanel {
         await this.loadLibraryFiles();
         break;
 
+      case 'load_cloud_assets':
+        await this.loadCloudAssets();
+        break;
+
       case 'delete_library_image':
         await this.deleteLibraryImage(msg.path);
         break;
@@ -2747,6 +2751,36 @@ export class DashboardPanel {
       this.post({ type: 'library_loaded', images: files, projectRoot, hasFolder: hasFolders });
     } catch {
       this.post({ type: 'library_loaded', images: [], projectRoot: '' });
+    }
+  }
+
+  /**
+   * Fetch the user's cloud-synced creative assets from the platform and
+   * post them to the dashboard. Powers the unified Library's Assets and
+   * Documents tabs.
+   *
+   * Returns an empty list (not an error) when the user isn't signed in —
+   * the Library handles the empty state gracefully and we don't want a
+   * missing platform key to surface as a red error banner.
+   */
+  private async loadCloudAssets(): Promise<void> {
+    try {
+      const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+      if (!platformKey) {
+        this.post({ type: 'cloud_assets_loaded', assets: [] });
+        return;
+      }
+      const res = await apiFetch('/creative-assets', { platformKey });
+      if (!res.ok) {
+        this.post({ type: 'cloud_assets_error', message: `HTTP ${res.status}` });
+        return;
+      }
+      const data = res.data as { assets?: unknown[] } | undefined;
+      const assets = Array.isArray(data?.assets) ? data.assets : [];
+      this.post({ type: 'cloud_assets_loaded', assets: assets as never });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.post({ type: 'cloud_assets_error', message });
     }
   }
 
