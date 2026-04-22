@@ -31,7 +31,7 @@ const PROVIDERS = [
     key: 'zhipu',
     displayName: 'GLM (Zhipu AI)',
     description: 'Free tier available, 77.8% SWE-Bench',
-    keyUrl: 'https://bigmodel.cn/usercenter/proj-mgmt/apikeys',
+    keyUrl: 'https://z.ai/manage-apikey/apikey-list',
     live: true,
   },
   {

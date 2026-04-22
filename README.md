@@ -409,7 +409,7 @@ Free tier uses Qwen Flash (3M tokens with account). For premium models:
 | Qwen (Alibaba Cloud) | [bailian.console.alibabacloud.com](https://bailian.console.alibabacloud.com/) |
 | DeepSeek | [platform.deepseek.com](https://platform.deepseek.com/api_keys) |
 | Kimi (Moonshot) | [platform.moonshot.ai](https://platform.moonshot.ai/console/api-keys) |
-| GLM (Zhipu AI) | [open.bigmodel.cn](https://open.bigmodel.cn/) |
+| GLM (Zhipu AI) | [z.ai](https://z.ai/) |
 | Mistral | [console.mistral.ai](https://console.mistral.ai/api-keys/) |
 | Anthropic | [console.anthropic.com](https://console.anthropic.com/) |
 

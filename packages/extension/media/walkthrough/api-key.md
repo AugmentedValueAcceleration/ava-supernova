@@ -12,7 +12,7 @@ Add an API key from any of our 7 providers:
 |---|---|---|
 | **DeepSeek** | [platform.deepseek.com](https://platform.deepseek.com/api_keys) | ~$0.28/M tokens |
 | **Kimi (Moonshot)** | [platform.moonshot.ai](https://platform.moonshot.ai/console/api-keys) | ~$0.60/M tokens |
-| **GLM (Zhipu AI)** | [open.bigmodel.cn](https://open.bigmodel.cn/) | ~$1.00/M tokens |
+| **GLM (Zhipu AI)** | [z.ai](https://z.ai/) | ~$1.00/M tokens |
 | **Qwen (Alibaba)** | [bailian.console.alibabacloud.com](https://bailian.console.alibabacloud.com/) | ~$0.20/M tokens |
 | **Mistral** | [console.mistral.ai](https://console.mistral.ai/api-keys/) | ~$0.30/M tokens |
 | **Anthropic** | [console.anthropic.com](https://console.anthropic.com/) | ~$3.00/M tokens |

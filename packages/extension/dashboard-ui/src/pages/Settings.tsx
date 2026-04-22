@@ -37,14 +37,14 @@ const PROVIDERS = [
     id: 'kimi' as const,
     name: 'Kimi (Moonshot)',
     placeholder: 'sk-...',
-    signupUrl: 'https://platform.moonshot.cn',
+    signupUrl: 'https://platform.moonshot.ai',
     description: 'Kimi K2.5 — best multi-step tool calling',
   },
   {
     id: 'glm' as const,
     name: 'GLM (Zhipu AI)',
     placeholder: '...',
-    signupUrl: 'https://open.bigmodel.cn',
+    signupUrl: 'https://z.ai',
     description: 'GLM-5, GLM-4.7 — best tool-call reliability',
   },
   {
