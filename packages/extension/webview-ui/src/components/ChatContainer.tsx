@@ -188,8 +188,17 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
     );
   }
 
-  if (messages.length === 0 && !isThinking) {
+  // Hero stays until the user's first turn. Ambient injections — daily
+  // briefing, model-switch notices, tick-engine nudges, etc. — push
+  // assistant/system messages into state but the user hasn't actually
+  // started chatting yet. Previously we gated on messages.length === 0
+  // which meant closing a fresh chat and reopening it dropped the hero
+  // the moment any ambient message arrived.
+  const hasUserSpoken = messages.some((m) => m.role === 'user');
+
+  if (!hasUserSpoken && !isThinking) {
     const activeModelObj = models?.find(m => m.id === activeModel);
+    const ambientMessages = messages;
 
     return (
       <div className="flex-1 overflow-y-auto px-4 py-6">
@@ -351,6 +360,24 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
           <div className="text-center pt-2">
             <p className="text-[10px] opacity-20">{t('welcome.footer')}</p>
           </div>
+
+          {/* Ambient messages arrived before the user spoke — the daily
+              briefing is the usual one. Render them below the hero so
+              they're not swallowed, but keep them visually distinct from
+              a real chat thread. */}
+          {ambientMessages.length > 0 && (
+            <div className="mt-6 space-y-3">
+              {ambientMessages.map((msg, i) => (
+                <MessageBubble
+                  key={msg.id}
+                  message={msg}
+                  onConfirmation={onConfirmation}
+                  onContinue={msg.role === 'error' && i === ambientMessages.length - 1 ? onContinue : undefined}
+                  onRate={msg.role === 'assistant' ? onRate : undefined}
+                />
+              ))}
+            </div>
+          )}
 
         </div>
       </div>

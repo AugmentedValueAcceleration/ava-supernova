@@ -3,11 +3,11 @@ export const enStrings = {
   // Welcome / Branding
   'welcome.title': 'Ava | Supernova',
   'welcome.subtitle': 'Your open-source agentic coding assistant.',
-  'welcome.tagline': '60 tools \u00B7 7 providers \u00B7 2 free models \u00B7 20 languages',
+  'welcome.tagline': 'Every model \u00B7 Every tool \u00B7 6 modes \u00B7 Local-first',
 
   // Welcome — Setup
-  'welcome.setup_title': 'Get Started — Add an API Key',
-  'welcome.setup_desc': 'Sign up for 3M free Qwen tokens, or add your own API key from any provider.',
+  'welcome.setup_title': 'Get Started — Sign in or bring your own keys',
+  'welcome.setup_desc': 'Sign in with GitHub or email for 1,500 free credits every month, or bring your own API key from any provider and skip the account entirely.',
   'welcome.setup_cta': 'Open Settings',
   'welcome.ready_with': 'Ready with',
 
