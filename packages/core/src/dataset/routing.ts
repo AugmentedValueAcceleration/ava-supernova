@@ -18,7 +18,8 @@ export type DatasetName =
   | 'continuation-recovery'
   | 'mode-transitions'
   | 'generation-effectiveness'
-  | 'knowledge-pack-effectiveness';
+  | 'knowledge-pack-effectiveness'
+  | 'billing-credits';
 
 export const ALL_DATASETS: readonly DatasetName[] = [
   'tool-trajectories',
@@ -31,6 +32,7 @@ export const ALL_DATASETS: readonly DatasetName[] = [
   'mode-transitions',
   'generation-effectiveness',
   'knowledge-pack-effectiveness',
+  'billing-credits',
 ] as const;
 
 /**
@@ -85,5 +87,8 @@ export function eventToDataset(eventType: AvaEventType): DatasetName {
     case 'knowledge_pack_activated':
     case 'knowledge_pack_used':
       return 'knowledge-pack-effectiveness';
+
+    case 'credits_charged':
+      return 'billing-credits';
   }
 }

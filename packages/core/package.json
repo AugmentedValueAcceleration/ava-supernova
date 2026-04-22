@@ -25,6 +25,11 @@
       "import": "./dist/billing/plans.js",
       "require": "./dist/billing/plans.js",
       "types": "./dist/billing/plans.d.ts"
+    },
+    "./billing/credits": {
+      "import": "./dist/billing/credits.js",
+      "require": "./dist/billing/credits.js",
+      "types": "./dist/billing/credits.d.ts"
     }
   },
   "scripts": {

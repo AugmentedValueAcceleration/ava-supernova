@@ -35,6 +35,7 @@ import {
 } from './task-classifier.js';
 import { avaEvents, withTrajectory, withChildTrajectory, getTrajectory } from '../dataset/emitter.js';
 import type { AvaSurface, AvaMode } from '../dataset/events.js';
+import { chargeCredits, extractUsage } from '../billing/meter.js';
 import { summarizeToolArgs, summarizeToolResult, summarizeChainOutcome } from '../dataset/summarizers.js';
 import { pickVerificationTools, categorizeCorrection } from '../dataset/verification.js';
 import { matchToolError } from '../tools/error-guidance.js';
@@ -1760,6 +1761,18 @@ export class Agent {
       }
       onEvent({ type: 'usage', usage, cost });
     }
+
+    // Meter the call — one chat_turn charge per agent iteration. A multi-
+    // iteration agent (tool loop) emits one per loop, which is the intended
+    // granularity. Cache-hit detection uses cached_tokens ratio: if >50% of
+    // prompt was cached, treat as a cache hit for discount purposes.
+    const rawUsage = extractUsage(usage as unknown as Parameters<typeof extractUsage>[0]);
+    const cacheHit = rawUsage?.cached != null && rawUsage.input > 0 && rawUsage.cached / rawUsage.input > 0.5;
+    chargeCredits('chat_turn', {
+      model: this.model.id,
+      rawTokens: rawUsage,
+      cacheHit,
+    });
 
     return { message, promptTokens: usage?.prompt_tokens ?? 0 };
   }

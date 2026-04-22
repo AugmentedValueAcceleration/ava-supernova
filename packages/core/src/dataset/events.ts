@@ -88,7 +88,9 @@ export type AvaEventType =
   | 'generation_user_action'
   // Knowledge pack effectiveness (Dataset 10)
   | 'knowledge_pack_activated'
-  | 'knowledge_pack_used';
+  | 'knowledge_pack_used'
+  // Credits / billing metering (added 2026-04-22)
+  | 'credits_charged';
 
 // ─── Per-event payload shapes ───────────────────────────────────────────────
 
@@ -327,6 +329,34 @@ export interface KnowledgePackUsedPayload {
   reference_count: number;
 }
 
+/* Credits / billing metering (added 2026-04-22) ──────────────────────────── */
+
+/**
+ * A metered action completed and credits were deducted from the user's
+ * allowance. Emitted by `chargeCredits()` in billing/meter.ts. The server
+ * sums these per user per billing period once Stage 3's billing switch
+ * is live; during Stage 2 (dual-write) the server bills on raw tokens
+ * while recording the `credits` field for parity auditing.
+ *
+ * One event per chargeable action — not per model iteration. An Agent
+ * that loops 5 times for tool use emits one charge per iteration (each
+ * is a `chat_turn`); a full Conductor run emits one charge per persona
+ * (`light_persona` or `heavy_persona`).
+ */
+export interface CreditsChargedPayload {
+  /** CreditAction from billing/credits — kept as string here to avoid a
+   *  dataset ↔ billing import dependency. */
+  action: string;
+  /** Credits actually deducted (after cache-hit discount, if any). */
+  credits: number;
+  cache_hit: boolean;
+  /** Provider's raw input token count (dual-write for billing parity). */
+  raw_input_tokens?: number;
+  raw_output_tokens?: number;
+  raw_cached_tokens?: number;
+  model?: string;
+}
+
 // ─── Discriminated union map ────────────────────────────────────────────────
 
 export interface AvaEventPayloadMap {
@@ -356,6 +386,7 @@ export interface AvaEventPayloadMap {
   generation_user_action: GenerationUserActionPayload;
   knowledge_pack_activated: KnowledgePackActivatedPayload;
   knowledge_pack_used: KnowledgePackUsedPayload;
+  credits_charged: CreditsChargedPayload;
 }
 
 // ─── Helper type for typed emit/subscribe ───────────────────────────────────

@@ -47,6 +47,7 @@ export function detectConductorDepth(userMessage: string): ConductorDepth {
 }
 import { logger } from '../core/logger.js';
 import { avaEvents } from '../dataset/emitter.js';
+import { chargeCredits, extractUsage } from '../billing/meter.js';
 
 const DEFAULT_CONFIG: Required<ConductorConfig> = {
   maxPersonas: 6,
@@ -507,6 +508,18 @@ export class Conductor {
         };
 
         const response = await runtime.provider.createCompletion(request, signal);
+
+        // Meter the persona call. Light-tier personas (Scout, Verifier,
+        // Challenger, etc.) charge light_persona; heavy-tier personas
+        // (Architect, Builder) charge heavy_persona. One charge per
+        // iteration — a persona that loops for tool use bills per loop.
+        const personaUsage = extractUsage((response as { usage?: unknown }).usage as Parameters<typeof extractUsage>[0]);
+        const personaCacheHit = personaUsage?.cached != null && personaUsage.input > 0 && personaUsage.cached / personaUsage.input > 0.5;
+        chargeCredits(
+          persona.modelTier === 'light' ? 'light_persona' : 'heavy_persona',
+          { model: runtime.model.id, rawTokens: personaUsage, cacheHit: personaCacheHit },
+        );
+
         const choice = response.choices?.[0];
         if (!choice) break;
 
