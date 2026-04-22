@@ -2,8 +2,9 @@ import type { ModelDefinition } from '../../core/types.js';
 
 /**
  * Platform models — available on managed plans + free accounts.
- * Paid plans: Kimi K2.5 (default) + all Qwen models.
+ * Paid plans: Qwen family + MiniMax creative stack.
  * Free accounts: Qwen only (Omni Flash default).
+ * Kimi is BYOK only — users supply a Moonshot API key to use K2.6 / K2.5.
  */
 export const PLATFORM_MODELS: ModelDefinition[] = [
   // Qwen 3.6 Plus — flagship conductor. Agentic coding, 1M context, always-on CoT.

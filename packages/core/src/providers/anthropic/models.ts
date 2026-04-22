@@ -2,6 +2,17 @@ import type { ModelDefinition } from '../../core/types.js';
 
 export const ANTHROPIC_MODELS: ModelDefinition[] = [
   {
+    id: 'claude-opus-4-7',
+    name: 'Claude Opus 4.7',
+    provider: 'anthropic',
+    contextWindow: 200000,
+    maxOutputTokens: 32768,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsVision: true,
+    pricing: { inputPerMillion: 5, outputPerMillion: 25 },
+  },
+  {
     id: 'claude-opus-4-6',
     name: 'Claude Opus 4.6',
     provider: 'anthropic',

@@ -13,7 +13,15 @@ import type { ModelDefinition } from '../core/types.js';
  * Priority (all coordinator-eligible Plus models are 1M context; Flash tiers are 256K).
  * Every plan has access to every model — tier differs by token allowance, not model access.
  *   Platform  → Qwen 3.6 Plus (1M) → Qwen 3.5 Plus (1M) → Qwen 3.5 Flash (256K)
- *   BYOK      → Claude > Kimi > DeepSeek > Mistral > Qwen Plus > Qwen Flash
+ *   BYOK      → Kimi K2.6 > Opus 4.7 > Sonnet > K2.5 > DeepSeek > GLM-5 > Mistral > Qwen
+ *
+ * BYOK ordering puts Kimi K2.6 at the top because Ava is an agentic coder first
+ * and K2.6 is SoTA on the benchmarks that measure that job:
+ *   - SWE-Bench Pro: 58.6 (vs Opus 4.6's 53.4, GPT-5.4's 57.7)
+ *   - HLE with tools: 54.0 (leads every frontier model, open or closed)
+ *   - LiveCodeBench v6: 89.6 (edges Opus 4.6)
+ * Plus it's built for orchestration — scales to 300 sub-agents, 4,000 steps —
+ * which is exactly what Auto Mode needs a coordinator to do.
  */
 
 export interface CoordinatorModelResult {
@@ -31,10 +39,12 @@ const PLATFORM_PRIORITY = [
 ];
 
 const BYOK_PRIORITY = [
-  { id: 'claude-sonnet-4-6',    reason: 'Claude Sonnet — strong reasoning' },
-  { id: 'claude-opus-4-6',      reason: 'Claude Opus — strongest reasoning' },
-  { id: 'kimi-k2.5',            reason: 'Kimi K2.5 — agentic reasoning (BYOK)' },
+  { id: 'kimi-k2.6',            reason: 'Kimi K2.6 — SoTA agentic coding (SWE-Bench Pro 58.6), 256K context, built for orchestration' },
+  { id: 'claude-opus-4-7',      reason: 'Claude Opus 4.7 — strongest general reasoning' },
+  { id: 'claude-sonnet-4-6',    reason: 'Claude Sonnet — fast reasoning' },
+  { id: 'kimi-k2.5',            reason: 'Kimi K2.5 — legacy agentic fallback' },
   { id: 'deepseek-chat',        reason: 'DeepSeek — capable coding model' },
+  { id: 'glm-5',                reason: 'Zhipu GLM-5 — 200K context, tools + vision' },
   { id: 'mistral-large-latest', reason: 'Mistral Large — reasoning fallback' },
   { id: 'qwen3.5-plus',         reason: 'Qwen 3.5 Plus — 1M context fallback' },
   { id: 'qwen3.5-flash',        reason: 'Qwen 3.5 Flash — lightweight fallback' },
