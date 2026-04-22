@@ -4,6 +4,7 @@ import { join, dirname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { startGenerationTracking } from '../dataset/generation-emit.js';
+import { chargeCredits } from '../billing/meter.js';
 
 /**
  * Generate AI voice/speech from text using MiniMax TTS.
@@ -137,6 +138,7 @@ export class GenerateVoiceTool implements Tool {
         prompt: text,
       });
 
+      chargeCredits('voice_gen');
       return {
         success: true,
         output: `Generated voice and saved to ${relativePath}`,

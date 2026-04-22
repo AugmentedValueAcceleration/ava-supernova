@@ -2,6 +2,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname, extname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
+import { chargeCredits } from '../billing/meter.js';
 
 /**
  * Remove the background from an image, making white/near-white pixels transparent.
@@ -114,6 +115,7 @@ export class RemoveBackgroundTool implements Tool {
       const sizeKb = (result.length / 1024).toFixed(1);
       context.onOutput?.(`Saved: ${outputPath} (${sizeKb} KB)\n`);
 
+      chargeCredits('bg_removal');
       return {
         success: true,
         output: `Background removed and saved to ${outputPath} (${sizeKb} KB)\n\nSettings: threshold=${threshold}, edge_softness=${edgeSoftness}`,

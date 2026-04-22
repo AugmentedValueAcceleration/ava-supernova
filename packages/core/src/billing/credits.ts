@@ -32,6 +32,7 @@ export type CreditAction =
   | 'image_gen'       // Creative Studio — image generation
   | 'video_gen'       // Creative Studio — video generation (6s clip)
   | 'voice_gen'       // Creative Studio — TTS
+  | 'music_gen'       // Creative Studio — music generation
   | 'bg_removal'      // Creative Studio — background removal
   | 'teach_session';  // Teach-mode session (~20 min of tutoring)
 
@@ -48,6 +49,7 @@ export const CREDIT_COST: Record<CreditAction, number> = {
   image_gen:     10,   // ~$0.02 raw
   video_gen:    100,   // ~$0.40 raw (6s clip)
   voice_gen:      3,   // ~$0.005 raw
+  music_gen:     50,   // ~$0.15 raw (longer duration than TTS, shorter than video)
   bg_removal:     2,   // ~$0.002 raw
   teach_session:  2,   // ~$0.003 raw — heavily discounted, not free
 };

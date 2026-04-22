@@ -4,6 +4,7 @@ import { join, dirname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { startGenerationTracking } from '../dataset/generation-emit.js';
+import { chargeCredits } from '../billing/meter.js';
 
 /**
  * Generate a short AI video from a text prompt using MiniMax Hailuo.
@@ -126,6 +127,7 @@ export class GenerateVideoTool implements Tool {
         prompt,
       });
 
+      chargeCredits('video_gen');
       return {
         success: true,
         output: `Generated ${duration}s ${resolution} video and saved to ${relativePath}`,

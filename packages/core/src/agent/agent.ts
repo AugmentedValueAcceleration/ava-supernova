@@ -2234,6 +2234,13 @@ ${transcript}`;
         signal,
       );
 
+      // Meter the compression call. It's a heavy-model completion the same
+      // shape as a chat turn, just summarising rather than answering a user.
+      chargeCredits('chat_turn', {
+        model: this.model.id,
+        rawTokens: extractUsage((response as { usage?: unknown }).usage as Parameters<typeof extractUsage>[0]),
+      });
+
       const summary = response.choices?.[0]?.message?.content || '';
       if (!summary) throw new Error('Empty compression response');
 

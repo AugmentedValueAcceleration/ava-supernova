@@ -27,6 +27,7 @@
 import type { Provider } from '../providers/types.js';
 import type { ModelDefinition } from '../core/types.js';
 import { logger } from '../core/logger.js';
+import { chargeCredits, extractUsage } from '../billing/meter.js';
 
 export type UserIntent = 'task' | 'conversational' | 'ambiguous';
 
@@ -111,6 +112,13 @@ export class IntentClassifier {
     );
 
     const response = await Promise.race([promise, timeout]);
+
+    // Meter the Flash classification call — same bracket as other light
+    // gates (routing, intent). Dual-write raw tokens for parity audit.
+    chargeCredits('light_call', {
+      model: this.model.id,
+      rawTokens: extractUsage((response as { usage?: unknown }).usage as Parameters<typeof extractUsage>[0]),
+    });
 
     // Extract the first message content. Shape varies by provider adapter.
     const resp = response as { choices?: Array<{ message?: { content?: string | unknown } }>; message?: { content?: string | unknown } };

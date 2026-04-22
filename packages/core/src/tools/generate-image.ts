@@ -4,6 +4,7 @@ import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './ty
 import type { FunctionSchema } from '../providers/types.js';
 import { startGenerationTracking } from '../dataset/generation-emit.js';
 import { persistCreativeAsset } from './creative-asset-sync.js';
+import { chargeCredits } from '../billing/meter.js';
 
 /**
  * Generate an AI image and save it to the project.
@@ -254,6 +255,7 @@ export class GenerateImageTool implements Tool {
           prompt: enhancedPrompt,
         });
 
+        chargeCredits('image_gen');
         return {
           success: true,
           output: `Generated and saved ${purpose} image to ${relativePath} (${sizeKb} KB, ${size.replace('*', 'x')})\n\nPrompt: ${rawPrompt}${promptAddition ? `\nEnhanced: ${enhancedPrompt}` : ''}`,

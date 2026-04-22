@@ -4,6 +4,7 @@ import { join, dirname } from 'node:path';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { startGenerationTracking } from '../dataset/generation-emit.js';
+import { chargeCredits } from '../billing/meter.js';
 
 /**
  * Generate AI music from a text prompt using MiniMax.
@@ -123,6 +124,7 @@ export class GenerateMusicTool implements Tool {
         prompt,
       });
 
+      chargeCredits('music_gen');
       return {
         success: true,
         output: `Generated music and saved to ${relativePath}`,
