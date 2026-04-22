@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.48.5 — 2026-04-22
+
+### Added
+- **Kimi K2.6** added to the model picker. Moonshot's SoTA open-weight model released 2026-04-20 — 58.6 on SWE-Bench Pro (beats Opus 4.6), 54.0 on HLE with tools (leads every frontier model, open or closed), 256K context, native multimodal, designed for multi-agent orchestration with up to 300 sub-agents.
+- **Claude Opus 4.7** added to the model picker as Anthropic's current flagship. Same $5/$25 pricing as 4.6. Opus 4.6 kept as a legacy option so existing users keep working without migration.
+
+### Changed
+- **BYOK Auto Mode coordinator** priority reshuffled. K2.6 is now the first choice when a Moonshot key is present, Opus 4.7 second, Sonnet third, K2.5 fourth. Ava is an agentic coder first, and K2.6 leads every benchmark that measures that job specifically (SWE-Bench Pro, HLE-with-tools, LiveCodeBench v6).
+- **Moonshot + Zhipu signup URLs** switched to international hosts (`platform.moonshot.ai`, `z.ai`). Prior `.cn` hosts were mainland-China portals — international users hit region-blocked signup flows. Core providers already routed to the international API endpoints; this brings the onboarding UI in line.
+- **Inline model aliases** updated. Typing "use opus" now resolves to Opus 4.7 instead of 4.6; "use kimi" / "use k2" resolves to K2.6. Legacy pins kept: `opus 4.6`, `k2.5`.
+
+### Fixed
+- **Zhipu/GLM Auto Mode coordinator gap.** Users whose only BYOK provider was Zhipu/GLM silently got `null` from `resolveCoordinatorModel` and Auto Mode refused to start. `glm-5` now in the BYOK priority list with the correct context and capability flags.
+- **`model-router.ts` platform fallback** dropped `kimi-k2.5` entry. Kimi has always been BYOK-only and was never registered under the platform provider, so the platform lookup for `kimi-k2.5` returned null every call. Pre-existing dead code, removed while sweeping the area.
+
 ## 0.48.4 — 2026-04-21
 
 ### Added
