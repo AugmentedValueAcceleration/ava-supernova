@@ -166,13 +166,13 @@ export function Overview({
     setEditingName(false);
   };
   const usage = account.usage ?? {
-    tokens_used: 0,
-    tokens_limit: null as number | null,
+    credits_used: 0,
+    credits_limit: null as number | null,
     requests_count: 0,
     period_start: null as string | null,
     period_end: null as string | null,
-    free_tokens_used: 0,
-    free_tokens_limit: 3_000_000,
+    free_credits_used: 0,
+    free_credits_limit: 1_500,
   };
 
   // Derive stats from logs as fallback when account.usage is stale/empty
@@ -232,8 +232,8 @@ export function Overview({
         <div className="grid grid-cols-2 gap-3">
           <StatCard
             icon={<ChartBar weight="duotone" size={20} />}
-            value={formatNumber(usage.tokens_used || logsTotal.total)}
-            label={t('dash.cc.tokens_used')}
+            value={formatNumber(usage.credits_used || logsTotal.total)}
+            label={t('dash.cc.credits_used')}
             subtext={usage.period_start ? t('dash.cc.since', { date: new Date(usage.period_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) }) : (logsTotal.count > 0 ? t('dash.cc.from_requests', { count: logsTotal.count }) : undefined)}
           />
           <StatCard
@@ -941,7 +941,7 @@ function ByokOverview({
             <StatCard
               icon={<ChartBar weight="duotone" size={20} />}
               value={formatNumber(totalTokens)}
-              label={t('dash.cc.tokens_used')}
+              label={t('dash.cc.credits_used')}
               subtext={`${t('dash.usage.input_tokens')}: ${formatNumber(stats?.total_input_tokens ?? 0)} / ${t('dash.usage.output_tokens')}: ${formatNumber(stats?.total_output_tokens ?? 0)}`}
             />
             <StatCard
@@ -995,7 +995,7 @@ function ByokOverview({
                   <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> {t('dash.cc.memory_sync')}</li>
                   <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> {t('dash.cc.full_history')}</li>
                   <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> {t('dash.cc.priority_support')}</li>
-                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> {t('dash.cc.free_tokens')}</li>
+                  <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> {t('dash.cc.free_credits')}</li>
                   <li className="flex items-center gap-2"><span className="text-[var(--gradient-start)]">&#10003;</span> {t('dash.cc.conversation_backup')}</li>
                 </ul>
               </div>

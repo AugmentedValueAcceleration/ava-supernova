@@ -1473,7 +1473,7 @@ export class DashboardPanel {
       }
 
       const summary = res.data as {
-        period: { tokens_used: number; tokens_limit: number | null; free_tokens_used: number; free_tokens_limit: number; requests_count: number };
+        period: { credits_used: number; credits_limit: number | null; free_credits_used: number; free_credits_limit: number; requests_count: number };
         tier: string;
         isUnlimited: boolean;
         daily: Array<{ date: string; tokens: number }>;
@@ -1482,12 +1482,12 @@ export class DashboardPanel {
       };
 
       // Unified balance — sum free pool + subscription pool so the All-Time
-      // Token Balance card matches the single bar shown on Billing / Usage
+      // Credit Balance card matches the single bar shown on Billing / Usage
       // tabs. Backend still burns free first then overflows, but the UI
       // presents one number.
       const balance = {
-        used: summary.period.free_tokens_used + summary.period.tokens_used,
-        limit: summary.period.free_tokens_limit + (summary.period.tokens_limit ?? 0),
+        used: summary.period.free_credits_used + summary.period.credits_used,
+        limit: summary.period.free_credits_limit + (summary.period.credits_limit ?? 0),
         tier: summary.tier,
       };
 

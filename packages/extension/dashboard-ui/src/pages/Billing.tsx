@@ -3,11 +3,11 @@
 import { useEffect } from 'react';
 import {
   PLANS,
-  TOKEN_TOPUPS,
+  CREDIT_TOPUPS,
   STORAGE_ADDONS,
   pricingUrl,
   dashboardBillingUrl,
-  type TokenTopupDefinition,
+  type CreditTopupDefinition,
   type StorageAddonDefinition,
 } from '@ava/core/billing';
 import { t, useLocale } from '../i18n';
@@ -46,16 +46,15 @@ export function Billing({ account }: BillingProps) {
   }, []);
 
   // Defensive fallback — used only when /api/account-info returns no
-  // usage row. Free tier's base allowance is 3M (not 500K — that was
-  // a stale placeholder from before the free cap moved to 3M).
+  // usage row. Free tier's base allowance post-credits-redesign is 1,500.
   const usage = account.usage ?? {
-    tokens_used: 0,
-    tokens_limit: null as number | null,
+    credits_used: 0,
+    credits_limit: null as number | null,
     requests_count: 0,
     period_start: null as string | null,
     period_end: null as string | null,
-    free_tokens_used: 0,
-    free_tokens_limit: 3_000_000,
+    free_credits_used: 0,
+    free_credits_limit: 1_500,
   };
 
   return (
@@ -83,13 +82,13 @@ export function Billing({ account }: BillingProps) {
         </div>
 
         {(() => {
-          const totalUsed = usage.free_tokens_used + usage.tokens_used;
-          const totalLimit = usage.free_tokens_limit + (usage.tokens_limit ?? 0);
+          const totalUsed = usage.free_credits_used + usage.credits_used;
+          const totalLimit = usage.free_credits_limit + (usage.credits_limit ?? 0);
           const remaining = Math.max(0, totalLimit - totalUsed);
           return (
             <div className="mb-4">
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Tokens Remaining</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Credits Remaining</p>
                 {account.tier === 'admin' ? (
                   <span className="text-xs font-medium text-[var(--gradient-start)]">Unlimited</span>
                 ) : (
@@ -201,9 +200,9 @@ export function Billing({ account }: BillingProps) {
           makes the 10M "Best value" label honest. */}
       {account.tier !== 'admin' && (
         <div className="mb-10">
-        <SectionGroup label="Top Up Tokens" description="Running low? Add extra tokens — they never expire.">
+        <SectionGroup label="Top Up Credits" description="Running low? Add extra credits — they never expire.">
           <div className="grid gap-3 sm:grid-cols-3">
-            {TOKEN_TOPUPS.map((pkg: TokenTopupDefinition) => (
+            {CREDIT_TOPUPS.map((pkg: CreditTopupDefinition) => (
               <PurchaseCard
                 key={pkg.id}
                 title={pkg.label}
@@ -212,7 +211,7 @@ export function Billing({ account }: BillingProps) {
                 effectiveRate={pkg.effectiveRate}
                 popular={pkg.popular}
                 state="live"
-                ctaLabel="Buy tokens"
+                ctaLabel="Buy credits"
                 onClick={() => openUrl(dashboardBillingUrl())}
               />
             ))}

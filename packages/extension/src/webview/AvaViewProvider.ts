@@ -495,31 +495,31 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
       if (res.ok && res.data && typeof res.data === 'object') {
         const data = res.data as {
-          free_tokens_used: number;
-          free_tokens_limit: number;
-          tokens_used: number;
-          tokens_limit: number | null;
+          free_credits_used: number;
+          free_credits_limit: number;
+          credits_used: number;
+          credits_limit: number | null;
           warning?: string;
           warning_pct?: number;
           warning_message?: string;
         };
 
-        this.log(`Usage reported — free: ${data.free_tokens_used}/${data.free_tokens_limit}, sub: ${data.tokens_used}/${data.tokens_limit}`);
+        this.log(`Usage reported — free: ${data.free_credits_used}/${data.free_credits_limit}, sub: ${data.credits_used}/${data.credits_limit}`);
 
         // Keep cached account in sync so future init messages don't revert the display
         if (this.cachedAccount?.usage) {
-          this.cachedAccount.usage.free_tokens_used = data.free_tokens_used;
-          this.cachedAccount.usage.tokens_used = data.tokens_used;
+          this.cachedAccount.usage.free_credits_used = data.free_credits_used ?? 0;
+          this.cachedAccount.usage.credits_used = data.credits_used ?? 0;
         }
 
         this.postMessage({
           type: 'platform_status',
           connected: true,
           tier: this.cachedAccount?.tier ?? null,
-          freeTokensUsed: data.free_tokens_used,
-          freeTokensLimit: data.free_tokens_limit,
-          subTokensUsed: data.tokens_used,
-          subTokensLimit: data.tokens_limit,
+          freeTokensUsed: data.free_credits_used,
+          freeTokensLimit: data.free_credits_limit,
+          subTokensUsed: data.credits_used,
+          subTokensLimit: data.credits_limit,
           warning: (data.warning as 'none' | 'approaching' | 'critical' | 'exhausted') || 'none',
           warningPct: data.warning_pct || 0,
           warningMessage: data.warning_message || '',
@@ -982,7 +982,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             const res = await apiFetch('/account-info', { platformKey });
             this.cachedAccount = res.ok ? (res.data as AccountInfo) : null;
             if (this.cachedAccount?.usage) {
-              this.log(`Account usage: free=${this.cachedAccount.usage.free_tokens_used}/${this.cachedAccount.usage.free_tokens_limit}`);
+              this.log(`Account usage: free=${this.cachedAccount.usage.free_credits_used}/${this.cachedAccount.usage.free_credits_limit}`);
             }
           }
           if (this.cachedAccount) {
@@ -1128,10 +1128,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       ? {
           connected: true,
           tier: this.cachedAccount.tier,
-          freeTokensUsed: this.cachedAccount.tier === 'admin' ? 0 : (this.cachedAccount.usage?.free_tokens_used ?? 0),
-          freeTokensLimit: this.cachedAccount.tier === 'admin' ? 999_999_999_999 : (this.cachedAccount.usage?.free_tokens_limit ?? 3_000_000),
-          subTokensUsed: this.cachedAccount.usage?.tokens_used ?? 0,
-          subTokensLimit: this.cachedAccount.usage?.tokens_limit ?? null,
+          freeTokensUsed: this.cachedAccount.tier === 'admin' ? 0 : (this.cachedAccount.usage?.free_credits_used ?? 0),
+          freeTokensLimit: this.cachedAccount.tier === 'admin' ? 999_999_999 : (this.cachedAccount.usage?.free_credits_limit ?? 1_500),
+          subTokensUsed: this.cachedAccount.usage?.credits_used ?? 0,
+          subTokensLimit: this.cachedAccount.usage?.credits_limit ?? null,
           warning: 'none',
           warningPct: 0,
           warningMessage: '',
@@ -1262,7 +1262,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           } : undefined,
           getTokenBalance: () => {
             if (this.cachedAccount?.usage) {
-              return { used: this.cachedAccount.usage.free_tokens_used, limit: this.cachedAccount.usage.free_tokens_limit };
+              return { used: this.cachedAccount.usage.free_credits_used, limit: this.cachedAccount.usage.free_credits_limit };
             }
             return null;
           },

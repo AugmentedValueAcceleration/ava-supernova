@@ -24,13 +24,13 @@ const PAGE_SIZE = 15;
 export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
   useLocale();
   const usage = account?.usage ?? {
-    tokens_used: 0,
-    tokens_limit: null as number | null,
+    credits_used: 0,
+    credits_limit: null as number | null,
     requests_count: 0,
     period_start: null as string | null,
     period_end: null as string | null,
-    free_tokens_used: 0,
-    free_tokens_limit: 500_000,
+    free_credits_used: 0,
+    free_credits_limit: 1500,
   };
   const [period, setPeriod] = useState<'7d' | '30d' | 'all'>('30d');
   const [page, setPage] = useState(0);
@@ -85,9 +85,9 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
       <SectionGroup label={t('dash.usage.summary')}>
       <div className="grid grid-cols-2 gap-3">
         <SummaryCard
-          label={t('dash.usage.tokens_used')}
-          value={formatNumber(usage.tokens_used || logsTotal.total)}
-          sub={usage.tokens_used ? (usage.tokens_limit ? `of ${formatNumber(usage.tokens_limit)} limit` : t('dash.usage.this_period')) : t('dash.usage.from_requests', { count: logsTotal.count })}
+          label={t('dash.usage.credits_used')}
+          value={formatNumber(usage.credits_used || logsTotal.total)}
+          sub={usage.credits_used ? (usage.credits_limit ? `of ${formatNumber(usage.credits_limit)} limit` : t('dash.usage.this_period')) : t('dash.usage.from_requests', { count: logsTotal.count })}
         />
         <SummaryCard
           label={t('dash.usage.requests')}
@@ -95,9 +95,9 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
           sub={t('dash.usage.this_period')}
         />
         <SummaryCard
-          label={t('dash.usage.free_tokens')}
-          value={formatNumber(Math.max(0, usage.free_tokens_limit - usage.free_tokens_used))}
-          sub={`of ${formatNumber(usage.free_tokens_limit)}`}
+          label={t('dash.usage.free_credits')}
+          value={formatNumber(Math.max(0, usage.free_credits_limit - usage.free_credits_used))}
+          sub={`of ${formatNumber(usage.free_credits_limit)}`}
         />
         <SummaryCard
           label={t('dash.usage.period')}
@@ -108,20 +108,20 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
       </SectionGroup>
       </div>
 
-      {/* Unified token bar — free + subscription + top-ups in one view.
+      {/* Unified credit bar — free + subscription + top-ups in one view.
           Backend still splits pools (free burns first, overflows to
-          tokens_limit), but users only need the combined total. */}
+          credits_limit), but users only need the combined total. */}
       <div className="mb-6">
-      <SectionGroup label={t('dash.usage.token_pools')}>
+      <SectionGroup label={t('dash.usage.credit_pools')}>
       <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         {(() => {
-          const totalUsed = usage.free_tokens_used + usage.tokens_used;
-          const totalLimit = usage.free_tokens_limit + (usage.tokens_limit ?? 0);
+          const totalUsed = usage.free_credits_used + usage.credits_used;
+          const totalLimit = usage.free_credits_limit + (usage.credits_limit ?? 0);
           const remaining = Math.max(0, totalLimit - totalUsed);
           return (
             <>
               <div className="mb-2 flex justify-between text-xs">
-                <span className="text-[var(--text-secondary)]">Tokens Remaining</span>
+                <span className="text-[var(--text-secondary)]">Credits Remaining</span>
                 {account.tier === 'admin' ? (
                   <span className="font-medium text-[var(--gradient-start)]">{t('dash.usage.unlimited')}</span>
                 ) : (

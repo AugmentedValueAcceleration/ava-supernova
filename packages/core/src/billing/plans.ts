@@ -1,11 +1,16 @@
 // Canonical plan, top-up, and storage add-on definitions used across every
-// Ava surface (web, extension, IDE). Before this file, the extension carried
-// its own divergent copy (e.g. top-ups listed as 2.5M/$5 instead of the
-// canonical 3M/$3), which caused the in-app pricing to drift from what the
-// website actually charged at checkout.
+// Ava surface (web, extension, IDE). Post-credits rename (migration 203):
+// allowances are denominated in Ava Credits, not raw Qwen tokens. Credit
+// cost per action lives in ./credits.ts and is re-exported from this module
+// so every consumer imports from a single path.
 //
 // Everything here is pure data + pure URL builders — no runtime deps, safe
 // to import from any surface that takes @ava/core.
+
+// Re-export the action-cost table + credit helpers so importers of
+// @ava/core/billing can get everything (plans + credit pricing) without
+// chasing sub-paths.
+export * from './credits.js';
 
 export type PlanTier = 'free' | 'pro' | 'ultra' | 'enterprise' | 'admin';
 
@@ -14,8 +19,8 @@ export interface PlanDefinition {
   name: string;
   /** Monthly USD price. Zero for free/admin. */
   price: number;
-  /** Monthly managed-Qwen token allowance. */
-  tokens: number;
+  /** Monthly Ava Credits allowance. */
+  credits: number;
   /** Included cloud storage in GB (before add-ons). */
   storageGb: number;
   /** API requests per minute. */
@@ -28,11 +33,11 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
   free: {
     name: 'Free',
     price: 0,
-    tokens: 3_000_000,
+    credits: 1_500,
     storageGb: 2,
     rateLimit: 20,
     features: [
-      '3M managed Qwen tokens / month',
+      '1,500 credits / month',
       '2 GB cloud storage',
       'All supported models via BYOK',
       'Every surface — extension, IDE, companion',
@@ -41,13 +46,13 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
   pro: {
     name: 'Pro',
     price: 19,
-    tokens: 15_000_000,
+    credits: 15_000,
     storageGb: 50,
     rateLimit: 60,
     features: [
-      '15M managed Qwen tokens / month',
+      '15,000 credits / month',
       '50 GB cloud storage',
-      'Top-up tokens anytime',
+      'Top-up credits anytime',
       '60 requests / minute',
       'Priority support',
     ],
@@ -55,11 +60,11 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
   ultra: {
     name: 'Ultra',
     price: 39,
-    tokens: 40_000_000,
+    credits: 35_000,
     storageGb: 200,
     rateLimit: 120,
     features: [
-      '40M managed Qwen tokens / month',
+      '35,000 credits / month',
       '200 GB cloud storage',
       '120 requests / minute',
       'Highest-priority routing',
@@ -69,11 +74,11 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
   enterprise: {
     name: 'Enterprise',
     price: 79,
-    tokens: 100_000_000,
+    credits: 75_000,
     storageGb: 500,
     rateLimit: 200,
     features: [
-      '100M managed Qwen tokens / month',
+      '75,000 credits / month',
       '500 GB cloud storage',
       '200 requests / minute',
       'SSO + dedicated support',
@@ -83,33 +88,25 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
   admin: {
     name: 'Admin',
     price: 0,
-    tokens: 999_999_999,
+    credits: 999_999_999,
     storageGb: 10_000,
     rateLimit: 999,
     features: [],
   },
 };
 
-export interface TokenTopupDefinition {
-  id: 'tokens_3m' | 'tokens_10m' | 'tokens_25m';
-  tokens: number;
-  price: number;
-  label: string;
-  /** One-line pitch surfaced under the title on purchase cards. */
-  subtitle: string;
-  /** Effective rate for value comparison. Pre-computed so UIs don't
-   *  duplicate the "$X per 1M" maths across surfaces. */
-  effectiveRate: string;
-  /** Flagged in UIs with a subtle "Best value" marker + border
-   *  treatment. Only one per category should carry this. */
-  popular?: boolean;
-}
+// ── Top-up shapes ────────────────────────────────────────────────────────
+// The authoritative top-up catalog lives in credits.ts (CREDIT_TOPUPS +
+// CreditTopupDefinition). Deprecated token-era aliases below keep any
+// import site we haven't migrated compiling.
 
-export const TOKEN_TOPUPS: TokenTopupDefinition[] = [
-  { id: 'tokens_3m',  tokens: 3_000_000,  price: 3,  label: '3M tokens',  subtitle: 'Quick boost',   effectiveRate: '$1.00 per 1M' },
-  { id: 'tokens_10m', tokens: 10_000_000, price: 8,  label: '10M tokens', subtitle: 'Best value',    effectiveRate: '$0.80 per 1M', popular: true },
-  { id: 'tokens_25m', tokens: 25_000_000, price: 15, label: '25M tokens', subtitle: 'Power user',    effectiveRate: '$0.60 per 1M' },
-];
+import { CREDIT_TOPUPS, type CreditTopupDefinition } from './credits.js';
+
+/** @deprecated — use CreditTopupDefinition. */
+export type TokenTopupDefinition = CreditTopupDefinition;
+
+/** @deprecated — use CREDIT_TOPUPS. Points at the same array. */
+export const TOKEN_TOPUPS: CreditTopupDefinition[] = CREDIT_TOPUPS;
 
 export interface StorageAddonDefinition {
   id: '50gb' | '250gb' | '1tb';
@@ -153,9 +150,12 @@ export function upgradeUrl(target: Exclude<PlanTier, 'free' | 'admin'>): string 
 }
 
 /** Pricing page scrolled to the top-up grid. */
-export function tokenTopupUrl(topup: TokenTopupDefinition['id']): string {
-  return `${AVA_SITE_BASE}/pricing?topup=${topup}#tokens`;
+export function creditTopupUrl(topup: CreditTopupDefinition['id']): string {
+  return `${AVA_SITE_BASE}/pricing?topup=${topup}#credits`;
 }
+
+/** @deprecated — use creditTopupUrl. */
+export const tokenTopupUrl = creditTopupUrl;
 
 /** Pricing page scrolled to the storage add-on grid. */
 export function storageAddonUrl(addon: StorageAddonDefinition['id']): string {

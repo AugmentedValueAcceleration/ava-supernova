@@ -408,8 +408,8 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
   // Unified total — free + subscription + top-ups. Backend still burns
   // free pool first then overflows, but users only see the combined
   // number here.
-  const totalUsed = (usage?.free_tokens_used || 0) + (usage?.tokens_used || 0);
-  const totalLimit = (usage?.free_tokens_limit || 0) + (usage?.tokens_limit || 0);
+  const totalUsed = (usage?.free_credits_used || 0) + (usage?.credits_used || 0);
+  const totalLimit = (usage?.free_credits_limit || 0) + (usage?.credits_limit || 0);
   const tokensRemaining = Math.max(0, totalLimit - totalUsed);
   const remainPct = totalLimit > 0 ? Math.min((tokensRemaining / totalLimit) * 100, 100) : 0;
 

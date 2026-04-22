@@ -7,13 +7,13 @@ export interface AccountInfo {
   name: string | null;
   tier: 'free' | 'pro' | 'ultra' | 'enterprise' | 'admin';
   usage: {
-    tokens_used: number;
-    tokens_limit: number | null;
+    credits_used: number;
+    credits_limit: number | null;
     requests_count: number;
     period_start: string | null;
     period_end: string | null;
-    free_tokens_used: number;
-    free_tokens_limit: number;
+    free_credits_used: number;
+    free_credits_limit: number;
   } | null;
   storage?: {
     used_gb: number;
