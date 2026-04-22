@@ -191,6 +191,7 @@
               "",
               "deepseek:deepseek-chat",
               "deepseek:deepseek-reasoner",
+              "kimi:kimi-k2.6",
               "kimi:kimi-k2.5",
               "qwen:qwen3.5-plus",
               "zhipu:glm-5",
@@ -199,6 +200,7 @@
               "mistral:mistral-large-latest",
               "mistral:codestral-latest",
               "mistral:devstral-latest",
+              "anthropic:claude-opus-4-7",
               "anthropic:claude-opus-4-6",
               "anthropic:claude-sonnet-4-6",
               "anthropic:claude-haiku-4-5-20251001"
@@ -208,6 +210,7 @@
               "Qwen Flash — FREE (3M tokens with account), fast and reliable",
               "DeepSeek V3.2 — best value at $0.28/M input, fast general-purpose coding",
               "DeepSeek Reasoner — chain-of-thought reasoning for complex problems",
+              "Kimi K2.6 — SoTA agentic coding (58.6 SWE-Bench Pro), 256K context, multimodal",
               "Kimi K2.5 — 76.8% SWE-Bench, best tool calling, vision, 256K context",
               "Qwen 3.5 Plus — thinking + vision, 256K context, $0.20/M input",
               "GLM-5 — 77.8% SWE-Bench, vision, best tool-call reliability",
@@ -216,7 +219,8 @@
               "Mistral Large — vision, 262K context, strong European model",
               "Codestral — code-specialized, 256K context, optimised for development",
               "Devstral 2 — 262K context, built for agentic coding workflows",
-              "Claude Opus 4.6 — frontier model, vision, 200K context, most capable",
+              "Claude Opus 4.7 — current Anthropic flagship, strongest reasoning",
+              "Claude Opus 4.6 — prior frontier model, vision, 200K context",
               "Claude Sonnet 4.6 — balanced speed and intelligence, vision",
               "Claude Haiku 4.5 — fastest Anthropic model, affordable"
             ],
