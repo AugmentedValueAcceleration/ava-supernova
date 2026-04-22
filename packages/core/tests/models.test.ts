@@ -46,6 +46,14 @@ describe('Model definitions', () => {
       }
     });
 
+    it('kimi-k2.6 supports thinking, vision and tools', () => {
+      const k26 = KIMI_MODELS.find((m) => m.id === 'kimi-k2.6');
+      expect(k26).toBeDefined();
+      expect(k26?.supportsThinking).toBe(true);
+      expect(k26?.supportsVision).toBe(true);
+      expect(k26?.supportsToolCalls).toBe(true);
+    });
+
     it('kimi-k2.5 supports thinking and vision', () => {
       const k2 = KIMI_MODELS.find((m) => m.id === 'kimi-k2.5');
       expect(k2?.supportsThinking).toBe(true);

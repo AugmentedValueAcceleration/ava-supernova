@@ -52,6 +52,7 @@ export const PROVIDERS: ProviderFact[] = [
     name: 'Anthropic',
     kind: 'byok',
     models: [
+      { id: 'claude-opus-4-7', displayName: 'Claude Opus 4.7', inputPricePerM: 5, outputPricePerM: 25, contextWindow: 200_000, capabilities: ['tools', 'vision', 'streaming'] },
       { id: 'claude-opus-4-6', displayName: 'Claude Opus 4.6', inputPricePerM: 5, outputPricePerM: 25, contextWindow: 200_000, capabilities: ['tools', 'vision', 'streaming'] },
       { id: 'claude-sonnet-4-6', displayName: 'Claude Sonnet 4.6', inputPricePerM: 3, outputPricePerM: 15, contextWindow: 200_000, capabilities: ['tools', 'vision', 'streaming'] },
       { id: 'claude-haiku-4-5-20251001', displayName: 'Claude Haiku 4.5', inputPricePerM: 1, outputPricePerM: 5, contextWindow: 200_000, capabilities: ['tools', 'vision', 'streaming'] },
@@ -70,8 +71,9 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'kimi',
     name: 'Kimi (Moonshot AI)',
     kind: 'byok',
-    notes: 'K2.5 reports 76.8% on SWE-Bench with 256K context.',
+    notes: 'K2.6 is SoTA on agentic coding — 58.6 on SWE-Bench Pro (beats Opus 4.6), built for 300-sub-agent orchestration. 256K context.',
     models: [
+      { id: 'kimi-k2.6', displayName: 'Kimi K2.6', inputPricePerM: 0.95, outputPricePerM: 4.00, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'kimi-k2.5', displayName: 'Kimi K2.5', inputPricePerM: 0.60, outputPricePerM: 3.00, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },

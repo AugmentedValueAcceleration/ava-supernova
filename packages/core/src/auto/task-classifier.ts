@@ -4,10 +4,13 @@ import type { ClassificationResult } from './types.js';
 // ─── Model name patterns for user inline overrides ───────────────────────────
 
 const MODEL_ALIASES: Record<string, string> = {
-  // Kimi / Moonshot
-  'kimi': 'kimi-k2.5',
+  // Kimi / Moonshot — 'kimi' / 'k2' / 'moonshot' route to the current flagship K2.6;
+  // legacy 'k2.5' alias kept for users who want to pin the older model explicitly.
+  'kimi': 'kimi-k2.6',
+  'k2': 'kimi-k2.6',
+  'k2.6': 'kimi-k2.6',
   'k2.5': 'kimi-k2.5',
-  'moonshot': 'kimi-k2.5',
+  'moonshot': 'kimi-k2.6',
   // MiniMax
   'm2.7': 'MiniMax-M2.7',
   'm2.5': 'MiniMax-M2.5',
@@ -19,9 +22,11 @@ const MODEL_ALIASES: Record<string, string> = {
   'qwen plus': 'qwen3.5-plus',
   // DeepSeek
   'deepseek': 'deepseek-chat',
-  // Claude
+  // Claude — bare 'opus' routes to current flagship 4.7; legacy '4.6' pin kept.
   'claude': 'claude-sonnet-4-6',
-  'opus': 'claude-opus-4-6',
+  'opus': 'claude-opus-4-7',
+  'opus 4.7': 'claude-opus-4-7',
+  'opus 4.6': 'claude-opus-4-6',
   'sonnet': 'claude-sonnet-4-6',
   'haiku': 'claude-haiku-4-5-20251001',
   // Mistral
