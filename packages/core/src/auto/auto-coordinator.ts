@@ -384,6 +384,13 @@ export class AutoCoordinator {
       });
       if (intent && !intent.needsTeam) {
         logger.info(`[auto-coordinator] Intent gate: direct (${intent.reasoning})`);
+        // An upstream Flash gate has already ruled that no specialist team
+        // is needed. If the coordinator speculatively creates session tasks
+        // during its run, the downstream orchestration gate (which asks the
+        // same Flash model the same question) would be pure redundancy.
+        // Flip the flag so shouldOrchestrate() short-circuits. Saves ~300
+        // tokens + ~2.5s on every direct route that happens to spawn tasks.
+        if (this.sharedState) this.sharedState.conductorSynthesizedThisTurn = true;
         return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
       }
     }
@@ -649,26 +656,28 @@ Should these tasks be executed as a plan? Output yes or no.`;
     // Emit agent start
     this.emitAutoEvent(onEvent, { type: 'auto_agent_start', model: route.model.name, category });
 
-    // Generate focused brief
-    const memories = await this.recallMemories(userMsg.content);
-    const brief = generateBrief(
-      userMsg.content,
-      originalMessages,
-      memories,
-      this.projectInstructions,
-      route.model,
-    );
-
-    // Build system prompt for the task agent
+    // Build system prompt for the task agent. The brief (regex-generated
+    // conversation digest + file pointers) is appended *only* if Conductor
+    // doesn't end up producing a synthesis — synthesis and brief overlap
+    // in purpose, and stacking both costs ~500–800 tokens of redundancy
+    // per spawned task.
     const mode = CATEGORY_TO_MODE[category] || 'work';
     const systemPrompt = buildSystemPrompt({
       ...this.systemPromptOpts,
       mode,
     } as any);
 
-    // Create task conversation with system prompt + brief + user message
+    // Extract the user's task text — same content brief.task would hold,
+    // but without paying for brief generation up-front.
+    const taskText = typeof userMsg.content === 'string'
+      ? userMsg.content
+      : userMsg.content.filter(p => p.type === 'text').map(p => (p as { text: string }).text).join('\n');
+
+    // Create task conversation with L0 system prompt + user message.
+    // The system prompt is re-set with brief appended later if Conductor
+    // doesn't orchestrate.
     const taskConversation = new Conversation();
-    taskConversation.setSystemPrompt(systemPrompt + '\n\n---\n\n' + formatBriefAsSystem(brief));
+    taskConversation.setSystemPrompt(systemPrompt);
 
     // Add the user's actual message
     taskConversation.addUserMessage(userMsg.content);
@@ -705,7 +714,10 @@ Should these tasks be executed as a plan? Output yes or no.`;
       onEvent(event);
     };
 
-    // Run Conductor orchestration if this category needs it
+    // Run Conductor orchestration if this category needs it. When Conductor
+    // produces a synthesis, it stands in for the regex brief — stacking
+    // both is ~500–800 tokens of duplicated context per spawned task.
+    let orchestrated = false;
     if (ORCHESTRATED_CATEGORIES.has(category)) {
       const taskConductor = new Conductor({
         provider: route.provider,
@@ -721,10 +733,10 @@ Should these tasks be executed as a plan? Output yes or no.`;
         sharedState: this.sharedState,
       });
 
-      if (taskConductor.needsOrchestration(brief.task, mode)) {
+      if (taskConductor.needsOrchestration(taskText, mode)) {
         try {
           const { synthesisPrompt } = await taskConductor.orchestrate(
-            brief.task,
+            taskText,
             mode,
             taskConversation.getMessages(),
             (conductorEvent) => {
@@ -738,11 +750,30 @@ Should these tasks be executed as a plan? Output yes or no.`;
             const msgs = taskConversation.getMessages();
             msgs.push({ role: 'user', content: `[Internal Planning]\n\n${synthesisPrompt}` });
             taskConversation.setMessages(msgs);
+            orchestrated = true;
           }
         } catch {
           // Conductor failure is non-fatal — agent proceeds without orchestration
         }
       }
+    }
+
+    // Fallback: if Conductor didn't orchestrate (either category wasn't in
+    // ORCHESTRATED_CATEGORIES, needsOrchestration returned false, or it
+    // threw), append the regex brief so the agent still has conversation
+    // context + file pointers. Brief generation is regex-only — no LLM
+    // call — but ~500–800 tokens in the prompt, so we skip it when
+    // synthesis already grounds the agent.
+    if (!orchestrated) {
+      const memories = await this.recallMemories(userMsg.content);
+      const brief = generateBrief(
+        userMsg.content,
+        originalMessages,
+        memories,
+        this.projectInstructions,
+        route.model,
+      );
+      taskConversation.setSystemPrompt(systemPrompt + '\n\n---\n\n' + formatBriefAsSystem(brief));
     }
 
     // Run the task agent — register it as the active agent so user
