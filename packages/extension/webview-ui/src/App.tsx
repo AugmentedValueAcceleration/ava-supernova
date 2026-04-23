@@ -1,5 +1,5 @@
 import { useReducer, useEffect, useRef, useCallback } from 'react';
-import type { ExtToWebviewMessage, ChatState, UIMessage, ToolCallDisplay, MessageEvent } from './types/messages';
+import type { ExtToWebviewMessage, ChatState, UIMessage, MessageEvent } from './types/messages';
 
 // ── Event timeline helpers ────────────────────────────────────────────────
 // Assistant messages store their chronological timeline in `message.events`.
@@ -30,38 +30,6 @@ function findToolCallEventIndex(events: MessageEvent[], toolCallId: string): num
     if (e.kind === 'tool_call' && e.toolCall.id === toolCallId) return i;
   }
   return -1;
-}
-
-/**
- * Update (or insert) a tool_call event in the events array.
- * If an event for the given tool call ID already exists, its toolCall is
- * merged with the patch. Otherwise a new tool_call event is appended.
- */
-function upsertToolCallEvent(
-  events: MessageEvent[],
-  toolCallId: string,
-  patch: Partial<ToolCallDisplay> & Pick<ToolCallDisplay, 'id'>,
-): MessageEvent[] {
-  const idx = findToolCallEventIndex(events, toolCallId);
-  if (idx >= 0) {
-    const existing = (events[idx] as Extract<MessageEvent, { kind: 'tool_call' }>).toolCall;
-    const next = [...events];
-    next[idx] = { kind: 'tool_call', toolCall: { ...existing, ...patch } };
-    return next;
-  }
-  return [
-    ...events,
-    {
-      kind: 'tool_call',
-      toolCall: {
-        id: toolCallId,
-        name: patch.name || 'unknown',
-        arguments: patch.arguments || '{}',
-        status: patch.status || 'running',
-        ...patch,
-      } as ToolCallDisplay,
-    },
-  ];
 }
 
 /** Update the events array of the message with the given ID. Returns a new messages array. */
@@ -121,7 +89,6 @@ function stripModePrefix(content: string): string {
     if (content.startsWith(p)) {
       // The user's actual message is after the last line of the prefix
       // Find the user's text which was appended at the end
-      const lines = content.split('\n');
       // The actual user text is the last non-empty line(s) after the prefix block
       // Mode prefixes end with a blank line before the user text
       const lastBlankIdx = content.lastIndexOf('\n\n');
@@ -144,6 +111,7 @@ type ChatAction =
   | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string }
   | { type: 'confirmation_responded'; confirmationId: string; approved: boolean }
   | { type: 'clear_sign_in_error' }
+  | { type: 'dismiss_welcome' }
   | { type: 'start_sign_in_local'; method: 'github' | 'email' };
 
 let messageIdCounter = 0;
@@ -912,7 +880,7 @@ export function App() {
 
   // Listen for messages from extension host
   useEffect(() => {
-    const handler = (event: MessageEvent<ExtToWebviewMessage>) => {
+    const handler = (event: globalThis.MessageEvent<ExtToWebviewMessage>) => {
       // Ignore messages from unexpected origins (e.g. browser extensions)
       // Accept vscode-webview:// and vscode-file:// (Electron/WebView2 on Windows)
       if (event.origin && !event.origin.startsWith('vscode-webview://') && !event.origin.startsWith('vscode-file://')) return;
@@ -1026,10 +994,6 @@ export function App() {
 
   const handleOpenDashboard = useCallback(() => {
     postMessage({ type: 'open_dashboard' });
-  }, [postMessage]);
-
-  const handleOpenDocs = useCallback(() => {
-    postMessage({ type: 'open_docs' });
   }, [postMessage]);
 
   const handleOpenHistory = useCallback(() => {
@@ -1146,10 +1110,6 @@ export function App() {
   const handleCloseHistory = useCallback(() => {
     dispatch({ type: 'close_history' });
   }, []);
-
-  const handleOpenMemory = useCallback(() => {
-    postMessage({ type: 'request_memory' });
-  }, [postMessage]);
 
   const handleCloseMemory = useCallback(() => {
     dispatch({ type: 'close_memory' });

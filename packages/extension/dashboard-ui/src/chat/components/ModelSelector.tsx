@@ -76,7 +76,7 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
                      border border-[var(--vscode-input-border)]
                      shadow-[0_4px_12px_rgba(0,0,0,0.4)]"
         >
-          {sorted.filter(m => m.id === 'auto').map(m => (
+          {sorted.filter(m => m.id === 'auto').map(() => (
             <button
               key="auto"
               onClick={() => { onSwitch('auto'); setOpen(false); }}

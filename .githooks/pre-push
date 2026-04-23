@@ -1,57 +1,68 @@
 #!/bin/sh
 # Pre-push typecheck gate for the VS Code extension.
 #
-# Background: v0.48.2 and v0.48.3 both shipped a ReferenceError bug
-# where a scope-level variable was referenced in AvaViewProvider's
-# setupAgent() without being declared. esbuild transpiles the
-# extension without type-checking, so these undefined-identifier
-# references compiled cleanly and only threw at runtime — leaving
-# users with a disabled chat input and zero token display.
+# Two checks, different strictness:
 #
-# This hook runs `pnpm typecheck` against the extension package and
-# fails the push if it finds errors in the specific class of bug:
+#   1. HOST (packages/extension/src/**) — NARROW.
+#      Only blocks on undefined-identifier class errors (TS2304, TS18004).
+#      These compile cleanly under esbuild but throw at runtime. This is the
+#      class of bug that shipped in v0.48.2 / v0.48.3 and cost two hotfixes.
+#      Other pre-existing host errors are intentionally filtered out until
+#      a dedicated host-type cleanup sprint — a strict host gate would block
+#      routine pushes today.
 #
-#   TS2304  — Cannot find name
-#   TS18004 — No value exists in scope for the shorthand property
+#   2. WEBVIEWS (packages/extension/dashboard-ui + webview-ui) — STRICT.
+#      Blocks on ANY type error. Both webviews were fully cleaned by the
+#      mirror-elimination refactor, and now share a single source-of-truth
+#      message-type file via path alias. The gate prevents that from drifting
+#      again.
 #
-# Other pre-existing type errors in the extension (unused locals,
-# private-access violations, message-type narrowing) are filtered
-# out deliberately so this gate doesn't block every push until those
-# are cleaned up.
-#
-# Setup: runs automatically once you've told git to use this hooks
-# directory:
+# Setup: runs automatically once git is told to use this hooks directory:
 #     git config core.hooksPath .githooks
-# Done once per clone. This repo's README lists it under contributor
-# setup.
+# Done once per clone. The repo's README lists it under contributor setup.
 
 set -e
 
-# Only run when there's actually something to check — fresh clones
-# without the extension compiled can still push the monorepo root.
 if [ ! -f packages/extension/package.json ]; then
   exit 0
 fi
 
-echo "[pre-push] Running typecheck on packages/extension..."
-
-OUTPUT=$(cd packages/extension && pnpm typecheck 2>&1 || true)
-
-# Match the undefined-identifier error codes only. Anything else is
-# out of scope for this gate today.
-FILTERED=$(echo "$OUTPUT" | grep -E "error TS2304|error TS18004" || true)
-
-if [ -n "$FILTERED" ]; then
+echo "[pre-push] Typecheck host (narrow: TS2304 / TS18004)..."
+HOST_OUT=$(cd packages/extension && pnpm typecheck 2>&1 || true)
+HOST_FAIL=$(echo "$HOST_OUT" | grep -E "error TS2304|error TS18004" || true)
+if [ -n "$HOST_FAIL" ]; then
   echo ""
-  echo "⛔  Push blocked: undefined identifier(s) detected in the extension."
-  echo "    These compile cleanly under esbuild but throw at runtime."
+  echo "⛔  Push blocked: undefined identifier(s) in the extension host."
+  echo "    These compile under esbuild but throw at runtime."
   echo ""
-  echo "$FILTERED"
+  echo "$HOST_FAIL"
   echo ""
   echo "    Fix the references or add the missing declarations, then re-push."
-  echo "    To bypass in an emergency: git push --no-verify (not recommended)."
+  echo "    Bypass in an emergency: git push --no-verify (not recommended)."
   exit 1
 fi
+echo "[pre-push] ✓ Host: no undefined-identifier errors."
 
-echo "[pre-push] ✓ No undefined-identifier errors."
+echo "[pre-push] Typecheck webviews (strict: any TS error blocks)..."
+WV_OUT=$(cd packages/extension && pnpm typecheck:webviews 2>&1 || true)
+WV_FAIL=$(echo "$WV_OUT" | grep -E "error TS[0-9]+" || true)
+if [ -n "$WV_FAIL" ]; then
+  echo ""
+  echo "⛔  Push blocked: type errors in the webview(s)."
+  echo "    Webview typechecks are strict — the mirror-elimination refactor"
+  echo "    cleaned them to zero and we want to keep them that way."
+  echo ""
+  echo "$WV_FAIL" | head -30
+  COUNT=$(echo "$WV_FAIL" | wc -l | tr -d ' ')
+  if [ "$COUNT" -gt 30 ]; then
+    echo ""
+    echo "    ... and $((COUNT - 30)) more (run 'pnpm -F ava-supernova typecheck:webviews' for the full list)."
+  fi
+  echo ""
+  echo "    Fix the errors and re-push."
+  echo "    Bypass in an emergency: git push --no-verify (not recommended)."
+  exit 1
+fi
+echo "[pre-push] ✓ Webviews: clean."
+
 exit 0

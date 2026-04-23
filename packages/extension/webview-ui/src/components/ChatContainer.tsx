@@ -18,7 +18,7 @@ interface ChatContainerProps {
   messages: UIMessage[];
   isThinking: boolean;
   conductorActive?: boolean;
-  conductorMode?: string;
+  conductorMode?: string | null;
   activePersonas?: PersonaInfo[];
   onConfirmation: (confirmationId: string, approved: boolean, alwaysAllowCategory?: boolean, planSelection?: string, userResponse?: string) => void;
   onContinue: () => void;
@@ -70,7 +70,7 @@ const MODE_INFO = [
   { icon: '**', label: 'Brainstorm', desc: 'welcome.mode.brainstorm_desc' },
 ];
 
-export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onSuggestion, onRate, chatEndRef, needsSetup, consentRequired, onAcceptConsent, initialized, onOpenDashboard, activeModel, models, conductorActive, conductorMode, activePersonas, signInPending, signInError, onStartSignIn, onCancelSignIn, onClearSignInError, contextUsage, isCompressing, isStreaming, onCompress }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onSuggestion, onRate, chatEndRef, needsSetup, consentRequired, onAcceptConsent, initialized, onOpenDashboard, activeModel, models, conductorActive, conductorMode, activePersonas, signInPending, signInError, onStartSignIn, onCancelSignIn, onClearSignInError }: ChatContainerProps) {
   useLocale();
   const [consentChecked, setConsentChecked] = useState(false);
 

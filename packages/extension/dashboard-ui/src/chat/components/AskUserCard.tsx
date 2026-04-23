@@ -76,7 +76,7 @@ export function AskUserCard({ toolCall, onConfirmation }: AskUserCardProps) {
                          hover:bg-[var(--vscode-button-hoverBackground)]
                          border-none cursor-pointer
                          disabled:opacity-40 disabled:cursor-not-allowed"
-              onClick={() => onConfirmation(toolCall.confirmationId!, true, false, false, undefined, response.trim())}
+              onClick={() => onConfirmation(toolCall.confirmationId!, true, false, undefined, response.trim())}
             >
               {t('ask.submit')}
             </button>

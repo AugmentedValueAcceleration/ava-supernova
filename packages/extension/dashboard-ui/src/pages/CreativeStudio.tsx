@@ -538,16 +538,6 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     return () => window.removeEventListener('ava-creative-assets-updated', refresh);
   }, [librarySource]);
 
-  /* ── Auth gate ────────────────────────────────────────────────────── */
-
-  function requiresAuth(): boolean {
-    if (!hasAuth()) {
-      setError('Creative Studio requires a platform account. Connect your account in Settings.');
-      return false;
-    }
-    return true;
-  }
-
   /* ── Image generation ─────────────────────────────────────────────── */
 
   const handleGenerateImage = async () => {

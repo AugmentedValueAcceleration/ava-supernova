@@ -62,7 +62,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   brainstorm: 'input.placeholder.brainstorm',
 };
 
-export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCompressing, onCompress, providerSource, platformStatus, onProviderSourceChange, contextUsage }: InputAreaProps) {
+export function InputArea({ onSend, onCancel, isStreaming, disabled, platformStatus }: InputAreaProps) {
   useLocale();
   const [text, setText] = useState('');
   const [mode, setMode] = useState<AvaMode>('code');
@@ -229,80 +229,6 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
   );
 
   // ── Drag & drop support ───────────────────────────────────────────────────
-
-  // Voice input
-  const [isListening, setIsListening] = useState(false);
-  const [micPermission, setMicPermission] = useState<'prompt' | 'granted' | 'denied'>(() => {
-    const saved = localStorage.getItem('ava-mic-consent');
-    return saved === 'granted' ? 'granted' : saved === 'denied' ? 'denied' : 'prompt';
-  });
-  const [showMicPrompt, setShowMicPrompt] = useState(false);
-  const recognitionRef = useRef<any>(null);
-
-  const startListening = useCallback(() => {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) return;
-
-    const recognition = new SR();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = navigator.language || 'en-US';
-
-    let finalTranscript = '';
-
-    recognition.onresult = (e: any) => {
-      let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const transcript = e.results[i][0].transcript;
-        if (e.results[i].isFinal) {
-          finalTranscript += transcript + ' ';
-        } else {
-          interim = transcript;
-        }
-      }
-      setText(prev => {
-        const base = prev.replace(/\u200B.*$/, '').trimEnd();
-        return (base ? base + ' ' : '') + finalTranscript + interim;
-      });
-      handleInput();
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-      recognitionRef.current = null;
-      textareaRef.current?.focus();
-    };
-
-    recognition.onerror = (e: any) => {
-      setIsListening(false);
-      recognitionRef.current = null;
-      if (e.error === 'not-allowed') {
-        setMicPermission('denied');
-        localStorage.setItem('ava-mic-consent', 'denied');
-      }
-    };
-
-    recognitionRef.current = recognition;
-    finalTranscript = '';
-    recognition.start();
-    setIsListening(true);
-    localStorage.setItem('ava-mic-consent', 'granted');
-    setMicPermission('granted');
-  }, [handleInput]);
-
-  const toggleVoice = useCallback(() => {
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-      return;
-    }
-    if (micPermission === 'prompt' && !localStorage.getItem('ava-mic-consent')) {
-      setShowMicPrompt(true);
-      return;
-    }
-    if (micPermission === 'denied') return;
-    startListening();
-  }, [isListening, micPermission, startListening]);
 
   const [isDragOver, setIsDragOver] = useState(false);
 

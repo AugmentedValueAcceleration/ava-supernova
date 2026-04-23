@@ -3,17 +3,10 @@ import type {
   ExtToDashboardMessage,
   ChatState,
   UIMessage,
-  ToolCallDisplay,
   MessageEvent,
-  ChatModel,
-  ProviderSource,
-  ChatPlatformStatus,
-  MemoryEntryUI,
-  TodayTaskUI,
-  SessionTaskUI,
-  AvaCompletedTaskUI,
+  Page,
+  AvaMode,
 } from '../types/messages';
-import type { AvaMode } from '../types/messages';
 import { ChatContainer } from '../chat/components/ChatContainer';
 import { ContextBar } from '../chat/components/ContextBar';
 import { InputArea } from '../chat/components/InputArea';
@@ -51,7 +44,8 @@ type ChatAction =
   | { type: 'close_tasks' }
   | { type: 'set_tasks_width'; width: number }
   | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string }
-  | { type: 'confirmation_responded'; confirmationId: string; approved: boolean };
+  | { type: 'confirmation_responded'; confirmationId: string; approved: boolean }
+  | { type: 'remove_last_error' };
 
 let messageIdCounter = 0;
 function nextId(): string {
@@ -698,7 +692,7 @@ export interface ChatPageProps {
   /** Which side the sidebar is on */
   sidebarSide?: 'left' | 'right';
   /** Navigate to a dashboard page */
-  onNavigate?: (page: string) => void;
+  onNavigate?: (page: Page) => void;
 }
 
 export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCollapsed, onFlipSidebar, sidebarSide, onNavigate }: ChatPageProps) {
@@ -899,7 +893,6 @@ export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCol
 
   const handleCloseHistory = useCallback(() => { dispatch({ type: 'close_history' }); }, []);
 
-  const handleOpenMemory = useCallback(() => { post({ type: 'request_memory' }); }, []);
   const handleCloseMemory = useCallback(() => { dispatch({ type: 'close_memory' }); }, []);
 
   const handleToggleTasks = useCallback(() => {

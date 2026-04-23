@@ -1,4 +1,7 @@
-// ─── Shared Types ────────────────────────────────────────────────────────────
+// ─── Shared type definitions ─────────────────────────────────────────────────
+// Single source of truth for messages between the extension host and the
+// chat webview. The webview-ui imports this file directly via a path alias
+// (@ava-extension/messages) so drift is impossible.
 
 export type ProviderSource = 'platform' | 'byok';
 
@@ -11,9 +14,13 @@ export interface PlatformStatus {
   freeTokensLimit: number;
   subTokensUsed: number;
   subTokensLimit: number | null;
-  warning: WarningLevel;
-  warningPct: number;
-  warningMessage: string;
+  /**
+   * Optional warning fields — populated by the host when platform usage is
+   * approaching / at / beyond a limit. Absent on early inits and BYOK paths.
+   */
+  warning?: WarningLevel;
+  warningPct?: number;
+  warningMessage?: string;
 }
 
 // ─── Extension Host → Webview ────────────────────────────────────────────────
@@ -53,6 +60,13 @@ export type ExtToWebviewMessage =
   | {
       type: 'tool_confirmation_request';
       confirmationId: string;
+      /**
+       * Model-assigned tool_call ID. The reducer matches by this exact ID
+       * so confirmation cards attach to the right tool call instance even
+       * when multiple are in flight or when timing races make the broad
+       * name/status match unreliable.
+       */
+      toolCallId?: string;
       toolName: string;
       toolCategory?: string;
       args: Record<string, unknown>;
@@ -96,10 +110,10 @@ export type ExtToWebviewMessage =
   | { type: 'system_message'; content: string }
   | { type: 'ping' }
   | { type: 'interjection_ack'; content: string }
-  | { type: 'today_tasks'; tasks: Array<{ id: string; title: string; priority: string; status: string; dueDate?: string; category: string }> }
-  | { type: 'all_tasks'; tasks: Array<{ id: string; title: string; priority: string; status: string; dueDate?: string; category: string }> }
-  | { type: 'session_tasks'; tasks: Array<{ id: string; title: string; status: string }> }
-  | { type: 'ava_completed_tasks'; tasks: Array<{ id: string; title: string; completedAt: string }> }
+  | { type: 'today_tasks'; tasks: TodayTaskUI[] }
+  | { type: 'all_tasks'; tasks: TodayTaskUI[] }
+  | { type: 'session_tasks'; tasks: SessionTaskUI[] }
+  | { type: 'ava_completed_tasks'; tasks: AvaCompletedTaskUI[] }
   | { type: 'conductor_status'; active: boolean; mode?: string }
   | { type: 'persona_status'; persona: string; phase: 'active' | 'complete' | 'error'; description?: string; output?: string }
   | { type: 'persona_tool_call'; persona: string; tool: string }
@@ -130,7 +144,38 @@ export type ExtToWebviewMessage =
   | { type: 'memories_refreshed'; global: number; project: number; error?: string }
   | { type: 'tasks_refreshed'; count: number; error?: string }
   | { type: 'journal_refreshed'; count: number; error?: string }
-  | { type: 'history_refreshed'; count: number; error?: string };
+  | { type: 'history_refreshed'; count: number; error?: string }
+  // Partial tool output chunks streamed during tool execution (bash stdout,
+  // file edit diff previews, etc). Consumer appends to the matching
+  // tool_call_start bubble identified by toolCallId.
+  | { type: 'tool_call_partial'; toolCallId: string; data: string }
+  // Secret vault prompt cleared by the host (e.g. user cancelled or a grant
+  // resolved). Webview removes the active grant UI on receipt.
+  | { type: 'clear_secret_grant' };
+
+/** Task entry for today panel display. */
+export interface TodayTaskUI {
+  id: string;
+  title: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent' | string;
+  status: 'todo' | 'in-progress' | 'done' | string;
+  dueDate?: string;
+  category: string;
+}
+
+/** Session task from Ava's active work. */
+export interface SessionTaskUI {
+  id: string;
+  title: string;
+  status: 'pending' | 'in_progress' | 'completed' | string;
+}
+
+/** Completed task from Ava's past sessions in this project. */
+export interface AvaCompletedTaskUI {
+  id: string;
+  title: string;
+  completedAt: string;
+}
 
 /** Structured memory entry for webview display. */
 export interface MemoryEntryUI {
@@ -213,7 +258,158 @@ export type WebviewToExtMessage =
   | { type: 'request_all_tasks' }
   | { type: 'toggle_task'; taskId: string }
   | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; model?: string; mode?: string }
+  | { type: 'save_secrets'; secrets: Array<{ id: string; label: string; value: string }> }
   | { type: 'accept_consent' }
   // OAuth sign-in flow (v0.37.0)
   | { type: 'start_sign_in'; method: 'github' | 'email' }
   | { type: 'cancel_sign_in' };
+
+// ─── Webview UI state types ──────────────────────────────────────────────────
+// Shapes that live entirely inside the chat webview (reducer state, bubble
+// rendering). Kept here so the host can reference them where needed, but
+// they never cross the postMessage boundary.
+
+export interface ToolCallDisplay {
+  id: string;
+  name: string;
+  arguments: string;
+  status: 'pending_confirmation' | 'running' | 'success' | 'failed';
+  result?: string;
+  /** Live output chunks streamed via tool_call_partial (bash stdout, file edit diff previews, etc). */
+  partialOutput?: string;
+  confirmationId?: string;
+  summary?: string;
+  /** Tool's own schema description — shown beneath the summary on confirmation cards. */
+  toolDescription?: string;
+  isAskUser?: boolean;
+}
+
+/**
+ * A single event in an assistant message's chronological timeline.
+ *
+ * Each turn (between two user messages) produces one assistant UIMessage.
+ * That message contains an ordered array of events showing exactly what
+ * happened in sequence: thinking → text → tool call → thinking → text etc.
+ *
+ * Consecutive events of the same kind are merged so the UI doesn't render
+ * 200 individual thinking chunks — one thinking event grows as new deltas
+ * arrive, and a new thinking event only starts when a non-thinking event
+ * breaks the run.
+ */
+export type MessageEvent =
+  | { kind: 'thinking'; content: string }
+  | { kind: 'text'; content: string }
+  | { kind: 'tool_call'; toolCall: ToolCallDisplay };
+
+export interface UIMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'error' | 'system';
+  /**
+   * Simple text body. Used for user, system, error messages. For legacy
+   * assistant messages loaded from old conversation history this may
+   * hold the full concatenated text — new assistant messages use `events`.
+   */
+  content: string;
+  /**
+   * Legacy field — kept for loaded history compatibility. New assistant
+   * messages from this session put thinking inside `events` as a
+   * `thinking` event so it can appear chronologically interleaved with
+   * text and tool calls.
+   */
+  thinking?: string;
+  images?: string[];
+  /**
+   * Legacy field — kept for loaded history compatibility. New assistant
+   * messages put tool calls inside `events` as `tool_call` events so
+   * they render in-order in the timeline.
+   */
+  toolCalls: ToolCallDisplay[];
+  /**
+   * Canonical chronological timeline for assistant messages.
+   *
+   * When present, MessageBubble renders this instead of the legacy
+   * content/thinking/toolCalls fields. The reducer creates one
+   * assistant UIMessage per user turn and accumulates events into this
+   * array as the agent streams through think → tool → text → think → ...
+   *
+   * Undefined for user/system/error messages (they only use `content`)
+   * and for legacy assistant history messages loaded from disk before
+   * this refactor (they use the legacy fields above).
+   */
+  events?: MessageEvent[];
+  isStreaming: boolean;
+  errorCode?: string;
+  errorSuggestion?: string;
+  timestamp?: number;
+  rating?: 'up' | 'down';
+  ratingReason?: string;
+}
+
+export interface ChatState {
+  messages: UIMessage[];
+  /**
+   * ID of the assistant message currently being built in the active turn.
+   * Set when the first stream_start of a turn creates the bubble, and
+   * cleared on `done` so the next turn creates a fresh bubble. While set,
+   * all streaming events (stream_delta, thinking_delta, tool_call_*) append
+   * to this single bubble's events array instead of spawning new bubbles.
+   */
+  currentAssistantId: string | null;
+  models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;
+  activeModel: string | null;
+  isStreaming: boolean;
+  isThinking: boolean;
+  needsSetup: boolean;
+  consentRequired: boolean;
+  initialized: boolean;
+  /** Sign-in state — v0.37.0 OAuth flow */
+  signInPending: 'github' | 'email' | null;
+  signInError: string | null;
+  signInAccount: { id: string; email?: string; name?: string; avatar_url?: string; tier?: string } | null;
+  /** Active secret-grant prompt (slice 2 of vault overhaul). One at a time. */
+  pendingSecretGrant: {
+    grantId: string;
+    label: string;
+    reason?: string;
+    candidates: Array<{ id: string; label: string; provider?: string; createdAt?: string }>;
+  } | null;
+  lastUsage: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+    cost?: number;
+    contextWindow?: number;
+  } | null;
+  contextUsage: { used: number; limit: number; percent: number } | null;
+  isCompressing: boolean;
+  historyOpen: boolean;
+  historyList: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }>;
+  currentConversationId: string | null;
+  providerSource: ProviderSource;
+  platformStatus: PlatformStatus | null;
+  memoryOpen: boolean;
+  memoryGlobal: MemoryEntryUI[];
+  memoryProject: MemoryEntryUI[];
+  tasksOpen: boolean;
+  todayTasks: TodayTaskUI[];
+  allTasks: TodayTaskUI[];
+  sessionTasks: SessionTaskUI[];
+  avaCompletedTasks: AvaCompletedTaskUI[];
+  tasksPanelWidth: number;
+  /** One-shot first-run banner shown after init until the user dismisses it. */
+  showWelcome: boolean;
+  /** True while the Conductor is orchestrating a multi-persona turn. */
+  conductorActive: boolean;
+  /** Optional mode label surfaced by the conductor ("work", "plan", etc). */
+  conductorMode?: string | null;
+  /** Per-persona state for the conductor status block. */
+  activePersonas: Array<{
+    id: string;
+    phase: 'active' | 'complete' | 'error';
+    description?: string;
+    output?: string;
+    tools?: Array<{ name: string; done: boolean; success?: boolean }>;
+  }>;
+  /** Running total of credits consumed in the current session (UI display only). */
+  sessionCredits?: number;
+}

@@ -7,21 +7,10 @@ import { ConnectAccount } from './pages/ConnectAccount';
 import { Overview } from './pages/Overview';
 import { Usage } from './pages/Usage';
 import { Memory } from './pages/Memory';
-import { Connections } from './pages/Connections';
 import { History } from './pages/History';
-import { Support } from './pages/Support';
-import { Billing } from './pages/Billing';
-import { Settings } from './pages/Settings';
 import { AdminSupport } from './pages/AdminSupport';
 import { AdminProposals } from './pages/AdminProposals';
-import { Tasks } from './pages/Tasks';
-import { Journal } from './pages/Journal';
-import { Learning } from './pages/Learning';
-import { Sync } from './pages/Sync';
-import { Releases } from './pages/Releases';
-import { Roadmap } from './pages/Roadmap';
 import { Library } from './pages/Library';
-import { Personality } from './pages/Personality';
 import { Chat } from './pages/Chat';
 import { Planner } from './pages/Planner';
 // LearningLibrary is no longer rendered directly — it's composed inside
@@ -129,10 +118,10 @@ export function App() {
     anthropic: false, deepseek: false, kimi: false, glm: false, qwen: false, mistral: false, xiaomi: false,
   });
   const [usageLogs, setUsageLogs] = useState<UsageLogEntry[]>([]);
-  const [conversations, setConversations] = useState<ConversationEntry[]>([]);
-  const [conversationsLoading, setConversationsLoading] = useState(false);
-  const [tickets, setTickets] = useState<SupportTicket[]>([]);
-  const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [, setConversations] = useState<ConversationEntry[]>([]);
+  const [, setConversationsLoading] = useState(false);
+  const [, setTickets] = useState<SupportTicket[]>([]);
+  const [, setTicketsLoading] = useState(false);
   const [byokMode, setByokMode] = useState(false);
   const [localMemories, setLocalMemories] = useState<MemoryEntry[]>([]);
   const [tasks, setTasks] = useState<DashboardTaskEntry[]>(() => {
@@ -157,9 +146,9 @@ export function App() {
   const [supportLoading, setSupportLoading] = useState(false);
   const [supportUnread, setSupportUnread] = useState(0);
   // Admin state
-  const [adminTickets, setAdminTickets] = useState<SupportTicket[]>([]);
-  const [adminTicketsTotal, setAdminTicketsTotal] = useState(0);
-  const [adminTicketsLoading, setAdminTicketsLoading] = useState(false);
+  const [, setAdminTickets] = useState<SupportTicket[]>([]);
+  const [, setAdminTicketsTotal] = useState(0);
+  const [, setAdminTicketsLoading] = useState(false);
   const [adminConversations, setAdminConversations] = useState<SupportConversation[]>([]);
   const [adminConversationsLoading, setAdminConversationsLoading] = useState(false);
   const [adminConversationMessages, setAdminConversationMessages] = useState<Record<string, SupportConversationMessage[]>>({});

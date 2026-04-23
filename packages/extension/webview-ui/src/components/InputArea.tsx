@@ -62,7 +62,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   brainstorm: 'input.placeholder.brainstorm',
 };
 
-export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCompressing, onCompress, providerSource, platformStatus, onProviderSourceChange, contextUsage }: InputAreaProps) {
+export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSource, platformStatus, onProviderSourceChange }: InputAreaProps) {
   useLocale();
   const [text, setText] = useState('');
   const [mode, setMode] = useState<AvaMode>('code');

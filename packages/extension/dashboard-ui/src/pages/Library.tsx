@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocale } from '../i18n';
 import { post } from '../App';
-import type { LibraryImage, LibraryPath, LibraryPathDetail, CreativeAsset } from '../types/messages';
+import type { LibraryImage, LibraryPath, LibraryPathDetail, CreativeAsset, Page } from '../types/messages';
 import { LearningLibrary } from './LearningLibrary';
 
 /**
@@ -25,7 +25,7 @@ interface Props {
   /** Courses from the Learning Library backend (/api/learning/library). */
   paths: LibraryPath[];
   pathDetail: LibraryPathDetail | null;
-  onNavigate: (page: string) => void;
+  onNavigate: (page: Page) => void;
   /** Cloud-synced creative assets from /api/creative-assets. */
   cloudAssets: CreativeAsset[];
   cloudAssetsLoading?: boolean;

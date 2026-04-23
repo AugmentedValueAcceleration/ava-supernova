@@ -14,7 +14,7 @@ interface PersonaInfo {
 
 interface PersonaStatusProps {
   active: boolean;
-  mode?: string;
+  mode?: string | null;
   personas: PersonaInfo[];
 }
 

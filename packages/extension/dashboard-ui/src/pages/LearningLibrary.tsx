@@ -2,18 +2,20 @@ import { useState, useMemo } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import { Select } from '../components/Select';
-import type { LibraryPath, LibraryPathDetail } from '../types/messages';
+import type { LibraryPath, LibraryPathDetail, Page } from '../types/messages';
 
-const levelColors: Record<string, string> = {
-  beginner: 'color: #34d399; background: rgba(52,211,153,0.1)',
-  intermediate: 'color: #60a5fa; background: rgba(96,165,250,0.1)',
-  advanced: 'color: #fbbf24; background: rgba(251,191,36,0.1)',
-  mixed: 'color: #a78bfa; background: rgba(167,139,250,0.1)',
+type ColorPair = { color: string; background: string };
+
+const levelColors: Record<string, ColorPair> = {
+  beginner:     { color: '#34d399', background: 'rgba(52,211,153,0.1)' },
+  intermediate: { color: '#60a5fa', background: 'rgba(96,165,250,0.1)' },
+  advanced:     { color: '#fbbf24', background: 'rgba(251,191,36,0.1)' },
+  mixed:        { color: '#a78bfa', background: 'rgba(167,139,250,0.1)' },
 };
 
-const sourceColors: Record<string, string> = {
-  curated: 'color: #a855f7; background: rgba(168,85,247,0.1)',
-  community: 'color: #60a5fa; background: rgba(96,165,250,0.1)',
+const sourceColors: Record<string, ColorPair> = {
+  curated:   { color: '#a855f7', background: 'rgba(168,85,247,0.1)' },
+  community: { color: '#60a5fa', background: 'rgba(96,165,250,0.1)' },
 };
 
 const typeIcons: Record<string, string> = {
@@ -25,10 +27,10 @@ type SortOption = 'popular' | 'newest' | 'rating';
 interface Props {
   paths: LibraryPath[];
   detail: LibraryPathDetail | null;
-  onNavigate: (page: string) => void;
+  onNavigate: (page: Page) => void;
 }
 
-export function LearningLibrary({ paths, detail, onNavigate }: Props) {
+export function LearningLibrary({ paths, detail }: Props) {
   useLocale();
   const [search, setSearch] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('all');
@@ -94,10 +96,10 @@ export function LearningLibrary({ paths, detail, onNavigate }: Props) {
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-          <span style={{ cssText: sourceColors[selected.source] || '', padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>
+          <span style={{ ...(sourceColors[selected.source] || {}), padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>
             {selected.source === 'curated' ? t('dash.learning_library.curated') : t('dash.learning_library.community')}
           </span>
-          <span style={{ cssText: levelColors[selected.level] || '', padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>
+          <span style={{ ...(levelColors[selected.level] || {}), padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, textTransform: 'uppercase' }}>
             {selected.level}
           </span>
           {selected.subject && (

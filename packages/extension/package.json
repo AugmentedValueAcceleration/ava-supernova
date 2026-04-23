@@ -416,6 +416,8 @@
     "dev:extension": "node esbuild.config.mjs --watch",
     "package": "pnpm build && npx @vscode/vsce package --no-dependencies",
     "typecheck": "tsc --noEmit",
+    "typecheck:webviews": "cd dashboard-ui && tsc --noEmit && cd ../webview-ui && tsc --noEmit",
+    "typecheck:all": "pnpm typecheck && pnpm typecheck:webviews",
     "lint": "eslint src"
   },
   "dependencies": {

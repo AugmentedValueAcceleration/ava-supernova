@@ -23,9 +23,7 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
   const [importFiles, setImportFiles] = useState<Array<{ name: string; dataType: string; content: string; size: number }>>([]);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<string | null>(null);
-  const dropRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Close on outside click
   useEffect(() => {
@@ -128,28 +126,6 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
     } catch { /* not JSON */ }
     return 'unknown';
   };
-
-  const handleFiles = useCallback((files: FileList) => {
-    const newFiles: typeof importFiles = [];
-    for (const file of Array.from(files)) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const content = reader.result as string;
-        const dataType = detectDataType(content, file.name);
-        newFiles.push({ name: file.name, dataType, content, size: file.size });
-        if (newFiles.length === files.length) {
-          setImportFiles(prev => [...prev, ...newFiles]);
-        }
-      };
-      reader.readAsText(file);
-    }
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files);
-  }, [handleFiles]);
 
   const handleImportAll = useCallback(() => {
     setImporting(true);

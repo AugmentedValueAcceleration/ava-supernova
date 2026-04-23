@@ -273,7 +273,6 @@ export function MemoryPanel({
               <MemoryEntryCard
                 key={entry.id}
                 entry={entry}
-                scope={scopeTab}
                 isArchived={viewMode === 'archived'}
                 confirmDelete={confirmDelete === entry.id}
                 onArchive={() => onArchive(scopeTab, entry.id)}
@@ -329,7 +328,6 @@ function getDisplayContent(content: string): string {
 
 function MemoryEntryCard({
   entry,
-  scope,
   isArchived,
   confirmDelete,
   onArchive,
@@ -337,7 +335,6 @@ function MemoryEntryCard({
   onDelete,
 }: {
   entry: MemoryEntryUI;
-  scope: ScopeTab;
   isArchived: boolean;
   confirmDelete: boolean;
   onArchive: () => void;

@@ -1,5 +1,7 @@
 // ─── Shared type definitions ─────────────────────────────────────────────────
-// IMPORTANT: Keep in sync with dashboard-ui/src/types/messages.ts
+// Single source of truth for messages between the extension host and the
+// dashboard webview. The dashboard-ui webview imports this file directly via
+// a path alias (@ava-extension/messages) so drift is impossible.
 
 export interface AccountInfo {
   id: string;
@@ -53,6 +55,43 @@ export interface MemoryEntry {
   archived_at?: string | null;
   branch?: string | null;
   directory_scope?: string | null;
+  // v3 graph fields
+  confidence?: number;
+  confidence_source?: string;
+  source?: string;
+  archived_reason?: string | null;
+  reinforcement_count?: number;
+}
+
+/** v3 graph stats for the dashboard memory health display. */
+export interface GraphStats {
+  activeNodes: number;
+  archivedNodes: number;
+  edges: number;
+  avgConfidence: number;
+  categories: Record<string, number>;
+  contradictions: number;
+  proceduralPatterns: number;
+  crystallisedPatterns: number;
+}
+
+/** v3 contradiction pair for resolution UI. */
+export interface ContradictionPair {
+  nodeA: MemoryEntry;
+  nodeB: MemoryEntry;
+  similarity: number;
+  edgeId: string;
+}
+
+/** v3 procedural pattern for the learned patterns display. */
+export interface ProceduralPatternUI {
+  id: string;
+  taskType: string;
+  toolSequence: string[];
+  observationCount: number;
+  confidence: number;
+  crystallised: boolean;
+  lastObservedAt: string;
 }
 
 export interface ConnectionStatus {
@@ -267,6 +306,46 @@ export interface DashboardLearningCurriculum {
   updated_at: string;
 }
 
+// ─── Learning Library Types ─────────────────────────────────────────────────
+
+export interface LibraryPath {
+  id: string;
+  title: string;
+  description: string | null;
+  subject: string;
+  level: string;
+  tags: string[];
+  goal: string | null;
+  prerequisites: string | null;
+  estimated_hours: number | null;
+  learning_objectives: string[];
+  target_audience: string | null;
+  source: 'curated' | 'community';
+  author_name: string | null;
+  fork_count: number;
+  completion_count: number;
+  rating_sum: number;
+  rating_count: number;
+  average_rating: number | null;
+  created_at: string;
+  published_at: string | null;
+}
+
+export interface LibraryPathDetail extends LibraryPath {
+  content: {
+    modules: Array<{
+      title: string;
+      description?: string;
+      lessons: Array<{
+        title: string;
+        type: string;
+        difficulty?: string;
+        content?: string;
+      }>;
+    }>;
+  };
+}
+
 // ─── Release Notes ──────────────────────────────────────────────────────────
 
 export interface ReleaseNote {
@@ -313,20 +392,189 @@ export interface UsageHistoryData {
   totalSessions: number;
 }
 
-export type Page = 'overview' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'creative-studio' | 'library' | 'personality' | 'sync' | 'releases' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals' | 'planner' | 'account' | 'help' | 'chat';
+export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'creative-studio' | 'library' | 'personality' | 'sync' | 'releases' | 'roadmap' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals' | 'planner' | 'account' | 'help' | 'documentation';
+
+// ─── Chat UI Types ──────────────────────────────────────────────────────────
+
+export type ProviderSource = 'platform' | 'byok';
+export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm';
+
+export interface ChatPlatformStatus {
+  connected: boolean;
+  tier: string | null;
+  freeTokensUsed: number;
+  freeTokensLimit: number;
+  subTokensUsed: number;
+  subTokensLimit: number | null;
+}
+
+export interface ToolCallDisplay {
+  id: string;
+  name: string;
+  arguments: string;
+  status: 'pending_confirmation' | 'running' | 'success' | 'failed';
+  result?: string;
+  /** Live output chunks streamed via tool_call_partial (bash stdout, file edit diff previews, etc). */
+  partialOutput?: string;
+  confirmationId?: string;
+  summary?: string;
+  isAskUser?: boolean;
+}
+
+/**
+ * A single event in an assistant message's chronological timeline.
+ * See webview-ui types for full docs — same model, mirrored here because
+ * dashboard-ui is a separate React app with its own type copy.
+ */
+export type MessageEvent =
+  | { kind: 'thinking'; content: string }
+  | { kind: 'text'; content: string }
+  | { kind: 'tool_call'; toolCall: ToolCallDisplay };
+
+export interface UIMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'error' | 'system';
+  content: string;
+  thinking?: string;
+  images?: string[];
+  toolCalls: ToolCallDisplay[];
+  /**
+   * Canonical chronological timeline for assistant messages.
+   * When present, MessageBubble renders this instead of the legacy
+   * content/thinking/toolCalls fields. One assistant UIMessage per user
+   * turn; events accumulate as the agent streams through think → tool →
+   * text → think → ... within a single turn.
+   */
+  events?: MessageEvent[];
+  isStreaming: boolean;
+  errorCode?: string;
+  errorSuggestion?: string;
+  timestamp?: number;
+  rating?: 'up' | 'down';
+  ratingReason?: string;
+}
+
+export interface MemoryEntryUI {
+  id: string;
+  category: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  lastRecalledAt: string | null;
+  recallCount: number;
+  tags?: string[];
+  archived?: boolean;
+  archivedAt?: string | null;
+  branch?: string | null;
+}
+
+export interface TodayTaskUI {
+  id: string;
+  title: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: 'todo' | 'in-progress' | 'done';
+  dueDate?: string;
+  category: string;
+}
+
+export interface SessionTaskUI {
+  id: string;
+  title: string;
+  status: 'pending' | 'in_progress' | 'completed';
+}
+
+export interface AvaCompletedTaskUI {
+  id: string;
+  title: string;
+  completedAt: string;
+}
+
+export interface ChatModel {
+  id: string;
+  name: string;
+  provider: string;
+  supportsVision?: boolean;
+  available: boolean;
+}
+
+export interface ChatState {
+  messages: UIMessage[];
+  /** ID of the assistant bubble currently being built in the active turn. Cleared on done/error/user_message_ack. */
+  currentAssistantId: string | null;
+  models: ChatModel[];
+  activeModel: string | null;
+  isStreaming: boolean;
+  isThinking: boolean;
+  needsSetup: boolean;
+  initialized: boolean;
+  lastUsage: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+    cost?: number;
+    contextWindow?: number;
+  } | null;
+  contextUsage: { used: number; limit: number; percent: number } | null;
+  isCompressing: boolean;
+  historyOpen: boolean;
+  historyList: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }>;
+  currentConversationId: string | null;
+  providerSource: ProviderSource;
+  platformStatus: {
+    connected: boolean;
+    tier: string | null;
+    freeTokensUsed: number;
+    freeTokensLimit: number;
+    subTokensUsed: number;
+    subTokensLimit: number | null;
+  } | null;
+  memoryOpen: boolean;
+  memoryGlobal: MemoryEntryUI[];
+  memoryProject: MemoryEntryUI[];
+  tasksOpen: boolean;
+  todayTasks: TodayTaskUI[];
+  allTasks: TodayTaskUI[];
+  sessionTasks: SessionTaskUI[];
+  avaCompletedTasks: AvaCompletedTaskUI[];
+  tasksPanelWidth: number;
+  sessionCredits: number;
+  conductorActive: boolean;
+  conductorMode?: string | null;
+  activePersonas: Array<{
+    id: string;
+    phase: 'active' | 'complete' | 'error';
+    description?: string;
+    output?: string;
+    tools?: Array<{ name: string; done: boolean; success?: boolean }>;
+  }>;
+}
 
 // Library (project files — images, documents, spreadsheets)
-export type LibraryFileType = 'image' | 'document' | 'spreadsheet';
+export type LibraryFileType = 'image' | 'document' | 'spreadsheet' | 'audio' | 'video';
 
 export interface LibraryImage {
-  path: string;
-  name: string;
-  folder: string;
-  size: number;
-  modified: string;
-  dimensions?: string;
-  fileType?: LibraryFileType;
-  dataUri?: string;
+  path: string;         // Relative path from project root (e.g. "images/icons/settings.png")
+  name: string;         // Filename
+  folder: string;       // Parent folder (e.g. "images/icons")
+  size: number;         // File size in bytes
+  modified: string;     // ISO date string
+  dimensions?: string;  // "1024x1024" if detectable
+  fileType?: LibraryFileType;  // File category (defaults to 'image' for backwards compat)
+  dataUri?: string;     // Base64 data URI for display in webview
+}
+
+/** Cloud-synced creative asset row returned by /api/creative-assets GET.
+ *  Shape matches the select in packages/web/src/app/api/creative-assets/route.ts. */
+export interface CreativeAsset {
+  id: string;
+  type?: string;            // legacy column, historical values ('image' | 'post' | etc.)
+  asset_type?: string;      // newer column, matches ALLOWED_ASSET_TYPES on the server
+  title?: string | null;
+  prompt?: string | null;
+  url?: string | null;         // public storage URL
+  thumbnail_url?: string | null;
+  source?: string | null;      // e.g. "Creative Studio", "Chat"
+  created_at: string;
 }
 
 // ─── Extension Host → Dashboard Webview ──────────────────────────────────────
@@ -341,9 +589,17 @@ export type ExtToDashboardMessage =
       locale: string;
     }
   | { type: 'account_updated'; account: AccountInfo | null }
+  | { type: 'dataset:config'; config: {
+      enabled: boolean;
+      capture_modes: string[];
+      capture_datasets: string[];
+      redact_patterns: string[];
+      min_trajectory_length: number;
+    } }
   | { type: 'provider_keys_updated'; providerKeys: ProviderKeyStatus }
   | { type: 'sync_prefs_loaded'; prefs: Record<string, boolean> }
-  | { type: 'memories_loaded'; memories: MemoryEntry[] }
+  | { type: 'memories_loaded'; memories: MemoryEntry[]; total?: number; hasMore?: boolean }
+  | { type: 'memories_more_loaded'; memories: MemoryEntry[]; total?: number; hasMore?: boolean }
   | { type: 'memory_deleted'; id: string }
   | { type: 'memory_upserted'; memory: MemoryEntry }
   | { type: 'connection_tested'; service: string; success: boolean; message: string }
@@ -389,6 +645,18 @@ export type ExtToDashboardMessage =
   | { type: 'session_tasks_updated'; tasks: Array<{ id: string; title: string; status: 'pending' | 'in_progress' | 'completed' }> }
   // Learning messages
   | { type: 'learning_loaded'; curriculums: DashboardLearningCurriculum[] }
+  | { type: 'curriculum_deleted'; id: string }
+  // Learning Library messages
+  | { type: 'library_paths_loaded'; paths: LibraryPath[]; total: number }
+  | { type: 'library_path_detail_loaded'; path: LibraryPathDetail }
+  | { type: 'library_path_forked'; curriculumId: string; title: string }
+  | { type: 'library_path_published'; pathId: string; status: string; message: string }
+  | { type: 'library_path_rated'; pathId: string; rating: number }
+  | { type: 'task_dates_loaded'; dates: string[] }
+  // Avatar messages
+  | { type: 'avatar_loaded'; dataUrl: string }
+  | { type: 'avatar_saved'; dataUrl: string }
+  | { type: 'avatar_removed' }
   // Sync messages
   | { type: 'sync_status'; data: SyncStatus }
   | { type: 'sync_started'; dataType: string }
@@ -399,6 +667,9 @@ export type ExtToDashboardMessage =
   // Library
   | { type: 'library_loaded'; images: LibraryImage[]; projectRoot: string; hasFolder?: boolean }
   | { type: 'library_image_deleted'; path: string }
+  | { type: 'cloud_assets_loaded'; assets: CreativeAsset[] }
+  | { type: 'cloud_assets_error'; message: string }
+  | { type: 'cloud_asset_deleted'; id: string }
   // Personality
   | { type: 'personality_loaded'; personality: PersonalityData }
   | { type: 'personality_saved' }
@@ -423,7 +694,60 @@ export type ExtToDashboardMessage =
       account: { id: string; email?: string; name?: string; avatar_url?: string; tier?: string };
     }
   | { type: 'sign_in_failed'; error: string }
-  | { type: 'sign_in_cancelled' };
+  | { type: 'sign_in_cancelled' }
+  // ── Chat messages (Extension → Chat page) ───────────────────────────────
+  | { type: 'chat_init'; models: ChatModel[]; activeModel: string | null; needsSetup: boolean; locale?: string; localeStrings?: Record<string, string>; providerSource?: ProviderSource; platformStatus?: ChatPlatformStatus }
+  | ({ type: 'chat_platform_status' } & ChatPlatformStatus)
+  | { type: 'user_message_ack'; text: string; images?: string[] }
+  | { type: 'stream_start' }
+  | { type: 'thinking_delta'; content: string }
+  | { type: 'stream_delta'; content: string }
+  | { type: 'stream_end' }
+  | { type: 'tool_call_start'; toolCall: { id: string; name: string; arguments: string } }
+  | { type: 'tool_call_end'; toolCallId: string; result: string; success: boolean }
+  | { type: 'tool_confirmation_request'; confirmationId: string; toolCallId?: string; toolName: string; toolCategory?: string; args: Record<string, unknown>; summary: string; isAskUser?: boolean }
+  | { type: 'category_permissions'; permissions: Record<string, string>; mode: string }
+  | { type: 'audit_log'; entries: Array<{ timestamp: string; toolName: string; category: string; riskLevel: string; approvalMethod: string; status: string; argsSummary: string; fullArgs?: Record<string, unknown>; result?: string }> }
+  | { type: 'usage'; usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number; cached_tokens?: number }; cost?: number; contextWindow?: number; credits?: number }
+  | { type: 'done' }
+  | { type: 'model_switched'; modelId: string; modelName: string }
+  | { type: 'history_list'; conversations: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }> }
+  | { type: 'history_search_results'; conversations: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }> }
+  | { type: 'conversation_loaded'; conversationId: string; title: string; messages: Array<{ role: 'user' | 'assistant'; content: string }> }
+  | { type: 'chat_cleared' }
+  | { type: 'context_usage'; used: number; limit: number; percent: number }
+  | { type: 'compression_start' }
+  | { type: 'compression_end'; originalTokens: number; compressedTokens: number }
+  | { type: 'memory_content'; global: MemoryEntryUI[]; project: MemoryEntryUI[] }
+  | { type: 'system_message'; content: string }
+  | { type: 'ping' }
+  | { type: 'focus_input' }
+  | { type: 'interjection_ack'; content: string }
+  | { type: 'today_tasks'; tasks: TodayTaskUI[] }
+  | { type: 'all_tasks'; tasks: TodayTaskUI[] }
+  | { type: 'session_tasks'; tasks: SessionTaskUI[] }
+  | { type: 'ava_completed_tasks'; tasks: AvaCompletedTaskUI[] }
+  | { type: 'conductor_status'; active: boolean; mode?: string }
+  | { type: 'persona_status'; persona: string; phase: 'active' | 'complete' | 'error'; description?: string; output?: string }
+  | { type: 'persona_tool_call'; persona: string; tool: string }
+  | { type: 'persona_tool_result'; persona: string; tool: string; success: boolean }
+  | { type: 'briefing'; text: string; todayTasks: number; overdueTasks: number; totalActive: number }
+  | { type: 'data_exported'; dataType: string; content: string; filename: string }
+  | { type: 'data_imported'; dataType: string; count: number }
+  // Chat streaming — partial tool output chunks during execution
+  | { type: 'tool_call_partial'; toolCallId: string; data: string }
+  // Agent-generated creative asset landed in the user's library
+  | {
+      type: 'creative_asset_created';
+      asset: {
+        type: string;
+        path: string;
+        absolutePath: string;
+        prompt: string;
+        size: number;
+        dataUri?: string;
+      };
+    };
 
 // ─── Dashboard Webview → Extension Host ──────────────────────────────────────
 
@@ -440,6 +764,7 @@ export type DashboardToExtMessage =
   | { type: 'save_provider_key'; provider: string; apiKey: string }
   | { type: 'remove_provider_key'; provider: string }
   | { type: 'load_memories' }
+  | { type: 'load_more_memories' }
   | { type: 'delete_memory'; id: string }
   | { type: 'upsert_memory'; id?: string; scope?: 'global' | 'project'; key?: string; content: string; category?: string | null }
   | { type: 'archive_memory'; id: string }
@@ -535,17 +860,22 @@ export type DashboardToExtMessage =
   | { type: 'load_session_tasks' }
   // Learning messages
   | { type: 'load_learning' }
+  | { type: 'delete_curriculum'; id: string }
   // Learning Library messages
   | { type: 'load_library_paths'; search?: string; subject?: string; level?: string; sort?: string }
   | { type: 'load_library_path_detail'; id: string }
   | { type: 'fork_library_path'; id: string }
   | { type: 'publish_to_library'; curriculumId: string }
   | { type: 'rate_library_path'; id: string; rating: number }
+  | { type: 'load_task_dates' }
   // Sync messages
   | { type: 'load_sync_status' }
   | { type: 'load_sync_prefs' }
   | { type: 'set_sync_pref'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings'; enabled: boolean }
-  | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' }
+  | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' }
+  | { type: 'save_avatar'; data: string; mimeType: string }
+  | { type: 'remove_avatar' }
+  | { type: 'load_avatar' }
   // Release notes
   | { type: 'load_releases' }
   // Library
@@ -573,8 +903,10 @@ export type DashboardToExtMessage =
   // Creative Studio (proxied through extension host for CORS)
   | { type: 'creative_generate'; endpoint: string; body: Record<string, unknown> }
   // ── Chat messages (forwarded to AvaViewProvider) ────────────────────────
-  | { type: 'send_message'; text: string; mode: string; attachments?: Array<{ type: 'image'; data: string; name: string }> }
+  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }> }
   | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllowCategory?: boolean; planSelection?: string; userResponse?: string }
+  | { type: 'set_category_permission'; category: string; permission: string }
+  | { type: 'request_audit_log' }
   | { type: 'switch_model'; modelId: string }
   | { type: 'clear_chat' }
   | { type: 'cancel' }
@@ -588,7 +920,7 @@ export type DashboardToExtMessage =
   | { type: 'export_conversation'; conversationId: string; format: 'markdown' | 'json' }
   | { type: 'new_chat' }
   | { type: 'compress_context' }
-  | { type: 'set_provider_source'; source: 'platform' | 'byok' }
+  | { type: 'set_provider_source'; source: ProviderSource }
   | { type: 'request_memory' }
   | { type: 'save_chat_memory'; scope: 'global' | 'project'; content: string }
   | { type: 'clear_chat_memory'; scope: 'global' | 'project' }
@@ -600,4 +932,7 @@ export type DashboardToExtMessage =
   | { type: 'request_all_tasks' }
   | { type: 'toggle_task'; taskId: string }
   | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; model?: string; mode?: string }
-  | { type: 'save_secrets'; secrets: Array<{ id: string; label: string; value: string }> };
+  | { type: 'save_secrets'; secrets: Array<{ id: string; label: string; value: string }> }
+  | { type: 'load_secrets' }
+  | { type: 'export_data'; dataType: string }
+  | { type: 'import_data'; dataType: string; content: string };

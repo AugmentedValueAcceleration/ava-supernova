@@ -11,7 +11,11 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true
+    "noUnusedParameters": true,
+    "baseUrl": ".",
+    "paths": {
+      "@ava-extension/messages": ["../src/webview/dashboard-message-types.ts"]
+    }
   },
-  "include": ["src"]
+  "include": ["src", "../src/webview/dashboard-message-types.ts"]
 }

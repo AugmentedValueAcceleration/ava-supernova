@@ -18,7 +18,7 @@ interface ChatContainerProps {
   messages: UIMessage[];
   isThinking: boolean;
   conductorActive?: boolean;
-  conductorMode?: string;
+  conductorMode?: string | null;
   activePersonas?: PersonaInfo[];
   onConfirmation: (confirmationId: string, approved: boolean, alwaysAllowCategory?: boolean, planSelection?: string, userResponse?: string) => void;
   onContinue: () => void;
@@ -60,7 +60,7 @@ const MODE_INFO = [
   { icon: '!!', label: 'Security', desc: 'welcome.mode.security_desc' },
 ];
 
-export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onSuggestion, onRate, chatEndRef, needsSetup, initialized, onOpenDashboard, activeModel, models, conductorActive, conductorMode, activePersonas, contextUsage, isCompressing, isStreaming, onCompress }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onSuggestion, onRate, chatEndRef, needsSetup, initialized, onOpenDashboard, activeModel, models, conductorActive, conductorMode, activePersonas }: ChatContainerProps) {
   useLocale();
   // Don't render welcome screen until init message arrives — prevents setup banner flash
   if (!initialized && messages.length === 0) {

@@ -51,14 +51,6 @@ interface NavItem {
   comingSoon?: boolean;
 }
 
-interface NavSection {
-  title: string;
-  items: NavItem[];
-  adminOnly?: boolean;
-}
-
-const STORAGE_KEY = 'ava-dash-sidebar-sections';
-
 /** Translate with fallback — returns fallback if t() returns the raw key */
 function tt(key: string, fallback: string): string {
   const val = t(key);
@@ -101,10 +93,6 @@ export function NavSidebar({
   isAdmin,
   onConnectAccount,
   aiName,
-  journalSummaries,
-  selectedJournalDate,
-  onSelectJournalDate,
-  onLoadJournalSummaries,
   taskDates,
   onLoadTaskDates,
   onToggleSidebar,
@@ -316,7 +304,6 @@ export function NavSidebar({
         {navItems.map(item => (
           <NavItem
             key={item.page}
-            page={item.page}
             icon={item.icon}
             label={item.label}
             description={item.description}
@@ -331,7 +318,7 @@ export function NavSidebar({
       {/* Mini Calendar — always visible, task-focused */}
       <TaskCalendar
         taskDates={taskDates || []}
-        onDayClick={(date) => {
+        onDayClick={() => {
           // Navigate to planner (tasks tab)
           handleNavigate('planner');
         }}
@@ -385,7 +372,6 @@ export function NavSidebar({
 /* ── NavItem ──────────────────────────────────────────────────────────── */
 
 function NavItem({
-  page,
   icon,
   label,
   description,
@@ -394,7 +380,6 @@ function NavItem({
   comingSoon,
   badge,
 }: {
-  page: string;
   icon: ReactNode;
   label: string;
   description: string;
