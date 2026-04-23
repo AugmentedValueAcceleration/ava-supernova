@@ -342,7 +342,12 @@ export type AgentEvent =
       passed: boolean;
       report: string;
       stats: { total: number; passed: number; failed: number; skipped: number };
-    };
+    }
+  // Emitted when verification failed and AutoCoordinator is re-dispatching
+  // the task agent once with the failure context injected. Host UIs show a
+  // "Retrying after verification failure" banner until the next
+  // verification_end (or stream_end) fires.
+  | { type: 'verification_retry_start'; reason: string };
 
 export type AgentEventHandler = (event: AgentEvent) => void;
 

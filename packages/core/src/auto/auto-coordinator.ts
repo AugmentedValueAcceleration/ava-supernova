@@ -849,34 +849,112 @@ Should these tasks be executed as a plan? Output yes or no.`;
     // Extract the agent's final assistant message
     let agentResult = this.extractLastAssistantMessage(updatedTaskMessages);
 
-    // ── Post-build verification ────────────────────────────────────────────
+    // ── Post-build verification (M2 — with one auto-retry on failure) ────
     // If the agent emitted a <changes-summary> block, run verify_change on
     // the declared files so typechecks / route curls / migration dry-runs
-    // get automatically run on real state. Failures are appended to the
-    // user-visible result so the next turn sees them. No auto-retry in M1
-    // (the user decides whether to re-dispatch); retry-with-context-injection
-    // lands in M2.
+    // get automatically run on real state.
+    //
+    // On failure, AutoCoordinator injects the failure report as a user-role
+    // context message and re-dispatches the task agent ONCE. The retry sees
+    // exactly which checks broke and gets a chance to fix them without the
+    // user having to intervene. Second failure surfaces to the user with
+    // both attempts visible — no third retry (spiralling is worse than
+    // surfacing).
     if (agentResult) {
       const declared = extractChangesSummary(agentResult);
       if (declared && declared.files.length > 0) {
         try {
-          const verifyReport = await this.runPostBuildVerification(
+          let verifyResult = await this.runPostBuildVerification(
             declared.files,
             onEvent,
             signal,
           );
-          if (verifyReport) {
-            // Append the verification block to the assistant output so the
-            // user sees pass/fail inline with the work, and the coordinator
-            // sees the failure reason when it reads the last assistant message.
-            const augmented = agentResult + '\n\n' + verifyReport;
-            agentResult = augmented;
-            // Patch the message in updatedTaskMessages too so downstream
-            // conversation replay carries the verification record.
+
+          // Auto-retry path — verification failed, attempt not aborted.
+          if (verifyResult && !verifyResult.passed && !signal?.aborted) {
+            onEvent({
+              type: 'verification_retry_start',
+              reason: verifyResult.report.slice(0, 400),
+            });
+
+            // Preserve the first attempt's output + failure block so the
+            // user sees both attempts in the final transcript. Builder's
+            // retry will be appended below a separator.
+            const firstAttemptComposed = agentResult + '\n\n' + verifyResult.block;
+
+            const retryContext =
+              `[verification failed]\n\n${verifyResult.report}\n\n` +
+              `The previous attempt did not pass verification. Fix the issue(s) above and re-emit an updated <changes-summary> block at the end of your response.`;
+
+            const retryInputMessages: Message[] = [
+              ...updatedTaskMessages,
+              { role: 'user', content: retryContext },
+            ];
+
+            this.activeAgent = taskAgent;
+            let retryMessages: Message[];
+            try {
+              retryMessages = await taskAgent.run(retryInputMessages, wrappedOnEvent, signal);
+            } finally {
+              this.activeAgent = null;
+            }
+
+            const retryResult = this.extractLastAssistantMessage(retryMessages);
+
+            if (retryResult) {
+              // Try to re-verify the retry attempt.
+              const retryDeclared = extractChangesSummary(retryResult);
+              let secondVerify: { passed: boolean; block: string; report: string } | null = null;
+              if (retryDeclared && retryDeclared.files.length > 0 && !signal?.aborted) {
+                try {
+                  secondVerify = await this.runPostBuildVerification(
+                    retryDeclared.files,
+                    onEvent,
+                    signal,
+                  );
+                } catch (err) {
+                  logger.debug(
+                    `[auto-coordinator] Retry verification failed to run: ${
+                      err instanceof Error ? err.message : String(err)
+                    }`,
+                  );
+                }
+              }
+
+              // Compose: first attempt (with its fail block) → separator →
+              // retry attempt → retry's verification block (or note that
+              // the retry didn't emit a new summary).
+              const parts: string[] = [
+                firstAttemptComposed,
+                '\n---\n\n[auto-retry]\n\n',
+                retryResult,
+              ];
+              if (secondVerify) {
+                parts.push('\n\n' + secondVerify.block);
+              } else if (!retryDeclared || retryDeclared.files.length === 0) {
+                parts.push('\n\n[verification · no changes-summary emitted on retry — re-verify skipped]');
+              }
+              agentResult = parts.join('');
+              updatedTaskMessages = retryMessages;
+            } else {
+              // Retry produced no assistant output at all — keep first
+              // attempt with its failure block so the user at least sees
+              // what failed.
+              agentResult = firstAttemptComposed;
+            }
+          } else if (verifyResult) {
+            // Happy path: passed (or aborted — either way, just surface the block).
+            agentResult = agentResult + '\n\n' + verifyResult.block;
+          }
+
+          // Patch the final assistant message in updatedTaskMessages so
+          // downstream conversation replay carries the composed output
+          // (first + retry + all verification blocks).
+          if (agentResult) {
             for (let i = updatedTaskMessages.length - 1; i >= 0; i--) {
               const m = updatedTaskMessages[i];
               if (m.role === 'assistant' && typeof (m as AssistantMessage).content === 'string') {
-                (m as AssistantMessage).content = augmented;
+                (m as AssistantMessage).content = agentResult;
                 break;
               }
             }
@@ -913,15 +991,15 @@ Should these tasks be executed as a plan? Output yes or no.`;
   /**
    * Post-build verification hook. Invoked after the task agent returns when
    * the agent emitted a <changes-summary> block. Runs verify_change against
-   * the declared files and formats a human-readable block for the stream.
-   * Returns null on success with no checks to show; returns the formatted
-   * block otherwise.
+   * the declared files, emits verification_start / verification_end events,
+   * and returns a structured result the caller uses to decide whether to
+   * auto-retry. Returns null when there was nothing to verify.
    */
   private async runPostBuildVerification(
     files: string[],
     onEvent: AgentEventHandler,
     signal?: AbortSignal,
-  ): Promise<string | null> {
+  ): Promise<{ passed: boolean; block: string; report: string } | null> {
     onEvent({ type: 'verification_start', files });
 
     const tool = new VerifyChangeTool();
@@ -957,7 +1035,11 @@ Should these tasks be executed as a plan? Output yes or no.`;
       ? `[verification ✓] ${stats.passed ?? 0} check(s) passed, ${stats.skipped ?? 0} skipped.`
       : `[verification ✗] ${stats.failed ?? 0} of ${stats.total ?? 0} check(s) failed — see details below.`;
 
-    return `${header}\n\n${result.output}`;
+    return {
+      passed,
+      block: `${header}\n\n${result.output}`,
+      report: result.output,
+    };
   }
 
   private getLastUserMessage(messages: Message[]): { content: string | ContentPart[]; index: number } | null {
