@@ -8,6 +8,7 @@ import { ZhipuProvider } from './zhipu/index.js';
 import { MistralProvider } from './mistral/index.js';
 import { AnthropicProvider } from './anthropic/index.js';
 import { MiniMaxProvider } from './minimax/index.js';
+import { XiaomiProvider } from './xiaomi/index.js';
 import { DEEPSEEK_MODELS } from './deepseek/models.js';
 import { KIMI_MODELS } from './kimi/models.js';
 import { QWEN_MODELS } from './qwen/models.js';
@@ -15,6 +16,7 @@ import { ZHIPU_MODELS } from './zhipu/models.js';
 import { MISTRAL_MODELS } from './mistral/models.js';
 import { ANTHROPIC_MODELS } from './anthropic/models.js';
 import { MINIMAX_MODELS } from './minimax/models.js';
+import { XIAOMI_MODELS } from './xiaomi/models.js';
 
 type ProviderFactory = (config: ProviderConfig) => Provider;
 
@@ -27,6 +29,7 @@ const ALL_MODELS: Record<string, ModelDefinition[]> = {
   mistral: MISTRAL_MODELS,
   anthropic: ANTHROPIC_MODELS,
   minimax: MINIMAX_MODELS,
+  xiaomi: XIAOMI_MODELS,
 };
 
 const BUILT_IN_PROVIDERS: Record<string, ProviderFactory> = {
@@ -37,6 +40,7 @@ const BUILT_IN_PROVIDERS: Record<string, ProviderFactory> = {
   mistral: (config) => new MistralProvider(config),
   anthropic: (config) => new AnthropicProvider(config),
   minimax: (config) => new MiniMaxProvider(config),
+  xiaomi: (config) => new XiaomiProvider(config),
 };
 
 export class ProviderRegistry {

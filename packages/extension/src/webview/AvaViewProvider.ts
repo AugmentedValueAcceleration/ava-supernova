@@ -951,10 +951,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         glm: 'ava-supernova.provider.glm.apiKey',
         mistral: 'ava-supernova.provider.mistral.apiKey',
         anthropic: 'ava-supernova.provider.anthropic.apiKey',
+        xiaomi: 'ava-supernova.provider.xiaomi.apiKey',
       };
       // Config key → registry key mapping (glm config maps to zhipu provider)
       const configToRegistry: Record<string, string> = { glm: 'zhipu' };
-      for (const name of ['deepseek', 'kimi', 'qwen', 'glm', 'mistral', 'anthropic']) {
+      for (const name of ['deepseek', 'kimi', 'qwen', 'glm', 'mistral', 'anthropic', 'xiaomi']) {
         // Migrate legacy plaintext settings → SecretStorage (one-time)
         const legacyKey = config.get<string>(`providers.${name}.apiKey`);
         if (legacyKey) {

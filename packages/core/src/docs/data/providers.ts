@@ -98,6 +98,16 @@ export const PROVIDERS: ProviderFact[] = [
       { id: 'glm-4.5-flash', displayName: 'GLM-4.5 Flash (Free)', inputPricePerM: 0, outputPricePerM: 0, contextWindow: 128_000, capabilities: ['tools', 'streaming'] },
     ],
   },
+  {
+    id: 'xiaomi',
+    name: 'Xiaomi',
+    kind: 'byok',
+    notes: 'MiMo V2.5 — matches Claude Sonnet 4.6 on agentic multimodal, Gemini 3 Pro on Video-MME. Sustains 1,000+ sequential tool calls. Released 2026-04-22.',
+    models: [
+      { id: 'mimo-v2.5-pro', displayName: 'MiMo V2.5-Pro', inputPricePerM: 1.00, outputPricePerM: 3.00, contextWindow: 1_048_576, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'mimo-v2.5',     displayName: 'MiMo V2.5',     inputPricePerM: 0.40, outputPricePerM: 2.00, contextWindow: 1_048_576, capabilities: ['tools', 'vision', 'streaming'] },
+    ],
+  },
 ];
 
 export const MANAGED_PROVIDERS = PROVIDERS.filter(p => p.kind === 'managed');
