@@ -382,10 +382,14 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     }
 
     case 'usage':
+      // Accumulate credits charged per turn (server-authoritative math
+      // mirrored on the host side; sent on the usage message). Old
+      // behaviour summed raw provider tokens which didn't match what
+      // the user was actually billed post-credits.
       return {
         ...state,
         lastUsage: { ...action.usage, cost: action.cost, contextWindow: action.contextWindow },
-        sessionTokens: state.sessionTokens + (action.usage.total_tokens || (action.usage.prompt_tokens || 0) + (action.usage.completion_tokens || 0)),
+        sessionCredits: state.sessionCredits + (action.credits ?? 0),
       };
 
     case 'chat_platform_status':
@@ -653,7 +657,7 @@ const initialState: ChatState = {
   sessionTasks: [],
   avaCompletedTasks: [],
   tasksPanelWidth: DEFAULT_WIDTH,
-  sessionTokens: 0,
+  sessionCredits: 0,
   conductorActive: false,
   conductorMode: null,
   activePersonas: [],
@@ -968,7 +972,7 @@ export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCol
             sidebarCollapsed={sidebarCollapsed}
             onFlipSidebar={onFlipSidebar}
             sidebarSide={sidebarSide}
-            sessionTokens={state.sessionTokens}
+            sessionCredits={state.sessionCredits}
             providerSource={state.providerSource}
             platformStatus={state.platformStatus}
             onProviderSourceChange={handleProviderSourceChange}

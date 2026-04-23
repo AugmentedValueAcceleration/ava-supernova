@@ -519,7 +519,7 @@ export interface ChatState {
   sessionTasks: SessionTaskUI[];
   avaCompletedTasks: AvaCompletedTaskUI[];
   tasksPanelWidth: number;
-  sessionTokens: number;
+  sessionCredits: number;
   conductorActive: boolean;
   conductorMode?: string;
   activePersonas: Array<{
@@ -688,7 +688,7 @@ export type ExtToDashboardMessage =
   | { type: 'tool_confirmation_request'; confirmationId: string; toolCallId?: string; toolName: string; toolCategory?: string; args: Record<string, unknown>; summary: string; isAskUser?: boolean }
   | { type: 'category_permissions'; permissions: Record<string, string>; mode: string }
   | { type: 'audit_log'; entries: Array<{ timestamp: string; toolName: string; category: string; riskLevel: string; approvalMethod: string; status: string; argsSummary: string; fullArgs?: Record<string, unknown>; result?: string }> }
-  | { type: 'usage'; usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number }; cost?: number; contextWindow?: number }
+  | { type: 'usage'; usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number; cached_tokens?: number }; cost?: number; contextWindow?: number; credits?: number }
   | { type: 'done' }
   | { type: 'model_switched'; modelId: string; modelName: string }
   | { type: 'history_list'; conversations: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }> }

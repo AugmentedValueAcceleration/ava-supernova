@@ -44,6 +44,7 @@ import {
   GenerationManager,
 } from '@ava/core';
 import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, ContentPart, PermissionMode } from '@ava/core';
+import { creditsFor } from '@ava/core/billing/credits';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus } from './message-types.js';
 import type { AccountInfo } from './dashboard-message-types.js';
 import { DashboardPanel } from './DashboardPanel.js';
@@ -2611,14 +2612,23 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           this.log(`Tool result: ${event.toolCall.function.name} → ${event.success ? 'ok' : 'FAIL'}`);
           break;
         }
-        case 'usage':
+        case 'usage': {
+          // Mirror the server's credit math on the client so the in-chat
+          // session counter shows credits (not raw provider tokens). Main
+          // agent turns charge chat_turn; cache-hit detection matches the
+          // server's threshold (cached > 50% of prompt).
+          const prompt = event.usage.prompt_tokens || 0;
+          const cached = (event.usage as { cached_tokens?: number }).cached_tokens ?? 0;
+          const cacheHit = prompt > 0 && cached / prompt > 0.5;
+          const credits = creditsFor('chat_turn', { cacheHit });
           this.postMessage({
             type: 'usage',
             usage: event.usage,
             cost: event.cost,
             contextWindow: this.activeModelDef?.contextWindow,
+            credits,
           });
-          this.log(`Usage: ${event.usage.prompt_tokens}+${event.usage.completion_tokens} tokens${event.cost ? ` ($${event.cost.toFixed(4)})` : ''}`);
+          this.log(`Usage: ${event.usage.prompt_tokens}+${event.usage.completion_tokens} tokens → ${credits} credits${event.cost ? ` ($${event.cost.toFixed(4)})` : ''}`);
           // Track session stats
           sessionStats.recordUsage(
             this.activeModelDef?.id ?? 'unknown',
@@ -2629,6 +2639,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           // Report usage to platform (fire-and-forget)
           this.reportUsageToPlatform(event.usage);
           break;
+        }
         case 'error': {
           const info = this.deriveErrorInfo(event.error);
           this.log(`Agent error event [${info.code}]: ${info.message}`);

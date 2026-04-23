@@ -4,12 +4,6 @@ import { t, useLocale } from '../../i18n';
 import { post } from '../../vscode';
 import type { ProviderSource } from '../../types/messages';
 
-function fmtTokens(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
-  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
-  return String(n);
-}
-
 const KNOWLEDGE_PACKS = [
   { id: 'game-development', name: 'Game Development', icon: '\uD83C\uDFAE', desc: 'Unreal, Godot, Unity' },
   { id: 'marketing', name: 'Marketing & Growth', icon: '\uD83D\uDCC8', desc: 'SEO, content, analytics' },
@@ -37,7 +31,7 @@ interface HeaderProps {
   sidebarCollapsed?: boolean;
   onFlipSidebar?: () => void;
   sidebarSide?: 'left' | 'right';
-  sessionTokens?: number;
+  sessionCredits?: number;
   providerSource?: ProviderSource;
   platformStatus?: { connected: boolean; tier: string | null; freeTokensUsed: number; freeTokensLimit: number; subTokensUsed: number; subTokensLimit: number | null } | null;
   onProviderSourceChange?: (source: ProviderSource) => void;
@@ -53,7 +47,7 @@ export function Header({
   tasksOpen,
   onToggleSidebar,
   sidebarCollapsed,
-  sessionTokens = 0,
+  sessionCredits = 0,
   providerSource,
   platformStatus,
   onProviderSourceChange,
@@ -290,13 +284,15 @@ export function Header({
           </button>
         )}
 
-        {/* Session token counter */}
+        {/* Session credit counter — sums credits charged this chat
+            session (not raw provider tokens). Server-authoritative math
+            mirrored on the host; stays accurate with cache-hit discount. */}
         <span
           className="text-[11px] tabular-nums opacity-40"
           style={{ fontFamily: 'monospace' }}
-          title={`${sessionTokens.toLocaleString()} tokens used this session`}
+          title={`${sessionCredits.toLocaleString()} credits charged this session`}
         >
-          {sessionTokens > 0 ? fmtTokens(sessionTokens) : '0'} tokens
+          {sessionCredits.toLocaleString()} credits
         </span>
 
         {/* Tasks */}

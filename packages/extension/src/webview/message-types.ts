@@ -63,9 +63,12 @@ export type ExtToWebviewMessage =
     }
   | {
       type: 'usage';
-      usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+      usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number; cached_tokens?: number };
+      /** Raw USD cost — kept for internal logging; not shown to end users. */
       cost?: number;
       contextWindow?: number;
+      /** Credits charged for this turn (cache-hit discount already applied). */
+      credits?: number;
     }
   | { type: 'error'; message: string; code?: string; suggestion?: string }
   | { type: 'done' }
