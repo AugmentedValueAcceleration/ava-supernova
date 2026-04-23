@@ -543,8 +543,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
                 }}
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                  <rect x="3" y="3" width="4" height="10" rx="1" />
-                  <rect x="9" y="3" width="4" height="10" rx="1" />
+                  <rect x="3" y="3" width="10" height="10" rx="1.5" />
                 </svg>
               </button>
             ) : (
