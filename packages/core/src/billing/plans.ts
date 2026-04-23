@@ -33,11 +33,11 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
   free: {
     name: 'Free',
     price: 0,
-    credits: 1_500,
+    credits: 300,
     storageGb: 2,
     rateLimit: 20,
     features: [
-      '1,500 credits / month',
+      '300 credits / month',
       '2 GB cloud storage',
       'All supported models via BYOK',
       'Every surface — extension, IDE, companion',

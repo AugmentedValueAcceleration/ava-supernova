@@ -168,7 +168,7 @@ export function Overview({
   // Credits-redesign read shim — same as Usage/Billing.
   const rawUsage = (account.usage ?? {}) as Record<string, unknown>;
   const tierDefaults: Record<string, { free: number; sub: number | null }> = {
-    free:       { free: 1_500,      sub: null    },
+    free:       { free:   300,      sub: null    },
     pro:        { free: 0,          sub:  5_000  },
     ultra:      { free: 0,          sub: 10_000  },
     enterprise: { free: 0,          sub: 20_000  },

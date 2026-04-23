@@ -100,10 +100,10 @@ export const CREDIT_PLANS: Record<PlanTier, CreditPlanDefinition> = {
   free: {
     name: 'Free',
     price: 0,
-    credits: 1_500,
+    credits: 300,
     storageGb: 2,
     rateLimit: 20,
-    approximateMixedActions: 750,
+    approximateMixedActions: 150,
   },
   pro: {
     name: 'Pro',

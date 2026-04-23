@@ -7,7 +7,7 @@ export const enStrings = {
 
   // Welcome — Setup
   'welcome.setup_title': 'Get Started — Sign in or bring your own keys',
-  'welcome.setup_desc': 'Sign in with GitHub or email for 1,500 free credits every month, or bring your own API key from any provider and skip the account entirely.',
+  'welcome.setup_desc': 'Sign in with GitHub or email for 300 free credits every month to try Ava, or bring your own API key from any provider for unlimited usage and skip the account entirely.',
   'welcome.setup_cta': 'Open Settings',
   'welcome.ready_with': 'Ready with',
 

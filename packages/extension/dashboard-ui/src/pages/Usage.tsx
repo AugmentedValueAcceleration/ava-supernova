@@ -26,11 +26,11 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
   // Credits-redesign read shim. Reads credits_* first, tokens_* second
   // (for any stale cache from before the platform's account-info hotfix
   // deployed), tier-appropriate default third. Free tier's free pool
-  // defaults to 1,500 credits; paid tiers have no free pool (0) — their
+  // defaults to 300 credits; paid tiers have no free pool (0) — their
   // allowance lives entirely in credits_limit / sub pool.
   const rawUsage = (account?.usage ?? {}) as Record<string, unknown>;
   const tierDefaults: Record<string, { free: number; sub: number | null }> = {
-    free:       { free: 1_500,      sub: null    },
+    free:       { free:   300,      sub: null    },
     pro:        { free: 0,          sub:  5_000  },
     ultra:      { free: 0,          sub: 10_000  },
     enterprise: { free: 0,          sub: 20_000  },

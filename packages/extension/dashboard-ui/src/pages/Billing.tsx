@@ -45,11 +45,11 @@ export function Billing({ account }: BillingProps) {
     post({ type: 'refresh_storage' });
   }, []);
 
-  // Credits-redesign read shim. Free tier's free pool defaults to 1,500;
+  // Credits-redesign read shim. Free tier's free pool defaults to 300;
   // paid tiers have no free pool — their allowance lives in credits_limit.
   const rawUsage = (account.usage ?? {}) as Record<string, unknown>;
   const tierDefaults: Record<string, { free: number; sub: number | null }> = {
-    free:       { free: 1_500,      sub: null    },
+    free:       { free:   300,      sub: null    },
     pro:        { free: 0,          sub:  5_000  },
     ultra:      { free: 0,          sub: 10_000  },
     enterprise: { free: 0,          sub: 20_000  },
