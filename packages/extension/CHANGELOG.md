@@ -1,5 +1,64 @@
 # Changelog
 
+## 0.48.14 — 2026-04-24
+
+### Added
+- **Auto post-build verification.** Every code-writing turn ends with a `<changes-summary>` block from the Builder declaring files touched and change categories (ts, route, migration, asset, auth, payment, etc.). A new `verify_change` tool then runs the right checks in parallel on the real diff: typecheck for TypeScript, route curl with TCP dev-server detection for pages/routes/OG/sitemap, HEAD probe for public assets, migration dry-run (skip-with-instructions — never auto-apply), link check for prose. A pass/fail block appends to the visible output. Mandatory floor on auth / payment / migration paths — opt-out flags don't apply. New Integrator persona (replaces Tester) lives in both Work full and Work light teams with a `VERIFY_FAIL:` veto protocol.
+- **`verification_start` / `verification_end` agent events** so host UIs can render the pass/fail block inline. Tauri IDE, extension webview, CLI all pick them up.
+
+### Fixed
+- **Stop button is now a real hard stop.** Three queues that previously survived the abort and made stop feel like a pause-and-resume: `pendingModeTransition` (from `switch_mode` tools approved mid-task), agent-level pending interjections, and incomplete trailing assistant messages from mid-stream aborts. All cleared on cancel. Post-stop context restriction now also handles empty/incomplete assistant bubbles so pre-stop context doesn't leak into the next turn. Stop icon updated to match: solid square, not pause bars.
+- **Mid-task message injection — reliable across streaming and orchestration.** Previously, injections only fired between agent iterations. Messages typed during model streaming silently queued until the stream finished (often never reached the model). Messages typed during multi-persona Conductor runs were orphaned for 10–60 seconds. Now: `streamResponse` polls between chunks and gracefully aborts the provider stream when an injection arrives (pre-tool-calls only, to keep API history valid). Conductor accepts a `hasPendingInjection` callback and breaks between personas/waves when one fires. Net: typing during any blocking phase reliably lands on the next iteration.
+- **Auto-journal LLM reflection actually runs.** The reflective first-person journal entry Ava writes at the end of each session called `provider.complete()` — a method that never existed on `Provider`. Every invocation since this code shipped TypeError'd into the structured-template fallback. Users have only ever seen template summaries. New `Agent.completeOneShot()` method in core provides the correct primitive; the extension's reflection path now uses it. Warm specific first-person entries now appear for the first time.
+
+### Changed
+- **Webview message-type mirrors eliminated architecturally.** Both webviews (`dashboard-ui`, `webview-ui`) used to manually mirror the host's message-type file. Over many versions the mirrors drifted — 88 type errors hiding a systemic "missed message variant" class of bug. Replaced with a path alias so each webview imports the host's types directly. Drift is now architecturally impossible — one definition file per webview.
+- **Extension host type debt cleared.** The previous pre-push gate filtered to runtime-breaking errors only because ~67 pre-existing type errors in the host would have blocked every push. All 67 now fixed, including 5 private-access violations across class boundaries (exposed via a new `LegacyCompleteSurface` structural path and one migrated to `getMessages()`), 12 fetch `.json()` `unknown` sites, 5 `possibly-undefined` narrowings, and missing message-type variants (`secrets_loaded`, `auto_routing`, `auto_agent_start`, `auto_agent_end`, `save_creative_to_disk`, etc.).
+- **Pre-push gate is now fully strict** on host + both webviews. Any new type error blocks the push — no more quiet drift behind a narrow filter.
+
+## 0.48.13 — 2026-04-23
+
+### Changed
+- **Free tier allowance tightened: 1,500 → 300 credits/month.** BYOK already gives anyone unlimited free usage via their own provider key. At 1,500 credits, managed Free was subsidising ~$4.50/user/month at published Qwen rates — enough for a hobbyist to ship real projects on Free forever. That conflated trial with subsidy. 300 credits keeps Free honest: evaluation window of 5–7 days of active use, then the user upgrades to Pro or adds a BYOK key. Fallback values in dashboard Billing / Overview / Usage + the welcome copy all updated to match.
+
+## 0.48.12 — 2026-04-23
+
+### Added
+- **Xiaomi (MiMo) BYOK key input in dashboard settings.** v0.48.11 added MiMo V2.5 / V2.5-Pro to the model catalogue and provider registry but the settings page never surfaced the input field, so users had no way to actually enter their key. Settings PROVIDERS now lists Xiaomi with signup URL and description, the `ProviderKeyStatus` type carries an `xiaomi` boolean end-to-end, and the host `PROVIDER_KEY_SECRETS` map wires key reads from secret storage. Submodules (companion + IDE) bumped with matching entries.
+
+## 0.48.11 — 2026-04-23
+
+### Added
+- **Xiaomi MiMo V2.5 and V2.5-Pro as BYOK providers.** Open-source MoE (1T params, 42B active) — matches Claude Sonnet 4.6 on agentic multimodal and Gemini 3 Pro on Video-MME. V2.5 $0.40/$2/M, V2.5-Pro $1/$3/M. Endpoint `https://api.mimo.xiaomi.com/v1` (OpenAI-compatible). Cost profile (V2.5-Pro is 3–4× Qwen 3.6 Plus) rules it out of managed-platform default; a real option for BYOK users who want frontier-class open-source on their own key.
+
+## 0.48.10 — 2026-04-22
+
+### Fixed
+- **"X left" pill next to the send icon renders exact comma-separated values** instead of K-compacted. Post-credit rebalance, plan caps are small numbers (5K / 10K / 20K) and the M/K compact formatter rounded them to the nearest 1K, obscuring the real remaining balance. A user at 4,752 credits saw "5K left" — same as someone at 5,000. Fixed across four surfaces: `dashboard-ui` InputArea + chat header, `webview-ui` InputArea (low-balance threshold rescaled from 500K tokens to 20% of plan) + WelcomeModal. Token-era labels also swapped to "credits" in tooltips and section headers.
+
+## 0.48.9 — 2026-04-22
+
+### Changed
+- **Ava Credits rebalanced to published Qwen 3.6 Plus rates.** Alibaba walked back the 50% discount on Qwen 3.6 Plus; the prior allowances assumed that discount plus a $0.0025/credit revenue target that never shipped (Pro landed at $19 = $0.00127/credit). Margin was underwater. Rebalanced to a 55% net margin design point at published rates: Free 1,500, Pro 5,000 (was 15K), Ultra 10,000 (was 35K), Enterprise 20,000 (was 75K). Credit top-ups: $3 → 750, $8 → 2,000, $15 → 4,000. Stripe Price IDs unchanged. @ava/core billing is the source of truth — IDE + companion read from it automatically. Existing users keep their current-cycle allowance via migration 203's rollover logic; new rates materialise next period with no forced clawback.
+
+## 0.48.8 — 2026-04-22
+
+### Fixed
+- **Session counter in the chat header shows credits, not raw tokens.** The dashboard-ui running counter was summing prompt + completion tokens and labelling the result "tokens used this session" — inconsistent with every other pill in the product post-credits. Host now computes credits on the usage event (mirrors server math for `chat_turn`, including cache-hit detection from `usage.cached_tokens`), ships the value as `credits` on the postMessage, and the chat reducer accumulates `sessionCredits` for display. No billing-logic change — purely aligns the in-chat display with what the user is actually charged.
+
+## 0.48.7 — 2026-04-22
+
+### Fixed
+- **Welcome hero sticks around until the user actually speaks.** Previously the hero hid the moment `state.messages.length > 0`, but ambient messages (daily briefing, model-switch notices, tick nudges) arrive unprompted and flipped the gate — users who opened a fresh chat, closed it before speaking, and reopened it got a headline-less screen instead of the welcome. Fixed by gating on "has the user spoken?" rather than raw message count. Ambient messages render below the hero so they're not swallowed.
+
+### Changed
+- **Welcome copy refreshed.** Tagline dropped the "60 tools · 7 providers · 2 free models" line (numbers in flux, tool count disputed) for the evergreen "Every model · Every tool · 6 modes · Local-first". Setup-screen copy updated to reflect GitHub / email sign-in and the 1,500 free credits/month allowance (was the legacy "3M free Qwen tokens" copy).
+
+## 0.48.6 — 2026-04-22
+
+### Changed
+- **Auto Mode token cost reduction.** Two compounding efficiency fixes: (1) skip the orchestration gate when the upstream intent gate already ruled "direct" — both were asking the same Flash model the same question on ~60% of planning turns; saves ~300 tokens + ~2.5s per affected turn; (2) skip the regex conversation brief on spawned task agents when Conductor produces a synthesis — brief + synthesis overlapped in purpose and stacking both was ~500–800 tokens of duplication per orchestrated task. Combined: ~5–10% token reduction on typical BYOK Auto Mode sessions. No behaviour change on non-orchestrated paths.
+
 ## 0.48.5 — 2026-04-22
 
 ### Added
