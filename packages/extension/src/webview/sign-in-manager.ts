@@ -211,14 +211,14 @@ export class SignInManager {
       if (!response.ok) {
         let message = `Exchange failed: HTTP ${response.status}`;
         try {
-          const body = await response.json();
+          const body = (await response.json()) as { error?: string } | null;
           if (body?.error) message = body.error;
         } catch { /* response wasn't JSON */ }
         this.emit({ type: 'sign_in_failed', error: message });
         return true;
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as { key?: string; account?: SignInAccount | null } | null;
       const key = typeof data?.key === 'string' ? data.key : null;
       const account = (data?.account ?? null) as SignInAccount | null;
 

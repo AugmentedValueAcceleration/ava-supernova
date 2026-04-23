@@ -151,7 +151,15 @@ export type ExtToWebviewMessage =
   | { type: 'tool_call_partial'; toolCallId: string; data: string }
   // Secret vault prompt cleared by the host (e.g. user cancelled or a grant
   // resolved). Webview removes the active grant UI on receipt.
-  | { type: 'clear_secret_grant' };
+  | { type: 'clear_secret_grant' }
+  // Secret vault entries loaded from SecretStorage on request.
+  | { type: 'secrets_loaded'; secrets: Array<{ id: string; label: string; value: string }> }
+  // Auto Mode — coordinator routing the task to a specific model/agent.
+  | { type: 'auto_routing'; category: string; model: string; reason: string }
+  // Auto Mode — spawned task agent started on the routed model.
+  | { type: 'auto_agent_start'; model: string; category?: string }
+  // Auto Mode — task agent finished (summary optional).
+  | { type: 'auto_agent_end'; model: string; summary?: string };
 
 /** Task entry for today panel display. */
 export interface TodayTaskUI {

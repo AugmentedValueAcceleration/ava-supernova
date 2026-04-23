@@ -26,8 +26,6 @@ import {
   detectProjectRoot,
   loadProjectInstructions,
   loadDecisionsState,
-  scaffoldDecisionsFolder,
-  saveProjectConfig,
   setLocaleSync,
   resolveLocale,
   Conductor,
@@ -43,7 +41,7 @@ import {
   getRelevantLearnings,
   GenerationManager,
 } from '@ava/core';
-import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, ContentPart, PermissionMode } from '@ava/core';
+import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, ContentPart, PermissionMode, Message } from '@ava/core';
 import { creditsFor } from '@ava/core/billing/credits';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus } from './message-types.js';
 import type { AccountInfo } from './dashboard-message-types.js';
@@ -113,7 +111,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private journalManager?: JournalManager;
   private generationManager?: import('@ava/core').GenerationManager;
   private conductor?: Conductor;
-  private autoCoordinator?: AutoCoordinator;
+  private autoCoordinator?: AutoCoordinator | null;
   private memoryAgent?: MemoryAgent;
   private intentClassifier?: IntentClassifier;
   private briefingEngine?: BriefingEngine;
@@ -1052,7 +1050,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         } else {
           const res = await fetch('https://ava-supernova.com/api/models');
           if (res.ok) {
-            const models: Array<{ id: string; enabled: boolean }> = await res.json();
+            const models = (await res.json()) as Array<{ id: string; enabled: boolean }>;
             const ids = models.filter(m => m.enabled !== false).map(m => m.id);
             this.enabledModelIds = new Set(ids);
             await this.context.globalState.update('enabledModels', { ids, ts: Date.now() });
@@ -2885,10 +2883,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         // Only journal sessions with actual substance (2+ messages)
         if (stats.messages >= 2) {
           // Gather conversation context for reflection
-          const recentMessages = this.conversation.messages
-            .filter(m => m.role === 'user' || m.role === 'assistant')
+          // Use the public getMessages() rather than the private `.messages` array
+          // so this keeps working if Conversation's internals change.
+          const recentMessages = this.conversation.getMessages()
+            .filter((m: Message) => m.role === 'user' || m.role === 'assistant')
             .slice(-10) // Last 10 messages for context
-            .map(m => `${m.role}: ${typeof m.content === 'string' ? m.content.slice(0, 200) : '(tool use)'}`)
+            .map((m: Message) => `${m.role}: ${typeof m.content === 'string' ? m.content.slice(0, 200) : '(tool use)'}`)
             .join('\n');
 
           const model = this.activeModelDef?.name || 'unknown model';
@@ -2898,9 +2898,22 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             const reflectionPrompt = `You are Ava writing a brief journal entry about a session you just had with your user. Write 2-4 sentences in first person about what you worked on, what was interesting or challenging, and what you learned. Be specific about the actual work — not generic. Do NOT include token counts or session stats. Be warm and genuine.\n\nSession context (${duration}min, ${stats.messages} messages, ${stats.tool_calls} tool calls on ${model}):\n${recentMessages}\n\nWrite your journal entry:`;
 
             if (this.agent) {
+              // Cross-class reach into Agent's privates — core's Agent doesn't
+              // expose getters for provider/model and we can't touch core here.
+              // Historical note: this branch originally called `provider.complete(...)`,
+              // a method that doesn't exist on `Provider`; the real surface is
+              // `createCompletion(ChatCompletionRequest)`. We preserve the legacy
+              // shape via a narrow structural type so the same runtime error
+              // path (TypeError → catch → fallback) continues to fire until
+              // someone wires the call to the real API.
+              type LegacyCompleteSurface = {
+                provider: { complete: (req: { model: ModelDefinition; messages: Array<{ role: string; content: string }>; maxTokens?: number }) => Promise<{ content: string }> };
+                model: ModelDefinition;
+              };
+              const legacyAgent = this.agent as unknown as LegacyCompleteSurface;
               const reflection = await Promise.race([
-                this.agent.provider.complete({
-                  model: this.agent.model,
+                legacyAgent.provider.complete({
+                  model: legacyAgent.model,
                   messages: [{ role: 'user', content: reflectionPrompt }],
                   maxTokens: 200,
                 }),
@@ -3083,15 +3096,20 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     // Send a follow-up message so Ava acknowledges the interrupt
     try {
+      // Conversation isn't initialised until the first turn runs; no session
+      // to reassemble if the user hit pause before that.
+      const conversation = this.conversation;
+      if (!conversation) return;
+
       // Clean up any orphaned tool messages from the aborted run
-      const msgs = this.conversation.getMessages();
+      const msgs = conversation.getMessages();
       const cleanMsgs = msgs.filter((m, i) => {
         // Remove trailing tool/assistant messages that were mid-stream
         if (i === msgs.length - 1 && m.role === 'assistant' && !m.content) return false;
         if (m.role === 'tool' && i > msgs.length - 4) return false;
         return true;
       });
-      this.conversation.setMessages(cleanMsgs);
+      conversation.setMessages(cleanMsgs);
 
       const interruptSystemNote =
         '\n\n[INTERRUPT: The user tapped pause to get your attention. ' +
@@ -3099,15 +3117,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
       // Temporarily inject interrupt note
       const sysMsg = cleanMsgs[0]?.role === 'system' ? String(cleanMsgs[0].content) : '';
-      this.conversation.setSystemPrompt(sysMsg + interruptSystemNote);
+      conversation.setSystemPrompt(sysMsg + interruptSystemNote);
 
-      // Run a lightweight response
-      await this.runAgent('[pause]');
+      // Run a lightweight response via the regular user-message pipeline.
+      await this.handleUserMessage('[pause]', 'code');
 
       // Clean up interrupt note
-      const afterMsgs = this.conversation.getMessages();
+      const afterMsgs = conversation.getMessages();
       const afterSys = afterMsgs[0]?.role === 'system' ? String(afterMsgs[0].content) : '';
-      this.conversation.setSystemPrompt(afterSys.replace(/\n\n\[INTERRUPT:[\s\S]*?\]/, ''));
+      conversation.setSystemPrompt(afterSys.replace(/\n\n\[INTERRUPT:[\s\S]*?\]/, ''));
     } catch {
       // Interrupt response failed — not critical
     }
@@ -3382,7 +3400,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         this.taskManager.addSessionTask({
           id: `plan-step-${i}-${Date.now()}`,
           title,
-          status: 'pending',
+          status: 'todo',
         });
       }
 

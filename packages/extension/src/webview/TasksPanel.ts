@@ -15,7 +15,6 @@ export class TasksPanel implements vscode.WebviewViewProvider {
   private sessionTasks: Array<{ id: string; title: string; status: string }> = [];
 
   constructor(
-    private readonly extensionUri: vscode.Uri,
     private readonly taskManager: TaskManager,
   ) {}
 

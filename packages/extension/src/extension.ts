@@ -295,7 +295,13 @@ async function checkForReleaseNotes(context: vscode.ExtensionContext): Promise<v
       return;
     }
 
-    const release = await res.json();
+    const release = (await res.json()) as {
+      version: string;
+      title: string;
+      body: string;
+      highlights: string[];
+      tool_count: number;
+    };
     await context.globalState.update(LAST_VERSION_KEY, currentVersion);
 
     // Show release notes as an information message with option to view
@@ -306,7 +312,7 @@ async function checkForReleaseNotes(context: vscode.ExtensionContext): Promise<v
     );
 
     if (action === 'View Release Notes') {
-      showReleaseNotesPanel(context, release);
+      showReleaseNotesPanel(release);
     }
   } catch {
     // Network error — don't update stored version so we retry next activation
@@ -314,7 +320,6 @@ async function checkForReleaseNotes(context: vscode.ExtensionContext): Promise<v
 }
 
 function showReleaseNotesPanel(
-  context: vscode.ExtensionContext,
   release: { version: string; title: string; body: string; highlights: string[]; tool_count: number },
 ): void {
   const panel = vscode.window.createWebviewPanel(

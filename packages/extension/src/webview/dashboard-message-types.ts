@@ -237,7 +237,7 @@ export interface DashboardTaskEntry {
   title: string;
   description?: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'todo' | 'in-progress' | 'done' | 'archived';
+  status: 'todo' | 'in-progress' | 'done' | 'archived' | 'blocked';
   due_date?: string;
   category: 'coding' | 'personal' | 'admin' | 'meeting' | 'custom';
   source: 'user' | 'ava';
@@ -587,6 +587,8 @@ export type ExtToDashboardMessage =
       settings: DashboardSettings;
       providerKeys: ProviderKeyStatus;
       locale: string;
+      /** Present when the user has a platform key saved — lets the dashboard show signed-in state at boot. */
+      platformKey?: string;
     }
   | { type: 'account_updated'; account: AccountInfo | null }
   | { type: 'dataset:config'; config: {
@@ -747,6 +749,18 @@ export type ExtToDashboardMessage =
         size: number;
         dataUri?: string;
       };
+    }
+  // Host replies to import_pick_files with the user's selection (name + content).
+  | {
+      type: 'import_files_picked';
+      files: Array<{ name: string; content: string; size: number }>;
+    }
+  // Creative generation result streamed from the host (handleCreativeGenerate).
+  | {
+      type: 'creative_result';
+      success: boolean;
+      error?: string;
+      data?: unknown;
     };
 
 // ─── Dashboard Webview → Extension Host ──────────────────────────────────────
@@ -935,4 +949,13 @@ export type DashboardToExtMessage =
   | { type: 'save_secrets'; secrets: Array<{ id: string; label: string; value: string }> }
   | { type: 'load_secrets' }
   | { type: 'export_data'; dataType: string }
-  | { type: 'import_data'; dataType: string; content: string };
+  | { type: 'import_data'; dataType: string; content: string }
+  // Open the built-in Ava docs surface (extension command routed from
+  // the dashboard welcome flow / help buttons).
+  | { type: 'open_docs' }
+  // Creative Studio — persist a generated asset URL to disk under the
+  // user's project root. Host downloads the URL and writes the bytes.
+  | { type: 'save_creative_to_disk'; url: string; filename: string; assetType?: string }
+  // Import-from-disk picker. Dashboard asks host to pop the VS Code open
+  // dialog; host replies with an 'import_files_picked' listing files read.
+  | { type: 'import_pick_files' };

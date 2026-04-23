@@ -29,8 +29,10 @@ export class DocumentPreviewPanel {
 
   // ── Static factory ──────────────────────────────────────────────────────────
 
-  /** Show a document in the preview panel. Creates the panel if needed. */
-  public static show(extensionUri: vscode.Uri, doc: DocumentPreview): void {
+  /** Show a document in the preview panel. Creates the panel if needed.
+   *  `_extensionUri` is accepted for call-site parity with other panel
+   *  factories but isn't currently needed (no webview-local assets). */
+  public static show(_extensionUri: vscode.Uri, doc: DocumentPreview): void {
     if (DocumentPreviewPanel.currentPanel) {
       DocumentPreviewPanel.currentPanel.addDocument(doc);
       DocumentPreviewPanel.currentPanel.panel.reveal(vscode.ViewColumn.Beside);

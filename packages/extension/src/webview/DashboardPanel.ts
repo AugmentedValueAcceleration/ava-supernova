@@ -41,6 +41,9 @@ import type {
   MemoryEntry,
   UsageLogEntry,
   DashboardTaskEntry,
+  LibraryPath,
+  LibraryPathDetail,
+  ReleaseNote,
 } from './dashboard-message-types.js';
 
 /** Chat message types that should be forwarded to AvaViewProvider */
@@ -598,12 +601,12 @@ export class DashboardPanel {
           if (platformKey) {
             const res = await apiFetch(url, { platformKey });
             const body = (res.data && typeof res.data === 'object') ? res.data as Record<string, unknown> : {};
-            this.post({ type: 'library_paths_loaded', paths: (body.paths as unknown[]) || [], total: (body.total as number) || 0 });
+            this.post({ type: 'library_paths_loaded', paths: ((body.paths as LibraryPath[] | undefined) ?? []), total: (body.total as number) || 0 });
           } else {
             // Direct public fetch for BYOK users
             const res = await fetch(`https://ava-supernova.com/api${url}`);
-            const data = await res.json();
-            this.post({ type: 'library_paths_loaded', paths: data.paths || [], total: data.total || 0 });
+            const data = (await res.json()) as { paths?: LibraryPath[]; total?: number };
+            this.post({ type: 'library_paths_loaded', paths: data.paths ?? [], total: data.total ?? 0 });
           }
         } catch {
           this.post({ type: 'library_paths_loaded', paths: [], total: 0 });
@@ -614,7 +617,7 @@ export class DashboardPanel {
       case 'load_library_path_detail': {
         try {
           const res = await fetch(`https://ava-supernova.com/api/learning/library/${msg.id}`);
-          const data = await res.json();
+          const data = (await res.json()) as LibraryPathDetail | null;
           if (data && data.id) {
             this.post({ type: 'library_path_detail_loaded', path: data });
           }
@@ -630,7 +633,8 @@ export class DashboardPanel {
         }
         try {
           const res = await apiFetch(`/learning/library/${msg.id}/fork`, { method: 'POST', platformKey });
-          this.post({ type: 'library_path_forked', curriculumId: res.curriculum_id, title: res.message || 'Started!' });
+          const forkData = (res.data ?? {}) as { curriculum_id?: string; message?: string };
+          this.post({ type: 'library_path_forked', curriculumId: forkData.curriculum_id ?? '', title: forkData.message || 'Started!' });
         } catch (err: any) {
           this.post({ type: 'error', message: err.message || 'Failed to fork learning path' });
         }
@@ -645,7 +649,8 @@ export class DashboardPanel {
         }
         try {
           const res = await apiFetch('/learning/library', { method: 'POST', body: { curriculum_id: msg.curriculumId }, platformKey });
-          this.post({ type: 'library_path_published', pathId: res.id, status: res.status, message: res.message });
+          const pubData = (res.data ?? {}) as { id?: string; status?: string; message?: string };
+          this.post({ type: 'library_path_published', pathId: pubData.id ?? '', status: pubData.status ?? '', message: pubData.message ?? '' });
         } catch (err: any) {
           this.post({ type: 'error', message: err.message || 'Failed to publish' });
         }
@@ -2503,14 +2508,14 @@ export class DashboardPanel {
   private async loadReleases(): Promise<void> {
     try {
       const https = await import('node:https');
-      const releases = await new Promise<unknown[]>((resolve) => {
+      const releases = await new Promise<ReleaseNote[]>((resolve) => {
         https.get('https://ava-supernova.com/api/releases', (res) => {
           let raw = '';
           res.on('data', (chunk: string) => (raw += chunk));
           res.on('end', () => {
             try {
               const data = JSON.parse(raw);
-              resolve(Array.isArray(data) ? data : []);
+              resolve(Array.isArray(data) ? (data as ReleaseNote[]) : []);
             } catch {
               resolve([]);
             }
@@ -3440,8 +3445,42 @@ export class DashboardPanel {
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
-  private post(msg: ExtToDashboardMessage): void {
+  public post(msg: ExtToDashboardMessage): void {
     this.panel.webview.postMessage(msg);
+  }
+
+  /** Lightweight dashboard-side logger. Other code paths still call `console.log` directly;
+   *  `this.log(...)` is provided for call sites that preferred the instance form. */
+  private log(msg: string): void {
+    console.log(`[DashboardPanel] ${msg}`);
+  }
+
+  /** User-scoped ~/.ava directory. Reads the account-scoped subdir when a
+   *  platform account is connected (via the owning view provider), otherwise
+   *  falls back to AVA_HOME so BYOK/no-account users still write somewhere. */
+  private get avaHome(): string {
+    return this.viewProvider?.getAccountScopedDir() ?? AVA_HOME;
+  }
+
+  /** Platform API helper bound to the dashboard's secret store. Used by a
+   *  handful of sync paths that need a raw Response (e.g. POST /learnings).
+   *  Returns a Response-like object so callers can still check `.ok`. */
+  private async platformFetch(
+    endpointPath: string,
+    init: { method?: string; body?: string; headers?: Record<string, string> } = {},
+  ): Promise<{ ok: boolean; status: number }> {
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    const url = `https://ava-supernova.com/api${endpointPath.startsWith('/') ? endpointPath : `/${endpointPath}`}`;
+    const res = await fetch(url, {
+      method: init.method ?? 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(platformKey ? { Authorization: `Bearer ${platformKey}` } : {}),
+        ...(init.headers ?? {}),
+      },
+      body: init.body,
+    });
+    return { ok: res.ok, status: res.status };
   }
 
   /** Notify dashboard that journal data changed (called from AvaViewProvider). */
@@ -3594,7 +3633,7 @@ export class DashboardPanel {
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({ error: `Request failed (${res.status})` }));
+        const errData = (await res.json().catch(() => ({ error: `Request failed (${res.status})` }))) as { error?: string };
         this.post({ type: 'creative_result', success: false, error: errData.error || `Request failed (${res.status})` } as any);
         return;
       }

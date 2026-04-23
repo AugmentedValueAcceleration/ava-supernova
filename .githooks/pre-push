@@ -1,21 +1,15 @@
 #!/bin/sh
 # Pre-push typecheck gate for the VS Code extension.
 #
-# Two checks, different strictness:
+# STRICT on everything — host + both webviews. Any `tsc --noEmit` error
+# blocks the push. Runtime-breaking undefined-identifier bugs (v0.48.2 /
+# v0.48.3 class) and any other regressions both get caught here.
 #
-#   1. HOST (packages/extension/src/**) — NARROW.
-#      Only blocks on undefined-identifier class errors (TS2304, TS18004).
-#      These compile cleanly under esbuild but throw at runtime. This is the
-#      class of bug that shipped in v0.48.2 / v0.48.3 and cost two hotfixes.
-#      Other pre-existing host errors are intentionally filtered out until
-#      a dedicated host-type cleanup sprint — a strict host gate would block
-#      routine pushes today.
-#
-#   2. WEBVIEWS (packages/extension/dashboard-ui + webview-ui) — STRICT.
-#      Blocks on ANY type error. Both webviews were fully cleaned by the
-#      mirror-elimination refactor, and now share a single source-of-truth
-#      message-type file via path alias. The gate prevents that from drifting
-#      again.
+# Prior versions of this hook filtered host errors down to TS2304 / TS18004
+# only, because the host codebase had long-standing debt (~67 pre-existing
+# type errors) that a strict gate would block routine pushes on. The
+# mirror-elimination refactor + host cleanup sprint brought both webviews
+# and the host to zero errors — this gate now keeps them there.
 #
 # Setup: runs automatically once git is told to use this hooks directory:
 #     git config core.hooksPath .githooks
@@ -27,42 +21,25 @@ if [ ! -f packages/extension/package.json ]; then
   exit 0
 fi
 
-echo "[pre-push] Typecheck host (narrow: TS2304 / TS18004)..."
-HOST_OUT=$(cd packages/extension && pnpm typecheck 2>&1 || true)
-HOST_FAIL=$(echo "$HOST_OUT" | grep -E "error TS2304|error TS18004" || true)
-if [ -n "$HOST_FAIL" ]; then
-  echo ""
-  echo "⛔  Push blocked: undefined identifier(s) in the extension host."
-  echo "    These compile under esbuild but throw at runtime."
-  echo ""
-  echo "$HOST_FAIL"
-  echo ""
-  echo "    Fix the references or add the missing declarations, then re-push."
-  echo "    Bypass in an emergency: git push --no-verify (not recommended)."
-  exit 1
-fi
-echo "[pre-push] ✓ Host: no undefined-identifier errors."
+echo "[pre-push] Typecheck extension (host + both webviews, strict)..."
+OUTPUT=$(cd packages/extension && pnpm typecheck:all 2>&1 || true)
 
-echo "[pre-push] Typecheck webviews (strict: any TS error blocks)..."
-WV_OUT=$(cd packages/extension && pnpm typecheck:webviews 2>&1 || true)
-WV_FAIL=$(echo "$WV_OUT" | grep -E "error TS[0-9]+" || true)
-if [ -n "$WV_FAIL" ]; then
+ERRORS=$(echo "$OUTPUT" | grep -E "error TS[0-9]+" || true)
+if [ -n "$ERRORS" ]; then
   echo ""
-  echo "⛔  Push blocked: type errors in the webview(s)."
-  echo "    Webview typechecks are strict — the mirror-elimination refactor"
-  echo "    cleaned them to zero and we want to keep them that way."
+  echo "⛔  Push blocked: type errors in the extension."
   echo ""
-  echo "$WV_FAIL" | head -30
-  COUNT=$(echo "$WV_FAIL" | wc -l | tr -d ' ')
+  echo "$ERRORS" | head -30
+  COUNT=$(echo "$ERRORS" | wc -l | tr -d ' ')
   if [ "$COUNT" -gt 30 ]; then
     echo ""
-    echo "    ... and $((COUNT - 30)) more (run 'pnpm -F ava-supernova typecheck:webviews' for the full list)."
+    echo "    ... and $((COUNT - 30)) more (run 'pnpm -F ava-supernova typecheck:all' for the full list)."
   fi
   echo ""
   echo "    Fix the errors and re-push."
   echo "    Bypass in an emergency: git push --no-verify (not recommended)."
   exit 1
 fi
-echo "[pre-push] ✓ Webviews: clean."
 
+echo "[pre-push] ✓ Typecheck clean (host + dashboard-ui + webview-ui)."
 exit 0
