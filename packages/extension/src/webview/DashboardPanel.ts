@@ -67,6 +67,7 @@ const PROVIDER_KEY_SECRETS: Record<string, string> = {
   glm: 'ava-supernova.provider.glm.apiKey',
   qwen: 'ava-supernova.provider.qwen.apiKey',
   mistral: 'ava-supernova.provider.mistral.apiKey',
+  xiaomi: 'ava-supernova.provider.xiaomi.apiKey',
 };
 
 // Connection credential secret keys
@@ -1620,6 +1621,7 @@ export class DashboardPanel {
       glm: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.glm)),
       qwen: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.qwen)),
       mistral: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.mistral)),
+      xiaomi: Boolean(await this.secrets.get(PROVIDER_KEY_SECRETS.xiaomi)),
     };
   }
 

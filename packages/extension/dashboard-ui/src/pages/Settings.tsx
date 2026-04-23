@@ -61,6 +61,13 @@ const PROVIDERS = [
     signupUrl: 'https://console.mistral.ai',
     description: 'Mistral Large 3, Codestral, Devstral 2',
   },
+  {
+    id: 'xiaomi' as const,
+    name: 'Xiaomi (MiMo)',
+    placeholder: '...',
+    signupUrl: 'https://platform.xiaomimimo.com',
+    description: 'MiMo V2.5 and V2.5-Pro — 1M context, native multimodal',
+  },
 ];
 
 const LANGUAGES = [

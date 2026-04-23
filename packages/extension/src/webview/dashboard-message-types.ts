@@ -82,6 +82,7 @@ export interface ProviderKeyStatus {
   glm: boolean;
   qwen: boolean;
   mistral: boolean;
+  xiaomi: boolean;
   [key: string]: boolean;
 }
 
