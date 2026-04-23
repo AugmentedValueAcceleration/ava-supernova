@@ -24,10 +24,12 @@ function estimateCost(inputTokens: number, outputTokens: number, model: string):
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatNumber(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
-  return n.toString();
+function formatNumber(n: number | null | undefined): string {
+  const v = Number(n ?? 0);
+  if (!Number.isFinite(v)) return '0';
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `${Math.round(v / 1_000)}K`;
+  return String(Math.round(v));
 }
 
 function timeSince(iso: string): string {

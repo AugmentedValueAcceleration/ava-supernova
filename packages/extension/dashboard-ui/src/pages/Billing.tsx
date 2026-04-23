@@ -45,16 +45,25 @@ export function Billing({ account }: BillingProps) {
     post({ type: 'refresh_storage' });
   }, []);
 
-  // Defensive fallback — used only when /api/account-info returns no
-  // usage row. Free tier's base allowance post-credits-redesign is 1,500.
-  const usage = account.usage ?? {
-    credits_used: 0,
-    credits_limit: null as number | null,
-    requests_count: 0,
-    period_start: null as string | null,
-    period_end: null as string | null,
-    free_credits_used: 0,
-    free_credits_limit: 1_500,
+  // Credits-redesign read shim. Free tier's free pool defaults to 1,500;
+  // paid tiers have no free pool — their allowance lives in credits_limit.
+  const rawUsage = (account.usage ?? {}) as Record<string, unknown>;
+  const tierDefaults: Record<string, { free: number; sub: number | null }> = {
+    free:       { free: 1_500,      sub: null    },
+    pro:        { free: 0,          sub: 15_000  },
+    ultra:      { free: 0,          sub: 35_000  },
+    enterprise: { free: 0,          sub: 75_000  },
+    admin:      { free: 0,          sub: 999_999_999 },
+  };
+  const td = tierDefaults[account.tier ?? 'free'] ?? tierDefaults.free;
+  const usage = {
+    credits_used:       Number(rawUsage.credits_used       ?? rawUsage.tokens_used       ?? 0),
+    credits_limit:     ((rawUsage.credits_limit     as number | null | undefined) ?? (rawUsage.tokens_limit     as number | null | undefined) ?? td.sub) as number | null,
+    requests_count:     Number(rawUsage.requests_count ?? 0),
+    period_start:      (rawUsage.period_start      as string | null | undefined) ?? null,
+    period_end:        (rawUsage.period_end        as string | null | undefined) ?? null,
+    free_credits_used:  Number(rawUsage.free_credits_used  ?? rawUsage.free_tokens_used  ?? 0),
+    free_credits_limit: Number(rawUsage.free_credits_limit ?? rawUsage.free_tokens_limit ?? td.free),
   };
 
   return (
@@ -314,10 +323,12 @@ function PlanCard({
   );
 }
 
-function formatNumber(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
-  return String(n);
+function formatNumber(n: number | null | undefined): string {
+  const v = Number(n ?? 0);
+  if (!Number.isFinite(v)) return '0';
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`;
+  return String(Math.round(v));
 }
 
 function formatStorage(gb: number): string {

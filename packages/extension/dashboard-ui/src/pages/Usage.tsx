@@ -23,14 +23,28 @@ const PAGE_SIZE = 15;
 
 export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
   useLocale();
-  const usage = account?.usage ?? {
-    credits_used: 0,
-    credits_limit: null as number | null,
-    requests_count: 0,
-    period_start: null as string | null,
-    period_end: null as string | null,
-    free_credits_used: 0,
-    free_credits_limit: 1500,
+  // Credits-redesign read shim. Reads credits_* first, tokens_* second
+  // (for any stale cache from before the platform's account-info hotfix
+  // deployed), tier-appropriate default third. Free tier's free pool
+  // defaults to 1,500 credits; paid tiers have no free pool (0) — their
+  // allowance lives entirely in credits_limit / sub pool.
+  const rawUsage = (account?.usage ?? {}) as Record<string, unknown>;
+  const tierDefaults: Record<string, { free: number; sub: number | null }> = {
+    free:       { free: 1_500,      sub: null    },
+    pro:        { free: 0,          sub: 15_000  },
+    ultra:      { free: 0,          sub: 35_000  },
+    enterprise: { free: 0,          sub: 75_000  },
+    admin:      { free: 0,          sub: 999_999_999 },
+  };
+  const td = tierDefaults[account?.tier ?? 'free'] ?? tierDefaults.free;
+  const usage = {
+    credits_used:       Number(rawUsage.credits_used       ?? rawUsage.tokens_used       ?? 0),
+    credits_limit:     ((rawUsage.credits_limit     as number | null | undefined) ?? (rawUsage.tokens_limit     as number | null | undefined) ?? td.sub) as number | null,
+    requests_count:     Number(rawUsage.requests_count ?? 0),
+    period_start:      (rawUsage.period_start      as string | null | undefined) ?? null,
+    period_end:        (rawUsage.period_end        as string | null | undefined) ?? null,
+    free_credits_used:  Number(rawUsage.free_credits_used  ?? rawUsage.free_tokens_used  ?? 0),
+    free_credits_limit: Number(rawUsage.free_credits_limit ?? rawUsage.free_tokens_limit ?? td.free),
   };
   const [period, setPeriod] = useState<'7d' | '30d' | 'all'>('30d');
   const [page, setPage] = useState(0);
@@ -224,8 +238,8 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
                   {pagedLogs.map((log) => (
                     <tr key={log.id} className="bg-[var(--bg-card)]/50">
                       <td className="px-3 py-2 text-xs font-medium">{log.model}</td>
-                      <td className="px-3 py-2 text-right font-mono text-xs text-[var(--text-secondary)]">{log.input_tokens.toLocaleString()}</td>
-                      <td className="px-3 py-2 text-right font-mono text-xs text-[var(--text-secondary)]">{log.output_tokens.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right font-mono text-xs text-[var(--text-secondary)]">{(log.input_tokens ?? 0).toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right font-mono text-xs text-[var(--text-secondary)]">{(log.output_tokens ?? 0).toLocaleString()}</td>
                       <td className="px-3 py-2 text-right text-[10px] text-[var(--text-muted)]">{formatDate(log.timestamp)}</td>
                     </tr>
                   ))}
@@ -282,10 +296,12 @@ function SummaryCard({ label, value, sub, isText }: { label: string; value: stri
   );
 }
 
-function formatNumber(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
-  return n.toString();
+function formatNumber(n: number | null | undefined): string {
+  const v = Number(n ?? 0);
+  if (!Number.isFinite(v)) return '0';
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `${Math.round(v / 1_000)}K`;
+  return String(Math.round(v));
 }
 
 function formatDate(d: string): string {
