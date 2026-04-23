@@ -539,9 +539,9 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                 <span
                   className={`text-[10px] tabular-nums ${isLow ? 'opacity-80' : 'opacity-30'}`}
                   style={color ? { color } : undefined}
-                  title={`${remaining.toLocaleString()} / ${totalLimit.toLocaleString()} tokens remaining`}
+                  title={`${remaining.toLocaleString()} / ${totalLimit.toLocaleString()} credits remaining`}
                 >
-                  {remaining >= 1_000_000 ? `${(remaining / 1_000_000).toFixed(1)}M` : remaining >= 1000 ? `${Math.round(remaining / 1000)}K` : remaining} left
+                  {remaining.toLocaleString('en-US')} left
                 </span>
               );
             })()}

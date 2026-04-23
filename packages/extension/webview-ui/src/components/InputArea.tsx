@@ -585,7 +585,11 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
               const totalUsed = platformStatus.freeTokensUsed + platformStatus.subTokensUsed;
               const totalLimit = platformStatus.freeTokensLimit + subLimit;
               const remaining = Math.max(0, totalLimit - totalUsed);
-              const isLow = remaining <= 500_000;
+              // Low-balance threshold scales with plan size. Old value
+              // (500,000) made sense in the token era but flags every
+              // post-rebalance credit pool as "low" since they top out
+              // at ~20K. Switch to 20% of plan.
+              const isLow = totalLimit > 0 && remaining <= totalLimit * 0.2;
               return (
                 <span
                   className={`text-[10px] tabular-nums ${
@@ -593,9 +597,9 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, usage, isCo
                       ? 'text-[var(--vscode-editorWarning-foreground,#cca700)] opacity-80'
                       : 'opacity-30'
                   }`}
-                  title={`${remaining.toLocaleString()} / ${totalLimit.toLocaleString()} tokens remaining`}
+                  title={`${remaining.toLocaleString()} / ${totalLimit.toLocaleString()} credits remaining`}
                 >
-                  {remaining >= 1_000_000 ? `${(remaining / 1_000_000).toFixed(2)}M` : remaining >= 1000 ? `${(remaining / 1000).toFixed(1)}K` : remaining}
+                  {remaining.toLocaleString('en-US')}
                 </span>
               );
             })()}

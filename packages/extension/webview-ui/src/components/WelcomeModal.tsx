@@ -128,9 +128,9 @@ export function WelcomeModal({
                   <span className="text-xs font-medium text-white">{modelName || 'Not set'}</span>
                 </div>
                 <div className="flex items-baseline justify-between">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Free tokens</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Free credits</span>
                   <span className="text-xs font-medium text-emerald-400">
-                    {tokensRemaining !== null ? `${formatTokens(tokensRemaining)} left` : 'BYOK — no limit'}
+                    {tokensRemaining !== null ? `${tokensRemaining.toLocaleString('en-US')} left` : 'BYOK — no limit'}
                   </span>
                 </div>
                 <div className="flex items-baseline justify-between">
