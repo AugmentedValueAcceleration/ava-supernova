@@ -46,11 +46,11 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
   pro: {
     name: 'Pro',
     price: 19,
-    credits: 15_000,
+    credits: 5_000,
     storageGb: 50,
     rateLimit: 60,
     features: [
-      '15,000 credits / month',
+      '5,000 credits / month',
       '50 GB cloud storage',
       'Top-up credits anytime',
       '60 requests / minute',
@@ -60,11 +60,11 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
   ultra: {
     name: 'Ultra',
     price: 39,
-    credits: 35_000,
+    credits: 10_000,
     storageGb: 200,
     rateLimit: 120,
     features: [
-      '35,000 credits / month',
+      '10,000 credits / month',
       '200 GB cloud storage',
       '120 requests / minute',
       'Highest-priority routing',
@@ -74,11 +74,11 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
   enterprise: {
     name: 'Enterprise',
     price: 79,
-    credits: 75_000,
+    credits: 20_000,
     storageGb: 500,
     rateLimit: 200,
     features: [
-      '75,000 credits / month',
+      '20,000 credits / month',
       '500 GB cloud storage',
       '200 requests / minute',
       'SSO + dedicated support',

@@ -1,14 +1,20 @@
 // Ava Credits — value-denominated currency for metered operations.
 //
-// Decoupled from raw provider tokens: 1 credit ≈ $0.0025 at Pro's rate
-// ($19 / 15,000 credits + rounding). Action costs reflect value delivered,
+// Decoupled from raw provider tokens: 1 credit ≈ $0.0038 at Pro's rate
+// ($19 / 5,000 credits + rounding). Action costs reflect value delivered,
 // not linear raw cost — a Flash call burns 1 credit, a full orchestration
 // burns 10, a video generation burns 100. Target 55% net margin at typical
-// (60%) utilisation.
+// (60%) utilisation, sized against published Qwen 3.6 Plus rates with no
+// provider-discount assumption.
 //
-// Approved 2026-04-22. Stage 1 of the rollout: this module is the source
-// of truth only. Stages 2-4 (meter interceptor, billing switch, UI reveal)
-// haven't landed yet, so nothing consumes these constants at runtime.
+// Rebalanced 2026-04-23 after Alibaba walked back the 50% discount on
+// 3.6 Plus. Prior allowances (Free 1,500 / Pro 15,000 / Ultra 35,000 /
+// Enterprise 75,000) were penciled against a $0.0025/credit design and a
+// discount cushion, neither of which held at launch. New allowances
+// (5K / 10K / 20K paid) make 55% margin achievable on published rates.
+// Existing users stay on their current cycle's higher allowance — the
+// rollover logic in increment_credits (migration 203) materialises new
+// rates on the next period boundary, no forced clawback.
 //
 // Everything here is pure data + pure helpers — no runtime deps, safe to
 // import from any surface that takes @ava/core.
@@ -102,26 +108,26 @@ export const CREDIT_PLANS: Record<PlanTier, CreditPlanDefinition> = {
   pro: {
     name: 'Pro',
     price: 19,
-    credits: 15_000,
+    credits: 5_000,
     storageGb: 50,
     rateLimit: 60,
-    approximateMixedActions: 3_000,
+    approximateMixedActions: 1_000,
   },
   ultra: {
     name: 'Ultra',
     price: 39,
-    credits: 35_000,
+    credits: 10_000,
     storageGb: 200,
     rateLimit: 120,
-    approximateMixedActions: 7_000,
+    approximateMixedActions: 2_000,
   },
   enterprise: {
     name: 'Enterprise',
     price: 79,
-    credits: 75_000,
+    credits: 20_000,
     storageGb: 500,
     rateLimit: 200,
-    approximateMixedActions: 15_000,
+    approximateMixedActions: 4_000,
   },
   admin: {
     name: 'Admin',
@@ -151,12 +157,15 @@ export interface CreditTopupDefinition {
 
 export const CREDIT_TOPUPS: CreditTopupDefinition[] = [
   // Prices pinned to the existing token-top-up Stripe Prices ($3 / $8 / $15).
-  // Credit quantities chosen so every larger bundle improves $/credit (volume
-  // reward) while the entry bundle sits above Pro's per-credit rate (power-user
-  // premium for on-demand boosts outside a plan renewal).
-  { id: 'credits_1500',  credits:  1_500, price:  3, label: '1.5K credits', subtitle: 'Quick boost', effectiveRate: '$2.00 / 1K credits' },
-  { id: 'credits_6000',  credits:  6_000, price:  8, label: '6K credits',   subtitle: 'Best value',  effectiveRate: '$1.33 / 1K credits', popular: true },
-  { id: 'credits_12500', credits: 12_500, price: 15, label: '12.5K credits', subtitle: 'Power user', effectiveRate: '$1.20 / 1K credits' },
+  // IDs (`credits_1500` etc.) are legacy identifiers — the number in the id
+  // is the pre-rebalance credit count, not the current one. Don't rename
+  // without rotating Stripe Price mappings too. Credit quantities rebalanced
+  // 2026-04-23 against published Qwen 3.6 Plus rates. Entry bundle sits
+  // slightly worse than Pro's per-credit rate (nudges to plan), middle
+  // bundle matches plan, top bundle rewards larger top-up with a 6% discount.
+  { id: 'credits_1500',  credits:   750, price:  3, label: '750 credits',   subtitle: 'Quick boost', effectiveRate: '$4.00 / 1K credits' },
+  { id: 'credits_6000',  credits: 2_000, price:  8, label: '2,000 credits', subtitle: 'Best value',  effectiveRate: '$4.00 / 1K credits', popular: true },
+  { id: 'credits_12500', credits: 4_000, price: 15, label: '4,000 credits', subtitle: 'Power user',  effectiveRate: '$3.75 / 1K credits' },
 ];
 
 // ── Expected monthly burn (reference) ─────────────────────────────────────

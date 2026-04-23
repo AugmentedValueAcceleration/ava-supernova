@@ -31,9 +31,9 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
   const rawUsage = (account?.usage ?? {}) as Record<string, unknown>;
   const tierDefaults: Record<string, { free: number; sub: number | null }> = {
     free:       { free: 1_500,      sub: null    },
-    pro:        { free: 0,          sub: 15_000  },
-    ultra:      { free: 0,          sub: 35_000  },
-    enterprise: { free: 0,          sub: 75_000  },
+    pro:        { free: 0,          sub:  5_000  },
+    ultra:      { free: 0,          sub: 10_000  },
+    enterprise: { free: 0,          sub: 20_000  },
     admin:      { free: 0,          sub: 999_999_999 },
   };
   const td = tierDefaults[account?.tier ?? 'free'] ?? tierDefaults.free;
