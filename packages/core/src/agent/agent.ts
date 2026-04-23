@@ -510,6 +510,18 @@ export class Agent {
     }
   }
 
+  /**
+   * True when at least one interjection is queued waiting to be consumed.
+   * Used by Conductor orchestration (passed via the orchestrate options'
+   * `hasPendingInjection` callback) to break out of the blocking persona
+   * loop early when the user sends a message — without this poll, the
+   * Conductor can hold the main Agent loop for 10–60 seconds on a full
+   * team and silently drop the injection when control returns.
+   */
+  hasPendingInterjections(): boolean {
+    return this.pendingInterjections.length > 0;
+  }
+
   async run(messages: Message[], onEvent: AgentEventHandler, signal?: AbortSignal): Promise<Message[]> {
     // Open a dataset trajectory for the entire run. Every avaEvents.emit()
     // inside (sync or async, in this method or any helper it calls) inherits
@@ -1183,11 +1195,15 @@ export class Agent {
 
       let assistantMessage: AssistantMessage;
       let promptTokens: number;
+      let streamInterrupted = false;
       const estimatedInput = this.estimateTokenCount(messages);
       logger.debug(`[agent] Calling streamResponse (est. ${estimatedInput} input tokens, model context: ${this.model.contextWindow})`);
       try {
-        ({ message: assistantMessage, promptTokens } = await this.streamResponse(request, onEvent, signal));
-        logger.debug(`[agent] streamResponse returned: content=${assistantMessage.content?.length ?? 0} chars, tool_calls=${assistantMessage.tool_calls?.length ?? 0}, promptTokens=${promptTokens}`);
+        const streamResult = await this.streamResponse(request, onEvent, signal);
+        assistantMessage = streamResult.message;
+        promptTokens = streamResult.promptTokens;
+        streamInterrupted = streamResult.interrupted === true;
+        logger.debug(`[agent] streamResponse returned: content=${assistantMessage.content?.length ?? 0} chars, tool_calls=${assistantMessage.tool_calls?.length ?? 0}, promptTokens=${promptTokens}${streamInterrupted ? ' (INTERRUPTED by injection)' : ''}`);
       } catch (error) {
         logger.error(`[agent] streamResponse THREW: ${error instanceof Error ? error.message : String(error)}`);
         // Surface the error through the event system so CLI/extension handle it consistently
@@ -1196,6 +1212,25 @@ export class Agent {
         onEvent({ type: 'done', finalMessage: { role: 'assistant', content: '' } as any });
         return messages;
       }
+      // Mid-stream injection happened. We aborted the provider request
+      // before tool_calls could start. Preserve any partial text in the
+      // transcript (keeps UI/history honest — user saw it) but skip both
+      // the text-based tool parser (partial <tool_call> blocks would
+      // mis-parse) and the full tool-execution path. The outer loop will
+      // drain pendingInterjections at the top of the next iteration and
+      // send a fresh request to the model.
+      if (streamInterrupted) {
+        const hasText = typeof assistantMessage.content === 'string' && assistantMessage.content.trim().length > 0;
+        if (hasText) {
+          messages = [...messages, {
+            role: 'assistant',
+            content: assistantMessage.content,
+            ...(assistantMessage.reasoning_content ? { reasoning_content: assistantMessage.reasoning_content } : {}),
+          } as AssistantMessage];
+        }
+        continue;
+      }
+
       // Text-based tool parsing: extract <tool_call> blocks from the model's text
       if (!useNativeTools && assistantMessage.content) {
         const { toolCalls: parsedCalls, cleanText } = parseToolCalls(assistantMessage.content);
@@ -1709,7 +1744,7 @@ export class Agent {
     request: ChatCompletionRequest,
     onEvent: AgentEventHandler,
     signal?: AbortSignal,
-  ): Promise<{ message: AssistantMessage; promptTokens: number }> {
+  ): Promise<{ message: AssistantMessage; promptTokens: number; interrupted?: boolean }> {
     onEvent({ type: 'stream_start' });
 
     let content = '';
@@ -1724,8 +1759,25 @@ export class Agent {
       }
     >();
 
+    // Local controller linked to the parent signal. Lets us abort the
+    // streaming request from inside the loop (on mid-stream user
+    // injection) without touching the outer agent signal — the outer
+    // run isn't cancelled, just this single streamResponse call.
+    const localController = new AbortController();
+    const forwardAbort = () => localController.abort();
+    if (signal?.aborted) {
+      localController.abort();
+    } else {
+      signal?.addEventListener('abort', forwardAbort);
+    }
+
+    // Flag set when we abort due to a mid-stream injection so the
+    // caller knows to loop without attempting tool execution on a
+    // partial response.
+    let interruptedByInjection = false;
+
     try {
-      for await (const chunk of this.provider.createStreamingCompletion(request, signal)) {
+      for await (const chunk of this.provider.createStreamingCompletion(request, localController.signal)) {
         if (chunk.usage) {
           usage = chunk.usage;
         }
@@ -1783,10 +1835,31 @@ export class Agent {
             if (tcDelta.function?.arguments) acc.function.arguments += tcDelta.function.arguments;
           }
         }
+
+        // Mid-stream injection check. If the user sent a message while the
+        // model was streaming, abort this stream and let the outer loop
+        // pick up the interjection on its next iteration (where
+        // pendingInterjections gets drained at the top of the loop).
+        //
+        // Interrupting mid-tool-call would leave dangling tool_calls in
+        // history with no matching tool results — most providers 400 on
+        // that. Only interrupt while we're in the text/thinking phase,
+        // before any tool_calls have started accumulating.
+        if (this.pendingInterjections.length > 0 && toolCallsAccumulator.size === 0) {
+          logger.debug('[agent] Mid-stream injection arrived — aborting stream, interjection will fire next iteration');
+          interruptedByInjection = true;
+          localController.abort();
+          break;
+        }
       }
     } catch (error) {
-      // Preserve partial content AND accumulated tool calls if we collected any before the error
-      if (content || reasoningContent || toolCallsAccumulator.size > 0) {
+      // If we aborted locally because of an injection, fall through to the
+      // normal return path with interruptedByInjection=true. The outer
+      // loop handles the partial message without running tools.
+      if (interruptedByInjection) {
+        // intentional: swallow the abort error, continue to the return below
+      } else if (content || reasoningContent || toolCallsAccumulator.size > 0) {
+        // Preserve partial content AND accumulated tool calls if we collected any before the error
         const partialToolCalls: ToolCall[] = toolCallsAccumulator.size > 0
           ? Array.from(toolCallsAccumulator.values()).filter(tc => tc.id && tc.function.name)
           : [];
@@ -1797,8 +1870,12 @@ export class Agent {
           ...(partialToolCalls.length > 0 ? { tool_calls: partialToolCalls } : {}),
         };
         onEvent({ type: 'stream_end', message: partialMessage });
+        throw error;
+      } else {
+        throw error;
       }
-      throw error;
+    } finally {
+      signal?.removeEventListener('abort', forwardAbort);
     }
 
     const toolCalls: ToolCall[] =
@@ -1840,7 +1917,11 @@ export class Agent {
       cacheHit,
     });
 
-    return { message, promptTokens: usage?.prompt_tokens ?? 0 };
+    return {
+      message,
+      promptTokens: usage?.prompt_tokens ?? 0,
+      ...(interruptedByInjection ? { interrupted: true } : {}),
+    };
   }
 
   // ── Single tool call execution (used by sequential confirmation phase) ──

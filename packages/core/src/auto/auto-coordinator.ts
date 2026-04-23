@@ -788,6 +788,15 @@ Should these tasks be executed as a plan? Output yes or no.`;
               onEvent(conductorEvent as unknown as AgentEvent);
             },
             signal,
+            {
+              // Break orchestration early if the user injects a message
+              // while the persona team is running — without this, a full
+              // team on planning/security/brainstorm blocks for 10–60s
+              // and silently drops anything the user sends during that
+              // window. The task agent's main loop picks up the
+              // interjection on its next iteration.
+              hasPendingInjection: () => taskAgent.hasPendingInterjections(),
+            },
           );
 
           if (synthesisPrompt) {

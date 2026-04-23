@@ -232,7 +232,19 @@ export class Conductor {
     conversationHistory: Message[],
     onEvent: ConductorEventHandler,
     signal?: AbortSignal,
-    options?: { depth?: ConductorDepth },
+    options?: {
+      depth?: ConductorDepth;
+      /**
+       * Optional callback the conductor polls between personas (sequential)
+       * or waves (parallel). Returning true causes orchestration to break
+       * early so a user interjection that arrived during the blocking
+       * persona loop doesn't have to wait for the full team to finish.
+       * The caller is responsible for draining the interjection queue once
+       * orchestrate returns — typically by letting the main Agent.run loop
+       * pick it up on the next iteration.
+       */
+      hasPendingInjection?: () => boolean;
+    },
   ): Promise<{ contextPool: ContextPool; personaStates: PersonaState[]; synthesisPrompt: string }> {
     // Prefer explicit caller choice; otherwise detect from the message. An
     // explicit 'full' always wins — a caller that sets it has already made
@@ -316,6 +328,13 @@ export class Conductor {
 
       while (!vetoed && personaStates.length < (this.config.maxPersonas ?? 6)) {
         if (signal?.aborted) break;
+        // Injection break between waves — see the sequential branch for
+        // the same rationale. Whatever finished contributes to synthesis;
+        // remaining waves are skipped.
+        if (options?.hasPendingInjection?.()) {
+          logger.debug('[conductor] Injection detected between waves — breaking parallel pipeline');
+          break;
+        }
 
         // Find personas whose dependencies are all complete
         const wave = planningTeam.filter(p =>
@@ -390,6 +409,15 @@ export class Conductor {
       for (const persona of planningTeam) {
         if (signal?.aborted) break;
         if (personaStates.length >= (this.config.maxPersonas ?? 6)) break;
+        // Injection break — a user message arrived while we were running
+        // the previous persona. Break out so the outer Agent loop can
+        // drain the interjection and respond without waiting for the
+        // whole team to finish. Whatever personas already completed
+        // contribute to synthesis; the rest are skipped.
+        if (options?.hasPendingInjection?.()) {
+          logger.debug(`[conductor] Injection detected before ${persona.id} — breaking sequential pipeline`);
+          break;
+        }
 
         // Dataset event: persona N starts after persona N-1 finished.
         emitHandoff(persona, prevState);

@@ -2795,6 +2795,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             this.conversation.getMessages(),
             onConductorEvent,
             this.runAbortController.signal,
+            {
+              // Break persona orchestration early when the user injects
+              // a message — the main Agent loop will drain it next
+              // iteration. Without this, a full team blocks the Agent
+              // loop for 10–60s and the injection is silently dropped.
+              hasPendingInjection: () => this.agent?.hasPendingInterjections() ?? false,
+            },
           );
 
           // Inject synthesis as context for the main Agent
