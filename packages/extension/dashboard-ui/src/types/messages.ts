@@ -764,8 +764,13 @@ export type DashboardToExtMessage =
   | { type: 'delete_conversation'; id: string }
   | { type: 'toggle_pin_conversation'; id: string }
   | { type: 'load_tickets' }
-  | { type: 'create_support_ticket'; subject: string; message: string }
+  | { type: 'create_support_ticket'; subject: string; message: string; category?: string }
   | { type: 'reply_support_ticket'; ticketId: string; message: string }
+  | { type: 'load_support_messages'; conversationId: string }
+  | { type: 'mark_support_read'; conversationId: string }
+  | { type: 'clear_support_chat' }
+  | { type: 'send_support_message'; conversationId: string; message: string }
+  | { type: 'start_support_conversation'; message: string }
   // Admin messages
   | { type: 'load_admin_tickets'; status?: string }
   | { type: 'admin_reply_ticket'; ticketId: string; message: string }
@@ -784,7 +789,11 @@ export type DashboardToExtMessage =
   | { type: 'restore_local_memory'; id: string }
   | { type: 'load_session_stats' }
   | { type: 'load_usage_history' }
-  | { type: 'send_byok_support'; email: string; subject: string; message: string }
+  | { type: 'send_byok_support'; email: string; subject: string; message: string; category?: string }
+  | { type: 'set_working_hours'; start: number; end: number }
+  | { type: 'download_asset'; path: string }
+  | { type: 'delete_all_memories' }
+  | { type: 'delete_all_local_memories' }
   // Task messages
   | { type: 'load_tasks' }
   | { type: 'create_task'; title: string; description?: string; priority?: string; category?: string; due_date?: string; recurrence?: string }

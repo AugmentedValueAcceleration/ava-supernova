@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { SyncStatus, ExtToDashboardMessage } from '../types/messages';

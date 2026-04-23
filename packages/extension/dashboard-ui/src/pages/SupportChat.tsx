@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { t, useLocale } from '../i18n';
+import { useLocale } from '../i18n';
 import { post } from '../App';
 
 interface SupportMessage {

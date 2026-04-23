@@ -4,8 +4,7 @@ import { TierBadge } from '../components/TierBadge';
 import { SectionGroup } from '../components/SectionGroup';
 import { post } from '../App';
 import {
-  Lightning, ChartBar, Clock, CloudSun, Newspaper, CheckCircle,
-  Brain, BookOpen, Sparkle, Rocket, ArrowsClockwise,
+  Lightning, ChartBar, Clock, CloudSun, Newspaper, Rocket,
 } from '@phosphor-icons/react';
 import type {
   AccountInfo,
@@ -129,8 +128,6 @@ export function Overview({
   useLocale();
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(account?.name ?? '');
-  const [refreshing, setRefreshing] = useState(false);
-
   useEffect(() => {
     if (logs.length === 0 && account) {
       post({ type: 'load_usage_logs', period: '30d' });

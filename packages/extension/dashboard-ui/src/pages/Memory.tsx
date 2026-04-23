@@ -245,7 +245,7 @@ interface MemoryProps {
   projectBrain?: { brief: string; stack: string[]; keyDecisions: string[]; confidenceAvg: number; nodeCount: number; lastSessionDate: string } | null;
 }
 
-export function Memory({ memories, mode = 'platform', serverTotal, serverHasMore, graphStats, contradictions, patterns, projectBrain }: MemoryProps) {
+export function Memory({ memories, serverTotal, serverHasMore, graphStats, contradictions, patterns, projectBrain }: MemoryProps) {
   useLocale();
   const dataMode = getDataMode();
   const isLocal = dataMode === 'local';

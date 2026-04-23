@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { t, useLocale } from '../i18n';
+import { useLocale } from '../i18n';
 import { Tasks } from './Tasks';
 import { Journal } from './Journal';
 import { Learning } from './Learning';

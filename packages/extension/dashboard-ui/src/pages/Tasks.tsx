@@ -458,7 +458,7 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
             onClick={() => {
               const doneTasks = tasks.filter(t => t.status === 'done');
               for (const t of doneTasks) {
-                post({ type: 'archive_task', taskId: t.id });
+                post({ type: 'archive_task', id: t.id });
               }
             }}
             className="pb-2 text-[10px] text-red-400 opacity-60 hover:opacity-100 bg-transparent border-none cursor-pointer transition"

@@ -94,19 +94,6 @@ const LANGUAGES = [
   { value: 'id', label: 'Bahasa Indonesia' },
 ];
 
-const MODEL_OPTIONS = [
-  { value: '', label: 'Auto (recommended)' },
-  { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
-  { value: 'claude-opus-4-20250514', label: 'Claude Opus 4' },
-  { value: 'deepseek-chat', label: 'DeepSeek V3' },
-  { value: 'deepseek-reasoner', label: 'DeepSeek R1' },
-  { value: 'kimi-k2-0711', label: 'Kimi K2' },
-  { value: 'glm-4-plus', label: 'GLM-4 Plus' },
-  { value: 'qwen-plus', label: 'Qwen Plus' },
-  { value: 'mistral-large-latest', label: 'Mistral Large' },
-  { value: 'codestral-latest', label: 'Codestral' },
-];
-
 // ── Component ────────────────────────────────────────────────────────────────
 
 export function Settings({
@@ -247,21 +234,6 @@ export function Settings({
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   const configuredCount = Object.values(providerKeys).filter(Boolean).length;
-
-  const modelLabel = MODEL_OPTIONS.find(m => m.value === local.activeModel)?.label
-    ?? (local.activeModel || 'Auto');
-
-  const providerForModel = (): string => {
-    const m = local.activeModel;
-    if (!m) return 'Auto-selected';
-    if (m.startsWith('claude')) return 'Anthropic';
-    if (m.startsWith('deepseek')) return 'DeepSeek';
-    if (m.startsWith('kimi')) return 'Moonshot';
-    if (m.startsWith('glm')) return 'Zhipu AI';
-    if (m.startsWith('qwen')) return 'Alibaba';
-    if (m.startsWith('mistral') || m.startsWith('codestral')) return 'Mistral AI';
-    return '';
-  };
 
   // ── Render ───────────────────────────────────────────────────────────────
 
