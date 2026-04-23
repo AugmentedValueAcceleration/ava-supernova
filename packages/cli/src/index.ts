@@ -78,7 +78,7 @@ async function main(): Promise<void> {
         headers: { Authorization: `Bearer ${appConfig.platformKey}` },
       });
       if (res.ok) {
-        const account = await res.json();
+        const account = (await res.json()) as { id?: string };
         if (account?.id) {
           const { join } = await import('node:path');
           const { mkdir } = await import('node:fs/promises');
