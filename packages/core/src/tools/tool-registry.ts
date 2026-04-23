@@ -43,6 +43,7 @@ import { GitCommitTool } from './git-commit.js';
 import { GitCreatePrTool } from './git-create-pr.js';
 import { TestRunTool } from './test-run.js';
 import { TestGenerateTool } from './test-generate.js';
+import { VerifyChangeTool } from './verify-change.js';
 import { AnalyzeArchitectureTool } from './analyze-architecture.js';
 import { DocGenerateTool } from './doc-generate.js';
 import { EmailDraftTool } from './email-draft.js';
@@ -97,7 +98,7 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   docs_lookup: 'file_ops',
   // Shell — execution, testing, performance
   bash: 'shell', test_run: 'shell', test_generate: 'shell',
-  benchmark: 'shell', debug_logs: 'shell',
+  benchmark: 'shell', debug_logs: 'shell', verify_change: 'shell',
   // Git — version control
   git_status: 'git', git_diff: 'git', git_commit: 'git',
   git_create_pr: 'git', rollback: 'git',
@@ -358,6 +359,7 @@ export class ToolRegistry {
       new GitCreatePrTool(),
       new TestRunTool(),
       new TestGenerateTool(),
+      new VerifyChangeTool(),
       new AnalyzeArchitectureTool(),
       new DocGenerateTool(),
       new AuditDependenciesTool(),

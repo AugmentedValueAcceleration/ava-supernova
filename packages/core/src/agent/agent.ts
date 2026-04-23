@@ -332,7 +332,17 @@ export type AgentEvent =
   | { type: 'task_complete'; taskId: string; title: string; summary?: string }
   | { type: 'task_blocked'; taskId: string; title: string; reason: string }
   | { type: 'task_failed'; taskId: string; title: string; error: string }
-  | { type: 'execution_complete'; completed: number; blocked: number; total: number };
+  | { type: 'execution_complete'; completed: number; blocked: number; total: number }
+  // Post-build verification events — emitted by AutoCoordinator after the
+  // task agent finishes, when the agent's final message contains a
+  // <changes-summary> block declaring files touched.
+  | { type: 'verification_start'; files: string[] }
+  | {
+      type: 'verification_end';
+      passed: boolean;
+      report: string;
+      stats: { total: number; passed: number; failed: number; skipped: number };
+    };
 
 export type AgentEventHandler = (event: AgentEvent) => void;
 

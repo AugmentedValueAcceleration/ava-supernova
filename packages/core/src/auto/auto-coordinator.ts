@@ -9,6 +9,7 @@ import type { TaskManager } from '../tasks/task-manager.js';
 
 import { Agent } from '../agent/agent.js';
 import { Conductor } from '../personas/conductor.js';
+import { VerifyChangeTool } from '../tools/verify-change.js';
 import { Conversation } from '../agent/conversation.js';
 import { classifyTask } from './task-classifier.js';
 import { ModelRouter } from './model-router.js';
@@ -26,6 +27,43 @@ import { randomUUID } from 'node:crypto';
 
 // Categories where Conductor orchestration may trigger on the spawned agent
 const ORCHESTRATED_CATEGORIES = new Set<TaskCategory>(['planning', 'security', 'brainstorm', 'teach']);
+
+/**
+ * Parse Builder's trailing <changes-summary> block, if present. The format
+ * is intentionally forgiving — the block can appear anywhere in the message
+ * and field lines can use : or = as separators. Returns null when no block
+ * is found or no files are declared.
+ */
+function extractChangesSummary(
+  message: string,
+): { files: string[]; categories: string[]; notes: string | null } | null {
+  const blockMatch = message.match(/<changes-summary>([\s\S]*?)<\/changes-summary>/i);
+  if (!blockMatch) return null;
+  const body = blockMatch[1];
+  const parseLine = (label: string): string | null => {
+    const re = new RegExp(`(?:^|\\n)\\s*${label}\\s*[:=]\\s*(.+)$`, 'im');
+    const m = body.match(re);
+    return m ? m[1].trim() : null;
+  };
+  const filesLine = parseLine('files');
+  if (!filesLine) return null;
+  const files = filesLine
+    .replace(/^\[|\]$/g, '')
+    .split(/[,\n]+/)
+    .map((f) => f.trim().replace(/^["']|["']$/g, ''))
+    .filter(Boolean);
+  if (files.length === 0) return null;
+  const categoriesLine = parseLine('categories');
+  const categories = categoriesLine
+    ? categoriesLine
+        .replace(/^\[|\]$/g, '')
+        .split(/[,|\s]+/)
+        .map((c) => c.trim().toLowerCase())
+        .filter(Boolean)
+    : [];
+  const notes = parseLine('notes');
+  return { files, categories, notes };
+}
 
 // Categories the coordinator handles directly (no agent spawn)
 const DIRECT_CATEGORIES = new Set<TaskCategory>(['chat', 'image_gen', 'vision']);
@@ -800,7 +838,51 @@ Should these tasks be executed as a plan? Output yes or no.`;
     this.sharedState.activeModelId = originalActiveModel;
 
     // Extract the agent's final assistant message
-    const agentResult = this.extractLastAssistantMessage(updatedTaskMessages);
+    let agentResult = this.extractLastAssistantMessage(updatedTaskMessages);
+
+    // ── Post-build verification ────────────────────────────────────────────
+    // If the agent emitted a <changes-summary> block, run verify_change on
+    // the declared files so typechecks / route curls / migration dry-runs
+    // get automatically run on real state. Failures are appended to the
+    // user-visible result so the next turn sees them. No auto-retry in M1
+    // (the user decides whether to re-dispatch); retry-with-context-injection
+    // lands in M2.
+    if (agentResult) {
+      const declared = extractChangesSummary(agentResult);
+      if (declared && declared.files.length > 0) {
+        try {
+          const verifyReport = await this.runPostBuildVerification(
+            declared.files,
+            onEvent,
+            signal,
+          );
+          if (verifyReport) {
+            // Append the verification block to the assistant output so the
+            // user sees pass/fail inline with the work, and the coordinator
+            // sees the failure reason when it reads the last assistant message.
+            const augmented = agentResult + '\n\n' + verifyReport;
+            agentResult = augmented;
+            // Patch the message in updatedTaskMessages too so downstream
+            // conversation replay carries the verification record.
+            for (let i = updatedTaskMessages.length - 1; i >= 0; i--) {
+              const m = updatedTaskMessages[i];
+              if (m.role === 'assistant' && typeof (m as AssistantMessage).content === 'string') {
+                (m as AssistantMessage).content = augmented;
+                break;
+              }
+            }
+          }
+        } catch (err) {
+          logger.debug(
+            `[auto-coordinator] Post-build verification failed to run: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+          // Verification failing to RUN is different from a check failing;
+          // it shouldn't block the task, just stay silent.
+        }
+      }
+    }
 
     // Build summary for coordinator's context (keeps it lean)
     const summary = agentResult
@@ -817,6 +899,56 @@ Should these tasks be executed as a plan? Output yes or no.`;
     }
 
     return result;
+  }
+
+  /**
+   * Post-build verification hook. Invoked after the task agent returns when
+   * the agent emitted a <changes-summary> block. Runs verify_change against
+   * the declared files and formats a human-readable block for the stream.
+   * Returns null on success with no checks to show; returns the formatted
+   * block otherwise.
+   */
+  private async runPostBuildVerification(
+    files: string[],
+    onEvent: AgentEventHandler,
+    signal?: AbortSignal,
+  ): Promise<string | null> {
+    onEvent({ type: 'verification_start', files });
+
+    const tool = new VerifyChangeTool();
+    const result = await tool.execute(
+      { files },
+      { cwd: this.cwd, signal, sharedState: this.sharedState },
+    );
+
+    const stats = (result.metadata ?? {}) as {
+      total?: number;
+      passed?: number;
+      failed?: number;
+      skipped?: number;
+    };
+    const passed = result.success;
+
+    onEvent({
+      type: 'verification_end',
+      passed,
+      report: result.output,
+      stats: {
+        total: stats.total ?? 0,
+        passed: stats.passed ?? 0,
+        failed: stats.failed ?? 0,
+        skipped: stats.skipped ?? 0,
+      },
+    });
+
+    // Only surface a block if there was something to verify.
+    if ((stats.total ?? 0) === 0) return null;
+
+    const header = passed
+      ? `[verification ✓] ${stats.passed ?? 0} check(s) passed, ${stats.skipped ?? 0} skipped.`
+      : `[verification ✗] ${stats.failed ?? 0} of ${stats.total ?? 0} check(s) failed — see details below.`;
+
+    return `${header}\n\n${result.output}`;
   }
 
   private getLastUserMessage(messages: Message[]): { content: string | ContentPart[]; index: number } | null {
