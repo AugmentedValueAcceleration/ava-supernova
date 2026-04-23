@@ -430,6 +430,46 @@ export class Agent {
   }
 
   /**
+   * Run a one-shot completion — single prompt, no tools, no streaming,
+   * timeout-bounded. Returns the assistant's trimmed text content, or
+   * null on error / timeout / empty response.
+   *
+   * Intended for utility callers that need a quick model round-trip
+   * without spinning up the full agent loop — e.g. the extension host's
+   * auto-journal reflection that writes a 2–4 sentence session summary
+   * after a completed turn. Cheap: one LLM call, no tool schemas, small
+   * max_tokens.
+   *
+   * Errors (network, provider, parse, timeout) all collapse to null so
+   * the caller can fall back gracefully without try/catch plumbing.
+   */
+  async completeOneShot(
+    prompt: string,
+    opts?: { maxTokens?: number; timeoutMs?: number },
+  ): Promise<string | null> {
+    const maxTokens = opts?.maxTokens ?? 200;
+    const timeoutMs = opts?.timeoutMs ?? 10_000;
+    try {
+      const response = await Promise.race([
+        this.provider.createCompletion({
+          model: this.model.id,
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: maxTokens,
+        }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+      ]);
+      if (!response) return null;
+      const choice = response.choices?.[0];
+      const content = choice?.message?.content;
+      if (typeof content !== 'string') return null;
+      const trimmed = content.trim();
+      return trimmed || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Inject a user message mid-run. The message will be appended to the
    * conversation between the current and next agent iteration, allowing
    * the user to steer, add context, or redirect without cancelling.

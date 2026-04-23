@@ -2893,48 +2893,19 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
           const model = this.activeModelDef?.name || 'unknown model';
 
-          // Try LLM reflection — falls back to structured summary if provider unavailable
-          try {
-            const reflectionPrompt = `You are Ava writing a brief journal entry about a session you just had with your user. Write 2-4 sentences in first person about what you worked on, what was interesting or challenging, and what you learned. Be specific about the actual work — not generic. Do NOT include token counts or session stats. Be warm and genuine.\n\nSession context (${duration}min, ${stats.messages} messages, ${stats.tool_calls} tool calls on ${model}):\n${recentMessages}\n\nWrite your journal entry:`;
+          // Try LLM reflection — falls back to structured summary when the
+          // agent isn't present, the provider errors, or the timeout fires.
+          // completeOneShot collapses all failure modes to null so we only
+          // need one branch for fallback.
+          const reflectionPrompt = `You are Ava writing a brief journal entry about a session you just had with your user. Write 2-4 sentences in first person about what you worked on, what was interesting or challenging, and what you learned. Be specific about the actual work — not generic. Do NOT include token counts or session stats. Be warm and genuine.\n\nSession context (${duration}min, ${stats.messages} messages, ${stats.tool_calls} tool calls on ${model}):\n${recentMessages}\n\nWrite your journal entry:`;
 
-            if (this.agent) {
-              // Cross-class reach into Agent's privates — core's Agent doesn't
-              // expose getters for provider/model and we can't touch core here.
-              // Historical note: this branch originally called `provider.complete(...)`,
-              // a method that doesn't exist on `Provider`; the real surface is
-              // `createCompletion(ChatCompletionRequest)`. We preserve the legacy
-              // shape via a narrow structural type so the same runtime error
-              // path (TypeError → catch → fallback) continues to fire until
-              // someone wires the call to the real API.
-              type LegacyCompleteSurface = {
-                provider: { complete: (req: { model: ModelDefinition; messages: Array<{ role: string; content: string }>; maxTokens?: number }) => Promise<{ content: string }> };
-                model: ModelDefinition;
-              };
-              const legacyAgent = this.agent as unknown as LegacyCompleteSurface;
-              const reflection = await Promise.race([
-                legacyAgent.provider.complete({
-                  model: legacyAgent.model,
-                  messages: [{ role: 'user', content: reflectionPrompt }],
-                  maxTokens: 200,
-                }),
-                new Promise<null>(resolve => setTimeout(() => resolve(null), 10000)), // 10s timeout
-              ]);
+          const reflection = this.agent
+            ? await this.agent.completeOneShot(reflectionPrompt, { maxTokens: 200, timeoutMs: 10_000 })
+            : null;
 
-              if (reflection && typeof reflection === 'object' && 'content' in reflection) {
-                const content = (reflection as { content: string }).content?.trim();
-                if (content && content.length > 20) {
-                  this.journalManager.appendAvaEntry(today, content).catch(() => {});
-                } else {
-                  // Fallback to structured summary
-                  this.writeStructuredJournal(today, duration, stats, model, recentMessages);
-                }
-              } else {
-                this.writeStructuredJournal(today, duration, stats, model, recentMessages);
-              }
-            } else {
-              this.writeStructuredJournal(today, duration, stats, model, recentMessages);
-            }
-          } catch {
+          if (reflection && reflection.length > 20) {
+            this.journalManager.appendAvaEntry(today, reflection).catch(() => {});
+          } else {
             this.writeStructuredJournal(today, duration, stats, model, recentMessages);
           }
         }
