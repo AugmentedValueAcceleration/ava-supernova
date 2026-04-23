@@ -494,6 +494,22 @@ export class Agent {
     this.pendingInterjections.push(message);
   }
 
+  /**
+   * Drop every queued interjection without processing it.
+   *
+   * Called from the extension's cancel/stop handler so user injections
+   * queued during the aborted task don't silently replay as the first
+   * message of the next run. Without this, "stop" + "new task" would
+   * carry the last typed-but-not-yet-processed interjection into the
+   * fresh turn and feel like the old task was still alive.
+   */
+  clearPendingInterjections(): void {
+    if (this.pendingInterjections.length > 0) {
+      logger.debug(`[agent] clearPendingInterjections — dropped ${this.pendingInterjections.length} queued message(s)`);
+      this.pendingInterjections.length = 0;
+    }
+  }
+
   async run(messages: Message[], onEvent: AgentEventHandler, signal?: AbortSignal): Promise<Message[]> {
     // Open a dataset trajectory for the entire run. Every avaEvents.emit()
     // inside (sync or async, in this method or any helper it calls) inherits
@@ -2624,14 +2640,29 @@ ${transcript}`;
     if (markerIdx < 0) return messages;
 
     // Everything after the marker must be: exactly one non-meta user
-    // message, nothing else. If there's an assistant reply after the
+    // message, nothing else. If there's a REAL assistant reply after the
     // marker, we're past the first post-stop turn — don't restrict.
+    //
+    // Critical edge case: if the abort fired mid-stream, an empty or
+    // partial assistant message can sit in the transcript (assistant
+    // started speaking, stop fired, no content). That half-message must
+    // NOT count as a "real response" or the restriction bails and all
+    // pre-stop context leaks into the next turn. An empty string, an
+    // empty content parts array, or pure whitespace all count as "no
+    // real response" for this purpose.
     const afterMarker = messages.slice(markerIdx + 1);
     const nonMetaUsers = afterMarker.filter(m =>
       m.role === 'user' && !isMetaPrefix(getTextContent(m.content))
     );
-    const hasAssistantResponse = afterMarker.some(m => m.role === 'assistant');
-    if (nonMetaUsers.length !== 1 || hasAssistantResponse) {
+    const hasRealAssistantResponse = afterMarker.some(m => {
+      if (m.role !== 'assistant') return false;
+      const text = getTextContent(m.content);
+      if (text.trim().length > 0) return true;
+      const hasToolCalls = Array.isArray((m as AssistantMessage).tool_calls)
+        && (m as AssistantMessage).tool_calls!.length > 0;
+      return hasToolCalls;
+    });
+    if (nonMetaUsers.length !== 1 || hasRealAssistantResponse) {
       return messages;
     }
 

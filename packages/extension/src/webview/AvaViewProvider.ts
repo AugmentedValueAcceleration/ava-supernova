@@ -41,7 +41,7 @@ import {
   getRelevantLearnings,
   GenerationManager,
 } from '@ava/core';
-import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, ContentPart, PermissionMode, Message } from '@ava/core';
+import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, ContentPart, PermissionMode, Message, AssistantMessage } from '@ava/core';
 import { creditsFor } from '@ava/core/billing/credits';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus } from './message-types.js';
 import type { AccountInfo } from './dashboard-message-types.js';
@@ -3027,15 +3027,46 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       this.pendingConfirmations.delete(id);
     }
 
-    // Inject a task-termination marker so Ava's momentum clears.
-    // Without this, the next user message carries all the baggage of the
-    // aborted task (classifier budget, tool-call history, architectural
-    // directness hints) and Ava tries to resume — which is exactly why
-    // users feel "she won't stop and listen." The marker tells her the
-    // prior task is dead: treat the next message as fresh context.
+    // ── Momentum clearing ──────────────────────────────────────────────
+    // A stop is a hard stop. Three queues otherwise survive the abort and
+    // make it feel like a pause that auto-resumes on the next turn:
+
+    // 1. Pending mode transition from a switch_mode tool that approved
+    //    mid-task. Without this clear, the finally block in
+    //    handleUserMessage fires the transition 300ms after the abort
+    //    and the user sees a "new" task start on its own. This is the
+    //    single biggest "it felt like pause" contributor.
+    this.pendingModeTransition = null;
+
+    // 2. Agent-level pending interjections (queued user messages that
+    //    hadn't been processed before the abort). Without this, "stop"
+    //    + "new task" carries the stale queued injection into the fresh
+    //    turn as the first processed user message.
+    this.agent?.clearPendingInterjections();
+
+    // 3. An incomplete trailing assistant message from mid-stream abort.
+    //    Leaving it in the transcript breaks the post-stop context
+    //    restriction (agent.ts maybeRestrictPostStopContext reads the
+    //    half-empty bubble as a "real" assistant reply and bails on
+    //    restricting context, leaking all pre-stop baggage into the
+    //    next turn). Strip it before injecting the stop marker.
     try {
       if (this.conversation) {
         const msgs = this.conversation.getMessages();
+        while (msgs.length > 0) {
+          const last = msgs[msgs.length - 1];
+          if (last.role !== 'assistant') break;
+          const text = typeof last.content === 'string' ? last.content : '';
+          const hasToolCalls = Array.isArray((last as AssistantMessage).tool_calls)
+            && ((last as AssistantMessage).tool_calls?.length ?? 0) > 0;
+          if (text.trim().length === 0 && !hasToolCalls) {
+            msgs.pop();
+            continue;
+          }
+          break;
+        }
+        // Inject the task-termination marker so Ava treats the next
+        // user message as a fresh request instead of trying to resume.
         msgs.push({
           role: 'user' as const,
           content: '[User pressed Stop — previous task terminated. Do not resume it. Treat the next message as a fresh request on its own terms. If the user wants to continue the prior work, they will say so explicitly.]',
