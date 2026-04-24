@@ -1088,9 +1088,16 @@ Terminal-based agent for headless workflows and scripting.
 
 ## Sync Across Surfaces
 When cloud sync is enabled, your data follows you:
-- Memory, tasks, journal, learning, chat history, settings, personality
+- Memory, tasks, journal, learning, settings, personality
 - Auto-syncs every 15 minutes in cloud mode
-- Manual sync always available`,
+- Manual sync always available
+
+**Chat history is local-only by design** — raw conversations
+never leave the machine they were recorded on. Ava's memory
+captures the durable facts (preferences, decisions, patterns)
+from conversations separately and syncs those, so cross-device
+continuity works without the transcripts themselves crossing
+the network.`,
   },
 
   // ── Unified Panel ──────────────────────────────────────────────────────
@@ -1146,9 +1153,18 @@ When cloud mode is active, these data types sync automatically:
 - Tasks (your task list)
 - Journal (daily reflections — both yours and Ava's)
 - Learning (curriculums and progress)
-- Chat History (conversation archive)
 - Settings (preferences and config)
 - Personality (your custom AI design)
+
+## What Does NOT Sync (Local-Only By Design)
+- **Chat history** — your raw conversations stay on the machine they
+  were recorded on. The transcripts contain the highest-sensitivity
+  content in the product (code, prompts, tool output, paths), and
+  none of that needs to leave your machine for Ava to work.
+- Ava's memory extracts the durable facts from conversations
+  (decisions made, patterns noticed, preferences confirmed) and
+  syncs THOSE separately, so cross-device continuity works without
+  the conversations themselves crossing the network.
 
 ## How It Works
 - Syncs immediately when you switch to cloud mode
@@ -1158,7 +1174,7 @@ When cloud mode is active, these data types sync automatically:
 - BYOK users without an account never see the toggle
 
 ## Privacy
-Cloud sync is opt-in, never forced. New users start in local mode. Your data is encrypted in transit and stored securely on the platform. You can switch back to local at any time.`,
+Cloud sync is opt-in, never forced. New users start in local mode. Your data is encrypted in transit and stored securely on the platform. You can switch back to local at any time. Chat history is always local regardless of Data Mode — see "What Does NOT Sync" above.`,
   },
 
   // ── Document Preview ────────────────────────────────────────────────────

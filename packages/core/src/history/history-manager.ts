@@ -3,26 +3,69 @@ import { getTextContent } from '../core/types.js';
 import { HistoryStorage, type ConversationRecord } from './storage.js';
 import type { PlatformHistorySync } from './platform-sync.js';
 
+/**
+ * Chat history is **local-only by design**. Conversations contain the
+ * most privacy-sensitive content in the product — the user's code,
+ * their prompts, tool output, file paths, debugging context — and
+ * none of that needs to be in the cloud for Ava to do her job.
+ *
+ * The 5-layer memory pipeline already extracts the durable facts
+ * (preferences, decisions, project architecture, patterns) from
+ * conversations and persists those separately — that's what syncs
+ * cross-device via MemoryManager. The raw transcript stays on the
+ * machine where it was recorded.
+ *
+ * This manager:
+ *   - writes conversations to disk (primary storage)
+ *   - NEVER pushes them to any cloud endpoint
+ *   - keeps the PlatformHistorySync reference so users can still
+ *     DELETE anything that was synced under earlier versions (the
+ *     dashboard "wipe cloud chat history" action routes through the
+ *     delete path, not through save)
+ *
+ * If you're tempted to re-add a push branch here, read the commit
+ * that removed it first — the decision was principled, not an
+ * oversight.
+ */
 export class HistoryManager {
   private storage: HistoryStorage;
   private projectPath?: string;
+  /** Retained for the delete-from-cloud path only. Never used to push. */
   private sync?: PlatformHistorySync;
-  private localOnly: boolean;
 
-  constructor(projectPath?: string, opts?: { sync?: PlatformHistorySync; localOnly?: boolean }) {
+  constructor(
+    projectPath?: string,
+    // `localOnly` is accepted for back-compat with existing callers (the
+    // extension passes it based on the user's Data Mode toggle) but is
+    // ignored — chat history is always local now. The option lives in
+    // the type so we don't break callers in this release; it'll be
+    // removed once every consumer has been updated.
+    opts?: { sync?: PlatformHistorySync; localOnly?: boolean },
+  ) {
     this.storage = new HistoryStorage();
     this.projectPath = projectPath;
     this.sync = opts?.sync;
-    this.localOnly = opts?.localOnly ?? true;
   }
 
   async init(): Promise<void> {
     await this.storage.init();
   }
 
-  /** Toggle cloud sync at runtime. */
-  setLocalOnly(value: boolean): void {
-    this.localOnly = value;
+  /**
+   * The previous API accepted a `localOnly` toggle that gated cloud push.
+   * Chat history is now local-only unconditionally — this method is
+   * preserved as a no-op for callers that haven't been updated yet so
+   * they don't break at runtime. It will be removed in a future release.
+   *
+   * @deprecated Chat history is always local. No toggle needed.
+   */
+  setLocalOnly(_value: boolean): void {
+    // no-op
+  }
+
+  /** Expose the cloud-delete helper — UI uses this to wipe old cloud chats. */
+  getCloudSync(): PlatformHistorySync | undefined {
+    return this.sync;
   }
 
   async saveConversation(conversation: Conversation): Promise<void> {
@@ -54,11 +97,7 @@ export class HistoryManager {
     // Prune oldest conversations in the background (don't block the save)
     this.storage.prune().catch(() => {/* best-effort */});
 
-    // Push to cloud fire-and-forget. Any error is swallowed — save
-    // must never block on the network.
-    if (this.sync && !this.localOnly) {
-      this.sync.push([record]).catch(() => {/* best-effort */});
-    }
+    // No cloud push. By design. See the class header.
   }
 
   async resumeConversation(id: string): Promise<ConversationRecord | null> {
@@ -148,7 +187,11 @@ export class HistoryManager {
 
   async deleteConversation(id: string): Promise<boolean> {
     const ok = await this.storage.delete(id);
-    if (ok && this.sync && !this.localOnly) {
+    // Delete remotely too if a platform sync is configured. Chat history
+    // is local-only going forward, but users may still have old
+    // conversations on the platform from earlier versions; deleting them
+    // locally should clean up cloud residue too.
+    if (ok && this.sync) {
       this.sync.delete(id).catch(() => {/* best-effort */});
     }
     return ok;
@@ -160,10 +203,15 @@ export class HistoryManager {
    * for conversations newer than what's on disk — keeps the pull
    * cheap on big histories. Remote wins on newer updatedAt.
    *
+   * Chat history is local-only going forward, but this method still
+   * works as a ONE-WAY migration path: users with conversations uploaded
+   * under earlier versions can pull them down to local before wiping
+   * the cloud copy. It's a no-op when no platform sync is configured.
+   *
    * Returns count of new + updated conversations.
    */
   async pullLatest(): Promise<number> {
-    if (!this.sync || this.localOnly) return 0;
+    if (!this.sync) return 0;
     try {
       const remoteList = await this.sync.list();
       if (remoteList.length === 0) return 0;

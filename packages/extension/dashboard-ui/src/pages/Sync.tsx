@@ -3,17 +3,22 @@ import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { SyncStatus, ExtToDashboardMessage } from '../types/messages';
 import {
-  Brain, CheckSquare, BookOpen, GraduationCap, ChatCircle,
+  Brain, CheckSquare, BookOpen, GraduationCap,
   GearSix, MaskHappy, Lightbulb,
 } from '@phosphor-icons/react';
 
 function getSyncDataTypes() {
+  // Chat history is intentionally absent — it's local-only by design
+  // (raw conversations contain the highest-sensitivity content in the
+  // product and are never worth shipping to the cloud; Ava's memory
+  // extracts the durable facts and syncs those separately). Users who
+  // want to wipe conversations uploaded under earlier versions do so
+  // via the "Clear cloud data" action on the Privacy page.
   return [
     { key: 'memory',      label: t('dash.sync.memory'),           icon: <Brain weight="duotone" size={18} />, description: t('dash.sync.memory_desc') },
     { key: 'tasks',       label: t('dash.sync.tasks'),            icon: <CheckSquare weight="duotone" size={18} />,  description: t('dash.sync.tasks_desc') },
     { key: 'journal',     label: t('dash.sync.journal'),          icon: <BookOpen weight="duotone" size={18} />, description: t('dash.sync.journal_desc') },
     { key: 'learning',    label: t('dash.nav.learning'),          icon: <GraduationCap weight="duotone" size={18} />, description: t('dash.nav.learning_desc') },
-    { key: 'history',     label: t('dash.sync.chat_history'),     icon: <ChatCircle weight="duotone" size={18} />, description: t('dash.sync.chat_history_desc') },
     { key: 'settings',    label: t('dash.sync.settings'),         icon: <GearSix weight="duotone" size={18} />,  description: t('dash.sync.settings_desc') },
     { key: 'personality', label: t('dash.sync.personality'),       icon: <MaskHappy weight="duotone" size={18} />, description: t('dash.sync.personality_desc') },
     { key: 'learnings',   label: t('dash.sync.shared_learnings'), icon: <Lightbulb weight="duotone" size={18} />, description: t('dash.sync.shared_learnings_desc') },
