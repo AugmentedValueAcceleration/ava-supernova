@@ -95,4 +95,32 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     pricing: { inputPerMillion: 0.05, outputPerMillion: 0.40 },
   },
+  // DeepSeek V4 Pro (managed) — admin-gated rollout (migration 218).
+  // Frontier open-source coordinator candidate: 1.6T / 49B active per
+  // token, SWE-bench Verified 80.6%. Currently only visible to admin
+  // accounts; un-gate by flipping admin_only=false in the models table.
+  // ID matches the row in the `models` table so server lookups resolve.
+  {
+    id: 'deepseek-v4-pro-platform',
+    name: 'DeepSeek V4 Pro',
+    provider: 'platform',
+    contextWindow: 1_000_000,
+    maxOutputTokens: 8192,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    pricing: { inputPerMillion: 1.74, outputPerMillion: 3.48 },
+  },
+  // DeepSeek V4 Flash (managed) — admin-gated. 284B / 13B active. 1M ctx.
+  {
+    id: 'deepseek-v4-flash-platform',
+    name: 'DeepSeek V4 Flash',
+    provider: 'platform',
+    contextWindow: 1_000_000,
+    maxOutputTokens: 8192,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    pricing: { inputPerMillion: 0.14, outputPerMillion: 0.28 },
+  },
 ];

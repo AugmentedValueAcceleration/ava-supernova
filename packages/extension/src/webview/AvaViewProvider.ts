@@ -1056,7 +1056,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         // Re-fetch platform key — the previous try block scoped it out
         // of reach. Cheap VSCode SecretStorage read.
         const modelFetchKey = await this.context.secrets.get('ava-supernova.platformKey');
-        const cacheKey = modelFetchKey ? 'enabledModels_admin' : 'enabledModels_public';
+        // Cache key versioned (v2) so upgrades that change the server-side
+        // shape of /api/models (e.g. admin-gated rows landing in the
+        // response for admin callers) invalidate any stale caches from
+        // the previous major response shape. Bump when the server filter
+        // logic changes.
+        const cacheKey = modelFetchKey ? 'enabledModels_admin_v2' : 'enabledModels_public_v2';
         const cached = this.context.globalState.get<{ ids: string[]; ts: number }>(cacheKey);
         if (cached && Date.now() - cached.ts < 3600000) {
           this.enabledModelIds = new Set(cached.ids);
@@ -1609,12 +1614,32 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   private getModelList(): Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }> {
+    const isAdmin = this.cachedAccount?.tier === 'admin';
+
     const allModels = this.providerRegistry.listAllPossibleModels()
       .filter((m) => {
         if (this.providerSource === 'platform') {
           return m.provider === 'platform' || m.available;
         }
         return m.provider !== 'platform';
+      })
+      // MiniMax is reserved for Creative Studio on platform (no chat use).
+      // BYOK MiniMax — where the user has supplied their own key — stays
+      // visible because their key, their call. The hide-from-chat rule
+      // only applies to managed MiniMax entries (provider='platform',
+      // id prefixed `MiniMax-`).
+      .filter((m) => !(m.provider === 'platform' && m.id.startsWith('MiniMax-')))
+      // Defensive admin-gate on platform-side V4 entries. The /api/models
+      // endpoint already filters them server-side, but we filter here too
+      // so a stale enabledIds cache or a non-admin user with the
+      // PLATFORM_MODELS code-side definition can't leak the entries into
+      // the dropdown. Suffix `-platform` is the convention used in
+      // migration 218 to disambiguate from the BYOK ids.
+      .filter((m) => {
+        const isAdminGatedPlatformModel =
+          m.provider === 'platform' &&
+          (m.id === 'deepseek-v4-pro-platform' || m.id === 'deepseek-v4-flash-platform');
+        return !isAdminGatedPlatformModel || isAdmin;
       });
 
     // Filter by platform-enabled models (if cached)
