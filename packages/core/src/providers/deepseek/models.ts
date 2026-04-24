@@ -1,13 +1,37 @@
 import type { ModelDefinition } from '../../core/types.js';
 
-// As of 2026-04-24, DeepSeek silently remapped the legacy `deepseek-chat`
-// and `deepseek-reasoner` endpoint IDs to serve DeepSeek V4 Flash (non-thinking
-// and thinking modes respectively) for backward compatibility. Both retire
-// on 2026-07-24. Entries below reflect what's actually being served today —
-// V4 Flash specs, V4 Flash pricing, V4 Flash context window — not the
-// historic V3.2 numbers. Explicit `deepseek-v4-pro` and `deepseek-v4-flash`
-// IDs will be added in a follow-up so users can pin the new names directly.
+// DeepSeek V4 preview launched 2026-04-24 as two open-weight MIT-licensed
+// MoE variants. Both support 1M context, dual thinking/non-thinking modes,
+// native OpenAI + Anthropic API compat. The legacy `deepseek-chat` and
+// `deepseek-reasoner` aliases below now route to V4 Flash under the hood
+// (for backward compat; retire 2026-07-24). The explicit `deepseek-v4-pro`
+// and `deepseek-v4-flash` IDs are the canonical way to pin either variant
+// going forward.
 export const DEEPSEEK_MODELS: ModelDefinition[] = [
+  // ── Explicit V4 IDs (pin these going forward) ─────────────────────
+  {
+    id: 'deepseek-v4-pro',
+    name: 'DeepSeek V4 Pro',
+    provider: 'deepseek',
+    contextWindow: 1_000_000,
+    maxOutputTokens: 8192,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    pricing: { inputPerMillion: 1.74, outputPerMillion: 3.48 },
+  },
+  {
+    id: 'deepseek-v4-flash',
+    name: 'DeepSeek V4 Flash',
+    provider: 'deepseek',
+    contextWindow: 1_000_000,
+    maxOutputTokens: 8192,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    pricing: { inputPerMillion: 0.14, outputPerMillion: 0.28 },
+  },
+  // ── Legacy aliases — currently backed by V4 Flash, retire 2026-07-24 ─
   {
     id: 'deepseek-chat',
     name: 'DeepSeek V4 Flash (legacy id)',
