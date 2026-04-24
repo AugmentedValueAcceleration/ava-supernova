@@ -54,7 +54,25 @@ export function resolveCoordinatorModel(
   providerRegistry: ProviderRegistry,
   availableProviders: Set<string>,
   hasPlatform: boolean,
+  preferredCoordinatorId?: string,
 ): CoordinatorModelResult | null {
+  // Operator override — if the user has picked a specific coordinator in
+  // settings (e.g. "try DeepSeek V4 Pro in Auto Mode" during the admin-
+  // gated rollout), honour that choice before falling through to the
+  // default priority ladder. Silently falls back if the preferred model
+  // isn't actually resolvable (keys missing, not enabled, etc.) so the
+  // UI can't lock users out of Auto Mode by setting a stale preference.
+  if (preferredCoordinatorId) {
+    const resolved = providerRegistry.resolveModel(preferredCoordinatorId);
+    if (resolved) {
+      return {
+        provider: resolved.provider,
+        model: resolved.model,
+        reason: `${resolved.model.name} — operator-selected coordinator`,
+      };
+    }
+  }
+
   // Platform users — try platform models first (managed, reliable)
   if (hasPlatform) {
     for (const candidate of PLATFORM_PRIORITY) {

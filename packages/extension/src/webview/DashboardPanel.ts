@@ -3343,6 +3343,11 @@ export class DashboardPanel {
 
   private readSettings(): DashboardSettings {
     const cfg = vscode.workspace.getConfiguration('ava-supernova');
+    // autoCoordinator lives in globalState (Ava's own state), not VS Code
+    // workspace config — it's a runtime preference Ava manages, not a VS
+    // Code-surfaced setting. Still rides the /settings/sync pipeline via
+    // DashboardSettings so it follows the signed-in operator across devices.
+    const autoCoordinator = this.context.globalState.get<string>('ava.autoCoordinator');
     return {
       language: cfg.get<string>('preferences.language') ?? 'auto',
       permissionMode: (cfg.get<string>('preferences.permissionMode') ?? 'strict') as DashboardSettings['permissionMode'],
@@ -3353,6 +3358,7 @@ export class DashboardPanel {
       memoryLocalOnly: cfg.get<boolean>('preferences.memoryLocalOnly') ?? false,
       contributeSharedLearning: cfg.get<boolean>('contributeSharedLearning') ?? false,
       streamResponses: cfg.get<boolean>('preferences.streamResponses') ?? true,
+      ...(autoCoordinator ? { autoCoordinator } : {}),
     };
   }
 
@@ -3373,6 +3379,13 @@ export class DashboardPanel {
     cfg.update('preferences.memoryLocalOnly', settings.memoryLocalOnly, vscode.ConfigurationTarget.Global);
     cfg.update('contributeSharedLearning', settings.contributeSharedLearning, vscode.ConfigurationTarget.Global);
     cfg.update('preferences.streamResponses', settings.streamResponses, vscode.ConfigurationTarget.Global);
+    // autoCoordinator — empty string clears the override, any other
+    // non-empty string is stored as the operator's chosen coordinator id.
+    // `undefined` means the dashboard didn't touch this field, leave it.
+    if (settings.autoCoordinator !== undefined) {
+      const next = settings.autoCoordinator || undefined;
+      this.context.globalState.update('ava.autoCoordinator', next);
+    }
   }
 
   // ─── Sync preferences ──────────────────────────────────────────────────────

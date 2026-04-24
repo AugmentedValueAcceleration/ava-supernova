@@ -1043,18 +1043,33 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       }
 
       // ── Fetch enabled models from platform (non-blocking) ─────────────────
+      // Sends the platform key as a Bearer token so admin-gated rows
+      // (migration 218 — currently the DeepSeek V4 Pro/Flash managed
+      // entries) are only returned when the caller resolves to tier=admin.
+      // Non-admin accounts get the public list; not signing in at all
+      // also works (fetch proceeds without Authorization header).
+      //
+      // Cache key is suffixed with "admin"/"public" so switching between
+      // admin and non-admin accounts doesn't serve the wrong list from
+      // a stale cache.
       try {
-        const cached = this.context.globalState.get<{ ids: string[]; ts: number }>('enabledModels');
+        // Re-fetch platform key — the previous try block scoped it out
+        // of reach. Cheap VSCode SecretStorage read.
+        const modelFetchKey = await this.context.secrets.get('ava-supernova.platformKey');
+        const cacheKey = modelFetchKey ? 'enabledModels_admin' : 'enabledModels_public';
+        const cached = this.context.globalState.get<{ ids: string[]; ts: number }>(cacheKey);
         if (cached && Date.now() - cached.ts < 3600000) {
           this.enabledModelIds = new Set(cached.ids);
         } else {
-          const res = await fetch('https://ava-supernova.com/api/models');
+          const headers: Record<string, string> = {};
+          if (modelFetchKey) headers['Authorization'] = `Bearer ${modelFetchKey}`;
+          const res = await fetch('https://ava-supernova.com/api/models', { headers });
           if (res.ok) {
             const models = (await res.json()) as Array<{ id: string; enabled: boolean }>;
             const ids = models.filter(m => m.enabled !== false).map(m => m.id);
             this.enabledModelIds = new Set(ids);
-            await this.context.globalState.update('enabledModels', { ids, ts: Date.now() });
-            this.log(`Fetched ${ids.length} enabled models from platform`);
+            await this.context.globalState.update(cacheKey, { ids, ts: Date.now() });
+            this.log(`Fetched ${ids.length} enabled models from platform (${modelFetchKey ? 'admin-aware' : 'public'})`);
           }
         }
       } catch {
@@ -1476,6 +1491,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const deepseekKey = await this.context.secrets.get('ava-supernova.provider.deepseek.apiKey') || undefined;
     if (deepseekKey) availableProviders.add('deepseek');
 
+    // Operator's preferred Auto Mode coordinator — set via the admin-gated
+    // picker in Dashboard → Settings. Undefined for most users (falls
+    // through to the default PLATFORM_PRIORITY / BYOK_PRIORITY ladder).
+    const preferredCoordinatorId = this.context.globalState.get<string>('ava.autoCoordinator') || undefined;
+
     // Use static create() — picks Kimi K2.5 for platform, best available for BYOK
     if (availableProviders.size > 1 || availableProviders.has('platform')) {
       this.autoCoordinator = AutoCoordinator.create({
@@ -1485,6 +1505,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         sharedState,
         availableProviders,
         platformKey,
+        preferredCoordinatorId,
         // Thread Decisions folder state through to spawned task agents so
         // Builder agents share the same project context as the conductor.
         systemPromptOpts: {
@@ -1529,7 +1550,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       const mistralKey = await this.context.secrets.get('ava-supernova.provider.mistral.apiKey');
       if (mistralKey) availableProviders.add('mistral');
 
-      const coordinator = resolveCoordinatorModel(this.providerRegistry, availableProviders, hasPlatform);
+      const preferredCoordinatorId = this.context.globalState.get<string>('ava.autoCoordinator') || undefined;
+      const coordinator = resolveCoordinatorModel(this.providerRegistry, availableProviders, hasPlatform, preferredCoordinatorId);
       if (!coordinator) {
         this.log('Auto Mode: no coordinator model available');
         this.postMessage({ type: 'error', message: 'Auto Mode needs at least one configured provider. Add an API key or sign in.' });

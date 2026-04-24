@@ -185,11 +185,15 @@ export class AutoCoordinator {
     userPreferences?: UserRoutePreferences;
     projectInstructions?: string;
     systemPromptOpts?: Record<string, unknown>;
+    // Operator's chosen coordinator model id (e.g. 'platform:deepseek-v4-pro-platform').
+    // When set and resolvable, wins over the default priority ladder.
+    preferredCoordinatorId?: string;
   }): AutoCoordinator | null {
     const coordinator = resolveCoordinatorModel(
       opts.providerRegistry,
       opts.availableProviders,
       !!opts.platformKey || opts.availableProviders.has('platform'),
+      opts.preferredCoordinatorId,
     );
     if (!coordinator) return null;
 

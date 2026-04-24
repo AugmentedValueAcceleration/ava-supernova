@@ -112,6 +112,12 @@ export interface DashboardSettings {
   memoryLocalOnly: boolean;
   contributeSharedLearning: boolean;
   streamResponses: boolean;
+  // Auto Mode coordinator override — qualified model id
+  // (e.g. 'platform:deepseek-v4-pro-platform'). When set and resolvable,
+  // overrides the default PLATFORM_PRIORITY / BYOK_PRIORITY ladder. Empty
+  // string or undefined = use default. Currently an admin-only setting
+  // surfaced in Dashboard → Settings during the DeepSeek V4 rollout.
+  autoCoordinator?: string;
 }
 
 export interface ProviderKeyStatus {
