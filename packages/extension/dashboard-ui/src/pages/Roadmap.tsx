@@ -26,7 +26,7 @@ const themes: RoadmapTheme[] = [
       { label: '5-layer memory with TF-IDF recall', shipped: true },
       { label: 'Memory Agent — curated briefs, not raw dumps', shipped: true },
       { label: 'Memory hot-path cleanup — durable user/project facts, not conversation logs', shipped: true },
-      { label: 'Auto Mode — best model per task routing', shipped: true },
+      { label: 'Maestro + Supernova — best model per task routing', shipped: true },
       { label: 'AutoCoordinator orchestration gate — no task expansion from single-action requests', shipped: true },
       { label: 'Self-inspect pipeline — Ava reads her own code from Supabase', shipped: true },
       { label: '10 knowledge packs (game dev, web, mobile, API, DevOps, systems, data science)', shipped: true },

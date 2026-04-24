@@ -42,7 +42,7 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
   if (models.length === 0) return null;
 
   const activeModelName = activeModel === 'auto'
-    ? 'Auto'
+    ? 'Maestro'
     : activeModel === 'supernova'
       ? 'Supernova'
       : models.find(m => m.id === activeModel)?.name ?? 'Select model';

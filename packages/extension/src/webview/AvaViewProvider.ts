@@ -1565,13 +1565,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         ? 'platform:deepseek-v4-pro-platform'
         : undefined;
       const coordinator = resolveCoordinatorModel(this.providerRegistry, availableProviders, hasPlatform, preferredCoordinatorId);
+      const modeLabel = modelId === 'supernova' ? 'Supernova' : 'Maestro';
       if (!coordinator) {
-        this.log(`${modelId} Mode: no coordinator model available`);
-        this.postMessage({ type: 'error', message: `${modelId === 'supernova' ? 'Supernova' : 'Auto'} Mode needs at least one configured provider. Add an API key or sign in.` });
+        this.log(`${modeLabel}: no coordinator model available`);
+        this.postMessage({ type: 'error', message: `${modeLabel} needs at least one configured provider. Add an API key or sign in.` });
         return;
       }
 
-      const modeLabel = modelId === 'supernova' ? 'Supernova' : 'Auto';
       this.log(`${modeLabel} coordinator: ${coordinator.model.name} (${coordinator.reason})`);
       await this.setupAgent(coordinator.provider, coordinator.model);
 
@@ -1682,15 +1682,17 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const hasMultiple = new Set(deduped.filter(m => m.available).map(m => m.provider)).size > 1
       || deduped.some(m => m.provider === 'platform' && m.available);
     if (hasMultiple) {
-      // Supernova ships visible to everyone with a platform account — the
-      // polyglot mode that pairs DeepSeek V4 Pro coordinator with Qwen 3.6
-      // Plus Builder. Auto remains the default for users who want the
-      // single-coordinator behaviour they already know.
+      // unshift order matters — last unshift ends up first in the list.
+      // Supernova sits above Maestro so the heavyweight option is the
+      // first thing operators see when they open the picker.
+      // The id stays 'auto' for backward compat with saved settings; only
+      // the display label changed to "Maestro" (the single-conductor mode
+      // alongside Supernova's polyglot ensemble).
+      modelList.unshift({ id: 'auto', name: 'Maestro', provider: 'Ava', available: true });
       const hasPlatform = deduped.some(m => m.provider === 'platform' && m.available);
       if (hasPlatform) {
         modelList.unshift({ id: 'supernova', name: 'Supernova', provider: 'Ava', available: true });
       }
-      modelList.unshift({ id: 'auto', name: 'Auto', provider: 'Ava', available: true });
     }
 
     return modelList;
@@ -2732,15 +2734,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           break;
         case 'auto_routing':
           this.postMessage({ type: 'auto_routing', category: (event as any).category, model: (event as any).model, reason: (event as any).reason });
-          this.log(`Auto Mode: routing ${(event as any).category} → ${(event as any).model}`);
+          this.log(`Coordinator: routing ${(event as any).category} → ${(event as any).model}`);
           break;
         case 'auto_agent_start':
           this.postMessage({ type: 'auto_agent_start', model: (event as any).model });
-          this.log(`Auto Mode: agent started on ${(event as any).model}`);
+          this.log(`Coordinator: agent started on ${(event as any).model}`);
           break;
         case 'auto_agent_end':
           this.postMessage({ type: 'auto_agent_end', model: (event as any).model });
-          this.log(`Auto Mode: agent completed on ${(event as any).model}`);
+          this.log(`Coordinator: agent completed on ${(event as any).model}`);
           break;
         case 'execution_start': {
           const total = (event as any).total as number;

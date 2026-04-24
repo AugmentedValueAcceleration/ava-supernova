@@ -59,7 +59,7 @@ Ava approaches your features the way a real engineer would, not the way a fast a
 - **Work pipeline** — Scout → Architect → Verifier → Sequencer → Challenger → Builder
 - Simple questions skip orchestration entirely. Zero overhead.
 
-The Auto Mode coordinator is **Qwen 3.6 Plus** — best agentic coding in the Qwen family, 1M context, native function calling. You can also pick any model manually from the dropdown.
+Two orchestrated modes ship in the dropdown. **Maestro** runs on a single coordinator — Qwen 3.6 Plus by default, the Terminal-Bench leader and battle-tested across the persona pipeline. **Supernova** is the polyglot: DeepSeek V4 Pro coordinator + Qwen 3.6 Plus for Builder spawns + V4 Flash for review-tier work + Qwen Omni when vision is in play. Pick whichever — or any specific model manually.
 
 ---
 
@@ -204,7 +204,9 @@ Grouped for the work you actually do:
 
 ## Models
 
-**Auto Mode coordinator** — Qwen 3.6 Plus. Best agentic coding in the Qwen family, 1M context, native function calling. The model that drives planning and Builder dispatch.
+**Maestro coordinator** — Qwen 3.6 Plus. Single-conductor mode: one brain plans, classifies, and dispatches Builders. Terminal-Bench leader on real agent loops, 1M context, native MCP function calling.
+
+**Supernova coordinator** — DeepSeek V4 Pro. Polyglot mode: V4 Pro reads the task, picks specialists (Qwen 3.6 Plus for Builder, V4 Flash for review-tier work, Qwen Omni for vision). Each role runs on the model that's actually best at it, not whatever the coordinator happens to be.
 
 **Creative Studio** — runs MiniMax exclusively. Image, video, music, voice. Kept separate from the chat coordinator so creative work and code work never compete for the same context window.
 
