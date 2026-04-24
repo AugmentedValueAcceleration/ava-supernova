@@ -24,6 +24,7 @@ import {
   type Check,
   type CheckId,
 } from '../personas/verification-matrix.js';
+import { loadTrustState, isTrusted, recordCheckResults } from './verification-trust.js';
 
 // ── Check result shape ───────────────────────────────────────────────────────
 
@@ -112,7 +113,7 @@ async function detectPackageRoot(file: string, cwd: string): Promise<string> {
 
 // ── Per-check implementations ────────────────────────────────────────────────
 
-async function runTypecheck(check: Check, cwd: string): Promise<CheckResult> {
+async function runTypecheck(check: Check, cwd: string, trusted: boolean): Promise<CheckResult> {
   const start = Date.now();
   const pkgRoot = check.files[0] ? await detectPackageRoot(check.files[0], cwd) : cwd;
   if (!existsSync(join(pkgRoot, 'tsconfig.json'))) {
@@ -123,12 +124,18 @@ async function runTypecheck(check: Check, cwd: string): Promise<CheckResult> {
       message: `No tsconfig.json at ${pkgRoot} — typecheck not applicable`,
     };
   }
-  const { code, output } = await runCommand('npx tsc --noEmit', pkgRoot, 90_000);
+  // Trusted path: incremental mode reuses the .tsbuildinfo cache from prior
+  // runs, cutting typecheck time roughly 60–80% on warm runs. The flag is
+  // additive — if the project's tsconfig doesn't enable incremental at
+  // compiler level, the CLI flag alone still works.
+  const tscCmd = trusted ? 'npx tsc --noEmit --incremental' : 'npx tsc --noEmit';
+  const { code, output } = await runCommand(tscCmd, pkgRoot, 90_000);
+  const modeTag = trusted ? ' [trusted]' : '';
   return {
     check: 'typecheck',
     status: code === 0 ? 'pass' : 'fail',
     durationMs: Date.now() - start,
-    message: code === 0 ? `tsc clean in ${pkgRoot}` : output.trim() || 'tsc exited non-zero',
+    message: code === 0 ? `tsc clean in ${pkgRoot}${modeTag}` : output.trim() || 'tsc exited non-zero',
   };
 }
 
@@ -171,7 +178,7 @@ async function runTestCheck(check: Check, cwd: string): Promise<CheckResult> {
   };
 }
 
-async function runRouteCurl(check: Check): Promise<CheckResult> {
+async function runRouteCurl(check: Check, trusted: boolean): Promise<CheckResult> {
   const start = Date.now();
   const port = await detectDevServer();
   if (!port) {
@@ -182,6 +189,12 @@ async function runRouteCurl(check: Check): Promise<CheckResult> {
       message: 'No dev server detected on :3000/:3001/:5173/:8080 — route curl skipped',
     };
   }
+
+  // Trusted path: halve the per-probe HTTP timeout. This project has
+  // been shipping 2xx/3xx on these route patterns for 10+ consecutive
+  // runs, so a slow response is more likely a blip than a real failure
+  // worth waiting a full 3s for.
+  const probeTimeoutSec = trusted ? 1.5 : 3;
 
   // Derive probable URL paths from file names. For Next.js app router:
   //   app/foo/page.tsx          → /foo
@@ -213,7 +226,7 @@ async function runRouteCurl(check: Check): Promise<CheckResult> {
     urls.map(
       (url) =>
         new Promise<{ url: string; status: number | string }>((resolve) => {
-          exec(`curl -s -o /dev/null -w "%{http_code}" -m 3 "${url}"`, (err, stdout) => {
+          exec(`curl -s -o /dev/null -w "%{http_code}" -m ${probeTimeoutSec} "${url}"`, (err, stdout) => {
             if (err) return resolve({ url, status: 'ERR' });
             resolve({ url, status: parseInt(stdout.trim(), 10) || stdout.trim() });
           });
@@ -331,7 +344,7 @@ async function runLinkCheck(check: Check, cwd: string): Promise<CheckResult> {
   };
 }
 
-async function runAssetHead(check: Check): Promise<CheckResult> {
+async function runAssetHead(check: Check, trusted: boolean): Promise<CheckResult> {
   const start = Date.now();
   const port = await detectDevServer();
   if (!port) {
@@ -353,12 +366,14 @@ async function runAssetHead(check: Check): Promise<CheckResult> {
       message: 'No public-served assets in change list',
     };
   }
+  // Trusted path: halve the HEAD timeout. Same logic as route_curl.
+  const probeTimeoutSec = trusted ? 1.5 : 3;
   const failures: string[] = [];
   await Promise.all(
     urls.map(
       (u) =>
         new Promise<void>((resolve) => {
-          exec(`curl -sI -o /dev/null -w "%{http_code}" -m 3 "http://127.0.0.1:${port}${u}"`, (err, stdout) => {
+          exec(`curl -sI -o /dev/null -w "%{http_code}" -m ${probeTimeoutSec} "http://127.0.0.1:${port}${u}"`, (err, stdout) => {
             const code = parseInt((stdout || '').trim(), 10);
             if (err || !code || code < 200 || code >= 400) failures.push(`${u} → ${code || 'ERR'}`);
             resolve();
@@ -377,8 +392,10 @@ async function runAssetHead(check: Check): Promise<CheckResult> {
 async function runAuthFullSuite(check: Check, cwd: string): Promise<CheckResult> {
   // M1: auth/payment full suite = typecheck + test_run (if available). Full
   // integration suite with session smoke is M2 territory.
+  // The auth_full_suite never graduates (stakesFloor='mandatory'), so the
+  // inner typecheck runs with trusted=false regardless of project history.
   const start = Date.now();
-  const tc = await runTypecheck({ id: 'typecheck', files: check.files, reason: '' }, cwd);
+  const tc = await runTypecheck({ id: 'typecheck', files: check.files, reason: '' }, cwd, false);
   const tr = await runTestCheck({ id: 'test_run', files: check.files, reason: '' }, cwd);
   const status: CheckResult['status'] =
     tc.status === 'fail' || tr.status === 'fail' ? 'fail' : 'pass';
@@ -390,12 +407,12 @@ async function runAuthFullSuite(check: Check, cwd: string): Promise<CheckResult>
   };
 }
 
-async function runSingleCheck(check: Check, cwd: string): Promise<CheckResult> {
+async function runSingleCheck(check: Check, cwd: string, trusted: boolean): Promise<CheckResult> {
   switch (check.id) {
-    case 'typecheck':         return runTypecheck(check, cwd);
+    case 'typecheck':         return runTypecheck(check, cwd, trusted);
     case 'test_run':          return runTestCheck(check, cwd);
-    case 'route_curl':        return runRouteCurl(check);
-    case 'asset_head':        return runAssetHead(check);
+    case 'route_curl':        return runRouteCurl(check, trusted);
+    case 'asset_head':        return runAssetHead(check, trusted);
     case 'migration_dry_run': return runMigrationDryRun(check, cwd);
     case 'build_smoke':       return runBuildSmoke(check, cwd);
     case 'deps_install':      return runDepsInstall(check, cwd);
@@ -493,14 +510,36 @@ export class VerifyChangeTool implements Tool {
       };
     }
 
+    // Load trust state ONCE for this pass. Each check's trusted flag is
+    // resolved against the state snapshot — running this pass doesn't
+    // affect its own graduation decisions (the update happens after).
+    const trustState = await loadTrustState(context.cwd);
+
     // Run in parallel — each implementation owns its own timeout.
-    const results = await Promise.all(toRun.map((c) => runSingleCheck(c, context.cwd)));
+    const results = await Promise.all(
+      toRun.map((c) => runSingleCheck(c, context.cwd, isTrusted(trustState, c.id))),
+    );
 
     const output = formatReport(files, toRun, results);
     const anyFailed = results.some((r) => r.status === 'fail');
     const mandatoryFailed = results.some(
       (r, i) => r.status === 'fail' && toRun[i].stakesFloor === 'mandatory',
     );
+
+    // Record outcomes for trust graduation. pass → increment consecutive
+    // counter. fail → reset to 0. skip/na → neutral. High-stakes checks
+    // (auth/payment/migration) are tracked the same way but won't ever
+    // return true from isTrusted — the NEVER_GRADUATES set in
+    // verification-trust.ts is the floor.
+    try {
+      await recordCheckResults(
+        context.cwd,
+        toRun.map((c, i) => ({ checkId: c.id, status: results[i].status })),
+      );
+    } catch {
+      // Persistence failure is non-fatal — the verification result still
+      // returns normally; next run just starts from whatever last persisted.
+    }
 
     return {
       success: !anyFailed,
