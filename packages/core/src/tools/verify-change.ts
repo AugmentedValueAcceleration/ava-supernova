@@ -11,11 +11,12 @@
 // architectural point: verification isn't a persona's opinion about whether
 // the code works, it's an observable fact.
 
-import { exec } from 'node:child_process';
+import { exec, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { Socket } from 'node:net';
+import { platform } from 'node:os';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import {
@@ -37,29 +38,100 @@ interface CheckResult {
 
 // ── Small utilities ──────────────────────────────────────────────────────────
 
+const DEV_SERVER_PORTS = [3000, 3001, 5173, 8080, 4000, 8000];
+
+async function probePort(port: number, timeoutMs = 150): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    const socket = new Socket();
+    const finish = (result: boolean) => {
+      socket.destroy();
+      resolve(result);
+    };
+    socket.setTimeout(timeoutMs);
+    socket.once('connect', () => finish(true));
+    socket.once('timeout', () => finish(false));
+    socket.once('error', () => finish(false));
+    socket.connect(port, '127.0.0.1');
+  });
+}
+
 /**
  * Detect a running dev server by probing common ports with a short TCP
  * connect. We don't curl yet — we just want to know if something is
  * listening before we bother with an HTTP roundtrip.
  */
 async function detectDevServer(): Promise<number | null> {
-  const candidates = [3000, 3001, 5173, 8080, 4000, 8000];
-  for (const port of candidates) {
-    const ok = await new Promise<boolean>((resolve) => {
-      const socket = new Socket();
-      const finish = (result: boolean) => {
-        socket.destroy();
-        resolve(result);
-      };
-      socket.setTimeout(150);
-      socket.once('connect', () => finish(true));
-      socket.once('timeout', () => finish(false));
-      socket.once('error', () => finish(false));
-      socket.connect(port, '127.0.0.1');
-    });
-    if (ok) return port;
+  for (const port of DEV_SERVER_PORTS) {
+    if (await probePort(port)) return port;
   }
   return null;
+}
+
+/**
+ * Opt-in dev-server auto-start. Triggered when no server is detected AND
+ * the user set `AVA_AUTO_START_DEV=1` in the environment (or the flag is
+ * set in sharedState.autoStartDev). Reads the target project's package.json
+ * for a `dev` or `start` script and spawns it detached so the process
+ * outlives the verify_change call — the user gets a running dev server
+ * they can keep using after verification completes.
+ *
+ * Returns the detected port on success, or null on any failure (no script
+ * configured, spawn failed, port never bound in warmupMs). Never throws
+ * and never kills a started process — that's the user's workflow to own.
+ *
+ * NOTE: off by default for a reason. Auto-starting processes is state-
+ * modifying; users who don't opt in shouldn't find a dev server running
+ * they didn't start.
+ */
+async function tryAutoStartDevServer(
+  cwd: string,
+  warmupMs = 8_000,
+): Promise<{ port: number; script: string } | null> {
+  const pkgPath = join(cwd, 'package.json');
+  if (!existsSync(pkgPath)) return null;
+
+  let script: string | null = null;
+  try {
+    const pkg = JSON.parse(await readFile(pkgPath, 'utf8')) as { scripts?: Record<string, string> };
+    if (typeof pkg.scripts?.dev === 'string') script = 'dev';
+    else if (typeof pkg.scripts?.start === 'string') script = 'start';
+  } catch {
+    return null;
+  }
+  if (!script) return null;
+
+  // Prefer pnpm if a pnpm-lock.yaml is visible — otherwise fall back to npm.
+  const pm = existsSync(join(cwd, 'pnpm-lock.yaml')) ? 'pnpm' : 'npm';
+  const cmd = pm === 'pnpm' ? `pnpm ${script}` : `npm run ${script}`;
+
+  try {
+    // spawn detached + unref so the dev server outlives this verify call
+    const isWin = platform() === 'win32';
+    const child = spawn(cmd, {
+      cwd,
+      shell: true,
+      detached: !isWin,
+      stdio: 'ignore',
+      windowsHide: true,
+    });
+    if (!isWin && typeof child.unref === 'function') child.unref();
+  } catch {
+    return null;
+  }
+
+  // Poll for up to warmupMs, checking common ports every 500ms
+  const deadline = Date.now() + warmupMs;
+  while (Date.now() < deadline) {
+    const port = await detectDevServer();
+    if (port !== null) return { port, script: cmd };
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  return null;
+}
+
+function autoStartRequested(): boolean {
+  const v = process.env.AVA_AUTO_START_DEV;
+  return v === '1' || v === 'true' || v === 'yes';
 }
 
 /**
@@ -178,15 +250,31 @@ async function runTestCheck(check: Check, cwd: string): Promise<CheckResult> {
   };
 }
 
-async function runRouteCurl(check: Check, trusted: boolean): Promise<CheckResult> {
+async function runRouteCurl(check: Check, trusted: boolean, cwd: string): Promise<CheckResult> {
   const start = Date.now();
-  const port = await detectDevServer();
+  let port = await detectDevServer();
+  let autoStarted: string | null = null;
+
+  // Opt-in auto-start (M2.4): if the user set AVA_AUTO_START_DEV and no
+  // server is detected, try to spawn the project's `dev` script in the
+  // background and wait up to 8s for a port to bind. Off by default.
+  if (!port && autoStartRequested()) {
+    const result = await tryAutoStartDevServer(cwd);
+    if (result) {
+      port = result.port;
+      autoStarted = result.script;
+    }
+  }
+
   if (!port) {
+    const hint = autoStartRequested()
+      ? 'AVA_AUTO_START_DEV set but dev server did not bind within 8s — route curl skipped'
+      : 'No dev server detected on :3000/:3001/:5173/:8080 — route curl skipped (set AVA_AUTO_START_DEV=1 to auto-spawn)';
     return {
       check: 'route_curl',
       status: 'skip',
       durationMs: Date.now() - start,
-      message: 'No dev server detected on :3000/:3001/:5173/:8080 — route curl skipped',
+      message: hint,
     };
   }
 
@@ -238,34 +326,122 @@ async function runRouteCurl(check: Check, trusted: boolean): Promise<CheckResult
     .map((r) => (r.status === 'fulfilled' ? r.value : { url: 'unknown', status: 'REJECTED' }))
     .filter((p) => typeof p.status !== 'number' || p.status < 200 || p.status >= 400);
 
+  const portTag = autoStarted ? ` [auto-started ${autoStarted} on :${port}]` : '';
   if (failures.length === 0) {
     return {
       check: 'route_curl',
       status: 'pass',
       durationMs: Date.now() - start,
-      message: `All ${urls.length} route probe(s) returned 2xx/3xx`,
+      message: `All ${urls.length} route probe(s) returned 2xx/3xx${portTag}`,
     };
   }
   return {
     check: 'route_curl',
     status: 'fail',
     durationMs: Date.now() - start,
-    message: failures.map((f) => `${f.url} → ${f.status}`).join('; '),
+    message: failures.map((f) => `${f.url} → ${f.status}`).join('; ') + portTag,
   };
 }
 
-async function runMigrationDryRun(_check: Check, _cwd: string): Promise<CheckResult> {
-  // M1 behaviour: we don't actually shell out to prisma/drizzle/supabase CLI
-  // here — too many provider-specific quirks. Report status 'skip' with a
-  // clear note that the user must run the dry-run manually. The mandatory
-  // floor still fires (the check appears in the report, coloured amber),
-  // which is the signal we want.
+// Destructive SQL patterns — flagged for visibility, not fail. User
+// migrations often ARE destructive by design (DROP COLUMN to cut a
+// deprecated field, TRUNCATE to reset a dev-only table). Surface them so
+// the human reviewing the check block SEES what this migration will do
+// without having to open the file.
+const SQL_DESTRUCTIVE_PATTERNS: Array<{ pattern: RegExp; label: string }> = [
+  { pattern: /\bDROP\s+TABLE\b/i, label: 'DROP TABLE' },
+  { pattern: /\bDROP\s+COLUMN\b/i, label: 'DROP COLUMN' },
+  { pattern: /\bDROP\s+INDEX\b/i, label: 'DROP INDEX' },
+  { pattern: /\bDROP\s+SCHEMA\b/i, label: 'DROP SCHEMA' },
+  { pattern: /\bTRUNCATE\b/i, label: 'TRUNCATE' },
+  // DELETE without a WHERE — multi-line safe via `s` flag.
+  { pattern: /\bDELETE\s+FROM\s+\S+\s*(;|$|--)/is, label: 'DELETE without WHERE' },
+];
+
+async function runMigrationDryRun(check: Check, cwd: string): Promise<CheckResult> {
+  // M2 upgrade on the M1 skip: for every migration file, surface what can
+  // be known statically — transaction wrapping, DDL operations, destructive
+  // patterns — and for Prisma schemas shell out to `prisma validate`
+  // (pure syntax check, no DB touch). Everything else still recommends a
+  // manual dry-run. Ava NEVER auto-applies migrations regardless of result.
+  const start = Date.now();
+  const findings: string[] = [];
+  let hadHardError = false;
+
+  for (const file of check.files) {
+    const abs = existsSync(file) ? file : join(cwd, file);
+    if (!existsSync(abs)) {
+      findings.push(`${file}: file not found`);
+      continue;
+    }
+
+    const lower = file.replace(/\\/g, '/').toLowerCase();
+
+    // ── SQL migration (supabase / raw psql / flyway-style) ─────────────
+    if (lower.endsWith('.sql')) {
+      try {
+        const body = await readFile(abs, 'utf8');
+        const destructive = SQL_DESTRUCTIVE_PATTERNS
+          .filter((d) => d.pattern.test(body))
+          .map((d) => d.label);
+        const ddlCount = (body.match(/\b(CREATE|ALTER|DROP)\s+(TABLE|INDEX|VIEW|SCHEMA|FUNCTION|TRIGGER|POLICY)\b/gi) || []).length;
+        const hasTransaction = /\bBEGIN\b/i.test(body) && /\bCOMMIT\b/i.test(body);
+        const parts: string[] = [];
+        parts.push(`${file}: ${ddlCount} DDL op(s)`);
+        if (destructive.length > 0) {
+          parts.push(`destructive: ${destructive.join(', ')}`);
+        }
+        if (!hasTransaction && ddlCount > 0) {
+          parts.push('no BEGIN/COMMIT — not transactional');
+        }
+        findings.push(parts.join(' · '));
+      } catch (err) {
+        findings.push(`${file}: read failed (${err instanceof Error ? err.message : String(err)})`);
+      }
+      continue;
+    }
+
+    // ── Prisma schema — shell `prisma validate` if CLI reachable ───────
+    if (/\bprisma\/schema\.prisma$/.test(lower)) {
+      const { code, output } = await runCommand('npx prisma validate', cwd, 30_000);
+      if (code === 0) {
+        findings.push(`${file}: prisma validate ✓`);
+      } else {
+        hadHardError = true;
+        const head = output.split('\n').find((l) => /error/i.test(l)) || output.trim().slice(0, 200);
+        findings.push(`${file}: prisma validate failed — ${head}`);
+      }
+      continue;
+    }
+
+    // ── Drizzle schema / kit config — typecheck already covers it ──────
+    if (/\bdrizzle\//.test(lower) || /drizzle\.config\.(ts|js|mjs)$/.test(lower)) {
+      findings.push(`${file}: Drizzle — schema structure covered by typecheck; run 'drizzle-kit generate' manually to diff the DB.`);
+      continue;
+    }
+
+    // ── Unknown migration format ───────────────────────────────────────
+    findings.push(`${file}: migration format unrecognised — run the system's dry-run manually.`);
+  }
+
+  if (findings.length === 0) {
+    return {
+      check: 'migration_dry_run',
+      status: 'skip',
+      durationMs: Date.now() - start,
+      message: 'No migration files to analyse.',
+    };
+  }
+
   return {
     check: 'migration_dry_run',
-    status: 'skip',
-    durationMs: 0,
-    message:
-      'Migration touched — run the dry-run manually (prisma migrate diff / drizzle-kit generate --dry-run / supabase migration repair). Ava never auto-applies migrations.',
+    // Hard errors (prisma validate fails) mark the check as fail so the
+    // user can't miss it. Static findings alone are informational — the
+    // stakesFloor='mandatory' flag still surfaces the check in the report
+    // block for visibility.
+    status: hadHardError ? 'fail' : 'pass',
+    durationMs: Date.now() - start,
+    message: findings.join(' | '),
   };
 }
 
@@ -411,7 +587,7 @@ async function runSingleCheck(check: Check, cwd: string, trusted: boolean): Prom
   switch (check.id) {
     case 'typecheck':         return runTypecheck(check, cwd, trusted);
     case 'test_run':          return runTestCheck(check, cwd);
-    case 'route_curl':        return runRouteCurl(check, trusted);
+    case 'route_curl':        return runRouteCurl(check, trusted, cwd);
     case 'asset_head':        return runAssetHead(check, trusted);
     case 'migration_dry_run': return runMigrationDryRun(check, cwd);
     case 'build_smoke':       return runBuildSmoke(check, cwd);
