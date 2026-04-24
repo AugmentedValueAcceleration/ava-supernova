@@ -523,31 +523,6 @@ export function Settings({
         />
       </div>
 
-      {/* ── 4b. Auto Mode coordinator (admin-only) ──────────────────────────
-          Staged-rollout toggle for the DeepSeek V4 experiment. Normal users
-          get the default PLATFORM_PRIORITY ladder (Qwen 3.6 Plus). Admin can
-          swap to V4 Pro to A/B without a code change. Flows through
-          DashboardSettings → /settings/sync so it follows the operator
-          across devices when Settings sync is on. */}
-      {account?.tier === 'admin' && (
-        <>
-          <SectionLabel>Auto Mode coordinator</SectionLabel>
-          <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-            <p className="mb-3 text-[11px] text-[var(--text-muted)] leading-relaxed">
-              The model that orchestrates Auto Mode — classifies tasks, routes to specialists, runs the Conductor loop. Default is Qwen 3.6 Plus, tuned over many months. Alternatives are experimental — personas and prompts were tuned against Qwen and may behave differently on another coordinator.
-            </p>
-            <Select
-              value={local.autoCoordinator ?? ''}
-              onChange={v => saveImmediate('autoCoordinator', v || undefined)}
-              options={[
-                { value: '', label: 'Default (Qwen 3.6 Plus)' },
-                { value: 'platform:deepseek-v4-pro-platform', label: 'DeepSeek V4 Pro (experimental)' },
-              ]}
-            />
-          </div>
-        </>
-      )}
-
       {/* ── 5. Language ──────────────────────────────────────────────────── */}
       <SectionLabel>{t('dash.settings.language')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">

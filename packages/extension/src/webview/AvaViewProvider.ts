@@ -1496,10 +1496,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const deepseekKey = await this.context.secrets.get('ava-supernova.provider.deepseek.apiKey') || undefined;
     if (deepseekKey) availableProviders.add('deepseek');
 
-    // Operator's preferred Auto Mode coordinator — set via the admin-gated
-    // picker in Dashboard → Settings. Undefined for most users (falls
-    // through to the default PLATFORM_PRIORITY / BYOK_PRIORITY ladder).
-    const preferredCoordinatorId = this.context.globalState.get<string>('ava.autoCoordinator') || undefined;
+    // Routing mode — 'supernova' when the operator picks the Supernova
+    // entry in the model dropdown, otherwise 'auto'. AutoCoordinator
+    // honours this for coordinator selection (V4 Pro on Supernova) and
+    // for the Builder spawn model (Qwen 3.6 Plus on Supernova).
+    const activeModel = vscode.workspace.getConfiguration('ava-supernova').get<string>('activeModel');
+    const routingMode: 'auto' | 'supernova' = activeModel === 'supernova' ? 'supernova' : 'auto';
 
     // Use static create() — picks Kimi K2.5 for platform, best available for BYOK
     if (availableProviders.size > 1 || availableProviders.has('platform')) {
@@ -1510,7 +1512,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         sharedState,
         availableProviders,
         platformKey,
-        preferredCoordinatorId,
+        mode: routingMode,
         // Thread Decisions folder state through to spawned task agents so
         // Builder agents share the same project context as the conductor.
         systemPromptOpts: {
@@ -1534,10 +1536,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    // Auto Mode — resolve the correct coordinator via the core helper.
-    // Platform users get Qwen 3.6 Plus (best agentic coding, 1M context).
-    // MiniMax is reserved for creative generation, never routed for reasoning.
-    if (modelId === 'auto') {
+    // Auto Mode + Supernova Mode — resolve the correct coordinator via the
+    // core helper. Auto picks the platform default ladder (Qwen 3.6 Plus
+    // on platform). Supernova pins to DeepSeek V4 Pro per the locked
+    // polyglot routing map and runs Builder spawns on Qwen 3.6 Plus
+    // instead of the coordinator.
+    if (modelId === 'auto' || modelId === 'supernova') {
       const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
       const hasPlatform = !!platformKey;
       const availableProviders = new Set<string>();
@@ -1555,22 +1559,27 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       const mistralKey = await this.context.secrets.get('ava-supernova.provider.mistral.apiKey');
       if (mistralKey) availableProviders.add('mistral');
 
-      const preferredCoordinatorId = this.context.globalState.get<string>('ava.autoCoordinator') || undefined;
+      // Supernova pins coordinator to V4 Pro. Auto follows the default
+      // priority ladder.
+      const preferredCoordinatorId = modelId === 'supernova'
+        ? 'platform:deepseek-v4-pro-platform'
+        : undefined;
       const coordinator = resolveCoordinatorModel(this.providerRegistry, availableProviders, hasPlatform, preferredCoordinatorId);
       if (!coordinator) {
-        this.log('Auto Mode: no coordinator model available');
-        this.postMessage({ type: 'error', message: 'Auto Mode needs at least one configured provider. Add an API key or sign in.' });
+        this.log(`${modelId} Mode: no coordinator model available`);
+        this.postMessage({ type: 'error', message: `${modelId === 'supernova' ? 'Supernova' : 'Auto'} Mode needs at least one configured provider. Add an API key or sign in.` });
         return;
       }
 
-      this.log(`Auto Mode coordinator: ${coordinator.model.name} (${coordinator.reason})`);
+      const modeLabel = modelId === 'supernova' ? 'Supernova' : 'Auto';
+      this.log(`${modeLabel} coordinator: ${coordinator.model.name} (${coordinator.reason})`);
       await this.setupAgent(coordinator.provider, coordinator.model);
 
       const config = vscode.workspace.getConfiguration('ava-supernova');
-      config.update('activeModel', 'auto', vscode.ConfigurationTarget.Global);
+      config.update('activeModel', modelId, vscode.ConfigurationTarget.Global);
 
       this.updateStatusBar('ready');
-      this.postMessage({ type: 'model_switched', modelId: 'auto', modelName: 'Auto' });
+      this.postMessage({ type: 'model_switched', modelId, modelName: modeLabel });
       return;
     }
 
@@ -1673,6 +1682,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const hasMultiple = new Set(deduped.filter(m => m.available).map(m => m.provider)).size > 1
       || deduped.some(m => m.provider === 'platform' && m.available);
     if (hasMultiple) {
+      // Supernova ships visible to everyone with a platform account — the
+      // polyglot mode that pairs DeepSeek V4 Pro coordinator with Qwen 3.6
+      // Plus Builder. Auto remains the default for users who want the
+      // single-coordinator behaviour they already know.
+      const hasPlatform = deduped.some(m => m.provider === 'platform' && m.available);
+      if (hasPlatform) {
+        modelList.unshift({ id: 'supernova', name: 'Supernova', provider: 'Ava', available: true });
+      }
       modelList.unshift({ id: 'auto', name: 'Auto', provider: 'Ava', available: true });
     }
 

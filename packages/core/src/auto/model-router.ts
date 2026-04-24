@@ -1,5 +1,8 @@
 import type { ProviderRegistry } from '../providers/provider-registry.js';
 import type { TaskCategory, RouteResult, UserRoutePreferences } from './types.js';
+import { SUPERNOVA_ROUTES } from './supernova-router.js';
+
+export type RoutingMode = 'auto' | 'supernova';
 
 // ─── Default routing table (platform users with all 3 providers) ─────────────
 
@@ -28,23 +31,30 @@ const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
 /**
  * Routes task categories to the best available model.
  * Respects user overrides, checks provider availability, falls back gracefully.
+ *
+ * `mode` selects the routing table — 'auto' (default) uses the static
+ * Qwen-coordinated table; 'supernova' uses the polyglot table that picks
+ * different models per task based on what each is best at.
  */
 export class ModelRouter {
   private providerRegistry: ProviderRegistry;
   private availableProviders: Set<string>;
   private hasPlatform: boolean;
   private userPreferences: UserRoutePreferences;
+  private mode: RoutingMode;
 
   constructor(
     providerRegistry: ProviderRegistry,
     availableProviders: Set<string>,
     platformKey?: string,
     userPreferences?: UserRoutePreferences,
+    mode: RoutingMode = 'auto',
   ) {
     this.providerRegistry = providerRegistry;
     this.availableProviders = availableProviders;
     this.hasPlatform = !!platformKey || availableProviders.has('platform');
     this.userPreferences = userPreferences || {};
+    this.mode = mode;
   }
 
   /**
@@ -65,8 +75,9 @@ export class ModelRouter {
       // Preference set but model unavailable — fall through to default
     }
 
-    // 3. Default routing table
-    const entry = DEFAULT_ROUTES[category];
+    // 3. Default routing table — table swap based on mode.
+    const routes = this.mode === 'supernova' ? SUPERNOVA_ROUTES : DEFAULT_ROUTES;
+    const entry = routes[category];
     if (!entry) return null;
 
     // Try primary

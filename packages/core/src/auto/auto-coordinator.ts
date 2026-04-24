@@ -17,6 +17,8 @@ import { generateBrief, formatBriefAsSystem } from './brief-generator.js';
 import { ContextTracker } from './context-tracker.js';
 import { resolveCoordinatorModel } from './coordinator-model.js';
 import { classifyIntent, resolveIntentGateModel } from './intent-gate.js';
+import { SUPERNOVA_COORDINATOR_ID, SUPERNOVA_BUILDER_ID } from './supernova-router.js';
+import type { RoutingMode } from './model-router.js';
 import { buildSystemPrompt } from '../agent/system-prompt.js';
 import { TaskExecutor } from './task-executor.js';
 import { logger } from '../core/logger.js';
@@ -115,6 +117,18 @@ export class AutoCoordinator {
   private readonly surface: AvaSurface;
   private readonly sessionId: string;
 
+  /** Routing mode — 'auto' (default) or 'supernova' (polyglot). Threaded
+   *  into the model router and consulted when spawning Builder so the
+   *  per-task model picks honor whichever mode the operator selected. */
+  private readonly mode: RoutingMode;
+  /** Provider+model the Builder agent (TaskExecutor spawn) runs on. In
+   *  Auto mode this is the coordinator model — Builder inherits whatever
+   *  the conductor brain runs on. In Supernova mode it's Qwen 3.6 Plus
+   *  per the locked routing map (Terminal-Bench leader on real agent
+   *  loops, vision-aware so screenshots don't need a re-route). */
+  private readonly builderProvider: Provider;
+  private readonly builderModel: ModelDefinition;
+
   constructor(opts: {
     coordinatorProvider: Provider;
     coordinatorModel: ModelDefinition;
@@ -132,6 +146,8 @@ export class AutoCoordinator {
     surface?: AvaSurface;
     /** Optional session UUID. Defaults to a fresh one. */
     sessionId?: string;
+    /** 'auto' (default) or 'supernova'. Controls routing table + Builder model. */
+    mode?: RoutingMode;
   }) {
     this.coordinatorProvider = opts.coordinatorProvider;
     this.coordinatorModel = opts.coordinatorModel;
@@ -142,13 +158,30 @@ export class AutoCoordinator {
     this.systemPromptOpts = opts.systemPromptOpts || {};
     this.surface = opts.surface ?? 'cli';
     this.sessionId = opts.sessionId ?? randomUUID();
+    this.mode = opts.mode ?? 'auto';
 
     this.router = new ModelRouter(
       opts.providerRegistry,
       opts.availableProviders,
       opts.platformKey,
       opts.userPreferences,
+      this.mode,
     );
+
+    // Resolve the Builder model. Supernova always wants Qwen 3.6 Plus for
+    // Builder spawns (Terminal-Bench leader). Auto reuses the coordinator
+    // model for backward-compatibility with the existing tuning. If the
+    // Supernova override can't resolve (platform not enabled, model not
+    // registered) fall back to the coordinator model rather than block.
+    if (this.mode === 'supernova') {
+      const resolved = opts.providerRegistry.resolveModel(`platform:${SUPERNOVA_BUILDER_ID}`)
+        ?? opts.providerRegistry.resolveModel(SUPERNOVA_BUILDER_ID);
+      this.builderProvider = resolved?.provider ?? opts.coordinatorProvider;
+      this.builderModel = resolved?.model ?? opts.coordinatorModel;
+    } else {
+      this.builderProvider = opts.coordinatorProvider;
+      this.builderModel = opts.coordinatorModel;
+    }
 
     // Resolve a cheap fast model for the upstream intent gate.
     // Prefers Qwen 3.5 Flash on platform; falls through to Haiku/DeepSeek
@@ -188,12 +221,22 @@ export class AutoCoordinator {
     // Operator's chosen coordinator model id (e.g. 'platform:deepseek-v4-pro-platform').
     // When set and resolvable, wins over the default priority ladder.
     preferredCoordinatorId?: string;
+    /** 'auto' (default) or 'supernova'. */
+    mode?: RoutingMode;
   }): AutoCoordinator | null {
+    // Supernova mode pins the coordinator to V4 Pro — that's part of what
+    // makes Supernova Supernova. Falls through to the default priority
+    // ladder if the operator already passed an explicit preference (rare;
+    // means they're admin-overriding the override).
+    const supernovaCoordinator = opts.mode === 'supernova' && !opts.preferredCoordinatorId
+      ? `platform:${SUPERNOVA_COORDINATOR_ID}`
+      : opts.preferredCoordinatorId;
+
     const coordinator = resolveCoordinatorModel(
       opts.providerRegistry,
       opts.availableProviders,
       !!opts.platformKey || opts.availableProviders.has('platform'),
-      opts.preferredCoordinatorId,
+      supernovaCoordinator,
     );
     if (!coordinator) return null;
 
@@ -312,11 +355,13 @@ export class AutoCoordinator {
       }
 
       if (shouldDispatch) {
-        logger.debug(`[auto-coordinator] Dispatching TaskExecutor for ${newlyPending.length} new tasks`);
+        logger.debug(`[auto-coordinator] Dispatching TaskExecutor for ${newlyPending.length} new tasks (mode=${this.mode}, builder=${this.builderModel.name})`);
 
         const executor = new TaskExecutor({
-          provider: this.coordinatorProvider,
-          model: this.coordinatorModel,
+          // Builder model — Auto reuses the coordinator, Supernova pins to
+          // Qwen 3.6 Plus per the polyglot routing map. See constructor.
+          provider: this.builderProvider,
+          model: this.builderModel,
           toolRegistry: this.toolRegistry,
           taskManager: taskMgr,
           cwd: this.cwd,
