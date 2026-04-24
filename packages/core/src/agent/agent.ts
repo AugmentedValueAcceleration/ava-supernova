@@ -645,6 +645,54 @@ export class Agent {
   }
 
   private async runInner(messages: Message[], onEvent: AgentEventHandler, signal?: AbortSignal): Promise<Message[]> {
+    // ─── History preservation across destructive context transforms ────────
+    //
+    // This function treats `messages` as a working context — the array
+    // that gets sent to the model each iteration. Several transforms in
+    // the loop below mutate `messages` destructively: compressContext()
+    // replaces older turns with a summary, truncateMessages() drops
+    // messages from the start to stay under the context window. These
+    // mutations are correct for model context (saving tokens) but
+    // WRONG for user history — if the return value reflects the
+    // compressed state, the caller persists a lossy transcript to disk
+    // and the user's scrollback disappears on next load.
+    //
+    // Fix: track what the user's history actually is separately from
+    // the model's working context. `historySnapshot` captures input at
+    // the boundary; `realEvents` collects messages genuinely added this
+    // turn (assistant replies, tool results, interjections). Destructive
+    // transforms intercept first so anything between the last snapshot
+    // point and the transform gets absorbed into realEvents before the
+    // transform mutates messages out from under us. `isMetaPrefix`
+    // filters out synthetic user-role injections (iteration warnings,
+    // compression continuation headers, task-re-injection blocks) so
+    // only actual events land in history.
+    //
+    // At every return path, `[...historySnapshot, ...realEvents]` is
+    // the authoritative history — the model never sees it, and the
+    // user never loses it.
+    const historySnapshot: Message[] = [...messages];
+    const realEvents: Message[] = [];
+    let lastSnapshotOffset = messages.length;
+
+    /** Pick up new non-meta messages since the last snapshot point. */
+    const absorbSinceLastSnapshot = (): void => {
+      if (messages.length > lastSnapshotOffset) {
+        for (let i = lastSnapshotOffset; i < messages.length; i++) {
+          const m = messages[i];
+          const text = getTextContent(m.content);
+          if (typeof text === 'string' && text.length > 0 && isMetaPrefix(text)) continue;
+          realEvents.push(m);
+        }
+      }
+    };
+
+    /** Reconstruct the authoritative history for the return value. */
+    const finalHistory = (): Message[] => {
+      absorbSinceLastSnapshot();
+      return [...historySnapshot, ...realEvents];
+    };
+
     // ─── Stop-command detection ────────────────────────────────────────────
     // If the user's latest message is an explicit stop command ("stop",
     // "halt", "leave it", "don't touch", "how dare you i said stop", etc.),
@@ -670,7 +718,7 @@ export class Agent {
         onEvent({ type: 'stream_delta', content: stopResponse.content! });
         onEvent({ type: 'stream_end', message: stopResponse });
         onEvent({ type: 'done', finalMessage: stopResponse });
-        return messages;
+        return finalHistory();
       }
     }
 
@@ -953,7 +1001,7 @@ export class Agent {
       // Check for cancellation before each iteration
       if (signal?.aborted) {
         onEvent({ type: 'done', finalMessage: { role: 'assistant', content: null } });
-        return messages;
+        return finalHistory();
       }
 
       // Check for user interjections — messages injected mid-run.
@@ -1026,7 +1074,13 @@ export class Agent {
       // work with (< 6 messages means there's nothing meaningful to
       // summarise — just skip).
       if (estimatedTotal > maxInputTokens && messages.length >= 6) {
+        // Destructive transform — absorb any real events added since the
+        // last snapshot point BEFORE the transform mutates messages, then
+        // reset the offset so further additions are tracked from the new
+        // post-compression length.
+        absorbSinceLastSnapshot();
         messages = await this.compressContext(messages, onEvent, signal);
+        lastSnapshotOffset = messages.length;
       }
 
       // Still over budget? Fall back to truncation.
@@ -1045,7 +1099,10 @@ export class Agent {
       // re-injected session tasks block, and the continuation-first
       // compression header elsewhere in this file.
       const preCount = messages.length;
+      // Truncation is also destructive — same snapshot/reset pattern.
+      absorbSinceLastSnapshot();
       messages = this.truncateMessages(messages, maxInputTokens);
+      lastSnapshotOffset = messages.length;
       const dropped = preCount - messages.length;
       if (dropped > 0) {
         onEvent({
@@ -1215,7 +1272,7 @@ export class Agent {
         onEvent({ type: 'error', error: error instanceof Error ? error : new Error(String(error)) });
         // Always emit done so UI clears isStreaming/isThinking
         onEvent({ type: 'done', finalMessage: { role: 'assistant', content: '' } as any });
-        return messages;
+        return finalHistory();
       }
       // Mid-stream injection happened. We aborted the provider request
       // before tool_calls could start. Preserve any partial text in the
@@ -1263,7 +1320,7 @@ export class Agent {
       // If cancelled during streaming, stop immediately
       if (signal?.aborted) {
         onEvent({ type: 'done', finalMessage: assistantMessage });
-        return messages;
+        return finalHistory();
       }
 
       if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
@@ -1399,7 +1456,7 @@ export class Agent {
         // that up is follow-up work; for now, the hot path stays clean.
 
         onEvent({ type: 'done', finalMessage: assistantMessage });
-        return messages;
+        return finalHistory();
       }
       logger.debug(`[agent] Got ${assistantMessage.tool_calls.length} tool_calls: ${assistantMessage.tool_calls.map((tc: ToolCall) => tc.function.name).join(', ')}`);
 
@@ -1422,7 +1479,7 @@ export class Agent {
           });
           const trajLoopStop = getTrajectory();
           if (trajLoopStop) trajLoopStop.outcome = 'hit_loop_limit';
-          return messages;
+          return finalHistory();
         }
       } else {
         lastToolName = currentToolSig;
@@ -1529,7 +1586,7 @@ export class Agent {
       for (const toolCall of confirmCalls) {
         if (signal?.aborted) {
           onEvent({ type: 'done', finalMessage: assistantMessage });
-          return messages;
+          return finalHistory();
         }
 
         // Auto-checkpoint before write/dangerous tools
@@ -1548,7 +1605,7 @@ export class Agent {
       if (autoCalls.length > 0) {
         if (signal?.aborted) {
           onEvent({ type: 'done', finalMessage: assistantMessage });
-          return messages;
+          return finalHistory();
         }
 
         // Auto-checkpoint if any auto-approved tool is write/dangerous
@@ -1699,7 +1756,7 @@ export class Agent {
     // from the hot path (see the clean-exit branch above for the full
     // rationale).
     this.extractMemoriesFromRun(messages, runContext);
-    return messages;
+    return finalHistory();
   }
 
   /**
