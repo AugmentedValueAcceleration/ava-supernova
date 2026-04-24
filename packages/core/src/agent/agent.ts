@@ -527,6 +527,28 @@ export class Agent {
     return this.pendingInterjections.length > 0;
   }
 
+  /**
+   * Run one agent turn against the given conversation history.
+   *
+   * Contract: `messages` is the CALLER'S current conversation history
+   * — system prompt + user turns + assistant turns + tool calls/results,
+   * ending with the user's latest message to act on. The agent uses this
+   * as read-only input to build its own working context (which may be
+   * compressed, truncated, or trimmed internally for token economy);
+   * none of those transforms leak back to the caller.
+   *
+   * Returns ONLY the new messages produced by this turn — assistant
+   * replies, tool results, mid-turn user interjections. The caller is
+   * responsible for appending them to its conversation
+   * (`conversation.appendMessages(result)`).
+   *
+   * Before the Option 2 refactor (commit trail leading up to this) the
+   * return value was the full history plus the new turn's messages, and
+   * callers did `conversation.setMessages(result)` — which meant
+   * compression's destructive transforms could leak across the
+   * conversation boundary and silently clear user scrollback. Returning
+   * only new messages makes that class of bug impossible by construction.
+   */
   async run(messages: Message[], onEvent: AgentEventHandler, signal?: AbortSignal): Promise<Message[]> {
     // Open a dataset trajectory for the entire run. Every avaEvents.emit()
     // inside (sync or async, in this method or any helper it calls) inherits
@@ -658,20 +680,19 @@ export class Agent {
     // and the user's scrollback disappears on next load.
     //
     // Fix: track what the user's history actually is separately from
-    // the model's working context. `historySnapshot` captures input at
-    // the boundary; `realEvents` collects messages genuinely added this
-    // turn (assistant replies, tool results, interjections). Destructive
-    // transforms intercept first so anything between the last snapshot
-    // point and the transform gets absorbed into realEvents before the
-    // transform mutates messages out from under us. `isMetaPrefix`
-    // filters out synthetic user-role injections (iteration warnings,
-    // compression continuation headers, task-re-injection blocks) so
-    // only actual events land in history.
+    // the model's working context. `realEvents` collects messages
+    // genuinely added this turn — assistant replies, tool results,
+    // interjections. Destructive transforms intercept first so anything
+    // between the last snapshot point and the transform gets absorbed
+    // into realEvents before the transform mutates messages out from
+    // under us. `isMetaPrefix` filters synthetic user-role injections
+    // (iteration warnings, compression continuation headers,
+    // task-re-injection blocks) so only real events land here.
     //
-    // At every return path, `[...historySnapshot, ...realEvents]` is
-    // the authoritative history — the model never sees it, and the
-    // user never loses it.
-    const historySnapshot: Message[] = [...messages];
+    // Agent.run returns only realEvents — the caller appends them to
+    // its canonical conversation. Compression and truncation are now
+    // strictly internal to the working context and cannot cross the
+    // conversation boundary.
     const realEvents: Message[] = [];
     let lastSnapshotOffset = messages.length;
 
@@ -687,10 +708,17 @@ export class Agent {
       }
     };
 
-    /** Reconstruct the authoritative history for the return value. */
+    /**
+     * Return ONLY the new messages produced this turn. Caller appends
+     * to their conversation. See the Agent.run() docstring for why this
+     * is the return shape — compression's destructive transforms cannot
+     * leak across the conversation boundary when the agent explicitly
+     * returns "what was new" rather than "what the full context now
+     * looks like after compression."
+     */
     const finalHistory = (): Message[] => {
       absorbSinceLastSnapshot();
-      return [...historySnapshot, ...realEvents];
+      return [...realEvents];
     };
 
     // ─── Stop-command detection ────────────────────────────────────────────

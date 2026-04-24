@@ -886,7 +886,14 @@ Should these tasks be executed as a plan? Output yes or no.`;
               `[verification failed]\n\n${verifyResult.report}\n\n` +
               `The previous attempt did not pass verification. Fix the issue(s) above and re-emit an updated <changes-summary> block at the end of your response.`;
 
+            // Build the retry input: the full history the task agent
+            // saw on its first pass + the new messages it produced +
+            // the failure-context user message. Post-Option-2 refactor,
+            // `updatedTaskMessages` is only the NEW messages from the
+            // first pass, so we prepend taskConversation's pre-run
+            // messages to get the full history the retry agent needs.
             const retryInputMessages: Message[] = [
+              ...taskConversation.getMessages(),
               ...updatedTaskMessages,
               { role: 'user', content: retryContext },
             ];
@@ -947,18 +954,11 @@ Should these tasks be executed as a plan? Output yes or no.`;
             agentResult = agentResult + '\n\n' + verifyResult.block;
           }
 
-          // Patch the final assistant message in updatedTaskMessages so
-          // downstream conversation replay carries the composed output
-          // (first + retry + all verification blocks).
-          if (agentResult) {
-            for (let i = updatedTaskMessages.length - 1; i >= 0; i--) {
-              const m = updatedTaskMessages[i];
-              if (m.role === 'assistant' && typeof (m as AssistantMessage).content === 'string') {
-                (m as AssistantMessage).content = agentResult;
-                break;
-              }
-            }
-          }
+          // agentResult (the composed output string) is the single
+          // source of truth for what the main conversation sees. The
+          // return at the bottom of this method wraps it in a synthetic
+          // assistant message — no need to patch updatedTaskMessages,
+          // that array is internal-only and not passed to the caller.
         } catch (err) {
           logger.debug(
             `[auto-coordinator] Post-build verification failed to run: ${
@@ -979,13 +979,16 @@ Should these tasks be executed as a plan? Output yes or no.`;
     // Emit agent end
     this.emitAutoEvent(onEvent, { type: 'auto_agent_end', model: route.model.name, summary });
 
-    // Append the agent's result to the original conversation
-    const result = [...originalMessages];
-    if (agentResult) {
-      result.push({ role: 'assistant', content: agentResult });
-    }
-
-    return result;
+    // Return ONLY the new messages from this turn — the caller appends
+    // to its conversation. AutoCoordinator produces a single synthesised
+    // assistant message per turn representing the spawned task agent's
+    // final output (with any verification blocks composed in). The
+    // sub-agent's intermediate tool calls are NOT surfaced to the main
+    // conversation — by design, they're execution detail the user sees
+    // live in the stream but doesn't need persisted against the
+    // coordinator's transcript.
+    if (!agentResult) return [];
+    return [{ role: 'assistant', content: agentResult }];
   }
 
   /**

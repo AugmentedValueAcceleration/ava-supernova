@@ -541,12 +541,14 @@ export class Repl {
       }
 
       const runner = this.autoCoordinator || this.agent;
-      const updatedMessages = await runner.run(
+      // Agent.run() returns only the NEW messages produced this turn —
+      // append to the conversation (which owns the canonical history).
+      const newMessages = await runner.run(
         this.conversation.getMessages(),
         onEvent,
         this.runAbortController.signal,
       );
-      this.conversation.setMessages(updatedMessages);
+      this.conversation.appendMessages(newMessages);
       // Auto-save after each completed turn (protects against crashes)
       await this.historyManager.saveConversation(this.conversation);
     } catch (error) {

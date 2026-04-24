@@ -94,8 +94,9 @@ describe('Agent', () => {
     expect(types).toContain('usage');
     expect(types).toContain('done');
 
-    // Result should include original messages + assistant response
-    expect(result.length).toBeGreaterThan(messages.length);
+    // Agent.run returns only the NEW messages produced this turn —
+    // at minimum the assistant's response.
+    expect(result.length).toBeGreaterThan(0);
     const lastMsg = result[result.length - 1];
     expect(lastMsg.role).toBe('assistant');
   });

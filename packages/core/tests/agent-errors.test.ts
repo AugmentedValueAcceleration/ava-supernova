@@ -72,8 +72,10 @@ describe('Agent error recovery', () => {
       expect(errorEvents).toHaveLength(1);
       expect((errorEvents[0] as { type: 'error'; error: Error }).error).toBeInstanceOf(ProviderError);
 
-      // Should return original messages (no partial assistant message added since streamResponse threw)
-      expect(result).toEqual(messages);
+      // Under new Agent.run semantics (returns only new messages added this
+      // turn), provider-error exits produce no new messages — so the return
+      // is empty. The caller keeps their existing history unchanged.
+      expect(result).toEqual([]);
     });
 
     it('preserves partial content when stream fails mid-response', async () => {

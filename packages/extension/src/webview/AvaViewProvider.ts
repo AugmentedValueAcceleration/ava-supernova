@@ -2827,15 +2827,19 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
       const runner = this.autoCoordinator || this.agent;
       this.log(`Calling ${this.autoCoordinator ? 'autoCoordinator' : 'agent'}.run() with ${this.conversation.getMessages().length} messages`);
-      const updatedMessages = await runner!.run(
+      // Agent.run() returns ONLY the new messages produced this turn
+      // (assistant replies, tool results, interjections). We append
+      // them to the conversation — compression / truncation inside the
+      // agent cannot reach the persisted history by construction.
+      const newMessages = await runner!.run(
         this.conversation.getMessages(),
         onEvent,
         this.runAbortController.signal,
       );
-      this.log(`agent.run() returned ${updatedMessages.length} messages`);
-      // Guard: only update conversation if still the active run (not cancelled/replaced)
+      this.log(`agent.run() returned ${newMessages.length} new message(s)`);
+      // Guard: only append to conversation if still the active run (not cancelled/replaced)
       if (this.isRunning && !this.runAbortController?.signal.aborted) {
-        this.conversation.setMessages(updatedMessages);
+        this.conversation.appendMessages(newMessages);
       }
 
       await this.historyManager.saveConversation(this.conversation);

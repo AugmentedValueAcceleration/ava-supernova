@@ -143,7 +143,7 @@ describe('Agent → verification + correction events', () => {
 
     // First turn: agent gives an answer.
     let history: Message[] = [{ role: 'user', content: 'tell me about React hooks' }];
-    history = await agent.run(history, () => {});
+    history = [...history, ...await agent.run(history, () => {})];
     await flushMicrotasks();
 
     // Second turn: user pushes back with a correction signal.
@@ -169,7 +169,7 @@ describe('Agent → verification + correction events', () => {
     });
 
     let history: Message[] = [{ role: 'user', content: 'first question' }];
-    history = await agent.run(history, () => {});
+    history = [...history, ...await agent.run(history, () => {})];
     await flushMicrotasks();
 
     captured.length = 0;

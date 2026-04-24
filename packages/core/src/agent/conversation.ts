@@ -29,6 +29,20 @@ export class Conversation {
     this.messages = [...messages];
   }
 
+  /**
+   * Append new messages to the conversation in order. This is the
+   * canonical way to consume Agent.run's return value — the agent
+   * produces the messages a single turn generated (assistant replies,
+   * tool results, interjections) and the caller appends them to the
+   * conversation it owns. setMessages is kept for full-replace paths
+   * (loading a conversation from disk, clearing, stop-marker injection),
+   * but append is the default for the run-agent loop.
+   */
+  appendMessages(messages: Message[]): void {
+    if (messages.length === 0) return;
+    this.messages.push(...messages);
+  }
+
   getMessages(): Message[] {
     return [...this.messages];
   }

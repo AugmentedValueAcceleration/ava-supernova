@@ -73,7 +73,9 @@ describe('Agent → mode_switch event', () => {
     });
 
     let history: Message[] = [{ role: 'user', content: 'normal work message' }];
-    history = await agent.run(history, () => {});
+    // Agent.run returns only NEW messages produced this turn — accumulate them
+    // into the running history rather than replacing it.
+    history = [...history, ...await agent.run(history, () => {})];
     await flush();
     expect(captured.find((e) => e.event_type === 'mode_switch')).toBeUndefined();
 
@@ -96,7 +98,7 @@ describe('Agent → mode_switch event', () => {
     });
 
     let history: Message[] = [{ role: 'user', content: '[Chat Mode] hi' }];
-    history = await agent.run(history, () => {});
+    history = [...history, ...await agent.run(history, () => {})];
     await flush();
     captured.length = 0;
 
