@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.49.0 — 2026-04-24
+
+### Changed
+- **Chat history is now local-only by design.** Raw conversations — the user's code, prompts, tool output, file paths — never leave the machine they were recorded on. Cloud sync for chat is removed from the client; the Sync page drops the chat-history toggle across extension + IDE; docs and Data Mode copy updated. The 5-layer memory pipeline continues to extract durable facts (preferences, decisions, patterns) and sync THOSE for cross-device continuity, so nothing meaningful is lost — only the transcripts themselves stay on your machine. Biggest privacy improvement in the product's history. Additional win: every active user reclaims roughly 100–500 MB of cloud storage per year that was previously being filled by plaintext chat logs.
+- **`deleteConversation` and `pullLatest` still work** against the legacy cloud endpoint so users who synced chat history under earlier versions can migrate it down to local + wipe the cloud copy. No new cloud saves; clean path off the old data.
+
+### Fixed
+- **Context compression no longer destroys your chat scrollback.** Previously, when the agent hit the 70% context-window threshold and auto-compressed — or when the user manually ran compression — the compressed message array replaced the conversation in memory AND persisted to disk. Users who triggered a compression lost every pre-compression turn on next load; only the summary block survived. The fix separates the agent's working context (freely compressed for token economy) from the user's canonical history (immutable ledger of real events). Compression now runs strictly internally; the full transcript is preserved and saved untouched. What the model sees on the next turn: still compressed. What you see in the chat: every turn you ever had.
+- **`Agent.run()` contract redrawn.** Public API changes from "returns the full history plus new turn" to "returns only the new messages produced this turn." Callers append to their Conversation (`conversation.appendMessages(newMessages)`) instead of replacing state wholesale. This makes the compression-destroys-history class of bug impossible by construction — destructive transforms can no longer cross the conversation boundary because they have no way to. Backed by a new `Conversation.appendMessages()` method and a one-way ownership model: Conversation owns history, Agent owns model context, boundary is architectural.
+
+### Internal
+- 3 call sites updated to the new append pattern (extension main chat, CLI REPL, AutoCoordinator). TaskExecutor and Curator verified unchanged (their last-assistant-extraction pattern still works). 4 test files migrated. Full test suite: 441 passing / 18 pre-existing failures unchanged — zero regressions from this architectural cut.
+- Typecheck strict on host + both webviews; pre-push gate continues to block any type-error regression.
+
 ## 0.48.14 — 2026-04-24
 
 ### Added
