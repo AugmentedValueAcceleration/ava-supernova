@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">Ava | Supernova</h1>
   <p align="center">
-    <strong>Open-source AI coding agent — 61 tools, 6 modes, 24 specialist personas, 20+ models from 8 providers. Creative Studio for images, video, music, voice. 3M free tokens with an account, or bring your own API keys.</strong>
+    <strong>Open-source AI coding agent — 60+ tools, 6 modes, 24 specialist personas, frontier open-source models from every major Chinese + Western lab. Creative Studio for images, video, music, voice. 300 free credits per month with an account, or bring your own API keys.</strong>
   </p>
   <p align="center">
     <a href="#supported-models">Models</a> &middot;
@@ -25,26 +25,27 @@
 
 Ava | Supernova is an open-source AI coding agent that brings full agentic coding to every developer — as a **VS Code extension**, a **standalone IDE**, a **terminal CLI**, and a **companion app**. She remembers you across sessions, teaches for free, and thinks before she builds with 24 specialist personas across 6 modes.
 
-> **Start coding with AI in 30 seconds.** Install, open, go. Sign up for 3M free Qwen tokens, or bring your own API keys.
+> **Start coding with AI in 30 seconds.** Install, open, go. Sign up for 300 free credits per month, or bring your own API keys.
 
 ## Why Ava?
 
-Agentic coding shouldn't be a luxury. The open-source model ecosystem delivers near-frontier autonomous coding performance at a fraction of the cost.
+Agentic coding shouldn't be a luxury. The open-source model ecosystem now matches or beats closed-source frontier on agentic coding — at a fraction of the cost.
 
-| Model | SWE-Bench | Input Cost |
+| Model | SWE-Bench Verified | Input / Output ($/M) |
 |---|---|---|
-| GLM-5 (Zhipu AI) | 77.8% | $1.00/M |
-| Kimi K2.5 (Moonshot) | 76.8% | $0.60/M |
-| Qwen 3.5 Plus (Alibaba) | ~76% | $0.20/M |
-| DeepSeek V3.2 | ~66% | $0.28/M |
-| **Qwen Flash** | — | **FREE (3M tokens)** |
+| **DeepSeek V4 Pro** *(MIT, 1M ctx, 2026-04-24)* | **80.6%** | $1.74 / $3.48 |
+| **DeepSeek V4 Flash** *(MIT, 1M ctx, 2026-04-24)* | **79.0%** | **$0.14 / $0.28** |
+| Qwen 3.6 Plus (Alibaba) — Terminal-Bench leader | 78.8% | $0.28+ / $0.66+ |
+| Kimi K2.6 (Moonshot) — SoTA agentic | SWE-Pro 58.6 | $0.60 / $2.50 |
+| GLM-5 (Zhipu AI) | 77.8% | $1.00 / $3.20 |
+| **Qwen Flash on Ava Free** | — | **FREE (300 credits/month)** |
 
 ## What Makes Ava Different
 
 - **She remembers you** — 5-layer memory system that learns your coding style, decisions, conventions, and preferences. Every session she's better at helping you specifically.
-- **She thinks before she builds** — 24 specialist personas across 5 modes plan before executing. Complex tasks get proper analysis, not just code generation.
+- **She thinks before she builds** — 24 specialist personas across 6 modes plan before executing. Complex tasks get proper analysis, not just code generation.
 - **She teaches for free** — Switch to Teach mode, say "teach me Python", and she builds a personalised curriculum with spaced repetition. Education shouldn't have a price tag.
-- **She picks the right brain** — Auto Mode analyses every task and routes to the best model automatically. Coding goes to Qwen, creative goes to MiniMax. You just talk.
+- **She picks the right brain** — **Maestro** runs an orchestrated single-coordinator pipeline (Qwen 3.6 Plus, the Terminal-Bench leader) that classifies each task and dispatches Builder agents. **Supernova** *(in development)* extends this into polyglot multi-model orchestration — coordinator picks the best specialist per role.
 - **She's yours to design** — Choose the tone, energy, and communication style. Same brain, your personality.
 - **She explains herself** — Ask "how does your memory work?" and she reads her own source code and explains it. The only AI that can.
 - **She's always aware** — Tick Engine runs every 2 minutes, checking tasks, journal streaks, token balance, and support messages. She speaks up only when it matters.
@@ -56,7 +57,7 @@ Modes aren't tool restrictions — they're states of mind.
 
 | Mode | Prefix | Purpose |
 |---|---|---|
-| **Work** | `>>` | Builder mindset — full 54-tool agent |
+| **Work** | `>>` | Builder mindset — full agent with 60+ tools |
 | **Plan** | `::` | Architect mindset — read-only analysis and strategic planning |
 | **Brainstorm** | `**` | Ideation mindset — research, generate, challenge, refine ideas |
 | **Chat** | `..` | Friend mindset — personal conversation, memory, journal |
@@ -81,14 +82,15 @@ Each persona has scoped tool access. Challenger can read but never write. Simple
 
 | Provider | Models | Highlights |
 |---|---|---|
-| **Ava Free** | Qwen Flash | **FREE — 3M tokens** with account |
-| **Alibaba Cloud** | Qwen 3.6 Plus, 3.5 Plus | Primary model — Terminal-Bench #1 agentic coding, vision, 256K context |
-| **Zhipu AI** | GLM-5 | 77.8% SWE-Bench, vision, best tool-call reliability |
-| **Moonshot AI** | Kimi K2.5 | 76.8% SWE-Bench, best tool calling, vision, 256K context |
-| **MiniMax** | M2.7, M2.5 | Creative specialist — chat, brainstorm, teaching. 1M context |
-| **DeepSeek** | V3.2, Reasoner | Best value ($0.28/M input), Reasoner has chain-of-thought |
-| **Mistral** | Large, Codestral, Devstral 2 | European provider, code-specialized, up to 262K context |
-| **Anthropic** | Claude Opus 4.6, Sonnet 4.6, Haiku 4.5 | Frontier models, vision, 200K context |
+| **Ava Free** | Qwen Flash | **FREE — 300 credits/month** with account |
+| **Alibaba Cloud** | Qwen 3.6 Plus, 3.5 Plus, 3.5 Omni Plus, 3.5 Omni Flash, 3.5 Flash | Maestro coordinator — Terminal-Bench #1 agentic coding, vision + audio (Omni), 1M context |
+| **DeepSeek** | V4 Pro, V4 Flash | MIT-licensed open-weight, 1M context, SWE-Verified 80.6% (Pro), $0.14/$0.28 (Flash) |
+| **Moonshot AI** | Kimi K2.6, K2.5 | SoTA agentic coding (K2.6 SWE-Pro 58.6, HLE-w/tools 54.0), 256K context |
+| **Zhipu AI** | GLM-5 | 77.8% SWE-Bench, best tool-call reliability, separate vision SKU |
+| **MiniMax** | M2.7, M2.5 | Creative Studio specialist — image / video / music / voice |
+| **Anthropic** | Claude Opus 4.7, Opus 4.6, Sonnet 4.6, Haiku 4.5 | Frontier closed-source, vision, 1M context (Opus 4.7) |
+| **Mistral** | Large, Codestral, Devstral 2 | European provider, code-specialised, up to 262K context |
+| **Xiaomi** | MiMo V2.5, V2.5-Pro | 1M context, native multimodal, frontier-tier at lower cost |
 | **Generic** | Custom / Local | Ollama, LM Studio, or any standard API format endpoint |
 
 ## Getting Started
@@ -97,7 +99,7 @@ Each persona has scoped tool access. Challenger can read but never write. Simple
 
 - [Node.js](https://nodejs.org) v20.0.0 or later
 - [pnpm](https://pnpm.io) package manager
-- An API key from any supported provider — **or sign up for 3M free Qwen tokens**
+- An API key from any supported provider — **or sign up for 300 free credits per month**
 
 ### Installation
 
@@ -128,7 +130,7 @@ Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/item
 
 1. Install the extension
 2. Click the Ava icon in the activity bar (or press `Ctrl+Shift+A`)
-3. Sign up for 3M free Qwen tokens, or add your own API keys in Settings
+3. Sign up for 300 free credits per month, or add your own API keys in Settings
 4. Start coding
 
 ### Extension Features
@@ -174,10 +176,10 @@ Plus dedicated pages for Tasks, Journal, Memory, Learning, Library, Settings, Sy
 
 ## IDE
 
-Ava | Supernova IDE is a standalone desktop application built on [Tauri v2](https://v2.tauri.app/) (Rust + React) with Ava deeply integrated. A Node.js sidecar runs `@ava/core` locally, giving you the full 54-tool agent without a browser or VS Code.
+Ava | Supernova IDE is a standalone desktop application built on [Tauri v2](https://v2.tauri.app/) (Rust + React) with Ava deeply integrated. A Node.js sidecar runs `@ava/core` locally, giving you the full agent without a browser or VS Code.
 
 The IDE includes:
-- **Local AI engine** — `@ava/core` runs as a sidecar process with all 61 tools, personas, and memory
+- **Local AI engine** — `@ava/core` runs as a sidecar process with the full toolkit, personas, and memory
 - **Cloud & Local modes** — toggle between platform API (cloud) and your own BYOK keys (local)
 - **11 dashboard pages** — Command Centre, Chat, Memory, Tasks, Journal, Learning, Library, Personality, Cloud Sync, Usage, Settings
 - **Library** — browse images, documents, presentations, and spreadsheets created by Ava (grid + list views, type filtering)
@@ -192,7 +194,7 @@ Ava on the go. The companion web app gives you access to Ava from your phone or 
 
 - [companion.ava-supernova.com](https://companion.ava-supernova.com)
 
-## Tools (61)
+## Tools
 
 | Category | Tools | Description |
 |---|---|---|
@@ -374,7 +376,7 @@ Ava stores its configuration at `~/.ava/config.json`.
 
 ```json
 {
-  "activeModel": "deepseek:deepseek-chat",
+  "activeModel": "deepseek:deepseek-v4-flash",
   "providers": {
     "deepseek": { "apiKey": "sk-..." },
     "kimi": { "apiKey": "sk-..." },
@@ -402,7 +404,7 @@ Ava stores its configuration at `~/.ava/config.json`.
 
 ### Where to Get API Keys
 
-Free tier uses Qwen Flash (3M tokens with account). For premium models:
+Free tier uses Qwen Flash (300 credits per month with account). For premium models:
 
 | Provider | Portal |
 |---|---|
@@ -422,7 +424,7 @@ packages/
 ├── core/                  # @ava/core — shared agent engine
 │   ├── agent/             #   Agentic loop, system prompt, events
 │   ├── providers/         #   LLM provider adapters (8 providers)
-│   ├── tools/             #   54 built-in tool implementations
+│   ├── tools/             #   60+ built-in tool implementations
 │   ├── personas/          #   24 specialist personas + Conductor
 │   ├── memory/            #   5-layer persistent memory system
 │   ├── briefing/          #   Daily briefing + event detection
@@ -482,9 +484,9 @@ cd packages/extension && pnpm build
 
 - [x] Terminal CLI with full agent loop
 - [x] VS Code extension with chat UI
-- [x] Standalone IDE (Eclipse Theia)
-- [x] 54 built-in tools (file ops, search, bash, git, web, browser, database, memory, media, office, planning, docs)
-- [x] 20+ models from 8 providers with free Qwen tier
+- [x] Standalone IDE (Tauri v2 + Node.js sidecar — in development)
+- [x] 60+ built-in tools (file ops, search, bash, git, web, browser, database, memory, media, office, planning, docs)
+- [x] Frontier open-source models from every major lab — DeepSeek V4, Qwen 3.6, Kimi K2.6, GLM-5, MiniMax, Mistral, Xiaomi MiMo + Anthropic BYOK
 - [x] 6 modes — Work, Plan, Brainstorm, Chat, Teach, Security
 - [x] 24 specialist personas with Conductor orchestration
 - [x] 5-layer memory — pattern extraction, LLM reflection, habit detection, cross-memory insights, cloud sync
@@ -507,7 +509,8 @@ cd packages/extension && pnpm build
 - [x] Error recovery and resilience
 - [x] i18n — 20 languages
 - [x] Companion app (mobile)
-- [x] Auto Mode — intelligent task routing across Qwen + MiniMax
+- [x] Maestro Mode — intelligent task routing with Qwen 3.6 Plus coordinator (Auto Mode evolved)
+- [ ] Supernova Mode — polyglot multi-model orchestration (V4 Pro coordinator + Qwen Builder + V4 Flash review tier + Qwen Omni for vision); admin-only preview during DeepSeek partnership window
 - [x] Tick Engine — proactive background awareness (tasks, journal, tokens, support)
 - [x] 4-phase memory consolidation (Orient → Gather → Consolidate → Prune) with 25KB cap
 - [x] Live chat support — Ava first-line triage, seamless human handoff
@@ -516,7 +519,7 @@ cd packages/extension && pnpm build
 - [x] GDPR consent gate with Terms/Privacy links
 - [ ] Contributor marketplace — users get paid for improvements
 - [ ] Voice system (Kokoro TTS)
-- [ ] Creative Studio (image gen, video editing, social media)
+- [x] Creative Studio (image gen, video editing, music, voice, social-media composer)
 - [ ] Plugin system for community-contributed tools
 - [ ] Productivity integrations (email, Slack, Discord)
 

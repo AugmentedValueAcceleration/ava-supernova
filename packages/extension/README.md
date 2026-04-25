@@ -210,16 +210,17 @@ Grouped for the work you actually do:
 
 **Creative Studio** — runs MiniMax exclusively. Image, video, music, voice. Kept separate from the chat coordinator so creative work and code work never compete for the same context window.
 
-Every plan gets every model. Tiers differ only on monthly token allowance (Free 3M · Pro 15M · Ultra 40M · Enterprise 100M) — never on which models are available.
+Every plan gets every model. Tiers differ only on monthly credit allowance (Free 300 · Pro 5,000 · Ultra 10,000 · Enterprise 20,000) — never on which models are available. Coming soon: **Supernova** — a polyglot multi-model orchestration mode in development; rolls out platform-wide once active.
 
 | Source | Models |
 |---|---|
 | **Ava Managed** | Qwen 3.6 Plus, Qwen 3.5 Plus, Qwen 3.5 Omni Plus, Qwen 3.5 Omni Flash, Qwen 3.5 Flash, MiniMax M2.7, MiniMax M2.5 |
-| **BYOK — Anthropic** | Claude Opus 4.6, Sonnet 4.6, Haiku 4.5 |
-| **BYOK — Moonshot** | Kimi K2.5 |
-| **BYOK — DeepSeek** | V3.2, Reasoner |
+| **BYOK — DeepSeek** | V4 Pro, V4 Flash *(2026-04-24, MIT-licensed open-weight, 1M context)* |
+| **BYOK — Moonshot** | Kimi K2.6 *(SoTA agentic coding, SWE-Bench Pro 58.6)*, K2.5 |
+| **BYOK — Anthropic** | Claude Opus 4.7, Opus 4.6, Sonnet 4.6, Haiku 4.5 |
 | **BYOK — Mistral** | Large, Codestral, Devstral 2 |
 | **BYOK — Zhipu** | GLM-5 |
+| **BYOK — Xiaomi** | MiMo V2.5, V2.5-Pro |
 | **BYOK — Custom** | Ollama, LM Studio, any standard API endpoint |
 
 ---
@@ -228,7 +229,7 @@ Every plan gets every model. Tiers differ only on monthly token allowance (Free 
 
 1. Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=augmentedvalueacceleration.ava-supernova)
 2. Click the Ava icon in the activity bar (or `Ctrl+Shift+A`)
-3. Sign up for 3M free Qwen tokens, OR add your own API keys in Settings
+3. Sign up for **300 free credits per month** with a free account, OR bring your own API keys in Settings
 4. Pick a mode and start
 
 > No account. No credit card. No trial.
