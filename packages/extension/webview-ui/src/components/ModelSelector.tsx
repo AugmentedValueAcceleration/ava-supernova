@@ -80,35 +80,50 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
           <div className="px-2.5 py-1.5 text-[10px] opacity-40 font-semibold tracking-[0.5px] uppercase">
             Models
           </div>
-          {sorted.map(m => (
-            <button
-              key={m.id}
-              onClick={() => {
-                if (!m.available) { onOpenDashboard(); setOpen(false); return; }
-                onSwitch(m.id); setOpen(false);
-              }}
-              className={`flex items-center gap-2 w-full px-2.5 py-1.5 border-none text-[12px] text-left
-                         ${m.available ? 'cursor-pointer' : 'cursor-default'}
-                         ${!m.available
-                           ? 'opacity-35 text-[var(--vscode-input-foreground)]'
-                           : 'text-[var(--vscode-input-foreground)]'}
-                         ${m.available && m.id === activeModel
-                           ? 'bg-[rgba(168,85,247,0.15)]'
-                           : m.available
-                             ? 'bg-transparent hover:bg-[rgba(168,85,247,0.08)]'
-                             : 'bg-transparent'}`}
-              title={m.available ? m.name : `Add ${m.provider} API key to unlock`}
-            >
-              <span
-                className={`w-[5px] h-[5px] rounded-full shrink-0
-                           ${m.id === activeModel && m.available ? 'bg-[#A855F7]' : m.available ? 'bg-white/15' : 'bg-white/5'}`}
-              />
-              <span className={m.id === activeModel && m.available ? 'font-semibold' : 'font-normal'}>
-                {m.name}
-              </span>
-              <span className="text-[10px] opacity-35 ml-auto">{m.provider}</span>
-            </button>
-          ))}
+          {sorted.map(m => {
+            // Supernova non-admin: shown as roadmap teaser, disabled,
+            // labelled "In development". Click is a no-op (no API key
+            // would unlock it; it's gated on tier, not auth).
+            const isSupernovaPreview = m.id === 'supernova' && !m.available;
+            return (
+              <button
+                key={m.id}
+                onClick={() => {
+                  if (isSupernovaPreview) return;
+                  if (!m.available) { onOpenDashboard(); setOpen(false); return; }
+                  onSwitch(m.id); setOpen(false);
+                }}
+                className={`flex items-center gap-2 w-full px-2.5 py-1.5 border-none text-[12px] text-left
+                           ${m.available ? 'cursor-pointer' : 'cursor-default'}
+                           ${!m.available
+                             ? 'opacity-35 text-[var(--vscode-input-foreground)]'
+                             : 'text-[var(--vscode-input-foreground)]'}
+                           ${m.available && m.id === activeModel
+                             ? 'bg-[rgba(168,85,247,0.15)]'
+                             : m.available
+                               ? 'bg-transparent hover:bg-[rgba(168,85,247,0.08)]'
+                               : 'bg-transparent'}`}
+                title={
+                  isSupernovaPreview
+                    ? 'Supernova — polyglot multi-model orchestration. In development; rolling out soon.'
+                    : m.available
+                      ? m.name
+                      : `Add ${m.provider} API key to unlock`
+                }
+              >
+                <span
+                  className={`w-[5px] h-[5px] rounded-full shrink-0
+                             ${m.id === activeModel && m.available ? 'bg-[#A855F7]' : m.available ? 'bg-white/15' : 'bg-white/5'}`}
+                />
+                <span className={m.id === activeModel && m.available ? 'font-semibold' : 'font-normal'}>
+                  {m.name}
+                </span>
+                <span className={`text-[10px] ml-auto ${isSupernovaPreview ? 'opacity-70 text-[#facc15]' : 'opacity-35'}`}>
+                  {isSupernovaPreview ? 'In development' : m.provider}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

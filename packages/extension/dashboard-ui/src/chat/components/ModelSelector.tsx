@@ -84,32 +84,45 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
           {/* Orchestrated modes — Supernova (polyglot ensemble) on top,
               Maestro (single conductor) below. Both get the highlighted
               promo treatment because they're Ava-orchestrated, not raw
-              model picks. */}
+              model picks. Disabled state ('In development') for entries
+              the user can preview but not yet activate (e.g. Supernova
+              for non-admin while V4 partnership is pending). */}
           {(() => {
             const orchestrated: { id: string; label: string; subtitle: string; title: string }[] = [
               { id: 'supernova', label: '✦ Supernova', subtitle: 'Polyglot ensemble',  title: 'Multi-model orchestration — coordinator picks the best specialist for each task' },
               { id: 'auto',      label: '✦ Maestro',   subtitle: 'Single conductor',    title: 'One coordinator handles everything — proven, production-tuned' },
             ];
             return orchestrated
-              .filter(o => sorted.some(m => m.id === o.id))
-              .map(o => (
-                <button
-                  key={o.id}
-                  onClick={() => { onSwitch(o.id); setOpen(false); }}
-                  className={`flex items-center gap-2 w-full px-2.5 py-2 border-none text-[12px] text-left cursor-pointer
-                             text-[var(--vscode-input-foreground)]
-                             ${activeModel === o.id
-                               ? 'bg-[rgba(168,85,247,0.15)]'
-                               : 'bg-transparent hover:bg-[rgba(168,85,247,0.08)]'}`}
-                  title={o.title}
-                >
-                  <span className={`w-[5px] h-[5px] rounded-full shrink-0 ${activeModel === o.id ? 'bg-[#A855F7]' : 'bg-white/15'}`} />
-                  <span className={activeModel === o.id ? 'font-semibold' : 'font-normal'}>
-                    {o.label}
-                  </span>
-                  <span className="text-[10px] opacity-50 ml-auto">{o.subtitle}</span>
-                </button>
-              ));
+              .map(o => ({ o, m: sorted.find(s => s.id === o.id) }))
+              .filter(x => x.m !== undefined)
+              .map(({ o, m }) => {
+                const enabled = m!.available;
+                const subtitle = enabled ? o.subtitle : 'In development';
+                return (
+                  <button
+                    key={o.id}
+                    onClick={() => { if (!enabled) return; onSwitch(o.id); setOpen(false); }}
+                    disabled={!enabled}
+                    className={`flex items-center gap-2 w-full px-2.5 py-2 border-none text-[12px] text-left
+                               text-[var(--vscode-input-foreground)]
+                               ${enabled ? 'cursor-pointer' : 'cursor-default opacity-40'}
+                               ${enabled && activeModel === o.id
+                                 ? 'bg-[rgba(168,85,247,0.15)]'
+                                 : enabled
+                                   ? 'bg-transparent hover:bg-[rgba(168,85,247,0.08)]'
+                                   : 'bg-transparent'}`}
+                    title={enabled ? o.title : `${o.label.replace('✦ ', '')} — ${o.subtitle}. In development; admin-gated while DeepSeek partnership is finalised.`}
+                  >
+                    <span className={`w-[5px] h-[5px] rounded-full shrink-0 ${enabled && activeModel === o.id ? 'bg-[#A855F7]' : 'bg-white/15'}`} />
+                    <span className={enabled && activeModel === o.id ? 'font-semibold' : 'font-normal'}>
+                      {o.label}
+                    </span>
+                    <span className={`text-[10px] ml-auto ${enabled ? 'opacity-50' : 'opacity-70 text-[#facc15]'}`}>
+                      {subtitle}
+                    </span>
+                  </button>
+                );
+              });
           })()}
           {sorted.some(m => m.id === 'auto' || m.id === 'supernova') && (
             <div className="border-t border-[var(--vscode-input-border)] my-1 opacity-30" />
