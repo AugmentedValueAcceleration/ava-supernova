@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.51.0 — 2026-04-25
+
+Honest math, proactive task capture, and a hard ceiling under abusive turns. Credits now scale with actual cost (so a 200K-token turn doesn't get billed the same as a 4K one), Ava offers to capture task-worthy items mid-conversation instead of waiting for an explicit "add this to my list", and Free's media generation gets sensible caps so the tier remains a real evaluation surface without turning into a margin sink.
+
+### Changed
+- **Credits scale with token volume on long turns.** Sub-16K-effective-token turns charge the flat per-action rate as before. Beyond that, credits scale linearly with actual cost — `effective_tokens = nonCachedInput + 0.1×cachedInput + 4×output`, brackets = `ceil(effective_tokens / 16K)`. A 200K-token turn that used to charge 3 credits now charges ~39. Light chat is unaffected; heavy agentic loops finally pay for themselves at the COGS layer.
+- **Per-tier per-turn input cap** — Free 16K, Pro 128K, Ultra 256K, Enterprise 512K. Pre-flight rejection (HTTP 413, code `INPUT_TOKEN_CAP_EXCEEDED`) before the provider call, so a runaway turn can't drain a month's allowance in one shot. Estimate is char-based; the provider's reported `prompt_tokens` settles the post-flight bracket-scaling charge.
+- **Action cost recalibration.** `image_gen` 10 → 12 credits, `video_gen` 100 → 150, `voice_gen` 3 → 10. The previous numbers were underwater against verified MiniMax Hailuo + Speech 2.8 rates (voice was −173% margin per call). New numbers restore positive margin without changing plan prices or shrinking allowances. Music stays 50 credits; Free is pinned to Music 2.0 (~$0.03/track) and paid tiers keep Music 2.6.
+- **DeepSeek V4 Pro multiplier 5× → 6×.** V4 Pro is ~6× Qwen 3.6 Plus on input, ~2× on output — the previous 5× left only ~5% margin on agentic-heavy turns. 6× restores margin parity (~21%) with the Qwen 3.6 baseline. V4 Pro stays the premium pick without becoming a money pit.
+- **Per-model cache discount.** Default cache-hit discount is still 0.3× of the normal cost. V4 Pro is now capped at 0.5× because its output share of total cost is high — a flat 0.3× whole-turn discount over-credited cached V4 Pro turns and could flip margin negative. Other models unchanged.
+- **Ava proactively offers task capture.** New rule in the central system prompt: when the user mentions an obligation, deadline, or thing-to-do — even casually ("I should...", "remind me to...", "we need to X by Friday") — Ava offers to add it to your personal task list with `task_manage`. Ask first, create only on yes. One ask per item; if you decline or change subject, she drops it. `todo_write` stays Ava's session-progress tracker, `task_manage` is your persistent list — the rule explicitly distinguishes them so they don't get confused. Chat mode also gained `task_manage` in its tool list; previously it could only reach the session-only `todo_write` in casual conversation.
+
+### Added
+- **Free-tier media caps** — Free is capped at 0 videos, 5 images, 10 voice generations, and 3 music tracks per month. Cap-counting reads `creative_assets` rows in your current period and pre-flight-rejects before the MiniMax call burns money. Paid tiers (Pro / Ultra / Enterprise) remain uncapped beyond the credit allowance. Without the caps, a single Free user generating five 1080p Hailuo videos would cost ~$2.40 against $0 revenue — multiply by the free user count and the bleed compounds linearly. Caps are a hard architectural floor under "Free is fine, but not abusable."
+
+### Internal
+- New `packages/core/src/billing/credits.ts` exports `creditsForTurn(action, opts)` for token-aware charging — replaces flat `creditsFor()` for chat-like actions when prompt/output token counts are known. Constants `TOKENS_PER_BRACKET = 16K`, `OUTPUT_TOKEN_WEIGHT = 4`, `CACHED_TOKEN_WEIGHT = 0.1` are exported for any other surface that wants to compute identically.
+- New `packages/web/src/lib/plan-token-caps.ts` — `TIER_INPUT_TOKEN_CAP` table + `estimateInputTokens` (char-based) + `checkInputTokenCap` pre-flight helper.
+- New `packages/web/src/lib/free-tier-caps.ts` — `FREE_TIER_MEDIA_CAPS` + `checkFreeMediaCap` helper, wired into `generate-image`, `generate-video`, `generate-music`, `generate-voice` routes. Fail-open if the count query errors so a transient DB blip never blocks a paying flow that just happens to be on Free this cycle.
+- Credits page (`ava-supernova.com/credits`) + pricing FAQ + `seo.ts` schema.org Offer descriptions all updated to the recalibrated numbers. The pre-rebalance 1,500 / 15,000 / 40,000 / 100,000 credit allowances were still in the SEO data despite the 2026-04-23 plan rebalance.
+- `task_manage` tool schema description now includes a "Proactive use" sentence so the model sees the behavioural rule at the point of tool inspection, not just in the system prompt.
+
 ## 0.50.1 — 2026-04-25
 
 A six-mode audit pass — Chat, Plan, Work, Teach, Security, Brainstorm. No new features; the modes you already use just work better, faster, and more honestly.
