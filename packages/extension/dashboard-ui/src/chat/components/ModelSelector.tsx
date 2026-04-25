@@ -68,8 +68,8 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
                    border border-[var(--vscode-input-border)]
                    text-[11px] cursor-pointer outline-none whitespace-nowrap"
       >
-        <span className={`w-1.5 h-1.5 rounded-full inline-block shrink-0 ${isAuto ? 'bg-[#A855F7]' : 'bg-green-500'}`} />
-        {isAuto ? '✦ Auto' : activeModelName}
+        <span className={`w-1.5 h-1.5 rounded-full inline-block shrink-0 ${(isAuto || isSupernova) ? 'bg-[#A855F7]' : 'bg-green-500'}`} />
+        {isAuto ? '✦ Maestro' : isSupernova ? '✦ Supernova' : activeModelName}
         <span className="text-[8px] opacity-50 ml-0.5">▼</span>
       </button>
 
