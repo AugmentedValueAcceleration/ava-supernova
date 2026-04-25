@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.51.1 — 2026-04-25
+
+### Fixed
+- **BYOK DeepSeek V4 endpoint** — `DeepSeekProvider.getDefaultBaseUrl()` returned `https://api.deepseek.com` so completions hit `/chat/completions`. DeepSeek V4 (Pro + Flash) ships on the canonical `/v1/chat/completions` path; the non-`/v1` base accepted V3 model ids but rejected V4 with thinking-mode errors like "The reasoning_content in the thinking mode must be passed back to the API." Base URL is now `https://api.deepseek.com/v1` so `${baseUrl}/chat/completions` produces the V4 URL. Platform Supernova was already using a separate forward path with the correct URL — only BYOK was affected.
+
+### Internal
+- Added explicit `supportsVision: false` to DeepSeek V4 Pro / V4 Flash (BYOK + platform variants) and `qwen3.5-flash`. Server-side `VISION_REROUTE` already handles the swap to Qwen 3.5 Omni Plus when an image is attached to a text-only model; the metadata flag now lets the extension's attach-image button gate the UI before the request leaves.
+- Extension `InputArea` accepts a `modelSupportsVision` prop and disables the attach button when the active model is text-only, with a tooltip pointing users to vision-capable alternatives (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.6 Plus).
+
 ## 0.51.0 — 2026-04-25
 
 Honest math, proactive task capture, and a hard ceiling under abusive turns. Credits now scale with actual cost (so a 200K-token turn doesn't get billed the same as a 4K one), Ava offers to capture task-worthy items mid-conversation instead of waiting for an explicit "add this to my list", and Free's media generation gets sensible caps so the tier remains a real evaluation surface without turning into a margin sink.
