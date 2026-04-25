@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.50.0 — 2026-04-25
+
+### Added
+- **DeepSeek V4 in BYOK.** V4 Pro (1.6T total / 49B active, 1M context, SWE-Verified 80.6%) and V4 Flash (284B / 13B active, 1M context, SWE-Verified 79.0% at $0.14/$0.28 per M tokens — the price/performance anomaly of the 2026 cohort). Both MIT-licensed open-weight, both with dual thinking/non-thinking modes. Add a DeepSeek API key in Settings to use them.
+- **Supernova mode (admin preview).** Polyglot multi-model orchestration — DeepSeek V4 Pro coordinator picks specialists per task: Qwen 3.6 Plus for Builder spawns (Terminal-Bench leader on real agent loops), V4 Flash for mid-tier review work, Qwen 3.5 Omni Plus for vision input. Admin-only at preview while DeepSeek partnership conversation finalises; non-admin platform users see Supernova in the dropdown as a roadmap teaser ("In development" badge).
+- **Maestro mode** — what Auto Mode is now called. Same single-conductor orchestration on Qwen 3.6 Plus, just a name that reads as the natural pair to Supernova (one virtuoso vs the full orchestra). The internal model id stays `'auto'` so saved settings carry over.
+- **Vision guard for V4.** V4 is text-only at the API level. Manually picking V4 from the dropdown and attaching an image now reroutes server-side to Qwen 3.5 Omni Plus for that turn — no error, no hallucinated description of an image V4 couldn't see.
+
+### Changed
+- **DeepSeek V3.2 and Reasoner retired** from the model catalogue ahead of upstream retirement (DeepSeek retires `deepseek-chat` and `deepseek-reasoner` endpoints on 2026-07-24). The legacy IDs already silently route to V4 Flash under the hood; we now expose V4 Pro / V4 Flash directly so users aren't on a deprecating ID surface.
+- **Chat model picker cleanup.** Managed MiniMax (M2.5 / M2.7) is hidden from the chat picker for platform users — MiniMax is reserved for Creative Studio on managed plans. Users with a BYOK MiniMax key still see the entries (their key, their call). Supernova appears above Maestro for admin; both get highlighted as Ava-orchestrated modes vs raw model picks.
+- **Marketplace description + README refresh.** "3M free Qwen tokens" → "300 free credits per month" (post 2026-04-23 credit rebalance). Model lineup listings updated across both READMEs and the marketplace NLS strings — V4 family added, K2.6 added, Opus 4.7 added, Xiaomi MiMo added.
+
+### Internal
+- New `packages/core/src/auto/supernova-router.ts` holds the polyglot routing table (per-task category routes + per-persona model overrides for the 24-persona system, ready for the Conductor wire-up in a follow-up commit).
+- `AutoCoordinator.create({ mode: 'supernova' })` pins the coordinator to V4 Pro and routes Builder spawns through Qwen 3.6 Plus instead of inheriting the coordinator model.
+- `/api/models` admin gate via `validateAuth()` (sk-ava-* or Supabase JWT) — admin-only models filtered from public response. Migration 218 introduced the `admin_only` column.
+- Removed the vestigial Auto Mode coordinator picker from Dashboard → Settings (it predated Supernova as a separate mode and is no longer meaningful).
+- Pricing math validated: Supernova adds zero pressure on the 2026-04-23 credit rebalance — V4 Flash carries the volume at lower cost than Qwen 3.6 Plus on output, V4 Pro coordinator's higher per-token rate applies only to small orchestration volumes.
+
 ## 0.49.0 — 2026-04-24
 
 ### Changed
