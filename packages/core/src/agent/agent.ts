@@ -2675,10 +2675,13 @@ ${transcript}`;
    *   - `user` and `assistant` message bodies older than the recent window
    *     get trimmed if they exceed OLD_MESSAGE_BODY_MAX_CHARS. The structural
    *     "who said what" stays intact but verbose inlined content gets cut.
-   *   - `reasoning_content` on old assistant messages is stripped entirely.
-   *     Reasoning is working memory for the turn that produced it and has
-   *     zero value once the next turn has landed — but it can be 10x larger
-   *     than the actual response and was previously kept forever.
+   *   - `reasoning_content` on old plain-text assistant messages is stripped
+   *     entirely. Reasoning is working memory for the turn that produced it
+   *     and has zero value once the next turn has landed — but it can be
+   *     10x larger than the actual response and was previously kept forever.
+   *     Tool-calling assistant turns are an exception: DeepSeek V4 thinking
+   *     mode requires reasoning_content to be re-sent on every subsequent
+   *     request that follows a tool call, so it stays put on those.
    *
    * This is the primary lever for keeping per-turn token cost in check on
    * long sessions. Combined with the earlier compression trigger (40%
@@ -2716,15 +2719,24 @@ ${transcript}`;
         const hasReasoning = assistantMsg.reasoning_content !== undefined && assistantMsg.reasoning_content !== null;
         const textContent = typeof assistantMsg.content === 'string' ? assistantMsg.content : null;
         const needsBodyTrim = textContent !== null && textContent.length > OLD_MESSAGE_BODY_MAX_CHARS;
+        // DeepSeek V4 thinking-mode rule: assistant turns that produced
+        // tool_calls MUST keep their reasoning_content in every subsequent
+        // request, or the API rejects with 400 "reasoning_content in the
+        // thinking mode must be passed back". Plain-text assistant turns
+        // can still drop it (the field is ignored on those by DeepSeek and
+        // by every other provider).
+        const hasToolCalls = Array.isArray(assistantMsg.tool_calls) && assistantMsg.tool_calls.length > 0;
+        const stripReasoning = hasReasoning && !hasToolCalls;
 
-        if (!hasReasoning && !needsBodyTrim) return m;
+        if (!stripReasoning && !needsBodyTrim) return m;
 
         const trimmed: AssistantMessage = {
           ...assistantMsg,
-          // Reasoning is always stripped from old messages — zero value once
-          // the next turn is live, and it's often the biggest single allocation
-          // in a long conversation's token budget.
-          reasoning_content: null,
+          // Reasoning is stripped from old plain-text turns (zero value once
+          // the next turn is live, and often the biggest single allocation
+          // in a long conversation's token budget) but PRESERVED on
+          // tool-calling turns for DeepSeek V4 multi-turn correctness.
+          ...(stripReasoning ? { reasoning_content: null } : {}),
           // Body is trimmed only if it's over threshold
           content: needsBodyTrim && textContent !== null
             ? trimMessageBody(textContent)
