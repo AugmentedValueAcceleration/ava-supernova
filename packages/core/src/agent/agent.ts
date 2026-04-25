@@ -204,7 +204,7 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // Architecture / docs gen
     'analyze_architecture', 'doc_generate',
     // Security audits
-    'audit_dependencies', 'security',
+    'audit_dependencies',
     // Performance
     'benchmark',
     // Debug
@@ -230,20 +230,38 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'switch_mode',
   ]),
   brainstorm: new Set([
-    'web_search', 'memory_save', 'memory_recall', 'present_plan', 'journal_write',
+    // Research signals (web + news) so coordinator-direct ideation has the
+    // same research surface the orchestrated team gets via IDEATION_TOOLS.
+    'web_search', 'http_request', 'browser', 'news',
+    // Memory — update is in for refining accumulated ideas across sessions.
+    'memory_save', 'memory_recall', 'memory_update',
+    // Output shape
+    'present_plan', 'journal_write', 'todo_write',
     'ask_user', 'get_datetime',
     'switch_mode',
   ]),
   teach: new Set([
+    // Reading + project navigation
     'file_read', 'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
-    'web_search', 'memory_save', 'memory_recall', 'bash', 'ask_user',
-    'get_datetime', 'detect_language', 'learning_create', 'learning_teach', 'learning_progress',
+    // Writing — needed because the Tutor system prompt says "create sample
+    // files" and runs live code examples. file_write/file_edit + bash only.
+    // Git commit/PR tools intentionally OUT — wrong blast radius for a
+    // teaching session.
+    'file_write', 'file_edit', 'bash',
+    // Web (verify facts, fetch docs, browse references)
+    'web_search', 'http_request', 'browser',
+    // Memory — update is in so the learner profile evolves across sessions
+    'memory_save', 'memory_recall', 'memory_update',
+    // Learning subsystem
+    'learning_create', 'learning_teach', 'learning_progress',
+    // Interaction + utilities
+    'ask_user', 'get_datetime', 'detect_language',
     'switch_mode',
   ]),
   security: new Set([
     'file_read', 'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
     'bash', 'git_status', 'git_diff', 'web_search', 'analyze_architecture',
-    'audit_dependencies', 'security', 'debug_logs', 'memory_save', 'memory_recall',
+    'audit_dependencies', 'debug_logs', 'memory_save', 'memory_recall',
     'test_run', 'ask_user',
     'switch_mode',
   ]),

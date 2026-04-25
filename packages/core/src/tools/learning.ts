@@ -361,6 +361,44 @@ function getGlobalDir(context: ToolExecutionContext): string {
   return mgr?.globalDir ?? join(process.env.HOME || process.env.USERPROFILE || '.', '.ava');
 }
 
+// Pre-curriculum diagnostic. Runs before any curriculum exists, so it
+// intentionally takes no curriculum/lesson arguments and returns a question
+// set the Tutor can ask in chat. After answers are gathered, the model
+// follows up with learning_create at the appropriate level.
+function runAssessment(subject: string, claimedLevel: string): ToolResult {
+  const ASSESSMENT_QUESTIONS: Record<'beginner' | 'intermediate' | 'advanced', string[]> = {
+    beginner: [
+      'What experience do you have with this topic?',
+      'Have you built anything with it before?',
+      'What do you want to be able to do after learning this?',
+    ],
+    intermediate: [
+      "Describe a project you've built with this technology.",
+      'What concepts do you find most challenging?',
+      'What specific area do you want to deepen?',
+    ],
+    advanced: [
+      "What's your experience with advanced patterns in this area?",
+      'Have you contributed to open source projects using this?',
+      'What specific edge cases or performance issues have you encountered?',
+    ],
+  };
+  const level = (claimedLevel as 'beginner' | 'intermediate' | 'advanced') in ASSESSMENT_QUESTIONS
+    ? (claimedLevel as 'beginner' | 'intermediate' | 'advanced')
+    : 'beginner';
+  const questions = ASSESSMENT_QUESTIONS[level];
+  return {
+    success: true,
+    output:
+      `**Assessment: ${subject}** (claimed level: ${level})\n\n` +
+      `Before creating a curriculum, I need to understand where you are. Please answer these:\n\n` +
+      questions.map((q, i) => `${i + 1}. ${q}`).join('\n') +
+      `\n\nBased on your answers, I'll create a curriculum that starts at the right level — ` +
+      `not too easy (boring), not too hard (frustrating). If you're a complete beginner, that's perfectly fine.` +
+      `\n\nAfter assessing, use learning_create to build the curriculum at the appropriate level.`,
+  };
+}
+
 // ══════════════════════════════════════════════════════════════════════
 // Tool 1: learning_create — Ava builds a curriculum from conversation
 // ══════════════════════════════════════════════════════════════════════
@@ -552,7 +590,7 @@ export class LearningTeachTool implements Tool {
     description:
       'Teach the user by delivering lesson content, providing feedback, running quizzes, or triggering reviews. ' +
       'Use this after the user says they want to continue learning or asks about a specific topic. ' +
-      'Actions: assess (diagnostic before creating curriculum), deliver (present lesson), write_content (update lesson content — follow the content template for the lesson type), ' +
+      'Actions: assess (diagnostic before creating curriculum — pass subject + assessment_level only, no curriculum_id needed), deliver (present lesson), write_content (update lesson content — follow the content template for the lesson type), ' +
       'set_quiz (persist quiz questions on a lesson — call this when you generate quiz questions so they survive restarts), ' +
       'feedback (give feedback — pass or fail), quiz (run quiz questions and grade), review (spaced repetition review of completed lessons).',
     parameters: {
@@ -563,7 +601,7 @@ export class LearningTeachTool implements Tool {
         action: {
           type: 'string',
           enum: ['assess', 'deliver', 'feedback', 'write_content', 'set_quiz', 'quiz', 'review'],
-          description: 'assess = diagnostic quiz before curriculum creation (curriculum_id can be empty), deliver = present lesson, feedback = pass/fail, write_content = update content (follow content template), set_quiz = persist quiz questions on a lesson, quiz = run quiz, review = spaced repetition',
+          description: 'assess = diagnostic before curriculum creation (pass subject+assessment_level, no curriculum_id required), deliver = present lesson, feedback = pass/fail, write_content = update content (follow content template), set_quiz = persist quiz questions on a lesson, quiz = run quiz, review = spaced repetition',
         },
         subject: { type: 'string', description: 'For assess: the subject to assess knowledge in' },
         assessment_level: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'], description: 'For assess: claimed level to verify' },
@@ -590,7 +628,7 @@ export class LearningTeachTool implements Tool {
           },
         },
       },
-      required: ['curriculum_id', 'lesson_id', 'action'],
+      required: ['action'],
     },
   };
 
@@ -598,8 +636,8 @@ export class LearningTeachTool implements Tool {
     const globalDir = getGlobalDir(context);
     const store = await loadStore(globalDir);
 
-    const currId = args.curriculum_id as string;
-    const lessonId = args.lesson_id as string;
+    const currId = args.curriculum_id as string | undefined;
+    const lessonId = args.lesson_id as string | undefined;
     const action = args.action as string;
     const content = args.content as string | undefined;
     const passed = args.passed as boolean | undefined;
@@ -611,6 +649,19 @@ export class LearningTeachTool implements Tool {
       correct_answer: string;
       explanation?: string;
     }> | undefined;
+
+    // The 'assess' action runs BEFORE a curriculum exists — it generates
+    // diagnostic questions for a subject the learner is about to start.
+    // Skip the curriculum/lesson lookup that every other action needs.
+    if (action === 'assess') {
+      const subject = args.subject as string || 'general';
+      const claimedLevel = args.assessment_level as string || 'beginner';
+      return runAssessment(subject, claimedLevel);
+    }
+
+    if (!currId || !lessonId) {
+      return { success: false, output: `curriculum_id and lesson_id are required for action "${action}"` };
+    }
 
     const curriculum = store.curriculums.find(c => c.id === currId);
     if (!curriculum) return { success: false, output: `Curriculum not found: ${currId}` };
@@ -624,42 +675,6 @@ export class LearningTeachTool implements Tool {
     if (!lesson || !parentModule) return { success: false, output: `Lesson not found: ${lessonId}` };
 
     switch (action) {
-      case 'assess': {
-        const subject = args.subject as string || 'general';
-        const claimedLevel = args.assessment_level as string || 'beginner';
-
-        const assessmentQuestions: Record<string, { beginner: string[]; intermediate: string[]; advanced: string[] }> = {
-          default: {
-            beginner: [
-              'What experience do you have with this topic?',
-              'Have you built anything with it before?',
-              'What do you want to be able to do after learning this?',
-            ],
-            intermediate: [
-              'Describe a project you\'ve built with this technology.',
-              'What concepts do you find most challenging?',
-              'What specific area do you want to deepen?',
-            ],
-            advanced: [
-              'What\'s your experience with advanced patterns in this area?',
-              'Have you contributed to open source projects using this?',
-              'What specific edge cases or performance issues have you encountered?',
-            ],
-          },
-        };
-
-        const questions = assessmentQuestions.default[claimedLevel as keyof typeof assessmentQuestions.default] || assessmentQuestions.default.beginner;
-
-        return {
-          success: true,
-          output: `**Assessment: ${subject}** (claimed level: ${claimedLevel})\n\n` +
-            `Before creating a curriculum, I need to understand where you are. Please answer these:\n\n` +
-            questions.map((q, i) => `${i + 1}. ${q}`).join('\n') +
-            `\n\nBased on your answers, I'll create a curriculum that starts at the right level — ` +
-            `not too easy (boring), not too hard (frustrating). If you're a complete beginner, that's perfectly fine.` +
-            `\n\nAfter assessing, use learning_create to build the curriculum at the appropriate level.`,
-        };
-      }
 
       case 'deliver': {
         // Check prerequisites

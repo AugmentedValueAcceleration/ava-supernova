@@ -26,8 +26,8 @@ import { MODE_PERSONAS, MODE_PERSONAS_LIGHT } from './definitions.js';
  *   audit", etc.). Security + Work especially have a long tail of personas
  *   that only matter for the heaviest tasks.
  *
- * Modes without a light variant (plan, teach) ignore this option — their
- * full team is already their intended minimum.
+ * Modes without a light variant (plan) ignore this option — their full team
+ * is already their intended minimum.
  */
 export type ConductorDepth = 'light' | 'full';
 
@@ -35,9 +35,26 @@ export type ConductorDepth = 'light' | 'full';
  * Detect whether the user's message asks for the full persona team. The
  * signal has to be explicit — brevity / ambiguity defaults to 'light' so
  * tokens stay low unless someone genuinely wants the deep pipeline.
+ *
+ * For Teach mode the signal shape is different: full team runs only when
+ * the user is creating a new curriculum ("teach me X", "I want to learn Y",
+ * "create a curriculum"). All other Teach turns ("continue", "another
+ * example", "I'm stuck") are delivery within an existing curriculum and use
+ * the light team (TUTOR alone) — running the 5-persona prep team for every
+ * lesson-delivery turn would burn ~5× the tokens for the same response.
  */
-export function detectConductorDepth(userMessage: string): ConductorDepth {
+export function detectConductorDepth(userMessage: string, mode?: string): ConductorDepth {
   const msg = userMessage.toLowerCase();
+  if (mode === 'teach') {
+    const teachCreationSignals = [
+      /\b(teach|learn|study|tutor)\s+me\b/,
+      /\bi\s+(want|need|would like)\s+to\s+(learn|study|understand)\b/,
+      /\b(create|build|make|design|generate)\s+(a\s+)?(curriculum|course|learning path|lesson plan|study plan|syllabus)\b/,
+      /\b(start|begin|new)\s+(a\s+)?(curriculum|course|learning|lesson)\b/,
+      /\bcurriculum\s+(for|on|about)\b/,
+    ];
+    return teachCreationSignals.some((re) => re.test(msg)) ? 'full' : 'light';
+  }
   const fullDepthSignals = [
     /\b(full (team|audit|review|analysis)|comprehensive (review|audit|analysis))\b/,
     /\b(run the full (team|pipeline|personas?)|deep (audit|review|dive|analysis))\b/,
@@ -182,6 +199,12 @@ export class Conductor {
       // Security mode defaults to coordinator-direct. A one-line question
       // like "what's the risk of hardcoded passwords" doesn't need Recon +
       // Scanner + CVE Researcher + Verifier + Reporter.
+      //
+      // Two exceptions: an empty submission honours the placeholder's promise
+      // ("just hit Enter for a full audit"), and a bare "audit" / "scan"
+      // verb is short enough to be the user explicitly asking for the team.
+      if (msg.trim() === '') return true;
+      if (/^(audit|scan)\b/.test(msg.trim())) return true;
       const securitySignals = [
         /\b(full security audit|deep security (review|scan))\b/,
         /\b(scan the (project|codebase|repo)|audit the codebase)\b/,
@@ -194,10 +217,20 @@ export class Conductor {
       // Brainstorm mode defaults to coordinator-direct. Quick ideation
       // or "what do you think about X" doesn't need Explorer + Researcher
       // + Ideator + Challenger + Refiner.
+      //
+      // Empty submission honours the placeholder's promise; bare ideation
+      // verbs ("ideas", "what should I build") catch the natural phrasing
+      // a user reaches for in this mode.
+      if (msg.trim() === '') return true;
+      if (/^(ideas?|brainstorm)\b/.test(msg.trim())) return true;
       const brainstormSignals = [
         /\b(full brainstorm|deep brainstorm|brainstorm session)\b/,
         /\b(explore ideas for|ideate (on|around))\b/,
-        /\b(five ideas|list of ideas)\b/,
+        /\b(give|gimme|need|got|any|some|more)\s+(me\s+)?(\w+\s+)?ideas?\b/,
+        /\bwhat\s+(should|could)\s+i\s+(build|make|do|try|create|ship|launch)\b/,
+        /\b(five|3|five|several|a few|a couple) ideas\b/,
+        /\b(list of ideas|spitball|throw ideas)\b/,
+        /\bhelp me think (through|about)\b/,
       ];
       return [...commonFullSignals, ...brainstormSignals].some((re) => re.test(msg));
     }
@@ -249,7 +282,7 @@ export class Conductor {
     // Prefer explicit caller choice; otherwise detect from the message. An
     // explicit 'full' always wins — a caller that sets it has already made
     // the decision and shouldn't be overridden by keyword heuristics.
-    const depth: ConductorDepth = options?.depth ?? detectConductorDepth(userMessage);
+    const depth: ConductorDepth = options?.depth ?? detectConductorDepth(userMessage, mode);
     const team = this.getTeam(mode, depth);
     if (team.length === 0) {
       return {
@@ -336,10 +369,14 @@ export class Conductor {
           break;
         }
 
-        // Find personas whose dependencies are all complete
+        // Find personas whose dependencies are all complete. Deps for personas
+        // that aren't in this team at all (e.g. CVE_RESEARCHER dropped from the
+        // light security team) are ignored, otherwise the wave loop deadlocks
+        // waiting for a persona that will never run.
+        const teamIds = new Set(planningTeam.map(p => p.id));
         const wave = planningTeam.filter(p =>
           !completed.has(p.id) &&
-          (p.dependsOn ?? []).every(dep => completed.has(dep))
+          (p.dependsOn ?? []).filter(dep => teamIds.has(dep)).every(dep => completed.has(dep))
         );
 
         if (wave.length === 0) break; // No more runnable personas

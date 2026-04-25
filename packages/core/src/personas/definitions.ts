@@ -18,7 +18,10 @@ const PLANNING_TOOLS = ['todo_write'];
 // present_plan removed — personas can't trigger user-facing confirmations during orchestration
 // ask_user removed — personas can't pause the pipeline for user input
 const TESTING_TOOLS = ['test_run', 'test_generate', 'benchmark'];
-const SECURITY_TOOLS = ['audit_dependencies', 'analyze_architecture'];
+// Architecture analysis is shared across security personas; audit_dependencies
+// is intentionally NOT here — only CVE_RESEARCHER should run it, otherwise
+// three personas re-run npm audit on the same tree per pass.
+const SECURITY_TOOLS = ['analyze_architecture'];
 const LEARNING_TOOLS = ['learning_create', 'learning_teach', 'learning_progress'];
 
 // ── Work Mode Personas ─────────────────────────────────────────────────────
@@ -321,19 +324,21 @@ Only review if UI/frontend work was done. If this was backend-only, report "No U
 
 export const RESEARCHER: PersonaDefinition = {
   id: 'researcher',
+  modelTier: 'light',
   name: 'Researcher',
   description: 'Researches competitors, trends, user needs. Gathers evidence.',
   prompt: `You are Ava's Researcher — you gather evidence before anyone makes strategic decisions.
 
 Your focus:
 - Search the web for competitor features, industry trends, user requests
+- Use news for fresh demand signals — what the market is reacting to right now
 - Read the codebase to understand current state
 - Check recent commits to know what's been shipped
 - Recall past planning discussions from memory
 - Present findings objectively — data, not opinions
 
 You do NOT recommend. You gather. Let the Architect make the call.`,
-  allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS],
+  allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS, 'news'],
   priority: 1,
   dependsOn: [],
 };
@@ -376,6 +381,7 @@ Your focus:
   * project: requirements → starter steps → milestones → completion criteria
   * challenge: advanced problem → constraints → no hints
   * recap: summary of key concepts → how they connect → self-check questions
+  * quiz: SKIP — Quiz Master writes quiz lessons. Leave the content empty so Quiz Master can fill it via learning_teach action: "set_quiz".
 - Use analogies and real-world examples relevant to the learner's background (check memory)
 - Search the web to verify technical accuracy — never teach something wrong
 - Adapt difficulty based on the curriculum's adaptive_level
@@ -440,6 +446,7 @@ Your focus:
 - Mix question types: conceptual (why), practical (what would happen if), application (how would you)
 - Provide explanations for each answer — the quiz itself should teach
 - Base questions on the Content Writer's material — test what was actually taught
+- **Cite the source paragraph for each correct answer** in the explanation field (e.g. "From the 'Why immutability matters' paragraph in lesson 3 — …"). The Fact Checker has already verified the source; if your answer can't be traced back to a fact-checked paragraph, do not invent one — drop the question.
 - Consider the learner's level — don't quiz a beginner on advanced edge cases
 
 A good question makes the learner think. A great question teaches them something new just by answering it.
@@ -483,10 +490,14 @@ Your focus:
 
 You are patient, encouraging, and honest. You don't just deliver content — you make sure it landed.
 The Content Writer writes it. The Fact Checker verifies it. You TEACH it.`,
+  // WRITE_TOOLS is intentionally NOT spread — it includes git_commit and
+  // git_create_pr, which a teaching session should never reach for.
+  // file_write/file_edit/bash are listed explicitly so the Tutor can run
+  // live code examples and create sample files, but git stays out.
   allowedTools: [
     ...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS,
-    ...WRITE_TOOLS, ...LEARNING_TOOLS, ...PLANNING_TOOLS,
-    ...TESTING_TOOLS,
+    ...LEARNING_TOOLS, ...PLANNING_TOOLS, ...TESTING_TOOLS,
+    'file_write', 'file_edit', 'bash',
   ],
   priority: 5,
   dependsOn: ['quiz_master'],
@@ -512,6 +523,7 @@ Your focus:
 
 Be thorough. Every entry point you miss is one the Scanner won't check.`,
   allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SECURITY_TOOLS, 'bash'],
+  // RECON inventories dependencies; CVE_RESEARCHER runs the actual audit.
   priority: 1,
   dependsOn: [],
 };
@@ -521,30 +533,34 @@ export const SCANNER: PersonaDefinition = {
   modelTier: 'light',
   name: 'Scanner',
   description: 'Systematically checks each OWASP category against the attack surface.',
-  prompt: `You are Ava's Security Scanner — you systematically check every OWASP Top 10 category.
+  prompt: `You are Ava's Security Scanner — you systematically check every OWASP Top 10 (2021) category.
 
 Using the Recon findings, check EACH category:
-1. **Injection** — SQL injection, NoSQL injection, command injection, XSS in every input point
-2. **Broken Auth** — password handling, session management, token storage, brute force protection
-3. **Sensitive Data** — secrets in code, unencrypted data, PII exposure, logging sensitive info
-4. **XXE/XML** — if XML is parsed anywhere
-5. **Broken Access Control** — can users access other users' data? Admin routes protected?
-6. **Security Misconfiguration** — CORS, CSP headers, debug mode, default credentials
-7. **XSS** — reflected, stored, DOM-based in every output point
-8. **Insecure Deserialization** — JSON.parse on untrusted input, prototype pollution
-9. **Known Vulnerabilities** — flag outdated dependencies for the Researcher to check
-10. **Insufficient Logging** — are security events logged? Can you detect an attack?
+1. **A01 Broken Access Control** — can users access other users' data? Admin routes protected? IDOR? Missing authz on state-changing routes? CORS too open?
+2. **A02 Cryptographic Failures** — secrets in code, unencrypted data at rest/in transit, weak hashing (MD5/SHA1 for passwords), hardcoded keys, missing TLS, predictable tokens, PII logged in plaintext.
+3. **A03 Injection** — SQL/NoSQL injection, command injection, LDAP/XPath injection, server-side template injection, and **XSS** (reflected, stored, DOM-based) at every output sink.
+4. **A04 Insecure Design** — missing rate limits, no MFA on sensitive flows, business-logic flaws (e.g. coupon stacking, race conditions on balance), trust boundaries crossed without re-validation.
+5. **A05 Security Misconfiguration** — debug mode in prod, default credentials, missing security headers (CSP, HSTS, X-Frame-Options), verbose error pages, unnecessary features enabled, XXE if XML is parsed.
+6. **A06 Vulnerable & Outdated Components** — flag outdated dependencies for the CVE Researcher to check; note end-of-life runtimes, known-bad library versions.
+7. **A07 Identification & Auth Failures** — weak password policy, no brute-force protection, broken session management, predictable session IDs, credential stuffing exposure, JWT misuse (alg=none, weak secret).
+8. **A08 Software & Data Integrity Failures** — unsigned updates, untrusted plugins/dependencies, insecure deserialization (JSON.parse on untrusted input, prototype pollution), CI/CD without integrity checks.
+9. **A09 Security Logging & Monitoring Failures** — are auth/authz/admin events logged? Sensitive data NOT in logs? Can you detect an attack from logs alone?
+10. **A10 SSRF** — server makes requests to user-controlled URLs without allowlist validation; metadata-endpoint exposure (cloud IMDS); webhook URL handlers.
+
+Also check **CSRF** on state-changing endpoints — not a 2021 top-10 category but still a common real-world miss.
 
 For each finding: describe the vulnerability, rate severity (critical/high/medium/low), show the exact file and line, and describe the impact.
 
 Be paranoid. Assume every input is malicious. Every endpoint is exposed.`,
-  allowedTools: [...READ_TOOLS, ...SECURITY_TOOLS, 'bash', 'grep'],
+  allowedTools: [...READ_TOOLS, ...SECURITY_TOOLS, 'bash'],
   priority: 2,
   dependsOn: ['recon'],
 };
 
 export const CVE_RESEARCHER: PersonaDefinition = {
   id: 'researcher',
+  // Intentionally NOT light — CVE triage benefits from stronger reasoning when
+  // weighing whether a flagged version is actually exploitable in this project.
   name: 'CVE Researcher',
   description: 'Searches for known CVEs in dependencies flagged by Scanner.',
   prompt: `You are Ava's CVE Researcher — you search for known vulnerabilities in the project's dependencies.
@@ -557,7 +573,7 @@ Your focus:
 - For each CVE found: severity, affected versions, is this version affected?, is there a fix?, upgrade path
 
 Don't just list CVEs — assess actual impact. A critical CVE in a dev-only dependency is different from one in a production auth library.`,
-  allowedTools: [...READ_TOOLS, ...SEARCH_TOOLS, ...SECURITY_TOOLS, 'bash'],
+  allowedTools: [...READ_TOOLS, ...SEARCH_TOOLS, ...SECURITY_TOOLS, 'audit_dependencies', 'bash'],
   priority: 2,
   dependsOn: ['recon'],
 };
@@ -579,13 +595,15 @@ Your focus:
 - Mark false positives clearly with reasoning
 
 Your job is trust. If you approve a finding, it's real. Users should never waste time fixing false positives.`,
-  allowedTools: [...READ_TOOLS, ...SEARCH_TOOLS, ...SECURITY_TOOLS],
+  // bash + test_run let the verifier confirm reachability and exploitability,
+  // not just grep-and-reason about it.
+  allowedTools: [...READ_TOOLS, ...SEARCH_TOOLS, ...SECURITY_TOOLS, 'bash', 'test_run'],
   priority: 3,
   dependsOn: ['scanner', 'researcher'],
 };
 
 export const SECURITY_REPORTER: PersonaDefinition = {
-  id: 'challenger',
+  id: 'security_reporter',
   modelTier: 'light',
   name: 'Security Reporter',
   description: 'Structures verified findings into an actionable security report.',
@@ -624,8 +642,7 @@ export const EXPLORER: PersonaDefinition = {
   prompt: `You are Ava's Explorer — your job is to understand WHO is brainstorming before any ideas are generated.
 
 Your focus:
-- Recall everything you know about this user from memory — skills, experience, interests, past ideas, what they've rejected
-- Check their journal for recent thoughts, frustrations, interests
+- Recall everything you know about this user from memory — skills, experience, interests, past ideas, what they've rejected, recent journal entries (memory_recall surfaces these)
 - Build a profile that makes idea generation personal, not generic
 - List 2-3 clarifying questions in your output that the main agent should ask the user
 
@@ -660,6 +677,38 @@ You are creative but grounded. Every idea must be actionable by THIS person, not
   dependsOn: ['explorer', 'researcher'],
 };
 
+// Brainstorm-specific Challenger. Forked from the Work-mode CHALLENGER because:
+//  1) The Work CHALLENGER prompt asks "are we over-engineering?" — wrong question
+//     for ideation. Brainstorm needs "is this commercially real?", not "is this code?".
+//  2) Work CHALLENGER has canVeto: true with vetoSignals matching "stop / reject /
+//     abort" — words that appear constantly in legitimate ideation output ("we
+//     should reject ideas that lean on hype"). A match halted the pipeline silently
+//     and REFINER never ran. Brainstorm Challenger is a critic, not a gate.
+export const BRAINSTORM_CHALLENGER: PersonaDefinition = {
+  id: 'brainstorm_challenger',
+  modelTier: 'light',
+  name: 'Challenger',
+  description: 'Stress-tests each idea on viability, originality, and timing.',
+  prompt: `You are Ava's Brainstorm Challenger — you stress-test the Ideator's ideas before the Refiner sharpens the survivors.
+
+For each idea, ask:
+- "Who else is already doing this — and why hasn't it killed the opportunity?"
+- "What does this person have that others don't? (Skills, network, taste, distribution.)"
+- "What's the hidden cost no one talks about?" (Compliance, ops, content moderation, support load.)
+- "What kills this in 6 months?" (Platform risk, regulation shift, model commoditisation, attention drift.)
+- "Is the timing right NOW, or is the window 2 years away / 2 years gone?"
+- "Is this *interesting* or is it *fundable / shippable / ownable*?"
+
+Cut weak ideas with a one-line reason — don't write essays. Mark each idea: KEEP, KILL, or RESHAPE-AS (with the reshape).
+
+You are NOT a blocker. You are a filter. The Refiner needs survivors to sharpen.
+At least one idea should always survive — if every idea fails, suggest the angle the Ideator missed.`,
+  allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS, 'news'],
+  priority: 4,
+  dependsOn: ['ideator'],
+  // Intentionally NO canVeto — see comment above.
+};
+
 export const REFINER: PersonaDefinition = {
   id: 'refiner',
   modelTier: 'light',
@@ -668,7 +717,7 @@ export const REFINER: PersonaDefinition = {
   prompt: `You are Ava's Refiner — you take the ideas that survived the Challenger and make them actionable.
 
 Your focus:
-- For each surviving idea, produce a concrete next step (not "do market research" — what specific research, where, how)
+- For each KEEP / RESHAPE-AS idea from the Challenger, produce a concrete next step (not "do market research" — what specific research, where, how)
 - Estimate: time to MVP, cost to start, first customer acquisition strategy
 - Identify the single biggest risk and how to mitigate it
 - Suggest a 48-hour validation test — what could they do THIS WEEKEND to test the idea?
@@ -678,7 +727,7 @@ Your focus:
 Turn "interesting idea" into "here's what you do Monday morning."`,
   allowedTools: IDEATION_TOOLS,
   priority: 5,
-  dependsOn: ['challenger'],
+  dependsOn: ['brainstorm_challenger'],
 };
 
 // ── Persona collections per mode ───────────────────────────────────────────
@@ -703,7 +752,7 @@ export const SECURITY_PERSONAS: PersonaDefinition[] = [
 ];
 
 export const BRAINSTORM_PERSONAS: PersonaDefinition[] = [
-  EXPLORER, RESEARCHER, IDEATOR, CHALLENGER, REFINER,
+  EXPLORER, RESEARCHER, IDEATOR, BRAINSTORM_CHALLENGER, REFINER,
 ];
 
 // ── Light persona teams — default pairing when depth !== 'full' ───────────
@@ -719,12 +768,27 @@ export const WORK_PERSONAS_LIGHT: PersonaDefinition[] = [
   SCOUT, ARCHITECT, CHALLENGER, BUILDER, INTEGRATOR,
 ];
 
+// Verifier stays in the light team — without it, the Reporter would be
+// labelling unverified Scanner findings as "verified" (its prompt explicitly
+// reads "verified findings"). CVE_RESEARCHER is the one heavy lift we drop:
+// most quick audits don't need a fresh CVE database trawl, and Scanner still
+// flags outdated dependency lines for follow-up.
 export const SECURITY_PERSONAS_LIGHT: PersonaDefinition[] = [
-  RECON, SCANNER, SECURITY_REPORTER,
+  RECON, SCANNER, SECURITY_VERIFIER, SECURITY_REPORTER,
+];
+
+// Light Teach team — used for every turn AFTER a curriculum already exists.
+// The full curriculum-prep team (Architect → Writer → Fact Checker → Quiz
+// Master → Tutor) only needs to run once, when the curriculum is first
+// designed. Follow-on delivery turns ("continue", "another example",
+// "I'm stuck") only need TUTOR — running the full team for these wastes 4×
+// the tokens for the same response. Conductor.needsTeachFullTeam() decides.
+export const TEACH_PERSONAS_LIGHT: PersonaDefinition[] = [
+  TUTOR,
 ];
 
 export const BRAINSTORM_PERSONAS_LIGHT: PersonaDefinition[] = [
-  EXPLORER, IDEATOR, CHALLENGER,
+  EXPLORER, IDEATOR, BRAINSTORM_CHALLENGER,
 ];
 
 /** Map mode names to their full persona teams. */
@@ -739,12 +803,14 @@ export const MODE_PERSONAS: Record<string, PersonaDefinition[]> = {
 
 /**
  * Map mode names to their light persona teams. Used by default unless the
- * caller signals full-depth via keyword or explicit option. Modes not in
- * this map (plan, teach) have no light variant — they fall back to the
- * full team from MODE_PERSONAS, which is already their intended size.
+ * caller signals full-depth via keyword or explicit option. Plan has no
+ * light variant — its full team is already 3 personas, the intended
+ * minimum. Teach uses [TUTOR] for ongoing delivery and the full 5-persona
+ * team only when creating a new curriculum (see detectConductorDepth).
  */
 export const MODE_PERSONAS_LIGHT: Record<string, PersonaDefinition[]> = {
   work: WORK_PERSONAS_LIGHT,
   security: SECURITY_PERSONAS_LIGHT,
   brainstorm: BRAINSTORM_PERSONAS_LIGHT,
+  teach: TEACH_PERSONAS_LIGHT,
 };
