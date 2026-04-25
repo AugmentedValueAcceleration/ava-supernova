@@ -1689,8 +1689,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // the display label changed to "Maestro" (the single-conductor mode
       // alongside Supernova's polyglot ensemble).
       modelList.unshift({ id: 'auto', name: 'Maestro', provider: 'Ava', available: true });
+      // Supernova is admin-only at launch — it surfaces DeepSeek V4 Pro as
+      // coordinator, and V4 platform entries are themselves admin-only
+      // (migration 218) pending the DeepSeek partnership conversation. If
+      // we expose Supernova to all users without un-gating V4 first, BYOK
+      // users would silently get V4 access via the mode that the model
+      // picker would otherwise hide. Keep both gates tied together; flip
+      // both when the DeepSeek conversation resolves.
       const hasPlatform = deduped.some(m => m.provider === 'platform' && m.available);
-      if (hasPlatform) {
+      if (hasPlatform && isAdmin) {
         modelList.unshift({ id: 'supernova', name: 'Supernova', provider: 'Ava', available: true });
       }
     }
