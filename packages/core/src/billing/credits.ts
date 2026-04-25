@@ -135,6 +135,89 @@ export function creditsFor(
   return Math.max(1, Math.round(scaled));
 }
 
+// ── Token-bracket scaling (proposal H, 2026-04-25) ────────────────────────
+/** LLM-style actions that scale by token count. Media actions (image_gen,
+ *  video_gen, etc.) keep flat charging since they have no token concept. */
+const TOKEN_SCALING_ACTIONS: ReadonlySet<CreditAction> = new Set([
+  'chat_turn', 'light_call', 'heavy_persona', 'light_persona', 'orchestration',
+]);
+
+/** Bracket size in effective tokens — one bracket = the flat per-action
+ *  charge. A typical agentic turn (~16K input + ~2K output, weighted to
+ *  ~24K effective) lands in 1-2 brackets. Larger turns scale linearly. */
+export const TOKENS_PER_BRACKET = 16_000;
+
+/** Output tokens cost ~3-6× more than input across our model lineup
+ *  (Qwen 3.6 Plus: 5.86×, V4 Pro: 2.0×, Qwen Flash: 8×). A flat 4× weight
+ *  is the reasonable midpoint without per-model pricing tables here.
+ *  The cache discount weight (0.1×) reflects ~90% provider cache savings. */
+export const OUTPUT_TOKEN_WEIGHT = 4;
+export const CACHED_TOKEN_WEIGHT = 0.1;
+
+/** Token-aware credit cost for a single LLM turn. Replaces flat
+ *  `creditsFor(action)` for chat-like actions when prompt/output token
+ *  counts are known. Behaviour:
+ *
+ *    1. Compute effective_tokens = nonCachedInput + 0.1×cachedInput +
+ *       4×output. Captures both the input volume and the output-cost
+ *       weight without a per-model pricing table.
+ *    2. brackets = ceil(effective_tokens / TOKENS_PER_BRACKET), min 1.
+ *    3. credits = max(flatScaled, brackets × base × multiplier).
+ *
+ *  Effect: small turns charge the flat per-action rate (no surprise
+ *  for users on light chat). Long-context turns (200K input, 1M context)
+ *  scale up so they actually pay for themselves at the COGS layer.
+ *
+ *  Cache discount is folded into effective_tokens via CACHED_TOKEN_WEIGHT
+ *  rather than applied as a second multiplier — applying both would
+ *  double-discount cache. Small-turn cache hits still use the legacy
+ *  whole-turn discount via creditsFor() since brackets=1 short-circuits. */
+export function creditsForTurn(
+  action: CreditAction,
+  opts: {
+    inputTokens?: number;
+    outputTokens?: number;
+    cachedTokens?: number;
+    model?: string;
+  },
+): { credits: number; brackets: number } {
+  const base = CREDIT_COST[action];
+  const multiplier = modelCostMultiplier(opts.model);
+  const flatScaled = Math.max(1, Math.round(base * multiplier));
+
+  // Non-LLM actions (image/video/voice/music/bg_removal) ignore tokens.
+  if (!TOKEN_SCALING_ACTIONS.has(action)) {
+    return { credits: flatScaled, brackets: 1 };
+  }
+
+  const inputTokens = opts.inputTokens ?? 0;
+  const outputTokens = opts.outputTokens ?? 0;
+  const cachedTokens = Math.min(opts.cachedTokens ?? 0, inputTokens);
+  const nonCachedInput = inputTokens - cachedTokens;
+
+  const effectiveTokens =
+    nonCachedInput +
+    cachedTokens * CACHED_TOKEN_WEIGHT +
+    outputTokens * OUTPUT_TOKEN_WEIGHT;
+
+  const brackets = Math.max(1, Math.ceil(effectiveTokens / TOKENS_PER_BRACKET));
+
+  if (brackets === 1) {
+    // Small-turn path — preserve existing cache-discount semantics.
+    const cacheHit = inputTokens > 0 && cachedTokens / inputTokens > 0.5;
+    if (cacheHit) {
+      const cacheMult = cacheHitMultiplier(opts.model);
+      return { credits: Math.max(1, Math.round(flatScaled * cacheMult)), brackets };
+    }
+    return { credits: flatScaled, brackets };
+  }
+
+  // Long-turn path — proportional charge. Cache already weighted into
+  // effective_tokens, don't apply a second discount.
+  const proportional = Math.max(1, Math.round(brackets * base * multiplier));
+  return { credits: Math.max(flatScaled, proportional), brackets };
+}
+
 // ── Credit-based plan definitions ─────────────────────────────────────────
 /** New plan shape for the credit-based era. Kept separate from the legacy
  *  PLANS export in plans.ts so Stages 2-3 can dual-write without breaking
