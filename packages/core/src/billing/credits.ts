@@ -55,19 +55,38 @@ export const CREDIT_COST: Record<CreditAction, number> = {
   heavy_persona:  3,   // ~$0.0009 raw
   light_persona:  1,   // ~$0.0001 raw
   orchestration: 10,   // ~$0.003 raw (4-6 personas combined)
-  image_gen:     10,   // ~$0.02 raw
-  video_gen:    100,   // ~$0.40 raw (6s clip)
-  voice_gen:      3,   // ~$0.005 raw
-  music_gen:     50,   // ~$0.15 raw (longer duration than TTS, shorter than video)
+  image_gen:     12,   // ~$0.04 raw (Hailuo image-01) — bumped 10→12 (2026-04-25 calibration)
+  video_gen:    150,   // ~$0.48 raw (Hailuo 02 Pro 1080p 6s) — bumped 100→150 (2026-04-25)
+  voice_gen:     10,   // ~$0.03 raw (Speech 2.8 HD ~500 chars) — bumped 3→10 (2026-04-25)
+  music_gen:     50,   // ~$0.15 raw (Music 2.5 / 2.6 paid; Free pinned to Music 2.0 ~$0.03)
   bg_removal:     2,   // ~$0.002 raw
 };
 
 // ── Cache-hit discount ────────────────────────────────────────────────────
-/** When the provider reports a prompt-cache hit, the user pays 0.3× the
- *  normal credit cost. We pass ~70% of the saving to the user and keep
- *  ~30% as a margin cushion for the infra running the cache. Minimum 1
- *  credit is deducted so cache hits are never free (avoids gaming). */
+/** Default cache-hit discount: user pays 0.3× normal cost when the provider
+ *  reports a prompt-cache hit. Cache savings on input-heavy turns roughly
+ *  match this; output cost is unaffected by cache so on output-heavy models
+ *  (V4 Pro) a flat 0.3× whole-turn discount over-credits the user and the
+ *  margin can flip negative — see CACHE_HIT_MULTIPLIER_BY_MODEL.
+ *
+ *  Minimum 1 credit is deducted so cache hits are never free. */
 export const CACHE_HIT_MULTIPLIER = 0.3;
+
+/** Per-model cache-hit discount override. Output-heavy models cap the
+ *  discount at 0.5× because the input share of total cost is smaller, so
+ *  a 0.3× whole-turn discount exceeds actual savings. Calibrated 2026-04-25.
+ *  Default 0.3× still applies for any model not listed. */
+export const CACHE_HIT_MULTIPLIER_BY_MODEL: Record<string, number> = {
+  'deepseek-v4-pro':            0.5,
+  'deepseek-v4-pro-platform':   0.5,
+};
+
+/** Look up the cache-hit multiplier for a given model id. */
+export function cacheHitMultiplier(model: string | null | undefined): number {
+  if (!model) return CACHE_HIT_MULTIPLIER;
+  const id = model.includes(':') ? model.split(':')[1] : model;
+  return CACHE_HIT_MULTIPLIER_BY_MODEL[id] ?? CACHE_HIT_MULTIPLIER;
+}
 
 // ── Per-model cost multiplier ─────────────────────────────────────────────
 /** Action costs are flat brackets (chat_turn = 2, heavy_persona = 3, etc.)
@@ -81,8 +100,11 @@ export const CACHE_HIT_MULTIPLIER = 0.3;
  *  keep them in sync; web is the authoritative billing surface and core's
  *  meter dual-writes for dataset audit. Default 1.0 for unlisted models. */
 export const MODEL_COST_MULTIPLIER: Record<string, number> = {
-  'deepseek-v4-pro':            5.0,
-  'deepseek-v4-pro-platform':   5.0,
+  // V4 Pro is ~6× Qwen 3.6 Plus on input, ~2× on output. Blended 4.3× on
+  // typical agentic-heavy turns. 6.0× restores margin parity with Qwen 3.6
+  // (was 5.0× → ~5% margin; now 6.0× → ~21% margin). 2026-04-25 recalibration.
+  'deepseek-v4-pro':            6.0,
+  'deepseek-v4-pro-platform':   6.0,
   'qwen3.6-plus':               1.5,
   'qwen-plus':                  1.5,
   'qwen3.5-plus':               1.2,
@@ -106,7 +128,10 @@ export function creditsFor(
   const base = CREDIT_COST[action];
   const multiplier = modelCostMultiplier(opts?.model);
   const scaled = base * multiplier;
-  if (opts?.cacheHit) return Math.max(1, Math.round(scaled * CACHE_HIT_MULTIPLIER));
+  if (opts?.cacheHit) {
+    const cacheMult = cacheHitMultiplier(opts?.model);
+    return Math.max(1, Math.round(scaled * cacheMult));
+  }
   return Math.max(1, Math.round(scaled));
 }
 
