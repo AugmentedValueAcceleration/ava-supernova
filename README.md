@@ -1,5 +1,5 @@
 <p align="center">
-  <h1 align="center">Ava | Supernova</h1>
+  <h1 align="center">Ava Supernova</h1>
   <p align="center">
     <strong>Open-source AI coding agent — 60+ tools, 6 modes, 24 specialist personas, frontier open-source models from every major Chinese + Western lab. Creative Studio for images, video, music, voice. 300 free credits per month with an account, or bring your own API keys.</strong>
   </p>
@@ -23,7 +23,7 @@
 
 ---
 
-Ava | Supernova is an open-source AI coding agent that brings full agentic coding to every developer — as a **VS Code extension**, a **standalone IDE**, a **terminal CLI**, and a **companion app**. She remembers you across sessions, teaches for free, and thinks before she builds with 24 specialist personas across 6 modes.
+Ava Supernova is an open-source AI coding agent that brings full agentic coding to every developer — as a **VS Code extension**, a **standalone IDE**, a **terminal CLI**, and a **companion app**. She remembers you across sessions, teaches for free, and thinks before she builds with 24 specialist personas across 6 modes.
 
 > **Start coding with AI in 30 seconds.** Install, open, go. Sign up for 300 free credits per month, or bring your own API keys.
 
@@ -176,7 +176,7 @@ Plus dedicated pages for Tasks, Journal, Memory, Learning, Library, Settings, Sy
 
 ## IDE
 
-Ava | Supernova IDE is a standalone desktop application built on [Tauri v2](https://v2.tauri.app/) (Rust + React) with Ava deeply integrated. A Node.js sidecar runs `@ava/core` locally, giving you the full agent without a browser or VS Code.
+Ava Supernova IDE is a standalone desktop application built on [Tauri v2](https://v2.tauri.app/) (Rust + React) with Ava deeply integrated. A Node.js sidecar runs `@ava/core` locally, giving you the full agent without a browser or VS Code.
 
 The IDE includes:
 - **Local AI engine** — `@ava/core` runs as a sidecar process with the full toolkit, personas, and memory
@@ -534,7 +534,7 @@ cd packages/extension && pnpm build
 
 ## Sponsors
 
-Ava | Supernova is funded by the community. Sponsors keep this project free and open source.
+Ava Supernova is funded by the community. Sponsors keep this project free and open source.
 
 ### Champions
 

@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Webview Hindi (हिन्दी) strings — subset of the full locale used by UI components. */
 export const hiStrings: Record<StringKey, string> = {
   // Welcome / Branding
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'अपने कोड के बारे में कुछ भी पूछें।',
   'welcome.tagline': '60 टूल · 7 प्रोवाइडर · 2 मुफ़्त मॉडल · 20 भाषाएँ',
 

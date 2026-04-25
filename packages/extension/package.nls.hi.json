@@ -1,7 +1,7 @@
 {
-  "displayName": "Ava | Supernova",
+  "displayName": "Ava Supernova",
   "description": "ओपन-सोर्स AI कोडिंग एजेंट — आपके एडिटर में DeepSeek, Kimi और Qwen",
-  "viewContainer.title": "Ava | Supernova",
+  "viewContainer.title": "Ava Supernova",
   "view.chat.name": "चैट",
   "command.openChat.title": "चैट खोलें",
   "command.newChat.title": "नई चैट",

@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Thai (ไทย) strings — full locale mirroring en.ts key set. */
 export const thStrings: Record<StringKey, string> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'ถามอะไรก็ได้เกี่ยวกับโค้ดของคุณ',
   'welcome.cli_hint': 'พิมพ์ข้อความ หรือ /help เพื่อดูคำสั่ง',
 
@@ -274,7 +274,7 @@ export const thStrings: Record<StringKey, string> = {
   'cli.cancelled': 'ยกเลิกแล้ว',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
-  'setup.welcome': 'ยินดีต้อนรับสู่ Ava | Supernova',
+  'setup.welcome': 'ยินดีต้อนรับสู่ Ava Supernova',
   'setup.intro': 'มาตั้งค่าผู้ให้บริการ LLM ของคุณกัน',
   'setup.choose': 'เลือกผู้ให้บริการ (หมายเลข): ',
   'setup.invalid_choice': 'ตัวเลือกไม่ถูกต้อง กรุณารีสตาร์ทแล้วลองใหม่',
@@ -659,7 +659,7 @@ export const thStrings: Record<StringKey, string> = {
 
   // ── Documentation Page ──────────────────────────────────────────────────
   'dash.docs.title': 'เอกสาร',
-  'dash.docs.subtitle': 'ทุกอย่างที่คุณต้องรู้เกี่ยวกับ Ava | Supernova IDE',
+  'dash.docs.subtitle': 'ทุกอย่างที่คุณต้องรู้เกี่ยวกับ Ava Supernova IDE',
   'dash.docs.getting_started': 'เริ่มต้นใช้งาน',
   'dash.docs.local_vs_cloud': 'โหมดในเครื่อง vs คลาวด์',
   'dash.docs.modes': '6 โหมด — สถานะความคิด',
@@ -684,7 +684,7 @@ export const thStrings: Record<StringKey, string> = {
   'dash.releases.companion': 'ผู้ช่วย',
 
   // ── Onboarding ──────────────────────────────────────────────────────────
-  'dash.onboarding.welcome': 'ยินดีต้อนรับสู่ Ava | Supernova',
+  'dash.onboarding.welcome': 'ยินดีต้อนรับสู่ Ava Supernova',
   'dash.onboarding.subtitle': 'สภาพแวดล้อมการพัฒนาแบบ AI-native ของคุณ',
   'dash.onboarding.step1_title': 'เชื่อมต่อบัญชีของคุณ',
   'dash.onboarding.step1_desc': 'กรอกคีย์แพลตฟอร์มหรือเพิ่มคีย์ผู้ให้บริการ BYOK เพื่อเริ่มต้น',
@@ -715,7 +715,7 @@ export const thStrings: Record<StringKey, string> = {
   'dash.panel.debug_hint': 'คอนโซลดีบั๊กจะใช้ได้เมื่อเซสชันดีบั๊กกำลังทำงาน',
 
   // ── Title Bar ───────────────────────────────────────────────────────────
-  'dash.titlebar.title': 'Ava | Supernova IDE',
+  'dash.titlebar.title': 'Ava Supernova IDE',
   'dash.titlebar.welcome': 'ยินดีต้อนรับ',
 
   // ── Auth ────────────────────────────────────────────────────────────────
@@ -1141,7 +1141,7 @@ export const thStrings: Record<StringKey, string> = {
 
   // ── Missing: Documentation Page ──────────────────────────────────────
   'dash.docs.search_placeholder': 'ค้นหาเอกสาร...',
-  'dash.docs.getting_started_intro': 'Ava | Supernova IDE เป็นแอปพลิเคชันเดสก์ท็อปแบบสแตนด์อโลนที่มีเอเจนต์ AI เต็มรูปแบบรันในเครื่อง เชื่อมต่อบัญชีของคุณหรือเพิ่มคีย์ API BYOK เพื่อเริ่มต้น',
+  'dash.docs.getting_started_intro': 'Ava Supernova IDE เป็นแอปพลิเคชันเดสก์ท็อปแบบสแตนด์อโลนที่มีเอเจนต์ AI เต็มรูปแบบรันในเครื่อง เชื่อมต่อบัญชีของคุณหรือเพิ่มคีย์ API BYOK เพื่อเริ่มต้น',
   'dash.docs.step1_title': 'เชื่อมต่อบัญชี',
   'dash.docs.step1_desc': 'เปิดแถบด้านข้างแดชบอร์ดแล้วกรอกคีย์แพลตฟอร์ม (sk-ava-...) หรือเพิ่มคีย์ผู้ให้บริการ BYOK',
   'dash.docs.step2_title': 'เลือกโหมด',

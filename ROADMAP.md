@@ -1,6 +1,6 @@
 # Roadmap
 
-> Ava | Supernova — Democratising agentic coding for everyone.
+> Ava Supernova — Democratising agentic coding for everyone.
 
 This roadmap is a living document. Priorities shift based on community feedback, funding milestones, and technical discoveries. Want to influence direction? Open a [Discussion](https://github.com/AugmentedValueAcceleration/ava-supernova/discussions) or comment on an existing issue.
 

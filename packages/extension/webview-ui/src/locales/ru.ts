@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Webview Russian (Русский) strings — subset of the full locale used by UI components. */
 export const ruStrings: Record<StringKey, string> = {
   // Welcome / Branding
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Задайте любой вопрос о вашем коде.',
   'welcome.tagline': '60 инструментов · 7 провайдеров · 2 бесплатные модели · 20 языков',
 

@@ -5,7 +5,7 @@ const PLATFORM_URL = 'https://ava-supernova.com';
 
 export class ReleaseNotesTool implements Tool {
   readonly name = 'release_notes';
-  readonly description = 'Fetch published release notes for Ava | Supernova. Use this to see what has been shipped, reference specific versions, or check what users see when they update.';
+  readonly description = 'Fetch published release notes for Ava Supernova. Use this to see what has been shipped, reference specific versions, or check what users see when they update.';
   readonly riskLevel: ToolRiskLevel = 'safe';
   readonly requiresConfirmation = false;
 

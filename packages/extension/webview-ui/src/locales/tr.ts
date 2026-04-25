@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Webview Turkish (Türkçe) strings — subset of the full locale used by UI components. */
 export const trStrings: Record<StringKey, string> = {
   // Welcome / Branding
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Kodunuz hakkında her şeyi sorun.',
   'welcome.tagline': '60 araç · 7 sağlayıcı · 2 ücretsiz model · 20 dil',
 

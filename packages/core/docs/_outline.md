@@ -1,4 +1,4 @@
-# Ava | Supernova — Documentation Outline
+# Ava Supernova — Documentation Outline
 
 **Status:** draft for sign-off. Structure only — no body content yet.
 
@@ -15,7 +15,7 @@
 
 The **Beginner/Everything toggle** collapses this whole doc to just section 1 + 2 when set to Beginner.
 
-- **1.1 What is Ava | Supernova?** — 3-paragraph pitch, the three surfaces explained, who it is for.
+- **1.1 What is Ava Supernova?** — 3-paragraph pitch, the three surfaces explained, who it is for.
 - **1.2 Install** — tabbed: VS Code / Desktop IDE / CLI. Per-surface install steps.
 - **1.3 Your first five minutes** — pick a model, send your first message, approve your first tool call, see the result.
 - **1.4 Local vs cloud in one paragraph** — the sacred rule stated once, plainly.

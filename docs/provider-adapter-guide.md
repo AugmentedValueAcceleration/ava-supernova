@@ -1,6 +1,6 @@
 # Provider Adapter Guide
 
-How to add a new AI provider to Ava | Supernova.
+How to add a new AI provider to Ava Supernova.
 
 ## Provider Interface
 

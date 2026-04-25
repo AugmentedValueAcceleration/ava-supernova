@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Ukrainian (Українська) strings — full locale for @ava/core. */
 export const ukStrings: Record<StringKey, string> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Запитайте будь-що про ваш код.',
   'welcome.cli_hint': 'Введіть повідомлення або /help для переліку команд.',
 
@@ -274,7 +274,7 @@ export const ukStrings: Record<StringKey, string> = {
   'cli.cancelled': 'Скасовано.',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
-  'setup.welcome': 'Ласкаво просимо до Ava | Supernova',
+  'setup.welcome': 'Ласкаво просимо до Ava Supernova',
   'setup.intro': 'Давайте налаштуємо вашого LLM-провайдера.',
   'setup.choose': 'Оберіть провайдера (номер): ',
   'setup.invalid_choice': 'Невірний вибір. Перезапустіть і спробуйте знову.',
@@ -884,7 +884,7 @@ export const ukStrings: Record<StringKey, string> = {
 
   // ── Documentation Page ──────────────────────────────────────────────────
   'dash.docs.title': 'Документація',
-  'dash.docs.subtitle': 'Все, що потрібно знати про Ava | Supernova IDE.',
+  'dash.docs.subtitle': 'Все, що потрібно знати про Ava Supernova IDE.',
   'dash.docs.getting_started': 'Початок роботи',
   'dash.docs.local_vs_cloud': 'Локальний vs хмарний режим',
   'dash.docs.modes': '6 режимів — стани думки',
@@ -909,7 +909,7 @@ export const ukStrings: Record<StringKey, string> = {
   'dash.releases.companion': 'Помічник',
 
   // ── Onboarding ──────────────────────────────────────────────────────────
-  'dash.onboarding.welcome': 'Ласкаво просимо до Ava | Supernova',
+  'dash.onboarding.welcome': 'Ласкаво просимо до Ava Supernova',
   'dash.onboarding.subtitle': 'Ваше AI-орієнтоване середовище розробки',
   'dash.onboarding.step1_title': 'Під\'єднайте акаунт',
   'dash.onboarding.step1_desc': 'Введіть ключ платформи або додайте BYOK-ключі провайдерів, щоб почати.',
@@ -940,7 +940,7 @@ export const ukStrings: Record<StringKey, string> = {
   'dash.panel.debug_hint': 'Консоль налагодження доступна під час сесії відлагодження.',
 
   // ── Title Bar ───────────────────────────────────────────────────────────
-  'dash.titlebar.title': 'Ava | Supernova IDE',
+  'dash.titlebar.title': 'Ava Supernova IDE',
   'dash.titlebar.welcome': 'Ласкаво просимо',
 
   // ── Auth ────────────────────────────────────────────────────────────────
@@ -1121,7 +1121,7 @@ export const ukStrings: Record<StringKey, string> = {
 
   // ── Missing Documentation keys ────────────────────────────────────────
   'dash.docs.search_placeholder': 'Пошук документації...',
-  'dash.docs.getting_started_intro': 'Ava | Supernova IDE — це автономний десктопний застосунок з повним AI-агентом, що працює локально. Під\'єднайте акаунт або додайте BYOK API-ключі, щоб почати.',
+  'dash.docs.getting_started_intro': 'Ava Supernova IDE — це автономний десктопний застосунок з повним AI-агентом, що працює локально. Під\'єднайте акаунт або додайте BYOK API-ключі, щоб почати.',
   'dash.docs.step1_title': 'Під\'єднати акаунт',
   'dash.docs.step1_desc': 'Відкрийте бічну панель дашборду та введіть ключ платформи (sk-ava-...) або додайте BYOK-ключі провайдерів.',
   'dash.docs.step2_title': 'Оберіть режим',

@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 export const APP_NAME = 'ava';
-export const APP_DISPLAY_NAME = 'Ava | Supernova';
+export const APP_DISPLAY_NAME = 'Ava Supernova';
 export const APP_VERSION = '0.16.0';
 
 export const AVA_HOME = join(homedir(), '.ava');

@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Webview Traditional Chinese (zh-TW) strings */
 export const zhTWStrings: Record<StringKey, string> = {
   // Welcome / Branding
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': '關於你的程式碼，隨時提問。',
   'welcome.tagline': '60 個工具 · 7 個供應商 · 2 個免費模型 · 20 種語言',
 

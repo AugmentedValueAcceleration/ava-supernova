@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Polish (Polski) strings — full locale for @ava/core. */
 export const plStrings: Record<StringKey, string> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Zapytaj o cokolwiek dotyczącego Twojego kodu.',
   'welcome.cli_hint': 'Wpisz wiadomość lub /help, aby zobaczyć komendy.',
 
@@ -274,7 +274,7 @@ export const plStrings: Record<StringKey, string> = {
   'cli.cancelled': 'Anulowano.',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
-  'setup.welcome': 'Witaj w Ava | Supernova',
+  'setup.welcome': 'Witaj w Ava Supernova',
   'setup.intro': 'Skonfigurujmy Twojego dostawcę LLM.',
   'setup.choose': 'Wybierz dostawcę (numer): ',
   'setup.invalid_choice': 'Nieprawidłowy wybór. Uruchom ponownie i spróbuj jeszcze raz.',
@@ -883,7 +883,7 @@ export const plStrings: Record<StringKey, string> = {
 
   // ── Documentation Page ──────────────────────────────────────────────────
   'dash.docs.title': 'Dokumentacja',
-  'dash.docs.subtitle': 'Wszystko, co musisz wiedzieć o Ava | Supernova IDE.',
+  'dash.docs.subtitle': 'Wszystko, co musisz wiedzieć o Ava Supernova IDE.',
   'dash.docs.getting_started': 'Pierwsze kroki',
   'dash.docs.local_vs_cloud': 'Tryb Local vs Cloud',
   'dash.docs.modes': '6 trybów — stany myślenia',
@@ -908,7 +908,7 @@ export const plStrings: Record<StringKey, string> = {
   'dash.releases.companion': 'Asystent',
 
   // ── Onboarding ──────────────────────────────────────────────────────────
-  'dash.onboarding.welcome': 'Witaj w Ava | Supernova',
+  'dash.onboarding.welcome': 'Witaj w Ava Supernova',
   'dash.onboarding.subtitle': 'Twoje natywne środowisko programistyczne z AI',
   'dash.onboarding.step1_title': 'Połącz swoje konto',
   'dash.onboarding.step1_desc': 'Wprowadź klucz platformy lub dodaj klucze dostawcy BYOK, aby rozpocząć.',
@@ -939,7 +939,7 @@ export const plStrings: Record<StringKey, string> = {
   'dash.panel.debug_hint': 'Konsola debugowania jest dostępna podczas sesji debugowania.',
 
   // ── Title Bar ───────────────────────────────────────────────────────────
-  'dash.titlebar.title': 'Ava | Supernova IDE',
+  'dash.titlebar.title': 'Ava Supernova IDE',
   'dash.titlebar.welcome': 'Witaj',
 
   // ── Auth ────────────────────────────────────────────────────────────────
@@ -1110,7 +1110,7 @@ export const plStrings: Record<StringKey, string> = {
 
   // ── Missing: Documentation content ────────────────────────────────────
   'dash.docs.search_placeholder': 'Szukaj w dokumentacji...',
-  'dash.docs.getting_started_intro': 'Ava | Supernova IDE to samodzielna aplikacja desktopowa z pełnym agentem AI działającym lokalnie. Połącz swoje konto lub dodaj klucze BYOK, aby rozpocząć.',
+  'dash.docs.getting_started_intro': 'Ava Supernova IDE to samodzielna aplikacja desktopowa z pełnym agentem AI działającym lokalnie. Połącz swoje konto lub dodaj klucze BYOK, aby rozpocząć.',
   'dash.docs.step1_title': 'Połącz konto',
   'dash.docs.step1_desc': 'Otwórz pasek boczny dashboardu i wprowadź klucz platformy (sk-ava-...) lub dodaj klucze dostawcy BYOK.',
   'dash.docs.step2_title': 'Wybierz tryb',

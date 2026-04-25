@@ -1,6 +1,6 @@
 {
   "name": "ava-supernova",
-  "displayName": "Ava | Supernova",
+  "displayName": "Ava Supernova",
   "description": "%description%",
   "version": "0.50.1",
   "publisher": "augmentedvalueacceleration",
@@ -48,7 +48,7 @@
       "activitybar": [
         {
           "id": "ava-supernova",
-          "title": "Ava | Supernova",
+          "title": "Ava Supernova",
           "icon": "media/icon.svg"
         }
       ]

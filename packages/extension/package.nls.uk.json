@@ -1,7 +1,7 @@
 {
-  "displayName": "Ava | Supernova",
+  "displayName": "Ava Supernova",
   "description": "AI-агент для програмування з відкритим кодом — DeepSeek, Kimi та Qwen у вашому редакторі",
-  "viewContainer.title": "Ava | Supernova",
+  "viewContainer.title": "Ava Supernova",
   "view.chat.name": "Чат",
   "command.openChat.title": "Відкрити чат",
   "command.newChat.title": "Новий чат",

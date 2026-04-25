@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Indonesian (Bahasa Indonesia) strings — webview subset for UI components. */
 export const idStrings: Record<StringKey, string> = {
   // Welcome / Branding
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Tanyakan apa saja tentang kode Anda.',
   'welcome.tagline': '60 alat · 7 provider · 2 model gratis · 20 bahasa',
 

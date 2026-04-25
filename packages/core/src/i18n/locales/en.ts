@@ -1,7 +1,7 @@
 /** English strings — source of truth. All other locales mirror this key set. */
 export const enStrings = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Ask anything about your code.',
   'welcome.cli_hint': 'Type your message, or /help for commands.',
 
@@ -273,7 +273,7 @@ export const enStrings = {
   'cli.more_lines': '... ({count} more lines)',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
-  'setup.welcome': 'Welcome to Ava | Supernova',
+  'setup.welcome': 'Welcome to Ava Supernova',
   'setup.intro': "Let's set up your LLM provider.",
   'setup.choose': 'Choose a provider (number): ',
   'setup.invalid_choice': 'Invalid choice. Please restart and try again.',
@@ -1001,7 +1001,7 @@ export const enStrings = {
 
   // ── Documentation Page ──────────────────────────────────────────────────
   'dash.docs.title': 'Documentation',
-  'dash.docs.subtitle': 'Everything you need to know about the Ava | Supernova IDE.',
+  'dash.docs.subtitle': 'Everything you need to know about the Ava Supernova IDE.',
   'dash.docs.search_placeholder': 'Search docs...',
   'dash.docs.getting_started': 'Getting Started',
   'dash.docs.local_vs_cloud': 'Local vs Cloud Mode',
@@ -1016,7 +1016,7 @@ export const enStrings = {
   'dash.docs.dashboard': 'Dashboard Pages',
   'dash.docs.session_stats': 'Session Stats',
   'dash.docs.release_notes': 'Release Notes',
-  'dash.docs.getting_started_intro': 'Ava | Supernova IDE is a standalone desktop application with the full AI agent running locally. Connect your account or add BYOK API keys to get started.',
+  'dash.docs.getting_started_intro': 'Ava Supernova IDE is a standalone desktop application with the full AI agent running locally. Connect your account or add BYOK API keys to get started.',
   'dash.docs.step1_title': 'Connect Account',
   'dash.docs.step1_desc': 'Open the Dashboard sidebar and enter your platform key (sk-ava-...) or add BYOK provider keys.',
   'dash.docs.step2_title': 'Choose a Mode',
@@ -1138,7 +1138,7 @@ export const enStrings = {
   'dash.releases.highlights': 'Highlights',
 
   // ── Onboarding ──────────────────────────────────────────────────────────
-  'dash.onboarding.welcome': 'Welcome to Ava | Supernova',
+  'dash.onboarding.welcome': 'Welcome to Ava Supernova',
   'dash.onboarding.subtitle': 'Your AI-native development environment',
   'dash.onboarding.step1_title': 'Connect Your Account',
   'dash.onboarding.step1_desc': 'Enter your platform key or add BYOK provider keys to get started.',
@@ -1169,7 +1169,7 @@ export const enStrings = {
   'dash.panel.debug_hint': 'Debug console is available when a debug session is running.',
 
   // ── Title Bar ───────────────────────────────────────────────────────────
-  'dash.titlebar.title': 'Ava | Supernova IDE',
+  'dash.titlebar.title': 'Ava Supernova IDE',
   'dash.titlebar.welcome': 'Welcome',
 
   // ── Auth ────────────────────────────────────────────────────────────────

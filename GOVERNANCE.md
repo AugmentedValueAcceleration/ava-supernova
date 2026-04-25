@@ -1,6 +1,6 @@
 # Governance
 
-How Ava | Supernova is maintained, how decisions are made, and how you can grow your role in the project.
+How Ava Supernova is maintained, how decisions are made, and how you can grow your role in the project.
 
 ## Project Lead
 
@@ -56,4 +56,4 @@ Reports can be sent to the project lead via the contact methods listed in `CODE_
 
 ## Licensing
 
-Ava | Supernova is licensed under **Apache 2.0**. No CLA (Contributor License Agreement) is required — your contributions are covered by the project license.
+Ava Supernova is licensed under **Apache 2.0**. No CLA (Contributor License Agreement) is required — your contributions are covered by the project license.

@@ -1,4 +1,4 @@
-# Ava | Supernova — Investor Brief
+# Ava Supernova — Investor Brief
 
 ## The One-Line Pitch
 
@@ -191,7 +191,7 @@ That's Ava.
 
 ## Links
 
-- **VS Code Marketplace**: [Ava | Supernova](https://marketplace.visualstudio.com/items?itemName=ava-supernova.ava-supernova)
+- **VS Code Marketplace**: [Ava Supernova](https://marketplace.visualstudio.com/items?itemName=ava-supernova.ava-supernova)
 - **Companion**: [ava-supernova-companion.com](https://www.ava-supernova-companion.com)
 - **Platform**: [ava-supernova.com](https://ava-supernova.com)
 - **GitHub**: [AugmentedValueAcceleration](https://github.com/AugmentedValueAcceleration)

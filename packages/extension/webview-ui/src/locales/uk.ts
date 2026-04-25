@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Ukrainian (Українська) strings — webview subset for UI components. */
 export const ukStrings: Record<StringKey, string> = {
   // Welcome / Branding
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Запитайте будь-що про ваш код.',
   'welcome.tagline': '60 інструментів · 7 провайдерів · 2 безкоштовні моделі · 20 мов',
 

@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Webview Thai (ไทย) strings — subset of the full locale used by UI components. */
 export const thStrings: Record<StringKey, string> = {
   // Welcome / Branding
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'ถามอะไรก็ได้เกี่ยวกับโค้ดของคุณ',
   'welcome.tagline': '60 เครื่องมือ · 7 ผู้ให้บริการ · 2 โมเดลฟรี · 20 ภาษา',
 

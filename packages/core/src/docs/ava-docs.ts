@@ -22,7 +22,7 @@ export const AVA_DOCS: DocSection[] = [
     topic: 'getting-started',
     keywords: ['setup', 'install', 'start', 'begin', 'first', 'new', 'onboarding', 'quickstart', 'getting started'],
     title: 'Getting Started',
-    content: `# Getting Started with Ava | Supernova
+    content: `# Getting Started with Ava Supernova
 
 ## Installation
 

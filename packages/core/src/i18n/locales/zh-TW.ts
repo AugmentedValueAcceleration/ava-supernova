@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Traditional Chinese (zh-TW) strings */
 export const zhTWStrings: Record<StringKey, string> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': '關於你的程式碼，隨時提問。',
   'welcome.cli_hint': '輸入訊息，或輸入 /help 查看指令列表。',
 
@@ -274,7 +274,7 @@ export const zhTWStrings: Record<StringKey, string> = {
   'cli.cancelled': '已取消。',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
-  'setup.welcome': '歡迎使用 Ava | Supernova',
+  'setup.welcome': '歡迎使用 Ava Supernova',
   'setup.intro': '讓我們來設定你的 LLM 服務供應商。',
   'setup.choose': '選擇一個供應商（輸入編號）：',
   'setup.invalid_choice': '無效選擇。請重新啟動後再試。',
@@ -659,7 +659,7 @@ export const zhTWStrings: Record<StringKey, string> = {
 
   // ── 文件頁面 ──────────────────────────────────────────────────────────────
   'dash.docs.title': '文件',
-  'dash.docs.subtitle': '關於 Ava | Supernova IDE 你需要知道的一切。',
+  'dash.docs.subtitle': '關於 Ava Supernova IDE 你需要知道的一切。',
   'dash.docs.getting_started': '快速入門',
   'dash.docs.local_vs_cloud': '本地模式 vs 雲端模式',
   'dash.docs.modes': '6 種模式——思維狀態',
@@ -684,7 +684,7 @@ export const zhTWStrings: Record<StringKey, string> = {
   'dash.releases.companion': '助手',
 
   // ── 新手導覽 ──────────────────────────────────────────────────────────────
-  'dash.onboarding.welcome': '歡迎使用 Ava | Supernova',
+  'dash.onboarding.welcome': '歡迎使用 Ava Supernova',
   'dash.onboarding.subtitle': '你的 AI 原生開發環境',
   'dash.onboarding.step1_title': '連結帳戶',
   'dash.onboarding.step1_desc': '輸入平台金鑰或新增 BYOK 供應商金鑰以開始使用。',
@@ -715,7 +715,7 @@ export const zhTWStrings: Record<StringKey, string> = {
   'dash.panel.debug_hint': '除錯主控台在除錯工作階段執行時可用。',
 
   // ── 標題列 ────────────────────────────────────────────────────────────────
-  'dash.titlebar.title': 'Ava | Supernova IDE',
+  'dash.titlebar.title': 'Ava Supernova IDE',
   'dash.titlebar.welcome': '歡迎',
 
   // ── 身分驗證 ──────────────────────────────────────────────────────────────
@@ -1138,7 +1138,7 @@ export const zhTWStrings: Record<StringKey, string> = {
 
   // ── 文件頁面（缺漏）────────────────────────────────────────────────────────
   'dash.docs.search_placeholder': '搜尋文件...',
-  'dash.docs.getting_started_intro': 'Ava | Supernova IDE 是一款獨立桌面應用程式，完整的 AI 代理在本地執行。連結帳戶或新增 BYOK API 金鑰即可開始使用。',
+  'dash.docs.getting_started_intro': 'Ava Supernova IDE 是一款獨立桌面應用程式，完整的 AI 代理在本地執行。連結帳戶或新增 BYOK API 金鑰即可開始使用。',
   'dash.docs.step1_title': '連結帳戶',
   'dash.docs.step1_desc': '開啟儀表板側邊欄，輸入平台金鑰（sk-ava-...）或新增 BYOK 供應商金鑰。',
   'dash.docs.step2_title': '選擇模式',

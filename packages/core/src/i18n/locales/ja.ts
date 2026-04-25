@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Japanese (ja) strings */
 export const jaStrings: Record<StringKey, string> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'コードについて何でも聞いてください。',
   'welcome.cli_hint': 'メッセージを入力するか、/help でコマンド一覧を表示します。',
 
@@ -274,7 +274,7 @@ export const jaStrings: Record<StringKey, string> = {
   'cli.cancelled': 'キャンセルされました。',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
-  'setup.welcome': 'Ava | Supernova へようこそ',
+  'setup.welcome': 'Ava Supernova へようこそ',
   'setup.intro': 'LLM プロバイダーを設定しましょう。',
   'setup.choose': 'プロバイダーを選択してください（番号）：',
   'setup.invalid_choice': '無効な選択です。再起動してもう一度お試しください。',
@@ -659,7 +659,7 @@ export const jaStrings: Record<StringKey, string> = {
 
   // ── Documentation Page ──────────────────────────────────────────────────
   'dash.docs.title': 'ドキュメント',
-  'dash.docs.subtitle': 'Ava | Supernova IDE について知っておくべきすべてのこと。',
+  'dash.docs.subtitle': 'Ava Supernova IDE について知っておくべきすべてのこと。',
   'dash.docs.getting_started': 'はじめに',
   'dash.docs.local_vs_cloud': 'ローカル vs クラウドモード',
   'dash.docs.modes': '6つのモード — 思考の状態',
@@ -684,7 +684,7 @@ export const jaStrings: Record<StringKey, string> = {
   'dash.releases.companion': 'コンパニオン',
 
   // ── Onboarding ──────────────────────────────────────────────────────────
-  'dash.onboarding.welcome': 'Ava | Supernova へようこそ',
+  'dash.onboarding.welcome': 'Ava Supernova へようこそ',
   'dash.onboarding.subtitle': 'AI ネイティブな開発環境',
   'dash.onboarding.step1_title': 'アカウントを接続',
   'dash.onboarding.step1_desc': 'プラットフォームキーまたは BYOK プロバイダーキーを入力して始めましょう。',
@@ -715,7 +715,7 @@ export const jaStrings: Record<StringKey, string> = {
   'dash.panel.debug_hint': 'デバッグコンソールはデバッグセッション中に使用できます。',
 
   // ── Title Bar ───────────────────────────────────────────────────────────
-  'dash.titlebar.title': 'Ava | Supernova IDE',
+  'dash.titlebar.title': 'Ava Supernova IDE',
   'dash.titlebar.welcome': 'ようこそ',
 
   // ── Auth ────────────────────────────────────────────────────────────────
@@ -1111,7 +1111,7 @@ export const jaStrings: Record<StringKey, string> = {
 
   // ── Documentation Page (missing) ──────────────────────────────────────────
   'dash.docs.search_placeholder': 'ドキュメントを検索...',
-  'dash.docs.getting_started_intro': 'Ava | Supernova IDE は、フル AI エージェントをローカルで実行するスタンドアロンのデスクトップアプリケーションです。アカウントを接続するか BYOK API キーを追加して始めましょう。',
+  'dash.docs.getting_started_intro': 'Ava Supernova IDE は、フル AI エージェントをローカルで実行するスタンドアロンのデスクトップアプリケーションです。アカウントを接続するか BYOK API キーを追加して始めましょう。',
   'dash.docs.step1_title': 'アカウントを接続',
   'dash.docs.step1_desc': 'ダッシュボードのサイドバーを開き、プラットフォームキー (sk-ava-...) を入力するか、BYOK プロバイダーキーを追加してください。',
   'dash.docs.step2_title': 'モードを選択',

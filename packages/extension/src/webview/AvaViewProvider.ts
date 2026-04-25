@@ -200,7 +200,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   ) {
     this.providerRegistry = new ProviderRegistry();
     this.healthTracker = new ProviderHealthTracker();
-    this.outputChannel = vscode.window.createOutputChannel('Ava | Supernova');
+    this.outputChannel = vscode.window.createOutputChannel('Ava Supernova');
     this.statusBar = new StatusBar('ava-supernova.switchModel');
 
     // Sign-in manager — owns the OAuth device authorization flow for the
@@ -357,7 +357,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
         // Show a brief info message so the user knows what happened
         vscode.window.showInformationMessage(
-          'Ava | Supernova — Memory upgraded. Your improved memory system will rebuild as you work.',
+          'Ava Supernova — Memory upgraded. Your improved memory system will rebuild as you work.',
         );
       } catch (err) {
         this.log(`[memory-reset] Failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -768,7 +768,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     this.panel = vscode.window.createWebviewPanel(
       'ava-supernova.chat',
-      'Ava | Supernova',
+      'Ava Supernova',
       vscode.ViewColumn.One,
       {
         enableScripts: true,
@@ -3577,7 +3577,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
                  font-src ${webview.cspSource};
                  img-src ${webview.cspSource} https: data:;">
   <link href="${styleUri}" rel="stylesheet">
-  <title>Ava | Supernova</title>
+  <title>Ava Supernova</title>
 </head>
 <body>
   <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;opacity:0.3;font-size:13px;font-family:var(--vscode-font-family)">Loading Ava…</div></div>

@@ -1,5 +1,5 @@
 {
-  "welcome.title": "Ava | Supernova",
+  "welcome.title": "Ava Supernova",
   "welcome.subtitle": "Ask anything about your code.",
   "welcome.cli_hint": "Type your message, or /help for commands.",
 
@@ -252,7 +252,7 @@
   "cli.fail": "FAIL",
   "cli.more_lines": "... ({count} more lines)",
 
-  "setup.welcome": "Welcome to Ava | Supernova",
+  "setup.welcome": "Welcome to Ava Supernova",
   "setup.intro": "Let's set up your LLM provider.",
   "setup.choose": "Choose a provider (number): ",
   "setup.invalid_choice": "Invalid choice. Please restart and try again.",

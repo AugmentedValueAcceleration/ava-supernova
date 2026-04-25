@@ -1,6 +1,6 @@
 # Issue Triage Guide
 
-How maintainers should handle incoming issues on Ava | Supernova.
+How maintainers should handle incoming issues on Ava Supernova.
 
 ## Label Taxonomy
 

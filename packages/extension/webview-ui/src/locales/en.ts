@@ -1,7 +1,7 @@
 /** Webview English strings — subset of the full locale used by UI components. */
 export const enStrings = {
   // Welcome / Branding
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Your open-source agentic coding assistant.',
   'welcome.tagline': 'Every model \u00B7 Every tool \u00B7 6 modes \u00B7 Local-first',
 

@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Indonesian (Bahasa Indonesia) strings — full locale for @ava/core. */
 export const idStrings: Record<StringKey, string> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Tanyakan apa saja tentang kode Anda.',
   'welcome.cli_hint': 'Ketik pesan Anda, atau /help untuk daftar perintah.',
 
@@ -274,7 +274,7 @@ export const idStrings: Record<StringKey, string> = {
   'cli.cancelled': 'Dibatalkan.',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
-  'setup.welcome': 'Selamat datang di Ava | Supernova',
+  'setup.welcome': 'Selamat datang di Ava Supernova',
   'setup.intro': 'Mari konfigurasikan provider LLM Anda.',
   'setup.choose': 'Pilih provider (nomor): ',
   'setup.invalid_choice': 'Pilihan tidak valid. Mulai ulang dan coba lagi.',
@@ -659,7 +659,7 @@ export const idStrings: Record<StringKey, string> = {
 
   // ── Documentation Page ──────────────────────────────────────────────────
   'dash.docs.title': 'Dokumentasi',
-  'dash.docs.subtitle': 'Semua yang perlu Anda ketahui tentang Ava | Supernova IDE.',
+  'dash.docs.subtitle': 'Semua yang perlu Anda ketahui tentang Ava Supernova IDE.',
   'dash.docs.getting_started': 'Memulai',
   'dash.docs.local_vs_cloud': 'Mode Lokal vs Cloud',
   'dash.docs.modes': '6 Mode — Pola Pikir',
@@ -684,7 +684,7 @@ export const idStrings: Record<StringKey, string> = {
   'dash.releases.companion': 'Pendamping',
 
   // ── Onboarding ──────────────────────────────────────────────────────────
-  'dash.onboarding.welcome': 'Selamat datang di Ava | Supernova',
+  'dash.onboarding.welcome': 'Selamat datang di Ava Supernova',
   'dash.onboarding.subtitle': 'Lingkungan pengembangan berbasis AI Anda',
   'dash.onboarding.step1_title': 'Hubungkan Akun Anda',
   'dash.onboarding.step1_desc': 'Masukkan kunci platform Anda atau tambahkan kunci provider BYOK untuk memulai.',
@@ -715,7 +715,7 @@ export const idStrings: Record<StringKey, string> = {
   'dash.panel.debug_hint': 'Konsol debug tersedia saat sesi debug berjalan.',
 
   // ── Title Bar ───────────────────────────────────────────────────────────
-  'dash.titlebar.title': 'Ava | Supernova IDE',
+  'dash.titlebar.title': 'Ava Supernova IDE',
   'dash.titlebar.welcome': 'Selamat Datang',
 
   // ── Auth ────────────────────────────────────────────────────────────────
@@ -1139,7 +1139,7 @@ export const idStrings: Record<StringKey, string> = {
 
   // ── Documentation Page (missing) ──────────────────────────────────────
   'dash.docs.search_placeholder': 'Cari dokumentasi...',
-  'dash.docs.getting_started_intro': 'Ava | Supernova IDE adalah aplikasi desktop mandiri dengan agen AI penuh yang berjalan secara lokal. Hubungkan akun Anda atau tambahkan API key BYOK untuk memulai.',
+  'dash.docs.getting_started_intro': 'Ava Supernova IDE adalah aplikasi desktop mandiri dengan agen AI penuh yang berjalan secara lokal. Hubungkan akun Anda atau tambahkan API key BYOK untuk memulai.',
   'dash.docs.step1_title': 'Hubungkan Akun',
   'dash.docs.step1_desc': 'Buka sidebar Dashboard dan masukkan kunci platform Anda (sk-ava-...) atau tambahkan kunci provider BYOK.',
   'dash.docs.step2_title': 'Pilih Mode',

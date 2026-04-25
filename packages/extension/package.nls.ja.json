@@ -1,7 +1,7 @@
 {
-  "displayName": "Ava | Supernova",
+  "displayName": "Ava Supernova",
   "description": "オープンソース AI コーディングエージェント — エディタで DeepSeek、Kimi、Qwen を使用",
-  "viewContainer.title": "Ava | Supernova",
+  "viewContainer.title": "Ava Supernova",
   "view.chat.name": "チャット",
   "command.openChat.title": "チャットを開く",
   "command.newChat.title": "新しいチャット",

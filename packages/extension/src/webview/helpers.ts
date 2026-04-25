@@ -60,7 +60,7 @@ export function deriveErrorInfo(error: unknown): { message: string; code: string
         if (raw.includes('network error') || raw.includes('fetch failed') || raw.includes('econnrefused')) {
           return { message: msg, code: 'network', suggestion: 'Check your internet connection. If you\'re using a local model, make sure the server is running.' };
         }
-        return { message: msg, code: 'provider_error', suggestion: 'Something unexpected happened. Try again, or check Output > "Ava | Supernova" for technical details.' };
+        return { message: msg, code: 'provider_error', suggestion: 'Something unexpected happened. Try again, or check Output > "Ava Supernova" for technical details.' };
       }
     }
   }
@@ -72,7 +72,7 @@ export function deriveErrorInfo(error: unknown): { message: string; code: string
     return { message: rawMsg, code: 'iterations_exceeded', suggestion: 'Click Try Again to let Ava keep working, or break the task into smaller pieces.' };
   }
 
-  return { message: rawMsg, code: 'unknown', suggestion: 'Something unexpected happened. Try again, or check Output > "Ava | Supernova" for technical details.' };
+  return { message: rawMsg, code: 'unknown', suggestion: 'Something unexpected happened. Try again, or check Output > "Ava Supernova" for technical details.' };
 }
 
 // ── Tool confirmation summary ──────────────────────────────────────────────

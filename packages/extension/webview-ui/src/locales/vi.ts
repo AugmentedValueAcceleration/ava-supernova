@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Webview Vietnamese (vi) strings */
 export const viStrings: Record<StringKey, string> = {
   // Welcome / Branding
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Hỏi bất kỳ điều gì về mã nguồn của bạn.',
   'welcome.tagline': '60 công cụ · 7 nhà cung cấp · 2 mô hình miễn phí · 20 ngôn ngữ',
 

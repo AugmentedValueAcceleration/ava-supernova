@@ -291,7 +291,7 @@ export function ArticleReader({ article, related, onBack, onNavigateToArticle }:
             </div>
             <div>
               <p className="text-xs font-bold text-white">Ava's Take</p>
-              <p className="text-[9px] text-[var(--text-muted)]">Ava | Supernova Commentary</p>
+              <p className="text-[9px] text-[var(--text-muted)]">Ava Supernova Commentary</p>
             </div>
           </div>
           <p className="text-xs leading-relaxed text-[var(--text-secondary)]">{article.ava_commentary}</p>
@@ -372,7 +372,7 @@ export function ArticleReader({ article, related, onBack, onNavigateToArticle }:
       {/* Transparency notice */}
       <div className="mt-8 rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)]/50 px-3 py-2 text-center text-[10px] text-[var(--text-muted)]">
         {article.ai_generated
-          ? 'This article was AI-curated by Ava | Supernova. All credit belongs to the original authors and publications listed above.'
+          ? 'This article was AI-curated by Ava Supernova. All credit belongs to the original authors and publications listed above.'
           : 'All credit belongs to the original authors and publications where applicable.'
         }
       </div>

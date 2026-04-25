@@ -5,13 +5,13 @@ import type { DocPage } from '../types.js';
 export const START_PAGES: DocPage[] = [
   {
     id: 'start.what',
-    title: 'What is Ava | Supernova?',
+    title: 'What is Ava Supernova?',
     audience: ['newcomer'],
     surfaces: ['web', 'ext', 'ide'],
     order: 10,
     section: 'start',
     body: [
-      { type: 'paragraph', text: 'Ava | Supernova is an open-source agentic coding assistant. She writes code with you, teaches you anything you want to learn, audits your projects for security issues, and can control your desktop when you need her to. She remembers what you told her last week, respects the conventions of your project, and runs on your machine by default.' },
+      { type: 'paragraph', text: 'Ava Supernova is an open-source agentic coding assistant. She writes code with you, teaches you anything you want to learn, audits your projects for security issues, and can control your desktop when you need her to. She remembers what you told her last week, respects the conventions of your project, and runs on your machine by default.' },
       { type: 'paragraph', text: 'Three surfaces, one agent. Use whichever fits your workflow — they share the same brain.' },
       { type: 'heading', level: 3, text: 'The three surfaces' },
       { type: 'list', ordered: false, items: [

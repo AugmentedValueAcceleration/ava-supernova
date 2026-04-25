@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Polish (Polski) strings — webview subset for UI components. */
 export const plStrings: Record<StringKey, string> = {
   // Welcome / Branding
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Zapytaj o cokolwiek dotyczącego Twojego kodu.',
   'welcome.tagline': '60 narzędzi · 7 dostawców · 2 darmowe modele · 20 języków',
 

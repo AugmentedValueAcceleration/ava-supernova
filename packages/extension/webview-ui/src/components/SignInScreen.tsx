@@ -96,7 +96,7 @@ export function SignInScreen({
     <div className="w-full max-w-md mx-auto px-6 py-6">
       <div className="text-center mb-6">
         <h2 className="text-lg font-semibold mb-2">
-          {t('signin.welcome_title') || 'Sign in to Ava | Supernova'}
+          {t('signin.welcome_title') || 'Sign in to Ava Supernova'}
         </h2>
         <p className="text-sm opacity-60">
           {t('signin.welcome_subtitle') || 'Connect your account to sync memory, tasks, and settings across every device.'}

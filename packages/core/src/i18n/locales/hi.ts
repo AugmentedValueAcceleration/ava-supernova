@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Hindi (हिन्दी) strings — full locale mirroring en.ts key set. */
 export const hiStrings: Record<StringKey, string> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'अपने कोड के बारे में कुछ भी पूछें।',
   'welcome.cli_hint': 'अपना संदेश लिखें, या /help से कमांड देखें।',
 
@@ -274,7 +274,7 @@ export const hiStrings: Record<StringKey, string> = {
   'cli.cancelled': 'रद्द किया गया।',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
-  'setup.welcome': 'Ava | Supernova में आपका स्वागत है',
+  'setup.welcome': 'Ava Supernova में आपका स्वागत है',
   'setup.intro': 'चलिए आपका LLM प्रोवाइडर सेट करते हैं।',
   'setup.choose': 'प्रोवाइडर चुनें (नंबर): ',
   'setup.invalid_choice': 'अमान्य चयन। फिर शुरू करें और दोबारा प्रयास करें।',
@@ -659,7 +659,7 @@ export const hiStrings: Record<StringKey, string> = {
 
   // ── Documentation Page ──────────────────────────────────────────────────
   'dash.docs.title': 'दस्तावेज़ीकरण',
-  'dash.docs.subtitle': 'Ava | Supernova IDE के बारे में सब कुछ जानें।',
+  'dash.docs.subtitle': 'Ava Supernova IDE के बारे में सब कुछ जानें।',
   'dash.docs.getting_started': 'शुरू करें',
   'dash.docs.local_vs_cloud': 'Local बनाम Cloud मोड',
   'dash.docs.modes': '6 मोड — विचार की अवस्थाएँ',
@@ -684,7 +684,7 @@ export const hiStrings: Record<StringKey, string> = {
   'dash.releases.companion': 'साथी',
 
   // ── Onboarding ──────────────────────────────────────────────────────────
-  'dash.onboarding.welcome': 'Ava | Supernova में आपका स्वागत है',
+  'dash.onboarding.welcome': 'Ava Supernova में आपका स्वागत है',
   'dash.onboarding.subtitle': 'आपका AI-नेटिव डेवलपमेंट एनवायरनमेंट',
   'dash.onboarding.step1_title': 'अपना खाता कनेक्ट करें',
   'dash.onboarding.step1_desc': 'शुरू करने के लिए अपनी प्लेटफ़ॉर्म कुंजी या BYOK प्रोवाइडर कुंजियाँ दर्ज करें।',
@@ -715,7 +715,7 @@ export const hiStrings: Record<StringKey, string> = {
   'dash.panel.debug_hint': 'डीबग सत्र चलने पर डीबग कंसोल उपलब्ध होता है।',
 
   // ── Title Bar ───────────────────────────────────────────────────────────
-  'dash.titlebar.title': 'Ava | Supernova IDE',
+  'dash.titlebar.title': 'Ava Supernova IDE',
   'dash.titlebar.welcome': 'स्वागत',
 
   // ── Auth ────────────────────────────────────────────────────────────────
@@ -1111,7 +1111,7 @@ export const hiStrings: Record<StringKey, string> = {
 
   // ── Missing Documentation Page Keys ────────────────────────────────────
   'dash.docs.search_placeholder': 'दस्तावेज़ खोजें...',
-  'dash.docs.getting_started_intro': 'Ava | Supernova IDE एक स्टैंडअलोन डेस्कटॉप एप्लिकेशन है जिसमें पूर्ण AI एजेंट लोकल रूप से चलता है। शुरू करने के लिए अपना खाता कनेक्ट करें या BYOK API कुंजियाँ जोड़ें।',
+  'dash.docs.getting_started_intro': 'Ava Supernova IDE एक स्टैंडअलोन डेस्कटॉप एप्लिकेशन है जिसमें पूर्ण AI एजेंट लोकल रूप से चलता है। शुरू करने के लिए अपना खाता कनेक्ट करें या BYOK API कुंजियाँ जोड़ें।',
   'dash.docs.step1_title': 'खाता कनेक्ट करें',
   'dash.docs.step1_desc': 'डैशबोर्ड साइडबार खोलें और अपनी प्लेटफ़ॉर्म कुंजी (sk-ava-...) दर्ज करें या BYOK प्रोवाइडर कुंजियाँ जोड़ें।',
   'dash.docs.step2_title': 'मोड चुनें',

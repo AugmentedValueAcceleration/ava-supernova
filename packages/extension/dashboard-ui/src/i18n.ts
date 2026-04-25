@@ -79,7 +79,7 @@ const chatStrings: Record<string, string> = {
   'dash.nav.releases': 'Releases',
   'dash.nav.support': 'Support',
   // Welcome
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Your open-source agentic coding assistant.',
   'welcome.tagline': '60 tools \u00B7 7 providers \u00B7 2 free models \u00B7 20 languages',
   'welcome.setup_title': 'Get Started \u2014 Add an API Key',

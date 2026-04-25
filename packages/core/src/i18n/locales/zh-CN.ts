@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Simplified Chinese (zh-CN) strings */
 export const zhCNStrings: Record<StringKey, string> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': '关于你的代码，随便问。',
   'welcome.cli_hint': '输入消息，或输入 /help 查看命令列表。',
 
@@ -274,7 +274,7 @@ export const zhCNStrings: Record<StringKey, string> = {
   'cli.cancelled': '已取消。',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
-  'setup.welcome': '欢迎使用 Ava | Supernova',
+  'setup.welcome': '欢迎使用 Ava Supernova',
   'setup.intro': '让我们来配置你的 LLM 服务商。',
   'setup.choose': '选择一个服务商（输入编号）：',
   'setup.invalid_choice': '无效选择。请重启后重试。',
@@ -883,7 +883,7 @@ export const zhCNStrings: Record<StringKey, string> = {
 
   // ── Documentation Page ──────────────────────────────────────────────────
   'dash.docs.title': '文档',
-  'dash.docs.subtitle': '关于 Ava | Supernova IDE 你需要了解的一切。',
+  'dash.docs.subtitle': '关于 Ava Supernova IDE 你需要了解的一切。',
   'dash.docs.getting_started': '快速开始',
   'dash.docs.local_vs_cloud': '本地模式 vs 云端模式',
   'dash.docs.modes': '6 种模式 — 思维状态',
@@ -908,7 +908,7 @@ export const zhCNStrings: Record<StringKey, string> = {
   'dash.releases.companion': '伴侣应用',
 
   // ── Onboarding ──────────────────────────────────────────────────────────
-  'dash.onboarding.welcome': '欢迎使用 Ava | Supernova',
+  'dash.onboarding.welcome': '欢迎使用 Ava Supernova',
   'dash.onboarding.subtitle': '你的 AI 原生开发环境',
   'dash.onboarding.step1_title': '连接你的账户',
   'dash.onboarding.step1_desc': '输入平台密钥或添加 BYOK 服务商密钥以开始使用。',
@@ -939,7 +939,7 @@ export const zhCNStrings: Record<StringKey, string> = {
   'dash.panel.debug_hint': '调试控制台在调试会话运行时可用。',
 
   // ── Title Bar ───────────────────────────────────────────────────────────
-  'dash.titlebar.title': 'Ava | Supernova IDE',
+  'dash.titlebar.title': 'Ava Supernova IDE',
   'dash.titlebar.welcome': '欢迎',
 
   // ── Auth ────────────────────────────────────────────────────────────────
@@ -1121,7 +1121,7 @@ export const zhCNStrings: Record<StringKey, string> = {
 
   // ── Documentation Page (missing) ──────────────────────────────────────
   'dash.docs.search_placeholder': '搜索文档...',
-  'dash.docs.getting_started_intro': 'Ava | Supernova IDE 是一款独立的桌面应用程序，完整的 AI 代理在本地运行。连接你的账户或添加 BYOK API 密钥以开始使用。',
+  'dash.docs.getting_started_intro': 'Ava Supernova IDE 是一款独立的桌面应用程序，完整的 AI 代理在本地运行。连接你的账户或添加 BYOK API 密钥以开始使用。',
   'dash.docs.step1_title': '连接账户',
   'dash.docs.step1_desc': '打开仪表盘侧边栏，输入你的平台密钥 (sk-ava-...) 或添加 BYOK 服务商密钥。',
   'dash.docs.step2_title': '选择模式',

@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Webview Spanish (Espa\u00f1ol) strings \u2014 subset of the full locale used by UI components. */
 export const esStrings: Record<StringKey, string> = {
   // Welcome / Branding
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Pregunta lo que quieras sobre tu c\u00f3digo.',
   'welcome.tagline': '60 herramientas \u00b7 7 proveedores \u00b7 2 modelos gratuitos \u00b7 20 idiomas',
 

@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Dutch (Nederlands) strings — webview subset for UI components. */
 export const nlStrings: Record<StringKey, string> = {
   // Welcome / Branding
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Stel een vraag over je code.',
   'welcome.tagline': '60 tools \u00b7 7 providers \u00b7 2 gratis modellen \u00b7 20 talen',
 

@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Korean (ko) strings */
 export const koStrings: Record<StringKey, string> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': '코드에 대해 무엇이든 물어보세요.',
   'welcome.cli_hint': '메시지를 입력하거나 /help로 명령어를 확인하세요.',
 
@@ -274,7 +274,7 @@ export const koStrings: Record<StringKey, string> = {
   'cli.cancelled': '취소되었습니다.',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
-  'setup.welcome': 'Ava | Supernova에 오신 것을 환영합니다',
+  'setup.welcome': 'Ava Supernova에 오신 것을 환영합니다',
   'setup.intro': 'LLM 공급자를 설정하겠습니다.',
   'setup.choose': '공급자를 선택하세요 (번호): ',
   'setup.invalid_choice': '잘못된 선택입니다. 재시작 후 다시 시도해 주세요.',
@@ -659,7 +659,7 @@ export const koStrings: Record<StringKey, string> = {
 
   // ── Documentation Page ──────────────────────────────────────────────────
   'dash.docs.title': '문서',
-  'dash.docs.subtitle': 'Ava | Supernova IDE에 대해 알아야 할 모든 것.',
+  'dash.docs.subtitle': 'Ava Supernova IDE에 대해 알아야 할 모든 것.',
   'dash.docs.getting_started': '시작하기',
   'dash.docs.local_vs_cloud': '로컬 vs 클라우드 모드',
   'dash.docs.modes': '6가지 모드 — 사고의 상태',
@@ -684,7 +684,7 @@ export const koStrings: Record<StringKey, string> = {
   'dash.releases.companion': '동반',
 
   // ── Onboarding ──────────────────────────────────────────────────────────
-  'dash.onboarding.welcome': 'Ava | Supernova에 오신 것을 환영합니다',
+  'dash.onboarding.welcome': 'Ava Supernova에 오신 것을 환영합니다',
   'dash.onboarding.subtitle': 'AI 네이티브 개발 환경',
   'dash.onboarding.step1_title': '계정 연결',
   'dash.onboarding.step1_desc': '시작하려면 플랫폼 키를 입력하거나 BYOK 공급자 키를 추가하세요.',
@@ -715,7 +715,7 @@ export const koStrings: Record<StringKey, string> = {
   'dash.panel.debug_hint': '디버그 콘솔은 디버그 세션 실행 중에 사용할 수 있습니다.',
 
   // ── Title Bar ───────────────────────────────────────────────────────────
-  'dash.titlebar.title': 'Ava | Supernova IDE',
+  'dash.titlebar.title': 'Ava Supernova IDE',
   'dash.titlebar.welcome': '환영합니다',
 
   // ── Auth ────────────────────────────────────────────────────────────────
@@ -1111,7 +1111,7 @@ export const koStrings: Record<StringKey, string> = {
 
   // ── Missing Documentation keys ────────────────────────────────────────
   'dash.docs.search_placeholder': '문서 검색...',
-  'dash.docs.getting_started_intro': 'Ava | Supernova IDE는 AI 에이전트가 로컬에서 실행되는 독립 실행형 데스크탑 앱입니다. 계정을 연결하거나 BYOK API 키를 추가하여 시작하세요.',
+  'dash.docs.getting_started_intro': 'Ava Supernova IDE는 AI 에이전트가 로컬에서 실행되는 독립 실행형 데스크탑 앱입니다. 계정을 연결하거나 BYOK API 키를 추가하여 시작하세요.',
   'dash.docs.step1_title': '계정 연결',
   'dash.docs.step1_desc': '대시보드 사이드바를 열고 플랫폼 키 (sk-ava-...) 또는 BYOK 공급자 키를 입력하세요.',
   'dash.docs.step2_title': '모드 선택',

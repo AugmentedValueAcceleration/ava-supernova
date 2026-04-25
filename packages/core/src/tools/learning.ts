@@ -325,7 +325,7 @@ function generateCertificate(curriculum: Curriculum): string {
     `| **Average Score** | ${avgScore}% |\n` +
     `| **Time Spent** | ${hours}h ${mins}m |\n` +
     `| **Completed** | ${curriculum.completed_at || new Date().toISOString()} |\n\n` +
-    `---\n\n*Awarded by **Ava | Supernova** — Your AI learning companion*`;
+    `---\n\n*Awarded by **Ava Supernova** — Your AI learning companion*`;
 }
 
 // Find lessons due for spaced repetition review

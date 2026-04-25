@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Italian (Italiano) strings \u2014 mirrors the full en.ts key set. */
 export const itStrings: Record<StringKey, string> = {
   // \u2500\u2500 Welcome / Branding \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Chiedi qualsiasi cosa sul tuo codice.',
   'welcome.cli_hint': 'Scrivi il tuo messaggio, o /help per i comandi.',
 
@@ -274,7 +274,7 @@ export const itStrings: Record<StringKey, string> = {
   'cli.more_lines': '... ({count} righe in pi\u00f9)',
 
   // \u2500\u2500 Setup Wizard \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-  'setup.welcome': 'Benvenuto in Ava | Supernova',
+  'setup.welcome': 'Benvenuto in Ava Supernova',
   'setup.intro': 'Configuriamo il tuo provider LLM.',
   'setup.choose': 'Scegli un provider (numero): ',
   'setup.invalid_choice': 'Scelta non valida. Riavvia e riprova.',
@@ -659,7 +659,7 @@ export const itStrings: Record<StringKey, string> = {
 
   // ── Documentation Page ────────────────────────────────────────────────
   'dash.docs.title': 'Documentazione',
-  'dash.docs.subtitle': 'Tutto ciò che devi sapere su Ava | Supernova IDE.',
+  'dash.docs.subtitle': 'Tutto ciò che devi sapere su Ava Supernova IDE.',
   'dash.docs.getting_started': 'Per iniziare',
   'dash.docs.local_vs_cloud': 'Modalità locale vs Cloud',
   'dash.docs.modes': '6 Modalità — Stati di pensiero',
@@ -684,7 +684,7 @@ export const itStrings: Record<StringKey, string> = {
   'dash.releases.companion': 'Assistente',
 
   // ── Onboarding ────────────────────────────────────────────────────────
-  'dash.onboarding.welcome': 'Benvenuto in Ava | Supernova',
+  'dash.onboarding.welcome': 'Benvenuto in Ava Supernova',
   'dash.onboarding.subtitle': 'Il tuo ambiente di sviluppo nativo con IA',
   'dash.onboarding.step1_title': 'Collega il tuo account',
   'dash.onboarding.step1_desc': 'Inserisci la tua chiave piattaforma o aggiungi chiavi BYOK per iniziare.',
@@ -715,7 +715,7 @@ export const itStrings: Record<StringKey, string> = {
   'dash.panel.debug_hint': 'La console di debug è disponibile durante una sessione di debug.',
 
   // ── Title Bar ─────────────────────────────────────────────────────────
-  'dash.titlebar.title': 'Ava | Supernova IDE',
+  'dash.titlebar.title': 'Ava Supernova IDE',
   'dash.titlebar.welcome': 'Benvenuto',
 
   // ── Auth ──────────────────────────────────────────────────────────────
@@ -1141,7 +1141,7 @@ export const itStrings: Record<StringKey, string> = {
 
   // ── Missing Documentation Page ────────────────────────────────────
   'dash.docs.search_placeholder': 'Cerca nella documentazione...',
-  'dash.docs.getting_started_intro': 'Ava | Supernova IDE è un\'applicazione desktop autonoma con l\'agente IA completo in esecuzione locale. Collega il tuo account o aggiungi chiavi API BYOK per iniziare.',
+  'dash.docs.getting_started_intro': 'Ava Supernova IDE è un\'applicazione desktop autonoma con l\'agente IA completo in esecuzione locale. Collega il tuo account o aggiungi chiavi API BYOK per iniziare.',
   'dash.docs.step1_title': 'Collega account',
   'dash.docs.step1_desc': 'Apri la barra laterale del Dashboard e inserisci la tua chiave piattaforma (sk-ava-...) o aggiungi chiavi provider BYOK.',
   'dash.docs.step2_title': 'Scegli una modalità',

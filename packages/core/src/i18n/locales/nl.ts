@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Dutch (Nederlands) strings — full locale for @ava/core. */
 export const nlStrings: Record<StringKey, string> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Stel een vraag over je code.',
   'welcome.cli_hint': 'Typ je bericht, of /help voor opdrachten.',
 
@@ -274,7 +274,7 @@ export const nlStrings: Record<StringKey, string> = {
   'cli.cancelled': 'Geannuleerd.',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
-  'setup.welcome': 'Welkom bij Ava | Supernova',
+  'setup.welcome': 'Welkom bij Ava Supernova',
   'setup.intro': 'Laten we je LLM-provider instellen.',
   'setup.choose': 'Kies een provider (nummer): ',
   'setup.invalid_choice': 'Ongeldige keuze. Start opnieuw en probeer het nog eens.',
@@ -659,7 +659,7 @@ export const nlStrings: Record<StringKey, string> = {
 
   // ── Documentation Page ──────────────────────────────────────────────────
   'dash.docs.title': 'Documentatie',
-  'dash.docs.subtitle': 'Alles wat je moet weten over de Ava | Supernova IDE.',
+  'dash.docs.subtitle': 'Alles wat je moet weten over de Ava Supernova IDE.',
   'dash.docs.getting_started': 'Aan de slag',
   'dash.docs.local_vs_cloud': 'Lokale vs Cloud-modus',
   'dash.docs.modes': '6 Modi — Denktoestanden',
@@ -684,7 +684,7 @@ export const nlStrings: Record<StringKey, string> = {
   'dash.releases.companion': 'Companion',
 
   // ── Onboarding ──────────────────────────────────────────────────────────
-  'dash.onboarding.welcome': 'Welkom bij Ava | Supernova',
+  'dash.onboarding.welcome': 'Welkom bij Ava Supernova',
   'dash.onboarding.subtitle': 'Je AI-native ontwikkelomgeving',
   'dash.onboarding.step1_title': 'Verbind je account',
   'dash.onboarding.step1_desc': 'Voer je platformsleutel in of voeg BYOK-providersleutels toe om te beginnen.',
@@ -715,7 +715,7 @@ export const nlStrings: Record<StringKey, string> = {
   'dash.panel.debug_hint': 'Debug console is beschikbaar wanneer een debug-sessie actief is.',
 
   // ── Title Bar ───────────────────────────────────────────────────────────
-  'dash.titlebar.title': 'Ava | Supernova IDE',
+  'dash.titlebar.title': 'Ava Supernova IDE',
   'dash.titlebar.welcome': 'Welkom',
 
   // ── Auth ────────────────────────────────────────────────────────────────
@@ -1111,7 +1111,7 @@ export const nlStrings: Record<StringKey, string> = {
 
   // ── Documentation Page (missing) ──────────────────────────────────────────
   'dash.docs.search_placeholder': 'Documentatie doorzoeken...',
-  'dash.docs.getting_started_intro': 'Ava | Supernova IDE is een zelfstandige desktopapplicatie met de volledige AI-agent lokaal draaiend. Verbind je account of voeg BYOK API-sleutels toe om te beginnen.',
+  'dash.docs.getting_started_intro': 'Ava Supernova IDE is een zelfstandige desktopapplicatie met de volledige AI-agent lokaal draaiend. Verbind je account of voeg BYOK API-sleutels toe om te beginnen.',
   'dash.docs.step1_title': 'Account verbinden',
   'dash.docs.step1_desc': 'Open de Dashboard-zijbalk en voer je platformsleutel (sk-ava-...) in of voeg BYOK-providersleutels toe.',
   'dash.docs.step2_title': 'Kies een modus',

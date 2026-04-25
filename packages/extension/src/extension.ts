@@ -67,7 +67,7 @@ export function activate(context: vscode.ExtensionContext): void {
               // Surface a small notification so the user knows VS Code
               // received the callback even if they can't immediately see
               // the chat webview
-              vscode.window.showInformationMessage('Ava | Supernova — signed in successfully.');
+              vscode.window.showInformationMessage('Ava Supernova — signed in successfully.');
             }
           }
         } catch (err) {
@@ -306,7 +306,7 @@ async function checkForReleaseNotes(context: vscode.ExtensionContext): Promise<v
 
     // Show release notes as an information message with option to view
     const action = await vscode.window.showInformationMessage(
-      `Ava | Supernova updated to v${currentVersion} — ${release.title}`,
+      `Ava Supernova updated to v${currentVersion} — ${release.title}`,
       'View Release Notes',
       'Dismiss',
     );

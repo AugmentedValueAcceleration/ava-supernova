@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** French (Fran\u00e7ais) strings \u2014 mirrors the full en.ts key set. */
 export const frStrings: Record<StringKey, string> = {
   // \u2500\u2500 Welcome / Branding \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Posez n\u2019importe quelle question sur votre code.',
   'welcome.cli_hint': 'Tapez votre message, ou /help pour les commandes.',
 
@@ -274,7 +274,7 @@ export const frStrings: Record<StringKey, string> = {
   'cli.more_lines': '... ({count} lignes suppl\u00e9mentaires)',
 
   // \u2500\u2500 Setup Wizard \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-  'setup.welcome': 'Bienvenue sur Ava | Supernova',
+  'setup.welcome': 'Bienvenue sur Ava Supernova',
   'setup.intro': 'Configurons votre fournisseur LLM.',
   'setup.choose': 'Choisissez un fournisseur (num\u00e9ro) : ',
   'setup.invalid_choice': 'Choix invalide. Veuillez red\u00e9marrer et r\u00e9essayer.',
@@ -655,7 +655,7 @@ export const frStrings: Record<StringKey, string> = {
 
   // ── Dashboard: Documentation ────────────────────────────────────────────────
   'dash.docs.title': 'Documentation',
-  'dash.docs.subtitle': 'Tout ce qu\u2019il faut savoir sur Ava | Supernova IDE.',
+  'dash.docs.subtitle': 'Tout ce qu\u2019il faut savoir sur Ava Supernova IDE.',
   'dash.docs.getting_started': 'Premiers pas',
   'dash.docs.local_vs_cloud': 'Mode local vs cloud',
   'dash.docs.modes': '6 modes \u2014 \u00c9tats de pens\u00e9e',
@@ -680,7 +680,7 @@ export const frStrings: Record<StringKey, string> = {
   'dash.releases.companion': 'Compagnon',
 
   // ── Dashboard: Onboarding ───────────────────────────────────────────────────
-  'dash.onboarding.welcome': 'Bienvenue sur Ava | Supernova',
+  'dash.onboarding.welcome': 'Bienvenue sur Ava Supernova',
   'dash.onboarding.subtitle': 'Votre environnement de d\u00e9veloppement IA natif',
   'dash.onboarding.step1_title': 'Connectez votre compte',
   'dash.onboarding.step1_desc': 'Saisissez votre cl\u00e9 plateforme ou ajoutez des cl\u00e9s BYOK pour commencer.',
@@ -711,7 +711,7 @@ export const frStrings: Record<StringKey, string> = {
   'dash.panel.debug_hint': 'La console de d\u00e9bogage est disponible pendant une session de d\u00e9bogage.',
 
   // ── Dashboard: Title Bar ────────────────────────────────────────────────────
-  'dash.titlebar.title': 'Ava | Supernova IDE',
+  'dash.titlebar.title': 'Ava Supernova IDE',
   'dash.titlebar.welcome': 'Bienvenue',
 
   // ── Dashboard: Auth ─────────────────────────────────────────────────────────
@@ -1107,7 +1107,7 @@ export const frStrings: Record<StringKey, string> = {
 
   // ── Missing: Documentation (dash.docs.*) ──────────────────────────────────
   'dash.docs.search_placeholder': 'Rechercher dans la doc...',
-  'dash.docs.getting_started_intro': 'Ava | Supernova IDE est une application de bureau autonome avec l\'agent IA complet fonctionnant en local. Connectez votre compte ou ajoutez des clés API BYOK pour commencer.',
+  'dash.docs.getting_started_intro': 'Ava Supernova IDE est une application de bureau autonome avec l\'agent IA complet fonctionnant en local. Connectez votre compte ou ajoutez des clés API BYOK pour commencer.',
   'dash.docs.step1_title': 'Connecter un compte',
   'dash.docs.step1_desc': 'Ouvrez la barre latérale du tableau de bord et saisissez votre clé plateforme (sk-ava-...) ou ajoutez des clés de fournisseurs BYOK.',
   'dash.docs.step2_title': 'Choisir un mode',

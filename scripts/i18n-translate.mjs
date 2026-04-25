@@ -123,7 +123,7 @@ const LANGUAGE_NAMES = {
 // The check script reads per-surface KEEP_ENGLISH for its own rule;
 // this glossary is passed to the translation model so it doesn't touch brands.
 const DO_NOT_TRANSLATE = [
-  'Ava', 'Supernova', 'Ava | Supernova', 'JARVIS',
+  'Ava', 'Supernova', 'Ava Supernova', 'JARVIS',
   'Qwen', 'DeepSeek', 'Kimi', 'Mistral', 'MiniMax', 'Anthropic', 'Claude', 'GLM', 'Zhipu',
   'GitHub', 'Slack', 'Discord', 'Git',
   'IDE', 'CLI', 'API', 'URL', 'HTTP', 'HTTPS', 'JSON', 'YAML', 'SQL',
@@ -225,7 +225,7 @@ function replaceTsValue(text, key, newValue) {
 
 function buildSystemPrompt(targetLanguage, glossary) {
   return [
-    `You are a professional UI-string translator for Ava | Supernova, an open-source AI coding assistant.`,
+    `You are a professional UI-string translator for Ava Supernova, an open-source AI coding assistant.`,
     `Translate the provided strings from English into ${targetLanguage}.`,
     ``,
     `Rules (strict):`,

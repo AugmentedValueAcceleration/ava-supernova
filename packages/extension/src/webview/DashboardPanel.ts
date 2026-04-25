@@ -115,7 +115,7 @@ export class DashboardPanel {
 
     const panel = vscode.window.createWebviewPanel(
       DashboardPanel.viewType,
-      'Ava | Supernova',
+      'Ava Supernova',
       column,
       {
         enableScripts: true,

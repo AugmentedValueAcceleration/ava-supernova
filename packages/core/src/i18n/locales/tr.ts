@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Turkish (Türkçe) strings — full locale mirroring en.ts key set. */
 export const trStrings: Record<StringKey, string> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Kodunuz hakkında her şeyi sorun.',
   'welcome.cli_hint': 'Mesajınızı yazın veya /help ile komutları görün.',
 
@@ -274,7 +274,7 @@ export const trStrings: Record<StringKey, string> = {
   'cli.cancelled': 'İptal edildi.',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
-  'setup.welcome': "Ava | Supernova'ya hoş geldiniz",
+  'setup.welcome': "Ava Supernova'ya hoş geldiniz",
   'setup.intro': 'LLM sağlayıcınızı kuralım.',
   'setup.choose': 'Bir sağlayıcı seçin (numara): ',
   'setup.invalid_choice': 'Geçersiz seçim. Yeniden başlatıp tekrar deneyin.',
@@ -659,7 +659,7 @@ export const trStrings: Record<StringKey, string> = {
 
   // ── Documentation Page ──────────────────────────────────────────────────
   'dash.docs.title': 'Dokümantasyon',
-  'dash.docs.subtitle': 'Ava | Supernova IDE hakkında bilmeniz gereken her şey.',
+  'dash.docs.subtitle': 'Ava Supernova IDE hakkında bilmeniz gereken her şey.',
   'dash.docs.getting_started': 'Başlarken',
   'dash.docs.local_vs_cloud': 'Yerel ve Bulut Modu',
   'dash.docs.modes': '6 Mod — Düşünce Durumları',
@@ -684,7 +684,7 @@ export const trStrings: Record<StringKey, string> = {
   'dash.releases.companion': 'Yardımcı',
 
   // ── Onboarding ──────────────────────────────────────────────────────────
-  'dash.onboarding.welcome': 'Ava | Supernova\'ya Hoş Geldiniz',
+  'dash.onboarding.welcome': 'Ava Supernova\'ya Hoş Geldiniz',
   'dash.onboarding.subtitle': 'AI-tabanlı geliştirme ortamınız',
   'dash.onboarding.step1_title': 'Hesabınızı Bağlayın',
   'dash.onboarding.step1_desc': 'Başlamak için platform anahtarınızı girin veya BYOK sağlayıcı anahtarları ekleyin.',
@@ -715,7 +715,7 @@ export const trStrings: Record<StringKey, string> = {
   'dash.panel.debug_hint': 'Hata ayıklama konsolu, bir hata ayıklama oturumu çalışırken kullanılabilir.',
 
   // ── Title Bar ───────────────────────────────────────────────────────────
-  'dash.titlebar.title': 'Ava | Supernova IDE',
+  'dash.titlebar.title': 'Ava Supernova IDE',
   'dash.titlebar.welcome': 'Hoş Geldiniz',
 
   // ── Auth ────────────────────────────────────────────────────────────────
@@ -1111,7 +1111,7 @@ export const trStrings: Record<StringKey, string> = {
 
   // ── Missing Documentation Page keys ─────────────────────────────────────
   'dash.docs.search_placeholder': 'Dokümanlarda ara...',
-  'dash.docs.getting_started_intro': 'Ava | Supernova IDE, tam AI ajanının yerel olarak çalıştığı bağımsız bir masaüstü uygulamasıdır. Hesabınızı bağlayın veya başlamak için BYOK API anahtarları ekleyin.',
+  'dash.docs.getting_started_intro': 'Ava Supernova IDE, tam AI ajanının yerel olarak çalıştığı bağımsız bir masaüstü uygulamasıdır. Hesabınızı bağlayın veya başlamak için BYOK API anahtarları ekleyin.',
   'dash.docs.step1_title': 'Hesap Bağla',
   'dash.docs.step1_desc': 'Dashboard kenar çubuğunu açın ve platform anahtarınızı (sk-ava-...) girin veya BYOK sağlayıcı anahtarları ekleyin.',
   'dash.docs.step2_title': 'Mod Seçin',

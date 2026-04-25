@@ -1,8 +1,8 @@
-# Privacy Policy — Ava | Supernova
+# Privacy Policy — Ava Supernova
 
 **Last updated:** 7 April 2026
 
-Ava | Supernova is an open-source AI coding agent. This policy explains what data the extension collects, how it is used, and where it is sent.
+Ava Supernova is an open-source AI coding agent. This policy explains what data the extension collects, how it is used, and where it is sent.
 
 ## What Data is Collected
 
@@ -72,4 +72,4 @@ We will update this policy as features evolve. Material changes will be noted in
 
 ---
 
-Ava | Supernova is built by Augmented Value Acceleration Ltd, United Kingdom.
+Ava Supernova is built by Augmented Value Acceleration Ltd, United Kingdom.

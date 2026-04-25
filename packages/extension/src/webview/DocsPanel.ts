@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { getNonce } from '../utils/nonce.js';
 import { renderDocsBody, DOCS_CSS, DOCS_SCRIPT } from './docs-html-adapter.js';
 
-// Webview panel host for the Ava | Supernova documentation. All rendering is delegated to
+// Webview panel host for the Ava Supernova documentation. All rendering is delegated to
 // the HTML adapter, which reads the canonical corpus from @ava/core/docs. This file owns
 // panel lifecycle and CSP only — no content.
 

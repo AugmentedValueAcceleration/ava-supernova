@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Ava | Supernova will be documented in this file.
+All notable changes to Ava Supernova will be documented in this file.
 
 ## Extension [0.41.0] - 2026-04-16
 
@@ -339,7 +339,7 @@ All notable changes to Ava | Supernova will be documented in this file.
 
 ### First beta release
 
-Ava | Supernova launches as an open-source AI coding agent available as both a **terminal CLI** and a **VSCode extension**.
+Ava Supernova launches as an open-source AI coding agent available as both a **terminal CLI** and a **VSCode extension**.
 
 ### Highlights
 

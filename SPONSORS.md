@@ -1,6 +1,6 @@
 # Sponsors
 
-Thank you to everyone who supports Ava | Supernova. Your sponsorship keeps this project free and open source.
+Thank you to everyone who supports Ava Supernova. Your sponsorship keeps this project free and open source.
 
 ## Partners
 

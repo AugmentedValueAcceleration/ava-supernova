@@ -51,6 +51,6 @@ export class StatusBar {
       default:
         this.item.text = `$(sparkle) Ava: ${modelName}`;
     }
-    this.item.tooltip = `Ava | Supernova — ${modelName}\nClick to switch model`;
+    this.item.tooltip = `Ava Supernova — ${modelName}\nClick to switch model`;
   }
 }

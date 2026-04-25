@@ -62,7 +62,7 @@ export const TOOLS: ToolFact[] = [
   { name: 'present_plan', category: 'documents', description: 'Present a structured plan for the user to review and approve before execution.', risk: 'write' },
   { name: 'project_index', category: 'file_ops', description: 'Scan, refresh, or display the project structure index.', risk: 'safe' },
   { name: 'propose_tool', category: 'system', description: 'Propose a new tool to the development team when a capability gap is hit.', risk: 'write' },
-  { name: 'release_notes', category: 'web', description: 'Fetch published release notes for Ava | Supernova.', risk: 'safe' },
+  { name: 'release_notes', category: 'web', description: 'Fetch published release notes for Ava Supernova.', risk: 'safe' },
   { name: 'remove_background', category: 'media', description: 'Remove the background from an image, making it transparent.', risk: 'write' },
   { name: 'report_generate', category: 'documents', description: 'Generate a structured .docx report from tasks, journal, memory, and project data.', risk: 'write' },
   { name: 'rollback', category: 'git', description: 'Restore, discard, or check the status of a git checkpoint.', risk: 'dangerous' },

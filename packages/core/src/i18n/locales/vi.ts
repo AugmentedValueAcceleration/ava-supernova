@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Vietnamese (vi) strings */
 export const viStrings: Record<StringKey, string> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Hỏi bất kỳ điều gì về mã nguồn của bạn.',
   'welcome.cli_hint': 'Nhập tin nhắn, hoặc /help để xem danh sách lệnh.',
 
@@ -274,7 +274,7 @@ export const viStrings: Record<StringKey, string> = {
   'cli.cancelled': 'Đã huỷ.',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
-  'setup.welcome': 'Chào mừng đến với Ava | Supernova',
+  'setup.welcome': 'Chào mừng đến với Ava Supernova',
   'setup.intro': 'Hãy cùng thiết lập nhà cung cấp LLM của bạn.',
   'setup.choose': 'Chọn nhà cung cấp (nhập số): ',
   'setup.invalid_choice': 'Lựa chọn không hợp lệ. Vui lòng khởi động lại và thử lại.',
@@ -659,7 +659,7 @@ export const viStrings: Record<StringKey, string> = {
 
   // ── Documentation Page ──────────────────────────────────────────────────
   'dash.docs.title': 'Tài liệu',
-  'dash.docs.subtitle': 'Mọi thứ bạn cần biết về Ava | Supernova IDE.',
+  'dash.docs.subtitle': 'Mọi thứ bạn cần biết về Ava Supernova IDE.',
   'dash.docs.getting_started': 'Bắt đầu',
   'dash.docs.local_vs_cloud': 'Chế độ Cục bộ vs Cloud',
   'dash.docs.modes': '6 Chế độ — Trạng thái tư duy',
@@ -684,7 +684,7 @@ export const viStrings: Record<StringKey, string> = {
   'dash.releases.companion': 'Người đồng hành',
 
   // ── Onboarding ──────────────────────────────────────────────────────────
-  'dash.onboarding.welcome': 'Chào mừng đến với Ava | Supernova',
+  'dash.onboarding.welcome': 'Chào mừng đến với Ava Supernova',
   'dash.onboarding.subtitle': 'Môi trường phát triển tích hợp AI của bạn',
   'dash.onboarding.step1_title': 'Kết nối tài khoản',
   'dash.onboarding.step1_desc': 'Nhập khóa nền tảng hoặc thêm khóa nhà cung cấp BYOK để bắt đầu.',
@@ -715,7 +715,7 @@ export const viStrings: Record<StringKey, string> = {
   'dash.panel.debug_hint': 'Bảng điều khiển gỡ lỗi khả dụng khi phiên gỡ lỗi đang chạy.',
 
   // ── Title Bar ───────────────────────────────────────────────────────────
-  'dash.titlebar.title': 'Ava | Supernova IDE',
+  'dash.titlebar.title': 'Ava Supernova IDE',
   'dash.titlebar.welcome': 'Chào mừng',
 
   // ── Auth ────────────────────────────────────────────────────────────────
@@ -1141,7 +1141,7 @@ export const viStrings: Record<StringKey, string> = {
 
   // ── Missing: Documentation Page ─────────────────────────────────────────
   'dash.docs.search_placeholder': 'Tìm kiếm tài liệu...',
-  'dash.docs.getting_started_intro': 'Ava | Supernova IDE là ứng dụng desktop độc lập với AI agent chạy hoàn toàn cục bộ. Kết nối tài khoản hoặc thêm API key BYOK để bắt đầu.',
+  'dash.docs.getting_started_intro': 'Ava Supernova IDE là ứng dụng desktop độc lập với AI agent chạy hoàn toàn cục bộ. Kết nối tài khoản hoặc thêm API key BYOK để bắt đầu.',
   'dash.docs.step1_title': 'Kết nối tài khoản',
   'dash.docs.step1_desc': 'Mở thanh bên Dashboard và nhập khóa nền tảng (sk-ava-...) hoặc thêm API key BYOK của nhà cung cấp.',
   'dash.docs.step2_title': 'Chọn chế độ',

@@ -77,7 +77,7 @@ export function ConnectAccount({
       {/* Header */}
       <div className="mb-8 text-center">
         <h1 className="mb-2 bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] bg-clip-text text-2xl font-bold text-transparent">
-          Ava | Supernova
+          Ava Supernova
         </h1>
         <p className="text-sm text-[var(--text-secondary)]">
           Sign in to sync memory, tasks, and settings across every device

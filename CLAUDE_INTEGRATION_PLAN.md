@@ -1,6 +1,6 @@
 # Claude Integration Plan
 
-Adding Claude (Opus 4.6, Sonnet 4.6, Haiku 4.5) as the one closed-source model family in Ava | Supernova.
+Adding Claude (Opus 4.6, Sonnet 4.6, Haiku 4.5) as the one closed-source model family in Ava Supernova.
 
 **Why Claude?** Anthropic walked away from a $200M Pentagon contract rather than remove safety guardrails. They refused to allow mass domestic surveillance or autonomous weapons use. They got blacklisted by the US government for standing on their values. That's the kind of company we want to support — and Claude is literally helping build Ava.
 

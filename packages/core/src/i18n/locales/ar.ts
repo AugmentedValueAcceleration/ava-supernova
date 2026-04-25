@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Arabic (العربية) strings — full locale mirroring en.ts key set. */
 export const arStrings: Record<StringKey, string> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'اسأل أي شيء عن الكود الخاص بك.',
   'welcome.cli_hint': 'اكتب رسالتك، أو /help لعرض الأوامر.',
 
@@ -274,7 +274,7 @@ export const arStrings: Record<StringKey, string> = {
   'cli.cancelled': 'تم الإلغاء.',
 
   // ── Setup Wizard ──────────────────────────────────────────────────────────
-  'setup.welcome': 'مرحباً بك في Ava | Supernova',
+  'setup.welcome': 'مرحباً بك في Ava Supernova',
   'setup.intro': 'لنقم بإعداد مزوّد LLM الخاص بك.',
   'setup.choose': 'اختر مزوّداً (رقم): ',
   'setup.invalid_choice': 'اختيار غير صالح. أعد التشغيل وحاول مجدداً.',
@@ -659,7 +659,7 @@ export const arStrings: Record<StringKey, string> = {
 
   // ── Documentation Page ──────────────────────────────────────────────────
   'dash.docs.title': 'التوثيق',
-  'dash.docs.subtitle': 'كل ما تحتاج معرفته عن Ava | Supernova IDE.',
+  'dash.docs.subtitle': 'كل ما تحتاج معرفته عن Ava Supernova IDE.',
   'dash.docs.getting_started': 'البدء',
   'dash.docs.local_vs_cloud': 'الوضع المحلي مقابل السحابي',
   'dash.docs.modes': '6 أوضاع — حالات التفكير',
@@ -684,7 +684,7 @@ export const arStrings: Record<StringKey, string> = {
   'dash.releases.companion': 'المساعد',
 
   // ── Onboarding ──────────────────────────────────────────────────────────
-  'dash.onboarding.welcome': 'مرحباً بك في Ava | Supernova',
+  'dash.onboarding.welcome': 'مرحباً بك في Ava Supernova',
   'dash.onboarding.subtitle': 'بيئة التطوير الأصلية بالذكاء الاصطناعي',
   'dash.onboarding.step1_title': 'اربط حسابك',
   'dash.onboarding.step1_desc': 'أدخل مفتاح المنصة أو أضف مفاتيح BYOK للبدء.',
@@ -715,7 +715,7 @@ export const arStrings: Record<StringKey, string> = {
   'dash.panel.debug_hint': 'وحدة التصحيح متاحة عند تشغيل جلسة تصحيح.',
 
   // ── Title Bar ───────────────────────────────────────────────────────────
-  'dash.titlebar.title': 'Ava | Supernova IDE',
+  'dash.titlebar.title': 'Ava Supernova IDE',
   'dash.titlebar.welcome': 'مرحباً',
 
   // ── Auth ────────────────────────────────────────────────────────────────
@@ -1141,7 +1141,7 @@ export const arStrings: Record<StringKey, string> = {
 
   // ── Missing Documentation Page ──────────────────────────────────────
   'dash.docs.search_placeholder': 'البحث في التوثيق...',
-  'dash.docs.getting_started_intro': 'Ava | Supernova IDE هو تطبيق سطح مكتب مستقل مع وكيل ذكاء اصطناعي كامل يعمل محلياً. اربط حسابك أو أضف مفاتيح BYOK للبدء.',
+  'dash.docs.getting_started_intro': 'Ava Supernova IDE هو تطبيق سطح مكتب مستقل مع وكيل ذكاء اصطناعي كامل يعمل محلياً. اربط حسابك أو أضف مفاتيح BYOK للبدء.',
   'dash.docs.step1_title': 'ربط الحساب',
   'dash.docs.step1_desc': 'افتح الشريط الجانبي وأدخل مفتاح المنصة (sk-ava-...) أو أضف مفاتيح BYOK للمزوّدين.',
   'dash.docs.step2_title': 'اختر وضعاً',

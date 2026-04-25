@@ -1,7 +1,7 @@
 {
-  "displayName": "Ava | Supernova",
+  "displayName": "Ava Supernova",
   "description": "開源 AI 程式設計助手 — 在編輯器中使用 DeepSeek、Kimi 和 Qwen",
-  "viewContainer.title": "Ava | Supernova",
+  "viewContainer.title": "Ava Supernova",
   "view.chat.name": "聊天",
   "command.openChat.title": "開啟聊天",
   "command.newChat.title": "新建聊天",

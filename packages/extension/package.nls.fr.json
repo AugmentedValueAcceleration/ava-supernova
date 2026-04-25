@@ -1,7 +1,7 @@
 {
-  "displayName": "Ava | Supernova",
+  "displayName": "Ava Supernova",
   "description": "Agent de codage IA open source — DeepSeek, Kimi et Qwen dans votre éditeur",
-  "viewContainer.title": "Ava | Supernova",
+  "viewContainer.title": "Ava Supernova",
   "view.chat.name": "Discussion",
   "command.openChat.title": "Ouvrir le chat",
   "command.newChat.title": "Nouveau chat",

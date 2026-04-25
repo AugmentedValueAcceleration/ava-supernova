@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** German (Deutsch) strings \u2014 mirrors the full en.ts key set. */
 export const deStrings: Record<StringKey, string> = {
   // \u2500\u2500 Welcome / Branding \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Stell jede Frage zu deinem Code.',
   'welcome.cli_hint': 'Gib deine Nachricht ein, oder /help f\u00fcr Befehle.',
 
@@ -274,7 +274,7 @@ export const deStrings: Record<StringKey, string> = {
   'cli.cancelled': 'Abgebrochen.',
 
   // \u2500\u2500 Setup Wizard \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-  'setup.welcome': 'Willkommen bei Ava | Supernova',
+  'setup.welcome': 'Willkommen bei Ava Supernova',
   'setup.intro': 'Lass uns deinen LLM-Anbieter einrichten.',
   'setup.choose': 'W\u00e4hle einen Anbieter (Nummer): ',
   'setup.invalid_choice': 'Ung\u00fcltige Auswahl. Bitte starte neu und versuche es erneut.',
@@ -883,7 +883,7 @@ export const deStrings: Record<StringKey, string> = {
 
   // ── Documentation Page ──────────────────────────────────────────────────
   'dash.docs.title': 'Dokumentation',
-  'dash.docs.subtitle': 'Alles, was du über die Ava | Supernova IDE wissen musst.',
+  'dash.docs.subtitle': 'Alles, was du über die Ava Supernova IDE wissen musst.',
   'dash.docs.getting_started': 'Erste Schritte',
   'dash.docs.local_vs_cloud': 'Lokal- vs. Cloud-Modus',
   'dash.docs.modes': '6 Modi — Denkweisen',
@@ -908,7 +908,7 @@ export const deStrings: Record<StringKey, string> = {
   'dash.releases.companion': 'Begleiter',
 
   // ── Onboarding ──────────────────────────────────────────────────────────
-  'dash.onboarding.welcome': 'Willkommen bei Ava | Supernova',
+  'dash.onboarding.welcome': 'Willkommen bei Ava Supernova',
   'dash.onboarding.subtitle': 'Deine KI-native Entwicklungsumgebung',
   'dash.onboarding.step1_title': 'Konto verbinden',
   'dash.onboarding.step1_desc': 'Gib deinen Plattform-Schlüssel ein oder füge BYOK-Anbieterschlüssel hinzu, um loszulegen.',
@@ -939,7 +939,7 @@ export const deStrings: Record<StringKey, string> = {
   'dash.panel.debug_hint': 'Die Debug-Konsole ist verfügbar, wenn eine Debug-Sitzung läuft.',
 
   // ── Title Bar ───────────────────────────────────────────────────────────
-  'dash.titlebar.title': 'Ava | Supernova IDE',
+  'dash.titlebar.title': 'Ava Supernova IDE',
   'dash.titlebar.welcome': 'Willkommen',
 
   // ── Auth ────────────────────────────────────────────────────────────────
@@ -1121,7 +1121,7 @@ export const deStrings: Record<StringKey, string> = {
 
   // ── Missing keys — Documentation ──────────────────────────────────────
   'dash.docs.search_placeholder': 'Dokumentation durchsuchen...',
-  'dash.docs.getting_started_intro': 'Ava | Supernova IDE ist eine eigenständige Desktop-Anwendung, bei der der vollständige KI-Agent lokal läuft. Verbinde dein Konto oder füge BYOK-API-Schlüssel hinzu, um loszulegen.',
+  'dash.docs.getting_started_intro': 'Ava Supernova IDE ist eine eigenständige Desktop-Anwendung, bei der der vollständige KI-Agent lokal läuft. Verbinde dein Konto oder füge BYOK-API-Schlüssel hinzu, um loszulegen.',
   'dash.docs.step1_title': 'Konto verbinden',
   'dash.docs.step1_desc': 'Öffne die Dashboard-Seitenleiste und gib deinen Plattform-Schlüssel (sk-ava-...) ein oder füge BYOK-Anbieterschlüssel hinzu.',
   'dash.docs.step2_title': 'Modus wählen',

@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Webview Arabic (العربية) strings — subset of the full locale used by UI components. */
 export const arStrings: Record<StringKey, string> = {
   // Welcome / Branding
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'اسأل أي شيء عن الكود الخاص بك.',
   'welcome.tagline': '60 أداة · 7 مزوّدين · 2 نموذج مجاني · 20 لغة',
 

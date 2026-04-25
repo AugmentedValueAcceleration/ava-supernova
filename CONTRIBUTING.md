@@ -1,4 +1,4 @@
-# Contributing to Ava | Supernova
+# Contributing to Ava Supernova
 
 Thanks for wanting to contribute! Ava is an open-source project and we welcome contributions of all kinds — bug fixes, features, documentation, and ideas.
 

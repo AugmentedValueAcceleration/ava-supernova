@@ -1,4 +1,4 @@
-# Ava | Supernova
+# Ava Supernova
 
 **One AI partner. Every part of building.**
 

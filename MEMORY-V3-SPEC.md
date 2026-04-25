@@ -1,5 +1,5 @@
 # Memory v3 — Graph-Based Memory System
-## Complete Technical Specification for Ava | Supernova 1.0
+## Complete Technical Specification for Ava Supernova 1.0
 
 **Status:** Plan complete. Ready to build.
 **Target:** Ship as 1.0 anchor feature — the "You made me do this" launch weapon.

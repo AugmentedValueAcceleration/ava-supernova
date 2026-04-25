@@ -2,7 +2,7 @@ import type { StringKey } from './en.js';
 /** Spanish (Espa\u00f1ol) strings \u2014 mirrors the full en.ts key set. */
 export const esStrings: Record<StringKey, string> = {
   // \u2500\u2500 Welcome / Branding \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-  'welcome.title': 'Ava | Supernova',
+  'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Pregunta lo que quieras sobre tu c\u00f3digo.',
   'welcome.cli_hint': 'Escribe tu mensaje, o /help para ver los comandos.',
 
@@ -274,7 +274,7 @@ export const esStrings: Record<StringKey, string> = {
   'cli.more_lines': '... ({count} l\u00edneas m\u00e1s)',
 
   // \u2500\u2500 Setup Wizard \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-  'setup.welcome': 'Bienvenido a Ava | Supernova',
+  'setup.welcome': 'Bienvenido a Ava Supernova',
   'setup.intro': 'Vamos a configurar tu proveedor de LLM.',
   'setup.choose': 'Elige un proveedor (n\u00famero): ',
   'setup.invalid_choice': 'Opci\u00f3n inv\u00e1lida. Reinicia e int\u00e9ntalo de nuevo.',
@@ -773,7 +773,7 @@ export const esStrings: Record<StringKey, string> = {
 
   // ── Documentation Page ──────────────────────────────────────────────────
   'dash.docs.title': 'Documentación',
-  'dash.docs.subtitle': 'Todo lo que necesitas saber sobre Ava | Supernova IDE.',
+  'dash.docs.subtitle': 'Todo lo que necesitas saber sobre Ava Supernova IDE.',
   'dash.docs.search_placeholder': 'Buscar en documentación...',
   'dash.docs.getting_started': 'Primeros pasos',
   'dash.docs.local_vs_cloud': 'Modo Local vs Nube',
@@ -788,7 +788,7 @@ export const esStrings: Record<StringKey, string> = {
   'dash.docs.dashboard': 'Páginas del panel',
   'dash.docs.session_stats': 'Estadísticas de sesión',
   'dash.docs.release_notes': 'Notas de versión',
-  'dash.docs.getting_started_intro': 'Ava | Supernova IDE es una aplicación de escritorio independiente con el agente IA completo ejecutándose localmente. Conecta tu cuenta o añade claves API BYOK para comenzar.',
+  'dash.docs.getting_started_intro': 'Ava Supernova IDE es una aplicación de escritorio independiente con el agente IA completo ejecutándose localmente. Conecta tu cuenta o añade claves API BYOK para comenzar.',
   'dash.docs.step1_title': 'Conectar cuenta',
   'dash.docs.step1_desc': 'Abre el panel lateral y escribe tu clave de plataforma (sk-ava-...) o añade claves de proveedor BYOK.',
   'dash.docs.step2_title': 'Elige un modo',
@@ -910,7 +910,7 @@ export const esStrings: Record<StringKey, string> = {
   'dash.releases.highlights': 'Destacados',
 
   // ── Onboarding ──────────────────────────────────────────────────────────
-  'dash.onboarding.welcome': 'Bienvenido a Ava | Supernova',
+  'dash.onboarding.welcome': 'Bienvenido a Ava Supernova',
   'dash.onboarding.subtitle': 'Tu entorno de desarrollo nativo con IA',
   'dash.onboarding.step1_title': 'Conecta tu cuenta',
   'dash.onboarding.step1_desc': 'Introduce tu clave de plataforma o a\u00f1ade claves de proveedor BYOK para comenzar.',
@@ -941,7 +941,7 @@ export const esStrings: Record<StringKey, string> = {
   'dash.panel.debug_hint': 'La consola de depuraci\u00f3n est\u00e1 disponible cuando hay una sesi\u00f3n de depuraci\u00f3n activa.',
 
   // ── Title Bar ───────────────────────────────────────────────────────────
-  'dash.titlebar.title': 'Ava | Supernova IDE',
+  'dash.titlebar.title': 'Ava Supernova IDE',
   'dash.titlebar.welcome': 'Bienvenido',
 
   // ── Auth ────────────────────────────────────────────────────────────────
