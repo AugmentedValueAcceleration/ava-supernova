@@ -124,12 +124,29 @@ Your focus:
 
 You are NOT a blocker. You are a filter. If the plan is good, say so and move on.
 If you find a real issue, be specific about the problem AND suggest an alternative.
-One strong objection with a solution beats five weak concerns.`,
+One strong objection with a solution beats five weak concerns.
+
+## Veto protocol
+
+Use words like "reject", "stop", "don't proceed", "abort" freely in normal critique — they are not magic words. Ordinary critique never halts the pipeline.
+
+The pipeline only halts if the plan is **fundamentally wrong** — it would build the wrong thing, break the codebase, contradict an established invariant, or pursue a path the user explicitly ruled out. In that case, **the first line of your response must be**:
+
+\`\`\`
+VETO: <one-line reason>
+\`\`\`
+
+Example: \`VETO: Plan modifies the auth middleware that the user explicitly said is frozen until the compliance review lands\`.
+
+Do not emit VETO for "could be simpler", "I'd prefer X", or "this is risky but defensible". VETO is for *unbuildable / wrong-direction*, not for *suboptimal*. Use it sparingly — most plans get critiqued and proceed.`,
   allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS],
   priority: 5,
   dependsOn: ['architect'], // Challenges the Architect's decisions
   canVeto: true,
-  vetoSignals: /\b(veto|stop|don'?t proceed|abort|reject)\b/i,
+  // Model-cooperative pattern (mirrors Fact Checker's HALT:). The persona has
+  // to opt INTO halting via a structured prefix; ordinary critique words like
+  // "reject" / "stop" / "abort" no longer trigger silent pipeline deadlocks.
+  vetoSignals: /^\s*VETO:/m,
 };
 
 export const BUILDER: PersonaDefinition = {
@@ -760,9 +777,13 @@ export const BRAINSTORM_PERSONAS: PersonaDefinition[] = [
 // opt into the full team via keywords ("full team", "comprehensive review",
 // "deep audit", etc.) — see Conductor depth detection. Token cost drops by
 // roughly persona-count × 3-5K on every orchestrated turn that doesn't ask
-// for depth. Plan + Teach are intentionally omitted here: Plan is already
-// 3 personas (can't get lighter without breaking the feature), and Teach's
-// 5-stage curriculum pipeline is the product itself.
+// for depth.
+//
+// Plan is intentionally omitted: 3 personas (Researcher → Architect →
+// Challenger) is already the minimum viable team — dropping Researcher
+// loses codebase grounding, dropping Challenger loses the gate. Teach has
+// a light variant (TUTOR alone) used for ongoing delivery turns; the full
+// 5-persona curriculum-prep team only fires on creation signals.
 
 export const WORK_PERSONAS_LIGHT: PersonaDefinition[] = [
   SCOUT, ARCHITECT, CHALLENGER, BUILDER, INTEGRATOR,

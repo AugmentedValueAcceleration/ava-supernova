@@ -219,9 +219,18 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'switch_mode',
   ]),
   plan: new Set([
+    // Read + nav
     'file_read', 'glob', 'grep', 'list_directory', 'find_symbol', 'project_index',
-    'web_search', 'memory_save', 'memory_recall', 'present_plan', 'analyze_architecture',
-    'ask_user', 'get_datetime', 'detect_language', 'docs_lookup', 'self_inspect',
+    // Research surface — http_request/browser/news added so the
+    // coordinator-direct path (the most common Plan flow) has the same
+    // research tools the Researcher persona gets in orchestrated mode.
+    'web_search', 'http_request', 'browser', 'news',
+    // Memory + planning + analysis
+    'memory_save', 'memory_recall', 'present_plan', 'analyze_architecture',
+    // Reference / introspection (already used; advertised below now too)
+    'docs_lookup', 'self_inspect',
+    // Interaction + utilities
+    'ask_user', 'get_datetime', 'detect_language',
     'switch_mode',
   ]),
   chat: new Set([

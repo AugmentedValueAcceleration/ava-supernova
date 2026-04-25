@@ -33,7 +33,7 @@ export const enStrings = {
 
   // Welcome — Modes
   'welcome.mode.code_desc': 'Full agent with all tools',
-  'welcome.mode.plan_desc': 'Architecture & planning',
+  'welcome.mode.plan_desc': 'Architect mindset. Maps the plan before any code moves.',
   'welcome.mode.chat_desc': 'Discussion only',
   'welcome.mode.security_desc': 'Security scanning',
   'welcome.mode.teach': 'Teach',

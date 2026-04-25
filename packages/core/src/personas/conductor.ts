@@ -188,9 +188,19 @@ export class Conductor {
     if (mode === 'plan') {
       // Plan mode defaults to coordinator-direct. User explicitly asks
       // for multi-persona planning with a "full plan" style phrase.
+      //
+      // Empty submission honours the placeholder ("Describe what you want
+      // to plan..."); bare planning verbs catch the way users actually type
+      // in this mode without forcing them to memorise the magic phrase.
+      if (msg.trim() === '') return true;
+      if (/^(plan|design|architect)\b/.test(msg.trim())) return true;
       const planSignals = [
         /\b(design the architecture|architect the system|architecture review)\b/,
         /\b(research and plan|full planning (pass|run|workflow))\b/,
+        /\b(plan (the|this|out|for)|let'?s plan|create a plan|map (this|it) out)\b/,
+        /\bhow (should|do|would) i (approach|tackle|structure|organise|organize|build|design|architect)\b/,
+        /\bwhat'?s the best (way|approach|pattern) (to|for)\b/,
+        /\bthink (this )?through (with me|out loud)?\b/,
       ];
       return [...commonFullSignals, ...planSignals].some((re) => re.test(msg));
     }
