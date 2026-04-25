@@ -93,6 +93,7 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     maxOutputTokens: 8192,
     supportsToolCalls: true,
     supportsStreaming: true,
+    supportsVision: false,
     pricing: { inputPerMillion: 0.05, outputPerMillion: 0.40 },
   },
   // DeepSeek V4 Pro (managed) — admin-gated rollout (migration 218).
@@ -109,6 +110,7 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsThinking: true,
+    supportsVision: false,
     pricing: { inputPerMillion: 1.74, outputPerMillion: 3.48 },
   },
   // DeepSeek V4 Flash (managed) — admin-gated. 284B / 13B active. 1M ctx.
@@ -121,6 +123,7 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsThinking: true,
+    supportsVision: false,
     pricing: { inputPerMillion: 0.14, outputPerMillion: 0.28 },
   },
 ];

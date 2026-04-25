@@ -194,6 +194,7 @@ const chatStrings: Record<string, string> = {
   'input.stop_aria': 'Stop Ava',
   'input.attach': 'Attach image',
   'input.attach_image': 'Attach image',
+  'input.attach_image_unsupported': 'This model is text-only — switch to a vision-capable model (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.6 Plus) to attach images.',
   'input.drop_image': 'Drop image here',
   'input.compressing': 'Compressing...',
   'input.compress_usage': 'Context usage \u2014 click to compress',

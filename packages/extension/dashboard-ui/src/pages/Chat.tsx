@@ -1027,6 +1027,9 @@ export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCol
             platformStatus={state.platformStatus}
             onProviderSourceChange={handleProviderSourceChange}
             contextUsage={state.contextUsage}
+            modelSupportsVision={
+              state.models.find((m) => m.id === state.activeModel)?.supportsVision
+            }
           />
 
           {state.historyOpen && (

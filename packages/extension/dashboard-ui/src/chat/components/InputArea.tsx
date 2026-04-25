@@ -40,6 +40,10 @@ interface InputAreaProps {
     warningMessage?: string;
   } | null;
   onProviderSourceChange?: (source: ProviderSource) => void;
+  /** Vision capability of the currently-selected model. When false the
+   *  attach-image button is disabled and the tooltip explains why.
+   *  Undefined means "unknown" — treated as supported (don't block). */
+  modelSupportsVision?: boolean;
 }
 
 const MODES: { id: AvaMode; labelKey: string; icon: string }[] = [
@@ -62,7 +66,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   brainstorm: 'input.placeholder.brainstorm',
 };
 
-export function InputArea({ onSend, onCancel, isStreaming, disabled, platformStatus }: InputAreaProps) {
+export function InputArea({ onSend, onCancel, isStreaming, disabled, platformStatus, modelSupportsVision }: InputAreaProps) {
   useLocale();
   const [text, setText] = useState('');
   const [mode, setMode] = useState<AvaMode>('code');
@@ -475,11 +479,15 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
                 container as a horizontal bar (ContextBar). The old
                 circular chip lived here and is gone. */}
 
-            {/* Attach button */}
+            {/* Attach button — disabled when the current model is text-only.
+                modelSupportsVision === false explicitly blocks; undefined is
+                treated as unknown/supported so older clients keep working. */}
             <button
               onClick={handleAttach}
-              disabled={disabled}
-              title={t('input.attach_image')}
+              disabled={disabled || modelSupportsVision === false}
+              title={modelSupportsVision === false
+                ? t('input.attach_image_unsupported')
+                : t('input.attach_image')}
               aria-label={t('input.attach_image')}
               className="flex items-center justify-center w-9 h-9 rounded-lg
                          cursor-pointer

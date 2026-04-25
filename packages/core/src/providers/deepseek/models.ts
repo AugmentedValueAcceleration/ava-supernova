@@ -18,6 +18,11 @@ export const DEEPSEEK_MODELS: ModelDefinition[] = [
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsThinking: true,
+    // Text-only at the API level despite multimodal training — verified
+    // against api.deepseek.com docs. Server reroutes to qwen3.5-omni-plus
+    // when an image is attached; the UI uses this flag to gate the attach
+    // button + show a "text only" badge in the picker.
+    supportsVision: false,
     pricing: { inputPerMillion: 1.74, outputPerMillion: 3.48 },
   },
   {
@@ -29,6 +34,7 @@ export const DEEPSEEK_MODELS: ModelDefinition[] = [
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsThinking: true,
+    supportsVision: false,
     pricing: { inputPerMillion: 0.14, outputPerMillion: 0.28 },
   },
 ];
