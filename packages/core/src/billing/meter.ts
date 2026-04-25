@@ -47,7 +47,7 @@ export interface ChargeOpts {
  * and never blocks — billing failures cannot take the chat down.
  */
 export function chargeCredits(action: CreditAction, opts?: ChargeOpts): number {
-  const credits = creditsFor(action, { cacheHit: opts?.cacheHit });
+  const credits = creditsFor(action, { cacheHit: opts?.cacheHit, model: opts?.model });
   avaEvents.emit('credits_charged', {
     action,
     credits,

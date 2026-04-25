@@ -69,14 +69,45 @@ export const CREDIT_COST: Record<CreditAction, number> = {
  *  credit is deducted so cache hits are never free (avoids gaming). */
 export const CACHE_HIT_MULTIPLIER = 0.3;
 
-/** Compute the credits to deduct for a single metered action. */
+// ── Per-model cost multiplier ─────────────────────────────────────────────
+/** Action costs are flat brackets (chat_turn = 2, heavy_persona = 3, etc.)
+ *  but per-token spend varies wildly by model — V4 Pro is ~17× the cost of
+ *  Qwen Flash for the same input. Without a per-model adjustment, V4 Pro
+ *  on chat_turn loses money on every call. The multiplier scales the
+ *  bracket cost to track actual spend.
+ *
+ *  Calibrated 2026-04-25 against published rates and the 55% net margin
+ *  target. Mirror of web's credits-pricing.ts MODEL_COST_MULTIPLIER —
+ *  keep them in sync; web is the authoritative billing surface and core's
+ *  meter dual-writes for dataset audit. Default 1.0 for unlisted models. */
+export const MODEL_COST_MULTIPLIER: Record<string, number> = {
+  'deepseek-v4-pro':            5.0,
+  'deepseek-v4-pro-platform':   5.0,
+  'qwen3.6-plus':               1.5,
+  'qwen-plus':                  1.5,
+  'qwen3.5-plus':               1.2,
+  'qwen3.5-omni-plus':          1.2,
+};
+
+/** Apply per-model cost multiplier. Strips provider prefix if present. */
+export function modelCostMultiplier(model: string | null | undefined): number {
+  if (!model) return 1.0;
+  const id = model.includes(':') ? model.split(':')[1] : model;
+  return MODEL_COST_MULTIPLIER[id] ?? 1.0;
+}
+
+/** Compute the credits to deduct for a single metered action.
+ *  Pass `model` to apply the per-model cost multiplier — strongly
+ *  recommended for any LLM call. Defaults to 1.0× when omitted. */
 export function creditsFor(
   action: CreditAction,
-  opts?: { cacheHit?: boolean },
+  opts?: { cacheHit?: boolean; model?: string },
 ): number {
   const base = CREDIT_COST[action];
-  if (opts?.cacheHit) return Math.max(1, Math.round(base * CACHE_HIT_MULTIPLIER));
-  return base;
+  const multiplier = modelCostMultiplier(opts?.model);
+  const scaled = base * multiplier;
+  if (opts?.cacheHit) return Math.max(1, Math.round(scaled * CACHE_HIT_MULTIPLIER));
+  return Math.max(1, Math.round(scaled));
 }
 
 // ── Credit-based plan definitions ─────────────────────────────────────────
