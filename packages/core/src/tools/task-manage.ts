@@ -15,7 +15,9 @@ export class TaskManageTool implements Tool {
       'Manage the user\'s personal task list. Use this to help users organize their work and life — ' +
       'coding tasks, meetings, personal errands, anything. This is their persistent task system, not your session progress. ' +
       'Actions: list (view tasks), create (add a task), complete (mark done), update (change details), delete (remove). ' +
-      'Tasks persist across sessions and can sync to the cloud.',
+      'Tasks persist across sessions and can sync to the cloud. ' +
+      'Proactive use: when the user mentions an obligation, deadline, or thing-to-do in conversation, offer to capture it ' +
+      '("Want me to add that as a task?") and only create on explicit yes. Don\'t silently create tasks the user didn\'t agree to.',
     parameters: {
       type: 'object',
       properties: {
