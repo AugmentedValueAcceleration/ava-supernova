@@ -162,6 +162,8 @@ export class Conductor {
    * "deep audit", "comprehensive review", etc. — and the regex lights up.
    */
   needsOrchestration(userMessage: string, mode: string): boolean {
+    // Chat is friend-mode — no team, no orchestration, no personas. Personal
+    // conversation should never spawn five voices arguing in the background.
     if (mode === 'chat') return false;
     if (mode === 'teach') return true;
 

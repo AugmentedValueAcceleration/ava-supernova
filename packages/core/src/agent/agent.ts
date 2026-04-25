@@ -240,6 +240,9 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   ]),
   chat: new Set([
     'web_search', 'memory_save', 'memory_recall', 'memory_update', 'journal_write',
+    // todo_write so a quick "add X to my list" mid-chat works without
+    // forcing a mode switch and back.
+    'todo_write',
     'get_datetime', 'weather', 'news', 'ask_user',
     'switch_mode',
   ]),

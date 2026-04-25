@@ -44,7 +44,7 @@ export const enStrings = {
   // Input Area
   'input.placeholder.code': 'What do you want to build?',
   'input.placeholder.plan': 'Describe what you want to plan...',
-  'input.placeholder.chat': 'Ask a question or start a discussion...',
+  'input.placeholder.chat': 'How are you doing? What\'s on your mind?',
   'input.placeholder.disabled': 'Configure a provider to start...',
   'input.placeholder.security': 'Describe what to scan, or just hit Enter for a full audit...',
   'input.placeholder.teach': 'What do you want to learn?',
@@ -59,7 +59,7 @@ export const enStrings = {
   'input.mode.code.desc': 'Ava builds it for you. Reads, writes, and runs code with all 60 tools.',
   'input.mode.plan.desc': 'Ava maps it out before touching anything. Read-only \u2014 no file changes.',
   'input.mode.brainstorm.desc': 'Ava throws ideas with you. Five specialists explore, refine, and challenge.',
-  'input.mode.chat.desc': 'Ava as a friend. Memory, search, journal, weather, news \u2014 no tools, just talk.',
+  'input.mode.chat.desc': 'Ava as a friend, off the clock. Memory, search, journal, weather, news \u2014 no coding tools.',
   'input.mode.teach.desc': 'Ava explains things at your level. Tutor, content writer, quiz master.',
   'input.mode.security.desc': 'Ava audits your code. OWASP, CVE lookups, dependency scan, full report.',
   'input.send': 'Send (Enter)',
