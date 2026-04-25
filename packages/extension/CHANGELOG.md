@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.50.1 — 2026-04-25
+
+A six-mode audit pass — Chat, Plan, Work, Teach, Security, Brainstorm. No new features; the modes you already use just work better, faster, and more honestly.
+
+### Fixed
+- **Phantom `security` tool removed.** Security mode advertised a `security` tool in the system prompt and allow-list that was never registered — the model would call it, get a "tool not found" error, and either retry or fabricate output. References cleaned up; `audit_dependencies` is now the single documented entry point.
+- **Security Scanner uses OWASP 2021** (was on the 2017 list). A04 Insecure Design, A08 Software & Data Integrity Failures, and A10 SSRF are now named explicitly. Crypto failures separated from generic "sensitive data". CSRF still called out alongside.
+- **Brainstorm Challenger no longer silently halts the pipeline** when it uses normal critique words ("reject", "stop", "abort"). Forked into its own persona with ideation-shaped questions (commercial viability, originality, timing, hidden cost) and KEEP / KILL / RESHAPE-AS labels for the Refiner to consume.
+- **Plan + Work Challenger gate goes structured.** Veto now requires a `VETO: <reason>` first line — same model-cooperative pattern Fact Checker uses with `HALT:`. Ordinary "I'd reject the microservices approach" critique is no longer a tripwire.
+- **Teach `assess` action is reachable** for new learners. Was structurally broken — the handler bailed on missing curriculum before the assess branch ran, despite the documented flow being "assess first, then create curriculum".
+- **Curator tool reachable from Work + Plan + Brainstorm.** The fresh-context taste specialist (the architectural answer to design quality dropping under cognitive load) was wired but never allow-listed in any mode. The system prompt told the model to call it; the call got filtered out before reaching the model.
+
+### Changed
+- **Conductor catches natural phrasing** in Security / Brainstorm / Plan / Teach. Empty submission honours the placeholder ("just hit Enter for a full audit"); bare verbs ("plan", "scan", "ideas", "teach me") trigger the team. Previously you had to type the magic phrase from the docs.
+- **Teach uses a light team for ongoing delivery turns.** The full 5-persona prep pipeline only fires on creation signals ("teach me X", "create a curriculum"). Follow-on turns ("continue", "another example", "I'm stuck") run the Tutor alone — same response, ~5× less reasoning load.
+- **Security light team includes the Verifier.** Was producing reports labelled "verified" without the verifier in the pipeline. Now the labels are honest.
+- **Security `audit_dependencies` scoped to one persona** (CVE Researcher). Was on three personas, leading to triple `npm audit` runs per pass.
+- **Work Challenger runs at priority 3** (was 5), short-circuiting Verifier and Sequencer when it vetoes. Order now: Scout → Architect → Challenger → Verifier → Sequencer.
+- **Tutor blast radius tightened** — `git_commit` and `git_create_pr` removed from the Tutor's toolset. A teaching session can no longer commit code into the user's repo.
+- **Mode allow-lists expanded** — Plan, Brainstorm, Teach, Security all gained the research / capture / utility tools their personas use, so the coordinator-direct path matches what orchestrated mode can do. Includes `news` for Researcher, `http_request` + `browser` for Plan + Brainstorm + Teach research, `memory_update` for evolving learner profile, `todo_write` for mid-Chat capture.
+- **Conductor wave loop ignores deps that aren't in the running team.** Lets light teams skip optional personas without deadlocking downstream verifiers.
+- **Chat taglines stop saying "no tools"** when the allow-list has 10. IDE: "Friend. Off the clock." Extension: "Ava as a friend, off the clock. Memory, search, journal, weather, news — no coding tools."
+- **Chat system prompt names the warmth tools** — weather on a "rough day", news only on user-raised events, memory referenced naturally not mechanically, `memory_update` over `memory_save` when something has changed.
+- **`todo_write` in Chat allow-list** — capture an idea mid-conversation without switching modes and back.
+
+### Internal
+- Dead post-build personas (Integrator, Code Reviewer, Design Reviewer) stripped from `WORK_PERSONAS`. All depended on Builder, which is filtered from the planning team — they only ever ran on missing Builder output and produced hollow "nothing to verify" results. Real verification path uses `verify_change` directly via the post-build hook in AutoCoordinator.
+- `SECURITY_REPORTER` persona id renamed `'challenger'` → `'security_reporter'` (was a copy-paste collision with the Brainstorm Challenger).
+- `BRAINSTORM_CHALLENGER` is its own persona id with `canVeto: false` so the silent-deadlock pattern stays gone.
+- Builder persona's `allowedTools` cleaned — `screenshot` (extension can't ship screen capture per marketplace rule) and `verify_change` (handled by the post-build hook) removed; definition now matches actual operational toolset.
+
 ## 0.50.0 — 2026-04-25
 
 ### Added
