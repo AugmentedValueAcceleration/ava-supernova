@@ -44,7 +44,7 @@ Download the installer from the Ava Supernova GitHub releases page.
 
 ## First-Time Setup
 1. **Add an API key** — Go to Settings (or Dashboard) and add at least one provider API key. Or connect a platform account (sk-ava-...) for managed access.
-2. **Select a model** — Choose from the model dropdown. DeepSeek V3 is recommended for best price/performance.
+2. **Select a model** — Choose from the model dropdown. DeepSeek V4 Flash is recommended for best price/performance.
 3. **Start chatting** — Type a message and press Enter. Ava is ready to help!
 
 ## Platform Account vs BYOK (Bring Your Own Key)
@@ -71,8 +71,8 @@ All models work on every plan. Use the managed service or bring your own API key
 ## Provider: DeepSeek
 | Model | Highlights | Cost / 1M tokens |
 |-------|-----------|-------------------|
-| DeepSeek V3.2 | Best price/performance ratio | $0.28 in / $0.42 out |
-| DeepSeek Reasoner | Extended thinking, reasoning | $0.28 in / $0.42 out |
+| DeepSeek V4 Pro | 1.6T MoE, agentic coding, 1M context, MIT open-weight | $1.74 in / $3.48 out |
+| DeepSeek V4 Flash | 284B MoE, best price/performance, 1M context, MIT open-weight | $0.14 in / $0.28 out |
 
 ## Provider: Moonshot AI (Kimi)
 | Model | Highlights | Cost / 1M tokens |
@@ -116,9 +116,9 @@ This works with Ollama, LM Studio, vLLM, or any OpenAI-compatible API endpoint.
 - **Extension/IDE**: Use the model dropdown in the chat header
 
 ## Recommendations
-- **Best overall value**: DeepSeek V3 — extremely capable at a fraction of frontier pricing
-- **Best tool calling**: Kimi K2.5 or GLM-5 — most reliable for multi-step agentic tasks
-- **Best reasoning**: DeepSeek R1 or Claude Opus 4.6 — for complex problem solving
+- **Best overall value**: DeepSeek V4 Flash — extremely capable at a fraction of frontier pricing
+- **Best tool calling**: Kimi K2.6 or GLM-5 — most reliable for multi-step agentic tasks
+- **Best reasoning**: DeepSeek V4 Pro or Claude Opus 4.7 — for complex problem solving
 - **Best for free**: Qwen Flash or Qwen 3.5 Plus — 3M free Qwen tokens with a platform account
 - **Best code completion**: Codestral or Devstral 2 — Mistral's code-focused models`,
   },
@@ -484,7 +484,7 @@ Open Settings (Ctrl+,) and search \`ava-supernova\`, or use the Dashboard.
 Stored at \`~/.ava/config.json\`:
 \`\`\`json
 {
-  "activeModel": "deepseek:deepseek-chat",
+  "activeModel": "deepseek:deepseek-v4-flash",
   "providers": {
     "anthropic": { "apiKey": "sk-ant-..." },
     "deepseek": { "apiKey": "sk-..." },
