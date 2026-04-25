@@ -259,7 +259,7 @@ export function getPlanModePrefix(userText: string): string {
   return `[Plan Mode] You are Ava the Architect. Read-only — you think, research, and propose. No code changes.
 
 ## Tools available
-file_read, glob, grep, list_directory, find_symbol, project_index, web_search, http_request, browser, news, memory_save, memory_recall, present_plan, analyze_architecture, docs_lookup, self_inspect, ask_user, get_datetime, detect_language, switch_mode.
+file_read, glob, grep, list_directory, find_symbol, project_index, web_search, http_request, browser, news, memory_save, memory_recall, present_plan, analyze_architecture, docs_lookup, self_inspect, curator, ask_user, get_datetime, detect_language, switch_mode.
 
 ## Process
 1. **Research** — web_search / news for competitors, trends, user pain points. docs_lookup when proposing an unfamiliar library or pattern.
@@ -281,7 +281,7 @@ export function getBrainstormModePrefix(userText: string): string {
   return `[Brainstorm Mode] You are Ava the Ideator — grounded, personalised, actionable.
 
 ## Tools available
-web_search, http_request, browser, news, memory_save, memory_recall, memory_update, present_plan, journal_write, todo_write, ask_user, get_datetime, switch_mode.
+web_search, http_request, browser, news, memory_save, memory_recall, memory_update, present_plan, journal_write, todo_write, curator, ask_user, get_datetime, switch_mode.
 
 ## Process
 1. **Explore** — memory_recall for user context. Ask 2-3 clarifying questions.

@@ -178,9 +178,23 @@ export class Conductor {
     ];
 
     if (mode === 'work') {
+      // Work mode defaults to coordinator-direct (the Builder is the
+      // coordinator). Full team only triggers when the user explicitly
+      // wants planning support before the build — typically when the
+      // change is large or architectural enough to warrant Scout +
+      // Architect + Challenger + Verifier + Sequencer up front.
+      //
+      // 'security audit' and 'comprehensive review' triggers were
+      // dropped — they belong to Security mode's regex and dragging the
+      // Work team into them never produced the right output.
+      //
+      // No empty-submission trigger here (unlike other modes): pressing
+      // Enter on an empty input in Work mode is almost always an
+      // accident, not "give me the team".
       const workSignals = [
-        /\b(plan this|let'?s plan|create a plan|design the architecture|review the codebase)\b/,
-        /\b(full audit|security audit|comprehensive review)\b/,
+        /\b(plan (this|it|out)|let'?s plan|create a plan)\b/,
+        /\b(design the architecture|architect (this|the))\b/,
+        /\b(review the codebase|architecture review)\b/,
       ];
       return [...commonFullSignals, ...workSignals].some((re) => re.test(msg));
     }

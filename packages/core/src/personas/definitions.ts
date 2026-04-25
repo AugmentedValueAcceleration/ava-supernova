@@ -82,7 +82,7 @@ Your focus:
 You are the quality gate. Nothing gets built unless it passes your check.
 Be specific — "this file doesn't exist" is useful, "seems risky" is not.`,
   allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS, 'bash'],
-  priority: 3,
+  priority: 4,
   dependsOn: ['architect'], // Verifies the Architect's plan
 };
 
@@ -103,7 +103,7 @@ Your focus:
 
 Keep it practical. 3 clear steps beat 15 vague ones.`,
   allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS],
-  priority: 4,
+  priority: 5,
   dependsOn: ['verifier'], // Sequences the verified plan
 };
 
@@ -140,7 +140,11 @@ Example: \`VETO: Plan modifies the auth middleware that the user explicitly said
 
 Do not emit VETO for "could be simpler", "I'd prefer X", or "this is risky but defensible". VETO is for *unbuildable / wrong-direction*, not for *suboptimal*. Use it sparingly — most plans get critiqued and proceed.`,
   allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS],
-  priority: 5,
+  // Priority 3 — runs after Architect but BEFORE Verifier and Sequencer.
+  // A VETO: from Challenger short-circuits the two expensive downstream
+  // personas; under the old priority 5 they ran before the veto could
+  // catch them, wasting a heavy persona pass apiece.
+  priority: 3,
   dependsOn: ['architect'], // Challenges the Architect's decisions
   canVeto: true,
   // Model-cooperative pattern (mirrors Fact Checker's HALT:). The persona has
@@ -185,14 +189,21 @@ Rules:
 The post-build verifier (Integrator persona + verify_change tool) uses this
 block to decide which checks to run. An accurate block costs nothing; an
 inaccurate one ends in a verification failure that comes back to you.`,
+  // 'screenshot' and 'verify_change' intentionally out:
+  //   - screenshot: extension can't ship screen capture (marketplace rule);
+  //     Work mode allow-list excludes it deliberately.
+  //   - verify_change: invoked by the post-build hook in auto-coordinator
+  //     against Builder's <changes-summary> block, not by Builder directly.
+  // Builder is filtered from planningTeam anyway; this list is canonical
+  // documentation of Builder's actual operational toolset.
   allowedTools: [
     ...READ_TOOLS, ...MEMORY_TOOLS, ...WRITE_TOOLS,
     ...TESTING_TOOLS, ...PLANNING_TOOLS,
-    'screenshot', 'database_query', 'rollback',
+    'database_query', 'rollback',
     'doc_generate', 'debug_logs', 'apply_plan',
     'support_request', 'propose_tool',
     'task_manage', 'journal_write', 'document_manage',
-    'verify_change',
+    'curator',
   ],
   priority: 6,
   dependsOn: ['sequencer', 'challenger'], // Builds only after plan is sequenced and challenged
@@ -751,9 +762,16 @@ Turn "interesting idea" into "here's what you do Monday morning."`,
 
 // ── Full persona teams — the complete pipeline per mode ───────────────────
 
+// Work planning team. INTEGRATOR / CODE_REVIEWER / DESIGN_REVIEWER are
+// intentionally NOT here — they all dependsOn 'builder', but Builder is
+// filtered out of planningTeam (the main coordinator IS the Builder), so
+// they only ever ran on missing Builder output and produced hollow
+// "nothing to verify" results. The real post-build verification path runs
+// verify_change directly via the post-build hook in auto-coordinator.
+// Builder stays in this list so its definition is reachable, but the
+// conductor filters it before orchestration.
 export const WORK_PERSONAS: PersonaDefinition[] = [
   SCOUT, ARCHITECT, VERIFIER, SEQUENCER, CHALLENGER, BUILDER,
-  INTEGRATOR, CODE_REVIEWER, DESIGN_REVIEWER,
 ];
 
 export const PLAN_PERSONAS: PersonaDefinition[] = [
@@ -785,8 +803,13 @@ export const BRAINSTORM_PERSONAS: PersonaDefinition[] = [
 // a light variant (TUTOR alone) used for ongoing delivery turns; the full
 // 5-persona curriculum-prep team only fires on creation signals.
 
+// Work light team — for typical "make this small change" turns. Drops
+// VERIFIER + SEQUENCER (the coordinator can do those itself for small
+// scopes). Builder is filtered by the conductor; INTEGRATOR is dead in
+// the pipeline (handled by post-build hook). Real runtime: just SCOUT
+// + ARCHITECT + CHALLENGER.
 export const WORK_PERSONAS_LIGHT: PersonaDefinition[] = [
-  SCOUT, ARCHITECT, CHALLENGER, BUILDER, INTEGRATOR,
+  SCOUT, ARCHITECT, CHALLENGER, BUILDER,
 ];
 
 // Verifier stays in the light team — without it, the Reporter would be

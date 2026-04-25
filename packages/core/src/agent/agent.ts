@@ -213,6 +213,9 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'ask_user', 'support_request',
     // Self
     'docs_lookup', 'propose_tool', 'self_inspect', 'release_notes',
+    // Taste specialist — fresh-context Curator for design/voice/microcopy
+    // calls that would otherwise degrade under cognitive load.
+    'curator',
     // Utility
     'get_datetime', 'detect_language',
     // Mode switch
@@ -229,6 +232,8 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'memory_save', 'memory_recall', 'present_plan', 'analyze_architecture',
     // Reference / introspection (already used; advertised below now too)
     'docs_lookup', 'self_inspect',
+    // Taste specialist for design/voice/microcopy decisions
+    'curator',
     // Interaction + utilities
     'ask_user', 'get_datetime', 'detect_language',
     'switch_mode',
@@ -246,6 +251,8 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'memory_save', 'memory_recall', 'memory_update',
     // Output shape
     'present_plan', 'journal_write', 'todo_write',
+    // Taste specialist for naming/voice/microcopy decisions
+    'curator',
     'ask_user', 'get_datetime',
     'switch_mode',
   ]),
