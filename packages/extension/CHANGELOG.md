@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.51.2 — 2026-04-25
+
+### Fixed
+- **DeepSeek V4 BYOK multi-turn `reasoning_content` 400.** After ~8 messages of agentic conversation, BYOK V4 Pro / V4 Flash started failing with `The reasoning_content in the thinking mode must be passed back to the API.` Cause: `trimOldToolResults` in the core agent was unconditionally stripping `reasoning_content` from every old assistant message — but DeepSeek V4 thinking-mode requires reasoning to be preserved on assistant turns that contain `tool_calls`, otherwise subsequent requests are rejected. Strip now skips tool-calling turns. Plain-text turns still drop reasoning for token-budget reasons (DeepSeek and every other provider ignore the field on those). Supernova mode was carrying the same latent bug — surfaces only on long agentic chains, which is why short tests worked.
+
+### Changed
+- **Settings provider description for DeepSeek** now reads "DeepSeek V4 Pro and V4 Flash — 1M context, MIT open-weight" (was the stale "V3 and R1 — best price/performance"). Mirrored in the IDE Dashboard.
+- **In-product help docs (`docs_lookup`)** updated for DeepSeek: setup recommendation, model table, "best overall value" / "best reasoning" suggestions, and the example `~/.ava/config.json` `activeModel` value all now reference V4 Pro / V4 Flash instead of V3 / R1 / V3.2 / `deepseek-chat`.
+
 ## 0.51.1 — 2026-04-25
 
 ### Fixed
