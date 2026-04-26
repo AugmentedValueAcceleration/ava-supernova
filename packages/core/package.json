@@ -30,6 +30,16 @@
       "import": "./dist/billing/credits.js",
       "require": "./dist/billing/credits.js",
       "types": "./dist/billing/credits.d.ts"
+    },
+    "./benchmarks": {
+      "import": "./dist/benchmarks/index.js",
+      "require": "./dist/benchmarks/index.js",
+      "types": "./dist/benchmarks/index.d.ts"
+    },
+    "./audit": {
+      "import": "./dist/audit/index.js",
+      "require": "./dist/audit/index.js",
+      "types": "./dist/audit/index.d.ts"
     }
   },
   "scripts": {
