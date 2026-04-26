@@ -315,9 +315,48 @@ export class DashboardPanel {
         }
         break;
 
-      case 'request_audit_log':
-        this.post({ type: 'audit_log', entries: (this.viewProvider as any)?.auditLog || [] } as any);
+      case 'export_audit_log': {
+        // Build the exportable bundle and hand it to the user via the
+        // VS Code Save-As dialog. Stays entirely on-disk — nothing ever
+        // leaves the machine. Format flag chooses Markdown (human) vs
+        // JSON (structured / SIEM ingest).
+        const fmt = (msg as { format?: 'markdown' | 'json' }).format ?? 'markdown';
+        try {
+          const { readEntries, buildExport } = require('@ava/core/audit') as typeof import('@ava/core/audit');
+          const entries = readEntries({});
+          const bundle = buildExport(entries, fmt);
+          const uri = await vscode.window.showSaveDialog({
+            defaultUri: vscode.Uri.file(bundle.filename),
+            filters: fmt === 'json' ? { JSON: ['json'] } : { Markdown: ['md'] },
+          });
+          if (!uri) break;
+          const fs = await import('node:fs/promises');
+          await fs.writeFile(uri.fsPath, bundle.content, 'utf-8');
+          this.post({ type: 'info', message: `Audit exported to ${uri.fsPath}` } as any);
+        } catch (err) {
+          this.post({ type: 'error', message: `Audit export failed: ${err instanceof Error ? err.message : err}` } as any);
+        }
         break;
+      }
+      case 'request_audit_log': {
+        // Read from the persistent JSONL store first — it includes
+        // entries from prior sessions. Fall back to the in-memory
+        // recent buffer if the persistent read fails for any reason
+        // (first run, fs error, etc.) so the tab is never empty when
+        // there's data to show.
+        let entries: unknown[] = [];
+        try {
+          const { readEntries } = require('@ava/core/audit') as typeof import('@ava/core/audit');
+          entries = readEntries({ limit: 1000 });
+        } catch {
+          entries = (this.viewProvider as any)?.auditLog || [];
+        }
+        if (!entries || entries.length === 0) {
+          entries = (this.viewProvider as any)?.auditLog || [];
+        }
+        this.post({ type: 'audit_log', entries } as any);
+        break;
+      }
 
       // ─── Creative Studio generation (proxied through extension host for CORS) ──
       case 'creative_generate': {
@@ -1026,6 +1065,47 @@ export class DashboardPanel {
           await this.handleExportData((msg as any).dataType);
         }
         break;
+
+      case 'export_full_account_data': {
+        // GDPR Article 20 — full cloud-stored data dump via the
+        // /api/export-my-data endpoint. Auth-gated server-side; the
+        // host just proxies (we have the platform key in SecretStorage)
+        // and hands the JSON back to the webview which triggers a
+        // browser download via Blob + a-tag click.
+        try {
+          // Read directly from VS Code SecretStorage — same key the
+          // rest of the host uses for authenticated platform calls.
+          const ctx = (this.viewProvider as unknown as { context: vscode.ExtensionContext }).context;
+          const platformKey = await ctx?.secrets.get('ava-supernova.platformKey');
+          if (!platformKey) {
+            this.post({ type: 'error', message: 'Connect a platform account first to export your cloud-stored data.' } as any);
+            break;
+          }
+          const res = await fetch('https://ava-supernova.com/api/export-my-data', {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${platformKey}` },
+          });
+          if (!res.ok) {
+            const body = await res.text();
+            this.post({ type: 'error', message: `Export failed: ${res.status} ${res.statusText} — ${body.slice(0, 200)}` } as any);
+            break;
+          }
+          const content = await res.text();
+          const datePart = new Date().toISOString().slice(0, 10);
+          const filename = `ava-supernova-data-export-${datePart}.json`;
+          const uri = await vscode.window.showSaveDialog({
+            defaultUri: vscode.Uri.file(filename),
+            filters: { JSON: ['json'] },
+          });
+          if (!uri) break;
+          const fs = await import('node:fs/promises');
+          await fs.writeFile(uri.fsPath, content, 'utf-8');
+          this.post({ type: 'info', message: `Exported your cloud-stored data to ${uri.fsPath}` } as any);
+        } catch (err) {
+          this.post({ type: 'error', message: `Export failed: ${err instanceof Error ? err.message : err}` } as any);
+        }
+        break;
+      }
 
       case 'import_data':
         await this.handleImportData((msg as any).dataType, (msg as any).content);

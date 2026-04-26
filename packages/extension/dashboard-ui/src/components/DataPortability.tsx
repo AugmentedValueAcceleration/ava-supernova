@@ -178,6 +178,31 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
       {/* Export Tab */}
       {tab === 'export' && (
         <div className="p-3">
+          {/* GDPR Article 20 — full cloud-stored data export. Lives at
+              the top of the Export tab as a hero CTA so users see the
+              "everything in one file" path before the per-type list.
+              Hits /api/export-my-data via the host (auth lives in
+              SecretStorage). Distinct from per-type below because it
+              covers tables the per-type flow doesn't (subscriptions,
+              consent records, etc.) — true GDPR completeness. */}
+          <button
+            onClick={() => post({ type: 'export_full_account_data' } as { type: 'export_full_account_data' })}
+            className="mb-3 w-full rounded-lg border px-3 py-2.5 text-left transition hover:bg-[var(--accent)]/10"
+            style={{ borderColor: 'rgba(168,85,247,0.35)', background: 'rgba(168,85,247,0.06)' }}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-base">{'\u{1F4E6}'}</span>
+              <div className="flex-1">
+                <div className="text-xs font-semibold" style={{ color: '#cdd6f4' }}>Download all my cloud data</div>
+                <div className="text-[10px] opacity-60" style={{ color: '#a6adc8' }}>
+                  Everything the platform holds — GDPR Article 20 right of portability.
+                </div>
+              </div>
+            </div>
+          </button>
+          <div className="mb-3 px-1 text-[10px] opacity-50" style={{ color: '#6c7086' }}>
+            Or pick specific data types to export individually:
+          </div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] uppercase tracking-wider opacity-40">Select data to export</span>
             <button onClick={selectAllExport} className="text-[10px] bg-transparent border-none cursor-pointer" style={{ color: '#a855f7' }}>

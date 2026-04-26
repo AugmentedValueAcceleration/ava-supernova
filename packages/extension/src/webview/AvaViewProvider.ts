@@ -1326,10 +1326,23 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       return this.substituteSecretHandles(args) as Record<string, unknown>;
     });
 
-    // Wire audit callback — log all tool executions for the Audit tab
+    // Wire audit callback — log every tool execution to BOTH the
+    // in-memory recent buffer (for fast in-session display) AND the
+    // persistent JSONL log at ~/.ava/audit-log.jsonl. The persistent
+    // log is the source of truth for the Audit tab; the in-memory
+    // buffer just accelerates first paint before the disk read lands.
     this.toolRegistry.setAuditCallback((entry) => {
       this.auditLog.push(entry);
       if (this.auditLog.length > 500) this.auditLog.shift();
+      // Fire-and-forget — appendEntry swallows I/O errors internally so
+      // an audit-write failure can never break a tool call.
+      try {
+        // Lazy-require keeps the tool-call hot path off the import graph
+        // when audit isn't being used at all.
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { appendEntry } = require('@ava/core/audit') as typeof import('@ava/core/audit');
+        appendEntry(entry as Parameters<typeof appendEntry>[0]);
+      } catch { /* audit failures must not surface */ }
     });
 
     const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();

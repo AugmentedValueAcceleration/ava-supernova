@@ -61,6 +61,16 @@ interface AuditEntry {
   argsSummary: string;
   fullArgs?: Record<string, unknown>;
   result?: string;
+  /** Cost record — present on entries written by the persistent
+   *  logger, absent on legacy in-memory-only entries. */
+  cost?: {
+    mode: 'platform' | 'byok';
+    credits?: number;
+    usd?: number;
+    tokens?: { input: number; output: number };
+    provider?: string;
+    model?: string;
+  };
 }
 
 interface HistoryProps {
@@ -100,38 +110,27 @@ export function History({ sessionStats, usageHistory, mode, account, auditLog }:
         </p>
       </div>
 
-      {/* Tab Toggle */}
-      <div className="mb-6 flex gap-1 rounded-lg bg-[var(--bg-input)] p-1 w-fit">
-        <button
-          onClick={() => handleTabChange('session')}
-          className={`rounded-md px-4 py-1.5 text-xs font-medium transition border-none cursor-pointer ${
-            activeTab === 'session'
-              ? 'bg-[var(--accent)] text-white'
-              : 'text-[var(--text-muted)] hover:text-white bg-transparent'
-          }`}
-        >
-          {t('dash.usage.session')}
-        </button>
-        <button
-          onClick={() => handleTabChange('alltime')}
-          className={`rounded-md px-4 py-1.5 text-xs font-medium transition border-none cursor-pointer ${
-            activeTab === 'alltime'
-              ? 'bg-[var(--accent)] text-white'
-              : 'text-[var(--text-muted)] hover:text-white bg-transparent'
-          }`}
-        >
-          {t('dash.usage.all_time')}
-        </button>
-        <button
-          onClick={() => handleTabChange('audit')}
-          className={`rounded-md px-4 py-1.5 text-xs font-medium transition border-none cursor-pointer ${
-            activeTab === 'audit'
-              ? 'bg-[var(--accent)] text-white'
-              : 'text-[var(--text-muted)] hover:text-white bg-transparent'
-          }`}
-        >
-          Audit
-        </button>
+      {/* Tab Toggle — underline style, mirrors the Library + Models
+          sub-nav so the dashboard reads consistently. The pill-style
+          toggle this replaced was the only outlier in the dashboard. */}
+      <div className="mb-6 flex gap-1 border-b border-[var(--border-card)]">
+        {([
+          { id: 'session', label: t('dash.usage.session') },
+          { id: 'alltime', label: t('dash.usage.all_time') },
+          { id: 'audit',   label: 'Audit' },
+        ] as const).map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => handleTabChange(tab.id)}
+            className={`-mb-px border-b-2 px-4 py-2 text-xs font-medium transition border-x-0 border-t-0 bg-transparent cursor-pointer ${
+              activeTab === tab.id
+                ? 'border-[var(--accent)] text-[var(--accent)] font-semibold'
+                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {activeTab === 'session' ? (
@@ -172,67 +171,246 @@ const CATEGORY_LABELS: Record<string, string> = {
   documents: 'Documents', memory: 'Memory', learning: 'Learning',
 };
 
+// Pattern finding shape — must match @ava/core/audit/patterns Finding.
+// Imported here as a structural type so we don't need a full
+// @ava/core/audit dependency in dashboard-ui at runtime.
+interface AuditFinding {
+  severity: 'info' | 'warning' | 'critical';
+  message: string;
+  suggestion?: string;
+  relatedTools?: string[];
+}
+
+function formatAuditCost(cost: AuditEntry['cost']): string {
+  if (!cost) return '—';
+  if (cost.mode === 'platform' && cost.credits != null) return `${cost.credits} cr`;
+  if (cost.mode === 'byok' && cost.usd != null)         return `$${cost.usd.toFixed(cost.usd >= 0.01 ? 4 : 6)}`;
+  return '—';
+}
+
 function AuditView({ entries }: { entries: AuditEntry[] }) {
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+  const [search, setSearch] = useState('');
+  const [riskFilter, setRiskFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  if (entries.length === 0) {
-    return (
-      <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-8 text-center">
-        <span className="block text-2xl opacity-30 mb-2">📋</span>
-        <p className="text-xs text-[var(--text-muted)]">No tool calls recorded this session.</p>
-      </div>
-    );
-  }
+  // Patterns are computed inline so the audit view can stay
+  // self-contained — no extra round-trip to the host. Keep this
+  // simple: only the three checks the core helper does, mirrored
+  // here so the UI works even before the host upgrade rolls out.
+  const findings: AuditFinding[] = useMemo(() => detectClientSidePatterns(entries), [entries]);
+
+  // Apply filters in memory — corpus is already capped at 1000
+  // entries by the host, so this is fast.
+  const filtered = useMemo(() => {
+    return entries.filter(e => {
+      if (search && !e.toolName.toLowerCase().includes(search.toLowerCase()) && !e.argsSummary.toLowerCase().includes(search.toLowerCase())) return false;
+      if (riskFilter !== 'all' && e.riskLevel !== riskFilter) return false;
+      if (statusFilter !== 'all' && e.status !== statusFilter) return false;
+      return true;
+    });
+  }, [entries, search, riskFilter, statusFilter]);
+
+  // Cost totals — split across both billing modes so a user with
+  // mixed-mode history sees both numbers honestly.
+  const totals = useMemo(() => {
+    let credits = 0, usd = 0;
+    for (const e of filtered) {
+      if (e.cost?.credits) credits += e.cost.credits;
+      if (e.cost?.usd) usd += e.cost.usd;
+    }
+    return { credits, usd };
+  }, [filtered]);
+
+  const exportLog = (format: 'markdown' | 'json') => {
+    post({ type: 'export_audit_log', format } as { type: 'export_audit_log'; format: 'markdown' | 'json' });
+  };
 
   return (
-    <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] overflow-hidden">
-      {/* Header */}
-      <div className="grid grid-cols-[60px_1fr_80px_60px_90px_60px] gap-2 px-3 py-2 border-b border-[var(--border-card)] text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-        <span>Time</span>
-        <span>Tool</span>
-        <span>Category</span>
-        <span>Risk</span>
-        <span>Approval</span>
-        <span>Status</span>
-      </div>
-      {/* Entries — newest first */}
-      {[...entries].reverse().map((entry, i) => {
-        const time = new Date(entry.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const isExpanded = expandedIdx === i;
-        return (
-          <div key={i}>
-            <button
-              onClick={() => setExpandedIdx(isExpanded ? null : i)}
-              className="grid grid-cols-[60px_1fr_80px_60px_90px_60px] gap-2 w-full px-3 py-2 text-left text-[11px] border-none bg-transparent cursor-pointer hover:bg-[var(--bg-input)]/30 transition"
+    <div className="space-y-3">
+      {/* Pattern findings — surfaced above the table because they're
+          actionable nudges the user otherwise wouldn't think to look for. */}
+      {findings.length > 0 && (
+        <div className="space-y-2">
+          {findings.map((f, i) => (
+            <div
+              key={i}
+              className={`rounded-lg border px-3 py-2 text-[11px] leading-relaxed ${
+                f.severity === 'critical' ? 'border-red-500/40 bg-red-500/5 text-red-200'
+                  : f.severity === 'warning' ? 'border-yellow-500/40 bg-yellow-500/5 text-yellow-100'
+                  : 'border-[var(--border-card)] bg-[var(--bg-card)] text-[var(--text-secondary)]'
+              }`}
             >
-              <span className="text-[var(--text-muted)] font-mono">{time}</span>
-              <span className="text-white font-medium truncate">{entry.toolName}</span>
-              <span className="text-[var(--text-secondary)]">{CATEGORY_LABELS[entry.category] || entry.category}</span>
-              <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium text-center ${RISK_COLORS[entry.riskLevel] || ''}`}>{entry.riskLevel}</span>
-              <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium text-center ${APPROVAL_COLORS[entry.approvalMethod] || ''}`}>{entry.approvalMethod}</span>
-              <span className={`text-[10px] font-medium ${STATUS_COLORS[entry.status] || 'text-[var(--text-muted)]'}`}>{entry.status}</span>
-            </button>
-            {isExpanded && (
-              <div className="px-3 pb-3 space-y-2">
-                <div className="rounded-lg bg-[var(--bg-input)]/50 p-2.5 text-[10px] font-mono text-[var(--text-secondary)]">
-                  <p className="font-semibold text-[var(--text-muted)] mb-1">Arguments</p>
-                  <pre className="whitespace-pre-wrap break-all max-h-40 overflow-y-auto">
-                    {entry.fullArgs ? JSON.stringify(entry.fullArgs, null, 2) : entry.argsSummary}
-                  </pre>
-                </div>
-                {entry.result && (
-                  <div className="rounded-lg bg-[var(--bg-input)]/50 p-2.5 text-[10px] font-mono text-[var(--text-secondary)]">
-                    <p className="font-semibold text-[var(--text-muted)] mb-1">Result</p>
-                    <pre className="whitespace-pre-wrap break-all max-h-40 overflow-y-auto">{entry.result}</pre>
+              <div className="font-medium">{f.message}</div>
+              {f.suggestion && <div className="mt-1 text-[10px] opacity-80">{f.suggestion}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Search + filter + export controls */}
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-2.5">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Filter by tool name or argument…"
+          className="flex-1 min-w-[160px] rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2 py-1 text-[11px] text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]"
+        />
+        <select
+          value={riskFilter}
+          onChange={(e) => setRiskFilter(e.target.value)}
+          className="rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2 py-1 text-[11px] text-[var(--text-primary)] outline-none"
+        >
+          <option value="all">All risk</option>
+          <option value="safe">Safe</option>
+          <option value="write">Write</option>
+          <option value="dangerous">Dangerous</option>
+        </select>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2 py-1 text-[11px] text-[var(--text-primary)] outline-none"
+        >
+          <option value="all">All status</option>
+          <option value="success">Success</option>
+          <option value="failed">Failed</option>
+          <option value="denied">Denied</option>
+        </select>
+        <div className="ml-auto flex gap-1">
+          <button
+            onClick={() => exportLog('markdown')}
+            title="Export the filtered audit log as a Markdown report — auditable, human-readable, never leaves your machine."
+            className="rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2.5 py-1 text-[11px] text-[var(--text-primary)] transition hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30"
+          >
+            Export .md
+          </button>
+          <button
+            onClick={() => exportLog('json')}
+            title="Export the filtered audit log as JSON — for SIEM ingest or programmatic analysis."
+            className="rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2.5 py-1 text-[11px] text-[var(--text-primary)] transition hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30"
+          >
+            Export .json
+          </button>
+        </div>
+      </div>
+
+      {/* Cost totals strip — only shown when there's something to attribute. */}
+      {(totals.credits > 0 || totals.usd > 0) && (
+        <div className="flex gap-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] px-3 py-2 text-[11px]">
+          {totals.credits > 0 && (
+            <span><span className="text-[var(--text-muted)]">Credits:</span> <span className="font-semibold text-[var(--text-primary)]">{totals.credits.toLocaleString()}</span></span>
+          )}
+          {totals.usd > 0 && (
+            <span><span className="text-[var(--text-muted)]">BYOK estimate:</span> <span className="font-semibold text-[var(--text-primary)]">${totals.usd.toFixed(4)}</span></span>
+          )}
+          <span className="ml-auto text-[var(--text-muted)]">{filtered.length} of {entries.length} entries shown</span>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {filtered.length === 0 && (
+        <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-8 text-center">
+          <span className="block text-2xl opacity-30 mb-2">📋</span>
+          <p className="text-xs text-[var(--text-muted)]">
+            {entries.length === 0 ? 'No tool calls recorded yet.' : 'No entries match your filters.'}
+          </p>
+        </div>
+      )}
+
+      {/* Entry table */}
+      {filtered.length > 0 && (
+        <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] overflow-hidden">
+          <div className="grid grid-cols-[80px_1fr_80px_60px_90px_70px_60px] gap-2 px-3 py-2 border-b border-[var(--border-card)] text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            <span>Time</span>
+            <span>Tool</span>
+            <span>Category</span>
+            <span>Risk</span>
+            <span>Approval</span>
+            <span className="text-right">Cost</span>
+            <span>Status</span>
+          </div>
+          {filtered.map((entry, i) => {
+            const time = new Date(entry.timestamp).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+            const isExpanded = expandedIdx === i;
+            return (
+              <div key={i}>
+                <button
+                  onClick={() => setExpandedIdx(isExpanded ? null : i)}
+                  className="grid grid-cols-[80px_1fr_80px_60px_90px_70px_60px] gap-2 w-full px-3 py-2 text-left text-[11px] border-none bg-transparent cursor-pointer hover:bg-[var(--bg-input)]/30 transition"
+                >
+                  <span className="text-[var(--text-muted)] font-mono text-[10px]">{time}</span>
+                  <span className="text-white font-medium truncate">{entry.toolName}</span>
+                  <span className="text-[var(--text-secondary)]">{CATEGORY_LABELS[entry.category] || entry.category}</span>
+                  <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium text-center ${RISK_COLORS[entry.riskLevel] || ''}`}>{entry.riskLevel}</span>
+                  <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium text-center ${APPROVAL_COLORS[entry.approvalMethod] || ''}`}>{entry.approvalMethod}</span>
+                  <span className="text-right font-mono text-[10px] text-[var(--text-secondary)]">{formatAuditCost(entry.cost)}</span>
+                  <span className={`text-[10px] font-medium ${STATUS_COLORS[entry.status] || 'text-[var(--text-muted)]'}`}>{entry.status}</span>
+                </button>
+                {isExpanded && (
+                  <div className="px-3 pb-3 space-y-2">
+                    <div className="rounded-lg bg-[var(--bg-input)]/50 p-2.5 text-[10px] font-mono text-[var(--text-secondary)]">
+                      <p className="font-semibold text-[var(--text-muted)] mb-1">Arguments</p>
+                      <pre className="whitespace-pre-wrap break-all max-h-40 overflow-y-auto">
+                        {entry.fullArgs ? JSON.stringify(entry.fullArgs, null, 2) : entry.argsSummary}
+                      </pre>
+                    </div>
+                    {entry.result && (
+                      <div className="rounded-lg bg-[var(--bg-input)]/50 p-2.5 text-[10px] font-mono text-[var(--text-secondary)]">
+                        <p className="font-semibold text-[var(--text-muted)] mb-1">Result</p>
+                        <pre className="whitespace-pre-wrap break-all max-h-40 overflow-y-auto">{entry.result}</pre>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        );
-      })}
+            );
+          })}
+        </div>
+      )}
     </div>
   );
+}
+
+// Lightweight client-side mirror of @ava/core/audit/patterns. Kept here
+// so the audit view doesn't need a runtime dep on the core audit module
+// (which is Node-only and won't bundle into the dashboard-ui webview).
+function detectClientSidePatterns(entries: AuditEntry[]): AuditFinding[] {
+  const findings: AuditFinding[] = [];
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const recent = entries.filter(e => e.timestamp >= sevenDaysAgo);
+  if (recent.length === 0) return [];
+
+  const byTool = new Map<string, { auto: number; autoFailed: number }>();
+  for (const e of recent) {
+    if (e.approvalMethod !== 'auto') continue;
+    const t = byTool.get(e.toolName) ?? { auto: 0, autoFailed: 0 };
+    t.auto++;
+    if (e.status === 'failed' || e.status === 'denied') t.autoFailed++;
+    byTool.set(e.toolName, t);
+  }
+  for (const [tool, s] of byTool) {
+    if (s.auto >= 5 && s.autoFailed / s.auto > 0.2) {
+      findings.push({
+        severity: 'warning',
+        message: `You auto-approve ${tool} but ${Math.round((s.autoFailed / s.auto) * 100)}% of those calls fail (${s.autoFailed} of ${s.auto} this week).`,
+        suggestion: 'Consider tightening the approval rule to first-time, so failures get a second look.',
+        relatedTools: [tool],
+      });
+    }
+  }
+
+  const dangerousSucceeded = recent.filter(e => e.riskLevel === 'dangerous' && e.status === 'success');
+  if (dangerousSucceeded.length > 0) {
+    findings.push({
+      severity: 'critical',
+      message: `${dangerousSucceeded.length} dangerous tool call${dangerousSucceeded.length === 1 ? '' : 's'} succeeded this week.`,
+      suggestion: 'Review these in the audit table to confirm they touched only what you expected.',
+      relatedTools: [...new Set(dangerousSucceeded.map(e => e.toolName))],
+    });
+  }
+
+  return findings;
 }
 
 // ─── Session View ────────────────────────────────────────────────────────────
@@ -353,27 +531,54 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
     );
   }
 
-  // Forecast calculation
-  const daysWithUsage = data.daily.filter(d => d.tokens > 0).length;
-  const avgDailyTokens = daysWithUsage > 0 ? data.daily.reduce((s, d) => s + d.tokens, 0) / daysWithUsage : 0;
-  const remaining = data.balance ? Math.max(0, data.balance.limit - data.balance.used) : 0;
-  const forecastDays = avgDailyTokens > 0 ? Math.floor(remaining / avgDailyTokens) : null;
+  // Tokens-to-credits conversion ratio. The server returns historical
+  // aggregates as raw token totals (legacy /usage/summary contract) but
+  // the user thinks and budgets in credits, so we convert client-side.
+  // Anchored to the user's actual billing ratio: balance.used credits ÷
+  // monthTotal tokens for the same period gives the exact tokens/credit
+  // rate that produced their current balance, so the chart numbers
+  // line up exactly with what the Credit Balance card shows. Falls back
+  // to TOKENS_PER_BRACKET (16K) when no monthTotal is available — that's
+  // the same constant @ava/core/billing uses for credit-per-turn math.
+  const TOKENS_PER_CREDIT_FALLBACK = 16_000;
+  const tokensPerCredit = data.balance && data.balance.used > 0 && data.monthTotal > 0
+    ? data.monthTotal / data.balance.used
+    : TOKENS_PER_CREDIT_FALLBACK;
+  const tokensToCredits = (tokens: number): number => Math.round(tokens / tokensPerCredit);
 
-  // Month comparison
-  const monthChange = data.lastMonthTotal > 0
-    ? ((data.monthTotal - data.lastMonthTotal) / data.lastMonthTotal * 100).toFixed(0)
+  // Pre-converted aggregates for the cards + chart. Original token
+  // values stay available via data.* if a future view needs them.
+  const monthCredits = tokensToCredits(data.monthTotal);
+  const lastMonthCredits = tokensToCredits(data.lastMonthTotal);
+  const avgSessionCredits = tokensToCredits(data.avgPerSession);
+  const dailyCredits = data.daily.map(d => ({ ...d, credits: tokensToCredits(d.tokens) }));
+
+  // Forecast calculation — credits per day → days remaining at current pace.
+  const daysWithUsage = dailyCredits.filter(d => d.credits > 0).length;
+  const avgDailyCredits = daysWithUsage > 0 ? dailyCredits.reduce((s, d) => s + d.credits, 0) / daysWithUsage : 0;
+  const remaining = data.balance ? Math.max(0, data.balance.limit - data.balance.used) : 0;
+  const forecastDays = avgDailyCredits > 0 ? Math.floor(remaining / avgDailyCredits) : null;
+
+  // Month comparison — credits-vs-credits, same percentage either way.
+  const monthChange = lastMonthCredits > 0
+    ? ((monthCredits - lastMonthCredits) / lastMonthCredits * 100).toFixed(0)
     : null;
 
-  // Daily chart max
-  const dailyMax = Math.max(...data.daily.map(d => d.tokens), 1);
+  // Daily chart max — credits, drives bar heights.
+  const dailyMax = Math.max(...dailyCredits.map(d => d.credits), 1);
   const today = new Date().toISOString().slice(0, 10);
 
   return (
     <>
-      {/* Token Balance Bar */}
+      {/* Credit Balance Bar — billing-facing surface. The underlying
+          field name on the wire is still `tokens_*` for backwards-compat
+          but the values now reflect credits per the credits-redesign.
+          Section label uses an i18n key with a literal fallback so the
+          rename works even on locales that haven't translated the new
+          key yet. */}
       {data.balance && (
         <div className="mb-6">
-          <SectionGroup label={t('dash.usage.token_balance')}>
+          <SectionGroup label={t('dash.usage.credit_balance') !== 'dash.usage.credit_balance' ? t('dash.usage.credit_balance') : 'Credit Balance'}>
             <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
               {data.balance.tier === 'admin' ? (
                 <>
@@ -408,40 +613,61 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
         </div>
       )}
 
-      {/* Overview Stats */}
+      {/* Overview — credits. Same unit as the Credit Balance card so
+          the numbers connect. Tokens-per-credit ratio is anchored to
+          the user's actual billing rate (see tokensPerCredit derivation
+          above) so This Month here always agrees with the credits used
+          in the balance bar. Hover any value to see the underlying
+          token aggregate the conversion came from. */}
       <div className="mb-6">
         <SectionGroup label={t('dash.usage.overview')}>
           <div className="grid grid-cols-4 gap-3">
-            <StatCard label={t('dash.usage.this_month')} value={formatNumber(data.monthTotal)} sub={monthChange !== null ? `${Number(monthChange) >= 0 ? '+' : ''}${monthChange}% ${t('dash.usage.vs_last')}` : t('dash.usage.first_month')} />
-            <StatCard label={t('dash.usage.last_month')} value={formatNumber(data.lastMonthTotal)} />
-            <StatCard label={t('dash.usage.avg_session')} value={formatNumber(data.avgPerSession)} />
+            <StatCard
+              label={t('dash.usage.this_month')}
+              value={monthCredits.toLocaleString()}
+              sub={monthChange !== null ? `${Number(monthChange) >= 0 ? '+' : ''}${monthChange}% ${t('dash.usage.vs_last')}` : t('dash.usage.first_month')}
+              title={`${formatNumber(data.monthTotal)} raw tokens`}
+            />
+            <StatCard
+              label={t('dash.usage.last_month')}
+              value={lastMonthCredits.toLocaleString()}
+              title={`${formatNumber(data.lastMonthTotal)} raw tokens`}
+            />
+            <StatCard
+              label={t('dash.usage.avg_session')}
+              value={avgSessionCredits.toLocaleString()}
+              title={`${formatNumber(data.avgPerSession)} raw tokens`}
+            />
             <StatCard label={t('dash.usage.total_sessions')} value={String(data.totalSessions)} />
           </div>
         </SectionGroup>
       </div>
 
-      {/* Daily Usage Chart */}
+      {/* Daily Usage Chart — credits by day, anchored to the same
+          tokens-per-credit ratio used by the Overview cards. Bar height
+          is proportional to credits; tooltip shows credits with the
+          underlying token count in parentheses for transparency. */}
       <div className="mb-6">
         <SectionGroup label={t('dash.usage.daily_usage')}>
           <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
             <div className="flex items-end gap-1" style={{ height: 120 }}>
-              {data.daily.map((d) => {
-                const heightPct = dailyMax > 0 ? (d.tokens / dailyMax) * 100 : 0;
+              {dailyCredits.map((d) => {
+                const heightPct = dailyMax > 0 ? (d.credits / dailyMax) * 100 : 0;
                 const isToday = d.date === today;
                 const dayLabel = new Date(d.date + 'T00:00:00').toLocaleDateString(getLocale(), { day: 'numeric' });
 
                 return (
-                  <div key={d.date} className="flex flex-1 flex-col items-center gap-1" title={`${d.date}: ${formatNumber(d.tokens)} tokens`}>
+                  <div key={d.date} className="flex flex-1 flex-col items-center gap-1" title={`${d.date}: ${d.credits.toLocaleString()} credits (${formatNumber(d.tokens)} tokens)`}>
                     <div className="w-full flex items-end" style={{ height: 90 }}>
                       <div
                         className={`w-full rounded-t transition-all ${
                           isToday
                             ? 'bg-[var(--accent)]'
-                            : d.tokens > 0
+                            : d.credits > 0
                               ? 'bg-gradient-to-t from-[var(--gradient-start)] to-[var(--gradient-end)] opacity-70'
                               : 'bg-[var(--bg-input)]'
                         }`}
-                        style={{ height: `${Math.max(heightPct, d.tokens > 0 ? 4 : 2)}%`, minHeight: 2 }}
+                        style={{ height: `${Math.max(heightPct, d.credits > 0 ? 4 : 2)}%`, minHeight: 2 }}
                       />
                     </div>
                     <span className={`text-[8px] ${isToday ? 'text-[var(--accent)] font-bold' : 'text-[var(--text-muted)]'}`}>
@@ -465,12 +691,13 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
           <SectionGroup label={t('dash.usage.most_used_models')}>
             <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 space-y-3">
               {data.topModels.map((m) => {
+                const credits = tokensToCredits(m.tokens);
                 const pct = (m.tokens / data.topModels[0].tokens) * 100;
                 return (
-                  <div key={m.model}>
+                  <div key={m.model} title={`${formatNumber(m.tokens)} raw tokens`}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-medium truncate mr-3">{m.model}</span>
-                      <span className="text-[10px] text-[var(--text-muted)] shrink-0">{formatNumber(m.tokens)}</span>
+                      <span className="text-[10px] text-[var(--text-muted)] shrink-0">{credits.toLocaleString()} credits</span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
                       <div
@@ -561,9 +788,9 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
 
 // ─── Stat Card ───────────────────────────────────────────────────────────────
 
-function StatCard({ label, value, sub, highlight }: { label: string; value: string; sub?: string; highlight?: boolean }) {
+function StatCard({ label, value, sub, highlight, title }: { label: string; value: string; sub?: string; highlight?: boolean; title?: string }) {
   return (
-    <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
+    <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4" title={title}>
       <p className="text-[10px] text-[var(--text-muted)]">{label}</p>
       <p className={`mt-1 text-lg font-bold ${highlight ? 'bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] bg-clip-text text-transparent' : ''}`}>
         {value}
