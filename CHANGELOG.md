@@ -8,9 +8,6 @@ All notable changes to Ava Supernova will be documented in this file.
 - **Intent gate is now heuristic, not LLM-backed** — Maestro and Supernova used to pause 0.5–2 seconds before Ava began thinking on every turn while a Qwen Flash classifier categorised the user's message as task / conversational / ambiguous. The classifier ran synchronously before stream_start fired; on a slow round-trip it could time out at the full 2 seconds. The IDE never wired this gate at all and felt instant by comparison. Replaced the LLM call with a regex heuristic that produces the same labels at sub-millisecond cost — now matches the prompt's own examples 30/30 in a smoke test.
 - **IDE intent gate parity** — added the heuristic classifier to the IDE sidecar's shared state (it was previously absent entirely). Both surfaces now have the same conversational-style nudges with no per-turn latency penalty.
 
-### Bug fixes
-- **Creative Studio: silent post failures fixed** — long blog posts, multi-tweet X threads, and cross-post drops sometimes left Ava narrating "wrote it — see card →" with no card under it. Three converging causes: (a) the platform `/api/companion/chat` capped output at 2,048 tokens, which truncated `write_post` tool-call arguments mid-string for long content; (b) the resulting JSON-parse failures were silently swallowed; (c) failed `write_post` calls emitted no client-visible signal. Bumped the cap to 8,192 tokens for Creative Studio context, surfaced parse errors and `finish_reason === 'length'` as visible chat errors, and any `write_post` that returns without `ok: true` now renders a "Post draft failed" message instead of disappearing.
-
 ## Extension [0.41.0] - 2026-04-16
 
 ### Secret Vault — Capability Model
