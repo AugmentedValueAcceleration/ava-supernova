@@ -392,7 +392,7 @@ export interface UsageHistoryData {
   totalSessions: number;
 }
 
-export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'creative-studio' | 'library' | 'personality' | 'sync' | 'releases' | 'roadmap' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals' | 'planner' | 'account' | 'help' | 'documentation';
+export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'creative-studio' | 'library' | 'personality' | 'sync' | 'releases' | 'roadmap' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'admin_support' | 'admin_proposals' | 'planner' | 'account' | 'models' | 'help' | 'documentation';
 
 // ─── Chat UI Types ──────────────────────────────────────────────────────────
 
@@ -921,6 +921,8 @@ export type DashboardToExtMessage =
   | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllowCategory?: boolean; planSelection?: string; userResponse?: string }
   | { type: 'set_category_permission'; category: string; permission: string }
   | { type: 'request_audit_log' }
+  | { type: 'export_audit_log'; format: 'markdown' | 'json' }
+  | { type: 'export_full_account_data' }
   | { type: 'switch_model'; modelId: string }
   | { type: 'clear_chat' }
   | { type: 'cancel' }
