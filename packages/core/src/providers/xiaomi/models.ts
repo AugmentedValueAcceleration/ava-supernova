@@ -19,6 +19,7 @@ export const XIAOMI_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
+    desktopCapable: true, // Long-running-agent MoE — Xiaomi specifically pitched 1,000+ sequential tool calls.
     pricing: { inputPerMillion: 1.00, outputPerMillion: 3.00 },
   },
   {
@@ -31,6 +32,7 @@ export const XIAOMI_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: false,
     supportsVision: true,
+    desktopCapable: true,
     pricing: { inputPerMillion: 0.40, outputPerMillion: 2.00 },
   },
 ];

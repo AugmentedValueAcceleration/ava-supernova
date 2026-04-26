@@ -11,6 +11,7 @@ export const QWEN_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
+    desktopCapable: true,
     pricing: { inputPerMillion: 0.29, outputPerMillion: 1.70 },
   },
   {
@@ -23,6 +24,7 @@ export const QWEN_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
+    desktopCapable: true,
     pricing: { inputPerMillion: 0.26, outputPerMillion: 1.56 },
   },
   {
@@ -47,6 +49,7 @@ export const QWEN_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
+    desktopCapable: true,
     pricing: { inputPerMillion: 0.20, outputPerMillion: 1.20 },
   },
   {

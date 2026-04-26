@@ -116,6 +116,62 @@ export function Settings({
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
+  // Local / custom OpenAI-compatible provider state — Ollama, LM Studio, vLLM.
+  // Loads from the host on mount (it reads SecretStorage); writes go back
+  // through save_local_model / remove_local_model messages.
+  const [localBaseUrl, setLocalBaseUrl] = useState('');
+  const [localModelName, setLocalModelName] = useState('');
+  const [localApiKey, setLocalApiKey] = useState('');
+  const [localModelLabel, setLocalModelLabel] = useState('');
+  const [localHasSavedKey, setLocalHasSavedKey] = useState(false);
+  const [localSavedTick, setLocalSavedTick] = useState(0);
+
+  useEffect(() => {
+    post({ type: 'load_local_model' });
+    // Dashboard uses raw window.addEventListener('message') because App.tsx
+    // doesn't expose a subscribe() helper — each page handles its own
+    // message types directly. The host sends `local_model_loaded` once
+    // after every save / remove / load, so the UI always reflects the
+    // current SecretStorage state without polling.
+    const handler = (event: MessageEvent) => {
+      const msg = event.data;
+      if (msg && msg.type === 'local_model_loaded') {
+        setLocalBaseUrl(msg.baseUrl || '');
+        setLocalModelName(msg.modelName || '');
+        setLocalModelLabel(msg.modelLabel || '');
+        setLocalHasSavedKey(!!msg.hasApiKey);
+        // Don't echo the key back — leave the input blank when loaded.
+        setLocalApiKey('');
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const localIsConfigured = !!(localBaseUrl.trim() && localModelName.trim());
+
+  const handleSaveLocalModel = () => {
+    if (!localBaseUrl.trim() || !localModelName.trim()) return;
+    post({
+      type: 'save_local_model',
+      baseUrl: localBaseUrl.trim(),
+      modelName: localModelName.trim(),
+      apiKey: localApiKey.trim() || undefined,
+      modelLabel: localModelLabel.trim() || undefined,
+    });
+    setLocalSavedTick(t => t + 1);
+    setTimeout(() => setLocalSavedTick(t => t + 1), 1800);
+  };
+
+  const handleRemoveLocalModel = () => {
+    post({ type: 'remove_local_model' });
+    setLocalBaseUrl('');
+    setLocalModelName('');
+    setLocalApiKey('');
+    setLocalModelLabel('');
+    setLocalHasSavedKey(false);
+  };
+
   function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -531,6 +587,121 @@ export function Settings({
           onChange={v => saveImmediate('language', v)}
           options={LANGUAGES}
         />
+      </div>
+
+      {/* ── 5b. Custom OpenAI-compatible model — local or remote ────────────
+            Covers Ollama / LM Studio / vLLM on your machine AND BYOM cases:
+            private vLLM clusters, self-hosted finetunes, OpenRouter,
+            Together, anything that speaks the OpenAI Chat Completions API.
+            Restart the chat panel after saving so AvaViewProvider re-reads
+            SecretStorage and registers the generic provider with the new
+            baseUrl + model name. */}
+      <SectionLabel>Custom Model</SectionLabel>
+      <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+        <div className="flex items-start gap-3">
+          <span className="text-[22px]">🦙</span>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold">Custom model — Ollama, LM Studio, vLLM, or any OpenAI-compatible endpoint</p>
+              {localIsConfigured && (
+                <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-400 border border-emerald-500/30">
+                  Configured
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              Point Ava at any model — local (Ollama, LM Studio, vLLM on your machine) or remote (private vLLM cluster,
+              self-hosted finetune, OpenRouter, Together, anything that speaks the OpenAI Chat Completions API).
+              Local servers stay on your machine; remote endpoints get whatever security your endpoint exposes.
+              Restart the chat panel after saving for changes to take effect.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <div className="col-span-2">
+            <p className="mb-1 text-xs font-medium">Base URL</p>
+            <input
+              value={localBaseUrl}
+              onChange={e => setLocalBaseUrl(e.target.value)}
+              placeholder="http://localhost:11434/v1"
+              spellCheck={false}
+              className="w-full rounded-md border border-[var(--border-input)] bg-[var(--bg-input)] px-3 py-1.5 font-mono text-xs text-white placeholder-[var(--text-muted)] outline-none transition focus:border-[var(--accent)]"
+            />
+            <p className="mt-1 text-[10px] text-[var(--text-muted)]">
+              Ollama: <code className="text-white">http://localhost:11434/v1</code>. LM Studio: <code className="text-white">http://localhost:1234/v1</code>.
+              Remote: <code className="text-white">https://your-host/v1</code>.
+            </p>
+          </div>
+
+          <div>
+            <p className="mb-1 text-xs font-medium">Model name</p>
+            <input
+              value={localModelName}
+              onChange={e => setLocalModelName(e.target.value)}
+              placeholder="qwen2.5-coder:7b"
+              spellCheck={false}
+              className="w-full rounded-md border border-[var(--border-input)] bg-[var(--bg-input)] px-3 py-1.5 font-mono text-xs text-white placeholder-[var(--text-muted)] outline-none transition focus:border-[var(--accent)]"
+            />
+            <p className="mt-1 text-[10px] text-[var(--text-muted)]">
+              Exact id your server reports (e.g. <code className="text-white">ollama list</code>).
+            </p>
+          </div>
+
+          <div>
+            <p className="mb-1 text-xs font-medium">Display name <span className="text-[var(--text-muted)] font-normal">(optional)</span></p>
+            <input
+              value={localModelLabel}
+              onChange={e => setLocalModelLabel(e.target.value)}
+              placeholder="Defaults to the model name"
+              spellCheck={false}
+              className="w-full rounded-md border border-[var(--border-input)] bg-[var(--bg-input)] px-3 py-1.5 font-mono text-xs text-white placeholder-[var(--text-muted)] outline-none transition focus:border-[var(--accent)]"
+            />
+            <p className="mt-1 text-[10px] text-[var(--text-muted)]">
+              What you'll see in the chat model picker.
+            </p>
+          </div>
+
+          <div className="col-span-2">
+            <p className="mb-1 text-xs font-medium">API key <span className="text-[var(--text-muted)] font-normal">(optional — leave empty for local servers)</span></p>
+            <input
+              type="password"
+              value={localApiKey}
+              onChange={e => setLocalApiKey(e.target.value)}
+              placeholder={localHasSavedKey ? '•••••••• (saved — re-enter to change)' : "Most local servers don't require one"}
+              spellCheck={false}
+              autoComplete="off"
+              className="w-full rounded-md border border-[var(--border-input)] bg-[var(--bg-input)] px-3 py-1.5 font-mono text-xs text-white placeholder-[var(--text-muted)] outline-none transition focus:border-[var(--accent)]"
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center gap-2">
+          <button
+            onClick={handleSaveLocalModel}
+            disabled={!localBaseUrl.trim() || !localModelName.trim()}
+            className="rounded-md bg-[var(--accent)] px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {localSavedTick % 2 === 1 ? 'Saved ✓' : 'Save'}
+          </button>
+          {localIsConfigured && (
+            <button
+              onClick={handleRemoveLocalModel}
+              className="rounded-md border border-red-500/30 px-3 py-1.5 text-[11px] font-medium text-red-400 transition hover:bg-red-500/10"
+            >
+              Remove
+            </button>
+          )}
+          <span className="flex-1" />
+          <a
+            href="https://ollama.com/download"
+            target="_blank"
+            rel="noreferrer"
+            className="text-[10px] text-[var(--text-muted)] transition hover:text-[var(--text-secondary)]"
+          >
+            Get Ollama →
+          </a>
+        </div>
       </div>
 
       {/* ── 6. API Keys (collapsible) ───────────────────────────────────── */}

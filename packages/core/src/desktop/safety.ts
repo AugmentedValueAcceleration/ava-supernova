@@ -212,6 +212,55 @@ export function classifyAction(input: ActionClassificationInput): Classification
   return { riskClass: maxClass, reasons, requiresSecretHandle };
 }
 
+// ── Plan-step text classifier ─────────────────────────────────────────────
+//
+// classifyAction() is for live actions where Ava already has the resolved
+// targetName / targetType / isMaskedField from UIA. Plan steps are different:
+// at plan-approval time the steps are plain-English descriptions, not yet
+// resolved to UIA elements. This classifier scans the description text for
+// the same irreversibility / privileged signals so the IDE plan card can
+// render an accurate per-step risk badge — operators shouldn't have to
+// read each step word-by-word to spot the destructive one buried at #4.
+//
+// Conservative by design: irreversibility wins over reversibility, privileged
+// wins over irreversible. Default is mutative-reversible (a step in a plan
+// is, by definition, an action — not observational or navigational).
+//
+// English-only for v1, same as IRREVERSIBLE_VERBS — documented limitation.
+export function classifyPlanStep(description: string): { riskClass: RiskClass; reasons: string[] } {
+  const reasons: string[] = [];
+  if (!description || description.trim().length === 0) {
+    return { riskClass: 'mutative-reversible', reasons: ['empty step description — defaulted to reversible'] };
+  }
+
+  // Privileged context wins outright — UAC, registry, sudo, etc.
+  for (const pattern of PRIVILEGED_PATTERNS) {
+    if (pattern.test(description)) {
+      reasons.push(`privileged context (${pattern.source})`);
+      return { riskClass: 'privileged', reasons };
+    }
+  }
+
+  // Sensitive field mention in the description (typing into a password
+  // field, capturing a credential) → irreversible + secret-handle required
+  // territory; we surface it as irreversible to make the badge stand out.
+  if (SENSITIVE_FIELD_PATTERN.test(description)) {
+    reasons.push('mentions credential / sensitive field');
+    return { riskClass: 'mutative-irreversible', reasons };
+  }
+
+  // Irreversible verb scan — same blocklist the live classifier uses.
+  for (const verb of IRREVERSIBLE_VERBS) {
+    const pattern = new RegExp(`\\b${verb}\\b`, 'i');
+    if (pattern.test(description)) {
+      reasons.push(`contains irreversible verb "${verb}"`);
+      return { riskClass: 'mutative-irreversible', reasons };
+    }
+  }
+
+  return { riskClass: 'mutative-reversible', reasons: [] };
+}
+
 // ── Approval logic ────────────────────────────────────────────────────────
 
 export interface ApprovalDecision {

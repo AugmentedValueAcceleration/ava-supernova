@@ -135,6 +135,27 @@ export interface ModelDefinition {
   supportsStreaming: boolean;
   supportsThinking?: boolean;
   supportsVision?: boolean;
+  /**
+   * Desktop-automation suitability flag — IDE-only.
+   *
+   * Desktop mode fires many short tool calls in fast succession, each one
+   * capable of clicking, typing, or launching something with real-world
+   * consequences. The model must (a) format tool-call arguments reliably
+   * with no field drops or hallucinated structures, (b) emit native
+   * `tool_calls` (not text-format), and (c) respond fast enough that a
+   * 6-step plan doesn't feel like watching paint dry.
+   *
+   * Set true on coordinators that have proven all three. Smaller / faster
+   * models (Qwen Flash, Qwen Omni Flash) are great for chat-light turns
+   * but drop tool-call args under load; they should never be the active
+   * coordinator while reaching out to the user's screen. Media models
+   * (MiniMax) aren't agentic coordinators at all.
+   *
+   * The IDE filters the desktop-mode picker on this flag and prompts the
+   * operator to switch when entering desktop mode on an incompatible model.
+   * Default false / omitted — opt in per model.
+   */
+  desktopCapable?: boolean;
   pricing?: {
     inputPerMillion: number;
     outputPerMillion: number;

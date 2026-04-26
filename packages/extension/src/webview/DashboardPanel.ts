@@ -231,6 +231,18 @@ export class DashboardPanel {
         await this.removeProviderKey(msg.provider);
         break;
 
+      case 'save_local_model':
+        await this.saveLocalModel(msg.baseUrl, msg.modelName, msg.apiKey, msg.modelLabel);
+        break;
+
+      case 'remove_local_model':
+        await this.removeLocalModel();
+        break;
+
+      case 'load_local_model':
+        await this.loadLocalModel();
+        break;
+
       case 'load_memories':
         await this.loadMemories();
         // Also send v3 graph stats, contradictions, patterns, and brain
@@ -1729,6 +1741,55 @@ export class DashboardPanel {
       await this.secrets.delete(secretKey);
     }
     this.post({ type: 'provider_keys_updated', providerKeys: await this.getProviderKeyStatus() });
+  }
+
+  // ─── Local / custom OpenAI-compatible model ───────────────────────────────
+  // Ollama, LM Studio, vLLM, or any other server that speaks the OpenAI Chat
+  // Completions API. Four SecretStorage entries; AvaViewProvider reads them
+  // at session init and registers a GenericProvider with a one-entry models
+  // list pointing at whatever the operator has running locally.
+
+  private async saveLocalModel(
+    baseUrl: string,
+    modelName: string,
+    apiKey?: string,
+    modelLabel?: string,
+  ): Promise<void> {
+    if (baseUrl?.trim()) {
+      await this.secrets.store('ava-supernova.provider.local.baseUrl', baseUrl.trim());
+    }
+    if (modelName?.trim()) {
+      await this.secrets.store('ava-supernova.provider.local.modelName', modelName.trim());
+    }
+    // Empty apiKey is meaningful — it removes any prior value rather than
+    // leaving stale auth in storage.
+    if (apiKey && apiKey.trim()) {
+      await this.secrets.store('ava-supernova.provider.local.apiKey', apiKey.trim());
+    } else {
+      await this.secrets.delete('ava-supernova.provider.local.apiKey');
+    }
+    if (modelLabel && modelLabel.trim()) {
+      await this.secrets.store('ava-supernova.provider.local.modelLabel', modelLabel.trim());
+    } else {
+      await this.secrets.delete('ava-supernova.provider.local.modelLabel');
+    }
+    await this.loadLocalModel();
+  }
+
+  private async removeLocalModel(): Promise<void> {
+    await this.secrets.delete('ava-supernova.provider.local.baseUrl');
+    await this.secrets.delete('ava-supernova.provider.local.modelName');
+    await this.secrets.delete('ava-supernova.provider.local.apiKey');
+    await this.secrets.delete('ava-supernova.provider.local.modelLabel');
+    await this.loadLocalModel();
+  }
+
+  private async loadLocalModel(): Promise<void> {
+    const baseUrl = (await this.secrets.get('ava-supernova.provider.local.baseUrl')) || '';
+    const modelName = (await this.secrets.get('ava-supernova.provider.local.modelName')) || '';
+    const apiKey = (await this.secrets.get('ava-supernova.provider.local.apiKey')) || '';
+    const modelLabel = (await this.secrets.get('ava-supernova.provider.local.modelLabel')) || '';
+    this.post({ type: 'local_model_loaded', baseUrl, modelName, hasApiKey: !!apiKey, modelLabel });
   }
 
   // ─── Conversations (History) ────────────────────────────────────────────────

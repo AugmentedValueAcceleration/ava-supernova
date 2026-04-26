@@ -18,9 +18,14 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
+    desktopCapable: true, // Default Maestro coordinator. Reliable tool calls, fast enough.
     pricing: { inputPerMillion: 0.29, outputPerMillion: 1.70 },
   },
-  // MiniMax M2.7 — self-evolving, premium reasoning, fewer hallucinations
+  // MiniMax M2.7 — self-evolving, premium reasoning, fewer hallucinations.
+  // Not flagged desktop-capable: MiniMax models are tuned for Creative
+  // Studio media tasks, not for the high-frequency tool-call cadence of
+  // desktop automation; tool-call reliability under sequential desktop_*
+  // calls hasn't been characterised.
   {
     id: 'MiniMax-M2.7',
     name: 'MiniMax M2.7',
@@ -57,9 +62,13 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
+    desktopCapable: true, // Multimodal coordinator with reliable tool calls.
     pricing: { inputPerMillion: 0.26, outputPerMillion: 1.56 },
   },
-  // Qwen 3.5 Omni Flash — multimodal fast-path (vision + audio)
+  // Qwen 3.5 Omni Flash — multimodal fast-path (vision + audio).
+  // Not desktop-capable: Flash variants drop tool-call args under
+  // sequential pressure; fine for chat / single-shot, brittle for the
+  // multi-call desktop_* cadence.
   {
     id: 'qwen3.5-omni-flash',
     name: 'Qwen 3.5 Omni Flash',
@@ -82,9 +91,11 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
+    desktopCapable: true, // Solid coordinator on the older Qwen line; works.
     pricing: { inputPerMillion: 0.20, outputPerMillion: 1.20 },
   },
-  // Qwen 3.5 Flash — fast, lightweight, text-only
+  // Qwen 3.5 Flash — fast, lightweight, text-only.
+  // Not desktop-capable: same reasoning as Omni Flash above.
   {
     id: 'qwen3.5-flash',
     name: 'Qwen 3.5 Flash',
@@ -111,9 +122,12 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: false,
+    desktopCapable: true, // Supernova coordinator. Frontier tool-call reliability.
     pricing: { inputPerMillion: 1.74, outputPerMillion: 3.48 },
   },
   // DeepSeek V4 Flash (managed) — admin-gated. 284B / 13B active. 1M ctx.
+  // Not desktop-capable: Flash bracket on the V4 line, same caution as
+  // Qwen Flash family.
   {
     id: 'deepseek-v4-flash-platform',
     name: 'DeepSeek V4 Flash',

@@ -160,6 +160,28 @@ function looksLikePostToolDrift(content: string, toolCallCount: number): boolean
   return GREETING_PATTERNS.some(p => p.test(lower));
 }
 
+// Tools that are only valid in desktop mode. The corresponding entries
+// appear inside MODE_ALLOWED_TOOLS.desktop, but they're tracked here as a
+// flat set for the no-prefix default path (work / code turns where a
+// mode prefix wasn't applied) — those turns must still keep desktop-only
+// tools out of the schema, because the model otherwise hallucinates
+// desktop_click_by_name in the middle of a coding session and the
+// safety gate has to swallow the noise.
+const DESKTOP_ONLY_TOOLS: Set<string> = new Set([
+  'desktop_plan_approve',
+  'desktop_launch_app',
+  'desktop_list_elements',
+  'desktop_click_by_name',
+  'desktop_focus_window',
+  'desktop_type',
+  'desktop_key_press',
+  'browser_navigate',
+  'browser_snapshot',
+  'browser_click',
+  'browser_type',
+  'browser_close',
+]);
+
 const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // Work mode — the bread-and-butter coding surface. Ships every turn
   // to users writing code, so the schema list is the single biggest
@@ -899,11 +921,23 @@ export class Agent {
     const useNativeTools = this.model.supportsToolCalls !== false;
     const allSchemas = this.toolRegistry.getSchemas();
 
-    // Mode-aware filtering: restrict tool schemas to only those allowed in the active mode
+    // Mode-aware filtering: restrict tool schemas to only those allowed in
+    // the active mode. When the user message lacks an explicit mode prefix
+    // (default work / code path on both surfaces), the per-mode allowlist
+    // can't apply — but we still need to keep desktop-only tools out of
+    // non-desktop turns, otherwise the model can hallucinate desktop_*
+    // calls in code mode and the gate noise leaks into a coding turn.
     const modeAllowed = detectedMode ? MODE_ALLOWED_TOOLS[detectedMode] : null;
-    const filteredSchemas = modeAllowed
-      ? allSchemas.filter(s => modeAllowed.has(s.function.name))
-      : allSchemas;
+    let filteredSchemas: ToolSchema[];
+    if (modeAllowed) {
+      filteredSchemas = allSchemas.filter(s => modeAllowed.has(s.function.name));
+    } else {
+      // No prefix detected. Filter only the desktop-only tools so the
+      // surgical leak closes without tightening any other tool the user
+      // may have been calling in unprefixed turns (journal_write, weather,
+      // etc. — those stay available exactly as before).
+      filteredSchemas = allSchemas.filter(s => !DESKTOP_ONLY_TOOLS.has(s.function.name));
+    }
 
     // Tools always available when the model supports them. Intent shapes
     // the response style via the nudge below, not via schema removal.

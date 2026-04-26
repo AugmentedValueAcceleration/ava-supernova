@@ -24,6 +24,16 @@ export type DesktopApprovalHandler = (
 
 export interface ActivePlanStep {
   description: string;
+  /**
+   * Per-step risk classification, computed by classifyPlanStep() at plan
+   * submission. Lets the IDE plan card render a per-step badge so the
+   * operator can spot a destructive verb buried in step 4 without having
+   * to read every line. Optional for back-compat with older sidecars
+   * that may have written plans before this field existed.
+   */
+  riskClass?: import('../desktop/safety.js').RiskClass;
+  /** Reasons the classifier produced this riskClass — same shape as ClassificationResult.reasons. */
+  reasons?: string[];
 }
 
 export interface ActivePlan {

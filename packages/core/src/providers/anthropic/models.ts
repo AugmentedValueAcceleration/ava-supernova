@@ -10,6 +10,7 @@ export const ANTHROPIC_MODELS: ModelDefinition[] = [
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsVision: true,
+    desktopCapable: true, // Anthropic flagship — strongest tool-call reliability we ship.
     pricing: { inputPerMillion: 5, outputPerMillion: 25 },
   },
   {
@@ -21,6 +22,7 @@ export const ANTHROPIC_MODELS: ModelDefinition[] = [
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsVision: true,
+    desktopCapable: true,
     pricing: { inputPerMillion: 5, outputPerMillion: 25 },
   },
   {
@@ -32,6 +34,7 @@ export const ANTHROPIC_MODELS: ModelDefinition[] = [
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsVision: true,
+    desktopCapable: true,
     pricing: { inputPerMillion: 3, outputPerMillion: 15 },
   },
   {
@@ -43,6 +46,7 @@ export const ANTHROPIC_MODELS: ModelDefinition[] = [
     supportsToolCalls: true,
     supportsStreaming: true,
     supportsVision: true,
+    desktopCapable: true, // Anthropic Haiku class clears the tool-call reliability bar despite the smaller bracket.
     pricing: { inputPerMillion: 1, outputPerMillion: 5 },
   },
 ];

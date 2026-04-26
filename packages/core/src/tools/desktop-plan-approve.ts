@@ -2,6 +2,7 @@ import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './ty
 import type { FunctionSchema } from '../providers/types.js';
 import type { DesktopApprovalHandler, ActivePlan, ActivePlanStep } from './desktop-safety-gate.js';
 import type { ClassificationResult } from '../desktop/safety.js';
+import { classifyPlanStep } from '../desktop/safety.js';
 
 const PLAN_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -69,9 +70,19 @@ export class DesktopPlanApproveTool implements Tool {
     if (!summary) return { success: false, output: 'summary is required.' };
     if (!rawSteps || rawSteps.length === 0) return { success: false, output: 'steps is required and must be non-empty.' };
 
+    // Drop empty descriptions, then classify each surviving step. The
+    // classifier reads the description text the model just wrote, so a
+    // step the model labelled as harmless but described as "Send the email"
+    // is flagged as irreversible regardless — Ava can't lie her way past it.
     const steps: ActivePlanStep[] = rawSteps
-      .map(s => ({ description: String(s?.description ?? '').trim() }))
-      .filter(s => s.description.length > 0);
+      .map(s => String(s?.description ?? '').trim())
+      .filter(description => description.length > 0)
+      .map(description => {
+        const classification = classifyPlanStep(description);
+        const step: ActivePlanStep = { description, riskClass: classification.riskClass };
+        if (classification.reasons.length > 0) step.reasons = classification.reasons;
+        return step;
+      });
     if (steps.length === 0) return { success: false, output: 'steps must contain at least one non-empty description.' };
     // Single-step plans are fine. They cost the user the same one click,
     // and the plan card is arguably more informative than a raw action

@@ -11,6 +11,7 @@ export const KIMI_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
+    desktopCapable: true, // Top BYOK coordinator. SoTA agentic coding tool-calling.
     pricing: { inputPerMillion: 0.95, outputPerMillion: 4.00 },
   },
   {
@@ -23,6 +24,7 @@ export const KIMI_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
+    desktopCapable: true,
     pricing: { inputPerMillion: 0.60, outputPerMillion: 3.00 },
   },
 ];

@@ -2,6 +2,13 @@
 
 All notable changes to Ava Supernova will be documented in this file.
 
+## Extension [0.53.0] - 2026-04-26
+
+### Custom Model — Ollama / LM Studio / vLLM / BYOM
+- **New "Custom Model" card in Settings** — point Ava at any model that speaks the OpenAI Chat Completions API. Local servers on your machine (Ollama, LM Studio, vLLM) and remote Bring-Your-Own-Model endpoints (private vLLM cluster, self-hosted finetune, OpenRouter, Together, anything with an OpenAI-compatible `/chat/completions`) all use the same flow. Three required fields (Base URL, Model name, optional Display name) plus an optional API key for endpoints that need bearer auth. The model appears in the chat picker after a panel reload.
+- **Privacy posture matches your endpoint** — local servers stay on your machine, no traffic leaves your network. Remote endpoints get whatever security your endpoint exposes (TLS, auth, etc.).
+- **Documentation updated** — in-app docs (Help / docs_lookup) and ava-supernova.com both now describe the Settings → Custom Model flow alongside the existing CLI config-file path.
+
 ## Extension [0.52.1] - 2026-04-26
 
 ### Performance — instant time-to-first-thinking on Maestro / Supernova

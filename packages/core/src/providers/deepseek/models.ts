@@ -23,6 +23,7 @@ export const DEEPSEEK_MODELS: ModelDefinition[] = [
     // when an image is attached; the UI uses this flag to gate the attach
     // button + show a "text only" badge in the picker.
     supportsVision: false,
+    desktopCapable: true, // V4 Pro = Supernova's coordinator. Frontier tool-call reliability.
     pricing: { inputPerMillion: 1.74, outputPerMillion: 3.48 },
   },
   {

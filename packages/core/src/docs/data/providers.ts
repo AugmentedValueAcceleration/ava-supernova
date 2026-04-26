@@ -108,6 +108,15 @@ export const PROVIDERS: ProviderFact[] = [
       { id: 'mimo-v2.5',     displayName: 'MiMo V2.5',     inputPricePerM: 0.40, outputPricePerM: 2.00, contextWindow: 1_048_576, capabilities: ['tools', 'vision', 'streaming'] },
     ],
   },
+  {
+    id: 'custom',
+    name: 'Custom (Ollama / LM Studio / vLLM / BYOM)',
+    kind: 'byok',
+    notes: 'Point Ava at any OpenAI-compatible endpoint — local (Ollama, LM Studio, vLLM on your machine) or remote (private vLLM cluster, self-hosted finetune, OpenRouter, Together). Configure via Settings → Custom Model in the extension or IDE. You supply the base URL + model name; capabilities depend entirely on what you have running.',
+    models: [
+      { id: 'custom', displayName: 'Your model', inputPricePerM: 0, outputPricePerM: 0, contextWindow: 32_000, capabilities: ['tools', 'streaming'] },
+    ],
+  },
 ];
 
 export const MANAGED_PROVIDERS = PROVIDERS.filter(p => p.kind === 'managed');

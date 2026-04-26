@@ -11,6 +11,7 @@ export const AVA_FREE_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
+    desktopCapable: true,
     pricing: { inputPerMillion: 0, outputPerMillion: 0 },
   },
   {
@@ -34,6 +35,7 @@ export const AVA_FREE_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
+    desktopCapable: true,
     pricing: { inputPerMillion: 0, outputPerMillion: 0 },
   },
   {
@@ -46,6 +48,7 @@ export const AVA_FREE_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
+    desktopCapable: true,
     pricing: { inputPerMillion: 0, outputPerMillion: 0 },
   },
   {

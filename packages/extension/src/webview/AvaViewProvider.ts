@@ -6,6 +6,7 @@ import {
   ToolRegistry,
   ProviderRegistry,
   PlatformProvider,
+  GenericProvider,
   HistoryManager,
   MemoryManager,
   TaskManager,
@@ -972,6 +973,43 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             this.log(`Provider ${registryKey} failed to register: ${err}`);
           }
         }
+      }
+
+      // ── Local / Custom OpenAI-compatible provider (Ollama, LM Studio, vLLM)
+      // Lets users point Ava at any locally-hosted model that speaks the
+      // OpenAI Chat Completions API. Stored as three SecretStorage entries:
+      //   - .baseUrl       (e.g. http://localhost:11434/v1 for Ollama)
+      //   - .apiKey        (often "ollama" or empty for local servers)
+      //   - .modelName     (e.g. qwen2.5-coder:7b — the id Ollama serves)
+      //   - .modelLabel    (optional friendly name shown in the picker)
+      try {
+        const localBaseUrl = await this.context.secrets.get('ava-supernova.provider.local.baseUrl');
+        const localModelName = await this.context.secrets.get('ava-supernova.provider.local.modelName');
+        if (localBaseUrl && localModelName) {
+          const localApiKey = (await this.context.secrets.get('ava-supernova.provider.local.apiKey')) || 'local';
+          const localModelLabel = (await this.context.secrets.get('ava-supernova.provider.local.modelLabel')) || localModelName;
+          // Build a one-entry models list for the registered local model.
+          // Conservative defaults — Ollama models vary widely, the operator
+          // can tune these later if a specific local model needs more.
+          const localModel = {
+            id: localModelName,
+            name: localModelLabel,
+            provider: 'generic',
+            contextWindow: 32000,
+            maxOutputTokens: 4096,
+            supportsToolCalls: true,
+            supportsStreaming: true,
+          };
+          const localProvider = new GenericProvider({
+            apiKey: localApiKey,
+            baseUrl: localBaseUrl,
+            models: [localModel],
+          });
+          this.providerRegistry.registerCustom('generic', localProvider);
+          this.log(`Local provider registered: ${localModelName} @ ${localBaseUrl}`);
+        }
+      } catch (err) {
+        this.log(`Local provider failed to register: ${err}`);
       }
 
       // ── Platform account provider ───────────────────────────────────────────

@@ -599,6 +599,11 @@ export type ExtToDashboardMessage =
       min_trajectory_length: number;
     } }
   | { type: 'provider_keys_updated'; providerKeys: ProviderKeyStatus }
+  // Round-trip for the Local / custom OpenAI-compatible provider settings.
+  // baseUrl + modelName empty == not configured. hasApiKey is a boolean
+  // (don't echo the raw key back to the webview — the dashboard renders
+  // bullets to indicate "configured" without exposing the value).
+  | { type: 'local_model_loaded'; baseUrl: string; modelName: string; hasApiKey: boolean; modelLabel: string }
   | { type: 'sync_prefs_loaded'; prefs: Record<string, boolean> }
   | { type: 'memories_loaded'; memories: MemoryEntry[]; total?: number; hasMore?: boolean }
   | { type: 'memories_more_loaded'; memories: MemoryEntry[]; total?: number; hasMore?: boolean }
@@ -777,6 +782,12 @@ export type DashboardToExtMessage =
   | { type: 'cancel_sign_in' }
   | { type: 'save_provider_key'; provider: string; apiKey: string }
   | { type: 'remove_provider_key'; provider: string }
+  // Local / custom OpenAI-compatible provider — Ollama, LM Studio, vLLM.
+  // baseUrl + modelName are the required fields; apiKey + modelLabel
+  // are optional. Empty / missing string clears the value.
+  | { type: 'save_local_model'; baseUrl: string; modelName: string; apiKey?: string; modelLabel?: string }
+  | { type: 'remove_local_model' }
+  | { type: 'load_local_model' }
   | { type: 'load_memories' }
   | { type: 'load_more_memories' }
   | { type: 'delete_memory'; id: string }

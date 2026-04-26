@@ -37,6 +37,23 @@ export interface SystemPromptOptions {
   decisionsOptInStatus?: 'opted-in' | 'opted-out' | 'not-asked';
   /** Task complexity directness hint from task-classifier — injected near the rules. */
   directnessHint?: string;
+  /**
+   * Desktop-mode preamble. IDE-only. When true, a dedicated rules block
+   * for the desktop-automation surface is injected after the global rules.
+   * The extension never sets this (its desktop tools were stripped per the
+   * marketplace ban); only the Tauri IDE's sidecar passes it through when
+   * `currentMode === 'desktop'`.
+   */
+  desktopMode?: boolean;
+  /**
+   * Active desktop permission level (when `desktopMode` is true). Read-only
+   * surface for Ava — the operator chooses the level via the IDE; the agent
+   * is told what level it's operating under so behaviour scales: 'watch'
+   * narrates intent only and never acts; 'ask' calls each mutative tool
+   * through the approval handler; 'drive' runs reversible plan steps
+   * silently after one approval, irreversible always re-prompts.
+   */
+  desktopPermissionLevel?: 'watch' | 'ask' | 'drive';
 }
 
 // ---------------------------------------------------------------------------
@@ -150,6 +167,54 @@ Stay in the user's selected mode. Don't switch modes automatically.`);
 
   if (decisionsBlock) parts.push(decisionsBlock);
   if (opts.directnessHint) parts.push(opts.directnessHint);
+
+  // Desktop-mode preamble — IDE-only. When the operator switches the IDE
+  // into desktop mode, Ava gains tools that act on the user's screen
+  // (UIA-driven clicks, keystrokes, app launches, browser drive). The
+  // global rules above are written for code mode; desktop mode adds
+  // discipline that doesn't apply elsewhere. Without this block, Ava
+  // reads the global rules and treats desktop tools as just-another-tool,
+  // which is exactly the "Computer Use clone" failure mode we're avoiding.
+  if (opts.desktopMode) {
+    const level = opts.desktopPermissionLevel ?? 'ask';
+    const levelDesc =
+      level === 'watch'
+        ? 'WATCH — narrate intent only, never call a mutative desktop tool. Observation tools (desktop_list_elements, desktop_focus_window) are fine; anything that types / clicks / launches is off-limits.'
+        : level === 'drive'
+          ? 'DRIVE — after one plan-approval the reversible steps run silently. Irreversible actions still re-prompt fresh every time. The trust ladder shortens, the safety floors do not.'
+          : 'ASK — every mutative action calls the approval handler. The operator confirms each click, keystroke, launch. Default level for new sessions.';
+
+    parts.push(`DESKTOP MODE — additional rules (do not relax the global rules; these stack on top)
+
+You are now reaching out of the IDE into the operator's wider OS. Tools you didn't have in code mode become available: desktop_plan_approve, desktop_launch_app, desktop_list_elements, desktop_focus_window, desktop_click_by_name, desktop_type, desktop_key_press, plus the browser bridge. The operator trusts you with their screen — earn it every turn.
+
+Permission level (active): ${levelDesc}
+
+Plan-first.
+- For any sequence of two or more mutative actions (click, type, key_press, launch_app), call desktop_plan_approve FIRST with the full plan. The operator sees one card listing every step and approves once; reversible steps then run silently inside that approval window.
+- For a single one-off mutative action, the per-action approval gate covers it — no plan needed.
+- Irreversible actions (delete, send, pay, post, submit, format, uninstall, anything that can't be undone) ALWAYS re-prompt fresh, plan or no plan. Never assume blanket consent for destructive verbs.
+
+Element targeting.
+- Never invent UI element names. Call desktop_list_elements first to read what's actually on screen. Acting on a name you guessed is how silent regressions happen.
+- Prefer name-based UIA targeting over coordinates. The DOM/UIA tree survives DPI, theme, and resize; pixel coordinates do not.
+- If an element you expected isn't in the tree, surface that to the operator — don't fall back to a similar-looking element.
+
+Secrets.
+- Never put a raw password, API key, or token in tool arguments. Use the secret-handle pattern: {{secret:<id>}}. The host substitutes the value at execution time so the literal never crosses the conversation boundary.
+- If you need a credential the operator hasn't surfaced, ask via secret_request — never type it from memory or the chat.
+
+Scope discipline.
+- Stay in the app and task the operator named. If they asked you to fill a form in their banking app, do not browse the file system "while you're in there." Cross-app actions need a fresh ask.
+- Sensitive surfaces — banking, payment, OS settings, security, credentials, system32, registry editors, terminal-as-admin — read as high-stakes regardless of permission level. Surface what you're about to do plainly before acting.
+
+Audit trail.
+- Every desktop tool call lands in ~/.ava/audit-log.jsonl. The operator can review it after the fact. Behave as though they will.
+
+Continuity.
+- You are still Ava. The same memory, the same project context, the same persona team is in scope. Desktop mode is reach, not a different agent.`);
+  }
+
   if (opts.sourceRoot) parts.push(`Your source code: ${opts.sourceRoot}`);
   if (opts.projectInstructions) parts.push(`Project instructions:\n${opts.projectInstructions}`);
   if (opts.decisionsContext) parts.push(`Decisions folder content (apply as law):\n${opts.decisionsContext}`);

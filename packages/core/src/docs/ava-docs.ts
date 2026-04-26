@@ -55,7 +55,7 @@ Download the installer from the Ava Supernova GitHub releases page.
   // ── Models ────────────────────────────────────────────────────────────────
   {
     topic: 'models',
-    keywords: ['model', 'provider', 'claude', 'deepseek', 'kimi', 'glm', 'qwen', 'mistral', 'anthropic', 'moonshot', 'zhipu', 'alibaba', 'ollama', 'local', 'lm studio', 'pricing', 'cost', 'token', 'vision'],
+    keywords: ['model', 'provider', 'claude', 'deepseek', 'kimi', 'glm', 'qwen', 'mistral', 'anthropic', 'moonshot', 'zhipu', 'alibaba', 'ollama', 'local', 'lm studio', 'vllm', 'byom', 'custom', 'self-hosted', 'openrouter', 'together', 'pricing', 'cost', 'token', 'vision'],
     title: 'Supported Models',
     content: `# Supported Models
 
@@ -97,19 +97,33 @@ All models work on every plan. Use the managed service or bring your own API key
 | Codestral | Code-focused, 256K context | $0.30 in / $0.90 out |
 | Devstral 2 | Agentic coding specialist, 262K | $0.40 in / $2.00 out |
 
-## Local Models (Ollama / LM Studio)
-You can connect any locally hosted model by adding a custom \`baseUrl\` in your provider settings:
+## Custom Models — Local (Ollama / LM Studio / vLLM) + BYOM (any OpenAI-compatible endpoint)
+
+Ava ships first-class support for any model that speaks the OpenAI Chat Completions API. That covers:
+- **Local servers** running on your machine: Ollama, LM Studio, vLLM
+- **Remote BYOM**: your private vLLM cluster, self-hosted finetune, OpenRouter, Together, or any other OpenAI-compatible endpoint
+
+### Extension or IDE
+Open **Settings → Custom Model**. Three required fields:
+- **Base URL** — e.g. \`http://localhost:11434/v1\` (Ollama), \`http://localhost:1234/v1\` (LM Studio), or \`https://your-host/v1\` (remote).
+- **Model name** — the exact id your endpoint reports (\`ollama list\` shows them, e.g. \`qwen2.5-coder:7b\`).
+- **API key** — optional. Local servers usually don't need one. Remote endpoints take whatever bearer token they expect.
+- **Display name** — optional. What shows in the chat model picker. Defaults to the model name.
+
+Save → restart the chat panel → your model appears in the picker.
+
+### CLI
+Edit \`~/.ava/config.json\`:
 \`\`\`json
 {
   "providers": {
-    "deepseek": {
-      "apiKey": "sk-...",
+    "generic": {
+      "apiKey": "ollama",
       "baseUrl": "http://localhost:11434/v1"
     }
   }
 }
 \`\`\`
-This works with Ollama, LM Studio, vLLM, or any OpenAI-compatible API endpoint.
 
 ## Switching Models
 - **CLI**: Use \`/model\` to list models, \`/model <id>\` to switch
@@ -519,14 +533,24 @@ Open the Dashboard (Ctrl+Shift+D) to configure providers, preferences, and your 
 | GLM (Zhipu AI / Z.AI) | (varies) | z.ai |
 | Qwen (Alibaba) | sk-... | dashscope.console.aliyun.com |
 | Mistral AI | (varies) | console.mistral.ai |
+| Xiaomi MiMo | (varies) | api.mimo.xiaomi.com |
+| **Custom / BYOM** | n/a | any OpenAI-compatible endpoint |
 
-## Custom Provider (Ollama / LM Studio)
-Add a \`baseUrl\` to connect to any locally hosted model:
+## Custom Model — Local (Ollama / LM Studio / vLLM) + BYOM
+Extension and IDE: **Settings → Custom Model**. Fields:
+- Base URL (e.g. \`http://localhost:11434/v1\` for Ollama, or \`https://your-host/v1\` for remote BYOM)
+- Model name (the exact id your endpoint serves)
+- API key (optional — local servers usually don't need one)
+- Display name (optional)
+
+Restart the chat panel after saving. Your model appears in the chat model picker.
+
+CLI alternative — edit \`~/.ava/config.json\`:
 \`\`\`json
 {
   "providers": {
-    "deepseek": {
-      "apiKey": "sk-...",
+    "generic": {
+      "apiKey": "ollama",
       "baseUrl": "http://localhost:11434/v1"
     }
   }

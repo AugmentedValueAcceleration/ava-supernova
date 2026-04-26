@@ -11,6 +11,7 @@ export const ZHIPU_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
+    desktopCapable: true,
     pricing: { inputPerMillion: 1.00, outputPerMillion: 3.20 },
   },
   {
