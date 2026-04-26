@@ -1,138 +1,156 @@
 /**
- * Intent Classifier — Qwen Flash gate between user input and tool use.
+ * Intent Classifier — heuristic gate between user input and tool use.
  *
  * Runs once per user message (at the top of agent.run) and returns one
- * of three labels. The result drives whether tool schemas are exposed
- * to the coordinator model for that turn.
+ * of three labels. The result drives a "Style note" injected into the
+ * system prompt for that turn — conversational/ambiguous classifications
+ * nudge the model toward worded replies; task classifications leave
+ * tool-use posture unchanged.
  *
- * Why this exists:
- *   Without a gate, every user message triggers tool-use reasoning.
- *   Short conversational messages ("whats the issue", "really?",
- *   "what do you think") end up firing grep/bash/file_read when the
- *   user wanted an answer in words. The classifier puts a cheap
- *   permission check above the coordinator — *should this turn use
- *   tools at all* — so authority lives above the model, not inside
- *   the prompt.
+ * Why heuristic rather than LLM:
+ *   The previous implementation called Qwen Flash on every turn — ~50
+ *   tokens in, 1 token out, with a 2-second timeout. On the extension
+ *   surface that round-trip ran *before* stream_start fired, so users saw
+ *   a 0.5–2 second pause before Ava began thinking. The IDE sidecar
+ *   never wired the classifier and felt instant by comparison.
+ *
+ *   The classification task is binary-ish — most messages fall cleanly
+ *   into "verb-led imperative" or "short reaction / meta-question" with
+ *   no genuine ambiguity. A regex set captures the same signal at sub-
+ *   millisecond cost, runs identically on both surfaces, and removes the
+ *   only synchronous LLM hop on the per-turn hot path.
  *
  * Labels:
  *   task          — user wants concrete action (code, commands, build)
  *   conversational — user is talking, asking, reacting, giving feedback
- *   ambiguous     — unclear, default to conversational (respond first)
+ *   ambiguous     — empty input only; everything else defaults to task
+ *                   (the LLM prompt's own rule: "When in doubt, classify
+ *                   task. A false 'task' on a chatty message wastes one
+ *                   turn; a false 'conversational' on a real task blocks
+ *                   tools and produces broken output.")
  *
- * Cost: ~50 tokens in, 1 token out. ~$0.00005 per classification on
- * Qwen Flash. Far cheaper than a single mistaken file_read on the
- * coordinator (~$0.005).
+ * Cost: 0 tokens, 0 RPCs. Same shape as the previous classifier — same
+ * call site, same async return type, same UserIntent labels — so the
+ * agent's intent-gate code at agent.ts is unchanged.
  */
 
 import type { Provider } from '../providers/types.js';
 import type { ModelDefinition } from '../core/types.js';
-import { logger } from '../core/logger.js';
-import { chargeCredits, extractUsage } from '../billing/meter.js';
 
 export type UserIntent = 'task' | 'conversational' | 'ambiguous';
 
 export interface IntentClassifierOptions {
-  provider: Provider;
-  model: ModelDefinition;
-  /** Classification timeout in ms. Defaults to 2000. */
+  /** Retained for API compatibility — the heuristic classifier ignores it. */
+  provider?: Provider;
+  /** Retained for API compatibility — the heuristic classifier ignores it. */
+  model?: ModelDefinition;
+  /** Retained for API compatibility — no network call to time out. */
   timeoutMs?: number;
 }
 
-const CLASSIFY_PROMPT = `You are classifying user messages sent to an AI coding agent. Output exactly one word, no punctuation, no explanation:
+// Pure reactions, fillers, meta-questions, continuation prompts, and
+// feedback on prior work. Each pattern is anchored or scoped tightly so
+// it doesn't catch verb-led imperatives that happen to start with the
+// same word ("ok fix this" → not conversational; "ok" alone → is).
+const CONVERSATIONAL_PATTERNS: readonly RegExp[] = [
+  // Standalone reactions / fillers
+  /^(really\??|wow|ok|okay|alright|cool|nice|sure|fine|got it)\W*$/i,
+  /^(hi|hello|hey|yo|sup|howdy)\b\W*$/i,
+  /^(thanks?|thank you|thx|ty|cheers|appreciated)\W*$/i,
+  /^(no thanks?|nah|yeah|yep|yes|nope|nvm|never ?mind)\W*$/i,
+  /^(hmm+|huh\??|oh\W?|ah+|aha|haha+|lol)\W*$/i,
+  // Meta-questions about the agent itself
+  /\bwhat (do|are|did) you think\b/i,
+  /\bwhat'?s your (take|opinion|view|sense)\b/i,
+  /\bwho are you\b/i,
+  /\bare you (sure|ok|okay|alright|there)\b/i,
+  // Continuation prompts
+  /^(go on|go ahead|continue|carry on|keep going|tell me more)\W*$/i,
+  // Reactions to prior work
+  /^(you('?re| are)\s+(right|wrong|correct))\b/i,
+  /^(that('?s| is)\s+(right|wrong|good|bad|cool|nice|fine|ok|okay|perfect|great))\b/i,
+];
 
-- task — user wants the agent to do something concrete in the codebase: write, fix, add, build, run, edit, launch, deploy, investigate, audit, review, analyse, check, scan, look at, take a look, assess, explore, find, debug, refactor, test, or any phrasing that implies agent action on files, commands, or the project
-- conversational — user is having a dialogue with the agent that needs a worded reply: asking about the agent itself, reacting ("really?", "ok", "hmm"), expressing frustration, giving feedback on prior work, thanking, greeting, or asking meta-questions
-- ambiguous — genuinely unclear, cannot tell from this message whether action is wanted
+// Imperative verbs that strongly imply concrete action on files / commands /
+// the project. The set mirrors the examples block of the prior LLM prompt.
+const TASK_VERBS =
+  '(fix|build|run|test|deploy|ship|create|add|remove|delete|edit|update|modify|refactor|investigate|audit|review|analy[sz]e|check|scan|find|debug|implement|write|make|install|rename|move|generate|search|inspect|explore|assess|spot|lint|format|migrate|patch|fork|clone|init|setup|configure|wire|hook|expose|merge|rebase|commit|push|pull|stash|revert|bump|publish|release)';
 
-Examples:
-- "take a look at the project and look for issues" → task (investigate/audit)
-- "assess the design" → task (analyse)
-- "can you review this code" → task
-- "fix the bug in App.tsx" → task
-- "whats the issue" → conversational (reaction/question about prior work)
-- "really?" → conversational
-- "no thanks" → conversational
-- "what do you think" → conversational
-- "ok go on" → conversational
+// Common preambles users put in front of a task verb. Matching against
+// this set lets "can you fix the bug" classify as task while keeping
+// short polite responses ("could you?", "please") from doing so.
+const TASK_VERB_AT_START = new RegExp(
+  `^(can you |could you |would you |please |let'?s |let us |i (need|want) you to |i'?d like you to )?${TASK_VERBS}\\b`,
+  'i',
+);
 
-When in doubt, classify task. A false "task" on a chatty message wastes one turn; a false "conversational" on a real task blocks tools and produces broken output. Conversational should require clear signals (questions about the agent, reactions, feedback, short replies).
+const TASK_AS_INFINITIVE = new RegExp(
+  `\\b(want to|need to|trying to|going to|gonna|let'?s|help me|gotta) ${TASK_VERBS}\\b`,
+  'i',
+);
 
-Output just one word: task, conversational, or ambiguous.`;
+// "Look at" / "take a look" / "peek at" — investigative task verbs not
+// covered by the simple verb list above because they're phrasal.
+const LOOK_AT_PATTERN = /\b(look (at|into)|take a (look|peek)|have a look|peek at|dig into)\b/i;
+
+// Code-context phrases that disambiguate borderline cases toward task.
+const CODE_CONTEXT_PATTERNS: readonly RegExp[] = [
+  /\b\w+\.(ts|tsx|js|jsx|mjs|cjs|py|rs|go|java|kt|swift|cpp|cc|c|h|hpp|md|json|yaml|yml|toml|css|scss|sass|html|xml|sh|bash|sql|prisma|graphql)\b/i,
+  /\b(package\.json|package-lock|pnpm-lock|yarn\.lock|node_modules|tsconfig|webpack|vite\.config|next\.config|tailwind\.config|README|Dockerfile|Makefile)\b/i,
+  /\b(the bug|this error|the issue|this code|the function|the class|the method|the file|the test|the build|the migration)\b/i,
+];
 
 export class IntentClassifier {
-  private provider: Provider;
-  private model: ModelDefinition;
-  private timeoutMs: number;
-
-  constructor(opts: IntentClassifierOptions) {
-    this.provider = opts.provider;
-    this.model = opts.model;
-    this.timeoutMs = opts.timeoutMs ?? 2000;
+  // Constructor accepts options purely for backwards compatibility with
+  // call sites that still pass provider/model/timeoutMs. None are read.
+  constructor(_opts: IntentClassifierOptions = {}) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    void _opts;
   }
 
+  // Async signature retained so the call site can still `await` it. The
+  // body is synchronous — there's no network hop, no timeout, no retry.
   async classify(userMessage: string): Promise<UserIntent> {
-    const trimmed = userMessage.trim();
+    return classifyHeuristic(userMessage);
+  }
+}
 
-    // Edge cases — skip the network call for trivially-classified messages.
-    if (!trimmed) return 'ambiguous';
+function classifyHeuristic(userMessage: string): UserIntent {
+  const trimmed = userMessage.trim();
 
-    // Very short messages are almost always conversational. Saves a call.
-    // (Length 6 chosen to cover "ok", "yes", "no", "wait", "stop" etc.
-    //  without catching one-word task requests like "test" or "build".)
-    if (trimmed.length <= 6 && !/^(test|build|run|fix|ship|start|launch)$/i.test(trimmed)) {
-      return 'conversational';
-    }
+  // Empty input — only true ambiguous case. Everything else defaults to
+  // task per the original prompt's "when in doubt" rule.
+  if (!trimmed) return 'ambiguous';
 
-    try {
-      const result = await this.classifyViaModel(trimmed);
-      return result;
-    } catch (err) {
-      // On any failure — timeout, provider error, parse error — default to
-      // `task` to preserve existing behaviour. Classification is a
-      // guard-rail enhancement, never a blocker.
-      logger.debug(`[intent] Classification failed, defaulting to task: ${err instanceof Error ? err.message : String(err)}`);
-      return 'task';
-    }
+  // Very short messages are almost always conversational. Length 6
+  // covers "ok", "yes", "no", "wait", "stop" etc. without catching
+  // one-word task requests like "test" or "build".
+  if (
+    trimmed.length <= 6 &&
+    !/^(test|build|run|fix|ship|start|launch|lint)$/i.test(trimmed)
+  ) {
+    return 'conversational';
   }
 
-  private async classifyViaModel(message: string): Promise<UserIntent> {
-    const promise = this.provider.createCompletion({
-      model: this.model.id,
-      messages: [
-        { role: 'system' as const, content: CLASSIFY_PROMPT },
-        { role: 'user' as const, content: message.slice(0, 1000) },
-      ],
-      temperature: 0,
-      max_tokens: 8,
-      stream: false,
-    });
-
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('intent classification timeout')), this.timeoutMs),
-    );
-
-    const response = await Promise.race([promise, timeout]);
-
-    // Meter the Flash classification call — same bracket as other light
-    // gates (routing, intent). Dual-write raw tokens for parity audit.
-    chargeCredits('light_call', {
-      model: this.model.id,
-      rawTokens: extractUsage((response as { usage?: unknown }).usage as Parameters<typeof extractUsage>[0]),
-    });
-
-    // Extract the first message content. Shape varies by provider adapter.
-    const resp = response as { choices?: Array<{ message?: { content?: string | unknown } }>; message?: { content?: string | unknown } };
-    const content = resp.choices?.[0]?.message?.content ?? resp.message?.content ?? '';
-    const raw = (typeof content === 'string' ? content : '').trim().toLowerCase();
-
-    if (raw.startsWith('task')) return 'task';
-    if (raw.startsWith('conv')) return 'conversational';
-    if (raw.startsWith('amb')) return 'ambiguous';
-
-    // Unrecognised output — default to 'task'. Blocking tools on a real
-    // task produces broken output (model emits text-format tool calls);
-    // running tools on a chatty message just wastes one turn.
-    logger.info(`[intent] Unrecognised classification output: "${raw.slice(0, 40)}", defaulting to task`);
-    return 'task';
+  // Pure conversational signals first — these are tight enough that
+  // false positives on real tasks are rare. Order matters: check
+  // conversational before task-verb so "thanks" (anchored ^thanks$)
+  // wins over "thank" being matched as part of a longer string.
+  for (const pattern of CONVERSATIONAL_PATTERNS) {
+    if (pattern.test(trimmed)) return 'conversational';
   }
+
+  // Task signals — verb-led imperatives, infinitive phrases, "look at",
+  // and code-context disambiguators.
+  if (TASK_VERB_AT_START.test(trimmed)) return 'task';
+  if (TASK_AS_INFINITIVE.test(trimmed)) return 'task';
+  if (LOOK_AT_PATTERN.test(trimmed)) return 'task';
+  for (const pattern of CODE_CONTEXT_PATTERNS) {
+    if (pattern.test(trimmed)) return 'task';
+  }
+
+  // Default per the original LLM rule. Blocking tools on a real task
+  // produces broken output (model emits text-format tool calls);
+  // running tools on a chatty message just wastes one turn.
+  return 'task';
 }
