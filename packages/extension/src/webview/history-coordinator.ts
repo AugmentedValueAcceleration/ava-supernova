@@ -120,7 +120,35 @@ export class HistoryCoordinator {
 
   async delete(conversationId: string): Promise<void> {
     await this.deps.historyManager.deleteConversation(conversationId);
-    await this.sendList();
+
+    // If the operator deleted the conversation currently loaded in the
+    // chat panel, OR cleared history entirely (last conv just removed),
+    // reset the active conversation. Otherwise the chat keeps rendering
+    // a conv that no longer exists in storage — no auto-save target,
+    // mismatched lastConversationId, stale state on next session restore.
+    const current = this.deps.getConversation();
+    const isCurrent = current?.id === conversationId;
+    const remaining = await this.deps.historyManager.listConversations(false);
+    const allCleared = remaining.length === 0;
+
+    if (isCurrent || allCleared) {
+      // Wipe the lastConversationId pointer first so a session restore
+      // doesn't try to resume the deleted record.
+      this.setLastConversationId(undefined);
+      // Build a fresh Conversation with a new system prompt and swap it in.
+      const fresh = new Conversation();
+      fresh.setSystemPrompt(await this.deps.buildSystemPrompt());
+      this.deps.setConversation(fresh);
+      // Tell the webview to reset the chat surface.
+      this.deps.postMessage({ type: 'chat_cleared' });
+      // Refresh context bar so the operator doesn't see the old usage
+      // figure floating against an empty conversation.
+      this.deps.emitContextUsage?.();
+    }
+
+    // Always send the updated list — the chat-history page needs to
+    // refresh either way.
+    this.deps.postMessage({ type: 'history_list', conversations: remaining });
   }
 
   async search(query: string): Promise<void> {

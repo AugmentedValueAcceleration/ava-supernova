@@ -96,7 +96,7 @@ const themes: RoadmapTheme[] = [
       { label: 'Atomic token enforcement', shipped: true },
       { label: '3-layer hub auth + inactivity lock', shipped: true },
       { label: 'Independent security audit', shipped: false },
-      { label: 'E2E encryption for cloud sync', shipped: false },
+      { label: 'E2E encryption for cloud sync', shipped: true },
     ],
   },
   {
