@@ -62,7 +62,10 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   brainstorm: 'input.placeholder.brainstorm',
 };
 
-export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSource, platformStatus, onProviderSourceChange }: InputAreaProps) {
+// onProviderSourceChange is no longer destructured — the Platform/API-key
+// toggle was dropped to match IDE. Prop stays in InputAreaProps so callers
+// can keep passing it without a shape change.
+export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSource, platformStatus }: InputAreaProps) {
   useLocale();
   const [text, setText] = useState('');
   const [mode, setMode] = useState<AvaMode>('code');
@@ -291,19 +294,9 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
     setMicPermission('granted');
   }, [handleInput]);
 
-  const toggleVoice = useCallback(() => {
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-      return;
-    }
-    if (micPermission === 'prompt' && !localStorage.getItem('ava-mic-consent')) {
-      setShowMicPrompt(true);
-      return;
-    }
-    if (micPermission === 'denied') return;
-    startListening();
-  }, [isListening, micPermission, startListening]);
+  // toggleVoice removed — voice button dropped to match IDE. The
+  // recognition / permission / consent state stays for a future re-add.
+  void isListening; void micPermission; void startListening; void setShowMicPrompt;
 
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -426,47 +419,24 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
           </div>
         )}
 
-        {/* Textarea */}
-        <textarea
-          id="chat-input"
-          ref={textareaRef}
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            handleInput();
-          }}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          placeholder={disabled ? t('input.placeholder.disabled') : t(PLACEHOLDER_KEYS[mode])}
-          disabled={disabled}
-          rows={1}
-          className="w-full resize-none text-sm px-4 pt-3 pb-1
-                     bg-transparent
-                     text-[var(--vscode-input-foreground)]
-                     placeholder:opacity-40
-                     outline-none border-none
-                     disabled:opacity-40"
-          style={{ maxHeight: '150px' }}
-        />
-
-        {/* Bottom toolbar */}
-        <div
-          className="flex items-center justify-between gap-2 px-3 pb-2.5 pt-2 mx-2 mt-0.5"
-          style={{ borderTop: '1px solid rgba(168, 85, 247, 0.4)', overflow: 'visible' }}
-        >
-          {/* Mode selector — collapsible */}
-          <div className="relative" ref={modeMenuRef}>
-            {/* Active mode button (always visible) */}
+        {/* ── Single-row layout — mirrors IDE chat input bar at
+             DashboardPages.tsx:5244-5572. Mode pill on the left, textarea
+             flex-1 in the middle, action buttons (attach + vault + credit
+             balance + send) on the right. The previous "textarea on top
+             + bottom toolbar below" pattern + the modesExpanded
+             collapsible strip are dropped. Voice input + provider toggle
+             dropped (IDE doesn't have them). */}
+        <div className="flex items-end gap-2 px-2 py-2">
+          {/* Mode pill (left of input) — opens upward */}
+          <div className="relative" ref={modeMenuRef} style={{ flexShrink: 0, alignSelf: 'center' }}>
             <button
               onClick={() => setModesExpanded(!modesExpanded)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
-                         text-white cursor-pointer transition-all duration-200
-                         border border-[rgba(168,85,247,0.6)]"
+              className="flex items-center gap-1 cursor-pointer transition-all duration-200"
               style={{
-                background: 'linear-gradient(135deg, #A855F7, #7C3AED)',
-                boxShadow: '0 2px 8px rgba(168, 85, 247, 0.4), 0 0 12px rgba(168, 85, 247, 0.15)',
+                padding: '5px 10px', borderRadius: 8, border: 'none',
+                background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                color: '#fff', fontSize: 11, fontWeight: 600,
+                whiteSpace: 'nowrap',
               }}
               title={t('input.mode_switch_hint')}
             >
@@ -522,53 +492,37 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
             )}
           </div>
 
-          {/* Right side: provider toggle + actions */}
-          <div className="flex items-center gap-2 shrink-0">
-          {/* Provider source toggle */}
-          {platformStatus?.connected && onProviderSourceChange && (
-            <div className="flex items-center gap-0.5 rounded-lg bg-[rgba(168,85,247,0.06)] p-0.5 border border-[rgba(168,85,247,0.1)]">
-              <button
-                onClick={() => onProviderSourceChange('platform')}
-                disabled={(() => {
-                  if (providerSource === 'platform') return false;
-                  // Disabled only when the *entire* balance is exhausted —
-                  // free pool + subscription pool + top-ups combined.
-                  const totalUsed = platformStatus.freeTokensUsed + platformStatus.subTokensUsed;
-                  const totalLimit = platformStatus.freeTokensLimit + (platformStatus.subTokensLimit ?? 0);
-                  return totalUsed >= totalLimit;
-                })()}
-                className={`px-2.5 py-1 rounded-md text-[10px] font-medium border-none cursor-pointer transition-all duration-150
-                  disabled:opacity-20 disabled:cursor-not-allowed
-                  ${providerSource === 'platform'
-                    ? 'bg-[var(--color-accent,var(--vscode-button-background))] text-white shadow-sm'
-                    : 'bg-transparent text-[var(--vscode-foreground)] opacity-40 hover:opacity-70'
-                  }`}
-                title={providerSource === 'platform'
-                  ? t('input.tokens_remaining', { remaining: Math.max(
-                      0,
-                      (platformStatus.freeTokensLimit + (platformStatus.subTokensLimit ?? 0))
-                      - (platformStatus.freeTokensUsed + platformStatus.subTokensUsed),
-                    ).toLocaleString() })
-                  : t('input.provider_switch_free')}
-              >
-                {platformStatus.tier === 'free' ? t('input.provider_free') : t('input.provider_platform')}
-              </button>
-              <button
-                onClick={() => onProviderSourceChange('byok')}
-                className={`px-2.5 py-1 rounded-md text-[10px] font-medium border-none cursor-pointer transition-all duration-150
-                  ${providerSource === 'byok'
-                    ? 'bg-[var(--color-accent,var(--vscode-button-background))] text-white shadow-sm'
-                    : 'bg-transparent text-[var(--vscode-foreground)] opacity-40 hover:opacity-70'
-                  }`}
-                title={t('input.provider_use_own_key')}
-              >
-                {t('input.provider_api_key')}
-              </button>
-            </div>
-          )}
+          {/* Textarea — flex-1 in the new single-row layout */}
+          <textarea
+            id="chat-input"
+            ref={textareaRef}
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              handleInput();
+            }}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            placeholder={disabled ? t('input.placeholder.disabled') : t(PLACEHOLDER_KEYS[mode])}
+            disabled={disabled}
+            rows={1}
+            style={{
+              flex: 1, resize: 'none', background: 'transparent',
+              border: 'none', outline: 'none',
+              color: '#cdd6f4', fontSize: 14, lineHeight: 1.5,
+              padding: '6px 0',
+              fontFamily: 'inherit',
+              maxHeight: 160, minHeight: 24,
+              opacity: disabled ? 0.4 : 1,
+              cursor: disabled ? 'not-allowed' : 'text',
+            }}
+          />
 
-          {/* Right side: attach + usage + send/stop */}
-          <div className="flex items-center gap-2">
+          {/* Right side actions — provider toggle + voice button dropped
+              to match IDE; only attach + vault + send remain. */}
+          <div className="flex items-center gap-2 shrink-0">
             {/* Unified token balance — free + subscription + top-ups combined.
                 Backend still burns the free pool first and overflows to the
                 subscription pool, but users see one number here. */}
@@ -660,31 +614,10 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
               )}
             </button>
 
-            {/* Voice input button */}
-            <button
-              onClick={toggleVoice}
-              disabled={disabled || micPermission === 'denied'}
-              title={micPermission === 'denied' ? t('input.voice_denied') : isListening ? t('input.voice_stop') : t('input.voice_input')}
-              aria-label={isListening ? t('input.voice_stop') : t('input.voice_input')}
-              className={`flex items-center justify-center w-9 h-9 rounded-lg
-                         cursor-pointer transition-all duration-200
-                         ${isListening
-                           ? 'text-white border border-red-500/50'
-                           : micPermission === 'denied'
-                           ? 'text-[var(--vscode-foreground)] opacity-15 cursor-not-allowed border border-[rgba(168,85,247,0.08)]'
-                           : 'text-[var(--vscode-foreground)] opacity-50 hover:opacity-90 border border-[rgba(168,85,247,0.15)] hover:border-[rgba(168,85,247,0.4)] hover:bg-[rgba(168,85,247,0.1)]'
-                         }
-                         disabled:opacity-15 disabled:cursor-not-allowed`}
-              style={isListening ? {
-                background: 'linear-gradient(135deg, #e53935, #c62828)',
-                boxShadow: '0 2px 8px rgba(229, 57, 53, 0.35)',
-                animation: 'pulse 1.5s infinite',
-              } : { background: 'rgba(168, 85, 247, 0.05)' }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
-              </svg>
-            </button>
+            {/* Voice input button DROPPED — IDE doesn't have it.
+                The toggleVoice / micPermission / isListening state stays
+                in this component (cheap, unused) so a future re-add
+                doesn't have to re-plumb the Web Speech API. */}
 
             {isStreaming ? (
               <button
@@ -727,7 +660,6 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
               </button>
             )}
           </div>
-          </div>{/* close second row */}
         </div>
       </div>
       {/* Mic consent prompt */}

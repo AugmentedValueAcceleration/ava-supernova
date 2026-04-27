@@ -355,48 +355,23 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
           </div>
         )}
 
-        {/* Textarea */}
-        <textarea
-          id="chat-input"
-          ref={textareaRef}
-          autoFocus
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            handleInput();
-          }}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          placeholder={disabled ? t('input.placeholder.disabled') : t(PLACEHOLDER_KEYS[mode])}
-          disabled={disabled}
-          rows={1}
-          className="w-full resize-none text-sm px-4 pt-3 pb-1
-                     bg-transparent
-                     text-[var(--vscode-input-foreground)]
-                     placeholder:opacity-40
-                     outline-none border-none
-                     disabled:opacity-40"
-          style={{ maxHeight: '150px' }}
-        />
-
-        {/* Bottom toolbar */}
-        <div
-          className="flex items-center justify-between gap-2 px-3 pb-2.5 pt-2 mx-2 mt-0.5"
-          style={{ borderTop: '1px solid rgba(168, 85, 247, 0.4)', overflow: 'visible' }}
-        >
-          {/* Mode selector — collapsible */}
-          <div className="relative" ref={modeMenuRef}>
-            {/* Active mode button (always visible) */}
+        {/* ── Single-row layout — mirrors IDE chat input bar at
+             DashboardPages.tsx:5244-5572. Mode pill on the left, textarea
+             flex-1 in the middle, action buttons (attach + vault + send)
+             on the right. The previous "textarea on top + bottom toolbar
+             below" pattern + the modesExpanded collapsible strip are
+             dropped. */}
+        <div className="flex items-end gap-2 px-2 py-2">
+          {/* Mode pill (left of input) — opens upward */}
+          <div className="relative" ref={modeMenuRef} style={{ flexShrink: 0, alignSelf: 'center' }}>
             <button
               onClick={() => setModesExpanded(!modesExpanded)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
-                         text-white cursor-pointer transition-all duration-200
-                         border border-[rgba(168,85,247,0.6)]"
+              className="flex items-center gap-1 cursor-pointer transition-all duration-200"
               style={{
-                background: 'linear-gradient(135deg, #A855F7, #7C3AED)',
-                boxShadow: '0 2px 8px rgba(168, 85, 247, 0.4), 0 0 12px rgba(168, 85, 247, 0.15)',
+                padding: '5px 10px', borderRadius: 8, border: 'none',
+                background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                color: '#fff', fontSize: 11, fontWeight: 600,
+                whiteSpace: 'nowrap',
               }}
               title={t('input.mode_switch_hint')}
             >
@@ -446,9 +421,37 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
             )}
           </div>
 
+          {/* Textarea — flex-1 in the new single-row layout */}
+          <textarea
+            id="chat-input"
+            ref={textareaRef}
+            autoFocus
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              handleInput();
+            }}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            placeholder={disabled ? t('input.placeholder.disabled') : t(PLACEHOLDER_KEYS[mode])}
+            disabled={disabled}
+            rows={1}
+            style={{
+              flex: 1, resize: 'none', background: 'transparent',
+              border: 'none', outline: 'none',
+              color: '#cdd6f4', fontSize: 14, lineHeight: 1.5,
+              padding: '6px 0',
+              fontFamily: 'inherit',
+              maxHeight: 160, minHeight: 24,
+              opacity: disabled ? 0.4 : 1,
+              cursor: disabled ? 'not-allowed' : 'text',
+            }}
+          />
+
           {/* Right side: attach + usage + send/stop */}
           <div className="flex items-center gap-2 shrink-0">
-          <div className="flex items-center gap-2">
             {/* Unified token balance — free + subscription + top-ups. */}
             {platformStatus?.connected && (() => {
               // Admin/unlimited accounts
@@ -577,7 +580,6 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
               </button>
             )}
           </div>
-          </div>{/* close second row */}
         </div>
       </div>
     </div>
