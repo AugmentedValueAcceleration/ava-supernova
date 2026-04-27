@@ -5,7 +5,7 @@ import type { Page, DashboardJournalDaySummary } from '../types/messages';
 import { DataPortability } from './DataPortability';
 import {
   Lightning, ChatCircleDots, ListChecks, Books, BookOpen, Palette,
-  Brain, ChartBar, Cpu, GearSix, Question, ShieldCheck, Wrench,
+  Brain, ChartLineUp, Cpu, GearSix, Question, ShieldCheck, Wrench,
 } from '@phosphor-icons/react';
 
 interface NavSidebarProps {
@@ -65,7 +65,11 @@ function getNavItems(isAdmin?: boolean): NavItem[] {
     { page: 'library', icon: <Books weight="duotone" size={18} />, label: tt('dash.nav.library', 'Library'), description: tt('dash.nav.library_desc', 'Courses, assets, and documents') },
     { page: 'creative-studio', icon: <Palette weight="duotone" size={18} />, label: tt('dash.nav.creative_studio', 'Creative Studio'), description: tt('dash.nav.creative_studio_desc', 'Images, music, video, voice') },
     { page: 'memory', icon: <Brain weight="duotone" size={18} />, label: tt('dash.nav.memory', 'Memory'), description: tt('dash.nav.memory_desc', 'Patterns, preferences, decisions') },
-    { page: 'history', icon: <ChartBar weight="duotone" size={18} />, label: tt('dash.nav.usage', 'History'), description: tt('dash.nav.usage_desc', 'Credits, sessions, models') },
+    // Labelled 'History' to match the IDE Sidebar (Sidebar.tsx:1116) —
+    // the previous tt('dash.nav.usage', 'History') resolved to "Usage"
+    // because the i18n key exists in the locale (the fallback only fires
+    // for missing keys). Hardcoding the label like the IDE does.
+    { page: 'history', icon: <ChartLineUp weight="duotone" size={18} />, label: 'History', description: 'Credits, sessions, models' },
     { page: 'models', icon: <Cpu weight="duotone" size={18} />, label: tt('dash.nav.models', 'Models'), description: tt('dash.nav.models_desc', 'Public benchmark · auditable receipts') },
     { page: 'account', icon: <GearSix weight="duotone" size={18} />, label: tt('dash.nav.account', 'Account'), description: tt('dash.nav.account_desc', 'Settings, billing, personalisation') },
     { page: 'documentation', icon: <BookOpen weight="duotone" size={18} />, label: tt('dash.nav.documentation', 'Documentation'), description: tt('dash.nav.documentation_desc', 'Modes, tools, permissions, models') },
