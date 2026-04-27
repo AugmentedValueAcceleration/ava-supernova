@@ -4,7 +4,7 @@ import { post } from '../App';
 import type { Page, DashboardJournalDaySummary } from '../types/messages';
 import { DataPortability } from './DataPortability';
 import {
-  Lightning, ChatCircleDots, ListChecks, Books, BookOpen, Palette,
+  Lightning, ChatCircleDots, ListChecks, Books, Palette,
   Brain, ChartLineUp, Cpu, GearSix, Question, ShieldCheck, Wrench,
 } from '@phosphor-icons/react';
 
@@ -72,7 +72,10 @@ function getNavItems(isAdmin?: boolean): NavItem[] {
     { page: 'history', icon: <ChartLineUp weight="duotone" size={18} />, label: 'History', description: 'Credits, sessions, models' },
     { page: 'models', icon: <Cpu weight="duotone" size={18} />, label: tt('dash.nav.models', 'Models'), description: tt('dash.nav.models_desc', 'Public benchmark · auditable receipts') },
     { page: 'account', icon: <GearSix weight="duotone" size={18} />, label: tt('dash.nav.account', 'Account'), description: tt('dash.nav.account_desc', 'Settings, billing, personalisation') },
-    { page: 'documentation', icon: <BookOpen weight="duotone" size={18} />, label: tt('dash.nav.documentation', 'Documentation'), description: tt('dash.nav.documentation_desc', 'Modes, tools, permissions, models') },
+    // Documentation folded under Help to match the IDE Sidebar — the IDE
+    // doesn't carry a separate Documentation row; docs are reachable
+    // from inside Help. Existing /documentation deep links still resolve
+    // (the page route is unchanged), the nav-item is just retired.
     { page: 'help', icon: <Question weight="duotone" size={18} />, label: tt('dash.nav.help', 'Help'), description: tt('dash.nav.help_desc', 'Support, releases, roadmap') },
   ];
 
