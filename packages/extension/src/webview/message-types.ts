@@ -103,6 +103,7 @@ export type ExtToWebviewMessage =
     }
   | { type: 'chat_cleared' }
   | { type: 'focus_input' }
+  | { type: 'data_mode_changed'; mode: 'local' | 'cloud' | 'both' }
   | { type: 'context_usage'; used: number; limit: number; percent: number }
   | { type: 'compression_start' }
   | { type: 'compression_end'; originalTokens: number; compressedTokens: number }

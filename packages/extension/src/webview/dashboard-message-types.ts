@@ -726,6 +726,7 @@ export type ExtToDashboardMessage =
   | { type: 'history_search_results'; conversations: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }> }
   | { type: 'conversation_loaded'; conversationId: string; title: string; messages: Array<{ role: 'user' | 'assistant'; content: string }> }
   | { type: 'chat_cleared' }
+  | { type: 'data_mode_changed'; mode: 'local' | 'cloud' | 'both' }
   | { type: 'context_usage'; used: number; limit: number; percent: number }
   | { type: 'compression_start' }
   | { type: 'compression_end'; originalTokens: number; compressedTokens: number }

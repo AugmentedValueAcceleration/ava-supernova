@@ -69,6 +69,22 @@ export function Header({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Subscribe to host broadcasts so a flip on the dashboard pill is
+  // reflected here without a reload (and vice-versa). The host emits
+  // 'data_mode_changed' from applyDataMode regardless of which webview
+  // triggered the change.
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      const msg = e.data;
+      if (msg?.type === 'data_mode_changed' && (msg.mode === 'local' || msg.mode === 'cloud' || msg.mode === 'both')) {
+        setDataMode(msg.mode);
+        try { localStorage.setItem('ava-data-mode', msg.mode); } catch { /* */ }
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
   const cycleDataMode = useCallback(() => {
     setDataMode(prev => {
       const idx = DATA_MODES.indexOf(prev);

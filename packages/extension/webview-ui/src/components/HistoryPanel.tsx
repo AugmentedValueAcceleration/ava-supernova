@@ -107,7 +107,12 @@ export function HistoryPanel({
       tabIndex={-1}
       className="absolute inset-0 z-50 flex flex-col outline-none"
       style={{
-      background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(168, 85, 247, 0.06) 0%, transparent 70%), var(--vscode-sideBar-background)',
+      // Catppuccin-purple base to match the rest of the chat surface
+      // (and the IDE chat history page). Was var(--vscode-sideBar-background)
+      // which respected user's VS Code theme but visually drifted from
+      // the Ava purple chrome the chat now uses.
+      background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(168, 85, 247, 0.06) 0%, transparent 70%), #0f0a1a',
+      color: '#cdd6f4',
     }}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'rgba(168, 85, 247, 0.12)' }}>

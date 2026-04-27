@@ -112,6 +112,21 @@ export function Header({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Subscribe to host broadcasts so a flip on the panel pill is
+  // reflected here without a reload (and vice-versa). Mirrors the
+  // panel Header's subscription so both surfaces stay in sync.
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      const msg = e.data;
+      if (msg?.type === 'data_mode_changed' && (msg.mode === 'local' || msg.mode === 'cloud' || msg.mode === 'both')) {
+        setDataMode(msg.mode);
+        try { localStorage.setItem('ava-data-mode', msg.mode); } catch { /* */ }
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
   const cycleDataMode = useCallback(() => {
     if (!platformStatus?.connected) return;
     setDataMode(prev => {

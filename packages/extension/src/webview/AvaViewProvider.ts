@@ -1952,6 +1952,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // force-rebuild here; the flag flips on the next natural agent
     // refresh. The pref itself is already persisted above, so nothing
     // is lost.
+
+    // Broadcast to every webview so the panel pill and dashboard pill
+    // stay in sync — without this, flipping the panel pill leaves the
+    // dashboard pill showing the stale value until it next reloads
+    // (different localStorage origins). postMessage already forwards to
+    // the dashboard webview when externalPostMessage is wired.
+    this.postMessage({ type: 'data_mode_changed', mode } as never);
   }
 
   public async resetMemoryManager(): Promise<void> {
