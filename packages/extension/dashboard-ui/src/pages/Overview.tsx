@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { t, useLocale } from '../i18n';
+import { t, tt, useLocale } from '../i18n';
 import { SectionGroup } from '../components/SectionGroup';
 import { post } from '../App';
 import {
@@ -223,9 +223,9 @@ export function Overview({
 
       {/* ── Tab nav ──────────────────────────────────────────────────── */}
       <div className="mb-5 flex gap-1 border-b border-[var(--border-card)]">
-        <TabBtn id="daily" label="Daily" active={tab === 'daily'} onClick={() => switchTab('daily')} />
-        <TabBtn id="briefing" label="Briefing" active={tab === 'briefing'} onClick={() => switchTab('briefing')} />
-        <TabBtn id="reflect" label="Reflect" active={tab === 'reflect'} onClick={() => switchTab('reflect')} />
+        <TabBtn id="daily" label={tt('dash.chat.tab.daily', 'Daily')} active={tab === 'daily'} onClick={() => switchTab('daily')} />
+        <TabBtn id="briefing" label={tt('dash.chat.tab.briefing', 'Briefing')} active={tab === 'briefing'} onClick={() => switchTab('briefing')} />
+        <TabBtn id="reflect" label={tt('dash.chat.tab.reflect', 'Reflect')} active={tab === 'reflect'} onClick={() => switchTab('reflect')} />
       </div>
 
       {/* ── Daily tab — Tasks + Journal, then Working Hours + Weather ── */}

@@ -1,6 +1,6 @@
 import type { StringKey } from './en.js';
 /** Turkish (Türkçe) strings — full locale mirroring en.ts key set. */
-export const trStrings: Record<StringKey, string> = {
+export const trStrings: Partial<Record<StringKey, string>> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Kodunuz hakkında her şeyi sorun.',

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { ModelSelector } from './ModelSelector';
-import { t, useLocale } from '../i18n';
+import { t, tt, useLocale } from '../i18n';
 import { useVSCodeApi } from '../hooks/useVSCodeApi';
 
 type DataMode = 'local' | 'cloud' | 'both';
@@ -170,7 +170,7 @@ export function Header({
             : dataMode === 'both' ? '#a855f7'
             : '#a6e3a1',
         }} />
-        {dataMode === 'local' ? 'Local' : dataMode === 'cloud' ? 'Cloud' : 'Both'}
+        {dataMode === 'local' ? tt('dash.chat.local', 'Local') : dataMode === 'cloud' ? tt('dash.chat.cloud', 'Cloud') : tt('dash.chat.both', 'Both')}
       </button>
 
       {/* Tasks — labelled pill with badge, mirrors IDE header at
@@ -192,7 +192,7 @@ export function Header({
         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
           <path d="M3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 3.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 7.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 11.5h8v1H6v-1z"/>
         </svg>
-        Tasks
+        {tt('header.tasks', 'Tasks')}
         {sessionTaskCount > 0 && (
           <span style={{
             fontSize: 9, padding: '1px 5px', borderRadius: 8,
@@ -222,7 +222,7 @@ export function Header({
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
-        New Chat
+        {tt('header.new_chat', 'New Chat')}
       </button>
     </div>
   );

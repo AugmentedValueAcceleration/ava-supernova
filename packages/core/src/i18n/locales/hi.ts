@@ -1,6 +1,6 @@
 import type { StringKey } from './en.js';
 /** Hindi (हिन्दी) strings — full locale mirroring en.ts key set. */
-export const hiStrings: Record<StringKey, string> = {
+export const hiStrings: Partial<Record<StringKey, string>> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'अपने कोड के बारे में कुछ भी पूछें।',

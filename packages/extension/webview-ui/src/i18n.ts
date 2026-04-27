@@ -87,3 +87,12 @@ export function t(key: string, params?: Record<string, string | number>): string
     return val !== undefined ? String(val) : `{${k}}`;
   });
 }
+
+/** Translate with a hardcoded fallback. Returns the fallback when t()
+ *  returns the raw key (i.e. no locale has the key yet). Mirrors the
+ *  helper in dashboard-ui/src/i18n.ts so new chat strings can land
+ *  ahead of full locale coverage without showing raw keys to users. */
+export function tt(key: string, fallback: string): string {
+  const val = t(key);
+  return val === key ? fallback : val;
+}

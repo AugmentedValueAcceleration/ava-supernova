@@ -1,6 +1,6 @@
 import type { StringKey } from './en.js';
 /** Traditional Chinese (zh-TW) strings */
-export const zhTWStrings: Record<StringKey, string> = {
+export const zhTWStrings: Partial<Record<StringKey, string>> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': '關於你的程式碼，隨時提問。',

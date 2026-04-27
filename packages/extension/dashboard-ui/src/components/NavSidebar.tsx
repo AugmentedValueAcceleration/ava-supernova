@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
-import { t, useLocale } from '../i18n';
+import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
 import type { Page, DashboardJournalDaySummary } from '../types/messages';
 import { DataPortability } from './DataPortability';
@@ -51,11 +51,7 @@ interface NavItem {
   comingSoon?: boolean;
 }
 
-/** Translate with fallback — returns fallback if t() returns the raw key */
-function tt(key: string, fallback: string): string {
-  const val = t(key);
-  return val === key ? fallback : val;
-}
+// tt() helper moved to ../i18n.ts so it's shared across pages.
 
 function getNavItems(isAdmin?: boolean): NavItem[] {
   const items: NavItem[] = [
@@ -69,7 +65,7 @@ function getNavItems(isAdmin?: boolean): NavItem[] {
     // the previous tt('dash.nav.usage', 'History') resolved to "Usage"
     // because the i18n key exists in the locale (the fallback only fires
     // for missing keys). Hardcoding the label like the IDE does.
-    { page: 'history', icon: <ChartLineUp weight="duotone" size={18} />, label: 'History', description: 'Credits, sessions, models' },
+    { page: 'history', icon: <ChartLineUp weight="duotone" size={18} />, label: tt('dash.nav.history', 'History'), description: tt('dash.nav.history_desc', 'Credits, sessions, models') },
     { page: 'models', icon: <Cpu weight="duotone" size={18} />, label: tt('dash.nav.models', 'Models'), description: tt('dash.nav.models_desc', 'Public benchmark · auditable receipts') },
     { page: 'account', icon: <GearSix weight="duotone" size={18} />, label: tt('dash.nav.account', 'Account'), description: tt('dash.nav.account_desc', 'Settings, billing, personalisation') },
     // Documentation folded under Help to match the IDE Sidebar — the IDE

@@ -1,6 +1,6 @@
 import type { StringKey } from './en.js';
 /** Russian (Русский) strings — full locale mirroring en.ts key set. */
-export const ruStrings: Record<StringKey, string> = {
+export const ruStrings: Partial<Record<StringKey, string>> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Задайте любой вопрос о вашем коде.',

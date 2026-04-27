@@ -373,6 +373,15 @@ export function t(key: string, params?: Record<string, string | number>): string
   });
 }
 
+/** Translate with a hardcoded fallback. Returns the fallback when t()
+ *  returns the raw key (i.e. the locale doesn't have the key yet).
+ *  Use this for new strings being introduced ahead of full locale
+ *  coverage so non-English users don't see raw keys. */
+export function tt(key: string, fallback: string): string {
+  const val = t(key);
+  return val === key ? fallback : val;
+}
+
 /** React hook — forces re-render when locale changes */
 export function useLocale(): string {
   const [, setVersion] = useState(localeVersion);

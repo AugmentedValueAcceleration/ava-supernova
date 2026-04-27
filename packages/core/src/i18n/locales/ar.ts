@@ -1,6 +1,6 @@
 import type { StringKey } from './en.js';
 /** Arabic (العربية) strings — full locale mirroring en.ts key set. */
-export const arStrings: Record<StringKey, string> = {
+export const arStrings: Partial<Record<StringKey, string>> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'اسأل أي شيء عن الكود الخاص بك.',

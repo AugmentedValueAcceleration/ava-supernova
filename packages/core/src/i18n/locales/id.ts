@@ -1,6 +1,6 @@
 import type { StringKey } from './en.js';
 /** Indonesian (Bahasa Indonesia) strings — full locale for @ava/core. */
-export const idStrings: Record<StringKey, string> = {
+export const idStrings: Partial<Record<StringKey, string>> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Tanyakan apa saja tentang kode Anda.',

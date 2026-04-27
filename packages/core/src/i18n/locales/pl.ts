@@ -1,6 +1,6 @@
 import type { StringKey } from './en.js';
 /** Polish (Polski) strings — full locale for @ava/core. */
-export const plStrings: Record<StringKey, string> = {
+export const plStrings: Partial<Record<StringKey, string>> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Zapytaj o cokolwiek dotyczącego Twojego kodu.',

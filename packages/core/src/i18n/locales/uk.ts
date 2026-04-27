@@ -1,6 +1,6 @@
 import type { StringKey } from './en.js';
 /** Ukrainian (Українська) strings — full locale for @ava/core. */
-export const ukStrings: Record<StringKey, string> = {
+export const ukStrings: Partial<Record<StringKey, string>> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Запитайте будь-що про ваш код.',

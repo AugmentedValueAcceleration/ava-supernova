@@ -1,6 +1,6 @@
 import type { StringKey } from './en.js';
 /** Korean (ko) strings */
-export const koStrings: Record<StringKey, string> = {
+export const koStrings: Partial<Record<StringKey, string>> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': '코드에 대해 무엇이든 물어보세요.',

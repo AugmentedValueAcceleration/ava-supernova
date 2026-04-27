@@ -1,6 +1,6 @@
 import type { StringKey } from './en.js';
 /** Vietnamese (vi) strings */
-export const viStrings: Record<StringKey, string> = {
+export const viStrings: Partial<Record<StringKey, string>> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Hỏi bất kỳ điều gì về mã nguồn của bạn.',

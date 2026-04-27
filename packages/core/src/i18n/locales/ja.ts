@@ -1,6 +1,6 @@
 import type { StringKey } from './en.js';
 /** Japanese (ja) strings */
-export const jaStrings: Record<StringKey, string> = {
+export const jaStrings: Partial<Record<StringKey, string>> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'コードについて何でも聞いてください。',

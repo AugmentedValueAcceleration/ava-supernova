@@ -1,6 +1,6 @@
 import type { StringKey } from './en.js';
 /** Portuguese (Portugu\u00eas) strings \u2014 mirrors the full en.ts key set. */
-export const ptStrings: Record<StringKey, string> = {
+export const ptStrings: Partial<Record<StringKey, string>> = {
   // \u2500\u2500 Welcome / Branding \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Pergunte qualquer coisa sobre o seu c\u00f3digo.',

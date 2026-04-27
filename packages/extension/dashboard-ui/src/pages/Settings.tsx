@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { t, initLocale, useLocale } from '../i18n';
+import { t, tt, initLocale, useLocale } from '../i18n';
 import { post } from '../App';
 import { Select } from '../components/Select';
 import { ChevronDownIcon } from '../components/Icons';
@@ -323,11 +323,11 @@ export function Settings({
       {/* ── Tab nav — mirrors IDE Settings 5-tab refactor ────────────── */}
       <div className="mb-6 flex gap-1 border-b border-[var(--border-card)]">
         {([
-          { id: 'models' as const,       label: 'Models' },
-          { id: 'personality' as const,  label: 'Personality' },
-          { id: 'permissions' as const,  label: 'Permissions' },
-          { id: 'data' as const,         label: 'Data' },
-          { id: 'advanced' as const,     label: 'Advanced' },
+          { id: 'models' as const,       label: tt('dash.settings.tab.models',       'Models') },
+          { id: 'personality' as const,  label: tt('dash.settings.tab.personality',  'Personality') },
+          { id: 'permissions' as const,  label: tt('dash.settings.tab.permissions',  'Permissions') },
+          { id: 'data' as const,         label: tt('dash.settings.tab.data',         'Data') },
+          { id: 'advanced' as const,     label: tt('dash.settings.tab.advanced',     'Advanced') },
         ]).map(t_ => (
           <button
             key={t_.id}

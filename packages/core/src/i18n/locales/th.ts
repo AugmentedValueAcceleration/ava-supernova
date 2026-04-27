@@ -1,6 +1,6 @@
 import type { StringKey } from './en.js';
 /** Thai (ไทย) strings — full locale mirroring en.ts key set. */
-export const thStrings: Record<StringKey, string> = {
+export const thStrings: Partial<Record<StringKey, string>> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'ถามอะไรก็ได้เกี่ยวกับโค้ดของคุณ',

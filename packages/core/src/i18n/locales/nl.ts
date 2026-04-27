@@ -1,6 +1,6 @@
 import type { StringKey } from './en.js';
 /** Dutch (Nederlands) strings — full locale for @ava/core. */
-export const nlStrings: Record<StringKey, string> = {
+export const nlStrings: Partial<Record<StringKey, string>> = {
   // ── Welcome / Branding ────────────────────────────────────────────────────
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Stel een vraag over je code.',
