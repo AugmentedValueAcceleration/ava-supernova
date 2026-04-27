@@ -51,6 +51,29 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
+  // ── Group models for the dropdown ────────────────────────────────────────
+  // Pull Orchestrated entries (auto, supernova) into a dedicated section
+  // shown first. Group the rest by provider so the dropdown reads like the
+  // IDE picker. Available models float to the top of each provider group.
+  // MUST run before any conditional return — React hooks rules. Otherwise
+  // the empty-state early returns below will desync hook order between
+  // renders (React #310).
+  const { orchestrated, byProvider, providerOrder } = useMemo(() => {
+    const orch = models.filter(m => m.id === 'auto' || m.id === 'supernova');
+    const rest = models.filter(m => m.id !== 'auto' && m.id !== 'supernova');
+    const groups = new Map<string, typeof models>();
+    for (const m of rest) {
+      const arr = groups.get(m.provider) ?? [];
+      arr.push(m);
+      groups.set(m.provider, arr);
+    }
+    for (const arr of groups.values()) {
+      arr.sort((a, b) => (a.available === b.available ? a.name.localeCompare(b.name) : a.available ? -1 : 1));
+    }
+    const order = Array.from(groups.keys()).sort((a, b) => providerLabel(a).localeCompare(providerLabel(b)));
+    return { orchestrated: orch, byProvider: groups, providerOrder: order };
+  }, [models]);
+
   // ── Setup placeholder — keeps the empty-state behaviour but in IDE chrome
   if (models.length === 0 && needsSetup) {
     return (
@@ -77,26 +100,6 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
     : activeModel === 'supernova'
       ? 'Supernova'
       : models.find(m => m.id === activeModel)?.name ?? 'Select model';
-
-  // ── Group models for the dropdown ────────────────────────────────────────
-  // Pull Orchestrated entries (auto, supernova) into a dedicated section
-  // shown first. Group the rest by provider so the dropdown reads like the
-  // IDE picker. Available models float to the top of each provider group.
-  const { orchestrated, byProvider, providerOrder } = useMemo(() => {
-    const orch = models.filter(m => m.id === 'auto' || m.id === 'supernova');
-    const rest = models.filter(m => m.id !== 'auto' && m.id !== 'supernova');
-    const groups = new Map<string, typeof models>();
-    for (const m of rest) {
-      const arr = groups.get(m.provider) ?? [];
-      arr.push(m);
-      groups.set(m.provider, arr);
-    }
-    for (const arr of groups.values()) {
-      arr.sort((a, b) => (a.available === b.available ? a.name.localeCompare(b.name) : a.available ? -1 : 1));
-    }
-    const order = Array.from(groups.keys()).sort((a, b) => providerLabel(a).localeCompare(providerLabel(b)));
-    return { orchestrated: orch, byProvider: groups, providerOrder: order };
-  }, [models]);
 
   const connected = !needsSetup;
 

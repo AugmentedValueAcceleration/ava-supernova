@@ -46,6 +46,23 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
+  // useMemo MUST run before any conditional return — hook rules.
+  const { orchestrated, byProvider, providerOrder } = useMemo(() => {
+    const orch = models.filter(m => m.id === 'auto' || m.id === 'supernova');
+    const rest = models.filter(m => m.id !== 'auto' && m.id !== 'supernova');
+    const groups = new Map<string, typeof models>();
+    for (const m of rest) {
+      const arr = groups.get(m.provider) ?? [];
+      arr.push(m);
+      groups.set(m.provider, arr);
+    }
+    for (const arr of groups.values()) {
+      arr.sort((a, b) => (a.available === b.available ? a.name.localeCompare(b.name) : a.available ? -1 : 1));
+    }
+    const order = Array.from(groups.keys()).sort((a, b) => providerLabel(a).localeCompare(providerLabel(b)));
+    return { orchestrated: orch, byProvider: groups, providerOrder: order };
+  }, [models]);
+
   if (models.length === 0 && needsSetup) {
     return (
       <p className="text-xs opacity-60 m-0" style={{ color: '#cdd6f4' }}>
@@ -69,22 +86,6 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
     : activeModel === 'supernova'
       ? 'Supernova'
       : models.find(m => m.id === activeModel)?.name ?? 'Select model';
-
-  const { orchestrated, byProvider, providerOrder } = useMemo(() => {
-    const orch = models.filter(m => m.id === 'auto' || m.id === 'supernova');
-    const rest = models.filter(m => m.id !== 'auto' && m.id !== 'supernova');
-    const groups = new Map<string, typeof models>();
-    for (const m of rest) {
-      const arr = groups.get(m.provider) ?? [];
-      arr.push(m);
-      groups.set(m.provider, arr);
-    }
-    for (const arr of groups.values()) {
-      arr.sort((a, b) => (a.available === b.available ? a.name.localeCompare(b.name) : a.available ? -1 : 1));
-    }
-    const order = Array.from(groups.keys()).sort((a, b) => providerLabel(a).localeCompare(providerLabel(b)));
-    return { orchestrated: orch, byProvider: groups, providerOrder: order };
-  }, [models]);
 
   const connected = !needsSetup;
 
