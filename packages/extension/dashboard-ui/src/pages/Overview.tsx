@@ -104,6 +104,9 @@ interface OverviewProps {
   onOpenArticle?: (slug: string) => void;
 }
 
+// ── Inner-tab type — mirrors the IDE Command Centre's three lenses ──────────
+type CcTab = 'daily' | 'briefing' | 'reflect';
+
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export function Overview({
@@ -125,6 +128,21 @@ export function Overview({
   onOpenArticle,
 }: OverviewProps) {
   useLocale();
+  // Inner tab state — persists so the user lands back on whichever lens
+  // they last had open instead of always hitting Daily. Mirrors the IDE
+  // Command Centre's behaviour with its own localStorage key (the
+  // extension webview has its own storage scope, independent of the IDE).
+  const [tab, setTab] = useState<CcTab>(() => {
+    try {
+      const stored = localStorage.getItem('ava-ext-cc-tab');
+      return (stored === 'briefing' || stored === 'reflect') ? stored : 'daily';
+    } catch { return 'daily'; }
+  });
+  const switchTab = (next: CcTab) => {
+    setTab(next);
+    try { localStorage.setItem('ava-ext-cc-tab', next); } catch { /* quota / disabled */ }
+  };
+
   useEffect(() => {
     if (logs.length === 0 && account) {
       post({ type: 'load_usage_logs', period: '30d' });
@@ -230,13 +248,56 @@ export function Overview({
         </div>
       </div>
 
-      {/* ── Weather + Working Hours ──────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <WeatherWidget weather={weatherData} />
-        <WorkingHoursClock />
+      {/* ── Tab nav ──────────────────────────────────────────────────── */}
+      <div className="mb-5 flex gap-1 border-b border-[var(--border-card)]">
+        <TabBtn id="daily" label={t('dash.cc.tab_daily') || 'Daily'} active={tab === 'daily'} onClick={() => switchTab('daily')} />
+        <TabBtn id="briefing" label={t('dash.cc.tab_briefing') || 'Briefing'} active={tab === 'briefing'} onClick={() => switchTab('briefing')} />
+        <TabBtn id="reflect" label={t('dash.cc.tab_reflect') || 'Reflect'} active={tab === 'reflect'} onClick={() => switchTab('reflect')} />
       </div>
 
-      {/* ── Statistics Row ────────────────────────────────────────────── */}
+      {/* ── Daily tab — Tasks + Journal, then Working Hours + Weather ── */}
+      {tab === 'daily' && (
+        <>
+          <div
+            className="mb-4 grid gap-4"
+            style={{ gridTemplateColumns: '2fr 1fr' }}
+          >
+            <TasksWidget tasks={tasks} onNavigate={onNavigate} />
+            <JournalWidget journalDay={journalDay} onNavigate={onNavigate} />
+          </div>
+          <div className="mb-4 grid grid-cols-2 gap-4">
+            <WorkingHoursClock />
+            <WeatherWidget weather={weatherData} />
+          </div>
+        </>
+      )}
+
+      {/* ── Briefing tab — News + Releases ───────────────────────────── */}
+      {tab === 'briefing' && (
+        <>
+          <div className="mb-4">
+            <NewsWidget articles={newsArticles} articleLoading={articleLoading} onOpenArticle={onOpenArticle} />
+          </div>
+          <div className="mb-4">
+            <ReleaseWidget release={latestRelease} />
+          </div>
+        </>
+      )}
+
+      {/* ── Reflect tab — Memory + Learning ──────────────────────────── */}
+      {tab === 'reflect' && (
+        <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <MemoryWidget memories={memories} onNavigate={onNavigate} total={memoryTotal} />
+          <LearningWidget curriculums={learningCurriculums} onNavigate={onNavigate} />
+        </div>
+      )}
+
+      {/* ── Statistics Row + Quick Actions ────────────────────────────
+           Step 4 of the alignment plan removes these — the IDE Command
+           Centre doesn't show stats here (they live in History → Usage)
+           and doesn't show action cards (per the dashboard-scope rule).
+           Keeping them under the tabs for now so they're not lost during
+           the transition. */}
       <div className="mb-4">
         <div className="mb-3">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{t('dash.cc.statistics')}</h2>
@@ -257,21 +318,6 @@ export function Overview({
         </div>
       </div>
 
-      {/* ── News + Tasks (2-col) ──────────────────────────────────────── */}
-      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <NewsWidget articles={newsArticles} articleLoading={articleLoading} onOpenArticle={onOpenArticle} />
-        <TasksWidget tasks={tasks} onNavigate={onNavigate} />
-      </div>
-
-      {/* ── Journal + Learning + Memory + Release (2x2) ───────────────── */}
-      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <JournalWidget journalDay={journalDay} onNavigate={onNavigate} />
-        <LearningWidget curriculums={learningCurriculums} onNavigate={onNavigate} />
-        <MemoryWidget memories={memories} onNavigate={onNavigate} total={memoryTotal} />
-        <ReleaseWidget release={latestRelease} />
-      </div>
-
-      {/* ── Quick Actions ──────────────────────────────────────────── */}
       <SectionGroup label={t('dash.nav.billing')}>
         <div className="grid grid-cols-2 gap-3">
           <ActionCard label={t('dash.nav.billing')} onClick={() => onNavigate('billing')} />
@@ -279,6 +325,27 @@ export function Overview({
         </div>
       </SectionGroup>
     </div>
+  );
+}
+
+// ── Tab button ───────────────────────────────────────────────────────────────
+// Inner-tab nav for the Command Centre's three lenses. Active tab gets the
+// purple underline + brighter text; inactive tabs are muted and hover-lift to
+// the secondary text colour. Mirrors the IDE Command Centre's TabBtn exactly.
+
+function TabBtn({ id: _id, label, active, onClick }: { id: string; label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={[
+        'px-4 py-2 text-sm transition border-b-2 -mb-px',
+        active
+          ? 'border-[var(--accent)] text-[var(--text-primary)] font-medium'
+          : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]',
+      ].join(' ')}
+    >
+      {label}
+    </button>
   );
 }
 
