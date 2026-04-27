@@ -450,38 +450,8 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
             }}
           />
 
-          {/* Right side: attach + usage + send/stop */}
+          {/* Right side: attach + vault + credits + send/stop */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Unified token balance — free + subscription + top-ups. */}
-            {platformStatus?.connected && (() => {
-              // Admin/unlimited accounts
-              if (platformStatus.freeTokensLimit >= 999_999_999) {
-                return (
-                  <span className="text-[10px] tabular-nums opacity-30" title={t('input.tokens_unlimited')}>
-                    ∞
-                  </span>
-                );
-              }
-              const totalLimit = platformStatus.freeTokensLimit + (platformStatus.subTokensLimit ?? 0);
-              const totalUsed = platformStatus.freeTokensUsed + platformStatus.subTokensUsed;
-              const remaining = Math.max(0, totalLimit - totalUsed);
-              const pct = totalLimit > 0 ? (totalUsed / totalLimit) * 100 : 0;
-              const isLow = pct >= 80;
-              const color = pct >= 95 ? '#ef4444' : pct >= 80 ? '#eab308' : undefined;
-              return (
-                <span
-                  className={`text-[10px] tabular-nums ${isLow ? 'opacity-80' : 'opacity-30'}`}
-                  style={color ? { color } : undefined}
-                  title={`${remaining.toLocaleString()} / ${totalLimit.toLocaleString()} credits remaining`}
-                >
-                  {remaining.toLocaleString('en-US')} left
-                </span>
-              );
-            })()}
-            {/* Context usage indicator moved to the top of the chat
-                container as a horizontal bar (ContextBar). The old
-                circular chip lived here and is gone. */}
-
             {/* Attach button — disabled when the current model is text-only.
                 modelSupportsVision === false explicitly blocks; undefined is
                 treated as unknown/supported so older clients keep working. */}
@@ -538,6 +508,36 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
                 </span>
               )}
             </button>
+
+            {/* Credit balance — between Vault and Send, mirrors IDE
+                input bar at DashboardPages.tsx:5517-5529. Red/amber/
+                green colour ramp at 95% / 80%. */}
+            {platformStatus?.connected && (() => {
+              const subLimit = platformStatus.subTokensLimit ?? 0;
+              const totalLimit = platformStatus.freeTokensLimit + subLimit;
+              const totalUsed = platformStatus.freeTokensUsed + platformStatus.subTokensUsed;
+              if (platformStatus.freeTokensLimit >= 999_999_999 || totalLimit >= 999_999_999) {
+                return (
+                  <span
+                    style={{ fontSize: 11, fontFamily: 'monospace', color: '#6c7086', opacity: 0.5, flexShrink: 0 }}
+                    title={t('input.tokens_unlimited')}
+                  >
+                    ∞
+                  </span>
+                );
+              }
+              const remaining = Math.max(0, totalLimit - totalUsed);
+              const pct = totalLimit > 0 ? (totalUsed / totalLimit) * 100 : 0;
+              const color = pct >= 95 ? '#ef4444' : pct >= 80 ? '#eab308' : '#a6e3a1';
+              return (
+                <span
+                  style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 600, color, flexShrink: 0 }}
+                  title={`${remaining.toLocaleString()} of ${totalLimit.toLocaleString()} credits remaining (${Math.round(pct)}% used)`}
+                >
+                  {remaining.toLocaleString()}
+                </span>
+              );
+            })()}
 
             {isStreaming ? (
               <button

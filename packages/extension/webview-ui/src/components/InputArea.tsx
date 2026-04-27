@@ -523,44 +523,6 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
           {/* Right side actions — provider toggle + voice button dropped
               to match IDE; only attach + vault + send remain. */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Unified token balance — free + subscription + top-ups combined.
-                Backend still burns the free pool first and overflows to the
-                subscription pool, but users see one number here. */}
-            {providerSource === 'platform' && platformStatus?.connected && (() => {
-              // Admin/unlimited accounts
-              if (platformStatus.freeTokensLimit >= 999_999_999) {
-                return (
-                  <span className="text-[10px] tabular-nums opacity-30" title={t('input.tokens_unlimited')}>
-                    ∞
-                  </span>
-                );
-              }
-              const subLimit = platformStatus.subTokensLimit ?? 0;
-              const totalUsed = platformStatus.freeTokensUsed + platformStatus.subTokensUsed;
-              const totalLimit = platformStatus.freeTokensLimit + subLimit;
-              const remaining = Math.max(0, totalLimit - totalUsed);
-              // Low-balance threshold scales with plan size. Old value
-              // (500,000) made sense in the token era but flags every
-              // post-rebalance credit pool as "low" since they top out
-              // at ~20K. Switch to 20% of plan.
-              const isLow = totalLimit > 0 && remaining <= totalLimit * 0.2;
-              return (
-                <span
-                  className={`text-[10px] tabular-nums ${
-                    isLow
-                      ? 'text-[var(--vscode-editorWarning-foreground,#cca700)] opacity-80'
-                      : 'opacity-30'
-                  }`}
-                  title={`${remaining.toLocaleString()} / ${totalLimit.toLocaleString()} credits remaining`}
-                >
-                  {remaining.toLocaleString('en-US')}
-                </span>
-              );
-            })()}
-            {/* Context usage indicator moved to the top of the chat
-                container as a horizontal bar (ContextBar). The old
-                circular chip lived here and is gone. */}
-
             {/* Attach button */}
             <button
               onClick={handleAttach}
@@ -614,10 +576,38 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
               )}
             </button>
 
-            {/* Voice input button DROPPED — IDE doesn't have it.
-                The toggleVoice / micPermission / isListening state stays
-                in this component (cheap, unused) so a future re-add
-                doesn't have to re-plumb the Web Speech API. */}
+            {/* Credit balance — between Vault and Send, mirrors IDE
+                input bar at DashboardPages.tsx:5517-5529. Red/amber/
+                green colour ramp at 95% / 80% / under. Admin (limit
+                >= 999_999_999) shows ∞. */}
+            {providerSource === 'platform' && platformStatus?.connected && (() => {
+              const subLimit = platformStatus.subTokensLimit ?? 0;
+              const totalLimit = platformStatus.freeTokensLimit + subLimit;
+              const totalUsed = platformStatus.freeTokensUsed + platformStatus.subTokensUsed;
+              if (platformStatus.freeTokensLimit >= 999_999_999 || totalLimit >= 999_999_999) {
+                return (
+                  <span
+                    style={{ fontSize: 11, fontFamily: 'monospace', color: '#6c7086', opacity: 0.5, flexShrink: 0 }}
+                    title={t('input.tokens_unlimited')}
+                  >
+                    ∞
+                  </span>
+                );
+              }
+              const remaining = Math.max(0, totalLimit - totalUsed);
+              const pct = totalLimit > 0 ? (totalUsed / totalLimit) * 100 : 0;
+              const color = pct >= 95 ? '#ef4444' : pct >= 80 ? '#eab308' : '#a6e3a1';
+              return (
+                <span
+                  style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 600, color, flexShrink: 0 }}
+                  title={`${remaining.toLocaleString()} of ${totalLimit.toLocaleString()} credits remaining (${Math.round(pct)}% used)`}
+                >
+                  {remaining.toLocaleString()}
+                </span>
+              );
+            })()}
+
+            {/* Voice input button DROPPED — IDE doesn't have it. */}
 
             {isStreaming ? (
               <button
