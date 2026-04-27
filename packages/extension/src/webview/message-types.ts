@@ -247,6 +247,7 @@ export type WebviewToExtMessage =
   | { type: 'webview_ready' }
   | { type: 'compress_context' }
   | { type: 'set_provider_source'; source: ProviderSource }
+  | { type: 'set_data_mode'; mode: 'local' | 'cloud' | 'both' }
   | { type: 'request_memory' }
   | { type: 'save_memory'; scope: 'global' | 'project'; content: string }
   | { type: 'clear_memory'; scope: 'global' | 'project' }

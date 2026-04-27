@@ -2234,6 +2234,19 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         await this.initializeSession();
         break;
 
+      case 'set_data_mode': {
+        // Panel webview sent the toggle. Persist host-side and apply to
+        // every manager (memory, tasks, journal, learning, history,
+        // creative-assets) so the next save in the in-flight turn lands
+        // on the right side. Mirrors the dashboard handler in
+        // DashboardPanel.ts so both webviews drive the same path.
+        const { setDataMode } = await import('./data-mode.js');
+        await setDataMode(this.context, message.mode);
+        this.applyDataMode(message.mode);
+        this.log(`Data mode set to ${message.mode}`);
+        break;
+      }
+
       case 'request_memory':
         await this.sendMemoryContent();
         break;

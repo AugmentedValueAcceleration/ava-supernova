@@ -1,5 +1,10 @@
+import { useEffect, useState, useCallback } from 'react';
 import { ModelSelector } from './ModelSelector';
 import { t, useLocale } from '../i18n';
+import { useVSCodeApi } from '../hooks/useVSCodeApi';
+
+type DataMode = 'local' | 'cloud' | 'both';
+const DATA_MODES: DataMode[] = ['local', 'cloud', 'both'];
 
 interface HeaderProps {
   models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;
@@ -42,6 +47,37 @@ export function Header({
   conversationTitle,
 }: HeaderProps) {
   useLocale();
+  const { postMessage } = useVSCodeApi();
+
+  // Local/Cloud/Both data-mode pill — mirrors IDE chat header at
+  // DashboardPages.tsx:4163-4205 and the dashboard chat Header. Persists
+  // to localStorage AND posts set_data_mode to the host so the active
+  // managers (memory, tasks, journal, learning, history, creative)
+  // honour the choice on the next save.
+  const [dataMode, setDataMode] = useState<DataMode>(() => {
+    try {
+      const stored = localStorage.getItem('ava-data-mode');
+      if (stored === 'cloud' || stored === 'both' || stored === 'local') return stored;
+    } catch { /* localStorage unavailable */ }
+    return 'local';
+  });
+
+  useEffect(() => {
+    // Echo current state to host on mount so the manager flags align
+    // with localStorage even before the user clicks the pill.
+    postMessage({ type: 'set_data_mode', mode: dataMode } as never);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const cycleDataMode = useCallback(() => {
+    setDataMode(prev => {
+      const idx = DATA_MODES.indexOf(prev);
+      const next = DATA_MODES[(idx + 1) % DATA_MODES.length];
+      try { localStorage.setItem('ava-data-mode', next); } catch { /* */ }
+      postMessage({ type: 'set_data_mode', mode: next } as never);
+      return next;
+    });
+  }, [postMessage]);
 
   return (
     <div
@@ -88,6 +124,38 @@ export function Header({
       )}
 
       <div className="flex-1" />
+
+      {/* Local / Cloud / Both data-mode pill — mirrors IDE chat header
+          at DashboardPages.tsx:4163-4205. */}
+      <button
+        onClick={cycleDataMode}
+        title={dataMode === 'local'
+          ? 'Local — data stays on your machine. Click to switch to Cloud.'
+          : dataMode === 'cloud'
+            ? 'Cloud — syncing to platform. Click to switch to Both.'
+            : 'Both — local backup + cloud sync. Click to switch to Local.'}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px',
+          background: dataMode === 'cloud' ? 'rgba(96,165,250,0.1)'
+            : dataMode === 'both' ? 'rgba(168,85,247,0.1)'
+            : 'rgba(166,227,161,0.1)',
+          border: `1px solid ${dataMode === 'cloud' ? 'rgba(96,165,250,0.3)'
+            : dataMode === 'both' ? 'rgba(168,85,247,0.3)'
+            : 'rgba(166,227,161,0.3)'}`,
+          borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+          color: dataMode === 'cloud' ? '#60a5fa'
+            : dataMode === 'both' ? '#a855f7'
+            : '#a6e3a1',
+        }}
+      >
+        <span style={{
+          width: 6, height: 6, borderRadius: '50%',
+          background: dataMode === 'cloud' ? '#60a5fa'
+            : dataMode === 'both' ? '#a855f7'
+            : '#a6e3a1',
+        }} />
+        {dataMode === 'local' ? 'Local' : dataMode === 'cloud' ? 'Cloud' : 'Both'}
+      </button>
 
       {/* Tasks — labelled pill with badge, mirrors IDE header at
           DashboardPages.tsx:4232-4254. */}
