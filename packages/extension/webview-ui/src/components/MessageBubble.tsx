@@ -168,25 +168,60 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
   }
 
   if (message.role === 'user') {
+    // Mirrors IDE chat user-message at DashboardPages.tsx:4330-4400 —
+    // name + timestamp lockup ABOVE the bubble (right-aligned), 32px
+    // circular avatar to the RIGHT of the bubble (gradient
+    // #b4befe → #89b4fa default), bubble background #7c3aed, corners
+    // 16/16/4/16 (bottom-right squared, "tail" pointing TO user).
+    const ts = message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
     return (
-      <div className="flex justify-end">
-        <div className="max-w-[85%] px-4 py-3 rounded-2xl rounded-br-sm bg-[var(--color-accent,#a855f7)] text-white text-sm whitespace-pre-wrap">
-          {message.images && message.images.length > 0 && (
-            <div className="flex gap-1.5 flex-wrap mb-1.5">
-              {message.images.map((src, i) => (
-                <img
-                  key={i}
-                  src={src}
-                  alt={`Attachment ${i + 1}`}
-                  className="max-w-[200px] max-h-[150px] rounded object-cover"
-                />
-              ))}
-            </div>
-          )}
-          {message.content}
-          <div className="text-[11px] opacity-60 mt-1 text-right">
-            {message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+      <div className="flex justify-end items-start" style={{ marginBottom: 8 }}>
+        <div style={{ maxWidth: '75%', position: 'relative' }}>
+          {/* Name + timestamp — right-aligned above the bubble */}
+          <div className="flex items-center gap-2 justify-end" style={{ marginBottom: 4 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#b4befe' }}>
+              {t('dash.chat.you') || 'You'}
+            </span>
+            <span style={{ fontSize: 10, color: '#45475a' }}>{ts}</span>
           </div>
+          {/* Bubble */}
+          <div
+            style={{
+              padding: '10px 16px',
+              borderRadius: '16px 16px 4px 16px',
+              background: '#7c3aed',
+              color: '#ffffff',
+              fontSize: 14, lineHeight: 1.65,
+              whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+            }}
+          >
+            {message.images && message.images.length > 0 && (
+              <div className="flex gap-1.5 flex-wrap mb-1.5">
+                {message.images.map((src, i) => (
+                  <img
+                    key={i}
+                    src={src}
+                    alt={`Attachment ${i + 1}`}
+                    className="max-w-[200px] max-h-[150px] rounded object-cover"
+                  />
+                ))}
+              </div>
+            )}
+            {message.content}
+          </div>
+        </div>
+        {/* User avatar — right side */}
+        <div style={{
+          width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+          marginLeft: 10, marginTop: 24, // 24 ≈ name-row height so the avatar centers on the bubble
+          background: 'linear-gradient(135deg, #b4befe, #89b4fa)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          overflow: 'hidden',
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
         </div>
       </div>
     );
@@ -259,30 +294,41 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
     }
   }
 
-  // Pure tool-only runs: still show the Ava name badge once at the top so
-  // users can see whose turn it is. We synthesise a nameless bubble.
-  const hasAnyBubble = segments.some((s) => s.kind === 'bubble');
-  const showNameHeaderAlone = !hasAnyBubble && segments.length > 0;
-
   // Identify which segment index carries the final trailing footer (timestamp + feedback).
   const lastSegmentIdx = segments.length - 1;
 
-  return (
-    <div className="flex flex-col gap-2 items-start w-full">
-      {/* Name badge — rendered once for pure tool-run messages */}
-      {showNameHeaderAlone && (
-        <div className="flex items-center gap-2 px-1">
-          <span className="text-sm font-bold text-[var(--vscode-foreground)]">Ava</span>
-          <span
-            className="text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider"
-            style={{ color: 'var(--color-accent, #a855f7)', backgroundColor: 'rgba(168, 85, 247, 0.15)' }}
-          >
-            {t('brand.supernova_caps')}
-          </span>
-        </div>
-      )}
+  // Mirrors IDE chat assistant-message at DashboardPages.tsx:4330-4400 —
+  // 32px purple-gradient avatar circle on the LEFT, then name + timestamp
+  // ABOVE the bubble, then the bubble itself. Replaces the previous
+  // "Ava SUPERNOVA" inline lockup INSIDE the first bubble. SUPERNOVA tag
+  // dropped to match the IDE.
+  const headerTs = message.timestamp ? new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
-      {segments.map((seg, segIdx) => {
+  return (
+    <div className="flex items-start w-full" style={{ marginBottom: 8 }}>
+      {/* Ava avatar — left side, 32px circle, default purple gradient */}
+      <div style={{
+        width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+        marginRight: 10, marginTop: 4,
+        background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        overflow: 'hidden',
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </svg>
+      </div>
+
+      <div className="flex flex-col flex-1 min-w-0 gap-2 items-start">
+        {/* Name + timestamp lockup above the bubble */}
+        <div className="flex items-center gap-2">
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#a855f7' }}>
+            {t('dash.chat.ava') || 'Ava'}
+          </span>
+          <span style={{ fontSize: 10, color: '#45475a' }}>{headerTs}</span>
+        </div>
+
+        {segments.map((seg, segIdx) => {
         const isFirst = segIdx === 0;
         const isLast = segIdx === lastSegmentIdx;
 
@@ -290,45 +336,48 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
           const isFirstBubble = !segments.slice(0, segIdx).some((s) => s.kind === 'bubble');
           return (
             <div key={`seg-${segIdx}`} className="flex justify-start w-full">
-              <div className="group max-w-[90%] rounded-2xl rounded-bl-sm bg-[var(--vscode-input-background)] border border-[var(--vscode-panel-border)] px-4 py-3 space-y-2">
-                {/* Name badge — only on the first bubble of the message */}
-                {isFirstBubble && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-[var(--vscode-foreground)]">Ava</span>
-                    <span
-                      className="text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider"
-                      style={{ color: 'var(--color-accent, #a855f7)', backgroundColor: 'rgba(168, 85, 247, 0.15)' }}
+              <div
+                className="group space-y-2"
+                style={{
+                  maxWidth: '90%',
+                  padding: '10px 16px',
+                  borderRadius: '16px 16px 16px 4px',
+                  background: '#181825',
+                  border: '1px solid rgba(168, 85, 247, 0.12)',
+                  fontSize: 14, lineHeight: 1.65, color: '#cdd6f4',
+                }}
+              >
+                {/* Secret-reveal toggle — only on the first bubble of the
+                    message; "Ava SUPERNOVA" name lockup that used to live
+                    here moved above the bubble (matches IDE). */}
+                {isFirstBubble && hasSecrets && !message.isStreaming && (
+                  <div className="flex items-center justify-end">
+                    <button
+                      onClick={() => setSecretsRevealed(!secretsRevealed)}
+                      className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium
+                                 bg-transparent border-none cursor-pointer
+                                 transition-all duration-150"
+                      style={{
+                        color: secretsRevealed ? '#ef4444' : '#A855F7',
+                        background: secretsRevealed ? 'rgba(239, 68, 68, 0.08)' : 'rgba(168, 85, 247, 0.08)',
+                        border: `1px solid ${secretsRevealed ? 'rgba(239, 68, 68, 0.15)' : 'rgba(168, 85, 247, 0.15)'}`,
+                      }}
+                      title={secretsRevealed ? t('secrets.hide') : t('secrets.reveal')}
                     >
-                      {t('brand.supernova_caps')}
-                    </span>
-                    {hasSecrets && !message.isStreaming && (
-                      <button
-                        onClick={() => setSecretsRevealed(!secretsRevealed)}
-                        className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium
-                                   bg-transparent border-none cursor-pointer
-                                   transition-all duration-150 ml-auto"
-                        style={{
-                          color: secretsRevealed ? '#ef4444' : '#A855F7',
-                          background: secretsRevealed ? 'rgba(239, 68, 68, 0.08)' : 'rgba(168, 85, 247, 0.08)',
-                          border: `1px solid ${secretsRevealed ? 'rgba(239, 68, 68, 0.15)' : 'rgba(168, 85, 247, 0.15)'}`,
-                        }}
-                        title={secretsRevealed ? t('secrets.hide') : t('secrets.reveal')}
-                      >
-                        {secretsRevealed ? (
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                            <line x1="1" y1="1" x2="23" y2="23" />
-                          </svg>
-                        ) : (
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                            <circle cx="12" cy="12" r="3" />
-                          </svg>
-                        )}
-                        {secretsRevealed ? t('secrets.hide') : t('secrets.reveal')}
-                      </button>
-                    )}
+                      {secretsRevealed ? (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                          <line x1="1" y1="1" x2="23" y2="23" />
+                        </svg>
+                      ) : (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
+                      {secretsRevealed ? t('secrets.hide') : t('secrets.reveal')}
+                    </button>
                   </div>
                 )}
 
@@ -430,6 +479,7 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
         // the switch above covers every Segment kind.
         void isFirst;
       })}
+      </div>
     </div>
   );
 }
