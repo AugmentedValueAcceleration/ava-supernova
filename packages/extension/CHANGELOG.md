@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.54.1 — 2026-04-28
+
+### Fixed
+- **Locally-saved videos now play in the dashboard Library.** The host was deliberately skipping video files when building the library snapshot — base64 data URIs are too large for video, and webviews can't load `file://` URLs, so the dashboard had no way to play them. Now every local file (image / audio / video / document) is served via `webview.asWebviewUri(vscode.Uri.file(absPath))` instead of base64. Streams from disk on demand → no size cap, no memory blow-up, works for arbitrarily large videos. The 5MB image / 10MB audio caps are gone with the same change.
+- **Webview CSP `media-src` now allows `${webview.cspSource}`.** Previously listed only `data: https: blob:`, which silently blocked the new `vscode-webview-resource://` URLs for `<video>` and `<audio>` elements (images worked fine — img-src already included `cspSource`). Without this the asWebviewUri rollout above would have loaded broken media.
+- **Webview `localResourceRoots` now includes every workspace folder.** asWebviewUri returns a URL the webview will refuse to load unless the underlying path lives inside a declared root. Previously the only allowed root was the extension's `dist/dashboard` folder, so even with the right CSP the project files would have been blocked.
+
 ## 0.54.0 — 2026-04-27
 
 Extension dashboard now mirrors the IDE pixel-for-pixel — same titles, same tab shapes, same chrome — so users moving between the two surfaces never have to re-learn the layout. Plus a real Conversations tab in History (not just credits and audit), a tier badge + Platform/API Key toggle in the sidebar, and a critical fix for the loading hangs that could lock the dashboard for minutes on slow networks.

@@ -564,7 +564,16 @@ export interface LibraryImage {
   modified: string;     // ISO date string
   dimensions?: string;  // "1024x1024" if detectable
   fileType?: LibraryFileType;  // File category (defaults to 'image' for backwards compat)
-  dataUri?: string;     // Base64 data URI for display in webview
+  /** Legacy base64 data URI — retained for backwards-compat with
+   *  in-flight library_loaded messages from older host versions. New
+   *  hosts emit `webviewUri` instead, which streams from disk instead
+   *  of bundling the bytes inline. */
+  dataUri?: string;
+  /** vscode-webview-resource:// URL produced by webview.asWebviewUri().
+   *  Streams local files from disk; no size cap, no base64 overhead.
+   *  Works for video, large audio, large images. Prefer this over
+   *  dataUri when present. */
+  webviewUri?: string;
 }
 
 /** Cloud-synced creative asset row returned by /api/creative-assets GET.

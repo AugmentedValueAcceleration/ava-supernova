@@ -113,13 +113,27 @@ export class DashboardPanel {
       return;
     }
 
+    // Webview localResourceRoots — the dashboard bundle root is fixed, but
+    // we also need to allow every workspace folder so the Library page can
+    // serve images / audio / video that live in the user's project. Without
+    // these roots, asWebviewUri() returns a URI the webview will refuse to
+    // load and locally-saved videos in particular show as broken (they
+    // can't be inlined as base64 — too large).
+    const localResourceRoots: vscode.Uri[] = [
+      vscode.Uri.joinPath(extensionUri, 'dist', 'dashboard'),
+    ];
+    const workspaceFolders = vscode.workspace.workspaceFolders ?? [];
+    for (const folder of workspaceFolders) {
+      localResourceRoots.push(folder.uri);
+    }
+
     const panel = vscode.window.createWebviewPanel(
       DashboardPanel.viewType,
       'Ava Supernova',
       column,
       {
         enableScripts: true,
-        localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'dist', 'dashboard')],
+        localResourceRoots,
         retainContextWhenHidden: true,
       },
     );
@@ -2861,7 +2875,7 @@ export class DashboardPanel {
 
       const ALL_EXTENSIONS = new Set([...IMAGE_EXTENSIONS, ...VIDEO_EXTENSIONS, ...AUDIO_EXTENSIONS, ...DOCUMENT_EXTENSIONS, ...SPREADSHEET_EXTENSIONS]);
 
-      const files: Array<{ path: string; name: string; folder: string; size: number; modified: string; fileType: FileType; dataUri?: string }> = [];
+      const files: Array<{ path: string; name: string; folder: string; size: number; modified: string; fileType: FileType; dataUri?: string; webviewUri?: string }> = [];
 
       // Recursive scan
       const scan = async (dir: string) => {
@@ -2891,6 +2905,14 @@ export class DashboardPanel {
             const relativePath = path.relative(projectRoot, fullPath).replace(/\\/g, '/');
             const relativeFolder = path.relative(projectRoot, dir).replace(/\\/g, '/');
 
+            // asWebviewUri returns a vscode-webview-resource:// URL that
+            // the webview can load directly without having to inline the
+            // bytes as a data URI. Streams from disk → no size cap, no
+            // base64 overhead, video works at any size. Replaces the
+            // earlier "video: skip (too large for base64)" path which
+            // left every locally-saved video silently broken.
+            const webviewUri = this.panel.webview.asWebviewUri(vscode.Uri.file(fullPath)).toString();
+
             const item: typeof files[number] = {
               path: relativePath,
               name: entry.name,
@@ -2898,25 +2920,8 @@ export class DashboardPanel {
               size: stat.size,
               modified: stat.mtime.toISOString(),
               fileType,
+              webviewUri,
             };
-
-            // Send base64 data for images + audio (webviews block file:// URLs)
-            // Images: 5MB cap. Audio: 10MB cap. Video: skip (too large for base64).
-            if (fileType === 'image' && stat.size <= 5 * 1024 * 1024) {
-              const fileBuffer = await fs.readFile(fullPath);
-              const mimeTypes: Record<string, string> = {
-                '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-                '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml',
-                '.ico': 'image/x-icon', '.bmp': 'image/bmp',
-              };
-              item.dataUri = `data:${mimeTypes[ext] || 'image/png'};base64,${fileBuffer.toString('base64')}`;
-            } else if (fileType === 'audio' && stat.size <= 10 * 1024 * 1024) {
-              const fileBuffer = await fs.readFile(fullPath);
-              const audioMimes: Record<string, string> = {
-                '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.m4a': 'audio/mp4',
-              };
-              item.dataUri = `data:${audioMimes[ext] || 'audio/mpeg'};base64,${fileBuffer.toString('base64')}`;
-            }
 
             files.push(item);
           }
@@ -4106,7 +4111,7 @@ export class DashboardPanel {
                  script-src 'nonce-${nonce}';
                  connect-src https://ava-supernova.com https://*.supabase.co;
                  img-src ${webview.cspSource} data: https: vscode-resource:;
-                 media-src data: https: blob:;">
+                 media-src ${webview.cspSource} data: https: blob:;">
   <link rel="stylesheet" href="${styleUri}">
   <title>Ava | Dashboard</title>
 </head>

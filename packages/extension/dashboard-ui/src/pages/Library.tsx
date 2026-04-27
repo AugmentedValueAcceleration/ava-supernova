@@ -106,7 +106,11 @@ function unifyLocalImage(img: LibraryImage, projectRoot: string): UnifiedItem {
     kind,
     title: img.name,
     subtitle: `${img.folder} · ${formatSize(img.size)}`,
-    thumbnail: kind === 'image' ? (img.dataUri || `${projectRoot}/${img.path}`) : undefined,
+    // Prefer the host's webviewUri (streams from disk, no size cap) over
+    // the legacy dataUri. Falls back to a raw path string only if the
+    // host is older than the asWebviewUri rollout — webviews can't load
+    // those, but the broken-image glyph at least signals what's missing.
+    thumbnail: kind === 'image' ? (img.webviewUri || img.dataUri || `${projectRoot}/${img.path}`) : undefined,
     createdAt: img.modified,
     raw: img,
   };
@@ -407,13 +411,14 @@ function PreviewModal({
   const localPath = isLocal ? (item.raw as LibraryImage).path : undefined;
   const cloudUrl = !isLocal ? (item.raw as CreativeAsset).url ?? undefined : undefined;
 
-  // Playback source — cloud assets use their public URL; local audio
-  // gets a base64 dataUri from the library scan (videos are skipped
-  // for size, so local video items have no inline preview and rely on
-  // the Open button instead). Webview CSP allows data:, https:, blob:
-  // for media-src, so both paths work.
-  const localDataUri = isLocal ? (item.raw as LibraryImage).dataUri : undefined;
-  const mediaSrc: string | undefined = isLocal ? localDataUri : cloudUrl ?? undefined;
+  // Playback source — cloud assets use their public URL; local files
+  // prefer the host's webviewUri (vscode-webview-resource://) which
+  // streams from disk so video plays at any size. Falls back to the
+  // legacy dataUri for in-flight messages from older hosts. Webview CSP
+  // allows vscode-webview-resource:, data:, https:, blob: for media-src.
+  const localRaw = isLocal ? (item.raw as LibraryImage) : undefined;
+  const localPlaybackUrl = localRaw?.webviewUri || localRaw?.dataUri;
+  const mediaSrc: string | undefined = isLocal ? localPlaybackUrl : cloudUrl ?? undefined;
 
   const handleOpen = () => {
     // Local-only path. Cloud items don't expose a browser-open action —
