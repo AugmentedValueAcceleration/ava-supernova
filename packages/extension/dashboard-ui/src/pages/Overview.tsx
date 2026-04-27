@@ -167,33 +167,6 @@ export function Overview({
     );
   }
 
-  // Credits-redesign read shim — same as Usage/Billing.
-  const rawUsage = (account.usage ?? {}) as Record<string, unknown>;
-  const tierDefaults: Record<string, { free: number; sub: number | null }> = {
-    free:       { free:   300,      sub: null    },
-    pro:        { free: 0,          sub:  5_000  },
-    ultra:      { free: 0,          sub: 10_000  },
-    enterprise: { free: 0,          sub: 20_000  },
-    admin:      { free: 0,          sub: 999_999_999 },
-  };
-  const td = tierDefaults[account.tier ?? 'free'] ?? tierDefaults.free;
-  const usage = {
-    credits_used:       Number(rawUsage.credits_used       ?? rawUsage.tokens_used       ?? 0),
-    credits_limit:     ((rawUsage.credits_limit     as number | null | undefined) ?? (rawUsage.tokens_limit     as number | null | undefined) ?? td.sub) as number | null,
-    requests_count:     Number(rawUsage.requests_count ?? 0),
-    period_start:      (rawUsage.period_start      as string | null | undefined) ?? null,
-    period_end:        (rawUsage.period_end        as string | null | undefined) ?? null,
-    free_credits_used:  Number(rawUsage.free_credits_used  ?? rawUsage.free_tokens_used  ?? 0),
-    free_credits_limit: Number(rawUsage.free_credits_limit ?? rawUsage.free_tokens_limit ?? td.free),
-  };
-
-  // Derive stats from logs as fallback when account.usage is stale/empty
-  const logsTotal = useMemo(() => {
-    let total = 0;
-    for (const log of logs) { total += log.input_tokens + log.output_tokens; }
-    return { total, count: logs.length };
-  }, [logs]);
-
   // Hero strip — mirrors the IDE Command Centre header exactly. Greeting
   // + date on the left; weather, working-hours, and latest-version pills
   // on the right. Replaces the previous flat "Command Centre" h1 + name
@@ -250,9 +223,9 @@ export function Overview({
 
       {/* ── Tab nav ──────────────────────────────────────────────────── */}
       <div className="mb-5 flex gap-1 border-b border-[var(--border-card)]">
-        <TabBtn id="daily" label={t('dash.cc.tab_daily') || 'Daily'} active={tab === 'daily'} onClick={() => switchTab('daily')} />
-        <TabBtn id="briefing" label={t('dash.cc.tab_briefing') || 'Briefing'} active={tab === 'briefing'} onClick={() => switchTab('briefing')} />
-        <TabBtn id="reflect" label={t('dash.cc.tab_reflect') || 'Reflect'} active={tab === 'reflect'} onClick={() => switchTab('reflect')} />
+        <TabBtn id="daily" label="Daily" active={tab === 'daily'} onClick={() => switchTab('daily')} />
+        <TabBtn id="briefing" label="Briefing" active={tab === 'briefing'} onClick={() => switchTab('briefing')} />
+        <TabBtn id="reflect" label="Reflect" active={tab === 'reflect'} onClick={() => switchTab('reflect')} />
       </div>
 
       {/* ── Daily tab — Tasks + Journal, then Working Hours + Weather ── */}
@@ -292,38 +265,6 @@ export function Overview({
         </div>
       )}
 
-      {/* ── Statistics Row + Quick Actions ────────────────────────────
-           Step 4 of the alignment plan removes these — the IDE Command
-           Centre doesn't show stats here (they live in History → Usage)
-           and doesn't show action cards (per the dashboard-scope rule).
-           Keeping them under the tabs for now so they're not lost during
-           the transition. */}
-      <div className="mb-4">
-        <div className="mb-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{t('dash.cc.statistics')}</h2>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard
-            icon={<ChartBar weight="duotone" size={20} />}
-            value={formatNumber(usage.credits_used || logsTotal.total)}
-            label={t('dash.cc.credits_used')}
-            subtext={usage.period_start ? t('dash.cc.since', { date: new Date(usage.period_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) }) : (logsTotal.count > 0 ? t('dash.cc.from_requests', { count: logsTotal.count }) : undefined)}
-          />
-          <StatCard
-            icon={<Lightning weight="duotone" size={20} />}
-            value={String(usage.requests_count || logsTotal.count)}
-            label={t('dash.cc.requests')}
-            subtext={t('dash.cc.this_period')}
-          />
-        </div>
-      </div>
-
-      <SectionGroup label={t('dash.nav.billing')}>
-        <div className="grid grid-cols-2 gap-3">
-          <ActionCard label={t('dash.nav.billing')} onClick={() => onNavigate('billing')} />
-          <ActionCard label={t('dash.chat.new_chat')} onClick={() => post({ type: 'open_chat' })} />
-        </div>
-      </SectionGroup>
     </div>
   );
 }
