@@ -68,7 +68,24 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
 export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSource, platformStatus }: InputAreaProps) {
   useLocale();
   const [text, setText] = useState('');
-  const [mode, setMode] = useState<AvaMode>('code');
+  // Mode persists across panel close/reopen — IDE chat persists via
+  // localStorage key 'ava-ide-chat-mode'; extension panel uses
+  // 'ava-ext-chat-mode' (separate webview localStorage origin so the
+  // keys can't collide). Defaults to 'code' on first load and on any
+  // unrecognised stored value.
+  const [mode, setMode] = useState<AvaMode>(() => {
+    try {
+      const stored = localStorage.getItem('ava-ext-chat-mode');
+      const valid: AvaMode[] = ['code', 'plan', 'chat', 'teach', 'security', 'brainstorm'];
+      if (stored && (valid as string[]).includes(stored)) return stored as AvaMode;
+    } catch { /* localStorage unavailable */ }
+    return 'code';
+  });
+  // Persist mode on every change so the next panel mount lands on the
+  // last-used mode rather than the default.
+  useEffect(() => {
+    try { localStorage.setItem('ava-ext-chat-mode', mode); } catch { /* quota / disabled */ }
+  }, [mode]);
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const [modesExpanded, setModesExpanded] = useState(false);

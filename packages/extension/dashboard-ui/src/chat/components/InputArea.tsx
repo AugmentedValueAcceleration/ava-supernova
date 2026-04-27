@@ -69,7 +69,21 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
 export function InputArea({ onSend, onCancel, isStreaming, disabled, platformStatus, modelSupportsVision }: InputAreaProps) {
   useLocale();
   const [text, setText] = useState('');
-  const [mode, setMode] = useState<AvaMode>('code');
+  // Mode persists across page reload — same shape as webview-ui.
+  // Dashboard webview uses 'ava-dashboard-chat-mode' (separate from the
+  // panel webview's 'ava-ext-chat-mode' since the two webviews have
+  // different localStorage origins).
+  const [mode, setMode] = useState<AvaMode>(() => {
+    try {
+      const stored = localStorage.getItem('ava-dashboard-chat-mode');
+      const valid: AvaMode[] = ['code', 'plan', 'chat', 'teach', 'security', 'brainstorm'];
+      if (stored && (valid as string[]).includes(stored)) return stored as AvaMode;
+    } catch { /* localStorage unavailable */ }
+    return 'code';
+  });
+  useEffect(() => {
+    try { localStorage.setItem('ava-dashboard-chat-mode', mode); } catch { /* quota */ }
+  }, [mode]);
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const [modesExpanded, setModesExpanded] = useState(false);
