@@ -695,7 +695,10 @@ export interface ChatPageProps {
   onNavigate?: (page: Page) => void;
 }
 
-export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCollapsed, onFlipSidebar, sidebarSide, onNavigate }: ChatPageProps) {
+// Sidebar-toggle / flip / collapsed / side props are still in ChatPageProps
+// for caller compatibility but are no longer consumed — the chat header
+// dropped its sidebar-toggle button to match the IDE chat header.
+export function Chat({ onRegisterDispatch, isActive, onNavigate }: ChatPageProps) {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const justLoadedRef = useRef(false);
@@ -961,14 +964,9 @@ export function Chat({ onRegisterDispatch, isActive, onToggleSidebar, sidebarCol
             onNewChat={handleNewChat}
             onToggleTasks={handleToggleTasks}
             tasksOpen={state.tasksOpen}
-            onToggleSidebar={onToggleSidebar}
-            sidebarCollapsed={sidebarCollapsed}
-            onFlipSidebar={onFlipSidebar}
-            sidebarSide={sidebarSide}
+            sessionTaskCount={state.sessionTasks?.length ?? 0}
             sessionCredits={state.sessionCredits}
-            providerSource={state.providerSource}
             platformStatus={state.platformStatus}
-            onProviderSourceChange={handleProviderSourceChange}
           />
 
           <ChatContainer

@@ -27,13 +27,20 @@ interface HeaderProps {
   onNewChat: () => void;
   onToggleTasks: () => void;
   tasksOpen: boolean;
+  /** @deprecated extension-specific UX, kept for backward-compat but ignored — IDE doesn't show a sidebar toggle in the chat header. */
   onToggleSidebar?: () => void;
+  /** @deprecated see onToggleSidebar. */
   sidebarCollapsed?: boolean;
+  /** @deprecated extension-specific, IDE has no L↔R flip. */
   onFlipSidebar?: () => void;
+  /** @deprecated see onFlipSidebar. */
   sidebarSide?: 'left' | 'right';
   sessionCredits?: number;
+  /** Length of session task list — drives the badge on the Tasks pill. */
+  sessionTaskCount?: number;
   providerSource?: ProviderSource;
   platformStatus?: { connected: boolean; tier: string | null; freeTokensUsed: number; freeTokensLimit: number; subTokensUsed: number; subTokensLimit: number | null } | null;
+  /** @deprecated extension-only Platform/API-key toggle — IDE doesn't have it; provider routing is set in Settings. */
   onProviderSourceChange?: (source: ProviderSource) => void;
 }
 
@@ -43,20 +50,13 @@ export function Header({
   needsSetup,
   onSwitch,
   onOpenDashboard,
+  onNewChat,
   onToggleTasks,
   tasksOpen,
-  onToggleSidebar,
-  sidebarCollapsed,
-  sessionCredits = 0,
-  providerSource,
+  sessionTaskCount = 0,
   platformStatus,
-  onProviderSourceChange,
 }: HeaderProps) {
   useLocale();
-  const btnBase = `flex items-center justify-center w-7 h-7 rounded
-                   hover:bg-[var(--vscode-toolbar-hoverBackground)]
-                   text-[var(--vscode-foreground)] opacity-70 hover:opacity-100
-                   bg-transparent border-none cursor-pointer text-sm`;
 
   // Knowledge packs — persisted
   const [enabledPacks, setEnabledPacks] = useState<Set<string>>(() => {
@@ -143,16 +143,9 @@ export function Header({
   return (
     <div className="border-b" style={{ borderColor: 'rgba(168, 85, 247, 0.12)' }}>
     <div className="flex items-center gap-2 px-3 py-2" role="toolbar" aria-label="Chat controls">
-      {/* Sidebar toggle — only shows when sidebar is collapsed */}
-      {onToggleSidebar && sidebarCollapsed && (
-        <button onClick={onToggleSidebar} title="Show sidebar" aria-label="Show sidebar" className={btnBase}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-            <path d="M1 2h14v12H1V2zm1 1v10h4V3H2zm5 0v10h7V3H7z"/>
-          </svg>
-        </button>
-      )}
-
-      {/* Model selector */}
+      {/* Model selector — sidebar toggle dropped to match IDE which has no
+          sidebar-toggle in the chat header (the dashboard sidebar collapses
+          via its own affordance). */}
       <div className="min-w-0 flex justify-start">
         <ModelSelector
           models={models}
@@ -262,52 +255,93 @@ export function Header({
           </button>
         )}
 
-        {/* Provider toggle (Platform / API Key) */}
-        {platformStatus?.connected && onProviderSourceChange && (
-          <button
-            onClick={() => onProviderSourceChange(providerSource === 'platform' ? 'byok' : 'platform')}
-            className="flex items-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-[10px] font-semibold cursor-pointer transition-all"
-            style={{
-              background: providerSource === 'platform' ? 'rgba(166,227,161,0.1)' : 'rgba(108,112,134,0.1)',
-              borderColor: providerSource === 'platform' ? 'rgba(166,227,161,0.3)' : 'rgba(108,112,134,0.2)',
-              color: providerSource === 'platform' ? '#a6e3a1' : '#6c7086',
-            }}
-            title={providerSource === 'platform' ? t('input.provider_switch_free') : t('input.provider_use_own_key')}
-          >
+        {/* Credit balance display — matches IDE chat header at
+            DashboardPages.tsx:4210-4225. Shows total platform balance
+            remaining when signed in (with red/amber/green colour ramp at
+            95/80%); falls back to session count for the standalone case.
+            Plain "X credits" text from the previous extension shape is
+            retired — IDE doesn't show that. */}
+        {platformStatus?.connected ? (() => {
+          const limit = (platformStatus.freeTokensLimit ?? 0) + (platformStatus.subTokensLimit ?? 0);
+          const used = (platformStatus.freeTokensUsed ?? 0) + (platformStatus.subTokensUsed ?? 0);
+          const isAdmin = limit >= 999_999_999;
+          if (isAdmin) {
+            return (
+              <span
+                className="text-[11px] tabular-nums opacity-50"
+                style={{ fontFamily: 'monospace', color: '#6c7086' }}
+                title="Unlimited credits"
+              >∞ credits</span>
+            );
+          }
+          if (limit <= 0) return null;
+          const remaining = Math.max(0, limit - used);
+          const pct = (used / limit) * 100;
+          const color = pct >= 95 ? '#ef4444' : pct >= 80 ? '#eab308' : '#a6e3a1';
+          return (
             <span
-              className="inline-block w-1.5 h-1.5 rounded-full"
-              style={{ background: providerSource === 'platform' ? '#a6e3a1' : '#6c7086' }}
-            />
-            {providerSource === 'platform'
-              ? (platformStatus.tier === 'free' ? t('input.provider_free') : t('input.provider_platform'))
-              : t('input.provider_api_key')}
-          </button>
-        )}
+              className="text-[11px] tabular-nums font-semibold"
+              style={{ fontFamily: 'monospace', color }}
+              title={`${remaining.toLocaleString()} of ${limit.toLocaleString()} credits remaining (${Math.round(pct)}% used)`}
+            >
+              {remaining.toLocaleString()} left
+            </span>
+          );
+        })() : null}
 
-        {/* Session credit counter — sums credits charged this chat
-            session (not raw provider tokens). Server-authoritative math
-            mirrored on the host; stays accurate with cache-hit discount. */}
-        <span
-          className="text-[11px] tabular-nums opacity-40"
-          style={{ fontFamily: 'monospace' }}
-          title={`${sessionCredits.toLocaleString()} credits charged this session`}
-        >
-          {sessionCredits.toLocaleString()} credits
-        </span>
-
-        {/* Tasks */}
+        {/* Tasks — labelled pill with badge, matching IDE chat header
+            at DashboardPages.tsx:4232-4254. Replaces the previous
+            icon-only button. */}
         <button
           onClick={onToggleTasks}
           title={t('header.tasks')}
           aria-label="Tasks"
-          className={`flex items-center justify-center w-7 h-7 rounded
-                     hover:bg-[var(--vscode-toolbar-hoverBackground)]
-                     text-[var(--vscode-foreground)] ${tasksOpen ? 'opacity-100' : 'opacity-70'} hover:opacity-100
-                     bg-transparent border-none cursor-pointer text-sm`}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
+            background: tasksOpen ? 'rgba(168,85,247,0.2)' : 'rgba(168,85,247,0.05)',
+            border: `1px solid ${tasksOpen ? 'rgba(168,85,247,0.4)' : 'rgba(168,85,247,0.15)'}`,
+            borderRadius: 8,
+            color: tasksOpen ? '#a855f7' : '#6c7086',
+            fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            transition: 'all 0.15s',
+          }}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
             <path d="M3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 3.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 7.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 11.5h8v1H6v-1z"/>
           </svg>
+          Tasks
+          {sessionTaskCount > 0 && (
+            <span style={{
+              fontSize: 9, padding: '1px 5px', borderRadius: 8,
+              background: 'rgba(168,85,247,0.25)', color: '#a855f7',
+            }}>{sessionTaskCount}</span>
+          )}
+        </button>
+
+        {/* New Chat — labelled pill, matching IDE chat header at
+            DashboardPages.tsx:4256-4273. Replaces the per-sidebar
+            New Chat icon button (which is being dropped from the
+            dashboard NavSidebar in this same commit). */}
+        <button
+          onClick={onNewChat}
+          title={t('header.new_chat')}
+          aria-label="New chat"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px',
+            background: 'rgba(168,85,247,0.1)',
+            border: '1px solid rgba(168,85,247,0.25)',
+            borderRadius: 8,
+            color: '#a855f7',
+            fontSize: 11, fontWeight: 600, cursor: 'pointer',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.2)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.1)'; }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          New Chat
         </button>
       </div>
     </div>

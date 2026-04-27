@@ -11,7 +11,20 @@ interface HeaderProps {
   onNewChat: () => void;
   onToggleTasks: () => void;
   tasksOpen: boolean;
+  /** Length of session task list — drives the badge on the Tasks pill. */
+  sessionTaskCount?: number;
 }
+
+// ── Step 1b of extension↔IDE chat alignment ─────────────────────────────────
+// Right-side icon cluster (history / dashboard / new-chat icon-only buttons)
+// dropped in favour of labelled pills matching the IDE chat header at
+// DashboardPages.tsx:4232-4273. Tasks gets a count badge; New Chat becomes
+// a labelled `+ New Chat` pill. The Branding block stays — it's panel-only
+// chrome (the IDE doesn't need it because its window already says "Ava
+// Supernova IDE"). Dashboard navigation (Settings entry) folds into the
+// model picker's empty-state placeholder; the standalone gear button is
+// gone. History is reachable from the dashboard sidebar's History page;
+// the icon-only header button is gone.
 
 export function Header({
   models,
@@ -19,26 +32,29 @@ export function Header({
   needsSetup,
   onSwitch,
   onOpenDashboard,
-  onOpenHistory,
   onNewChat,
   onToggleTasks,
   tasksOpen,
+  sessionTaskCount = 0,
 }: HeaderProps) {
   useLocale();
-  const btnBase = `flex items-center justify-center w-7 h-7 rounded
-                   hover:bg-[var(--vscode-toolbar-hoverBackground)]
-                   text-[var(--vscode-foreground)] opacity-70 hover:opacity-100
-                   bg-transparent border-none cursor-pointer text-sm`;
 
   return (
-    <div className="flex items-center gap-1 px-3 py-2 border-b" style={{ borderColor: 'rgba(168, 85, 247, 0.12)' }} role="toolbar" aria-label={t('header.controls_aria')}>
-      {/* Branding */}
-      <div className="flex items-baseline gap-1 mr-2 select-none flex-shrink-0">
-        <span className="text-[15px] font-bold text-[var(--vscode-foreground)]">Ava</span>
-        <span className="text-[9px] uppercase tracking-[2px] opacity-40 text-[var(--vscode-foreground)]">{t('brand.supernova')}</span>
+    <div
+      className="flex items-center gap-2 px-3 py-2 border-b"
+      style={{ borderColor: 'rgba(168, 85, 247, 0.12)' }}
+      role="toolbar"
+      aria-label={t('header.controls_aria')}
+    >
+      {/* Branding — panel-only chrome (IDE doesn't need a wordmark inside
+          the chat surface because the window title already carries it). */}
+      <div className="flex items-baseline gap-1 mr-1 select-none flex-shrink-0">
+        <span className="text-[15px] font-bold" style={{ color: '#cdd6f4' }}>Ava</span>
+        <span className="text-[9px] uppercase tracking-[2px] opacity-40" style={{ color: '#cdd6f4' }}>{t('brand.supernova')}</span>
       </div>
 
-      <div className="flex-1 min-w-0 flex justify-end">
+      {/* Model selector */}
+      <div className="min-w-0 flex justify-start">
         <ModelSelector
           models={models}
           activeModel={activeModel}
@@ -48,40 +64,58 @@ export function Header({
         />
       </div>
 
-      {/* History */}
-      <button onClick={onOpenHistory} title={t('header.history')} aria-label={t('header.history')} className={btnBase}>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-          <path d="M13.507 12.324a7 7 0 0 0 .065-8.56A7 7 0 0 0 2 4.393V2H1v3.5l.5.5H5V5H2.811a6.008 6.008 0 1 1-.135 5.77l-.887.462a7 7 0 0 0 11.718 1.092zM8 4h1v4.28l3.35 2.01-.51.858L8 8.72V4z"/>
-        </svg>
-      </button>
+      <div className="flex-1" />
 
-      {/* Tasks — highlighted when open */}
+      {/* Tasks — labelled pill with badge, mirrors IDE header at
+          DashboardPages.tsx:4232-4254. */}
       <button
         onClick={onToggleTasks}
         title={t('header.tasks')}
         aria-label={t('header.tasks')}
-        className={`flex items-center justify-center w-7 h-7 rounded
-                   hover:bg-[var(--vscode-toolbar-hoverBackground)]
-                   text-[var(--vscode-foreground)] ${tasksOpen ? 'opacity-100' : 'opacity-70'} hover:opacity-100
-                   bg-transparent border-none cursor-pointer text-sm`}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
+          background: tasksOpen ? 'rgba(168,85,247,0.2)' : 'rgba(168,85,247,0.05)',
+          border: `1px solid ${tasksOpen ? 'rgba(168,85,247,0.4)' : 'rgba(168,85,247,0.15)'}`,
+          borderRadius: 8,
+          color: tasksOpen ? '#a855f7' : '#6c7086',
+          fontSize: 11, fontWeight: 600, cursor: 'pointer',
+          transition: 'all 0.15s',
+        }}
       >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
           <path d="M3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 3.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 7.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 11.5h8v1H6v-1z"/>
         </svg>
+        Tasks
+        {sessionTaskCount > 0 && (
+          <span style={{
+            fontSize: 9, padding: '1px 5px', borderRadius: 8,
+            background: 'rgba(168,85,247,0.25)', color: '#a855f7',
+          }}>{sessionTaskCount}</span>
+        )}
       </button>
 
-      {/* Dashboard */}
-      <button onClick={onOpenDashboard} title={t('header.dashboard')} aria-label={t('header.dashboard')} className={btnBase}>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-          <path d="M8 1a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM2 13c0-3 2.69-4.5 6-4.5s6 1.5 6 4.5v1H2v-1z"/>
+      {/* New Chat — labelled pill, mirrors IDE header at
+          DashboardPages.tsx:4256-4273. */}
+      <button
+        onClick={onNewChat}
+        title={t('header.new_chat')}
+        aria-label={t('header.new_chat')}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px',
+          background: 'rgba(168,85,247,0.1)',
+          border: '1px solid rgba(168,85,247,0.25)',
+          borderRadius: 8,
+          color: '#a855f7',
+          fontSize: 11, fontWeight: 600, cursor: 'pointer',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.2)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.1)'; }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
-      </button>
-
-      {/* New Chat */}
-      <button onClick={onNewChat} title={t('header.new_chat')} aria-label={t('header.new_chat')} className={btnBase}>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-          <path d="M14 7v1H8v6H7V8H1V7h6V1h1v6h6z"/>
-        </svg>
+        New Chat
       </button>
     </div>
   );

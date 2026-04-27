@@ -1228,6 +1228,7 @@ export function App() {
           onNewChat={handleNewChat}
           onToggleTasks={handleToggleTasks}
           tasksOpen={state.tasksOpen}
+          sessionTaskCount={state.sessionTasks?.length ?? 0}
         />
 
         <ChatContainer

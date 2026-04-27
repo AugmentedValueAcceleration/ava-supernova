@@ -99,7 +99,8 @@ export function NavSidebar({
   onToggleSidebar,
   onFlipSidebar,
   sidebarSide,
-  onNewChat,
+  // onNewChat removed from destructure — moved to chat header pill, but the
+  // prop stays in NavSidebarProps so callers don't have to change shape.
   onOpenHistory,
   supportUnread,
   avatarUrl,
@@ -182,18 +183,9 @@ export function NavSidebar({
           </button>
         )}
 
-        {/* New chat shortcut */}
-        {onNewChat && (
-          <button
-            onClick={onNewChat}
-            title="New chat"
-            className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-[rgba(168,85,247,0.15)] text-[var(--text-muted)] hover:text-white bg-transparent border-none cursor-pointer mb-2"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M14 7v1H8v6H7V8H1V7h6V1h1v6h6z" />
-            </svg>
-          </button>
-        )}
+        {/* New Chat moved to the chat header — pill button there now
+            (mirroring the IDE chat header). Dropped from the sidebar to
+            stop the duplicate affordance. */}
 
         {/* Nav icons */}
         <div className="flex-1 flex flex-col gap-0.5 items-center overflow-y-auto">
@@ -279,13 +271,7 @@ export function NavSidebar({
               </svg>
             </button>
           )}
-          {onNewChat && (
-            <button onClick={onNewChat} title="New chat" className="flex items-center justify-center w-6 h-6 rounded hover:bg-[rgba(168,85,247,0.15)] text-[var(--text-muted)] opacity-60 hover:opacity-100 bg-transparent border-none cursor-pointer">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M14 7v1H8v6H7V8H1V7h6V1h1v6h6z"/>
-              </svg>
-            </button>
-          )}
+          {/* New Chat moved to chat header pill — see expanded note above. */}
           {/* Data portability */}
           <div className="relative">
             <button onClick={() => setDataPortOpen(!dataPortOpen)} title="Export / Import data" className="flex items-center justify-center w-6 h-6 rounded hover:bg-[rgba(168,85,247,0.15)] text-[var(--text-muted)] opacity-60 hover:opacity-100 bg-transparent border-none cursor-pointer"
