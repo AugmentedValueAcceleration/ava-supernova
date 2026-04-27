@@ -38,6 +38,9 @@ interface HeaderProps {
   sessionCredits?: number;
   /** Length of session task list — drives the badge on the Tasks pill. */
   sessionTaskCount?: number;
+  /** Loaded conversation title — rendered as a chip next to the model
+   *  picker (mirrors IDE chat). null/undefined hides the chip. */
+  conversationTitle?: string | null;
   providerSource?: ProviderSource;
   platformStatus?: { connected: boolean; tier: string | null; freeTokensUsed: number; freeTokensLimit: number; subTokensUsed: number; subTokensLimit: number | null } | null;
   /** @deprecated extension-only Platform/API-key toggle — IDE doesn't have it; provider routing is set in Settings. */
@@ -54,6 +57,7 @@ export function Header({
   onToggleTasks,
   tasksOpen,
   sessionTaskCount = 0,
+  conversationTitle,
   platformStatus,
 }: HeaderProps) {
   useLocale();
@@ -215,6 +219,25 @@ export function Header({
           </div>
         )}
       </div>
+
+      {/* Conversation title chip — mirrors IDE chat header at
+          DashboardPages.tsx:4154-4157. Hidden when no conversation is
+          loaded (fresh chat). */}
+      {conversationTitle && (
+        <span
+          style={{
+            fontSize: 12,
+            color: '#6c7086',
+            maxWidth: 200,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+          title={conversationTitle}
+        >
+          {conversationTitle}
+        </span>
+      )}
 
       {/* Spacer */}
       <div className="flex-1" />

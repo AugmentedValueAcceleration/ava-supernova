@@ -582,6 +582,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state,
         messages: restoredMessages,
         currentConversationId: action.conversationId,
+        conversationTitle: action.title || null,
         historyOpen: false,
       };
     }
@@ -591,6 +592,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state,
         messages: [],
         currentConversationId: null,
+        conversationTitle: null,
         historyOpen: false,
       };
 
@@ -773,6 +775,7 @@ const initialState: ChatState = {
   historyOpen: false,
   historyList: [],
   currentConversationId: null,
+  conversationTitle: null,
   providerSource: 'byok',
   platformStatus: null,
   showWelcome: false,
@@ -1229,6 +1232,7 @@ export function App() {
           onToggleTasks={handleToggleTasks}
           tasksOpen={state.tasksOpen}
           sessionTaskCount={state.sessionTasks?.length ?? 0}
+          conversationTitle={state.conversationTitle}
         />
 
         <ChatContainer

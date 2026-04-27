@@ -519,6 +519,10 @@ export interface ChatState {
   historyOpen: boolean;
   historyList: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }>;
   currentConversationId: string | null;
+  /** Title of the loaded conversation — surfaced as a chip next to the
+   *  model picker in the chat header (mirrors IDE chat). null while a
+   *  fresh chat is in progress. */
+  conversationTitle: string | null;
   providerSource: ProviderSource;
   platformStatus: {
     connected: boolean;

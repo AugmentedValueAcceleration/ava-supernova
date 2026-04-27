@@ -393,6 +393,9 @@ export interface ChatState {
   historyOpen: boolean;
   historyList: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }>;
   currentConversationId: string | null;
+  /** Title of the loaded conversation — chip next to the model picker
+   *  in the chat header. null on fresh chat. */
+  conversationTitle: string | null;
   providerSource: ProviderSource;
   platformStatus: PlatformStatus | null;
   memoryOpen: boolean;

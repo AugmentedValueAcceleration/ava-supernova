@@ -532,11 +532,23 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         toolCalls: [],
         isStreaming: false,
       }));
-      return { ...state, messages: restoredMessages, currentConversationId: action.conversationId, historyOpen: false };
+      return {
+        ...state,
+        messages: restoredMessages,
+        currentConversationId: action.conversationId,
+        conversationTitle: action.title || null,
+        historyOpen: false,
+      };
     }
 
     case 'chat_cleared':
-      return { ...state, messages: [], currentConversationId: null, historyOpen: false };
+      return {
+        ...state,
+        messages: [],
+        currentConversationId: null,
+        conversationTitle: null,
+        historyOpen: false,
+      };
 
     case 'close_history':
       return { ...state, historyOpen: false };
@@ -640,6 +652,7 @@ const initialState: ChatState = {
   historyOpen: false,
   historyList: [],
   currentConversationId: null,
+  conversationTitle: null,
   providerSource: 'byok',
   platformStatus: null,
   memoryOpen: false,
@@ -965,6 +978,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate }: ChatPageProps
             onToggleTasks={handleToggleTasks}
             tasksOpen={state.tasksOpen}
             sessionTaskCount={state.sessionTasks?.length ?? 0}
+            conversationTitle={state.conversationTitle}
             sessionCredits={state.sessionCredits}
             platformStatus={state.platformStatus}
           />

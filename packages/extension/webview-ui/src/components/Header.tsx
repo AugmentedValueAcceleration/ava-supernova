@@ -13,6 +13,9 @@ interface HeaderProps {
   tasksOpen: boolean;
   /** Length of session task list — drives the badge on the Tasks pill. */
   sessionTaskCount?: number;
+  /** Loaded conversation title — chip next to the model picker. null
+   *  hides the chip (fresh chat). Mirrors IDE chat header. */
+  conversationTitle?: string | null;
 }
 
 // ── Step 1b of extension↔IDE chat alignment ─────────────────────────────────
@@ -36,6 +39,7 @@ export function Header({
   onToggleTasks,
   tasksOpen,
   sessionTaskCount = 0,
+  conversationTitle,
 }: HeaderProps) {
   useLocale();
 
@@ -63,6 +67,25 @@ export function Header({
           onOpenDashboard={onOpenDashboard}
         />
       </div>
+
+      {/* Conversation title chip — mirrors IDE chat header at
+          DashboardPages.tsx:4154-4157. Hidden when no conversation
+          loaded (fresh chat). */}
+      {conversationTitle && (
+        <span
+          style={{
+            fontSize: 12,
+            color: '#6c7086',
+            maxWidth: 200,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+          title={conversationTitle}
+        >
+          {conversationTitle}
+        </span>
+      )}
 
       <div className="flex-1" />
 
