@@ -11,23 +11,21 @@ interface CloudProps {
   syncResults: Record<string, { success: boolean; count?: number; error?: string }>;
   isConnected: boolean;
   account: AccountInfo | null;
-  syncDisabled: boolean;
 }
 
-/** Cloud page — container for two sub-tabs:
+/** Sync tab — container for two sub-tabs:
  *   1. Sync: per-category toggles + sync status (the existing Sync page).
  *   2. Cloud Management: see what's in cloud storage and manage / delete.
  *
- *  Replaces the previous flat "Sync" tab. Rename lets us house controls for
- *  cloud content (memories, chats, tasks, journal, creative assets) next to
- *  the sync prefs they relate to. */
+ *  Mirrors the IDE CloudSyncPage. Tab label is "Sync" in the parent
+ *  AccountPage; this component still uses "Cloud" as the React identifier
+ *  because the inner Sync sub-page is what owns the per-category toggles. */
 export function Cloud({
   syncStatus,
   syncingTypes,
   syncResults,
   isConnected,
   account,
-  syncDisabled,
 }: CloudProps) {
   const [subTab, setSubTab] = useState<CloudSubTab>('sync');
 
@@ -58,19 +56,12 @@ export function Cloud({
       </div>
 
       {subTab === 'sync' && (
-        <>
-          {syncDisabled && (
-            <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
-              Data Mode is set to <span className="font-semibold">Local</span>. Cloud sync runs on whatever you toggle below, but the chat header gates auto-sync on cloud-or-both. Switch the data mode in the chat header to enable background sync.
-            </div>
-          )}
-          <Sync
-            syncStatus={syncStatus}
-            syncingTypes={syncingTypes}
-            syncResults={syncResults}
-            isConnected={isConnected}
-          />
-        </>
+        <Sync
+          syncStatus={syncStatus}
+          syncingTypes={syncingTypes}
+          syncResults={syncResults}
+          isConnected={isConnected}
+        />
       )}
 
       {subTab === 'management' && (

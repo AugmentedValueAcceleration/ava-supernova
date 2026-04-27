@@ -837,6 +837,11 @@ export type DashboardToExtMessage =
   | { type: 'delete_all_cloud_journal' }
   | { type: 'delete_all_cloud_creative' }
   | { type: 'load_conversations' }
+  /** Load a saved chat conversation into the chat panel. Sent from the
+   *  dashboard's History → Conversations tab. The host forwards to the
+   *  chat webview which restores the message thread. Mirrors the IDE's
+   *  ava-ide-load-conversation localStorage signal at DashboardPages.tsx:6002. */
+  | { type: 'load_conversation'; id: string }
   | { type: 'delete_conversation'; id: string }
   | { type: 'toggle_pin_conversation'; id: string }
   | { type: 'load_tickets' }

@@ -86,8 +86,8 @@ export function Personality({ personality }: Props) {
     <div className="mx-auto w-full max-w-3xl">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold">{t('dash.personality.title')}</h1>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.personality.title')}</h1>
+        <p className="mt-1.5 text-[13px] text-[#6c7086]">
           {t('dash.personality.subtitle')}
         </p>
       </div>

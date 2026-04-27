@@ -130,23 +130,13 @@ export function Library({
   const [docSource, setDocSource] = useState<AssetSource>('all');
   const [newDocOpen, setNewDocOpen] = useState(false);
   const [selected, setSelected] = useState<UnifiedItem | null>(null);
-  const [scanning, setScanning] = useState(false);
-  const scanningRef = useRef(false);
 
-  // Pull cloud assets once the tab opens to assets/documents, and re-request
-  // whenever the user explicitly refreshes.
+  // Pull cloud assets once the tab opens to assets/documents.
   useEffect(() => {
     if (tab === 'assets' || tab === 'documents') {
       post({ type: 'load_cloud_assets' });
     }
   }, [tab]);
-
-  useEffect(() => {
-    if (scanningRef.current) {
-      scanningRef.current = false;
-      setScanning(false);
-    }
-  }, [images, cloudAssets]);
 
   // Unified item list for Assets tab — excludes office documents, those
   // live on the Documents tab to match what the user expects.
@@ -191,69 +181,41 @@ export function Library({
     return docType === 'all' ? list : list.filter(i => i.kind === docType);
   }, [cloudAssets, images, projectRoot, docSource, docType]);
 
-  const handleScan = () => {
-    setScanning(true);
-    scanningRef.current = true;
-    post({ type: 'load_library' });
-    post({ type: 'load_cloud_assets' });
-    setTimeout(() => setScanning(false), 10000);
-  };
-
   return (
     <div className="mx-auto w-full max-w-6xl">
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Library</h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Your courses, assets, and documents — everything Ava has made for you.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {tab !== 'courses' && (
-            <button
-              onClick={handleScan}
-              disabled={scanning}
-              className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition disabled:opacity-50"
-            >
-              {scanning ? (
-                <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-3 border-2 border-[var(--text-muted)] border-t-[var(--accent)] rounded-full animate-spin" />
-                  Refreshing...
-                </span>
-              ) : 'Refresh'}
-            </button>
-          )}
-        </div>
+      {/* Header — mirrors IDE LibraryPage at DashboardPages.tsx:8266-8295.
+          No top-level Refresh button (IDE doesn't have one — refresh is
+          handled by the kind-specific sub-views). */}
+      <div className="mb-6">
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">Library</h1>
+        <p className="mt-0.5 text-xs text-[#9b8caa]">
+          Your courses, assets, and documents — everything Ava has made for you.
+        </p>
       </div>
 
-      {/* Top-level tabs — matches Creative Studio / house style: underlined
-          bottom border, accent colour on active, no pill backgrounds. */}
-      <div className="mb-6 flex gap-1 border-b border-[var(--border-card)]">
+      {/* Top-level tabs — matches IDE LibraryPage tab style at DashboardPages.tsx:8257-8285.
+          No counts (IDE doesn't show them); underlined active state in lavender. */}
+      <div className="mb-6 flex gap-0.5 border-b border-[rgba(168,85,247,0.12)]">
         {([
-          { key: 'courses',   label: 'Courses',   count: paths.length },
-          { key: 'assets',    label: 'Assets',    count: assetItems.length },
-          { key: 'documents', label: 'Documents', count: documentItems.length },
+          { key: 'courses',   label: 'Courses' },
+          { key: 'assets',    label: 'Assets' },
+          { key: 'documents', label: 'Documents' },
         ] as const).map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-3 py-2 text-xs font-medium border-b-2 transition ${
-              tab === t.key
-                ? 'border-[var(--accent)] text-[var(--accent)]'
-                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-            }`}
+            className="px-4 py-2 text-xs transition"
+            style={{
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              fontWeight: tab === t.key ? 600 : 500,
+              color: tab === t.key ? '#c084fc' : '#6c7086',
+              borderBottom: `2px solid ${tab === t.key ? '#a855f7' : 'transparent'}`,
+              marginBottom: -1,
+            }}
           >
-            <span className="inline-flex items-center gap-1.5">
-              {t.label}
-              <span className={`inline-flex items-center justify-center min-w-[18px] h-[16px] rounded text-[9px] font-bold px-1 ${
-                tab === t.key
-                  ? 'bg-[var(--accent)]/15 text-[var(--accent)]'
-                  : 'bg-[var(--border)] text-[var(--text-muted)]'
-              }`}>
-                {t.count}
-              </span>
-            </span>
+            {t.label}
           </button>
         ))}
       </div>

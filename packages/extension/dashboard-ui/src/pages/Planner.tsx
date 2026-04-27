@@ -49,8 +49,8 @@ export function Planner({
     <div className="space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-lg font-semibold text-white">Planner</h1>
-        <p className="mt-0.5 text-xs text-[var(--text-muted)]">Tasks, reflections, and learning paths</p>
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">Planner</h1>
+        <p className="mt-1.5 text-[13px] text-[#6c7086]">Tasks, reflections, and learning paths</p>
       </div>
 
       {/* Tab bar */}

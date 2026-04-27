@@ -14,6 +14,21 @@ interface NavSidebarProps {
   mode: 'platform' | 'byok';
   email?: string | null;
   isAdmin?: boolean;
+  /** Subscription tier — drives the colored badge below the email
+   *  in the account block. Mirrors the IDE Sidebar at Sidebar.tsx:1012. */
+  tier?: 'free' | 'pro' | 'ultra' | 'enterprise' | 'admin' | string;
+  /** True when the user has a platform account but is using BYOK keys
+   *  instead. Drives the Platform / API Key pill state. The user can
+   *  hold both — this flag chooses which one routes requests. */
+  byokMode?: boolean;
+  /** Toggle between platform-routed and BYOK-routed requests. Only
+   *  shown to signed-in users. Mirrors IDE Sidebar.tsx:1026-1037. */
+  onSetByokMode?: (byok: boolean) => void;
+  /** True while the host is fetching the account snapshot (init
+   *  arrived with a platformKey but account is still null). Drives
+   *  a loading skeleton in the account block instead of flashing
+   *  the signed-out Connect screen. */
+  accountLoading?: boolean;
   onConnectAccount?: () => void;
   aiName?: string;
   journalSummaries?: DashboardJournalDaySummary[];
@@ -95,6 +110,10 @@ export function NavSidebar({
   mode,
   email,
   isAdmin,
+  tier,
+  byokMode,
+  onSetByokMode,
+  accountLoading,
   onConnectAccount,
   aiName,
   taskDates,
@@ -252,31 +271,48 @@ export function NavSidebar({
             {aiName || 'Ava'} Supernova
           </span>
         </div>
-        <div className="flex items-center gap-1">
+        {/* Sidebar control icons — stroke-based, matches IDE Sidebar at
+            Sidebar.tsx:1338-1377. 24×24 viewBox, 14px render, stroke-2,
+            currentColor → muted by default, cdd6f4 on hover. */}
+        <div className="flex items-center gap-0.5">
           {onToggleSidebar && (
-            <button onClick={onToggleSidebar} title="Hide sidebar" className="flex items-center justify-center w-6 h-6 rounded hover:bg-[rgba(168,85,247,0.15)] text-[var(--text-muted)] opacity-60 hover:opacity-100 bg-transparent border-none cursor-pointer">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style={sidebarSide === 'right' ? { transform: 'scaleX(-1)' } : undefined}>
-                <path d="M1 2h14v12H1V2zm1 1v10h4V3H2zm5 0v10h7V3H7z"/>
+            <button
+              onClick={onToggleSidebar}
+              title="Hide sidebar"
+              className="flex h-[22px] w-[22px] items-center justify-center rounded bg-transparent border-none cursor-pointer text-[#6c7086] hover:text-[#cdd6f4] transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={sidebarSide === 'right' ? { transform: 'scaleX(-1)' } : undefined}>
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <line x1="9" y1="3" x2="9" y2="21" />
               </svg>
             </button>
           )}
           {onFlipSidebar && (
-            <button onClick={onFlipSidebar} title={sidebarSide === 'left' ? 'Move sidebar to right' : 'Move sidebar to left'} className="flex items-center justify-center w-6 h-6 rounded hover:bg-[rgba(168,85,247,0.15)] text-[var(--text-muted)] opacity-60 hover:opacity-100 bg-transparent border-none cursor-pointer">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M2 8l3-3v2h6V5l3 3-3 3V9H5v2L2 8z"/>
+            <button
+              onClick={onFlipSidebar}
+              title={sidebarSide === 'left' ? 'Move sidebar to right' : 'Move sidebar to left'}
+              className="flex h-[22px] w-[22px] items-center justify-center rounded bg-transparent border-none cursor-pointer text-[#6c7086] hover:text-[#cdd6f4] transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="17 1 21 5 17 9" />
+                <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                <polyline points="7 23 3 19 7 15" />
+                <path d="M21 13v2a4 4 0 0 1-4 4H3" />
               </svg>
             </button>
           )}
-          {/* History is a top-level sidebar nav entry (matches IDE).
-              The standalone icon button here was a duplicate; dropped. */}
-          {/* New Chat moved to chat header pill — see expanded note above. */}
           {/* Data portability */}
           <div className="relative">
-            <button onClick={() => setDataPortOpen(!dataPortOpen)} title="Export / Import data" className="flex items-center justify-center w-6 h-6 rounded hover:bg-[rgba(168,85,247,0.15)] text-[var(--text-muted)] opacity-60 hover:opacity-100 bg-transparent border-none cursor-pointer"
-              style={dataPortOpen ? { opacity: 1, background: 'rgba(168,85,247,0.15)' } : undefined}
+            <button
+              onClick={() => setDataPortOpen(!dataPortOpen)}
+              title="Export / Import data"
+              className="flex h-[22px] w-[22px] items-center justify-center rounded bg-transparent border-none cursor-pointer text-[#6c7086] hover:text-[#cdd6f4] transition-colors"
+              style={dataPortOpen ? { color: '#cdd6f4' } : undefined}
             >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 1v10.293L4.854 8.146l-.708.708L8 12.707l3.854-3.853-.708-.708L8 11.293V1H8zM2 14h12v1H2v-1z"/>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
             </button>
             <DataPortability isOpen={dataPortOpen} onClose={() => setDataPortOpen(false)} />
@@ -310,30 +346,72 @@ export function NavSidebar({
         onRefresh={onLoadTaskDates}
       />
 
-      {/* Account section */}
+      {/* Account section — mirrors IDE Sidebar at Sidebar.tsx:982-1037.
+          Shows avatar + email + tier badge + Disconnect, then a
+          Platform / API Key toggle that routes requests through the
+          chosen source. Signed-out users see Connect + BYOK hint. */}
       <div className="border-t border-[var(--border-card)] p-4">
-        {mode === 'platform' ? (
-          <div className="flex items-center gap-3">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
-            ) : (
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-sm font-light text-purple-400">
-                {email?.[0]?.toUpperCase() || '?'}
+        {accountLoading ? (
+          /* Skeleton — host is fetching the account snapshot. Avoids
+             the signed-out Connect screen flashing into view for the
+             first few seconds after dashboard open. */
+          <div className="flex items-center gap-3 animate-pulse">
+            <div className="h-9 w-9 shrink-0 rounded-full bg-[var(--bg-input)]" />
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <div className="h-2.5 w-3/4 rounded bg-[var(--bg-input)]" />
+              <div className="h-2 w-1/3 rounded bg-[var(--bg-input)]" />
+            </div>
+          </div>
+        ) : mode === 'platform' || (email && byokMode) ? (
+          <>
+            <div className="flex items-center gap-3 mb-2">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+              ) : (
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-sm font-light text-purple-400">
+                  {email?.[0]?.toUpperCase() || '?'}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="truncate text-[11px] font-medium text-white">{email}</p>
+                {tier && <TierBadge tier={tier} isAdmin={isAdmin} />}
+              </div>
+              <button
+                onClick={() => post({ type: 'disconnect_account' })}
+                className="shrink-0 rounded-md border border-[var(--border-card)] px-2 py-1 text-[10px] text-[var(--text-muted)] transition hover:border-red-500/30 hover:text-red-400"
+              >
+                {t('dash.auth.disconnect')}
+              </button>
+            </div>
+
+            {/* Platform / API Key toggle — only shown when the caller
+                wired the byok-mode setter. Stays hidden in surfaces
+                that don't yet plumb the toggle through. */}
+            {onSetByokMode && (
+              <div className="flex gap-1">
+                {([
+                  { key: 'platform' as const, label: tt('dash.auth.platform', 'Platform') },
+                  { key: 'byok' as const,     label: tt('dash.auth.api_key', 'API Key') },
+                ]).map(opt => {
+                  const active = opt.key === 'platform' ? !byokMode : !!byokMode;
+                  return (
+                    <button
+                      key={opt.key}
+                      onClick={() => onSetByokMode(opt.key === 'byok')}
+                      className="flex-1 rounded text-[11px] font-medium transition border-none cursor-pointer"
+                      style={{
+                        padding: '5px 0',
+                        background: active ? '#a855f7' : 'rgba(49, 34, 68, 0.5)',
+                        color: active ? '#fff' : '#6c7086',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
               </div>
             )}
-            <div className="flex-1 min-w-0">
-              <p className="truncate text-[11px] font-medium text-white">{email}</p>
-              {isAdmin && (
-                <span className="inline-block mt-0.5 rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[8px] font-light text-purple-400 uppercase tracking-wider">Admin</span>
-              )}
-            </div>
-            <button
-              onClick={() => post({ type: 'disconnect_account' })}
-              className="shrink-0 rounded-md border border-[var(--border-card)] px-2 py-1 text-[10px] text-[var(--text-muted)] transition hover:border-red-500/30 hover:text-red-400"
-            >
-              {t('dash.auth.disconnect')}
-            </button>
-          </div>
+          </>
         ) : (
           <div>
             <button
@@ -353,6 +431,32 @@ export function NavSidebar({
 /* SidebarConnect removed — OAuth sign-in replaced the inline paste-key
  * form. The signed-out nav path above already routes users through the
  * ConnectAccount page which runs the GitHub / email OAuth flow. */
+
+/* ── TierBadge ────────────────────────────────────────────────────────── */
+// Matches IDE Sidebar.tsx:1012 — tier-coloured pill below the email.
+// `isAdmin` overrides the tier-derived label so admins always see "Admin"
+// even when their backing tier row is something else.
+const TIER_COLORS: Record<string, string> = {
+  free:       '#a6e3a1',
+  pro:        '#89b4fa',
+  ultra:      '#cba6f7',
+  enterprise: '#f9e2af',
+  admin:      '#f38ba8',
+};
+
+function TierBadge({ tier, isAdmin }: { tier: string; isAdmin?: boolean }) {
+  const effective = isAdmin ? 'admin' : tier;
+  const color = TIER_COLORS[effective] || '#a6e3a1';
+  const label = effective.charAt(0).toUpperCase() + effective.slice(1);
+  return (
+    <span
+      className="inline-block mt-0.5 rounded px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider"
+      style={{ color, background: `${color}18` }}
+    >
+      {label}
+    </span>
+  );
+}
 
 /* ── NavItem ──────────────────────────────────────────────────────────── */
 

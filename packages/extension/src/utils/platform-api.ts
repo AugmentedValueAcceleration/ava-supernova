@@ -21,14 +21,29 @@ export function getDeviceId(): string {
   return _deviceId;
 }
 
+/** Default request timeout. Without this, a slow / unreachable platform
+ *  can make Node's default socket timeout (which is long — minutes on
+ *  HTTPS keep-alive idle hosts) bubble all the way up to the dashboard,
+ *  showing a blank screen for 2-3 minutes on cold starts. 10s covers
+ *  every healthy call we make today; callers that genuinely need more
+ *  pass `timeoutMs` explicitly. */
+const DEFAULT_TIMEOUT_MS = 10_000;
+
 export async function apiFetch(
   path: string,
-  options: { method?: string; body?: unknown; platformKey: string },
+  options: { method?: string; body?: unknown; platformKey: string; timeoutMs?: number },
 ): Promise<{ ok: boolean; status: number; data: unknown }> {
   return new Promise((resolve) => {
     const url = new URL(PLATFORM_API + path);
     if (url.protocol !== 'https:') { resolve({ ok: false, status: 0, data: 'HTTPS required' }); return; }
     const body = options.body ? JSON.stringify(options.body) : undefined;
+    const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    let settled = false;
+    const settle = (val: { ok: boolean; status: number; data: unknown }) => {
+      if (settled) return;
+      settled = true;
+      resolve(val);
+    };
 
     const req = https.request(
       {
@@ -38,6 +53,7 @@ export async function apiFetch(
         method: options.method ?? 'GET',
         rejectUnauthorized: true,
         minVersion: 'TLSv1.2',
+        timeout: timeoutMs,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${options.platformKey}`,
@@ -51,15 +67,19 @@ export async function apiFetch(
         res.on('data', (chunk: string) => (raw += chunk));
         res.on('end', () => {
           try {
-            resolve({ ok: (res.statusCode ?? 0) < 400, status: res.statusCode ?? 0, data: JSON.parse(raw) });
+            settle({ ok: (res.statusCode ?? 0) < 400, status: res.statusCode ?? 0, data: JSON.parse(raw) });
           } catch {
-            resolve({ ok: (res.statusCode ?? 0) < 400, status: res.statusCode ?? 0, data: raw });
+            settle({ ok: (res.statusCode ?? 0) < 400, status: res.statusCode ?? 0, data: raw });
           }
         });
       },
     );
 
-    req.on('error', (err) => resolve({ ok: false, status: 0, data: err.message }));
+    req.on('error', (err) => settle({ ok: false, status: 0, data: err.message }));
+    req.on('timeout', () => {
+      req.destroy(new Error(`Request timed out after ${timeoutMs}ms`));
+      settle({ ok: false, status: 0, data: `timeout after ${timeoutMs}ms` });
+    });
     if (body) req.write(body);
     req.end();
   });

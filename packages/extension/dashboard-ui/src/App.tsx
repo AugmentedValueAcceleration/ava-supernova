@@ -91,6 +91,13 @@ export function App() {
     }
   };
   const [account, setAccount] = useState<AccountInfo | null>(null);
+  /** True when init said the user has a platform key but the account
+   *  snapshot hasn't arrived yet. Drives skeleton placeholders in
+   *  account-dependent surfaces (NavSidebar account block, Billing
+   *  tab) instead of flashing "Connect" buttons during the network
+   *  round-trip. Cleared when account_updated arrives, regardless of
+   *  whether the snapshot itself is null. */
+  const [accountLoading, setAccountLoading] = useState(false);
   // OAuth sign-in state (v0.37.0) — tracks in-flight attempts from the
   // ConnectAccount screen so it can show the pending spinner and errors.
   const [signInPending, setSignInPending] = useState<'github' | 'email' | null>(null);
@@ -119,7 +126,7 @@ export function App() {
     anthropic: false, deepseek: false, kimi: false, glm: false, qwen: false, mistral: false, xiaomi: false,
   });
   const [usageLogs, setUsageLogs] = useState<UsageLogEntry[]>([]);
-  const [, setConversations] = useState<ConversationEntry[]>([]);
+  const [conversations, setConversations] = useState<ConversationEntry[]>([]);
   const [, setConversationsLoading] = useState(false);
   const [, setTickets] = useState<SupportTicket[]>([]);
   const [, setTicketsLoading] = useState(false);
@@ -208,7 +215,11 @@ export function App() {
         setConnections(msg.connections);
         setSettings(msg.settings);
         setProviderKeys(msg.providerKeys);
-        if (!msg.account && Object.values(msg.providerKeys).some(Boolean)) {
+        // accountLoading is true when we have a key but no account yet —
+        // sendInit posts init with account=null and fetches the account
+        // in the background, so this fires the skeleton immediately.
+        setAccountLoading(Boolean((msg as any).platformKey) && !msg.account);
+        if (!msg.account && !((msg as any).platformKey) && Object.values(msg.providerKeys).some(Boolean)) {
           setByokMode(true);
         }
         // Store key in memory only (not localStorage) for Creative Studio API calls
@@ -224,6 +235,7 @@ export function App() {
         break;
       case 'account_updated':
         setAccount(msg.account);
+        setAccountLoading(false);
         if (!msg.account && Object.values(providerKeys).some(Boolean)) {
           setByokMode(true);
         }
@@ -610,6 +622,8 @@ export function App() {
     if (page === 'history') {
       // Load session stats for everyone
       post({ type: 'load_session_stats' });
+      // Load conversations for the Conversations tab
+      post({ type: 'load_conversations' });
       // Load usage history for connected users
       if (account) {
         post({ type: 'load_usage_history' });
@@ -835,7 +849,7 @@ export function App() {
       case 'memory':
         return <Memory memories={account ? memories : localMemories} mode={mode} serverTotal={account ? memoryTotal : undefined} serverHasMore={account ? memoryHasMore : undefined} />;
       case 'history':
-        return <History sessionStats={sessionStatsData} usageHistory={usageHistoryData} mode={account ? 'platform' : 'byok'} account={account} auditLog={auditLog} />;
+        return <History sessionStats={sessionStatsData} usageHistory={usageHistoryData} mode={account ? 'platform' : 'byok'} account={account} auditLog={auditLog} conversations={conversations} />;
       case 'library':
         return (
           <Library
@@ -874,9 +888,13 @@ export function App() {
         <NavSidebar
           currentPage={page}
           onNavigate={setPagePersist}
-          mode={account ? 'platform' : 'byok'}
+          mode={account && !byokMode ? 'platform' : 'byok'}
           email={account?.email}
           isAdmin={account?.tier === 'admin'}
+          tier={account?.tier}
+          byokMode={byokMode}
+          onSetByokMode={setByokMode}
+          accountLoading={accountLoading}
           onConnectAccount={handleConnectAccount}
           aiName={personalityData?.name}
           journalSummaries={journalSummaries}

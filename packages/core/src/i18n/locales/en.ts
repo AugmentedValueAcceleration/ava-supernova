@@ -1258,7 +1258,7 @@ export const enStrings = {
   'dash.account.tab_settings': 'Settings',
   'dash.account.tab_billing': 'Billing',
   'dash.account.tab_connections': 'Connections',
-  'dash.account.tab_personality': 'Personality',
+  'dash.account.tab_personality': "Ava's Style",
   'dash.account.tab_sync': 'Sync',
   'dash.account.tab_keys': 'API Keys',
 
@@ -1311,6 +1311,7 @@ export const enStrings = {
 
   // ── IDE Page Titles & Subtitles ──────────────────────────────────────
   'dash.planner.subtitle': 'Tasks, reflections, and learning paths',
+  'dash.account.title': 'Account',
   'dash.account.subtitle': 'Settings, billing, connections, and personalisation',
   'dash.help.subtitle': 'Support, release notes, and product roadmap',
   'dash.roadmap.subtitle': 'Where Ava has been and where she is heading.',

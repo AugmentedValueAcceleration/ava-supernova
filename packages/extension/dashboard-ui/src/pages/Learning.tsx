@@ -148,10 +148,10 @@ export function Learning({ curriculums }: Props) {
   return (
     <div>
       <div className="flex items-center gap-2.5 mb-1">
-        <h1 className="text-xl font-bold text-white">{t('dash.learning.title')}</h1>
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.learning.title')}</h1>
         <StorageBadge />
       </div>
-      <p className="text-sm text-[var(--text-secondary)] mb-6">
+      <p className="text-[13px] text-[#6c7086] mb-6 mt-1.5">
         {t('dash.learning.subtitle')}
       </p>
 

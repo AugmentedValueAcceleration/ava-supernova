@@ -95,8 +95,8 @@ export function Connections({ connections }: ConnectionsProps) {
   return (
     <div className="mx-auto w-full max-w-4xl">
       <div className="mb-10">
-        <h1 className="text-2xl font-bold">{t('dash.connections.title')}</h1>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.connections.title')}</h1>
+        <p className="mt-1.5 text-[13px] text-[#6c7086]">
           {connectedCount}/4 services connected. Credentials are stored securely in VS Code's secret storage.
         </p>
       </div>

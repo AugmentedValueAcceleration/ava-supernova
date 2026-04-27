@@ -59,8 +59,8 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-white">{t('dash.sync.title')}</h1>
-        <p className="text-xs text-[var(--text-muted)] mt-1">
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.sync.title')}</h1>
+        <p className="text-[13px] text-[#6c7086] mt-1.5">
           {t('dash.sync.subtitle')}
         </p>
       </div>

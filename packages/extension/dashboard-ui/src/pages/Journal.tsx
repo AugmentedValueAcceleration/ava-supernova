@@ -47,7 +47,7 @@ export function Journal({ day, selectedDate, userName, onSaveUserEntry, onDelete
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2.5 mb-3">
-        <h1 className="text-lg font-semibold text-white">Journal</h1>
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">Journal</h1>
         <StorageBadge />
       </div>
       {/* Tabs */}

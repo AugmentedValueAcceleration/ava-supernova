@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { t, useLocale } from '../i18n';
+import { useState } from 'react';
+import { tt, useLocale } from '../i18n';
 import { Settings } from './Settings';
 import { Billing } from './Billing';
 import { Connections } from './Connections';
@@ -10,7 +10,7 @@ import type {
   ConnectionStatus, SyncStatus, Page, AccountInfo,
 } from '../types/messages';
 
-type AccountTab = 'settings' | 'billing' | 'connections' | 'personality' | 'cloud';
+type AccountTab = 'settings' | 'billing' | 'connections' | 'personality' | 'sync';
 
 interface AccountPageProps {
   settings: DashboardSettings;
@@ -32,19 +32,15 @@ interface AccountPageProps {
   isPlatform: boolean;
 }
 
+// Tab order + labels mirror the IDE AccountPage at DashboardPages.tsx:12897-12903.
+// Connections shows always (matches IDE); Billing + Sync gate on platform connection.
 function getAccountTabs(): { key: AccountTab; label: string; platformOnly?: boolean }[] {
   return [
-    { key: 'settings', label: t('dash.account.tab_settings') },
-    { key: 'billing', label: t('dash.account.tab_billing'), platformOnly: true },
-    // Connections — hidden until the integrations surface is ready.
-    // Component, route, and reducer are all intact; only the tab-bar
-    // entry is omitted. Uncomment this line when integrations ship.
-    // { key: 'connections', label: t('dash.account.tab_connections') },
-    { key: 'personality', label: "Ava's Style" },
-    // Renamed from "Sync" — the tab now hosts both the per-category sync
-    // prefs AND a Cloud Management view for inspecting / deleting what's
-    // synced. "Cloud" is the umbrella; the sub-tabs inside split them.
-    { key: 'cloud', label: 'Cloud', platformOnly: true },
+    { key: 'settings', label: tt('dash.account.tab_settings', 'Settings') },
+    { key: 'billing', label: tt('dash.account.tab_billing', 'Billing'), platformOnly: true },
+    { key: 'connections', label: tt('dash.account.tab_connections', 'Connections') },
+    { key: 'personality', label: tt('dash.account.tab_personality', "Ava's Style") },
+    { key: 'sync', label: tt('dash.account.tab_sync', 'Sync'), platformOnly: true },
   ];
 }
 
@@ -56,49 +52,31 @@ export function AccountPage({
   useLocale();
   const [activeTab, setActiveTab] = useState<AccountTab>('settings');
 
-  // Mirror the chat header's Local/Cloud/Both toggle so Sync can reflect it.
-  type DataMode = 'local' | 'cloud' | 'both';
-  const [dataMode, setDataMode] = useState<DataMode>(() => (localStorage.getItem('ava-data-mode') as DataMode) || 'local');
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'ava-data-mode' && e.newValue) setDataMode(e.newValue as DataMode);
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
-  const syncDisabled = dataMode === 'local';
-
   const visibleTabs = getAccountTabs().filter(tab => !tab.platformOnly || isPlatform);
 
   return (
     <div className="space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-lg font-semibold text-white">Account</h1>
-        <p className="mt-0.5 text-xs text-[var(--text-muted)]">Settings, billing, connections, and personalisation</p>
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{tt('dash.account.title', 'Account')}</h1>
+        <p className="mt-1.5 text-[13px] text-[#6c7086]">{tt('dash.account.subtitle', 'Settings, billing, connections, and personalisation')}</p>
       </div>
 
-      {/* Tab bar */}
+      {/* Tab bar — matches IDE AccountPage at DashboardPages.tsx:12910-12919. */}
       <div className="flex items-center gap-1 border-b border-[var(--border-card)] pb-px">
-        {visibleTabs.map(({ key, label }) => {
-          const isMutedCloud = key === 'cloud' && syncDisabled && activeTab !== 'cloud';
-          return (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              title={key === 'cloud' && syncDisabled ? 'Data Mode is set to Local — switch to Cloud or Both in the chat header to enable cloud sync' : undefined}
-              className={`px-3 pb-2 pt-1 text-xs font-medium transition ${
-                activeTab === key
-                  ? 'border-b-2 border-[var(--accent)] text-white'
-                  : isMutedCloud
-                    ? 'text-[var(--text-muted)] opacity-40 hover:opacity-60'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-              }`}
-            >
-              {label}
-            </button>
-          );
-        })}
+        {visibleTabs.map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setActiveTab(key)}
+            className={`px-3 pb-2 pt-1 text-xs font-medium transition ${
+              activeTab === key
+                ? 'border-b-2 border-[var(--accent)] text-white'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Tab content */}
@@ -127,14 +105,13 @@ export function AccountPage({
         <Personality personality={personality ?? null} />
       )}
 
-      {activeTab === 'cloud' && (
+      {activeTab === 'sync' && (
         <Cloud
           syncStatus={syncStatus}
           syncingTypes={syncingTypes}
           syncResults={syncResults}
           isConnected={!!account}
           account={account ?? null}
-          syncDisabled={syncDisabled}
         />
       )}
     </div>

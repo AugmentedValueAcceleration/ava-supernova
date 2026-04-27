@@ -99,8 +99,8 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
   return (
     <div className="mx-auto w-full max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-xl font-bold">{t('dash.usage.title')}</h1>
-        <p className="mt-1 text-xs text-[var(--text-secondary)]">
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.usage.title')}</h1>
+        <p className="mt-1.5 text-[13px] text-[#6c7086]">
           {t('dash.usage.subtitle')}
         </p>
       </div>
@@ -342,8 +342,8 @@ function ByokUsage({ stats }: { stats?: SessionStats | null }) {
   return (
     <div className="mx-auto w-full max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-xl font-bold">{t('dash.usage.title')}</h1>
-        <p className="mt-1 text-xs text-[var(--text-secondary)]">
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.usage.title')}</h1>
+        <p className="mt-1.5 text-[13px] text-[#6c7086]">
           {t('dash.usage.subtitle')}
         </p>
       </div>

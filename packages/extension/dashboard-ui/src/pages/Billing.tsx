@@ -69,73 +69,119 @@ export function Billing({ account }: BillingProps) {
   return (
     <div className="mx-auto w-full max-w-4xl">
       <div className="mb-10">
-        <h1 className="text-2xl font-bold">{t('dash.billing.title')}</h1>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.billing.title')}</h1>
+        <p className="mt-1.5 text-[13px] text-[#6c7086]">
           {t('dash.billing.subtitle')}
         </p>
       </div>
 
-      {/* Current Plan — one unified bar covering free + subscription + top-ups.
-          Paid users see the renewal date from the subscription cycle (not the
-          calendar-month usage window). Free users see no renewal date. */}
-      <div className="mb-10">
-      <SectionGroup label={t('dash.billing.current_plan')}>
-      <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <TierBadge tier={account.tier} />
-          {account.subscription?.current_period_end && (
-            <span className="text-xs text-[var(--text-muted)]">
-              Renews {new Date(account.subscription.current_period_end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-            </span>
-          )}
-        </div>
+      {/* Current Plan + Credits Remaining — split into two cards mirroring
+          the IDE BillingPage at DashboardPages.tsx:11899-11958. Free tier
+          shows free pool; paid tiers show plan pool. We don't sum them —
+          on paid plans the legacy free credits aren't an additive bonus,
+          they're just the pool that's bypassed (per
+          project_billing_architecture). */}
+      {(() => {
+        const tierConfig: Record<string, { label: string; chipColor: string; chipBg: string; limitText: string }> = {
+          free:       { label: 'Free',       chipColor: '#a6e3a1', chipBg: 'rgba(166,227,161,0.10)', limitText: '300 credits' },
+          pro:        { label: 'Pro',        chipColor: '#89b4fa', chipBg: 'rgba(137,180,250,0.10)', limitText: '5,000 credits' },
+          ultra:      { label: 'Ultra',      chipColor: '#cba6f7', chipBg: 'rgba(203,166,247,0.10)', limitText: '10,000 credits' },
+          enterprise: { label: 'Enterprise', chipColor: '#f9e2af', chipBg: 'rgba(249,226,175,0.10)', limitText: '20,000 credits' },
+          admin:      { label: 'Admin',      chipColor: '#f38ba8', chipBg: 'rgba(243,139,168,0.10)', limitText: 'Unlimited' },
+        };
+        const tc = tierConfig[account.tier ?? 'free'] ?? tierConfig.free;
+        const isFree = account.tier === 'free';
+        const used = isFree ? usage.free_credits_used : usage.credits_used;
+        const limit = isFree ? usage.free_credits_limit : (usage.credits_limit ?? 0);
+        const remaining = Math.max(0, limit - used);
+        const usedPct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+        const topUpBalance = Number((account.usage as Record<string, unknown> | undefined)?.topup_tokens_remaining ?? 0);
 
-        {(() => {
-          const totalUsed = usage.free_credits_used + usage.credits_used;
-          const totalLimit = usage.free_credits_limit + (usage.credits_limit ?? 0);
-          const remaining = Math.max(0, totalLimit - totalUsed);
-          return (
-            <div className="mb-4">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Credits Remaining</p>
-                {account.tier === 'admin' ? (
-                  <span className="text-xs font-medium text-[var(--gradient-start)]">Unlimited</span>
-                ) : (
-                  <span className="text-xs text-[var(--text-muted)]">
-                    {formatNumber(remaining)} of {formatNumber(totalLimit)}
+        return (
+          <>
+            {/* Current Plan — horizontal card */}
+            <div className="mb-4 flex items-center justify-between rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+              <div>
+                <div className="mb-1 text-xs text-[var(--text-muted)]">{t('dash.billing.current_plan')}</div>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xl font-bold text-[#cdd6f4]">{tc.label}</span>
+                  <span
+                    className="rounded-lg px-2.5 py-[3px] text-[11px] font-semibold"
+                    style={{ color: tc.chipColor, background: tc.chipBg }}
+                  >
+                    {tc.limitText}
                   </span>
+                </div>
+                {account.subscription?.current_period_end && (
+                  <div className="mt-2 text-[11px] text-[var(--text-muted)]">
+                    Renews {new Date(account.subscription.current_period_end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </div>
                 )}
               </div>
-              {account.tier === 'admin' ? (
-                <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
-                  <div className="h-full w-full rounded-full bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)]" />
-                </div>
-              ) : (
-                <UsageBar used={totalUsed} limit={totalLimit} accent />
+              {account.tier !== 'admin' && (
+                <button
+                  onClick={() => openUrl(dashboardBillingUrl())}
+                  className="rounded-lg bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] px-[18px] py-2 text-xs font-semibold text-white transition hover:opacity-90"
+                >
+                  Manage Plan
+                </button>
               )}
             </div>
-          );
-        })()}
 
-        {account.tier !== 'free' && account.tier !== 'admin' && (
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => openUrl(dashboardBillingUrl())}
-              className="rounded-lg border border-[var(--border-input)] px-4 py-2 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)] hover:text-white"
-            >
-              Manage Subscription &rarr;
-            </button>
-            <button
-              onClick={() => openUrl(dashboardBillingUrl())}
-              className="rounded-lg border border-[var(--border-input)] px-4 py-2 text-xs text-[var(--text-muted)] transition hover:bg-[var(--bg-input)] hover:text-white"
-            >
-              View billing history &rarr;
-            </button>
-          </div>
-        )}
-      </div>
-      </SectionGroup>
-      </div>
+            {/* Credits Remaining — separate card with big number */}
+            <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+              <div className="mb-2 flex items-baseline justify-between">
+                <div className="text-xs text-[var(--text-muted)]">Credits Remaining</div>
+                <div className="text-[11px] text-[#45475a]">
+                  {limit > 0
+                    ? `${remaining.toLocaleString()} of ${limit.toLocaleString()}`
+                    : 'No credits this period'}
+                </div>
+              </div>
+              <div className="mb-2.5 text-[28px] font-bold text-[#cdd6f4] tabular-nums">
+                {account.tier === 'admin' ? '∞' : remaining.toLocaleString()}
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-[3px] bg-[rgba(49,34,68,0.5)]">
+                <div
+                  className="h-full rounded-[3px] transition-[width] duration-500"
+                  style={{
+                    width: account.tier === 'admin' ? '100%' : `${usedPct}%`,
+                    background: account.tier === 'admin'
+                      ? 'linear-gradient(90deg, #a855f7, #7c3aed)'
+                      : usedPct >= 95
+                        ? 'linear-gradient(90deg, #f87171, #ef4444)'
+                        : usedPct >= 80
+                          ? 'linear-gradient(90deg, #f59e0b, #eab308)'
+                          : 'linear-gradient(90deg, #a855f7, #7c3aed)',
+                  }}
+                />
+              </div>
+              <div className="mt-2 text-[11px] text-[var(--text-muted)]">
+                {account.tier === 'free'
+                  ? 'Resets monthly. Upgrade for more.'
+                  : account.tier === 'admin'
+                    ? 'Unlimited usage.'
+                    : 'Includes your monthly plan allowance + any top-ups.'}
+              </div>
+            </div>
+
+            {/* Top-Up Balance — only shown when there's a separate top-up
+                pool above the plan allowance. Mirrors IDE at
+                DashboardPages.tsx:12026-12034. */}
+            {topUpBalance > 0 && (
+              <div className="mb-4 flex items-center justify-between rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
+                <div>
+                  <div className="mb-1 text-xs text-[var(--text-muted)]">Top-Up Balance</div>
+                  <div className="text-lg font-bold text-[#f9e2af]">{topUpBalance.toLocaleString()}</div>
+                </div>
+                <span className="rounded-lg px-2.5 py-[3px] text-[10px] font-semibold" style={{ color: '#f9e2af', background: 'rgba(249,226,175,0.10)' }}>
+                  Active
+                </span>
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {/* Cloud Storage */}
       {account.storage && (
@@ -321,14 +367,6 @@ function PlanCard({
       )}
     </div>
   );
-}
-
-function formatNumber(n: number | null | undefined): string {
-  const v = Number(n ?? 0);
-  if (!Number.isFinite(v)) return '0';
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`;
-  return String(Math.round(v));
 }
 
 function formatStorage(gb: number): string {

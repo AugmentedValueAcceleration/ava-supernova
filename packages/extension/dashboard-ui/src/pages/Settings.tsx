@@ -314,8 +314,8 @@ export function Settings({
     <div className="mx-auto max-w-2xl pb-12">
       {/* Page Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">{t('dash.settings.title')}</h1>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.settings.title')}</h1>
+        <p className="mt-1.5 text-[13px] text-[#6c7086]">
           {t('dash.settings.subtitle')}
         </p>
       </div>

@@ -952,8 +952,8 @@ function ByokOverview({
   return (
     <div className="mx-auto w-full max-w-5xl">
       <div className="mb-6">
-        <h1 className="text-xl font-bold">{t('dash.nav.command_centre')}</h1>
-        <p className="mt-1 text-xs text-[var(--text-secondary)]">
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.nav.command_centre')}</h1>
+        <p className="mt-1.5 text-[13px] text-[#6c7086]">
           {t('dash.nav.command_centre_desc')}
         </p>
       </div>

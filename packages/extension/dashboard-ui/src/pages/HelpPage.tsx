@@ -35,8 +35,8 @@ export function HelpPage({ releases, mode, supportConversations, supportMessages
     <div className="space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-lg font-light text-white">Help</h1>
-        <p className="mt-0.5 text-xs text-[var(--text-muted)]">Support, documentation, release notes, and roadmap</p>
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">Help</h1>
+        <p className="mt-1.5 text-[13px] text-[#6c7086]">Support, documentation, release notes, and roadmap</p>
       </div>
 
       {/* Tab bar */}

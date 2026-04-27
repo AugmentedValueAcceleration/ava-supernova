@@ -197,8 +197,8 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{t('dash.support.title')}</h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+          <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.support.title')}</h1>
+          <p className="mt-1.5 text-[13px] text-[#6c7086]">
             {t('dash.support.subtitle')}
           </p>
         </div>
@@ -354,8 +354,8 @@ function ByokSupport() {
   return (
     <div className="mx-auto w-full max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">{t('dash.support.title')}</h1>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.support.title')}</h1>
+        <p className="mt-1.5 text-[13px] text-[#6c7086]">
           {t('dash.support.subtitle')}
         </p>
       </div>

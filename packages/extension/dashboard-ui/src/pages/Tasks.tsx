@@ -239,7 +239,7 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <h1 className="text-lg font-semibold text-white">{t('dash.tasks.title')}</h1>
+          <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.tasks.title')}</h1>
           <StorageBadge />
         </div>
         <button

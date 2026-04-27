@@ -137,8 +137,8 @@ export function Roadmap() {
   return (
     <div style={{ maxWidth: 700 }}>
       {/* Header */}
-      <h1 className="text-2xl font-light mb-1">Roadmap</h1>
-      <p className="text-xs font-light text-[var(--text-muted)] mb-6">Where Ava has been and where she's heading.</p>
+      <h1 className="text-[22px] font-semibold text-[#cdd6f4] mb-1.5">Roadmap</h1>
+      <p className="text-[13px] text-[#6c7086] mb-6">Where Ava has been and where she's heading.</p>
 
       {/* Stats */}
       <div className="flex gap-6 mb-8">

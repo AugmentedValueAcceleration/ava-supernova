@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.54.0 — 2026-04-27
+
+Extension dashboard now mirrors the IDE pixel-for-pixel — same titles, same tab shapes, same chrome — so users moving between the two surfaces never have to re-learn the layout. Plus a real Conversations tab in History (not just credits and audit), a tier badge + Platform/API Key toggle in the sidebar, and a critical fix for the loading hangs that could lock the dashboard for minutes on slow networks.
+
+### Added
+- **History → Conversations tab.** The History page now has three tabs matching the IDE: Conversations · Usage · Audit. Conversations lists every saved chat with search, click-to-resume, and per-row delete. Pinned chats sort first, then most-recently-updated. Usage now nests Session + All-time under a sub-toggle so no data is lost — same content, cleaner top-level shape.
+- **NavSidebar tier badge + Platform / API Key toggle.** Account block at the bottom of the sidebar now matches the IDE: avatar + email + tier badge (Free / Pro / Ultra / Enterprise / Admin, each with the IDE's accent colour) + Disconnect, with a Platform / API Key pill below that routes requests through the chosen source. Signed-in users can flip to BYOK without disconnecting.
+- **Loading skeleton in account block.** While the host fetches the account snapshot from the platform, the sidebar shows an `animate-pulse` skeleton instead of flashing the signed-out Connect screen for a few seconds. Drops the moment the snapshot lands.
+
+### Changed
+- **Account / Billing alignment with IDE.** Tab order matches: Settings · Billing · Connections · Ava's Style · Sync (renamed from Cloud, dropped the muted-state styling). Connections is no longer hidden — it surfaces alongside the IDE. Billing card restructured: separate Current Plan strip (tier label + colored credit-limit chip + Manage Plan gradient pill) and Credits Remaining card (28pt big number + 95% / 80% red/amber/green progress ramp + footer). Top-Up Balance card surfaces only when there's a separate top-up pool above the plan allowance.
+- **Library, Memory, Creative Studio, Models page chrome.** All four now mirror the IDE: 22pt #cdd6f4 page titles + 13pt #6c7086 subtitles, IDE-style tab pattern (`#c084fc` active / `#a855f7` underline), no per-tab counts on Library, no top-level Refresh button. Creative Studio drops the Documents tab to match the IDE's four-tab shape (Images / Audio / Voice / Video). Memory Refresh + Delete All buttons restyled to match the IDE's purple/red pill shapes.
+- **All other dashboard page titles normalised.** Account, Help, Journal, Planner, Tasks, Settings, Personality, Roadmap, Connections, Releases, Sync, Usage, Overview, Learning, Support, Learning Library, Library — all 17 top-level page headers swapped from a mix of `text-lg` / `text-xl` / `text-2xl` styles to the same 22pt #cdd6f4 / 13pt #6c7086 the IDE uses.
+- **Sidebar control icons.** The hide-sidebar / flip / export trio at the top of the dashboard sidebar converted from filled-path SVG to stroke-based icons matching the IDE's 24×24 viewBox / stroke-2 style. Cleaner glyphs, simpler hover state (`#6c7086` muted → `#cdd6f4` on hover), tighter cluster spacing.
+- **History page label.** Was "Usage" via a wrong i18n key; now correctly reads "History" with subtitle "Conversations, credits, and tool-call audit".
+
+### Fixed
+- **Dashboard loading hang up to 2-3 minutes on slow networks.** Root cause: `apiFetch` had no timeout, so a slow or unreachable platform would let Node's default HTTPS socket timeout (which is huge) propagate all the way to the dashboard webview, leaving "Loading..." on screen for minutes. Now: 10s default timeout via `https.request({ timeout })` + a `'timeout'` listener that destroys the socket and resolves with `{ ok: false, status: 0, data: 'timeout after 10000ms' }`. Callers can override per-call via `timeoutMs`.
+- **Dashboard chrome blocked on `init`.** `sendInit` was awaiting `fetchAccount` + `pullSettingsFromCloud` + `loadMemories` before posting the `init` message that lets the dashboard render. Network blips would cascade into a blank loading screen. Now: `init` posts immediately with what's on disk; account fetch + settings sync + memories load run as fire-and-forget background tasks that post update messages when (or if) they return.
+- **Billing credit math on paid tiers.** Extension was summing `free_credits + plan_credits` (e.g. 300 + 5,000 for Pro) when calculating remaining credits. The IDE intentionally doesn't sum — on paid plans the legacy 300 free credits aren't an additive bonus, they're the pool that's bypassed. Fixed: free tier shows free pool, paid shows plan pool, no double-counting.
+
+### Internal
+- New `load_conversation` dashboard message type — host forwards to `AvaViewProvider.handleChatMessage` so the chat panel restores the thread the same way it does from the chat-panel sidebar. Cross-webview localStorage signal (the IDE's mechanism) doesn't work in VS Code because dashboard and chat webviews have separate origins; this is the host-mediated equivalent.
+- `AccountPage` tab labels migrated to `tt(key, fallback)` — new locales fall back to English on missing strings instead of showing raw keys.
+- `tt()` helper added to dashboard-ui i18n.
+
 ## 0.52.0 — 2026-04-26
 
 Trust, transparency, and portability. The extension stops asking you to take its word for anything: every tool call is auditable in a persistent log you can search and export, every credit charge is now visible per-model in real units, and you can download every byte of personal data the platform holds about you in one click. Plus a new Models page that points at the only AI coding benchmark with public receipts.

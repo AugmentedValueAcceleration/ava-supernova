@@ -209,7 +209,7 @@ export function LearningLibrary({ paths, detail }: Props) {
   return (
     <div style={{ padding: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-        <h1 style={{ fontSize: 18, fontWeight: 600, color: '#fff' }}>Learning Library</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 600, color: '#cdd6f4' }}>Learning Library</h1>
         <button
           onClick={() => { post({ type: 'load_library_paths' }); }}
           style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-card)', background: 'transparent', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer' }}

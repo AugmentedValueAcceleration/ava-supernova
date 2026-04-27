@@ -59,8 +59,8 @@ export function Releases({ releases }: { releases: ReleaseNote[] }) {
     <div>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-white">{t('dash.releases.title')}</h1>
-          <p className="text-xs text-[var(--text-muted)] mt-1">
+          <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.releases.title')}</h1>
+          <p className="text-[13px] text-[#6c7086] mt-1.5">
             {t('dash.releases.subtitle')}
           </p>
         </div>

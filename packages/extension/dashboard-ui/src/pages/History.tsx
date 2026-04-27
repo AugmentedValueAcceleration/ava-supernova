@@ -3,7 +3,7 @@ import { t, useLocale, getLocale } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
 import { UsageBar } from '../components/UsageBar';
-import type { AccountInfo, SessionStats, UsageHistoryData } from '../types/messages';
+import type { AccountInfo, SessionStats, UsageHistoryData, ConversationEntry } from '../types/messages';
 
 // ─── Model pricing (per 1M tokens) ──────────────────────────────────────────
 
@@ -79,45 +79,70 @@ interface HistoryProps {
   mode: 'platform' | 'byok';
   account: AccountInfo | null;
   auditLog?: AuditEntry[];
+  /** Saved chat conversations from the host. Powers the Conversations
+   *  tab — list, search, click-to-resume, delete. Mirrors IDE History
+   *  page at DashboardPages.tsx:5807-6060. */
+  conversations?: ConversationEntry[];
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export function History({ sessionStats, usageHistory, mode, account, auditLog }: HistoryProps) {
+// Tabs mirror the IDE History page at DashboardPages.tsx:5814-5818:
+// Conversations / Usage / Audit. The Usage tab nests the existing Session
+// + All-time views under a sub-toggle so we keep both views without
+// drifting from the IDE's three-tab top-level shape.
+type TopTab = 'conversations' | 'usage' | 'audit';
+type UsageSubTab = 'session' | 'alltime';
+
+export function History({ sessionStats, usageHistory, mode, account, auditLog, conversations }: HistoryProps) {
   useLocale();
-  const [activeTab, setActiveTab] = useState<'session' | 'alltime' | 'audit'>(() => {
+  const [activeTab, setActiveTab] = useState<TopTab>(() => {
     const saved = localStorage.getItem('ava-analytics-tab');
+    if (saved === 'conversations' || saved === 'usage' || saved === 'audit') return saved;
+    return 'conversations';
+  });
+  const [usageSubTab, setUsageSubTab] = useState<UsageSubTab>(() => {
+    const saved = localStorage.getItem('ava-analytics-usage-subtab');
     return (saved === 'alltime' && mode === 'platform') ? 'alltime' : 'session';
   });
 
-  const handleTabChange = (tab: 'session' | 'alltime' | 'audit') => {
+  const handleTabChange = (tab: TopTab) => {
     setActiveTab(tab);
     localStorage.setItem('ava-analytics-tab', tab);
-    if (tab === 'alltime' && mode === 'platform') {
+    if (tab === 'usage' && usageSubTab === 'alltime' && mode === 'platform') {
       post({ type: 'load_usage_history' });
     }
     if (tab === 'audit') {
       post({ type: 'request_audit_log' });
+    }
+    if (tab === 'conversations') {
+      post({ type: 'load_conversations' });
+    }
+  };
+
+  const handleUsageSubChange = (sub: UsageSubTab) => {
+    setUsageSubTab(sub);
+    localStorage.setItem('ava-analytics-usage-subtab', sub);
+    if (sub === 'alltime' && mode === 'platform') {
+      post({ type: 'load_usage_history' });
     }
   };
 
   return (
     <div className="mx-auto w-full max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-xl font-bold">{t('dash.usage.title')}</h1>
-        <p className="mt-1 text-xs text-[var(--text-secondary)]">
-          {t('dash.usage.subtitle')}
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">History</h1>
+        <p className="mt-1.5 text-[13px] text-[#6c7086]">
+          Conversations, credits, and tool-call audit
         </p>
       </div>
 
-      {/* Tab Toggle — underline style, mirrors the Library + Models
-          sub-nav so the dashboard reads consistently. The pill-style
-          toggle this replaced was the only outlier in the dashboard. */}
+      {/* Top-level tabs — mirrors IDE History at DashboardPages.tsx:5814-5818 */}
       <div className="mb-6 flex gap-1 border-b border-[var(--border-card)]">
         {([
-          { id: 'session', label: t('dash.usage.session') },
-          { id: 'alltime', label: t('dash.usage.all_time') },
-          { id: 'audit',   label: 'Audit' },
+          { id: 'conversations', label: 'Conversations' },
+          { id: 'usage',         label: 'Usage' },
+          { id: 'audit',         label: 'Audit' },
         ] as const).map(tab => (
           <button
             key={tab.id}
@@ -133,12 +158,127 @@ export function History({ sessionStats, usageHistory, mode, account, auditLog }:
         ))}
       </div>
 
-      {activeTab === 'session' ? (
-        <SessionView stats={sessionStats} />
-      ) : activeTab === 'audit' ? (
+      {activeTab === 'conversations' && (
+        <ConversationsView conversations={conversations || []} />
+      )}
+
+      {activeTab === 'usage' && (
+        <>
+          {/* Usage sub-toggle — Session vs All-time. */}
+          <div className="mb-4 flex gap-1 border-b border-[var(--border-card)]">
+            {([
+              { id: 'session', label: t('dash.usage.session') },
+              { id: 'alltime', label: t('dash.usage.all_time') },
+            ] as const).map(sub => (
+              <button
+                key={sub.id}
+                onClick={() => handleUsageSubChange(sub.id)}
+                className={`-mb-px border-b-2 px-3 py-1.5 text-[11px] font-medium transition border-x-0 border-t-0 bg-transparent cursor-pointer ${
+                  usageSubTab === sub.id
+                    ? 'border-[var(--accent)] text-[var(--accent)]'
+                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {sub.label}
+              </button>
+            ))}
+          </div>
+          {usageSubTab === 'session' ? (
+            <SessionView stats={sessionStats} />
+          ) : (
+            <AllTimeView data={usageHistory} mode={mode} account={account} />
+          )}
+        </>
+      )}
+
+      {activeTab === 'audit' && (
         <AuditView entries={auditLog || []} />
+      )}
+    </div>
+  );
+}
+
+// ─── Conversations View ─────────────────────────────────────────────────────
+
+function ConversationsView({ conversations }: { conversations: ConversationEntry[] }) {
+  const [search, setSearch] = useState('');
+
+  const filtered = useMemo(() => {
+    const sorted = [...conversations].sort((a, b) => {
+      // Pinned first, then most-recently-updated.
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
+    if (!search.trim()) return sorted;
+    const q = search.toLowerCase();
+    return sorted.filter(c => (c.title || '').toLowerCase().includes(q));
+  }, [conversations, search]);
+
+  const loadConversation = (conv: ConversationEntry) => {
+    post({ type: 'load_conversation', id: conv.id });
+  };
+
+  const deleteConversation = (id: string) => {
+    post({ type: 'delete_conversation', id });
+  };
+
+  return (
+    <div className="space-y-3">
+      <input
+        type="text"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Search conversations…"
+        className="w-full max-w-sm rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]"
+      />
+
+      {filtered.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-[var(--border-card)] bg-[var(--bg-card)] p-12 text-center">
+          <div className="mb-2 text-2xl opacity-30">💬</div>
+          <p className="text-xs text-[var(--text-muted)]">
+            {search ? 'No conversations match your search.' : 'No conversations yet. Start chatting with Ava!'}
+          </p>
+        </div>
       ) : (
-        <AllTimeView data={usageHistory} mode={mode} account={account} />
+        <div className="flex flex-col gap-2">
+          {filtered.map(conv => {
+            const msgCount = conv.messages?.length || 0;
+            const date = conv.updated_at ? new Date(conv.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+            const time = conv.updated_at ? new Date(conv.updated_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+            const preview = conv.messages?.find(m => m.role === 'assistant' || m.role === 'ava')?.content?.slice(0, 120) || '';
+            return (
+              <div
+                key={conv.id}
+                onClick={() => loadConversation(conv)}
+                className="cursor-pointer rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] px-4 py-3 transition hover:border-[var(--accent)]/40"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      {conv.pinned && <span className="text-[10px] text-[var(--accent)]" title="Pinned">📌</span>}
+                      <span className="truncate text-sm font-semibold text-[#cdd6f4]">{conv.title || 'Untitled'}</span>
+                    </div>
+                    {preview && (
+                      <p className="mt-1 line-clamp-2 text-[11px] text-[var(--text-muted)]">{preview}</p>
+                    )}
+                    <div className="mt-1.5 flex items-center gap-2 text-[10px] text-[#585b70]">
+                      <span>{date} · {time}</span>
+                      <span>·</span>
+                      <span>{msgCount} {msgCount === 1 ? 'message' : 'messages'}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteConversation(conv.id); }}
+                    title="Delete"
+                    className="shrink-0 rounded-md border border-transparent bg-transparent px-2 py-1 text-[10px] text-[var(--text-muted)] transition hover:border-red-500/30 hover:text-red-400"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

@@ -397,21 +397,21 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
 
   return (
     <div className="mx-auto w-full max-w-4xl">
-      {/* Page Header */}
-      <div className="mb-10 flex items-start justify-between">
+      {/* Page Header — mirrors IDE MemoryPage at DashboardPages.tsx:6242-6264. */}
+      <div className="mb-8 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold">{t('dash.memory.title')}</h1>
+            <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.memory.title')}</h1>
             <StorageBadge />
           </div>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+          <p className="mt-1.5 text-[13px] text-[#6c7086]">
             {t('dash.memory.subtitle')}
           </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => postLoad({ type: 'load_local_memories' }, { type: 'load_memories' })}
-            className="rounded-lg border border-[var(--border-card)] px-3 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-white"
+            className="rounded-lg border border-[rgba(168,85,247,0.2)] bg-transparent px-3 py-1.5 text-xs text-[#9ca3af] transition hover:text-white"
             title="Refresh memories"
           >
             Refresh
@@ -419,7 +419,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
           {memories.length > 0 && !deletingAll && (
             <button
               onClick={() => setConfirmDeleteAll(true)}
-              className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/20"
+              className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs text-[#f87171] transition hover:bg-red-500/20"
             >
               Delete All
             </button>

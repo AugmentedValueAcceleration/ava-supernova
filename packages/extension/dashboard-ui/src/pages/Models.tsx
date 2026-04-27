@@ -53,10 +53,10 @@ export function ModelsPage() {
 
   return (
     <div className="mx-auto w-full max-w-4xl">
-      {/* Hero */}
+      {/* Hero — mirrors IDE ModelsPage at DashboardPages.tsx:14186-14190. */}
       <div className="mb-5">
-        <h1 className="m-0 text-2xl font-light text-[var(--text-primary)]">Models</h1>
-        <p className="mt-1 text-xs text-[var(--text-secondary)]">
+        <h1 className="m-0 text-[22px] font-semibold text-[#cdd6f4]">Models</h1>
+        <p className="mt-1.5 text-[13px] text-[#6c7086]">
           Real coding tasks. Real model outputs. Real receipts. Auditable in the public bench repo.
         </p>
       </div>

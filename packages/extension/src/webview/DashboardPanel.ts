@@ -439,6 +439,10 @@ export class DashboardPanel {
         await this.loadConversations();
         break;
 
+      case 'load_conversation':
+        await this.loadConversationIntoChat(msg.id);
+        break;
+
       case 'delete_conversation':
         await this.deleteConversation(msg.id);
         break;
@@ -1156,34 +1160,56 @@ export class DashboardPanel {
 
   private async sendInit(): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    const account = platformKey ? await this.fetchAccount(platformKey) : null;
     const connections = await this.getConnectionStatus();
 
-    // Cloud-pull settings before reading local — applies remote when cloud is
-    // newer than the last push from this device. Skipped in Local mode
-    // (Data Mode is the hard gate) and when the user has disabled
-    // settings sync (the per-category narrower).
+    // Read settings + provider keys from local storage first so the
+    // dashboard can render immediately. Account fetch + cloud syncs
+    // race independently and post update messages when they return.
+    // Previously we awaited fetchAccount + pullSettingsFromCloud in-line
+    // which made the dashboard hang for 2-3 minutes on slow networks
+    // because the platform request had no timeout.
+    const settings = this.readSettings();
+    const providerKeys = await this.getProviderKeyStatus();
+    const locale = vscode.workspace.getConfiguration('ava-supernova').get<string>('preferences.language') ?? 'auto';
+
+    // Post init with account=null. The webview reads `platformKey` to
+    // know the user is signed in but the account snapshot is still
+    // loading — surfaces (NavSidebar account block, Billing) show their
+    // own loading state until account_updated arrives.
+    this.post({ type: 'init', account: null, connections, settings, providerKeys, locale, platformKey: platformKey || undefined });
+
+    // Background account fetch — fire-and-forget. Posts account_updated
+    // when the platform responds (or times out at 10s). The dashboard
+    // shows a loading skeleton in account-dependent surfaces while we
+    // wait, then drops it the moment the snapshot arrives.
+    if (platformKey) {
+      this.fetchAccount(platformKey)
+        .then((account) => {
+          this.post({ type: 'account_updated', account });
+          // Memory load gated on account success — fire-and-forget too.
+          if (account) this.loadMemories().catch(() => { /* non-fatal */ });
+        })
+        .catch(() => {
+          // fetchAccount swallows errors → returns null. This catch is
+          // belt-and-braces for unexpected throws.
+          this.post({ type: 'account_updated', account: null });
+        });
+    } else {
+      // BYOK user — no account fetch needed. Load local memories +
+      // session stats so the Memory + Usage panels render with data.
+      this.loadLocalMemories().catch(() => { /* non-fatal */ });
+      this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats() });
+    }
+
+    // Background cloud-settings sync — fire-and-forget. Posts a
+    // settings_updated event when the remote copy is newer than the
+    // local one, otherwise silent. Never blocks initial render.
     if (
       platformKey
       && dataModeIncludesCloud(this.context)
       && this.isSyncEnabled('settings')
     ) {
-      await this.pullSettingsFromCloud(platformKey);
-    }
-
-    const settings = this.readSettings();
-    const providerKeys = await this.getProviderKeyStatus();
-    const locale = vscode.workspace.getConfiguration('ava-supernova').get<string>('preferences.language') ?? 'auto';
-
-    this.post({ type: 'init', account, connections, settings, providerKeys, locale, platformKey: platformKey || undefined });
-
-    if (account) {
-      // Platform user — load memories from API
-      await this.loadMemories();
-    } else {
-      // BYOK user — load local memories and session stats
-      await this.loadLocalMemories();
-      this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats() });
+      this.pullSettingsFromCloud(platformKey).catch(() => { /* non-fatal */ });
     }
   }
 
@@ -1807,6 +1833,18 @@ export class DashboardPanel {
     } catch {
       this.post({ type: 'conversations_loaded', conversations: [] });
     }
+  }
+
+  /** Load a saved conversation into the chat panel.
+   *  Called when the operator clicks a row in History → Conversations.
+   *  Reuses AvaViewProvider's existing chat-side handler so the message
+   *  thread restores exactly as it does from the chat-panel sidebar.
+   *  Mirrors the IDE flow at DashboardPages.tsx:6002 (which uses a
+   *  localStorage signal — not portable across VS Code webview origins,
+   *  hence the host-mediated route here). */
+  private async loadConversationIntoChat(id: string): Promise<void> {
+    if (!this.viewProvider) return;
+    await this.viewProvider.handleChatMessage({ type: 'load_conversation', conversationId: id });
   }
 
   private async deleteConversation(id: string): Promise<void> {

@@ -27,12 +27,13 @@ const TAB_ICONS: Record<string, ReactNode> = {
 // Creative Studio is a pure creation surface — no library tab. Browsing
 // generated assets lives in the top-level Library page which rolls up
 // cloud assets, courses, and documents into a single navigable view.
+// Tabs mirror IDE CreativeStudioPage at DashboardPages.tsx:13798. Documents
+// removed — document creation lives in the top-level Library page now.
 const TABS = [
   { key: 'images', label: 'Images' },
   { key: 'audio', label: 'Audio' },
   { key: 'voice', label: 'Voice' },
   { key: 'video', label: 'Video' },
-  { key: 'documents', label: 'Documents' },
 ];
 
 const VOICES = [
@@ -647,13 +648,14 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-4">
-      {/* Header + Token Bar */}
+      {/* Header + Token Bar — mirrors IDE CreativeStudioPage at
+          DashboardPages.tsx:13785-13793. */}
       <div>
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-lg font-semibold text-white">Creative Studio</h1>
-            <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-              Generate images, music, voice, and video with MiniMax
+            <h1 className="text-[22px] font-semibold text-[#cdd6f4]">Creative Studio</h1>
+            <p className="mt-1.5 text-[13px] text-[#6c7086]">
+              Generate images, music, and video with MiniMax
             </p>
           </div>
           {account?.usage && (
