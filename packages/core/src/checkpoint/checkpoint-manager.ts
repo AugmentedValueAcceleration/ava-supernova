@@ -4,10 +4,24 @@ const GIT_TIMEOUT_MS = 15_000;
 
 export class CheckpointManager {
   private activeCheckpoint: string | null = null;
+  // Whether one or more bash background processes were spawned during the
+  // window the active checkpoint covers. Background processes can keep
+  // mutating the filesystem after the agent moves on, so a `rollback
+  // restore` won't fully undo their side effects (npm install, prisma
+  // migrate, vite dev server). Surfacing this in status lets the user
+  // decide whether to also stop the background process before restoring.
+  private backgroundSpawnedDuringCheckpoint = false;
   private readonly cwd: string;
 
   constructor(cwd: string) {
     this.cwd = cwd;
+  }
+
+  /** Mark that a background process was spawned during the active
+   *  checkpoint window. Called by bash tool when it kicks off a detached
+   *  child so the rollback status warning is honest. */
+  markBackgroundSpawned(): void {
+    if (this.activeCheckpoint) this.backgroundSpawnedDuringCheckpoint = true;
   }
 
   /** Check if the current directory is inside a git repository. */
@@ -37,6 +51,7 @@ export class CheckpointManager {
     try {
       await this.git(['stash', 'push', '-m', message, '--include-untracked']);
       this.activeCheckpoint = message;
+      this.backgroundSpawnedDuringCheckpoint = false;
       return message;
     } catch {
       return null;
@@ -58,21 +73,20 @@ export class CheckpointManager {
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
 
-      // Check if the failure was due to merge conflicts
+      // Check if the failure was due to merge conflicts. CRITICAL: do NOT
+      // run `git checkout -- .` or `git clean -fd` here — both of those
+      // discard any uncommitted work the user has alongside Ava's changes,
+      // which would silently destroy concurrent edits during a rollback.
+      // Leave the conflict in place. The stash is still on the stack
+      // (`git stash list` shows it), so the user can resolve manually with
+      // `git status`, `git checkout --theirs|--ours <file>`, then
+      // `git stash drop` if they want to discard the original Ava changes.
       if (errorMsg.includes('CONFLICT') || errorMsg.includes('conflict')) {
-        try {
-          // Abort the conflicted merge and reset to clean state
-          await this.git(['checkout', '--', '.']).catch(() => {});
-          await this.git(['clean', '-fd']).catch(() => {});
-
-          // Try applying without popping (keeps stash for safety)
-          // User can manually resolve later
-          this.activeCheckpoint = null;
-          return false;
-        } catch {
-          this.activeCheckpoint = null;
-          return false;
-        }
+        // Keep activeCheckpoint=null so we don't claim we still have a
+        // restorable checkpoint; the stash remains on the git stack as a
+        // safety copy the user can pop manually.
+        this.activeCheckpoint = null;
+        return false;
       }
 
       // Non-conflict failure — stash may have been consumed
@@ -107,15 +121,19 @@ export class CheckpointManager {
   async getStashInfo(): Promise<string> {
     if (!this.activeCheckpoint) return 'No active checkpoint.';
 
+    const bgWarning = this.backgroundSpawnedDuringCheckpoint
+      ? '\n⚠ A background process (bash background:true) was spawned during this checkpoint window. Restore reverts file state, but won\'t undo side effects from a still-running migration / install / dev-server. Stop the background process first if it touched anything you don\'t want.'
+      : '';
+
     try {
       const list = await this.git(['stash', 'list', '--oneline']);
       const lines = list.trim().split('\n');
       const match = lines.find(l => l.includes(this.activeCheckpoint!));
-      return match
+      return (match
         ? `Active checkpoint: ${match}`
-        : `Checkpoint "${this.activeCheckpoint}" (may have been consumed)`;
+        : `Checkpoint "${this.activeCheckpoint}" (may have been consumed)`) + bgWarning;
     } catch {
-      return `Checkpoint "${this.activeCheckpoint}" exists but could not read stash list.`;
+      return `Checkpoint "${this.activeCheckpoint}" exists but could not read stash list.` + bgWarning;
     }
   }
 

@@ -42,6 +42,18 @@ export interface AuditLogEntry {
   argsSummary: string;
   fullArgs?: Record<string, unknown>;
   result?: string;
+  /** File-mutation diff metadata — populated by file_write / file_edit so
+   *  audit consumers can reconstruct what changed without parsing the
+   *  truncated result. Path, optional git SHA, byte counts, sha256 hashes
+   *  before/after. */
+  fileMutation?: {
+    path: string;
+    gitSha?: string;
+    bytesBefore?: number;
+    bytesAfter?: number;
+    sha256Before?: string;
+    sha256After?: string;
+  };
 }
 
 export type AuditCallback = (entry: AuditLogEntry) => void;
@@ -52,11 +64,28 @@ export interface ToolResult {
   metadata?: Record<string, unknown>;
 }
 
+// ─── Output Trust ───────────────────────────────────────────────────────────
+// Declares whether a tool's output is trusted (came from the user, our own
+// state, deterministic computation) or untrusted (third-party content that
+// could carry prompt-injection payloads). Untrusted outputs get wrapped at
+// the registry level with <tool_output trust="untrusted">…</tool_output>
+// before they re-enter the model context, so the model has an architectural
+// cue to treat the content as data, not instruction.
+//
+// Default: 'trusted'. Tools that fetch external content MUST set 'untrusted'.
+export type ToolOutputTrust = 'trusted' | 'untrusted';
+
 export interface Tool {
   readonly name: string;
   readonly description: string;
   readonly schema: FunctionSchema;
   readonly riskLevel: ToolRiskLevel;
+  /**
+   * Declares whether output content is safe to treat as instruction. Defaults
+   * to 'trusted'. Web/file/doc fetch tools should set 'untrusted' so the
+   * registry wraps the result in trust tags before returning to the agent.
+   */
+  readonly outputTrust?: ToolOutputTrust;
   /** @deprecated Use riskLevel instead. Kept for backwards compat. */
   readonly requiresConfirmation: boolean;
   /**

@@ -16,7 +16,9 @@ export class GitCommitTool implements Tool {
     description:
       'Stage and commit git changes. If no message is provided, generates one from the staged diff. ' +
       'Use stage_all to stage all modified/deleted files before committing. ' +
-      'The generated message summarizes the changes concisely.',
+      'The commit will be signed under the user\'s configured git identity (user.name / user.email from ~/.gitconfig). ' +
+      'amend=true rewrites the previous commit and ALWAYS re-prompts the user regardless of permission mode — ' +
+      'rewriting history is irreversible if the commit was already pushed.',
     parameters: {
       type: 'object',
       properties: {
@@ -35,7 +37,7 @@ export class GitCommitTool implements Tool {
         },
         amend: {
           type: 'boolean',
-          description: 'Amend the previous commit instead of creating a new one. Default: false.',
+          description: 'Rewrite the previous commit instead of creating a new one. ALWAYS prompts the user — even in autonomous mode. Use only when the user explicitly asked to amend.',
         },
       },
       required: [],
@@ -80,23 +82,35 @@ export class GitCommitTool implements Tool {
       commitMessage = this.generateMessage(statResult.output, diff);
     }
 
+    // Capture author identity. Surface it in the result so audit log and
+    // model-visible output both record who the commit was signed as. The
+    // confirmation card on the host side shows the same name (it can run
+    // the same lookup), giving the user a chance to abort if the wrong
+    // identity is configured.
+    const authorName = (await this.runGit(['config', '--get', 'user.name'], context.cwd)).output.trim() || '(not set)';
+    const authorEmail = (await this.runGit(['config', '--get', 'user.email'], context.cwd)).output.trim() || '(not set)';
+
     // Commit
     const commitArgs = ['commit', '-m', commitMessage];
     if (amend) commitArgs.push('--amend');
 
     const commitResult = await this.runGit(commitArgs, context.cwd);
     if (!commitResult.success) {
-      return { success: false, output: `Commit failed: ${commitResult.output}` };
+      return { success: false, output: `Commit failed (would have signed as ${authorName} <${authorEmail}>): ${commitResult.output}` };
     }
 
     // Get the commit hash
     const hashResult = await this.runGit(['rev-parse', '--short', 'HEAD'], context.cwd);
     const hash = hashResult.output.trim();
 
+    const headline = amend
+      ? `Amended ${hash} signed as ${authorName} <${authorEmail}>: ${commitMessage}`
+      : `Committed ${hash} signed as ${authorName} <${authorEmail}>: ${commitMessage}`;
+
     return {
       success: true,
-      output: `Committed ${hash}: ${commitMessage}\n\n${commitResult.output}`,
-      metadata: { hash, message: commitMessage, amend },
+      output: `${headline}\n\n${commitResult.output}`,
+      metadata: { hash, message: commitMessage, amend, authorName, authorEmail },
     };
   }
 

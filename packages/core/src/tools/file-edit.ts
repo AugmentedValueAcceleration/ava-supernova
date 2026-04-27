@@ -1,5 +1,7 @@
 import { readFile, writeFile, stat } from 'node:fs/promises';
 import { basename, relative } from 'node:path';
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { validatePath } from './security.js';
@@ -70,6 +72,17 @@ export class FileEditTool implements Tool {
       }
 
       const content = await readFile(absolutePath, 'utf-8');
+      // Editing presumes reading — populate the same read-set file_read does
+      // so a follow-up file_write on this path doesn't trip the blind-
+      // clobber guard. Match exact-string requirement already prevents
+      // blind edits, but tracking is for downstream tools.
+      try {
+        const ss = context.sharedState as { readFiles?: Set<string> } | undefined;
+        if (ss) {
+          if (!ss.readFiles) ss.readFiles = new Set<string>();
+          ss.readFiles.add(absolutePath);
+        }
+      } catch { /* sharedState not available — non-fatal */ }
       const occurrences = content.split(oldString).length - 1;
 
       if (occurrences === 0) {
@@ -100,6 +113,18 @@ export class FileEditTool implements Tool {
         ? content.split(oldString).join(newString)
         : content.replace(oldString, newString);
 
+      // Audit metadata: capture pre/post hashes + git SHA so a future
+      // incident can verify what changed without parsing the truncated
+      // result. content was just read above; the post-state is `updated`.
+      const sha256Before = createHash('sha256').update(content, 'utf-8').digest('hex');
+      const sha256After = createHash('sha256').update(updated, 'utf-8').digest('hex');
+      let gitSha: string | undefined;
+      try {
+        gitSha = execFileSync('git', ['rev-parse', '--short', 'HEAD'], {
+          cwd: context.cwd, timeout: 1500, stdio: ['ignore', 'pipe', 'ignore'],
+        }).toString().trim() || undefined;
+      } catch { /* not a git repo */ }
+
       await writeFile(absolutePath, updated, 'utf-8');
 
       if (emit) {
@@ -109,7 +134,15 @@ export class FileEditTool implements Tool {
       return {
         success: true,
         output: `Edited ${absolutePath}: replaced ${replaceAll ? `all ${occurrences} occurrences` : '1 occurrence'}`,
-        metadata: { path: absolutePath, occurrences, oldString, newString },
+        metadata: {
+          path: absolutePath, occurrences, oldString, newString,
+          fileMutation: {
+            path: absolutePath, gitSha,
+            bytesBefore: Buffer.byteLength(content, 'utf-8'),
+            bytesAfter: Buffer.byteLength(updated, 'utf-8'),
+            sha256Before, sha256After,
+          },
+        },
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);

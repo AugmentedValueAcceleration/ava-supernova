@@ -103,6 +103,7 @@ export class WebSearchTool implements Tool {
   readonly name = 'web_search';
   readonly description = 'Search the web using DuckDuckGo';
   readonly riskLevel: ToolRiskLevel = 'safe';
+  readonly outputTrust = 'untrusted' as const;
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {

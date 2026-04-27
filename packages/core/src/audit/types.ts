@@ -43,6 +43,20 @@ export interface AuditEntry {
    *  legacy entries. */
   conversationId?: string;
   messageId?: string;
+  /** For file-mutation tools (file_write, file_edit), captures enough
+   *  state to verify the on-disk effect after the fact: short git SHA at
+   *  start of tool call, target path, and content hashes before/after.
+   *  Lets a user reconstruct "what changed" from the audit log alone
+   *  without relying on the truncated `result` field. Absent for
+   *  non-mutation tools. */
+  fileMutation?: {
+    path: string;
+    gitSha?: string;       // short hash from git rev-parse HEAD at tool start
+    bytesBefore?: number;
+    bytesAfter?: number;
+    sha256Before?: string; // sha256 of the file content before the change
+    sha256After?: string;  // sha256 after
+  };
 }
 
 export interface AuditCost {

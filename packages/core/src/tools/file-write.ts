@@ -1,5 +1,7 @@
-import { writeFile, mkdir, stat } from 'node:fs/promises';
+import { writeFile, mkdir, stat, readFile } from 'node:fs/promises';
 import { dirname, basename, relative } from 'node:path';
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import { validatePath } from './security.js';
@@ -67,6 +69,28 @@ export class FileWriteTool implements Tool {
       }
     } catch { /* file doesn't exist — create */ }
 
+    // Blind-clobber guard. If we're about to overwrite an existing file
+    // that Ava has not read this session (file_read or file_edit), refuse
+    // and tell the agent to read first. Common failure mode otherwise:
+    // model "remembers" file contents from training data or an earlier
+    // turn, decides to rewrite, silently discards content it never saw.
+    // Especially bad for config files, lock files, .env files, migrations.
+    //
+    // The model self-corrects from this error — next turn calls file_read
+    // and then comes back with a properly-informed write. No user friction
+    // for the common case (new files, files the agent legitimately read);
+    // hard stop only on the actual foot-gun pattern.
+    if (isOverwrite) {
+      const ss = context.sharedState as { readFiles?: Set<string> } | undefined;
+      const hasRead = ss?.readFiles?.has(absolutePath) ?? false;
+      if (!hasRead) {
+        return {
+          success: false,
+          output: `file_write refused: "${relPath}" exists (${formatBytes(prevSize)}) but you have not read it this session. Call file_read on this path first to see the current contents, then file_write with the version you actually mean. This guard prevents blind-clobber regressions where remembered contents diverge from what's on disk.`,
+        };
+      }
+    }
+
     const lines = content.split('\n');
     const lineCount = lines.length;
     const byteSize = Buffer.byteLength(content, 'utf-8');
@@ -89,9 +113,28 @@ export class FileWriteTool implements Tool {
       }
     }
 
+    // Compute pre-state for the audit log so a future incident can verify
+    // exactly what changed. Cheap (sha256 over a small file is sub-ms);
+    // only runs on overwrites since new-file writes have no "before" state.
+    let sha256Before: string | undefined;
+    if (isOverwrite) {
+      try {
+        const prev = await readFile(absolutePath);
+        sha256Before = createHash('sha256').update(prev).digest('hex');
+      } catch { /* unreadable — leave undefined */ }
+    }
+    let gitSha: string | undefined;
+    try {
+      gitSha = execFileSync('git', ['rev-parse', '--short', 'HEAD'], {
+        cwd: context.cwd, timeout: 1500, stdio: ['ignore', 'pipe', 'ignore'],
+      }).toString().trim() || undefined;
+    } catch { /* not a git repo or git unavailable */ }
+
     try {
       await mkdir(dirname(absolutePath), { recursive: true });
       await writeFile(absolutePath, content, 'utf-8');
+
+      const sha256After = createHash('sha256').update(content, 'utf-8').digest('hex');
 
       if (emit) {
         emit(`\n✓ ${isOverwrite ? 'Updated' : 'Created'} ${relPath}\n`);
@@ -100,7 +143,16 @@ export class FileWriteTool implements Tool {
       return {
         success: true,
         output: `File written: ${absolutePath} (${lineCount} lines, ${humanSize})`,
-        metadata: { path: absolutePath, lineCount, bytes: byteSize, overwrite: isOverwrite },
+        metadata: {
+          path: absolutePath, lineCount, bytes: byteSize, overwrite: isOverwrite,
+          fileMutation: {
+            path: absolutePath, gitSha,
+            bytesBefore: isOverwrite ? prevSize : 0,
+            bytesAfter: byteSize,
+            sha256Before,
+            sha256After,
+          },
+        },
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);

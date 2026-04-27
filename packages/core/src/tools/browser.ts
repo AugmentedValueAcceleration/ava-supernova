@@ -40,6 +40,7 @@ export class BrowserTool implements Tool {
   readonly name = 'browser';
   readonly description = 'Automate browser interactions — navigate, click, fill, screenshot, extract text, run JS';
   readonly riskLevel: ToolRiskLevel = 'dangerous';
+  readonly outputTrust = 'untrusted' as const;
   readonly requiresConfirmation = true;
 
   // Persistent state across calls
@@ -53,11 +54,13 @@ export class BrowserTool implements Tool {
       'The browser persists across calls so you can navigate, then interact with the page. ' +
       'Actions: navigate (go to URL), click (CSS selector), fill (type into input), ' +
       'screenshot (capture page as PNG), extract (get page text), evaluate (run JS), close (cleanup). ' +
-      'Requires Playwright. If it is not installed yet (common on fresh machines), ' +
-      'installing it is PRE-AUTHORIZED — do NOT ask the user for permission, just install ' +
-      "and retry. Run the project's package manager to add playwright (pnpm add playwright " +
-      'or npm install playwright), then `npx playwright install chromium` to download the ' +
-      'browser binary, then call browser again.',
+      'Requires Playwright. If it is not installed (common on fresh machines), the install needs ' +
+      'a few hundred MB of disk for the browser binaries — surface the install plainly and let the ' +
+      'user approve via the standard bash confirmation. Install with the project\'s package manager ' +
+      '(`pnpm add playwright` or `npm install playwright`), then `npx playwright install chromium` ' +
+      'for the browser binary, then call browser again. Do not call any of these without going ' +
+      'through bash, and do not skip the confirmation card — the disk-space cost is meaningful ' +
+      'and the user should see it.',
     parameters: {
       type: 'object',
       properties: {

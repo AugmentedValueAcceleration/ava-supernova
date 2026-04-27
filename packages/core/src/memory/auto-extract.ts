@@ -313,6 +313,22 @@ export function extractMemories(messages: Message[]): ExtractedMemory[] {
     // Skip if it looks like a tool result or code block
     if (text.startsWith('{') || text.startsWith('```')) continue;
 
+    // Memory-poisoning guard. First-person preference patterns ("I always",
+    // "please never") are easy to plant via paste — a user who copies a
+    // tutorial or README into chat shouldn't have its "I prefer X" lines
+    // saved as their global preference. Apply for USER messages only:
+    //   - reject anything ≥ 800 chars (paste size, not a sentence about self)
+    //   - reject anything containing a code fence anywhere (not just prefix)
+    //   - reject anything containing quoted text markers (>, "...") — those
+    //     are signals the user is *referencing* third-party text, not stating
+    //     their own preference
+    if (msg.role === 'user') {
+      if (text.length > 800) continue;
+      if (text.includes('```')) continue;
+      if (/^>\s/m.test(text)) continue;       // markdown blockquote — quoting external
+      if (/(^|\n)\s*"[^"]{40,}"/m.test(text)) continue; // long inline quote
+    }
+
     // Pick pattern groups based on role
     const groups = msg.role === 'user' ? USER_PATTERN_GROUPS
                  : msg.role === 'assistant' ? ASSISTANT_PATTERN_GROUPS

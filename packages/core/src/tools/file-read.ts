@@ -7,6 +7,10 @@ export class FileReadTool implements Tool {
   readonly name = 'file_read';
   readonly description = 'Read the contents of a file with line numbers';
   readonly riskLevel: ToolRiskLevel = 'safe';
+  // File contents can carry prompt-injection payloads — a downloaded README,
+  // a copied-in code sample, an LLM-generated config file. Treat as
+  // untrusted by default so the registry wraps the result in trust tags.
+  readonly outputTrust = 'untrusted' as const;
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
@@ -70,6 +74,18 @@ export class FileReadTool implements Tool {
       const output = hasMore
         ? `${numbered}\n\n[file_read: showing lines ${startIdx + 1}–${shownEnd} of ${lines.length}. Call again with offset:${shownEnd + 1} for more.]`
         : numbered;
+
+      // Record the read in sharedState so file_write can later detect
+      // blind-clobber attempts (overwriting a file Ava never opened).
+      // Per-session set — keyed by absolute path. file_edit also populates
+      // this, since editing a file implies you've read enough of it.
+      try {
+        const ss = context.sharedState as { readFiles?: Set<string> } | undefined;
+        if (ss) {
+          if (!ss.readFiles) ss.readFiles = new Set<string>();
+          ss.readFiles.add(absolutePath);
+        }
+      } catch { /* sharedState not available — non-fatal */ }
 
       return {
         success: true,

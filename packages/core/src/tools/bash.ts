@@ -15,16 +15,56 @@ const BACKGROUND_WARMUP_MS = 5_000; // collect output for 5s before returning
  * These are flagged — not blocked — via the confirmation handler so the user
  * can see an explicit warning before approving.
  */
-const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
-  { pattern: /\brm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+)?\/(?!\w)/, reason: 'Recursive delete from root filesystem' },
-  { pattern: /\bmkfs\b/, reason: 'Filesystem format command' },
-  { pattern: /\bdd\s+.*\bof=\/dev\//, reason: 'Direct disk write (dd)' },
-  { pattern: /:\(\)\s*\{\s*:\|:&\s*\}\s*;:/, reason: 'Fork bomb detected' },
-  { pattern: /\bchmod\s+(-R\s+)?777\s+\//, reason: 'Recursive permission change on root' },
-  { pattern: /\b(shutdown|reboot|poweroff|init\s+[06])\b/, reason: 'System shutdown/reboot command' },
-  { pattern: />\s*\/dev\/sd[a-z]/, reason: 'Direct write to block device' },
-  { pattern: /\bcurl\b.*\|\s*(bash|sh|zsh)\b/, reason: 'Piping remote script to shell' },
-  { pattern: /\bwget\b.*\|\s*(bash|sh|zsh)\b/, reason: 'Piping remote script to shell' },
+// Tiered risk classifier. Each pattern declares which tier it falls into:
+//
+//   irreversible — destroys history, signed identity, or external state that
+//                  can't be undone by reverting a file. ALWAYS prompts the
+//                  user regardless of permission mode (autonomous, balanced,
+//                  custom — all of them). Mirrors the desktop-safety-gate
+//                  model: "irreversible never graduates."
+//
+//   destructive  — wide deletes, formatting, fork-bombs, disk overwrites.
+//                  Prompts under any mode that doesn't auto-approve shell
+//                  (i.e. anything other than autonomous + 'auto' shell).
+//
+//   risky        — privilege escalation, force-flag package installs, scripts
+//                  piped from the network. User-visible warning, prompts in
+//                  strict / balanced; allowed in autonomous.
+//
+// Tier choice is loud rather than quiet — the user's confirmation card
+// shows the tier so they know whether the operation is undoable or not.
+type DangerTier = 'irreversible' | 'destructive' | 'risky';
+const DANGEROUS_PATTERNS: Array<{ pattern: RegExp; reason: string; tier: DangerTier }> = [
+  // ─── Irreversible — git history rewrite / share / signed identity ──────
+  { pattern: /\bgit\s+push\s+(?:[^\n]+\s)?(?:--force|--force-with-lease|-f\b)/, reason: 'Force-push rewrites remote history', tier: 'irreversible' },
+  { pattern: /\bgit\s+reset\s+(?:[^\n]+\s)?--hard\b/, reason: 'Hard reset discards uncommitted work', tier: 'irreversible' },
+  { pattern: /\bgit\s+(?:branch\s+-D|branch\s+--delete\s+--force)\b/, reason: 'Force branch delete (loses unmerged commits)', tier: 'irreversible' },
+  { pattern: /\bgit\s+rebase\b(?!.*--abort)/, reason: 'Rebase rewrites local history', tier: 'irreversible' },
+  { pattern: /\bgit\s+(?:filter-branch|filter-repo)\b/, reason: 'History filter — rewrites every commit', tier: 'irreversible' },
+  { pattern: /\bgit\s+clean\s+(?:[^\n]+\s)?-[a-z]*[fF]/, reason: 'Force-clean discards untracked files', tier: 'irreversible' },
+
+  // ─── Irreversible — DB drops / truncates via shell wrappers ────────────
+  { pattern: /\b(?:psql|mysql)\b.*\b(?:-c|-e)\b\s+["'][^"']*\b(?:DROP|TRUNCATE|DELETE\s+FROM)\b/i, reason: 'SQL drop/truncate/delete via shell wrapper bypasses database_query gate', tier: 'irreversible' },
+  { pattern: /\bsqlite3\b.*\b(?:DROP|TRUNCATE|DELETE\s+FROM)\b/i, reason: 'SQLite destructive statement via shell', tier: 'irreversible' },
+  { pattern: /\bpnpm\s+publish|\bnpm\s+publish|\byarn\s+publish\b/, reason: 'Publishing a package is irreversible once registered', tier: 'irreversible' },
+
+  // ─── Destructive — wide / root-adjacent deletes ────────────────────────
+  { pattern: /\brm\s+(?:-[a-zA-Z]*[rRf][a-zA-Z]*\s+)+(?:\/(?!\w)|~\/?\s*$|~\/\*|\*\s*$|\.\s*$|\.\/\*|\.\.\/?\*?)/, reason: 'Recursive delete on root, home, cwd, or wildcard', tier: 'destructive' },
+  { pattern: /\brm\s+(?:-[a-zA-Z]*[rRf][a-zA-Z]*\s+)\.\.\//, reason: 'Recursive delete escaping cwd', tier: 'destructive' },
+  { pattern: /\bmkfs\b/, reason: 'Filesystem format command', tier: 'destructive' },
+  { pattern: /\bdd\s+.*\bof=\/dev\//, reason: 'Direct disk write (dd)', tier: 'destructive' },
+  { pattern: /:\(\)\s*\{\s*:\|:&\s*\}\s*;:/, reason: 'Fork bomb detected', tier: 'destructive' },
+  { pattern: /\bchmod\s+(?:-R\s+)?777\s+\//, reason: 'World-writable on root', tier: 'destructive' },
+  { pattern: /\bchown\s+-R\s+[^\s]+\s+\//, reason: 'Recursive ownership change on root', tier: 'destructive' },
+  { pattern: /\b(?:shutdown|reboot|poweroff|init\s+[06]|halt\b)\b/, reason: 'System shutdown/reboot', tier: 'destructive' },
+  { pattern: />\s*\/dev\/sd[a-z]/, reason: 'Direct write to block device', tier: 'destructive' },
+
+  // ─── Risky — privilege / network-script-execution / force flags ────────
+  { pattern: /\bcurl\b.*\|\s*(?:bash|sh|zsh|fish|pwsh|powershell)\b/, reason: 'Piping remote script to shell', tier: 'risky' },
+  { pattern: /\bwget\b.*\|\s*(?:bash|sh|zsh|fish|pwsh|powershell)\b/, reason: 'Piping remote script to shell', tier: 'risky' },
+  { pattern: /\b(?:sudo|doas|runas|su\s+-)\b/, reason: 'Privilege escalation', tier: 'risky' },
+  { pattern: /\b(?:npm|pnpm|yarn)\s+(?:install|add|i)\s+(?:[^\n]*\s)?-g\s+(?:[^\n]*\s)?--force\b/, reason: 'Global package install with --force', tier: 'risky' },
+  { pattern: /\b(?:npm|pnpm|yarn)\s+(?:[^\n]*\s)?--legacy-peer-deps\b.*\b-g\b/, reason: 'Global install bypassing peer-dep checks', tier: 'risky' },
 ];
 
 /**
@@ -37,6 +77,14 @@ const SENSITIVE_ENV_PREFIXES = [
   'GITLAB_TOKEN', 'SLACK_TOKEN', 'SLACK_BOT', 'AWS_SECRET', 'AWS_SESSION',
   'AZURE_', 'GOOGLE_API', 'STRIPE_', 'DATABASE_URL', 'SUPABASE_SERVICE',
   'NEXT_PUBLIC_SUPABASE_ANON', 'NPM_TOKEN', 'NODE_AUTH',
+  // Database connection envs — extending coverage so a bash subprocess
+  // can't psql/mysql/sqlite using the same creds the user only intended
+  // for the gated database_query tool. database_query blocks DROP/DELETE/
+  // TRUNCATE in SQL; without stripping these, `psql -c "DROP TABLE users"`
+  // routes around the gate via bash. The DANGEROUS_PATTERNS list also
+  // catches the obvious destructive shell wrappers, but defence-in-depth.
+  'POSTGRES_', 'PG', 'MYSQL_', 'MARIADB_', 'SQLITE_', 'MONGODB_', 'MONGO_',
+  'REDIS_', 'CASSANDRA_', 'CLICKHOUSE_',
 ];
 
 const SENSITIVE_ENV_EXACT = [
@@ -61,16 +109,27 @@ function getSanitisedEnv(): Record<string, string> {
 }
 
 /**
- * Check a command for dangerous patterns. Returns warnings (not blocks).
+ * Check a command for dangerous patterns. Returns matched tier hits in
+ * ascending order of severity so callers can quickly read the worst tier
+ * via the last element. Empty array = clean.
  */
-function checkDangerousCommand(command: string): string[] {
-  const warnings: string[] = [];
-  for (const { pattern, reason } of DANGEROUS_PATTERNS) {
-    if (pattern.test(command)) {
-      warnings.push(reason);
-    }
+export interface DangerHit { reason: string; tier: DangerTier }
+const TIER_RANK: Record<DangerTier, number> = { risky: 1, destructive: 2, irreversible: 3 };
+
+function checkDangerousCommand(command: string): DangerHit[] {
+  const hits: DangerHit[] = [];
+  for (const { pattern, reason, tier } of DANGEROUS_PATTERNS) {
+    if (pattern.test(command)) hits.push({ reason, tier });
   }
-  return warnings;
+  hits.sort((a, b) => TIER_RANK[a.tier] - TIER_RANK[b.tier]);
+  return hits;
+}
+
+/** Top tier present in the command (or null). Used by the registry to
+ * decide whether to force-prompt regardless of permission mode. */
+export function bashDangerTier(command: string): DangerTier | null {
+  const hits = checkDangerousCommand(command);
+  return hits.length ? hits[hits.length - 1].tier : null;
 }
 
 // ── Windows bash resolution ─────────────────────────────────────────────────
@@ -171,10 +230,14 @@ export class BashTool implements Tool {
     const command = args.command as string;
     const background = args.background as boolean | undefined;
 
-    // Check for dangerous patterns — surface warnings in output
-    const warnings = checkDangerousCommand(command);
-    if (warnings.length > 0) {
-      const prefix = `⚠ Security warning: ${warnings.join('; ')}\n\n`;
+    // Check for dangerous patterns — surface warnings in output, tagged
+    // with the worst tier so the user (and any audit log reader) can see
+    // at a glance whether the command is undoable.
+    const hits = checkDangerousCommand(command);
+    if (hits.length > 0) {
+      const top = hits[hits.length - 1].tier;
+      const reasons = hits.map(h => `[${h.tier}] ${h.reason}`).join('; ');
+      const prefix = `⚠ Security warning (${top}): ${reasons}\n\n`;
       const result = background
         ? await this.executeBackground(command, context)
         : await this.executeForeground(command, args, context);
@@ -278,6 +341,15 @@ export class BashTool implements Tool {
 
       // Track for cleanup
       backgroundProcesses.add(child);
+
+      // Tell the active checkpoint (if any) that a background process was
+      // spawned during its window. The rollback status surface will then
+      // warn the user that restore won't undo side effects from a still-
+      // running migration / install / dev-server.
+      try {
+        const ss = context.sharedState as { checkpointManager?: { markBackgroundSpawned?: () => void } } | undefined;
+        ss?.checkpointManager?.markBackgroundSpawned?.();
+      } catch { /* shared state absent — non-fatal */ }
 
       let output = '';
       let exited = false;

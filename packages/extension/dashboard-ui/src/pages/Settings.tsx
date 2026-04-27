@@ -507,7 +507,20 @@ export function Settings({
             label={t('dash.settings.permission.autonomous')}
             description={t('dash.settings.permission.autonomous_desc')}
             selected={local.permissionMode === 'autonomous'}
-            onClick={() => saveImmediate('permissionMode', 'autonomous')}
+            onClick={() => {
+              if (local.permissionMode === 'autonomous') return; // already on
+              const ok = window.confirm(
+                'Switch to Autonomous mode?\n\n' +
+                'This auto-approves every tool category — bash, git, file_write, file_edit, ' +
+                'database_query, browser, http_request — including their destructive subset ' +
+                '(rm, format, deletes, overwrites). The only operations that still prompt are ' +
+                'irreversible patterns (force-push, hard reset, history rewrites, package publish, ' +
+                'git_commit --amend) — those never graduate.\n\n' +
+                'Pick this only if you want Ava to run without confirmations across long sessions, ' +
+                'and only on a workspace where you can recover from a wrong write via git.'
+              );
+              if (ok) saveImmediate('permissionMode', 'autonomous');
+            }}
           />
         </div>
 

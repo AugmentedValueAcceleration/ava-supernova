@@ -142,6 +142,7 @@ export class HttpRequestTool implements Tool {
   readonly name = 'http_request';
   readonly description = 'Make HTTP requests to test APIs or fetch data';
   readonly riskLevel: ToolRiskLevel = 'dangerous';
+  readonly outputTrust = 'untrusted' as const;
   readonly requiresConfirmation = true;
 
   readonly schema: FunctionSchema = {
@@ -299,7 +300,20 @@ export class HttpRequestTool implements Tool {
       // Body
       if (result.body && method !== 'HEAD' && !extractJsonPath) {
         lines.push('');
-        lines.push(result.body);
+        // Strip <script>/<style> blocks from HTML responses before they
+        // reach the model context. The trust-tag wrapper at the registry
+        // level tells the model "this is data" — but we still don't need
+        // to ship raw JS payloads embedded in fetched HTML to the model
+        // in the first place. Prose-only is what's useful for LLM-driven
+        // web fetches; the actual scripts add only attack surface.
+        const contentType = (result.headers['content-type'] || '').toLowerCase();
+        const looksLikeHtml = contentType.includes('html') || /<html[\s>]|<!doctype html/i.test(result.body.slice(0, 200));
+        const sanitised = looksLikeHtml
+          ? result.body
+              .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+              .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+          : result.body;
+        lines.push(sanitised);
       }
 
       // Timing

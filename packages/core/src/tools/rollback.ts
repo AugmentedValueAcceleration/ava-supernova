@@ -17,7 +17,12 @@ export class RollbackTool implements Tool {
       'a checkpoint is automatically created via git stash. If something goes wrong, ' +
       'use "restore" to undo all changes back to the checkpoint. ' +
       'Use "status" to check if a checkpoint exists. Use "discard" to clear the checkpoint ' +
-      'when you\'re happy with the changes.',
+      'when you\'re happy with the changes.\n' +
+      'CONSTRAINT: only one checkpoint exists at a time. Multiple risky tool calls in a single ' +
+      'turn share that checkpoint — restoring brings back the state from BEFORE the first ' +
+      'change of the run, not before the last one. For finer recovery, restore promptly when ' +
+      'a regression appears, and pair with git history for older state. Restore is also ' +
+      'unavailable outside git repositories.',
     parameters: {
       type: 'object',
       properties: {
