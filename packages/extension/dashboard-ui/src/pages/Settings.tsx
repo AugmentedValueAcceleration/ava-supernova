@@ -113,6 +113,23 @@ export function Settings({
   const [savingProvider, setSavingProvider] = useState<string | null>(null);
   const [apiKeysOpen, setApiKeysOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  // 5-tab Settings refactor — mirrors IDE Settings (Models / Personality /
+  // Permissions / Data / Advanced). State persists so the user lands on
+  // whichever tab they last had open instead of always hitting Models.
+  type SettingsTab = 'models' | 'personality' | 'permissions' | 'data' | 'advanced';
+  const [tab, setTab] = useState<SettingsTab>(() => {
+    try {
+      const stored = localStorage.getItem('ava-ext-settings-tab');
+      const valid: SettingsTab[] = ['models', 'personality', 'permissions', 'data', 'advanced'];
+      if (stored && (valid as string[]).includes(stored)) return stored as SettingsTab;
+    } catch { /* */ }
+    return 'models';
+  });
+  const switchTab = (next: SettingsTab) => {
+    setTab(next);
+    try { localStorage.setItem('ava-ext-settings-tab', next); } catch { /* */ }
+  };
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -303,7 +320,32 @@ export function Settings({
         </p>
       </div>
 
-      {/* ── 1. Your AI ──────────────────────────────────────────────────── */}
+      {/* ── Tab nav — mirrors IDE Settings 5-tab refactor ────────────── */}
+      <div className="mb-6 flex gap-1 border-b border-[var(--border-card)]">
+        {([
+          { id: 'models' as const,       label: 'Models' },
+          { id: 'personality' as const,  label: 'Personality' },
+          { id: 'permissions' as const,  label: 'Permissions' },
+          { id: 'data' as const,         label: 'Data' },
+          { id: 'advanced' as const,     label: 'Advanced' },
+        ]).map(t_ => (
+          <button
+            key={t_.id}
+            onClick={() => switchTab(t_.id)}
+            className={[
+              'px-4 py-2 text-sm transition border-b-2 -mb-px',
+              tab === t_.id
+                ? 'border-[var(--accent)] text-[var(--text-primary)] font-medium'
+                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]',
+            ].join(' ')}
+          >
+            {t_.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Personality tab — Your AI + Avatar ──────────────────────── */}
+      {tab === 'personality' && <>
       <SectionLabel>{t('dash.settings.section.your_ai')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <div className="flex items-center justify-between">
@@ -368,7 +410,11 @@ export function Settings({
         </div>
       </div>
 
-      {/* ── 2. Privacy & Data ───────────────────────────────────────────── */}
+      </>}
+      {/* ── Data tab — Privacy + Help train Ava (Language renders below
+            Behavior since it shares the same tab but the page order
+            keeps the legacy section sequence) ──────────────────────── */}
+      {tab === 'data' && <>
       <SectionLabel>{t('dash.settings.section.privacy')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         {/* Auto Memory */}
@@ -481,7 +527,9 @@ export function Settings({
         )}
       </div>
 
-      {/* ── 4. Behavior ─────────────────────────────────────────────────── */}
+      </>}
+      {/* ── Permissions tab — Behavior (permission mode + caps) ────── */}
+      {tab === 'permissions' && <>
       <SectionLabel>{t('dash.settings.section.behavior')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <p className="mb-1 text-sm font-semibold">{t('dash.settings.permission')}</p>
@@ -592,7 +640,9 @@ export function Settings({
         />
       </div>
 
-      {/* ── 5. Language ──────────────────────────────────────────────────── */}
+      </>}
+      {/* ── Data tab continued — Language ────────────────────────────── */}
+      {tab === 'data' && <>
       <SectionLabel>{t('dash.settings.language')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <Select
@@ -602,7 +652,10 @@ export function Settings({
         />
       </div>
 
-      {/* ── 5b. Custom OpenAI-compatible model — local or remote ────────────
+      </>}
+      {/* ── Models tab — Custom Model + Provider keys (BYOK) ────────── */}
+      {tab === 'models' && <>
+      {/* ── Custom OpenAI-compatible model — local or remote ────────────
             Covers Ollama / LM Studio / vLLM on your machine AND BYOM cases:
             private vLLM clusters, self-hosted finetunes, OpenRouter,
             Together, anything that speaks the OpenAI Chat Completions API.
@@ -828,7 +881,9 @@ export function Settings({
         </>
       )}
 
-      {/* ── 7. Advanced (collapsible) ───────────────────────────────────── */}
+      </>}
+      {/* ── Advanced tab — Advanced + Danger Zone ────────────────────── */}
+      {tab === 'advanced' && <>
       <SectionLabel>{t('dash.settings.section.advanced')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)]">
         <button
@@ -915,6 +970,7 @@ export function Settings({
           </div>
         </>
       )}
+      </>}
     </div>
   );
 }
