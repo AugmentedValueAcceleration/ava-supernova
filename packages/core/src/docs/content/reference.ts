@@ -156,17 +156,17 @@ export const REFERENCE_PAGES: DocPage[] = [
     ],
   },
 
-  // ── Desktop Automation (Preview) reference ──────────────────────────────
+  // ── Desktop Automation reference ────────────────────────────────────────
 
   {
     id: 'reference.desktop-budget',
-    title: 'Desktop budget caps (Preview)',
+    title: 'Desktop budget caps',
     audience: ['both'],
-    surfaces: ['web', 'ide'],
+    surfaces: ['web', 'ext', 'ide'],
     order: 500,
     section: 'reference',
     body: [
-      { type: 'callout', variant: 'warning', text: 'Preview — budget limits for desktop automation trajectories. Numbers may adjust at launch.' },
+      { type: 'callout', variant: 'note', text: 'Available in the Ava Supernova IDE only. Budget limits for desktop automation trajectories.' },
       { type: 'paragraph', text: 'Every trajectory runs under three simultaneous caps. The first one hit wins. The trajectory never silently continues past a breach — Narrator pauses and asks what to do.' },
       { type: 'heading', level: 3, text: 'Three hard caps (default)' },
       { type: 'list', ordered: false, items: [
@@ -187,13 +187,13 @@ export const REFERENCE_PAGES: DocPage[] = [
 
   {
     id: 'reference.desktop-whitelist',
-    title: 'Desktop session whitelist (Preview)',
+    title: 'Desktop session whitelist',
     audience: ['both'],
-    surfaces: ['web', 'ide'],
+    surfaces: ['web', 'ext', 'ide'],
     order: 510,
     section: 'reference',
     body: [
-      { type: 'callout', variant: 'warning', text: 'Preview — scoped app/site permissions for desktop trajectories.' },
+      { type: 'callout', variant: 'note', text: 'Available in the Ava Supernova IDE only. Scoped app/site permissions for desktop trajectories.' },
       { type: 'paragraph', text: 'At mode entry Ava asks where she is allowed to act. Natural language works: "Gmail, Cursor, the Azure portal." She parses and confirms the match ("Gmail web, Cursor the app, portal.azure.com").' },
       { type: 'heading', level: 3, text: 'How it enforces' },
       { type: 'paragraph', text: 'Observational actions (screenshots, reading the UIA tree) are allowed everywhere — you need to see what is on screen to decide whether to add an app to the whitelist. Mutative actions are blocked outside the list; Ava pauses and asks whether to add it.' },

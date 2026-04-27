@@ -148,13 +148,13 @@ export const FEATURE_PAGES: DocPage[] = [
   },
   {
     id: 'features.desktop-automation',
-    title: 'Desktop Automation (Preview)',
+    title: 'Desktop Automation',
     audience: ['both'],
-    surfaces: ['web', 'ide'],
+    surfaces: ['web', 'ext', 'ide'],
     order: 120,
     section: 'features',
     body: [
-      { type: 'callout', variant: 'warning', text: 'In development — described here for reference. Not yet available in any release. The underlying foundations (safety ontology, persona system, Playwright and OmniParser integrations, kill switches) are all built, but end-to-end trajectories are still being wired up.' },
+      { type: 'callout', variant: 'note', text: 'Available in the Ava Supernova IDE only. The VS Code extension and CLI/companion don\'t ship desktop-automation tools — driving the OS needs a native shell, which is what the Tauri IDE provides. Open the IDE to use this feature.' },
       { type: 'paragraph', text: 'A new mode for Ava, prefix @@. She observes the desktop, decides what to do, and drives UI automation to get it done. Runs on your actual machine with your actual credentials — not a cloud browser. Available on every tier once shipped.' },
       { type: 'heading', level: 3, text: 'Why another one' },
       { type: 'paragraph', text: 'Every other desktop-automation product is something you start when you\'re at your desk. Ava is the one that\'s still there when your error tracker fires at 2am — IDE keeps running, your phone pairs over a secure channel, you approve irreversibles with a tap.' },

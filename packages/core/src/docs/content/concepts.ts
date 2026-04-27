@@ -95,17 +95,17 @@ export const CONCEPT_PAGES: DocPage[] = [
     ],
   },
 
-  // ── Desktop Automation (Preview) concept pages ──────────────────────────
+  // ── Desktop Automation concept pages ────────────────────────────────────
 
   {
     id: 'concepts.desktop-personas',
-    title: 'Desktop personas (Preview)',
+    title: 'Desktop personas',
     audience: ['power'],
-    surfaces: ['web', 'ide'],
+    surfaces: ['web', 'ext', 'ide'],
     order: 200,
     section: 'concepts',
     body: [
-      { type: 'callout', variant: 'warning', text: 'Preview documentation for the upcoming Desktop Automation mode. Not available in shipped releases yet.' },
+      { type: 'callout', variant: 'note', text: 'Available in the Ava Supernova IDE only. The VS Code extension and CLI/companion don\'t ship desktop-automation tools — open the IDE to use this feature.' },
       { type: 'paragraph', text: 'Every step in a desktop trajectory runs a five-persona wave. Each persona has one job and only one job. The separation keeps prompts tight, outputs structured, and reasoning skeptical by design.' },
       { type: 'heading', level: 3, text: 'Scout' },
       { type: 'paragraph', text: 'Reports what is visible on screen right now. Never invents elements. Never plans. Returns a ScreenState JSON with element IDs, names, bboxes, confidence, and a grounding source (UIA, Playwright DOM, or OmniParser vision).' },
@@ -122,13 +122,13 @@ export const CONCEPT_PAGES: DocPage[] = [
 
   {
     id: 'concepts.desktop-safety',
-    title: 'Desktop safety ontology (Preview)',
+    title: 'Desktop safety ontology',
     audience: ['power'],
-    surfaces: ['web', 'ide'],
+    surfaces: ['web', 'ext', 'ide'],
     order: 210,
     section: 'concepts',
     body: [
-      { type: 'callout', variant: 'warning', text: 'Preview — describes the safety model that gates every desktop automation action before Actor runs.' },
+      { type: 'callout', variant: 'note', text: 'Available in the Ava Supernova IDE only — describes the safety model that gates every desktop automation action before Actor runs.' },
       { type: 'paragraph', text: 'Every proposed action is classified into one of five risk classes. The classification combines three signals — target metadata, semantic caption, and action parameters — and escalates up when they disagree. False positives are a nag. False negatives are a product-ending incident.' },
       { type: 'heading', level: 3, text: 'The five classes' },
       { type: 'list', ordered: false, items: [
