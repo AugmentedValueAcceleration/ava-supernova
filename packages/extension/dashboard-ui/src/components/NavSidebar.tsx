@@ -99,9 +99,9 @@ export function NavSidebar({
   onToggleSidebar,
   onFlipSidebar,
   sidebarSide,
-  // onNewChat removed from destructure — moved to chat header pill, but the
-  // prop stays in NavSidebarProps so callers don't have to change shape.
-  onOpenHistory,
+  // onNewChat + onOpenHistory removed from destructure — both now route
+  // through the dashboard nav (History as a top-level page; New Chat as
+  // a chat-header pill). Props stay in NavSidebarProps for caller shape.
   supportUnread,
   avatarUrl,
   collapsed,
@@ -264,13 +264,8 @@ export function NavSidebar({
               </svg>
             </button>
           )}
-          {onOpenHistory && (
-            <button onClick={onOpenHistory} title="History" className="flex items-center justify-center w-6 h-6 rounded hover:bg-[rgba(168,85,247,0.15)] text-[var(--text-muted)] opacity-60 hover:opacity-100 bg-transparent border-none cursor-pointer">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M13.507 12.324a7 7 0 0 0 .065-8.56A7 7 0 0 0 2 4.393V2H1v3.5l.5.5H5V5H2.811a6.008 6.008 0 1 1-.135 5.77l-.887.462a7 7 0 0 0 11.718 1.092zM8 4h1v4.28l3.35 2.01-.51.858L8 8.72V4z"/>
-              </svg>
-            </button>
-          )}
+          {/* History is a top-level sidebar nav entry (matches IDE).
+              The standalone icon button here was a duplicate; dropped. */}
           {/* New Chat moved to chat header pill — see expanded note above. */}
           {/* Data portability */}
           <div className="relative">

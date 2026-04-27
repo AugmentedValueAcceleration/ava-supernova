@@ -12,7 +12,6 @@ import { ContextBar } from '../chat/components/ContextBar';
 import { InputArea } from '../chat/components/InputArea';
 import type { ImageAttachment } from '../chat/components/InputArea';
 import { Header } from '../chat/components/Header';
-import { HistoryPanel } from '../chat/components/HistoryPanel';
 import { MemoryPanel } from '../chat/components/MemoryPanel';
 import { TasksPanel, DEFAULT_WIDTH } from '../chat/components/TasksPanel';
 import { SecretsProvider } from '../chat/hooks/useSecrets';
@@ -855,30 +854,12 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate }: ChatPageProps
   const handleOpenHistory = useCallback(() => { post({ type: 'request_history' }); }, []);
   const handleNewChat = useCallback(() => { post({ type: 'new_chat' }); }, []);
 
-  const handleLoadConversation = useCallback((conversationId: string) => {
-    justLoadedRef.current = true;
-    post({ type: 'load_chat_conversation', conversationId });
-  }, []);
-
-  const handleDeleteConversation = useCallback((conversationId: string) => {
-    post({ type: 'delete_chat_conversation', conversationId });
-  }, []);
-
-  const handleSearchHistory = useCallback((query: string) => {
-    post(query.trim() ? { type: 'search_history', query } : { type: 'request_history' });
-  }, []);
-
-  const handleRenameConversation = useCallback((conversationId: string, newTitle: string) => {
-    post({ type: 'rename_conversation', conversationId, newTitle });
-  }, []);
-
-  const handlePinConversation = useCallback((conversationId: string, pinned: boolean) => {
-    post({ type: 'pin_conversation', conversationId, pinned });
-  }, []);
-
-  const handleExportConversation = useCallback((conversationId: string, format: 'markdown' | 'json') => {
-    post({ type: 'export_conversation', conversationId, format });
-  }, []);
+  // History panel handlers (handleLoadConversation / handleDeleteConversation
+  // / handleSearchHistory / handleRenameConversation / handlePinConversation
+  // / handleExportConversation) lived here when the chat surfaced a slide-
+  // over. The slide-over is gone — History is a top-level sidebar nav
+  // page now. The History page owns its own handlers; nothing to do here.
+  void justLoadedRef.current;
 
   const handleContinue = useCallback(() => {
     // Find the last user message and resend it
@@ -907,7 +888,8 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate }: ChatPageProps
     post({ type: 'set_provider_source', source });
   }, []);
 
-  const handleCloseHistory = useCallback(() => { dispatch({ type: 'close_history' }); }, []);
+  // handleCloseHistory removed — slide-over is gone; close_history reducer
+  // case kept in case ambient code paths still dispatch it.
 
   const handleCloseMemory = useCallback(() => { dispatch({ type: 'close_memory' }); }, []);
 
@@ -1044,19 +1026,10 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate }: ChatPageProps
             }
           />
 
-          {state.historyOpen && (
-            <HistoryPanel
-              conversations={state.historyList}
-              onClose={handleCloseHistory}
-              onSelect={handleLoadConversation}
-              onDelete={handleDeleteConversation}
-              onNewChat={handleNewChat}
-              onSearch={handleSearchHistory}
-              onRename={handleRenameConversation}
-              onPin={handlePinConversation}
-              onExport={handleExportConversation}
-            />
-          )}
+          {/* HistoryPanel slide-over removed — dashboard chat routes
+              users to the dedicated /history page (sidebar nav entry)
+              instead, matching the IDE chat where History is a top-level
+              destination, not a transient slide-over. */}
 
           {state.memoryOpen && (
             <MemoryPanel

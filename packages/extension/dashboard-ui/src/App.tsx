@@ -892,7 +892,10 @@ export function App() {
           onFlipSidebar={flipSidebar}
           sidebarSide={sidebarSide}
           onNewChat={() => post({ type: 'new_chat' })}
-          onOpenHistory={() => { setPagePersist('chat'); post({ type: 'request_history' }); }}
+          // History is a sidebar nav entry now (matches IDE chat).
+          // Route to the History page rather than opening a slide-over
+          // inside the chat surface.
+          onOpenHistory={() => setPagePersist('history')}
           supportUnread={supportUnread}
           avatarUrl={avatarDataUrl}
           collapsed={sidebarCollapsed}
