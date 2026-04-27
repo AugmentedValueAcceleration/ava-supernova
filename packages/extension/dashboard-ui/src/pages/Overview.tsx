@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { t, useLocale } from '../i18n';
-import { TierBadge } from '../components/TierBadge';
 import { SectionGroup } from '../components/SectionGroup';
 import { post } from '../App';
 import {
@@ -126,16 +125,11 @@ export function Overview({
   onOpenArticle,
 }: OverviewProps) {
   useLocale();
-  const [editingName, setEditingName] = useState(false);
-  const [nameValue, setNameValue] = useState(account?.name ?? '');
   useEffect(() => {
     if (logs.length === 0 && account) {
       post({ type: 'load_usage_logs', period: '30d' });
     }
   }, []);
-
-  // Update name when account changes
-  useEffect(() => { setNameValue(account?.name ?? ''); }, [account?.name]);
 
   if (mode === 'byok' || !account) {
     return (
@@ -155,13 +149,6 @@ export function Overview({
     );
   }
 
-  const saveName = () => {
-    const trimmed = nameValue.trim();
-    if (trimmed && trimmed !== account.name) {
-      post({ type: 'update_name', name: trimmed });
-    }
-    setEditingName(false);
-  };
   // Credits-redesign read shim — same as Usage/Billing.
   const rawUsage = (account.usage ?? {}) as Record<string, unknown>;
   const tierDefaults: Record<string, { free: number; sub: number | null }> = {
@@ -189,40 +176,58 @@ export function Overview({
     return { total, count: logs.length };
   }, [logs]);
 
+  // Hero strip — mirrors the IDE Command Centre header exactly. Greeting
+  // + date on the left; weather, working-hours, and latest-version pills
+  // on the right. Replaces the previous flat "Command Centre" h1 + name
+  // editor + email + tier badge so a user moving from extension to IDE
+  // (or the other way) sees the same top-of-page on both surfaces.
+  // Step 1 of the extension↔IDE Command Centre alignment plan.
+  const hour = new Date().getHours();
+  const greeting = hour < 12
+    ? t('dash.cc.greeting_morning')
+    : hour < 18
+      ? t('dash.cc.greeting_afternoon')
+      : t('dash.cc.greeting_evening');
+  const firstName = (account.name?.trim().split(/\s+/)[0]) || account.email?.split('@')[0] || '';
+  const dateStr = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const workStart = (() => {
+    try { return Number(localStorage.getItem('ava-work-start')) || 9; } catch { return 9; }
+  })();
+  const workEnd = (() => {
+    try { return Number(localStorage.getItem('ava-work-end')) || 17; } catch { return 17; }
+  })();
+
   return (
     <div className="mx-auto w-full max-w-5xl">
-      {/* Page Header */}
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-bold">{t('dash.nav.command_centre')}</h1>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
-            {editingName ? (
-              <input
-                autoFocus
-                value={nameValue}
-                onChange={(e) => setNameValue(e.target.value)}
-                onBlur={saveName}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') saveName();
-                  if (e.key === 'Escape') { setNameValue(account.name ?? ''); setEditingName(false); }
-                }}
-                placeholder="Your name"
-                className="rounded-md border border-[var(--border-input)] bg-[var(--bg-input)] px-2 py-0.5 text-sm text-white outline-none focus:border-[var(--accent)]"
-              />
-            ) : (
-              <button
-                onClick={() => { setNameValue(account.name ?? ''); setEditingName(true); }}
-                className="text-sm text-[var(--text-secondary)] hover:text-white transition"
-                title="Click to edit name"
-              >
-                {account.name || t('dash.cc.set_name')}
-              </button>
-            )}
-            <span className="text-xs text-[var(--text-muted)]">&middot;</span>
-            <span className="text-sm text-[var(--text-muted)]">{account.email}</span>
+      {/* ── Hero strip — matches IDE Command Centre framing ──────────── */}
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div className="text-2xl font-light text-white mb-1">
+            {greeting}{firstName ? `, ${firstName}` : ''}
           </div>
+          <div className="text-sm text-[var(--text-muted)]">{dateStr}</div>
         </div>
-        <TierBadge tier={account.tier} />
+        <div className="flex flex-wrap items-center gap-2">
+          {weatherData && (
+            <HeroPill
+              icon={<CloudSun weight="duotone" size={14} />}
+              text={`${Math.round(weatherData.temp_c)}° ${weatherData.condition}`}
+              title={t('dash.cc.weather')}
+            />
+          )}
+          <HeroPill
+            icon={<Clock weight="duotone" size={14} />}
+            text={`${workStart}:00 - ${workEnd}:00`}
+            title={t('dash.cc.working_hours')}
+          />
+          {latestRelease && (
+            <HeroPill
+              icon={<Rocket weight="duotone" size={14} />}
+              text={`v${latestRelease.version}`}
+              title={t('dash.cc.latest_release') || 'Latest release'}
+            />
+          )}
+        </div>
       </div>
 
       {/* ── Weather + Working Hours ──────────────────────────────────── */}
@@ -273,6 +278,22 @@ export function Overview({
           <ActionCard label={t('dash.chat.new_chat')} onClick={() => post({ type: 'open_chat' })} />
         </div>
       </SectionGroup>
+    </div>
+  );
+}
+
+// ── Hero pill ────────────────────────────────────────────────────────────────
+// Small purple-tinted chip matching the IDE Command Centre's HeroPill, used
+// for the weather / working-hours / latest-version pills in the page header.
+
+function HeroPill({ icon, text, title }: { icon: React.ReactNode; text: string; title?: string }) {
+  return (
+    <div
+      title={title}
+      className="flex items-center gap-1.5 rounded-full border border-[var(--border-card)] bg-[rgba(168,85,247,0.08)] px-3 py-1.5 text-xs text-[var(--text-primary)]"
+    >
+      <span className="text-[var(--accent)]">{icon}</span>
+      <span>{text}</span>
     </div>
   );
 }
