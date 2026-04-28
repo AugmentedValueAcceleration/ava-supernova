@@ -1547,12 +1547,17 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const deepseekKey = await this.context.secrets.get('ava-supernova.provider.deepseek.apiKey') || undefined;
     if (deepseekKey) availableProviders.add('deepseek');
 
-    // Routing mode — 'supernova' when the operator picks the Supernova
-    // entry in the model dropdown, otherwise 'auto'. AutoCoordinator
-    // honours this for coordinator selection (V4 Pro on Supernova) and
-    // for the Builder spawn model (Qwen 3.6 Plus on Supernova).
+    // Routing mode — 'supernova' when the operator picks Supernova,
+    // 'aurora' when they pick the EU-stack Mistral-only routing,
+    // otherwise 'auto'. AutoCoordinator honours this for coordinator
+    // selection (V4 Pro on Supernova, Mistral Large 3 on Aurora) and
+    // for the Builder spawn model (Qwen 3.6 Plus on Supernova,
+    // Mistral Small 4 on Aurora).
     const activeModel = vscode.workspace.getConfiguration('ava-supernova').get<string>('activeModel');
-    const routingMode: 'auto' | 'supernova' = activeModel === 'supernova' ? 'supernova' : 'auto';
+    const routingMode: 'auto' | 'supernova' | 'aurora' =
+      activeModel === 'supernova' ? 'supernova'
+      : activeModel === 'aurora' ? 'aurora'
+      : 'auto';
 
     // Use static create() — picks Kimi K2.5 for platform, best available for BYOK
     if (availableProviders.size > 1 || availableProviders.has('platform')) {
@@ -1587,12 +1592,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    // Auto Mode + Supernova Mode — resolve the correct coordinator via the
-    // core helper. Auto picks the platform default ladder (Qwen 3.6 Plus
-    // on platform). Supernova pins to DeepSeek V4 Pro per the locked
-    // polyglot routing map and runs Builder spawns on Qwen 3.6 Plus
-    // instead of the coordinator.
-    if (modelId === 'auto' || modelId === 'supernova') {
+    // Auto Mode + Supernova Mode + Aurora Mode — resolve the correct
+    // coordinator via the core helper. Auto picks the platform default
+    // ladder (Qwen 3.6 Plus on platform). Supernova pins to DeepSeek V4
+    // Pro and runs Builder spawns on Qwen 3.6 Plus. Aurora pins to
+    // Mistral Large 3 with Builder on Mistral Small 4 — Mistral-only
+    // routing for the EU-stack guarantee.
+    if (modelId === 'auto' || modelId === 'supernova' || modelId === 'aurora') {
       const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
       const hasPlatform = !!platformKey;
       const availableProviders = new Set<string>();
@@ -1610,13 +1616,38 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       const mistralKey = await this.context.secrets.get('ava-supernova.provider.mistral.apiKey');
       if (mistralKey) availableProviders.add('mistral');
 
-      // Supernova pins coordinator to V4 Pro. Auto follows the default
-      // priority ladder.
-      const preferredCoordinatorId = modelId === 'supernova'
-        ? 'platform:deepseek-v4-pro-platform'
-        : undefined;
+      // Supernova pins coordinator to V4 Pro. Aurora pins coordinator to
+      // Mistral Large 3 (with Small 4 fallback if Large 3 not reachable).
+      // Auto follows the default priority ladder. Aurora uses a strict
+      // Mistral-only resolution chain so it never silently routes to a
+      // non-Mistral coordinator — the EU-stack guarantee.
+      let preferredCoordinatorId: string | undefined;
+      if (modelId === 'supernova') {
+        preferredCoordinatorId = 'platform:deepseek-v4-pro-platform';
+      } else if (modelId === 'aurora') {
+        // Try platform-managed first, then BYOK Mistral, then Small 4
+        // fallback. The first resolvable wins.
+        const tries = [
+          'platform:mistral-large-3-platform',
+          'mistral:mistral-large-3',
+          'mistral-large-3',
+          'platform:mistral-small-4-platform',
+          'mistral:mistral-small-4',
+          'mistral-small-4',
+        ];
+        for (const id of tries) {
+          if (this.providerRegistry.resolveModel(id)) {
+            preferredCoordinatorId = id;
+            break;
+          }
+        }
+      }
       const coordinator = resolveCoordinatorModel(this.providerRegistry, availableProviders, hasPlatform, preferredCoordinatorId);
-      const modeLabel = modelId === 'supernova' ? 'Supernova' : 'Maestro';
+      const modeLabel = modelId === 'supernova'
+        ? 'Supernova'
+        : modelId === 'aurora'
+          ? 'Aurora'
+          : 'Maestro';
       if (!coordinator) {
         this.log(`${modeLabel}: no coordinator model available`);
         this.postMessage({ type: 'error', message: `${modeLabel} needs at least one configured provider. Add an API key or sign in.` });
@@ -1750,6 +1781,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       const hasPlatform = deduped.some(m => m.provider === 'platform' && m.available);
       if (hasPlatform) {
         modelList.unshift({ id: 'supernova', name: 'Supernova', provider: 'Ava', available: isAdmin });
+      }
+      // Aurora — Mistral-only polyglot routing for the EU stack. Currently
+      // admin-gated while we approach Mistral about an enterprise plan
+      // (volume pricing, named account contact, partner co-marketing).
+      // Same pattern Supernova uses for the DeepSeek partnership hold —
+      // shown to everyone as a roadmap teaser, only enabled for admin
+      // until commercial terms land. Sits above Supernova so the
+      // dropdown order is Aurora → Supernova → Maestro (most strategic
+      // first). Flip available=true once Mistral pricing is confirmed.
+      const hasMistral = deduped.some(m => m.provider === 'mistral' && m.available);
+      if (hasPlatform || hasMistral) {
+        modelList.unshift({ id: 'aurora', name: 'Aurora', provider: 'Ava', available: isAdmin });
       }
     }
 

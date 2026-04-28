@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.55.0 — 2026-04-28
+
+The European AI stack, in one click.
+
+### Added
+- **Aurora — Mistral-only polyglot routing.** New entry in the Orchestrated section of the model dropdown, sitting alongside Maestro and Supernova. Aurora pins its coordinator to **Mistral Large 3** (sparse MoE 41B active / 675B total) and spawns Builders on **Mistral Small 4** (the unified Magistral + Pixtral + Devstral merge — vision-aware, agentic-coding capable, configurable reasoning effort). Vision tasks stay on Small 4 because Pixtral is baked in — no hard switch required, unlike Supernova which routes vision to Qwen 3.5 Omni Plus. Available to anyone with a Mistral key (BYOK) or a platform connection. Same shape as Supernova's polyglot router; different fleet.
+- **Mistral Small 4 + Mistral Large 3 in the BYOK lineup.** Both models shipped by Mistral in 2026 — Small 4 in March, Large 3 in December 2025. Aurora's two specialists, also pickable directly under the Mistral provider group when you want one model rather than the routing layer.
+- **Platform-managed Mistral entries.** Platform users get `mistral-small-4-platform` + `mistral-large-3-platform` resolved server-side via `/api/chat` so Aurora works on the platform plan without bringing your own key.
+
+### Changed
+- **Per-model cost multipliers calibrated for Mistral.** Small 4 lands at **0.6×** (cheaper than the Qwen 3.6 Plus anchor at 1.5×) and Large 3 at **1.4×** (about par). Aurora turns on Small 4 are net-positive on margin compared to Qwen-coordinated Maestro turns. No new credit brackets, no plan changes — slots into the existing credit math the same way Supernova does.
+- **`/api/chat` recognises `model: 'aurora'`** as an orchestrator alias, mapping to `mistral-large-3-platform` for cloud-fallback paths (mobile companion, IDE cloud routing).
+- **Vision reroute extended.** When a request with attached images lands on `mistral-large-3` (text-only), the server reroutes to `mistral-small-4` instead of falling out to Qwen Omni Plus — preserves Aurora's EU-stack guarantee even on the cloud-proxy path.
+
+### Internal
+- New `packages/core/src/auto/aurora-router.ts` — operator-locked routing table for Aurora mode. Categories map: coding/vision/image_gen/computer_use/teach → Small 4; planning/chat/long_context/security/brainstorm → Large 3. Per-persona override map for the 24-persona system follows the same shape as Supernova's.
+- `RoutingMode` union extended to `'auto' | 'supernova' | 'aurora'`. `ModelRouter` swaps to `AURORA_ROUTES` when mode is aurora; falls back to default Qwen routes otherwise.
+- `AutoCoordinator.create({ mode: 'aurora' })` resolves the coordinator through a strict Mistral-only chain: platform Large 3 → BYOK Large 3 → platform Small 4 → BYOK Small 4. Returns null if no Mistral model is reachable rather than silently routing to Qwen — Aurora never breaks the EU-stack guarantee.
+- Extension `AvaViewProvider` synthesises Aurora into the dropdown when a Mistral key OR platform connection is present. Sits above Supernova in unshift order so Aurora is the first option visible to operators with Mistral access.
+- Both `ModelSelector` components (chat panel + dashboard chat) accept `'aurora'` as an orchestrated id with a tailored label, subtitle ("EU stack — Mistral only"), and tooltip.
+- IDE `DashboardPages.tsx` mirrors all of the above — `SIDECAR_MODEL_MAP['aurora'] = 'aurora'`, desktop-capable model id list, dropdown, active-model display, sidecar passthrough on init + setModel.
+- Web `credits-pricing.ts` MODEL_COST_MULTIPLIER mirrors the core values so the server's authoritative billing surface and the client's dataset-audit emitter agree.
+
 ## 0.54.1 — 2026-04-28
 
 ### Fixed

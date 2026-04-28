@@ -140,4 +140,37 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsVision: false,
     pricing: { inputPerMillion: 0.14, outputPerMillion: 0.28 },
   },
+  // Mistral Small 4 (managed, platform key) — Aurora's Builder spawn.
+  // Unified Magistral + Pixtral + Devstral merge: vision-aware, agentic
+  // coding capable, configurable reasoning. Same id pattern as the V4
+  // platform entries; ID resolves server-side via /api/chat alias.
+  {
+    id: 'mistral-small-4-platform',
+    name: 'Mistral Small 4',
+    provider: 'platform',
+    contextWindow: 262_000,
+    maxOutputTokens: 8192,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: true,
+    desktopCapable: true,
+    pricing: { inputPerMillion: 0.15, outputPerMillion: 0.60 },
+  },
+  // Mistral Large 3 (managed, platform key) — Aurora's Coordinator.
+  // Sparse MoE 41B active / 675B total, frontier reasoning + long
+  // context synthesis at competitive pricing.
+  {
+    id: 'mistral-large-3-platform',
+    name: 'Mistral Large 3',
+    provider: 'platform',
+    contextWindow: 262_000,
+    maxOutputTokens: 8192,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: false,
+    desktopCapable: true,
+    pricing: { inputPerMillion: 0.50, outputPerMillion: 1.50 },
+  },
 ];

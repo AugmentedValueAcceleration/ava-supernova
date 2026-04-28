@@ -109,6 +109,15 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
   'qwen-plus':                  1.5,
   'qwen3.5-plus':               1.2,
   'qwen3.5-omni-plus':          1.2,
+  // Mistral pricing is competitive with Qwen — Small 4 sub-1× (cheaper
+  // than the anchor), Large 3 about par. Calibrated 2026-04-28 against
+  // published rates: Small 4 $0.15/$0.60 ≈ 40% of Qwen 3.6 Plus blended,
+  // Large 3 $0.50/$1.50 ≈ 95% of Qwen 3.6 Plus blended. Mirrors web's
+  // credits-pricing.ts MODEL_COST_MULTIPLIER — keep them in sync.
+  'mistral-small-4':            0.6,
+  'mistral-small-4-platform':   0.6,
+  'mistral-large-3':            1.4,
+  'mistral-large-3-platform':   1.4,
 };
 
 /** Apply per-model cost multiplier. Strips provider prefix if present. */

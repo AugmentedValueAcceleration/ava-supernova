@@ -59,8 +59,8 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
   // the empty-state early returns below will desync hook order between
   // renders (React #310).
   const { orchestrated, byProvider, providerOrder } = useMemo(() => {
-    const orch = models.filter(m => m.id === 'auto' || m.id === 'supernova');
-    const rest = models.filter(m => m.id !== 'auto' && m.id !== 'supernova');
+    const orch = models.filter(m => m.id === 'auto' || m.id === 'supernova' || m.id === 'aurora');
+    const rest = models.filter(m => m.id !== 'auto' && m.id !== 'supernova' && m.id !== 'aurora');
     const groups = new Map<string, typeof models>();
     for (const m of rest) {
       const arr = groups.get(m.provider) ?? [];
@@ -99,7 +99,9 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
     ? 'Maestro'
     : activeModel === 'supernova'
       ? 'Supernova'
-      : models.find(m => m.id === activeModel)?.name ?? 'Select model';
+      : activeModel === 'aurora'
+        ? 'Aurora'
+        : models.find(m => m.id === activeModel)?.name ?? 'Select model';
 
   const connected = !needsSetup;
 
@@ -158,44 +160,54 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
             <>
               <div style={sectionHeaderStyle}>Orchestrated</div>
               {orchestrated.map(o => {
-                const isSupernovaPreview = o.id === 'supernova' && !o.available;
+                const isPreview = (o.id === 'supernova' || o.id === 'aurora') && !o.available;
                 const active = activeModel === o.id;
-                const label = o.id === 'auto' ? '✦ Maestro' : '✦ Supernova';
+                const label = o.id === 'auto'
+                  ? '✦ Maestro'
+                  : o.id === 'supernova'
+                    ? '✦ Supernova'
+                    : '✦ Aurora';
                 const subtitle = o.id === 'auto'
                   ? 'Best model per task'
-                  : isSupernovaPreview ? 'In development' : 'Polyglot ensemble';
+                  : o.id === 'aurora'
+                    ? (isPreview ? 'In development' : 'EU stack — Mistral only')
+                    : isPreview ? 'In development' : 'Polyglot ensemble';
                 return (
                   <button
                     key={o.id}
-                    disabled={isSupernovaPreview}
+                    disabled={isPreview}
                     onClick={() => {
-                      if (isSupernovaPreview) return;
+                      if (isPreview) return;
                       onSwitch(o.id);
                       setOpen(false);
                     }}
-                    title={isSupernovaPreview
-                      ? 'Supernova — polyglot multi-model orchestration. In development; rolling out soon.'
+                    title={isPreview
+                      ? (o.id === 'aurora'
+                          ? 'Aurora — EU-stack Mistral-only routing. In development while enterprise pricing is finalised.'
+                          : 'Supernova — polyglot multi-model orchestration. In development; rolling out soon.')
                       : o.id === 'auto'
                         ? 'One coordinator handles everything — proven, production-tuned'
-                        : 'Multi-model orchestration — coordinator picks the best specialist for each task'}
+                        : o.id === 'aurora'
+                          ? 'Aurora — Mistral-only polyglot routing. Mistral Large 3 coordinator + Mistral Small 4 specialists. Stays inside European infrastructure.'
+                          : 'Multi-model orchestration — coordinator picks the best specialist for each task'}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       width: '100%', padding: '8px 10px',
-                      background: active && !isSupernovaPreview ? 'rgba(168,85,247,0.15)' : 'transparent',
+                      background: active && !isPreview ? 'rgba(168,85,247,0.15)' : 'transparent',
                       border: 'none', borderRadius: 6,
-                      color: isSupernovaPreview ? '#6c7086' : active ? '#e0b0ff' : '#cdd6f4',
-                      fontSize: 12, cursor: isSupernovaPreview ? 'default' : 'pointer',
+                      color: isPreview ? '#6c7086' : active ? '#e0b0ff' : '#cdd6f4',
+                      fontSize: 12, cursor: isPreview ? 'default' : 'pointer',
                       textAlign: 'left',
-                      opacity: isSupernovaPreview ? 0.55 : 1,
+                      opacity: isPreview ? 0.55 : 1,
                     }}
-                    onMouseEnter={(e) => { if (!isSupernovaPreview && !active) e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; }}
-                    onMouseLeave={(e) => { if (!isSupernovaPreview && !active) e.currentTarget.style.background = 'transparent'; }}
+                    onMouseEnter={(e) => { if (!isPreview && !active) e.currentTarget.style.background = 'rgba(168,85,247,0.08)'; }}
+                    onMouseLeave={(e) => { if (!isPreview && !active) e.currentTarget.style.background = 'transparent'; }}
                   >
                     <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {active && !isSupernovaPreview && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a855f7' }} />}
+                      {active && !isPreview && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#a855f7' }} />}
                       {label}
                     </span>
-                    <span style={{ fontSize: 10, color: isSupernovaPreview ? '#facc15' : '#a855f7' }}>{subtitle}</span>
+                    <span style={{ fontSize: 10, color: isPreview ? '#facc15' : '#a855f7' }}>{subtitle}</span>
                   </button>
                 );
               })}

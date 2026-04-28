@@ -1,8 +1,9 @@
 import type { ProviderRegistry } from '../providers/provider-registry.js';
 import type { TaskCategory, RouteResult, UserRoutePreferences } from './types.js';
 import { SUPERNOVA_ROUTES } from './supernova-router.js';
+import { AURORA_ROUTES } from './aurora-router.js';
 
-export type RoutingMode = 'auto' | 'supernova';
+export type RoutingMode = 'auto' | 'supernova' | 'aurora';
 
 // ─── Default routing table (platform users with all 3 providers) ─────────────
 
@@ -76,7 +77,11 @@ export class ModelRouter {
     }
 
     // 3. Default routing table — table swap based on mode.
-    const routes = this.mode === 'supernova' ? SUPERNOVA_ROUTES : DEFAULT_ROUTES;
+    const routes = this.mode === 'supernova'
+      ? SUPERNOVA_ROUTES
+      : this.mode === 'aurora'
+        ? AURORA_ROUTES
+        : DEFAULT_ROUTES;
     const entry = routes[category];
     if (!entry) return null;
 

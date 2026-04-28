@@ -18,6 +18,7 @@ import { ContextTracker } from './context-tracker.js';
 import { resolveCoordinatorModel } from './coordinator-model.js';
 import { classifyIntent, resolveIntentGateModel } from './intent-gate.js';
 import { SUPERNOVA_COORDINATOR_ID, SUPERNOVA_BUILDER_ID } from './supernova-router.js';
+import { AURORA_COORDINATOR_ID, AURORA_BUILDER_ID } from './aurora-router.js';
 import type { RoutingMode } from './model-router.js';
 import { buildSystemPrompt } from '../agent/system-prompt.js';
 import { TaskExecutor } from './task-executor.js';
@@ -168,14 +169,24 @@ export class AutoCoordinator {
       this.mode,
     );
 
-    // Resolve the Builder model. Supernova always wants Qwen 3.6 Plus for
-    // Builder spawns (Terminal-Bench leader). Auto reuses the coordinator
-    // model for backward-compatibility with the existing tuning. If the
-    // Supernova override can't resolve (platform not enabled, model not
-    // registered) fall back to the coordinator model rather than block.
+    // Resolve the Builder model. Supernova spawns Qwen 3.6 Plus, Aurora
+    // spawns Mistral Small 4 (Pixtral+Devstral merge — vision-aware,
+    // agentic-coding capable). Auto reuses the coordinator model for
+    // backward-compatibility with the existing tuning. If the override
+    // can't resolve (platform not enabled, model not registered) fall
+    // back to the coordinator model rather than block.
     if (this.mode === 'supernova') {
       const resolved = opts.providerRegistry.resolveModel(`platform:${SUPERNOVA_BUILDER_ID}`)
         ?? opts.providerRegistry.resolveModel(SUPERNOVA_BUILDER_ID);
+      this.builderProvider = resolved?.provider ?? opts.coordinatorProvider;
+      this.builderModel = resolved?.model ?? opts.coordinatorModel;
+    } else if (this.mode === 'aurora') {
+      // Aurora is Mistral-only — try platform-managed Mistral first
+      // (Ava's Mistral key, includes Aurora as a managed option), then
+      // BYOK Mistral, then fall back to coordinator if neither resolves.
+      const resolved = opts.providerRegistry.resolveModel(`platform:${AURORA_BUILDER_ID}`)
+        ?? opts.providerRegistry.resolveModel(`mistral:${AURORA_BUILDER_ID}`)
+        ?? opts.providerRegistry.resolveModel(AURORA_BUILDER_ID);
       this.builderProvider = resolved?.provider ?? opts.coordinatorProvider;
       this.builderModel = resolved?.model ?? opts.coordinatorModel;
     } else {
@@ -224,20 +235,51 @@ export class AutoCoordinator {
     /** 'auto' (default) or 'supernova'. */
     mode?: RoutingMode;
   }): AutoCoordinator | null {
-    // Supernova mode pins the coordinator to V4 Pro — that's part of what
-    // makes Supernova Supernova. Falls through to the default priority
-    // ladder if the operator already passed an explicit preference (rare;
-    // means they're admin-overriding the override).
-    const supernovaCoordinator = opts.mode === 'supernova' && !opts.preferredCoordinatorId
-      ? `platform:${SUPERNOVA_COORDINATOR_ID}`
-      : opts.preferredCoordinatorId;
+    // Supernova / Aurora mode pin specific coordinators — that's part of
+    // what makes each mode itself. Supernova → V4 Pro, Aurora → Mistral
+    // Large 3. Falls through to the default priority ladder if the
+    // operator already passed an explicit preference (rare; means they're
+    // admin-overriding the override).
+    const modeCoordinator =
+      opts.mode === 'supernova' && !opts.preferredCoordinatorId
+        ? `platform:${SUPERNOVA_COORDINATOR_ID}`
+        : opts.preferredCoordinatorId;
 
-    const coordinator = resolveCoordinatorModel(
-      opts.providerRegistry,
-      opts.availableProviders,
-      !!opts.platformKey || opts.availableProviders.has('platform'),
-      supernovaCoordinator,
-    );
+    let coordinator: ReturnType<typeof resolveCoordinatorModel> = null;
+
+    // Aurora is Mistral-only — never silently routes to a non-Mistral
+    // coordinator. Try Large 3 platform-managed → Large 3 BYOK → Small 4
+    // platform-managed → Small 4 BYOK. Returns null if no Mistral model
+    // is reachable so the caller can surface a clear error rather than
+    // breaking the EU-stack guarantee with a Qwen fallback.
+    if (opts.mode === 'aurora' && !opts.preferredCoordinatorId) {
+      const tries = [
+        `platform:${AURORA_COORDINATOR_ID}`,
+        `mistral:${AURORA_COORDINATOR_ID}`,
+        AURORA_COORDINATOR_ID,
+        `platform:${AURORA_BUILDER_ID}`,
+        `mistral:${AURORA_BUILDER_ID}`,
+        AURORA_BUILDER_ID,
+      ];
+      for (const id of tries) {
+        const resolved = opts.providerRegistry.resolveModel(id);
+        if (resolved) {
+          coordinator = {
+            provider: resolved.provider,
+            model: resolved.model,
+            reason: `${resolved.model.name} — Aurora coordinator (Mistral-only routing)`,
+          };
+          break;
+        }
+      }
+    } else {
+      coordinator = resolveCoordinatorModel(
+        opts.providerRegistry,
+        opts.availableProviders,
+        !!opts.platformKey || opts.availableProviders.has('platform'),
+        modeCoordinator,
+      );
+    }
     if (!coordinator) return null;
 
     return new AutoCoordinator({
