@@ -1213,6 +1213,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       showWelcome: !this.context.globalState.get('ava.onboardedV1') && !!this.agent,
     });
 
+    // Auto-fire history list on init so the chat panel can drop its
+    // historyLoading gate as soon as the data arrives. Previously this only
+    // fired when the user explicitly requested the history sidebar, which
+    // meant the panel showed an empty conversations list at startup before
+    // any data was actually fetched. Fire-and-forget — the webview gates
+    // its render on receipt of the history_list event.
+    this.sendHistoryList().catch(() => {});
+
     // Daily briefing — proactive greeting (fire-and-forget)
     this.checkAndSendBriefing().catch(() => {});
 

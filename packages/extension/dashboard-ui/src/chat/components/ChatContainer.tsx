@@ -30,6 +30,9 @@ interface ChatContainerProps {
   onOpenDashboard?: () => void;
   activeModel?: string | null;
   models?: Array<{ id: string; name: string; provider: string }>;
+  /** Operator's first name — drives the time-of-day-aware seeded
+   *  welcome bubble. Null = unknown (fall back to name-less greeting). */
+  userName?: string | null;
   // Context bar (v0.39.x) — replaces the circular chip in InputArea.
   contextUsage?: { used: number; limit: number; percent: number } | null;
   isCompressing?: boolean;
@@ -43,26 +46,24 @@ interface ChatContainerProps {
 // / activeModel / models stay in ChatContainerProps for caller
 // compatibility but are no longer destructured here.
 
-export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onRate, chatEndRef, needsSetup, initialized, onOpenDashboard, conductorActive, conductorMode, activePersonas }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onRate, chatEndRef, needsSetup, initialized, onOpenDashboard, conductorActive, conductorMode, activePersonas, onSuggestion, userName }: ChatContainerProps) {
   useLocale();
   // Don't render welcome screen until init message arrives — prevents setup banner flash
   if (!initialized && messages.length === 0) {
     return <div className="flex-1" />;
   }
 
-  // Empty-state alignment with IDE: drop the multi-card welcome screen
-  // (Hero + Setup banner + Quick Start + Capabilities + Modes + Shared
-  // Learning + Footer) and render a single seeded assistant message
-  // containing t('dash.chat.welcome'), mirroring the IDE chat at
-  // DashboardPages.tsx:1990. Setup banner — when needsSetup is true and
-  // we're on the dashboard chat page — kept as a small inline card above
-  // the welcome bubble so signed-out users still know what to do, but
-  // dropped to one card instead of the multi-section page.
-  if (messages.length === 0 && !isThinking) {
+  // Empty-state branch fires until the user's first turn. Ambient messages
+  // (model-switch notices, daily briefing, tick-engine nudges) push
+  // assistant/system rows into state but don't count as the user starting
+  // a conversation — gate on `hasUserSpoken` so those don't drop the
+  // helper card on first touch. Mirrors the webview-ui chat panel.
+  const hasUserSpoken = messages.some((m) => m.role === 'user');
+  if (!hasUserSpoken && !isThinking) {
     const seededWelcome = {
       id: 'welcome-seed',
       role: 'assistant' as const,
-      content: t('dash.chat.welcome'),
+      content: buildSeededWelcome(userName ?? null),
       isStreaming: false,
       timestamp: Date.now(),
     } as unknown as typeof messages[number];
@@ -87,6 +88,16 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
             </button>
           )}
           <MessageBubble message={seededWelcome} onConfirmation={onConfirmation} />
+          {messages.map((msg, i) => (
+            <MessageBubble
+              key={msg.id}
+              message={msg}
+              onConfirmation={onConfirmation}
+              onContinue={msg.role === 'error' && i === messages.length - 1 ? onContinue : undefined}
+              onRate={msg.role === 'assistant' ? onRate : undefined}
+            />
+          ))}
+          <StarterHelper onSuggestion={onSuggestion} />
         </div>
       </div>
     );
@@ -116,6 +127,122 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
         {isThinking && <ThinkingIndicator />}
         <div ref={chatEndRef} />
       </div>
+    </div>
+  );
+}
+
+/**
+ * Time-of-day-aware seeded welcome from Ava. First-person, warm, knows
+ * the operator's name when the account has loaded. Mirrors the writing
+ * voice of Ava elsewhere — partner, not chatbot.
+ *
+ * Buckets:
+ *   05–11  → Morning (energetic, "what are we tackling today?")
+ *   12–17  → Afternoon (mid-day, momentum)
+ *   18–22  → Evening (winding down, "what are we wrapping up?")
+ *   23–04  → Late / early hours (acknowledged, gentler)
+ *
+ * Date is appended in conversational form ("Tuesday") rather than full
+ * ISO so it reads like a human picking up a conversation.
+ */
+function buildSeededWelcome(userName: string | null): string {
+  const now = new Date();
+  const h = now.getHours();
+  const day = now.toLocaleDateString('en-GB', { weekday: 'long' });
+  const name = userName ? `, ${userName}` : '';
+
+  if (h >= 5 && h < 12) {
+    return `Morning${name}. It's ${day} — what are we tackling today?`;
+  }
+  if (h >= 12 && h < 18) {
+    return `Afternoon${name}. ${day} — what can I get into for you?`;
+  }
+  if (h >= 18 && h < 23) {
+    return `Evening${name}. Pull up a chair — what are we working on?`;
+  }
+  // Late hours — softer, acknowledges the time
+  return `Late one${name ? '' : ' here'}${name}. I'm awake if you are — what's on your mind?`;
+}
+
+/**
+ * Empty-state helper card — six clickable starter chips, one per mode,
+ * shown alongside the seeded welcome bubble until the user sends their
+ * first message. Clicking a chip calls `onSuggestion(prompt)` which
+ * (per Chat.tsx) prefills the input rather than auto-sending so the user
+ * can edit before firing. Surfaces all six modes so brand-new users
+ * discover the mindset framework without reading docs.
+ *
+ * Visual: subtle gradient background, animated entrance, hover-lift on
+ * chips with prefix-coloured tokens so the modes are recognisable on
+ * sight. Aim is "warm partner" not "onboarding tooltip".
+ */
+function StarterHelper({ onSuggestion }: { onSuggestion: (prompt: string) => void }) {
+  const chips: { label: string; prefix: string; prompt: string; color: string }[] = [
+    { label: 'Explain a file',  prefix: '>>', prompt: 'Explain what this file does: ',                  color: '#a855f7' },
+    { label: 'Plan a feature',  prefix: '::', prompt: ':: How should I approach adding ',                color: '#60a5fa' },
+    { label: 'Teach me',        prefix: '??', prompt: '?? Teach me about ',                              color: '#f9e2af' },
+    { label: 'Audit security',  prefix: '!!', prompt: '!! Audit this project for security issues',       color: '#f38ba8' },
+    { label: 'Brainstorm',      prefix: '**', prompt: '** Help me think through ',                       color: '#94e2d5' },
+    { label: 'Just chat',       prefix: '..', prompt: '.. ',                                             color: '#a6adc8' },
+  ];
+
+  return (
+    <div
+      className="rounded-2xl p-5 mt-3 ava-starter-card"
+      style={{
+        background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(96, 165, 250, 0.04) 100%)',
+        border: '1px solid rgba(168, 85, 247, 0.22)',
+        boxShadow: '0 4px 20px rgba(168, 85, 247, 0.08)',
+      }}
+    >
+      <div className="flex items-center gap-2 mb-1.5">
+        <span style={{ color: '#a855f7', fontSize: 14 }}>✦</span>
+        <div className="text-sm font-semibold" style={{ color: '#cdd6f4' }}>Where do we start?</div>
+      </div>
+      <p className="text-[12px] leading-relaxed mb-4" style={{ color: '#a6adc8' }}>
+        I can read your code, plan a feature, teach you something, audit security, brainstorm, or just chat.
+        Pick one — you can edit before sending.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {chips.map((c) => (
+          <button
+            key={c.label}
+            onClick={() => onSuggestion(c.prompt)}
+            className="ava-starter-chip text-[12px] px-3 py-1.5 rounded-lg flex items-center gap-1.5"
+            style={{
+              background: 'rgba(26, 16, 40, 0.5)',
+              border: `1px solid ${c.color}33`,
+              color: '#cdd6f4',
+              transition: 'transform 0.12s ease, background 0.15s, border-color 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = `${c.color}1c`;
+              e.currentTarget.style.borderColor = `${c.color}66`;
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(26, 16, 40, 0.5)';
+              e.currentTarget.style.borderColor = `${c.color}33`;
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            <span style={{ color: c.color, fontFamily: 'monospace', fontSize: 10, fontWeight: 700 }}>{c.prefix}</span>
+            <span>{c.label}</span>
+          </button>
+        ))}
+      </div>
+      <p className="text-[10px] mt-4" style={{ color: '#6c7086' }}>
+        Tip: type <code style={{ color: '#a855f7' }}>{'>>'}</code> <code style={{ color: '#60a5fa' }}>::</code> <code style={{ color: '#a6adc8' }}>..</code> <code style={{ color: '#f9e2af' }}>??</code> <code style={{ color: '#f38ba8' }}>!!</code> <code style={{ color: '#94e2d5' }}>**</code> at the start of a message to switch modes any time.
+      </p>
+      <style>{`
+        .ava-starter-card {
+          animation: avaStarterFade 0.4s ease-out;
+        }
+        @keyframes avaStarterFade {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

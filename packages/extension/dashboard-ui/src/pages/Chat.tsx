@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useRef, useCallback } from 'react';
+import { useReducer, useEffect, useRef, useCallback, useState } from 'react';
 import type {
   ExtToDashboardMessage,
   ChatState,
@@ -705,12 +705,16 @@ export interface ChatPageProps {
   sidebarSide?: 'left' | 'right';
   /** Navigate to a dashboard page */
   onNavigate?: (page: Page) => void;
+  /** Operator's first name — used to personalise the seeded Ava welcome
+   *  on a fresh chat. Null when the account hasn't loaded yet (or BYOK
+   *  with no account); the welcome falls back to a name-less greeting. */
+  userName?: string | null;
 }
 
 // Sidebar-toggle / flip / collapsed / side props are still in ChatPageProps
 // for caller compatibility but are no longer consumed — the chat header
 // dropped its sidebar-toggle button to match the IDE chat header.
-export function Chat({ onRegisterDispatch, isActive, onNavigate }: ChatPageProps) {
+export function Chat({ onRegisterDispatch, isActive, onNavigate, userName }: ChatPageProps) {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const justLoadedRef = useRef(false);
@@ -873,8 +877,12 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate }: ChatPageProps
     }
   }, [state.messages]);
 
+  // Repurposed as a prefill hook for empty-state starter chips. Was
+  // previously wired to immediately send. Prefilling lets the operator
+  // edit before firing — safer default for a brand-new chat.
+  const [pendingPrefill, setPendingPrefill] = useState<{ value: string; nonce: number } | null>(null);
   const handleSuggestion = useCallback((prompt: string) => {
-    post({ type: 'send_message', text: prompt, mode: 'code' });
+    setPendingPrefill({ value: prompt, nonce: Date.now() });
   }, []);
 
   const handleCompress = useCallback(() => { post({ type: 'compress_context' }); }, []);
@@ -1024,6 +1032,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate }: ChatPageProps
             modelSupportsVision={
               state.models.find((m) => m.id === state.activeModel)?.supportsVision
             }
+            prefill={pendingPrefill}
           />
 
           {/* HistoryPanel slide-over removed — dashboard chat routes

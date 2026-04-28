@@ -43,6 +43,10 @@ interface ChatContainerProps {
   isCompressing?: boolean;
   isStreaming?: boolean;
   onCompress?: () => void;
+  /** Operator's first name — drives the time-of-day-aware seeded welcome
+   *  bubble. Null when account hasn't loaded yet (or BYOK with no
+   *  account); the welcome falls back to a name-less greeting. */
+  userName?: string | null;
 }
 
 // SUGGESTIONS / CAPABILITIES / MODE_INFO arrays removed — they backed the
@@ -50,7 +54,7 @@ interface ChatContainerProps {
 // IDE's single-seeded-message empty state. Props onSuggestion / activeModel
 // / models stay in ChatContainerProps for caller compatibility but are no
 // longer destructured here.
-export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onRate, chatEndRef, needsSetup, consentRequired, onAcceptConsent, initialized, onOpenDashboard, conductorActive, conductorMode, activePersonas, signInPending, signInError, onStartSignIn, onCancelSignIn, onClearSignInError }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onRate, chatEndRef, needsSetup, consentRequired, onAcceptConsent, initialized, onOpenDashboard, conductorActive, conductorMode, activePersonas, signInPending, signInError, onStartSignIn, onCancelSignIn, onClearSignInError, onSuggestion, userName }: ChatContainerProps) {
   useLocale();
   const [consentChecked, setConsentChecked] = useState(false);
 
@@ -208,11 +212,14 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
     // Render a synthetic seeded welcome bubble + any ambient messages
     // (daily briefing, model-switch notices) that arrived before the
     // user's first turn. Mirrors IDE chat at DashboardPages.tsx:1990
-    // where the welcome is the first message in the list.
+    // where the welcome is the first message in the list. Welcome text
+    // is dynamic — picks a time-of-day greeting and uses the operator's
+    // first name when available so it feels like a partner picking up,
+    // not a generic chatbot.
     const seededWelcome = {
       id: 'welcome-seed',
       role: 'assistant' as const,
-      content: t('dash.chat.welcome'),
+      content: buildSeededWelcome(userName ?? null),
       isStreaming: false,
       timestamp: Date.now(),
     } as unknown as typeof messages[number];
@@ -230,6 +237,7 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
               onRate={msg.role === 'assistant' ? onRate : undefined}
             />
           ))}
+          <StarterHelper onSuggestion={onSuggestion} />
         </div>
       </div>
     );
@@ -261,6 +269,104 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
         {isThinking && <ThinkingIndicator />}
         <div ref={chatEndRef} />
       </div>
+    </div>
+  );
+}
+
+/**
+ * Time-of-day-aware seeded welcome from Ava. First-person, warm, knows
+ * the operator's name when the account has loaded. Mirrors the writing
+ * voice elsewhere — partner, not chatbot.
+ *
+ * Buckets: 05–11 morning · 12–17 afternoon · 18–22 evening · 23–04 late.
+ */
+function buildSeededWelcome(userName: string | null): string {
+  const now = new Date();
+  const h = now.getHours();
+  const day = now.toLocaleDateString('en-GB', { weekday: 'long' });
+  const name = userName ? `, ${userName}` : '';
+
+  if (h >= 5 && h < 12) return `Morning${name}. It's ${day} — what are we tackling today?`;
+  if (h >= 12 && h < 18) return `Afternoon${name}. ${day} — what can I get into for you?`;
+  if (h >= 18 && h < 23) return `Evening${name}. Pull up a chair — what are we working on?`;
+  return `Late one${name ? '' : ' here'}${name}. I'm awake if you are — what's on your mind?`;
+}
+
+/**
+ * Empty-state helper card — six clickable starter chips, one per mode,
+ * shown alongside the seeded welcome bubble until the user sends their
+ * first message. Clicking a chip calls `onSuggestion(prompt)` which
+ * (per App.tsx) prefills the input rather than auto-sending so the user
+ * can edit before firing.
+ *
+ * Visual: subtle gradient, animated entrance, hover-lift on chips with
+ * prefix-coloured tokens. Aim is "warm partner" not "onboarding tooltip".
+ */
+function StarterHelper({ onSuggestion }: { onSuggestion: (prompt: string) => void }) {
+  const chips: { label: string; prefix: string; prompt: string; color: string }[] = [
+    { label: 'Explain a file',  prefix: '>>', prompt: 'Explain what this file does: ',                  color: '#a855f7' },
+    { label: 'Plan a feature',  prefix: '::', prompt: ':: How should I approach adding ',                color: '#60a5fa' },
+    { label: 'Teach me',        prefix: '??', prompt: '?? Teach me about ',                              color: '#f9e2af' },
+    { label: 'Audit security',  prefix: '!!', prompt: '!! Audit this project for security issues',       color: '#f38ba8' },
+    { label: 'Brainstorm',      prefix: '**', prompt: '** Help me think through ',                       color: '#94e2d5' },
+    { label: 'Just chat',       prefix: '..', prompt: '.. ',                                             color: '#a6adc8' },
+  ];
+
+  return (
+    <div
+      className="rounded-2xl p-4 mt-2 ava-starter-card"
+      style={{
+        background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(96, 165, 250, 0.04) 100%)',
+        border: '1px solid rgba(168, 85, 247, 0.22)',
+        boxShadow: '0 4px 20px rgba(168, 85, 247, 0.08)',
+      }}
+    >
+      <div className="flex items-center gap-2 mb-1.5">
+        <span style={{ color: '#a855f7', fontSize: 14 }}>✦</span>
+        <div className="text-[13px] font-semibold" style={{ color: '#cdd6f4' }}>Where do we start?</div>
+      </div>
+      <p className="text-[11px] leading-relaxed mb-3" style={{ color: '#a6adc8' }}>
+        I can read your code, plan a feature, teach you something, audit security, brainstorm, or just chat.
+        Pick one — you can edit before sending.
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {chips.map((c) => (
+          <button
+            key={c.label}
+            onClick={() => onSuggestion(c.prompt)}
+            className="text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1.5"
+            style={{
+              background: 'rgba(26, 16, 40, 0.5)',
+              border: `1px solid ${c.color}33`,
+              color: '#cdd6f4',
+              transition: 'transform 0.12s ease, background 0.15s, border-color 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = `${c.color}1c`;
+              e.currentTarget.style.borderColor = `${c.color}66`;
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(26, 16, 40, 0.5)';
+              e.currentTarget.style.borderColor = `${c.color}33`;
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            <span style={{ color: c.color, fontFamily: 'monospace', fontSize: 10, fontWeight: 700 }}>{c.prefix}</span>
+            <span>{c.label}</span>
+          </button>
+        ))}
+      </div>
+      <p className="text-[10px] mt-3" style={{ color: '#6c7086' }}>
+        Tip: type <code style={{ color: '#a855f7' }}>{'>>'}</code> <code style={{ color: '#60a5fa' }}>::</code> <code style={{ color: '#a6adc8' }}>..</code> <code style={{ color: '#f9e2af' }}>??</code> <code style={{ color: '#f38ba8' }}>!!</code> <code style={{ color: '#94e2d5' }}>**</code> to switch modes any time.
+      </p>
+      <style>{`
+        .ava-starter-card { animation: avaStarterFade 0.4s ease-out; }
+        @keyframes avaStarterFade {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

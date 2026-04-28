@@ -44,6 +44,12 @@ interface InputAreaProps {
    *  attach-image button is disabled and the tooltip explains why.
    *  Undefined means "unknown" — treated as supported (don't block). */
   modelSupportsVision?: boolean;
+  /**
+   * External prefill source — fed by starter chips on the empty-state
+   * helper. Each new value (compared by `nonce`) replaces the textarea
+   * contents and focuses the input. Mirrors the webview-ui InputArea.
+   */
+  prefill?: { value: string; nonce: number } | null;
 }
 
 const MODES: { id: AvaMode; labelKey: string; icon: string }[] = [
@@ -66,7 +72,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   brainstorm: 'input.placeholder.brainstorm',
 };
 
-export function InputArea({ onSend, onCancel, isStreaming, disabled, platformStatus, modelSupportsVision }: InputAreaProps) {
+export function InputArea({ onSend, onCancel, isStreaming, disabled, platformStatus, modelSupportsVision, prefill }: InputAreaProps) {
   useLocale();
   const [text, setText] = useState('');
   // Mode persists across page reload — same shape as webview-ui.
@@ -108,6 +114,23 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
       textareaRef.current?.focus();
     }
   }, [isStreaming]);
+
+  // Prefill from starter chips on the empty-state helper. Mirrors
+  // webview-ui InputArea — replaces text, focuses textarea, places
+  // caret at end so the user can keep typing immediately.
+  const prefillNonce = prefill?.nonce ?? 0;
+  useEffect(() => {
+    if (!prefill) return;
+    setText(prefill.value);
+    const el = textareaRef.current;
+    if (el) {
+      el.focus();
+      requestAnimationFrame(() => {
+        el.selectionStart = el.selectionEnd = el.value.length;
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillNonce]);
 
   // Note: removed aggressive re-focus-on-any-click handler.
   // It was stealing focus from copy buttons, links, and other interactive elements.

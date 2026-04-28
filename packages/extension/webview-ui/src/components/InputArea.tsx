@@ -40,6 +40,13 @@ interface InputAreaProps {
     warningMessage?: string;
   } | null;
   onProviderSourceChange?: (source: ProviderSource) => void;
+  /**
+   * External prefill source — e.g. starter chips on the empty-state
+   * helper. Each new value (compared by `nonce`) replaces the textarea
+   * contents and focuses the input. nonce is required so two clicks of
+   * the same chip in a row still trigger the effect.
+   */
+  prefill?: { value: string; nonce: number } | null;
 }
 
 const MODES: { id: AvaMode; labelKey: string; descKey: string; icon: string }[] = [
@@ -65,7 +72,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
 // onProviderSourceChange is no longer destructured — the Platform/API-key
 // toggle was dropped to match IDE. Prop stays in InputAreaProps so callers
 // can keep passing it without a shape change.
-export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSource, platformStatus }: InputAreaProps) {
+export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSource, platformStatus, prefill }: InputAreaProps) {
   useLocale();
   const [text, setText] = useState('');
   // Mode persists across panel close/reopen — IDE chat persists via
@@ -105,6 +112,25 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
       textareaRef.current?.focus();
     }
   }, [isStreaming]);
+
+  // Prefill from starter chips on the empty-state helper. Replaces the
+  // textarea contents (rather than appending) so a chip click always
+  // produces a clean, editable starter prompt. Focus moves to the input
+  // and the cursor lands at the end so the user can keep typing.
+  const prefillNonce = prefill?.nonce ?? 0;
+  useEffect(() => {
+    if (!prefill) return;
+    setText(prefill.value);
+    const el = textareaRef.current;
+    if (el) {
+      el.focus();
+      // Defer caret-to-end until React has applied the value update.
+      requestAnimationFrame(() => {
+        el.selectionStart = el.selectionEnd = el.value.length;
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillNonce]);
 
   // Save secrets through context (handles persistence + events)
   const handleSaveSecrets = useCallback((updated: SecretEntry[]) => {

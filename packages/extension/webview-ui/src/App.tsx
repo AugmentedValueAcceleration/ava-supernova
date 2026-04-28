@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useRef, useCallback } from 'react';
+import { useReducer, useEffect, useRef, useCallback, useState } from 'react';
 import type { ExtToWebviewMessage, ChatState, UIMessage, MessageEvent } from './types/messages';
 
 // ── Event timeline helpers ────────────────────────────────────────────────
@@ -129,6 +129,18 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
           loadStrings(action.locale, action.localeStrings);
         }
       }
+      // Loading-gate logic on init:
+      //   - If providerSource is 'byok' (no platform key), there's no
+      //     account fetch or history fetch in flight. Flip both flags
+      //     false immediately so the chat surface unlocks.
+      //   - If there's a platform key, leave them true and let
+      //     platform_status / history_list arrival drop them.
+      //   - If init already includes platformStatus, the host fetched
+      //     it before sending init — flip accountLoading false straight
+      //     away to avoid a wasted skeleton flash.
+      const initProviderSource = action.providerSource ?? state.providerSource;
+      const isByokOnly = initProviderSource === 'byok';
+      const platformStatusIncluded = !!action.platformStatus;
       return {
         ...state,
         initialized: true,
@@ -136,7 +148,9 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         activeModel: action.activeModel,
         needsSetup: action.needsSetup,
         consentRequired: action.consentRequired ?? false,
-        providerSource: action.providerSource ?? state.providerSource,
+        providerSource: initProviderSource,
+        accountLoading: isByokOnly ? false : (platformStatusIncluded ? false : state.accountLoading),
+        historyLoading: isByokOnly ? false : state.historyLoading,
         platformStatus: action.platformStatus
           ? {
               connected: action.platformStatus.connected,
@@ -436,6 +450,8 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'platform_status':
       return {
         ...state,
+        // Account fetch resolved — drop the loading gate.
+        accountLoading: false,
         platformStatus: {
           connected: action.connected,
           tier: action.tier,
@@ -560,6 +576,10 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'history_list':
       return {
         ...state,
+        // History fetch resolved — drop the loading gate. Note this also
+        // arrives on every manual sidebar open later in the session, but
+        // setting an already-false flag to false is a no-op.
+        historyLoading: false,
         historyList: action.conversations,
         historyOpen: true,
       };
@@ -769,6 +789,11 @@ const initialState: ChatState = {
   needsSetup: true,
   consentRequired: false,
   initialized: false,
+  // Default to true — flipped false on init for BYOK-only paths or when the
+  // platform_status / history_list events arrive (gating skeletons + the
+  // loading banner). See ChatState comment in message-types.ts.
+  accountLoading: true,
+  historyLoading: true,
   lastUsage: null,
   contextUsage: null,
   isCompressing: false,
@@ -1084,11 +1109,16 @@ export function App() {
     postMessage({ type: 'retry_after_error', mode: 'code' });
   }, [postMessage]);
 
+  // Repurposed as the prefill hook for empty-state starter chips. Was
+  // previously wired to immediately send the suggested prompt. Prefilling
+  // the input lets the operator review/edit before sending — safer
+  // default for a brand-new chat where the user is still orienting.
+  const [pendingPrefill, setPendingPrefill] = useState<{ value: string; nonce: number } | null>(null);
   const handleSuggestion = useCallback(
     (prompt: string) => {
-      postMessage({ type: 'send_message', text: prompt, mode: 'code' });
+      setPendingPrefill({ value: prompt, nonce: Date.now() });
     },
-    [postMessage],
+    [],
   );
 
   const handleCompress = useCallback(() => {
@@ -1235,6 +1265,39 @@ export function App() {
           conversationTitle={state.conversationTitle}
         />
 
+        {/* First-load banner — visible while account or history are still
+            being fetched on a platform-key session. Drops in one sweep
+            when both arrive so users don't see a half-populated state
+            (e.g. tier flipping Free → Pro) or read an empty conversation
+            list as "no chats" when it's actually still loading. */}
+        {(state.accountLoading || state.historyLoading) && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="flex items-center gap-2 px-3 py-1.5 text-[11px] border-b"
+            style={{
+              background: 'rgba(168, 85, 247, 0.08)',
+              borderColor: 'rgba(168, 85, 247, 0.2)',
+              color: '#cdd6f4',
+            }}
+          >
+            <span
+              className="inline-block w-2.5 h-2.5 rounded-full"
+              style={{
+                background: '#A855F7',
+                animation: 'pulse 1.5s ease-in-out infinite',
+              }}
+            />
+            <span>
+              {state.accountLoading && state.historyLoading
+                ? 'Loading your account and chat history…'
+                : state.accountLoading
+                  ? 'Loading your account…'
+                  : 'Loading your chat history…'}
+            </span>
+          </div>
+        )}
+
         <ChatContainer
           messages={state.messages}
           isThinking={state.isThinking}
@@ -1262,6 +1325,7 @@ export function App() {
           isCompressing={state.isCompressing}
           isStreaming={state.isStreaming}
           onCompress={handleCompress}
+          userName={state.signInAccount?.name?.split(' ')[0] ?? null}
         />
 
         {/* Context usage — sits flush above the composer so the bar is
@@ -1278,7 +1342,10 @@ export function App() {
           onSend={handleSend}
           onCancel={handleCancel}
           isStreaming={state.isStreaming}
-          disabled={state.needsSetup}
+          // Disabled while the first-load fetches are still running so the
+          // user can't fire a turn before their account/tier is known
+          // (which would otherwise route via stale platform_status).
+          disabled={state.needsSetup || state.accountLoading || state.historyLoading}
           usage={state.lastUsage}
           isCompressing={state.isCompressing}
           onCompress={handleCompress}
@@ -1286,6 +1353,7 @@ export function App() {
           platformStatus={state.platformStatus}
           onProviderSourceChange={handleProviderSourceChange}
           contextUsage={state.contextUsage}
+          prefill={pendingPrefill}
         />
 
         {state.historyOpen && (

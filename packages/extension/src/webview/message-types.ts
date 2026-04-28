@@ -372,6 +372,16 @@ export interface ChatState {
   needsSetup: boolean;
   consentRequired: boolean;
   initialized: boolean;
+  /**
+   * First-load gates. Both default to true on a session where the extension
+   * has a platform key (account fetch + history fetch are both expected).
+   * Flipped to false when each fetch resolves so the UI can drop the loading
+   * banner + skeleton placeholders in one sweep when both arrive. Local-only
+   * BYOK paths skip both gates by setting them false on init since there is
+   * no platform fetch to wait on.
+   */
+  accountLoading: boolean;
+  historyLoading: boolean;
   /** Sign-in state — v0.37.0 OAuth flow */
   signInPending: 'github' | 'email' | null;
   signInError: string | null;

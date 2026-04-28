@@ -1,7 +1,7 @@
 // Inline documentation page for the dashboard. Renders the canonical corpus from @ava/core/docs
 // using Tailwind primitives that match the dashboard's existing look-and-feel. Sidebar-collapsible.
 
-import { useMemo } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import {
   type RendererAdapter,
@@ -343,26 +343,14 @@ export function DocumentationPage() {
   const adapter = makeAdapter();
 
   return (
-    <div className="flex gap-4 h-full min-h-0">
-      <aside className="w-56 shrink-0 border-r border-[var(--border-input)] pr-3 overflow-y-auto h-full">
-        <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)] mb-2 sticky top-0 bg-[var(--bg-page)] py-1">Docs</div>
-        <nav className="space-y-3 pb-4">
-          {sidebar.map(section => (
-            <div key={section.id}>
-              <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1 px-1">{section.title}</div>
-              {section.pages.map(p => (
-                <a
-                  key={p.id}
-                  href={`#${p.anchor}`}
-                  className="block px-1.5 py-0.5 text-[11px] text-[var(--text-secondary)] hover:text-white hover:bg-[var(--accent)]/10 rounded"
-                >
-                  {p.title}
-                </a>
-              ))}
-            </div>
-          ))}
-        </nav>
-      </aside>
+    <div className="flex flex-col h-full min-h-0">
+      {/* Top bar with title + section dropdown. Replaces the sidebar so the
+          docs body gets the full width — important on the cramped extension
+          panel where a 224px sidebar ate a third of the screen. */}
+      <div className="flex items-center justify-between border-b border-[var(--border-input)] pb-2 mb-3">
+        <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)]">Documentation</div>
+        <DocsDropdown sections={sidebar} />
+      </div>
 
       <main className="min-w-0 flex-1 overflow-y-auto pr-1">
         {pages.map(page => {
@@ -370,6 +358,63 @@ export function DocumentationPage() {
           return adapter.page(page.title, blocks, anchorFor(page.id));
         })}
       </main>
+    </div>
+  );
+}
+
+/**
+ * Top-right section dropdown — replaces the sidebar nav. Click opens a
+ * sectioned menu with grouped page links; click a page → anchor jump,
+ * dropdown closes. Click outside closes. Keeps the docs body full-width
+ * which matters on the cramped extension panel.
+ */
+function DocsDropdown({ sections }: { sections: ReturnType<typeof buildSidebar> }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 px-2 py-1 rounded border border-[var(--border-input)] bg-[var(--bg-card)] text-[11px] text-[var(--text-secondary)] hover:text-white hover:border-[var(--accent)]/40 transition"
+      >
+        Sections
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
+          style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          className="absolute right-0 top-full mt-1 w-64 max-h-[60vh] overflow-y-auto rounded-md border border-[var(--border-input)] bg-[var(--bg-page)] shadow-lg z-50 p-2"
+        >
+          {sections.map(section => (
+            <div key={section.id} className="mb-2 last:mb-0">
+              <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] px-2 py-1">{section.title}</div>
+              {section.pages.map(p => (
+                <a
+                  key={p.id}
+                  href={`#${p.anchor}`}
+                  onClick={() => setOpen(false)}
+                  className="block px-2 py-1 text-[11px] text-[var(--text-secondary)] hover:text-white hover:bg-[var(--accent)]/10 rounded"
+                >
+                  {p.title}
+                </a>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

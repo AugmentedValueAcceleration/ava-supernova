@@ -932,6 +932,7 @@ export function App() {
             onFlipSidebar={flipSidebar}
             sidebarSide={sidebarSide}
             onNavigate={setPagePersist}
+            userName={account?.name?.split(' ')[0] ?? null}
           />
         </div>
       )}
