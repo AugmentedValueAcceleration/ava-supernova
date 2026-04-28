@@ -4,12 +4,12 @@ import type { DocPage } from '../types.js';
 
 export const CONCEPT_PAGES: DocPage[] = [
   {
-    id: 'concepts.routing',
+    id: 'models.routing',
     title: 'Routing — how Ava picks models',
     audience: ['both'],
     surfaces: ['web', 'ext', 'ide'],
-    order: 5,
-    section: 'concepts',
+    order: 10,
+    section: 'models',
     body: [
       { type: 'paragraph', text: 'Ava is a thinking system, not a model menu. You pick one of three orchestration strategies — Maestro, Supernova, or Aurora — and Ava routes each subtask to the model best suited for it. Coordinator-tier reasoning where it matters; flash-tier specialists for high-volume work. Same persona pipeline runs on all three; what changes is the underlying fleet.' },
 
@@ -17,10 +17,10 @@ export const CONCEPT_PAGES: DocPage[] = [
       { type: 'paragraph', text: 'One conductor handles every persona. Qwen 3.6 Plus drives the full pipeline — Scout reads, Architect plans, Builder edits, Verifier checks. Same model, same context window, no handoff cost. Production-tuned, proven across months of operator workloads, default for everyone. Live on every plan.' },
 
       { type: 'heading', level: 3, text: 'Supernova' },
-      { type: 'paragraph', text: 'Polyglot ensemble. DeepSeek V4 Pro coordinates (1.6T total parameters / 49B active, 1M context, frontier tool-call reliability) and dispatches to specialists per task. V4 Flash for high-volume builds and review work. Qwen 3.6 Plus as fallback. Qwen 3.5 Omni for vision. Each step gets the right tool for the job — coordinator-tier reasoning where it matters, flash-tier economics on the bulk of token volume.' },
+      { type: 'paragraph', text: 'Polyglot ensemble. DeepSeek V4 Pro coordinates (1.6T total parameters / 49B active, 1M context, frontier tool-call reliability) and dispatches to specialists per task. Builder runs on Qwen 3.6 Plus — Terminal-Bench leader, production-tested. V4 Flash handles mid-tier review and verification work. Qwen 3.5 Omni Plus takes over when there is vision input. Light specialists (Scout, Verifier, Sequencer, Challenger) run on Qwen 3.5 Flash to keep the bulk of token volume cheap.' },
 
       { type: 'heading', level: 3, text: 'Aurora' },
-      { type: 'paragraph', text: 'European AI stack — sovereign by design. Mistral Large 3 coordinator + Mistral Small 4 for every specialist seat. Apache-2.0 open weights. Never leaves EU infrastructure. Built for GDPR-strict deployments, public-sector and healthcare buyers, sovereignty-mandated workloads. Same persona pipeline as Maestro and Supernova, just on a fully European fleet.' },
+      { type: 'paragraph', text: 'European AI stack — sovereign by design. Mistral Large 3 coordinates (sparse MoE, 41B active / 675B total) and handles the depth-heavy specialists: Researcher, Challenger, CVE Researcher, Ideator. Mistral Small 4 covers Architect, Builder, Verifier, Sequencer, Tutor — Devstral lineage plus Pixtral vision in one model at flash-tier pricing. Apache-2.0 open weights. Never leaves EU infrastructure. Built for GDPR-strict deployments, public-sector and healthcare buyers, sovereignty-mandated workloads.' },
 
       { type: 'heading', level: 3, text: 'Why orchestration?' },
       { type: 'paragraph', text: 'Routing each subtask to the right specialist costs less than running every step on a frontier model — and produces better results, because each model is used for what it is best at. Coordinator tokens get spent on reasoning and planning; build-tier tokens flow to flash-tier models. Cost stays predictable, quality stays high, and you do not need to know which model to pick — Ava picks for each step.' },
@@ -29,6 +29,65 @@ export const CONCEPT_PAGES: DocPage[] = [
 
       { type: 'heading', level: 3, text: 'Switching modes' },
       { type: 'paragraph', text: 'The model picker at the top of the chat panel lists the three orchestrated modes first, then any individual models you have keys for. Switch mid-conversation — memory carries across, the active task continues on the new fleet on the next turn.' },
+    ],
+  },
+  {
+    id: 'credits.overview',
+    title: 'Ava Credits — how billing works',
+    audience: ['both'],
+    surfaces: ['web', 'ext', 'ide'],
+    order: 10,
+    section: 'credits',
+    body: [
+      { type: 'paragraph', text: 'Ava bills in credits, not raw tokens. One credit covers one unit of work — a chat turn, a persona spawn, an image generation. Decoupling from token-level metering means you do not need to know which model is running to know what an action will cost. The same chat_turn costs the same whether Maestro routes it to Qwen 3.6 Plus or Supernova routes it to V4 Pro.' },
+
+      { type: 'heading', level: 3, text: 'Plans' },
+      { type: 'paragraph', text: 'Every plan has access to every feature — model access, Creative Studio, all six modes, the full persona orchestration. Higher tiers buy more credits and a higher rate-limit ceiling, not unlocked features.' },
+      { type: 'list', ordered: false, items: [
+        'Free — $0/month. 300 credits. 20 requests/minute rate limit. No card required.',
+        'Pro — $19/month. 5,000 credits. 60 requests/minute.',
+        'Ultra — $39/month. 10,000 credits. 120 requests/minute.',
+        'Enterprise — $79/month. 20,000 credits. 200 requests/minute.',
+      ]},
+      { type: 'callout', variant: 'note', text: 'Unused credits roll over while your subscription is active — there is no forced clawback. Top-ups stack on the subscription pool: 750 credits for $3, 2,000 for $8, 4,000 for $15.' },
+
+      { type: 'heading', level: 3, text: 'What things cost' },
+      { type: 'paragraph', text: 'Per-action cost table — what gets deducted from your credit pool when each action runs. Cache hits discount the charge by 70% (or 50% on output-heavy models like DeepSeek V4 Pro).' },
+      { type: 'list', ordered: false, items: [
+        'Chat turn — 2 credits. A single back-and-forth in any mode.',
+        'Light call — 1 credit. Intent gate, classification, single-shot read.',
+        'Heavy persona — 3 credits. Architect, Researcher, CVE Researcher, Ideator (depth ≥ 4).',
+        'Light persona — 1 credit. Scout, Verifier, Sequencer, Challenger (depth ≤ 2).',
+        'Orchestration — 10 credits. Full persona pipeline spawn (Conductor + multi-persona task).',
+        'Image generation — 12 credits. Hailuo image-01 via Creative Studio.',
+        'Video generation — 150 credits. Hailuo 02 Pro 1080p 6s clip.',
+        'Voice generation — 10 credits. Speech 2.8 HD synthesis.',
+        'Music generation — 50 credits. MiniMax Music 2.5/2.6.',
+        'Background removal — 2 credits.',
+      ]},
+
+      { type: 'heading', level: 3, text: 'Per-model multipliers' },
+      { type: 'paragraph', text: 'Heavier models multiply the action cost so credits track real spend instead of a flat bracket. Calibrated for ~55% net margin.' },
+      { type: 'list', ordered: false, items: [
+        '0.6× — Mistral Small 4 (Aurora\'s specialist seat). Sub-1× because Mistral Small 4 is cheaper than the Qwen 3.6 Plus anchor.',
+        '1.0× — Qwen 3.5 Flash, Qwen Omni Flash, DeepSeek V4 Flash, MiniMax. Base rate.',
+        '1.2× — Qwen 3.5 Plus, Qwen 3.5 Omni Plus.',
+        '1.4× — Mistral Large 3 (Aurora coordinator). About par with the Qwen 3.6 Plus anchor.',
+        '1.5× — Qwen 3.6 Plus (Maestro coordinator).',
+        '6.0× — DeepSeek V4 Pro (Supernova coordinator + heavy specialists). Recalibrated from 5.0× to restore margin parity at the published V4 Pro rate.',
+      ]},
+      { type: 'callout', variant: 'note', text: 'Anthropic models (Claude Opus / Sonnet / Haiku) skip credit billing entirely — they are BYOK only and you pay Anthropic directly. Same for any other BYOK provider when used with your own key.' },
+
+      { type: 'heading', level: 3, text: 'BYOK and credits' },
+      { type: 'paragraph', text: 'Bring-your-own-key requests bypass platform infrastructure entirely — the call goes direct from Ava to the provider, you pay the provider, no credits are consumed. The only exception is when a BYOK session spawns a managed-tier persona for a sub-task; the credit deduction still applies because Ava\'s orchestration surface is being used.' },
+
+      { type: 'heading', level: 3, text: 'Where to check your balance' },
+      { type: 'list', ordered: false, items: [
+        'Extension — Settings → Account, or the credit pill in the chat header.',
+        'IDE — Account dashboard tile shows current balance and burn rate.',
+        'Web — ava-supernova.com/dashboard shows balance, history, and renewal date.',
+      ]},
+      { type: 'callout', variant: 'tip', text: 'Local-first: Ava works without an account on the Custom Model card (Ollama, LM Studio, vLLM, or any OpenAI-compatible endpoint). No credits, no platform tokens — your model, your machine, your bill of zero.' },
     ],
   },
   {

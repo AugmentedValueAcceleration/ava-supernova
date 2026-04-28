@@ -7,6 +7,8 @@ export type Surface = 'web' | 'ext' | 'ide';
 
 export type Section =
   | 'start'
+  | 'models'
+  | 'credits'
   | 'concepts'
   | 'reference'
   | 'features'
@@ -44,7 +46,7 @@ export type DocBlock =
  */
 export type FactsBlock =
   | { type: 'facts'; kind: 'tools'; filter?: { category?: string; risk?: string } }
-  | { type: 'facts'; kind: 'providers'; filter?: { kind?: 'managed' | 'byok' } }
+  | { type: 'facts'; kind: 'providers'; filter?: { kind?: 'orchestration' | 'managed' | 'byok' } }
   | { type: 'facts'; kind: 'modes' }
   | { type: 'facts'; kind: 'personas'; filter?: { mode?: string } }
   | { type: 'facts'; kind: 'permissions' }
@@ -59,10 +61,12 @@ export interface SidebarNode {
 
 export const SECTION_LABELS: Record<Section, string> = {
   start: 'Start here',
+  models: 'Models',
+  credits: 'Credits',
   concepts: 'Core concepts',
   reference: 'Reference',
   features: 'Features',
   troubleshooting: 'Troubleshooting & support',
 };
 
-export const SECTION_ORDER: Section[] = ['start', 'concepts', 'reference', 'features', 'troubleshooting'];
+export const SECTION_ORDER: Section[] = ['start', 'models', 'credits', 'concepts', 'reference', 'features', 'troubleshooting'];
