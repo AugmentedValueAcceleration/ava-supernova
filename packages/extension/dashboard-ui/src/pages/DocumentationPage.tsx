@@ -1,12 +1,11 @@
 // Inline documentation page for the dashboard. Renders the canonical corpus from @ava/core/docs
 // using Tailwind primitives that match the dashboard's existing look-and-feel. Sidebar-collapsible.
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import {
   type RendererAdapter,
   type DocBlock,
-  type DocPage,
   type FactsData,
   TOOLS,
   CATEGORY_LABELS,
@@ -17,7 +16,6 @@ import {
   PERMISSION_LABELS,
   SHORTCUTS,
   filterBySurface,
-  filterByAudience,
   buildSidebar,
   anchorFor,
   getPages,
@@ -70,6 +68,31 @@ function makeAdapter(): RendererAdapter<ReactNode> {
       <a key={k()} href={href} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined} className="text-[var(--accent)] hover:underline">
         {text}
       </a>
+    ),
+
+    table: (headers, rows) => (
+      <div key={k()} className="rounded-md border border-[var(--border-input)] bg-[var(--bg-card)] overflow-x-auto mb-4">
+        <table className="w-full text-[12px]">
+          <thead>
+            <tr className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+              {headers.map((h, i) => (
+                <th key={i} className="text-left p-2 font-light border-b border-[var(--border-input)]">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, ri) => (
+              <tr key={ri} className="border-t border-[var(--border-input)] align-top">
+                {r.map((cell, ci) => (
+                  <td key={ci} className={`p-2 ${ci === 0 ? 'text-[var(--accent)] font-medium whitespace-nowrap' : 'text-[var(--text-secondary)]'}`}>
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     ),
 
     tools: (items) => {
@@ -273,6 +296,7 @@ function renderBlock(block: DocBlock, adapter: RendererAdapter<ReactNode>, data:
     case 'code':      return adapter.code(block.text, block.language);
     case 'callout':   return adapter.callout(block.text, block.variant);
     case 'link':      return adapter.link(block.text, block.href, block.external ?? false);
+    case 'table':     return adapter.table(block.headers, block.rows);
     case 'facts': {
       switch (block.kind) {
         case 'tools': {
@@ -303,17 +327,13 @@ function renderBlock(block: DocBlock, adapter: RendererAdapter<ReactNode>, data:
 }
 
 export function DocumentationPage() {
-  const [showPower, setShowPower] = useState(true);
-  const [query, setQuery] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-
   const { pages, sidebar } = useMemo(() => {
+    // Static — no audience filtering, no search. Show every page available
+    // on this surface, every time. Operator wanted no interactive controls
+    // in the sidebar; keep it as a fixed nav.
     const all = filterBySurface(getPages(), 'ext');
-    const audienceFiltered = filterByAudience(all, showPower ? 'everything' : 'newcomer');
-    const q = query.trim().toLowerCase();
-    const searched = q ? audienceFiltered.filter(p => matchesSearch(p, q)) : audienceFiltered;
-    return { pages: searched, sidebar: buildSidebar(searched) };
-  }, [showPower, query]);
+    return { pages: all, sidebar: buildSidebar(all) };
+  }, []);
 
   const data: FactsData = {
     tools: TOOLS, providers: PROVIDERS, modes: MODES, personas: PERSONAS,
@@ -323,73 +343,33 @@ export function DocumentationPage() {
   const adapter = makeAdapter();
 
   return (
-    <div className="flex gap-4 h-full">
-      {sidebarOpen ? (
-        <aside className="w-56 shrink-0 border-r border-[var(--border-input)] pr-3 overflow-y-auto">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)]">Docs</div>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              aria-label="Collapse sidebar"
-              className="p-1 rounded text-[var(--text-muted)] hover:text-white hover:bg-white/5"
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-            </button>
-          </div>
-          <input
-            type="text"
-            placeholder="Search…"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            className="w-full mb-2 h-7 rounded border border-[var(--border-input)] bg-[var(--bg-card)] px-2 text-[11px] text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]/50"
-          />
-          <label className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)] mb-3 cursor-pointer">
-            <input type="checkbox" checked={showPower} onChange={e => setShowPower(e.target.checked)} />
-            Reference pages
-          </label>
-          <nav className="space-y-3">
-            {sidebar.map(section => (
-              <div key={section.id}>
-                <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1 px-1">{section.title}</div>
-                {section.pages.map(p => (
-                  <a
-                    key={p.id}
-                    href={`#${p.anchor}`}
-                    className="block px-1.5 py-0.5 text-[11px] text-[var(--text-secondary)] hover:text-white hover:bg-[var(--accent)]/10 rounded"
-                  >
-                    {p.title}
-                  </a>
-                ))}
-              </div>
-            ))}
-          </nav>
-        </aside>
-      ) : (
-        <button
-          onClick={() => setSidebarOpen(true)}
-          aria-label="Expand sidebar"
-          className="shrink-0 self-start mt-1 p-1.5 rounded border border-[var(--border-input)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-white hover:border-[var(--accent)]/50"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-        </button>
-      )}
+    <div className="flex gap-4 h-full min-h-0">
+      <aside className="w-56 shrink-0 border-r border-[var(--border-input)] pr-3 overflow-y-auto h-full">
+        <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)] mb-2 sticky top-0 bg-[var(--bg-page)] py-1">Docs</div>
+        <nav className="space-y-3 pb-4">
+          {sidebar.map(section => (
+            <div key={section.id}>
+              <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1 px-1">{section.title}</div>
+              {section.pages.map(p => (
+                <a
+                  key={p.id}
+                  href={`#${p.anchor}`}
+                  className="block px-1.5 py-0.5 text-[11px] text-[var(--text-secondary)] hover:text-white hover:bg-[var(--accent)]/10 rounded"
+                >
+                  {p.title}
+                </a>
+              ))}
+            </div>
+          ))}
+        </nav>
+      </aside>
 
       <main className="min-w-0 flex-1 overflow-y-auto pr-1">
         {pages.map(page => {
           const blocks = page.body.map(b => renderBlock(b, adapter, data));
           return adapter.page(page.title, blocks, anchorFor(page.id));
         })}
-        {pages.length === 0 && <p className="text-[var(--text-muted)] text-[12px]">No pages match your search.</p>}
       </main>
     </div>
   );
-}
-
-function matchesSearch(page: DocPage, q: string): boolean {
-  if (page.title.toLowerCase().includes(q)) return true;
-  for (const block of page.body) {
-    if ('text' in block && typeof block.text === 'string' && block.text.toLowerCase().includes(q)) return true;
-    if (block.type === 'list' && block.items.some(i => i.toLowerCase().includes(q))) return true;
-  }
-  return false;
 }

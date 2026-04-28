@@ -23,21 +23,30 @@ export const REFERENCE_PAGES: DocPage[] = [
     ],
   },
   {
-    id: 'reference.providers',
-    title: 'Provider and model matrix',
-    audience: ['power'],
+    id: 'reference.models',
+    title: 'Models',
+    audience: ['both'],
     surfaces: ['web', 'ext', 'ide'],
-    order: 20,
+    order: 5,
     section: 'reference',
     body: [
-      { type: 'paragraph', text: 'Seven providers. Two classes: platform-managed (we handle the keys, you use your token allowance) and BYOK (you bring your own API key, your requests never touch our platform).' },
-      { type: 'heading', level: 3, text: 'Platform-managed' },
+      { type: 'paragraph', text: 'Every model Ava can route to, plus the three orchestration strategies that decide which model handles each subtask. Pick a routing mode and let Ava dispatch, or pick a single model and skip routing entirely.' },
+
+      { type: 'heading', level: 3, text: 'Routing modes' },
+      { type: 'paragraph', text: 'Three orchestrated strategies. The same persona pipeline runs on all three; what changes is the underlying fleet. Pick a mode in the model selector and Ava handles the rest. Each card below shows the constituent specialists the conductor routes to.' },
+      { type: 'facts', kind: 'providers', filter: { kind: 'orchestration' } },
+      { type: 'callout', variant: 'note', text: 'Aurora is deliberately Mistral-only. If a Mistral model is unavailable the router returns an error rather than cross-routing — that is the EU-stack guarantee. Pick Maestro or Supernova for graceful degradation.' },
+      { type: 'callout', variant: 'tip', text: 'All three modes are universally available — on platform credits and on your own keys. BYOK adds the option to bypass orchestration and drive a single model directly.' },
+
+      { type: 'heading', level: 3, text: 'Platform-managed models' },
       { type: 'paragraph', text: 'Available on every plan, including the free tier. Tokens count against your plan allowance. Managed keys are rotated and monitored by the platform — nothing for you to configure.' },
       { type: 'facts', kind: 'providers', filter: { kind: 'managed' } },
+
       { type: 'heading', level: 3, text: 'Bring your own key' },
       { type: 'paragraph', text: 'Paste your API key in settings. BYOK requests go direct from Ava to the provider — they do not pass through our infrastructure and do not consume platform tokens. You pay the provider; we do not see the traffic.' },
       { type: 'facts', kind: 'providers', filter: { kind: 'byok' } },
-      { type: 'callout', variant: 'note', text: 'Pricing shown is our best read of the provider rate card at publication. Always check the provider website before committing to a workload.' },
+
+      { type: 'callout', variant: 'tip', text: 'For benchmark scores, capability tags, and side-by-side filtering, see the full Models page at ava-supernova.com/models. Pricing shown above is our best read of each provider rate card at publication — always check the provider website before committing to a workload.' },
     ],
   },
   {

@@ -28,6 +28,7 @@ export interface RendererAdapter<Out> {
   code(text: string, language: string): Out;
   callout(text: string, variant: 'note' | 'warning' | 'tip'): Out;
   link(text: string, href: string, external: boolean): Out;
+  table(headers: string[], rows: string[][]): Out;
 
   // Fact-table blocks. Each surface renders these using its native primitives
   // (table, grid, card deck) while the data comes from a single source.
@@ -69,6 +70,7 @@ export function renderBlock<Out>(
     case 'code':      return adapter.code(block.text, block.language);
     case 'callout':   return adapter.callout(block.text, block.variant);
     case 'link':      return adapter.link(block.text, block.href, block.external ?? false);
+    case 'table':     return adapter.table(block.headers, block.rows);
     case 'facts':     return renderFacts(block, adapter, data);
   }
 }
@@ -111,7 +113,7 @@ function filterTools(items: ToolFact[], filter?: { category?: string; risk?: str
   );
 }
 
-function filterProviders(items: ProviderFact[], filter?: { kind?: 'managed' | 'byok' }): ProviderFact[] {
+function filterProviders(items: ProviderFact[], filter?: { kind?: 'orchestration' | 'managed' | 'byok' }): ProviderFact[] {
   if (!filter?.kind) return items;
   return items.filter(p => p.kind === filter.kind);
 }

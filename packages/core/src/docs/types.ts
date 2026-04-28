@@ -38,6 +38,7 @@ export type DocBlock =
   | { type: 'code'; language: string; text: string }
   | { type: 'callout'; variant: 'note' | 'warning' | 'tip'; text: string }
   | { type: 'link'; text: string; href: string; external?: boolean }
+  | { type: 'table'; headers: string[]; rows: string[][] }
   | FactsBlock;
 
 /**

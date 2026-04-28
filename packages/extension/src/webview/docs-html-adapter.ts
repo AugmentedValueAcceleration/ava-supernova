@@ -53,6 +53,14 @@ const htmlAdapter: RendererAdapter<string> = {
     return `<a href="${esc(href)}"${rel}>${esc(text)}</a>`;
   },
 
+  table: (headers, rows) => {
+    const head = headers.map(h => `<th>${esc(h)}</th>`).join('');
+    const body = rows
+      .map(r => `<tr>${r.map((cell, i) => i === 0 ? `<th class="row-label">${esc(cell)}</th>` : `<td>${esc(cell)}</td>`).join('')}</tr>`)
+      .join('');
+    return `<table class="facts"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  },
+
   tools: (items) => {
     const grouped = groupBy(items, t => t.category);
     const blocks: string[] = [];
@@ -125,8 +133,7 @@ const htmlAdapter: RendererAdapter<string> = {
 
   document: (pages, sidebar) => {
     const sidebarHtml = renderSidebar(sidebar);
-    const expandBtn = `<button id="sidebar-expand" class="sidebar-rail" aria-label="Expand sidebar" title="Expand"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></button>`;
-    return `<div class="docs-root"><aside class="sidebar" id="sidebar">${sidebarHtml}</aside>${expandBtn}<main class="content">${pages.join('\n')}</main></div>`;
+    return `<div class="docs-root"><aside class="sidebar" id="sidebar">${sidebarHtml}</aside><main class="content">${pages.join('\n')}</main></div>`;
   },
 };
 
@@ -161,7 +168,7 @@ function renderSidebar(sidebar: SidebarNode[]): string {
     }).join('');
     return `<div class="nav-section"><div class="nav-heading">${esc(section.title)}</div>${items}</div>`;
   }).join('');
-  return `<div class="sidebar-header"><strong>Documentation</strong><button id="sidebar-collapse" class="icon-btn" aria-label="Collapse sidebar" title="Collapse"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg></button></div><label class="toggle"><input type="checkbox" id="toggle-power" checked> Everything</label>${sections}`;
+  return `<div class="sidebar-header"><strong>Documentation</strong></div><label class="toggle"><input type="checkbox" id="toggle-power" checked> Everything</label>${sections}`;
 }
 
 // ── Public entry ────────────────────────────────────────────────────────────
@@ -202,6 +209,7 @@ function renderBlockInline(block: DocPage['body'][number], data: FactsData): str
     case 'code':      return htmlAdapter.code(block.text, block.language);
     case 'callout':   return htmlAdapter.callout(block.text, block.variant);
     case 'link':      return htmlAdapter.link(block.text, block.href, block.external ?? false);
+    case 'table':     return htmlAdapter.table(block.headers, block.rows);
     case 'facts': {
       switch (block.kind) {
         case 'tools': {
@@ -253,10 +261,6 @@ export const DOCS_CSS = `
     .sidebar-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--ava-border); }
     .icon-btn { background: transparent; border: none; color: var(--ava-muted); cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
     .icon-btn:hover { color: var(--ava-fg); background: rgba(255,255,255,0.05); }
-    .sidebar-rail { display: none; align-self: flex-start; margin-top: 16px; margin-left: 12px; background: var(--ava-card-bg); border: 1px solid var(--ava-border); color: var(--ava-muted); cursor: pointer; padding: 6px; border-radius: 6px; }
-    .sidebar-rail:hover { color: var(--ava-fg); border-color: var(--ava-accent); }
-    .docs-root.collapsed .sidebar { display: none; }
-    .docs-root.collapsed .sidebar-rail { display: flex; }
     .toggle { font-size: 11px; color: var(--ava-muted); display: flex; align-items: center; gap: 6px; cursor: pointer; }
     .nav-section { margin-bottom: 14px; }
     .nav-heading { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ava-muted); margin-bottom: 4px; padding: 0 8px; }
@@ -317,10 +321,5 @@ export const DOCS_SCRIPT = `
     apply();
   }
 
-  const root = document.querySelector('.docs-root');
-  const collapse = document.getElementById('sidebar-collapse');
-  const expand = document.getElementById('sidebar-expand');
-  if (collapse && root) collapse.addEventListener('click', () => root.classList.add('collapsed'));
-  if (expand && root) expand.addEventListener('click', () => root.classList.remove('collapsed'));
 })();
 `;
