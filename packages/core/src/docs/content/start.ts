@@ -99,20 +99,28 @@ export const START_PAGES: DocPage[] = [
   },
   {
     id: 'start.first-model',
-    title: 'Choosing your first model',
+    title: 'Choosing your routing mode',
     audience: ['newcomer'],
     surfaces: ['web', 'ext', 'ide'],
     order: 50,
     section: 'start',
     body: [
-      { type: 'paragraph', text: 'You do not need to pick the perfect model. You need to pick a model that works for today and switch later when you notice limits. Here is the short version:' },
-      { type: 'list', ordered: false, items: [
-        'Lightweight / cheap tasks — Qwen 3.5 Flash. Fast, text-only, good enough for most day-to-day work. Free accounts get 3M tokens/month.',
-        'Serious coding work — Qwen 3.6 Plus is the agentic coding champion. Coordinates Auto Mode and drives multi-file work. Available on every plan.',
-        'Best possible quality — bring your own Anthropic key and use Claude Opus 4.6. Higher cost, higher ceiling.',
-        'Cheapest ceiling — bring your own DeepSeek key. Very capable, very low cost.',
-      ]},
-      { type: 'paragraph', text: 'The full matrix is in the Reference section. Changing model is one command — nothing is sticky.' },
+      { type: 'paragraph', text: 'You do not pick a model — you pick a routing strategy. Ava drives the right model for each subtask under the hood. Three strategies cover every workload, available on every plan.' },
+
+      { type: 'heading', level: 3, text: 'Maestro — the default' },
+      { type: 'paragraph', text: 'One conductor (Qwen 3.6 Plus) handles every persona, every step. Production-tuned, proven, predictable cost. Pick this if you want Ava to "just work" without thinking about routing. Live on every plan.' },
+
+      { type: 'heading', level: 3, text: 'Supernova — the polyglot ensemble' },
+      { type: 'paragraph', text: 'A frontier coordinator (DeepSeek V4 Pro, 1.6T parameters / 49B active, 1M context) hands off to specialists per subtask. V4 Flash for high-volume builds, Qwen 3.6 Plus as fallback, Qwen Omni when vision is in play. Best for heavy multi-step work where each step deserves its own specialist.' },
+
+      { type: 'heading', level: 3, text: 'Aurora — the European stack' },
+      { type: 'paragraph', text: 'Mistral-only routing — Mistral Large 3 coordinator + Mistral Small 4 for every specialist seat. Apache-2.0 open weights, never leaves EU infrastructure. Built for GDPR-strict deployments, public-sector, healthcare, anyone with a sovereignty mandate.' },
+
+      { type: 'callout', variant: 'tip', text: 'Switch routing mode any time from the model picker — top of the chat panel on every surface. Nothing is sticky.' },
+
+      { type: 'heading', level: 3, text: 'Want to drive a specific model yourself?' },
+      { type: 'paragraph', text: 'BYOK (bring your own key) gives you both — the three orchestration modes plus the ability to pick a single model and skip routing entirely. Useful when you have a strong preference, a strict budget, or you are testing a specific model. Paste your provider key in settings, pick the model from the picker, done. Full provider matrix lives in the Reference section.' },
+
       { type: 'facts', kind: 'providers', filter: { kind: 'managed' } },
     ],
   },

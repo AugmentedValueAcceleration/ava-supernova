@@ -4,6 +4,34 @@ import type { DocPage } from '../types.js';
 
 export const CONCEPT_PAGES: DocPage[] = [
   {
+    id: 'concepts.routing',
+    title: 'Routing — how Ava picks models',
+    audience: ['both'],
+    surfaces: ['web', 'ext', 'ide'],
+    order: 5,
+    section: 'concepts',
+    body: [
+      { type: 'paragraph', text: 'Ava is a thinking system, not a model menu. You pick one of three orchestration strategies — Maestro, Supernova, or Aurora — and Ava routes each subtask to the model best suited for it. Coordinator-tier reasoning where it matters; flash-tier specialists for high-volume work. Same persona pipeline runs on all three; what changes is the underlying fleet.' },
+
+      { type: 'heading', level: 3, text: 'Maestro' },
+      { type: 'paragraph', text: 'One conductor handles every persona. Qwen 3.6 Plus drives the full pipeline — Scout reads, Architect plans, Builder edits, Verifier checks. Same model, same context window, no handoff cost. Production-tuned, proven across months of operator workloads, default for everyone. Live on every plan.' },
+
+      { type: 'heading', level: 3, text: 'Supernova' },
+      { type: 'paragraph', text: 'Polyglot ensemble. DeepSeek V4 Pro coordinates (1.6T total parameters / 49B active, 1M context, frontier tool-call reliability) and dispatches to specialists per task. V4 Flash for high-volume builds and review work. Qwen 3.6 Plus as fallback. Qwen 3.5 Omni for vision. Each step gets the right tool for the job — coordinator-tier reasoning where it matters, flash-tier economics on the bulk of token volume.' },
+
+      { type: 'heading', level: 3, text: 'Aurora' },
+      { type: 'paragraph', text: 'European AI stack — sovereign by design. Mistral Large 3 coordinator + Mistral Small 4 for every specialist seat. Apache-2.0 open weights. Never leaves EU infrastructure. Built for GDPR-strict deployments, public-sector and healthcare buyers, sovereignty-mandated workloads. Same persona pipeline as Maestro and Supernova, just on a fully European fleet.' },
+
+      { type: 'heading', level: 3, text: 'Why orchestration?' },
+      { type: 'paragraph', text: 'Routing each subtask to the right specialist costs less than running every step on a frontier model — and produces better results, because each model is used for what it is best at. Coordinator tokens get spent on reasoning and planning; build-tier tokens flow to flash-tier models. Cost stays predictable, quality stays high, and you do not need to know which model to pick — Ava picks for each step.' },
+
+      { type: 'callout', variant: 'note', text: 'All three modes are universally available — on platform credits and on your own keys. BYOK adds the option to bypass orchestration and drive a single model directly when you want that level of control.' },
+
+      { type: 'heading', level: 3, text: 'Switching modes' },
+      { type: 'paragraph', text: 'The model picker at the top of the chat panel lists the three orchestrated modes first, then any individual models you have keys for. Switch mid-conversation — memory carries across, the active task continues on the new fleet on the next turn.' },
+    ],
+  },
+  {
     id: 'concepts.modes',
     title: 'The six modes',
     audience: ['both'],
