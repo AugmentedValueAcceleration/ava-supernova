@@ -1,6 +1,7 @@
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { join, resolve, extname } from 'node:path';
 import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 
@@ -34,16 +35,19 @@ export class SelfInspectTool implements Tool {
   readonly schema: FunctionSchema = {
     name: 'self_inspect',
     description:
-      'Read your own source code. You already know the file structure from your self-knowledge pack. ' +
-      'Only call this to read actual file contents you need to quote or examine.\n\n' +
+      'Read your own source code or your own deploy state. ' +
+      'For source code: you already know the file structure from your self-knowledge pack — ' +
+      'only call read_file/list_directory/search to read actual file contents you need to quote or examine. ' +
+      'For deploy state: call deploy_state to answer questions about what versions are live, ' +
+      'where commits sit, what migrations are applied, whether anything has drifted between local + published.\n\n' +
       'File bases: core (agent engine, CLI), extension (VS Code), ide (desktop), mobile (companion)',
     parameters: {
       type: 'object',
       properties: {
         action: {
           type: 'string',
-          enum: ['read_file', 'list_directory', 'search', 'overview'],
-          description: 'read_file = read a specific file, list_directory = list contents of a path, search = search code, overview = list all file bases',
+          enum: ['read_file', 'list_directory', 'search', 'overview', 'deploy_state'],
+          description: 'read_file = read a specific file, list_directory = list contents of a path, search = search code, overview = list all file bases, deploy_state = read the operator hub\'s aggregated deploy state (versions live + drift + sync log)',
         },
         base: {
           type: 'string',
@@ -58,6 +62,11 @@ export class SelfInspectTool implements Tool {
           type: 'string',
           description: 'For search: text to find in source files',
         },
+        surface: {
+          type: 'string',
+          enum: ['extension', 'ide', 'web', 'companion', 'core', 'all'],
+          description: 'For deploy_state: which surface to report on. Defaults to all. Use a single surface when the question is targeted (e.g. "what version of yourself is on the marketplace?" → surface=extension).',
+        },
       },
       required: ['action'],
     },
@@ -68,6 +77,13 @@ export class SelfInspectTool implements Tool {
     const base = (args.base as string) || 'core';
     const path = (args.path as string) || '';
     const query = (args.query as string) || '';
+    const surface = (args.surface as string) || 'all';
+
+    // deploy_state is a separate read path — operator hub writes the JSON
+    // to ~/.ava/deploy-state.json. Doesn't touch source code at all.
+    if (action === 'deploy_state') {
+      return this.readDeployState(surface);
+    }
 
     if (!REPO_DESCRIPTIONS[base]) {
       return { success: false, output: `Unknown base: ${base}. Use: core, extension, ide, mobile` };
@@ -90,6 +106,95 @@ export class SelfInspectTool implements Tool {
     }
 
     return { success: false, output: `Could not read ${base}/${path || ''}. Platform sync not available and local files not found. Ask the admin to sync the GitHub file bases in the company hub.` };
+  }
+
+  // ── Deploy state (operator hub aggregator output) ──────────────────────
+
+  /** Read the operator hub's aggregated deploy state from
+   *  `~/.ava/deploy-state.json`. The hub aggregator writes the file by
+   *  pulling from GitHub / Marketplace / Vercel / Supabase migrations.
+   *  Both the extension and IDE call this same code path; both share the
+   *  same `~/.ava/` directory on the operator's machine.
+   *
+   *  When the file is missing (fresh install on a non-operator machine,
+   *  hub never run, etc.) the answer is graceful — explains what the
+   *  state would tell Ava if available, instead of erroring. */
+  private async readDeployState(surface: string): Promise<ToolResult> {
+    const path = join(homedir(), '.ava', 'deploy-state.json');
+    if (!existsSync(path)) {
+      return {
+        success: true,
+        output:
+          'Deploy state is not available on this machine. The operator hub aggregates deploy state ' +
+          '(GitHub commits, Marketplace versions, IDE releases, Vercel deploys, Supabase migrations) ' +
+          'and writes it to `~/.ava/deploy-state.json`. If you are running on the operator\'s machine, ' +
+          'the hub needs to run its Refresh once before this tool can answer.',
+      };
+    }
+
+    try {
+      const raw = await readFile(path, 'utf-8');
+      const state = JSON.parse(raw) as {
+        lastSync: string;
+        surfaces: Record<string, {
+          name: string;
+          repo: string;
+          branch: string;
+          latestCommit: { sha: string; message: string; pushedAt: string } | null;
+          published: { version?: string; url?: string; publishedAt?: string } | null;
+          drift: 'synced' | 'local_ahead' | 'published_ahead' | null;
+        }>;
+        syncLog: Array<{ date: string; surface: string; event: string; detail: string; status: string }>;
+      };
+
+      const lines: string[] = [];
+      lines.push(`# Deploy State (last refreshed ${state.lastSync.slice(0, 16).replace('T', ' ')} UTC)`);
+      lines.push('');
+
+      const ids = surface === 'all' ? Object.keys(state.surfaces) : [surface];
+      for (const id of ids) {
+        const s = state.surfaces[id];
+        if (!s) continue;
+        lines.push(`## ${s.name} (${s.repo} @ ${s.branch})`);
+        if (s.latestCommit) {
+          lines.push(`- Latest commit: \`${s.latestCommit.sha}\` — "${s.latestCommit.message}" (${s.latestCommit.pushedAt.slice(0, 10)})`);
+        } else {
+          lines.push('- Latest commit: unknown (GitHub fetch failed)');
+        }
+        if (s.published?.version) {
+          const when = s.published.publishedAt ? ` (${s.published.publishedAt.slice(0, 10)})` : '';
+          const where = s.published.url ? ` — ${s.published.url}` : '';
+          lines.push(`- Published: ${s.published.version}${when}${where}`);
+        } else {
+          lines.push('- Published: nothing yet (or not applicable)');
+        }
+        const driftLabel = s.drift === 'synced' ? '✓ synced'
+          : s.drift === 'local_ahead' ? '⚠ local ahead — commits not yet published'
+          : s.drift === 'published_ahead' ? '⚠ published ahead of local — pull needed'
+          : '— (no drift signal)';
+        lines.push(`- Drift: ${driftLabel}`);
+        lines.push('');
+      }
+
+      // Recent sync log — last 10 entries when reporting all surfaces, or
+      // entries for the chosen surface when targeted.
+      const filteredLog = surface === 'all'
+        ? state.syncLog.slice(0, 10)
+        : state.syncLog.filter((e) => e.surface === surface).slice(0, 10);
+      if (filteredLog.length > 0) {
+        lines.push('## Recent activity');
+        for (const e of filteredLog) {
+          lines.push(`- ${e.date} · ${e.surface} · ${e.event}${e.detail ? ` — ${e.detail}` : ''}`);
+        }
+      }
+
+      return { success: true, output: lines.join('\n') };
+    } catch (err) {
+      return {
+        success: false,
+        output: `Failed to read deploy state: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
   }
 
   // ── Platform API ────────────────────────────────────────────────────────
