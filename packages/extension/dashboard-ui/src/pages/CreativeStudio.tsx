@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react';
 import { useLocale } from '../i18n';
 import { post } from '../App';
 import type { AccountInfo } from '../types/messages';
@@ -8,6 +8,9 @@ import {
   FileDoc, FileXls, FileCsv, FileMd,
   Briefcase, ChartLineUp, Receipt, EnvelopeSimple, NotePencil, IdentificationCard,
 } from '@phosphor-icons/react';
+import {
+  CreativeGalleryStrip, type GalleryItem, type GalleryMediumKind,
+} from '../components/CreativeOutputCard';
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -389,6 +392,9 @@ function saveLocalAsset(type: string, url: string, title: string, prompt: string
     // Send to extension host to download the URL and save to disk
     post({ type: 'save_creative_to_disk', url, filename, assetType: type, prompt } as any);
   }
+
+  // Notify any open gallery views to refresh their derived state.
+  window.dispatchEvent(new CustomEvent('ava-creative-assets-updated'));
 }
 
 function deleteLocalAsset(id: string) {
@@ -396,6 +402,7 @@ function deleteLocalAsset(id: string) {
   try {
     localStorage.setItem('ava-creative-assets', JSON.stringify(assets));
   } catch { /* quota */ }
+  window.dispatchEvent(new CustomEvent('ava-creative-assets-updated'));
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -462,24 +469,77 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
   // Images
   const [imagePrompt, setImagePrompt] = useState('');
   const [imageSize, setImageSize] = useState<string>('1280*1280');
-  const [lastImage, setLastImage] = useState<string | null>(null);
 
   // Audio
   const [musicPrompt, setMusicPrompt] = useState('');
   const [musicLyrics, setMusicLyrics] = useState('');
-  const [lastAudio, setLastAudio] = useState<string | null>(null);
 
   // Voice
   const [voiceText, setVoiceText] = useState('');
   const [voiceId, setVoiceId] = useState('Calm_Woman');
   const [voiceSpeed, setVoiceSpeed] = useState(1.0);
-  const [lastVoice, setLastVoice] = useState<string | null>(null);
 
   // Video
   const [videoPrompt, setVideoPrompt] = useState('');
   const [videoDuration, setVideoDuration] = useState<number>(6);
-  const [lastVideo, setLastVideo] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+
+  // Per-medium gallery state — derived from localStorage assets via
+  // loadLocalAssets() (already used for the Library tab) plus cloud
+  // assets when data-mode includes cloud. Refreshes on data-mode change.
+  // Replaces the single-slot lastX state — the gallery's first item IS
+  // the most recent generation, displayed at the front of the strip.
+  const [galleryRefresh, setGalleryRefresh] = useState(0);
+  // Cloud assets are not yet merged into the gallery in this surface —
+  // wired via the existing `load_cloud_assets` flow on the Library tab,
+  // separate state. Leaving an empty array here keeps the merge logic
+  // intact so when we wire the cloud broadcast through, the gallery
+  // picks up new entries without further refactor.
+  const cloudAssets: any[] = [];
+  const allGalleryItems = useMemo(() => {
+    const local = loadLocalAssets();
+    const seen = new Set<string>();
+    const merged: GalleryItem[] = [];
+    for (const a of [...local, ...cloudAssets]) {
+      const id = a.id || `${a.type || a.asset_type}_${a.created_at}`;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const kind = (a.type || a.asset_type || 'image').toLowerCase();
+      merged.push({
+        id,
+        kind: (['image','music','voice','sfx','video'].includes(kind) ? kind : 'image') as GalleryMediumKind,
+        url: a.url || '',
+        prompt: a.prompt || '',
+        title: a.title || '',
+        createdAt: a.created_at || new Date().toISOString(),
+        local: !!a.local || local.some((l: any) => l.id === id),
+        cloud: cloudAssets.some(c => c.id === id),
+      });
+    }
+    merged.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+    return merged;
+    // galleryRefresh forces re-derive when localStorage changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cloudAssets, galleryRefresh]);
+
+  // Per-medium filtered views — passed to each tab's gallery strip.
+  const imageItems = useMemo(() => allGalleryItems.filter(i => i.kind === 'image'), [allGalleryItems]);
+  const musicItems = useMemo(() => allGalleryItems.filter(i => i.kind === 'music'), [allGalleryItems]);
+  const voiceItems = useMemo(() => allGalleryItems.filter(i => i.kind === 'voice'), [allGalleryItems]);
+  const videoItems = useMemo(() => allGalleryItems.filter(i => i.kind === 'video'), [allGalleryItems]);
+
+  // Refresh handler — called after every save / delete to re-read
+  // localStorage. Cheap; localStorage is in-memory.
+  const refreshGallery = useCallback(() => setGalleryRefresh(t => t + 1), []);
+
+  // Subscribe to local-asset and cloud-asset update events from the
+  // existing infrastructure. The existing CustomEvent already fires on
+  // saveLocalAsset; we just need to listen.
+  useEffect(() => {
+    const onLocalChange = () => refreshGallery();
+    window.addEventListener('ava-creative-assets-updated', onLocalChange);
+    return () => window.removeEventListener('ava-creative-assets-updated', onLocalChange);
+  }, [refreshGallery]);
 
   // Library
   const [libraryAssets, setLibraryAssets] = useState<any[]>([]);
@@ -547,7 +607,6 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     try {
       const data = await apiCall('generate-image', { prompt: imagePrompt.trim(), size: imageSize, model: 'minimax' });
       if (data.url) {
-        setLastImage(data.url);
         saveLocalAsset('image', data.url, imagePrompt.slice(0, 60), imagePrompt);
       } else throw new Error(data.error || 'No image URL returned');
     } catch (e: any) { setError(e.message || e); }
@@ -562,7 +621,6 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     try {
       const data = await apiCall('generate-music', { prompt: musicPrompt.trim(), lyrics: musicLyrics.trim() || undefined });
       if (data.url) {
-        setLastAudio(data.url);
         saveLocalAsset('music', data.url, musicPrompt.slice(0, 60), musicPrompt);
       } else throw new Error(data.error || 'No audio URL returned');
     } catch (e: any) { setError(e.message || e); }
@@ -577,7 +635,6 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     try {
       const data = await apiCall('generate-voice', { text: voiceText.trim(), voice_id: voiceId, speed: voiceSpeed });
       if (data.url) {
-        setLastVoice(data.url);
         saveLocalAsset('voice', data.url, voiceText.slice(0, 60), voiceText);
       } else throw new Error(data.error || 'No voice URL returned');
     } catch (e: any) { setError(e.message || e); }
@@ -592,7 +649,6 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     try {
       const data = await apiCall('generate-video', { prompt: videoPrompt.trim(), duration: videoDuration });
       if (data.url) {
-        setLastVideo(data.url);
         saveLocalAsset('video', data.url, videoPrompt.slice(0, 60), videoPrompt);
       } else throw new Error(data.error || 'No video URL returned');
     } catch (e: any) {
@@ -1196,97 +1252,50 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
 
           {/* RIGHT: Results panel */}
           <div className="flex-1 overflow-y-auto">
-            {/* ── Images results ──────────────────────────────── */}
+            {/* ── Per-medium gallery strip — newest first ──────── */}
             {activeTab === 'images' && (
-              lastImage ? (
-                <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4">
-                  <img
-                    src={lastImage}
-                    alt="Generated image"
-                    className="w-full rounded-lg"
-                  />
-                  <p className="mt-3 text-[11px] text-[var(--text-muted)]">Generated image</p>
-                  <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">{imagePrompt}</p>
-                  <a
-                    href={lastImage}
-                    download
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-3 inline-block rounded-md border border-[var(--accent)]/12 bg-[var(--bg-input)] px-3.5 py-1.5 text-[11px] font-medium text-[var(--text-primary)] no-underline transition hover:border-[var(--accent)]/30"
-                  >
-                    Download
-                  </a>
-                </div>
-              ) : (
-                <div className="flex min-h-[200px] items-center justify-center rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] text-sm text-[var(--text-muted)]">
-                  Generated images will appear here
-                </div>
-              )
+              <CreativeGalleryStrip
+                items={imageItems}
+                onRegenerate={(item) => setImagePrompt(item.prompt)}
+                onDelete={(item) => {
+                  deleteLocalAsset(item.id);
+                  if (item.cloud) post({ type: 'delete_cloud_asset', id: item.id } as any);
+                }}
+                emptyHint="Your image generations will appear here. Make one — they stack up newest first."
+              />
             )}
-
-            {/* ── Audio results ───────────────────────────────── */}
             {activeTab === 'audio' && (
-              lastAudio ? (
-                <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 space-y-3">
-                  <AudioPlayer src={lastAudio} />
-                  <p className="text-[11px] text-[var(--text-muted)]">Generated audio</p>
-                  <p className="text-xs leading-relaxed text-[var(--text-secondary)]">{musicPrompt}</p>
-                  <a
-                    href={lastAudio}
-                    download
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-block rounded-md border border-[var(--accent)]/12 bg-[var(--bg-input)] px-3.5 py-1.5 text-[11px] font-medium text-[var(--text-primary)] no-underline transition hover:border-[var(--accent)]/30"
-                  >
-                    Download
-                  </a>
-                </div>
-              ) : (
-                <div className="flex min-h-[200px] items-center justify-center rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] text-sm text-[var(--text-muted)]">
-                  Generated audio will appear here
-                </div>
-              )
+              <CreativeGalleryStrip
+                items={musicItems}
+                onRegenerate={(item) => setMusicPrompt(item.prompt)}
+                onDelete={(item) => {
+                  deleteLocalAsset(item.id);
+                  if (item.cloud) post({ type: 'delete_cloud_asset', id: item.id } as any);
+                }}
+                emptyHint="Your music generations will appear here."
+              />
             )}
-
-            {/* ── Voice results ───────────────────────────────── */}
             {activeTab === 'voice' && (
-              lastVoice ? (
-                <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 space-y-3">
-                  <AudioPlayer src={lastVoice} />
-                  <p className="text-[11px] text-[var(--text-muted)]">
-                    Generated voice — {VOICES.find(v => v.id === voiceId)?.label || voiceId}
-                  </p>
-                  <p className="text-xs leading-relaxed text-[var(--text-secondary)]">{voiceText}</p>
-                </div>
-              ) : (
-                <div className="flex min-h-[200px] items-center justify-center rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] text-sm text-[var(--text-muted)]">
-                  Generated voice will appear here
-                </div>
-              )
+              <CreativeGalleryStrip
+                items={voiceItems}
+                onRegenerate={(item) => setVoiceText(item.prompt)}
+                onDelete={(item) => {
+                  deleteLocalAsset(item.id);
+                  if (item.cloud) post({ type: 'delete_cloud_asset', id: item.id } as any);
+                }}
+                emptyHint="Your voice generations will appear here."
+              />
             )}
-
-            {/* ── Video results ───────────────────────────────── */}
             {activeTab === 'video' && (
-              lastVideo ? (
-                <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 space-y-3">
-                  <VideoPlayer src={lastVideo} />
-                  <p className="text-[11px] text-[var(--text-muted)]">Generated video</p>
-                  <p className="text-xs leading-relaxed text-[var(--text-secondary)]">{videoPrompt}</p>
-                  <a
-                    href={lastVideo}
-                    download
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-block rounded-md border border-[var(--accent)]/12 bg-[var(--bg-input)] px-3.5 py-1.5 text-[11px] font-medium text-[var(--text-primary)] no-underline transition hover:border-[var(--accent)]/30"
-                  >
-                    Download
-                  </a>
-                </div>
-              ) : (
-                <div className="flex min-h-[200px] items-center justify-center rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] text-sm text-[var(--text-muted)]">
-                  Generated videos will appear here
-                </div>
-              )
+              <CreativeGalleryStrip
+                items={videoItems}
+                onRegenerate={(item) => setVideoPrompt(item.prompt)}
+                onDelete={(item) => {
+                  deleteLocalAsset(item.id);
+                  if (item.cloud) post({ type: 'delete_cloud_asset', id: item.id } as any);
+                }}
+                emptyHint="Your video generations will appear here."
+              />
             )}
           </div>
         </div>
