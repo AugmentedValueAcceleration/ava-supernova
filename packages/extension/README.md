@@ -59,7 +59,7 @@ Ava approaches your features the way a real engineer would, not the way a fast a
 - **Work pipeline** — Scout → Architect → Verifier → Sequencer → Challenger → Builder
 - Simple questions skip orchestration entirely. Zero overhead.
 
-Two orchestrated modes ship in the dropdown. **Maestro** runs on a single coordinator — Qwen 3.6 Plus by default, the Terminal-Bench leader and battle-tested across the persona pipeline. **Supernova** is the polyglot: DeepSeek V4 Pro coordinator + Qwen 3.6 Plus for Builder spawns + V4 Flash for review-tier work + Qwen Omni when vision is in play. Pick whichever — or any specific model manually.
+Three orchestrated modes ship in the dropdown. **Maestro** runs on a single coordinator — Qwen 3.6 Plus by default, the Terminal-Bench leader and battle-tested across the persona pipeline. **Supernova** is the polyglot: DeepSeek V4 Pro coordinator + Qwen 3.6 Plus for Builder spawns + V4 Flash for review-tier work + Qwen Omni when vision is in play. **Aurora** is the European AI stack — Mistral Large 3 as coordinator + Mistral Small 4 for everything else, end-to-end, never leaves European infrastructure. Apache-2.0, open weights, sovereign by design. Pick whichever — or any specific model manually.
 
 ---
 

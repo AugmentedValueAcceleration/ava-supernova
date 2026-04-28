@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.55.1 — 2026-04-28
+
+### Changed
+- **Marketplace description + README updated to feature Aurora.** The listing now mentions all three orchestrated routing modes (Maestro / Supernova / Aurora) and the EU-stack positioning for Aurora — important for European procurement audiences scanning the listing for sovereignty-relevant tooling. No code changes; visibility patch.
+- **`Switch Model` command title** updated to mention Aurora alongside Maestro and Supernova so the command palette description matches what's actually in the dropdown.
+- **`activeModel` setting description** rewritten to surface the three orchestrated modes by name.
+
 ## 0.55.0 — 2026-04-28
 
 The European AI stack, in one click.
