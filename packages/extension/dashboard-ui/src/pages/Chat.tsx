@@ -993,6 +993,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName }: Cha
             isCompressing={state.isCompressing}
             isStreaming={state.isStreaming}
             onCompress={handleCompress}
+            userName={userName}
           />
 
           {/* Compression indicator */}
