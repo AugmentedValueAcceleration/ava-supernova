@@ -175,7 +175,7 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
     const ts = message.timestamp ? new Date(message.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
     return (
       <div className="flex justify-end items-start" style={{ marginBottom: 8 }}>
-        <div style={{ maxWidth: '75%', position: 'relative' }}>
+        <div style={{ maxWidth: '85%', position: 'relative' }}>
           <div className="flex items-center gap-2 justify-end" style={{ marginBottom: 4 }}>
             <span style={{ fontSize: 11, fontWeight: 600, color: '#b4befe' }}>
               {t('dash.chat.you') || 'You'}
@@ -311,7 +311,7 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
               <div
                 className="group space-y-2"
                 style={{
-                  maxWidth: '90%',
+                  maxWidth: '95%',
                   padding: '10px 16px',
                   borderRadius: '16px 16px 16px 4px',
                   background: '#181825',

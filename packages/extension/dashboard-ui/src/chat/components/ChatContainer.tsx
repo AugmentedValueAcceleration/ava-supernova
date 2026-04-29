@@ -70,7 +70,7 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
 
     return (
       <div className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="max-w-3xl mx-auto space-y-3">
+        <div className="w-full space-y-3">
           {needsSetup && (
             <button
               onClick={onOpenDashboard}

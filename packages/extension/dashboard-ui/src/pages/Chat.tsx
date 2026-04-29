@@ -122,13 +122,22 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         setLocale(action.locale);
         if (action.localeStrings) loadStrings(action.locale, action.localeStrings);
       }
+      // BYOK-only sessions (no platform key) have nothing to fetch —
+      // drop both gates immediately. Sessions with a platform key drop
+      // accountLoading the moment chat_init carries platformStatus
+      // (the host fetched it before sending init).
+      const initProviderSource = action.providerSource ?? state.providerSource;
+      const isByokOnly = initProviderSource === 'byok';
+      const platformStatusIncluded = !!action.platformStatus;
       return {
         ...state,
         initialized: true,
         models: action.models,
         activeModel: action.activeModel,
         needsSetup: action.needsSetup,
-        providerSource: action.providerSource ?? state.providerSource,
+        providerSource: initProviderSource,
+        accountLoading: isByokOnly ? false : (platformStatusIncluded ? false : state.accountLoading),
+        historyLoading: isByokOnly ? false : state.historyLoading,
         platformStatus: action.platformStatus
           ? {
               connected: action.platformStatus.connected,
@@ -388,6 +397,8 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     case 'chat_platform_status':
       return {
         ...state,
+        // Account fetch resolved — drop the gate.
+        accountLoading: false,
         platformStatus: {
           connected: action.connected,
           tier: action.tier,
@@ -518,7 +529,10 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
     }
 
     case 'history_list':
-      return { ...state, historyList: action.conversations, historyOpen: true };
+      // History fetch resolved — drop the gate. Subsequent manual
+      // sidebar opens re-fire history_list with the latest data;
+      // setting an already-false flag false is a no-op.
+      return { ...state, historyLoading: false, historyList: action.conversations, historyOpen: true };
 
     case 'history_search_results':
       return { ...state, historyList: action.conversations };
@@ -645,6 +659,11 @@ const initialState: ChatState = {
   isThinking: false,
   needsSetup: true,
   initialized: false,
+  // Default true — flipped false when chat_init delivers a platform
+  // status (account fetched) and when history_list arrives. Spinner
+  // overlay holds the chat surface while either is in flight.
+  accountLoading: true,
+  historyLoading: true,
   lastUsage: null,
   contextUsage: null,
   isCompressing: false,
@@ -973,6 +992,32 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName }: Cha
             platformStatus={state.platformStatus}
           />
 
+          {(state.accountLoading || state.historyLoading) ? (
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex-1 flex flex-col items-center justify-center gap-3"
+              style={{ color: '#cdd6f4' }}
+            >
+              <div className="ava-chat-spinner" aria-hidden />
+              <div className="text-[12px]" style={{ color: '#a6adc8' }}>
+                {state.accountLoading && state.historyLoading
+                  ? 'Loading your account and chat history…'
+                  : state.accountLoading
+                    ? 'Loading your account…'
+                    : 'Loading your chat history…'}
+              </div>
+              <style>{`
+                .ava-chat-spinner {
+                  width: 32px; height: 32px; border-radius: 50%;
+                  border: 2.5px solid rgba(168, 85, 247, 0.18);
+                  border-top-color: #a855f7;
+                  animation: avaSpin 0.9s linear infinite;
+                }
+                @keyframes avaSpin { to { transform: rotate(360deg); } }
+              `}</style>
+            </div>
+          ) : (
           <ChatContainer
             messages={state.messages}
             isThinking={state.isThinking}
@@ -995,6 +1040,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName }: Cha
             onCompress={handleCompress}
             userName={userName}
           />
+          )}
 
           {/* Compression indicator */}
           {state.isCompressing && (

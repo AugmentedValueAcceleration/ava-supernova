@@ -507,6 +507,16 @@ export interface ChatState {
   isThinking: boolean;
   needsSetup: boolean;
   initialized: boolean;
+  /**
+   * First-load gates for the dashboard chat surface. Mirror of the
+   * webview-ui flags (see message-types.ts). Both default true on a
+   * platform-key session; flipped false when chat_platform_status /
+   * history_list arrive, so the chat area can render a spinner
+   * takeover instead of an empty/broken-looking conversation list
+   * during the initial fetch.
+   */
+  accountLoading: boolean;
+  historyLoading: boolean;
   lastUsage: {
     prompt_tokens: number;
     completion_tokens: number;

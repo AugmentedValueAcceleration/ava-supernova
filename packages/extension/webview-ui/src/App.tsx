@@ -1265,39 +1265,40 @@ export function App() {
           conversationTitle={state.conversationTitle}
         />
 
-        {/* First-load banner — visible while account or history are still
-            being fetched on a platform-key session. Drops in one sweep
-            when both arrive so users don't see a half-populated state
-            (e.g. tier flipping Free → Pro) or read an empty conversation
-            list as "no chats" when it's actually still loading. */}
-        {(state.accountLoading || state.historyLoading) && (
+        {/* First-load takeover — full-area spinner instead of the thin
+            banner that shipped in v0.21. Was too easy to miss; users
+            opened chat, saw the empty conversation list, and read it
+            as "no chats" before localStorage drained. The spinner
+            takes the messages area entirely while data is in flight,
+            disappears the moment both fetches resolve. */}
+        {(state.accountLoading || state.historyLoading) ? (
           <div
             role="status"
             aria-live="polite"
-            className="flex items-center gap-2 px-3 py-1.5 text-[11px] border-b"
-            style={{
-              background: 'rgba(168, 85, 247, 0.08)',
-              borderColor: 'rgba(168, 85, 247, 0.2)',
-              color: '#cdd6f4',
-            }}
+            className="flex-1 flex flex-col items-center justify-center gap-3"
+            style={{ color: '#cdd6f4' }}
           >
-            <span
-              className="inline-block w-2.5 h-2.5 rounded-full"
-              style={{
-                background: '#A855F7',
-                animation: 'pulse 1.5s ease-in-out infinite',
-              }}
-            />
-            <span>
+            <div className="ava-chat-spinner" aria-hidden />
+            <div className="text-[12px]" style={{ color: '#a6adc8' }}>
               {state.accountLoading && state.historyLoading
                 ? 'Loading your account and chat history…'
                 : state.accountLoading
                   ? 'Loading your account…'
                   : 'Loading your chat history…'}
-            </span>
+            </div>
+            <style>{`
+              .ava-chat-spinner {
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                border: 2.5px solid rgba(168, 85, 247, 0.18);
+                border-top-color: #a855f7;
+                animation: avaSpin 0.9s linear infinite;
+              }
+              @keyframes avaSpin { to { transform: rotate(360deg); } }
+            `}</style>
           </div>
-        )}
-
+        ) : (
         <ChatContainer
           messages={state.messages}
           isThinking={state.isThinking}
@@ -1327,6 +1328,7 @@ export function App() {
           onCompress={handleCompress}
           userName={state.signInAccount?.name?.split(' ')[0] ?? null}
         />
+        )}
 
         {/* Context usage — sits flush above the composer so the bar is
             right where the next turn is being written. Click-to-compress
