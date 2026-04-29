@@ -54,7 +54,11 @@ export async function migrateV2ToV3(dir: string, graph: MemoryGraph): Promise<nu
 
     logger.info(`[migration] Migrating ${entries.length} v2 entries to v3 graph at ${dir}`);
 
-    // ── Step 1: Convert entries to nodes ─────────────────────────────────
+    // ── Step 1: Convert entries to nodes (FAST — must be synchronous) ────
+    // Node creation is cheap (~1ms per entry) and must complete before
+    // we save + rename so the agent has its memory available the moment
+    // activation finishes. 3,240 entries = ~3 seconds, but that's a
+    // one-time cost the user accepts on first run.
     const nodeIds: string[] = [];
     for (const entry of entries) {
       if (!entry.content?.trim()) continue;
@@ -86,65 +90,13 @@ export async function migrateV2ToV3(dir: string, graph: MemoryGraph): Promise<nu
       nodeIds.push(node.id);
     }
 
-    // ── Step 2: Find related pairs via similarity ────────────────────────
-    // For each node, check similarity against others in the same category
-    let relatedEdges = 0;
-    let contradictions = 0;
-
-    // Only do cross-comparison for non-archived, non-trivial nodes
-    const activeNodes = nodeIds
-      .map(id => graph.getNode(id))
-      .filter((n): n is MemoryNode => n !== null && !n.archived && n.content.length > 20);
-
-    // Limit to first 200 nodes for performance (O(n²) comparison)
-    const compareSet = activeNodes.slice(0, 200);
-
-    for (let i = 0; i < compareSet.length; i++) {
-      const similar = graph.findSimilar(compareSet[i].content, {
-        category: compareSet[i].category,
-        minSimilarity: 0.35,
-        excludeIds: new Set([compareSet[i].id]),
-      });
-
-      for (const { node: target, similarity } of similar.slice(0, 3)) {
-        if (similarity >= 0.9) {
-          // Near-duplicate: related-to edge (could be merged later)
-          graph.addEdge({
-            fromNodeId: compareSet[i].id,
-            toNodeId: target.id,
-            type: 'related-to',
-            weight: similarity,
-            metadata: { source: 'migration-similarity' },
-          });
-          relatedEdges++;
-        } else if (similarity >= 0.7) {
-          // Potential contradiction
-          graph.addEdge({
-            fromNodeId: compareSet[i].id,
-            toNodeId: target.id,
-            type: 'contradicts',
-            weight: similarity,
-            metadata: { source: 'migration-contradiction-candidate', resolved: false },
-          });
-          contradictions++;
-        } else {
-          // Weak relation
-          graph.addEdge({
-            fromNodeId: compareSet[i].id,
-            toNodeId: target.id,
-            type: 'related-to',
-            weight: similarity,
-            metadata: { source: 'migration-similarity' },
-          });
-          relatedEdges++;
-        }
-      }
-    }
-
-    // ── Step 3: Save the graph and rename the old file ────────────────────
+    // ── Step 2: Save nodes + rename old file (FAST, synchronous) ────────
+    // Persist what we've got NOW so the agent's memory is usable as soon
+    // as activation returns. Similarity edges enrichment (Step 3) runs
+    // in the background after this returns — they're additive and don't
+    // affect baseline recall.
     await graph.forceSave();
 
-    // Rename v2 file as backup
     try {
       await rename(v2Path, join(dir, V2_BACKUP));
       logger.info(`[migration] Renamed ${V2_FILENAME} → ${V2_BACKUP}`);
@@ -152,10 +104,101 @@ export async function migrateV2ToV3(dir: string, graph: MemoryGraph): Promise<nu
       logger.warn(`[migration] Could not rename ${V2_FILENAME} — it will be ignored (graph.json takes precedence)`);
     }
 
-    logger.info(`[migration] v2 → v3 complete: ${nodeIds.length} nodes, ${relatedEdges} related edges, ${contradictions} contradiction candidates`);
+    logger.info(`[migration] v2 → v3 nodes complete: ${nodeIds.length} nodes — similarity edges queued in background`);
+
+    // ── Step 3: Similarity edges (SLOW, deferred to background) ──────────
+    // Used to run synchronously here as O(n²) similarity over 200 nodes,
+    // ~600K string comparisons that blocked the extension host main
+    // thread for ~5 seconds and triggered VS Code's "unresponsive
+    // extension" warning + made the sign-in Cancel button look broken.
+    //
+    // Now fired and forgotten — yields to the event loop every 10 nodes
+    // so the host stays responsive while edges form. Edges are additive,
+    // so partial completion is safe; the agent can read the graph mid-
+    // enrichment without seeing inconsistent state.
+    void buildSimilarityEdges(graph, nodeIds);
+
     return nodeIds.length;
   } catch (err) {
     logger.warn(`[migration] v2 → v3 migration failed: ${err instanceof Error ? err.message : String(err)}`);
     return 0;
+  }
+}
+
+/**
+ * Build similarity edges between migrated nodes — runs deferred so it
+ * doesn't block the extension host on activation.
+ *
+ * Yields to the event loop every YIELD_EVERY iterations via a 0ms
+ * setTimeout. That's enough to let VS Code's responsiveness watchdog
+ * tick + queued webview messages (sign-in cancel, etc.) get processed
+ * while the comparison runs.
+ */
+async function buildSimilarityEdges(graph: MemoryGraph, nodeIds: string[]): Promise<void> {
+  const YIELD_EVERY = 10;
+
+  // Only do cross-comparison for non-archived, non-trivial nodes
+  const activeNodes = nodeIds
+    .map(id => graph.getNode(id))
+    .filter((n): n is MemoryNode => n !== null && !n.archived && n.content.length > 20);
+
+  // Limit to first 200 nodes for performance (O(n²) comparison)
+  const compareSet = activeNodes.slice(0, 200);
+
+  let relatedEdges = 0;
+  let contradictions = 0;
+
+  for (let i = 0; i < compareSet.length; i++) {
+    if (i > 0 && i % YIELD_EVERY === 0) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    }
+
+    const similar = graph.findSimilar(compareSet[i].content, {
+      category: compareSet[i].category,
+      minSimilarity: 0.35,
+      excludeIds: new Set([compareSet[i].id]),
+    });
+
+    for (const { node: target, similarity } of similar.slice(0, 3)) {
+      if (similarity >= 0.9) {
+        // Near-duplicate: related-to edge (could be merged later)
+        graph.addEdge({
+          fromNodeId: compareSet[i].id,
+          toNodeId: target.id,
+          type: 'related-to',
+          weight: similarity,
+          metadata: { source: 'migration-similarity' },
+        });
+        relatedEdges++;
+      } else if (similarity >= 0.7) {
+        // Potential contradiction
+        graph.addEdge({
+          fromNodeId: compareSet[i].id,
+          toNodeId: target.id,
+          type: 'contradicts',
+          weight: similarity,
+          metadata: { source: 'migration-contradiction-candidate', resolved: false },
+        });
+        contradictions++;
+      } else {
+        // Weak relation
+        graph.addEdge({
+          fromNodeId: compareSet[i].id,
+          toNodeId: target.id,
+          type: 'related-to',
+          weight: similarity,
+          metadata: { source: 'migration-similarity' },
+        });
+        relatedEdges++;
+      }
+    }
+  }
+
+  // Persist the new edges. Cheap — only edges added since the Step-2 save.
+  try {
+    await graph.forceSave();
+    logger.info(`[migration] v2 → v3 similarity enrichment complete: ${relatedEdges} related edges, ${contradictions} contradiction candidates`);
+  } catch (err) {
+    logger.warn(`[migration] Similarity enrichment save failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
