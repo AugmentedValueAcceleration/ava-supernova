@@ -95,38 +95,47 @@ export function cacheHitMultiplier(model: string | null | undefined): number {
  *  on chat_turn loses money on every call. The multiplier scales the
  *  bracket cost to track actual spend.
  *
- *  Calibrated 2026-04-25 against published rates and the 55% net margin
- *  target. Mirror of web's credits-pricing.ts MODEL_COST_MULTIPLIER —
- *  keep them in sync; web is the authoritative billing surface and core's
- *  meter dual-writes for dataset audit. Default 1.0 for unlisted models. */
+ *  Recalibrated 2026-04-29 to a 40% net margin target (was 55%). Trade
+ *  is deliberate — thinner margin per existing user, materially more
+ *  credits per dollar, the difference goes back to the user. Lever for
+ *  conversion: Free's allowance now feels like a real evaluation tool
+ *  rather than a paywall teaser, and Pro's daily Maestro budget roughly
+ *  doubles at the same price. "Value over margin" — sustainability
+ *  floor, not ceiling.
+ *
+ *  Mirror of web's credits-pricing.ts MODEL_COST_MULTIPLIER — keep them
+ *  in sync; web is the authoritative billing surface and core's meter
+ *  dual-writes for dataset audit. Default 1.0 for unlisted models. */
 export const MODEL_COST_MULTIPLIER: Record<string, number> = {
-  // V4 Pro is ~6× Qwen 3.6 Plus on input, ~2× on output. Blended 4.3× on
-  // typical agentic-heavy turns. 6.0× restores margin parity with Qwen 3.6
-  // (was 5.0× → ~5% margin; now 6.0× → ~21% margin). 2026-04-25 recalibration.
-  'deepseek-v4-pro':            6.0,
-  'deepseek-v4-pro-platform':   6.0,
-  'qwen3.6-plus':               1.5,
-  'qwen-plus':                  1.5,
-  'qwen3.5-plus':               1.2,
-  'qwen3.5-omni-plus':          1.2,
-  // Mistral pricing is competitive with Qwen — Small 4 sub-1× (cheaper
-  // than the anchor), Large 3 about par. Calibrated 2026-04-28 against
-  // published rates: Small 4 $0.15/$0.60 ≈ 40% of Qwen 3.6 Plus blended,
-  // Large 3 $0.50/$1.50 ≈ 95% of Qwen 3.6 Plus blended. Mirrors web's
-  // credits-pricing.ts MODEL_COST_MULTIPLIER — keep them in sync.
+  // V4 Pro: 6.0 → 3.75. Supernova chat used to charge 24 credits/turn
+  // (~62% margin); now 15 credits (~40%). Frees ~37% more headroom for
+  // heavy multi-step work without changing what V4 Pro actually costs us.
+  'deepseek-v4-pro':            3.75,
+  'deepseek-v4-pro-platform':   3.75,
+  // Qwen 3.6 Plus: 1.5 → 0.7. Maestro chat used to charge 6 credits/turn
+  // (~79% margin); now 3 credits (~40%). The biggest concrete win for
+  // users — daily-driver Maestro doubles at the same plan price.
+  'qwen3.6-plus':               0.7,
+  'qwen-plus':                  0.7,
+  'qwen3.5-plus':               0.6,
+  'qwen3.5-omni-plus':          0.6,
+  // Mistral Small 4 stays sub-1× — already cheaper than the anchor and
+  // sits at the intent gate where short calls dominate.
   'mistral-small-4':            0.6,
   'mistral-small-4-platform':   0.6,
-  'mistral-large-3':            1.4,
-  'mistral-large-3-platform':   1.4,
-  // Mistral Medium 3.5 (April 2026) — $1.50/$7.50 per million. Input
-  // sits between Large 3 ($0.50) and the Anthropic-tier lineup; output
-  // ($7.50) is high. Blended ≈ 3.0× Qwen 3.6 Plus. Aurora's Builder /
-  // mid-tier specialist / vision / long-form pick after the 2026-04-29
-  // three-tier upgrade. Higher per-call cost is offset by Medium's
-  // first-pass success rate (77.6% SWE-Bench Verified) — fewer retry
-  // loops compared to running Small 4 in the same slot.
-  'mistral-medium-3.5':           3.0,
-  'mistral-medium-3.5-platform':  3.0,
+  // Mistral Large 3: 1.4 → 1.25. Aurora coordinator-direct chat used to
+  // charge 7 credits/turn (~59% margin); now 5 credits (~40%).
+  'mistral-large-3':            1.25,
+  'mistral-large-3-platform':   1.25,
+  // Mistral Medium 3.5: 3.0 → 4.25. The ONE multiplier that goes UP at
+  // the 40% rebalance — it was sitting at ~36% margin (below the new
+  // floor) because the original 3.0× was set against a 55% target with
+  // a 1.3× Aurora mode bump on top, not against 40% with a flat mode.
+  // Raising the model multiplier directly is more honest than hiding
+  // the cost in an Aurora-only mode bump (which would lie about
+  // Medium 3.5's per-model cost when used outside Aurora).
+  'mistral-medium-3.5':           4.25,
+  'mistral-medium-3.5-platform':  4.25,
 };
 
 /** Per-mode cost multiplier — applied AFTER the model multiplier in
@@ -134,19 +143,16 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
  *  the richness of its specialist fleet, independent of which model
  *  the orchestrator picks for a given role.
  *
- *  Aurora at 1.3× — passes through the cost premium of the three-tier
- *  Mistral fleet (Large 3 + Medium 3.5 + Small 4, after the 2026-04-29
- *  Medium 3.5 integration). Aurora's mid-tier specialists run on Medium
- *  3.5 instead of Small 4, which raises specialist-call cost ~5× per
- *  token. The mode multiplier captures that without baking it into
- *  per-model pricing (which would lie about Medium 3.5's cost when used
- *  outside Aurora — e.g. a BYOK user picking Medium 3.5 directly).
- *
- *  Maestro and Supernova stay 1.0× — the Supernova fleet was verified
- *  cost-neutral on 2026-04-25 and Maestro's Qwen-only fleet is the
- *  cost anchor everything else is calibrated against. */
+ *  All modes 1.0× as of the 2026-04-29 40% rebalance. Aurora used to
+ *  carry a 1.3× bump to compensate for Medium 3.5's price; that's been
+ *  folded into the per-model multiplier (Medium 3.5 = 4.25×) instead.
+ *  Per-model is the honest place to scale model cost — a BYOK user
+ *  picking Medium 3.5 directly outside Aurora pays the same per-token
+ *  rate the model genuinely costs us. The mode multiplier stays in the
+ *  architecture as a future hook (premium-tier modes, billed-by-mode
+ *  experiments) but no mode currently uses it. */
 export const MODE_COST_MULTIPLIER: Record<string, number> = {
-  aurora:    1.3,
+  aurora:    1.0,
   supernova: 1.0,
   maestro:   1.0,
   auto:      1.0, // alias used by clients — same as maestro
