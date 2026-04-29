@@ -1,7 +1,7 @@
 import type { TaskCategory } from './types.js';
 
 /**
- * Aurora mode — Mistral-only polyglot routing.
+ * Aurora mode — Mistral-only polyglot routing, three-tier fleet.
  *
  * The European-stack analogue of Supernova: same shape, different fleet.
  * Every route lands on a Mistral model so an Aurora deployment never
@@ -9,49 +9,63 @@ import type { TaskCategory } from './types.js';
  * data-residency / GDPR / AI Act constraints who can't buy a US AI stack
  * and who want a sovereign full-stack option (model + agent + tooling).
  *
- *   - Mistral Large 3   — coordinator, deep reasoning, long-context
- *                         synthesis. Sparse MoE 41B active / 675B total.
- *   - Mistral Small 4   — Builder spawn. Unified Magistral + Pixtral +
- *                         Devstral merge → vision-aware, agentic-coding
- *                         capable, frontier capability at $0.15/$0.60.
+ *   - Mistral Large 3   — Coordinator + heavy specialists. Sparse MoE
+ *                         41B active / 675B total. Frontier reasoning,
+ *                         long-context synthesis, deepest specialists.
+ *   - Mistral Medium 3.5 — Builder + mid-tier specialists + vision +
+ *                         long-form. 128B dense, 256K context, vision
+ *                         from-scratch encoder, modified-MIT open
+ *                         weights, 77.6% SWE-Bench Verified. The "merged
+ *                         flagship" — instruction + reasoning + coding
+ *                         in one weight set. Designed for long-horizon
+ *                         work; replaces Devstral 2 in Mistral's own
+ *                         Vibe CLI.
+ *   - Mistral Small 4   — Light tier / intent gate. Cheap-and-fast
+ *                         classification work; cheap routing decisions
+ *                         and tag the same model used to keep cache
+ *                         locality on short calls.
  *
- * Vision tasks stay on Small 4 (Pixtral capability is baked in) — no
- * hard switch to a separate vision model required, unlike Supernova
- * which routes vision to Qwen 3.5 Omni Plus.
+ * Three-tier upgrade vs the original two-tier Aurora (Large 3 + Small 4
+ * across the board): Medium 3.5 takes most of the actual work — Builder
+ * spawns, code review, fact check, security verifier, vision, long-form
+ * writing. Large 3 keeps coordinator + the heavy reasoning bursts. Small
+ * 4 stays only at the intent gate where its $0.15/$0.60 pricing earns
+ * its keep on dozens of short routing calls per turn.
  *
  * Aurora is deliberately Mistral-only. If a Mistral model is unavailable,
  * the router returns null and surfaces an error rather than silently
  * cross-routing — that's the EU-stack guarantee. Users who want graceful
  * degradation pick Maestro or Supernova instead.
  *
- * The table here is the operator-locked routing map per the design
- * conversation on 2026-04-28.
+ * Three-tier topology locked 2026-04-29 with the Medium 3.5 release.
  */
 
 // ── Coordinator + special-case routes (highest priority) ──────────────────
 
 /** The conductor that classifies tasks, picks specialists, runs the loop.
  *  Large 3 wins on reasoning depth and long-context synthesis — the same
- *  qualities that put V4 Pro in the Supernova coordinator slot. */
+ *  qualities that put V4 Pro in the Supernova coordinator slot. Stays
+ *  Large 3 — Medium 3.5 is too new to swap into the coordinator slot
+ *  without production soak. Reconsider in v0.58.0 once we have real-
+ *  world Aurora telemetry. */
 export const AURORA_COORDINATOR_ID = 'mistral-large-3';
 
-/** Builder agent — TaskExecutor spawn for any session task. Small 4
- *  carries Devstral's agentic-coding genealogy plus Pixtral vision in
- *  one model, at flash-tier pricing. The single most economical
- *  Builder spawn target Aurora has access to. */
-export const AURORA_BUILDER_ID = 'mistral-small-4';
+/** Builder agent — TaskExecutor spawn for any session task. Medium 3.5
+ *  is the highest-leverage upgrade in the Aurora fleet: 77.6% SWE-Bench
+ *  Verified vs Small 4's modest coding score, plus 256K context, plus
+ *  vision encoder from scratch. Replaces Small 4 here. */
+export const AURORA_BUILDER_ID = 'mistral-medium-3.5';
 
-/** Vision input override — Aurora is unique in not needing one. Small 4
- *  is the Builder *and* the vision specialist (Pixtral merged in), so
- *  attaching an image doesn't force a model switch. Exposed as a
- *  constant for symmetry with Supernova's API surface; the value is
- *  the same model the Builder route already lands on. */
-export const AURORA_VISION_ID = 'mistral-small-4';
+/** Vision input override — Medium 3.5's from-scratch vision encoder
+ *  handles variable image sizes / aspect ratios materially better than
+ *  Pixtral merged into Small 4. Replaces Small 4 here. */
+export const AURORA_VISION_ID = 'mistral-medium-3.5';
 
-/** Intent gate — the cheapest Mistral model that can also do agentic
- *  classification. Small 4 itself works at this scale; using one model
- *  for the gate + Builder gives a tighter cache-hit story than swapping
- *  models for a 50-token classification call. */
+/** Intent gate — the cheapest Mistral model that can classify reliably.
+ *  Stays on Small 4: $0.15/$0.60 input/output is hard to beat for short
+ *  routing calls, and a 50-token classification doesn't need Medium's
+ *  depth. Keeping Small 4 here protects per-turn cost from the Medium
+ *  3.5 upgrade everywhere else. */
 export const AURORA_INTENT_GATE_ID = 'mistral-small-4';
 
 // ── Per-task-category routing ─────────────────────────────────────────────
@@ -67,73 +81,80 @@ export interface AuroraRouteEntry {
 }
 
 export const AURORA_ROUTES: Record<TaskCategory, AuroraRouteEntry> = {
-  // Builder dominates — Small 4 absorbs Devstral's coding lineage and
-  // handles vision without a switch. No fallback to non-Mistral; the
-  // EU-stack guarantee is that Aurora stays Mistral-only.
-  coding:       { modelId: 'mistral-small-4',  reason: 'Mistral Small 4 — Devstral lineage + vision-aware + flash-tier cost',           fallbackModelId: 'mistral-large-3' },
-  // Vision input → Small 4 stays on (Pixtral baked in). Marked
-  // requiresVision so the router validates capability before routing.
-  vision:       { modelId: 'mistral-small-4',  reason: 'Mistral Small 4 — Pixtral vision capability merged into single model',          fallbackModelId: 'mistral-large-3', requiresVision: true },
-  image_gen:    { modelId: 'mistral-small-4',  reason: 'Mistral Small 4 — handles generate_image tool calls with vision context',       fallbackModelId: 'mistral-large-3' },
-  computer_use: { modelId: 'mistral-small-4',  reason: 'Mistral Small 4 — vision + agentic tool orchestration in one model',            fallbackModelId: 'mistral-large-3', requiresVision: true },
-  // Planning is Architect + Researcher territory. Large 3 wins on
-  // long-context synthesis and depth-of-reasoning — same qualities V4 Pro
-  // has on the Supernova table.
-  planning:     { modelId: 'mistral-large-3',  reason: 'Mistral Large 3 — sparse MoE depth + long-context planning synthesis',          fallbackModelId: 'mistral-small-4' },
-  // Chat = direct response from coordinator. Large 3 handles directly
-  // when not orchestrated; Small 4 is the warm fallback.
-  chat:         { modelId: 'mistral-large-3',  reason: 'Mistral Large 3 — coordinator handles chat directly with frontier reasoning',   fallbackModelId: 'mistral-small-4' },
+  // Builder dominates — Medium 3.5 carries the SWE-Bench Verified score
+  // and 256K context. Fallback to Large 3 if Medium 3.5 is unavailable
+  // (preserves capability ceiling) rather than dropping back to Small 4.
+  coding:       { modelId: 'mistral-medium-3.5', reason: 'Mistral Medium 3.5 — 77.6% SWE-Bench Verified, 256K context, agentic-coding optimised',   fallbackModelId: 'mistral-large-3' },
+  // Vision input → Medium 3.5's from-scratch encoder beats Pixtral merged.
+  vision:       { modelId: 'mistral-medium-3.5', reason: 'Mistral Medium 3.5 — vision encoder trained from scratch for variable sizes',             fallbackModelId: 'mistral-large-3', requiresVision: true },
+  image_gen:    { modelId: 'mistral-medium-3.5', reason: 'Mistral Medium 3.5 — handles generate_image tool calls with vision context',              fallbackModelId: 'mistral-small-4' },
+  computer_use: { modelId: 'mistral-medium-3.5', reason: 'Mistral Medium 3.5 — vision + agentic tool orchestration, designed for long-horizon work',fallbackModelId: 'mistral-large-3', requiresVision: true },
+  // Planning is Architect + Researcher territory. Large 3 stays —
+  // long-context synthesis and depth-of-reasoning are coordinator work.
+  planning:     { modelId: 'mistral-large-3',    reason: 'Mistral Large 3 — sparse MoE depth + long-context planning synthesis',                    fallbackModelId: 'mistral-medium-3.5' },
+  // Chat = direct response from coordinator. Large 3 stays for the
+  // coordinator-direct path; Medium 3.5 is the warm fallback.
+  chat:         { modelId: 'mistral-large-3',    reason: 'Mistral Large 3 — coordinator handles chat directly with frontier reasoning',             fallbackModelId: 'mistral-medium-3.5' },
   // Long-context grunt: Large 3's MoE handles 1M-class context efficiently
-  // (only 41B active per token).
-  long_context: { modelId: 'mistral-large-3',  reason: 'Mistral Large 3 — MoE efficiency at long context (41B active / 675B total)',    fallbackModelId: 'mistral-small-4' },
-  // Teach = Tutor + Curriculum Architect (mid-depth). Small 4 is the
-  // sweet spot — configurable reasoning effort lets the persona dial up
-  // depth when needed without flipping models.
-  teach:        { modelId: 'mistral-small-4',  reason: 'Mistral Small 4 — configurable reasoning depth at flash-tier cost',             fallbackModelId: 'mistral-large-3' },
-  // Security = CVE Researcher leads — depth 4 reasoning over attack surface.
-  security:     { modelId: 'mistral-large-3',  reason: 'Mistral Large 3 — deep reasoning over attack surface',                          fallbackModelId: 'mistral-small-4' },
+  // (only 41B active per token). Medium 3.5 caps at 256K so it's the
+  // fallback only when Large 3 is unavailable.
+  long_context: { modelId: 'mistral-large-3',    reason: 'Mistral Large 3 — MoE efficiency at long context (41B active / 675B total)',              fallbackModelId: 'mistral-medium-3.5' },
+  // Teach = Tutor + Curriculum Architect (mid-depth). Medium 3.5 is the
+  // sweet spot now — coherent long-form output for tutorial generation
+  // is exactly its lane.
+  teach:        { modelId: 'mistral-medium-3.5', reason: 'Mistral Medium 3.5 — coherent long-form output for tutorials and lesson plans',           fallbackModelId: 'mistral-large-3' },
+  // Security = CVE Researcher leads — depth-4 reasoning over attack surface.
+  security:     { modelId: 'mistral-large-3',    reason: 'Mistral Large 3 — deep reasoning over attack surface',                                    fallbackModelId: 'mistral-medium-3.5' },
   // Brainstorm = Ideator depth 5. Large 3 reasoning depth gives the
   // Ideator persona the headroom it needs.
-  brainstorm:   { modelId: 'mistral-large-3',  reason: 'Mistral Large 3 — frontier reasoning depth for ideation',                       fallbackModelId: 'mistral-small-4' },
+  brainstorm:   { modelId: 'mistral-large-3',    reason: 'Mistral Large 3 — frontier reasoning depth for ideation',                                 fallbackModelId: 'mistral-medium-3.5' },
 };
 
 // ── Per-persona override map ──────────────────────────────────────────────
 //
 // Used by Conductor when spawning specific personas. Persona is finer-grained
-// than task category — a "planning" task might invoke Architect (Small 4)
+// than task category — a "planning" task might invoke Architect (Medium 3.5)
 // AND Researcher (Large 3) within the same orchestration. Persona override
 // wins over the category route when set.
 //
 // Keys match persona names from packages/core/src/personas/definitions.ts.
+//
+// Three-tier mapping after the 2026-04-29 Medium 3.5 integration:
+//   - Heavy reasoning personas (Researcher, Challenger, CVE Researcher,
+//     Ideator, Fact Checker) → Large 3
+//   - Most working personas (Architect, Builder, Verifier, Sequencer,
+//     Tutor, Curriculum Architect, etc.) → Medium 3.5
+//   - Light routing personas (none currently — Small 4 stays at the
+//     intent gate level, not personas)
 
 export const AURORA_PERSONA_MODEL: Record<string, string> = {
-  // Heavy specialists.
-  architect:           'mistral-small-4',  // vision-aware planning, MCP, production-tested
-  researcher:          'mistral-large-3',  // long-context synthesis depth
-  builder:             'mistral-small-4',  // Devstral lineage + vision in one
-  verifier:            'mistral-small-4',  // verification leans on tool-call reliability
-  challenger:          'mistral-large-3',  // adversarial reasoning needs depth
-  sequencer:           'mistral-small-4',  // task ordering, mid-depth
+  // Work mode personas
+  architect:           'mistral-medium-3.5',  // vision-aware planning at the right depth
+  researcher:          'mistral-large-3',     // long-context synthesis depth
+  builder:             'mistral-medium-3.5',  // 77.6% SWE-Bench, 256K, vision
+  verifier:            'mistral-medium-3.5',  // verification benefits from Medium's reasoning lift
+  challenger:          'mistral-large-3',     // adversarial reasoning needs depth
+  sequencer:           'mistral-medium-3.5',  // task ordering, mid-depth, agentic
   // Plan mode personas
   plan_researcher:     'mistral-large-3',
-  plan_architect:      'mistral-small-4',
+  plan_architect:      'mistral-medium-3.5',
   plan_challenger:     'mistral-large-3',
   // Teach mode personas
-  curriculum_architect:'mistral-small-4',
-  content_writer:      'mistral-small-4',
-  fact_checker:        'mistral-large-3',  // depth + accuracy
-  quiz_master:         'mistral-small-4',
-  tutor:               'mistral-small-4',
+  curriculum_architect:'mistral-medium-3.5',
+  content_writer:      'mistral-medium-3.5',  // long-form coherence is Medium's lane
+  fact_checker:        'mistral-large-3',     // depth + accuracy
+  quiz_master:         'mistral-medium-3.5',
+  tutor:               'mistral-medium-3.5',
   // Security mode personas
-  recon:               'mistral-small-4',
-  scanner:             'mistral-small-4',
-  cve_researcher:      'mistral-large-3',  // deep reasoning over attack surface
+  recon:               'mistral-medium-3.5',
+  scanner:             'mistral-medium-3.5',
+  cve_researcher:      'mistral-large-3',     // deep reasoning over attack surface
   security_verifier:   'mistral-large-3',
-  reporter:            'mistral-small-4',
+  reporter:            'mistral-medium-3.5',  // long-form report generation
   // Brainstorm mode personas
-  explorer:            'mistral-small-4',
+  explorer:            'mistral-medium-3.5',
   brainstorm_researcher:'mistral-large-3',
-  ideator:             'mistral-large-3',  // depth 5
+  ideator:             'mistral-large-3',     // depth 5
   brainstorm_challenger:'mistral-large-3',
-  refiner:             'mistral-small-4',
+  refiner:             'mistral-medium-3.5',
 };

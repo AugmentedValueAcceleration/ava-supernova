@@ -118,7 +118,45 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
   'mistral-small-4-platform':   0.6,
   'mistral-large-3':            1.4,
   'mistral-large-3-platform':   1.4,
+  // Mistral Medium 3.5 (April 2026) — $1.50/$7.50 per million. Input
+  // sits between Large 3 ($0.50) and the Anthropic-tier lineup; output
+  // ($7.50) is high. Blended ≈ 3.0× Qwen 3.6 Plus. Aurora's Builder /
+  // mid-tier specialist / vision / long-form pick after the 2026-04-29
+  // three-tier upgrade. Higher per-call cost is offset by Medium's
+  // first-pass success rate (77.6% SWE-Bench Verified) — fewer retry
+  // loops compared to running Small 4 in the same slot.
+  'mistral-medium-3.5':           3.0,
+  'mistral-medium-3.5-platform':  3.0,
 };
+
+/** Per-mode cost multiplier — applied AFTER the model multiplier in
+ *  `creditsForTurn` / `creditsFor`. Lets a mode price itself based on
+ *  the richness of its specialist fleet, independent of which model
+ *  the orchestrator picks for a given role.
+ *
+ *  Aurora at 1.3× — passes through the cost premium of the three-tier
+ *  Mistral fleet (Large 3 + Medium 3.5 + Small 4, after the 2026-04-29
+ *  Medium 3.5 integration). Aurora's mid-tier specialists run on Medium
+ *  3.5 instead of Small 4, which raises specialist-call cost ~5× per
+ *  token. The mode multiplier captures that without baking it into
+ *  per-model pricing (which would lie about Medium 3.5's cost when used
+ *  outside Aurora — e.g. a BYOK user picking Medium 3.5 directly).
+ *
+ *  Maestro and Supernova stay 1.0× — the Supernova fleet was verified
+ *  cost-neutral on 2026-04-25 and Maestro's Qwen-only fleet is the
+ *  cost anchor everything else is calibrated against. */
+export const MODE_COST_MULTIPLIER: Record<string, number> = {
+  aurora:    1.3,
+  supernova: 1.0,
+  maestro:   1.0,
+  auto:      1.0, // alias used by clients — same as maestro
+};
+
+/** Apply per-mode cost multiplier. Default 1.0 for unlisted modes. */
+export function modeCostMultiplier(mode: string | null | undefined): number {
+  if (!mode) return 1.0;
+  return MODE_COST_MULTIPLIER[mode.toLowerCase()] ?? 1.0;
+}
 
 /** Apply per-model cost multiplier. Strips provider prefix if present. */
 export function modelCostMultiplier(model: string | null | undefined): number {
@@ -188,10 +226,15 @@ export function creditsForTurn(
     outputTokens?: number;
     cachedTokens?: number;
     model?: string;
+    /** Orchestrated mode in play — drives the mode-cost multiplier
+     *  (Aurora 1.3×, Maestro/Supernova 1.0×). Layered on top of the
+     *  per-model multiplier so a richer fleet pays for itself without
+     *  lying about model cost. Optional — omitted = 1.0×. */
+    mode?: string;
   },
 ): { credits: number; brackets: number } {
   const base = CREDIT_COST[action];
-  const multiplier = modelCostMultiplier(opts.model);
+  const multiplier = modelCostMultiplier(opts.model) * modeCostMultiplier(opts.mode);
   const flatScaled = Math.max(1, Math.round(base * multiplier));
 
   // Non-LLM actions (image/video/voice/music/bg_removal) ignore tokens.

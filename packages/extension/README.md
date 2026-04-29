@@ -34,7 +34,7 @@ You don't pick a model. You pick the work, and the right fleet falls out of that
 |---|---|---|---|---|
 | **Maestro** | Daily work, predictable cost | Qwen 3.6 Plus | Qwen 3.6 Plus + 3.5 Flash | Mixed (Alibaba) |
 | **Supernova** | Heavy multi-step work, frontier reasoning at specialist prices | DeepSeek V4 Pro | DeepSeek V4 Flash · Qwen 3.6 Plus · Qwen 3.5 Flash · Qwen 3.5 Omni Plus · Qwen 3.5 Plus | Mixed (DeepSeek + Alibaba) |
-| **Aurora** | GDPR-strict, public-sector, sovereign EU stacks | Mistral Large 3 | Mistral Small 4 (incl. Pixtral merged in for vision) | EU-only · Apache-2.0 |
+| **Aurora** | GDPR-strict, public-sector, sovereign EU stacks | Mistral Large 3 | Mistral Medium 3.5 (Builder + vision + long-form) · Mistral Small 4 (intent gate) | EU-only · open weights |
 
 Plans get all three. **BYOK gets all three too**, gated by the keys each fleet needs:
 
@@ -79,7 +79,7 @@ Ava approaches your features the way a real engineer would, not the way a fast a
 - **Work pipeline** — Scout → Architect → Verifier → Sequencer → Challenger → Builder
 - Simple questions skip orchestration entirely. Zero overhead.
 
-Three orchestrated modes ship in the dropdown. **Maestro** runs a single Qwen 3.6 Plus conductor — Terminal-Bench leader, predictable cost, the daily driver. **Supernova** is the polyglot: DeepSeek V4 Pro coordinator + V4 Flash mid-tier specialists + Qwen builders (3.6 Plus for builds, 3.5 Flash for the intent gate, 3.5 Omni Plus for vision, 3.5 Plus for long-form). **Aurora** is the European AI stack — Mistral Large 3 coordinator + Mistral Small 4 specialists end-to-end, Apache-2.0 open weights, never leaves EU infrastructure. Sovereign by default. Pick whichever fits the job.
+Three orchestrated modes ship in the dropdown. **Maestro** runs a single Qwen 3.6 Plus conductor — Terminal-Bench leader, predictable cost, the daily driver. **Supernova** is the polyglot: DeepSeek V4 Pro coordinator + V4 Flash mid-tier specialists + Qwen builders (3.6 Plus for builds, 3.5 Flash for the intent gate, 3.5 Omni Plus for vision, 3.5 Plus for long-form). **Aurora** is the European AI stack — three-tier Mistral fleet: Mistral Large 3 coordinator + heavy specialists, Mistral Medium 3.5 (the merged flagship released April 2026 — 77.6% SWE-Bench Verified, 256K context, vision encoder from scratch) for Builder + mid-tier specialists + vision + long-form, Mistral Small 4 at the intent gate. Open weights, never leaves EU infrastructure. Sovereign by default. Pick whichever fits the job.
 
 ---
 

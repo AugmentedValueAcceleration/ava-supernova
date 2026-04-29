@@ -35,6 +35,27 @@ export const MISTRAL_MODELS: ModelDefinition[] = [
     desktopCapable: true,
     pricing: { inputPerMillion: 0.50, outputPerMillion: 1.50 },
   },
+  // Mistral Medium 3.5 (April 2026) — 128B dense, 256K context, vision-
+  // capable from-scratch encoder, modified-MIT open weights. Mistral's
+  // first "merged flagship" combining instruction + reasoning + coding
+  // in a single weight set. 77.6% SWE-Bench Verified, beats Devstral 2
+  // and Qwen3.5 397B. Designed for long-horizon work — replaces Devstral
+  // 2 in Vibe CLI. Aurora's Builder + mid-tier specialist + vision +
+  // long-form pick. Sits above Small 4 (light tier) and below Large 3
+  // (coordinator + heavy specialists). Three-tier Aurora fleet.
+  {
+    id: 'mistral-medium-3.5',
+    name: 'Mistral Medium 3.5',
+    provider: 'mistral',
+    contextWindow: 256000,
+    maxOutputTokens: 8192,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: true,
+    desktopCapable: true,
+    pricing: { inputPerMillion: 1.50, outputPerMillion: 7.50 },
+  },
   {
     id: 'mistral-large-latest',
     name: 'Mistral Large',
