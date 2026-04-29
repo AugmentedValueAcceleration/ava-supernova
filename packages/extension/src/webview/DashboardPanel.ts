@@ -1839,18 +1839,46 @@ export class DashboardPanel {
   // ─── Conversations (History) ────────────────────────────────────────────────
 
   private async loadConversations(): Promise<void> {
+    // Local-first. Conversations are written to ~/.ava/ on every chat
+    // turn regardless of cloud-sync status, so the local list is always
+    // the source of truth for "what conversations exist on this
+    // device". The cloud fetch (when signed in) augments — adding
+    // conversations from other devices the user owns. Previously this
+    // method bailed to an empty list whenever no platformKey was set,
+    // which made the History tab look empty even after live chat.
+    const localPromise = this.viewProvider
+      ? this.viewProvider.listLocalConversations()
+      : Promise.resolve([]);
+
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'conversations_loaded', conversations: [] });
-      return;
+    const cloudPromise: Promise<any[]> = platformKey
+      ? apiFetch('/conversations', { platformKey })
+          .then(res => (res.ok ? (res.data as any[]) : []))
+          .catch(() => [])
+      : Promise.resolve([]);
+
+    const [local, cloud] = await Promise.all([localPromise, cloudPromise]);
+
+    // Merge by id — local entry wins if present on both sides (local
+    // record has the in-flight live state). Cloud-only rows fill in
+    // conversations from other devices.
+    const merged = new Map<string, any>();
+    for (const row of (cloud as any[])) {
+      if (row && row.id) merged.set(row.id, row);
+    }
+    for (const row of (local as any[])) {
+      if (row && row.id) merged.set(row.id, row);
     }
 
-    try {
-      const res = await apiFetch('/conversations', { platformKey });
-      this.post({ type: 'conversations_loaded', conversations: res.ok ? (res.data as any[]) : [] });
-    } catch {
-      this.post({ type: 'conversations_loaded', conversations: [] });
-    }
+    // Newest-first ordering. HistoryManager already returns sorted but
+    // re-sort here so cloud-only rows interleave correctly.
+    const conversations = Array.from(merged.values()).sort((a, b) => {
+      const aT = a.updatedAt || a.updated_at || a.createdAt || a.created_at || '';
+      const bT = b.updatedAt || b.updated_at || b.createdAt || b.created_at || '';
+      return String(bT).localeCompare(String(aT));
+    });
+
+    this.post({ type: 'conversations_loaded', conversations });
   }
 
   /** Load a saved conversation into the chat panel.

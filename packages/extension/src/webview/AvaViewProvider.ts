@@ -187,6 +187,20 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   public cancelSignInFromDashboard(): void {
     this.signInManager?.cancelSignIn();
   }
+
+  /** Local-conversation list used by the dashboard's History tab.
+   *  Mirror of what `request_history` returns to the chat webview, but
+   *  callable directly so DashboardPanel.loadConversations can merge
+   *  local + cloud instead of bailing to empty when there's no
+   *  platformKey. Local-first by design — conversations are saved to
+   *  ~/.ava/ on every turn regardless of cloud sync status. */
+  public async listLocalConversations(): Promise<unknown[]> {
+    try {
+      return await this.historyManager.listConversations(false);
+    } catch {
+      return [];
+    }
+  }
   private providerSource: ProviderSource = 'byok';
   private enabledModelIds: Set<string> | null = null;
   private heartbeatInterval?: ReturnType<typeof setInterval>;
