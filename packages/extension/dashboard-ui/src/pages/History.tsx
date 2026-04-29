@@ -3,6 +3,7 @@ import { t, useLocale, getLocale } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
 import { UsageBar } from '../components/UsageBar';
+import { Select } from '../components/Select';
 import type { AccountInfo, SessionStats, UsageHistoryData, ConversationEntry } from '../types/messages';
 
 // ─── Model pricing (per 1M tokens) ──────────────────────────────────────────
@@ -410,26 +411,30 @@ function AuditView({ entries }: { entries: AuditEntry[] }) {
           placeholder="Filter by tool name or argument…"
           className="flex-1 min-w-[160px] rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2 py-1 text-[11px] text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]"
         />
-        <select
-          value={riskFilter}
-          onChange={(e) => setRiskFilter(e.target.value)}
-          className="rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2 py-1 text-[11px] text-[var(--text-primary)] outline-none"
-        >
-          <option value="all">All risk</option>
-          <option value="safe">Safe</option>
-          <option value="write">Write</option>
-          <option value="dangerous">Dangerous</option>
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2 py-1 text-[11px] text-[var(--text-primary)] outline-none"
-        >
-          <option value="all">All status</option>
-          <option value="success">Success</option>
-          <option value="failed">Failed</option>
-          <option value="denied">Denied</option>
-        </select>
+        <div className="w-[120px] shrink-0">
+          <Select
+            value={riskFilter}
+            onChange={setRiskFilter}
+            options={[
+              { value: 'all',       label: 'All risk' },
+              { value: 'safe',      label: 'Safe' },
+              { value: 'write',     label: 'Write' },
+              { value: 'dangerous', label: 'Dangerous' },
+            ]}
+          />
+        </div>
+        <div className="w-[120px] shrink-0">
+          <Select
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={[
+              { value: 'all',     label: 'All status' },
+              { value: 'success', label: 'Success' },
+              { value: 'failed',  label: 'Failed' },
+              { value: 'denied',  label: 'Denied' },
+            ]}
+          />
+        </div>
         <div className="ml-auto flex gap-1">
           <button
             onClick={() => exportLog('markdown')}
