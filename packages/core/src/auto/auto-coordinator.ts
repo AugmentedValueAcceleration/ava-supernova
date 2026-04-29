@@ -170,8 +170,9 @@ export class AutoCoordinator {
     );
 
     // Resolve the Builder model. Supernova spawns Qwen 3.6 Plus, Aurora
-    // spawns Mistral Small 4 (Pixtral+Devstral merge — vision-aware,
-    // agentic-coding capable). Auto reuses the coordinator model for
+    // spawns Mistral Medium 3.5 (the merged flagship — 128B dense,
+    // 256K context, vision encoder from scratch, 77.6% SWE-Bench Verified,
+    // modified-MIT open weights). Auto reuses the coordinator model for
     // backward-compatibility with the existing tuning. If the override
     // can't resolve (platform not enabled, model not registered) fall
     // back to the coordinator model rather than block.

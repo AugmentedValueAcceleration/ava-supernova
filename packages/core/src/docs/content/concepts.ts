@@ -18,13 +18,13 @@ export const CONCEPT_PAGES: DocPage[] = [
         headers: ['', 'Maestro', 'Supernova', 'Aurora'],
         rows: [
           ['Coordinator',     'Qwen 3.6 Plus',           'DeepSeek V4 Pro (1.6T / 49B active, 1M ctx)',  'Mistral Large 3 (675B / 41B active, 262K ctx)'],
-          ['Builder',         'Qwen 3.6 Plus (reuses coordinator)', 'Qwen 3.6 Plus',                     'Mistral Small 4'],
-          ['Mid-tier specialists', '—',                    'DeepSeek V4 Flash (code reviewer, fact checker, recon, scanner, security verifier, etc.)', 'Mistral Small 4'],
+          ['Builder',         'Qwen 3.6 Plus (reuses coordinator)', 'Qwen 3.6 Plus',                     'Mistral Medium 3.5 (128B dense, 256K ctx)'],
+          ['Mid-tier specialists', '—',                    'DeepSeek V4 Flash (code reviewer, fact checker, recon, scanner, security verifier, etc.)', 'Mistral Medium 3.5 (Architect, Verifier, Sequencer, Tutor, Reporter, etc.)'],
           ['Light tier / intent gate', 'Qwen 3.5 Flash',  'Qwen 3.5 Flash (Scout, Verifier, Sequencer, Challenger, Integrator)',                       'Mistral Small 4'],
           ['Heavy specialists', '—',                       '—',                                          'Mistral Large 3 (Researcher, Challenger, CVE Researcher, Ideator, Fact Checker)'],
-          ['Vision',          'Qwen 3.6 Plus',            'Qwen 3.5 Omni Plus',                          'Mistral Small 4 (Pixtral merged in)'],
-          ['Long-form writing', 'Qwen 3.6 Plus',          'Qwen 3.5 Plus',                              'Mistral Small 4'],
-          ['Data residency',  'Mixed (Alibaba Cloud)',    'Mixed (DeepSeek + Alibaba Cloud)',           'EU only (Apache-2.0 open weights)'],
+          ['Vision',          'Qwen 3.6 Plus',            'Qwen 3.5 Omni Plus',                          'Mistral Medium 3.5 (vision encoder trained from scratch)'],
+          ['Long-form writing', 'Qwen 3.6 Plus',          'Qwen 3.5 Plus',                              'Mistral Medium 3.5'],
+          ['Data residency',  'Mixed (Alibaba Cloud)',    'Mixed (DeepSeek + Alibaba Cloud)',           'EU only · open weights'],
           ['Status',          'Live · all plans',         'Coming soon',                                'Coming soon'],
           ['Best for',        'Daily work, predictable cost', 'Heavy multi-step work, frontier coordinator on every plan', 'GDPR-strict, public-sector, sovereign EU stacks'],
         ],
@@ -37,7 +37,7 @@ export const CONCEPT_PAGES: DocPage[] = [
       { type: 'paragraph', text: 'Polyglot ensemble. DeepSeek V4 Pro coordinates and dispatches each subtask to its best-suited specialist: Qwen 3.6 Plus runs every Builder spawn, V4 Flash handles ten mid-tier review/audit personas, Qwen 3.5 Flash absorbs the light-tier classifier work, Qwen 3.5 Omni Plus owns vision input, Qwen 3.5 Plus carries the cost-sensitive long-form Content Writer persona. Frontier reasoning where it matters, flash-tier economics on the bulk of token volume.' },
 
       { type: 'heading', level: 3, text: 'Aurora' },
-      { type: 'paragraph', text: 'European AI stack — sovereign by design. Mistral-only routing: Mistral Large 3 coordinator + heavy specialists (Researcher, Challenger, CVE Researcher, Ideator, Plan Researcher/Challenger, Brainstorm Researcher/Challenger, Fact Checker, Security Verifier), Mistral Small 4 for everything else (Builder, Architect, Verifier, vision, Tutor, Curriculum, etc.). Apache-2.0 open weights, never leaves EU infrastructure. Aurora deliberately does not silently cross-route to a non-Mistral model when one is unavailable; the router surfaces an error instead — that is what makes it "Aurora" rather than a Mistral-flavoured Maestro.' },
+      { type: 'paragraph', text: 'European AI stack — sovereign by design. Mistral-only routing in three tiers: Mistral Large 3 (675B/41B-active sparse MoE) handles the coordinator role plus the heavy specialists that need depth — Researcher, Challenger, CVE Researcher, Ideator, Fact Checker, Security Verifier. Mistral Medium 3.5 — the merged flagship released April 2026, 128B dense, 256K context, vision encoder trained from scratch, modified-MIT open weights, 77.6% SWE-Bench Verified — runs the actual working tier: Builder spawns, mid-tier specialists (Architect, Verifier, Sequencer, Tutor, Reporter), vision input, and long-form writing. Mistral Small 4 keeps a single role at the intent gate where its $0.15/$0.60 pricing earns its keep on cheap routing calls. Open weights end to end, never leaves EU infrastructure. Aurora deliberately does not silently cross-route to a non-Mistral model when one is unavailable; the router surfaces an error instead — that is what makes it "Aurora" rather than a Mistral-flavoured Maestro.' },
 
       { type: 'heading', level: 3, text: 'Why orchestration?' },
       { type: 'paragraph', text: 'Routing each subtask to the right specialist costs less than running every step on a frontier model — and produces better results, because each model is used for what it is best at. Coordinator tokens get spent on reasoning and planning; build-tier tokens flow to flash-tier models. Cost stays predictable, quality stays high, and you do not need to know which model to pick — Ava picks for each step.' },
