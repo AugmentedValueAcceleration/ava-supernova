@@ -114,7 +114,7 @@ export const START_PAGES: DocPage[] = [
       { type: 'paragraph', text: 'A frontier coordinator (DeepSeek V4 Pro, 1.6T parameters / 49B active, 1M context) hands off to specialists per subtask. V4 Flash for high-volume builds, Qwen 3.6 Plus as fallback, Qwen Omni when vision is in play. Best for heavy multi-step work where each step deserves its own specialist.' },
 
       { type: 'heading', level: 3, text: 'Aurora — the European stack' },
-      { type: 'paragraph', text: 'Mistral-only routing — Mistral Large 3 coordinator + Mistral Small 4 for every specialist seat. Apache-2.0 open weights, never leaves EU infrastructure. Built for GDPR-strict deployments, public-sector, healthcare, anyone with a sovereignty mandate.' },
+      { type: 'paragraph', text: 'Mistral-only routing in three tiers — Mistral Large 3 coordinator + heavy specialists, Mistral Medium 3.5 (the merged flagship released April 2026 — 128B dense, 256K context, vision encoder from scratch, modified-MIT open weights, 77.6% SWE-Bench Verified) for Builder + mid-tier specialists + vision + long-form, Mistral Small 4 at the intent gate. Open weights end to end, never leaves EU infrastructure. Built for GDPR-strict deployments, public-sector, healthcare, anyone with a sovereignty mandate.' },
 
       { type: 'callout', variant: 'tip', text: 'Switch routing mode any time from the model picker — top of the chat panel on every surface. Nothing is sticky.' },
 

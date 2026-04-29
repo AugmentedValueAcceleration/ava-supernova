@@ -59,7 +59,7 @@ const PROVIDERS = [
     name: 'Mistral AI',
     placeholder: '...',
     signupUrl: 'https://console.mistral.ai',
-    description: 'Mistral Large 3, Codestral, Devstral 2',
+    description: 'Mistral Large 3, Medium 3.5, Small 4, Codestral, Devstral 2',
   },
   {
     id: 'xiaomi' as const,
