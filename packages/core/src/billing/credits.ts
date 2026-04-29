@@ -107,11 +107,18 @@ export function cacheHitMultiplier(model: string | null | undefined): number {
  *  in sync; web is the authoritative billing surface and core's meter
  *  dual-writes for dataset audit. Default 1.0 for unlisted models. */
 export const MODEL_COST_MULTIPLIER: Record<string, number> = {
-  // V4 Pro: 6.0 → 3.75. Supernova chat used to charge 24 credits/turn
-  // (~62% margin); now 15 credits (~40%). Frees ~37% more headroom for
-  // heavy multi-step work without changing what V4 Pro actually costs us.
+  // V4 Pro: 6.0 → 3.75. Supernova orchestration / planning / security /
+  // brainstorm / long_context all coordinate on V4 Pro — the workloads
+  // where its MoE coordinator pattern actually pays off. Supernova chat
+  // moved off V4 Pro on 2026-04-30 (was overkill — see V4 Flash entry).
   'deepseek-v4-pro':            3.75,
   'deepseek-v4-pro-platform':   3.75,
+  // V4 Flash: explicit 0.5× (was falling through to default 1.0×, which
+  // would over-charge it relative to its $0.14/$0.28 per-million rate).
+  // Now Supernova's chat tier — fast, MIT open-weight, 13B active params,
+  // 2 credits per typical chat turn at the 40% margin floor.
+  'deepseek-v4-flash':            0.5,
+  'deepseek-v4-flash-platform':   0.5,
   // Qwen 3.6 Plus: 1.5 → 0.7. Maestro chat used to charge 6 credits/turn
   // (~79% margin); now 3 credits (~40%). The biggest concrete win for
   // users — daily-driver Maestro doubles at the same plan price.

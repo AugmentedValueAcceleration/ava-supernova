@@ -63,9 +63,14 @@ export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
   // long-context synthesis where V4 Pro wins. Default to V4 Pro; Architect
   // gets routed back to Qwen 3.6 Plus per persona below.
   planning:     { modelId: 'deepseek-v4-pro-platform',    reason: 'DeepSeek V4 Pro — long-context planning + synthesis depth',                          fallbackModelId: 'qwen3.6-plus' },
-  // Chat = direct response from coordinator. V4 Pro handles directly when
-  // not orchestrated; Qwen 3.6 Plus is the warm fallback.
-  chat:         { modelId: 'deepseek-v4-pro-platform',    reason: 'DeepSeek V4 Pro — coordinator handles chat directly',                                fallbackModelId: 'qwen3.6-plus' },
+  // Chat is a single-turn response — doesn't exercise V4 Pro's MoE
+  // coordinator strengths (specialist dispatch, multi-step reasoning).
+  // V4 Flash is the right tier: same DeepSeek family, 1M context, MIT
+  // open-weight, 13B active params — fast and materially cheaper. V4
+  // Pro stays reserved for the workloads where the coordinator pattern
+  // actually pays off (planning, orchestration, security, brainstorm,
+  // long_context).
+  chat:         { modelId: 'deepseek-v4-flash-platform',  reason: 'DeepSeek V4 Flash — fast chat tier, V4 Pro reserved for orchestration',              fallbackModelId: 'qwen3.6-plus' },
   // 1M-context grunt: V4 Pro shines (10% KV cache footprint at 1M).
   long_context: { modelId: 'deepseek-v4-pro-platform',    reason: 'DeepSeek V4 Pro — 1M context with 10% KV cache footprint',                           fallbackModelId: 'qwen3.6-plus' },
   // Teach = Tutor + Curriculum Architect (both medium-depth) → V4 Flash sweet spot.
