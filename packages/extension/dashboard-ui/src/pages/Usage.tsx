@@ -21,6 +21,11 @@ interface UsageProps {
   logs: UsageLogEntry[];
   sessionStats?: SessionStats | null;
   mode: 'platform' | 'byok';
+  /** Active orchestration model id from settings.activeModel —
+   *  'auto' (Maestro) / 'supernova' / 'aurora' surface the orchestrated-
+   *  fleet card above the model breakdown. Anything else is treated as
+   *  a raw single-model pick (BYOK Kimi etc.) and the card is skipped. */
+  activeModel?: string;
 }
 
 interface ModelBreakdown {
@@ -32,7 +37,42 @@ interface ModelBreakdown {
 
 const PAGE_SIZE = 15;
 
-export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
+// Orchestration-mode info — feeds the Active Mode card above the
+// Models Used breakdown so a user looking at "Aurora session shows
+// only Mistral Large 3" sees the full fleet they could activate.
+const ORCHESTRATION_MODES: Record<string, { label: string; flavour: string; roles: { name: string; role: string }[] }> = {
+  aurora: {
+    label: 'Aurora',
+    flavour: 'Mistral three-tier · sovereign EU stack',
+    roles: [
+      { name: 'Mistral Large 3', role: 'Coordinator + heavy specialists' },
+      { name: 'Mistral Medium 3.5', role: 'Builder · mid-tier · vision · long-form' },
+      { name: 'Mistral Small 4', role: 'Intent gate' },
+    ],
+  },
+  supernova: {
+    label: 'Supernova',
+    flavour: 'DeepSeek + Qwen ensemble',
+    roles: [
+      { name: 'DeepSeek V4 Pro', role: 'Coordinator' },
+      { name: 'DeepSeek V4 Flash', role: 'Mid-tier specialists' },
+      { name: 'Qwen 3.6 Plus', role: 'Builder' },
+      { name: 'Qwen 3.5 Flash', role: 'Light tier / intent gate' },
+      { name: 'Qwen 3.5 Omni Plus', role: 'Vision' },
+      { name: 'Qwen 3.5 Plus', role: 'Long-form writing' },
+    ],
+  },
+  auto: {
+    label: 'Maestro',
+    flavour: 'Qwen-only · daily work, predictable cost',
+    roles: [
+      { name: 'Qwen 3.6 Plus', role: 'Coordinator + Builder' },
+      { name: 'Qwen 3.5 Flash', role: 'Light tier / intent gate' },
+    ],
+  },
+};
+
+export function Usage({ account, logs, sessionStats, mode, activeModel }: UsageProps) {
   useLocale();
   // Credits-redesign read shim. Reads credits_* first, tokens_* second
   // (for any stale cache from before the platform's account-info hotfix
@@ -172,6 +212,34 @@ export function Usage({ account, logs, sessionStats, mode }: UsageProps) {
       </div>
       </SectionGroup>
       </div>
+
+      {/* Active orchestration mode header — see ORCHESTRATION_MODES
+          above. Surfaces "you are in Aurora / Supernova / Maestro" so
+          the breakdown below makes sense. Aurora chat-only sessions
+          only invoke the coordinator (Large 3), making it look like
+          Aurora is one model — this card explains the fleet shape. */}
+      {activeModel && ORCHESTRATION_MODES[activeModel] && (
+        <div className="mb-6">
+          <div className="rounded-xl border border-[var(--accent)]/25 bg-[var(--bg-card)] p-4">
+            <div className="mb-1 flex items-baseline gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--accent)]">Active Mode</span>
+              <span className="text-lg font-semibold text-[#cdd6f4]">{ORCHESTRATION_MODES[activeModel].label}</span>
+              <span className="text-[11px] text-[var(--text-muted)]">{ORCHESTRATION_MODES[activeModel].flavour}</span>
+            </div>
+            <p className="mb-2 text-[11px] text-[var(--text-muted)] leading-relaxed">
+              Models below show specialists that actually fired this session. Chat-only sessions typically only invoke the coordinator — the rest activate when the orchestrator spawns Builders, vision, long-form, etc.
+            </p>
+            <div className="flex flex-col gap-1 pl-1">
+              {ORCHESTRATION_MODES[activeModel].roles.map((r) => (
+                <div key={r.name} className="flex gap-2 text-[11px]">
+                  <span className="min-w-[160px] font-medium text-[#cdd6f4]">{r.name}</span>
+                  <span className="text-[var(--text-muted)]">{r.role}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Model Breakdown */}
       <div className="mb-6">

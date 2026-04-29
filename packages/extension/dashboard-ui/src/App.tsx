@@ -845,7 +845,7 @@ export function App() {
         }
         return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} />;
       case 'usage':
-        return <Usage account={account} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} />;
+        return <Usage account={account} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} activeModel={settings.activeModel} />;
       case 'memory':
         return <Memory memories={account ? memories : localMemories} mode={mode} serverTotal={account ? memoryTotal : undefined} serverHasMore={account ? memoryHasMore : undefined} />;
       case 'history':
