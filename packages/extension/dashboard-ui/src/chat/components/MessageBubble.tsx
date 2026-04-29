@@ -299,23 +299,33 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
 
   return (
     <div className="flex items-start w-full" style={{ marginBottom: 8 }}>
-      {/* Ava avatar — preset image from packages/core/assets/ava-avatar.jpeg
-          (copied into dashboard-ui public/ at build time). Falls back
-          to the purple-gradient + star glyph if the image fails to
-          load. */}
+      {/* Ava avatar — preset image URL is injected by the extension
+          host as an absolute vscode-webview-resource:// URI on
+          #root[data-ava-avatar-uri] (relative paths refuse to load
+          inside a webview). Falls back to gradient + Ava initial. */}
       <div style={{
         width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
         marginRight: 10, marginTop: 4,
         background: 'linear-gradient(135deg, #a855f7, #6366f1)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
+        fontSize: 12, fontWeight: 600, color: '#fff',
       }}>
-        <img
-          src="ava-avatar.jpeg"
-          alt={t('dash.chat.ava') || 'Ava'}
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-        />
+        {(() => {
+          const uri = typeof document !== 'undefined'
+            ? document.getElementById('root')?.dataset.avaAvatarUri
+            : '';
+          return uri ? (
+            <img
+              src={uri}
+              alt={t('dash.chat.ava') || 'Ava'}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+            />
+          ) : (
+            <span aria-hidden="true">A</span>
+          );
+        })()}
       </div>
 
       <div className="flex flex-col flex-1 min-w-0 gap-2 items-start">

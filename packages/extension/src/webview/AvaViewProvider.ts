@@ -3685,6 +3685,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'index.css'),
     );
+    // Ava's preset chat avatar — absolute webview-resource:// URL
+    // exposed via #root dataset; MessageBubble reads it at render time.
+    const avaAvatarUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'ava-avatar.jpeg'),
+    );
     const nonce = getNonce();
 
     return `<!DOCTYPE html>
@@ -3702,7 +3707,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   <title>Ava Supernova</title>
 </head>
 <body>
-  <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;opacity:0.3;font-size:13px;font-family:var(--vscode-font-family)">Loading Ava…</div></div>
+  <div id="root" data-ava-avatar-uri="${avaAvatarUri}"><div style="display:flex;align-items:center;justify-content:center;height:100vh;opacity:0.3;font-size:13px;font-family:var(--vscode-font-family)">Loading Ava…</div></div>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;

@@ -4098,6 +4098,12 @@ export class DashboardPanel {
     const iconUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'dist', 'dashboard', 'icon.png'),
     );
+    // Ava's preset chat avatar — must be an absolute webview-resource://
+    // URL or the <img> tag refuses to load it. Read from #root dataset
+    // by the dashboard's MessageBubble at render time.
+    const avaAvatarUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.extensionUri, 'dist', 'dashboard', 'ava-avatar.jpeg'),
+    );
     const nonce = getNonce();
 
     return `<!DOCTYPE html>
@@ -4116,7 +4122,7 @@ export class DashboardPanel {
   <title>Ava | Dashboard</title>
 </head>
 <body>
-  <div id="root" data-icon-uri="${iconUri}"></div>
+  <div id="root" data-icon-uri="${iconUri}" data-ava-avatar-uri="${avaAvatarUri}"></div>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
