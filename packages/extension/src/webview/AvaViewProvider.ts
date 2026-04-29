@@ -919,6 +919,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   private updateStatusBar(state: StatusBarState = 'ready', detail?: string): void {
+    // Pass the orchestration mode id so the bar shows "Aurora" /
+    // "Supernova" / "Maestro" instead of the resolved coordinator's
+    // model name (which used to read "Mistral Large 3" while Aurora
+    // was actually routing across Large 3 + Medium 3.5 + Small 4).
+    this.statusBar.setMode(this.getActiveModelId());
     this.statusBar.setModel(this.activeModelDef);
     this.statusBar.setState(state, detail);
   }
