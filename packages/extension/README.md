@@ -26,6 +26,26 @@ Switch roles with a keystroke. Same brain. Same memory. Different mindset.
 
 ---
 
+## Three modes, three jobs
+
+You don't pick a model. You pick the work, and the right fleet falls out of that.
+
+| Mode | Best for | Coordinator | Specialists | Residency |
+|---|---|---|---|---|
+| **Maestro** | Daily work, predictable cost | Qwen 3.6 Plus | Qwen 3.6 Plus + 3.5 Flash | Mixed (Alibaba) |
+| **Supernova** | Heavy multi-step work, frontier reasoning at specialist prices | DeepSeek V4 Pro | DeepSeek V4 Flash · Qwen 3.6 Plus · Qwen 3.5 Flash · Qwen 3.5 Omni Plus · Qwen 3.5 Plus | Mixed (DeepSeek + Alibaba) |
+| **Aurora** | GDPR-strict, public-sector, sovereign EU stacks | Mistral Large 3 | Mistral Small 4 (incl. Pixtral merged in for vision) | EU-only · Apache-2.0 |
+
+Plans get all three. **BYOK gets all three too**, gated by the keys each fleet needs:
+
+- **Maestro** unlocks with a **Qwen** key.
+- **Supernova** unlocks with **DeepSeek + Qwen** keys.
+- **Aurora** unlocks with a **Mistral** key.
+
+BYOK users also get raw individual models (Claude, Kimi, GLM, etc.) per the keys they've added.
+
+---
+
 ## 6 Modes — One Ava, Six States of Thought
 
 Modes aren't tool restrictions. They're states of mind. The toolkit and the persona team change to match the work.
@@ -59,7 +79,7 @@ Ava approaches your features the way a real engineer would, not the way a fast a
 - **Work pipeline** — Scout → Architect → Verifier → Sequencer → Challenger → Builder
 - Simple questions skip orchestration entirely. Zero overhead.
 
-Three orchestrated modes ship in the dropdown. **Maestro** runs on a single coordinator — Qwen 3.6 Plus by default, the Terminal-Bench leader and battle-tested across the persona pipeline. **Supernova** is the polyglot: DeepSeek V4 Pro coordinator + Qwen 3.6 Plus for Builder spawns + V4 Flash for review-tier work + Qwen Omni when vision is in play. **Aurora** is the European AI stack — Mistral Large 3 as coordinator + Mistral Small 4 for everything else, end-to-end, never leaves European infrastructure. Apache-2.0, open weights, sovereign by design. Pick whichever — or any specific model manually.
+Three orchestrated modes ship in the dropdown. **Maestro** runs a single Qwen 3.6 Plus conductor — Terminal-Bench leader, predictable cost, the daily driver. **Supernova** is the polyglot: DeepSeek V4 Pro coordinator + V4 Flash mid-tier specialists + Qwen builders (3.6 Plus for builds, 3.5 Flash for the intent gate, 3.5 Omni Plus for vision, 3.5 Plus for long-form). **Aurora** is the European AI stack — Mistral Large 3 coordinator + Mistral Small 4 specialists end-to-end, Apache-2.0 open weights, never leaves EU infrastructure. Sovereign by default. Pick whichever fits the job.
 
 ---
 
@@ -74,6 +94,8 @@ Ava ships with a **Creative Studio** that generates real assets and integrates t
 | **Music** | Original tracks, demo music, ambient loops |
 | **Voice** | Voiceovers and narration in multiple voices |
 | **Background removal** | Cut out subjects from existing images |
+
+**Image generation runs on Wan** — Alibaba's open-weight image model, 2026 SoTA on graphic-design output (icons, banners, thumbnails, vector marks). Music, voice, and video stay on MiniMax. Each backend plays to its strength.
 
 **The integration is the point.** When Ava generates a logo, she can drop it into your `public/` folder and reference it in your JSX. When she generates a hero video, she can wire it into your landing page component. When she generates a voice clip for an onboarding flow, she can save it to `assets/audio/` and add the `<audio>` element. **The Creative Studio isn't a separate app — it's a tool Ava uses in the middle of building your project.**
 

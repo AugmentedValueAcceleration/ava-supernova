@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.57.0 — 2026-04-29
+
+### Changed
+- **Plans surface only the 3 orchestrated modes.** Aurora · Supernova · Maestro. Raw individual models (Qwen 3.6 Plus, MiniMax, etc.) move to BYOK-only — plan users pick a mode, the fleet falls out of that.
+- **BYOK mode gating.** Maestro unlocks with a Qwen key. Supernova needs DeepSeek + Qwen. Aurora needs Mistral. Each mode shows its unlock path in the picker subtitle ("Add Mistral key", "Connect or add DeepSeek + Qwen keys"). Single source of truth across both panel surfaces.
+- **Wan replaces MiniMax for image generation.** Wan 2.6 (Alibaba's open-weight image model) handles graphic-design / icons / banners materially better than MiniMax image-01. MiniMax stays for music, voice, video.
+- **Faster cold start.** SecretStorage reads parallelised — `getConnectionStatus()` (4 keys) and BYOK + local provider key reads (11 keys) now run via `Promise.all` instead of sequentially. Saves 200–300ms typical per dashboard open. Release-notes fetch now has a 5s `AbortController` timeout (used to hang activation indefinitely on slow networks).
+- **Stale "Get Started — Add an API Key" banner removed** from the chat. The model picker now carries the unlock guidance directly — banner duplicated it with outdated "3M free Qwen tokens" copy.
+- **`enumDescriptions` no-model copy** updated from "3M free Qwen tokens" to "1,500 free credits/month" to match the post-rebalance pricing.
+
 ## 0.55.1 — 2026-04-28
 
 ### Changed

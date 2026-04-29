@@ -12,10 +12,11 @@ import {
   CreativeGalleryStrip, type GalleryItem, type GalleryMediumKind,
 } from '../components/CreativeOutputCard';
 
+// Exact credit count with locale-grouped digits — operator wants
+// the precise number, not "5K" / "1.2M" rounded buckets, so they can
+// see exactly how many credits a generation actually cost.
 function formatTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
-  return String(n);
+  return n.toLocaleString();
 }
 
 const TAB_ICONS: Record<string, ReactNode> = {
@@ -496,6 +497,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
   // intact so when we wire the cloud broadcast through, the gallery
   // picks up new entries without further refactor.
   const cloudAssets: any[] = [];
+  const MEDIA_KINDS = ['image','music','voice','sfx','video'] as const;
   const allGalleryItems = useMemo(() => {
     const local = loadLocalAssets();
     const seen = new Set<string>();
@@ -504,14 +506,22 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
       const id = a.id || `${a.type || a.asset_type}_${a.created_at}`;
       if (seen.has(id)) continue;
       seen.add(id);
-      const kind = (a.type || a.asset_type || 'image').toLowerCase();
+      const kind = (a.type || a.asset_type || '').toLowerCase();
+      // Skip documents / text / anything that isn't a recognised media
+      // kind. Previously these got relabelled as 'image' via fallback,
+      // which is why .docx files leaked into the Images strip. Library
+      // is the canonical surface for documents — they don't belong here.
+      if (!(MEDIA_KINDS as readonly string[]).includes(kind)) continue;
+      // No fabricated createdAt — items without one are already foreign
+      // to the per-session view and shouldn't earn a NOW timestamp that
+      // makes them survive the session filter. Fall through with empty.
       merged.push({
         id,
-        kind: (['image','music','voice','sfx','video'].includes(kind) ? kind : 'image') as GalleryMediumKind,
+        kind: kind as GalleryMediumKind,
         url: a.url || '',
         prompt: a.prompt || '',
         title: a.title || '',
-        createdAt: a.created_at || new Date().toISOString(),
+        createdAt: a.created_at || '',
         local: !!a.local || local.some((l: any) => l.id === id),
         cloud: cloudAssets.some(c => c.id === id),
       });
@@ -522,11 +532,23 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cloudAssets, galleryRefresh]);
 
-  // Per-medium filtered views — passed to each tab's gallery strip.
-  const imageItems = useMemo(() => allGalleryItems.filter(i => i.kind === 'image'), [allGalleryItems]);
-  const musicItems = useMemo(() => allGalleryItems.filter(i => i.kind === 'music'), [allGalleryItems]);
-  const voiceItems = useMemo(() => allGalleryItems.filter(i => i.kind === 'voice'), [allGalleryItems]);
-  const videoItems = useMemo(() => allGalleryItems.filter(i => i.kind === 'video'), [allGalleryItems]);
+  // Session start — anchors the per-medium views to "things made this
+  // session". Library is the canonical archive surface; Creative Studio
+  // is for creation only. Older items live in Library, not here. Captured
+  // once on mount so reload = empty right panel; new generations stack.
+  const sessionStart = useMemo(() => new Date().toISOString(), []);
+  const isSessionItem = useCallback(
+    (i: GalleryItem) => (i.createdAt || '') >= sessionStart,
+    [sessionStart],
+  );
+
+  // Per-medium filtered views — current session only. After generation,
+  // items appear here AND save to Library; the strip on this page is
+  // the "you just made this" trail, not a mini-archive.
+  const imageItems = useMemo(() => allGalleryItems.filter(i => i.kind === 'image' && isSessionItem(i)), [allGalleryItems, isSessionItem]);
+  const musicItems = useMemo(() => allGalleryItems.filter(i => i.kind === 'music' && isSessionItem(i)), [allGalleryItems, isSessionItem]);
+  const voiceItems = useMemo(() => allGalleryItems.filter(i => i.kind === 'voice' && isSessionItem(i)), [allGalleryItems, isSessionItem]);
+  const videoItems = useMemo(() => allGalleryItems.filter(i => i.kind === 'video' && isSessionItem(i)), [allGalleryItems, isSessionItem]);
 
   // Refresh handler — called after every save / delete to re-read
   // localStorage. Cheap; localStorage is in-memory.
@@ -605,7 +627,11 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     if (!imagePrompt.trim() || generating) return;
     setGenerating(true); setError(null);
     try {
-      const data = await apiCall('generate-image', { prompt: imagePrompt.trim(), size: imageSize, model: 'minimax' });
+      // No model field → server defaults to Wan (DashScope wan2.6-t2i).
+      // Wan handles vector / graphic-design output materially better than
+      // MiniMax image-01 — the previous default — which renders every
+      // prompt as soft painterly illustration.
+      const data = await apiCall('generate-image', { prompt: imagePrompt.trim(), size: imageSize });
       if (data.url) {
         saveLocalAsset('image', data.url, imagePrompt.slice(0, 60), imagePrompt);
       } else throw new Error(data.error || 'No image URL returned');
@@ -711,7 +737,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
           <div>
             <h1 className="text-[22px] font-semibold text-[#cdd6f4]">Creative Studio</h1>
             <p className="mt-1.5 text-[13px] text-[#6c7086]">
-              Generate images, music, and video with MiniMax
+              Generate images with Wan, plus music, voice, and video with MiniMax
             </p>
           </div>
           {account?.usage && (
@@ -1261,7 +1287,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                   deleteLocalAsset(item.id);
                   if (item.cloud) post({ type: 'delete_cloud_asset', id: item.id } as any);
                 }}
-                emptyHint="Your image generations will appear here. Make one — they stack up newest first."
+                emptyHint="Generate an image — it'll appear here for this session, then live in your Library."
               />
             )}
             {activeTab === 'audio' && (
@@ -1272,7 +1298,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                   deleteLocalAsset(item.id);
                   if (item.cloud) post({ type: 'delete_cloud_asset', id: item.id } as any);
                 }}
-                emptyHint="Your music generations will appear here."
+                emptyHint="Generate music — it'll appear here for this session, then live in your Library."
               />
             )}
             {activeTab === 'voice' && (
@@ -1283,7 +1309,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                   deleteLocalAsset(item.id);
                   if (item.cloud) post({ type: 'delete_cloud_asset', id: item.id } as any);
                 }}
-                emptyHint="Your voice generations will appear here."
+                emptyHint="Generate voice — it'll appear here for this session, then live in your Library."
               />
             )}
             {activeTab === 'video' && (
@@ -1294,7 +1320,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                   deleteLocalAsset(item.id);
                   if (item.cloud) post({ type: 'delete_cloud_asset', id: item.id } as any);
                 }}
-                emptyHint="Your video generations will appear here."
+                emptyHint="Generate a video — it'll appear here for this session, then live in your Library."
               />
             )}
           </div>

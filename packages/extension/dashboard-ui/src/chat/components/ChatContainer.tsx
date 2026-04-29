@@ -4,7 +4,7 @@ import { MessageBubble } from './MessageBubble';
 import { ThinkingIndicator } from './ThinkingIndicator';
 import { PersonaStatus } from './PersonaStatus';
 // ContextBar is rendered by Chat.tsx above the composer — not in here anymore
-import { t, useLocale } from '../../i18n';
+import { useLocale } from '../../i18n';
 
 interface PersonaInfo {
   id: string;
@@ -48,7 +48,7 @@ interface ChatContainerProps {
 // / activeModel / models stay in ChatContainerProps for caller
 // compatibility but are no longer destructured here.
 
-export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onRate, chatEndRef, needsSetup, initialized, onOpenDashboard, conductorActive, conductorMode, activePersonas, onSuggestion, userName, userAvatarUrl }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onRate, chatEndRef, initialized, conductorActive, conductorMode, activePersonas, onSuggestion, userName, userAvatarUrl }: ChatContainerProps) {
   useLocale();
   // Don't render welcome screen until init message arrives — prevents setup banner flash
   if (!initialized && messages.length === 0) {
@@ -73,22 +73,12 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
     return (
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="w-full space-y-3">
-          {needsSetup && (
-            <button
-              onClick={onOpenDashboard}
-              className="w-full mb-2 p-4 rounded-xl text-left cursor-pointer transition-all duration-200
-                         border bg-transparent hover:bg-[rgba(168,85,247,0.05)]"
-              style={{ border: '1.5px dashed rgba(168, 85, 247, 0.4)' }}
-            >
-              <div className="flex items-start gap-3">
-                <span className="text-lg mt-0.5">🔑</span>
-                <div>
-                  <p className="text-sm font-semibold text-[var(--vscode-foreground)] mb-1">{t('welcome.setup_title')}</p>
-                  <p className="text-xs opacity-50 leading-relaxed">{t('welcome.setup_desc')}</p>
-                </div>
-              </div>
-            </button>
-          )}
+          {/* Setup banner removed 2026-04-29. Model picker now carries
+              the unlock guidance ("Add Qwen key", "Connect or add
+              DeepSeek + Qwen keys", etc.) per the mode-availability
+              redesign — this banner duplicated that and shipped stale
+              "3M free Qwen tokens" copy from before the credit
+              rebalance. The picker is the canonical setup surface now. */}
           <MessageBubble message={seededWelcome} onConfirmation={onConfirmation} />
           {messages.map((msg, i) => (
             <MessageBubble

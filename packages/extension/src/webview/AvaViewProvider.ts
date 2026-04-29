@@ -954,26 +954,34 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       };
       // Config key → registry key mapping (glm config maps to zhipu provider)
       const configToRegistry: Record<string, string> = { glm: 'zhipu' };
-      for (const name of ['deepseek', 'kimi', 'qwen', 'glm', 'mistral', 'anthropic', 'xiaomi']) {
-        // Migrate legacy plaintext settings → SecretStorage (one-time)
+      const providerNames = ['deepseek', 'kimi', 'qwen', 'glm', 'mistral', 'anthropic', 'xiaomi'];
+      // Run the legacy-plaintext migration sequentially (it writes to
+      // settings + secrets and we don't want races), then read all
+      // SecretStorage keys in parallel — sequential awaits used to add
+      // ~100-150ms to every chat init. SecretStorage is independent
+      // per key, so parallel is safe.
+      for (const name of providerNames) {
         const legacyKey = config.get<string>(`providers.${name}.apiKey`);
         if (legacyKey) {
           await this.context.secrets.store(providerSecrets[name], legacyKey);
           await config.update(`providers.${name}.apiKey`, undefined, vscode.ConfigurationTarget.Global);
           this.log(`Migrated ${name} API key from settings to SecretStorage`);
         }
-
-        const apiKey = await this.context.secrets.get(providerSecrets[name]);
-        if (apiKey) {
-          const registryKey = configToRegistry[name] || name;
-          try {
-            this.providerRegistry.register(registryKey, { apiKey });
-            this.log(`Provider registered: ${registryKey}`);
-          } catch (err) {
-            this.log(`Provider ${registryKey} failed to register: ${err}`);
-          }
-        }
       }
+      const apiKeys = await Promise.all(
+        providerNames.map((name) => this.context.secrets.get(providerSecrets[name])),
+      );
+      providerNames.forEach((name, i) => {
+        const apiKey = apiKeys[i];
+        if (!apiKey) return;
+        const registryKey = configToRegistry[name] || name;
+        try {
+          this.providerRegistry.register(registryKey, { apiKey });
+          this.log(`Provider registered: ${registryKey}`);
+        } catch (err) {
+          this.log(`Provider ${registryKey} failed to register: ${err}`);
+        }
+      });
 
       // ── Local / Custom OpenAI-compatible provider (Ollama, LM Studio, vLLM)
       // Lets users point Ava at any locally-hosted model that speaks the
@@ -983,11 +991,17 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       //   - .modelName     (e.g. qwen2.5-coder:7b — the id Ollama serves)
       //   - .modelLabel    (optional friendly name shown in the picker)
       try {
-        const localBaseUrl = await this.context.secrets.get('ava-supernova.provider.local.baseUrl');
-        const localModelName = await this.context.secrets.get('ava-supernova.provider.local.modelName');
+        // Local provider config — 4 SecretStorage keys read in parallel
+        // for the same reason as the BYOK loop above. Saves ~30-60ms.
+        const [localBaseUrl, localModelName, localApiKeyRaw, localModelLabelRaw] = await Promise.all([
+          this.context.secrets.get('ava-supernova.provider.local.baseUrl'),
+          this.context.secrets.get('ava-supernova.provider.local.modelName'),
+          this.context.secrets.get('ava-supernova.provider.local.apiKey'),
+          this.context.secrets.get('ava-supernova.provider.local.modelLabel'),
+        ]);
         if (localBaseUrl && localModelName) {
-          const localApiKey = (await this.context.secrets.get('ava-supernova.provider.local.apiKey')) || 'local';
-          const localModelLabel = (await this.context.secrets.get('ava-supernova.provider.local.modelLabel')) || localModelName;
+          const localApiKey = localApiKeyRaw || 'local';
+          const localModelLabel = localModelLabelRaw || localModelName;
           // Build a one-entry models list for the registered local model.
           // Conservative defaults — Ollama models vary widely, the operator
           // can tune these later if a specific local model needs more.
@@ -1760,7 +1774,22 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       return true;
     });
 
-    const modelList = deduped.map((m) => ({
+    // Detect mode prerequisites from the deduped pool BEFORE stripping
+    // platform-section. Plans surface only the 3 modes; raw individual
+    // models are now BYOK-only — but we still need to know if a plan
+    // path exists so Aurora/Supernova can show their plan-side gating.
+    const hasPlatform = deduped.some(m => m.provider === 'platform' && m.available);
+    const hasQwen = deduped.some(m => m.provider === 'qwen' && m.available);
+    const hasDeepSeek = deduped.some(m => m.provider === 'deepseek' && m.available);
+    const hasMistral = deduped.some(m => m.provider === 'mistral' && m.available);
+
+    // Strip platform-section raw models — plans = the 3 modes only.
+    // Decision 2026-04-29 (project_byok_mode_gating). The 3 modes
+    // get surfaced below; raw model selection stays a BYOK-only
+    // power-user path.
+    const byokOnly = deduped.filter(m => m.provider !== 'platform');
+
+    const modelList = byokOnly.map((m) => ({
       id: `${m.provider}:${m.id}`,
       name: m.name,
       provider: m.provider,
@@ -1768,41 +1797,19 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       ...(m.supportsVision ? { supportsVision: true } : {}),
     }));
 
-    // Add "Auto" as the first option if multiple providers are available
-    const hasMultiple = new Set(deduped.filter(m => m.available).map(m => m.provider)).size > 1
-      || deduped.some(m => m.provider === 'platform' && m.available);
-    if (hasMultiple) {
-      // unshift order matters — last unshift ends up first in the list.
-      // Supernova sits above Maestro so the heavyweight option is the
-      // first thing operators see when they open the picker.
-      // The id stays 'auto' for backward compat with saved settings; only
-      // the display label changed to "Maestro" (the single-conductor mode
-      // alongside Supernova's polyglot ensemble).
-      modelList.unshift({ id: 'auto', name: 'Maestro', provider: 'Ava', available: true });
-      // Supernova is shown to every platform user as a roadmap teaser, but
-      // only ENABLED for admin while DeepSeek partnership is pending.
-      // Non-admin users see it greyed with an "In development" badge —
-      // signals what's coming without leaking V4 access to BYOK users
-      // (the V4 platform picker entries are admin-only via migration 218
-      // for the same reason). Both gates flip together when DeepSeek
-      // confirms; see project_deepseek_outreach_pending.md.
-      const hasPlatform = deduped.some(m => m.provider === 'platform' && m.available);
-      if (hasPlatform) {
-        modelList.unshift({ id: 'supernova', name: 'Supernova', provider: 'Ava', available: isAdmin });
-      }
-      // Aurora — Mistral-only polyglot routing for the EU stack. Currently
-      // admin-gated while we approach Mistral about an enterprise plan
-      // (volume pricing, named account contact, partner co-marketing).
-      // Same pattern Supernova uses for the DeepSeek partnership hold —
-      // shown to everyone as a roadmap teaser, only enabled for admin
-      // until commercial terms land. Sits above Supernova so the
-      // dropdown order is Aurora → Supernova → Maestro (most strategic
-      // first). Flip available=true once Mistral pricing is confirmed.
-      const hasMistral = deduped.some(m => m.provider === 'mistral' && m.available);
-      if (hasPlatform || hasMistral) {
-        modelList.unshift({ id: 'aurora', name: 'Aurora', provider: 'Ava', available: isAdmin });
-      }
-    }
+    // Three orchestrated modes — gated by the new BYOK-aware rule:
+    //   Maestro   = (hasPlatform) OR hasQwen
+    //   Supernova = (isAdmin && hasPlatform) OR (hasDeepSeek && hasQwen)
+    //   Aurora    = (isAdmin && hasPlatform) OR hasMistral
+    // Dropdown order: Aurora → Supernova → Maestro (most strategic first).
+    // The id stays 'auto' for Maestro for backward compat with saved
+    // settings; the display label is "Maestro".
+    const maestroAvailable   = hasPlatform || hasQwen;
+    const supernovaAvailable = (isAdmin && hasPlatform) || (hasDeepSeek && hasQwen);
+    const auroraAvailable    = (isAdmin && hasPlatform) || hasMistral;
+    modelList.unshift({ id: 'auto', name: 'Maestro', provider: 'Ava', available: maestroAvailable });
+    modelList.unshift({ id: 'supernova', name: 'Supernova', provider: 'Ava', available: supernovaAvailable });
+    modelList.unshift({ id: 'aurora', name: 'Aurora', provider: 'Ava', available: auroraAvailable });
 
     return modelList;
   }

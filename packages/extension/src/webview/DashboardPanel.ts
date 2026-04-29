@@ -1531,12 +1531,16 @@ export class DashboardPanel {
   // ─── Connections ───────────────────────────────────────────────────────────
 
   private async getConnectionStatus(): Promise<ConnectionStatus> {
-    const status: ConnectionStatus = { github: false, email: false, slack: false, discord: false };
-    for (const service of Object.keys(status) as Array<keyof ConnectionStatus>) {
+    // SecretStorage reads run in parallel — sequential awaits used to add
+    // ~50-100ms to every dashboard open. The 4 services are independent.
+    const services = ['github', 'email', 'slack', 'discord'] as const;
+    const results = await Promise.all(services.map(async (service) => {
       const secrets = CONNECTION_SECRETS[service] ?? [];
       const first = secrets[0] ? await this.secrets.get(secrets[0]) : undefined;
-      status[service] = Boolean(first);
-    }
+      return [service, Boolean(first)] as const;
+    }));
+    const status = { github: false, email: false, slack: false, discord: false } as ConnectionStatus;
+    for (const [service, present] of results) status[service] = present;
     return status;
   }
 

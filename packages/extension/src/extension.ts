@@ -286,9 +286,18 @@ async function checkForReleaseNotes(context: vscode.ExtensionContext): Promise<v
 
   if (lastSeen === currentVersion) return;
 
-  // Version changed — fetch and show release notes
+  // Version changed — fetch and show release notes. 5s timeout guards
+  // activation against slow / blocked networks; previous unbounded
+  // fetch could hang the extension on cold start indefinitely.
   try {
-    const res = await fetch(`https://ava-supernova.com/api/releases?version=${currentVersion}`);
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 5000);
+    let res: Response;
+    try {
+      res = await fetch(`https://ava-supernova.com/api/releases?version=${currentVersion}`, { signal: ctrl.signal });
+    } finally {
+      clearTimeout(timeout);
+    }
     if (!res.ok) {
       // No release notes for this version — just update stored version
       await context.globalState.update(LAST_VERSION_KEY, currentVersion);

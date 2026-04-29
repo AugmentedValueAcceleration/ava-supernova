@@ -2,7 +2,7 @@
   "name": "ava-supernova",
   "displayName": "Ava Supernova",
   "description": "%description%",
-  "version": "0.56.0",
+  "version": "0.57.0",
   "publisher": "augmentedvalueacceleration",
   "license": "Apache-2.0",
   "repository": {
@@ -206,7 +206,7 @@
               "anthropic:claude-haiku-4-5-20251001"
             ],
             "enumDescriptions": [
-              "No model selected — sign up for 3M free Qwen tokens or bring your own keys",
+              "No model selected — sign in for 1,500 free credits/month, or bring your own keys",
               "Qwen Flash — FREE (3M tokens with account), fast and reliable",
               "DeepSeek V3.2 — best value at $0.28/M input, fast general-purpose coding",
               "DeepSeek Reasoner — chain-of-thought reasoning for complex problems",
