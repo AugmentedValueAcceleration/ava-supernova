@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1028"/>
+      <stop offset="50%" stop-color="#150d22"/>
+      <stop offset="100%" stop-color="#0f0a1a"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="180" fill="url(#bg)"/>
+  <circle cx="512" cy="540" r="380" fill="url(#glow)"/>
+  <circle cx="512" cy="512" r="420" fill="none" stroke="url(#ring)" stroke-width="24"/>
+  <text x="512" y="395" text-anchor="middle" font-family="Arial, sans-serif" font-size="130" fill="#a855f7">✦</text>
+  <text x="512" y="640" text-anchor="middle" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="300" font-size="280" fill="#ffffff" letter-spacing="-4">Ava</text>
+</svg>

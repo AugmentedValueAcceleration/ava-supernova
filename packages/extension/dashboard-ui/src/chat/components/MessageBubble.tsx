@@ -17,6 +17,11 @@ interface MessageBubbleProps {
   onConfirmation: (confirmationId: string, approved: boolean, alwaysAllowCategory?: boolean, planSelection?: string, userResponse?: string) => void;
   onContinue?: () => void;
   onRate?: (messageId: string, rating: 'up' | 'down', reason?: string) => void;
+  /** User's auth-provider avatar (Supabase users.avatar_url). Null
+   *  falls back to a name-initials gradient circle, then the generic
+   *  person SVG. Mirrors webview-ui MessageBubble. */
+  userAvatarUrl?: string | null;
+  userName?: string | null;
 }
 
 function getErrorLabel(code: string): string {
@@ -101,7 +106,7 @@ function ErrorIcon({ code }: { code: string }) {
   }
 }
 
-export function MessageBubble({ message, onConfirmation, onContinue, onRate }: MessageBubbleProps) {
+export function MessageBubble({ message, onConfirmation, onContinue, onRate, userAvatarUrl, userName }: MessageBubbleProps) {
   useLocale();
   const { redact } = useSecrets();
 
@@ -207,17 +212,30 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
             {message.content}
           </div>
         </div>
+        {/* User avatar — fallback hierarchy: avatar_url → initials → person SVG. */}
         <div style={{
           width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
           marginLeft: 10, marginTop: 24,
           background: 'linear-gradient(135deg, #b4befe, #89b4fa)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           overflow: 'hidden',
+          fontSize: 12, fontWeight: 600, color: '#1e1e2e',
         }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
+          {userAvatarUrl ? (
+            <img
+              src={userAvatarUrl}
+              alt={userName || t('dash.chat.you') || 'You'}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+            />
+          ) : userName ? (
+            <span aria-hidden="true">{userName.trim().charAt(0).toUpperCase()}</span>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          )}
         </div>
       </div>
     );
@@ -281,6 +299,10 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
 
   return (
     <div className="flex items-start w-full" style={{ marginBottom: 8 }}>
+      {/* Ava avatar — preset image from packages/core/assets/ava-avatar.jpeg
+          (copied into dashboard-ui public/ at build time). Falls back
+          to the purple-gradient + star glyph if the image fails to
+          load. */}
       <div style={{
         width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
         marginRight: 10, marginTop: 4,
@@ -288,9 +310,12 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate }: M
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         overflow: 'hidden',
       }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-        </svg>
+        <img
+          src="ava-avatar.jpeg"
+          alt={t('dash.chat.ava') || 'Ava'}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+        />
       </div>
 
       <div className="flex flex-col flex-1 min-w-0 gap-2 items-start">

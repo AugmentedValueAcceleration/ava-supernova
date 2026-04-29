@@ -1327,6 +1327,7 @@ export function App() {
           isStreaming={state.isStreaming}
           onCompress={handleCompress}
           userName={state.signInAccount?.name?.split(' ')[0] ?? null}
+          userAvatarUrl={state.signInAccount?.avatar_url ?? null}
         />
         )}
 

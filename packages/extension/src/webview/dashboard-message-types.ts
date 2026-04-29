@@ -7,6 +7,11 @@ export interface AccountInfo {
   id: string;
   email: string;
   name: string | null;
+  /** Auth-provider avatar (Google / GitHub OAuth photo, populated
+   *  automatically on sign-in). Threaded through to the chat user-
+   *  message bubbles so the operator's photo replaces the gradient
+   *  + person SVG fallback. Null when never set. */
+  avatar_url?: string | null;
   tier: 'free' | 'pro' | 'ultra' | 'enterprise' | 'admin';
   usage: {
     credits_used: number;

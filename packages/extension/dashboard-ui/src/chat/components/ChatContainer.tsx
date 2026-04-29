@@ -31,8 +31,10 @@ interface ChatContainerProps {
   activeModel?: string | null;
   models?: Array<{ id: string; name: string; provider: string }>;
   /** Operator's first name — drives the time-of-day-aware seeded
-   *  welcome bubble. Null = unknown (fall back to name-less greeting). */
+   *  welcome bubble AND the user-avatar initials fallback. */
   userName?: string | null;
+  /** User's avatar URL from auth (Supabase users.avatar_url). */
+  userAvatarUrl?: string | null;
   // Context bar (v0.39.x) — replaces the circular chip in InputArea.
   contextUsage?: { used: number; limit: number; percent: number } | null;
   isCompressing?: boolean;
@@ -46,7 +48,7 @@ interface ChatContainerProps {
 // / activeModel / models stay in ChatContainerProps for caller
 // compatibility but are no longer destructured here.
 
-export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onRate, chatEndRef, needsSetup, initialized, onOpenDashboard, conductorActive, conductorMode, activePersonas, onSuggestion, userName }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onRate, chatEndRef, needsSetup, initialized, onOpenDashboard, conductorActive, conductorMode, activePersonas, onSuggestion, userName, userAvatarUrl }: ChatContainerProps) {
   useLocale();
   // Don't render welcome screen until init message arrives — prevents setup banner flash
   if (!initialized && messages.length === 0) {
@@ -95,6 +97,8 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
               onConfirmation={onConfirmation}
               onContinue={msg.role === 'error' && i === messages.length - 1 ? onContinue : undefined}
               onRate={msg.role === 'assistant' ? onRate : undefined}
+              userAvatarUrl={userAvatarUrl}
+              userName={userName}
             />
           ))}
           <StarterHelper onSuggestion={onSuggestion} />

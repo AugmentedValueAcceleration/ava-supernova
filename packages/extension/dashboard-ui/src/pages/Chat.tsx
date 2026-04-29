@@ -728,12 +728,16 @@ export interface ChatPageProps {
    *  on a fresh chat. Null when the account hasn't loaded yet (or BYOK
    *  with no account); the welcome falls back to a name-less greeting. */
   userName?: string | null;
+  /** User's auth-provider avatar URL (Supabase users.avatar_url). Threaded
+   *  to MessageBubble so user-message bubbles render the operator's photo
+   *  instead of the generic gradient + person SVG. */
+  userAvatarUrl?: string | null;
 }
 
 // Sidebar-toggle / flip / collapsed / side props are still in ChatPageProps
 // for caller compatibility but are no longer consumed — the chat header
 // dropped its sidebar-toggle button to match the IDE chat header.
-export function Chat({ onRegisterDispatch, isActive, onNavigate, userName }: ChatPageProps) {
+export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userAvatarUrl }: ChatPageProps) {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const justLoadedRef = useRef(false);
@@ -1039,6 +1043,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName }: Cha
             isStreaming={state.isStreaming}
             onCompress={handleCompress}
             userName={userName}
+            userAvatarUrl={userAvatarUrl}
           />
           )}
 

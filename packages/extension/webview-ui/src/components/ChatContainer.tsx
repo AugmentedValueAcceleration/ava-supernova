@@ -44,9 +44,12 @@ interface ChatContainerProps {
   isStreaming?: boolean;
   onCompress?: () => void;
   /** Operator's first name — drives the time-of-day-aware seeded welcome
-   *  bubble. Null when account hasn't loaded yet (or BYOK with no
-   *  account); the welcome falls back to a name-less greeting. */
+   *  bubble AND the user-avatar initials fallback. Null when account
+   *  hasn't loaded yet (or BYOK with no account). */
   userName?: string | null;
+  /** User's avatar URL from auth (Supabase users.avatar_url). Null
+   *  falls back to initials, then to the generic person SVG. */
+  userAvatarUrl?: string | null;
 }
 
 // SUGGESTIONS / CAPABILITIES / MODE_INFO arrays removed — they backed the
@@ -54,7 +57,7 @@ interface ChatContainerProps {
 // IDE's single-seeded-message empty state. Props onSuggestion / activeModel
 // / models stay in ChatContainerProps for caller compatibility but are no
 // longer destructured here.
-export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onRate, chatEndRef, needsSetup, consentRequired, onAcceptConsent, initialized, onOpenDashboard, conductorActive, conductorMode, activePersonas, signInPending, signInError, onStartSignIn, onCancelSignIn, onClearSignInError, onSuggestion, userName }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onRate, chatEndRef, needsSetup, consentRequired, onAcceptConsent, initialized, onOpenDashboard, conductorActive, conductorMode, activePersonas, signInPending, signInError, onStartSignIn, onCancelSignIn, onClearSignInError, onSuggestion, userName, userAvatarUrl }: ChatContainerProps) {
   useLocale();
   const [consentChecked, setConsentChecked] = useState(false);
 
@@ -257,6 +260,8 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
             onConfirmation={onConfirmation}
             onContinue={msg.role === 'error' && i === messages.length - 1 ? onContinue : undefined}
             onRate={msg.role === 'assistant' ? onRate : undefined}
+            userAvatarUrl={userAvatarUrl}
+            userName={userName}
           />
         ))}
         {(conductorActive || (activePersonas && activePersonas.length > 0)) && (

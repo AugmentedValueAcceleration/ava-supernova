@@ -933,6 +933,7 @@ export function App() {
             sidebarSide={sidebarSide}
             onNavigate={setPagePersist}
             userName={account?.name?.split(' ')[0] ?? null}
+            userAvatarUrl={account?.avatar_url ?? null}
           />
         </div>
       )}
