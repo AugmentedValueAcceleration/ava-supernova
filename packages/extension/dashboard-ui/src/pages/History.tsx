@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { t, useLocale, getLocale } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
@@ -328,6 +328,8 @@ function formatAuditCost(cost: AuditEntry['cost']): string {
   return '—';
 }
 
+const AUDIT_PAGE_SIZE = 25;
+
 function AuditView({ entries }: { entries: AuditEntry[] }) {
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const [search, setSearch] = useState('');
@@ -350,6 +352,17 @@ function AuditView({ entries }: { entries: AuditEntry[] }) {
       return true;
     });
   }, [entries, search, riskFilter, statusFilter]);
+
+  // Pagination — audit logs grow fast (host caps at 1000); rendering
+  // the full filtered list at once was janky. 25/page matches the IDE
+  // audit view. Page resets to 0 whenever filters change so the user
+  // isn't stranded on an empty page after narrowing the result set.
+  const [page, setPage] = useState(0);
+  useEffect(() => { setPage(0); }, [search, riskFilter, statusFilter]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / AUDIT_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const pageStart = safePage * AUDIT_PAGE_SIZE;
+  const paged = filtered.slice(pageStart, pageStart + AUDIT_PAGE_SIZE);
 
   // Cost totals — split across both billing modes so a user with
   // mixed-mode history sees both numbers honestly.
@@ -470,7 +483,12 @@ function AuditView({ entries }: { entries: AuditEntry[] }) {
             <span className="text-right">Cost</span>
             <span>Status</span>
           </div>
-          {filtered.map((entry, i) => {
+          {paged.map((entry, localI) => {
+            // Use the absolute filtered index so expandedIdx stays
+            // stable across page changes (a user expanding a row on
+            // page 1, flipping to page 2, then back, sees their row
+            // still open).
+            const i = pageStart + localI;
             const time = new Date(entry.timestamp).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
             const isExpanded = expandedIdx === i;
             return (
@@ -506,6 +524,29 @@ function AuditView({ entries }: { entries: AuditEntry[] }) {
               </div>
             );
           })}
+          {/* Pagination footer — only renders when there's more than
+              one page worth of filtered entries. Showing it on a 5-row
+              filter result would just be noise. */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-[var(--border-card)] px-3 py-2 text-[11px] text-[var(--text-muted)]">
+              <span>
+                Showing {pageStart + 1}–{Math.min(pageStart + AUDIT_PAGE_SIZE, filtered.length)} of {filtered.length}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setPage(p => Math.max(0, p - 1))}
+                  disabled={safePage === 0}
+                  className="rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2.5 py-1 text-[11px] text-[var(--text-primary)] transition hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30 disabled:opacity-40 disabled:cursor-default disabled:hover:bg-[var(--bg-input)] disabled:hover:border-[var(--border-card)]"
+                >Prev</button>
+                <span className="min-w-[80px] text-center">Page {safePage + 1} of {totalPages}</span>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                  disabled={safePage >= totalPages - 1}
+                  className="rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2.5 py-1 text-[11px] text-[var(--text-primary)] transition hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30 disabled:opacity-40 disabled:cursor-default disabled:hover:bg-[var(--bg-input)] disabled:hover:border-[var(--border-card)]"
+                >Next</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
