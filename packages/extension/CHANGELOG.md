@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.59.1 — 2026-05-01 — Marketplace description refresh
+
+### Changed
+- **Marketplace listing description** updated to reflect v0.59.0's tier-differentiated routing across all three modes (Maestro tier-differentiated Qwen, Supernova V4 Flash chat tier, Aurora Small 4 expanded to chat + image-gen) plus the per-mode credit estimates after the chat-tier rebalance. Free tier evaluation footprint corrected from "~100 Maestro chat turns" to "~300 chat turns across any mode" — the rebalance roughly tripled the free allowance's effective reach. Loop prevention mentioned as the load-bearing v0.59.0 feature. No code changes; this release exists solely to push the updated `package.nls.json` description to the marketplace.
+
 ## 0.59.0 — 2026-04-30 — Loop prevention + chat-tier routing rebalance + UX polish
 
 ### Added
