@@ -126,6 +126,16 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
   'qwen-plus':                  0.7,
   'qwen3.5-plus':               0.6,
   'qwen3.5-omni-plus':          0.6,
+  // Qwen 3.5 Flash + Omni Flash — added 2026-04-30 when v0.59.0 routed
+  // Maestro chat / image_gen / intent gate to 3.5 Flash and Supernova
+  // image_gen orchestration to Omni Flash. Without explicit entries they
+  // fell through to default 1.0× which over-charged relative to their
+  // actual per-million rates ($0.07/$0.26 for Flash). 0.3× (Flash) and
+  // 0.4× (Omni Flash, vision encoder lift) keeps margin at the 40% floor
+  // while passing the genuine cost saving through to users.
+  'qwen3.5-flash':              0.3,
+  'qwen-flash':                 0.3,
+  'qwen3.5-omni-flash':         0.4,
   // Mistral Small 4 stays sub-1× — already cheaper than the anchor and
   // sits at the intent gate where short calls dominate.
   'mistral-small-4':            0.6,
