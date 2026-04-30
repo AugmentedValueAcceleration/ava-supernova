@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.58.0 — 2026-04-30 — Aurora and Supernova public
+
+### Changed
+- **Aurora and Supernova leave admin gating.** Both modes now public on every plan alongside Maestro. BYOK gating unchanged: Maestro=Qwen, Supernova=DeepSeek+Qwen, Aurora=Mistral.
+- **Aurora ships its three-tier Mistral fleet.** Mistral Large 3 coordinator + heavy specialists, Mistral Medium 3.5 (released this week — 128B dense, 256K context, vision encoder from scratch, 77.6% SWE-Bench Verified) for Builder + mid-tier + vision + long-form, Mistral Small 4 at the intent gate. Open weights end to end, EU-only.
+- **40% margin rebalance.** Maestro chat 50% cheaper, Supernova chat 12× cheaper, Aurora chat ~30% cheaper. Same plans, materially more work per dollar. Free tier (300 credits/month) finally meaningful for real evaluation.
+- **Mode-first picker.** Plans surface only the three orchestrated modes — raw single-model selection moves to a BYOK-only power-user path. Picker subtitles tell you the unlock path ("Add Mistral key", "Connect or add DeepSeek + Qwen keys").
+- **Wan replaces MiniMax for image generation.** Materially better on graphic-design / icons / banners at the same credit cost. MiniMax stays for music, voice, video.
+- **Faster cold start.** SecretStorage reads parallelised, release-notes fetch wrapped in a 5s timeout, v2→v3 memory migration deferred off the activation hot path. ~200–300ms saved per dashboard open on typical networks.
+- **History tab now reads local conversations** — was bailing to empty when not signed in to cloud; now merges local + cloud sorted newest-first.
+- **"Use a different account" on /auth/extension** — one click signs out the active Supabase session and bounces to /auth/login with the original device-auth params preserved.
+- **Audit pagination** (25/page) on the History → Audit tab; filters migrated to the project Select component for consistent styling.
+- **Status bar shows mode name** ("Ava: Aurora") not the resolved coordinator's model name. Tooltip exposes both.
+- **Stale "Get Started — Add an API Key" banner retired** — picker subtitles carry the unlock guidance directly.
+
 ## 0.57.0 — 2026-04-29
 
 ### Changed

@@ -145,11 +145,14 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
                   : o.id === 'supernova'
                     ? '✦ Supernova'
                     : '✦ Aurora';
+                // Admin gate retired 2026-04-30 — locked state only fires
+                // when the user has neither a platform connection nor the
+                // BYOK keys for this mode's fleet.
                 const subtitle = o.id === 'auto'
                   ? 'Best model per task'
                   : o.id === 'aurora'
-                    ? (isPreview ? 'In development' : 'EU stack — Mistral only')
-                    : isPreview ? 'In development' : 'Polyglot ensemble';
+                    ? (isPreview ? 'Add Mistral key' : 'EU stack — Mistral end-to-end')
+                    : isPreview ? 'Add DeepSeek + Qwen keys' : 'Polyglot ensemble';
                 return (
                   <button
                     key={o.id}
@@ -161,8 +164,8 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
                     }}
                     title={isPreview
                       ? (o.id === 'aurora'
-                          ? 'Aurora — EU-stack Mistral-only routing. In development while enterprise pricing is finalised.'
-                          : 'Supernova — polyglot multi-model orchestration. In development; rolling out soon.')
+                          ? 'Aurora — EU-stack Mistral-only routing. Sign in for platform access, or add a Mistral API key for BYOK.'
+                          : 'Supernova — DeepSeek + Qwen polyglot ensemble. Sign in for platform access, or add DeepSeek + Qwen API keys for BYOK.')
                       : o.id === 'auto'
                         ? 'One coordinator handles everything — proven, production-tuned'
                         : o.id === 'aurora'

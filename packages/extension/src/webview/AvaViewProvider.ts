@@ -1816,16 +1816,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       ...(m.supportsVision ? { supportsVision: true } : {}),
     }));
 
-    // Three orchestrated modes — gated by the new BYOK-aware rule:
-    //   Maestro   = (hasPlatform) OR hasQwen
-    //   Supernova = (isAdmin && hasPlatform) OR (hasDeepSeek && hasQwen)
-    //   Aurora    = (isAdmin && hasPlatform) OR hasMistral
+    // Three orchestrated modes. Admin gate retired 2026-04-30 — public
+    // launch of Aurora + Supernova alongside Maestro. Any signed-in
+    // platform user gets all three; BYOK users get a mode the moment
+    // they have the keys for its fleet (Maestro=Qwen, Supernova=
+    // DeepSeek+Qwen, Aurora=Mistral).
     // Dropdown order: Aurora → Supernova → Maestro (most strategic first).
     // The id stays 'auto' for Maestro for backward compat with saved
     // settings; the display label is "Maestro".
+    void isAdmin;
     const maestroAvailable   = hasPlatform || hasQwen;
-    const supernovaAvailable = (isAdmin && hasPlatform) || (hasDeepSeek && hasQwen);
-    const auroraAvailable    = (isAdmin && hasPlatform) || hasMistral;
+    const supernovaAvailable = hasPlatform || (hasDeepSeek && hasQwen);
+    const auroraAvailable    = hasPlatform || hasMistral;
     modelList.unshift({ id: 'auto', name: 'Maestro', provider: 'Ava', available: maestroAvailable });
     modelList.unshift({ id: 'supernova', name: 'Supernova', provider: 'Ava', available: supernovaAvailable });
     modelList.unshift({ id: 'aurora', name: 'Aurora', provider: 'Ava', available: auroraAvailable });
