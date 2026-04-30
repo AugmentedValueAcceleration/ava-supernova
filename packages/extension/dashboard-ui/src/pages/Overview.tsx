@@ -179,7 +179,52 @@ export function Overview({
     : hour < 18
       ? t('dash.cc.greeting_afternoon')
       : t('dash.cc.greeting_evening');
-  const firstName = (account.name?.trim().split(/\s+/)[0]) || account.email?.split('@')[0] || '';
+
+  // Editable display name. Mirrors the IDE Command Centre's behaviour
+  // (DashboardPages.tsx) so users on either surface get the same
+  // click-to-edit affordance. localStorage override takes priority over
+  // account.name so the user can pick what Ava calls them without
+  // touching the platform-side account record. Falls back to first
+  // word of account.name, then email prefix.
+  const resolveDisplayName = (): string => {
+    try {
+      const stored = (localStorage.getItem('ava-extension-user-name') ?? '').trim();
+      if (stored) return stored;
+    } catch { /* webview localStorage disabled — fall through */ }
+    return (account.name?.trim().split(/\s+/)[0]) || account.email?.split('@')[0] || '';
+  };
+  const [firstName, setFirstName] = useState<string>(resolveDisplayName);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const [nameHover, setNameHover] = useState(false);
+  useEffect(() => {
+    setFirstName(resolveDisplayName());
+    const refresh = () => setFirstName(resolveDisplayName());
+    window.addEventListener('ava-extension-name-changed', refresh);
+    return () => window.removeEventListener('ava-extension-name-changed', refresh);
+    // account dependency — when sign-in/out arrives via postMessage, the
+    // account prop changes and the displayed name needs to re-resolve in
+    // case the localStorage override was cleared by a sign-out elsewhere.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account.name, account.email]);
+  const saveDisplayName = () => {
+    const next = nameInput.trim();
+    try {
+      if (next) localStorage.setItem('ava-extension-user-name', next);
+      else localStorage.removeItem('ava-extension-user-name');
+    } catch { /* storage disabled — keep in-memory only */ }
+    setFirstName(next || (account.name?.trim().split(/\s+/)[0]) || account.email?.split('@')[0] || '');
+    // Push to the platform via the host. The host's update_name handler
+    // PATCHes /account-info and posts account_updated back, which App.tsx
+    // sets on the account prop — the useEffect below picks the new value
+    // up automatically. No-op when not signed in (host early-returns).
+    // Local-first means the UI commits regardless; the round-trip exists
+    // so the IDE / companion / web dashboard read the same name.
+    if (next) post({ type: 'update_name', name: next });
+    window.dispatchEvent(new CustomEvent('ava-extension-name-changed'));
+    setEditingName(false);
+  };
+
   const dateStr = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const workStart = (() => {
     try { return Number(localStorage.getItem('ava-work-start')) || 9; } catch { return 9; }
@@ -193,8 +238,46 @@ export function Overview({
       {/* ── Hero strip — matches IDE Command Centre framing ──────────── */}
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-2xl font-light text-white mb-1">
-            {greeting}{firstName ? `, ${firstName}` : ''}
+          <div className="text-2xl font-light text-white mb-1 flex items-center flex-wrap gap-1">
+            <span>{greeting}{firstName || editingName ? ',' : ''}</span>
+            {editingName ? (
+              <input
+                autoFocus
+                value={nameInput}
+                onChange={e => setNameInput(e.target.value)}
+                onBlur={saveDisplayName}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { e.preventDefault(); saveDisplayName(); }
+                  else if (e.key === 'Escape') { setEditingName(false); setNameInput(''); }
+                }}
+                placeholder="What should Ava call you?"
+                maxLength={40}
+                className="text-2xl font-light text-white outline-none rounded-md px-2 py-0 bg-[rgba(168,85,247,0.08)] border border-[rgba(168,85,247,0.3)]"
+                style={{ minWidth: 220, fontFamily: 'inherit' }}
+              />
+            ) : firstName ? (
+              <span
+                onClick={() => { setNameInput(firstName); setEditingName(true); }}
+                onMouseEnter={() => setNameHover(true)}
+                onMouseLeave={() => setNameHover(false)}
+                title="Click to change what Ava calls you"
+                style={{
+                  cursor: 'pointer',
+                  borderBottom: nameHover ? '1px dashed #a855f7' : '1px dashed transparent',
+                  transition: 'border-color 0.15s',
+                }}
+              >
+                {firstName}
+              </span>
+            ) : (
+              <span
+                onClick={() => { setNameInput(''); setEditingName(true); }}
+                title="Tell Ava what to call you"
+                style={{ cursor: 'pointer', color: '#a855f7', fontSize: 16, marginLeft: 4 }}
+              >
+                + add name
+              </span>
+            )}
           </div>
           <div className="text-sm text-[var(--text-muted)]">{dateStr}</div>
         </div>

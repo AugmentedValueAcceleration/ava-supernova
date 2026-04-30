@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.58.1 — 2026-04-30 — Editable display name on Command Centre + cross-surface sync
+
+### Added
+- **Editable display name on the Command Centre greeting.** Click your name in "Good afternoon, [name]" → input appears in-place. Enter or blur saves; Escape cancels; empty submit clears the custom name and falls back to the email prefix. The display name is what Ava uses to refer to you in chat panel welcomes and trajectory events, so it actually matters that it sounds like something you go by.
+- **Single source of truth across surfaces.** Saving pushes the name to your platform user record (`/api/account-info` PATCH) so the IDE, companion, and web dashboard pick up the same name on their next refresh. The host's existing `update_name` plumbing wires straight to the platform; the webview just sends the message.
+- **Local-first preserved.** Every save commits to localStorage immediately for instant UI; the platform PATCH is fire-and-forget and silently no-ops if you're not signed in. The editor still works without an account.
+- **No-name fallback.** If no custom name has been set yet (sign-in hasn't seeded one), the greeting shows a small purple **"+ add name"** link instead of just trailing the comma with nothing.
+
 ## 0.58.0 — 2026-04-30 — Aurora and Supernova public
 
 ### Changed
