@@ -39,6 +39,20 @@ import { chargeCredits, extractUsage } from '../billing/meter.js';
 import { summarizeToolArgs, summarizeToolResult, summarizeChainOutcome } from '../dataset/summarizers.js';
 import { pickVerificationTools, categorizeCorrection } from '../dataset/verification.js';
 import { matchToolError } from '../tools/error-guidance.js';
+import {
+  recordEditFromTool,
+  pendingFilesAtClosure,
+  runPendingVerify,
+  buildVerifyFailureNudge,
+} from './post-edit-verify.js';
+import {
+  signatureForFailure,
+  recordFailure,
+  shouldEscalateFreshEyes,
+  markFreshEyesEscalated,
+  describeFailureLoop,
+} from './error-loop-detector.js';
+import { runFreshEyesReview, buildFreshEyesContext } from './fresh-eyes.js';
 import { randomUUID } from 'node:crypto';
 import { autoActivatePacks } from '../knowledge/pack-router.js';
 import type { IntentClassifier, UserIntent } from './intent-classifier.js';
@@ -406,7 +420,39 @@ export type AgentEvent =
   // the task agent once with the failure context injected. Host UIs show a
   // "Retrying after verification failure" banner until the next
   // verification_end (or stream_end) fires.
-  | { type: 'verification_retry_start'; reason: string };
+  | { type: 'verification_retry_start'; reason: string }
+  // ── Loop-prevention telemetry ─────────────────────────────────────────
+  // Emitted by the pre-closure verify guard in runInner. Surfaces the
+  // verify-and-retry cycle so users see when an extra typecheck/test
+  // pass ran, why it ran, and whether it passed. Without these events,
+  // the verify guard runs silently and the user just sees the agent
+  // "thinking" longer than expected.
+  | { type: 'verify_started'; files: string[] }
+  | { type: 'verify_passed'; files: string[] }
+  | { type: 'verify_failed'; files: string[]; output: string }
+  // Fresh-eyes is a single extra provider call (cold context, "second
+  // opinion" prompt) that runs when the same verify failure has recurred
+  // 3 times. These events make the extra spend visible — the UI can
+  // surface "Loop guard fired — running an independent review" so it's
+  // never silent. `signature` is a 60-char prefix of the failure
+  // signature for log/telemetry correlation, never includes raw user
+  // content.
+  | { type: 'fresh_eyes_started'; signature: string }
+  | { type: 'fresh_eyes_complete' }
+  // ── Credit-fairness signal ────────────────────────────────────────────
+  // Fires when the loop-prevention system has done all it can (verify
+  // ran, retry happened, fresh-eyes review fired) and the same root-cause
+  // signature is still failing. Tells the platform billing surface "this
+  // turn is a fair-refund candidate" — the user paid for the recovery
+  // attempts but the agent didn't get them out of the hole. Backend
+  // policy decides whether the refund is automatic or operator-reviewed;
+  // the agent's job is just to flag the turn unambiguously.
+  //
+  // `tokensInRecovery` is the agent's best estimate of tokens spent
+  // post-escalation (verify + fresh-eyes call + the failed retry round).
+  // `signature` is the same 60-char prefix used by fresh_eyes_started so
+  // backend telemetry can correlate. Never includes raw user content.
+  | { type: 'loop_refund_eligible'; signature: string; tokensInRecovery: number; reason: string };
 
 export type AgentEventHandler = (event: AgentEvent) => void;
 
@@ -442,6 +488,35 @@ export class Agent {
   /** Stable session UUID — one per Agent instance unless caller overrides. */
   private readonly sessionId: string;
   /**
+   * Loop-prevention master switch. When false, the pre-closure verify
+   * guard skips the verify_change call and falls straight through to the
+   * existing closure logic — the agent behaves exactly like it did before
+   * post-edit-verify shipped. Used as an emergency off switch and a way
+   * for power users who hate any extra LLM round-trips to opt out. The
+   * `recordEditFromTool` post-tool hook still runs (it's free) so the
+   * trajectory has the data if the flag flips on mid-session.
+   *
+   * Default true — the guard catches real bugs (build-broken closures,
+   * stuck-loop credit burn) and the cost is bounded (one verify pass +
+   * at most one fresh-eyes call per turn).
+   */
+  private readonly loopPreventionEnabled: boolean;
+  /**
+   * Recovery hook that returns the new messages accumulated during the
+   * currently-running Agent.run() call. Set at the top of run(),
+   * cleared (left as a stale closure) when run() exits — the next run
+   * overwrites it. Lets the caller reach into a cancelled run and
+   * persist Ava's partial work (completed tool calls, streamed
+   * assistant text) before the AbortError throws her out, instead of
+   * losing all of it because run() never reached its return statement.
+   *
+   * Without this, pressing Stop mid-task discarded every tool call and
+   * file edit Ava had completed — the next user message saw a
+   * conversation history with a gap where her work used to be, and
+   * Ava had no memory of what she'd done. See cancelRun() in the host.
+   */
+  private currentRunRecoveryHook: (() => Message[]) | null = null;
+  /**
    * Trajectory metadata from the previous Agent.run() in this session.
    * Used to attach `correction_received` events to the trajectory the
    * user is correcting, and to record whether that prior trajectory
@@ -472,6 +547,13 @@ export class Agent {
     sessionId?: string;
     /** Optional secret-grant callback for the secret_request tool. */
     secretGranter?: (label: string, reason?: string) => Promise<{ id: string; label: string } | null>;
+    /**
+     * Loop-prevention master switch. Defaults to true. Surfaces should
+     * read their settings (e.g. `ava-supernova.loopPrevention.enabled`)
+     * and pass through. Set false to disable the pre-closure verify
+     * guard + fresh-eyes escalation entirely.
+     */
+    loopPreventionEnabled?: boolean;
   }) {
     this.provider = opts.provider;
     this.model = opts.model;
@@ -483,6 +565,21 @@ export class Agent {
     };
     this.surface = opts.surface ?? 'cli';
     this.sessionId = opts.sessionId ?? randomUUID();
+    this.loopPreventionEnabled = opts.loopPreventionEnabled ?? true;
+  }
+
+  /**
+   * Return the new messages accumulated by the currently-running (or
+   * just-aborted) Agent.run() call. Used by the host's cancellation
+   * path to persist Ava's partial work — completed tool calls, streamed
+   * assistant text — before the conversation history is updated with
+   * the stop marker. Returns an empty array if no run has happened.
+   *
+   * Safe to call after run() has exited normally — the hook still
+   * returns a snapshot of the run that just finished.
+   */
+  getCurrentRunPartialMessages(): Message[] {
+    return this.currentRunRecoveryHook?.() ?? [];
   }
 
   /**
@@ -780,6 +877,12 @@ export class Agent {
       return [...realEvents];
     };
 
+    // Expose finalHistory as the recovery hook so cancelRun() in the host
+    // can pull whatever Ava had accumulated when the user pressed Stop.
+    // Reassigned every run; the previous run's reference becomes stale
+    // (closes over a dead realEvents) but is never read again.
+    this.currentRunRecoveryHook = finalHistory;
+
     // ─── Stop-command detection ────────────────────────────────────────────
     // If the user's latest message is an explicit stop command ("stop",
     // "halt", "leave it", "don't touch", "how dare you i said stop", etc.),
@@ -848,6 +951,11 @@ export class Agent {
     // to close out" failure where the model terminates cleanly but leaves
     // the user staring at a wall of tool calls with no visible confirmation.
     let closureFallbackAttempted = false;
+    // Pre-closure verify guard — limit to one verify+retry cycle per run
+    // to avoid spinning on the same fix attempt forever. After one cycle,
+    // closure is allowed even with pending files (the model gets a final
+    // chance to declare done with whatever it has).
+    let closureVerifyAttempted = false;
 
     const latestUserMessage = this.findLatestNonMetaUserMessage(messages);
     if (latestUserMessage) {
@@ -1424,6 +1532,94 @@ export class Agent {
 
       if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
         logger.debug(`[agent] No tool_calls in response. content=${(assistantMessage.content ?? '').length} chars, reasoning=${(assistantMessage.reasoning_content ?? '').length} chars`);
+
+        // ─── Pre-closure verify guard (universal) ─────────────────────
+        // If the trajectory has unverified file edits, run verify_change
+        // before allowing the turn to end. On pass, files move to
+        // verifiedFiles and closure proceeds. On fail, inject the
+        // failure report (or a fresh-eyes review if we've looped on
+        // the same root cause) as user-role context and re-enter the
+        // loop. Limited to one cycle per run via closureVerifyAttempted
+        // — guaranteed exit so an unfixable verify can't trap a turn.
+        //
+        // Lives in the universal agent loop, NOT AutoCoordinator, so
+        // single-model BYOK chats get the same enforcement orchestrated
+        // modes have always had.
+        const trajForVerify = getTrajectory();
+        const pendingFiles = trajForVerify ? pendingFilesAtClosure(trajForVerify) : null;
+        if (
+          this.loopPreventionEnabled &&
+          pendingFiles &&
+          pendingFiles.length > 0 &&
+          !closureVerifyAttempted &&
+          !signal?.aborted &&
+          trajForVerify
+        ) {
+          closureVerifyAttempted = true;
+          logger.debug(`[agent] Pre-closure verify on ${pendingFiles.length} pending file(s)`);
+          onEvent({ type: 'verify_started', files: pendingFiles });
+          const verifyResult = await runPendingVerify(trajForVerify, this.toolContext);
+
+          if (!verifyResult.passed) {
+            onEvent({ type: 'verify_failed', files: verifyResult.files, output: verifyResult.output });
+            // Record signature + check loop threshold; fall through to
+            // a normal nudge or, if we've been spinning, a fresh-eyes
+            // independent second opinion.
+            const sig = signatureForFailure(verifyResult.output, verifyResult.files);
+            recordFailure(trajForVerify, sig, 'verify');
+
+            let nudgeContent: string;
+            if (shouldEscalateFreshEyes(trajForVerify, sig)) {
+              markFreshEyesEscalated(trajForVerify);
+              logger.info(
+                `[agent] Fresh-eyes escalation triggered — signature ${sig.slice(0, 60)}... has recurred`,
+              );
+              onEvent({ type: 'fresh_eyes_started', signature: sig.slice(0, 60) });
+              const firstUserMsg = messages.find((m) => m.role === 'user');
+              const originalTask =
+                typeof firstUserMsg?.content === 'string' ? firstUserMsg.content : '';
+              const review = await runFreshEyesReview({
+                provider: this.provider,
+                modelId: this.model.id,
+                originalTask,
+                files: verifyResult.files,
+                cwd: this.toolContext.cwd,
+                failureSummary: describeFailureLoop(trajForVerify),
+                lastFailureReport: verifyResult.output,
+                signal,
+              });
+              onEvent({ type: 'fresh_eyes_complete' });
+              // Credit-fairness signal — by the time fresh-eyes has fired,
+              // the user has paid for ≥3 same-signature failures + the
+              // fresh-eyes call itself. Flag this turn as refund-eligible
+              // so the backend can decide whether to credit the user
+              // back. Token estimate: fresh-eyes max_tokens (800) plus
+              // the prompt budget it builds (capped at ~10K input via
+              // file/report/task budgets in fresh-eyes.ts). Conservative
+              // 11_000 is the worst-case ceiling, not a measured spend —
+              // backend should still cross-reference its own usage rows
+              // for the authoritative number.
+              onEvent({
+                type: 'loop_refund_eligible',
+                signature: sig.slice(0, 60),
+                tokensInRecovery: 11_000,
+                reason: 'fresh-eyes review fired — same-signature failure recurred 3+ times',
+              });
+              nudgeContent = buildFreshEyesContext(review);
+            } else {
+              nudgeContent = buildVerifyFailureNudge(verifyResult.output, verifyResult.files);
+            }
+
+            // Drop the closure attempt and re-prompt with the failure
+            // context — gives the model real diagnostic info to act on
+            // instead of letting it declare done with broken code.
+            messages = messages.slice(0, -1);
+            messages = [...messages, { role: 'user' as const, content: nudgeContent }];
+            continue;
+          }
+          onEvent({ type: 'verify_passed', files: verifyResult.files });
+          // Pass — fall through to existing closure logic.
+        }
 
         // ─── Closure fallback ─────────────────────────────────────────
         // Detect two failure modes where the turn terminates without
@@ -2174,6 +2370,17 @@ export class Agent {
         });
       }
       if (traj) traj.pendingErrorEventId = errorEventId;
+    }
+
+    // ── Post-edit verify tracking ─────────────────────────────────────
+    // Universal hook: every successful file_write / file_edit registers
+    // its target on the trajectory's pendingVerifyFiles. Read by the
+    // closure-time verify guard in runInner so unverified edits can't
+    // sneak past a turn-end. Lives here (not in AutoCoordinator) so
+    // every routing mode — Maestro / Supernova / Aurora / direct BYOK —
+    // gets the same enforcement.
+    if (traj) {
+      recordEditFromTool(traj, toolName, args, result.success);
     }
 
     return result;

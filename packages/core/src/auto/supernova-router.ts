@@ -56,7 +56,10 @@ export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
   coding:       { modelId: 'qwen3.6-plus',                reason: 'Qwen 3.6 Plus — Terminal-Bench leader, production-tested Builder',                  fallbackModelId: 'deepseek-v4-flash-platform' },
   // Vision input → Omni only path.
   vision:       { modelId: 'qwen3.5-omni-plus',           reason: 'Qwen 3.5 Omni Plus — only vision-capable model in scope',                            fallbackModelId: 'qwen3.6-plus', requiresVision: true },
-  image_gen:    { modelId: 'qwen3.6-plus',                reason: 'Qwen 3.6 Plus — handles generate_image tool calls',                                  fallbackModelId: 'qwen3.5-omni-plus' },
+  // image_gen orchestrates a generate_image tool call to Wan / MiniMax —
+  // no agentic depth needed at this layer. Omni Flash is materially cheaper
+  // than 3.6 Plus and still vision-capable for the result handoff.
+  image_gen:    { modelId: 'qwen3.5-omni-flash',          reason: 'Qwen 3.5 Omni Flash — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'qwen3.5-omni-plus' },
   computer_use: { modelId: 'qwen3.6-plus',                reason: 'Qwen 3.6 Plus — vision-aware tool orchestration',                                    fallbackModelId: 'qwen3.5-omni-plus', requiresVision: true },
   // Planning is Architect + Researcher territory — Architect is Qwen 3.6
   // Plus per the map, but planning leans heavily on Researcher's

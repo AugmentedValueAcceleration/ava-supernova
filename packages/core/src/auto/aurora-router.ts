@@ -87,14 +87,23 @@ export const AURORA_ROUTES: Record<TaskCategory, AuroraRouteEntry> = {
   coding:       { modelId: 'mistral-medium-3.5', reason: 'Mistral Medium 3.5 — 77.6% SWE-Bench Verified, 256K context, agentic-coding optimised',   fallbackModelId: 'mistral-large-3' },
   // Vision input → Medium 3.5's from-scratch encoder beats Pixtral merged.
   vision:       { modelId: 'mistral-medium-3.5', reason: 'Mistral Medium 3.5 — vision encoder trained from scratch for variable sizes',             fallbackModelId: 'mistral-large-3', requiresVision: true },
-  image_gen:    { modelId: 'mistral-medium-3.5', reason: 'Mistral Medium 3.5 — handles generate_image tool calls with vision context',              fallbackModelId: 'mistral-small-4' },
+  // image_gen routes a generate_image tool call to Wan / MiniMax — the
+  // Mistral model just orchestrates the tool, doesn't need agentic depth
+  // here. Small 4 is materially cheaper + faster than Medium 3.5 with no
+  // capability loss for this surface. Falls back to Medium 3.5 if Small 4
+  // is unavailable so the orchestrator still has vision context.
+  image_gen:    { modelId: 'mistral-small-4',    reason: 'Mistral Small 4 — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'mistral-medium-3.5' },
   computer_use: { modelId: 'mistral-medium-3.5', reason: 'Mistral Medium 3.5 — vision + agentic tool orchestration, designed for long-horizon work',fallbackModelId: 'mistral-large-3', requiresVision: true },
   // Planning is Architect + Researcher territory. Large 3 stays —
   // long-context synthesis and depth-of-reasoning are coordinator work.
   planning:     { modelId: 'mistral-large-3',    reason: 'Mistral Large 3 — sparse MoE depth + long-context planning synthesis',                    fallbackModelId: 'mistral-medium-3.5' },
-  // Chat = direct response from coordinator. Large 3 stays for the
-  // coordinator-direct path; Medium 3.5 is the warm fallback.
-  chat:         { modelId: 'mistral-large-3',    reason: 'Mistral Large 3 — coordinator handles chat directly with frontier reasoning',             fallbackModelId: 'mistral-medium-3.5' },
+  // Chat = direct conversational response. Small 4's configurable
+  // reasoning means it can match Large 3 quality on harder chats while
+  // staying snappy on easy ones — and at $0.15/M input it's ~3× cheaper
+  // than Large 3 and materially faster on first-token latency. Falls
+  // back to Large 3 (not Medium 3.5) so the capability ceiling on hard
+  // chats is preserved if Small 4 is unavailable.
+  chat:         { modelId: 'mistral-small-4',    reason: 'Mistral Small 4 — configurable reasoning, multimodal, fast TTFT for typical chat turns', fallbackModelId: 'mistral-large-3' },
   // Long-context grunt: Large 3's MoE handles 1M-class context efficiently
   // (only 41B active per token). Medium 3.5 caps at 256K so it's the
   // fallback only when Large 3 is unavailable.

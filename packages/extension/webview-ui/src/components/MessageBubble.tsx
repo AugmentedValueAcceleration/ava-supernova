@@ -190,12 +190,18 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
             </span>
             <span style={{ fontSize: 10, color: '#45475a' }}>{ts}</span>
           </div>
-          {/* Bubble */}
+          {/* Bubble — clean black gradient with a thin electric purple
+              border. Subtle outer glow at the same hue ties the bubble
+              to the avatar/accent without bleeding into the conversation
+              background. Solid border at full opacity for the user side
+              gives a clear "this is what I said" anchor. */}
           <div
             style={{
               padding: '10px 16px',
               borderRadius: '16px 16px 4px 16px',
-              background: '#7c3aed',
+              background: 'linear-gradient(135deg, #1a0f24 0%, #0a0712 100%)',
+              border: '1px solid #a855f7',
+              boxShadow: '0 0 14px rgba(168, 85, 247, 0.22)',
               color: '#ffffff',
               fontSize: 14, lineHeight: 1.65,
               whiteSpace: 'pre-wrap', wordBreak: 'break-word',
@@ -381,8 +387,13 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
                   maxWidth: '95%',
                   padding: '10px 16px',
                   borderRadius: '16px 16px 16px 4px',
-                  background: '#181825',
-                  border: '1px solid rgba(168, 85, 247, 0.12)',
+                  // Black gradient + thin electric purple border, tuned
+                  // slightly softer than the user side so the visual
+                  // hierarchy reads "I asked / Ava replied" without both
+                  // bubbles competing for the same attention.
+                  background: 'linear-gradient(135deg, #0f0f17 0%, #1a1625 100%)',
+                  border: '1px solid rgba(168, 85, 247, 0.55)',
+                  boxShadow: '0 0 10px rgba(168, 85, 247, 0.12)',
                   fontSize: 14, lineHeight: 1.65, color: '#cdd6f4',
                 }}
               >

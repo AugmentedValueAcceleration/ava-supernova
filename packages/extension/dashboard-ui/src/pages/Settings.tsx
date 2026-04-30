@@ -944,6 +944,27 @@ export function Settings({
                 className="w-full rounded-lg border border-[var(--border-input)] bg-[var(--bg-input)] px-4 py-2.5 font-mono text-sm text-white outline-none transition focus:border-[var(--accent)]"
               />
             </div>
+
+            <Divider />
+
+            {/* Loop Prevention — verify_change before close + fresh-eyes
+                escalation on stuck same-signature failures. On by default.
+                When off, Ava reverts to pre-loop-prevention behaviour: she
+                may declare turns done with file edits that don't compile,
+                and same-signature failure loops won't trigger an
+                independent review. */}
+            <div className="mt-5 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold">Loop prevention</p>
+                <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                  Run typecheck/tests before declaring a turn done. If the same failure recurs three times in a row, an independent review fires (one extra LLM call). Off = faster turn-end, but build-broken edits may slip through.
+                </p>
+              </div>
+              <ToggleSwitch
+                value={local.loopPreventionEnabled}
+                onChange={v => saveImmediate('loopPreventionEnabled', v)}
+              />
+            </div>
           </div>
         )}
       </div>

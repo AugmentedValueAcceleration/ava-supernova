@@ -77,6 +77,38 @@ export interface TrajectoryContext {
    */
   pendingStallEventId?: string;
   nudgeRecovered?: boolean;
+  /**
+   * Files mutated by file_write / file_edit since the last verify_change run.
+   * Drives the post-edit verify hook in agent.ts: when this set is non-empty
+   * at closure time, run verify_change against the listed files. Cleared
+   * when verify runs (regardless of pass/fail).
+   *
+   * Lives on TrajectoryContext rather than agent state so a sub-agent / persona
+   * spawned inside the same trajectory inherits the unverified-files set
+   * automatically — useful when the orchestrator dispatches a Builder mid-task.
+   */
+  pendingVerifyFiles?: Set<string>;
+  /**
+   * Files that have passed verify_change since their last edit. Mostly
+   * informational — used to decide whether a closure attempt is OK
+   * (no pending files) or needs a verify nudge (pending files exist).
+   */
+  verifiedFiles?: Set<string>;
+  /**
+   * Timeline of verify_change failures during this trajectory. Each entry
+   * stores a stable signature derived from the failing checkId + first-error
+   * line so retries against the same root cause collide on the same signature
+   * even as the rest of the report shifts. Read by the error-loop detector
+   * to decide when to spawn a fresh-eyes pass.
+   */
+  verifyFailureHistory?: Array<{ signature: string; check: string; firedAt: number }>;
+  /**
+   * Set true once a fresh-eyes pass has been spawned for this trajectory's
+   * stuck verify failure. Prevents recursive escalation if the fresh-eyes
+   * recommendation is also broken — we surface to the user instead of
+   * spawning a third agent.
+   */
+  freshEyesEscalated?: boolean;
 }
 
 const trajectoryStorage = new AsyncLocalStorage<TrajectoryContext>();

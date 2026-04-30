@@ -2,7 +2,7 @@
   "name": "ava-supernova",
   "displayName": "Ava Supernova",
   "description": "%description%",
-  "version": "0.58.1",
+  "version": "0.59.0",
   "publisher": "augmentedvalueacceleration",
   "license": "Apache-2.0",
   "repository": {
@@ -362,6 +362,12 @@
             "default": false,
             "order": 8,
             "markdownDescription": "Help improve Ava for everyone. When enabled, anonymised feedback data (ratings, model and mode used — no code, no conversation content) is shared to improve response quality. **Off by default.** See [Privacy Policy](https://ava-supernova.com/privacy) for details."
+          },
+          "ava-supernova.loopPrevention.enabled": {
+            "type": "boolean",
+            "default": true,
+            "order": 9,
+            "markdownDescription": "When Ava is about to declare a turn done with file edits that haven't been verified, run typecheck/tests against those files first. On failure, she gets one chance to fix before closing. If the same failure recurs three times in a row, an independent fresh-eyes review fires (one extra LLM call, surfaced as a `loop guard fired` event). **On by default** — catches build-broken closures and stops stuck loops from burning credits. Disable only if you prefer faster turn-end and accept that broken edits may ship without notice."
           }
         }
       },

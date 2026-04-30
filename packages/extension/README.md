@@ -32,9 +32,9 @@ You don't pick a model. You pick the work, and the right fleet falls out of that
 
 | Mode | Best for | Coordinator | Specialists | Residency |
 |---|---|---|---|---|
-| **Maestro** | Daily work, predictable cost | Qwen 3.6 Plus | Qwen 3.6 Plus + 3.5 Flash | Mixed (Alibaba) |
-| **Supernova** | Heavy multi-step work, frontier reasoning at specialist prices | DeepSeek V4 Pro | DeepSeek V4 Flash · Qwen 3.6 Plus · Qwen 3.5 Flash · Qwen 3.5 Omni Plus · Qwen 3.5 Plus | Mixed (DeepSeek + Alibaba) |
-| **Aurora** | GDPR-strict, public-sector, sovereign EU stacks | Mistral Large 3 | Mistral Medium 3.5 (Builder + vision + long-form) · Mistral Small 4 (intent gate) | EU-only · open weights |
+| **Maestro** | Daily work, predictable cost | Qwen 3.6 Plus | Qwen 3.5 Omni Plus (vision) · Qwen 3.5 Plus (long-form) · Qwen 3.5 Flash (chat, image-gen, intent gate) | Mixed (Alibaba) |
+| **Supernova** | Heavy multi-step work, frontier reasoning at specialist prices | DeepSeek V4 Pro | DeepSeek V4 Flash (chat + mid-tier) · Qwen 3.6 Plus (Builder) · Qwen 3.5 Omni Plus (vision) · Qwen 3.5 Omni Flash (image-gen) · Qwen 3.5 Plus (long-form) · Qwen 3.5 Flash (light tier) | Mixed (DeepSeek + Alibaba) |
+| **Aurora** | GDPR-strict, public-sector, sovereign EU stacks | Mistral Large 3 | Mistral Medium 3.5 (Builder + vision + long-form) · Mistral Small 4 (chat + image-gen + intent gate) | EU-only · open weights |
 
 Plans get all three. **BYOK gets all three too**, gated by the keys each fleet needs:
 
@@ -226,9 +226,11 @@ Grouped for the work you actually do:
 
 ## Models
 
-**Maestro coordinator** — Qwen 3.6 Plus. Single-conductor mode: one brain plans, classifies, and dispatches Builders. Terminal-Bench leader on real agent loops, 1M context, native MCP function calling.
+**Maestro coordinator** — Qwen 3.6 Plus. Tier-differentiated Qwen routing: 3.6 Plus on the heavy slots (coordinator, Builder, planning, security, brainstorm, long-context), 3.5 Flash on the high-volume low-depth slots (chat, image-gen orchestration, intent gate), Omni Plus on vision and computer_use, 3.5 Plus on long-form writing. Terminal-Bench leader on real agent loops, 1M context, native MCP function calling.
 
-**Supernova coordinator** — DeepSeek V4 Pro. Polyglot mode: V4 Pro reads the task, picks specialists (Qwen 3.6 Plus for Builder, V4 Flash for review-tier work, Qwen Omni for vision). Each role runs on the model that's actually best at it, not whatever the coordinator happens to be.
+**Supernova coordinator** — DeepSeek V4 Pro. Polyglot mode: V4 Pro reads the task, picks specialists (Qwen 3.6 Plus for Builder, V4 Flash for chat + review-tier work, Qwen Omni Plus for vision, Omni Flash for image-gen orchestration). Each role runs on the model that's actually best at it, not whatever the coordinator happens to be.
+
+**Aurora coordinator** — Mistral Large 3. EU-sovereign three-tier Mistral fleet: Large 3 on the coordinator + heavy reasoning specialists, Medium 3.5 on Builder + mid-tier + vision + long-form, Small 4 on chat + image-gen + intent gate. Open weights end to end, never leaves EU infrastructure.
 
 **Creative Studio** — runs MiniMax exclusively. Image, video, music, voice. Kept separate from the chat coordinator so creative work and code work never compete for the same context window.
 

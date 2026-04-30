@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.59.0 — 2026-04-30 — Loop prevention + chat-tier routing rebalance + UX polish
+
+### Added
+- **Loop prevention shipped end-to-end.** When Ava finishes a turn with file edits that haven't been verified, she runs typecheck/tests against those files before declaring done. On failure she gets one chance to fix; if the same root-cause signature recurs three times, an independent fresh-eyes review fires (one extra LLM call). New events (`verify_started`, `verify_passed`, `verify_failed`, `fresh_eyes_started`, `fresh_eyes_complete`) surface the recovery cycle in the chat so it's never silent. Caps fairness via the new `loop_refund_eligible` event — backend decides if credits return on attempted-but-failed recovery. Toggle in Account → Settings → Advanced (default on).
+- **Chat-tier routing rebalance across all three modes.** Maestro chat → Qwen 3.5 Flash (~1 credit/turn, was ~3). Aurora chat → Mistral Small 4 (~1 credit/turn, was ~5). Maestro vision → Qwen 3.5 Omni Plus (was 3.6 Plus, which has no native vision). Maestro computer_use → Omni Plus. Maestro teach → 3.5 Plus. Maestro image-gen → 3.5 Flash. Aurora image-gen → Small 4. Supernova image-gen → Omni Flash. Vision still routes to the right specialist on every mode; long-form goes to cost-sensitive tiers; heavy work stays on the coordinator.
+- **Stop preserves Ava's partial work.** Pressing Stop mid-task now persists completed tool calls and streamed assistant text into conversation history before the stop marker is added. Next turn she remembers what she'd done. Previously she lost everything between your prompt and the stop, leaving a context gap.
+- **Persona errors surfaced.** Conductor planning failures (Scout / Architect / Challenger / etc. red X marks) now show the actual error string under each X — was silent before.
+- **Loop prevention toggle** in Account → Settings → Advanced.
+
+### Changed
+- **Chat bubble redesign.** Clean black gradient (`#1a0f24` → `#0a0712` for user, `#0f0f17` → `#1a1625` for Ava) + thin electric purple border (`#a855f7` solid for user, 55% alpha for Ava) + subtle outer glow. Subtle visual hierarchy so the user bubble pops a touch more than Ava's.
+- **Provider error messages now include the upstream response body.** When a provider returns 4xx/5xx, the thrown `ProviderError` message includes the first 500 chars of the response body — used to be hidden at debug level. Surfaces actual rejection reasons instead of bare status codes.
+- **Documentation routing tables** updated across extension README, IDE README, and in-app docs to reflect the new chat / image-gen / vision / long-form routes.
+
+### Fixed
+- **History → Conversations.** Local conversations were rendering as empty rows (the UI read `updated_at` snake-case, but `HistoryManager.listConversations` returns `updatedAt` camelCase metadata-only rows). Now reads both shapes; drops the "0 messages" line when no count is available; row design refreshed to match the new bubble aesthetic.
+- **Conversation delete is local-first.** Was cloud-only — local-only users couldn't delete anything, signed-in users saw deleted rows reappear on reload because the `~/.ava/` file was untouched. Now deletes the local file via `historyManager.deleteConversation` first, then mirrors to cloud as best-effort.
+
 ## 0.58.1 — 2026-04-30 — Editable display name on Command Centre + cross-surface sync
 
 ### Added

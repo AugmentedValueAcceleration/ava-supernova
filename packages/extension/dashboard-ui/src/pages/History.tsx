@@ -243,15 +243,25 @@ function ConversationsView({ conversations }: { conversations: ConversationEntry
       ) : (
         <div className="flex flex-col gap-2">
           {filtered.map(conv => {
-            const msgCount = conv.messages?.length || 0;
-            const date = conv.updated_at ? new Date(conv.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-            const time = conv.updated_at ? new Date(conv.updated_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
-            const preview = conv.messages?.find(m => m.role === 'assistant' || m.role === 'ava')?.content?.slice(0, 120) || '';
+            // Tolerate both shapes: HistoryManager.listConversations
+            // returns metadata in camelCase (`updatedAt`, no messages
+            // array — list endpoints stay slim by design), the cloud
+            // /conversations endpoint returns snake_case rows. Read
+            // both so neither source renders as a row of empty dots.
+            const updated = (conv as any).updatedAt || conv.updated_at || (conv as any).createdAt || (conv as any).created_at || '';
+            const date = updated ? new Date(updated).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+            const time = updated ? new Date(updated).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+            // Local list rows don't carry messages; cloud rows do. Only
+            // surface a count when we actually have one — better silence
+            // than "0 messages" lying about a real conversation.
+            const msgCount: number | undefined = (conv as any).messageCount ?? (conv.messages?.length || undefined);
+            const preview = conv.messages?.find(m => m.role === 'assistant' || (m.role as string) === 'ava')?.content?.slice(0, 120) || '';
             return (
               <div
                 key={conv.id}
                 onClick={() => loadConversation(conv)}
-                className="cursor-pointer rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] px-4 py-3 transition hover:border-[var(--accent)]/40"
+                className="cursor-pointer rounded-xl border border-[rgba(168,85,247,0.20)] px-4 py-3 transition hover:border-[rgba(168,85,247,0.55)] hover:shadow-[0_0_10px_rgba(168,85,247,0.18)]"
+                style={{ background: 'linear-gradient(135deg, #0f0f17 0%, #1a1625 100%)' }}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
@@ -262,11 +272,15 @@ function ConversationsView({ conversations }: { conversations: ConversationEntry
                     {preview && (
                       <p className="mt-1 line-clamp-2 text-[11px] text-[var(--text-muted)]">{preview}</p>
                     )}
-                    <div className="mt-1.5 flex items-center gap-2 text-[10px] text-[#585b70]">
-                      <span>{date} · {time}</span>
-                      <span>·</span>
-                      <span>{msgCount} {msgCount === 1 ? 'message' : 'messages'}</span>
-                    </div>
+                    {(date || msgCount !== undefined) && (
+                      <div className="mt-1.5 flex items-center gap-2 text-[10px] text-[#585b70]">
+                        {date && <span>{date}{time ? ` · ${time}` : ''}</span>}
+                        {date && msgCount !== undefined && <span>·</span>}
+                        {msgCount !== undefined && (
+                          <span>{msgCount} {msgCount === 1 ? 'message' : 'messages'}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); deleteConversation(conv.id); }}

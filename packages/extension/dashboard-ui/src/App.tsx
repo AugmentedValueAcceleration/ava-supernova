@@ -118,6 +118,7 @@ export function App() {
     memoryLocalOnly: false,
     contributeSharedLearning: false,
     streamResponses: true,
+    loopPreventionEnabled: true,
   });
   const [memories, setMemories] = useState<MemoryEntry[]>([]);
   const [memoryTotal, setMemoryTotal] = useState(0);

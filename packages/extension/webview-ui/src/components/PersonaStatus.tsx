@@ -12,6 +12,7 @@ interface PersonaInfo {
   phase: 'active' | 'complete' | 'error';
   description?: string;
   output?: string;
+  error?: string;
   tools?: PersonaTool[];
 }
 
@@ -202,6 +203,14 @@ function PersonaRow({ persona }: { persona: PersonaInfo }) {
       {isComplete && persona.output && (
         <p className="mt-1 ml-6 text-[10px] text-[var(--vscode-descriptionForeground)] line-clamp-2 leading-relaxed">
           {persona.output}
+        </p>
+      )}
+
+      {/* Errored persona: show the actual failure reason. Without this the
+          UI shows three red Xs and the user has no idea why. */}
+      {isError && persona.error && (
+        <p className="mt-1 ml-6 text-[10px] text-[var(--vscode-errorForeground)] leading-relaxed">
+          {persona.error}
         </p>
       )}
     </div>

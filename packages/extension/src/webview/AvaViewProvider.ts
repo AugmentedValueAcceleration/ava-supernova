@@ -201,6 +201,16 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       return [];
     }
   }
+
+  /** Delete a conversation from local ~/.ava/ storage. Used by the
+   *  Dashboard's History page so deletes survive a reload — the
+   *  cloud-only delete path used to leave the local file in place
+   *  and the conversation reappeared on next list. Routes through
+   *  the same history-coordinator the chat-panel uses, so active-
+   *  conversation reset and chat_cleared signalling still fire. */
+  public async deleteLocalConversation(conversationId: string): Promise<void> {
+    await this.history.delete(conversationId);
+  }
   private providerSource: ProviderSource = 'byok';
   private enabledModelIds: Set<string> | null = null;
   private heartbeatInterval?: ReturnType<typeof setInterval>;
@@ -1557,6 +1567,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       sharedState.intentClassifier = this.intentClassifier;
     }
 
+    // Loop-prevention master switch — read from settings, default true.
+    // When disabled, the pre-closure verify guard is skipped and the
+    // agent runs the same way it did before post-edit-verify shipped.
+    // Surfaces as a deliberate opt-out for users who prefer faster
+    // turn-end at the cost of build-broken closures slipping through.
+    const loopPreventionEnabled = vscode.workspace
+      .getConfiguration('ava-supernova')
+      .get<boolean>('loopPrevention.enabled', true);
+
     this.agent = new Agent({
       provider: resilientProvider,
       model,
@@ -1564,6 +1583,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       cwd,
       sharedState,
       secretGranter: (label, reason) => this.requestSecretGrant(label, reason),
+      loopPreventionEnabled,
     });
 
     this.conductor = new Conductor({
@@ -2868,6 +2888,42 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           this.postMessage({ type: 'error', message: info.message, code: info.code, suggestion: info.suggestion });
           break;
         }
+        // ── Loop-prevention surfacing ───────────────────────────────────
+        // The agent emits these when the pre-closure verify guard runs,
+        // when fresh-eyes escalates, and when a turn becomes refund-
+        // eligible. Surface each as a `loop_status` system-style message
+        // so the user can SEE recovery attempts instead of paying for
+        // them silently. Status string is plain text — locale-mapped on
+        // the webview side via existing i18n keys.
+        case 'verify_started':
+          this.postMessage({ type: 'loop_status', kind: 'verify_started', files: event.files });
+          this.log(`Verify started on ${event.files.length} file(s)`);
+          break;
+        case 'verify_passed':
+          this.postMessage({ type: 'loop_status', kind: 'verify_passed', files: event.files });
+          this.log(`Verify passed on ${event.files.length} file(s)`);
+          break;
+        case 'verify_failed':
+          this.postMessage({ type: 'loop_status', kind: 'verify_failed', files: event.files });
+          this.log(`Verify failed — retrying with failure context`);
+          break;
+        case 'fresh_eyes_started':
+          this.postMessage({ type: 'loop_status', kind: 'fresh_eyes_started', signature: event.signature });
+          this.log(`Fresh-eyes review fired (signature ${event.signature})`);
+          break;
+        case 'fresh_eyes_complete':
+          this.postMessage({ type: 'loop_status', kind: 'fresh_eyes_complete' });
+          this.log(`Fresh-eyes review complete`);
+          break;
+        case 'loop_refund_eligible':
+          this.postMessage({
+            type: 'loop_status',
+            kind: 'refund_eligible',
+            tokensInRecovery: event.tokensInRecovery,
+            reason: event.reason,
+          });
+          this.log(`Loop refund-eligible flagged — ${event.reason} (~${event.tokensInRecovery} tokens in recovery)`);
+          break;
         case 'context_usage':
           this.postMessage({
             type: 'context_usage',
@@ -3001,7 +3057,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
               this.log(`Persona ${event.persona}: complete`);
               break;
             case 'persona_error':
-              this.postMessage({ type: 'persona_status', persona: event.persona, phase: 'error' });
+              this.postMessage({ type: 'persona_status', persona: event.persona, phase: 'error', error: event.error });
               this.log(`Persona ${event.persona}: error — ${event.error}`);
               break;
             case 'conductor_done':
@@ -3284,8 +3340,26 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     //    half-empty bubble as a "real" assistant reply and bails on
     //    restricting context, leaking all pre-stop baggage into the
     //    next turn). Strip it before injecting the stop marker.
+    //
+    // Before stripping the empty bubble, recover everything Ava actually
+    // completed during the cancelled run — tool calls that finished,
+    // assistant content that streamed in. agent.run() throws AbortError
+    // before reaching its return statement, so the host's normal
+    // "appendMessages on success" path runs zero times on cancel. Without
+    // this recovery, the conversation history loses every file edit and
+    // tool result Ava produced this turn, and the next user message sees
+    // a conversation with the user's prompt + the stop marker but no
+    // record of the work in between. That's the "context lost on Stop"
+    // bug — fix is to pull from the agent's recovery hook and append
+    // before the marker is added.
     try {
-      if (this.conversation) {
+      if (this.conversation && this.agent) {
+        const partial = this.agent.getCurrentRunPartialMessages();
+        if (partial.length > 0) {
+          this.conversation.appendMessages(partial);
+          this.log(`Cancel: recovered ${partial.length} partial message(s) from cancelled run`);
+        }
+
         const msgs = this.conversation.getMessages();
         while (msgs.length > 0) {
           const last = msgs[msgs.length - 1];

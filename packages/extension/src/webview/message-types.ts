@@ -116,7 +116,8 @@ export type ExtToWebviewMessage =
   | { type: 'session_tasks'; tasks: SessionTaskUI[] }
   | { type: 'ava_completed_tasks'; tasks: AvaCompletedTaskUI[] }
   | { type: 'conductor_status'; active: boolean; mode?: string }
-  | { type: 'persona_status'; persona: string; phase: 'active' | 'complete' | 'error'; description?: string; output?: string }
+  | { type: 'persona_status'; persona: string; phase: 'active' | 'complete' | 'error'; description?: string; output?: string; error?: string }
+  | { type: 'loop_status'; kind: 'verify_started' | 'verify_passed' | 'verify_failed' | 'fresh_eyes_started' | 'fresh_eyes_complete' | 'refund_eligible'; files?: string[]; signature?: string; tokensInRecovery?: number; reason?: string }
   | { type: 'persona_tool_call'; persona: string; tool: string }
   | { type: 'persona_tool_result'; persona: string; tool: string; success: boolean }
   | { type: 'briefing'; text: string; todayTasks: number; overdueTasks: number; totalActive: number }
@@ -431,6 +432,7 @@ export interface ChatState {
     phase: 'active' | 'complete' | 'error';
     description?: string;
     output?: string;
+    error?: string;
     tools?: Array<{ name: string; done: boolean; success?: boolean }>;
   }>;
   /** Running total of credits consumed in the current session (UI display only). */

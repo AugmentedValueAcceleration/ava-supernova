@@ -117,6 +117,16 @@ export interface DashboardSettings {
   memoryLocalOnly: boolean;
   contributeSharedLearning: boolean;
   streamResponses: boolean;
+  /**
+   * Loop-prevention master switch. When true (default), Ava runs a
+   * verify_change pass against unverified file edits before declaring
+   * a turn done; if the same failure recurs three times, an independent
+   * fresh-eyes review fires once. Mirrors the VS Code setting
+   * `ava-supernova.loopPrevention.enabled` — flipping in the dashboard
+   * writes through to the same setting so the agent picks it up at
+   * next session start.
+   */
+  loopPreventionEnabled: boolean;
 }
 
 export interface ProviderKeyStatus {
@@ -764,7 +774,7 @@ export type ExtToDashboardMessage =
   | { type: 'session_tasks'; tasks: SessionTaskUI[] }
   | { type: 'ava_completed_tasks'; tasks: AvaCompletedTaskUI[] }
   | { type: 'conductor_status'; active: boolean; mode?: string }
-  | { type: 'persona_status'; persona: string; phase: 'active' | 'complete' | 'error'; description?: string; output?: string }
+  | { type: 'persona_status'; persona: string; phase: 'active' | 'complete' | 'error'; description?: string; output?: string; error?: string }
   | { type: 'persona_tool_call'; persona: string; tool: string }
   | { type: 'persona_tool_result'; persona: string; tool: string; success: boolean }
   | { type: 'briefing'; text: string; todayTasks: number; overdueTasks: number; totalActive: number }

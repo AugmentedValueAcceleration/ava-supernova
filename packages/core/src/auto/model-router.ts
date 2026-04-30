@@ -14,19 +14,31 @@ interface RouteEntry {
   requiresVision?: boolean;
 }
 
-// All reasoning/coding/planning tasks → Qwen 3.6 Plus (1M context, Terminal-Bench #1)
-// MiniMax reserved for creative generation (image/video/music/voice) — added when Creative Studio ships
+// Maestro routing — Qwen-only, tier-differentiated by task. Heavy reasoning
+// and long-context work go to Qwen 3.6 Plus (#1 on SWE-bench Pro, Terminal-
+// Bench 2.0, SkillsBench as of 2026-04-20). Light orchestration / chat go
+// to Qwen 3.5 Flash at $0.07/$0.26 per million. Vision-input tasks land on
+// Qwen 3.5 Omni Plus directly because Qwen 3.6 Plus has no vision capability.
+// MiniMax reserved for creative generation (image/video/music/voice).
 const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
-  coding:       { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — Terminal-Bench #1, 1M context', fallbackModelId: 'qwen3.5-omni-plus' },
-  vision:       { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — vision + reasoning + 1M context', fallbackModelId: 'qwen3.5-omni-plus', requiresVision: true },
-  image_gen:    { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — image generation via generate_image tool', fallbackModelId: 'qwen3.5-omni-plus' },
-  computer_use: { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — conductor plans, Holo3 executes', fallbackModelId: 'qwen3.5-omni-plus', requiresVision: true },
-  planning:     { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — 1M context for architecture + planning', fallbackModelId: 'qwen3.5-omni-plus' },
-  chat:         { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — conversational with full context', fallbackModelId: 'qwen3.5-flash' },
-  long_context: { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — 1M context', fallbackModelId: 'qwen3.5-omni-plus' },
-  teach:        { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — patient structured teaching', fallbackModelId: 'qwen3.5-omni-plus' },
-  security:     { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — security analysis with full codebase context', fallbackModelId: 'qwen3.5-omni-plus' },
-  brainstorm:   { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — creative reasoning with 1M context', fallbackModelId: 'qwen3.5-omni-plus' },
+  coding:       { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — #1 SWE-bench Pro + Terminal-Bench 2.0, 1M context', fallbackModelId: 'qwen3.5-plus' },
+  // Vision needs an actually vision-capable Qwen — Omni Plus is the only one.
+  vision:       { modelId: 'qwen3.5-omni-plus', reason: 'Qwen 3.5 Omni Plus — vision + audio multimodal, 3.6 Plus has no vision', fallbackModelId: 'qwen3.5-omni-flash', requiresVision: true },
+  // image_gen orchestrates the generate_image tool call to Wan/MiniMax —
+  // no agentic depth needed at this layer. Flash is ~6× cheaper.
+  image_gen:    { modelId: 'qwen3.5-flash',     reason: 'Qwen 3.5 Flash — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'qwen3.5-omni-plus' },
+  computer_use: { modelId: 'qwen3.5-omni-plus', reason: 'Qwen 3.5 Omni Plus — vision required for screenshot-driven desktop automation', fallbackModelId: 'qwen3.5-omni-flash', requiresVision: true },
+  planning:     { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — 1M context for architecture + planning depth', fallbackModelId: 'qwen3.5-plus' },
+  // Chat = direct conversational response. Flash's $0.07/$0.26 pricing and
+  // faster TTFT are right for typical chat turns; 3.6 Plus is the warm
+  // fallback if Flash is unavailable.
+  chat:         { modelId: 'qwen3.5-flash',     reason: 'Qwen 3.5 Flash — fast TTFT, cheapest input/output for typical chat turns', fallbackModelId: 'qwen3.6-plus' },
+  long_context: { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — hybrid linear-attention + MoE efficient at 1M', fallbackModelId: 'qwen3.5-plus' },
+  // Teach leans on long-form coherent output more than frontier reasoning.
+  // 3.5 Plus is the cost-sensitive long-output tier.
+  teach:        { modelId: 'qwen3.5-plus',      reason: 'Qwen 3.5 Plus — cost-sensitive long-form coherent output for tutorials', fallbackModelId: 'qwen3.6-plus' },
+  security:     { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — security analysis with full codebase context + depth', fallbackModelId: 'qwen3.5-plus' },
+  brainstorm:   { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — creative reasoning depth + 1M context', fallbackModelId: 'qwen3.5-plus' },
 };
 
 /**

@@ -529,6 +529,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
           phase: action.phase,
           description: action.description || prev?.description,
           output: action.output || prev?.output,
+          error: action.error || prev?.error,
           tools: prev?.tools || [],
         }],
       };
@@ -569,6 +570,42 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         isStreaming: false,
       };
       return { ...state, activeModel: action.modelId, messages: [...state.messages, switchMsg] };
+    }
+
+    // ── Loop-prevention surfacing ────────────────────────────────────────
+    // Render verify / fresh-eyes / refund signals as system-style chat
+    // entries so the user sees recovery attempts instead of paying for
+    // them silently. verify_passed is INTENTIONALLY silent — passing is
+    // the boring outcome and surfacing it would clutter the timeline.
+    // Failed / fresh-eyes / refund are the moments worth seeing.
+    case 'loop_status': {
+      const messageContent = (() => {
+        switch (action.kind) {
+          case 'verify_started':
+            return `🔍 Verifying ${action.files?.length ?? 0} file change${action.files?.length === 1 ? '' : 's'}…`;
+          case 'verify_passed':
+            return null; // silent success
+          case 'verify_failed':
+            return `⚠ Verification failed on ${action.files?.join(', ')} — retrying with failure context`;
+          case 'fresh_eyes_started':
+            return `🔁 Loop guard fired — running an independent second-opinion review (extra LLM call)`;
+          case 'fresh_eyes_complete':
+            return `✓ Independent review complete — feeding diagnosis back to the agent`;
+          case 'refund_eligible':
+            return `ℹ This turn is flagged for fairness review — ~${action.tokensInRecovery} tokens spent on recovery. Operator-side credit policy decides if a refund applies.`;
+          default:
+            return null;
+        }
+      })();
+      if (messageContent === null) return state;
+      const loopMsg: UIMessage = {
+        id: nextId(),
+        role: 'system',
+        content: messageContent,
+        toolCalls: [],
+        isStreaming: false,
+      };
+      return { ...state, messages: [...state.messages, loopMsg] };
     }
 
     // ── History ────────────────────────────────────────────────────────────
@@ -815,7 +852,7 @@ const initialState: ChatState = {
   tasksPanelWidth: DEFAULT_WIDTH,
   conductorActive: false,
   conductorMode: undefined as string | undefined,
-  activePersonas: [] as Array<{ id: string; phase: 'active' | 'complete' | 'error'; description?: string; output?: string; tools?: Array<{ name: string; done: boolean; success?: boolean }> }>,
+  activePersonas: [] as Array<{ id: string; phase: 'active' | 'complete' | 'error'; description?: string; output?: string; error?: string; tools?: Array<{ name: string; done: boolean; success?: boolean }> }>,
   // OAuth sign-in flow (v0.37.0)
   signInPending: null,
   signInError: null,

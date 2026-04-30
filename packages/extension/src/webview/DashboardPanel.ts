@@ -1894,17 +1894,38 @@ export class DashboardPanel {
   }
 
   private async deleteConversation(id: string): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
+    // Local-first delete. The previous version bailed on missing
+    // platformKey and only ever hit the cloud — so local-only users
+    // could never delete anything, and signed-in users saw deleted
+    // rows reappear on next reload because the local ~/.ava/ file
+    // was untouched. Now: delete locally first (always reachable),
+    // then mirror the delete to cloud as best-effort if signed in.
+    let localOk = false;
     try {
-      const res = await apiFetch(`/conversations/${id}`, { method: 'DELETE', platformKey });
-      if (res.ok) {
-        this.post({ type: 'conversation_deleted', id });
-      } else {
-        this.post({ type: 'error', message: 'Failed to delete conversation.' });
+      if (this.viewProvider) {
+        await this.viewProvider.deleteLocalConversation(id);
+        localOk = true;
       }
     } catch {
+      // Local delete failure is non-fatal if cloud succeeds — the
+      // cloud row going away is the user's primary intent. Track the
+      // outcome and decide below whether to surface an error.
+    }
+
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    let cloudOk = !platformKey; // not signed in = nothing to delete in cloud, treat as success
+    if (platformKey) {
+      try {
+        const res = await apiFetch(`/conversations/${id}`, { method: 'DELETE', platformKey });
+        cloudOk = res.ok;
+      } catch {
+        cloudOk = false;
+      }
+    }
+
+    if (localOk || cloudOk) {
+      this.post({ type: 'conversation_deleted', id });
+    } else {
       this.post({ type: 'error', message: 'Failed to delete conversation.' });
     }
   }
@@ -3569,6 +3590,7 @@ export class DashboardPanel {
       memoryLocalOnly: cfg.get<boolean>('preferences.memoryLocalOnly') ?? false,
       contributeSharedLearning: cfg.get<boolean>('contributeSharedLearning') ?? false,
       streamResponses: cfg.get<boolean>('preferences.streamResponses') ?? true,
+      loopPreventionEnabled: cfg.get<boolean>('loopPrevention.enabled') ?? true,
     };
   }
 
@@ -3589,6 +3611,7 @@ export class DashboardPanel {
     cfg.update('preferences.memoryLocalOnly', settings.memoryLocalOnly, vscode.ConfigurationTarget.Global);
     cfg.update('contributeSharedLearning', settings.contributeSharedLearning, vscode.ConfigurationTarget.Global);
     cfg.update('preferences.streamResponses', settings.streamResponses, vscode.ConfigurationTarget.Global);
+    cfg.update('loopPrevention.enabled', settings.loopPreventionEnabled, vscode.ConfigurationTarget.Global);
   }
 
   // ─── Sync preferences ──────────────────────────────────────────────────────

@@ -120,7 +120,7 @@ export abstract class BaseProvider implements Provider {
       logger.debug(`[${this.name}] API error (attempt ${attempt + 1}/${maxRetries + 1}): ${response.status} ${response.statusText} — ${errorBody.slice(0, 500)}`);
 
       lastError = new ProviderError(
-        `${this.displayName} API error: ${response.status} ${response.statusText}`,
+        `${this.displayName} API error: ${response.status} ${response.statusText} — ${errorBody.slice(0, 500)}`,
         this.name,
         response.status,
         errorBody,
