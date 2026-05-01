@@ -1328,10 +1328,20 @@ function FeedCard({
         {item.prompt || '(no prompt)'}
       </div>
 
-      {/* Asset */}
+      {/* Asset. Images cap at 60% viewport height with object-contain
+          so the whole picture is visible without cropping AND the next
+          feed card stays reachable without scrolling past one image.
+          Video keeps its native player aspect; audio is small by
+          nature. */}
       <div className="px-4 pb-3">
         {item.kind === 'image' && (
-          <img src={item.url} alt={item.title || 'Generated image'} className="w-full rounded-xl object-cover" loading="lazy" />
+          <img
+            src={item.url}
+            alt={item.title || 'Generated image'}
+            className="mx-auto block rounded-xl object-contain"
+            style={{ maxHeight: '60vh', maxWidth: '100%' }}
+            loading="lazy"
+          />
         )}
         {(item.kind === 'music' || item.kind === 'voice' || item.kind === 'sfx') && (
           <AudioPlayer src={item.url} />
