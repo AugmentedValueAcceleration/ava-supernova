@@ -5,7 +5,7 @@ import type { Page, DashboardJournalDaySummary } from '../types/messages';
 import { DataPortability } from './DataPortability';
 import {
   Lightning, ChatCircleDots, ListChecks, Books, Palette,
-  Brain, ChartLineUp, Cpu, GearSix, Question, ShieldCheck, Wrench,
+  Brain, ChartLineUp, Cpu, GearSix, Question,
 } from '@phosphor-icons/react';
 
 interface NavSidebarProps {
@@ -92,8 +92,6 @@ function getNavItems(isAdmin?: boolean): NavItem[] {
 
   if (isAdmin) {
     items.push(
-      { page: 'admin_support', icon: <ShieldCheck weight="duotone" size={18} />, label: tt('dash.nav.admin_support', 'Admin Support'), description: tt('dash.nav.admin_support_desc', 'All user tickets'), adminOnly: true },
-      { page: 'admin_proposals', icon: <Wrench weight="duotone" size={18} />, label: tt('dash.nav.proposals', 'Tool Proposals'), description: tt('dash.nav.proposals_desc', 'Review and approve'), adminOnly: true },
     );
   }
 
@@ -116,6 +114,8 @@ export function NavSidebar({
   accountLoading,
   onConnectAccount,
   aiName,
+  selectedJournalDate,
+  onSelectJournalDate,
   taskDates,
   onLoadTaskDates,
   onToggleSidebar,
@@ -339,8 +339,13 @@ export function NavSidebar({
       {/* Mini Calendar — always visible, task-focused */}
       <TaskCalendar
         taskDates={taskDates || []}
-        onDayClick={() => {
-          // Navigate to planner (tasks tab)
+        selectedDate={selectedJournalDate}
+        onDayClick={(iso) => {
+          // Set the planner-wide selected date BEFORE navigating so
+          // both Tasks and Journal land on the day the operator
+          // clicked. Previously the iso was thrown away and Tasks
+          // always showed today; the calendar felt unclickable.
+          if (onSelectJournalDate) onSelectJournalDate(iso);
           handleNavigate('planner');
         }}
         onRefresh={onLoadTaskDates}
@@ -522,10 +527,16 @@ function NavItem({
 
 function TaskCalendar({
   taskDates,
+  selectedDate,
   onDayClick,
   onRefresh,
 }: {
   taskDates: string[];
+  /** ISO date currently selected in the planner. Renders with a
+   *  distinct outline so the click registers visually — without this
+   *  the calendar felt unclickable because only "today" was styled
+   *  and clicking any other day produced no visible change. */
+  selectedDate?: string;
   onDayClick: (date: string) => void;
   onRefresh?: () => void;
 }) {
@@ -564,7 +575,22 @@ function TaskCalendar({
         {days.map(day => {
           const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
           const isToday = iso === todayStr;
+          const isSelected = iso === selectedDate;
           const hasTask = taskSet.has(iso);
+          // Selected wins on background (filled accent), today gets a
+          // subtle ring underneath. When today is also selected, the
+          // filled state covers it. Selection is the dominant signal —
+          // without it the click had no visible reaction.
+          const background = isSelected
+            ? 'var(--accent)'
+            : isToday
+              ? 'rgba(168,85,247,0.2)'
+              : 'transparent';
+          const color = isSelected
+            ? '#fff'
+            : isToday
+              ? 'var(--accent)'
+              : 'var(--text-secondary)';
           return (
             <button
               key={day}
@@ -572,14 +598,24 @@ function TaskCalendar({
               className="relative flex flex-col items-center justify-center border-none cursor-pointer transition"
               style={{
                 width: 22, height: 22, borderRadius: '50%',
-                background: isToday ? 'rgba(168,85,247,0.2)' : 'transparent',
-                color: isToday ? 'var(--accent)' : 'var(--text-secondary)',
-                fontSize: 9, fontWeight: isToday ? 500 : 300,
+                background,
+                color,
+                fontSize: 9,
+                fontWeight: isSelected || isToday ? 500 : 300,
+                outline: isToday && !isSelected ? '1px solid rgba(168,85,247,0.5)' : 'none',
+                outlineOffset: -1,
               }}
             >
               {day}
               {hasTask && (
-                <span className="absolute" style={{ bottom: 1, width: 3, height: 3, borderRadius: '50%', background: isToday ? 'var(--accent)' : '#f59e0b' }} />
+                <span
+                  className="absolute"
+                  style={{
+                    bottom: 1,
+                    width: 3, height: 3, borderRadius: '50%',
+                    background: isSelected ? '#fff' : isToday ? 'var(--accent)' : '#f59e0b',
+                  }}
+                />
               )}
             </button>
           );

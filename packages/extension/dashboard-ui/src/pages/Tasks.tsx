@@ -118,9 +118,13 @@ interface SessionTask {
 interface TasksProps {
   tasks: DashboardTaskEntry[];
   sessionTasks?: SessionTask[];
+  /** ISO date selected on the Planner-level mini-calendar. Filters
+   *  the visible task list to that day's due_date. Defaults to today
+   *  on first load — same behaviour as before the prop existed. */
+  selectedDate?: string;
 }
 
-export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
+export function Tasks({ tasks, sessionTasks = [], selectedDate }: TasksProps) {
   useLocale();
   const [viewTab, setViewTab] = useState<ViewTab>('active');
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
@@ -129,6 +133,14 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  // Date scope toggle. "selected" filters by the calendar pick (the
+  // operator's primary intent when clicking a day); "all" shows every
+  // task regardless of due_date so the page is still usable for
+  // overdue / undated work. Defaults to "selected" so the calendar
+  // click has immediate visible effect.
+  const [dateScope, setDateScope] = useState<'selected' | 'all'>('selected');
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const activeDate = selectedDate ?? todayIso;
 
   // Form state
   const [formTitle, setFormTitle] = useState('');
@@ -152,6 +164,12 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
   // Filtered tasks
   const filtered = useMemo(() => {
     let list = tasks;
+
+    // Date filter — only when scope is "selected". "All" shows every
+    // task regardless of due_date.
+    if (dateScope === 'selected') {
+      list = list.filter(t => t.due_date === activeDate);
+    }
 
     // Tab filter
     if (viewTab === 'active') {
@@ -182,7 +200,7 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
     }
 
     return list;
-  }, [tasks, viewTab, priorityFilter, categoryFilter, search]);
+  }, [tasks, viewTab, priorityFilter, categoryFilter, search, dateScope, activeDate]);
 
   function resetForm() {
     setFormTitle('');
@@ -249,6 +267,41 @@ export function Tasks({ tasks, sessionTasks = [] }: TasksProps) {
           <PlusIcon className="h-3.5 w-3.5" />
           {t('dash.tasks.new_task')}
         </button>
+      </div>
+
+      {/* Date scope — shows the day picked on the sidebar mini-calendar
+          and lets the operator switch to "all" when they want every task
+          regardless of due_date. Without this surface the calendar pick
+          had no visible effect on the Tasks tab. */}
+      <div className="flex items-center gap-3 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] px-3 py-2">
+        <CalendarIcon className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+        <span className="text-[11px] text-[var(--text-muted)]">
+          {dateScope === 'selected'
+            ? <>Showing tasks for <span className="font-semibold text-[var(--accent)]">{activeDate === todayIso ? 'today' : new Date(activeDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</span></>
+            : <>Showing <span className="font-semibold text-[var(--accent)]">all tasks</span></>}
+        </span>
+        <div className="ml-auto flex items-center gap-1 rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] p-0.5">
+          <button
+            onClick={() => setDateScope('selected')}
+            className={`rounded px-2 py-0.5 text-[10px] transition border-none cursor-pointer ${
+              dateScope === 'selected'
+                ? 'bg-[var(--accent)]/20 text-[var(--accent)]'
+                : 'bg-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            Selected day
+          </button>
+          <button
+            onClick={() => setDateScope('all')}
+            className={`rounded px-2 py-0.5 text-[10px] transition border-none cursor-pointer ${
+              dateScope === 'all'
+                ? 'bg-[var(--accent)]/20 text-[var(--accent)]'
+                : 'bg-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            All
+          </button>
+        </div>
       </div>
 
       {/* Ava's Progress — live session tasks */}

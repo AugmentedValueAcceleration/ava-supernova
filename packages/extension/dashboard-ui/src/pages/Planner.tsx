@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocale } from '../i18n';
 import { Tasks } from './Tasks';
 import { Journal } from './Journal';
@@ -18,6 +18,12 @@ interface PlannerProps {
   sessionTasks?: SessionTask[];
   journalDay: DashboardJournalDay | null;
   journalDate: string;
+  /** Counter that ticks when the operator picks a day on the sidebar
+   *  mini-calendar. Watched by a useEffect that switches the active tab
+   *  to Journal — without this, Planner stayed on Tasks and the calendar
+   *  click looked like a no-op. Counter not boolean so re-clicking the
+   *  same day still re-fires the tab switch. */
+  journalNavTick?: number;
   userName: string | null;
   onSaveJournalEntry: (date: string, content: string, mood?: number, tags?: string[]) => void;
   onDeleteUserEntry?: (date: string) => void;
@@ -39,11 +45,21 @@ const TAB_LABELS: Record<PlannerTab, string> = {
 
 export function Planner({
   tasks, sessionTasks,
-  journalDay, journalDate, userName, onSaveJournalEntry, onDeleteUserEntry, onDeleteAvaEntry,
+  journalDay, journalDate, journalNavTick, userName, onSaveJournalEntry, onDeleteUserEntry, onDeleteAvaEntry,
   learningCurriculums,
 }: PlannerProps) {
   useLocale();
   const [activeTab, setActiveTab] = useState<PlannerTab>('tasks');
+
+  // Sidebar mini-calendar pick → switch to Journal tab so the operator
+  // sees the day they clicked. Initial tick is 0; first click bumps it
+  // to 1 and triggers the switch. Subsequent clicks keep ticking and
+  // re-firing this effect even when the date is unchanged.
+  useEffect(() => {
+    if (journalNavTick && journalNavTick > 0) {
+      setActiveTab('journal');
+    }
+  }, [journalNavTick]);
 
   return (
     <div className="space-y-4">
@@ -78,7 +94,7 @@ export function Planner({
 
       {/* Tab content */}
       {activeTab === 'tasks' && (
-        <Tasks tasks={tasks} sessionTasks={sessionTasks} />
+        <Tasks tasks={tasks} sessionTasks={sessionTasks} selectedDate={journalDate} />
       )}
 
       {activeTab === 'journal' && (
