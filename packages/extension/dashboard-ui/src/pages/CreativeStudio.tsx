@@ -22,6 +22,22 @@ function formatTokens(n: number): string {
   return n.toLocaleString();
 }
 
+/** Compose the platform-correct send-shortcut label for the composer
+ *  hint. Mac users see ⌘↵; everyone else sees Ctrl+↵. The handler
+ *  already accepts both modifiers — only the visible label needs to
+ *  match the user's keyboard. Falls back to Ctrl+↵ in browser
+ *  environments that don't expose `navigator.platform` (e.g. some
+ *  webview hardenings). */
+function sendShortcutLabel(): string {
+  try {
+    const isMac = typeof navigator !== 'undefined' &&
+      /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent || '');
+    return isMac ? '⌘↵' : 'Ctrl+↵';
+  } catch {
+    return 'Ctrl+↵';
+  }
+}
+
 // Active mode union — values stored in localStorage as 'images' / 'audio'
 // / 'voice' / 'video'. Old persisted values like 'library' or 'documents'
 // from prior versions are normalised back to 'images' on load.
@@ -1108,8 +1124,8 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
           </div>
         </div>
         <p className="mt-1.5 text-center text-[10px] text-[var(--text-muted)]">
-          Enter for new line · {/* Cmd/Ctrl+Enter to send */}
-          <kbd className="rounded bg-[var(--bg-input)]/60 px-1 py-0.5 text-[9px]">⌘↵</kbd> to send
+          Enter for new line ·{' '}
+          <kbd className="rounded bg-[var(--bg-input)]/60 px-1 py-0.5 text-[9px]">{sendShortcutLabel()}</kbd> to send
           {composerAcceptsReference && <> · drop an image to set the first frame</>}
         </p>
       </div>
