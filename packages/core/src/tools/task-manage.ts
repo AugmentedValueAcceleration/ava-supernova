@@ -6,8 +6,14 @@ import type { TaskEntry } from '../tasks/types.js';
 export class TaskManageTool implements Tool {
   readonly name = 'task_manage';
   readonly description = 'Manage the user\'s personal task list — list, create, complete, update, delete tasks';
+  // Write actions on the operator's personal task list need explicit
+  // consent — Ava was creating tasks unprompted from tangential mentions
+  // in conversation. Set requiresConfirmation true at the tool level;
+  // list/complete prompts are mild friction, create/update/delete
+  // prompts are the whole point. Operators who want to skip prompts on
+  // list calls can use the per-tool always-allow permission.
   readonly riskLevel: ToolRiskLevel = 'safe';
-  readonly requiresConfirmation = false;
+  readonly requiresConfirmation = true;
 
   readonly schema: FunctionSchema = {
     name: 'task_manage',
