@@ -4,7 +4,7 @@ import { post } from '../App';
 import type { AccountInfo } from '../types/messages';
 import {
   Image as ImageIcon, MusicNotes, Microphone, VideoCamera,
-  Gear, Paperclip, X as XIcon, Sparkle,
+  Gear, Paperclip, X as XIcon, Palette,
 } from '@phosphor-icons/react';
 import {
   type GalleryItem, type GalleryMediumKind,
@@ -885,14 +885,26 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
           <h1 className="text-[22px] font-semibold text-[#cdd6f4]">Creative Studio</h1>
           <p className="mt-1 text-[12px] text-[#9b8caa]">Tell Ava what you want to make.</p>
         </div>
-        {/* Credit balance card. Three states:
-              - platform user with usage data → live balance + bar
-              - BYOK / signed-in but no usage → "BYOK mode" pill (your
-                provider tracks billing, we don't)
-              - signed out → "Connect to see balance" prompt
-            All three render so the slot never goes empty mid-flow.
-        */}
-        {account?.usage ? (
+        {/* Credit balance card. Four states, in priority order:
+              1. admin tier → "Unlimited"
+              2. platform user with real usage data → live balance + bar
+              3. signed-in user without usage data yet → loading skeleton
+                 (the host's account fetch hasn't completed yet)
+              4. signed-out user → "Connect to see balance"
+            BYOK doesn't get a separate state here because Creative Studio
+            uses platform-routed media endpoints regardless of BYOK toggle
+            for chat — every signed-in user has a credit balance. */}
+        {account?.tier === 'admin' ? (
+          <div className="shrink-0 rounded-2xl border border-[rgba(168,85,247,0.30)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] px-4 py-2.5 shadow-[0_0_18px_rgba(168,85,247,0.10)] min-w-[200px]">
+            <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)] block mb-1.5">Credit balance</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-[18px] font-semibold leading-none bg-gradient-to-r from-[var(--accent)] to-purple-300 bg-clip-text text-transparent">
+                Unlimited
+              </span>
+            </div>
+            <p className="text-[10px] text-[var(--text-muted)] mt-1">Admin tier — no caps</p>
+          </div>
+        ) : account?.usage ? (
           <div className="shrink-0 rounded-2xl border border-[rgba(168,85,247,0.20)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] px-4 py-2.5 shadow-[0_0_18px_rgba(168,85,247,0.06)] min-w-[200px]">
             <div className="flex items-baseline justify-between gap-3 mb-1.5">
               <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)]">Credit balance</span>
@@ -919,15 +931,17 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
               />
             </div>
           </div>
+        ) : account ? (
+          <div className="shrink-0 rounded-2xl border border-[rgba(168,85,247,0.16)] bg-[#0f0f17]/60 px-4 py-2.5 min-w-[200px]">
+            <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)] block mb-1.5">Credit balance</span>
+            <div className="h-4 w-20 rounded bg-[var(--bg-input)]/60 animate-pulse" />
+            <div className="mt-2 h-1 w-full rounded-full bg-[var(--bg-input)] animate-pulse" />
+          </div>
         ) : (
           <div className="shrink-0 rounded-2xl border border-[rgba(168,85,247,0.16)] bg-[#0f0f17]/60 px-4 py-2.5 min-w-[200px]">
-            <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)] block mb-1">
-              {account ? 'BYOK mode' : 'Credit balance'}
-            </span>
+            <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)] block mb-1">Credit balance</span>
             <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-              {account
-                ? 'Your provider keys handle billing for media generations. Ava doesn\'t track those costs.'
-                : 'Sign in to see your credits, or use BYOK with your own API keys.'}
+              Sign in to see your credits.
             </p>
           </div>
         )}
@@ -1146,7 +1160,7 @@ function EmptyInvitation({ mode, onSuggest }: { mode: 'images' | 'audio' | 'voic
   return (
     <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
       <div className="mb-4 h-14 w-14 rounded-full bg-gradient-to-br from-[var(--accent)] to-purple-500 flex items-center justify-center text-white shadow-[0_0_30px_rgba(168,85,247,0.35)]">
-        <Sparkle weight="duotone" size={26} />
+        <Palette weight="duotone" size={26} />
       </div>
       <h2 className="text-[16px] font-semibold text-[#cdd6f4]">Ready when you are.</h2>
       <p className="mt-1 text-[12px] text-[#9b8caa] max-w-md">
