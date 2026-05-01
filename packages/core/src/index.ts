@@ -170,10 +170,6 @@ export type { AvaEvent, AvaEventHandler, AvaEventType, EventDetectorState } from
 export { TickEngine } from './awareness/tick-engine.js';
 export type { TickContext, TickEvent, TickResult } from './awareness/tick-engine.js';
 
-// Knowledge Packs
-export { KnowledgePackManager, BUILTIN_PACKS, KNOWLEDGE_DOMAINS } from './knowledge/index.js';
-export type { KnowledgePack, KnowledgePackMeta, KnowledgeDomain } from './knowledge/index.js';
-
 // Workflows
 export { WorkflowManager } from './workflows/index.js';
 export type { WorkflowPlan, Workflow, WorkflowStep, WorkflowEvent, WorkflowEventHandler } from './workflows/index.js';

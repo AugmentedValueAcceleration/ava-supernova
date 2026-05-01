@@ -54,34 +54,11 @@ export async function buildCurrentSystemPrompt(ctx: SystemPromptContext): Promis
     personality = await loadPersonality(AVA_HOME);
   } catch { /* non-fatal */ }
 
-  // Manually enabled knowledge packs.
-  // Auto-detection (game/app projects) was removed: native coding ability is
-  // stronger than pre-loaded framework dumps; packs consumed context that
-  // should go to reading code and reasoning.
-  let knowledgeContext: string | undefined;
-  try {
-    const fs = require('node:fs');
-    const { BUILTIN_PACKS } = require('@ava/core');
-    const packSections: string[] = [];
-    try {
-      const enabledPath = require('node:path').join(AVA_HOME, 'knowledge-enabled.json');
-      if (fs.existsSync(enabledPath)) {
-        const loadedIds = new Set<string>();
-        const enabledIds: string[] = JSON.parse(fs.readFileSync(enabledPath, 'utf-8'));
-        for (const id of enabledIds) {
-          if (loadedIds.has(id)) continue;
-          const pack = BUILTIN_PACKS?.find((p: { id: string }) => p.id === id);
-          if (pack) {
-            packSections.push(`## Knowledge Pack: ${pack.name}\n\n${pack.context}`);
-            loadedIds.add(id);
-          }
-        }
-      }
-    } catch { /* no enabled packs file */ }
-    if (packSections.length > 0) {
-      knowledgeContext = packSections.join('\n\n');
-    }
-  } catch { /* non-fatal */ }
+  // Knowledge packs removed in v0.59.2 — frontier models cover the
+  // builtin domain content from training, the auto-activated injection
+  // added silent token cost after the chat-tier rebalance, and the
+  // manual toggle was used by ~nobody. The ~/.ava/knowledge-enabled.json
+  // file (if present from a prior install) is now ignored; harmless.
 
   return buildSystemPrompt({
     cwd,
@@ -97,7 +74,6 @@ export async function buildCurrentSystemPrompt(ctx: SystemPromptContext): Promis
     isAdmin,
     sourceRoot,
     personality,
-    knowledgeContext,
     decisionsContext: ctx.decisionsState?.context ?? undefined,
     decisionsFolderExists: ctx.decisionsState?.hasFolder ?? false,
     decisionsOptInStatus: ctx.decisionsState?.optInStatus ?? 'not-asked',

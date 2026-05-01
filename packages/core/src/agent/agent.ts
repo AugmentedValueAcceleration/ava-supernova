@@ -54,7 +54,6 @@ import {
 } from './error-loop-detector.js';
 import { runFreshEyesReview, buildFreshEyesContext } from './fresh-eyes.js';
 import { randomUUID } from 'node:crypto';
-import { autoActivatePacks } from '../knowledge/pack-router.js';
 import type { IntentClassifier, UserIntent } from './intent-classifier.js';
 import { PNG } from 'pngjs';
 
@@ -973,32 +972,19 @@ export class Agent {
       this.currentTaskComplexity = 'moderate';
     }
 
-    // Detect mode early — needed for both pack gating and tool filtering
+    // Detect mode early — needed for tool filtering downstream.
     const detectedMode = detectModeFromMessages(messages);
 
-    // ─── Auto-activate knowledge packs based on user message ────────────
-    // Disabled in Work mode (detectedMode === null). The model's native
-    // coding ability is stronger than keyword-triggered framework dumps —
-    // packs consume context that should go to reading code and reasoning.
-    // Packs remain available in Plan, Chat, Teach, Brainstorm, and
-    // Security modes where domain frameworks genuinely add value.
-    if (latestUserMessage && detectedMode !== null) {
-      try {
-        const activatedPackIds = (this.toolContext.sharedState as any)?._activatedPackIds as Set<string> | undefined;
-        const loadedIds = activatedPackIds ?? new Set<string>();
-        const { packIds, content } = autoActivatePacks(latestUserMessage, loadedIds);
-        if (packIds.length > 0 && content) {
-          messages = this.appendToSystemMessage(messages, `\n\n${content}`);
-          for (const id of packIds) loadedIds.add(id);
-          if (!(this.toolContext.sharedState as any)?._activatedPackIds) {
-            ((this.toolContext.sharedState as any) ?? {})._activatedPackIds = loadedIds;
-          }
-          logger.debug(`[agent] Auto-activated packs: ${packIds.join(', ')}`);
-        }
-      } catch {
-        // Non-critical — packs are additive, missing one doesn't break anything
-      }
-    }
+    // Knowledge-pack auto-activation removed in v0.59.2. The 12 builtin
+    // domain packs (marketing, finance, devops, etc.) added ~750-1000
+    // tokens of static framework guidance per matched keyword, which
+    // frontier models like Qwen 3.6 Plus / DeepSeek V4 Pro / Mistral
+    // Large 3 already cover from training. After the chat-tier
+    // rebalance, that silent injection started bumping ~1-credit chat
+    // turns into the next bracket without the user asking for it.
+    // Net: small lift on rare turns, opaque cost on every match.
+    // Removed wholesale; the desktop-automation knowledge under the
+    // same module survives because it's genuine model-novel content.
 
     // ─── Intent nudge (Qwen Flash classifier) ─────────────────────────────
     // Soft preference, not a hard gate. Classifies the user's message as
