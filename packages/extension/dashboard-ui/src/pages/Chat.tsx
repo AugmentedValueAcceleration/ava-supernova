@@ -137,7 +137,15 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         needsSetup: action.needsSetup,
         providerSource: initProviderSource,
         accountLoading: isByokOnly ? false : (platformStatusIncluded ? false : state.accountLoading),
-        historyLoading: isByokOnly ? false : state.historyLoading,
+        // Drop the history gate on init unconditionally. The chat surface
+        // doesn't need the conversation list to render — that data only
+        // populates the History sidebar. Previously this stayed true
+        // until history_list arrived, which left the spinner hanging
+        // for users with empty history if the local-list message
+        // happened to race the init message. The host fires sendHistoryList
+        // right after init, and the sidebar gates its own open state
+        // separately on historyList being non-null.
+        historyLoading: false,
         platformStatus: action.platformStatus
           ? {
               connected: action.platformStatus.connected,
