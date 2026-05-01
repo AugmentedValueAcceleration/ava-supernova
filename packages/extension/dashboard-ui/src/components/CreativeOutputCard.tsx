@@ -61,13 +61,23 @@ const dangerPillStyle: React.CSSProperties = {
   color: '#f38ba8',
 };
 
+/** Optional cross-tab "Send to" actions surfaced as extra pills on
+ *  each card. Each entry's `action` is fired with the item — caller
+ *  is expected to switch tab + pre-fill any fields it can derive
+ *  (prompt, reference image, etc.). Empty array = no Send-to row. */
+export interface SendToAction {
+  label: string;
+  action: (item: GalleryItem) => void;
+}
+
 interface OutputCardProps {
   item: GalleryItem;
   onRegenerate?: (item: GalleryItem) => void;
   onDelete?: (item: GalleryItem) => void;
+  onSendTo?: SendToAction[];
 }
 
-export function CreativeOutputCard({ item, onRegenerate, onDelete }: OutputCardProps) {
+export function CreativeOutputCard({ item, onRegenerate, onDelete, onSendTo }: OutputCardProps) {
   const [copied, setCopied] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -174,6 +184,29 @@ export function CreativeOutputCard({ item, onRegenerate, onDelete }: OutputCardP
           </button>
         )}
       </div>
+
+      {/* Send-to row — second pill row for cross-tab hand-offs.
+          Visually subordinate to the main action row (slightly muted
+          accent border) so users read primary actions first. */}
+      {onSendTo && onSendTo.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', borderTop: '1px solid rgba(168,85,247,0.08)', paddingTop: 8 }}>
+          {onSendTo.map(act => (
+            <button
+              key={act.label}
+              onClick={() => act.action(item)}
+              style={{
+                ...pillBase,
+                border: '1px solid rgba(168, 85, 247, 0.35)',
+                background: 'rgba(168, 85, 247, 0.08)',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.22)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(168, 85, 247, 0.08)'; }}
+            >
+              → {act.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -246,10 +279,11 @@ interface GalleryStripProps {
   items: GalleryItem[];
   onRegenerate?: (item: GalleryItem) => void;
   onDelete?: (item: GalleryItem) => void;
+  onSendTo?: SendToAction[];
   emptyHint?: string;
 }
 
-export function CreativeGalleryStrip({ items, onRegenerate, onDelete, emptyHint }: GalleryStripProps) {
+export function CreativeGalleryStrip({ items, onRegenerate, onDelete, onSendTo, emptyHint }: GalleryStripProps) {
   if (items.length === 0) {
     return (
       <div style={{
@@ -277,7 +311,7 @@ export function CreativeGalleryStrip({ items, onRegenerate, onDelete, emptyHint 
     >
       {items.map((item) => (
         <div key={item.id} style={{ scrollSnapAlign: 'start' }}>
-          <CreativeOutputCard item={item} onRegenerate={onRegenerate} onDelete={onDelete} />
+          <CreativeOutputCard item={item} onRegenerate={onRegenerate} onDelete={onDelete} onSendTo={onSendTo} />
         </div>
       ))}
     </div>

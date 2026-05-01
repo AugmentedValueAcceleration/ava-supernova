@@ -53,6 +53,92 @@ const VOICES = [
   { id: 'Determined_Man', label: 'Determined' },
 ];
 
+/* ── Preset registries ─────────────────────────────────────────────────
+ * Style / mood / emotion / camera presets are appended to the user's
+ * raw prompt at submit time. They are never the ONLY input — the user
+ * still drives intent — but they shape the generator's output without
+ * the user having to know the right adjectives. Auto = no append.
+ *
+ * Keep these short. The model has more taste than we do; the goal is
+ * to nudge, not over-specify. Anything longer than one sentence per
+ * preset is over-engineering. */
+
+const IMAGE_STYLES: { id: string; label: string; suffix: string }[] = [
+  { id: 'auto',         label: 'Auto',         suffix: '' },
+  { id: 'cinematic',    label: 'Cinematic',    suffix: ', cinematic lighting, anamorphic lens, film grain, professional colour grade' },
+  { id: 'photoreal',    label: 'Photoreal',    suffix: ', photorealistic, 50mm lens, natural lighting, sharp focus, high detail' },
+  { id: 'illustration', label: 'Illustration', suffix: ', digital illustration, vibrant colours, clean linework, painterly shading' },
+  { id: 'anime',        label: 'Anime',        suffix: ', anime style, expressive features, soft pastels, detailed background' },
+  { id: 'watercolour',  label: 'Watercolour',  suffix: ', watercolour painting, soft edges, paper texture, washed pigments' },
+  { id: 'graphic',      label: 'Graphic',      suffix: ', vector art, flat colours, bold shapes, modern poster aesthetic' },
+];
+
+const MUSIC_MOODS: { id: string; label: string; suffix: string }[] = [
+  { id: 'auto',       label: 'Auto',       suffix: '' },
+  { id: 'cinematic',  label: 'Cinematic',  suffix: ', cinematic orchestral score, sweeping strings, epic build' },
+  { id: 'lofi',       label: 'Lo-fi',      suffix: ', lo-fi hip hop, mellow drums, vinyl crackle, warm bass' },
+  { id: 'synthwave',  label: 'Synthwave',  suffix: ', 80s synthwave, analogue synths, gated reverb drums, neon mood' },
+  { id: 'orchestral', label: 'Orchestral', suffix: ', full orchestral arrangement, lush strings, brass, timpani' },
+  { id: 'ambient',    label: 'Ambient',    suffix: ', ambient pads, drones, ethereal textures, no percussion' },
+  { id: 'trailer',    label: 'Trailer',    suffix: ', movie trailer score, hybrid orchestral, big drums, tension build' },
+];
+
+const VOICE_EMOTIONS: { id: string; label: string }[] = [
+  { id: 'neutral',  label: 'Neutral'   },
+  { id: 'calm',     label: 'Calm'      },
+  { id: 'excited',  label: 'Excited'   },
+  { id: 'serious',  label: 'Serious'   },
+  { id: 'playful',  label: 'Playful'   },
+  { id: 'whisper',  label: 'Whispered' },
+];
+
+const VIDEO_CAMERAS: { id: string; label: string; suffix: string }[] = [
+  { id: 'auto',   label: 'Auto',   suffix: '' },
+  { id: 'static', label: 'Static', suffix: ', static camera, locked-off shot' },
+  { id: 'pan',    label: 'Pan',    suffix: ', slow horizontal camera pan' },
+  { id: 'zoom',   label: 'Zoom',   suffix: ', gentle zoom in on subject' },
+  { id: 'dolly',  label: 'Dolly',  suffix: ', dolly forward, smooth tracking shot' },
+  { id: 'orbit',  label: 'Orbit',  suffix: ', orbital camera move around subject' },
+];
+
+const VIDEO_MOTION: { id: 'subtle' | 'dynamic' | 'wild'; label: string; suffix: string }[] = [
+  { id: 'subtle',  label: 'Subtle',  suffix: ', minimal motion, gentle movement' },
+  { id: 'dynamic', label: 'Dynamic', suffix: ', dynamic motion, energetic action' },
+  { id: 'wild',    label: 'Wild',    suffix: ', explosive motion, high-energy action' },
+];
+
+/* ── Cost estimates (credits per generation) ───────────────────────────
+ * Anchored to the platform's credit math at the time of writing. The
+ * cost preview is illustrative — the server is the source of truth and
+ * the actual credit charge lands on the next account refresh. Values
+ * tuned to be slightly conservative so users aren't surprised by a
+ * higher charge. */
+const CREDITS = {
+  image:   50,        // Wan T2I, single variation
+  music:   200,       // MiniMax music-01, baseline
+  voicePerHundredChars: 12, // ~12 credits per 100 chars
+  voiceMin: 24,       // floor for short utterances
+  video6s: 2000,
+  video10s: 3500,
+};
+
+/** Build the cost-preview pill content for the active tab + its
+ *  current settings. Returns the integer credit estimate plus a short
+ *  human label for the cost-breakdown line. */
+function estimateImageCredits(variations: number): number {
+  return CREDITS.image * Math.max(1, variations);
+}
+function estimateMusicCredits(durationSec: number): number {
+  // Baseline 200 credits for 30s, scales linearly.
+  return Math.round(CREDITS.music * (durationSec / 30));
+}
+function estimateVoiceCredits(textLen: number): number {
+  return Math.max(CREDITS.voiceMin, Math.ceil(textLen / 100) * CREDITS.voicePerHundredChars);
+}
+function estimateVideoCredits(durationSec: number): number {
+  return durationSec === 10 ? CREDITS.video10s : CREDITS.video6s;
+}
+
 type LibraryFilter = 'all' | 'images' | 'music' | 'video' | 'voice' | 'documents' | 'spreadsheets';
 
 const FILTER_ICONS: Record<string, ReactNode> = {
@@ -353,6 +439,128 @@ function AudioPlayer({ src }: { src: string }) {
   );
 }
 
+/* ── Generator-card primitives ─────────────────────────────────────────
+ * The Images / Audio / Voice / Video tabs share a card-based form
+ * layout. These primitives keep each tab's JSX flat and readable —
+ * the alternative was 200 lines of repeated rounded-xl border
+ * className blobs per tab. Each card has a ten-pixel uppercase
+ * label, an optional hint on the right, and a child slot for the
+ * actual control.
+ */
+
+function FieldCard({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  return (
+    <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-3">
+      <div className="mb-1.5 flex items-baseline justify-between">
+        <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{label}</label>
+        {hint && <span className="text-[9px] text-[var(--text-muted)]">{hint}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function PromptCard({ label, value, onChange, placeholder, rows }: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  rows: number;
+}) {
+  return (
+    <FieldCard label={label}>
+      <textarea
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        className="w-full resize-y rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+      />
+    </FieldCard>
+  );
+}
+
+function PresetCard({ label, presets, value, onChange }: {
+  label: string;
+  presets: { id: string; label: string }[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <FieldCard label={label}>
+      <div className="flex flex-wrap gap-1">
+        {presets.map(p => (
+          <button
+            key={p.id}
+            onClick={() => onChange(p.id)}
+            className={`rounded-md px-2.5 py-1 text-[10px] font-medium transition border-none cursor-pointer ${
+              value === p.id
+                ? 'bg-[var(--accent)] text-white'
+                : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+    </FieldCard>
+  );
+}
+
+function ReferenceCard({ label, hint, value, onChange }: {
+  label: string;
+  hint?: string;
+  value: { name: string; dataUrl: string } | null;
+  onChange: (file: File | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <FieldCard label={label} hint={hint}>
+      {value ? (
+        <div className="flex items-center gap-2">
+          <img src={value.dataUrl} alt={value.name} className="h-12 w-12 rounded-md object-cover border border-[var(--border-card)]" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[11px] text-[var(--text-primary)]">{value.name}</p>
+            <button
+              onClick={() => onChange(null)}
+              className="text-[10px] text-[var(--text-muted)] hover:text-red-400 transition cursor-pointer bg-transparent border-none p-0"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => inputRef.current?.click()}
+          className="w-full rounded-lg border border-dashed border-[var(--border-card)] bg-[var(--bg-input)]/50 py-3 text-[11px] text-[var(--text-muted)] hover:border-[var(--accent)]/50 hover:text-[var(--text-secondary)] transition cursor-pointer"
+        >
+          + Upload reference
+        </button>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={e => {
+          const file = e.target.files?.[0];
+          if (file) onChange(file);
+          e.target.value = ''; // allow re-uploading the same file
+        }}
+      />
+    </FieldCard>
+  );
+}
+
+function CostPreviewPill({ credits, note }: { credits: number; note?: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)]/40 px-3 py-2 text-[11px]">
+      <span className="text-[var(--text-muted)]">Estimated cost{note ? ` · ${note}` : ''}</span>
+      <span className="font-semibold text-[var(--accent)]">{credits.toLocaleString()} cr</span>
+    </div>
+  );
+}
+
 /* ── localStorage helpers for library ─────────────────────────────── */
 
 function loadLocalAssets(): any[] {
@@ -470,19 +678,35 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
   // Images
   const [imagePrompt, setImagePrompt] = useState('');
   const [imageSize, setImageSize] = useState<string>('1280*1280');
+  const [imageStyle, setImageStyle] = useState<string>('auto');
+  const [imageNegative, setImageNegative] = useState('');
+  const [imageVariations, setImageVariations] = useState<1 | 2 | 4>(1);
+  const [imageReference, setImageReference] = useState<{ name: string; dataUrl: string } | null>(null);
 
   // Audio
   const [musicPrompt, setMusicPrompt] = useState('');
   const [musicLyrics, setMusicLyrics] = useState('');
+  const [musicMood, setMusicMood] = useState<string>('auto');
+  const [musicDuration, setMusicDuration] = useState<30 | 60 | 90 | 120>(60);
 
-  // Voice
+  // Voice — when avaVoice is true, voiceId is locked to MiniMax's
+  // English_radiant_girl per the brand identity. Toggle off to pick a
+  // character voice from the list. Two flags rather than a sentinel
+  // value so the picker can default to a sensible non-Ava voice when
+  // unlocked without losing the user's last selection.
   const [voiceText, setVoiceText] = useState('');
   const [voiceId, setVoiceId] = useState('Calm_Woman');
+  const [avaVoice, setAvaVoice] = useState(false);
   const [voiceSpeed, setVoiceSpeed] = useState(1.0);
+  const [voicePitch, setVoicePitch] = useState(0); // -12..+12 semitones
+  const [voiceEmotion, setVoiceEmotion] = useState<string>('neutral');
 
   // Video
   const [videoPrompt, setVideoPrompt] = useState('');
-  const [videoDuration, setVideoDuration] = useState<number>(6);
+  const [videoDuration, setVideoDuration] = useState<6 | 10>(6);
+  const [videoCamera, setVideoCamera] = useState<string>('auto');
+  const [videoMotion, setVideoMotion] = useState<'subtle' | 'dynamic' | 'wild'>('dynamic');
+  const [videoReference, setVideoReference] = useState<{ name: string; dataUrl: string } | null>(null);
   const [elapsed, setElapsed] = useState(0);
 
   // Per-medium gallery state — derived from localStorage assets via
@@ -621,6 +845,27 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     return () => window.removeEventListener('ava-creative-assets-updated', refresh);
   }, [librarySource]);
 
+  /* ── Prompt composition ───────────────────────────────────────────── */
+  // Compose the final prompt sent to the server: user prompt + style/mood
+  // suffix (when not 'auto'). Suffixes are short fragments registered
+  // above. Negative prompt is plumbed separately to the server.
+
+  const composeImagePrompt = useCallback(() => {
+    const style = IMAGE_STYLES.find(s => s.id === imageStyle);
+    return imagePrompt.trim() + (style?.suffix ?? '');
+  }, [imagePrompt, imageStyle]);
+
+  const composeMusicPrompt = useCallback(() => {
+    const mood = MUSIC_MOODS.find(m => m.id === musicMood);
+    return musicPrompt.trim() + (mood?.suffix ?? '');
+  }, [musicPrompt, musicMood]);
+
+  const composeVideoPrompt = useCallback(() => {
+    const cam = VIDEO_CAMERAS.find(c => c.id === videoCamera);
+    const mot = VIDEO_MOTION.find(m => m.id === videoMotion);
+    return videoPrompt.trim() + (cam?.suffix ?? '') + (mot?.suffix ?? '');
+  }, [videoPrompt, videoCamera, videoMotion]);
+
   /* ── Image generation ─────────────────────────────────────────────── */
 
   const handleGenerateImage = async () => {
@@ -631,10 +876,30 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
       // Wan handles vector / graphic-design output materially better than
       // MiniMax image-01 — the previous default — which renders every
       // prompt as soft painterly illustration.
-      const data = await apiCall('generate-image', { prompt: imagePrompt.trim(), size: imageSize });
-      if (data.url) {
-        saveLocalAsset('image', data.url, imagePrompt.slice(0, 60), imagePrompt);
-      } else throw new Error(data.error || 'No image URL returned');
+      // Variations: fire N parallel calls so the user sees a small
+      // batch land at once. Server doesn't have a native batch endpoint
+      // so we parallelise client-side; when one fails the others still
+      // surface, which beats all-or-nothing batching.
+      const finalPrompt = composeImagePrompt();
+      const negative = imageNegative.trim() || undefined;
+      const reference = imageReference?.dataUrl;
+      const calls = Array.from({ length: imageVariations }).map(() =>
+        apiCall('generate-image', {
+          prompt: finalPrompt,
+          size: imageSize,
+          negative_prompt: negative,
+          reference_image: reference,
+        }).then(data => {
+          if (data?.url) saveLocalAsset('image', data.url, imagePrompt.slice(0, 60), imagePrompt);
+          else throw new Error(data?.error || 'No image URL returned');
+        }),
+      );
+      const results = await Promise.allSettled(calls);
+      const failures = results.filter(r => r.status === 'rejected') as PromiseRejectedResult[];
+      if (failures.length === results.length) {
+        const first = failures[0]?.reason;
+        throw new Error(first?.message || first || 'Generation failed');
+      }
     } catch (e: any) { setError(e.message || e); }
     setGenerating(false);
   };
@@ -645,7 +910,11 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     if (!musicPrompt.trim() || generating) return;
     setGenerating(true); setError(null);
     try {
-      const data = await apiCall('generate-music', { prompt: musicPrompt.trim(), lyrics: musicLyrics.trim() || undefined });
+      const data = await apiCall('generate-music', {
+        prompt: composeMusicPrompt(),
+        lyrics: musicLyrics.trim() || undefined,
+        duration: musicDuration,
+      });
       if (data.url) {
         saveLocalAsset('music', data.url, musicPrompt.slice(0, 60), musicPrompt);
       } else throw new Error(data.error || 'No audio URL returned');
@@ -659,7 +928,18 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     if (!voiceText.trim() || generating) return;
     setGenerating(true); setError(null);
     try {
-      const data = await apiCall('generate-voice', { text: voiceText.trim(), voice_id: voiceId, speed: voiceSpeed });
+      // Brand identity: Ava narrates in MiniMax's English_radiant_girl
+      // unconditionally. The avaVoice toggle hard-locks the voice id —
+      // user can't override even by editing voiceId. See feedback memory
+      // project_ava_voice_identity.md.
+      const effectiveVoice = avaVoice ? 'English_radiant_girl' : voiceId;
+      const data = await apiCall('generate-voice', {
+        text: voiceText.trim(),
+        voice_id: effectiveVoice,
+        speed: voiceSpeed,
+        pitch: voicePitch,
+        emotion: voiceEmotion,
+      });
       if (data.url) {
         saveLocalAsset('voice', data.url, voiceText.slice(0, 60), voiceText);
       } else throw new Error(data.error || 'No voice URL returned');
@@ -673,7 +953,11 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     if (!videoPrompt.trim() || generating) return;
     setGenerating(true); setError(null);
     try {
-      const data = await apiCall('generate-video', { prompt: videoPrompt.trim(), duration: videoDuration });
+      const data = await apiCall('generate-video', {
+        prompt: composeVideoPrompt(),
+        duration: videoDuration,
+        reference_image: videoReference?.dataUrl,
+      });
       if (data.url) {
         saveLocalAsset('video', data.url, videoPrompt.slice(0, 60), videoPrompt);
       } else throw new Error(data.error || 'No video URL returned');
@@ -682,6 +966,48 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     }
     setGenerating(false);
   };
+
+  /* ── Cross-tab "Send to" ──────────────────────────────────────────── */
+  // When the user clicks an action on a session item (or the gallery
+  // strip's onSendTo callback fires), we switch tab + pre-fill prompt
+  // and reference where applicable. The whole point of unifying these
+  // four modes is so the user doesn't have to copy-paste between them.
+
+  const sendImageToVideo = useCallback((item: GalleryItem) => {
+    setActiveTab('video');
+    setVideoPrompt(item.prompt || '');
+    if (item.url) {
+      setVideoReference({ name: 'reference.png', dataUrl: item.url });
+    }
+  }, []);
+
+  const sendImageToVoice = useCallback((item: GalleryItem) => {
+    setActiveTab('voice');
+    if (item.prompt) setVoiceText(item.prompt);
+  }, []);
+
+  const sendMusicToVideo = useCallback((item: GalleryItem) => {
+    // Music doesn't pre-fill a video prompt cleanly — the user wants
+    // the score on top of an existing or new video. Switch + nudge
+    // the user with the music's prompt as scene context.
+    setActiveTab('video');
+    if (!videoPrompt.trim() && item.prompt) setVideoPrompt(item.prompt);
+  }, [videoPrompt]);
+
+  /* ── Reference image upload ───────────────────────────────────────── */
+
+  const handleUploadReference = useCallback(
+    (file: File, target: 'image' | 'video') => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result || '');
+        if (target === 'image') setImageReference({ name: file.name, dataUrl });
+        else setVideoReference({ name: file.name, dataUrl });
+      };
+      reader.readAsDataURL(file);
+    },
+    [],
+  );
 
   /* ── Library delete ───────────────────────────────────────────────── */
 
@@ -737,7 +1063,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
           <div>
             <h1 className="text-[22px] font-semibold text-[#cdd6f4]">Creative Studio</h1>
             <p className="mt-1.5 text-[13px] text-[#6c7086]">
-              Generate images with Wan, plus music, voice, and video with MiniMax
+              Images, music, voice, and video — every modality on tap, with style presets, references, and one-click hand-offs between them.
             </p>
           </div>
           {account?.usage && (
@@ -1058,40 +1384,34 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
         </div>
       )}
 
-      {/* ── Generation tabs (two-panel layout) ────────────────────── */}
+      {/* ── Generation tabs (two-panel layout) ────────────────────── */
+       /* Each tab gets the same skeleton — generator card on the left,
+        * canvas on the right — but the generator's controls are
+        * mode-specific. Style/mood/emotion presets sit at the top of
+        * the form, just under the prompt, so taste-shaping is one click
+        * not three.
+        */}
       {activeTab !== 'library' && (
         <div className="flex gap-4 min-h-0">
-          {/* LEFT: Generate panel (~320px) */}
-          <div className="w-80 shrink-0 space-y-3 overflow-y-auto">
+          {/* LEFT: Generator card (~360px) */}
+          <div className="w-[360px] shrink-0 space-y-3 overflow-y-auto pr-1">
             {/* ── Images generate ──────────────────────────────── */}
             {activeTab === 'images' && (
               <>
-                <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-3">
-                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                    Prompt
-                  </label>
-                  <textarea
-                    value={imagePrompt}
-                    onChange={e => setImagePrompt(e.target.value)}
-                    placeholder="Describe the image you want to create..."
-                    rows={5}
-                    className="w-full resize-y rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
-                  />
-                </div>
-                <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-3">
-                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                    Size
-                  </label>
+                <PromptCard label="Prompt" value={imagePrompt} onChange={setImagePrompt} placeholder="Describe the image — subject, scene, mood, framing." rows={4} />
+                <PresetCard label="Style" presets={IMAGE_STYLES} value={imageStyle} onChange={setImageStyle} />
+                <ReferenceCard label="Reference image" hint="Style + composition reference. Optional." value={imageReference} onChange={(f) => f ? handleUploadReference(f, 'image') : setImageReference(null)} />
+                <FieldCard label="Size">
                   <div className="flex gap-1">
                     {([
                       { value: '1280*1280', label: 'Square 1:1' },
-                      { value: '768*1280', label: 'Portrait 3:4' },
-                      { value: '1280*768', label: 'Landscape 4:3' },
+                      { value: '768*1280',  label: 'Portrait 3:4' },
+                      { value: '1280*768',  label: 'Landscape 4:3' },
                     ] as const).map(s => (
                       <button
                         key={s.value}
                         onClick={() => setImageSize(s.value)}
-                        className={`flex-1 rounded-lg py-1.5 text-xs font-medium transition ${
+                        className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium transition border-none cursor-pointer ${
                           imageSize === s.value
                             ? 'bg-[var(--accent)] text-white'
                             : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
@@ -1101,14 +1421,42 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                       </button>
                     ))}
                   </div>
-                </div>
+                </FieldCard>
+                <FieldCard label="Variations">
+                  <div className="flex gap-1">
+                    {[1, 2, 4].map(n => (
+                      <button
+                        key={n}
+                        onClick={() => setImageVariations(n as 1 | 2 | 4)}
+                        title={n === 1 ? 'Single image' : `Generate ${n} variations in parallel`}
+                        className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium transition border-none cursor-pointer ${
+                          imageVariations === n
+                            ? 'bg-[var(--accent)] text-white'
+                            : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                        }`}
+                      >
+                        {n === 1 ? '1 image' : `${n} variations`}
+                      </button>
+                    ))}
+                  </div>
+                </FieldCard>
+                <FieldCard label="Negative prompt" hint="Things to avoid. Optional.">
+                  <input
+                    type="text"
+                    value={imageNegative}
+                    onChange={e => setImageNegative(e.target.value)}
+                    placeholder="e.g. blurry, distorted, watermark"
+                    className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-[11px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+                  />
+                </FieldCard>
                 {errorBox}
+                <CostPreviewPill credits={estimateImageCredits(imageVariations)} note={imageVariations > 1 ? `${imageVariations} × ${CREDITS.image} cr` : undefined} />
                 <button
                   onClick={handleGenerateImage}
                   disabled={!imagePrompt.trim() || generating}
-                  className="w-full rounded-lg bg-[var(--accent)] py-2.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="w-full rounded-lg bg-[var(--accent)] py-2.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 border-none cursor-pointer"
                 >
-                  {generating ? 'Generating...' : 'Generate Image'}
+                  {generating ? 'Generating…' : imageVariations > 1 ? `Generate ${imageVariations} variations` : 'Generate Image'}
                 </button>
               </>
             )}
@@ -1116,37 +1464,42 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
             {/* ── Audio generate ───────────────────────────────── */}
             {activeTab === 'audio' && (
               <>
-                <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-3">
-                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                    Prompt
-                  </label>
-                  <textarea
-                    value={musicPrompt}
-                    onChange={e => setMusicPrompt(e.target.value)}
-                    placeholder="Describe the music — genre, mood, instruments..."
-                    rows={4}
-                    className="w-full resize-y rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
-                  />
-                </div>
-                <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-3">
-                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                    Lyrics (optional)
-                  </label>
+                <PromptCard label="Prompt" value={musicPrompt} onChange={setMusicPrompt} placeholder="Describe the track — instruments, vibe, energy." rows={4} />
+                <PresetCard label="Mood" presets={MUSIC_MOODS} value={musicMood} onChange={setMusicMood} />
+                <FieldCard label="Duration">
+                  <div className="flex gap-1">
+                    {([30, 60, 90, 120] as const).map(d => (
+                      <button
+                        key={d}
+                        onClick={() => setMusicDuration(d)}
+                        className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium transition border-none cursor-pointer ${
+                          musicDuration === d
+                            ? 'bg-[var(--accent)] text-white'
+                            : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                        }`}
+                      >
+                        {d}s
+                      </button>
+                    ))}
+                  </div>
+                </FieldCard>
+                <FieldCard label="Lyrics" hint="Optional. Add for a vocal track.">
                   <textarea
                     value={musicLyrics}
                     onChange={e => setMusicLyrics(e.target.value)}
-                    placeholder="Add lyrics for a vocal track (optional)"
-                    rows={4}
-                    className="w-full resize-y rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+                    placeholder="Verse, chorus, bridge…"
+                    rows={3}
+                    className="w-full resize-y rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-[11px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
                   />
-                </div>
+                </FieldCard>
                 {errorBox}
+                <CostPreviewPill credits={estimateMusicCredits(musicDuration)} note={`${musicDuration}s track`} />
                 <button
                   onClick={handleGenerateMusic}
                   disabled={!musicPrompt.trim() || generating}
-                  className="w-full rounded-lg bg-[var(--accent)] py-2.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="w-full rounded-lg bg-[var(--accent)] py-2.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 border-none cursor-pointer"
                 >
-                  {generating ? 'Generating...' : 'Generate Music'}
+                  {generating ? 'Composing…' : 'Generate Music'}
                 </button>
               </>
             )}
@@ -1154,48 +1507,77 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
             {/* ── Voice generate ───────────────────────────────── */}
             {activeTab === 'voice' && (
               <>
-                <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-3">
-                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                    Text
-                  </label>
+                <FieldCard label="Text" hint={`${voiceText.length} characters`}>
                   <textarea
                     value={voiceText}
                     onChange={e => setVoiceText(e.target.value)}
-                    placeholder="Enter text to speak..."
+                    placeholder="What should it say?"
                     rows={5}
-                    className="w-full resize-y rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+                    className="w-full resize-y rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-[11px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
                   />
-                </div>
-                <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-3">
-                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                    Voice
-                  </label>
+                </FieldCard>
+                <FieldCard label="Voice">
+                  {/* Brand-correct voice lock. Ava narration is locked
+                      to MiniMax's English_radiant_girl per the brand
+                      identity — toggle off to pick a character voice. */}
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setAvaVoice(v => !v)}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-[11px] font-medium transition border cursor-pointer ${
+                        avaVoice
+                          ? 'border-[var(--accent)]/50 bg-[var(--accent)]/15 text-[var(--accent)]'
+                          : 'border-[var(--border-card)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-white'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className={`inline-block h-2 w-2 rounded-full ${avaVoice ? 'bg-[var(--accent)]' : 'bg-[var(--text-muted)]'}`} />
+                        Ava's voice
+                      </span>
+                      <span className="text-[10px] opacity-70">{avaVoice ? 'Locked' : 'Pick a character voice'}</span>
+                    </button>
+                    {!avaVoice && (
+                      <div className="flex flex-wrap gap-1">
+                        {VOICES.map(v => (
+                          <button
+                            key={v.id}
+                            onClick={() => setVoiceId(v.id)}
+                            className={`rounded-md px-2.5 py-1 text-[10px] font-medium transition border-none cursor-pointer ${
+                              voiceId === v.id
+                                ? 'bg-[var(--accent)] text-white'
+                                : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                            }`}
+                          >
+                            {v.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </FieldCard>
+                <FieldCard label="Emotion">
                   <div className="flex flex-wrap gap-1">
-                    {VOICES.map(v => (
+                    {VOICE_EMOTIONS.map(e => (
                       <button
-                        key={v.id}
-                        onClick={() => setVoiceId(v.id)}
-                        className={`rounded-md px-2.5 py-1 text-[10px] font-medium transition ${
-                          voiceId === v.id
+                        key={e.id}
+                        onClick={() => setVoiceEmotion(e.id)}
+                        className={`rounded-md px-2.5 py-1 text-[10px] font-medium transition border-none cursor-pointer ${
+                          voiceEmotion === e.id
                             ? 'bg-[var(--accent)] text-white'
                             : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                         }`}
                       >
-                        {v.label}
+                        {e.label}
                       </button>
                     ))}
                   </div>
-                </div>
-                <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-3">
-                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                    Speed
-                  </label>
+                </FieldCard>
+                <FieldCard label="Speed">
                   <div className="flex gap-1">
                     {[0.8, 1.0, 1.2, 1.5].map(s => (
                       <button
                         key={s}
                         onClick={() => setVoiceSpeed(s)}
-                        className={`rounded-md px-3 py-1 text-[11px] font-medium transition ${
+                        className={`flex-1 rounded-md py-1 text-[11px] font-medium transition border-none cursor-pointer ${
                           voiceSpeed === s
                             ? 'bg-[var(--accent)] text-white'
                             : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
@@ -1205,14 +1587,26 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                       </button>
                     ))}
                   </div>
-                </div>
+                </FieldCard>
+                <FieldCard label="Pitch" hint={`${voicePitch >= 0 ? '+' : ''}${voicePitch} semitones`}>
+                  <input
+                    type="range"
+                    min={-12}
+                    max={12}
+                    step={1}
+                    value={voicePitch}
+                    onChange={e => setVoicePitch(Number(e.target.value))}
+                    className="w-full accent-[var(--accent)]"
+                  />
+                </FieldCard>
                 {errorBox}
+                <CostPreviewPill credits={estimateVoiceCredits(voiceText.length)} note={`${voiceText.length} chars`} />
                 <button
                   onClick={handleGenerateVoice}
                   disabled={!voiceText.trim() || generating}
-                  className="w-full rounded-lg bg-[var(--accent)] py-2.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="w-full rounded-lg bg-[var(--accent)] py-2.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 border-none cursor-pointer"
                 >
-                  {generating ? 'Generating...' : 'Generate Voice'}
+                  {generating ? 'Speaking…' : 'Generate Voice'}
                 </button>
               </>
             )}
@@ -1220,65 +1614,94 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
             {/* ── Video generate ───────────────────────────────── */}
             {activeTab === 'video' && (
               <>
-                <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-3">
-                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                    Prompt
-                  </label>
-                  <textarea
-                    value={videoPrompt}
-                    onChange={e => setVideoPrompt(e.target.value)}
-                    placeholder="Describe the video scene..."
-                    rows={5}
-                    className="w-full resize-y rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
-                  />
-                </div>
-                <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-3">
-                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                    Duration
-                  </label>
+                <PromptCard label="Prompt" value={videoPrompt} onChange={setVideoPrompt} placeholder="Describe the scene — subject, action, atmosphere." rows={4} />
+                <ReferenceCard label="Reference image" hint="Image-to-video. Optional but recommended for control." value={videoReference} onChange={(f) => f ? handleUploadReference(f, 'video') : setVideoReference(null)} />
+                <PresetCard label="Camera" presets={VIDEO_CAMERAS} value={videoCamera} onChange={setVideoCamera} />
+                <FieldCard label="Motion intensity">
+                  <div className="flex gap-1">
+                    {VIDEO_MOTION.map(m => (
+                      <button
+                        key={m.id}
+                        onClick={() => setVideoMotion(m.id)}
+                        className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium transition border-none cursor-pointer ${
+                          videoMotion === m.id
+                            ? 'bg-[var(--accent)] text-white'
+                            : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                        }`}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </FieldCard>
+                <FieldCard label="Duration">
                   <div className="flex gap-1">
                     <button
                       onClick={() => setVideoDuration(6)}
-                      className={`flex-1 rounded-lg py-1.5 text-xs font-medium transition ${
-                        videoDuration === 6
-                          ? 'bg-[var(--accent)] text-white'
-                          : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                      className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium transition border-none cursor-pointer ${
+                        videoDuration === 6 ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                       }`}
                     >
-                      6s 1080P
+                      6s · 1080P
                     </button>
                     <button
                       onClick={() => setVideoDuration(10)}
-                      className={`flex-1 rounded-lg py-1.5 text-xs font-medium transition ${
-                        videoDuration === 10
-                          ? 'bg-[var(--accent)] text-white'
-                          : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                      className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium transition border-none cursor-pointer ${
+                        videoDuration === 10 ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                       }`}
                     >
-                      10s 768P
+                      10s · 768P
                     </button>
                   </div>
-                </div>
+                </FieldCard>
                 {errorBox}
+                {/* Video is the most expensive mode — make the cost
+                    impossible to miss. Different visual treatment than
+                    the other tabs' inline pill. */}
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-[11px] text-amber-200">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Estimated cost</span>
+                    <span className="font-bold">{estimateVideoCredits(videoDuration).toLocaleString()} credits</span>
+                  </div>
+                  <p className="mt-1 text-[10px] text-amber-200/70 leading-relaxed">
+                    Video is compute-intensive. Generation takes 2–4 minutes. Final charge from the server may differ slightly.
+                  </p>
+                </div>
                 <button
                   onClick={handleGenerateVideo}
                   disabled={!videoPrompt.trim() || generating}
-                  className="w-full rounded-lg bg-[var(--accent)] py-2.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="w-full rounded-lg bg-[var(--accent)] py-2.5 text-xs font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 border-none cursor-pointer"
                 >
-                  {generating ? 'Generating...' : 'Generate Video'}
+                  {generating ? `Generating… ${elapsed}s` : 'Generate Video'}
                 </button>
-                {generating && activeTab === 'video' && (
-                  <div className="rounded-lg border border-[var(--accent)]/12 bg-[var(--accent)]/5 py-2.5 text-center text-xs text-[var(--text-secondary)]">
-                    Generating... {elapsed}s
-                  </div>
-                )}
               </>
             )}
           </div>
 
-          {/* RIGHT: Results panel */}
-          <div className="flex-1 overflow-y-auto">
-            {/* ── Per-medium gallery strip — newest first ──────── */}
+          {/* RIGHT: Canvas + session reel */}
+          <div className="flex-1 overflow-y-auto space-y-4">
+            {/* In-flight indicator — replaces the empty void with a
+                heartbeat while a generation is running. Different copy
+                per tab so the user knows what's actually happening. */}
+            {generating && (
+              <div className="rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-6 text-center">
+                <div className="mx-auto mb-3 h-8 w-8 rounded-full border-[2.5px] border-[rgba(168,85,247,0.18)] border-t-[var(--accent)] animate-spin" />
+                <p className="text-[12px] font-medium text-[var(--text-primary)]">
+                  {activeTab === 'images' && (imageVariations > 1 ? `Generating ${imageVariations} variations…` : 'Generating image…')}
+                  {activeTab === 'audio' && 'Composing music…'}
+                  {activeTab === 'voice' && 'Synthesising voice…'}
+                  {activeTab === 'video' && `Rendering video… ${elapsed}s`}
+                </p>
+                <p className="mt-1 text-[10px] text-[var(--text-muted)]">
+                  {activeTab === 'video' ? 'Hang tight — this typically takes 2–4 minutes.' : 'Should be ready in moments.'}
+                </p>
+              </div>
+            )}
+
+            {/* Per-medium gallery strip — newest first. Cross-tab
+                "Send to" actions live on each item so the user can
+                animate a still, voice-over a scene, etc. without
+                copy-pasting between tabs. */}
             {activeTab === 'images' && (
               <CreativeGalleryStrip
                 items={imageItems}
@@ -1287,6 +1710,10 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                   deleteLocalAsset(item.id);
                   if (item.cloud) post({ type: 'delete_cloud_asset', id: item.id } as any);
                 }}
+                onSendTo={[
+                  { label: 'Animate to video', action: sendImageToVideo },
+                  { label: 'Voice-over from this', action: sendImageToVoice },
+                ]}
                 emptyHint="Generate an image — it'll appear here for this session, then live in your Library."
               />
             )}
@@ -1298,6 +1725,9 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                   deleteLocalAsset(item.id);
                   if (item.cloud) post({ type: 'delete_cloud_asset', id: item.id } as any);
                 }}
+                onSendTo={[
+                  { label: 'Use as score for video', action: sendMusicToVideo },
+                ]}
                 emptyHint="Generate music — it'll appear here for this session, then live in your Library."
               />
             )}
