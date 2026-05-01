@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.60.0 — 2026-05-01 — Creative Studio redesign + cost transparency + Planner polish
+
+### Added
+- **Creative Studio rebuilt as a conversation-first canvas.** Drop the form-and-gallery split — page is now a chat-style thread. A single composer pinned at the bottom, generations stack as feed cards above (oldest top, newest bottom), Cmd/Ctrl+Enter sends. Mode is a four-glyph dock on the composer (Image / Music / Voice / Video) instead of a top tab strip — switching mid-thought stays in the same surface. Empty state opens with a soft invitation and three mode-specific suggested prompts you can one-click into the composer.
+- **Style / mood / camera presets per mode**, surfaced via a settings overlay above the composer. Image gets 7 styles (Cinematic, Photoreal, Illustration, Anime, Watercolour, Graphic, Auto) + variation count (1/2/4 — fanned out as parallel calls). Music gets 7 mood presets + duration. Voice gets 6 emotions + speed + pitch slider + an Ava brand-voice lock that pins narration to MiniMax `English_radiant_girl`. Video gets 6 camera moves + 3 motion intensities. Settings overlay is a backdrop-blurred modal so opening it never shifts the page; click outside or Escape to close.
+- **Cross-mode "Send to" hand-offs.** Hover any image card → "Animate to video" or "Voice over from this". Hover any music card → "Use as score for video". Each handler switches tab AND pre-fills the target's prompt + reference image where applicable, so iteration across modes never needs copy-paste.
+- **Live cost preview using canonical credit math.** Per-action credit costs read directly from `CREDIT_COST` in `@ava/core/billing/credits` — same constants the server bills with. Image: 12 credits × variations. Music: 50 credits flat. Voice: 10 credits per 500-char chunk. Video: 150 credits (6s) / ~250 credits (10s). Cost line goes amber when a single generation would push you over your remaining balance.
+- **Prominent credit balance card** in the Creative Studio header. Three states: live balance + colour-coded bar (purple → amber under 30% → red under 10%) for platform users, gradient "Unlimited" badge for admin tier, "Sign in to see your credits" prompt when signed out.
+- **Themed Tooltip component** mirrored from the IDE into the dashboard. Replaces native `title=""` everywhere on Creative Studio — themed lavender border, blur backdrop, 300ms delay, portal-rendered so z-index never fights stacking contexts.
+- **Image-to-video first-frame upload** actually works now (was sending the wrong field name; server silently dropped it). Drop an image on the video composer or click the paperclip — sent as MiniMax `first_frame_image`. Bonus: server auto-routes to the cheaper `Hailuo-2.3-Fast` model (~50% credit savings) when a first-frame is present.
+
+### Changed
+- **Tasks tool now requires confirmation on every action.** `task_manage` (list / create / complete / update / delete) prompts before each call so Ava can't silently spawn tasks from tangential mentions in conversation. Per-tool always-allow permission still works for `list` if you want to skip prompts on read calls.
+- **Mode glyph dock + settings overlay** (Creative Studio) replace the previous tab bar + inline settings strip. Settings open in a centered card with a subtle slide-up animation; current mode glyph is filled lavender; non-active glyphs are muted until hover.
+- **Phosphor icons throughout Creative Studio** — settings gear, close X, paperclip attach all moved from inline SVG paths to `@phosphor-icons/react` duotone weight, matching the rest of the dashboard's icon style.
+
+### Fixed
+- **Planner mini-calendar selection** finally works the way it looks. Picked day fills with the accent colour (today gets an outline ring underneath), Tasks tab now filters by the selected date instead of always showing today, and Journal tab loads the picked day. New "Selected day / All" toggle on Tasks lets you fall back to the full list when you want it.
+- **Library page no longer hangs on "Loading cloud assets…"** for users with no synced assets. Replaced the full-page gate with a non-blocking inline pill — grid renders whatever it has immediately, pill auto-clears after 15s safety timeout if a response is missed.
+- **Chat page no longer hangs on empty history.** The chat surface used to wait for a `history_list` message before rendering; that message only feeds the History sidebar, not the main chat, so the spinner could hang on an irrelevant fetch. Drops the gate on `chat_init`.
+- **Sign-in callbacks no longer get silently dropped.** Added `onUri` to `activationEvents` so VS Code always wakes the extension on a `vscode://…/auth` callback. Diagnostic `[Ava]` logs at every sign-in step (URL opening, callback received, code exchange status). Yellow toast on stale callbacks instead of silent ignore.
+
+### Removed
+- **Admin Support and Admin Proposals pages** stripped from the extension — both moved to the operator hub. Strips two routes, the admin state, the message handlers, the host-side methods, and the `AdminToolProposal` type.
+- **History tab "Wipe legacy cloud history" button** — was meaningless to users who'd never cloud-synced chat (i.e. most of them). The backend `/conversations/all` endpoint stays available in case we re-surface it elsewhere later.
+
 ## 0.59.1 — 2026-05-01 — Marketplace description refresh
 
 ### Changed
