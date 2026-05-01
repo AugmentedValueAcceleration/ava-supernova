@@ -203,42 +203,6 @@ export function History({ sessionStats, usageHistory, mode, account, auditLog, c
 
 function ConversationsView({ conversations }: { conversations: ConversationEntry[] }) {
   const [search, setSearch] = useState('');
-  // Cloud-residue wipe. Local conversations are local-only by design; this
-  // button exists so users who synced chat under earlier versions can purge
-  // the server-side rows in one click before the local-only list path
-  // makes them invisible. Strictly cloud — local files never touched.
-  const [wipingCloud, setWipingCloud] = useState(false);
-  const [wipeToast, setWipeToast] = useState<{ kind: 'info' | 'error'; text: string } | null>(null);
-
-  useEffect(() => {
-    if (!wipingCloud) return;
-    const onMsg = (e: MessageEvent) => {
-      const data = e.data;
-      if (!data || typeof data !== 'object') return;
-      if (data.type === 'info' && typeof data.message === 'string') {
-        setWipeToast({ kind: 'info', text: data.message });
-        setWipingCloud(false);
-        post({ type: 'load_conversations' });
-      } else if (data.type === 'error' && typeof data.message === 'string') {
-        setWipeToast({ kind: 'error', text: data.message });
-        setWipingCloud(false);
-      }
-    };
-    window.addEventListener('message', onMsg);
-    return () => window.removeEventListener('message', onMsg);
-  }, [wipingCloud]);
-
-  useEffect(() => {
-    if (!wipeToast) return;
-    const t = setTimeout(() => setWipeToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [wipeToast]);
-
-  const wipeCloud = () => {
-    if (!window.confirm('Wipe all chat history from the cloud? Local conversations on this machine are not affected. This is a one-shot cleanup of any old cloud copies from earlier versions of Ava.')) return;
-    setWipingCloud(true);
-    post({ type: 'delete_all_cloud_conversations' });
-  };
 
   const filtered = useMemo(() => {
     const sorted = [...conversations].sort((a, b) => {
@@ -261,35 +225,13 @@ function ConversationsView({ conversations }: { conversations: ConversationEntry
 
   return (
     <div className="space-y-3">
-      {wipeToast && (
-        <div
-          className={`rounded-lg border px-3 py-2 text-[11px] ${
-            wipeToast.kind === 'error'
-              ? 'border-red-500/30 bg-red-500/10 text-red-300'
-              : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-          }`}
-        >
-          {wipeToast.text}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between gap-3">
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search conversations…"
-          className="w-full max-w-sm rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]"
-        />
-        <button
-          onClick={wipeCloud}
-          disabled={wipingCloud}
-          title="Delete any chat history that was synced to the cloud under earlier versions. Local files on this machine are never touched."
-          className="shrink-0 rounded-md border border-[var(--border-card)] bg-transparent px-3 py-2 text-[11px] text-[var(--text-muted)] transition hover:border-red-500/30 hover:text-red-300 cursor-pointer disabled:cursor-wait disabled:opacity-50"
-        >
-          {wipingCloud ? 'Wiping cloud…' : 'Wipe legacy cloud history'}
-        </button>
-      </div>
+      <input
+        type="text"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Search conversations…"
+        className="w-full max-w-sm rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]"
+      />
 
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-[var(--border-card)] bg-[var(--bg-card)] p-12 text-center">
