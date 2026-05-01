@@ -60,7 +60,7 @@ export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
   // no agentic depth needed at this layer. Omni Flash is materially cheaper
   // than 3.6 Plus and still vision-capable for the result handoff.
   image_gen:    { modelId: 'qwen3.5-omni-flash',          reason: 'Qwen 3.5 Omni Flash — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'qwen3.5-omni-plus' },
-  computer_use: { modelId: 'qwen3.6-plus',                reason: 'Qwen 3.6 Plus — vision-aware tool orchestration',                                    fallbackModelId: 'qwen3.5-omni-plus', requiresVision: true },
+  // computer_use route retired alongside the Holo3 integration.
   // Planning is Architect + Researcher territory — Architect is Qwen 3.6
   // Plus per the map, but planning leans heavily on Researcher's
   // long-context synthesis where V4 Pro wins. Default to V4 Pro; Architect

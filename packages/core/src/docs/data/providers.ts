@@ -44,7 +44,7 @@ export const PROVIDERS: ProviderFact[] = [
     notes: 'Best-of-breed routing — the coordinator picks the right specialist for each subtask. Frontier reasoning where it matters, flash-tier cost where it does not.',
     models: [
       { id: 'deepseek-v4-pro-platform', displayName: 'DeepSeek V4 Pro — coordinator + planning, chat, long-context, security, brainstorm; Researcher, CVE Researcher, Ideator personas', inputPricePerM: 1.74, outputPricePerM: 3.48, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
-      { id: 'qwen3.6-plus', displayName: 'Qwen 3.6 Plus — Builder + coding, image-gen, computer-use; Architect persona', inputPricePerM: 0.29, outputPricePerM: 1.70, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'qwen3.6-plus', displayName: 'Qwen 3.6 Plus — Builder + coding, image-gen; Architect persona', inputPricePerM: 0.29, outputPricePerM: 1.70, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'deepseek-v4-flash-platform', displayName: 'DeepSeek V4 Flash — Teach route; Code Reviewer, Fact Checker, Quiz Master, Recon, Scanner, Curriculum Architect, Tutor, Curator, Explorer, Refiner, Security Verifier/Reporter personas', inputPricePerM: 0.14, outputPricePerM: 0.28, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
       { id: 'qwen3.5-plus', displayName: 'Qwen 3.5 Plus — Content Writer persona (cost-sensitive long-output writing)', inputPricePerM: 0.20, outputPricePerM: 1.20, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash — intent gate; Scout, Verifier, Sequencer, Challenger, Integrator personas (depth ≤ 2)', inputPricePerM: 0.05, outputPricePerM: 0.40, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
@@ -58,7 +58,7 @@ export const PROVIDERS: ProviderFact[] = [
     notes: 'Mistral-only routing. Every call lands on a Mistral model — Aurora deployments never leave European infrastructure. For GDPR-strict deployments, AI Act compliance, sovereignty mandates. Apache-2.0 open weights end-to-end. No cross-routing fallback — that is the EU-stack guarantee.',
     models: [
       { id: 'mistral-large-3-platform', displayName: 'Mistral Large 3 — coordinator + planning, chat, long-context, security, brainstorm; Researcher, Challenger, Fact Checker, CVE Researcher, Security Verifier, Ideator personas', inputPricePerM: 0.50, outputPricePerM: 1.50, contextWindow: 262_000, capabilities: ['tools', 'thinking', 'streaming'] },
-      { id: 'mistral-small-4-platform', displayName: 'Mistral Small 4 — Builder + coding, vision, image-gen, computer-use, teach; intent gate; Architect, Verifier, Sequencer, Curriculum Architect, Content Writer, Quiz Master, Tutor, Recon, Scanner, Reporter, Explorer, Refiner personas', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'mistral-small-4-platform', displayName: 'Mistral Small 4 — Builder + coding, vision, image-gen, teach; intent gate; Architect, Verifier, Sequencer, Curriculum Architect, Content Writer, Quiz Master, Tutor, Recon, Scanner, Reporter, Explorer, Refiner personas', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },
   // ── Platform-managed providers ────────────────────────────────────────────

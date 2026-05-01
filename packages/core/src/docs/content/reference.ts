@@ -17,7 +17,7 @@ export const REFERENCE_PAGES: DocPage[] = [
       { type: 'list', ordered: false, items: [
         'Safe — reads state without modifying anything. file_read, glob, grep, git_status.',
         'Write — modifies files, creates commits, produces artefacts. file_edit, git_commit, generate_image.',
-        'Dangerous — runs shell, controls the desktop, hits the network, queries databases. bash, browser, computer_use.',
+        'Dangerous — runs shell, controls the desktop, hits the network, queries databases. bash, browser, desktop_*.',
       ]},
       { type: 'callout', variant: 'note', text: 'Persona specialists have their own tool allowlists. Scout can read but not write. Builder has full access. Challenger has no tools at all — its job is to question the plan.' },
     ],

@@ -27,7 +27,7 @@ const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
   // image_gen orchestrates the generate_image tool call to Wan/MiniMax —
   // no agentic depth needed at this layer. Flash is ~6× cheaper.
   image_gen:    { modelId: 'qwen3.5-flash',     reason: 'Qwen 3.5 Flash — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'qwen3.5-omni-plus' },
-  computer_use: { modelId: 'qwen3.5-omni-plus', reason: 'Qwen 3.5 Omni Plus — vision required for screenshot-driven desktop automation', fallbackModelId: 'qwen3.5-omni-flash', requiresVision: true },
+  // computer_use route retired alongside the Holo3 integration.
   planning:     { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — 1M context for architecture + planning depth', fallbackModelId: 'qwen3.5-plus' },
   // Chat = direct conversational response. Flash's $0.07/$0.26 pricing and
   // faster TTFT are right for typical chat turns; 3.6 Plus is the warm

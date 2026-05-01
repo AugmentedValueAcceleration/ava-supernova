@@ -22,8 +22,8 @@ if (isWatch) {
   await ctx.dispose();
 
   // screenshot-desktop removed from extension bundle — native .bat/.exe files
-  // were triggering Microsoft's malware scanner. Screenshot functionality will
-  // be replaced by Holo3 computer vision in a future release.
+  // were triggering Microsoft's malware scanner. Desktop automation lives in
+  // the IDE only, not in the extension.
 
   console.log('Extension built successfully.');
 }

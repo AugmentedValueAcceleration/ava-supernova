@@ -205,10 +205,6 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   // the 2-3K tokens saved on every single coding turn.
   //
   // Deliberately OUT:
-  // - screenshot / computer_use — the extension can't ship screen
-  //   capture at all (marketplace rule) and already excludes them at
-  //   registry level; the IDE has a dedicated Desktop mode for that
-  //   flow, so they don't belong in Work either.
   // - journal_write / learning / weather / news — Chat / Teach.
   // - email_draft / report_generate / document_manage /
   //   document_templates — office work, rarely mixed with coding.
@@ -333,9 +329,8 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // Launch apps — scoped, no shell interpreter
     'desktop_launch_app',
     // Native desktop via UIA tree — stable selectors, not pixel coords.
-    // No desktop_screenshot or desktop_click_xy: those are computer-use
-    // cop-outs (vision + coordinate guessing) and the spec §2 calls them
-    // a failure mode. Ava must use tree/DOM-based targeting here.
+    // No desktop_screenshot or desktop_click_xy: vision + coordinate
+    // guessing is a failure mode. Ava must use tree/DOM-based targeting.
     'desktop_list_elements', 'desktop_click_by_name', 'desktop_focus_window',
     'desktop_type', 'desktop_key_press',
     // Browser automation via Playwright DOM — visible Chromium, stable.

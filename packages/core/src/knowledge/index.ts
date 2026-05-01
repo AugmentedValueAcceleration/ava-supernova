@@ -4,9 +4,11 @@
 // silent token cost after the chat-tier rebalance, and end-of-turn
 // telemetry showed the lift was negligible.
 //
-// What remains is the desktop-automation knowledge that ships with
-// computer_use — small, app-specific visual + keyboard-shortcut
-// patterns the IDE Actor uses to navigate Windows 11 / Notepad /
-// browser / File Explorer. That is genuine value the model doesn't
-// have from training, and it loads only when computer_use is active.
-export * from './computer-use-knowledge.js';
+// computer_use knowledge was retired alongside the Holo3 integration.
+// The desktop_* tool family handles automation differently and doesn't
+// need a curated knowledge pack — its element-detection layer
+// (OmniParser) returns the visible UI tree directly.
+//
+// This file is intentionally empty — kept so existing imports of
+// `@ava/core/knowledge` don't break, but exports nothing today.
+export {};

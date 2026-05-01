@@ -53,7 +53,11 @@ const AVA_SELF_PATTERN = /\b(?:what can you do|who are you|what are you|what mod
 
 // ─── Computer use patterns ──────────────────────────────────────────────────
 
-const COMPUTER_USE_PATTERN = /\b(?:click|type\s+(?:in|into|on)|scroll|open\s+(?:the\s+)?(?:app|application|blender|unreal|photoshop|notepad|browser|chrome|firefox|excel|word|powerpoint|terminal)|control\s+(?:the\s+)?(?:screen|desktop|mouse|keyboard)|automate\s+(?:the\s+)?desktop|use\s+(?:the\s+)?(?:mouse|keyboard)|drag\s+(?:and\s+)?drop|interact\s+with|move\s+(?:the\s+)?(?:mouse|cursor)|press\s+(?:the\s+)?(?:button|key)|right[\s-]?click|double[\s-]?click)\b/i;
+// COMPUTER_USE_PATTERN retired — Holo3 vision-action integration was
+// pulled and the `computer_use` task category no longer exists. Desktop
+// automation now goes through the explicit `desktop_*` tool family,
+// which doesn't need a classifier-detected intent — the agent decides
+// to call those tools directly.
 
 // ─── Planning patterns (mirrors conductor's needsOrchestration) ──────────────
 
@@ -102,11 +106,6 @@ export function classifyTask(
   // 3. Image generation — explicit request to create visual content
   if (IMAGE_GEN_PATTERN.test(text)) {
     return { category: 'image_gen', reason: 'Image generation request detected' };
-  }
-
-  // 3b. Computer use — desktop interaction requested
-  if (COMPUTER_USE_PATTERN.test(text)) {
-    return { category: 'computer_use', reason: 'Desktop interaction / computer use detected' };
   }
 
   // 4. Mode override — security, brainstorm, teach, plan modes force their category

@@ -226,7 +226,7 @@ Grouped for the work you actually do:
 
 ## Models
 
-**Maestro coordinator** — Qwen 3.6 Plus. Tier-differentiated Qwen routing: 3.6 Plus on the heavy slots (coordinator, Builder, planning, security, brainstorm, long-context), 3.5 Flash on the high-volume low-depth slots (chat, image-gen orchestration, intent gate), Omni Plus on vision and computer_use, 3.5 Plus on long-form writing. Terminal-Bench leader on real agent loops, 1M context, native MCP function calling.
+**Maestro coordinator** — Qwen 3.6 Plus. Tier-differentiated Qwen routing: 3.6 Plus on the heavy slots (coordinator, Builder, planning, security, brainstorm, long-context), 3.5 Flash on the high-volume low-depth slots (chat, image-gen orchestration, intent gate), Omni Plus on vision input, 3.5 Plus on long-form writing. Terminal-Bench leader on real agent loops, 1M context, native MCP function calling.
 
 **Supernova coordinator** — DeepSeek V4 Pro. Polyglot mode: V4 Pro reads the task, picks specialists (Qwen 3.6 Plus for Builder, V4 Flash for chat + review-tier work, Qwen Omni Plus for vision, Omni Flash for image-gen orchestration). Each role runs on the model that's actually best at it, not whatever the coordinator happens to be.
 

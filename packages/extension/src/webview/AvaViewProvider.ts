@@ -1386,9 +1386,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   private async setupAgent(provider: Provider, model: ModelDefinition): Promise<void> {
     this.toolRegistry = new ToolRegistry();
-    this.toolRegistry.registerBuiltins({
-      exclude: ['screenshot', 'computer_use'], // Not available in VS Code extension — no native screen capture
-    });
+    this.toolRegistry.registerBuiltins();
 
     // Apply permission mode from settings
     const config = vscode.workspace.getConfiguration('ava-supernova');

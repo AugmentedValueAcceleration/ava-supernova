@@ -93,7 +93,8 @@ export const AURORA_ROUTES: Record<TaskCategory, AuroraRouteEntry> = {
   // capability loss for this surface. Falls back to Medium 3.5 if Small 4
   // is unavailable so the orchestrator still has vision context.
   image_gen:    { modelId: 'mistral-small-4',    reason: 'Mistral Small 4 — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'mistral-medium-3.5' },
-  computer_use: { modelId: 'mistral-medium-3.5', reason: 'Mistral Medium 3.5 — vision + agentic tool orchestration, designed for long-horizon work',fallbackModelId: 'mistral-large-3', requiresVision: true },
+  // computer_use route retired alongside the Holo3 integration —
+  // desktop_* tools handle automation directly.
   // Planning is Architect + Researcher territory. Large 3 stays —
   // long-context synthesis and depth-of-reasoning are coordinator work.
   planning:     { modelId: 'mistral-large-3',    reason: 'Mistral Large 3 — sparse MoE depth + long-context planning synthesis',                    fallbackModelId: 'mistral-medium-3.5' },

@@ -62,10 +62,9 @@ import { SelfInspectTool } from './self-inspect.js';
 import { ReleaseNotesTool } from './release-notes.js';
 import { WeatherTool } from './weather.js';
 import { NewsTool } from './news.js';
-// ComputerUseTool is no longer registered — Holo3 integration was pulled and
-// there is no working replacement yet. The implementation file is retained so
-// it can be re-registered when a vision+action provider ships.
-// import { ComputerUseTool } from './computer-use.js';
+// ComputerUseTool retired — Holo3 integration removed entirely. The
+// desktop_* family (desktop-list-elements, desktop-click-by-name, etc.)
+// is the supported replacement for desktop automation.
 import { SwitchModeTool } from './switch-mode.js';
 import { BrowseLibraryTool } from './browse-library.js';
 import { CuratorTool } from './curator.js';

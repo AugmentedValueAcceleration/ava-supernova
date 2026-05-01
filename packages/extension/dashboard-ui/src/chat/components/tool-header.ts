@@ -180,12 +180,6 @@ export function getToolHeader(name: string, argsJson: string | undefined): ToolH
     case 'news':
       return { verb: 'News', target: truncate((args.query as string) || (args.category as string) || '', 80) };
 
-    // Computer use
-    case 'computer_use':
-      return { verb: 'Computer use', target: truncate((args.task as string) || '', 80) };
-    case 'computer_use_blackboard':
-      return { verb: 'Computer use (planning)', target: '' };
-
     default:
       return { verb: capitalize(name.replace(/_/g, ' ')), target: '' };
   }

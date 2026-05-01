@@ -77,6 +77,5 @@ export async function buildCurrentSystemPrompt(ctx: SystemPromptContext): Promis
     decisionsContext: ctx.decisionsState?.context ?? undefined,
     decisionsFolderExists: ctx.decisionsState?.hasFolder ?? false,
     decisionsOptInStatus: ctx.decisionsState?.optInStatus ?? 'not-asked',
-    excludeTools: ['screenshot', 'computer_use'],
   });
 }
