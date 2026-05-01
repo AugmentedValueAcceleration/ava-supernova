@@ -4,7 +4,7 @@ import { post } from '../App';
 import type { AccountInfo } from '../types/messages';
 import {
   Image as ImageIcon, MusicNotes, Microphone, VideoCamera,
-  Gear, Paperclip, X as XIcon, Palette,
+  Gear, Paperclip, X as XIcon,
 } from '@phosphor-icons/react';
 import {
   type GalleryItem, type GalleryMediumKind,
@@ -1158,20 +1158,17 @@ function EmptyInvitation({ mode, onSuggest }: { mode: 'images' | 'audio' | 'voic
     mode === 'voice'  ? 'voice' :
                         'video';
   return (
-    <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-      <div className="mb-4 h-14 w-14 rounded-full bg-gradient-to-br from-[var(--accent)] to-purple-500 flex items-center justify-center text-white shadow-[0_0_30px_rgba(168,85,247,0.35)]">
-        <Palette weight="duotone" size={26} />
-      </div>
-      <h2 className="text-[16px] font-semibold text-[#cdd6f4]">Ready when you are.</h2>
-      <p className="mt-1 text-[12px] text-[#9b8caa] max-w-md">
-        Describe the {modeLabel} you want — anything from a one-line idea to a fully scoped scene. Or try one:
+    <div className="flex flex-col items-start py-10 px-1">
+      <h2 className="text-[18px] font-semibold text-[#cdd6f4]">Ready when you are.</h2>
+      <p className="mt-1.5 text-[12px] text-[#9b8caa] max-w-md leading-relaxed">
+        Describe the {modeLabel} you want — anything from a one-line idea to a fully scoped scene. Or pick a starter below.
       </p>
-      <div className="mt-4 flex flex-col gap-2 max-w-lg w-full">
+      <div className="mt-5 flex flex-col gap-2 w-full">
         {SUGGESTIONS[mode].map((s, i) => (
           <button
             key={i}
             onClick={() => onSuggest(s)}
-            className="text-left rounded-xl border border-[rgba(168,85,247,0.16)] bg-[#1a1625]/40 px-4 py-2.5 text-[12px] text-[var(--text-secondary)] transition hover:border-[rgba(168,85,247,0.45)] hover:bg-[#1a1625] hover:text-white cursor-pointer"
+            className="text-left rounded-xl border border-[rgba(168,85,247,0.12)] bg-transparent px-4 py-2.5 text-[12px] text-[var(--text-secondary)] transition hover:border-[rgba(168,85,247,0.35)] hover:bg-[#1a1625]/40 hover:text-white cursor-pointer"
           >
             {s}
           </button>
