@@ -1339,7 +1339,7 @@ function FeedCard({
             src={item.url}
             alt={item.title || 'Generated image'}
             className="mx-auto block rounded-xl object-contain"
-            style={{ maxHeight: '60vh', maxWidth: '100%' }}
+            style={{ maxHeight: '38vh', maxWidth: '100%' }}
             loading="lazy"
           />
         )}
