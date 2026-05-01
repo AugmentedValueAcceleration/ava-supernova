@@ -678,6 +678,10 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
         const first = failures[0]?.reason;
         throw new Error(first?.message || first || 'Generation failed');
       }
+      // At least one variation succeeded — clear the composer so the
+      // user can type the next prompt straight away. Errors keep the
+      // prompt so the user can retry / tweak without retyping.
+      setImagePrompt('');
     } catch (e: any) { setError(e.message || e); }
     setGenerating(false);
   };
@@ -695,6 +699,9 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
       });
       if (data.url) {
         saveLocalAsset('music', data.url, musicPrompt.slice(0, 60), musicPrompt);
+        // Clear the composer + lyrics on success — see image handler.
+        setMusicPrompt('');
+        setMusicLyrics('');
       } else throw new Error(data.error || 'No audio URL returned');
     } catch (e: any) { setError(e.message || e); }
     setGenerating(false);
@@ -720,6 +727,8 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
       });
       if (data.url) {
         saveLocalAsset('voice', data.url, voiceText.slice(0, 60), voiceText);
+        // Clear the text on success — see image handler.
+        setVoiceText('');
       } else throw new Error(data.error || 'No voice URL returned');
     } catch (e: any) { setError(e.message || e); }
     setGenerating(false);
@@ -742,6 +751,10 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
       });
       if (data.url) {
         saveLocalAsset('video', data.url, videoPrompt.slice(0, 60), videoPrompt);
+        // Clear the composer + first-frame on success — see image
+        // handler. Reference image consumed; user starts fresh.
+        setVideoPrompt('');
+        setVideoReference(null);
       } else throw new Error(data.error || 'No video URL returned');
     } catch (e: any) {
       setError(e.message || 'Video generation failed');
