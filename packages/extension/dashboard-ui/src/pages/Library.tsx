@@ -28,7 +28,18 @@ interface Props {
   onNavigate: (page: Page) => void;
   /** Cloud-synced creative assets from /api/creative-assets. */
   cloudAssets: CreativeAsset[];
+  /** True while the host is fetching the cloud asset list. Drives a
+   *  non-blocking "Pulling cloud assets…" pill above the grid so the
+   *  user understands incomplete-looking thumbnails are still in
+   *  flight rather than missing. The grid keeps rendering whatever
+   *  it has — never a full-page block. */
   cloudAssetsLoading?: boolean;
+  /** Request a fresh cloud-asset pull. Library calls this when the
+   *  user switches tabs (assets ↔ documents) so the loading pill stays
+   *  in sync with the parent's state — without it, Library's own
+   *  fetch fired but the parent didn't know to flip the gate, leaving
+   *  the spinner invisible during legitimate refetches. */
+  onReloadCloudAssets?: () => void;
   /** Local project files from the workspace scan. */
   images: LibraryImage[];
   projectRoot: string;
@@ -122,6 +133,7 @@ export function Library({
   onNavigate,
   cloudAssets,
   cloudAssetsLoading,
+  onReloadCloudAssets,
   images,
   projectRoot,
   hasImagesFolder = true,
@@ -135,12 +147,15 @@ export function Library({
   const [newDocOpen, setNewDocOpen] = useState(false);
   const [selected, setSelected] = useState<UnifiedItem | null>(null);
 
-  // Pull cloud assets once the tab opens to assets/documents.
+  // Refresh cloud assets when the user switches into assets/documents.
+  // Routes through the parent so the loading pill stays in sync with
+  // App.tsx's libraryCloudAssetsLoading state. The parent fires the
+  // initial load on page-nav; this handles subsequent tab toggles.
   useEffect(() => {
     if (tab === 'assets' || tab === 'documents') {
-      post({ type: 'load_cloud_assets' });
+      onReloadCloudAssets?.();
     }
-  }, [tab]);
+  }, [tab, onReloadCloudAssets]);
 
   // Unified item list for Assets tab — excludes office documents, those
   // live on the Documents tab to match what the user expects.
@@ -269,11 +284,33 @@ export function Library({
             </div>
           </div>
 
-          {cloudAssetsLoading && cloudAssets.length === 0 && (
-            <div className="py-12 text-center text-sm text-[var(--text-muted)]">Loading cloud assets...</div>
+          {/* Inline loading pill — non-blocking. Stays visible while
+              the host is still pulling cloud assets so the user knows
+              an incomplete-looking grid is mid-fetch, not broken.
+              Disappears when the response arrives or after the 15s
+              safety timeout in App.tsx. */}
+          {cloudAssetsLoading && (
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--border-card)] bg-[var(--bg-card)] px-3 py-1.5 text-[11px] text-[var(--text-secondary)]">
+              <span className="ava-library-spinner" aria-hidden />
+              Pulling cloud assets…
+              <style>{`
+                .ava-library-spinner {
+                  width: 11px; height: 11px; border-radius: 50%;
+                  border: 1.5px solid rgba(168, 85, 247, 0.25);
+                  border-top-color: #a855f7;
+                  animation: avaLibSpin 0.85s linear infinite;
+                  display: inline-block;
+                }
+                @keyframes avaLibSpin { to { transform: rotate(360deg); } }
+              `}</style>
+            </div>
           )}
 
-          {!cloudAssetsLoading && assetItems.length === 0 && (
+          {/* Empty state — shown only when nothing is loaded AND
+              nothing is in flight. While loading, the pill above carries
+              the visual weight; we don't want to flash "No assets yet"
+              for a fraction of a second before thumbnails appear. */}
+          {assetItems.length === 0 && !cloudAssetsLoading && (
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
               <div className="text-4xl mb-3">{hasImagesFolder ? '\u{1F3A8}' : '\u{1F4C1}'}</div>
               <p className="text-sm font-medium text-[var(--text-primary)]">No assets yet</p>
@@ -343,7 +380,17 @@ export function Library({
             </button>
           </div>
 
-          {documentItems.length === 0 ? (
+          {/* Same non-blocking pill as the Assets tab — cloud documents
+              ride the same /creative-assets fetch so the loading state
+              applies here too. */}
+          {cloudAssetsLoading && (
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--border-card)] bg-[var(--bg-card)] px-3 py-1.5 text-[11px] text-[var(--text-secondary)]">
+              <span className="ava-library-spinner" aria-hidden />
+              Pulling cloud documents…
+            </div>
+          )}
+
+          {documentItems.length === 0 && !cloudAssetsLoading ? (
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
               <div className="text-4xl mb-3">{'\u{1F4C4}'}</div>
               <p className="text-sm font-medium text-[var(--text-primary)]">No documents yet</p>
@@ -351,13 +398,13 @@ export function Library({
                 Click <span className="font-medium text-[var(--accent)]">+ New document</span> to start from blank or a template — or ask Ava to write one for you.
               </p>
             </div>
-          ) : (
+          ) : documentItems.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {documentItems.map(item => (
                 <AssetCard key={item.id} item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />
               ))}
             </div>
-          )}
+          ) : null}
         </div>
       )}
 

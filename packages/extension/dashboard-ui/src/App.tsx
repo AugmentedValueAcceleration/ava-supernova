@@ -8,8 +8,6 @@ import { Overview } from './pages/Overview';
 import { Usage } from './pages/Usage';
 import { Memory } from './pages/Memory';
 import { History } from './pages/History';
-import { AdminSupport } from './pages/AdminSupport';
-import { AdminProposals } from './pages/AdminProposals';
 import { Library } from './pages/Library';
 import { Chat } from './pages/Chat';
 import { Planner } from './pages/Planner';
@@ -25,7 +23,6 @@ import type { FullArticle, RelatedArticle } from './pages/ArticleReader';
 import type {
   Page,
   AccountInfo,
-  AdminToolProposal,
   ConnectionStatus,
   ConversationEntry,
   DashboardTaskEntry,
@@ -34,8 +31,6 @@ import type {
   SessionStats,
   UsageHistoryData,
   SupportTicket,
-  SupportConversation,
-  SupportConversationMessage,
   DashboardSettings,
   MemoryEntry,
   ProviderKeyStatus,
@@ -140,6 +135,13 @@ export function App() {
   const [journalDay, setJournalDay] = useState<DashboardJournalDay | null>(null);
   const [journalSummaries, setJournalSummaries] = useState<DashboardJournalDaySummary[]>([]);
   const [selectedJournalDate, setSelectedJournalDate] = useState(() => new Date().toISOString().slice(0, 10));
+  // When the user picks a day on the sidebar mini-calendar, we navigate
+  // to the Planner AND want it to land on the Journal tab (not Tasks,
+  // which is Planner's default). This counter ticks on every calendar
+  // pick; Planner watches it with useEffect to switch tab. A counter
+  // rather than a boolean so re-clicking the same date still triggers
+  // the switch (boolean would deduplicate).
+  const [plannerJournalNavTick, setPlannerJournalNavTick] = useState(0);
   const [sessionStatsData, setSessionStatsData] = useState<SessionStats | null>(null);
   const [usageHistoryData, setUsageHistoryData] = useState<UsageHistoryData | null>(null);
   const [learningCurriculums, setLearningCurriculums] = useState<DashboardLearningCurriculum[]>(() => {
@@ -154,16 +156,6 @@ export function App() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [supportLoading, setSupportLoading] = useState(false);
   const [supportUnread, setSupportUnread] = useState(0);
-  // Admin state
-  const [, setAdminTickets] = useState<SupportTicket[]>([]);
-  const [, setAdminTicketsTotal] = useState(0);
-  const [, setAdminTicketsLoading] = useState(false);
-  const [adminConversations, setAdminConversations] = useState<SupportConversation[]>([]);
-  const [adminConversationsLoading, setAdminConversationsLoading] = useState(false);
-  const [adminConversationMessages, setAdminConversationMessages] = useState<Record<string, SupportConversationMessage[]>>({});
-  const [adminProposals, setAdminProposals] = useState<AdminToolProposal[]>([]);
-  const [adminProposalsTotal, setAdminProposalsTotal] = useState(0);
-  const [adminProposalsLoading, setAdminProposalsLoading] = useState(false);
   // Sync state
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [syncingTypes, setSyncingTypes] = useState<Set<string>>(new Set());
@@ -175,7 +167,29 @@ export function App() {
   const [libraryProjectRoot, setLibraryProjectRoot] = useState('');
   const [libraryHasFolder, setLibraryHasFolder] = useState(true);
   const [libraryCloudAssets, setLibraryCloudAssets] = useState<CreativeAsset[]>([]);
+  // Non-blocking loading indicator. The Library grid renders whatever
+  // it has immediately and shows an inline "Pulling cloud assets…" pill
+  // alongside while the fetch is in flight. Hard 15s safety timeout
+  // makes sure the indicator can't get stuck if a response is missed —
+  // 15s is comfortably above apiFetch's 10s network timeout, so any
+  // legitimate fetch will resolve via the response handler first.
   const [libraryCloudAssetsLoading, setLibraryCloudAssetsLoading] = useState(false);
+  const libraryLoadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const beginLibraryLoad = useCallback(() => {
+    setLibraryCloudAssetsLoading(true);
+    if (libraryLoadingTimeoutRef.current) clearTimeout(libraryLoadingTimeoutRef.current);
+    libraryLoadingTimeoutRef.current = setTimeout(() => {
+      setLibraryCloudAssetsLoading(false);
+      libraryLoadingTimeoutRef.current = null;
+    }, 15_000);
+  }, []);
+  const finishLibraryLoad = useCallback(() => {
+    setLibraryCloudAssetsLoading(false);
+    if (libraryLoadingTimeoutRef.current) {
+      clearTimeout(libraryLoadingTimeoutRef.current);
+      libraryLoadingTimeoutRef.current = null;
+    }
+  }, []);
   // Personality state
   const [personalityData, setPersonalityData] = useState<PersonalityData | null>(() => {
     try { const saved = localStorage.getItem('ava-dash-personality'); return saved ? JSON.parse(saved) : null; } catch { return null; }
@@ -330,32 +344,6 @@ export function App() {
         // Reload tickets to get updated messages
         post({ type: 'load_tickets' });
         break;
-      // Admin messages
-      case 'admin_tickets_loaded':
-        setAdminTickets(msg.tickets);
-        setAdminTicketsTotal(msg.total);
-        setAdminTicketsLoading(false);
-        break;
-      case 'admin_conversations_loaded':
-        setAdminConversations(msg.conversations);
-        setAdminConversationsLoading(false);
-        break;
-      case 'admin_conversation_messages_loaded':
-        setAdminConversationMessages(prev => ({ ...prev, [msg.conversationId]: msg.messages }));
-        break;
-      case 'admin_conversation_updated':
-        // Reload the conversation list
-        post({ type: 'load_admin_conversations' });
-        break;
-      case 'admin_proposals_loaded':
-        setAdminProposals(msg.proposals);
-        setAdminProposalsTotal(msg.total);
-        setAdminProposalsLoading(false);
-        break;
-      case 'admin_proposal_updated':
-        // Reload proposals
-        post({ type: 'load_admin_proposals' });
-        break;
       // BYOK messages
       case 'local_memories_loaded':
         setLocalMemories(msg.memories);
@@ -503,10 +491,12 @@ export function App() {
         break;
       case 'cloud_assets_loaded':
         setLibraryCloudAssets(msg.assets);
-        setLibraryCloudAssetsLoading(false);
+        finishLibraryLoad();
         break;
       case 'cloud_assets_error':
-        setLibraryCloudAssetsLoading(false);
+        // Logged on the host side; UI keeps whatever it had and the
+        // pill goes away.
+        finishLibraryLoad();
         break;
       case 'cloud_asset_deleted':
         setLibraryCloudAssets(prev => prev.filter(a => a.id !== msg.id));
@@ -640,14 +630,6 @@ export function App() {
       setSupportLoading(true);
       post({ type: 'load_support_conversations' });
     }
-    if (page === 'admin_support' && !adminConversationsLoading) {
-      setAdminConversationsLoading(true);
-      post({ type: 'load_admin_conversations' });
-    }
-    if (page === 'admin_proposals' && adminProposals.length === 0 && !adminProposalsLoading) {
-      setAdminProposalsLoading(true);
-      post({ type: 'load_admin_proposals' });
-    }
     // Load learning when navigating to learning page
     if (page === 'learning') {
       post({ type: 'load_learning' });
@@ -695,7 +677,7 @@ export function App() {
     // courses power the Courses tab.
     if (page === 'library') {
       post({ type: 'load_library' });
-      setLibraryCloudAssetsLoading(true);
+      beginLibraryLoad();
       post({ type: 'load_cloud_assets' });
       post({ type: 'load_library_paths' });
     }
@@ -774,6 +756,7 @@ export function App() {
             sessionTasks={sessionTasks}
             journalDay={journalDay}
             journalDate={selectedJournalDate}
+            journalNavTick={plannerJournalNavTick}
             userName={account?.name?.split(' ')[0] ?? null}
             onSaveJournalEntry={(date, content, mood, tags) => post({ type: 'save_journal_user_entry', date, content, mood, tags })}
             onDeleteUserEntry={(date) => post({ type: 'delete_journal_user_entry', date })}
@@ -859,6 +842,7 @@ export function App() {
             onNavigate={setPagePersist}
             cloudAssets={libraryCloudAssets}
             cloudAssetsLoading={libraryCloudAssetsLoading}
+            onReloadCloudAssets={() => { beginLibraryLoad(); post({ type: 'load_cloud_assets' }); }}
             images={libraryImages}
             projectRoot={libraryProjectRoot}
             hasImagesFolder={libraryHasFolder}
@@ -871,12 +855,6 @@ export function App() {
         return null;
       case 'creative-studio':
         return <CreativeStudio account={account} />;
-
-      // ── Admin ───────────────────────────────────────────────────────
-      case 'admin_support':
-        return <AdminSupport conversations={adminConversations} messages={adminConversationMessages} loading={adminConversationsLoading} />;
-      case 'admin_proposals':
-        return <AdminProposals proposals={adminProposals} total={adminProposalsTotal} loading={adminProposalsLoading} />;
     }
   };
 
@@ -903,6 +881,11 @@ export function App() {
           onSelectJournalDate={(date) => {
             setSelectedJournalDate(date);
             post({ type: 'load_journal_day', date });
+            // Tick so Planner switches to its Journal tab. Without this,
+            // the Planner defaults to Tasks and the operator sees no
+            // visible response to the calendar click — the date IS
+            // updated, just on a tab they can't see.
+            setPlannerJournalNavTick(n => n + 1);
           }}
           onLoadJournalSummaries={(from, to) => post({ type: 'load_journal_summaries', from, to })}
           taskDates={taskDates}
