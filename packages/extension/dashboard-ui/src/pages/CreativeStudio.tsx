@@ -4,10 +4,12 @@ import { post } from '../App';
 import type { AccountInfo } from '../types/messages';
 import {
   Image as ImageIcon, MusicNotes, Microphone, VideoCamera,
+  Gear, Paperclip, X as XIcon, Sparkle,
 } from '@phosphor-icons/react';
 import {
   type GalleryItem, type GalleryMediumKind,
 } from '../components/CreativeOutputCard';
+import { Tooltip } from '../components/Tooltip';
 // Granular import — webview can't load `@ava/core` root export because
 // it transitively pulls Node-only constants. The billing/credits leaf
 // is browser-safe.
@@ -883,8 +885,15 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
           <h1 className="text-[22px] font-semibold text-[#cdd6f4]">Creative Studio</h1>
           <p className="mt-1 text-[12px] text-[#9b8caa]">Tell Ava what you want to make.</p>
         </div>
-        {account?.usage && (
-          <div className="shrink-0 rounded-2xl border border-[rgba(168,85,247,0.20)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] px-4 py-2.5 shadow-[0_0_18px_rgba(168,85,247,0.06)]">
+        {/* Credit balance card. Three states:
+              - platform user with usage data → live balance + bar
+              - BYOK / signed-in but no usage → "BYOK mode" pill (your
+                provider tracks billing, we don't)
+              - signed out → "Connect to see balance" prompt
+            All three render so the slot never goes empty mid-flow.
+        */}
+        {account?.usage ? (
+          <div className="shrink-0 rounded-2xl border border-[rgba(168,85,247,0.20)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] px-4 py-2.5 shadow-[0_0_18px_rgba(168,85,247,0.06)] min-w-[200px]">
             <div className="flex items-baseline justify-between gap-3 mb-1.5">
               <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)]">Credit balance</span>
               <span className="text-[10px] text-[var(--text-muted)] tabular-nums">
@@ -909,6 +918,17 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                 style={{ width: `${remainPct}%` }}
               />
             </div>
+          </div>
+        ) : (
+          <div className="shrink-0 rounded-2xl border border-[rgba(168,85,247,0.16)] bg-[#0f0f17]/60 px-4 py-2.5 min-w-[200px]">
+            <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)] block mb-1">
+              {account ? 'BYOK mode' : 'Credit balance'}
+            </span>
+            <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+              {account
+                ? 'Your provider keys handle billing for media generations. Ava doesn\'t track those costs.'
+                : 'Sign in to see your credits, or use BYOK with your own API keys.'}
+            </p>
           </div>
         )}
       </header>
@@ -1017,18 +1037,18 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
             {/* Mode glyph dock */}
             <div className="flex items-center gap-0.5">
               {modeGlyphs.map(g => (
-                <button
-                  key={g.key}
-                  onClick={() => setActiveTab(g.key)}
-                  title={g.label}
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg border transition cursor-pointer ${
-                    mode === g.key
-                      ? 'border-[var(--accent)]/50 bg-[var(--accent)]/15 text-[var(--accent)]'
-                      : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-input)]/50'
-                  }`}
-                >
-                  {g.icon}
-                </button>
+                <Tooltip key={g.key} content={g.label}>
+                  <button
+                    onClick={() => setActiveTab(g.key)}
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg border transition cursor-pointer ${
+                      mode === g.key
+                        ? 'border-[var(--accent)]/50 bg-[var(--accent)]/15 text-[var(--accent)]'
+                        : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-input)]/50'
+                    }`}
+                  >
+                    {g.icon}
+                  </button>
+                </Tooltip>
               ))}
 
               {/* Attach first-frame image — video mode only. Sent as
@@ -1046,20 +1066,23 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                 balance — a soft warning, not a hard block (the server
                 still does the cap check on submit). */}
             <div className="flex items-center gap-3">
-              <span
-                className={`text-[10px] tabular-nums ${
-                  account?.usage && currentCredits > tokensRemaining
-                    ? 'text-amber-400 font-semibold'
-                    : 'text-[var(--text-muted)]'
-                }`}
-                title={
+              <Tooltip
+                content={
                   account?.usage && currentCredits > tokensRemaining
                     ? `${currentCredits.toLocaleString()} credits — over your remaining ${tokensRemaining.toLocaleString()} balance`
                     : `${currentCredits.toLocaleString()} credits for this generation`
                 }
               >
-                {currentCredits.toLocaleString()} cr
-              </span>
+                <span
+                  className={`text-[10px] tabular-nums ${
+                    account?.usage && currentCredits > tokensRemaining
+                      ? 'text-amber-400 font-semibold'
+                      : 'text-[var(--text-muted)]'
+                  }`}
+                >
+                  {currentCredits.toLocaleString()} cr
+                </span>
+              </Tooltip>
               <button
                 onClick={currentSend}
                 disabled={!currentPrompt.trim() || generating}
@@ -1122,8 +1145,8 @@ function EmptyInvitation({ mode, onSuggest }: { mode: 'images' | 'audio' | 'voic
                         'video';
   return (
     <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-      <div className="mb-4 h-14 w-14 rounded-full bg-gradient-to-br from-[var(--accent)] to-purple-500 flex items-center justify-center text-white text-xl shadow-[0_0_30px_rgba(168,85,247,0.35)]">
-        ✨
+      <div className="mb-4 h-14 w-14 rounded-full bg-gradient-to-br from-[var(--accent)] to-purple-500 flex items-center justify-center text-white shadow-[0_0_30px_rgba(168,85,247,0.35)]">
+        <Sparkle weight="duotone" size={26} />
       </div>
       <h2 className="text-[16px] font-semibold text-[#cdd6f4]">Ready when you are.</h2>
       <p className="mt-1 text-[12px] text-[#9b8caa] max-w-md">
@@ -1168,11 +1191,14 @@ function ReferenceChip({ ref: refValue, onRemove }: { ref: { name: string; dataU
     <div className="mb-2 inline-flex items-center gap-2 rounded-lg border border-[rgba(168,85,247,0.20)] bg-[var(--bg-input)]/60 pl-1 pr-2 py-1">
       <img src={refValue.dataUrl} alt={refValue.name} className="h-7 w-7 rounded-md object-cover" />
       <span className="text-[10px] text-[var(--text-secondary)] max-w-[180px] truncate">{refValue.name}</span>
-      <button
-        onClick={onRemove}
-        title="Remove reference"
-        className="text-[var(--text-muted)] hover:text-red-400 transition cursor-pointer bg-transparent border-none p-0 leading-none text-[14px]"
-      >×</button>
+      <Tooltip content="Remove first-frame image">
+        <button
+          onClick={onRemove}
+          className="flex items-center justify-center text-[var(--text-muted)] hover:text-red-400 transition cursor-pointer bg-transparent border-none p-0"
+        >
+          <XIcon weight="bold" size={11} />
+        </button>
+      </Tooltip>
     </div>
   );
 }
@@ -1181,19 +1207,18 @@ function ReferenceAttachButton({ hasReference, onPick }: { hasReference: boolean
   const inputRef = useRef<HTMLInputElement>(null);
   return (
     <>
-      <button
-        onClick={() => inputRef.current?.click()}
-        title={hasReference ? 'Replace reference image' : 'Attach reference image'}
-        className={`flex h-8 w-8 items-center justify-center rounded-lg border transition cursor-pointer ${
-          hasReference
-            ? 'border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)]'
-            : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-input)]/50'
-        }`}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-        </svg>
-      </button>
+      <Tooltip content={hasReference ? 'Replace first-frame image' : 'Attach a first-frame image for image-to-video'}>
+        <button
+          onClick={() => inputRef.current?.click()}
+          className={`flex h-8 w-8 items-center justify-center rounded-lg border transition cursor-pointer ${
+            hasReference
+              ? 'border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)]'
+              : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-input)]/50'
+          }`}
+        >
+          <Paperclip weight="duotone" size={14} />
+        </button>
+      </Tooltip>
       <input
         ref={inputRef}
         type="file"
@@ -1395,10 +1420,7 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
           <span className="uppercase tracking-wider font-semibold opacity-70 shrink-0">{modeLabel} settings</span>
           <span className="opacity-90 truncate">{summary}</span>
         </span>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 ml-2 opacity-60">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
+        <Gear weight="duotone" size={14} className="shrink-0 ml-2 opacity-60" />
       </button>
 
       {/* Overlay — full-screen backdrop + centered settings card. Click
@@ -1425,15 +1447,14 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
                 <h3 className="text-[13px] font-semibold text-[#cdd6f4]">{modeLabel} settings</h3>
                 <p className="text-[10px] text-[#9b8caa] mt-0.5">{summary}</p>
               </div>
-              <button
-                onClick={() => setOpen(false)}
-                title="Close (Esc)"
-                className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-input)]/60 transition cursor-pointer bg-transparent border-none"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <path d="M18 6L6 18M6 6l12 12"/>
-                </svg>
-              </button>
+              <Tooltip content="Close (Esc)">
+                <button
+                  onClick={() => setOpen(false)}
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-input)]/60 transition cursor-pointer bg-transparent border-none"
+                >
+                  <XIcon weight="bold" size={12} />
+                </button>
+              </Tooltip>
             </div>
 
             {/* Body */}
