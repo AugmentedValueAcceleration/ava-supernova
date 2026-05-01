@@ -487,7 +487,9 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
   const [imageStyle, setImageStyle] = useState<string>('auto');
   const [imageNegative, setImageNegative] = useState('');
   const [imageVariations, setImageVariations] = useState<1 | 2 | 4>(1);
-  const [imageReference, setImageReference] = useState<{ name: string; dataUrl: string } | null>(null);
+  // Wan 2.6 T2I doesn't accept a reference image — text-to-image only.
+  // No imageReference state. If we wire a future i2i model variant
+  // (wan2.6-i2i or similar) we add it back here.
 
   // Audio
   const [musicPrompt, setMusicPrompt] = useState('');
@@ -639,13 +641,14 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
       // surface, which beats all-or-nothing batching.
       const finalPrompt = composeImagePrompt();
       const negative = imageNegative.trim() || undefined;
-      const reference = imageReference?.dataUrl;
+      // Wan 2.6 T2I is text-to-image only — no reference-image input
+      // accepted by the server endpoint. Don't send the field even if
+      // someone passes one in.
       const calls = Array.from({ length: imageVariations }).map(() =>
         apiCall('generate-image', {
           prompt: finalPrompt,
           size: imageSize,
           negative_prompt: negative,
-          reference_image: reference,
         }).then(data => {
           if (data?.url) saveLocalAsset('image', data.url, imagePrompt.slice(0, 60), imagePrompt);
           else throw new Error(data?.error || 'No image URL returned');
@@ -710,10 +713,14 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     if (!videoPrompt.trim() || generating) return;
     setGenerating(true); setError(null);
     try {
+      // MiniMax accepts an optional first-frame image-to-video input.
+      // Server-side expects `first_frame_image` exactly — see
+      // generate-video/route.ts. Sending `reference_image` was a no-op
+      // before this fix.
       const data = await apiCall('generate-video', {
         prompt: composeVideoPrompt(),
         duration: videoDuration,
-        reference_image: videoReference?.dataUrl,
+        first_frame_image: videoReference?.dataUrl,
       });
       if (data.url) {
         saveLocalAsset('video', data.url, videoPrompt.slice(0, 60), videoPrompt);
@@ -751,15 +758,17 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     if (!videoPrompt.trim() && item.prompt) setVideoPrompt(item.prompt);
   }, [videoPrompt]);
 
-  /* ── Reference image upload ───────────────────────────────────────── */
+  /* ── Reference image upload (video only) ──────────────────────────── */
+  // Wired to MiniMax's `first_frame_image` parameter on the
+  // generate-video endpoint. Image generation (Wan 2.6 T2I) doesn't
+  // accept a reference, so we don't surface the affordance there.
 
-  const handleUploadReference = useCallback(
-    (file: File, target: 'image' | 'video') => {
+  const handleUploadVideoReference = useCallback(
+    (file: File) => {
       const reader = new FileReader();
       reader.onload = () => {
         const dataUrl = String(reader.result || '');
-        if (target === 'image') setImageReference({ name: file.name, dataUrl });
-        else setVideoReference({ name: file.name, dataUrl });
+        setVideoReference({ name: file.name, dataUrl });
       };
       reader.readAsDataURL(file);
     },
@@ -836,20 +845,17 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     el.scrollTop = el.scrollHeight;
   }, [feedAsc.length, generating]);
 
-  // Drop reference image directly onto the composer. Fires when an
-  // image-mode or video-mode user drags a file over the textarea —
-  // pre-empts the OS-default open-file behaviour and routes to the
-  // right per-mode reference state.
-  const composerDropTarget: 'image' | 'video' | null =
-    mode === 'images' ? 'image' :
-    mode === 'video'  ? 'video' :
-                        null;
+  // Drop reference image directly onto the composer. Only video mode
+  // accepts one (MiniMax image-to-video via first_frame_image). Wan
+  // 2.6 T2I has no image-input slot so the image tab doesn't surface
+  // the affordance.
+  const composerAcceptsReference = mode === 'video';
 
   const handleComposerDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith('image/') && composerDropTarget) {
-      handleUploadReference(file, composerDropTarget);
+    if (file && file.type.startsWith('image/') && composerAcceptsReference) {
+      handleUploadVideoReference(file);
     }
   };
 
@@ -977,18 +983,12 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
         />
 
         <div
-          onDrop={composerDropTarget ? handleComposerDrop : undefined}
-          onDragOver={composerDropTarget ? (e) => e.preventDefault() : undefined}
+          onDrop={composerAcceptsReference ? handleComposerDrop : undefined}
+          onDragOver={composerAcceptsReference ? (e) => e.preventDefault() : undefined}
           className="rounded-2xl border border-[rgba(168,85,247,0.20)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] p-3 shadow-[0_0_30px_rgba(168,85,247,0.06)] focus-within:border-[rgba(168,85,247,0.45)] focus-within:shadow-[0_0_30px_rgba(168,85,247,0.14)] transition"
         >
-          {/* Reference chip — pinned at the top of the composer when an
-              image is attached. Click × to remove. */}
-          {(mode === 'images' && imageReference) && (
-            <ReferenceChip
-              ref={imageReference}
-              onRemove={() => setImageReference(null)}
-            />
-          )}
+          {/* Reference chip — pinned at the top of the composer when a
+              first-frame image is attached for video. Click × to remove. */}
           {(mode === 'video' && videoReference) && (
             <ReferenceChip
               ref={videoReference}
@@ -1031,13 +1031,12 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                 </button>
               ))}
 
-              {/* Attach reference (image / video modes only). Routes to
-                  the same per-mode reference state the inline reference
-                  chip removes from. */}
-              {composerDropTarget && (
+              {/* Attach first-frame image — video mode only. Sent as
+                  MiniMax `first_frame_image` for image-to-video. */}
+              {composerAcceptsReference && (
                 <ReferenceAttachButton
-                  hasReference={!!(mode === 'images' ? imageReference : videoReference)}
-                  onPick={(file) => handleUploadReference(file, composerDropTarget)}
+                  hasReference={!!videoReference}
+                  onPick={handleUploadVideoReference}
                 />
               )}
             </div>
@@ -1074,7 +1073,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
         <p className="mt-1.5 text-center text-[10px] text-[var(--text-muted)]">
           Enter for new line · {/* Cmd/Ctrl+Enter to send */}
           <kbd className="rounded bg-[var(--bg-input)]/60 px-1 py-0.5 text-[9px]">⌘↵</kbd> to send
-          {composerDropTarget && <> · drop an image to attach a reference</>}
+          {composerAcceptsReference && <> · drop an image to set the first frame</>}
         </p>
       </div>
     </div>
