@@ -5,6 +5,12 @@ import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './ty
 import type { FunctionSchema } from '../providers/types.js';
 import { TEMPLATES, getTemplate } from './document-templates.js';
 import type { DocumentContent, SpreadsheetContent, CsvContent, TemplateName } from './document-templates.js';
+import {
+  titleParagraph, headingParagraph, bodyParagraph,
+  bulletParagraph, themedTable, sectionProperties, getStyleProfile,
+  pdfTitle, pdfHeading, pdfBody, pdfBullet, pdfTable,
+  type DocumentStyleProfile,
+} from './document-styling.js';
 
 export class DocumentManageTool implements Tool {
   readonly name = 'document_manage';
@@ -17,7 +23,8 @@ export class DocumentManageTool implements Tool {
     description:
       'Create, read, edit, and export documents. Supports Word (.docx), Excel (.xlsx), PDF (.pdf), CSV (.csv), and Markdown (.md). ' +
       'Use templates for common document types. Optional dependencies: npm install docx exceljs pdfkit for full format support. ' +
-      'CSV and Markdown work with no extra dependencies.',
+      'CSV and Markdown work with no extra dependencies. ' +
+      'Note: editing a .docx is destructive — the file is recreated from scratch and any custom formatting in the original (fonts, colors, images, complex tables, headers/footers) will be lost. Only text content is preserved. For preserving formatting, edit the document in Word directly.',
     parameters: {
       type: 'object',
       properties: {
@@ -225,6 +232,9 @@ export class DocumentManageTool implements Tool {
     const format = this.detectFormat(filePath, args.format as string | undefined) ?? 'md';
     const templateData = args.template_data as Record<string, unknown> | undefined;
     const content = getTemplate(template as TemplateName, templateData);
+    // Per-template styling profile (margins, cover page, footer flags) so a
+    // letter actually looks like a letter and an invoice like an invoice.
+    const profile = getStyleProfile(template);
 
     const fullPath = this.resolvePath(filePath, context.cwd);
     await mkdir(dirname(fullPath), { recursive: true });
@@ -239,7 +249,7 @@ export class DocumentManageTool implements Tool {
         }
         return { success: false, output: 'Template has no table data for CSV format.' };
       }
-      case 'docx': return this.createDocx(fullPath, content);
+      case 'docx': return this.createDocx(fullPath, content, profile);
       case 'xlsx': {
         const table = content.sections.find(s => s.table)?.table;
         if (table) {
@@ -247,7 +257,7 @@ export class DocumentManageTool implements Tool {
         }
         return { success: false, output: 'Template has no table data for XLSX format.' };
       }
-      case 'pdf': return this.createPdf(fullPath, content);
+      case 'pdf': return this.createPdf(fullPath, content, profile);
       default: return { success: false, output: `Unsupported format for template: ${format}` };
     }
   }
@@ -394,7 +404,11 @@ export class DocumentManageTool implements Tool {
 
   // ── DOCX (optional: docx package) ──────────────────────────────────────────
 
-  private async createDocx(filePath: string, content?: DocumentContent): Promise<ToolResult> {
+  private async createDocx(
+    filePath: string,
+    content?: DocumentContent,
+    profile?: DocumentStyleProfile,
+  ): Promise<ToolResult> {
     let docx: any;
     try {
       // @ts-ignore — docx is an optional peer dependency
@@ -403,52 +417,45 @@ export class DocumentManageTool implements Tool {
       return { success: false, output: 'docx package is not installed. Install it with: npm install docx' };
     }
 
-    const { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType } = docx;
-
+    const { Document, Packer } = docx;
+    const styleProfile = profile ?? getStyleProfile();
     const children: any[] = [];
 
     if (content?.title) {
-      children.push(new Paragraph({ children: [new TextRun({ text: content.title, bold: true, size: 32 })], heading: HeadingLevel.TITLE }));
+      children.push(titleParagraph(docx, content.title));
     }
 
     for (const section of content?.sections ?? []) {
       if (section.heading) {
-        children.push(new Paragraph({ children: [new TextRun({ text: section.heading, bold: true, size: 26 })], heading: HeadingLevel.HEADING_1, spacing: { before: 240 } }));
+        children.push(headingParagraph(docx, section.heading, 1));
       }
       if (section.text) {
         for (const para of section.text.split('\n')) {
-          children.push(new Paragraph({ children: [new TextRun({ text: para })] }));
+          if (para.trim()) children.push(bodyParagraph(docx, para));
         }
       }
       if (section.list) {
         for (const item of section.list) {
-          children.push(new Paragraph({ children: [new TextRun({ text: item })], bullet: { level: 0 } }));
+          children.push(bulletParagraph(docx, item));
         }
       }
       if (section.table) {
-        const headerRow = new TableRow({
-          children: section.table.headers.map((h: string) =>
-            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })], width: { size: 100 / section.table!.headers.length, type: WidthType.PERCENTAGE } })
-          ),
-        });
-        const dataRows = section.table.rows.map((row: string[]) =>
-          new TableRow({
-            children: row.map((cell: string) =>
-              new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: cell })] })], width: { size: 100 / section.table!.headers.length, type: WidthType.PERCENTAGE } })
-            ),
-          })
-        );
-        children.push(new Table({
-          rows: [headerRow, ...dataRows],
-          width: { size: 100, type: WidthType.PERCENTAGE },
+        children.push(themedTable(docx, {
+          headers: section.table.headers,
+          rows: section.table.rows,
         }));
       }
     }
 
-    const doc = new Document({ sections: [{ children }] });
+    const doc = new Document({
+      sections: [{
+        properties: sectionProperties(styleProfile),
+        children,
+      }],
+    });
     const buffer = await Packer.toBuffer(doc);
     await writeFile(filePath, buffer);
-    return { success: true, output: `Created Word document: ${filePath} (${content?.sections?.length ?? 0} sections)` };
+    return { success: true, output: `Created Word document: ${filePath} (${content?.sections?.length ?? 0} sections, Ava-themed)` };
   }
 
   private async readDocx(filePath: string): Promise<ToolResult> {
@@ -467,8 +474,17 @@ export class DocumentManageTool implements Tool {
   }
 
   private async editDocx(filePath: string, content?: DocumentContent): Promise<ToolResult> {
-    // For DOCX editing, we read the existing content, append new sections, and recreate
-    // This is a limitation of the docx library — it's primarily a creation library
+    // ⚠ Destructive: the `docx` library is creation-first and has no
+    // round-trip-preserving edit API. We read the existing file as plain
+    // text via `mammoth` (formatting is lost in the read), append new
+    // sections, then RECREATE the file from scratch. This means any
+    // custom formatting in the original — fonts, colors, images, tables
+    // beyond plain text, headers/footers, comments — will be lost.
+    //
+    // For a non-destructive edit, the user should either: (a) keep the
+    // source as Markdown and export to .docx on demand, or (b) accept
+    // the loss and use this tool. A future swap to docx4js or direct
+    // OOXML manipulation would address this; not done yet.
     const readResult = await this.readDocx(filePath);
     if (!readResult.success) return readResult;
 
@@ -481,7 +497,14 @@ export class DocumentManageTool implements Tool {
       sections: [...existingContent.sections, ...(content?.sections ?? [])],
     };
 
-    return this.createDocx(filePath, merged);
+    const result = await this.createDocx(filePath, merged);
+    if (result.success) {
+      return {
+        ...result,
+        output: result.output + '\n\n⚠ Note: editing a .docx recreates the file. Any custom formatting (fonts, colors, images, complex tables, headers/footers) in the original was lost — only text content was preserved. To preserve formatting, edit the document in Word directly.',
+      };
+    }
+    return result;
   }
 
   // ── XLSX (optional: exceljs package) ───────────────────────────────────────
@@ -594,7 +617,11 @@ export class DocumentManageTool implements Tool {
 
   // ── PDF (optional: pdfkit + pdf-parse) ─────────────────────────────────────
 
-  private async createPdf(filePath: string, content?: DocumentContent): Promise<ToolResult> {
+  private async createPdf(
+    filePath: string,
+    content?: DocumentContent,
+    _profile?: DocumentStyleProfile,
+  ): Promise<ToolResult> {
     let PDFDocument: any;
     try {
       // @ts-ignore — pdfkit is an optional peer dependency
@@ -605,45 +632,33 @@ export class DocumentManageTool implements Tool {
     }
 
     return new Promise<ToolResult>((resolve) => {
-      const doc = new PDFDocument({ margin: 50 });
+      const doc = new PDFDocument({ margin: 56 }); // ~0.78", a touch tighter than docx defaults
       const chunks: Buffer[] = [];
 
       doc.on('data', (chunk: Buffer) => chunks.push(chunk));
       doc.on('end', async () => {
         const buffer = Buffer.concat(chunks);
         await writeFile(filePath, buffer);
-        resolve({ success: true, output: `Created PDF: ${filePath} (${content?.sections?.length ?? 0} sections)` });
+        resolve({ success: true, output: `Created PDF: ${filePath} (${content?.sections?.length ?? 0} sections, Ava-themed)` });
       });
 
       if (content?.title) {
-        doc.fontSize(24).font('Helvetica-Bold').text(content.title);
-        doc.moveDown();
+        pdfTitle(doc, content.title);
       }
 
       for (const section of content?.sections ?? []) {
-        if (section.heading) {
-          doc.fontSize(16).font('Helvetica-Bold').text(section.heading);
-          doc.moveDown(0.5);
-        }
+        if (section.heading) pdfHeading(doc, section.heading, 1);
         if (section.text) {
-          doc.fontSize(11).font('Helvetica').text(section.text);
-          doc.moveDown(0.5);
+          for (const para of section.text.split(/\n\n+/)) {
+            if (para.trim()) pdfBody(doc, para.trim());
+          }
         }
         if (section.list) {
-          doc.fontSize(11).font('Helvetica');
-          for (const item of section.list) {
-            doc.text(`  •  ${item}`);
-          }
-          doc.moveDown(0.5);
+          for (const item of section.list) pdfBullet(doc, item);
+          doc.moveDown(0.4);
         }
         if (section.table) {
-          doc.fontSize(10).font('Helvetica-Bold');
-          doc.text(section.table.headers.join('    |    '));
-          doc.font('Helvetica');
-          for (const row of section.table.rows) {
-            doc.text(row.join('    |    '));
-          }
-          doc.moveDown(0.5);
+          pdfTable(doc, { headers: section.table.headers, rows: section.table.rows });
         }
       }
 
