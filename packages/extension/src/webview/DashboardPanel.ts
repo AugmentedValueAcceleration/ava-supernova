@@ -37,6 +37,7 @@ import type {
   DashboardSettings,
   AccountInfo,
   ConnectionStatus,
+  ConversationEntry,
   ProviderKeyStatus,
   MemoryEntry,
   UsageLogEntry,
@@ -1811,7 +1812,12 @@ export class DashboardPanel {
     const conversations = this.viewProvider
       ? await this.viewProvider.listLocalConversations()
       : [];
-    this.post({ type: 'conversations_loaded', conversations });
+    // listLocalConversations returns unknown[] because the type lives in
+    // core and the dashboard ConversationEntry shape is webview-local;
+    // they're structurally compatible (id/title/updatedAt/pinned), so a
+    // narrow cast at this single boundary keeps the rest of the
+    // pipeline type-clean without leaking the dashboard type into core.
+    this.post({ type: 'conversations_loaded', conversations: conversations as ConversationEntry[] });
   }
 
   /** Load a saved conversation into the chat panel.

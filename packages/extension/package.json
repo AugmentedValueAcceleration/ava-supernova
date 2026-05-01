@@ -40,7 +40,9 @@
     "chat",
     "memory"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onUri"
+  ],
   "icon": "media/AvaSupernovaIcon.png",
   "main": "./dist/extension.js",
   "contributes": {

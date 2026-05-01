@@ -56,18 +56,30 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.window.registerUriHandler({
       handleUri: async (uri: vscode.Uri) => {
+        // Log every callback the OS routes to us so a stuck sign-in can
+        // be diagnosed from the Output panel ("Ava Supernova" channel)
+        // without needing to attach a debugger.
+        console.log('[Ava] URI callback received:', uri.toString());
         try {
           // Only handle the /auth path — leave room for future URI-handled
           // actions (e.g. deep-linking a conversation, opening a specific
           // memory, etc.) without touching this block
           if (uri.path === '/auth') {
-            if (!viewProvider) return;
+            if (!viewProvider) {
+              vscode.window.showErrorMessage('Ava Supernova — view provider not ready. Reload the window and try again.');
+              return;
+            }
             const consumed = await viewProvider.handleSignInCallback(uri);
+            console.log('[Ava] Sign-in callback consumed:', consumed);
             if (consumed) {
               // Surface a small notification so the user knows VS Code
               // received the callback even if they can't immediately see
               // the chat webview
               vscode.window.showInformationMessage('Ava Supernova — signed in successfully.');
+            } else {
+              // Stale or unknown callback — surface a clear hint so the
+              // user isn't left wondering whether the click landed.
+              vscode.window.showWarningMessage('Ava Supernova — sign-in callback ignored (state mismatch or no pending sign-in). Try signing in again.');
             }
           }
         } catch (err) {

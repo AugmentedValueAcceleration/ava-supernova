@@ -143,12 +143,15 @@ export class SignInManager {
 
     this.emit({ type: 'sign_in_started' });
 
+    console.log('[Ava] Opening sign-in URL:', url.toString());
     try {
       await vscode.env.openExternal(vscode.Uri.parse(url.toString()));
+      console.log('[Ava] Browser open call resolved');
     } catch (err) {
       // Browser failed to open — clean up and report
       this.cancelPending();
       const message = err instanceof Error ? err.message : String(err);
+      console.log('[Ava] openExternal failed:', message);
       this.emit({ type: 'sign_in_failed', error: `Could not open browser: ${message}` });
       throw err;
     }
@@ -168,6 +171,7 @@ export class SignInManager {
     const code = query.get('code');
     const state = query.get('state');
     const error = query.get('error');
+    console.log('[Ava] handleCallback: code=', !!code, 'state=', !!state, 'error=', error || 'none', 'pending=', !!this.pending);
 
     // Explicit error from the authorize flow (rare but possible)
     if (error) {
@@ -177,12 +181,14 @@ export class SignInManager {
     }
 
     if (!code || !state) {
+      console.log('[Ava] Callback missing code or state — ignoring');
       // Malformed callback — not ours or not a real sign-in callback
       return false;
     }
 
     // Validate state matches the pending attempt
     if (!this.pending || this.pending.state !== state) {
+      console.log('[Ava] State mismatch or no pending sign-in — ignoring callback');
       // Not matching — either no pending, or state mismatch (CSRF or stale)
       return false;
     }
@@ -198,6 +204,7 @@ export class SignInManager {
     // Exchange the code for a real platform key
     try {
       const exchangeUrl = new URL('/api/auth/extension/exchange', this.webOrigin);
+      console.log('[Ava] Exchanging code at', exchangeUrl.toString());
       const response = await fetch(exchangeUrl.toString(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -207,6 +214,7 @@ export class SignInManager {
           state: pending.state,
         }),
       });
+      console.log('[Ava] Exchange response status:', response.status);
 
       if (!response.ok) {
         let message = `Exchange failed: HTTP ${response.status}`;
@@ -214,6 +222,7 @@ export class SignInManager {
           const body = (await response.json()) as { error?: string } | null;
           if (body?.error) message = body.error;
         } catch { /* response wasn't JSON */ }
+        console.log('[Ava] Exchange failed:', message);
         this.emit({ type: 'sign_in_failed', error: message });
         return true;
       }
