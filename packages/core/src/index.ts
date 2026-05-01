@@ -87,6 +87,12 @@ export type {
   TokenTopupDefinition,
   StorageAddonDefinition,
 } from './billing/plans.js';
+// Canonical per-action credit costs — single source of truth for what
+// the platform charges. Surfaces (Creative Studio cost preview, etc.)
+// import this so previews track the server. Bumping a constant here
+// updates the preview everywhere automatically.
+export { CREDIT_COST, TOKENS_PER_BRACKET } from './billing/credits.js';
+export type { CreditAction } from './billing/credits.js';
 
 // Memory
 export { MemoryManager } from './memory/memory-manager.js';

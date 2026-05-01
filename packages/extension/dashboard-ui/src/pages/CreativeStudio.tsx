@@ -8,6 +8,10 @@ import {
 import {
   type GalleryItem, type GalleryMediumKind,
 } from '../components/CreativeOutputCard';
+// Granular import — webview can't load `@ava/core` root export because
+// it transitively pulls Node-only constants. The billing/credits leaf
+// is browser-safe.
+import { CREDIT_COST } from '@ava/core/billing/credits';
 
 // Exact credit count with locale-grouped digits — operator wants
 // the precise number, not "5K" / "1.2M" rounded buckets, so they can
@@ -90,35 +94,38 @@ const VIDEO_MOTION: { id: 'subtle' | 'dynamic' | 'wild'; label: string; suffix: 
 ];
 
 /* ── Cost estimates (credits per generation) ───────────────────────────
- * Anchored to the platform's credit math at the time of writing. The
- * cost preview is illustrative — the server is the source of truth and
- * the actual credit charge lands on the next account refresh. Values
- * tuned to be slightly conservative so users aren't surprised by a
- * higher charge. */
-const CREDITS = {
-  image:   50,        // Wan T2I, single variation
-  music:   200,       // MiniMax music-01, baseline
-  voicePerHundredChars: 12, // ~12 credits per 100 chars
-  voiceMin: 24,       // floor for short utterances
-  video6s: 2000,
-  video10s: 3500,
-};
+ * Source of truth: @ava/core/billing/credits CREDIT_COST table. The
+ * server bills with these constants too — bumping them centrally
+ * updates both the preview here and the actual charge. Variations
+ * fan out client-side (N parallel image calls) so they multiply.
+ * Voice scales by 500-char chunks because TTS cost scales with
+ * audio duration. Video duration is approximately linear: 6s = 150,
+ * 10s ≈ 250.
+ */
 
-/** Build the cost-preview pill content for the active tab + its
- *  current settings. Returns the integer credit estimate plus a short
- *  human label for the cost-breakdown line. */
+const VOICE_CHARS_PER_UNIT = 500;
+
 function estimateImageCredits(variations: number): number {
-  return CREDITS.image * Math.max(1, variations);
+  return CREDIT_COST.image_gen * Math.max(1, variations);
 }
-function estimateMusicCredits(durationSec: number): number {
-  // Baseline 200 credits for 30s, scales linearly.
-  return Math.round(CREDITS.music * (durationSec / 30));
+function estimateMusicCredits(_durationSec: number): number {
+  // Music is flat-charged on the server regardless of duration. We
+  // surface the duration in the cost-preview note for context but
+  // don't multiply.
+  return CREDIT_COST.music_gen;
 }
 function estimateVoiceCredits(textLen: number): number {
-  return Math.max(CREDITS.voiceMin, Math.ceil(textLen / 100) * CREDITS.voicePerHundredChars);
+  // Voice scales by 500-char chunks (server's calibration baseline).
+  // Single-word utterances still cost 1 chunk so we don't undersell
+  // the floor.
+  const chunks = Math.max(1, Math.ceil(textLen / VOICE_CHARS_PER_UNIT));
+  return CREDIT_COST.voice_gen * chunks;
 }
 function estimateVideoCredits(durationSec: number): number {
-  return durationSec === 10 ? CREDITS.video10s : CREDITS.video6s;
+  // Server flat charges 6s. 10s scales proportionally — closest
+  // honest estimate without a separate server constant for 10s yet.
+  if (durationSec === 10) return Math.round(CREDIT_COST.video_gen * (10 / 6));
+  return CREDIT_COST.video_gen;
 }
 
 // Library filter types and asset-type icons retired — browsing now lives
@@ -871,8 +878,24 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
           <p className="mt-1 text-[12px] text-[#9b8caa]">Tell Ava what you want to make.</p>
         </div>
         {account?.usage && (
-          <div className="shrink-0 rounded-full border border-[rgba(168,85,247,0.20)] bg-[#1a1625] px-3 py-1.5 flex items-center gap-2">
-            <div className="h-1.5 w-24 rounded-full bg-[var(--bg-input)] overflow-hidden">
+          <div className="shrink-0 rounded-2xl border border-[rgba(168,85,247,0.20)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] px-4 py-2.5 shadow-[0_0_18px_rgba(168,85,247,0.06)]">
+            <div className="flex items-baseline justify-between gap-3 mb-1.5">
+              <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)]">Credit balance</span>
+              <span className="text-[10px] text-[var(--text-muted)] tabular-nums">
+                {formatTokens(totalUsed)}<span className="opacity-60"> / {formatTokens(totalLimit)}</span>
+              </span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span
+                className={`text-[18px] font-semibold tabular-nums leading-none ${
+                  remainPct < 10 ? 'text-red-400' : remainPct < 30 ? 'text-amber-400' : 'text-[var(--accent)]'
+                }`}
+              >
+                {formatTokens(tokensRemaining)}
+              </span>
+              <span className="text-[10px] text-[var(--text-muted)]">credits left</span>
+            </div>
+            <div className="mt-2 h-1 w-full rounded-full bg-[var(--bg-input)] overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${
                   remainPct < 10 ? 'bg-red-500' : remainPct < 30 ? 'bg-amber-500' : 'bg-[var(--accent)]'
@@ -880,7 +903,6 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                 style={{ width: `${remainPct}%` }}
               />
             </div>
-            <span className="text-[10px] text-[var(--text-muted)] tabular-nums">{formatTokens(tokensRemaining)} cr</span>
           </div>
         )}
       </header>
@@ -1020,9 +1042,23 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
               )}
             </div>
 
-            {/* Cost + send */}
+            {/* Cost + send. The cost line goes amber when this single
+                generation would push the user over their remaining
+                balance — a soft warning, not a hard block (the server
+                still does the cap check on submit). */}
             <div className="flex items-center gap-3">
-              <span className="text-[10px] text-[var(--text-muted)] tabular-nums">
+              <span
+                className={`text-[10px] tabular-nums ${
+                  account?.usage && currentCredits > tokensRemaining
+                    ? 'text-amber-400 font-semibold'
+                    : 'text-[var(--text-muted)]'
+                }`}
+                title={
+                  account?.usage && currentCredits > tokensRemaining
+                    ? `${currentCredits.toLocaleString()} credits — over your remaining ${tokensRemaining.toLocaleString()} balance`
+                    : `${currentCredits.toLocaleString()} credits for this generation`
+                }
+              >
                 {currentCredits.toLocaleString()} cr
               </span>
               <button
@@ -1309,9 +1345,10 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
   const { mode } = props;
   const [open, setOpen] = useState(false);
 
-  // Compact summary line — what the active mode is set to. Click to
-  // expand the full settings card. Quiet by default; doesn't compete
-  // with the prompt for attention.
+  // Compact summary line — what the active mode is set to. Click the
+  // trigger pill to open the settings overlay. Overlay sits above the
+  // composer rather than expanding inline so the page never shifts
+  // when settings open.
   const summary = (() => {
     if (mode === 'images') {
       const style = IMAGE_STYLES.find(s => s.id === props.imageStyle)?.label || 'Auto';
@@ -1332,23 +1369,76 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
     return `${cam} · ${mot} · ${props.videoDuration}s`;
   })();
 
+  const modeLabel = mode === 'images' ? 'Image' : mode === 'audio' ? 'Music' : mode === 'voice' ? 'Voice' : 'Video';
+
+  // Close on Escape — standard overlay affordance. Listener attached
+  // only while open so it doesn't compete with the chat surface's
+  // own Escape handler.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open]);
+
   return (
-    <div className="mb-2 rounded-xl border border-[rgba(168,85,247,0.12)] bg-[#0f0f17]/60">
+    <>
+      {/* Trigger pill — sits inline above the composer. Mirrors the
+          composer's rounded-xl + lavender-low-opacity treatment so it
+          reads as part of the same surface group. */}
       <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full px-3 py-2 flex items-center justify-between text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition cursor-pointer bg-transparent border-none"
+        onClick={() => setOpen(true)}
+        className="w-full mb-2 rounded-xl border border-[rgba(168,85,247,0.12)] bg-[#0f0f17]/60 px-3 py-2 flex items-center justify-between text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:border-[rgba(168,85,247,0.25)] transition cursor-pointer"
       >
-        <span className="flex items-center gap-2">
-          <span className="uppercase tracking-wider font-semibold opacity-70">{mode === 'images' ? 'Image' : mode === 'audio' ? 'Music' : mode === 'voice' ? 'Voice' : 'Video'} settings</span>
-          <span className="opacity-90">{summary}</span>
+        <span className="flex items-center gap-2 min-w-0">
+          <span className="uppercase tracking-wider font-semibold opacity-70 shrink-0">{modeLabel} settings</span>
+          <span className="opacity-90 truncate">{summary}</span>
         </span>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 150ms' }}>
-          <polyline points="6 9 12 15 18 9"/>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 ml-2 opacity-60">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
         </svg>
       </button>
 
+      {/* Overlay — full-screen backdrop + centered settings card. Click
+          the backdrop or hit Escape to close. Card uses the same
+          gradient surface treatment as the composer / feed cards so
+          it reads as part of the same dashboard, not a foreign modal. */}
       {open && (
-        <div className="px-3 pb-3 pt-1 space-y-2 border-t border-[rgba(168,85,247,0.08)]">
+        <div
+          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm p-3 sm:p-6 animate-[avaModalIn_120ms_ease-out]"
+        >
+          <style>{`
+            @keyframes avaModalIn { from { opacity: 0 } to { opacity: 1 } }
+            @keyframes avaModalCardIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
+          `}</style>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-[520px] max-h-[80vh] overflow-y-auto rounded-2xl border border-[rgba(168,85,247,0.20)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] shadow-[0_0_60px_rgba(168,85,247,0.12)]"
+            style={{ animation: 'avaModalCardIn 160ms ease-out' }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(168,85,247,0.10)]">
+              <div>
+                <h3 className="text-[13px] font-semibold text-[#cdd6f4]">{modeLabel} settings</h3>
+                <p className="text-[10px] text-[#9b8caa] mt-0.5">{summary}</p>
+              </div>
+              <button
+                onClick={() => setOpen(false)}
+                title="Close (Esc)"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-input)]/60 transition cursor-pointer bg-transparent border-none"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-4 py-4 space-y-3">
           {mode === 'images' && (
             <>
               <ChipRow label="Style" options={IMAGE_STYLES.map(s => ({ id: s.id, label: s.label }))} value={props.imageStyle} onChange={props.setImageStyle} />
@@ -1439,9 +1529,21 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
               ]} value={String(props.videoDuration)} onChange={(v) => props.setVideoDuration(Number(v) as 6 | 10)} />
             </>
           )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-[rgba(168,85,247,0.10)]">
+              <button
+                onClick={() => setOpen(false)}
+                className="rounded-lg bg-[var(--accent)]/15 border border-[var(--accent)]/35 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/25 transition cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
