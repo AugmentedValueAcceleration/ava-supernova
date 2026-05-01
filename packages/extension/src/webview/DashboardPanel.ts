@@ -505,44 +505,6 @@ export class DashboardPanel {
         this.post({ type: 'support_chat_cleared' } as any);
         break;
 
-      // ─── Admin messages ──────────────────────────────────────────────────────
-
-      case 'load_admin_tickets':
-        await this.loadAdminTickets(msg.status);
-        break;
-
-      case 'admin_reply_ticket':
-        await this.adminReplyTicket(msg.ticketId, msg.message);
-        break;
-
-      case 'admin_update_ticket':
-        await this.adminUpdateTicket(msg.ticketId, msg.status);
-        break;
-
-      case 'load_admin_conversations':
-        await this.loadAdminConversations(msg.status, msg.needsHuman);
-        break;
-
-      case 'load_admin_conversation_messages':
-        await this.loadAdminConversationMessages(msg.conversationId);
-        break;
-
-      case 'admin_reply_conversation':
-        await this.adminReplyConversation(msg.conversationId, msg.message);
-        break;
-
-      case 'admin_update_conversation':
-        await this.adminUpdateConversation(msg.conversationId, msg.status, msg.needs_human);
-        break;
-
-      case 'load_admin_proposals':
-        await this.loadAdminProposals(msg.status);
-        break;
-
-      case 'admin_update_proposal':
-        await this.adminUpdateProposal(msg.id, msg.status, msg.reviewer_notes, msg.reward_tokens);
-        break;
-
       // ─── BYOK messages ──────────────────────────────────────────────────────
 
       case 'load_local_memories':
@@ -1839,45 +1801,16 @@ export class DashboardPanel {
   // ─── Conversations (History) ────────────────────────────────────────────────
 
   private async loadConversations(): Promise<void> {
-    // Local-first. Conversations are written to ~/.ava/ on every chat
-    // turn regardless of cloud-sync status, so the local list is always
-    // the source of truth for "what conversations exist on this
-    // device". The cloud fetch (when signed in) augments — adding
-    // conversations from other devices the user owns. Previously this
-    // method bailed to an empty list whenever no platformKey was set,
-    // which made the History tab look empty even after live chat.
-    const localPromise = this.viewProvider
-      ? this.viewProvider.listLocalConversations()
-      : Promise.resolve([]);
-
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    const cloudPromise: Promise<any[]> = platformKey
-      ? apiFetch('/conversations', { platformKey })
-          .then(res => (res.ok ? (res.data as any[]) : []))
-          .catch(() => [])
-      : Promise.resolve([]);
-
-    const [local, cloud] = await Promise.all([localPromise, cloudPromise]);
-
-    // Merge by id — local entry wins if present on both sides (local
-    // record has the in-flight live state). Cloud-only rows fill in
-    // conversations from other devices.
-    const merged = new Map<string, any>();
-    for (const row of (cloud as any[])) {
-      if (row && row.id) merged.set(row.id, row);
-    }
-    for (const row of (local as any[])) {
-      if (row && row.id) merged.set(row.id, row);
-    }
-
-    // Newest-first ordering. HistoryManager already returns sorted but
-    // re-sort here so cloud-only rows interleave correctly.
-    const conversations = Array.from(merged.values()).sort((a, b) => {
-      const aT = a.updatedAt || a.updated_at || a.createdAt || a.created_at || '';
-      const bT = b.updatedAt || b.updated_at || b.createdAt || b.created_at || '';
-      return String(bT).localeCompare(String(aT));
-    });
-
+    // Local-only. Chat history is E2E + local by design — conversations
+    // are written to ~/.ava/ on every turn and the cloud is never
+    // queried. The legacy cloud-merge path was removed: it pulled stale
+    // residue from earlier-version syncs back into the list and made
+    // deletions appear to "come back" because cloud rows survived a
+    // local unlink. Use the "Wipe legacy cloud history" button on the
+    // Conversations tab to one-shot-clean any old cloud rows.
+    const conversations = this.viewProvider
+      ? await this.viewProvider.listLocalConversations()
+      : [];
     this.post({ type: 'conversations_loaded', conversations });
   }
 
@@ -1894,38 +1827,18 @@ export class DashboardPanel {
   }
 
   private async deleteConversation(id: string): Promise<void> {
-    // Local-first delete. The previous version bailed on missing
-    // platformKey and only ever hit the cloud — so local-only users
-    // could never delete anything, and signed-in users saw deleted
-    // rows reappear on next reload because the local ~/.ava/ file
-    // was untouched. Now: delete locally first (always reachable),
-    // then mirror the delete to cloud as best-effort if signed in.
-    let localOk = false;
+    // Local-only delete. Chat history is local by design — the row the
+    // user clicks is a local file (`~/.ava/<id>.json`); unlink and
+    // signal the UI. Any cloud residue from earlier-version syncs is
+    // cleaned with the "Wipe legacy cloud history" button.
+    if (!this.viewProvider) {
+      this.post({ type: 'error', message: 'Failed to delete conversation.' });
+      return;
+    }
     try {
-      if (this.viewProvider) {
-        await this.viewProvider.deleteLocalConversation(id);
-        localOk = true;
-      }
-    } catch {
-      // Local delete failure is non-fatal if cloud succeeds — the
-      // cloud row going away is the user's primary intent. Track the
-      // outcome and decide below whether to surface an error.
-    }
-
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    let cloudOk = !platformKey; // not signed in = nothing to delete in cloud, treat as success
-    if (platformKey) {
-      try {
-        const res = await apiFetch(`/conversations/${id}`, { method: 'DELETE', platformKey });
-        cloudOk = res.ok;
-      } catch {
-        cloudOk = false;
-      }
-    }
-
-    if (localOk || cloudOk) {
+      await this.viewProvider.deleteLocalConversation(id);
       this.post({ type: 'conversation_deleted', id });
-    } else {
+    } catch {
       this.post({ type: 'error', message: 'Failed to delete conversation.' });
     }
   }
@@ -1999,158 +1912,6 @@ export class DashboardPanel {
       }
     } catch {
       this.post({ type: 'error', message: 'Failed to send reply.' });
-    }
-  }
-
-  // ─── Admin ────────────────────────────────────────────────────────────────
-
-  private async loadAdminTickets(status?: string): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'admin_tickets_loaded', tickets: [], total: 0 });
-      return;
-    }
-
-    try {
-      const params = status ? `?status=${status}` : '';
-      const res = await apiFetch(`/admin/support${params}`, { platformKey });
-      if (res.ok) {
-        const data = res.data as { tickets: never[]; total: number };
-        this.post({ type: 'admin_tickets_loaded', tickets: data.tickets || [], total: data.total || 0 });
-      } else {
-        this.post({ type: 'admin_tickets_loaded', tickets: [], total: 0 });
-      }
-    } catch {
-      this.post({ type: 'admin_tickets_loaded', tickets: [], total: 0 });
-    }
-  }
-
-  private async adminReplyTicket(ticketId: string, message: string): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
-    try {
-      const res = await apiFetch(`/admin/support/${ticketId}/reply`, {
-        method: 'POST',
-        body: { message },
-        platformKey,
-      });
-      if (!res.ok) {
-        this.post({ type: 'error', message: 'Failed to send admin reply.' });
-      }
-    } catch {
-      this.post({ type: 'error', message: 'Failed to send admin reply.' });
-    }
-  }
-
-  private async adminUpdateTicket(ticketId: string, status: string): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
-    try {
-      await apiFetch(`/admin/support/${ticketId}`, {
-        method: 'PATCH',
-        body: { status },
-        platformKey,
-      });
-    } catch {
-      this.post({ type: 'error', message: 'Failed to update ticket.' });
-    }
-  }
-
-  // ─── Admin Support Conversations (new schema) ─────────────────────────────
-
-  private async loadAdminConversations(status?: string, needsHuman?: boolean): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'admin_conversations_loaded', conversations: [] });
-      return;
-    }
-
-    try {
-      const params = new URLSearchParams();
-      if (status) params.set('status', status);
-      if (needsHuman) params.set('needs_human', 'true');
-      const qs = params.toString() ? `?${params.toString()}` : '';
-      const res = await apiFetch(`/support/conversations/admin${qs}`, { platformKey });
-      if (res.ok) {
-        const data = res.data as { conversations: unknown[] };
-        this.post({ type: 'admin_conversations_loaded', conversations: (data.conversations as never[]) || [] });
-      } else {
-        this.post({ type: 'admin_conversations_loaded', conversations: [] });
-      }
-    } catch (err) {
-      this.log(`loadAdminConversations failed: ${err instanceof Error ? err.message : String(err)}`);
-      this.post({ type: 'admin_conversations_loaded', conversations: [] });
-    }
-  }
-
-  private async loadAdminConversationMessages(conversationId: string): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
-    try {
-      const res = await apiFetch(`/support/conversations/${conversationId}/messages`, { platformKey });
-      if (res.ok) {
-        const data = res.data as { messages: unknown[] };
-        this.post({
-          type: 'admin_conversation_messages_loaded',
-          conversationId,
-          messages: (data.messages as never[]) || [],
-        });
-      } else {
-        this.post({ type: 'error', message: 'Failed to load conversation messages.' });
-      }
-    } catch (err) {
-      this.log(`loadAdminConversationMessages failed: ${err instanceof Error ? err.message : String(err)}`);
-      this.post({ type: 'error', message: 'Failed to load conversation messages.' });
-    }
-  }
-
-  private async adminReplyConversation(conversationId: string, message: string): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
-    try {
-      const res = await apiFetch(`/support/conversations/${conversationId}/admin-reply`, {
-        method: 'POST',
-        body: { message },
-        platformKey,
-      });
-      if (res.ok) {
-        this.post({ type: 'admin_conversation_updated', conversationId });
-        // Reload messages so the UI shows the new reply
-        await this.loadAdminConversationMessages(conversationId);
-      } else {
-        this.post({ type: 'error', message: 'Failed to send admin reply.' });
-      }
-    } catch (err) {
-      this.log(`adminReplyConversation failed: ${err instanceof Error ? err.message : String(err)}`);
-      this.post({ type: 'error', message: 'Failed to send admin reply.' });
-    }
-  }
-
-  private async adminUpdateConversation(conversationId: string, status?: string, needsHuman?: boolean): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
-    try {
-      const body: Record<string, unknown> = {};
-      if (status) body.status = status;
-      if (typeof needsHuman === 'boolean') body.needs_human = needsHuman;
-      const res = await apiFetch(`/support/conversations/${conversationId}`, {
-        method: 'PATCH',
-        body,
-        platformKey,
-      });
-      if (res.ok) {
-        this.post({ type: 'admin_conversation_updated', conversationId });
-      } else {
-        this.post({ type: 'error', message: 'Failed to update conversation.' });
-      }
-    } catch (err) {
-      this.log(`adminUpdateConversation failed: ${err instanceof Error ? err.message : String(err)}`);
-      this.post({ type: 'error', message: 'Failed to update conversation.' });
     }
   }
 
@@ -2284,47 +2045,6 @@ export class DashboardPanel {
       this.loadSupportConversations();
     } catch {
       // Non-critical
-    }
-  }
-
-  private async loadAdminProposals(status?: string): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'admin_proposals_loaded', proposals: [], total: 0 });
-      return;
-    }
-
-    try {
-      const params = status ? `?status=${status}` : '';
-      const res = await apiFetch(`/admin/tool-proposals${params}`, { platformKey });
-      if (res.ok) {
-        const data = res.data as { proposals: never[]; total: number };
-        this.post({ type: 'admin_proposals_loaded', proposals: data.proposals || [], total: data.total || 0 });
-      } else {
-        this.post({ type: 'admin_proposals_loaded', proposals: [], total: 0 });
-      }
-    } catch {
-      this.post({ type: 'admin_proposals_loaded', proposals: [], total: 0 });
-    }
-  }
-
-  private async adminUpdateProposal(id: string, status: string, reviewerNotes?: string, rewardTokens?: number): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
-    try {
-      const res = await apiFetch('/admin/tool-proposals', {
-        method: 'PATCH',
-        body: { id, status, reviewer_notes: reviewerNotes, reward_tokens: rewardTokens },
-        platformKey,
-      });
-      if (res.ok) {
-        this.post({ type: 'admin_proposal_updated' });
-      } else {
-        this.post({ type: 'error', message: 'Failed to update proposal.' });
-      }
-    } catch {
-      this.post({ type: 'error', message: 'Failed to update proposal.' });
     }
   }
 

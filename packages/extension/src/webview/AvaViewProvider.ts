@@ -12,7 +12,6 @@ import {
   TaskManager,
   PlatformMemorySync,
   PlatformTaskSyncImpl,
-  PlatformHistorySync,
   JournalManager,
   PlatformJournalSyncImpl,
   ProviderHealthTracker,
@@ -289,21 +288,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     let sync: PlatformMemorySync | undefined;
     const platformKey = await this.context.secrets.get('ava-supernova.platformKey');
 
-    // History sync — same pattern as memory/tasks/journal. Needs the
-    // platformKey resolved first so the manager can push on save.
-    let historySync: PlatformHistorySync | undefined;
-    if (platformKey) {
-      historySync = new PlatformHistorySync('https://ava-supernova.com/api', platformKey);
-    }
-    const syncPrefs = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
-    // Data Mode is the hard gate: when user chose Local, every manager
-    // runs localOnly regardless of per-category sync prefs. When Cloud or
-    // Both, the per-category sync pref is the finer-grained narrower.
-    const cloudAllowed = dataModeIncludesCloud(this.context);
-    const historyLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.historyLocalOnly') ?? false)
-      || syncPrefs.history === false
-      || !cloudAllowed;
-    this.historyManager = new HistoryManager(this.projectRoot, { sync: historySync, localOnly: historyLocalOnly });
+    // History is local-only, always. No sync, no pull, no cloud knob.
+    // Cloud residue from earlier-version syncs is wiped via the
+    // dashboard's "Wipe legacy cloud history" button.
+    this.historyManager = new HistoryManager(this.projectRoot);
     this.historyManager.init();
     this.history = new HistoryCoordinator({
       context: this.context,
@@ -317,11 +305,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // on a chat with real content until the user sends another message.
       emitContextUsage: () => this.emitContextUsageFromCurrent(),
     });
-    if (historySync && !historyLocalOnly) {
-      // Pull conversations on session start so chats from other
-      // devices surface here. Fire-and-forget.
-      this.historyManager.pullLatest().catch(() => {});
-    }
+
+    const syncPrefs = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
+    const cloudAllowed = dataModeIncludesCloud(this.context);
     if (platformKey) {
       const projectId = this.projectRoot
         ? crypto.createHash('sha256').update(this.projectRoot).digest('hex').slice(0, 16)
@@ -1187,10 +1173,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           await config.update('activeModel', 'auto', vscode.ConfigurationTarget.Global);
         }
 
-        // Restore Auto Mode if it was the last selection
-        if (activeModelId === 'auto') {
-          this.log('Restoring Auto Mode from saved setting');
-          await this.setActiveModel('auto');
+        // Restore orchestrated modes (Auto / Supernova / Aurora) — these
+        // are aliases, not real model ids in the registry, so resolveModel
+        // would return null and the user got reset to a free model on
+        // every reload. Route them through setActiveModel which knows how
+        // to resolve their coordinator chains.
+        if (activeModelId === 'auto' || activeModelId === 'supernova' || activeModelId === 'aurora') {
+          this.log(`Restoring orchestrated mode "${activeModelId}" from saved setting`);
+          await this.setActiveModel(activeModelId);
         } else {
           const resolved = this.providerRegistry.resolveModel(activeModelId);
 
@@ -2019,7 +2009,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       case 'memory': this.memoryManager?.setLocalOnly(localOnly); break;
       case 'tasks':  this.taskManager?.setLocalOnly(localOnly); break;
       case 'journal': this.journalManager?.setLocalOnly(localOnly); break;
-      case 'history': this.historyManager?.setLocalOnly(localOnly); break;
+      case 'history':
+        // History is local-only unconditionally — no toggle to flip.
+        break;
       case 'generations':
         // No background manager to flip — the flag is read out of sharedState
         // at tool-call time. Persisted pref change will take effect on the
@@ -2043,7 +2035,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     this.memoryManager?.setLocalOnly(resolve('memory'));
     this.taskManager?.setLocalOnly(resolve('tasks'));
     this.journalManager?.setLocalOnly(resolve('journal'));
-    this.historyManager?.setLocalOnly(resolve('history'));
+    // History is local-only unconditionally — Data Mode can't widen it.
     // Creative generations (image / music / video / voice) read
     // generationLocalOnly out of sharedState, which is rebuilt on the
     // next setupAgent() run — typically triggered by a model switch or a
@@ -2415,13 +2407,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
 
       case 'refresh_history':
-        // Manual pull for chat history. Lists remote first, then only
-        // fetches full bodies for anything newer than local.
+        // History is local-only — "refresh" just re-reads from disk so
+        // the UI picks up any conversations the agent saved between
+        // tab opens. No cloud pull.
         try {
-          const count = await this.historyManager.pullLatest();
-          this.postMessage({ type: 'history_refreshed', count });
-          // Re-send the list so the UI picks up new conversations.
           await this.sendHistoryList();
+          this.postMessage({ type: 'history_refreshed', count: 0 });
         } catch (err) {
           this.log(`[history] refresh failed: ${err}`);
           this.postMessage({ type: 'history_refreshed', count: 0, error: String(err) });
