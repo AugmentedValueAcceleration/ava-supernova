@@ -1157,28 +1157,82 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
    pinned-at-top thumbnail when a reference image is attached.
 */
 
+// Suggestion pools — every entry is a complete, ready-to-fire prompt.
+// EmptyInvitation picks 3 at random per visit so first impressions
+// aren't the same Tokyo alley + coffee logo + cat every time. Larger
+// pool = lower repeat rate; ~12 each is plenty without becoming a
+// maintenance burden.
 const SUGGESTIONS: Record<'images' | 'audio' | 'voice' | 'video', string[]> = {
   images: [
     'A neon-lit Tokyo alley at midnight, light rain, anamorphic lens',
     'A minimalist logo for a coffee shop called Ember, warm earthy palette',
     'A studio portrait of a tortoiseshell cat, soft window light',
+    'An astronaut planting a sapling on a red Martian dune at sunrise',
+    'A vintage 1970s travel poster for the moons of Saturn',
+    'A solarpunk rooftop garden in Lisbon, bees, tomato vines, golden hour',
+    'A line illustration of a fox curled around a cup of tea, single brush stroke',
+    'A foggy Highland loch at first light, lone heron, painterly mood',
+    'A glass terrarium ecosystem floating in deep space, bioluminescent moss',
+    'A stop-motion-style hedgehog librarian, tiny round glasses, candle-lit shelves',
+    'An isometric pixel-art bakery, cinnamon rolls cooling on the windowsill',
+    'A black-and-white street photograph of an umbrella crowd in Shibuya',
   ],
   audio: [
     'A 60s lo-fi beat with mellow Rhodes piano and warm bass',
     'A cinematic trailer build, hybrid orchestral, big drums in the back half',
     'Ambient pads, slow, no percussion, late-night focus mood',
+    'A 90s synthwave drive, gated reverb snares, neon arpeggios',
+    'A jazz café trio, brushed drums, upright bass, melancholic piano',
+    'A morning intro stinger, bright marimba and hand-claps, 8 seconds',
+    'A foggy minimal-techno loop, dub chords, shuffle hi-hats',
+    'A heroic orchestral fanfare, brass-led, building to timpani hit',
+    'A Studio-Ghibli-inspired piano theme, hopeful, gentle strings',
+    'A warm folk acoustic guitar instrumental, fingerpicked, no vocals',
+    'A glitchy IDM intro, fractured drum hits, rising sub bass',
+    'A lullaby with music box and soft choral pads, three minutes',
   ],
   voice: [
     'Welcome to the show. I have something I think you\'ll love.',
     'Three. Two. One. Let\'s ride.',
     'In the quiet of the morning, before the world wakes, there is space to think.',
+    'You did the hard part already. The rest is just showing up.',
+    'Today\'s episode: how to ship one small thing every single day.',
+    'Press play. Take a breath. We\'re going somewhere new.',
+    'I built this for the people who never thought they could.',
+    'New drop incoming. You\'ll want to be there for this one.',
+    'Settle in. Pour yourself something warm. This story takes a while.',
+    'The forecast for tomorrow is bright, with a chance of unexpected joy.',
+    'Quick reminder — you don\'t have to be ready, you just have to begin.',
+    'And that\'s a wrap. Thanks for being here. Until next time.',
   ],
   video: [
     'A wide aerial shot drifting over a misty pine forest at dawn',
     'A close-up of hands kneading bread on a flour-dusted wooden bench',
     'A neon-pink classic Mustang on a coastal highway, golden-hour sun',
+    'A slow dolly through a candle-lit Kyoto teahouse, steam rising',
+    'A surfer cresting a glassy wave at sunrise, slow-motion spray',
+    'A satellite\'s view of city lights blooming at twilight, time-lapse',
+    'A ballerina spinning in a sun-drenched studio, dust motes in the light',
+    'A barista pulling a perfect espresso, syrup-thick crema in macro',
+    'A snow leopard padding through a Himalayan ridge at first light',
+    'A vinyl record dropping onto a turntable, needle landing, close-up',
+    'A drone weaving between Manhattan skyscrapers at golden hour',
+    'A potter shaping a vase on a wheel, clay slipping under their thumb',
   ],
 };
+
+/** Sample N items from an array without repeats — small enough to do
+ *  with a copy + splice rather than a Fisher-Yates pass. Used by the
+ *  EmptyInvitation to rotate suggestion prompts. */
+function pickRandom<T>(items: T[], n: number): T[] {
+  const pool = items.slice();
+  const out: T[] = [];
+  for (let i = 0; i < n && pool.length > 0; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    out.push(pool.splice(idx, 1)[0]);
+  }
+  return out;
+}
 
 function EmptyInvitation({ mode, onSuggest }: { mode: 'images' | 'audio' | 'voice' | 'video'; onSuggest: (text: string) => void }) {
   const modeLabel =
@@ -1186,6 +1240,18 @@ function EmptyInvitation({ mode, onSuggest }: { mode: 'images' | 'audio' | 'voic
     mode === 'audio'  ? 'music' :
     mode === 'voice'  ? 'voice' :
                         'video';
+
+  // Pick 3 random suggestions per visit / mode change. Tick state lets
+  // the user shuffle on demand without changing mode. useState (not
+  // useMemo on Date.now()) keeps the picks stable through re-renders
+  // until the user actually asks for new ones.
+  const [shuffleTick, setShuffleTick] = useState(0);
+  const picks = useMemo(
+    () => pickRandom(SUGGESTIONS[mode], 3),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mode, shuffleTick],
+  );
+
   return (
     <div className="flex flex-col items-start py-10 px-1">
       <h2 className="text-[18px] font-semibold text-[#cdd6f4]">Ready when you are.</h2>
@@ -1193,9 +1259,9 @@ function EmptyInvitation({ mode, onSuggest }: { mode: 'images' | 'audio' | 'voic
         Describe the {modeLabel} you want — anything from a one-line idea to a fully scoped scene. Or pick a starter below.
       </p>
       <div className="mt-5 flex flex-col gap-2 w-full">
-        {SUGGESTIONS[mode].map((s, i) => (
+        {picks.map((s, i) => (
           <button
-            key={i}
+            key={`${mode}-${shuffleTick}-${i}`}
             onClick={() => onSuggest(s)}
             className="text-left rounded-xl border border-[rgba(168,85,247,0.12)] bg-transparent px-4 py-2.5 text-[12px] text-[var(--text-secondary)] transition hover:border-[rgba(168,85,247,0.35)] hover:bg-[#1a1625]/40 hover:text-white cursor-pointer"
           >
@@ -1203,6 +1269,12 @@ function EmptyInvitation({ mode, onSuggest }: { mode: 'images' | 'audio' | 'voic
           </button>
         ))}
       </div>
+      <button
+        onClick={() => setShuffleTick(t => t + 1)}
+        className="mt-3 self-start text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] transition cursor-pointer bg-transparent border-none p-0"
+      >
+        Show me different ones
+      </button>
     </div>
   );
 }
