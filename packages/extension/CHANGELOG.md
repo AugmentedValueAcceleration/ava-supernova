@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.60.1 — 2026-05-02 — Polish + cleanup (Creative Studio composer, Holo strip, document styling)
+
+### Changed
+- **Creative Studio composer hint adapts to platform.** Mac users see `⌘↵`, Windows / Linux see `Ctrl+↵`. No more cross-platform translation in the user's head.
+- **Composer clears on a successful generation.** Prompt text resets the moment the generation lands so the next idea has a fresh canvas. Reference image attachments and mode settings persist — only the prompt clears.
+- **Image generation cards no longer push the action buttons off-screen.** Generated images cap at 32vh of viewport height (was unbounded) so Animate / Voice over / Download stay reachable without scrolling on every screen size.
+- **Empty-state suggestion prompts are now random + reshufflable.** Each Creative Studio mode (Image / Music / Voice / Video) has a 12-prompt pool; the empty state picks 3 at random per visit, with a refresh icon to roll a new set without leaving the page. Stops the same three prompts becoming wallpaper.
+- **Every Word doc Ava generates now matches the brand.** The shared document-styling kit means `document_manage` output (any `.docx` Ava writes for you, ad-hoc or templated) inherits the same Calibri / Ava-purple / themed-table look that `report_generate` already had. Per-template style profiles so a letter has formal margins and no cover page, an invoice gets a footer, a report or proposal gets the full cover treatment. PDFs got real boxed tables instead of pipe-separated text.
+- **Editing a `.docx` now warns explicitly that it's destructive.** The underlying library is creation-first; editing recreates the file from scratch and any custom formatting (fonts, colours, images, complex tables, headers/footers) in the original is lost. Tool description and result message both flag this so you can choose to edit in Word directly when formatting matters.
+
+### Removed
+- **Holo / Computer Use retired across the extension.** The Holo3 vision-action provider, the `computer_use` and `computer_use_blackboard` tools, and the dead computer-use knowledge pack are stripped from `@ava/core`. Tool registry no longer carries a `screenshot` / `computer_use` exclude list (those tools no longer exist). README and Settings copy updated. Desktop automation continues to work via the OS-native UI Automation tree in the dedicated Ava IDE — the extension itself never had access to those tools, so this is purely housekeeping for the extension surface.
+
 ## 0.60.0 — 2026-05-01 — Creative Studio redesign + cost transparency + Planner polish
 
 ### Added
