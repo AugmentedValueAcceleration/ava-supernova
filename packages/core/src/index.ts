@@ -363,3 +363,31 @@ export { acquireLock, withLock } from './core/file-lock.js';
 export { AvaError, ProviderError, StreamError, ToolExecutionError, ConfigError } from './core/errors.js';
 export { logger, setLogLevel } from './core/logger.js';
 export type { LogLevel } from './core/logger.js';
+
+// Library — Scientific Papers
+export {
+  fetchPaper,
+  parseIdentifier,
+  fetchPaperByArxivId,
+  searchArxiv,
+  arxivPdfUrl,
+  searchOpenAlex,
+  fetchPaperByOpenAlexId,
+  fetchPaperByDoi,
+  arxivCategoryToDiscipline,
+  openalexFieldToDiscipline,
+  inferDisciplineFromText,
+  ALL_DISCIPLINES,
+  DISCIPLINE_LABELS,
+} from './papers/index.js';
+export type {
+  Paper,
+  PaperAuthor,
+  PaperSource,
+  PaperDiscipline,
+  PaperSearchQuery,
+  PaperSearchResult,
+  PaperSignal,
+  ArxivSearchOptions,
+  FetchPaperInput,
+} from './papers/index.js';

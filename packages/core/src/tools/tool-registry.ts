@@ -58,6 +58,7 @@ import { BenchmarkTool } from './benchmark.js';
 import { ApplyPlanTool } from './apply-plan.js';
 import { DebugLogsTool } from './debug-logs.js';
 import { LearningCreateTool, LearningTeachTool, LearningProgressTool } from './learning.js';
+import { PaperFetchFullTextTool } from './paper-fetch.js';
 import { SelfInspectTool } from './self-inspect.js';
 import { ReleaseNotesTool } from './release-notes.js';
 import { WeatherTool } from './weather.js';
@@ -396,6 +397,7 @@ export class ToolRegistry {
       new LearningCreateTool(),
       new LearningTeachTool(),
       new LearningProgressTool(),
+      new PaperFetchFullTextTool(),
       new SelfInspectTool(),
       new ReleaseNotesTool(),
       new WeatherTool(),
