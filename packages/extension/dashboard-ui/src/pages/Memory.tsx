@@ -396,7 +396,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="w-full">
       {/* Page Header — mirrors IDE MemoryPage at DashboardPages.tsx:6242-6264. */}
       <div className="mb-8 flex items-start justify-between">
         <div>

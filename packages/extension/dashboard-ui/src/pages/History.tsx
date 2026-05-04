@@ -130,7 +130,7 @@ export function History({ sessionStats, usageHistory, mode, account, auditLog, c
   };
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="w-full">
       <div className="mb-6">
         <h1 className="text-[22px] font-semibold text-[#cdd6f4]">History</h1>
         <p className="mt-1.5 text-[13px] text-[#6c7086]">

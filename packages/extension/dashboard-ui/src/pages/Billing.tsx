@@ -67,7 +67,7 @@ export function Billing({ account }: BillingProps) {
   };
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="w-full">
       <div className="mb-10">
         <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.billing.title')}</h1>
         <p className="mt-1.5 text-[13px] text-[#6c7086]">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { post } from '../App';
 import type {
   LibraryPaper,
@@ -73,6 +73,13 @@ interface Props {
   onSearch: (query: string, discipline?: PaperDiscipline) => void;
   onClearSearch: () => void;
   onReadWithAva: (paper: LibraryPaper) => void;
+  /** Enriched record fetched via /api/papers/{id} — full abstract,
+   *  oa_pdf_url, primary_url. Modal merges this over the slim list-row
+   *  data so the user sees a populated card instead of a near-empty one. */
+  paperDetail: LibraryPaper | null;
+  paperDetailLoading: boolean;
+  onLoadPaperDetail: (id: string) => void;
+  onClearPaperDetail: () => void;
 }
 
 export function LibraryPapers({
@@ -85,11 +92,41 @@ export function LibraryPapers({
   onSearch,
   onClearSearch,
   onReadWithAva,
+  paperDetail,
+  paperDetailLoading,
+  onLoadPaperDetail,
+  onClearPaperDetail,
 }: Props) {
   const [tab, setTab] = useState<PapersTab>('featured');
   const [discipline, setDiscipline] = useState<'all' | PaperDiscipline>('all');
   const [searchInput, setSearchInput] = useState('');
   const [selected, setSelected] = useState<LibraryPaper | null>(null);
+
+  // When the user picks a paper that has a curated DB row (id present),
+  // ask the host for the full record. The slim list-row often lacks the
+  // long abstract / oa_pdf_url / primary_url, which is what made the
+  // modal feel empty. Live OpenAlex search results have no id and skip
+  // this round-trip — we render whatever metadata the search returned.
+  const handleSelect = useCallback((paper: LibraryPaper) => {
+    setSelected(paper);
+    if (paper.id) onLoadPaperDetail(paper.id);
+  }, [onLoadPaperDetail]);
+
+  const handleCloseModal = useCallback(() => {
+    setSelected(null);
+    onClearPaperDetail();
+  }, [onClearPaperDetail]);
+
+  // Merge enriched detail over the click-time row when ids match. If
+  // the host returns null (curated row deleted) or detail hasn't landed
+  // yet, fall back to the row data so the modal is never blank.
+  const displayPaper = useMemo<LibraryPaper | null>(() => {
+    if (!selected) return null;
+    if (paperDetail && paperDetail.id && paperDetail.id === selected.id) {
+      return { ...selected, ...paperDetail };
+    }
+    return selected;
+  }, [selected, paperDetail]);
 
   const debounceRef = useRef<number | null>(null);
 
@@ -238,18 +275,19 @@ export function LibraryPapers({
             <PaperCard
               key={paper.id ?? paper.arxiv_id ?? paper.doi ?? paper.openalex_id ?? `${i}-${paper.title}`}
               paper={paper}
-              onSelect={() => setSelected(paper)}
+              onSelect={() => handleSelect(paper)}
               onReadWithAva={() => onReadWithAva(paper)}
             />
           ))}
         </div>
       )}
 
-      {selected && (
+      {displayPaper && (
         <PaperDetailModal
-          paper={selected}
-          onClose={() => setSelected(null)}
-          onReadWithAva={() => { onReadWithAva(selected); setSelected(null); }}
+          paper={displayPaper}
+          loading={paperDetailLoading}
+          onClose={handleCloseModal}
+          onReadWithAva={() => { onReadWithAva(displayPaper); handleCloseModal(); }}
         />
       )}
     </div>
@@ -334,10 +372,12 @@ function PaperCard({
 
 function PaperDetailModal({
   paper,
+  loading,
   onClose,
   onReadWithAva,
 }: {
   paper: LibraryPaper;
+  loading: boolean;
   onClose: () => void;
   onReadWithAva: () => void;
 }) {
@@ -388,14 +428,19 @@ function PaperDetailModal({
             </p>
           )}
 
-          {paper.abstract && (
+          {paper.abstract ? (
             <div className="mt-4">
               <h3 className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-medium mb-1.5">Abstract</h3>
               <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">
                 {paper.abstract}
               </p>
             </div>
-          )}
+          ) : loading ? (
+            <div className="mt-4 flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
+              <span className="ava-papers-spinner" aria-hidden />
+              Loading paper details…
+            </div>
+          ) : null}
 
           {isMedical && (
             <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-[11px] text-amber-200/90 leading-relaxed">

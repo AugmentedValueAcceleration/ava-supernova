@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.62.1 — 2026-05-04 — Papers click loads the paper, Read with Ava lands in chat, dashboard goes full-width
+
+### Fixed
+- **Clicking a paper card now actually loads the paper.** The detail modal previously rendered only whatever fields the list-row happened to carry — papers with slim summaries felt half-empty when opened. Selecting a card now fires the host's `load_paper_detail` round-trip, merges the enriched record (full abstract, open-access PDF, publisher URL) over the click-time row, and shows an inline spinner while the detail is in flight. Live OpenAlex search results without a curated DB row continue to render whatever the search returned (no second fetch path to enrich those — coming later).
+- **"Read with Ava" now switches the dashboard to Chat.** Previously the primer was sent off to the chat reducer but the dashboard stayed parked on the Library tab — the user saw nothing happen and had to manually click over to find Ava's reply. The handoff now flips the active page to Chat in the same gesture, so you land where the conversation is happening.
+
+### Changed
+- **Dashboard pages use the full window width.** Every top-level page (Overview, Library, Usage, History, Memory, Models, Billing, Connections, Personality, Settings, Roadmap, Support, SupportChat, ArticleReader, CreativeStudio) had a `max-w-Nxl` cap that capped content at 672–1152px. On wide and 4K monitors this left a third of the screen as dead space outside the content column. Caps removed at the page-wrapper level; modals, sign-in cards, search inputs and chat-message bubbles keep their intentional component-level widths so nothing renders 3000px wide that shouldn't.
+
 ## 0.62.0 — 2026-05-04 — Library → Papers (scientific paper explainer)
 
 ### Added

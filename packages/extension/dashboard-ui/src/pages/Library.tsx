@@ -37,6 +37,13 @@ interface Props {
   onSearchPapers: (query: string, discipline?: PaperDiscipline) => void;
   onClearPaperSearch: () => void;
   onReadPaperWithAva: (paper: LibraryPaper) => void;
+  /** Enriched paper record from /api/papers/{id} — populates the
+   *  detail modal with the full abstract / OA PDF / publisher URL
+   *  that may be missing from the slim list-row response. */
+  paperDetail: LibraryPaper | null;
+  paperDetailLoading: boolean;
+  onLoadPaperDetail: (id: string) => void;
+  onClearPaperDetail: () => void;
   /** Cloud-synced creative assets from /api/creative-assets. */
   cloudAssets: CreativeAsset[];
   /** True while the host is fetching the cloud asset list. Drives a
@@ -151,6 +158,10 @@ export function Library({
   onSearchPapers,
   onClearPaperSearch,
   onReadPaperWithAva,
+  paperDetail,
+  paperDetailLoading,
+  onLoadPaperDetail,
+  onClearPaperDetail,
   cloudAssets,
   cloudAssetsLoading,
   onReloadCloudAssets,
@@ -224,7 +235,7 @@ export function Library({
   }, [cloudAssets, images, projectRoot, docSource, docType]);
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div className="w-full">
       {/* Header — mirrors IDE LibraryPage at DashboardPages.tsx:8266-8295.
           No top-level Refresh button (IDE doesn't have one — refresh is
           handled by the kind-specific sub-views). */}
@@ -279,6 +290,10 @@ export function Library({
           onSearch={onSearchPapers}
           onClearSearch={onClearPaperSearch}
           onReadWithAva={onReadPaperWithAva}
+          paperDetail={paperDetail}
+          paperDetailLoading={paperDetailLoading}
+          onLoadPaperDetail={onLoadPaperDetail}
+          onClearPaperDetail={onClearPaperDetail}
         />
       )}
 

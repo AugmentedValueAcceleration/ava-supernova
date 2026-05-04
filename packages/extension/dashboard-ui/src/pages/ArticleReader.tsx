@@ -129,7 +129,7 @@ export function ArticleReader({ article, related, onBack, onNavigateToArticle }:
   };
 
   return (
-    <div ref={containerRef} className="mx-auto max-w-3xl pb-12">
+    <div ref={containerRef} className="w-full pb-12">
       {/* Back button */}
       <button
         onClick={onBack}

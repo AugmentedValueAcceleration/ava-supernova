@@ -905,7 +905,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-3xl flex flex-col" style={{ height: 'calc(100vh - 80px)', minHeight: 0 }}>
+    <div className="w-full flex flex-col" style={{ height: 'calc(100vh - 80px)', minHeight: 0 }}>
       {/* Compact header — title + soft mauve subtitle that hints
           conversation, not "tool". Token bar collapses into a slim pill
           on the right when account is connected. */}

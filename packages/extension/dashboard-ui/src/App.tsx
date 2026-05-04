@@ -191,8 +191,28 @@ export function App() {
     setPaperSearchQuery('');
     setPaperSearchLoading(false);
   }, []);
+  // Detail enrichment for the paper-card modal. Featured/trending/latest
+  // list rows are slim — the platform DB carries the full record (long
+  // abstract, oa_pdf_url, primary_url, etc). Without this round-trip the
+  // modal just renders whatever sparse fields the list happened to
+  // carry, which is why clicking a card felt like nothing loaded.
+  const [paperDetail, setPaperDetail] = useState<LibraryPaper | null>(null);
+  const [paperDetailLoading, setPaperDetailLoading] = useState(false);
+  const handleLoadPaperDetail = useCallback((id: string) => {
+    setPaperDetailLoading(true);
+    setPaperDetail(null);
+    post({ type: 'load_paper_detail', id });
+  }, []);
+  const handleClearPaperDetail = useCallback(() => {
+    setPaperDetail(null);
+    setPaperDetailLoading(false);
+  }, []);
   const handleReadPaperWithAva = useCallback((paper: LibraryPaper) => {
     post({ type: 'read_paper_with_ava', paper });
+    // Switch the dashboard to the Chat page so the user lands on the
+    // conversation Ava is about to start instead of staring at the
+    // Library tab while the primer fires off-screen.
+    setPagePersist('chat');
   }, []);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // Live chat support state
@@ -520,6 +540,13 @@ export function App() {
         setPaperSearchResults(msg.papers);
         setPaperSearchQuery(msg.query);
         setPaperSearchLoading(false);
+        break;
+      case 'paper_detail_loaded':
+        // Null = host couldn't find the row (curated paper deleted, or
+        // the id was an OpenAlex result with no DB record). Modal falls
+        // back to the slim list-row data in that case.
+        setPaperDetail(msg.paper);
+        setPaperDetailLoading(false);
         break;
       case 'library_path_forked':
         // Refresh learning list to show the new curriculum
@@ -912,6 +939,10 @@ export function App() {
             onSearchPapers={handleSearchPapers}
             onClearPaperSearch={handleClearPaperSearch}
             onReadPaperWithAva={handleReadPaperWithAva}
+            paperDetail={paperDetail}
+            paperDetailLoading={paperDetailLoading}
+            onLoadPaperDetail={handleLoadPaperDetail}
+            onClearPaperDetail={handleClearPaperDetail}
             cloudAssets={libraryCloudAssets}
             cloudAssetsLoading={libraryCloudAssetsLoading}
             onReloadCloudAssets={handleReloadCloudAssets}

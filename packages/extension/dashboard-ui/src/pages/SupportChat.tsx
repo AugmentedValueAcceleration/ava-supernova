@@ -82,7 +82,7 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl flex flex-col" style={{ height: 'calc(100vh - 200px)', minHeight: 400 }}>
+    <div className="w-full flex flex-col" style={{ height: 'calc(100vh - 200px)', minHeight: 400 }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>

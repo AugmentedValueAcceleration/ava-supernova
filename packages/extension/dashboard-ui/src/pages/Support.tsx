@@ -114,7 +114,7 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
     );
 
     return (
-      <div className="mx-auto w-full max-w-4xl">
+      <div className="w-full">
         <button
           onClick={() => setSelectedTicket(null)}
           className="mb-4 flex items-center gap-1.5 text-sm text-[var(--text-muted)] transition hover:text-white"
@@ -193,7 +193,7 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="w-full">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
@@ -352,7 +352,7 @@ function ByokSupport() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="w-full">
       <div className="mb-6">
         <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.support.title')}</h1>
         <p className="mt-1.5 text-[13px] text-[#6c7086]">

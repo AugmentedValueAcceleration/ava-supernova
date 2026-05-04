@@ -234,7 +234,7 @@ export function Overview({
   })();
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
+    <div className="w-full">
       {/* ── Hero strip — matches IDE Command Centre framing ──────────── */}
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -1033,7 +1033,7 @@ function ByokOverview({
   const sessionDuration = stats ? timeSince(stats.session_start) : '\u2014';
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
+    <div className="w-full">
       <div className="mb-6">
         <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.nav.command_centre')}</h1>
         <p className="mt-1.5 text-[13px] text-[#6c7086]">
