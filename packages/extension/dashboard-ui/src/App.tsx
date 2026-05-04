@@ -42,6 +42,9 @@ import type {
   LibraryImage,
   LibraryPath,
   LibraryPathDetail,
+  LibraryPaper,
+  PapersTab,
+  PaperDiscipline,
   CreativeAsset,
   PersonalityData,
 } from './types/messages';
@@ -149,6 +152,20 @@ export function App() {
   });
   const [libraryPaths, setLibraryPaths] = useState<LibraryPath[]>([]);
   const [libraryPathDetail, setLibraryPathDetail] = useState<LibraryPathDetail | null>(null);
+  // Library → Papers state. Three sub-tabs cached independently so
+  // switching tabs doesn't refetch already-loaded data.
+  const [papersByTab, setPapersByTab] = useState<Record<PapersTab, LibraryPaper[]>>({
+    featured: [], trending: [], latest: [],
+  });
+  const [paperSearchResults, setPaperSearchResults] = useState<LibraryPaper[]>([]);
+  const [paperSearchLoading, setPaperSearchLoading] = useState(false);
+  const [paperSearchQuery, setPaperSearchQuery] = useState('');
+  // Per-tab loading. Set when load_papers fires, cleared when
+  // papers_loaded comes back. Shown as a spinner in the LibraryPapers
+  // list area so the user sees something between click and render.
+  const [papersTabLoading, setPapersTabLoading] = useState<Record<PapersTab, boolean>>({
+    featured: false, trending: false, latest: false,
+  });
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // Live chat support state
   const [supportConversations, setSupportConversations] = useState<any[]>([]);
@@ -457,6 +474,15 @@ export function App() {
         break;
       case 'library_path_detail_loaded':
         setLibraryPathDetail(msg.path);
+        break;
+      case 'papers_loaded':
+        setPapersByTab(prev => ({ ...prev, [msg.tab]: msg.papers }));
+        setPapersTabLoading(prev => ({ ...prev, [msg.tab]: false }));
+        break;
+      case 'papers_search_results':
+        setPaperSearchResults(msg.papers);
+        setPaperSearchQuery(msg.query);
+        setPaperSearchLoading(false);
         break;
       case 'library_path_forked':
         // Refresh learning list to show the new curriculum
@@ -840,6 +866,28 @@ export function App() {
             paths={libraryPaths}
             pathDetail={libraryPathDetail}
             onNavigate={setPagePersist}
+            papersByTab={papersByTab}
+            papersTabLoading={papersTabLoading}
+            paperSearchResults={paperSearchResults}
+            paperSearchLoading={paperSearchLoading}
+            paperSearchQuery={paperSearchQuery}
+            onLoadPapers={(tab: PapersTab, discipline?: PaperDiscipline) => {
+              setPapersTabLoading(prev => ({ ...prev, [tab]: true }));
+              post({ type: 'load_papers', tab, discipline });
+            }}
+            onSearchPapers={(query: string, discipline?: PaperDiscipline) => {
+              setPaperSearchLoading(true);
+              setPaperSearchQuery(query);
+              post({ type: 'search_papers', query, discipline });
+            }}
+            onClearPaperSearch={() => {
+              setPaperSearchResults([]);
+              setPaperSearchQuery('');
+              setPaperSearchLoading(false);
+            }}
+            onReadPaperWithAva={(paper: LibraryPaper) => {
+              post({ type: 'read_paper_with_ava', paper });
+            }}
             cloudAssets={libraryCloudAssets}
             cloudAssetsLoading={libraryCloudAssetsLoading}
             onReloadCloudAssets={() => { beginLibraryLoad(); post({ type: 'load_cloud_assets' }); }}

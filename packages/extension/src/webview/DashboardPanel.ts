@@ -44,6 +44,8 @@ import type {
   DashboardTaskEntry,
   LibraryPath,
   LibraryPathDetail,
+  LibraryPaper,
+  PapersTab,
   ReleaseNote,
 } from './dashboard-message-types.js';
 
@@ -696,6 +698,99 @@ export class DashboardPanel {
           await apiFetch(`/learning/library/${msg.id}/rate`, { method: 'POST', body: { rating: msg.rating }, platformKey });
           this.post({ type: 'library_path_rated', pathId: msg.id, rating: msg.rating });
         } catch { /* non-fatal */ }
+        break;
+      }
+
+      // ─── Library → Papers ───────────────────────────────────────────────
+      // Public endpoints. Direct fetch — no auth needed for browse + search.
+      // Read counter is bumped server-side when the user clicks "Read with
+      // Ava" via POST /api/papers/[id], but only for stored UUID rows.
+
+      case 'load_papers': {
+        try {
+          const params = new URLSearchParams();
+          params.set('tab', msg.tab);
+          if (msg.discipline) params.set('discipline', msg.discipline);
+          if (msg.limit) params.set('limit', String(msg.limit));
+          const res = await fetch(`https://ava-supernova.com/api/papers/featured?${params.toString()}`);
+          const data = (await res.json()) as { papers?: LibraryPaper[]; tab?: PapersTab };
+          this.post({ type: 'papers_loaded', tab: data.tab ?? msg.tab, papers: data.papers ?? [] });
+        } catch {
+          this.post({ type: 'papers_loaded', tab: msg.tab, papers: [] });
+        }
+        break;
+      }
+
+      case 'search_papers': {
+        try {
+          const params = new URLSearchParams();
+          params.set('q', msg.query);
+          if (msg.discipline) params.set('discipline', msg.discipline);
+          if (msg.sort) params.set('sort', msg.sort);
+          params.set('per_page', '25');
+          const res = await fetch(`https://ava-supernova.com/api/papers/search?${params.toString()}`);
+          const data = (await res.json()) as { papers?: LibraryPaper[]; total?: number };
+          this.post({
+            type: 'papers_search_results',
+            query: msg.query,
+            papers: data.papers ?? [],
+            total: data.total ?? (data.papers?.length ?? 0),
+          });
+        } catch {
+          this.post({ type: 'papers_search_results', query: msg.query, papers: [], total: 0 });
+        }
+        break;
+      }
+
+      case 'load_paper_detail': {
+        try {
+          const res = await fetch(`https://ava-supernova.com/api/papers/${encodeURIComponent(msg.id)}`);
+          const data = (await res.json()) as { paper?: LibraryPaper | null };
+          this.post({ type: 'paper_detail_loaded', paper: data.paper ?? null });
+        } catch {
+          this.post({ type: 'paper_detail_loaded', paper: null });
+        }
+        break;
+      }
+
+      case 'read_paper_with_ava': {
+        // Two side-effects: bump read_count for the curated row (silent
+        // no-op for live-search papers without a UUID), then drop a
+        // Teach-mode user message into the chat that triggers an
+        // immediate paper-explanation turn.
+        if (msg.paper.id) {
+          void fetch(`https://ava-supernova.com/api/papers/${msg.paper.id}`, { method: 'POST' })
+            .catch(() => { /* non-fatal */ });
+        }
+        const ident = msg.paper.arxiv_id
+          ? `arxiv:${msg.paper.arxiv_id}`
+          : msg.paper.doi
+            ? `doi:${msg.paper.doi}`
+            : msg.paper.openalex_id
+              ? `openalex:${msg.paper.openalex_id}`
+              : msg.paper.primary_url ?? msg.paper.title;
+        const primer =
+          `[Read with Ava]\n\n` +
+          `I'd like you to read and explain this scientific paper for me. ` +
+          `Use the four-layer pass: 1. What's the question? (one plain-English sentence). ` +
+          `2. Why does it matter? (the human stake). ` +
+          `3. What did they do? (method, jargon-stripped). ` +
+          `4. What did they find — and how confident should I be? (results + caveats specific to this paper's discipline).\n\n` +
+          `Paper: **${msg.paper.title}**${msg.paper.year ? ` (${msg.paper.year})` : ''}\n` +
+          (msg.paper.authors.length > 0 ? `Authors: ${msg.paper.authors.slice(0, 6).map(a => a.name).join(', ')}${msg.paper.authors.length > 6 ? ', et al.' : ''}\n` : '') +
+          `Identifier: \`${ident}\`\n` +
+          (msg.paper.primary_url ? `URL: ${msg.paper.primary_url}\n` : '') +
+          (msg.paper.retracted ? `\n⚠ This paper is marked as RETRACTED. Surface that to me before discussing findings.\n` : '') +
+          `\nFetch the full text via the \`paper_fetch_full_text\` tool first if you need more than the abstract, then walk me through it.`;
+        // Hand off to the chat panel: send_message with mode=teach kicks
+        // off the turn immediately and switches mode in one step.
+        if (this.viewProvider) {
+          await this.viewProvider.handleChatMessage({
+            type: 'send_message',
+            text: primer,
+            mode: 'teach',
+          });
+        }
         break;
       }
 

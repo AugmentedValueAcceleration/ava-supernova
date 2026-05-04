@@ -343,6 +343,49 @@ export interface LibraryPathDetail extends LibraryPath {
   };
 }
 
+// ─── Library — Scientific Papers ────────────────────────────────────────────
+
+export type PaperDiscipline =
+  | 'ai_cs' | 'biology' | 'medicine' | 'physics' | 'chemistry'
+  | 'earth_sciences' | 'social_sciences' | 'economics' | 'engineering'
+  | 'math' | 'other';
+
+export interface PaperAuthorRef {
+  name: string;
+  orcid?: string;
+}
+
+export interface LibraryPaper {
+  /** Stored row UUID — present when the paper is in the curated set or
+   *  was returned by the featured/trending/latest tabs. Undefined for
+   *  live-search results coming back from OpenAlex via /api/papers/search. */
+  id?: string;
+  doi?: string;
+  arxiv_id?: string;
+  openalex_id?: string;
+  title: string;
+  authors: PaperAuthorRef[];
+  abstract?: string;
+  year?: number;
+  primary_url?: string;
+  oa_pdf_url?: string;
+  discipline?: PaperDiscipline;
+  source?: 'curated' | 'community' | 'auto' | 'arxiv' | 'openalex' | 'crossref';
+  featured_note?: string;
+  citation_count?: number;
+  retracted?: boolean;
+  signals?: {
+    citation_count: number;
+    citation_velocity_30d: number;
+    hn_score: number;
+    reddit_score: number;
+    social_mentions_7d: number;
+    computed_score: number;
+  };
+}
+
+export type PapersTab = 'featured' | 'trending' | 'latest';
+
 // ─── Release Notes ──────────────────────────────────────────────────────────
 
 export interface ReleaseNote {
@@ -668,6 +711,9 @@ export type ExtToDashboardMessage =
   | { type: 'curriculum_deleted'; id: string }
   // Learning Library messages
   | { type: 'library_paths_loaded'; paths: LibraryPath[]; total: number }
+  | { type: 'papers_loaded'; tab: PapersTab; papers: LibraryPaper[] }
+  | { type: 'papers_search_results'; query: string; papers: LibraryPaper[]; total: number }
+  | { type: 'paper_detail_loaded'; paper: LibraryPaper | null }
   | { type: 'library_path_detail_loaded'; path: LibraryPathDetail }
   | { type: 'library_path_forked'; curriculumId: string; title: string }
   | { type: 'library_path_published'; pathId: string; status: string; message: string }
@@ -901,6 +947,11 @@ export type DashboardToExtMessage =
   | { type: 'fork_library_path'; id: string }
   | { type: 'publish_to_library'; curriculumId: string }
   | { type: 'rate_library_path'; id: string; rating: number }
+  // Library → Papers
+  | { type: 'load_papers'; tab: PapersTab; discipline?: PaperDiscipline; limit?: number }
+  | { type: 'search_papers'; query: string; discipline?: PaperDiscipline; sort?: 'relevance' | 'date' | 'cited' }
+  | { type: 'load_paper_detail'; id: string }
+  | { type: 'read_paper_with_ava'; paper: LibraryPaper }
   | { type: 'load_task_dates' }
   // Sync messages
   | { type: 'load_sync_status' }

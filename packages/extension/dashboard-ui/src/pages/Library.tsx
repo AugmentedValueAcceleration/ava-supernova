@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocale } from '../i18n';
 import { post } from '../App';
-import type { LibraryImage, LibraryPath, LibraryPathDetail, CreativeAsset, Page } from '../types/messages';
+import type { LibraryImage, LibraryPath, LibraryPathDetail, LibraryPaper, PapersTab, PaperDiscipline, CreativeAsset, Page } from '../types/messages';
 import { LearningLibrary } from './LearningLibrary';
+import { LibraryPapers } from './LibraryPapers';
 
 /**
  * Unified Library — single entry point for everything Ava has made for the
@@ -26,6 +27,16 @@ interface Props {
   paths: LibraryPath[];
   pathDetail: LibraryPathDetail | null;
   onNavigate: (page: Page) => void;
+  /** Papers tab data — keyed by sub-tab. Pushed by the host on load_papers. */
+  papersByTab: Record<PapersTab, LibraryPaper[]>;
+  papersTabLoading: Record<PapersTab, boolean>;
+  paperSearchResults: LibraryPaper[];
+  paperSearchLoading: boolean;
+  paperSearchQuery: string;
+  onLoadPapers: (tab: PapersTab, discipline?: PaperDiscipline) => void;
+  onSearchPapers: (query: string, discipline?: PaperDiscipline) => void;
+  onClearPaperSearch: () => void;
+  onReadPaperWithAva: (paper: LibraryPaper) => void;
   /** Cloud-synced creative assets from /api/creative-assets. */
   cloudAssets: CreativeAsset[];
   /** True while the host is fetching the cloud asset list. Drives a
@@ -46,7 +57,7 @@ interface Props {
   hasImagesFolder?: boolean;
 }
 
-type TopTab = 'courses' | 'assets' | 'documents';
+type TopTab = 'courses' | 'papers' | 'assets' | 'documents';
 type AssetTypeFilter = 'all' | 'image' | 'music' | 'video' | 'voice';
 type AssetSource = 'all' | 'cloud' | 'local';
 type DocTypeFilter = 'all' | 'document' | 'spreadsheet';
@@ -131,6 +142,15 @@ export function Library({
   paths,
   pathDetail,
   onNavigate,
+  papersByTab,
+  papersTabLoading,
+  paperSearchResults,
+  paperSearchLoading,
+  paperSearchQuery,
+  onLoadPapers,
+  onSearchPapers,
+  onClearPaperSearch,
+  onReadPaperWithAva,
   cloudAssets,
   cloudAssetsLoading,
   onReloadCloudAssets,
@@ -217,6 +237,7 @@ export function Library({
       <div className="mb-6 flex gap-0.5 border-b border-[rgba(168,85,247,0.12)]">
         {([
           { key: 'courses',   label: 'Courses' },
+          { key: 'papers',    label: 'Papers' },
           { key: 'assets',    label: 'Assets' },
           { key: 'documents', label: 'Documents' },
         ] as const).map(t => (
@@ -242,6 +263,20 @@ export function Library({
       {/* Tab content */}
       {tab === 'courses' && (
         <LearningLibrary paths={paths} detail={pathDetail} onNavigate={onNavigate} />
+      )}
+
+      {tab === 'papers' && (
+        <LibraryPapers
+          papersByTab={papersByTab}
+          papersTabLoading={papersTabLoading}
+          searchResults={paperSearchResults}
+          searchLoading={paperSearchLoading}
+          searchQuery={paperSearchQuery}
+          onLoadTab={onLoadPapers}
+          onSearch={onSearchPapers}
+          onClearSearch={onClearPaperSearch}
+          onReadWithAva={onReadPaperWithAva}
+        />
       )}
 
       {tab === 'assets' && (
