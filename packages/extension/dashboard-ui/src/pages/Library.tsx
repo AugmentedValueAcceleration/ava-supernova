@@ -159,7 +159,10 @@ export function Library({
   hasImagesFolder = true,
 }: Props) {
   useLocale();
-  const [tab, setTab] = useState<TopTab>('assets');
+  // Courses is the entry-point tab — Library is a learning-first
+  // surface, the curated material (courses + papers) is what makes
+  // it valuable. Assets / Documents are tertiary browse surfaces.
+  const [tab, setTab] = useState<TopTab>('courses');
   const [typeFilter, setTypeFilter] = useState<AssetTypeFilter>('all');
   const [sourceFilter, setSourceFilter] = useState<AssetSource>('all');
   const [docType, setDocType] = useState<DocTypeFilter>('all');

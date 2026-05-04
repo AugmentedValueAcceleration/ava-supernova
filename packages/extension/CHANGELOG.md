@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.62.0 — 2026-05-04 — Library → Papers (scientific paper explainer)
+
+### Added
+- **Library → Papers tab.** New top-level surface in Library between Courses and Assets. Browse foundational and recent scientific papers across every discipline — AI/CS, Biology, Medicine, Physics, Chemistry, Earth Sciences, Social Sciences, Economics, Engineering, Math — and ask Ava to explain any of them in plain language. Twelve discipline pivot chips, three sub-tabs (Featured / Trending / Latest), and a single search bar that hits OpenAlex's ~250M-work index live across all fields.
+- **"Read with Ava".** One-click handoff into Teach mode. Ava runs a four-layer pass on whatever you pick: what's the question (one plain-English sentence), why it matters (the human stake), what they did (method, jargon-stripped), what they found and how confident you should be (results + caveats specific to the paper's discipline). Medical/clinical papers carry an explicit "summarisation, not medical advice" reminder before discussion starts. Retracted papers are flagged before findings are touched.
+- **`paper_fetch_full_text` tool.** Read-only, available across modes. Resolves arXiv IDs, DOIs, OpenAlex IDs, or any of the corresponding URLs. For arXiv preprints with HTML rendering (~70% of recent ones) the tool extracts section headings + first paragraphs so the Tutor can speak to the body, not just the abstract. Free APIs throughout (arXiv, OpenAlex, Crossref) — no licensing, no paywalls, no auth.
+- **Curated featured set seeded.** Seventy editorial picks across the ten disciplines — foundational classics (Watson & Crick, Shannon, Turing, Einstein-era LIGO, Sanger sequencing, Doll & Hill, Goodenough lithium-ion) alongside modern landmarks (BERT, GPT-3, AlphaFold 2, BNT162b2 trial, CRISPR-Cas9, Hausfather climate-model retrospective). Each carries an editorial blurb in Ava's voice — short, honest, focused on why the paper matters and what to take from it.
+
+### Changed
+- **Library default tab is now Courses** (was Assets). Library is a learning-first surface; the curated material is what makes it valuable. Assets and Documents stay one click away.
+
+### Fixed
+- **Loading spinner now shown during Library → Papers fetches.** Previously the tab area read as "empty" while data was in flight; now an inline spinner with a clear label sits in place of the list until the response lands.
+- **Search and tab loads no longer flicker.** Inline arrow handlers were getting a new function identity on every render, retriggering the underlying `useEffect` and creating a tight load loop visible as the spinner flashing in and out. Stable handler references (`useCallback`) fix it. The Assets tab cloud-asset reload had the same shape and is now also stable.
+- **Host fetches have explicit timeouts** — 8s for tab loads, 12s for search, 10s for paper detail. The user can never be stranded on a hanging request; on timeout the UI clears with an empty list rather than spinning forever. Webview-side 15s safety net clears the spinner even if the host's response is dropped on the round-trip.
+
 ## 0.61.0 — 2026-05-03 — Teach mode tuning pass
 
 ### Fixed

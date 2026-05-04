@@ -101,10 +101,13 @@ export function LibraryPapers({
 
   // Debounced live search. 300ms after the last keystroke we fire the
   // query; clearing the input clears search and falls back to tab content.
+  // searchQuery is intentionally NOT in the deps — it's set by
+  // onSearch's response handler, so including it would re-fire the
+  // effect on every successful search and create a tight loop.
   useEffect(() => {
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     if (!searchInput.trim()) {
-      if (searchQuery) onClearSearch();
+      onClearSearch();
       return;
     }
     debounceRef.current = window.setTimeout(() => {
@@ -113,7 +116,8 @@ export function LibraryPapers({
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
-  }, [searchInput, discipline, onSearch, onClearSearch, searchQuery]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput, discipline, onSearch, onClearSearch]);
 
   const activeList = searchQuery ? searchResults : papersByTab[tab];
   const isSearching = !!searchQuery;

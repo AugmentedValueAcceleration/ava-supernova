@@ -166,6 +166,34 @@ export function App() {
   const [papersTabLoading, setPapersTabLoading] = useState<Record<PapersTab, boolean>>({
     featured: false, trending: false, latest: false,
   });
+
+  // useCallback for the Papers handlers — LibraryPapers.tsx has
+  // useEffects that depend on these references. Inline arrow props
+  // get a new identity every render, which would refire the effect
+  // every render, triggering a load loop and a flickering spinner.
+  // Stable refs across renders fix that. setState updaters are stable
+  // by design so no extra deps required.
+  const handleLoadPapers = useCallback((tab: PapersTab, discipline?: PaperDiscipline) => {
+    setPapersTabLoading(prev => ({ ...prev, [tab]: true }));
+    post({ type: 'load_papers', tab, discipline });
+    // Safety net — clear after 15s even if papers_loaded never arrives.
+    window.setTimeout(() => {
+      setPapersTabLoading(prev => prev[tab] ? { ...prev, [tab]: false } : prev);
+    }, 15000);
+  }, []);
+  const handleSearchPapers = useCallback((query: string, discipline?: PaperDiscipline) => {
+    setPaperSearchLoading(true);
+    setPaperSearchQuery(query);
+    post({ type: 'search_papers', query, discipline });
+  }, []);
+  const handleClearPaperSearch = useCallback(() => {
+    setPaperSearchResults([]);
+    setPaperSearchQuery('');
+    setPaperSearchLoading(false);
+  }, []);
+  const handleReadPaperWithAva = useCallback((paper: LibraryPaper) => {
+    post({ type: 'read_paper_with_ava', paper });
+  }, []);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // Live chat support state
   const [supportConversations, setSupportConversations] = useState<any[]>([]);
@@ -200,6 +228,15 @@ export function App() {
       libraryLoadingTimeoutRef.current = null;
     }, 15_000);
   }, []);
+  // Stable ref for Library's Assets/Documents reload button. The
+  // Library component has a useEffect that depends on this — inline
+  // arrow at the JSX call site would refire that effect every render
+  // and cause the loading pill to flicker. Declared here, after
+  // beginLibraryLoad, so the dep reference is in scope.
+  const handleReloadCloudAssets = useCallback(() => {
+    beginLibraryLoad();
+    post({ type: 'load_cloud_assets' });
+  }, [beginLibraryLoad]);
   const finishLibraryLoad = useCallback(() => {
     setLibraryCloudAssetsLoading(false);
     if (libraryLoadingTimeoutRef.current) {
@@ -871,26 +908,13 @@ export function App() {
             paperSearchResults={paperSearchResults}
             paperSearchLoading={paperSearchLoading}
             paperSearchQuery={paperSearchQuery}
-            onLoadPapers={(tab: PapersTab, discipline?: PaperDiscipline) => {
-              setPapersTabLoading(prev => ({ ...prev, [tab]: true }));
-              post({ type: 'load_papers', tab, discipline });
-            }}
-            onSearchPapers={(query: string, discipline?: PaperDiscipline) => {
-              setPaperSearchLoading(true);
-              setPaperSearchQuery(query);
-              post({ type: 'search_papers', query, discipline });
-            }}
-            onClearPaperSearch={() => {
-              setPaperSearchResults([]);
-              setPaperSearchQuery('');
-              setPaperSearchLoading(false);
-            }}
-            onReadPaperWithAva={(paper: LibraryPaper) => {
-              post({ type: 'read_paper_with_ava', paper });
-            }}
+            onLoadPapers={handleLoadPapers}
+            onSearchPapers={handleSearchPapers}
+            onClearPaperSearch={handleClearPaperSearch}
+            onReadPaperWithAva={handleReadPaperWithAva}
             cloudAssets={libraryCloudAssets}
             cloudAssetsLoading={libraryCloudAssetsLoading}
-            onReloadCloudAssets={() => { beginLibraryLoad(); post({ type: 'load_cloud_assets' }); }}
+            onReloadCloudAssets={handleReloadCloudAssets}
             images={libraryImages}
             projectRoot={libraryProjectRoot}
             hasImagesFolder={libraryHasFolder}

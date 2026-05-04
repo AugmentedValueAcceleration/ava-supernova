@@ -707,15 +707,28 @@ export class DashboardPanel {
       // Ava" via POST /api/papers/[id], but only for stored UUID rows.
 
       case 'load_papers': {
+        // 8s timeout — server typically responds <1s; anything past
+        // 8s is a network or routing issue and the user shouldn't wait
+        // forever staring at a spinner. Always posts papers_loaded
+        // (success OR failure) so the dashboard's loading state clears.
         try {
           const params = new URLSearchParams();
           params.set('tab', msg.tab);
           if (msg.discipline) params.set('discipline', msg.discipline);
           if (msg.limit) params.set('limit', String(msg.limit));
-          const res = await fetch(`https://ava-supernova.com/api/papers/featured?${params.toString()}`);
+          const url = `https://ava-supernova.com/api/papers/featured?${params.toString()}`;
+          this.log(`[papers] load tab=${msg.tab} discipline=${msg.discipline ?? 'all'}`);
+          const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+          if (!res.ok) {
+            this.log(`[papers] load failed: HTTP ${res.status}`);
+            this.post({ type: 'papers_loaded', tab: msg.tab, papers: [] });
+            break;
+          }
           const data = (await res.json()) as { papers?: LibraryPaper[]; tab?: PapersTab };
+          this.log(`[papers] load ok tab=${msg.tab} count=${data.papers?.length ?? 0}`);
           this.post({ type: 'papers_loaded', tab: data.tab ?? msg.tab, papers: data.papers ?? [] });
-        } catch {
+        } catch (err) {
+          this.log(`[papers] load error: ${err instanceof Error ? err.message : String(err)}`);
           this.post({ type: 'papers_loaded', tab: msg.tab, papers: [] });
         }
         break;
@@ -728,15 +741,24 @@ export class DashboardPanel {
           if (msg.discipline) params.set('discipline', msg.discipline);
           if (msg.sort) params.set('sort', msg.sort);
           params.set('per_page', '25');
-          const res = await fetch(`https://ava-supernova.com/api/papers/search?${params.toString()}`);
+          const url = `https://ava-supernova.com/api/papers/search?${params.toString()}`;
+          this.log(`[papers] search "${msg.query}"`);
+          const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
+          if (!res.ok) {
+            this.log(`[papers] search failed: HTTP ${res.status}`);
+            this.post({ type: 'papers_search_results', query: msg.query, papers: [], total: 0 });
+            break;
+          }
           const data = (await res.json()) as { papers?: LibraryPaper[]; total?: number };
+          this.log(`[papers] search ok "${msg.query}" count=${data.papers?.length ?? 0}`);
           this.post({
             type: 'papers_search_results',
             query: msg.query,
             papers: data.papers ?? [],
             total: data.total ?? (data.papers?.length ?? 0),
           });
-        } catch {
+        } catch (err) {
+          this.log(`[papers] search error: ${err instanceof Error ? err.message : String(err)}`);
           this.post({ type: 'papers_search_results', query: msg.query, papers: [], total: 0 });
         }
         break;
@@ -744,7 +766,14 @@ export class DashboardPanel {
 
       case 'load_paper_detail': {
         try {
-          const res = await fetch(`https://ava-supernova.com/api/papers/${encodeURIComponent(msg.id)}`);
+          const res = await fetch(
+            `https://ava-supernova.com/api/papers/${encodeURIComponent(msg.id)}`,
+            { signal: AbortSignal.timeout(10000) },
+          );
+          if (!res.ok) {
+            this.post({ type: 'paper_detail_loaded', paper: null });
+            break;
+          }
           const data = (await res.json()) as { paper?: LibraryPaper | null };
           this.post({ type: 'paper_detail_loaded', paper: data.paper ?? null });
         } catch {
