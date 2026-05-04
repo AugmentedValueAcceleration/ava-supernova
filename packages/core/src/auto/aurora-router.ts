@@ -78,6 +78,8 @@ export interface AuroraRouteEntry {
   reason: string;
   fallbackModelId?: string;
   requiresVision?: boolean;
+  /** Used by `teach` — coordinator-tier model when curriculum is being created (depth='full'). */
+  creationModelId?: string;
 }
 
 export const AURORA_ROUTES: Record<TaskCategory, AuroraRouteEntry> = {
@@ -112,7 +114,7 @@ export const AURORA_ROUTES: Record<TaskCategory, AuroraRouteEntry> = {
   // Teach = Tutor + Curriculum Architect (mid-depth). Medium 3.5 is the
   // sweet spot now — coherent long-form output for tutorial generation
   // is exactly its lane.
-  teach:        { modelId: 'mistral-medium-3.5', reason: 'Mistral Medium 3.5 — coherent long-form output for tutorials and lesson plans',           fallbackModelId: 'mistral-large-3' },
+  teach:        { modelId: 'mistral-medium-3.5', reason: 'Mistral Medium 3.5 — coherent long-form output for tutorials and lesson plans',           fallbackModelId: 'mistral-large-3', creationModelId: 'mistral-large-3' },
   // Security = CVE Researcher leads — depth-4 reasoning over attack surface.
   security:     { modelId: 'mistral-large-3',    reason: 'Mistral Large 3 — deep reasoning over attack surface',                                    fallbackModelId: 'mistral-medium-3.5' },
   // Brainstorm = Ideator depth 5. Large 3 reasoning depth gives the

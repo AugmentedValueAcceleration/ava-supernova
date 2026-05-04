@@ -34,6 +34,23 @@ export interface IntentGateDecision {
 }
 
 /**
+ * Teach-mode depth classification. Returned by `classifyTeachDepth`.
+ *
+ * - `full` — the user is asking to create a new curriculum / start learning
+ *   a topic from scratch. Run the full Curriculum Architect → Content
+ *   Writer → Fact Checker → Quiz Master → Tutor pipeline.
+ * - `light` — the user is continuing within an existing curriculum
+ *   ("continue", "another example", "I'm stuck"). Tutor alone is enough;
+ *   re-running the architectural team for delivery turns wastes ~5× tokens.
+ */
+export type TeachDepth = 'full' | 'light';
+
+export interface TeachDepthDecision {
+  depth: TeachDepth;
+  reasoning: string;
+}
+
+/**
  * Resolve a cheap fast model for intent gating. Prefers Qwen 3.5 Flash;
  * falls back to anything cheap + fast if that's unavailable. Returns
  * null if nothing viable exists — callers then skip the gate entirely.
@@ -173,6 +190,115 @@ export async function classifyIntent(opts: {
     return decision;
   } catch (err) {
     logger.warn('[intent-gate] Flash classification failed: ' + (err instanceof Error ? err.message : String(err)));
+    return null;
+  }
+}
+
+const TEACH_DEPTH_SYSTEM_PROMPT = `You are classifying a user message in Ava's Teach mode.
+
+Decide: does this message ask to CREATE a new learning curriculum, or is it CONTINUATION inside an existing one?
+
+CREATION → "creation":
+- "teach me X" / "show me how to learn Y" / "tutor me on Z"
+- "I want / need / would like to learn / study / understand X"
+- "I'd like to start learning X" / "I'm trying to pick up X" / "I want to get into X"
+- "create / build / make / design / generate a curriculum / course / learning path / lesson plan / syllabus"
+- "where do I start with X" / "help me understand X from scratch"
+- Anything that asks for a structured learning path on a topic Ava hasn't already started
+
+CONTINUATION → "continuation":
+- "continue" / "next lesson" / "next" / "go on"
+- "another example" / "show me more" / "explain again"
+- "I'm stuck" / "I don't get it" / "what does this mean"
+- "let's do the quiz" / "what was wrong with my answer" / "try a harder one"
+- Follow-up questions inside an active lesson
+- Short / ambiguous messages that look like in-flow chatter
+
+Bias toward CONTINUATION for short or ambiguous messages — the Tutor can always ask the user to clarify, but spawning the full team for "another example" wastes ~5× the tokens.
+
+Respond with a single JSON object, no prose outside it:
+{"depth": "creation" | "continuation", "reasoning": "<one short sentence>"}`;
+
+/**
+ * Classify a Teach-mode user message as curriculum-creation vs delivery
+ * continuation. Replaces the regex-based heuristic in
+ * `detectConductorDepth` for Teach mode — natural phrasings like "I'd
+ * like to learn Rust" or "help me understand React from scratch" don't
+ * fit a fixed regex but a Flash classifier handles them cleanly.
+ *
+ * Returns null on failure — caller falls back to the regex-based
+ * `detectConductorDepth` so a Flash outage never blocks Teach mode.
+ *
+ * Cost: same Flash call shape as `classifyIntent` — ~200 input + ~30
+ * output tokens. For Teach mode this REPLACES the intent-gate's hard
+ * early-return, so there's no net extra Flash call per turn.
+ */
+export async function classifyTeachDepth(opts: {
+  userMessage: string;
+  provider: Provider;
+  model: ModelDefinition;
+  signal?: AbortSignal;
+}): Promise<TeachDepthDecision | null> {
+  const { userMessage, provider, model, signal } = opts;
+
+  try {
+    const response = await provider.createCompletion(
+      {
+        model: model.id,
+        messages: [
+          { role: 'system', content: TEACH_DEPTH_SYSTEM_PROMPT },
+          { role: 'user', content: userMessage.slice(0, 2000) },
+        ],
+        temperature: 0,
+        max_tokens: 120,
+      },
+      signal,
+    );
+
+    chargeCredits('light_call', {
+      model: model.id,
+      rawTokens: extractUsage((response as { usage?: unknown }).usage as Parameters<typeof extractUsage>[0]),
+    });
+
+    const assistantMsg = response.choices?.[0]?.message;
+    if (!assistantMsg) {
+      logger.warn('[intent-gate] Teach depth Flash returned no choices');
+      return null;
+    }
+
+    const content = assistantMsg.content as unknown;
+    const text = typeof content === 'string'
+      ? content
+      : Array.isArray(content)
+        ? content.map((p) => (p && typeof p === 'object' && 'text' in p ? (p as { text: string }).text : '')).join('')
+        : '';
+
+    const jsonMatch = text.match(/\{[\s\S]*?"depth"[\s\S]*?\}/);
+    if (!jsonMatch) {
+      logger.warn('[intent-gate] Teach depth Flash response did not contain valid JSON: ' + text.slice(0, 200));
+      return null;
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]) as { depth?: string; reasoning?: string };
+    if (parsed.depth !== 'creation' && parsed.depth !== 'continuation') {
+      logger.warn('[intent-gate] Teach depth Flash returned invalid depth: ' + String(parsed.depth));
+      return null;
+    }
+
+    const decision: TeachDepthDecision = {
+      depth: parsed.depth === 'creation' ? 'full' : 'light',
+      reasoning: parsed.reasoning || '',
+    };
+
+    avaEvents.emit('routing_decision', {
+      classification: 'teach_depth',
+      chosen_model: decision.depth === 'full' ? 'teach_full_team' : 'teach_tutor_only',
+      reason: decision.reasoning,
+    });
+
+    return decision;
+  } catch (err) {
+    logger.warn('[intent-gate] Teach depth Flash classification failed: ' + (err instanceof Error ? err.message : String(err)));
     return null;
   }
 }

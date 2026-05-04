@@ -32,16 +32,23 @@ import { MODE_PERSONAS, MODE_PERSONAS_LIGHT } from './definitions.js';
 export type ConductorDepth = 'light' | 'full';
 
 /**
- * Detect whether the user's message asks for the full persona team. The
- * signal has to be explicit — brevity / ambiguity defaults to 'light' so
- * tokens stay low unless someone genuinely wants the deep pipeline.
+ * Regex-based fallback for picking persona depth. The primary path for
+ * Teach mode runs through `classifyTeachDepth` (Flash) in the
+ * auto-coordinator — that handles natural phrasings the regex can't
+ * cover ("I'd like to learn X", "help me understand Y from scratch",
+ * etc.). This function stays as the safety net when Flash is
+ * unavailable, when callers invoke `orchestrate()` directly, or for
+ * non-Teach modes where the regex is sufficient.
  *
- * For Teach mode the signal shape is different: full team runs only when
- * the user is creating a new curriculum ("teach me X", "I want to learn Y",
- * "create a curriculum"). All other Teach turns ("continue", "another
- * example", "I'm stuck") are delivery within an existing curriculum and use
- * the light team (TUTOR alone) — running the 5-persona prep team for every
- * lesson-delivery turn would burn ~5× the tokens for the same response.
+ * The signal has to be explicit — brevity / ambiguity defaults to
+ * 'light' so tokens stay low unless someone genuinely wants the deep
+ * pipeline.
+ *
+ * For Teach mode (regex fallback only): full team runs when the user is
+ * creating a new curriculum ("teach me X", "I want to learn Y", "create
+ * a curriculum"). Other Teach turns ("continue", "another example",
+ * "I'm stuck") are delivery within an existing curriculum and use the
+ * light team (TUTOR alone).
  */
 export function detectConductorDepth(userMessage: string, mode?: string): ConductorDepth {
   const msg = userMessage.toLowerCase();
@@ -351,20 +358,32 @@ export class Conductor {
     // downstream agent knows not to execute / teach the rejected material.
     // Shared across both sequential and parallel paths.
     let vetoInfo: { personaId: PersonaId; reason: string } | null = null;
-    const checkVeto = (persona: PersonaDefinition, output: string | null): boolean => {
-      if (!persona.canVeto || !persona.vetoSignals || !output) return false;
+    /**
+     * Returns the veto details when the persona's output triggers its
+     * veto signal, or `null` when the output passes. Mutating callers
+     * still treat `null` as the "passed" branch (truthy guard works
+     * unchanged); the rewrite-on-veto path uses the returned reason
+     * directly so TS narrowing doesn't have to track a closure-mutated
+     * outer variable.
+     */
+    const checkVeto = (
+      persona: PersonaDefinition,
+      output: string | null,
+    ): { personaId: PersonaId; reason: string } | null => {
+      if (!persona.canVeto || !persona.vetoSignals || !output) return null;
       // Back-compat: Challenger's veto is gated on config.challengerCanVeto
       // so existing callers that turned it off keep working.
-      if (persona.id === 'challenger' && this.config.challengerCanVeto === false) return false;
-      if (!persona.vetoSignals.test(output)) return false;
+      if (persona.id === 'challenger' && this.config.challengerCanVeto === false) return null;
+      if (!persona.vetoSignals.test(output)) return null;
       // Extract the first line containing the veto signal as the reason —
       // model-cooperative prompts (e.g. Fact Checker's `HALT: <reason>`)
       // put the reason there by design.
       const firstLine = output.split(/\r?\n/).find(l => persona.vetoSignals!.test(l)) || output.slice(0, 200);
-      vetoInfo = { personaId: persona.id, reason: firstLine.trim() };
-      logger.debug(`[conductor] ${persona.id} vetoed: ${vetoInfo.reason}`);
-      onEvent({ type: 'persona_veto', persona: persona.id, reason: vetoInfo.reason });
-      return true;
+      const info = { personaId: persona.id, reason: firstLine.trim() };
+      vetoInfo = info;
+      logger.debug(`[conductor] ${persona.id} vetoed: ${info.reason}`);
+      onEvent({ type: 'persona_veto', persona: persona.id, reason: info.reason });
+      return info;
     };
     const emitHandoff = (toPersona: PersonaDefinition, prevState: PersonaState | null): void => {
       if (!lastCompletedPersonaId || !prevState) return;
@@ -468,6 +487,11 @@ export class Conductor {
       }
     } else {
       // ── Sequential execution (original behaviour) ─────────────────────
+      // Tracks vetoers we've already attempted a rewrite for in this run.
+      // Bounds the rewrite loop at one retry per veto-capable persona —
+      // if the gatekeeper still rejects after a focused correction pass,
+      // the pipeline halts for real and surfaces the failure.
+      const rewriteAttempted = new Set<PersonaId>();
       let prevState: PersonaState | null = null;
       for (const persona of planningTeam) {
         if (signal?.aborted) break;
@@ -505,9 +529,80 @@ export class Conductor {
         }
 
         // Persona-level veto check (Challenger, Fact Checker, etc.)
-        if (checkVeto(persona, state.output)) {
+        const veto = checkVeto(persona, state.output);
+        if (!veto) continue;
+
+        // ── Rewrite-on-veto recovery ──────────────────────────────────
+        // The vetoer's prompt promises that a HALT triggers a rewrite of
+        // the upstream work. Honour that promise: re-run the persona this
+        // gatekeeper depends on (Fact Checker → Content Writer, etc.)
+        // with the HALT reason as focused correction context, then
+        // re-check. Bounded to one retry per vetoer per orchestrate run
+        // so a stubborn quality issue still terminates the pipeline.
+        const rewriteTargetId = persona.dependsOn?.[0];
+        const rewriteTarget = rewriteTargetId
+          ? planningTeam.find(p => p.id === rewriteTargetId)
+          : undefined;
+
+        if (!rewriteTarget || rewriteAttempted.has(persona.id)) {
+          // No upstream to rewrite, or we already tried — final veto.
           break;
         }
+
+        rewriteAttempted.add(persona.id);
+        logger.debug(`[conductor] ${persona.id} vetoed — retrying ${rewriteTarget.id} with focused correction`);
+
+        // Reset vetoInfo so the recheck below can refire cleanly if the
+        // rewrite still fails. Without this, the synthesis would surface
+        // the original veto reason even after a successful recovery.
+        vetoInfo = null;
+
+        // Re-run the upstream persona with the HALT reason as context.
+        const rewriteState = await this.runPersona(
+          rewriteTarget,
+          contextPool,
+          conversationHistory,
+          onEvent,
+          signal,
+          { vetoerId: persona.id, reason: veto.reason },
+        );
+        personaStates.push(rewriteState);
+        avaEvents.emit('persona_complete', {
+          persona: rewriteTarget.id,
+          output_summary: rewriteState.output ? `rewritten, ${rewriteState.output.length}ch` : 'rewrite produced no output',
+          success: rewriteState.output != null,
+          duration_ms: (rewriteState.completedAt ?? Date.now()) - (rewriteState.startedAt ?? Date.now()),
+        });
+        if (rewriteState.output) {
+          this.updatePool(contextPool, rewriteTarget.id, rewriteState.output);
+        }
+
+        if (signal?.aborted) break;
+
+        // Re-run the vetoer to check whether the rewrite addressed the issue.
+        const recheckState = await this.runPersona(
+          persona, contextPool, conversationHistory, onEvent, signal,
+        );
+        personaStates.push(recheckState);
+        lastCompletedPersonaId = persona.id;
+        prevState = recheckState;
+        avaEvents.emit('persona_complete', {
+          persona: persona.id,
+          output_summary: recheckState.output ? `re-checked, ${recheckState.output.length}ch` : 'recheck produced no output',
+          success: recheckState.output != null,
+          duration_ms: (recheckState.completedAt ?? Date.now()) - (recheckState.startedAt ?? Date.now()),
+        });
+        if (recheckState.output) {
+          this.updatePool(contextPool, persona.id, recheckState.output);
+        }
+
+        // If the gatekeeper still HALTs, vetoInfo is set inside checkVeto
+        // and we exit with the second veto reason in the synthesis.
+        if (checkVeto(persona, recheckState.output) !== null) {
+          break;
+        }
+        // Otherwise the rewrite fixed the issue — continue with downstream
+        // personas as if the veto never happened.
       }
     }
 
@@ -526,6 +621,13 @@ export class Conductor {
   /**
    * Run a single persona. Sends a focused prompt to the model with the persona's
    * system instructions, current context pool, and scoped tool access.
+   *
+   * `rewriteContext` is set when this run is a retry after a downstream
+   * veto (e.g. Fact Checker HALTed Content Writer's lesson). The persona
+   * receives the original task plus a focused instruction to address the
+   * specific issue the gatekeeper raised, then re-do its work — typically
+   * by re-reading state from disk via its tools and producing a corrected
+   * output. Bounded to one retry per veto by `orchestrate()`.
    */
   private async runPersona(
     persona: PersonaDefinition,
@@ -533,6 +635,7 @@ export class Conductor {
     history: Message[],
     onEvent: ConductorEventHandler,
     signal?: AbortSignal,
+    rewriteContext?: { vetoerId: PersonaId; reason: string },
   ): Promise<PersonaState> {
     const state: PersonaState = {
       id: persona.id,
@@ -568,6 +671,18 @@ export class Conductor {
       const poolContext = this.poolToString(pool);
       if (poolContext) {
         messages.push({ role: 'user', content: `[Context from team]:\n${poolContext}` });
+      }
+
+      // Rewrite-after-veto instruction. Comes after the team context so the
+      // model has all background, then sees the specific correction it owes.
+      if (rewriteContext) {
+        messages.push({
+          role: 'user',
+          content:
+            `[Rewrite request]:\nYour previous output was rejected by ${rewriteContext.vetoerId} for the following reason:\n\n` +
+            `> ${rewriteContext.reason}\n\n` +
+            `Re-do your work to specifically address this issue. Read the current state via your tools (the previous attempt has already been written to disk where applicable), make the targeted correction, and produce a fresh output. Do not abandon the rest of your previous work — keep what was correct, fix only what was flagged.`,
+        });
       }
 
       // Resolve model + provider for this persona. Light-tier personas

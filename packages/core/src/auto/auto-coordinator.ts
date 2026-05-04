@@ -16,7 +16,7 @@ import { ModelRouter } from './model-router.js';
 import { generateBrief, formatBriefAsSystem } from './brief-generator.js';
 import { ContextTracker } from './context-tracker.js';
 import { resolveCoordinatorModel } from './coordinator-model.js';
-import { classifyIntent, resolveIntentGateModel } from './intent-gate.js';
+import { classifyIntent, classifyTeachDepth, resolveIntentGateModel } from './intent-gate.js';
 import { SUPERNOVA_COORDINATOR_ID, SUPERNOVA_BUILDER_ID } from './supernova-router.js';
 import { AURORA_COORDINATOR_ID, AURORA_BUILDER_ID } from './aurora-router.js';
 import type { RoutingMode } from './model-router.js';
@@ -526,8 +526,27 @@ export class AutoCoordinator {
       }
     }
 
-    // Route to best model
-    const route = this.router.route(classification.category, classification.modelOverride);
+    // For Teach mode, classify creation-vs-delivery depth upfront so the
+    // same Flash decision can influence both routing (creation gets the
+    // coordinator-tier model, delivery stays on the cheaper teach-tier)
+    // and the Conductor (full team vs Tutor-only). Falls back to undefined
+    // if Flash is unavailable — router and orchestrate both handle that.
+    let teachDepth: 'light' | 'full' | undefined;
+    if (mode === 'teach' && this.intentGate) {
+      const decision = await classifyTeachDepth({
+        userMessage: userText,
+        provider: this.intentGate.provider,
+        model: this.intentGate.model,
+        signal,
+      });
+      if (decision) {
+        teachDepth = decision.depth;
+        logger.info(`[auto-coordinator] Teach depth gate: ${decision.depth} (${decision.reasoning})`);
+      }
+    }
+
+    // Route to best model — depth-aware for Teach mode
+    const route = this.router.route(classification.category, classification.modelOverride, teachDepth);
     if (!route) {
       // No model available — fallback to coordinator
       return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
@@ -562,6 +581,7 @@ export class AutoCoordinator {
         userMsg,
         onEvent,
         signal,
+        teachDepth,
       );
       return result;
     } catch (err) {
@@ -788,6 +808,7 @@ Should these tasks be executed as a plan? Output yes or no.`;
     userMsg: { content: string | ContentPart[]; index: number },
     onEvent: AgentEventHandler,
     signal?: AbortSignal,
+    teachDepth?: 'light' | 'full',
   ): Promise<Message[]> {
     // Emit agent start
     this.emitAutoEvent(onEvent, { type: 'auto_agent_start', model: route.model.name, category });
@@ -888,6 +909,11 @@ Should these tasks be executed as a plan? Output yes or no.`;
               // window. The task agent's main loop picks up the
               // interjection on its next iteration.
               hasPendingInjection: () => taskAgent.hasPendingInterjections(),
+              // Flash-classified Teach depth wins over the conductor's
+              // regex fallback. Undefined leaves orchestrate to use its
+              // own detection (works for non-Teach modes and as the
+              // safety net when Flash is unavailable).
+              depth: teachDepth,
             },
           );
 

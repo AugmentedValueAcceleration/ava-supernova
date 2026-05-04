@@ -211,11 +211,24 @@ function recalculateProgress(curriculum: Curriculum): void {
   );
   curriculum.status = curriculum.progress_percent === 100 ? 'completed' : 'active';
 
-  // Unlock next module when current completes
+  // Unlock next module when current completes — but only if the gate
+  // quiz (if present) has been passed. A module whose final lesson is a
+  // quiz uses that quiz as the unlock gate; a passing score (≥70) is
+  // required before the next module becomes available. Modules without
+  // a final quiz unlock on lesson-completion alone, as before.
   for (let i = 0; i < curriculum.modules.length - 1; i++) {
-    if (curriculum.modules[i].status === 'completed' && curriculum.modules[i + 1].status === 'locked') {
-      curriculum.modules[i + 1].status = 'available';
+    const current = curriculum.modules[i];
+    const next = curriculum.modules[i + 1];
+    if (current.status !== 'completed' || next.status !== 'locked') continue;
+
+    const lastLesson = current.lessons[current.lessons.length - 1];
+    const hasGateQuiz = lastLesson && lastLesson.type === 'quiz';
+    if (hasGateQuiz && (lastLesson.best_score ?? 0) < 70) {
+      // Final quiz exists but hasn't been passed at threshold — keep the
+      // next module locked. The learner needs to retry the quiz first.
+      continue;
     }
+    next.status = 'available';
   }
 }
 
@@ -328,6 +341,74 @@ function generateCertificate(curriculum: Curriculum): string {
     `---\n\n*Awarded by **Ava Supernova** — Your AI learning companion*`;
 }
 
+// ── Quiz answer matching helpers ─────────────────────────────────────
+// Exact-string matching is too brittle for open-ended answers — "node js"
+// fails against "Node.js", "javascripts" fails against "JavaScript". A
+// typing learner shouldn't be marked wrong for a punctuation difference
+// or a one-character typo. These helpers normalize formatting and allow
+// a small edit-distance for short answers, while keeping the strict
+// matcher for letter-keyed multiple choice.
+
+/**
+ * Normalize an answer for comparison: lowercase, collapse whitespace,
+ * strip surrounding punctuation. Preserves alphanumerics and math/code
+ * tokens (+, -, =, *, /, _) that often carry meaning in technical
+ * answers ("a + b", "x = y").
+ */
+function normalizeAnswer(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[\s.\-_]+/g, '')
+    .replace(/[^\p{L}\p{N}+=*/]/gu, '')
+    .trim();
+}
+
+/** Standard iterative Levenshtein distance. O(n·m). */
+function levenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  let prev = new Array(b.length + 1).fill(0).map((_, j) => j);
+  let curr = new Array(b.length + 1).fill(0);
+  for (let i = 1; i <= a.length; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+      curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+    }
+    [prev, curr] = [curr, prev];
+  }
+  return prev[b.length];
+}
+
+/**
+ * Decide whether a user's answer matches the correct answer with a bit
+ * of forgiveness for typos and formatting. Strategy:
+ *  1. Exact lowercased trim match → pass.
+ *  2. Normalized equality (drops punctuation, whitespace) → pass.
+ *  3. For short answers (≤20 chars after normalization), allow a small
+ *     edit-distance: ≤1 typo for ≤6 chars, ≤2 for ≤12 chars, ≤3 for ≤20.
+ *     Rejects bigger differences so unrelated answers don't slip through.
+ *
+ * Multiple-choice grading still uses letter-to-option mapping in the
+ * caller; this is the open-ended-text fallback.
+ */
+function answersMatch(userAnswer: string, correctAnswer: string): boolean {
+  const u = userAnswer.trim().toLowerCase();
+  const c = correctAnswer.trim().toLowerCase();
+  if (u === c) return true;
+  const un = normalizeAnswer(userAnswer);
+  const cn = normalizeAnswer(correctAnswer);
+  if (un === cn && un.length > 0) return true;
+  // Edit-distance forgiveness scaled by length so short-answer typos
+  // don't fail the learner but unrelated long answers don't pass.
+  if (un.length === 0 || cn.length === 0) return false;
+  const refLen = Math.max(un.length, cn.length);
+  if (refLen > 20) return false;
+  const allowed = refLen <= 6 ? 1 : refLen <= 12 ? 2 : 3;
+  return levenshtein(un, cn) <= allowed;
+}
+
 // Find lessons due for spaced repetition review
 function getLessonsForReview(curriculum: Curriculum): Array<{ module: Module; lesson: Lesson }> {
   const now = Date.now();
@@ -335,7 +416,12 @@ function getLessonsForReview(curriculum: Curriculum): Array<{ module: Module; le
 
   for (const mod of curriculum.modules) {
     for (const lesson of mod.lessons) {
-      if (lesson.status !== 'completed' && lesson.status !== 'needs_review') continue;
+      // Spaced review is for MASTERED material only. `needs_review` is
+      // the failed-quiz retry state — those lessons surface via
+      // `next_lesson` as the next thing to do, not via the spaced-review
+      // path. Mixing the two double-surfaces the same lesson and
+      // confuses the Tutor about what to deliver.
+      if (lesson.status !== 'completed') continue;
       if (!lesson.completed_at) continue;
 
       // Spaced repetition intervals: 1 day, 3 days, 7 days, 14 days, 30 days
@@ -692,6 +778,10 @@ export class LearningTeachTool implements Tool {
         lesson.status = 'in_progress';
         lesson.started_at = new Date().toISOString();
         curriculum.updated_at = new Date().toISOString();
+        // Refresh the adaptive signal from recent quiz performance so the
+        // Tutor's delivery this turn matches where the learner actually
+        // is, not where they were when the curriculum was created.
+        curriculum.adaptive_level = getAdaptiveDifficulty(curriculum);
         updateStreak(store);
         recalculateProgress(curriculum);
         await persist(globalDir, store, context);
@@ -700,10 +790,17 @@ export class LearningTeachTool implements Tool {
         if (lesson.estimated_minutes) out += ` · ~${lesson.estimated_minutes} min`;
         out += '\n';
 
-        if (lesson.learning_objectives.length > 0) {
-          out += '\n**After this lesson, you will:**\n';
-          out += lesson.learning_objectives.map(o => `- ${o}`).join('\n');
-          out += '\n';
+        // Adaptive pacing signal for the Tutor. The Tutor's prompt tells
+        // it to "adapt pace to the learner" — this gives it concrete
+        // data based on recent quiz scores rather than guessing.
+        const ADAPTIVE_GUIDANCE: Record<'easy' | 'medium' | 'hard', string> = {
+          easy: 'Recent quiz performance is below 70% — slow down. Add more worked examples, check understanding more often, and don\'t rush to harder lessons. Reinforce foundations before pushing forward.',
+          medium: 'Recent quiz performance is solid (70-90%). Continue at standard pace.',
+          hard: 'Recent quiz performance is excellent (≥90%) — push harder. Skip introductory framing, go straight to edge cases, ask deeper why-questions. The learner is ready for stretch material.',
+        };
+        const adaptive = curriculum.adaptive_level;
+        if (adaptive && adaptive in ADAPTIVE_GUIDANCE) {
+          out += `\n_Adaptive guidance: ${ADAPTIVE_GUIDANCE[adaptive]}_\n`;
         }
 
         if (lesson.content) {
@@ -871,16 +968,21 @@ export class LearningTeachTool implements Tool {
           const userAnswer = quizAnswers[i] || '';
           q.user_answer = userAnswer;
 
-          // Flexible matching — case insensitive, trim, letter-to-option mapping
-          const normalise = (s: string) => s.trim().toLowerCase();
-          let isCorrect = normalise(userAnswer) === normalise(q.correct_answer);
-
-          // Also accept letter answers (A, B, C, D) mapped to options
-          if (!isCorrect && q.options && /^[a-d]$/i.test(userAnswer.trim())) {
+          // Multiple-choice: user can answer with the letter (A/B/C/D)
+          // or the option text. Stays strict on the letter mapping.
+          let isCorrect = false;
+          if (q.options && /^[a-d]$/i.test(userAnswer.trim())) {
             const idx = userAnswer.trim().toUpperCase().charCodeAt(0) - 65;
             if (idx >= 0 && idx < q.options.length) {
-              isCorrect = normalise(q.options[idx]) === normalise(q.correct_answer);
+              isCorrect = answersMatch(q.options[idx], q.correct_answer);
             }
+          }
+          // Open-ended (or option text typed out): forgiving match —
+          // case / punctuation / whitespace insensitive plus a small
+          // edit-distance budget for typos on short answers. See
+          // answersMatch above for the strategy.
+          if (!isCorrect) {
+            isCorrect = answersMatch(userAnswer, q.correct_answer);
           }
 
           q.is_correct = isCorrect;
@@ -1068,7 +1170,6 @@ export class LearningProgressTool implements Tool {
                 (next.estimated_minutes ? ` ~${next.estimated_minutes}m` : '') +
                 (next.status === 'needs_review' ? ' ⟳ RETRY' : '') +
                 `\n[curriculum_id: ${curriculum.id}, lesson_id: ${next.id}]\n` +
-                (next.learning_objectives.length > 0 ? `\nYou'll learn: ${next.learning_objectives.join(', ')}` : '') +
                 (next.content ? `\n\nReady to start? Use learning_teach with action "deliver".` : '\nNo content yet — use learning_teach with action "write_content" first.'),
               metadata: { curriculum_id: curriculum.id, lesson_id: next.id, type: next.type },
             };
@@ -1109,8 +1210,7 @@ export class LearningProgressTool implements Tool {
               const matches =
                 lesson.title.toLowerCase().includes(q) ||
                 (lesson.content || '').toLowerCase().includes(q) ||
-                lesson.tags.some(t => t.toLowerCase().includes(q)) ||
-                lesson.learning_objectives.some(o => o.toLowerCase().includes(q));
+                lesson.tags.some(t => t.toLowerCase().includes(q));
 
               if (matches) {
                 results.push(`- **${lesson.title}** [${lesson.type}] in ${curr.title} > ${mod.title} [id: ${lesson.id}]`);

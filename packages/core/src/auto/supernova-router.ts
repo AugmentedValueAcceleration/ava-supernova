@@ -48,6 +48,8 @@ export interface SupernovaRouteEntry {
   reason: string;
   fallbackModelId?: string;
   requiresVision?: boolean;
+  /** Used by `teach` — coordinator-tier model when curriculum is being created (depth='full'). */
+  creationModelId?: string;
 }
 
 export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
@@ -77,7 +79,7 @@ export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
   // 1M-context grunt: V4 Pro shines (10% KV cache footprint at 1M).
   long_context: { modelId: 'deepseek-v4-pro-platform',    reason: 'DeepSeek V4 Pro — 1M context with 10% KV cache footprint',                           fallbackModelId: 'qwen3.6-plus' },
   // Teach = Tutor + Curriculum Architect (both medium-depth) → V4 Flash sweet spot.
-  teach:        { modelId: 'deepseek-v4-flash-platform',  reason: 'DeepSeek V4 Flash — mid-depth teaching at flash-tier cost',                          fallbackModelId: 'qwen3.6-plus' },
+  teach:        { modelId: 'deepseek-v4-flash-platform',  reason: 'DeepSeek V4 Flash — mid-depth teaching at flash-tier cost',                          fallbackModelId: 'qwen3.6-plus', creationModelId: 'deepseek-v4-pro-platform' },
   // Security = CVE Researcher leads — depth 4 reasoning over attack surface.
   security:     { modelId: 'deepseek-v4-pro-platform',    reason: 'DeepSeek V4 Pro — deep reasoning over attack surface',                               fallbackModelId: 'qwen3.6-plus' },
   // Brainstorm = Ideator depth 5 → V4 Pro Think-Max.

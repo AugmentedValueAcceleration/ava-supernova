@@ -12,7 +12,7 @@ const READ_TOOLS = [
 ];
 
 const MEMORY_TOOLS = ['memory_save', 'memory_recall', 'memory_update', 'memory_delete'];
-const SEARCH_TOOLS = ['web_search', 'http_request', 'browser'];
+const SEARCH_TOOLS = ['web_search', 'http_request', 'browser', 'paper_fetch_full_text'];
 const WRITE_TOOLS = ['file_write', 'file_edit', 'bash', 'git_commit', 'git_create_pr'];
 const PLANNING_TOOLS = ['todo_write'];
 // present_plan removed — personas can't trigger user-facing confirmations during orchestration
@@ -23,6 +23,11 @@ const TESTING_TOOLS = ['test_run', 'test_generate', 'benchmark'];
 // three personas re-run npm audit on the same tree per pass.
 const SECURITY_TOOLS = ['analyze_architecture'];
 const LEARNING_TOOLS = ['learning_create', 'learning_teach', 'learning_progress'];
+// Subset for personas that operate WITHIN an existing curriculum — they
+// fill content, verify it, write quizzes, deliver lessons. They must not
+// instantiate new curriculums; only Curriculum Architect (and Tutor in
+// the light-path solo case) own creation. Drops `learning_create`.
+const LEARNING_DELIVERY_TOOLS = ['learning_teach', 'learning_progress'];
 
 // ── Work Mode Personas ─────────────────────────────────────────────────────
 
@@ -416,7 +421,7 @@ Your focus:
 - Include code examples for programming topics — show, don't just tell
 
 You teach by making complex things simple. Not by dumbing things down — by finding the right angle that makes it click.`,
-  allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS, ...LEARNING_TOOLS],
+  allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS, ...LEARNING_DELIVERY_TOOLS],
   priority: 2,
   dependsOn: ['curriculum_architect'],
 };
@@ -453,7 +458,7 @@ When you emit HALT, downstream personas (Quiz Master, Tutor) do not run and the 
 Do not emit HALT for minor style preferences, clarifications that would help but aren't wrong, or issues the Tutor can handle on delivery. HALT is for *wrong*, not for *could be better*.
 
 If the content passes your checks, just report your findings normally — no HALT prefix. Minor improvements go in your report for the Tutor to pick up.`,
-  allowedTools: [...READ_TOOLS, ...SEARCH_TOOLS, ...MEMORY_TOOLS, ...LEARNING_TOOLS],
+  allowedTools: [...READ_TOOLS, ...SEARCH_TOOLS, ...MEMORY_TOOLS, ...LEARNING_DELIVERY_TOOLS],
   priority: 3,
   dependsOn: ['content_writer'],
   canVeto: true,
@@ -494,7 +499,7 @@ questions: [
 \`\`\`
 
 Without this call the questions live only in your response and die when the chat ends — the learner loses them. The Tutor can only deliver questions that have been persisted.`,
-  allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...LEARNING_TOOLS],
+  allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...LEARNING_DELIVERY_TOOLS],
   priority: 4,
   dependsOn: ['fact_checker'],
 };
@@ -512,20 +517,23 @@ Your focus:
 - If they got something wrong, explain why without making them feel bad. Use their mistake as a teaching moment
 - Reference their progress, streaks, and milestones from learning tools
 - Reference personal context from memory — "remember when you built X? This is similar because..."
-- Use the full toolkit to demonstrate concepts with real code when teaching programming
+- Demonstrate code in markdown code blocks within your reply — don't create files in the user's project. Teach mode is for teaching, not for producing side-effects in their repo. If the lesson is a hands-on exercise that needs the user to write code, ask them to try it themselves and paste the result, OR suggest they switch to Work mode to do the actual implementation.
+- You CAN run the user's tests (test_run / test_generate / benchmark) to verify a solution they've written — that's reading their work, not creating side-effects.
 - Track time — if they've been on one lesson too long, suggest a break or a different angle
 - Celebrate progress genuinely — streaks, milestones, quiz scores
 
 You are patient, encouraging, and honest. You don't just deliver content — you make sure it landed.
 The Content Writer writes it. The Fact Checker verifies it. You TEACH it.`,
-  // WRITE_TOOLS is intentionally NOT spread — it includes git_commit and
-  // git_create_pr, which a teaching session should never reach for.
-  // file_write/file_edit/bash are listed explicitly so the Tutor can run
-  // live code examples and create sample files, but git stays out.
+  // No write/exec tools. file_write, file_edit, bash, git_*, etc. are
+  // intentionally excluded — Teach mode demos go in markdown code blocks
+  // in chat, not as side-effects in the user's project. test_run is kept
+  // so the Tutor can verify a solution the user has written. If the user
+  // wants hands-on building they switch to Work mode; this preserves the
+  // separation of concerns and keeps Teach mode safe for demonstration
+  // even when the user has globally allow-listed write tools.
   allowedTools: [
     ...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS,
     ...LEARNING_TOOLS, ...PLANNING_TOOLS, ...TESTING_TOOLS,
-    'file_write', 'file_edit', 'bash',
   ],
   priority: 5,
   dependsOn: ['quiz_master'],
@@ -826,7 +834,9 @@ export const SECURITY_PERSONAS_LIGHT: PersonaDefinition[] = [
 // Master → Tutor) only needs to run once, when the curriculum is first
 // designed. Follow-on delivery turns ("continue", "another example",
 // "I'm stuck") only need TUTOR — running the full team for these wastes 4×
-// the tokens for the same response. Conductor.needsTeachFullTeam() decides.
+// the tokens for the same response. The Flash-based `classifyTeachDepth`
+// in `auto-coordinator` picks the depth per turn; `detectConductorDepth`
+// is the regex fallback when Flash is unavailable.
 export const TEACH_PERSONAS_LIGHT: PersonaDefinition[] = [
   TUTOR,
 ];

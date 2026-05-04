@@ -12,6 +12,17 @@ interface RouteEntry {
   reason: string;
   fallbackModelId?: string;
   requiresVision?: boolean;
+  /**
+   * Used by the `teach` category. When the upstream Flash gate
+   * (`classifyTeachDepth`) reports `depth: 'full'` — i.e. the user is
+   * creating a new curriculum — the router upgrades to this model
+   * instead of the standard `modelId`. Curriculum creation runs the full
+   * 5-persona team (Architect → Writer → Fact Checker → Quiz Master →
+   * Tutor) and benefits from the coordinator-tier model; delivery turns
+   * are Tutor-only and stay on the cheaper teach-tier model. Optional
+   * everywhere; only set on the `teach` entry of each routing table.
+   */
+  creationModelId?: string;
 }
 
 // Maestro routing — Qwen-only, tier-differentiated by task. Heavy reasoning
@@ -36,7 +47,7 @@ const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
   long_context: { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — hybrid linear-attention + MoE efficient at 1M', fallbackModelId: 'qwen3.5-plus' },
   // Teach leans on long-form coherent output more than frontier reasoning.
   // 3.5 Plus is the cost-sensitive long-output tier.
-  teach:        { modelId: 'qwen3.5-plus',      reason: 'Qwen 3.5 Plus — cost-sensitive long-form coherent output for tutorials', fallbackModelId: 'qwen3.6-plus' },
+  teach:        { modelId: 'qwen3.5-plus',      reason: 'Qwen 3.5 Plus — cost-sensitive long-form coherent output for tutorials', fallbackModelId: 'qwen3.6-plus', creationModelId: 'qwen3.6-plus' },
   security:     { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — security analysis with full codebase context + depth', fallbackModelId: 'qwen3.5-plus' },
   brainstorm:   { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — creative reasoning depth + 1M context', fallbackModelId: 'qwen3.5-plus' },
 };
@@ -73,8 +84,16 @@ export class ModelRouter {
   /**
    * Route a task category to the best available model.
    * Returns null only if no model at all is available (shouldn't happen in practice).
+   *
+   * `teachDepth` is consulted only for `category === 'teach'`. When the
+   * Flash gate upstream determines this is a curriculum-creation request
+   * ('full'), the router upgrades to `entry.creationModelId` (the
+   * coordinator-tier model) — running the 5-persona prep team on a
+   * mid-tier model produced shallow curriculums. Delivery turns
+   * ('light') and undefined (Flash unavailable / non-Teach) keep the
+   * standard `entry.modelId`.
    */
-  route(category: TaskCategory, modelOverride?: string): RouteResult | null {
+  route(category: TaskCategory, modelOverride?: string, teachDepth?: 'light' | 'full'): RouteResult | null {
     // 1. Explicit model override from user (e.g. "@kimi")
     if (modelOverride) {
       return this.resolveModel(modelOverride, `User requested ${modelOverride}`);
@@ -97,8 +116,19 @@ export class ModelRouter {
     const entry = routes[category];
     if (!entry) return null;
 
+    // Curriculum-creation upgrade: route to the coordinator-tier model
+    // when the Flash gate has flagged this turn as full curriculum prep.
+    const primaryModelId =
+      category === 'teach' && teachDepth === 'full' && entry.creationModelId
+        ? entry.creationModelId
+        : entry.modelId;
+    const primaryReason =
+      category === 'teach' && teachDepth === 'full' && entry.creationModelId
+        ? `${entry.reason} (curriculum-creation upgrade → coordinator tier)`
+        : entry.reason;
+
     // Try primary
-    const primary = this.resolveModel(entry.modelId, entry.reason);
+    const primary = this.resolveModel(primaryModelId, primaryReason);
     if (primary) {
       // Check vision requirement
       if (entry.requiresVision && !primary.model.supportsVision) {
