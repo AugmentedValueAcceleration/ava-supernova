@@ -181,11 +181,18 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       // New user message = new turn. Clear currentAssistantId so the next
       // stream_start creates a fresh assistant bubble instead of appending
       // to the previous turn's bubble.
+      // Also set isThinking immediately — between user_message_ack and the
+      // first stream_start the host is doing real work (memory brief,
+      // intent gate, routing). On slower upstream providers (Mistral
+      // Small 4 in Aurora) that prep can run 1-3s, and the UI was
+      // showing nothing during it. Honest signal: she's already working
+      // the moment you hit send.
       return {
         ...state,
         messages: [...state.messages, msg],
         currentAssistantId: null,
         isStreaming: true,
+        isThinking: true,
       };
     }
 
