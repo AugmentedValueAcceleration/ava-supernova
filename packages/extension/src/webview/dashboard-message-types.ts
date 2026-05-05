@@ -388,6 +388,29 @@ export type PapersTab = 'featured' | 'trending' | 'latest';
 
 // ─── Release Notes ──────────────────────────────────────────────────────────
 
+// ─── Roadmap ────────────────────────────────────────────────────────────────
+// Single source of truth on the platform DB; all surfaces fetch via
+// /api/roadmap. Items grouped by theme; localized by the API based on
+// the request locale (English fallback when no translation exists).
+
+export interface RoadmapItem {
+  id: string;
+  label: string;
+  shipped: boolean;
+  sort_order: number;
+}
+
+export interface RoadmapTheme {
+  id: string;
+  slug: string;
+  title: string;
+  icon: string;
+  color: string;
+  color_bg: string;
+  sort_order: number;
+  items: RoadmapItem[];
+}
+
 export interface ReleaseNote {
   id: string;
   version: string;
@@ -714,6 +737,7 @@ export type ExtToDashboardMessage =
   | { type: 'papers_loaded'; tab: PapersTab; papers: LibraryPaper[] }
   | { type: 'papers_search_results'; query: string; papers: LibraryPaper[]; total: number }
   | { type: 'paper_detail_loaded'; paper: LibraryPaper | null }
+  | { type: 'roadmap_loaded'; themes: RoadmapTheme[] }
   | { type: 'library_path_detail_loaded'; path: LibraryPathDetail }
   | { type: 'library_path_forked'; curriculumId: string; title: string }
   | { type: 'library_path_published'; pathId: string; status: string; message: string }
@@ -952,6 +976,7 @@ export type DashboardToExtMessage =
   | { type: 'search_papers'; query: string; discipline?: PaperDiscipline; sort?: 'relevance' | 'date' | 'cited' }
   | { type: 'load_paper_detail'; id: string }
   | { type: 'read_paper_with_ava'; paper: LibraryPaper }
+  | { type: 'load_roadmap' }
   | { type: 'load_task_dates' }
   // Sync messages
   | { type: 'load_sync_status' }

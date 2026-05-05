@@ -47,6 +47,7 @@ import type {
   LibraryPaper,
   PapersTab,
   ReleaseNote,
+  RoadmapTheme,
 } from './dashboard-message-types.js';
 
 /** Chat message types that should be forwarded to AvaViewProvider */
@@ -760,6 +761,33 @@ export class DashboardPanel {
         } catch (err) {
           this.log(`[papers] search error: ${err instanceof Error ? err.message : String(err)}`);
           this.post({ type: 'papers_search_results', query: msg.query, papers: [], total: 0 });
+        }
+        break;
+      }
+
+      case 'load_roadmap': {
+        // Roadmap fetch — single source of truth on the platform DB.
+        // Public endpoint, no auth. Locale picked from VS Code's
+        // env language so labels come back translated when the row
+        // has a matching translations[locale] key. Always posts
+        // `roadmap_loaded` (success OR failure) so the page's
+        // loading state clears.
+        try {
+          const locale = (vscode.env.language || 'en').split('-')[0];
+          const url = `https://ava-supernova.com/api/roadmap?locale=${encodeURIComponent(locale)}`;
+          this.log(`[roadmap] load locale=${locale}`);
+          const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+          if (!res.ok) {
+            this.log(`[roadmap] load failed: HTTP ${res.status}`);
+            this.post({ type: 'roadmap_loaded', themes: [] });
+            break;
+          }
+          const data = (await res.json()) as { themes?: RoadmapTheme[] };
+          this.log(`[roadmap] load ok themes=${data.themes?.length ?? 0}`);
+          this.post({ type: 'roadmap_loaded', themes: data.themes ?? [] });
+        } catch (err) {
+          this.log(`[roadmap] load error: ${err instanceof Error ? err.message : String(err)}`);
+          this.post({ type: 'roadmap_loaded', themes: [] });
         }
         break;
       }

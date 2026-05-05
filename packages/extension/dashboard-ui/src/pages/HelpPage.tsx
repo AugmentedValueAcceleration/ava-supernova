@@ -4,7 +4,7 @@ import { SupportChat } from './SupportChat';
 import { Releases } from './Releases';
 import { Roadmap } from './Roadmap';
 import { DocumentationPage } from './DocumentationPage';
-import type { ReleaseNote } from '../types/messages';
+import type { ReleaseNote, RoadmapTheme } from '../types/messages';
 
 type HelpTab = 'support' | 'docs' | 'releases' | 'roadmap';
 
@@ -16,6 +16,8 @@ interface HelpPageProps {
   activeConversationId: string | null;
   supportLoading: boolean;
   supportUnread: number;
+  roadmapThemes: RoadmapTheme[];
+  roadmapLoading: boolean;
 }
 
 function getHelpTabs(): { key: HelpTab; label: string }[] {
@@ -27,7 +29,7 @@ function getHelpTabs(): { key: HelpTab; label: string }[] {
   ];
 }
 
-export function HelpPage({ releases, mode, supportConversations, supportMessages, activeConversationId, supportLoading, supportUnread }: HelpPageProps) {
+export function HelpPage({ releases, mode, supportConversations, supportMessages, activeConversationId, supportLoading, supportUnread, roadmapThemes, roadmapLoading }: HelpPageProps) {
   useLocale();
   const [activeTab, setActiveTab] = useState<HelpTab>('support');
 
@@ -79,7 +81,7 @@ export function HelpPage({ releases, mode, supportConversations, supportMessages
       )}
 
       {activeTab === 'roadmap' && (
-        <Roadmap />
+        <Roadmap themes={roadmapThemes} loading={roadmapLoading} />
       )}
     </div>
   );

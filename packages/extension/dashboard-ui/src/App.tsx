@@ -47,6 +47,7 @@ import type {
   PaperDiscipline,
   CreativeAsset,
   PersonalityData,
+  RoadmapTheme,
 } from './types/messages';
 
 export { post };
@@ -198,6 +199,11 @@ export function App() {
   // carry, which is why clicking a card felt like nothing loaded.
   const [paperDetail, setPaperDetail] = useState<LibraryPaper | null>(null);
   const [paperDetailLoading, setPaperDetailLoading] = useState(false);
+  // Roadmap — fetched from /api/roadmap via the host, single source
+  // of truth shared with the public web roadmap, the IDE Roadmap
+  // page, and the Hub admin editor.
+  const [roadmapThemes, setRoadmapThemes] = useState<RoadmapTheme[]>([]);
+  const [roadmapLoading, setRoadmapLoading] = useState(false);
   const handleLoadPaperDetail = useCallback((id: string) => {
     setPaperDetailLoading(true);
     setPaperDetail(null);
@@ -548,6 +554,12 @@ export function App() {
         setPaperDetail(msg.paper);
         setPaperDetailLoading(false);
         break;
+      case 'roadmap_loaded':
+        // Empty themes = network/upstream failure; the Roadmap surface
+        // shows an "empty roadmap" state, not a broken loader.
+        setRoadmapThemes(msg.themes);
+        setRoadmapLoading(false);
+        break;
       case 'library_path_forked':
         // Refresh learning list to show the new curriculum
         post({ type: 'load_learning' });
@@ -786,6 +798,15 @@ export function App() {
     if (page === 'settings' || page === 'keys') {
       post({ type: 'load_avatar' });
     }
+    // Roadmap fetch — single source of truth on /api/roadmap.
+    // Triggered when the user lands on any of the Help-page tabs
+    // (the Roadmap sub-tab lives there). Cheap to refire — host
+    // request is cached server-side and the UI shows the current
+    // themes immediately, then swaps in the fresh response.
+    if (page === 'help' || page === 'support' || page === 'releases' || page === 'roadmap') {
+      setRoadmapLoading(true);
+      post({ type: 'load_roadmap' });
+    }
   }, [page]);
 
   if (!initialized) {
@@ -892,6 +913,8 @@ export function App() {
             activeConversationId={activeConversationId}
             supportLoading={supportLoading}
             supportUnread={supportUnread}
+            roadmapThemes={roadmapThemes}
+            roadmapLoading={roadmapLoading}
           />
         );
 
