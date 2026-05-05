@@ -38,25 +38,34 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll on new messages.
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeMessages]);
+
+  // Auto-grow the textarea up to a sensible cap so multi-line questions
+  // don't crush the chat area but the field stays compact for one-liners.
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = '0px';
+    ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
+  }, [input]);
 
   const handleSend = useCallback(() => {
     if (!input.trim() || sending) return;
     const text = input.trim();
     setInput('');
     setSending(true);
-
     if (activeConversationId) {
       post({ type: 'send_support_message', conversationId: activeConversationId, message: text });
     } else {
       post({ type: 'start_support_conversation', message: text });
     }
-
-    // Reset sending state after a short delay (actual confirmation comes via message update)
+    // Confirmation arrives via the message-update push; this just clears
+    // the local "sending" guard so a stuck network doesn't lock the input.
     setTimeout(() => setSending(false), 1000);
   }, [input, sending, activeConversationId]);
 
@@ -74,164 +83,165 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
 
   const startNewChat = () => {
     post({ type: 'clear_support_chat' });
+    setTimeout(() => textareaRef.current?.focus(), 50);
   };
 
-  // If not connected (BYOK), show a simplified view
   if (mode === 'byok') {
     return <ByokChat />;
   }
 
+  const hasActiveThread = !!activeConversationId || activeMessages.length > 0;
+
   return (
-    <div className="w-full flex flex-col" style={{ height: 'calc(100vh - 200px)', minHeight: 400 }}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+    <div className="w-full flex flex-col gap-3" style={{ minHeight: 'calc(100vh - 220px)' }}>
+      {/* Header — matches the Releases / Roadmap headers. Subtitle in
+          Ava's voice; no corporate framing. */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-light">Support</h1>
-          <p className="text-xs text-[var(--text-muted)]">Chat with Ava and the team</p>
+          <h1 className="text-[22px] font-semibold text-[#cdd6f4] mb-1">Support</h1>
+          <p className="text-[13px] text-[#6c7086]">
+            Stuck on something? Send it through and I&apos;ll take a look first — the team picks up if I can&apos;t solve it.
+          </p>
         </div>
         <button
           onClick={startNewChat}
-          className="rounded-lg border border-[var(--border-card)] bg-transparent px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-white hover:border-[var(--accent)]/30 transition cursor-pointer"
+          className="rounded-lg border border-[var(--border-card)] bg-transparent px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-white hover:border-[var(--accent)]/40 transition cursor-pointer"
         >
           + New chat
         </button>
       </div>
 
+      {/* Main area — left rail (conversations) + right card (chat) */}
       <div className="flex flex-1 gap-3 min-h-0">
-        {/* Conversation list */}
-        <div className="w-48 shrink-0 flex flex-col gap-1 overflow-y-auto">
-          {conversations.map(conv => (
-            <button
-              key={conv.id}
-              onClick={() => selectConversation(conv.id)}
-              className={`text-left rounded-lg p-2.5 transition cursor-pointer border ${
-                activeConversationId === conv.id
-                  ? 'border-[var(--accent)]/30 bg-[var(--accent)]/5'
-                  : 'border-transparent hover:bg-[var(--bg-input)]'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[10px] text-[var(--text-muted)]">
-                  {new Date(conv.last_message_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                </span>
-                {conv.unread_user > 0 && (
-                  <span className="flex items-center justify-center w-4 h-4 rounded-full bg-[var(--accent)] text-[8px] font-bold text-white">
-                    {conv.unread_user}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-[var(--text-secondary)] truncate">
-                {conv.lastMessage?.preview || conv.summary || 'New conversation'}
-              </p>
-            </button>
-          ))}
-
+        {/* Conversation list rail — subtler than the prior bordered
+            buttons so it reads as navigation, not as cards competing
+            with the chat surface. */}
+        <aside className="w-56 shrink-0 flex flex-col gap-px overflow-y-auto rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-2">
+          <div className="px-2 py-1.5 text-[10px] uppercase tracking-wider font-medium text-[var(--text-muted)]">
+            Conversations
+          </div>
           {conversations.length === 0 && !loading && (
-            <p className="text-[10px] text-[var(--text-muted)] text-center py-4">No conversations yet</p>
+            <div className="px-2 py-3 text-[11px] text-[var(--text-muted)] leading-relaxed">
+              Nothing here yet. Send a message to start a thread.
+            </div>
           )}
-        </div>
+          {conversations.map(conv => {
+            const active = activeConversationId === conv.id;
+            const date = new Date(conv.last_message_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+            return (
+              <button
+                key={conv.id}
+                onClick={() => selectConversation(conv.id)}
+                className={`text-left rounded-lg px-2.5 py-2 transition cursor-pointer ${
+                  active
+                    ? 'bg-[var(--accent)]/10 text-white'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-input)]'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2 mb-0.5">
+                  <span className={`text-[10px] ${active ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'}`}>
+                    {date}
+                  </span>
+                  {conv.unread_user > 0 && (
+                    <span className="flex items-center justify-center min-w-[16px] h-4 rounded-full bg-[var(--accent)] px-1 text-[9px] font-bold text-white">
+                      {conv.unread_user}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] leading-snug truncate">
+                  {conv.lastMessage?.preview || conv.summary || 'New conversation'}
+                </p>
+              </button>
+            );
+          })}
+        </aside>
 
-        {/* Chat area */}
-        <div className="flex-1 flex flex-col rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] overflow-hidden">
-          {activeConversationId || activeMessages.length > 0 ? (
-            <>
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {/* Chat surface — single card. Empty state lives inside it so
+            the input stays in the same spot whether or not there's
+            an active thread. */}
+        <section className="flex-1 flex flex-col rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-5">
+            {hasActiveThread ? (
+              <div className="space-y-3">
                 {activeMessages.map(msg => (
                   <MessageBubble key={msg.id} message={msg} />
                 ))}
                 <div ref={messagesEndRef} />
               </div>
+            ) : (
+              <EmptyState />
+            )}
+          </div>
 
-              {/* Input */}
-              <div className="border-t border-[var(--border-card)] p-3">
-                <div className="flex gap-2">
-                  <textarea
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Type a message..."
-                    rows={1}
-                    className="flex-1 rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none resize-none focus:border-[var(--accent)] transition"
-                  />
-                  <button
-                    onClick={handleSend}
-                    disabled={!input.trim() || sending}
-                    className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white transition hover:bg-[var(--accent-hover,#6d28d9)] disabled:opacity-30 cursor-pointer"
-                  >
-                    Send
-                  </button>
-                </div>
-              </div>
-            </>
-          ) : (
-            /* Empty state — start a new chat */
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-              <div className="w-12 h-12 rounded-full bg-[var(--accent)]/10 flex items-center justify-center mb-4">
-                <svg className="w-6 h-6 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-                </svg>
-              </div>
-              <h3 className="text-sm font-medium text-white mb-1">Need a hand?</h3>
-              <p className="text-xs text-[var(--text-muted)] mb-6 max-w-xs">
-                Just type your question below. Ava will try to help first — and if she can't, the team will jump in.
-              </p>
-
-              {/* Quick input for new chat */}
-              <div className="w-full max-w-sm">
-                <div className="flex gap-2">
-                  <textarea
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="What's up?"
-                    rows={1}
-                    className="flex-1 rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none resize-none focus:border-[var(--accent)] transition"
-                  />
-                  <button
-                    onClick={handleSend}
-                    disabled={!input.trim() || sending}
-                    className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white transition hover:bg-[var(--accent-hover,#6d28d9)] disabled:opacity-30 cursor-pointer"
-                  >
-                    Send
-                  </button>
-                </div>
-              </div>
+          {/* Input — always pinned at the bottom of the card. Single
+              place for composing whether starting a thread or replying
+              in one. */}
+          <div className="border-t border-[var(--border-card)] p-3">
+            <div className="flex gap-2 items-end">
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={hasActiveThread ? 'Reply…' : "What's going on?"}
+                rows={1}
+                className="flex-1 rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none resize-none focus:border-[var(--accent)]/60 transition leading-relaxed"
+                style={{ maxHeight: 160 }}
+              />
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || sending}
+                className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed shrink-0"
+              >
+                Send
+              </button>
             </div>
-          )}
-        </div>
+            <div className="mt-1.5 px-1 text-[10px] text-[var(--text-muted)]">
+              Enter to send · Shift+Enter for a new line
+            </div>
+          </div>
+        </section>
       </div>
 
-      {/* Legal links */}
-      <div className="mt-6 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Legal</h2>
-        <div className="flex gap-4">
-          <button
-            onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/terms' })}
-            className="flex items-center gap-2 text-sm text-[var(--text-secondary)] transition hover:text-white"
-          >
-            <svg className="h-4 w-4 shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-            </svg>
-            Terms of Service
-          </button>
-          <button
-            onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/privacy' })}
-            className="flex items-center gap-2 text-sm text-[var(--text-secondary)] transition hover:text-white"
-          >
-            <svg className="h-4 w-4 shrink-0 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
-            </svg>
-            Privacy Policy
-          </button>
-        </div>
+      {/* Legal — a single quiet line beneath the chat, not a card. */}
+      <div className="flex items-center gap-4 px-1 text-[11px] text-[var(--text-muted)]">
+        <button
+          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/terms' })}
+          className="hover:text-[var(--text-secondary)] transition cursor-pointer"
+        >
+          Terms of Service
+        </button>
+        <span className="opacity-40">·</span>
+        <button
+          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/privacy' })}
+          className="hover:text-[var(--text-secondary)] transition cursor-pointer"
+        >
+          Privacy Policy
+        </button>
       </div>
     </div>
   );
 }
 
-// ── Message bubble ────────────────────────────────────────────────────
+// ── Empty state — Ava's voice, no clunky icon-circle ──────────────────
+function EmptyState() {
+  return (
+    <div className="h-full flex flex-col items-start justify-center max-w-md">
+      <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-3">
+        Hey — I&apos;m Ava.
+      </p>
+      <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-3">
+        Tell me what&apos;s going on and I&apos;ll do my best to help right now. If it needs the team — billing fix, a refund,
+        anything I can&apos;t change myself — I&apos;ll hand it over and they&apos;ll pick it up.
+      </p>
+      <p className="text-[12px] text-[var(--text-muted)] leading-relaxed">
+        Your message goes in the box below.
+      </p>
+    </div>
+  );
+}
 
+// ── Message bubble ────────────────────────────────────────────────────
 function MessageBubble({ message }: { message: SupportMessage }) {
   const isUser = message.sender_type === 'user';
   const isAva = message.is_ava;
@@ -262,44 +272,67 @@ function MessageBubble({ message }: { message: SupportMessage }) {
 }
 
 // ── BYOK fallback ─────────────────────────────────────────────────────
-
 function ByokChat() {
   return (
-    <div className="mx-auto w-full max-w-lg pt-4">
-      <div className="mb-6 text-center">
-        <h2 className="text-xl font-light text-white">Need help?</h2>
+    <div className="w-full flex flex-col gap-4">
+      <div>
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4] mb-1">Need help?</h1>
+        <p className="text-[13px] text-[#6c7086]">
+          You&apos;re running BYOK without a platform account, so live chat support is off. These three places will get you
+          unstuck — connect an account any time to bring me back into the loop.
+        </p>
       </div>
 
-      <div className="space-y-3">
-        <button onClick={() => post({ type: 'open_url', url: 'https://github.com/AugmentedValueAcceleration/ava-supernova/issues' })}
-          className="w-full flex items-center gap-3.5 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-left cursor-pointer hover:border-[var(--accent)]/30 transition">
-          <span className="text-2xl">🐙</span>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <button
+          onClick={() => post({ type: 'open_url', url: 'https://github.com/AugmentedValueAcceleration/ava-supernova/issues' })}
+          className="flex flex-col items-start gap-2 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-left cursor-pointer hover:border-[var(--accent)]/30 transition"
+        >
+          <span className="text-2xl leading-none">🐙</span>
           <div>
             <p className="text-sm font-medium text-white">GitHub Issues</p>
-            <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Report bugs, request features, or ask questions</p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-relaxed">Report bugs, request features, ask questions in the open.</p>
           </div>
         </button>
-        <button onClick={() => post({ type: 'open_url', url: 'https://discord.gg/tuHZzUGxA6' })}
-          className="w-full flex items-center gap-3.5 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-left cursor-pointer hover:border-[var(--accent)]/30 transition">
-          <span className="text-2xl">💬</span>
+
+        <button
+          onClick={() => post({ type: 'open_url', url: 'https://discord.gg/tuHZzUGxA6' })}
+          className="flex flex-col items-start gap-2 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-left cursor-pointer hover:border-[var(--accent)]/30 transition"
+        >
+          <span className="text-2xl leading-none">💬</span>
           <div>
             <p className="text-sm font-medium text-white">Community</p>
-            <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Join the community for help and discussion</p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-relaxed">Discord server — get help from people building with Ava.</p>
           </div>
         </button>
-        <button onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/docs' })}
-          className="w-full flex items-center gap-3.5 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-left cursor-pointer hover:border-[var(--accent)]/30 transition">
-          <span className="text-2xl">📖</span>
+
+        <button
+          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/docs' })}
+          className="flex flex-col items-start gap-2 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-left cursor-pointer hover:border-[var(--accent)]/30 transition"
+        >
+          <span className="text-2xl leading-none">📖</span>
           <div>
             <p className="text-sm font-medium text-white">Documentation</p>
-            <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Guides, setup instructions, and API reference</p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-relaxed">Setup guides, references, and the deeper how-it-works.</p>
           </div>
         </button>
       </div>
 
-      <p className="text-center mt-5 text-[11px] text-[var(--text-muted)]">
-        Connect your account for live chat support with the team
-      </p>
+      <div className="flex items-center gap-4 px-1 text-[11px] text-[var(--text-muted)]">
+        <button
+          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/terms' })}
+          className="hover:text-[var(--text-secondary)] transition cursor-pointer"
+        >
+          Terms of Service
+        </button>
+        <span className="opacity-40">·</span>
+        <button
+          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/privacy' })}
+          className="hover:text-[var(--text-secondary)] transition cursor-pointer"
+        >
+          Privacy Policy
+        </button>
+      </div>
     </div>
   );
 }

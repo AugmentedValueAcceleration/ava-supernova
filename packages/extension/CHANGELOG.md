@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.62.2 — 2026-05-05 — Unified roadmap + Support tab redesign
+
+### Changed
+- **Roadmap is now one source of truth across every surface.** The extension Roadmap tab, the public web roadmap at ava-supernova.com, the IDE Roadmap page, and the Hub admin editor all read the same `/api/roadmap` payload now. The previous hardcoded `themes` const that diverged across web / IDE / extension is gone — edits land in the platform DB and propagate everywhere on next fetch. The seeded list is honest about what's actually shipped today (audited 2026-05-05); aspirational items go through the Hub editor as decisions land.
+- **Support tab redesign.** The empty state used to lead with "Need a hand?" and a clunky icon-in-circle, with the input box only appearing before a thread existed. Now it's a single rounded chat surface with the composer pinned at the bottom — same spot whether or not there's an active thread. Empty state is Ava saying *"Hey — I'm Ava. Tell me what's going on…"* in her voice, not template-speak. Conversation rail is its own card with a small "Conversations" label, subtle accent tint on the active thread, polite empty line. Composer auto-grows up to 160px so multi-line questions don't crush the chat area, with a tiny hint line below: *"Enter to send · Shift+Enter for a new line"*. Legal links are now a single quiet inline row below the chat (`Terms of Service · Privacy Policy`) — no more bordered "LEGAL" card dumping at the bottom. BYOK fallback got a 3-column grid for the help destinations.
+
+### Fixed
+- **Extension Roadmap tab now refreshes from the live source.** The hardcoded list was drifting badly. Pull-to-refresh-style behaviour on every visit to the Help / Support / Releases / Roadmap tabs — host fires `load_roadmap`, the API returns the theme-grouped payload with the user's locale where translations exist, the panel re-renders.
+
 ## 0.62.1 — 2026-05-04 — Papers click loads the paper, Read with Ava lands in chat, dashboard goes full-width
 
 ### Fixed
