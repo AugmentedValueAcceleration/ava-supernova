@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.62.3 — 2026-05-05 — Brainstorm mode tuned for breadth, not depth
+
+### Changed
+- **Brainstorm mode now runs on mid-tier models across all three sovereign fleets, not the heavy-tier reasoning models the rest of the agent uses.** Ideation rewards breadth — diverse angles, creative recombination, surfacing the obvious-in-hindsight thing nobody named — not depth-bound chain-of-thought. The big models' RLHF is tuned to favour careful reasoning, which makes them *more cautious and more samey* on ideation tasks. Aurora dropped from Mistral Large 3 to Medium 3.5; Supernova from DeepSeek V4 Pro Think-Max to V4 Flash; Maestro from Qwen 3.6 Plus to 3.5 Plus. Heavy tier kept as fallback for the rare deep-reasoning brainstorm. Faster, cheaper, creatively wider.
+- **Brainstorm Researcher forked from the Plan-mode Researcher.** The previous shared Researcher persona was tuned for codebase / commit / strategic-decision evidence — wrong shape for ideation. The new Brainstorm Researcher gathers what ideation actually needs: demand signals (what people are paying for and complaining about right now, with quotes), competitive landscape (gaps and failures of existing solutions, not logo lists), timing windows (what changed in the last 6-12 months that makes this possible *now*), adjacent-category angles, and the user's unique advantage explicitly surfaced from the Explorer's profile. Same fork shape as the Brainstorm Challenger fork that already happened.
+
 ## 0.62.2 — 2026-05-05 — Unified roadmap + Support tab redesign
 
 ### Changed
