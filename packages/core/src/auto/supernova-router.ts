@@ -82,8 +82,12 @@ export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
   teach:        { modelId: 'deepseek-v4-flash-platform',  reason: 'DeepSeek V4 Flash — mid-depth teaching at flash-tier cost',                          fallbackModelId: 'qwen3.6-plus', creationModelId: 'deepseek-v4-pro-platform' },
   // Security = CVE Researcher leads — depth 4 reasoning over attack surface.
   security:     { modelId: 'deepseek-v4-pro-platform',    reason: 'DeepSeek V4 Pro — deep reasoning over attack surface',                               fallbackModelId: 'qwen3.6-plus' },
-  // Brainstorm = Ideator depth 5 → V4 Pro Think-Max.
-  brainstorm:   { modelId: 'deepseek-v4-pro-platform',    reason: 'DeepSeek V4 Pro Think-Max — frontier reasoning depth for ideation',                  fallbackModelId: 'qwen3.6-plus' },
+  // Brainstorm = ideation, not depth-bound reasoning. V4 Flash is the
+  // right cognitive shape for breadth — fast, cheap, less RLHF-cautious
+  // than V4 Pro Think-Max, which produces more samey ideation output
+  // because its reward model favours careful reasoning over creative
+  // range. V4 Pro stays as the fallback for rare deep-reasoning workloads.
+  brainstorm:   { modelId: 'deepseek-v4-flash-platform',  reason: 'DeepSeek V4 Flash — breadth over depth for ideation, cheaper and creatively wider than V4 Pro', fallbackModelId: 'deepseek-v4-pro-platform' },
 };
 
 // ── Per-persona override map ──────────────────────────────────────────────

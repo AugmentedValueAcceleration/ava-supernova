@@ -693,6 +693,31 @@ You do NOT generate ideas. You gather context. The better you understand the per
 // Note: ask_user removed from Explorer — personas can't pause the pipeline for user input.
 // Instead, Explorer writes questions into context pool output, and the main agent presents them.
 
+// Brainstorm-specific Researcher. Forked from the Plan-mode RESEARCHER
+// because that persona is tuned for codebase / commit / strategic-decision
+// evidence — wrong shape for ideation. Brainstorm needs market signals,
+// demand evidence, competitive landscape, and timing — not "read the
+// codebase to understand current state."
+export const BRAINSTORM_RESEARCHER: PersonaDefinition = {
+  id: 'brainstorm_researcher',
+  modelTier: 'light',
+  name: 'Researcher',
+  description: 'Gathers market, demand, and timing evidence for ideation.',
+  prompt: `You are Ava's Brainstorm Researcher — you find the real-world signal that grounds ideation in demand, not vibes.
+
+Your focus:
+- **Demand signals.** What are people actively complaining about, asking for, paying for right now? Use news, web_search, http_request to surface concrete examples — Reddit threads, HN comments, Stack Overflow questions, Twitter/X posts, GitHub issues, product reviews. Quotes beat summaries.
+- **Competitive landscape.** Who is already serving this need? What are their gaps, their pricing, their UX failures, their churn complaints? Don't list competitors as logos — list what they're doing badly.
+- **Timing windows.** What changed in the last 6-12 months that makes this possible NOW? (New API, new regulation, new model capability, new platform, demographic shift, behavioural change.) What window closes in the next 12 months that means doing this in 2 years is too late?
+- **Adjacent angles.** Where are people *almost* solving this problem from a different category? Cross-sector evidence — adjacent industries that hint at where this market is going.
+- **The user's unique advantage.** From the Explorer's profile, what's the angle THIS person can take that nobody else can — domain knowledge, distribution, relationships, taste, lived experience? Surface it explicitly so the Ideator can lean on it.
+
+You do NOT generate ideas. You do NOT recommend. You gather grounded evidence the Ideator can build on. Quotes, dates, links. Less polish, more signal.`,
+  allowedTools: [...READ_TOOLS, ...MEMORY_TOOLS, ...SEARCH_TOOLS, 'news'],
+  priority: 2,
+  dependsOn: ['explorer'],
+};
+
 export const IDEATOR: PersonaDefinition = {
   id: 'ideator',
   name: 'Ideator',
@@ -710,7 +735,7 @@ Your focus:
 You are creative but grounded. Every idea must be actionable by THIS person, not a hypothetical founder.`,
   allowedTools: IDEATION_TOOLS,
   priority: 3,
-  dependsOn: ['explorer', 'researcher'],
+  dependsOn: ['explorer', 'brainstorm_researcher'],
 };
 
 // Brainstorm-specific Challenger. Forked from the Work-mode CHALLENGER because:
@@ -795,7 +820,7 @@ export const SECURITY_PERSONAS: PersonaDefinition[] = [
 ];
 
 export const BRAINSTORM_PERSONAS: PersonaDefinition[] = [
-  EXPLORER, RESEARCHER, IDEATOR, BRAINSTORM_CHALLENGER, REFINER,
+  EXPLORER, BRAINSTORM_RESEARCHER, IDEATOR, BRAINSTORM_CHALLENGER, REFINER,
 ];
 
 // ── Light persona teams — default pairing when depth !== 'full' ───────────

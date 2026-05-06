@@ -117,9 +117,13 @@ export const AURORA_ROUTES: Record<TaskCategory, AuroraRouteEntry> = {
   teach:        { modelId: 'mistral-medium-3.5', reason: 'Mistral Medium 3.5 — coherent long-form output for tutorials and lesson plans',           fallbackModelId: 'mistral-large-3', creationModelId: 'mistral-large-3' },
   // Security = CVE Researcher leads — depth-4 reasoning over attack surface.
   security:     { modelId: 'mistral-large-3',    reason: 'Mistral Large 3 — deep reasoning over attack surface',                                    fallbackModelId: 'mistral-medium-3.5' },
-  // Brainstorm = Ideator depth 5. Large 3 reasoning depth gives the
-  // Ideator persona the headroom it needs.
-  brainstorm:   { modelId: 'mistral-large-3',    reason: 'Mistral Large 3 — frontier reasoning depth for ideation',                                 fallbackModelId: 'mistral-medium-3.5' },
+  // Brainstorm = ideation, not depth-bound reasoning. Mistral Medium 3.5
+  // is the right cognitive shape for breadth: faster, cheaper, less RLHF-
+  // cautious than Large 3, which often produces *more samey* output for
+  // ideation tasks because its reward model favours careful reasoning
+  // over creative range. Keep Large 3 as the fallback for the rare case
+  // a brainstorm session pulls in deep-reasoning workloads.
+  brainstorm:   { modelId: 'mistral-medium-3.5', reason: 'Mistral Medium 3.5 — breadth over depth for ideation, cheaper and creatively wider than Large 3', fallbackModelId: 'mistral-large-3' },
 };
 
 // ── Per-persona override map ──────────────────────────────────────────────
@@ -163,10 +167,13 @@ export const AURORA_PERSONA_MODEL: Record<string, string> = {
   cve_researcher:      'mistral-large-3',     // deep reasoning over attack surface
   security_verifier:   'mistral-large-3',
   reporter:            'mistral-medium-3.5',  // long-form report generation
-  // Brainstorm mode personas
+  // Brainstorm mode personas — Medium 3.5 across the board.
+  // Ideation rewards breadth over depth; Large 3's reasoning RLHF tends
+  // to produce more cautious / convergent output. Medium 3.5 is faster,
+  // cheaper, and creatively wider for "give me five non-obvious angles."
   explorer:            'mistral-medium-3.5',
-  brainstorm_researcher:'mistral-large-3',
-  ideator:             'mistral-large-3',     // depth 5
-  brainstorm_challenger:'mistral-large-3',
+  brainstorm_researcher:'mistral-medium-3.5',
+  ideator:             'mistral-medium-3.5',
+  brainstorm_challenger:'mistral-medium-3.5',
   refiner:             'mistral-medium-3.5',
 };

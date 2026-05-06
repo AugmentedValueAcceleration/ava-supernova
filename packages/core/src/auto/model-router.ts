@@ -49,7 +49,12 @@ const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
   // 3.5 Plus is the cost-sensitive long-output tier.
   teach:        { modelId: 'qwen3.5-plus',      reason: 'Qwen 3.5 Plus — cost-sensitive long-form coherent output for tutorials', fallbackModelId: 'qwen3.6-plus', creationModelId: 'qwen3.6-plus' },
   security:     { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — security analysis with full codebase context + depth', fallbackModelId: 'qwen3.5-plus' },
-  brainstorm:   { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — creative reasoning depth + 1M context', fallbackModelId: 'qwen3.5-plus' },
+  // Brainstorm = ideation, not depth-bound reasoning. Qwen 3.5 Plus is
+  // the right cognitive shape for breadth — cheaper, faster, creatively
+  // wider than 3.6 Plus, whose RLHF favours careful reasoning over the
+  // diverse-angles output ideation rewards. 3.6 Plus stays as the
+  // fallback for the rare deep-reasoning brainstorm workload.
+  brainstorm:   { modelId: 'qwen3.5-plus',      reason: 'Qwen 3.5 Plus — breadth over depth for ideation, cheaper and creatively wider than 3.6 Plus', fallbackModelId: 'qwen3.6-plus' },
 };
 
 /**
