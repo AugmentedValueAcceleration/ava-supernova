@@ -205,11 +205,16 @@ export function App() {
   const [paperDetail, setPaperDetail] = useState<LibraryPaper | null>(null);
   const [paperDetailLoading, setPaperDetailLoading] = useState(false);
 
-  // Health library — exercises + recipes browse. Fetched on first
-  // visit to the Health page; cached for the rest of the session.
-  // Detail loads on inline expansion.
+  // Health library — exercises + recipes browse. Paginated server-side
+  // because the initial all-rows fetch took multiple seconds on the
+  // extension surface. Page state lives here so the Health page can
+  // ask for prev/next slices without re-mounting.
   const [healthExercises, setHealthExercises] = useState<HealthExerciseSummary[]>([]);
   const [healthRecipes, setHealthRecipes] = useState<HealthRecipeSummary[]>([]);
+  const [healthExercisesTotal, setHealthExercisesTotal] = useState(0);
+  const [healthRecipesTotal, setHealthRecipesTotal] = useState(0);
+  const [healthExercisesOffset, setHealthExercisesOffset] = useState(0);
+  const [healthRecipesOffset, setHealthRecipesOffset] = useState(0);
   const [healthExercisesLoading, setHealthExercisesLoading] = useState(false);
   const [healthRecipesLoading, setHealthRecipesLoading] = useState(false);
   const [healthExerciseDetail, setHealthExerciseDetail] = useState<HealthExerciseDetail | null>(null);
@@ -231,15 +236,16 @@ export function App() {
   }, []);
   // Health handlers — same pattern as Papers: handler sets loading and
   // posts the load message; safety-net timeout clears loading if the
-  // host never responds.
-  const handleLoadHealthExercises = useCallback(() => {
+  // host never responds. limit/offset come from the Health page; we
+  // forward as-is.
+  const handleLoadHealthExercises = useCallback((limit?: number, offset?: number, workoutType?: string) => {
     setHealthExercisesLoading(true);
-    post({ type: 'load_health_exercises' });
+    post({ type: 'load_health_exercises', limit, offset, workoutType });
     window.setTimeout(() => setHealthExercisesLoading(false), 15000);
   }, []);
-  const handleLoadHealthRecipes = useCallback(() => {
+  const handleLoadHealthRecipes = useCallback((limit?: number, offset?: number, course?: string) => {
     setHealthRecipesLoading(true);
-    post({ type: 'load_health_recipes' });
+    post({ type: 'load_health_recipes', limit, offset, course });
     window.setTimeout(() => setHealthRecipesLoading(false), 15000);
   }, []);
   const handleLoadHealthExerciseDetail = useCallback((slug: string) => {
@@ -598,10 +604,14 @@ export function App() {
         break;
       case 'health_exercises_loaded':
         setHealthExercises(msg.exercises);
+        setHealthExercisesTotal(msg.total);
+        setHealthExercisesOffset(msg.offset);
         setHealthExercisesLoading(false);
         break;
       case 'health_recipes_loaded':
         setHealthRecipes(msg.recipes);
+        setHealthRecipesTotal(msg.total);
+        setHealthRecipesOffset(msg.offset);
         setHealthRecipesLoading(false);
         break;
       case 'health_exercise_detail_loaded':
@@ -1044,6 +1054,10 @@ export function App() {
           <Health
             exercises={healthExercises}
             recipes={healthRecipes}
+            exercisesTotal={healthExercisesTotal}
+            recipesTotal={healthRecipesTotal}
+            exercisesOffset={healthExercisesOffset}
+            recipesOffset={healthRecipesOffset}
             exercisesLoading={healthExercisesLoading}
             recipesLoading={healthRecipesLoading}
             exerciseDetail={healthExerciseDetail}

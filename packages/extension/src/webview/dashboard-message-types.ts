@@ -843,9 +843,12 @@ export type ExtToDashboardMessage =
   | { type: 'papers_loaded'; tab: PapersTab; papers: LibraryPaper[] }
   | { type: 'papers_search_results'; query: string; papers: LibraryPaper[]; total: number }
   | { type: 'paper_detail_loaded'; paper: LibraryPaper | null }
-  // Health library — exercises + recipes browse
-  | { type: 'health_exercises_loaded'; exercises: HealthExerciseSummary[] }
-  | { type: 'health_recipes_loaded'; recipes: HealthRecipeSummary[] }
+  // Health library — exercises + recipes browse (paginated; total
+  // is the count of ALL visible rows so the webview can render
+  // prev/next + page count, even though it only renders the slice it
+  // received in the `exercises` / `recipes` field).
+  | { type: 'health_exercises_loaded'; exercises: HealthExerciseSummary[]; total: number; offset: number }
+  | { type: 'health_recipes_loaded'; recipes: HealthRecipeSummary[]; total: number; offset: number }
   | { type: 'health_exercise_detail_loaded'; exercise: HealthExerciseDetail | null }
   | { type: 'health_recipe_detail_loaded'; recipe: HealthRecipeDetail | null }
   | { type: 'roadmap_loaded'; themes: RoadmapTheme[] }
@@ -1089,8 +1092,10 @@ export type DashboardToExtMessage =
   | { type: 'read_paper_with_ava'; paper: LibraryPaper }
   // Health library — operator wants exercises + recipes browse on the
   // extension surface. Plans/personalised content land in a later pass.
-  | { type: 'load_health_exercises' }
-  | { type: 'load_health_recipes' }
+  // limit + offset are optional; the host defaults to limit=24 offset=0
+  // if either is missing.
+  | { type: 'load_health_exercises'; limit?: number; offset?: number; workoutType?: string }
+  | { type: 'load_health_recipes'; limit?: number; offset?: number; course?: string }
   | { type: 'load_health_exercise_detail'; slug: string }
   | { type: 'load_health_recipe_detail'; slug: string }
   | { type: 'load_roadmap' }

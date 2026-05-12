@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import type {
   HealthExerciseSummary, HealthExerciseDetail,
   HealthRecipeSummary, HealthRecipeDetail,
@@ -69,16 +69,22 @@ const COURSE_LABEL: Record<string, string> = {
 
 type Tab = 'exercises' | 'recipes';
 
+const PAGE_SIZE = 24;
+
 interface Props {
   exercises: HealthExerciseSummary[];
   recipes: HealthRecipeSummary[];
+  exercisesTotal: number;
+  recipesTotal: number;
+  exercisesOffset: number;
+  recipesOffset: number;
   exercisesLoading: boolean;
   recipesLoading: boolean;
   exerciseDetail: HealthExerciseDetail | null;
   recipeDetail: HealthRecipeDetail | null;
   detailLoading: boolean;
-  onLoadExercises: () => void;
-  onLoadRecipes: () => void;
+  onLoadExercises: (limit?: number, offset?: number, workoutType?: string) => void;
+  onLoadRecipes: (limit?: number, offset?: number, course?: string) => void;
   onLoadExerciseDetail: (slug: string) => void;
   onLoadRecipeDetail: (slug: string) => void;
 }
@@ -86,6 +92,10 @@ interface Props {
 export function Health({
   exercises,
   recipes,
+  exercisesTotal,
+  recipesTotal,
+  exercisesOffset,
+  recipesOffset,
   exercisesLoading,
   recipesLoading,
   exerciseDetail,
@@ -105,15 +115,37 @@ export function Health({
   const [modalExerciseSlug, setModalExerciseSlug] = useState<string | null>(null);
   const [modalRecipeSlug, setModalRecipeSlug] = useState<string | null>(null);
 
+  // Initial load — only fires once per tab per session because App.tsx
+  // caches the slice. Subsequent page/filter changes go through the
+  // dedicated handlers below.
   useEffect(() => {
-    if (tab === 'exercises' && exercises.length === 0 && !exercisesLoading) {
-      onLoadExercises();
+    if (tab === 'exercises' && exercises.length === 0 && exercisesTotal === 0 && !exercisesLoading) {
+      onLoadExercises(PAGE_SIZE, 0, exerciseFilter === 'all' ? undefined : exerciseFilter);
     }
-    if (tab === 'recipes' && recipes.length === 0 && !recipesLoading) {
-      onLoadRecipes();
+    if (tab === 'recipes' && recipes.length === 0 && recipesTotal === 0 && !recipesLoading) {
+      onLoadRecipes(PAGE_SIZE, 0, recipeFilter === 'all' ? undefined : recipeFilter);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
+
+  // Filter change resets to page 0 + refetches with the new filter.
+  const handleExerciseFilterChange = (next: 'all' | HealthWorkoutType) => {
+    setExerciseFilter(next);
+    onLoadExercises(PAGE_SIZE, 0, next === 'all' ? undefined : next);
+  };
+  const handleRecipeFilterChange = (next: 'all' | string) => {
+    setRecipeFilter(next);
+    onLoadRecipes(PAGE_SIZE, 0, next === 'all' ? undefined : next);
+  };
+
+  // Page navigation — current offset comes from App.tsx so we always
+  // request relative to the server's last-reported slice.
+  const goExercisesPage = (newOffset: number) => {
+    onLoadExercises(PAGE_SIZE, newOffset, exerciseFilter === 'all' ? undefined : exerciseFilter);
+  };
+  const goRecipesPage = (newOffset: number) => {
+    onLoadRecipes(PAGE_SIZE, newOffset, recipeFilter === 'all' ? undefined : recipeFilter);
+  };
 
   // ESC closes whichever modal is open.
   useEffect(() => {
@@ -128,31 +160,9 @@ export function Health({
     return () => window.removeEventListener('keydown', onKey);
   }, [modalExerciseSlug, modalRecipeSlug]);
 
-  const exerciseTypeCounts = useMemo(() => {
-    const counts = new Map<HealthWorkoutType, number>();
-    for (const ex of exercises) {
-      counts.set(ex.workout_type, (counts.get(ex.workout_type) ?? 0) + 1);
-    }
-    return counts;
-  }, [exercises]);
-
-  const recipeCourseCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const r of recipes) {
-      const key = r.course ?? 'other';
-      counts.set(key, (counts.get(key) ?? 0) + 1);
-    }
-    return counts;
-  }, [recipes]);
-
-  const filteredExercises = useMemo(
-    () => exerciseFilter === 'all' ? exercises : exercises.filter((e) => e.workout_type === exerciseFilter),
-    [exercises, exerciseFilter],
-  );
-  const filteredRecipes = useMemo(
-    () => recipeFilter === 'all' ? recipes : recipes.filter((r) => r.course === recipeFilter),
-    [recipes, recipeFilter],
-  );
+  // Filtering + counts moved server-side. The exercises/recipes arrays
+  // are already the filtered, paginated slice. exercisesTotal/recipesTotal
+  // is the full count for the active filter (drives pagination math).
 
   const openExercise = (slug: string) => {
     setModalExerciseSlug(slug);
@@ -171,7 +181,7 @@ export function Health({
           <div>
             <h1 className="text-[22px] font-light text-vscode-foreground">Health</h1>
             <p className="mt-1 text-[12px] text-vscode-descriptionForeground">
-              {exercises.length} exercises · {recipes.length} recipes · free, open library
+              {exercisesTotal} exercises · {recipesTotal} recipes · free, open library
             </p>
           </div>
         </div>
@@ -181,7 +191,7 @@ export function Health({
           <ul className="flex flex-wrap items-end">
             {(['exercises', 'recipes'] as Tab[]).map((t) => {
               const isActive = tab === t;
-              const count = t === 'exercises' ? exercises.length : recipes.length;
+              const count = t === 'exercises' ? exercisesTotal : recipesTotal;
               return (
                 <li key={t} className="border-b border-vscode-panelBorder">
                   <button
@@ -219,19 +229,23 @@ export function Health({
       <div className="flex-1 overflow-y-auto px-6 py-5">
         {tab === 'exercises' ? (
           <ExercisesGrid
-            items={filteredExercises}
-            counts={exerciseTypeCounts}
+            items={exercises}
+            total={exercisesTotal}
+            offset={exercisesOffset}
             filter={exerciseFilter}
-            onFilter={setExerciseFilter}
+            onFilter={handleExerciseFilterChange}
+            onPage={goExercisesPage}
             loading={exercisesLoading}
             onOpen={openExercise}
           />
         ) : (
           <RecipesGrid
-            items={filteredRecipes}
-            counts={recipeCourseCounts}
+            items={recipes}
+            total={recipesTotal}
+            offset={recipesOffset}
             filter={recipeFilter}
-            onFilter={setRecipeFilter}
+            onFilter={handleRecipeFilterChange}
+            onPage={goRecipesPage}
             loading={recipesLoading}
             onOpen={openRecipe}
           />
@@ -263,26 +277,26 @@ export function Health({
 
 interface ExercisesGridProps {
   items: HealthExerciseSummary[];
-  counts: Map<HealthWorkoutType, number>;
+  total: number;
+  offset: number;
   filter: 'all' | HealthWorkoutType;
   onFilter: (f: 'all' | HealthWorkoutType) => void;
+  onPage: (newOffset: number) => void;
   loading: boolean;
   onOpen: (slug: string) => void;
 }
 
-function ExercisesGrid({ items, counts, filter, onFilter, loading, onOpen }: ExercisesGridProps) {
+function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading, onOpen }: ExercisesGridProps) {
   if (loading && items.length === 0) {
     return <div className="py-12 text-center text-[12px] text-vscode-descriptionForeground">Loading exercises…</div>;
   }
   return (
     <div>
       <FilterRow>
-        <FilterChip active={filter === 'all'} onClick={() => onFilter('all')}>
-          All <span className="opacity-60">{items.length}</span>
-        </FilterChip>
-        {WORKOUT_TYPE_ORDER.filter((t) => (counts.get(t) ?? 0) > 0).map((t) => (
+        <FilterChip active={filter === 'all'} onClick={() => onFilter('all')}>All</FilterChip>
+        {WORKOUT_TYPE_ORDER.map((t) => (
           <FilterChip key={t} active={filter === t} onClick={() => onFilter(t)} accent={WORKOUT_TYPE_ACCENT[t]}>
-            {WORKOUT_TYPE_LABEL[t]} <span className="opacity-60">{counts.get(t)}</span>
+            {WORKOUT_TYPE_LABEL[t]}
           </FilterChip>
         ))}
       </FilterRow>
@@ -290,38 +304,40 @@ function ExercisesGrid({ items, counts, filter, onFilter, loading, onOpen }: Exe
       {items.length === 0 ? (
         <div className="py-8 text-center text-[12px] text-vscode-descriptionForeground">No exercises match.</div>
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {items.map((ex) => {
-            const accent = WORKOUT_TYPE_ACCENT[ex.workout_type];
-            return (
-              <li key={ex.id}>
-                <button
-                  type="button"
-                  onClick={() => onOpen(ex.slug)}
-                  className="group relative flex h-full w-full flex-col overflow-hidden rounded-lg border border-vscode-panelBorder bg-vscode-editor-background p-4 text-left transition hover:border-vscode-focusBorder"
-                >
-                  {/* Accent stripe along the top — single visual cue for discipline */}
-                  <span
-                    aria-hidden
-                    className="absolute inset-x-0 top-0 h-[3px]"
-                    style={{ background: accent }}
-                  />
-                  <div
-                    className="mb-2 mt-1 text-[10px] font-medium uppercase tracking-[0.2em]"
-                    style={{ color: accent }}
+        <>
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {items.map((ex) => {
+              const accent = WORKOUT_TYPE_ACCENT[ex.workout_type];
+              return (
+                <li key={ex.id}>
+                  <button
+                    type="button"
+                    onClick={() => onOpen(ex.slug)}
+                    className="group relative flex h-full w-full flex-col overflow-hidden rounded-lg border border-vscode-panelBorder bg-vscode-editor-background p-4 text-left transition hover:border-vscode-focusBorder"
                   >
-                    {WORKOUT_TYPE_LABEL[ex.workout_type]}
-                  </div>
-                  <h3 className="mb-3 text-[14px] leading-snug text-vscode-foreground">{ex.name}</h3>
-                  <div className="mt-auto flex items-center justify-between">
-                    <Dots value={ex.difficulty} accent={accent} />
-                    <span className="text-[10px] capitalize text-vscode-descriptionForeground">{ex.exercise_type}</span>
-                  </div>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                    <span
+                      aria-hidden
+                      className="absolute inset-x-0 top-0 h-[3px]"
+                      style={{ background: accent }}
+                    />
+                    <div
+                      className="mb-2 mt-1 text-[10px] font-medium uppercase tracking-[0.2em]"
+                      style={{ color: accent }}
+                    >
+                      {WORKOUT_TYPE_LABEL[ex.workout_type]}
+                    </div>
+                    <h3 className="mb-3 text-[14px] leading-snug text-vscode-foreground">{ex.name}</h3>
+                    <div className="mt-auto flex items-center justify-between">
+                      <Dots value={ex.difficulty} accent={accent} />
+                      <span className="text-[10px] capitalize text-vscode-descriptionForeground">{ex.exercise_type}</span>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <Pagination total={total} offset={offset} onPage={onPage} loading={loading} />
+        </>
       )}
     </div>
   );
@@ -331,26 +347,26 @@ function ExercisesGrid({ items, counts, filter, onFilter, loading, onOpen }: Exe
 
 interface RecipesGridProps {
   items: HealthRecipeSummary[];
-  counts: Map<string, number>;
+  total: number;
+  offset: number;
   filter: 'all' | string;
   onFilter: (f: 'all' | string) => void;
+  onPage: (newOffset: number) => void;
   loading: boolean;
   onOpen: (slug: string) => void;
 }
 
-function RecipesGrid({ items, counts, filter, onFilter, loading, onOpen }: RecipesGridProps) {
+function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, onOpen }: RecipesGridProps) {
   if (loading && items.length === 0) {
     return <div className="py-12 text-center text-[12px] text-vscode-descriptionForeground">Loading recipes…</div>;
   }
   return (
     <div>
       <FilterRow>
-        <FilterChip active={filter === 'all'} onClick={() => onFilter('all')}>
-          All <span className="opacity-60">{items.length}</span>
-        </FilterChip>
-        {COURSE_ORDER.filter((c) => (counts.get(c) ?? 0) > 0).map((c) => (
+        <FilterChip active={filter === 'all'} onClick={() => onFilter('all')}>All</FilterChip>
+        {COURSE_ORDER.map((c) => (
           <FilterChip key={c} active={filter === c} onClick={() => onFilter(c)}>
-            {COURSE_LABEL[c]} <span className="opacity-60">{counts.get(c)}</span>
+            {COURSE_LABEL[c]}
           </FilterChip>
         ))}
       </FilterRow>
@@ -358,39 +374,80 @@ function RecipesGrid({ items, counts, filter, onFilter, loading, onOpen }: Recip
       {items.length === 0 ? (
         <div className="py-8 text-center text-[12px] text-vscode-descriptionForeground">No recipes match.</div>
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {items.map((r) => (
-            <li key={r.id}>
-              <button
-                type="button"
-                onClick={() => onOpen(r.slug)}
-                className="group block w-full overflow-hidden rounded-lg border border-vscode-panelBorder bg-vscode-editor-background text-left transition hover:border-vscode-focusBorder"
-              >
-                <div className="relative aspect-[4/3] w-full overflow-hidden bg-vscode-editor-inactiveSelectionBackground">
-                  {r.hero_image_url ? (
-                    <img
-                      src={r.hero_image_url}
-                      alt=""
-                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-3xl opacity-30">🍽</div>
-                  )}
-                  <div aria-hidden className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 p-3">
-                    {r.cuisine_name && (
-                      <div className="mb-1 text-[9px] font-medium uppercase tracking-[0.2em] text-amber-300">
-                        {r.cuisine_name}
-                      </div>
+        <>
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {items.map((r) => (
+              <li key={r.id}>
+                <button
+                  type="button"
+                  onClick={() => onOpen(r.slug)}
+                  className="group block w-full overflow-hidden rounded-lg border border-vscode-panelBorder bg-vscode-editor-background text-left transition hover:border-vscode-focusBorder"
+                >
+                  <div className="relative aspect-[4/3] w-full overflow-hidden bg-vscode-editor-inactiveSelectionBackground">
+                    {r.hero_image_url ? (
+                      <img
+                        src={r.hero_image_url}
+                        alt=""
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-3xl opacity-30">🍽</div>
                     )}
-                    <h3 className="text-[13px] font-light leading-tight text-white">{r.name}</h3>
+                    <div aria-hidden className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-3">
+                      {r.cuisine_name && (
+                        <div className="mb-1 text-[9px] font-medium uppercase tracking-[0.2em] text-amber-300">
+                          {r.cuisine_name}
+                        </div>
+                      )}
+                      <h3 className="text-[13px] font-light leading-tight text-white">{r.name}</h3>
+                    </div>
                   </div>
-                </div>
-              </button>
-            </li>
-          ))}
-        </ul>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <Pagination total={total} offset={offset} onPage={onPage} loading={loading} />
+        </>
       )}
+    </div>
+  );
+}
+
+// ── Pagination ─────────────────────────────────────────────────────────
+
+function Pagination({
+  total, offset, onPage, loading,
+}: { total: number; offset: number; onPage: (next: number) => void; loading: boolean }) {
+  if (total <= PAGE_SIZE) return null;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
+  const prev = Math.max(0, offset - PAGE_SIZE);
+  const next = Math.min((totalPages - 1) * PAGE_SIZE, offset + PAGE_SIZE);
+  const atStart = offset === 0;
+  const atEnd = currentPage >= totalPages;
+  return (
+    <div className="mt-8 flex items-center justify-center gap-3 border-t border-vscode-panelBorder pt-5 text-[11px] text-vscode-descriptionForeground">
+      <button
+        type="button"
+        onClick={() => !atStart && !loading && onPage(prev)}
+        disabled={atStart || loading}
+        className="rounded border border-vscode-panelBorder px-3 py-1.5 transition hover:border-vscode-focusBorder hover:text-vscode-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-vscode-panelBorder disabled:hover:text-vscode-descriptionForeground"
+      >
+        ← Prev
+      </button>
+      <span className="uppercase tracking-wider">
+        Page {currentPage} of {totalPages}
+        {loading && <span className="ml-2 opacity-60">· loading…</span>}
+      </span>
+      <button
+        type="button"
+        onClick={() => !atEnd && !loading && onPage(next)}
+        disabled={atEnd || loading}
+        className="rounded border border-vscode-panelBorder px-3 py-1.5 transition hover:border-vscode-focusBorder hover:text-vscode-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-vscode-panelBorder disabled:hover:text-vscode-descriptionForeground"
+      >
+        Next →
+      </button>
     </div>
   );
 }

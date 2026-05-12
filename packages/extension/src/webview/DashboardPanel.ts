@@ -861,45 +861,63 @@ export class DashboardPanel {
       // pattern as the papers handlers above.
 
       case 'load_health_exercises': {
+        const limit = msg.limit ?? 24;
+        const offset = msg.offset ?? 0;
+        const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+        if (msg.workoutType) params.set('workout_type', msg.workoutType);
         try {
-          this.log('[health] load exercises');
+          this.log(`[health] load exercises ${params.toString()}`);
           const res = await fetch(
-            'https://ava-supernova.com/api/health/exercises',
+            `https://ava-supernova.com/api/health/exercises?${params.toString()}`,
             { signal: AbortSignal.timeout(8000) },
           );
           if (!res.ok) {
             this.log(`[health] load exercises failed: HTTP ${res.status}`);
-            this.post({ type: 'health_exercises_loaded', exercises: [] });
+            this.post({ type: 'health_exercises_loaded', exercises: [], total: 0, offset });
             break;
           }
-          const data = (await res.json()) as { exercises?: HealthExerciseSummary[] };
-          this.log(`[health] load exercises ok count=${data.exercises?.length ?? 0}`);
-          this.post({ type: 'health_exercises_loaded', exercises: data.exercises ?? [] });
+          const data = (await res.json()) as { exercises?: HealthExerciseSummary[]; total?: number };
+          this.log(`[health] load exercises ok count=${data.exercises?.length ?? 0} total=${data.total ?? 0}`);
+          this.post({
+            type: 'health_exercises_loaded',
+            exercises: data.exercises ?? [],
+            total: data.total ?? 0,
+            offset,
+          });
         } catch (err) {
           this.log(`[health] load exercises error: ${err instanceof Error ? err.message : String(err)}`);
-          this.post({ type: 'health_exercises_loaded', exercises: [] });
+          this.post({ type: 'health_exercises_loaded', exercises: [], total: 0, offset });
         }
         break;
       }
 
       case 'load_health_recipes': {
+        const limit = msg.limit ?? 24;
+        const offset = msg.offset ?? 0;
+        const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+        if (msg.course) params.set('course', msg.course);
         try {
-          this.log('[health] load recipes');
+          this.log(`[health] load recipes ${params.toString()}`);
           const res = await fetch(
-            'https://ava-supernova.com/api/health/recipes',
+            `https://ava-supernova.com/api/health/recipes?${params.toString()}`,
             { signal: AbortSignal.timeout(8000) },
           );
           if (!res.ok) {
             this.log(`[health] load recipes failed: HTTP ${res.status}`);
-            this.post({ type: 'health_recipes_loaded', recipes: [] });
+            this.post({ type: 'health_recipes_loaded', recipes: [], total: 0, offset });
             break;
           }
-          const data = (await res.json()) as { recipes?: HealthRecipeSummary[] };
-          this.log(`[health] load recipes ok count=${data.recipes?.length ?? 0}`);
-          this.post({ type: 'health_recipes_loaded', recipes: data.recipes ?? [] });
+          const data = (await res.json()) as { recipes?: HealthRecipeSummary[]; total?: number };
+          this.log(`[health] load recipes ok count=${data.recipes?.length ?? 0} total=${data.total ?? 0}`);
+          this.post({
+            type: 'health_recipes_loaded',
+            recipes: data.recipes ?? [],
+            total: data.total ?? 0,
+            offset,
+          });
         } catch (err) {
           this.log(`[health] load recipes error: ${err instanceof Error ? err.message : String(err)}`);
-          this.post({ type: 'health_recipes_loaded', recipes: [] });
+          this.post({ type: 'health_recipes_loaded', recipes: [], total: 0, offset });
         }
         break;
       }
