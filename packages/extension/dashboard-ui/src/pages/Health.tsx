@@ -186,37 +186,32 @@ export function Health({
           </div>
         </div>
 
-        {/* Top tabs */}
-        <nav aria-label="Health tabs" className="mt-5">
-          <ul className="flex flex-wrap items-end">
-            {(['exercises', 'recipes'] as Tab[]).map((t) => {
-              const isActive = tab === t;
-              const count = t === 'exercises' ? exercisesTotal : recipesTotal;
-              return (
-                <li key={t} className="border-b border-vscode-panelBorder">
-                  <button
-                    type="button"
-                    onClick={() => setTab(t)}
-                    className={`relative inline-flex items-baseline gap-1.5 px-4 py-2.5 text-[12px] transition focus:outline-none ${
-                      isActive ? 'text-vscode-textLink-foreground' : 'text-vscode-descriptionForeground hover:text-vscode-foreground'
-                    }`}
-                  >
-                    <span className={`uppercase tracking-wider ${isActive ? 'font-medium' : ''}`}>
-                      {t === 'exercises' ? 'Exercises' : 'Recipes'}
-                    </span>
-                    <span className="text-[10px] opacity-70">{count}</span>
-                    {isActive && (
-                      <span
-                        aria-hidden
-                        className="absolute inset-x-2 -bottom-px h-[2px] rounded-t bg-vscode-textLink-foreground"
-                      />
-                    )}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+        {/* Top tabs — match the LibraryPapers canonical style */}
+        <div className="mt-5 flex items-end gap-0.5 border-b border-[rgba(168,85,247,0.12)]">
+          {(['exercises', 'recipes'] as Tab[]).map((t) => {
+            const isActive = tab === t;
+            const count = t === 'exercises' ? exercisesTotal : recipesTotal;
+            return (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className="px-3 py-2 text-[11px] transition"
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  fontWeight: isActive ? 600 : 500,
+                  color: isActive ? '#c084fc' : '#6c7086',
+                  borderBottom: `2px solid ${isActive ? '#a855f7' : 'transparent'}`,
+                  marginBottom: -1,
+                }}
+              >
+                {t === 'exercises' ? 'Exercises' : 'Recipes'}
+                {count > 0 && <span className="ml-1.5 opacity-60">{count}</span>}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Safety reminder strip */}
