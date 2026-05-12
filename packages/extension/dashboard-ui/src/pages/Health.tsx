@@ -7,19 +7,14 @@ import type {
 
 /**
  * Health page — public exercise + recipe library browse on the
- * extension surface. Mirrors the platform's /health surface in a
- * narrower-canvas form: two top tabs (Exercises / Recipes), in-page
- * inline detail expansion rather than sub-routes.
+ * extension surface. Two top tabs (Exercises / Recipes), grid card
+ * layout with discipline / course filter chips, click-to-open overlay
+ * modal for the full detail rather than inline expansion (cleaner
+ * navigation, doesn't reflow the grid as the user reads).
  *
  * Plans (personalised programming, day-of recommendations, logging)
- * are intentionally absent from this initial pass — the operator has
- * a separate design for that surface.
- *
- * Data flow: webview posts `load_health_exercises` / `load_health_recipes`
- * to the host on mount; host fetches from /api/health/* and pushes
- * back via `health_*_loaded`. Detail expansion fires
- * `load_health_*_detail` for the clicked slug; full record arrives
- * via `health_*_detail_loaded`.
+ * are intentionally absent from this pass — the operator has a
+ * separate design for that surface.
  */
 
 const WORKOUT_TYPE_LABEL: Record<HealthWorkoutType, string> = {
@@ -41,6 +36,26 @@ const WORKOUT_TYPE_ORDER: HealthWorkoutType[] = [
   'mobility', 'yoga', 'pilates', 'recovery',
   'running', 'cycling', 'hybrid',
 ];
+
+/**
+ * Accent colour per discipline — drives the top stripe + chip on the
+ * exercise card so each discipline reads at a glance without a thumbnail.
+ * Mirrors the per-discipline palette on the platform's /health pages,
+ * but reduced to single accent values for the dense card surface.
+ */
+const WORKOUT_TYPE_ACCENT: Record<HealthWorkoutType, string> = {
+  strength: '#a8a8b3',
+  hypertrophy: '#c084fc',
+  conditioning: '#34d399',
+  hiit: '#fb923c',
+  mobility: '#60a5fa',
+  yoga: '#fbbf24',
+  pilates: '#f472b6',
+  recovery: '#94a3b8',
+  running: '#22d3ee',
+  cycling: '#a78bfa',
+  hybrid: '#f87171',
+};
 
 const COURSE_ORDER = ['breakfast', 'main', 'starter', 'side', 'snack', 'dessert'] as const;
 const COURSE_LABEL: Record<string, string> = {
@@ -84,10 +99,12 @@ export function Health({
   const [tab, setTab] = useState<Tab>('exercises');
   const [exerciseFilter, setExerciseFilter] = useState<'all' | HealthWorkoutType>('all');
   const [recipeFilter, setRecipeFilter] = useState<'all' | string>('all');
-  const [openExerciseSlug, setOpenExerciseSlug] = useState<string | null>(null);
-  const [openRecipeSlug, setOpenRecipeSlug] = useState<string | null>(null);
+  /** Which exercise/recipe is open in the modal. null = closed. The
+   *  detail itself comes through prop `exerciseDetail` / `recipeDetail`
+   *  once the host responds to the load-detail message. */
+  const [modalExerciseSlug, setModalExerciseSlug] = useState<string | null>(null);
+  const [modalRecipeSlug, setModalRecipeSlug] = useState<string | null>(null);
 
-  // Trigger loads on mount + when switching tabs (one-shot per session).
   useEffect(() => {
     if (tab === 'exercises' && exercises.length === 0 && !exercisesLoading) {
       onLoadExercises();
@@ -97,6 +114,19 @@ export function Health({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
+
+  // ESC closes whichever modal is open.
+  useEffect(() => {
+    if (!modalExerciseSlug && !modalRecipeSlug) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setModalExerciseSlug(null);
+        setModalRecipeSlug(null);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [modalExerciseSlug, modalRecipeSlug]);
 
   const exerciseTypeCounts = useMemo(() => {
     const counts = new Map<HealthWorkoutType, number>();
@@ -125,20 +155,11 @@ export function Health({
   );
 
   const openExercise = (slug: string) => {
-    if (openExerciseSlug === slug) {
-      setOpenExerciseSlug(null);
-      return;
-    }
-    setOpenExerciseSlug(slug);
+    setModalExerciseSlug(slug);
     onLoadExerciseDetail(slug);
   };
-
   const openRecipe = (slug: string) => {
-    if (openRecipeSlug === slug) {
-      setOpenRecipeSlug(null);
-      return;
-    }
-    setOpenRecipeSlug(slug);
+    setModalRecipeSlug(slug);
     onLoadRecipeDetail(slug);
   };
 
@@ -197,101 +218,106 @@ export function Health({
       {/* Content area */}
       <div className="flex-1 overflow-y-auto px-6 py-5">
         {tab === 'exercises' ? (
-          <ExercisesPanel
+          <ExercisesGrid
             items={filteredExercises}
             counts={exerciseTypeCounts}
             filter={exerciseFilter}
             onFilter={setExerciseFilter}
             loading={exercisesLoading}
-            openSlug={openExerciseSlug}
-            detail={exerciseDetail}
-            detailLoading={detailLoading}
             onOpen={openExercise}
           />
         ) : (
-          <RecipesPanel
+          <RecipesGrid
             items={filteredRecipes}
             counts={recipeCourseCounts}
             filter={recipeFilter}
             onFilter={setRecipeFilter}
             loading={recipesLoading}
-            openSlug={openRecipeSlug}
-            detail={recipeDetail}
-            detailLoading={detailLoading}
             onOpen={openRecipe}
           />
         )}
       </div>
+
+      {/* Overlay modals — one mounts at a time, whichever was clicked. */}
+      {modalExerciseSlug && (
+        <ExerciseDetailModal
+          slug={modalExerciseSlug}
+          detail={exerciseDetail}
+          loading={detailLoading}
+          onClose={() => setModalExerciseSlug(null)}
+        />
+      )}
+      {modalRecipeSlug && (
+        <RecipeDetailModal
+          slug={modalRecipeSlug}
+          detail={recipeDetail}
+          loading={detailLoading}
+          onClose={() => setModalRecipeSlug(null)}
+        />
+      )}
     </div>
   );
 }
 
-// ── Exercises panel ────────────────────────────────────────────────────
+// ── Exercises grid ─────────────────────────────────────────────────────
 
-interface ExercisesPanelProps {
+interface ExercisesGridProps {
   items: HealthExerciseSummary[];
   counts: Map<HealthWorkoutType, number>;
   filter: 'all' | HealthWorkoutType;
   onFilter: (f: 'all' | HealthWorkoutType) => void;
   loading: boolean;
-  openSlug: string | null;
-  detail: HealthExerciseDetail | null;
-  detailLoading: boolean;
   onOpen: (slug: string) => void;
 }
 
-function ExercisesPanel({ items, counts, filter, onFilter, loading, openSlug, detail, detailLoading, onOpen }: ExercisesPanelProps) {
+function ExercisesGrid({ items, counts, filter, onFilter, loading, onOpen }: ExercisesGridProps) {
   if (loading && items.length === 0) {
     return <div className="py-12 text-center text-[12px] text-vscode-descriptionForeground">Loading exercises…</div>;
   }
   return (
     <div>
-      {/* Discipline filter chips */}
-      <div className="mb-5 flex flex-wrap gap-1.5">
+      <FilterRow>
         <FilterChip active={filter === 'all'} onClick={() => onFilter('all')}>
           All <span className="opacity-60">{items.length}</span>
         </FilterChip>
         {WORKOUT_TYPE_ORDER.filter((t) => (counts.get(t) ?? 0) > 0).map((t) => (
-          <FilterChip key={t} active={filter === t} onClick={() => onFilter(t)}>
+          <FilterChip key={t} active={filter === t} onClick={() => onFilter(t)} accent={WORKOUT_TYPE_ACCENT[t]}>
             {WORKOUT_TYPE_LABEL[t]} <span className="opacity-60">{counts.get(t)}</span>
           </FilterChip>
         ))}
-      </div>
+      </FilterRow>
 
-      {/* List */}
       {items.length === 0 ? (
         <div className="py-8 text-center text-[12px] text-vscode-descriptionForeground">No exercises match.</div>
       ) : (
-        <ul className="space-y-2">
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {items.map((ex) => {
-            const isOpen = openSlug === ex.slug;
+            const accent = WORKOUT_TYPE_ACCENT[ex.workout_type];
             return (
               <li key={ex.id}>
                 <button
                   type="button"
                   onClick={() => onOpen(ex.slug)}
-                  className="block w-full rounded-md border border-vscode-panelBorder bg-vscode-editor-background px-3 py-2.5 text-left transition hover:border-vscode-focusBorder"
+                  className="group relative flex h-full w-full flex-col overflow-hidden rounded-lg border border-vscode-panelBorder bg-vscode-editor-background p-4 text-left transition hover:border-vscode-focusBorder"
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="truncate text-[13px] text-vscode-foreground">{ex.name}</div>
-                      <div className="mt-0.5 flex items-center gap-2 text-[10px] text-vscode-descriptionForeground">
-                        <span className="uppercase tracking-wider">{WORKOUT_TYPE_LABEL[ex.workout_type]}</span>
-                        <span>·</span>
-                        <span className="capitalize">{ex.exercise_type}</span>
-                      </div>
-                    </div>
-                    <Dots value={ex.difficulty} />
+                  {/* Accent stripe along the top — single visual cue for discipline */}
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-0 top-0 h-[3px]"
+                    style={{ background: accent }}
+                  />
+                  <div
+                    className="mb-2 mt-1 text-[10px] font-medium uppercase tracking-[0.2em]"
+                    style={{ color: accent }}
+                  >
+                    {WORKOUT_TYPE_LABEL[ex.workout_type]}
+                  </div>
+                  <h3 className="mb-3 text-[14px] leading-snug text-vscode-foreground">{ex.name}</h3>
+                  <div className="mt-auto flex items-center justify-between">
+                    <Dots value={ex.difficulty} accent={accent} />
+                    <span className="text-[10px] capitalize text-vscode-descriptionForeground">{ex.exercise_type}</span>
                   </div>
                 </button>
-                {isOpen && (
-                  <div className="mt-1 rounded-md border border-vscode-focusBorder/40 bg-vscode-editor-background px-4 py-4">
-                    {detailLoading && (!detail || detail.slug !== ex.slug) && (
-                      <div className="text-[11px] text-vscode-descriptionForeground">Loading…</div>
-                    )}
-                    {detail && detail.slug === ex.slug && <ExerciseDetailView ex={detail} />}
-                  </div>
-                )}
               </li>
             );
           })}
@@ -301,7 +327,121 @@ function ExercisesPanel({ items, counts, filter, onFilter, loading, openSlug, de
   );
 }
 
-function ExerciseDetailView({ ex }: { ex: HealthExerciseDetail }) {
+// ── Recipes grid ───────────────────────────────────────────────────────
+
+interface RecipesGridProps {
+  items: HealthRecipeSummary[];
+  counts: Map<string, number>;
+  filter: 'all' | string;
+  onFilter: (f: 'all' | string) => void;
+  loading: boolean;
+  onOpen: (slug: string) => void;
+}
+
+function RecipesGrid({ items, counts, filter, onFilter, loading, onOpen }: RecipesGridProps) {
+  if (loading && items.length === 0) {
+    return <div className="py-12 text-center text-[12px] text-vscode-descriptionForeground">Loading recipes…</div>;
+  }
+  return (
+    <div>
+      <FilterRow>
+        <FilterChip active={filter === 'all'} onClick={() => onFilter('all')}>
+          All <span className="opacity-60">{items.length}</span>
+        </FilterChip>
+        {COURSE_ORDER.filter((c) => (counts.get(c) ?? 0) > 0).map((c) => (
+          <FilterChip key={c} active={filter === c} onClick={() => onFilter(c)}>
+            {COURSE_LABEL[c]} <span className="opacity-60">{counts.get(c)}</span>
+          </FilterChip>
+        ))}
+      </FilterRow>
+
+      {items.length === 0 ? (
+        <div className="py-8 text-center text-[12px] text-vscode-descriptionForeground">No recipes match.</div>
+      ) : (
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {items.map((r) => (
+            <li key={r.id}>
+              <button
+                type="button"
+                onClick={() => onOpen(r.slug)}
+                className="group block w-full overflow-hidden rounded-lg border border-vscode-panelBorder bg-vscode-editor-background text-left transition hover:border-vscode-focusBorder"
+              >
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-vscode-editor-inactiveSelectionBackground">
+                  {r.hero_image_url ? (
+                    <img
+                      src={r.hero_image_url}
+                      alt=""
+                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-3xl opacity-30">🍽</div>
+                  )}
+                  <div aria-hidden className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-3">
+                    {r.cuisine_name && (
+                      <div className="mb-1 text-[9px] font-medium uppercase tracking-[0.2em] text-amber-300">
+                        {r.cuisine_name}
+                      </div>
+                    )}
+                    <h3 className="text-[13px] font-light leading-tight text-white">{r.name}</h3>
+                  </div>
+                </div>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// ── Modals ─────────────────────────────────────────────────────────────
+
+function ModalShell({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-vscode-panelBorder bg-vscode-editor-background shadow-2xl"
+      >
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute top-3 right-3 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-none bg-black/40 text-lg text-white transition hover:bg-black/60"
+        >
+          ×
+        </button>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ExerciseDetailModal({
+  slug, detail, loading, onClose,
+}: { slug: string; detail: HealthExerciseDetail | null; loading: boolean; onClose: () => void }) {
+  const ready = detail && detail.slug === slug;
+  return (
+    <ModalShell onClose={onClose}>
+      <div className="p-6 sm:p-8">
+        {!ready && (
+          <div className="py-16 text-center text-[12px] text-vscode-descriptionForeground">
+            {loading ? 'Loading…' : 'Failed to load.'}
+          </div>
+        )}
+        {ready && <ExerciseDetailBody ex={detail!} />}
+      </div>
+    </ModalShell>
+  );
+}
+
+function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
+  const accent = WORKOUT_TYPE_ACCENT[ex.workout_type];
   const primaries = ex.muscles.filter((m) => m.role === 'primary');
   const secondaries = ex.muscles.filter((m) => m.role === 'secondary');
   const routineEntries: Array<[string, string]> = [];
@@ -312,274 +452,287 @@ function ExerciseDetailView({ ex }: { ex: HealthExerciseDetail }) {
   if (ex.routine.frequency_per_week) routineEntries.push(['Freq.', ex.routine.frequency_per_week]);
 
   return (
-    <div className="space-y-4 text-[12px]">
+    <div className="space-y-6">
+      {/* Header */}
+      <header>
+        <div
+          className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em]"
+          style={{ color: accent }}
+        >
+          {WORKOUT_TYPE_LABEL[ex.workout_type]}
+        </div>
+        <h2 className="text-[22px] font-light leading-tight text-vscode-foreground">{ex.name}</h2>
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-vscode-descriptionForeground">
+          <span className="rounded-md bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 capitalize">
+            {ex.exercise_type}
+          </span>
+          <Dots value={ex.difficulty} accent={accent} />
+          <span>Difficulty {ex.difficulty}/5</span>
+        </div>
+      </header>
+
       {ex.description && (
-        <p className="leading-relaxed text-vscode-foreground/85">{ex.description}</p>
+        <p className="text-[14px] leading-relaxed text-vscode-foreground/90">{ex.description}</p>
       )}
 
       {ex.steps.length > 0 && (
-        <div>
-          <h4 className="mb-2 text-[10px] font-medium uppercase tracking-wider text-vscode-descriptionForeground">How to do it</h4>
-          <ol className="space-y-1.5">
+        <section>
+          <h3 className="mb-3 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">How to do it</h3>
+          <ol className="space-y-2">
             {ex.steps.map((step, i) => (
-              <li key={i} className="flex gap-2.5">
-                <span className="shrink-0 text-vscode-textLink-foreground">{i + 1}.</span>
-                <span className="leading-relaxed text-vscode-foreground/90">{step}</span>
+              <li key={i} className="flex gap-3 rounded-md border border-vscode-panelBorder/60 px-3 py-2.5">
+                <span
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-medium"
+                  style={{ borderColor: accent, color: accent }}
+                >
+                  {i + 1}
+                </span>
+                <span className="text-[13px] leading-relaxed text-vscode-foreground/95">{step}</span>
               </li>
             ))}
           </ol>
-        </div>
+        </section>
       )}
 
       {routineEntries.length > 0 && (
-        <div>
-          <h4 className="mb-2 text-[10px] font-medium uppercase tracking-wider text-vscode-descriptionForeground">How to use it</h4>
-          <dl className="grid grid-cols-3 gap-x-4 gap-y-2 rounded-sm border border-vscode-panelBorder/60 p-3 sm:grid-cols-5">
-            {routineEntries.map(([label, value]) => (
-              <div key={label}>
-                <dt className="text-[9px] uppercase tracking-wider text-vscode-descriptionForeground">{label}</dt>
-                <dd className="mt-0.5 text-[12px] text-vscode-foreground">{value}</dd>
-              </div>
-            ))}
-          </dl>
-          {ex.routine.progression && (
-            <p className="mt-2 text-[11px] italic text-vscode-descriptionForeground">{ex.routine.progression}</p>
-          )}
-        </div>
+        <section>
+          <h3 className="mb-3 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">How to use it</h3>
+          <div className="rounded-lg border border-vscode-panelBorder/60 p-4">
+            <dl className="grid grid-cols-3 gap-x-5 gap-y-3 sm:grid-cols-5">
+              {routineEntries.map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-[9px] font-medium uppercase tracking-wider text-vscode-descriptionForeground">{label}</dt>
+                  <dd className="mt-1 text-[14px] text-vscode-foreground">{value}</dd>
+                </div>
+              ))}
+            </dl>
+            {ex.routine.progression && (
+              <p className="mt-4 border-t border-vscode-panelBorder/60 pt-3 text-[12px] italic text-vscode-descriptionForeground">
+                {ex.routine.progression}
+              </p>
+            )}
+          </div>
+        </section>
       )}
 
       {ex.beginner_detail && (
-        <div>
-          <h4 className="mb-1 text-[10px] font-medium uppercase tracking-wider text-vscode-descriptionForeground">If you&apos;re new to this</h4>
-          <p className="leading-relaxed text-vscode-foreground/85">{ex.beginner_detail}</p>
-        </div>
+        <section>
+          <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">If you&apos;re new to this</h3>
+          <div className="rounded-lg border border-vscode-panelBorder/60 px-4 py-3">
+            <p className="text-[13px] leading-relaxed text-vscode-foreground/85">{ex.beginner_detail}</p>
+          </div>
+        </section>
       )}
 
       {ex.common_mistakes && (
-        <div>
-          <h4 className="mb-1 text-[10px] font-medium uppercase tracking-wider text-vscode-descriptionForeground">Common mistakes</h4>
-          <p className="leading-relaxed text-vscode-foreground/85">{ex.common_mistakes}</p>
-        </div>
+        <section>
+          <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">Common mistakes</h3>
+          <div className="rounded-lg border border-vscode-panelBorder/60 px-4 py-3">
+            <p className="text-[13px] leading-relaxed text-vscode-foreground/85">{ex.common_mistakes}</p>
+          </div>
+        </section>
       )}
 
       {(primaries.length > 0 || secondaries.length > 0 || ex.equipment.length > 0) && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <section className="grid gap-4 sm:grid-cols-2">
           {(primaries.length > 0 || secondaries.length > 0) && (
             <div>
-              <h4 className="mb-1 text-[10px] font-medium uppercase tracking-wider text-vscode-descriptionForeground">Muscles</h4>
+              <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">Muscles</h3>
               <div className="flex flex-wrap gap-1">
                 {primaries.map((m) => (
-                  <span key={m.slug} className="rounded bg-vscode-textLink-foreground/15 px-1.5 py-0.5 text-[10px] text-vscode-textLink-foreground">{m.name}</span>
+                  <span
+                    key={m.slug}
+                    className="rounded px-2 py-0.5 text-[10px]"
+                    style={{ background: `${accent}26`, color: accent }}
+                  >
+                    {m.name}
+                  </span>
                 ))}
                 {secondaries.map((m) => (
-                  <span key={m.slug} className="rounded bg-vscode-editor-background px-1.5 py-0.5 text-[10px] text-vscode-descriptionForeground">{m.name}</span>
+                  <span key={m.slug} className="rounded bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 text-[10px] text-vscode-descriptionForeground">
+                    {m.name}
+                  </span>
                 ))}
               </div>
             </div>
           )}
           {ex.equipment.length > 0 && (
             <div>
-              <h4 className="mb-1 text-[10px] font-medium uppercase tracking-wider text-vscode-descriptionForeground">Equipment</h4>
+              <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">Equipment</h3>
               <div className="flex flex-wrap gap-1">
                 {ex.equipment.map((e) => (
-                  <span key={e.slug} className="rounded bg-vscode-editor-background px-1.5 py-0.5 text-[10px] capitalize text-vscode-descriptionForeground">{e.name}</span>
+                  <span key={e.slug} className="rounded bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 text-[10px] capitalize text-vscode-descriptionForeground">
+                    {e.name}
+                  </span>
                 ))}
               </div>
             </div>
           )}
+        </section>
+      )}
+    </div>
+  );
+}
+
+function RecipeDetailModal({
+  slug, detail, loading, onClose,
+}: { slug: string; detail: HealthRecipeDetail | null; loading: boolean; onClose: () => void }) {
+  const ready = detail && detail.slug === slug;
+  return (
+    <ModalShell onClose={onClose}>
+      {!ready && (
+        <div className="p-12 text-center text-[12px] text-vscode-descriptionForeground">
+          {loading ? 'Loading…' : 'Failed to load.'}
         </div>
       )}
-    </div>
+      {ready && <RecipeDetailBody r={detail!} />}
+    </ModalShell>
   );
 }
 
-// ── Recipes panel ───────────────────────────────────────────────────────
-
-interface RecipesPanelProps {
-  items: HealthRecipeSummary[];
-  counts: Map<string, number>;
-  filter: 'all' | string;
-  onFilter: (f: 'all' | string) => void;
-  loading: boolean;
-  openSlug: string | null;
-  detail: HealthRecipeDetail | null;
-  detailLoading: boolean;
-  onOpen: (slug: string) => void;
-}
-
-function RecipesPanel({ items, counts, filter, onFilter, loading, openSlug, detail, detailLoading, onOpen }: RecipesPanelProps) {
-  if (loading && items.length === 0) {
-    return <div className="py-12 text-center text-[12px] text-vscode-descriptionForeground">Loading recipes…</div>;
-  }
-  return (
-    <div>
-      {/* Course filter chips */}
-      <div className="mb-5 flex flex-wrap gap-1.5">
-        <FilterChip active={filter === 'all'} onClick={() => onFilter('all')}>
-          All <span className="opacity-60">{items.length}</span>
-        </FilterChip>
-        {COURSE_ORDER.filter((c) => (counts.get(c) ?? 0) > 0).map((c) => (
-          <FilterChip key={c} active={filter === c} onClick={() => onFilter(c)}>
-            {COURSE_LABEL[c]} <span className="opacity-60">{counts.get(c)}</span>
-          </FilterChip>
-        ))}
-      </div>
-
-      {items.length === 0 ? (
-        <div className="py-8 text-center text-[12px] text-vscode-descriptionForeground">No recipes match.</div>
-      ) : (
-        <ul className="space-y-2">
-          {items.map((r) => {
-            const isOpen = openSlug === r.slug;
-            return (
-              <li key={r.id}>
-                <button
-                  type="button"
-                  onClick={() => onOpen(r.slug)}
-                  className="block w-full rounded-md border border-vscode-panelBorder bg-vscode-editor-background px-3 py-2.5 text-left transition hover:border-vscode-focusBorder"
-                >
-                  <div className="flex items-center gap-3">
-                    {r.hero_image_url && (
-                      <img
-                        src={r.hero_image_url}
-                        alt=""
-                        className="h-10 w-10 shrink-0 rounded object-cover"
-                      />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13px] text-vscode-foreground">{r.name}</div>
-                      <div className="mt-0.5 flex items-center gap-2 text-[10px] text-vscode-descriptionForeground">
-                        {r.cuisine_name && <span>{r.cuisine_name}</span>}
-                        {r.course && (
-                          <>
-                            <span>·</span>
-                            <span className="capitalize">{r.course}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </button>
-                {isOpen && (
-                  <div className="mt-1 rounded-md border border-vscode-focusBorder/40 bg-vscode-editor-background px-4 py-4">
-                    {detailLoading && (!detail || detail.slug !== r.slug) && (
-                      <div className="text-[11px] text-vscode-descriptionForeground">Loading…</div>
-                    )}
-                    {detail && detail.slug === r.slug && <RecipeDetailView r={detail} />}
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function RecipeDetailView({ r }: { r: HealthRecipeDetail }) {
+function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
   const [level, setLevel] = useState<'beginner' | 'intermediate' | 'expert'>('beginner');
   const v = r.versions.find((vv) => vv.level === level) || r.versions[0];
 
   return (
-    <div className="space-y-4 text-[12px]">
+    <div>
+      {/* Hero image bleeds to the edge of the modal — magazine cover feel */}
       {r.hero_image_url && (
-        <img src={r.hero_image_url} alt="" className="aspect-[16/9] w-full rounded object-cover" />
-      )}
-      {r.overview && (
-        <p className="leading-relaxed text-vscode-foreground/85">{r.overview}</p>
-      )}
-
-      {r.ingredients.length > 0 && (
-        <div>
-          <h4 className="mb-2 text-[10px] font-medium uppercase tracking-wider text-vscode-descriptionForeground">Ingredients</h4>
-          <ul className="space-y-1 rounded-sm border border-vscode-panelBorder/60 p-3">
-            {r.ingredients.map((ing, i) => (
-              <li key={i} className="flex gap-2 leading-relaxed">
-                <span className="min-w-[60px] font-mono text-[10px] text-vscode-descriptionForeground">
-                  {ing.quantity != null ? `${ing.quantity}${ing.unit ? ' ' + ing.unit : ''}` : ing.unit ?? '—'}
-                </span>
-                <span className="text-vscode-foreground/90">
-                  {ing.name}
-                  {ing.optional && <span className="ml-1 text-vscode-descriptionForeground">(opt.)</span>}
-                </span>
-              </li>
-            ))}
-          </ul>
+        <div className="aspect-[2/1] w-full overflow-hidden bg-vscode-editor-inactiveSelectionBackground">
+          <img src={r.hero_image_url} alt="" className="h-full w-full object-cover" />
         </div>
       )}
 
-      {r.versions.length > 0 && (
-        <div>
-          <div className="mb-2 flex items-center gap-3">
-            <h4 className="text-[10px] font-medium uppercase tracking-wider text-vscode-descriptionForeground">Method</h4>
-            <div className="flex gap-1">
-              {(['beginner', 'intermediate', 'expert'] as const).map((l) => {
-                const has = r.versions.some((vv) => vv.level === l);
-                if (!has) return null;
-                const isActive = l === level;
-                return (
-                  <button
-                    key={l}
-                    type="button"
-                    onClick={() => setLevel(l)}
-                    className={`rounded px-2 py-0.5 text-[10px] uppercase tracking-wider ${
-                      isActive
-                        ? 'bg-vscode-textLink-foreground/20 text-vscode-textLink-foreground'
-                        : 'text-vscode-descriptionForeground hover:text-vscode-foreground'
-                    }`}
-                  >
-                    {l}
-                  </button>
-                );
-              })}
+      <div className="space-y-6 p-6 sm:p-8">
+        <header>
+          {r.cuisine_name && (
+            <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-amber-300">
+              {r.cuisine_name}
             </div>
+          )}
+          <h2 className="text-[22px] font-light leading-tight text-vscode-foreground">{r.name}</h2>
+          <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+            {r.origin_country && (
+              <span className="rounded-md bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 text-vscode-descriptionForeground">{r.origin_country}</span>
+            )}
+            {r.course && (
+              <span className="rounded-md bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 capitalize text-vscode-descriptionForeground">{r.course}</span>
+            )}
           </div>
-          {v && (
-            <ol className="space-y-2">
-              {v.steps.map((s, i) => (
-                <li key={i} className="flex gap-2.5">
-                  <span className="shrink-0 text-vscode-textLink-foreground">{i + 1}.</span>
-                  <div className="flex-1">
-                    <p className="leading-relaxed text-vscode-foreground/90">{s.action}</p>
-                    {s.notes && <p className="mt-1 text-[11px] italic text-vscode-descriptionForeground">{s.notes}</p>}
-                  </div>
+        </header>
+
+        {r.overview && (
+          <p className="text-[14px] leading-relaxed text-vscode-foreground/90">{r.overview}</p>
+        )}
+
+        {r.ingredients.length > 0 && (
+          <section>
+            <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">Ingredients</h3>
+            <ul className="grid gap-1.5 rounded-lg border border-vscode-panelBorder/60 p-4 sm:grid-cols-2">
+              {r.ingredients.map((ing, i) => (
+                <li key={i} className="flex gap-2 text-[13px]">
+                  <span className="min-w-[80px] font-mono text-[11px] text-vscode-descriptionForeground">
+                    {ing.quantity != null ? `${ing.quantity}${ing.unit ? ' ' + ing.unit : ''}` : ing.unit ?? '—'}
+                  </span>
+                  <span className="text-vscode-foreground/95">
+                    {ing.name}
+                    {ing.optional && <span className="ml-1 text-vscode-descriptionForeground">(opt.)</span>}
+                  </span>
                 </li>
               ))}
-            </ol>
-          )}
-        </div>
-      )}
+            </ul>
+          </section>
+        )}
+
+        {r.versions.length > 0 && (
+          <section>
+            <div className="mb-3 flex items-center gap-3">
+              <h3 className="text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">Method</h3>
+              <div className="flex gap-1">
+                {(['beginner', 'intermediate', 'expert'] as const).map((l) => {
+                  const has = r.versions.some((vv) => vv.level === l);
+                  if (!has) return null;
+                  const isActive = l === level;
+                  return (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => setLevel(l)}
+                      className={`rounded px-2.5 py-1 text-[10px] uppercase tracking-wider transition ${
+                        isActive
+                          ? 'bg-amber-400/20 text-amber-300'
+                          : 'text-vscode-descriptionForeground hover:text-vscode-foreground'
+                      }`}
+                    >
+                      {l}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {v && (
+              <ol className="space-y-2">
+                {v.steps.map((s, i) => (
+                  <li key={i} className="flex gap-3 rounded-md border border-vscode-panelBorder/60 px-3 py-2.5">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-amber-400 text-[11px] font-medium text-amber-300">
+                      {i + 1}
+                    </span>
+                    <div className="flex-1 text-[13px] leading-relaxed">
+                      <p className="text-vscode-foreground/95">{s.action}</p>
+                      {s.notes && (
+                        <p className="mt-1 text-[12px] italic text-vscode-descriptionForeground">{s.notes}</p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+        )}
+      </div>
     </div>
   );
 }
 
-// ── Shared ─────────────────────────────────────────────────────────────
+// ── Shared bits ────────────────────────────────────────────────────────
 
-function FilterChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function FilterRow({ children }: { children: React.ReactNode }) {
+  return <div className="mb-5 flex flex-wrap gap-1.5">{children}</div>;
+}
+
+function FilterChip({
+  active, onClick, children, accent,
+}: { active: boolean; onClick: () => void; children: React.ReactNode; accent?: string }) {
+  const activeStyle = accent
+    ? { borderColor: `${accent}80`, background: `${accent}26`, color: accent }
+    : undefined;
   return (
     <button
       type="button"
       onClick={onClick}
       className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-wider transition ${
         active
-          ? 'border-vscode-textLink-foreground/50 bg-vscode-textLink-foreground/15 text-vscode-textLink-foreground'
+          ? accent
+            ? ''
+            : 'border-vscode-textLink-foreground/50 bg-vscode-textLink-foreground/15 text-vscode-textLink-foreground'
           : 'border-vscode-panelBorder text-vscode-descriptionForeground hover:text-vscode-foreground'
       }`}
+      style={active && accent ? activeStyle : undefined}
     >
       {children}
     </button>
   );
 }
 
-function Dots({ value }: { value: number }) {
+function Dots({ value, accent }: { value: number; accent?: string }) {
+  const on = accent || 'var(--vscode-textLink-foreground)';
   return (
     <span className="inline-flex shrink-0 gap-[3px]" aria-label={`Difficulty ${value} of 5`}>
       {[1, 2, 3, 4, 5].map((n) => (
         <span
           key={n}
           className="h-[5px] w-[5px] rounded-full"
-          style={{ background: n <= value ? 'var(--vscode-textLink-foreground)' : 'var(--vscode-panelBorder)' }}
+          style={{ background: n <= value ? on : 'var(--vscode-panelBorder)' }}
         />
       ))}
     </span>
