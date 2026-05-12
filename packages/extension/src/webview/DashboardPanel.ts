@@ -46,6 +46,10 @@ import type {
   LibraryPathDetail,
   LibraryPaper,
   PapersTab,
+  HealthExerciseSummary,
+  HealthExerciseDetail,
+  HealthRecipeSummary,
+  HealthRecipeDetail,
   ReleaseNote,
   RoadmapTheme,
 } from './dashboard-message-types.js';
@@ -847,6 +851,95 @@ export class DashboardPanel {
             text: primer,
             mode: 'teach',
           });
+        }
+        break;
+      }
+
+      // ─── Health library ─────────────────────────────────────────────────
+      // Public RLS-gated endpoints — anonymous read of the curated exercise
+      // and recipe libraries. 8s timeout, always-posts-back-on-failure same
+      // pattern as the papers handlers above.
+
+      case 'load_health_exercises': {
+        try {
+          this.log('[health] load exercises');
+          const res = await fetch(
+            'https://ava-supernova.com/api/health/exercises',
+            { signal: AbortSignal.timeout(8000) },
+          );
+          if (!res.ok) {
+            this.log(`[health] load exercises failed: HTTP ${res.status}`);
+            this.post({ type: 'health_exercises_loaded', exercises: [] });
+            break;
+          }
+          const data = (await res.json()) as { exercises?: HealthExerciseSummary[] };
+          this.log(`[health] load exercises ok count=${data.exercises?.length ?? 0}`);
+          this.post({ type: 'health_exercises_loaded', exercises: data.exercises ?? [] });
+        } catch (err) {
+          this.log(`[health] load exercises error: ${err instanceof Error ? err.message : String(err)}`);
+          this.post({ type: 'health_exercises_loaded', exercises: [] });
+        }
+        break;
+      }
+
+      case 'load_health_recipes': {
+        try {
+          this.log('[health] load recipes');
+          const res = await fetch(
+            'https://ava-supernova.com/api/health/recipes',
+            { signal: AbortSignal.timeout(8000) },
+          );
+          if (!res.ok) {
+            this.log(`[health] load recipes failed: HTTP ${res.status}`);
+            this.post({ type: 'health_recipes_loaded', recipes: [] });
+            break;
+          }
+          const data = (await res.json()) as { recipes?: HealthRecipeSummary[] };
+          this.log(`[health] load recipes ok count=${data.recipes?.length ?? 0}`);
+          this.post({ type: 'health_recipes_loaded', recipes: data.recipes ?? [] });
+        } catch (err) {
+          this.log(`[health] load recipes error: ${err instanceof Error ? err.message : String(err)}`);
+          this.post({ type: 'health_recipes_loaded', recipes: [] });
+        }
+        break;
+      }
+
+      case 'load_health_exercise_detail': {
+        try {
+          this.log(`[health] load exercise detail slug=${msg.slug}`);
+          const res = await fetch(
+            `https://ava-supernova.com/api/health/exercises/${encodeURIComponent(msg.slug)}`,
+            { signal: AbortSignal.timeout(8000) },
+          );
+          if (!res.ok) {
+            this.post({ type: 'health_exercise_detail_loaded', exercise: null });
+            break;
+          }
+          const data = (await res.json()) as { exercise?: HealthExerciseDetail | null };
+          this.post({ type: 'health_exercise_detail_loaded', exercise: data.exercise ?? null });
+        } catch (err) {
+          this.log(`[health] load exercise detail error: ${err instanceof Error ? err.message : String(err)}`);
+          this.post({ type: 'health_exercise_detail_loaded', exercise: null });
+        }
+        break;
+      }
+
+      case 'load_health_recipe_detail': {
+        try {
+          this.log(`[health] load recipe detail slug=${msg.slug}`);
+          const res = await fetch(
+            `https://ava-supernova.com/api/health/recipes/${encodeURIComponent(msg.slug)}`,
+            { signal: AbortSignal.timeout(8000) },
+          );
+          if (!res.ok) {
+            this.post({ type: 'health_recipe_detail_loaded', recipe: null });
+            break;
+          }
+          const data = (await res.json()) as { recipe?: HealthRecipeDetail | null };
+          this.post({ type: 'health_recipe_detail_loaded', recipe: data.recipe ?? null });
+        } catch (err) {
+          this.log(`[health] load recipe detail error: ${err instanceof Error ? err.message : String(err)}`);
+          this.post({ type: 'health_recipe_detail_loaded', recipe: null });
         }
         break;
       }

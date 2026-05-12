@@ -20,6 +20,7 @@ import { DocumentationPage } from './pages/DocumentationPage';
 import { ModelsPage } from './pages/Models';
 import { ArticleReader } from './pages/ArticleReader';
 import type { FullArticle, RelatedArticle } from './pages/ArticleReader';
+import { Health } from './pages/Health';
 import type {
   Page,
   AccountInfo,
@@ -45,6 +46,10 @@ import type {
   LibraryPaper,
   PapersTab,
   PaperDiscipline,
+  HealthExerciseSummary,
+  HealthExerciseDetail,
+  HealthRecipeSummary,
+  HealthRecipeDetail,
   CreativeAsset,
   PersonalityData,
   RoadmapTheme,
@@ -199,6 +204,17 @@ export function App() {
   // carry, which is why clicking a card felt like nothing loaded.
   const [paperDetail, setPaperDetail] = useState<LibraryPaper | null>(null);
   const [paperDetailLoading, setPaperDetailLoading] = useState(false);
+
+  // Health library — exercises + recipes browse. Fetched on first
+  // visit to the Health page; cached for the rest of the session.
+  // Detail loads on inline expansion.
+  const [healthExercises, setHealthExercises] = useState<HealthExerciseSummary[]>([]);
+  const [healthRecipes, setHealthRecipes] = useState<HealthRecipeSummary[]>([]);
+  const [healthExercisesLoading, setHealthExercisesLoading] = useState(false);
+  const [healthRecipesLoading, setHealthRecipesLoading] = useState(false);
+  const [healthExerciseDetail, setHealthExerciseDetail] = useState<HealthExerciseDetail | null>(null);
+  const [healthRecipeDetail, setHealthRecipeDetail] = useState<HealthRecipeDetail | null>(null);
+  const [healthDetailLoading, setHealthDetailLoading] = useState(false);
   // Roadmap — fetched from /api/roadmap via the host, single source
   // of truth shared with the public web roadmap, the IDE Roadmap
   // page, and the Hub admin editor.
@@ -213,6 +229,32 @@ export function App() {
     setPaperDetail(null);
     setPaperDetailLoading(false);
   }, []);
+  // Health handlers — same pattern as Papers: handler sets loading and
+  // posts the load message; safety-net timeout clears loading if the
+  // host never responds.
+  const handleLoadHealthExercises = useCallback(() => {
+    setHealthExercisesLoading(true);
+    post({ type: 'load_health_exercises' });
+    window.setTimeout(() => setHealthExercisesLoading(false), 15000);
+  }, []);
+  const handleLoadHealthRecipes = useCallback(() => {
+    setHealthRecipesLoading(true);
+    post({ type: 'load_health_recipes' });
+    window.setTimeout(() => setHealthRecipesLoading(false), 15000);
+  }, []);
+  const handleLoadHealthExerciseDetail = useCallback((slug: string) => {
+    setHealthDetailLoading(true);
+    setHealthExerciseDetail(null);
+    post({ type: 'load_health_exercise_detail', slug });
+    window.setTimeout(() => setHealthDetailLoading(false), 15000);
+  }, []);
+  const handleLoadHealthRecipeDetail = useCallback((slug: string) => {
+    setHealthDetailLoading(true);
+    setHealthRecipeDetail(null);
+    post({ type: 'load_health_recipe_detail', slug });
+    window.setTimeout(() => setHealthDetailLoading(false), 15000);
+  }, []);
+
   const handleReadPaperWithAva = useCallback((paper: LibraryPaper) => {
     post({ type: 'read_paper_with_ava', paper });
     // Switch the dashboard to the Chat page so the user lands on the
@@ -553,6 +595,22 @@ export function App() {
         // back to the slim list-row data in that case.
         setPaperDetail(msg.paper);
         setPaperDetailLoading(false);
+        break;
+      case 'health_exercises_loaded':
+        setHealthExercises(msg.exercises);
+        setHealthExercisesLoading(false);
+        break;
+      case 'health_recipes_loaded':
+        setHealthRecipes(msg.recipes);
+        setHealthRecipesLoading(false);
+        break;
+      case 'health_exercise_detail_loaded':
+        setHealthExerciseDetail(msg.exercise);
+        setHealthDetailLoading(false);
+        break;
+      case 'health_recipe_detail_loaded':
+        setHealthRecipeDetail(msg.recipe);
+        setHealthDetailLoading(false);
         break;
       case 'roadmap_loaded':
         // Empty themes = network/upstream failure; the Roadmap surface
@@ -981,6 +1039,22 @@ export function App() {
         return null;
       case 'creative-studio':
         return <CreativeStudio account={account} />;
+      case 'health':
+        return (
+          <Health
+            exercises={healthExercises}
+            recipes={healthRecipes}
+            exercisesLoading={healthExercisesLoading}
+            recipesLoading={healthRecipesLoading}
+            exerciseDetail={healthExerciseDetail}
+            recipeDetail={healthRecipeDetail}
+            detailLoading={healthDetailLoading}
+            onLoadExercises={handleLoadHealthExercises}
+            onLoadRecipes={handleLoadHealthRecipes}
+            onLoadExerciseDetail={handleLoadHealthExerciseDetail}
+            onLoadRecipeDetail={handleLoadHealthRecipeDetail}
+          />
+        );
     }
   };
 

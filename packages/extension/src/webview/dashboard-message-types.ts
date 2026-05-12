@@ -386,6 +386,112 @@ export interface LibraryPaper {
 
 export type PapersTab = 'featured' | 'trending' | 'latest';
 
+// ─── Health library ─────────────────────────────────────────────────────────
+// Shape mirrors lib/health/types.ts on the platform. Kept inline here so the
+// extension webview doesn't need to import platform code; the JSON payloads
+// from /api/health/* deserialise straight into these.
+
+export type HealthExerciseType =
+  | 'compound' | 'isolation' | 'bodyweight' | 'plyometric'
+  | 'mobility' | 'cardio' | 'isometric' | 'stretching' | 'breathing';
+
+export type HealthWorkoutType =
+  | 'strength' | 'hypertrophy' | 'conditioning' | 'mobility'
+  | 'hybrid' | 'yoga' | 'pilates' | 'running' | 'cycling'
+  | 'recovery' | 'hiit';
+
+export type HealthMuscleRole = 'primary' | 'secondary';
+
+export interface HealthExerciseRoutine {
+  sets: number | string | null;
+  reps_target: string | null;
+  rest_seconds: number | null;
+  tempo: string | null;
+  frequency_per_week: string | null;
+  progression: string | null;
+}
+
+export interface HealthExerciseSummary {
+  id: string;
+  slug: string;
+  name: string;
+  exercise_type: HealthExerciseType;
+  workout_type: HealthWorkoutType;
+  difficulty: number;
+}
+
+export interface HealthMuscleTag {
+  slug: string;
+  name: string;
+  category: string;
+  role: HealthMuscleRole;
+}
+
+export interface HealthEquipmentTag {
+  slug: string;
+  name: string;
+}
+
+export interface HealthExerciseDetail extends HealthExerciseSummary {
+  description: string | null;
+  steps: string[];
+  routine: HealthExerciseRoutine;
+  beginner_detail: string | null;
+  common_mistakes: string | null;
+  demo_video_url: string | null;
+  thumbnail_url: string | null;
+  muscles: HealthMuscleTag[];
+  equipment: HealthEquipmentTag[];
+}
+
+export type HealthRecipeSkillLevel = 'beginner' | 'intermediate' | 'expert';
+
+export interface HealthRecipeSummary {
+  id: string;
+  slug: string;
+  name: string;
+  cuisine_name: string | null;
+  origin_country: string | null;
+  course: string | null;
+  hero_image_url: string | null;
+}
+
+export interface HealthRecipeIngredient {
+  sort_order: number;
+  quantity: number | null;
+  unit: string | null;
+  name: string;
+  notes: string | null;
+  optional: boolean;
+}
+
+export interface HealthRecipeStep {
+  sort_order: number;
+  action: string;
+  notes: string | null;
+  technique_term: string | null;
+  time_estimate_seconds: number | null;
+  tricky_flag: boolean;
+}
+
+export interface HealthRecipeVersionDetail {
+  level: HealthRecipeSkillLevel;
+  description: string | null;
+  prep_time_minutes: number | null;
+  cook_time_minutes: number | null;
+  total_time_minutes: number | null;
+  default_servings: number | null;
+  steps: HealthRecipeStep[];
+  dietary_flags: string[];
+}
+
+export interface HealthRecipeDetail extends HealthRecipeSummary {
+  overview: string | null;
+  source_attribution: string | null;
+  ingredients: HealthRecipeIngredient[];
+  versions: HealthRecipeVersionDetail[];
+}
+
 // ─── Release Notes ──────────────────────────────────────────────────────────
 
 // ─── Roadmap ────────────────────────────────────────────────────────────────
@@ -455,7 +561,7 @@ export interface UsageHistoryData {
   totalSessions: number;
 }
 
-export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'creative-studio' | 'library' | 'personality' | 'sync' | 'releases' | 'roadmap' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'planner' | 'account' | 'models' | 'help' | 'documentation';
+export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'creative-studio' | 'library' | 'health' | 'personality' | 'sync' | 'releases' | 'roadmap' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'planner' | 'account' | 'models' | 'help' | 'documentation';
 
 // ─── Chat UI Types ──────────────────────────────────────────────────────────
 
@@ -737,6 +843,11 @@ export type ExtToDashboardMessage =
   | { type: 'papers_loaded'; tab: PapersTab; papers: LibraryPaper[] }
   | { type: 'papers_search_results'; query: string; papers: LibraryPaper[]; total: number }
   | { type: 'paper_detail_loaded'; paper: LibraryPaper | null }
+  // Health library — exercises + recipes browse
+  | { type: 'health_exercises_loaded'; exercises: HealthExerciseSummary[] }
+  | { type: 'health_recipes_loaded'; recipes: HealthRecipeSummary[] }
+  | { type: 'health_exercise_detail_loaded'; exercise: HealthExerciseDetail | null }
+  | { type: 'health_recipe_detail_loaded'; recipe: HealthRecipeDetail | null }
   | { type: 'roadmap_loaded'; themes: RoadmapTheme[] }
   | { type: 'library_path_detail_loaded'; path: LibraryPathDetail }
   | { type: 'library_path_forked'; curriculumId: string; title: string }
@@ -976,6 +1087,12 @@ export type DashboardToExtMessage =
   | { type: 'search_papers'; query: string; discipline?: PaperDiscipline; sort?: 'relevance' | 'date' | 'cited' }
   | { type: 'load_paper_detail'; id: string }
   | { type: 'read_paper_with_ava'; paper: LibraryPaper }
+  // Health library — operator wants exercises + recipes browse on the
+  // extension surface. Plans/personalised content land in a later pass.
+  | { type: 'load_health_exercises' }
+  | { type: 'load_health_recipes' }
+  | { type: 'load_health_exercise_detail'; slug: string }
+  | { type: 'load_health_recipe_detail'; slug: string }
   | { type: 'load_roadmap' }
   | { type: 'load_task_dates' }
   // Sync messages
