@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { post } from '../App';
 import { HealthSubmissionModal } from './HealthSubmissionModal';
 import { HealthMySubmissions } from './HealthMySubmissions';
@@ -91,8 +91,8 @@ interface Props {
   exerciseDetail: HealthExerciseDetail | null;
   recipeDetail: HealthRecipeDetail | null;
   detailLoading: boolean;
-  onLoadExercises: (limit?: number, offset?: number, workoutType?: string) => void;
-  onLoadRecipes: (limit?: number, offset?: number, course?: string) => void;
+  onLoadExercises: (limit?: number, offset?: number, workoutType?: string, q?: string) => void;
+  onLoadRecipes: (limit?: number, offset?: number, course?: string, q?: string) => void;
   onLoadExerciseDetail: (slug: string) => void;
   onLoadRecipeDetail: (slug: string) => void;
   // Submission flow
@@ -151,6 +151,10 @@ export function Health({
   const [tab, setTab] = useState<Tab>('exercises');
   const [exerciseFilter, setExerciseFilter] = useState<'all' | HealthWorkoutType>('all');
   const [recipeFilter, setRecipeFilter] = useState<'all' | string>('all');
+  // Search state — local to the page; resets on close/reopen. Debounced
+  // to 300ms via the effects below so we don't fire a request per keystroke.
+  const [exerciseSearch, setExerciseSearch] = useState('');
+  const [recipeSearch, setRecipeSearch] = useState('');
   /** Which exercise/recipe is open in the modal. null = closed. The
    *  detail itself comes through prop `exerciseDetail` / `recipeDetail`
    *  once the host responds to the load-detail message. */
@@ -183,24 +187,60 @@ export function Health({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
-  // Filter change resets to page 0 + refetches with the new filter.
+  // Filter change resets to page 0 + refetches with the new filter +
+  // current search query.
   const handleExerciseFilterChange = (next: 'all' | HealthWorkoutType) => {
     setExerciseFilter(next);
-    onLoadExercises(PAGE_SIZE, 0, next === 'all' ? undefined : next);
+    onLoadExercises(PAGE_SIZE, 0, next === 'all' ? undefined : next, exerciseSearch.trim() || undefined);
   };
   const handleRecipeFilterChange = (next: 'all' | string) => {
     setRecipeFilter(next);
-    onLoadRecipes(PAGE_SIZE, 0, next === 'all' ? undefined : next);
+    onLoadRecipes(PAGE_SIZE, 0, next === 'all' ? undefined : next, recipeSearch.trim() || undefined);
   };
 
   // Page navigation — current offset comes from App.tsx so we always
   // request relative to the server's last-reported slice.
   const goExercisesPage = (newOffset: number) => {
-    onLoadExercises(PAGE_SIZE, newOffset, exerciseFilter === 'all' ? undefined : exerciseFilter);
+    onLoadExercises(PAGE_SIZE, newOffset, exerciseFilter === 'all' ? undefined : exerciseFilter, exerciseSearch.trim() || undefined);
   };
   const goRecipesPage = (newOffset: number) => {
-    onLoadRecipes(PAGE_SIZE, newOffset, recipeFilter === 'all' ? undefined : recipeFilter);
+    onLoadRecipes(PAGE_SIZE, newOffset, recipeFilter === 'all' ? undefined : recipeFilter, recipeSearch.trim() || undefined);
   };
+
+  // Search — debounced 300ms. Skip the initial mount fire so we don't
+  // duplicate the pre-warm / tab-init loads with an empty-string query.
+  const firstExerciseSearchTickRef = useRef(true);
+  const firstRecipeSearchTickRef = useRef(true);
+  useEffect(() => {
+    if (firstExerciseSearchTickRef.current) {
+      firstExerciseSearchTickRef.current = false;
+      return;
+    }
+    const t = window.setTimeout(() => {
+      onLoadExercises(
+        PAGE_SIZE, 0,
+        exerciseFilter === 'all' ? undefined : exerciseFilter,
+        exerciseSearch.trim() || undefined,
+      );
+    }, 300);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exerciseSearch]);
+  useEffect(() => {
+    if (firstRecipeSearchTickRef.current) {
+      firstRecipeSearchTickRef.current = false;
+      return;
+    }
+    const t = window.setTimeout(() => {
+      onLoadRecipes(
+        PAGE_SIZE, 0,
+        recipeFilter === 'all' ? undefined : recipeFilter,
+        recipeSearch.trim() || undefined,
+      );
+    }, 300);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recipeSearch]);
 
   // ESC closes whichever modal is open.
   useEffect(() => {
@@ -298,6 +338,8 @@ export function Health({
             onPage={goExercisesPage}
             loading={exercisesLoading}
             onOpen={openExercise}
+            search={exerciseSearch}
+            onSearch={setExerciseSearch}
           />
         )}
         {tab === 'recipes' && (
@@ -310,6 +352,8 @@ export function Health({
             onPage={goRecipesPage}
             loading={recipesLoading}
             onOpen={openRecipe}
+            search={recipeSearch}
+            onSearch={setRecipeSearch}
           />
         )}
         {tab === 'mine' && (
@@ -373,14 +417,22 @@ interface ExercisesGridProps {
   onPage: (newOffset: number) => void;
   loading: boolean;
   onOpen: (slug: string) => void;
+  search: string;
+  onSearch: (next: string) => void;
 }
 
-function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading, onOpen }: ExercisesGridProps) {
-  if (loading && items.length === 0) {
+function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading, onOpen, search, onSearch }: ExercisesGridProps) {
+  if (loading && items.length === 0 && !search) {
     return <LoadingCard label="Loading exercises…" />;
   }
   return (
     <div>
+      <SearchInput
+        value={search}
+        onChange={onSearch}
+        placeholder="Search exercises — name, e.g. 'squat'"
+        loading={loading && search.length > 0}
+      />
       <FilterRow>
         <FilterChip active={filter === 'all'} onClick={() => onFilter('all')}>All</FilterChip>
         {WORKOUT_TYPE_ORDER.map((t) => (
@@ -391,7 +443,9 @@ function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading
       </FilterRow>
 
       {items.length === 0 ? (
-        <div className="py-8 text-center text-[12px] text-vscode-descriptionForeground">No exercises match.</div>
+        <div className="py-8 text-center text-[12px] text-vscode-descriptionForeground">
+          {search ? `No exercises match "${search}".` : 'No exercises match.'}
+        </div>
       ) : (
         <>
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -443,14 +497,22 @@ interface RecipesGridProps {
   onPage: (newOffset: number) => void;
   loading: boolean;
   onOpen: (slug: string) => void;
+  search: string;
+  onSearch: (next: string) => void;
 }
 
-function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, onOpen }: RecipesGridProps) {
-  if (loading && items.length === 0) {
+function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, onOpen, search, onSearch }: RecipesGridProps) {
+  if (loading && items.length === 0 && !search) {
     return <LoadingCard label="Loading recipes…" />;
   }
   return (
     <div>
+      <SearchInput
+        value={search}
+        onChange={onSearch}
+        placeholder="Search recipes — name, e.g. 'chicken'"
+        loading={loading && search.length > 0}
+      />
       <FilterRow>
         <FilterChip active={filter === 'all'} onClick={() => onFilter('all')}>All</FilterChip>
         {COURSE_ORDER.map((c) => (
@@ -461,7 +523,9 @@ function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, 
       </FilterRow>
 
       {items.length === 0 ? (
-        <div className="py-8 text-center text-[12px] text-vscode-descriptionForeground">No recipes match.</div>
+        <div className="py-8 text-center text-[12px] text-vscode-descriptionForeground">
+          {search ? `No recipes match "${search}".` : 'No recipes match.'}
+        </div>
       ) : (
         <>
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -944,6 +1008,48 @@ function LoadingCard({ label }: { label: string }) {
 
 function FilterRow({ children }: { children: React.ReactNode }) {
   return <div className="mb-5 flex flex-wrap gap-0.5 border-b border-[var(--border)]">{children}</div>;
+}
+
+function SearchInput({
+  value, onChange, placeholder, loading,
+}: { value: string; onChange: (next: string) => void; placeholder: string; loading: boolean }) {
+  return (
+    <div className="relative mb-3">
+      <input
+        type="search"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-input)] py-2 pl-9 pr-9 text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)]/50 transition"
+      />
+      {/* Magnifier */}
+      <svg
+        aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]"
+      >
+        <circle cx="11" cy="11" r="7" />
+        <path d="m21 21-4.3-4.3" />
+      </svg>
+      {value && !loading && (
+        <button
+          type="button"
+          aria-label="Clear search"
+          onClick={() => onChange('')}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
+        >
+          ×
+        </button>
+      )}
+      {loading && (
+        <span
+          aria-hidden
+          className="absolute right-3 top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border-[1.5px] border-[rgba(168,85,247,0.25)] border-t-[var(--accent)]"
+          style={{ animation: 'avaHealthSearchSpin 0.85s linear infinite' }}
+        />
+      )}
+      <style>{`@keyframes avaHealthSearchSpin { to { transform: translateY(-50%) rotate(360deg); } }`}</style>
+    </div>
+  );
 }
 
 function FilterChip({

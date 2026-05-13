@@ -269,18 +269,18 @@ export function App() {
   // seq are dropped in the message handler below.
   const healthExercisesSeqRef = useRef(0);
   const healthRecipesSeqRef = useRef(0);
-  const handleLoadHealthExercises = useCallback((limit?: number, offset?: number, workoutType?: string) => {
+  const handleLoadHealthExercises = useCallback((limit?: number, offset?: number, workoutType?: string, q?: string) => {
     healthExercisesSeqRef.current += 1;
     const seq = healthExercisesSeqRef.current;
     setHealthExercisesLoading(true);
-    post({ type: 'load_health_exercises', limit, offset, workoutType, seq });
+    post({ type: 'load_health_exercises', limit, offset, workoutType, q, seq });
     window.setTimeout(() => setHealthExercisesLoading(false), 15000);
   }, []);
-  const handleLoadHealthRecipes = useCallback((limit?: number, offset?: number, course?: string) => {
+  const handleLoadHealthRecipes = useCallback((limit?: number, offset?: number, course?: string, q?: string) => {
     healthRecipesSeqRef.current += 1;
     const seq = healthRecipesSeqRef.current;
     setHealthRecipesLoading(true);
-    post({ type: 'load_health_recipes', limit, offset, course, seq });
+    post({ type: 'load_health_recipes', limit, offset, course, q, seq });
     window.setTimeout(() => setHealthRecipesLoading(false), 15000);
   }, []);
   const handleLoadHealthExerciseDetail = useCallback((slug: string) => {

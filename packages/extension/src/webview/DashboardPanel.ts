@@ -870,6 +870,7 @@ export class DashboardPanel {
         const seq = msg.seq;
         const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
         if (msg.workoutType) params.set('workout_type', msg.workoutType);
+        if (msg.q && msg.q.trim()) params.set('q', msg.q.trim());
         try {
           this.log(`[health] load exercises seq=${seq} ${params.toString()}`);
           const res = await fetch(
@@ -903,6 +904,7 @@ export class DashboardPanel {
         const seq = msg.seq;
         const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
         if (msg.course) params.set('course', msg.course);
+        if (msg.q && msg.q.trim()) params.set('q', msg.q.trim());
         try {
           this.log(`[health] load recipes seq=${seq} ${params.toString()}`);
           const res = await fetch(
