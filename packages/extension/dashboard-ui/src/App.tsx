@@ -260,18 +260,27 @@ export function App() {
     setPaperDetail(null);
     setPaperDetailLoading(false);
   }, []);
-  // Health handlers — same pattern as Papers: handler sets loading and
-  // posts the load message; safety-net timeout clears loading if the
-  // host never responds. limit/offset come from the Health page; we
-  // forward as-is.
+  // Health handlers — sequence numbers (via refs so they don't trigger
+  // re-renders) protect against out-of-order responses. The pre-warm fires
+  // on dashboard mount with no filter; if a filter request fires shortly
+  // after, both are in flight at once. Without sequencing, the pre-warm
+  // response could land second and overwrite the filtered data with the
+  // unfiltered slice. Each request bumps the seq; responses with a stale
+  // seq are dropped in the message handler below.
+  const healthExercisesSeqRef = useRef(0);
+  const healthRecipesSeqRef = useRef(0);
   const handleLoadHealthExercises = useCallback((limit?: number, offset?: number, workoutType?: string) => {
+    healthExercisesSeqRef.current += 1;
+    const seq = healthExercisesSeqRef.current;
     setHealthExercisesLoading(true);
-    post({ type: 'load_health_exercises', limit, offset, workoutType });
+    post({ type: 'load_health_exercises', limit, offset, workoutType, seq });
     window.setTimeout(() => setHealthExercisesLoading(false), 15000);
   }, []);
   const handleLoadHealthRecipes = useCallback((limit?: number, offset?: number, course?: string) => {
+    healthRecipesSeqRef.current += 1;
+    const seq = healthRecipesSeqRef.current;
     setHealthRecipesLoading(true);
-    post({ type: 'load_health_recipes', limit, offset, course });
+    post({ type: 'load_health_recipes', limit, offset, course, seq });
     window.setTimeout(() => setHealthRecipesLoading(false), 15000);
   }, []);
   const handleLoadHealthExerciseDetail = useCallback((slug: string) => {
@@ -671,12 +680,25 @@ export function App() {
         setPaperDetailLoading(false);
         break;
       case 'health_exercises_loaded':
+        // Drop stale responses — only the most recent request wins. This
+        // is the fix for "filter chip click doesn't update the list":
+        // pre-warm fires with no filter on mount, filter click fires
+        // shortly after; either order is possible at the network layer,
+        // and without sequencing the pre-warm could land second and
+        // overwrite filtered results. Untagged responses (legacy or
+        // safety-fallbacks) always apply.
+        if (msg.seq != null && msg.seq !== healthExercisesSeqRef.current) {
+          break;
+        }
         setHealthExercises(msg.exercises);
         setHealthExercisesTotal(msg.total);
         setHealthExercisesOffset(msg.offset);
         setHealthExercisesLoading(false);
         break;
       case 'health_recipes_loaded':
+        if (msg.seq != null && msg.seq !== healthRecipesSeqRef.current) {
+          break;
+        }
         setHealthRecipes(msg.recipes);
         setHealthRecipesTotal(msg.total);
         setHealthRecipesOffset(msg.offset);

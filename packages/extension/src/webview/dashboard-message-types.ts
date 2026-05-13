@@ -985,8 +985,8 @@ export type ExtToDashboardMessage =
   // is the count of ALL visible rows so the webview can render
   // prev/next + page count, even though it only renders the slice it
   // received in the `exercises` / `recipes` field).
-  | { type: 'health_exercises_loaded'; exercises: HealthExerciseSummary[]; total: number; offset: number }
-  | { type: 'health_recipes_loaded'; recipes: HealthRecipeSummary[]; total: number; offset: number }
+  | { type: 'health_exercises_loaded'; exercises: HealthExerciseSummary[]; total: number; offset: number; seq?: number }
+  | { type: 'health_recipes_loaded'; recipes: HealthRecipeSummary[]; total: number; offset: number; seq?: number }
   | { type: 'health_exercise_detail_loaded'; exercise: HealthExerciseDetail | null }
   | { type: 'health_recipe_detail_loaded'; recipe: HealthRecipeDetail | null }
   // Health submission flow (community contributions)
@@ -1238,8 +1238,8 @@ export type DashboardToExtMessage =
   // extension surface. Plans/personalised content land in a later pass.
   // limit + offset are optional; the host defaults to limit=24 offset=0
   // if either is missing.
-  | { type: 'load_health_exercises'; limit?: number; offset?: number; workoutType?: string }
-  | { type: 'load_health_recipes'; limit?: number; offset?: number; course?: string }
+  | { type: 'load_health_exercises'; limit?: number; offset?: number; workoutType?: string; seq?: number }
+  | { type: 'load_health_recipes'; limit?: number; offset?: number; course?: string; seq?: number }
   | { type: 'load_health_exercise_detail'; slug: string }
   | { type: 'load_health_recipe_detail'; slug: string }
   | { type: 'load_health_taxonomies' }
