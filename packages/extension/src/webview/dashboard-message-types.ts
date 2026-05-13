@@ -474,6 +474,13 @@ export interface HealthRecipeStep {
   tricky_flag: boolean;
 }
 
+export interface HealthRecipeEquipment {
+  sort_order: number;
+  name: string;
+  notes: string | null;
+  optional: boolean;
+}
+
 export interface HealthRecipeVersionDetail {
   level: HealthRecipeSkillLevel;
   description: string | null;
@@ -483,6 +490,8 @@ export interface HealthRecipeVersionDetail {
   default_servings: number | null;
   steps: HealthRecipeStep[];
   dietary_flags: string[];
+  diets: string[];
+  equipment: HealthRecipeEquipment[];
 }
 
 export interface HealthRecipeDetail extends HealthRecipeSummary {

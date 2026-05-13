@@ -844,6 +844,64 @@ function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
                 })}
               </div>
             </div>
+
+            {/* Per-version metadata strip — timing + servings */}
+            {v && (
+              <div className="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[11px] text-vscode-descriptionForeground">
+                {v.prep_time_minutes != null && (
+                  <span><span className="opacity-60">Prep</span> {v.prep_time_minutes}m</span>
+                )}
+                {v.cook_time_minutes != null && (
+                  <span><span className="opacity-60">Cook</span> {v.cook_time_minutes}m</span>
+                )}
+                {v.total_time_minutes != null && (
+                  <span><span className="opacity-60">Total</span> {v.total_time_minutes}m</span>
+                )}
+                {v.default_servings != null && (
+                  <span><span className="opacity-60">Serves</span> {v.default_servings}</span>
+                )}
+              </div>
+            )}
+
+            {v?.description && (
+              <p className="mb-3 text-[13px] leading-relaxed text-vscode-foreground/90">{v.description}</p>
+            )}
+
+            {/* Equipment — per skill level. Was the missing piece — every
+                curated recipe row has equipment but the read path didn't
+                fetch it and the display didn't render it. */}
+            {v && v.equipment && v.equipment.length > 0 && (
+              <div className="mb-4">
+                <h4 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">Equipment</h4>
+                <ul className="grid gap-1.5 rounded-lg border border-vscode-panelBorder/60 p-4 sm:grid-cols-2">
+                  {v.equipment.map((e, i) => (
+                    <li key={i} className="flex items-baseline gap-2 text-[13px]">
+                      <span className="text-vscode-foreground/95">{e.name}</span>
+                      {e.optional && <span className="text-[10px] text-vscode-descriptionForeground">optional</span>}
+                      {e.notes && <span className="text-[11px] italic text-vscode-descriptionForeground">— {e.notes}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Diets + dietary flags as quiet chip rows so allergen-aware
+                users can scan the recipe at a glance. */}
+            {v && ((v.diets && v.diets.length > 0) || (v.dietary_flags && v.dietary_flags.length > 0)) && (
+              <div className="mb-4 flex flex-wrap gap-1.5">
+                {v.diets?.map((d) => (
+                  <span key={`d-${d}`} className="rounded-full border border-[rgba(168,85,247,0.30)] bg-[rgba(168,85,247,0.08)] px-2.5 py-0.5 text-[10px] uppercase tracking-wider text-[#c084fc]">
+                    {d}
+                  </span>
+                ))}
+                {v.dietary_flags?.map((f) => (
+                  <span key={`f-${f}`} className="rounded-full border border-amber-400/30 bg-amber-400/5 px-2.5 py-0.5 text-[10px] uppercase tracking-wider text-amber-300">
+                    {f}
+                  </span>
+                ))}
+              </div>
+            )}
+
             {v && (
               <ol className="space-y-2">
                 {v.steps.map((s, i) => (
@@ -852,9 +910,22 @@ function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
                       {i + 1}
                     </span>
                     <div className="flex-1 text-[13px] leading-relaxed">
-                      <p className="text-vscode-foreground/95">{s.action}</p>
+                      <p className="text-vscode-foreground/95">
+                        {s.action}
+                        {s.tricky_flag && (
+                          <span className="ml-2 align-middle rounded-sm bg-amber-400/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-amber-300">tricky</span>
+                        )}
+                      </p>
+                      {s.technique_term && (
+                        <p className="mt-1 text-[11px] uppercase tracking-wider text-amber-300/80">{s.technique_term}</p>
+                      )}
                       {s.notes && (
                         <p className="mt-1 text-[12px] italic text-vscode-descriptionForeground">{s.notes}</p>
+                      )}
+                      {s.time_estimate_seconds != null && s.time_estimate_seconds > 0 && (
+                        <p className="mt-1 text-[10px] text-vscode-descriptionForeground/80">
+                          ~{Math.round(s.time_estimate_seconds / 60)}m
+                        </p>
                       )}
                     </div>
                   </li>
