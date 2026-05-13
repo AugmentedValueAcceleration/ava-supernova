@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { post } from '../App';
 import { HealthSubmissionModal } from './HealthSubmissionModal';
 import { HealthMySubmissions } from './HealthMySubmissions';
@@ -207,16 +207,12 @@ export function Health({
     onLoadRecipes(PAGE_SIZE, newOffset, recipeFilter === 'all' ? undefined : recipeFilter, recipeSearch.trim() || undefined);
   };
 
-  // Search — debounced 300ms. Skip the initial mount fire so we don't
-  // duplicate the pre-warm / tab-init loads with an empty-string query.
-  const firstExerciseSearchTickRef = useRef(true);
-  const firstRecipeSearchTickRef = useRef(true);
+  // Search — debounced 300ms. Fires on every value change including the
+  // empty-string initial mount; the duplicate empty-q load is harmless
+  // because the seq logic in App.tsx drops stale responses.
   useEffect(() => {
-    if (firstExerciseSearchTickRef.current) {
-      firstExerciseSearchTickRef.current = false;
-      return;
-    }
     const t = window.setTimeout(() => {
+      console.log('[health] search exercises q=', JSON.stringify(exerciseSearch));
       onLoadExercises(
         PAGE_SIZE, 0,
         exerciseFilter === 'all' ? undefined : exerciseFilter,
@@ -227,11 +223,8 @@ export function Health({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exerciseSearch]);
   useEffect(() => {
-    if (firstRecipeSearchTickRef.current) {
-      firstRecipeSearchTickRef.current = false;
-      return;
-    }
     const t = window.setTimeout(() => {
+      console.log('[health] search recipes q=', JSON.stringify(recipeSearch));
       onLoadRecipes(
         PAGE_SIZE, 0,
         recipeFilter === 'all' ? undefined : recipeFilter,
