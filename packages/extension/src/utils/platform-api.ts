@@ -31,7 +31,19 @@ const DEFAULT_TIMEOUT_MS = 10_000;
 
 export async function apiFetch(
   path: string,
-  options: { method?: string; body?: unknown; platformKey: string; timeoutMs?: number },
+  options: {
+    method?: string;
+    body?: unknown;
+    /** Optional — anonymous endpoints (public reads + anonymous-allowed
+     *  contribution flow) work without a platform key. When unset, the
+     *  Authorization header is omitted and the server falls back to
+     *  device-id-based identity. */
+    platformKey?: string;
+    timeoutMs?: number;
+    /** Extra headers to attach (e.g. BYOK provider/key for the health
+     *  generation passthrough). */
+    extraHeaders?: Record<string, string>;
+  },
 ): Promise<{ ok: boolean; status: number; data: unknown }> {
   return new Promise((resolve) => {
     const url = new URL(PLATFORM_API + path);
@@ -45,6 +57,15 @@ export async function apiFetch(
       resolve(val);
     };
 
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Ava-Platform': 'extension',
+      'X-Ava-Device': getDeviceId(),
+      ...(options.platformKey ? { 'Authorization': `Bearer ${options.platformKey}` } : {}),
+      ...(options.extraHeaders ?? {}),
+      ...(body ? { 'Content-Length': String(Buffer.byteLength(body)) } : {}),
+    };
+
     const req = https.request(
       {
         hostname: url.hostname,
@@ -54,13 +75,7 @@ export async function apiFetch(
         rejectUnauthorized: true,
         minVersion: 'TLSv1.2',
         timeout: timeoutMs,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${options.platformKey}`,
-          'X-Ava-Platform': 'extension',
-          'X-Ava-Device': getDeviceId(),
-          ...(body ? { 'Content-Length': Buffer.byteLength(body) } : {}),
-        },
+        headers,
       },
       (res) => {
         let raw = '';

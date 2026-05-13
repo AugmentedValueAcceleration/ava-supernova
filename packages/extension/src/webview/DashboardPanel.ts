@@ -1000,17 +1000,11 @@ export class DashboardPanel {
       case 'submit_health_recipe': {
         const kind = msg.type === 'submit_health_exercise' ? 'exercise' : 'recipe';
         try {
+          // Auth optional — BYOK / no-account users contribute anonymously
+          // via the device-id pseudonym (X-Ava-Device, already attached by
+          // apiFetch). Signed-in users get full attribution.
           const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-          if (!platformKey) {
-            this.post({
-              type: 'health_submission_result',
-              kind,
-              ok: false,
-              error: 'You need to sign in before contributing. Open Settings → Account.',
-            });
-            break;
-          }
-          this.log(`[health] submit ${kind}`);
+          this.log(`[health] submit ${kind} (auth=${platformKey ? 'user' : 'anonymous'})`);
           const res = await apiFetch(`/health/submissions/${kind}`, {
             platformKey,
             method: 'POST',
@@ -1040,20 +1034,34 @@ export class DashboardPanel {
       case 'generate_health_recipe_draft': {
         const kind = msg.type === 'generate_health_exercise_draft' ? 'exercise' : 'recipe';
         try {
+          // Two auth paths:
+          //  - Platform user: send platformKey → server uses platform Qwen
+          //    key + deducts 2 credits.
+          //  - BYOK / no-account: send the user's BYOK provider + key via
+          //    X-BYOK-* headers → server proxies the LLM call using their
+          //    key, no credit deduction.
           const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-          if (!platformKey) {
+          const byokProvider = await this.secrets.get('ava-supernova.provider.qwen.apiKey').then(k => k ? 'qwen' : null);
+          const byokKey = byokProvider ? await this.secrets.get(`ava-supernova.provider.${byokProvider}.apiKey`) : null;
+          const extraHeaders: Record<string, string> = {};
+          if (!platformKey && byokProvider && byokKey) {
+            extraHeaders['X-BYOK-Provider'] = byokProvider;
+            extraHeaders['X-BYOK-Key'] = byokKey;
+          }
+          if (!platformKey && !byokKey) {
             this.post({
               type: kind === 'exercise' ? 'health_exercise_draft_generated' : 'health_recipe_draft_generated',
               ok: false,
-              error: 'You need to sign in before Ava can draft a submission. Open Settings → Account.',
+              error: 'Ava generation needs a platform account or a BYOK provider key in Settings.',
             });
             break;
           }
-          this.log(`[health] generate ${kind} draft`);
+          this.log(`[health] generate ${kind} draft (auth=${platformKey ? 'user' : `byok:${byokProvider}`})`);
           const res = await apiFetch(`/health/generate/${kind}`, {
             platformKey,
             method: 'POST',
             body: msg.intake,
+            extraHeaders,
             timeoutMs: 60000,  // Qwen call can take 20–40s under load
           });
           if (!res.ok) {
@@ -1096,12 +1104,11 @@ export class DashboardPanel {
 
       case 'load_my_health_submissions': {
         try {
+          // Anonymous users get device-id-scoped results (X-Ava-Device
+          // header is always sent by apiFetch). Signed-in users get the
+          // union of their account + device-id rows.
           const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-          if (!platformKey) {
-            this.post({ type: 'health_my_submissions_loaded', data: { exercises: [], recipes: [] } });
-            break;
-          }
-          this.log('[health] load my submissions');
+          this.log(`[health] load my submissions (auth=${platformKey ? 'user' : 'anonymous'})`);
           const res = await apiFetch('/health/submissions/mine', {
             platformKey,
             method: 'GET',
