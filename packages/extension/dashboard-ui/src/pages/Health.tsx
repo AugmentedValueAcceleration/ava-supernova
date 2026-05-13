@@ -574,12 +574,18 @@ function ModalShell({ onClose, children }: { onClose: () => void; children: Reac
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm p-3 sm:p-6"
+      style={{ animation: 'avaDetailModalIn 120ms ease-out' }}
       onClick={onClose}
     >
+      <style>{`
+        @keyframes avaDetailModalIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes avaDetailCardIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
+      `}</style>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-vscode-panelBorder bg-vscode-editor-background shadow-2xl"
+        className="relative max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[rgba(168,85,247,0.20)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] shadow-[0_0_60px_rgba(168,85,247,0.12)]"
+        style={{ animation: 'avaDetailCardIn 160ms ease-out' }}
       >
         <button
           onClick={onClose}
