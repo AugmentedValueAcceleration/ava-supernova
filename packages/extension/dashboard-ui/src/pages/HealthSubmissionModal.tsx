@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Select } from '../components/Select';
 import type {
   HealthTaxonomies, HealthExerciseSubmissionPayload, HealthRecipeSubmissionPayload,
   HealthExerciseType, HealthWorkoutType,
@@ -1008,16 +1009,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-1">{label}</label>
       {children}
     </div>
-  );
-}
-
-function Select({
-  value, onChange, options,
-}: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
-  return (
-    <select value={value} onChange={e => onChange(e.target.value)} className={`${inputCls} appearance-none pr-8`}>
-      {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
   );
 }
 
