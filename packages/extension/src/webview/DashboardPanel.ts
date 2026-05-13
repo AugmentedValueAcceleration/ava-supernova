@@ -972,19 +972,15 @@ export class DashboardPanel {
 
       case 'load_health_taxonomies': {
         const empty: HealthTaxonomies = { allergens: [], contraindications: [], cuisines: [] };
+        this.log('[health] load taxonomies — start');
         try {
-          this.log('[health] load taxonomies');
-          const res = await fetch(
-            'https://ava-supernova.com/api/health/taxonomies',
-            { signal: AbortSignal.timeout(8000) },
-          );
-          if (!res.ok) {
-            this.log(`[health] load taxonomies failed: HTTP ${res.status}`);
-            this.post({ type: 'health_taxonomies_loaded', taxonomies: empty });
-            break;
-          }
-          const data = (await res.json()) as HealthTaxonomies;
-          this.post({ type: 'health_taxonomies_loaded', taxonomies: data });
+          // Use the Node https helper instead of global fetch — global
+          // fetch has been unreliable in some VSCode extension host
+          // builds; httpGetJson talks to the same endpoint via Node's
+          // native https stack with no extra runtime surface.
+          const data = await httpGetJson('https://ava-supernova.com/api/health/taxonomies') as HealthTaxonomies;
+          this.log(`[health] taxonomies loaded a=${data?.allergens?.length ?? 0} c=${data?.contraindications?.length ?? 0} cu=${data?.cuisines?.length ?? 0}`);
+          this.post({ type: 'health_taxonomies_loaded', taxonomies: data ?? empty });
         } catch (err) {
           this.log(`[health] load taxonomies error: ${err instanceof Error ? err.message : String(err)}`);
           this.post({ type: 'health_taxonomies_loaded', taxonomies: empty });
