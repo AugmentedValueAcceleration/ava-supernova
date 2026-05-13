@@ -1069,12 +1069,21 @@ export class DashboardPanel {
             method: 'POST',
             body: msg.intake,
             extraHeaders,
-            timeoutMs: 60000,  // Qwen call can take 20–40s under load
+            // Surprise mode at temp=0.9 + the recipe surprise prompt + 200
+            // catalog avoid-list can push Qwen past 60s. Aligned with the
+            // server's new 120s maxDuration so neither side gives up first.
+            timeoutMs: 120000,
           });
           if (!res.ok) {
+            // Format error so the operator sees the actual reason, not
+            // just "HTTP 0". `res.data` is a string for network / timeout
+            // failures and an object with `error` for server-emitted
+            // failures.
             const errorMsg = res.data && typeof res.data === 'object' && 'error' in res.data
               ? String((res.data as { error?: string }).error ?? `HTTP ${res.status}`)
-              : `HTTP ${res.status}`;
+              : typeof res.data === 'string' && res.data
+                ? `HTTP ${res.status} — ${res.data}`
+                : `HTTP ${res.status}`;
             this.log(`[health] generate ${kind} failed: ${errorMsg}`);
             this.post({
               type: kind === 'exercise' ? 'health_exercise_draft_generated' : 'health_recipe_draft_generated',
