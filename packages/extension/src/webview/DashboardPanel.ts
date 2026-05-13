@@ -971,6 +971,7 @@ export class DashboardPanel {
       // write to the catalog as the authenticated user.
 
       case 'load_health_taxonomies': {
+        const empty: HealthTaxonomies = { allergens: [], contraindications: [], cuisines: [] };
         try {
           this.log('[health] load taxonomies');
           const res = await fetch(
@@ -979,12 +980,14 @@ export class DashboardPanel {
           );
           if (!res.ok) {
             this.log(`[health] load taxonomies failed: HTTP ${res.status}`);
+            this.post({ type: 'health_taxonomies_loaded', taxonomies: empty });
             break;
           }
           const data = (await res.json()) as HealthTaxonomies;
           this.post({ type: 'health_taxonomies_loaded', taxonomies: data });
         } catch (err) {
           this.log(`[health] load taxonomies error: ${err instanceof Error ? err.message : String(err)}`);
+          this.post({ type: 'health_taxonomies_loaded', taxonomies: empty });
         }
         break;
       }

@@ -277,6 +277,9 @@ export function App() {
 
   // Submission handlers
   const handleLoadHealthTaxonomies = useCallback(() => {
+    // Clear stale state so the modal goes back to "Loading…" on retry
+    // instead of flickering between failure → success/failure.
+    setHealthTaxonomies(null);
     post({ type: 'load_health_taxonomies' });
   }, []);
   const handleLoadMyHealthSubmissions = useCallback(() => {

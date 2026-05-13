@@ -58,16 +58,44 @@ interface Props {
   onSubmitExercise: (p: HealthExerciseSubmissionPayload) => void;
   onSubmitRecipe: (p: HealthRecipeSubmissionPayload) => void;
   onClearResult: () => void;
+  onRetryTaxonomies: () => void;
 }
 
 export function HealthSubmissionModal({
   open, onClose, taxonomies, inflight, result,
-  onSubmitExercise, onSubmitRecipe, onClearResult,
+  onSubmitExercise, onSubmitRecipe, onClearResult, onRetryTaxonomies,
 }: Props) {
   const [kind, setKind] = useState<Kind | null>(null);
+  // Wait up to 12s for taxonomies after the user picks a kind before
+  // declaring failure. The host has an 8s fetch timeout + posts back
+  // on failure now, so we should normally see a result inside a second.
+  const [taxLoadStartedAt, setTaxLoadStartedAt] = useState<number | null>(null);
+  const [taxFailedTick, setTaxFailedTick] = useState(0); // tick increments on retry to re-fire the timer
+  useEffect(() => {
+    if (!open || kind === null || taxonomies) return;
+    setTaxLoadStartedAt(Date.now());
+    const timer = window.setTimeout(() => setTaxFailedTick(t => t + 1), 12000);
+    return () => window.clearTimeout(timer);
+  }, [open, kind, taxonomies, taxFailedTick]);
+  const taxonomiesFailed =
+    !!taxonomies &&
+    taxonomies.allergens.length === 0 &&
+    taxonomies.contraindications.length === 0 &&
+    taxonomies.cuisines.length === 0;
+  const taxonomiesTimedOut =
+    !taxonomies &&
+    taxLoadStartedAt !== null &&
+    taxFailedTick > 0 &&
+    Date.now() - taxLoadStartedAt >= 12000;
 
   // Reset kind when modal closes/reopens
-  useEffect(() => { if (!open) setKind(null); }, [open]);
+  useEffect(() => {
+    if (!open) {
+      setKind(null);
+      setTaxLoadStartedAt(null);
+      setTaxFailedTick(0);
+    }
+  }, [open]);
 
   // ESC closes (when not in flight)
   useEffect(() => {
@@ -109,7 +137,7 @@ export function HealthSubmissionModal({
           )}
 
           {/* Form */}
-          {!result && kind === 'exercise' && taxonomies && (
+          {!result && kind === 'exercise' && taxonomies && !taxonomiesFailed && (
             <ExerciseForm
               taxonomies={taxonomies}
               inflight={inflight}
@@ -117,7 +145,7 @@ export function HealthSubmissionModal({
               onSubmit={onSubmitExercise}
             />
           )}
-          {!result && kind === 'recipe' && taxonomies && (
+          {!result && kind === 'recipe' && taxonomies && !taxonomiesFailed && (
             <RecipeForm
               taxonomies={taxonomies}
               inflight={inflight}
@@ -125,10 +153,44 @@ export function HealthSubmissionModal({
               onSubmit={onSubmitRecipe}
             />
           )}
-          {!result && kind !== null && !taxonomies && (
+          {!result && kind !== null && !taxonomies && !taxonomiesTimedOut && (
             <div className="py-12 text-center text-[12px] text-vscode-descriptionForeground">Loading taxonomies…</div>
           )}
+          {!result && kind !== null && (taxonomiesFailed || taxonomiesTimedOut) && (
+            <TaxonomiesFailed
+              onRetry={() => {
+                setTaxLoadStartedAt(Date.now());
+                onRetryTaxonomies();
+              }}
+              onBack={() => setKind(null)}
+            />
+          )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Taxonomy load failure ─────────────────────────────────────────────
+
+function TaxonomiesFailed({ onRetry, onBack }: { onRetry: () => void; onBack: () => void }) {
+  return (
+    <div className="py-12 text-center">
+      <div className="text-3xl mb-3 text-amber-400">⚠</div>
+      <h2 className="text-[16px] font-light text-vscode-foreground mb-2">Couldn't load the safety taxonomy</h2>
+      <p className="text-[12px] text-vscode-descriptionForeground mb-6 max-w-md mx-auto leading-relaxed">
+        We need the allergen + contraindication lists to render the form — the form is unsafe to fill in
+        without them. Check your connection or wait a moment if the platform's deploying.
+      </p>
+      <div className="flex gap-2 justify-center">
+        <button onClick={onBack}
+          className="rounded-md border border-vscode-panelBorder bg-transparent px-4 py-2 text-[12px] text-vscode-descriptionForeground hover:text-vscode-foreground transition cursor-pointer">
+          Back
+        </button>
+        <button onClick={onRetry}
+          className="rounded-md border border-[var(--accent)] bg-[var(--accent)]/15 px-4 py-2 text-[12px] text-[var(--accent)] hover:bg-[var(--accent)]/25 transition cursor-pointer">
+          Retry
+        </button>
       </div>
     </div>
   );

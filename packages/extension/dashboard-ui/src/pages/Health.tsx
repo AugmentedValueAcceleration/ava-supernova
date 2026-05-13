@@ -314,6 +314,7 @@ export function Health({
         onSubmitExercise={onSubmitExercise}
         onSubmitRecipe={onSubmitRecipe}
         onClearResult={onClearSubmissionResult}
+        onRetryTaxonomies={onLoadTaxonomies}
       />
 
       {/* Overlay modals — one mounts at a time, whichever was clicked. */}
