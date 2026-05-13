@@ -151,14 +151,6 @@ export function Health({
   const [tab, setTab] = useState<Tab>('exercises');
   const [exerciseFilter, setExerciseFilter] = useState<'all' | HealthWorkoutType>('all');
   const [recipeFilter, setRecipeFilter] = useState<'all' | string>('all');
-  // Diagnostic — counts every filter / card click locally so we can see in
-  // the strip below whether the click handler is firing AT ALL. If this
-  // counter doesn't bump on click, the chip's onClick isn't reaching
-  // React. If it bumps but items/total don't change, the response isn't
-  // landing. Temporary scaffolding — remove once the data-flow bug is
-  // isolated and fixed.
-  const [diagClickCount, setDiagClickCount] = useState(0);
-  const [diagLastAction, setDiagLastAction] = useState<string>('—');
   /** Which exercise/recipe is open in the modal. null = closed. The
    *  detail itself comes through prop `exerciseDetail` / `recipeDetail`
    *  once the host responds to the load-detail message. */
@@ -193,14 +185,10 @@ export function Health({
 
   // Filter change resets to page 0 + refetches with the new filter.
   const handleExerciseFilterChange = (next: 'all' | HealthWorkoutType) => {
-    setDiagClickCount(c => c + 1);
-    setDiagLastAction(`filter exercises → ${next}`);
     setExerciseFilter(next);
     onLoadExercises(PAGE_SIZE, 0, next === 'all' ? undefined : next);
   };
   const handleRecipeFilterChange = (next: 'all' | string) => {
-    setDiagClickCount(c => c + 1);
-    setDiagLastAction(`filter recipes → ${next}`);
     setRecipeFilter(next);
     onLoadRecipes(PAGE_SIZE, 0, next === 'all' ? undefined : next);
   };
@@ -232,14 +220,10 @@ export function Health({
   // is the full count for the active filter (drives pagination math).
 
   const openExercise = (slug: string) => {
-    setDiagClickCount(c => c + 1);
-    setDiagLastAction(`open exercise → ${slug}`);
     setModalExerciseSlug(slug);
     onLoadExerciseDetail(slug);
   };
   const openRecipe = (slug: string) => {
-    setDiagClickCount(c => c + 1);
-    setDiagLastAction(`open recipe → ${slug}`);
     setModalRecipeSlug(slug);
     onLoadRecipeDetail(slug);
   };
@@ -300,16 +284,6 @@ export function Health({
             );
           })}
         </div>
-      </div>
-
-      {/* TEMP DIAGNOSTIC — proves where the click / data chain breaks. */}
-      <div className="border-b border-amber-500/30 bg-amber-500/5 px-6 py-1.5 font-mono text-[10px] text-amber-200/80 flex flex-wrap items-center gap-x-4 gap-y-0.5">
-        <span>[debug]</span>
-        <span>clicks={diagClickCount}</span>
-        <span>last={diagLastAction}</span>
-        <span>exFilter={exerciseFilter} · items={exercises.length} · total={exercisesTotal} · loading={String(exercisesLoading)}</span>
-        <span>recFilter={recipeFilter} · items={recipes.length} · total={recipesTotal} · loading={String(recipesLoading)}</span>
-        <span>detail={modalExerciseSlug ?? modalRecipeSlug ?? '—'} · loading={String(detailLoading)} · detail-set={String(!!(exerciseDetail || recipeDetail))}</span>
       </div>
 
       {/* Content area */}
