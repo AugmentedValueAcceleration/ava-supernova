@@ -2,25 +2,29 @@ import { useEffect, useMemo, useState } from 'react';
 import type {
   HealthTaxonomies, HealthExerciseSubmissionPayload, HealthRecipeSubmissionPayload,
   HealthExerciseType, HealthWorkoutType,
+  HealthExerciseDraft, HealthRecipeDraft,
+  HealthGenerateExerciseIntake, HealthGenerateRecipeIntake,
 } from '../types/messages';
 
 /**
  * Submission wizard for community contributions to the Health library.
  *
- * Canonical extension overlay style (mirrors CreativeStudio settings
- * overlay) — purple-glow gradient card, fade-in animation, Ava CSS
- * vars throughout (no vscode-* theme classes — those don't match the
- * rest of the dashboard).
+ * Two paths off the kind picker:
+ *   - Manual:   Kind → Method → Form → Submitted
+ *   - Ava-draft: Kind → Method → Intake → Generating → Form (pre-filled) → Submitted
  *
- * Wizard steps: Kind → Form → Submitted. When the Ava-assisted draft
- * flow ships (next commit), it slots in as Kind → Method → Intake →
- * Generating → Form → Submitted. The step indicator at the top of
- * every step shows progress.
+ * Manual stays untouched; Ava-draft asks 3–5 clarifying questions,
+ * posts to /api/health/generate/{exercise,recipe} (2 credits), drops
+ * the structured draft straight into the form for review + edit.
+ * Submission to /api/health/submissions/{kind} is the same as manual.
+ *
+ * Canonical extension overlay style — purple-glow gradient card, fade-in
+ * animation, Ava CSS vars throughout (no vscode-* theme classes).
  *
  * Safety stance: allergens (recipes) and contraindications (exercises)
- * are mandatory-to-think-about, not mandatory-to-tick. We surface the
- * full grid so the submitter has to scan it; the operator locks the
- * final taxonomy in the hub moderation drawer before approval.
+ * are mandatory-to-think-about. Ava-generated drafts pre-tick what she
+ * detected; the submitter reviews and adds anything missed before
+ * submitting. The operator locks the final list in the hub.
  */
 
 const EXERCISE_TYPES: { slug: HealthExerciseType; label: string }[] = [
@@ -52,7 +56,8 @@ const WORKOUT_TYPES: { slug: HealthWorkoutType; label: string }[] = [
 const COURSES = ['breakfast', 'main', 'starter', 'side', 'snack', 'dessert'];
 
 type Kind = 'exercise' | 'recipe';
-type Step = 'kind' | 'form' | 'submitted';
+type Method = 'manual' | 'ava';
+type Step = 'kind' | 'method' | 'intake' | 'generating' | 'form' | 'submitted';
 
 interface Props {
   open: boolean;
@@ -64,13 +69,24 @@ interface Props {
   onSubmitRecipe: (p: HealthRecipeSubmissionPayload) => void;
   onClearResult: () => void;
   onRetryTaxonomies: () => void;
+  // Ava-draft props
+  exerciseDraft: HealthExerciseDraft | null;
+  recipeDraft: HealthRecipeDraft | null;
+  draftInflight: boolean;
+  draftError: string | null;
+  onGenerateExerciseDraft: (intake: HealthGenerateExerciseIntake) => void;
+  onGenerateRecipeDraft: (intake: HealthGenerateRecipeIntake) => void;
+  onClearDraft: () => void;
 }
 
 export function HealthSubmissionModal({
   open, onClose, taxonomies, inflight, result,
   onSubmitExercise, onSubmitRecipe, onClearResult, onRetryTaxonomies,
+  exerciseDraft, recipeDraft, draftInflight, draftError,
+  onGenerateExerciseDraft, onGenerateRecipeDraft, onClearDraft,
 }: Props) {
   const [kind, setKind] = useState<Kind | null>(null);
+  const [method, setMethod] = useState<Method | null>(null);
 
   // Taxonomy load tracking — see retry UX below
   const [taxLoadStartedAt, setTaxLoadStartedAt] = useState<number | null>(null);
@@ -96,31 +112,49 @@ export function HealthSubmissionModal({
   useEffect(() => {
     if (!open) {
       setKind(null);
+      setMethod(null);
       setTaxLoadStartedAt(null);
       setTaxFailedTick(0);
+      onClearDraft();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // ESC closes (when not in flight)
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !inflight) onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !inflight && !draftInflight) onClose();
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, inflight, onClose]);
+  }, [open, inflight, draftInflight, onClose]);
+
+  // Auto-advance from generating step when a draft arrives
+  useEffect(() => {
+    if (!open) return;
+    if (kind === 'exercise' && exerciseDraft) {/* form will render */}
+    if (kind === 'recipe' && recipeDraft) {/* form will render */}
+  }, [open, kind, exerciseDraft, recipeDraft]);
 
   if (!open) return null;
 
-  // Derive current wizard step for the progress indicator
+  // Derive current wizard step
+  const draftReady =
+    (kind === 'exercise' && exerciseDraft) ||
+    (kind === 'recipe' && recipeDraft);
   const step: Step =
     result ? 'submitted' :
     kind === null ? 'kind' :
+    method === null ? 'method' :
+    method === 'ava' && !draftReady && draftInflight ? 'generating' :
+    method === 'ava' && !draftReady ? 'intake' :
     'form';
 
   return (
     <div
       role="dialog" aria-modal="true"
-      onClick={() => { if (!inflight) onClose(); }}
+      onClick={() => { if (!inflight && !draftInflight) onClose(); }}
       className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm p-3 sm:p-6"
       style={{ animation: 'avaSubModalIn 120ms ease-out' }}
     >
@@ -135,21 +169,21 @@ export function HealthSubmissionModal({
       >
         {/* Close */}
         <button
-          onClick={onClose} disabled={inflight}
+          onClick={onClose} disabled={inflight || draftInflight}
           aria-label="Close"
           className="absolute top-3.5 right-3.5 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-none bg-[rgba(0,0,0,0.4)] text-[var(--text-muted)] hover:bg-[rgba(0,0,0,0.6)] hover:text-[var(--text-primary)] transition disabled:opacity-30 disabled:cursor-not-allowed"
         >
           ×
         </button>
 
-        {/* Step indicator */}
-        <StepIndicator step={step} />
+        {/* Step indicator — adapts shape to method */}
+        <StepIndicator step={step} method={method} />
 
         <div className="px-6 pb-6 pt-2 sm:px-8 sm:pb-8">
           {step === 'submitted' && result && (
             <ResultScreen
               result={result}
-              onContinue={() => { onClearResult(); setKind(null); }}
+              onContinue={() => { onClearResult(); onClearDraft(); setKind(null); setMethod(null); }}
               onClose={onClose}
             />
           )}
@@ -158,11 +192,36 @@ export function HealthSubmissionModal({
             <KindPicker onPick={setKind} />
           )}
 
+          {step === 'method' && kind && (
+            <MethodPicker kind={kind} onPick={setMethod} onBack={() => setKind(null)} />
+          )}
+
+          {step === 'intake' && kind === 'exercise' && (
+            <ExerciseIntake
+              error={draftError}
+              onBack={() => setMethod(null)}
+              onGenerate={onGenerateExerciseDraft}
+            />
+          )}
+          {step === 'intake' && kind === 'recipe' && (
+            <RecipeIntake
+              error={draftError}
+              onBack={() => setMethod(null)}
+              onGenerate={onGenerateRecipeDraft}
+            />
+          )}
+
+          {step === 'generating' && (
+            <GeneratingScreen kind={kind!} />
+          )}
+
           {step === 'form' && taxonomies && !taxonomiesFailed && kind === 'exercise' && (
             <ExerciseForm
               taxonomies={taxonomies}
               inflight={inflight}
-              onBack={() => setKind(null)}
+              initial={exerciseDraft}
+              fromAva={method === 'ava' && !!exerciseDraft}
+              onBack={() => method === 'ava' ? (onClearDraft(), setMethod(null)) : setKind(null)}
               onSubmit={onSubmitExercise}
             />
           )}
@@ -170,7 +229,9 @@ export function HealthSubmissionModal({
             <RecipeForm
               taxonomies={taxonomies}
               inflight={inflight}
-              onBack={() => setKind(null)}
+              initial={recipeDraft}
+              fromAva={method === 'ava' && !!recipeDraft}
+              onBack={() => method === 'ava' ? (onClearDraft(), setMethod(null)) : setKind(null)}
               onSubmit={onSubmitRecipe}
             />
           )}
@@ -193,12 +254,25 @@ export function HealthSubmissionModal({
 
 // ── Step indicator ────────────────────────────────────────────────────
 
-function StepIndicator({ step }: { step: Step }) {
-  const steps: { id: Step; label: string }[] = [
-    { id: 'kind', label: 'Type' },
-    { id: 'form', label: 'Details' },
-    { id: 'submitted', label: 'Submitted' },
-  ];
+function StepIndicator({ step, method }: { step: Step; method: Method | null }) {
+  // Manual path: Type → Method → Details → Submitted (4)
+  // Ava path:    Type → Method → Intake → Generating → Details → Submitted (6)
+  const steps: { id: Step; label: string }[] =
+    method === 'ava'
+      ? [
+          { id: 'kind', label: 'Type' },
+          { id: 'method', label: 'Method' },
+          { id: 'intake', label: 'Intake' },
+          { id: 'generating', label: 'Drafting' },
+          { id: 'form', label: 'Review' },
+          { id: 'submitted', label: 'Submitted' },
+        ]
+      : [
+          { id: 'kind', label: 'Type' },
+          { id: 'method', label: 'Method' },
+          { id: 'form', label: 'Details' },
+          { id: 'submitted', label: 'Submitted' },
+        ];
   const currentIdx = steps.findIndex(s => s.id === step);
   return (
     <div className="flex items-center gap-2 px-6 pt-5 pb-4 sm:px-8">
@@ -243,16 +317,7 @@ function LoadingTaxonomies() {
         <span className="ava-health-spin" aria-hidden />
         Loading safety taxonomy…
       </div>
-      <style>{`
-        .ava-health-spin {
-          width: 12px; height: 12px; border-radius: 50%;
-          border: 1.5px solid rgba(168, 85, 247, 0.25);
-          border-top-color: #a855f7;
-          animation: avaHealthSpinKeys 0.85s linear infinite;
-          display: inline-block;
-        }
-        @keyframes avaHealthSpinKeys { to { transform: rotate(360deg); } }
-      `}</style>
+      <SpinnerStyles />
     </div>
   );
 }
@@ -271,6 +336,28 @@ function TaxonomiesFailed({ onRetry, onBack }: { onRetry: () => void; onBack: ()
         <button onClick={onRetry} className={btnPrimaryCls}>Retry</button>
       </div>
     </div>
+  );
+}
+
+function SpinnerStyles() {
+  return (
+    <style>{`
+      .ava-health-spin {
+        width: 12px; height: 12px; border-radius: 50%;
+        border: 1.5px solid rgba(168, 85, 247, 0.25);
+        border-top-color: #a855f7;
+        animation: avaHealthSpinKeys 0.85s linear infinite;
+        display: inline-block;
+      }
+      .ava-health-spin-lg {
+        width: 36px; height: 36px; border-radius: 50%;
+        border: 2.5px solid rgba(168, 85, 247, 0.20);
+        border-top-color: #a855f7;
+        animation: avaHealthSpinKeys 1.1s linear infinite;
+        display: inline-block;
+      }
+      @keyframes avaHealthSpinKeys { to { transform: rotate(360deg); } }
+    `}</style>
   );
 }
 
@@ -346,20 +433,256 @@ function KindCard({ label, detail, onClick }: { label: string; detail: string; o
   );
 }
 
-// ── Step 2a: exercise form ────────────────────────────────────────────
+// ── Step 2: method picker ─────────────────────────────────────────────
+
+function MethodPicker({ kind, onPick, onBack }: { kind: Kind; onPick: (m: Method) => void; onBack: () => void }) {
+  const subject = kind === 'exercise' ? 'exercise' : 'recipe';
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <button onClick={onBack}
+          className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition cursor-pointer bg-transparent border-none p-0">
+          ← Back
+        </button>
+        <h2 className="text-[18px] font-light text-[var(--text-primary)]">How do you want to draft this {subject}?</h2>
+        <span className="w-12" />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+        <button
+          onClick={() => onPick('manual')}
+          className="group rounded-xl border border-[rgba(168,85,247,0.18)] bg-[rgba(168,85,247,0.04)] p-5 text-left transition cursor-pointer hover:border-[rgba(168,85,247,0.45)] hover:bg-[rgba(168,85,247,0.08)]"
+        >
+          <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--accent)] mb-2">Fill manually</div>
+          <div className="text-[15px] font-light text-[var(--text-primary)] mb-1">You write it</div>
+          <div className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+            Type the details yourself. Free. Best when you know exactly what you want to share.
+          </div>
+        </button>
+        <button
+          onClick={() => onPick('ava')}
+          className="group rounded-xl border border-[rgba(168,85,247,0.18)] bg-[rgba(168,85,247,0.04)] p-5 text-left transition cursor-pointer hover:border-[rgba(168,85,247,0.45)] hover:bg-[rgba(168,85,247,0.08)]"
+        >
+          <div className="flex items-baseline justify-between mb-2">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--accent)]">Ask Ava to draft</div>
+            <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">2 credits</span>
+          </div>
+          <div className="text-[15px] font-light text-[var(--text-primary)] mb-1">Ava drafts, you review</div>
+          <div className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+            Answer 3 short questions. Ava drafts the {subject}. You review, edit, submit.
+          </div>
+        </button>
+      </div>
+      <p className="text-[10px] text-[var(--text-muted)] mt-3 leading-relaxed">
+        Either path lands the submission in the same review queue. Ava's draft is a starting point —
+        the operator still locks the safety taxonomy before approval.
+      </p>
+    </div>
+  );
+}
+
+// ── Step 3a: exercise intake ──────────────────────────────────────────
+
+function ExerciseIntake({
+  error, onBack, onGenerate,
+}: { error: string | null; onBack: () => void; onGenerate: (i: HealthGenerateExerciseIntake) => void }) {
+  const [prompt, setPrompt] = useState('');
+  const [goal, setGoal] = useState('');
+  const [equipment, setEquipment] = useState('');
+  const [level, setLevel] = useState('');
+
+  const valid = prompt.trim().length >= 5;
+
+  const submit = () => {
+    if (!valid) return;
+    onGenerate({
+      prompt: prompt.trim(),
+      goal: goal.trim() || undefined,
+      equipment: equipment.trim() || undefined,
+      level: level.trim() || undefined,
+    });
+  };
+
+  return (
+    <div>
+      <FormHeader title="Tell Ava about the exercise" onBack={onBack} />
+
+      <Section title="What is it?">
+        <Field label="Describe the movement (required)">
+          <textarea
+            value={prompt} onChange={e => setPrompt(e.target.value)} maxLength={1200}
+            rows={3} className={inputCls}
+            placeholder="e.g. A goblet squat variation where the bottom position is held for 3 seconds before standing — for hypertrophy."
+          />
+        </Field>
+      </Section>
+
+      <Section title="Optional hints">
+        <Field label="Primary goal">
+          <Select value={goal} onChange={setGoal} options={[
+            { value: '', label: '—' },
+            { value: 'strength', label: 'Strength' },
+            { value: 'hypertrophy', label: 'Hypertrophy' },
+            { value: 'conditioning', label: 'Conditioning' },
+            { value: 'mobility', label: 'Mobility' },
+            { value: 'general', label: 'General fitness' },
+          ]} />
+        </Field>
+        <Field label="Equipment available">
+          <input
+            type="text" value={equipment} onChange={e => setEquipment(e.target.value)} maxLength={200}
+            placeholder="e.g. dumbbells + bench, bodyweight only, full gym"
+            className={inputCls}
+          />
+        </Field>
+        <Field label="Submitter level">
+          <Select value={level} onChange={setLevel} options={[
+            { value: '', label: '—' },
+            { value: 'beginner', label: 'Beginner' },
+            { value: 'intermediate', label: 'Intermediate' },
+            { value: 'advanced', label: 'Advanced' },
+          ]} />
+        </Field>
+      </Section>
+
+      {error && <InlineError message={error} />}
+
+      <div className="flex justify-end pt-4 border-t border-[rgba(168,85,247,0.10)] mt-2">
+        <button onClick={submit} disabled={!valid} className={btnPrimaryCls}>
+          Draft with Ava · 2 credits →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Step 3b: recipe intake ────────────────────────────────────────────
+
+function RecipeIntake({
+  error, onBack, onGenerate,
+}: { error: string | null; onBack: () => void; onGenerate: (i: HealthGenerateRecipeIntake) => void }) {
+  const [prompt, setPrompt] = useState('');
+  const [cuisineHint, setCuisineHint] = useState('');
+  const [courseHint, setCourseHint] = useState('');
+  const [dietary, setDietary] = useState('');
+  const [skill, setSkill] = useState('');
+
+  const valid = prompt.trim().length >= 5;
+
+  const submit = () => {
+    if (!valid) return;
+    onGenerate({
+      prompt: prompt.trim(),
+      cuisine_hint: cuisineHint.trim() || undefined,
+      course_hint: courseHint.trim() || undefined,
+      dietary: dietary.trim() || undefined,
+      skill: skill.trim() || undefined,
+    });
+  };
+
+  return (
+    <div>
+      <FormHeader title="Tell Ava about the dish" onBack={onBack} />
+
+      <Section title="What's the recipe?">
+        <Field label="Describe the dish (required)">
+          <textarea
+            value={prompt} onChange={e => setPrompt(e.target.value)} maxLength={1200}
+            rows={3} className={inputCls}
+            placeholder="e.g. A simple Mediterranean roast chicken with lemon and herbs — 4 servings, dinner main."
+          />
+        </Field>
+      </Section>
+
+      <Section title="Optional hints">
+        <Field label="Cuisine direction">
+          <input
+            type="text" value={cuisineHint} onChange={e => setCuisineHint(e.target.value)} maxLength={60}
+            placeholder="e.g. Italian, Japanese, Mediterranean"
+            className={inputCls}
+          />
+        </Field>
+        <Field label="Course">
+          <Select value={courseHint} onChange={setCourseHint} options={[
+            { value: '', label: '—' },
+            ...COURSES.map(c => ({ value: c, label: c[0].toUpperCase() + c.slice(1) })),
+          ]} />
+        </Field>
+        <Field label="Dietary notes">
+          <input
+            type="text" value={dietary} onChange={e => setDietary(e.target.value)} maxLength={100}
+            placeholder="e.g. vegan, gluten-free, low-FODMAP"
+            className={inputCls}
+          />
+        </Field>
+        <Field label="Skill level">
+          <Select value={skill} onChange={setSkill} options={[
+            { value: '', label: '—' },
+            { value: 'beginner', label: 'Beginner' },
+            { value: 'intermediate', label: 'Intermediate' },
+            { value: 'expert', label: 'Expert' },
+          ]} />
+        </Field>
+      </Section>
+
+      {error && <InlineError message={error} />}
+
+      <div className="flex justify-end pt-4 border-t border-[rgba(168,85,247,0.10)] mt-2">
+        <button onClick={submit} disabled={!valid} className={btnPrimaryCls}>
+          Draft with Ava · 2 credits →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function InlineError({ message }: { message: string }) {
+  return (
+    <div className="my-4 rounded-md border border-red-500/30 bg-red-500/5 px-3 py-2 text-[12px] text-red-300/90 leading-relaxed">
+      {message}
+    </div>
+  );
+}
+
+// ── Step 4: generating spinner ────────────────────────────────────────
+
+function GeneratingScreen({ kind }: { kind: Kind }) {
+  return (
+    <div className="py-14 text-center">
+      <span className="ava-health-spin-lg mb-5 inline-block" aria-hidden />
+      <h2 className="text-[18px] font-light text-[var(--text-primary)] mb-2 mt-4">Ava is drafting your {kind}…</h2>
+      <p className="text-[12px] text-[var(--text-muted)] max-w-md mx-auto leading-relaxed">
+        Pulling from her training, biasing toward conservative {kind === 'recipe' ? 'allergen' : 'contraindication'} flags.
+        Usually 20–40 seconds.
+      </p>
+      <SpinnerStyles />
+    </div>
+  );
+}
+
+// ── Step 5a: exercise form ────────────────────────────────────────────
 
 function ExerciseForm({
-  taxonomies, inflight, onBack, onSubmit,
-}: { taxonomies: HealthTaxonomies; inflight: boolean; onBack: () => void; onSubmit: (p: HealthExerciseSubmissionPayload) => void }) {
-  const [name, setName] = useState('');
-  const [exerciseType, setExerciseType] = useState<HealthExerciseType>('compound');
-  const [workoutType, setWorkoutType] = useState<HealthWorkoutType>('strength');
-  const [difficulty, setDifficulty] = useState(3);
-  const [description, setDescription] = useState('');
-  const [beginnerDetail, setBeginnerDetail] = useState('');
-  const [commonMistakes, setCommonMistakes] = useState('');
-  const [steps, setSteps] = useState<string[]>(['']);
-  const [contraindicationSlugs, setContraindicationSlugs] = useState<Set<string>>(new Set());
+  taxonomies, inflight, initial, fromAva, onBack, onSubmit,
+}: {
+  taxonomies: HealthTaxonomies;
+  inflight: boolean;
+  initial: HealthExerciseDraft | null;
+  fromAva: boolean;
+  onBack: () => void;
+  onSubmit: (p: HealthExerciseSubmissionPayload) => void;
+}) {
+  const [name, setName] = useState(initial?.name ?? '');
+  const [exerciseType, setExerciseType] = useState<HealthExerciseType>(initial?.exercise_type ?? 'compound');
+  const [workoutType, setWorkoutType] = useState<HealthWorkoutType>(initial?.workout_type ?? 'strength');
+  const [difficulty, setDifficulty] = useState(initial?.difficulty ?? 3);
+  const [description, setDescription] = useState(initial?.description ?? '');
+  const [beginnerDetail, setBeginnerDetail] = useState(initial?.beginner_detail ?? '');
+  const [commonMistakes, setCommonMistakes] = useState(initial?.common_mistakes ?? '');
+  const [steps, setSteps] = useState<string[]>(initial?.steps && initial.steps.length > 0 ? initial.steps : ['']);
+  const [contraindicationSlugs, setContraindicationSlugs] = useState<Set<string>>(
+    new Set(initial?.contraindication_slugs ?? []),
+  );
 
   const trimmedSteps = steps.map(s => s.trim()).filter(Boolean);
   const isValid = name.trim().length >= 3 && trimmedSteps.length >= 1;
@@ -396,7 +719,13 @@ function ExerciseForm({
 
   return (
     <div>
-      <FormHeader title="New exercise" onBack={onBack} />
+      <FormHeader title={fromAva ? 'Review Ava’s draft' : 'New exercise'} onBack={onBack} />
+
+      {fromAva && (
+        <div className="mb-5 rounded-md border border-[rgba(168,85,247,0.25)] bg-[rgba(168,85,247,0.07)] px-3 py-2 text-[11px] text-[var(--text-secondary)] leading-relaxed">
+          Ava drafted this from your description. Review and edit before submitting — she flagged contraindications generously, you may want to add or remove some.
+        </div>
+      )}
 
       <Section title="Identity">
         <Field label="Name">
@@ -495,20 +824,35 @@ function ExerciseForm({
   );
 }
 
-// ── Step 2b: recipe form ──────────────────────────────────────────────
+// ── Step 5b: recipe form ──────────────────────────────────────────────
 
 function RecipeForm({
-  taxonomies, inflight, onBack, onSubmit,
-}: { taxonomies: HealthTaxonomies; inflight: boolean; onBack: () => void; onSubmit: (p: HealthRecipeSubmissionPayload) => void }) {
-  const [name, setName] = useState('');
-  const [cuisineSlug, setCuisineSlug] = useState<string>('');
-  const [course, setCourse] = useState<string>('');
-  const [originCountry, setOriginCountry] = useState('');
-  const [overview, setOverview] = useState('');
+  taxonomies, inflight, initial, fromAva, onBack, onSubmit,
+}: {
+  taxonomies: HealthTaxonomies;
+  inflight: boolean;
+  initial: HealthRecipeDraft | null;
+  fromAva: boolean;
+  onBack: () => void;
+  onSubmit: (p: HealthRecipeSubmissionPayload) => void;
+}) {
+  const [name, setName] = useState(initial?.name ?? '');
+  const [cuisineSlug, setCuisineSlug] = useState<string>(initial?.cuisine_slug ?? '');
+  const [course, setCourse] = useState<string>(initial?.course ?? '');
+  const [originCountry, setOriginCountry] = useState(initial?.origin_country ?? '');
+  const [overview, setOverview] = useState(initial?.overview ?? '');
   const [ingredients, setIngredients] = useState<Array<{ name: string; quantity: string; unit: string; optional: boolean; notes: string }>>(
-    [{ name: '', quantity: '', unit: '', optional: false, notes: '' }],
+    initial?.ingredients && initial.ingredients.length > 0
+      ? initial.ingredients.map(i => ({
+          name: i.name,
+          quantity: i.quantity == null ? '' : String(i.quantity),
+          unit: i.unit ?? '',
+          optional: i.optional,
+          notes: i.notes ?? '',
+        }))
+      : [{ name: '', quantity: '', unit: '', optional: false, notes: '' }],
   );
-  const [allergenSlugs, setAllergenSlugs] = useState<Set<string>>(new Set());
+  const [allergenSlugs, setAllergenSlugs] = useState<Set<string>>(new Set(initial?.allergen_slugs ?? []));
 
   const trimmedIngredients = ingredients
     .map(i => ({ ...i, name: i.name.trim() }))
@@ -542,7 +886,13 @@ function RecipeForm({
 
   return (
     <div>
-      <FormHeader title="New recipe" onBack={onBack} />
+      <FormHeader title={fromAva ? 'Review Ava’s draft' : 'New recipe'} onBack={onBack} />
+
+      {fromAva && (
+        <div className="mb-5 rounded-md border border-[rgba(168,85,247,0.25)] bg-[rgba(168,85,247,0.07)] px-3 py-2 text-[11px] text-[var(--text-secondary)] leading-relaxed">
+          Ava drafted this from your description. Review and edit before submitting — she flagged allergens generously, including hidden ones. Double-check the ingredient list.
+        </div>
+      )}
 
       <Section title="Identity">
         <Field label="Name">

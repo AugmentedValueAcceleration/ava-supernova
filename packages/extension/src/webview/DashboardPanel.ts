@@ -52,6 +52,8 @@ import type {
   HealthRecipeDetail,
   HealthTaxonomies,
   HealthMySubmissions,
+  HealthExerciseDraft,
+  HealthRecipeDraft,
   ReleaseNote,
   RoadmapTheme,
 } from './dashboard-message-types.js';
@@ -1024,6 +1026,64 @@ export class DashboardPanel {
           const errorMsg = err instanceof Error ? err.message : String(err);
           this.log(`[health] submit ${kind} error: ${errorMsg}`);
           this.post({ type: 'health_submission_result', kind, ok: false, error: errorMsg });
+        }
+        break;
+      }
+
+      case 'generate_health_exercise_draft':
+      case 'generate_health_recipe_draft': {
+        const kind = msg.type === 'generate_health_exercise_draft' ? 'exercise' : 'recipe';
+        try {
+          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+          if (!platformKey) {
+            this.post({
+              type: kind === 'exercise' ? 'health_exercise_draft_generated' : 'health_recipe_draft_generated',
+              ok: false,
+              error: 'You need to sign in before Ava can draft a submission. Open Settings → Account.',
+            });
+            break;
+          }
+          this.log(`[health] generate ${kind} draft`);
+          const res = await apiFetch(`/health/generate/${kind}`, {
+            platformKey,
+            method: 'POST',
+            body: msg.intake,
+            timeoutMs: 60000,  // Qwen call can take 20–40s under load
+          });
+          if (!res.ok) {
+            const errorMsg = res.data && typeof res.data === 'object' && 'error' in res.data
+              ? String((res.data as { error?: string }).error ?? `HTTP ${res.status}`)
+              : `HTTP ${res.status}`;
+            this.log(`[health] generate ${kind} failed: ${errorMsg}`);
+            this.post({
+              type: kind === 'exercise' ? 'health_exercise_draft_generated' : 'health_recipe_draft_generated',
+              ok: false,
+              error: errorMsg,
+            });
+            break;
+          }
+          const draft = (res.data as { draft?: HealthExerciseDraft | HealthRecipeDraft }).draft;
+          if (!draft) {
+            this.post({
+              type: kind === 'exercise' ? 'health_exercise_draft_generated' : 'health_recipe_draft_generated',
+              ok: false,
+              error: 'Generation returned no draft',
+            });
+            break;
+          }
+          if (kind === 'exercise') {
+            this.post({ type: 'health_exercise_draft_generated', ok: true, draft: draft as HealthExerciseDraft });
+          } else {
+            this.post({ type: 'health_recipe_draft_generated', ok: true, draft: draft as HealthRecipeDraft });
+          }
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          this.log(`[health] generate ${kind} error: ${errorMsg}`);
+          this.post({
+            type: kind === 'exercise' ? 'health_exercise_draft_generated' : 'health_recipe_draft_generated',
+            ok: false,
+            error: errorMsg,
+          });
         }
         break;
       }

@@ -55,6 +55,10 @@ import type {
   HealthExerciseSubmissionPayload,
   HealthRecipeSubmissionPayload,
   HealthSubmissionStatus,
+  HealthExerciseDraft,
+  HealthRecipeDraft,
+  HealthGenerateExerciseIntake,
+  HealthGenerateRecipeIntake,
   CreativeAsset,
   PersonalityData,
   RoadmapTheme,
@@ -234,6 +238,13 @@ export function App() {
     { kind: 'exercise' | 'recipe'; ok: boolean; error?: string; status?: HealthSubmissionStatus; submissionName?: string } | null
   >(null);
   const [healthSubmissionInflight, setHealthSubmissionInflight] = useState(false);
+  // Ava-assisted draft generation — kind drives which form gets pre-filled,
+  // inflight gates the spinner step, error surfaces inline. Cleared when
+  // the user accepts the draft (transitions to form) or cancels.
+  const [healthExerciseDraft, setHealthExerciseDraft] = useState<HealthExerciseDraft | null>(null);
+  const [healthRecipeDraft, setHealthRecipeDraft] = useState<HealthRecipeDraft | null>(null);
+  const [healthDraftInflight, setHealthDraftInflight] = useState(false);
+  const [healthDraftError, setHealthDraftError] = useState<string | null>(null);
   // Roadmap — fetched from /api/roadmap via the host, single source
   // of truth shared with the public web roadmap, the IDE Roadmap
   // page, and the Hub admin editor.
@@ -297,6 +308,24 @@ export function App() {
   }, []);
   const handleClearHealthSubmissionResult = useCallback(() => {
     setHealthSubmissionResult(null);
+  }, []);
+  const handleGenerateHealthExerciseDraft = useCallback((intake: HealthGenerateExerciseIntake) => {
+    setHealthDraftInflight(true);
+    setHealthDraftError(null);
+    setHealthExerciseDraft(null);
+    post({ type: 'generate_health_exercise_draft', intake });
+  }, []);
+  const handleGenerateHealthRecipeDraft = useCallback((intake: HealthGenerateRecipeIntake) => {
+    setHealthDraftInflight(true);
+    setHealthDraftError(null);
+    setHealthRecipeDraft(null);
+    post({ type: 'generate_health_recipe_draft', intake });
+  }, []);
+  const handleClearHealthDraft = useCallback(() => {
+    setHealthExerciseDraft(null);
+    setHealthRecipeDraft(null);
+    setHealthDraftError(null);
+    setHealthDraftInflight(false);
   }, []);
 
   const handleReadPaperWithAva = useCallback((paper: LibraryPaper) => {
@@ -677,6 +706,24 @@ export function App() {
         });
         // Pull a fresh My Submissions snapshot so the new row shows up
         if (msg.ok) post({ type: 'load_my_health_submissions' });
+        break;
+      case 'health_exercise_draft_generated':
+        setHealthDraftInflight(false);
+        if (msg.ok && msg.draft) {
+          setHealthExerciseDraft(msg.draft);
+          setHealthDraftError(null);
+        } else {
+          setHealthDraftError(msg.error ?? 'Generation failed');
+        }
+        break;
+      case 'health_recipe_draft_generated':
+        setHealthDraftInflight(false);
+        if (msg.ok && msg.draft) {
+          setHealthRecipeDraft(msg.draft);
+          setHealthDraftError(null);
+        } else {
+          setHealthDraftError(msg.error ?? 'Generation failed');
+        }
         break;
       case 'roadmap_loaded':
         // Empty themes = network/upstream failure; the Roadmap surface
@@ -1143,6 +1190,13 @@ export function App() {
             onSubmitExercise={handleSubmitHealthExercise}
             onSubmitRecipe={handleSubmitHealthRecipe}
             onClearSubmissionResult={handleClearHealthSubmissionResult}
+            exerciseDraft={healthExerciseDraft}
+            recipeDraft={healthRecipeDraft}
+            draftInflight={healthDraftInflight}
+            draftError={healthDraftError}
+            onGenerateExerciseDraft={handleGenerateHealthExerciseDraft}
+            onGenerateRecipeDraft={handleGenerateHealthRecipeDraft}
+            onClearDraft={handleClearHealthDraft}
           />
         );
     }

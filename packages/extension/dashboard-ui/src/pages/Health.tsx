@@ -9,6 +9,8 @@ import type {
   HealthTaxonomies, HealthMySubmissions as HealthMySubmissionsData,
   HealthExerciseSubmissionPayload, HealthRecipeSubmissionPayload,
   HealthSubmissionStatus,
+  HealthExerciseDraft, HealthRecipeDraft,
+  HealthGenerateExerciseIntake, HealthGenerateRecipeIntake,
 } from '../types/messages';
 
 /**
@@ -103,6 +105,14 @@ interface Props {
   onSubmitExercise: (p: HealthExerciseSubmissionPayload) => void;
   onSubmitRecipe: (p: HealthRecipeSubmissionPayload) => void;
   onClearSubmissionResult: () => void;
+  // Ava-assisted draft generation
+  exerciseDraft: HealthExerciseDraft | null;
+  recipeDraft: HealthRecipeDraft | null;
+  draftInflight: boolean;
+  draftError: string | null;
+  onGenerateExerciseDraft: (intake: HealthGenerateExerciseIntake) => void;
+  onGenerateRecipeDraft: (intake: HealthGenerateRecipeIntake) => void;
+  onClearDraft: () => void;
 }
 
 export function Health({
@@ -130,6 +140,13 @@ export function Health({
   onSubmitExercise,
   onSubmitRecipe,
   onClearSubmissionResult,
+  exerciseDraft,
+  recipeDraft,
+  draftInflight,
+  draftError,
+  onGenerateExerciseDraft,
+  onGenerateRecipeDraft,
+  onClearDraft,
 }: Props) {
   const [tab, setTab] = useState<Tab>('exercises');
   const [exerciseFilter, setExerciseFilter] = useState<'all' | HealthWorkoutType>('all');
@@ -307,7 +324,7 @@ export function Health({
       {/* Submission modal — covers everything; opens from the Contribute button. */}
       <HealthSubmissionModal
         open={submissionModalOpen}
-        onClose={() => setSubmissionModalOpen(false)}
+        onClose={() => { setSubmissionModalOpen(false); onClearDraft(); }}
         taxonomies={taxonomies}
         inflight={submissionInflight}
         result={submissionResult ? { kind: submissionResult.kind, ok: submissionResult.ok, error: submissionResult.error, submissionName: submissionResult.submissionName } : null}
@@ -315,6 +332,13 @@ export function Health({
         onSubmitRecipe={onSubmitRecipe}
         onClearResult={onClearSubmissionResult}
         onRetryTaxonomies={onLoadTaxonomies}
+        exerciseDraft={exerciseDraft}
+        recipeDraft={recipeDraft}
+        draftInflight={draftInflight}
+        draftError={draftError}
+        onGenerateExerciseDraft={onGenerateExerciseDraft}
+        onGenerateRecipeDraft={onGenerateRecipeDraft}
+        onClearDraft={onClearDraft}
       />
 
       {/* Overlay modals — one mounts at a time, whichever was clicked. */}

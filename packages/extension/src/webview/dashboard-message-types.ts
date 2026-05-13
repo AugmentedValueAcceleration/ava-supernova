@@ -580,6 +580,56 @@ export interface HealthMySubmissions {
   recipes: HealthMySubmissionRecipe[];
 }
 
+// ─── Ava-assisted generation (community submission drafts) ─────────────────
+
+export interface HealthGenerateExerciseIntake {
+  prompt: string;
+  goal?: string;
+  equipment?: string;
+  level?: string;
+}
+
+export interface HealthGenerateRecipeIntake {
+  prompt: string;
+  cuisine_hint?: string;
+  course_hint?: string;
+  dietary?: string;
+  skill?: string;
+}
+
+/** Draft returned by /api/health/generate/exercise — same shape as the
+ *  manual submission payload so the form can be pre-filled from it. */
+export interface HealthExerciseDraft {
+  name: string;
+  exercise_type: HealthExerciseType;
+  workout_type: HealthWorkoutType;
+  difficulty: number;
+  description: string;
+  beginner_detail: string;
+  common_mistakes: string;
+  steps: string[];
+  contraindication_slugs: string[];
+}
+
+/** Draft returned by /api/health/generate/recipe — same shape as the
+ *  manual submission payload (modulo `quantity: number | null` matching
+ *  what the form's number input accepts). */
+export interface HealthRecipeDraft {
+  name: string;
+  cuisine_slug: string | null;
+  course: string | null;
+  origin_country: string | null;
+  overview: string;
+  ingredients: Array<{
+    name: string;
+    quantity: number | null;
+    unit: string | null;
+    optional: boolean;
+    notes: string | null;
+  }>;
+  allergen_slugs: string[];
+}
+
 // ─── Release Notes ──────────────────────────────────────────────────────────
 
 // ─── Roadmap ────────────────────────────────────────────────────────────────
@@ -943,6 +993,8 @@ export type ExtToDashboardMessage =
   | { type: 'health_taxonomies_loaded'; taxonomies: HealthTaxonomies }
   | { type: 'health_submission_result'; kind: 'exercise' | 'recipe'; ok: boolean; error?: string; submission?: { id: string; slug: string; name: string; status: HealthSubmissionStatus } }
   | { type: 'health_my_submissions_loaded'; data: HealthMySubmissions }
+  | { type: 'health_exercise_draft_generated'; ok: boolean; error?: string; draft?: HealthExerciseDraft }
+  | { type: 'health_recipe_draft_generated'; ok: boolean; error?: string; draft?: HealthRecipeDraft }
   | { type: 'roadmap_loaded'; themes: RoadmapTheme[] }
   | { type: 'library_path_detail_loaded'; path: LibraryPathDetail }
   | { type: 'library_path_forked'; curriculumId: string; title: string }
@@ -1194,6 +1246,8 @@ export type DashboardToExtMessage =
   | { type: 'submit_health_exercise'; payload: HealthExerciseSubmissionPayload }
   | { type: 'submit_health_recipe'; payload: HealthRecipeSubmissionPayload }
   | { type: 'load_my_health_submissions' }
+  | { type: 'generate_health_exercise_draft'; intake: HealthGenerateExerciseIntake }
+  | { type: 'generate_health_recipe_draft'; intake: HealthGenerateRecipeIntake }
   | { type: 'load_roadmap' }
   | { type: 'load_task_dates' }
   // Sync messages
