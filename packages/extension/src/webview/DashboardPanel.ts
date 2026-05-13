@@ -941,16 +941,24 @@ export class DashboardPanel {
 
       case 'load_health_exercise_detail': {
         try {
-          this.log(`[health] load exercise detail slug=${msg.slug}`);
-          const res = await fetch(
-            `https://ava-supernova.com/api/health/exercises/${encodeURIComponent(msg.slug)}`,
-            { signal: AbortSignal.timeout(8000) },
-          );
+          // Route through apiFetch so the auth-aware detail endpoint
+          // sees the submitter's identity (sk-ava-... or X-Ava-Device)
+          // and returns the row even when it's still status='pending'.
+          // Bare fetch was hitting the anon path, which RLS-hides any
+          // non-published row — the submitter could never view their
+          // own pending submission.
+          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+          this.log(`[health] load exercise detail slug=${msg.slug} (auth=${platformKey ? 'user' : 'anonymous'})`);
+          const res = await apiFetch(`/health/exercises/${encodeURIComponent(msg.slug)}`, {
+            platformKey,
+            method: 'GET',
+            timeoutMs: 8000,
+          });
           if (!res.ok) {
             this.post({ type: 'health_exercise_detail_loaded', exercise: null });
             break;
           }
-          const data = (await res.json()) as { exercise?: HealthExerciseDetail | null };
+          const data = res.data as { exercise?: HealthExerciseDetail | null };
           this.post({ type: 'health_exercise_detail_loaded', exercise: data.exercise ?? null });
         } catch (err) {
           this.log(`[health] load exercise detail error: ${err instanceof Error ? err.message : String(err)}`);
@@ -961,16 +969,18 @@ export class DashboardPanel {
 
       case 'load_health_recipe_detail': {
         try {
-          this.log(`[health] load recipe detail slug=${msg.slug}`);
-          const res = await fetch(
-            `https://ava-supernova.com/api/health/recipes/${encodeURIComponent(msg.slug)}`,
-            { signal: AbortSignal.timeout(8000) },
-          );
+          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+          this.log(`[health] load recipe detail slug=${msg.slug} (auth=${platformKey ? 'user' : 'anonymous'})`);
+          const res = await apiFetch(`/health/recipes/${encodeURIComponent(msg.slug)}`, {
+            platformKey,
+            method: 'GET',
+            timeoutMs: 8000,
+          });
           if (!res.ok) {
             this.post({ type: 'health_recipe_detail_loaded', recipe: null });
             break;
           }
-          const data = (await res.json()) as { recipe?: HealthRecipeDetail | null };
+          const data = res.data as { recipe?: HealthRecipeDetail | null };
           this.post({ type: 'health_recipe_detail_loaded', recipe: data.recipe ?? null });
         } catch (err) {
           this.log(`[health] load recipe detail error: ${err instanceof Error ? err.message : String(err)}`);
