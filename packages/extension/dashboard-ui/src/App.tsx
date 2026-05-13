@@ -235,6 +235,7 @@ export function App() {
   // result so the modal can show success/error inline.
   const [healthTaxonomies, setHealthTaxonomies] = useState<HealthTaxonomies | null>(null);
   const [healthMySubmissions, setHealthMySubmissions] = useState<HealthMySubmissions>({ exercises: [], recipes: [] });
+  const [healthClearingMySubmissions, setHealthClearingMySubmissions] = useState(false);
   const [healthSubmissionResult, setHealthSubmissionResult] = useState<
     { kind: 'exercise' | 'recipe'; ok: boolean; error?: string; status?: HealthSubmissionStatus; submissionName?: string } | null
   >(null);
@@ -305,6 +306,10 @@ export function App() {
   }, []);
   const handleLoadMyHealthSubmissions = useCallback(() => {
     post({ type: 'load_my_health_submissions' });
+  }, []);
+  const handleClearMyRejectedHealthSubmissions = useCallback(() => {
+    setHealthClearingMySubmissions(true);
+    post({ type: 'clear_my_rejected_health_submissions' });
   }, []);
   const handleSubmitHealthExercise = useCallback((payload: HealthExerciseSubmissionPayload) => {
     setHealthSubmissionInflight(true);
@@ -717,6 +722,13 @@ export function App() {
         break;
       case 'health_my_submissions_loaded':
         setHealthMySubmissions(msg.data);
+        break;
+      case 'health_my_submissions_cleared':
+        setHealthClearingMySubmissions(false);
+        // Refresh the list either way — on success the rows are gone,
+        // on failure the user gets the unchanged list back without a
+        // stale "Clearing…" button.
+        post({ type: 'load_my_health_submissions' });
         break;
       case 'health_submission_result':
         setHealthSubmissionInflight(false);
@@ -1210,6 +1222,8 @@ export function App() {
             submissionInflight={healthSubmissionInflight}
             onLoadTaxonomies={handleLoadHealthTaxonomies}
             onLoadMySubmissions={handleLoadMyHealthSubmissions}
+            onClearMyRejectedSubmissions={handleClearMyRejectedHealthSubmissions}
+            clearingMySubmissions={healthClearingMySubmissions}
             onSubmitExercise={handleSubmitHealthExercise}
             onSubmitRecipe={handleSubmitHealthRecipe}
             onClearSubmissionResult={handleClearHealthSubmissionResult}

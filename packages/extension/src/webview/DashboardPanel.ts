@@ -1157,6 +1157,38 @@ export class DashboardPanel {
         break;
       }
 
+      case 'clear_my_rejected_health_submissions': {
+        try {
+          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+          this.log(`[health] clear rejected submissions (auth=${platformKey ? 'user' : 'anonymous'})`);
+          const res = await apiFetch('/health/submissions/mine', {
+            platformKey,
+            method: 'DELETE',
+            timeoutMs: 8000,
+          });
+          if (!res.ok) {
+            const errorMsg = res.data && typeof res.data === 'object' && 'error' in res.data
+              ? String((res.data as { error?: string }).error ?? `HTTP ${res.status}`)
+              : `HTTP ${res.status}`;
+            this.log(`[health] clear rejected failed: ${errorMsg}`);
+            this.post({ type: 'health_my_submissions_cleared', ok: false, error: errorMsg });
+            break;
+          }
+          const data = res.data as { exercises_cleared?: number; recipes_cleared?: number };
+          this.post({
+            type: 'health_my_submissions_cleared',
+            ok: true,
+            exercises_cleared: data.exercises_cleared ?? 0,
+            recipes_cleared: data.recipes_cleared ?? 0,
+          });
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          this.log(`[health] clear rejected error: ${errorMsg}`);
+          this.post({ type: 'health_my_submissions_cleared', ok: false, error: errorMsg });
+        }
+        break;
+      }
+
       // ─── Sync messages ──────────────────────────────────────────────────
 
       case 'load_sync_status':

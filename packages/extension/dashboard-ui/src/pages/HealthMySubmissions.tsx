@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { HealthMySubmissions, HealthSubmissionStatus } from '../types/messages';
 
 /**
@@ -9,16 +10,26 @@ import type { HealthMySubmissions, HealthSubmissionStatus } from '../types/messa
  * what to fix on resubmit). Published rows linger for 30 days then
  * drop off the list — they're already in the public catalog and the
  * submitter can find them under Exercises / Recipes from there.
+ *
+ * Rejected rows stay as a record until the submitter clicks "Clear
+ * rejected" — bulk delete with confirmation. Pending and published
+ * rows are never affected by Clear.
  */
 
 interface Props {
   data: HealthMySubmissions;
   onRefresh: () => void;
   onContribute: () => void;
+  onClearRejected: () => void;
+  clearing: boolean;
 }
 
-export function HealthMySubmissions({ data, onRefresh, onContribute }: Props) {
+export function HealthMySubmissions({ data, onRefresh, onContribute, onClearRejected, clearing }: Props) {
   const total = data.exercises.length + data.recipes.length;
+  const rejectedCount =
+    data.exercises.filter(e => e.status === 'rejected').length +
+    data.recipes.filter(r => r.status === 'rejected').length;
+  const [confirming, setConfirming] = useState(false);
 
   if (total === 0) {
     return (
@@ -38,14 +49,47 @@ export function HealthMySubmissions({ data, onRefresh, onContribute }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <p className="text-[11px] text-vscode-descriptionForeground">
           Pending and recently reviewed contributions. Approved rows stay listed for 30 days, then move into the public catalog.
         </p>
-        <button onClick={onRefresh} className="text-[11px] text-[var(--accent)] hover:underline cursor-pointer">
-          Refresh
-        </button>
+        <div className="flex items-center gap-3 shrink-0">
+          {rejectedCount > 0 && (
+            <button
+              onClick={() => setConfirming(true)}
+              disabled={clearing}
+              className="text-[11px] text-red-300/90 hover:underline cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-transparent border-none p-0"
+            >
+              {clearing ? 'Clearing…' : `Clear rejected (${rejectedCount})`}
+            </button>
+          )}
+          <button onClick={onRefresh} className="text-[11px] text-[var(--accent)] hover:underline cursor-pointer">
+            Refresh
+          </button>
+        </div>
       </div>
+
+      {confirming && (
+        <div className="rounded-md border border-red-500/30 bg-red-500/5 px-3 py-3 flex items-center justify-between gap-3">
+          <span className="text-[12px] text-red-300/90 leading-relaxed">
+            Permanently delete {rejectedCount} rejected {rejectedCount === 1 ? 'submission' : 'submissions'}? This can't be undone.
+          </span>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => setConfirming(false)}
+              className="rounded-md border border-[rgba(168,85,247,0.18)] bg-transparent px-3 py-1 text-[11px] text-vscode-descriptionForeground hover:text-vscode-foreground transition cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => { setConfirming(false); onClearRejected(); }}
+              className="rounded-md border border-red-400/50 bg-red-500/15 px-3 py-1 text-[11px] text-red-300/90 hover:bg-red-500/25 transition cursor-pointer"
+            >
+              Clear them
+            </button>
+          </div>
+        </div>
+      )}
 
       {data.exercises.length > 0 && (
         <section>

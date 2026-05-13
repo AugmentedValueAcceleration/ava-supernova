@@ -1063,6 +1063,7 @@ export type ExtToDashboardMessage =
   | { type: 'health_taxonomies_loaded'; taxonomies: HealthTaxonomies }
   | { type: 'health_submission_result'; kind: 'exercise' | 'recipe'; ok: boolean; error?: string; submission?: { id: string; slug: string; name: string; status: HealthSubmissionStatus } }
   | { type: 'health_my_submissions_loaded'; data: HealthMySubmissions }
+  | { type: 'health_my_submissions_cleared'; ok: boolean; exercises_cleared?: number; recipes_cleared?: number; error?: string }
   | { type: 'health_exercise_draft_generated'; ok: boolean; error?: string; draft?: HealthExerciseDraft }
   | { type: 'health_recipe_draft_generated'; ok: boolean; error?: string; draft?: HealthRecipeDraft }
   | { type: 'roadmap_loaded'; themes: RoadmapTheme[] }
@@ -1316,6 +1317,7 @@ export type DashboardToExtMessage =
   | { type: 'submit_health_exercise'; payload: HealthExerciseSubmissionPayload }
   | { type: 'submit_health_recipe'; payload: HealthRecipeSubmissionPayload }
   | { type: 'load_my_health_submissions' }
+  | { type: 'clear_my_rejected_health_submissions' }
   | { type: 'generate_health_exercise_draft'; intake: HealthGenerateExerciseIntake }
   | { type: 'generate_health_recipe_draft'; intake: HealthGenerateRecipeIntake }
   | { type: 'load_roadmap' }

@@ -102,6 +102,8 @@ interface Props {
   submissionInflight: boolean;
   onLoadTaxonomies: () => void;
   onLoadMySubmissions: () => void;
+  onClearMyRejectedSubmissions: () => void;
+  clearingMySubmissions: boolean;
   onSubmitExercise: (p: HealthExerciseSubmissionPayload) => void;
   onSubmitRecipe: (p: HealthRecipeSubmissionPayload) => void;
   onClearSubmissionResult: () => void;
@@ -137,6 +139,8 @@ export function Health({
   submissionInflight,
   onLoadTaxonomies,
   onLoadMySubmissions,
+  onClearMyRejectedSubmissions,
+  clearingMySubmissions,
   onSubmitExercise,
   onSubmitRecipe,
   onClearSubmissionResult,
@@ -354,6 +358,8 @@ export function Health({
             data={mySubmissions}
             onRefresh={onLoadMySubmissions}
             onContribute={openSubmissionModal}
+            onClearRejected={onClearMyRejectedSubmissions}
+            clearing={clearingMySubmissions}
           />
         )}
       </div>
