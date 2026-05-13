@@ -3,6 +3,7 @@ import { initLocale, useLocale } from './i18n';
 import { post } from './vscode';
 
 import { NavSidebar } from './components/NavSidebar';
+import { DashboardTopBar } from './components/DashboardTopBar';
 import { ConnectAccount } from './pages/ConnectAccount';
 import { Overview } from './pages/Overview';
 import { Usage } from './pages/Usage';
@@ -1268,14 +1269,17 @@ export function App() {
 
       {/* Other pages */}
       {effectivePage !== 'chat' && (
-        <main className="flex-1 overflow-y-auto p-8" style={{ order: 1 }}>
-          {errorMsg && (
-            <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-400">
-              {errorMsg}
-            </div>
-          )}
-          {renderPage()}
-        </main>
+        <div className="flex-1 flex flex-col overflow-hidden" style={{ order: 1 }}>
+          <DashboardTopBar account={account} />
+          <main className="flex-1 overflow-y-auto p-8">
+            {errorMsg && (
+              <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-400">
+                {errorMsg}
+              </div>
+            )}
+            {renderPage()}
+          </main>
+        </div>
       )}
     </div>
   );
