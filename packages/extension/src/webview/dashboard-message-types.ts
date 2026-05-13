@@ -492,6 +492,94 @@ export interface HealthRecipeDetail extends HealthRecipeSummary {
   versions: HealthRecipeVersionDetail[];
 }
 
+// ─── Submission flow (community contributions) ─────────────────────────────
+
+export interface HealthTaxonomyAllergen {
+  slug: string;
+  name: string;
+  severity_hint: string | null;
+  sort_order: number;
+}
+
+export interface HealthTaxonomyContraindication {
+  slug: string;
+  name: string;
+  category: string | null;
+  severity_hint: string | null;
+  sort_order: number;
+}
+
+export interface HealthTaxonomyCuisine {
+  slug: string;
+  name: string;
+  region: string | null;
+  sort_order: number;
+}
+
+export interface HealthTaxonomies {
+  allergens: HealthTaxonomyAllergen[];
+  contraindications: HealthTaxonomyContraindication[];
+  cuisines: HealthTaxonomyCuisine[];
+}
+
+export type HealthSubmissionStatus = 'pending' | 'rejected' | 'published';
+
+export interface HealthExerciseSubmissionPayload {
+  name: string;
+  exercise_type: HealthExerciseType;
+  workout_type: HealthWorkoutType;
+  difficulty: number;
+  description: string | null;
+  beginner_detail: string | null;
+  common_mistakes: string | null;
+  steps: string[];
+  contraindication_slugs: string[];
+}
+
+export interface HealthRecipeSubmissionPayload {
+  name: string;
+  cuisine_slug: string | null;
+  course: string | null;
+  origin_country: string | null;
+  overview: string | null;
+  ingredients: Array<{
+    name: string;
+    quantity: number | null;
+    unit: string | null;
+    optional: boolean;
+    notes: string | null;
+  }>;
+  allergen_slugs: string[];
+}
+
+export interface HealthMySubmissionExercise {
+  id: string;
+  slug: string;
+  name: string;
+  status: HealthSubmissionStatus;
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  review_notes: string | null;
+  exercise_type: string;
+  workout_type: string;
+}
+
+export interface HealthMySubmissionRecipe {
+  id: string;
+  slug: string;
+  name: string;
+  status: HealthSubmissionStatus;
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  review_notes: string | null;
+  course: string | null;
+}
+
+export interface HealthMySubmissions {
+  exercises: HealthMySubmissionExercise[];
+  recipes: HealthMySubmissionRecipe[];
+}
+
 // ─── Release Notes ──────────────────────────────────────────────────────────
 
 // ─── Roadmap ────────────────────────────────────────────────────────────────
@@ -851,6 +939,10 @@ export type ExtToDashboardMessage =
   | { type: 'health_recipes_loaded'; recipes: HealthRecipeSummary[]; total: number; offset: number }
   | { type: 'health_exercise_detail_loaded'; exercise: HealthExerciseDetail | null }
   | { type: 'health_recipe_detail_loaded'; recipe: HealthRecipeDetail | null }
+  // Health submission flow (community contributions)
+  | { type: 'health_taxonomies_loaded'; taxonomies: HealthTaxonomies }
+  | { type: 'health_submission_result'; kind: 'exercise' | 'recipe'; ok: boolean; error?: string; submission?: { id: string; slug: string; name: string; status: HealthSubmissionStatus } }
+  | { type: 'health_my_submissions_loaded'; data: HealthMySubmissions }
   | { type: 'roadmap_loaded'; themes: RoadmapTheme[] }
   | { type: 'library_path_detail_loaded'; path: LibraryPathDetail }
   | { type: 'library_path_forked'; curriculumId: string; title: string }
@@ -1098,6 +1190,10 @@ export type DashboardToExtMessage =
   | { type: 'load_health_recipes'; limit?: number; offset?: number; course?: string }
   | { type: 'load_health_exercise_detail'; slug: string }
   | { type: 'load_health_recipe_detail'; slug: string }
+  | { type: 'load_health_taxonomies' }
+  | { type: 'submit_health_exercise'; payload: HealthExerciseSubmissionPayload }
+  | { type: 'submit_health_recipe'; payload: HealthRecipeSubmissionPayload }
+  | { type: 'load_my_health_submissions' }
   | { type: 'load_roadmap' }
   | { type: 'load_task_dates' }
   // Sync messages

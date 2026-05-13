@@ -50,6 +50,11 @@ import type {
   HealthExerciseDetail,
   HealthRecipeSummary,
   HealthRecipeDetail,
+  HealthTaxonomies,
+  HealthMySubmissions,
+  HealthExerciseSubmissionPayload,
+  HealthRecipeSubmissionPayload,
+  HealthSubmissionStatus,
   CreativeAsset,
   PersonalityData,
   RoadmapTheme,
@@ -220,6 +225,15 @@ export function App() {
   const [healthExerciseDetail, setHealthExerciseDetail] = useState<HealthExerciseDetail | null>(null);
   const [healthRecipeDetail, setHealthRecipeDetail] = useState<HealthRecipeDetail | null>(null);
   const [healthDetailLoading, setHealthDetailLoading] = useState(false);
+  // Health submission flow — taxonomies for the form, the user's own
+  // submissions for the My Submissions tab, and the last submission
+  // result so the modal can show success/error inline.
+  const [healthTaxonomies, setHealthTaxonomies] = useState<HealthTaxonomies | null>(null);
+  const [healthMySubmissions, setHealthMySubmissions] = useState<HealthMySubmissions>({ exercises: [], recipes: [] });
+  const [healthSubmissionResult, setHealthSubmissionResult] = useState<
+    { kind: 'exercise' | 'recipe'; ok: boolean; error?: string; status?: HealthSubmissionStatus; submissionName?: string } | null
+  >(null);
+  const [healthSubmissionInflight, setHealthSubmissionInflight] = useState(false);
   // Roadmap — fetched from /api/roadmap via the host, single source
   // of truth shared with the public web roadmap, the IDE Roadmap
   // page, and the Hub admin editor.
@@ -259,6 +273,27 @@ export function App() {
     setHealthRecipeDetail(null);
     post({ type: 'load_health_recipe_detail', slug });
     window.setTimeout(() => setHealthDetailLoading(false), 15000);
+  }, []);
+
+  // Submission handlers
+  const handleLoadHealthTaxonomies = useCallback(() => {
+    post({ type: 'load_health_taxonomies' });
+  }, []);
+  const handleLoadMyHealthSubmissions = useCallback(() => {
+    post({ type: 'load_my_health_submissions' });
+  }, []);
+  const handleSubmitHealthExercise = useCallback((payload: HealthExerciseSubmissionPayload) => {
+    setHealthSubmissionInflight(true);
+    setHealthSubmissionResult(null);
+    post({ type: 'submit_health_exercise', payload });
+  }, []);
+  const handleSubmitHealthRecipe = useCallback((payload: HealthRecipeSubmissionPayload) => {
+    setHealthSubmissionInflight(true);
+    setHealthSubmissionResult(null);
+    post({ type: 'submit_health_recipe', payload });
+  }, []);
+  const handleClearHealthSubmissionResult = useCallback(() => {
+    setHealthSubmissionResult(null);
   }, []);
 
   const handleReadPaperWithAva = useCallback((paper: LibraryPaper) => {
@@ -621,6 +656,24 @@ export function App() {
       case 'health_recipe_detail_loaded':
         setHealthRecipeDetail(msg.recipe);
         setHealthDetailLoading(false);
+        break;
+      case 'health_taxonomies_loaded':
+        setHealthTaxonomies(msg.taxonomies);
+        break;
+      case 'health_my_submissions_loaded':
+        setHealthMySubmissions(msg.data);
+        break;
+      case 'health_submission_result':
+        setHealthSubmissionInflight(false);
+        setHealthSubmissionResult({
+          kind: msg.kind,
+          ok: msg.ok,
+          error: msg.error,
+          status: msg.submission?.status,
+          submissionName: msg.submission?.name,
+        });
+        // Pull a fresh My Submissions snapshot so the new row shows up
+        if (msg.ok) post({ type: 'load_my_health_submissions' });
         break;
       case 'roadmap_loaded':
         // Empty themes = network/upstream failure; the Roadmap surface
@@ -1067,6 +1120,15 @@ export function App() {
             onLoadRecipes={handleLoadHealthRecipes}
             onLoadExerciseDetail={handleLoadHealthExerciseDetail}
             onLoadRecipeDetail={handleLoadHealthRecipeDetail}
+            taxonomies={healthTaxonomies}
+            mySubmissions={healthMySubmissions}
+            submissionResult={healthSubmissionResult}
+            submissionInflight={healthSubmissionInflight}
+            onLoadTaxonomies={handleLoadHealthTaxonomies}
+            onLoadMySubmissions={handleLoadMyHealthSubmissions}
+            onSubmitExercise={handleSubmitHealthExercise}
+            onSubmitRecipe={handleSubmitHealthRecipe}
+            onClearSubmissionResult={handleClearHealthSubmissionResult}
           />
         );
     }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { post } from '../App';
 import { t, useLocale } from '../i18n';
 import { SupportChat } from './SupportChat';
 import { Releases } from './Releases';
@@ -83,6 +84,35 @@ export function HelpPage({ releases, mode, supportConversations, supportMessages
       {activeTab === 'roadmap' && (
         <Roadmap themes={roadmapThemes} loading={roadmapLoading} />
       )}
+
+      {/* Legal & policies — a single quiet strip at the bottom of every Help
+          tab so the user can always reach Terms, Privacy, and the Health
+          safety policy without hunting. */}
+      <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[var(--border-card)] pt-3 text-[11px] text-[var(--text-muted)]">
+        <button
+          type="button"
+          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/terms' })}
+          className="cursor-pointer border-none bg-transparent p-0 transition hover:text-[var(--text-secondary)]"
+        >
+          Terms of Service
+        </button>
+        <span className="opacity-40">·</span>
+        <button
+          type="button"
+          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/privacy' })}
+          className="cursor-pointer border-none bg-transparent p-0 transition hover:text-[var(--text-secondary)]"
+        >
+          Privacy Policy
+        </button>
+        <span className="opacity-40">·</span>
+        <button
+          type="button"
+          onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/health/safety' })}
+          className="cursor-pointer border-none bg-transparent p-0 transition hover:text-[var(--text-secondary)]"
+        >
+          Health &amp; Fitness Safety
+        </button>
+      </div>
     </div>
   );
 }

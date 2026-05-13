@@ -1,8 +1,14 @@
 import { useState, useEffect } from 'react';
+import { post } from '../App';
+import { HealthSubmissionModal } from './HealthSubmissionModal';
+import { HealthMySubmissions } from './HealthMySubmissions';
 import type {
   HealthExerciseSummary, HealthExerciseDetail,
   HealthRecipeSummary, HealthRecipeDetail,
   HealthWorkoutType,
+  HealthTaxonomies, HealthMySubmissions as HealthMySubmissionsData,
+  HealthExerciseSubmissionPayload, HealthRecipeSubmissionPayload,
+  HealthSubmissionStatus,
 } from '../types/messages';
 
 /**
@@ -67,7 +73,7 @@ const COURSE_LABEL: Record<string, string> = {
   dessert: 'Desserts',
 };
 
-type Tab = 'exercises' | 'recipes';
+type Tab = 'exercises' | 'recipes' | 'mine';
 
 const PAGE_SIZE = 24;
 
@@ -87,6 +93,16 @@ interface Props {
   onLoadRecipes: (limit?: number, offset?: number, course?: string) => void;
   onLoadExerciseDetail: (slug: string) => void;
   onLoadRecipeDetail: (slug: string) => void;
+  // Submission flow
+  taxonomies: HealthTaxonomies | null;
+  mySubmissions: HealthMySubmissionsData;
+  submissionResult: { kind: 'exercise' | 'recipe'; ok: boolean; error?: string; status?: HealthSubmissionStatus; submissionName?: string } | null;
+  submissionInflight: boolean;
+  onLoadTaxonomies: () => void;
+  onLoadMySubmissions: () => void;
+  onSubmitExercise: (p: HealthExerciseSubmissionPayload) => void;
+  onSubmitRecipe: (p: HealthRecipeSubmissionPayload) => void;
+  onClearSubmissionResult: () => void;
 }
 
 export function Health({
@@ -105,6 +121,15 @@ export function Health({
   onLoadRecipes,
   onLoadExerciseDetail,
   onLoadRecipeDetail,
+  taxonomies,
+  mySubmissions,
+  submissionResult,
+  submissionInflight,
+  onLoadTaxonomies,
+  onLoadMySubmissions,
+  onSubmitExercise,
+  onSubmitRecipe,
+  onClearSubmissionResult,
 }: Props) {
   const [tab, setTab] = useState<Tab>('exercises');
   const [exerciseFilter, setExerciseFilter] = useState<'all' | HealthWorkoutType>('all');
@@ -114,6 +139,19 @@ export function Health({
    *  once the host responds to the load-detail message. */
   const [modalExerciseSlug, setModalExerciseSlug] = useState<string | null>(null);
   const [modalRecipeSlug, setModalRecipeSlug] = useState<string | null>(null);
+  const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
+
+  // Open the submission modal — preloads taxonomies on first open so the
+  // kind picker is immediately functional, and clears any prior result.
+  const openSubmissionModal = () => {
+    if (!taxonomies) onLoadTaxonomies();
+    onClearSubmissionResult();
+    setSubmissionModalOpen(true);
+  };
+
+  // Load My Submissions on first mount + when the result of a fresh
+  // submission lands (the host triggers a reload on success).
+  useEffect(() => { onLoadMySubmissions(); }, [onLoadMySubmissions]);
 
   // Initial load — only fires once per tab per session because App.tsx
   // caches the slice. Subsequent page/filter changes go through the
@@ -179,34 +217,51 @@ export function Health({
       <div className="border-b border-vscode-panelBorder px-6 py-5">
         <div className="flex items-baseline justify-between gap-3">
           <div>
-            <h1 className="text-[22px] font-light text-vscode-foreground">Health</h1>
+            <h1 className="text-[22px] font-light text-vscode-foreground">Health &amp; Nutrition</h1>
             <p className="mt-1 text-[12px] text-vscode-descriptionForeground">
-              {exercisesTotal} exercises · {recipesTotal} recipes · free, open library
+              {exercisesTotal} exercises · {recipesTotal} recipes · free, open library ·{' '}
+              <button
+                type="button"
+                onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/health/safety' })}
+                className="cursor-pointer border-none bg-transparent p-0 text-vscode-descriptionForeground underline decoration-dotted underline-offset-2 transition hover:text-vscode-foreground"
+              >
+                informational only — read safety policy
+              </button>
             </p>
           </div>
+          <button
+            type="button"
+            onClick={openSubmissionModal}
+            className="shrink-0 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer"
+          >
+            + Contribute
+          </button>
         </div>
 
-        {/* Top tabs — match the LibraryPapers canonical style */}
-        <div className="mt-5 flex items-end gap-0.5 border-b border-[rgba(168,85,247,0.12)]">
-          {(['exercises', 'recipes'] as Tab[]).map((t) => {
+        {/* Top tabs — canonical dashboard style (border-b-2 + --accent var,
+            matches Settings/Planner/History/Overview). */}
+        <div className="mt-5 flex items-end gap-0.5 border-b border-[var(--border)]">
+          {(['exercises', 'recipes', 'mine'] as Tab[]).map((t) => {
             const isActive = tab === t;
-            const count = t === 'exercises' ? exercisesTotal : recipesTotal;
+            const count =
+              t === 'exercises' ? exercisesTotal :
+              t === 'recipes' ? recipesTotal :
+              mySubmissions.exercises.length + mySubmissions.recipes.length;
+            const label =
+              t === 'exercises' ? 'Exercises' :
+              t === 'recipes' ? 'Recipes' :
+              'My submissions';
             return (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className="px-3 py-2 text-[11px] transition"
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  fontWeight: isActive ? 600 : 500,
-                  color: isActive ? '#c084fc' : '#6c7086',
-                  borderBottom: `2px solid ${isActive ? '#a855f7' : 'transparent'}`,
-                  marginBottom: -1,
-                }}
+                className={`-mb-px border-b-2 border-x-0 border-t-0 bg-transparent px-4 py-2 text-xs transition cursor-pointer ${
+                  isActive
+                    ? 'border-[var(--accent)] text-[var(--accent)] font-semibold'
+                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                }`}
               >
-                {t === 'exercises' ? 'Exercises' : 'Recipes'}
+                {label}
                 {count > 0 && <span className="ml-1.5 opacity-60">{count}</span>}
               </button>
             );
@@ -214,15 +269,9 @@ export function Health({
         </div>
       </div>
 
-      {/* Safety reminder strip */}
-      <div className="border-b border-vscode-panelBorder bg-vscode-editorWarning-foreground/5 px-6 py-2 text-[11px] text-vscode-descriptionForeground">
-        <span className="mr-1.5 text-amber-400">⚠</span>
-        Informational only — not medical or dietary advice. Consult a professional before starting any new programme.
-      </div>
-
       {/* Content area */}
       <div className="flex-1 overflow-y-auto px-6 py-5">
-        {tab === 'exercises' ? (
+        {tab === 'exercises' && (
           <ExercisesGrid
             items={exercises}
             total={exercisesTotal}
@@ -233,7 +282,8 @@ export function Health({
             loading={exercisesLoading}
             onOpen={openExercise}
           />
-        ) : (
+        )}
+        {tab === 'recipes' && (
           <RecipesGrid
             items={recipes}
             total={recipesTotal}
@@ -245,7 +295,26 @@ export function Health({
             onOpen={openRecipe}
           />
         )}
+        {tab === 'mine' && (
+          <HealthMySubmissions
+            data={mySubmissions}
+            onRefresh={onLoadMySubmissions}
+            onContribute={openSubmissionModal}
+          />
+        )}
       </div>
+
+      {/* Submission modal — covers everything; opens from the Contribute button. */}
+      <HealthSubmissionModal
+        open={submissionModalOpen}
+        onClose={() => setSubmissionModalOpen(false)}
+        taxonomies={taxonomies}
+        inflight={submissionInflight}
+        result={submissionResult ? { kind: submissionResult.kind, ok: submissionResult.ok, error: submissionResult.error, submissionName: submissionResult.submissionName } : null}
+        onSubmitExercise={onSubmitExercise}
+        onSubmitRecipe={onSubmitRecipe}
+        onClearResult={onClearSubmissionResult}
+      />
 
       {/* Overlay modals — one mounts at a time, whichever was clicked. */}
       {modalExerciseSlug && (
@@ -283,14 +352,14 @@ interface ExercisesGridProps {
 
 function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading, onOpen }: ExercisesGridProps) {
   if (loading && items.length === 0) {
-    return <div className="py-12 text-center text-[12px] text-vscode-descriptionForeground">Loading exercises…</div>;
+    return <LoadingCard label="Loading exercises…" />;
   }
   return (
     <div>
       <FilterRow>
         <FilterChip active={filter === 'all'} onClick={() => onFilter('all')}>All</FilterChip>
         {WORKOUT_TYPE_ORDER.map((t) => (
-          <FilterChip key={t} active={filter === t} onClick={() => onFilter(t)} accent={WORKOUT_TYPE_ACCENT[t]}>
+          <FilterChip key={t} active={filter === t} onClick={() => onFilter(t)}>
             {WORKOUT_TYPE_LABEL[t]}
           </FilterChip>
         ))}
@@ -353,7 +422,7 @@ interface RecipesGridProps {
 
 function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, onOpen }: RecipesGridProps) {
   if (loading && items.length === 0) {
-    return <div className="py-12 text-center text-[12px] text-vscode-descriptionForeground">Loading recipes…</div>;
+    return <LoadingCard label="Loading recipes…" />;
   }
   return (
     <div>
@@ -482,9 +551,9 @@ function ExerciseDetailModal({
     <ModalShell onClose={onClose}>
       <div className="p-6 sm:p-8">
         {!ready && (
-          <div className="py-16 text-center text-[12px] text-vscode-descriptionForeground">
-            {loading ? 'Loading…' : 'Failed to load.'}
-          </div>
+          loading
+            ? <LoadingCard label="Loading exercise…" />
+            : <div className="py-16 text-center text-[12px] text-vscode-descriptionForeground">Failed to load.</div>
         )}
         {ready && <ExerciseDetailBody ex={detail!} />}
       </div>
@@ -633,8 +702,10 @@ function RecipeDetailModal({
   return (
     <ModalShell onClose={onClose}>
       {!ready && (
-        <div className="p-12 text-center text-[12px] text-vscode-descriptionForeground">
-          {loading ? 'Loading…' : 'Failed to load.'}
+        <div className="p-6 sm:p-8">
+          {loading
+            ? <LoadingCard label="Loading recipe…" />
+            : <div className="py-12 text-center text-[12px] text-vscode-descriptionForeground">Failed to load.</div>}
         </div>
       )}
       {ready && <RecipeDetailBody r={detail!} />}
@@ -748,28 +819,43 @@ function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
 
 // ── Shared bits ────────────────────────────────────────────────────────
 
+function LoadingCard({ label }: { label: string }) {
+  return (
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-10 text-center">
+      <div className="inline-flex items-center gap-2 text-[var(--text-muted)] text-sm">
+        <span className="ava-health-spinner" aria-hidden />
+        {label}
+      </div>
+      <style>{`
+        .ava-health-spinner {
+          width: 12px; height: 12px; border-radius: 50%;
+          border: 1.5px solid rgba(168, 85, 247, 0.25);
+          border-top-color: #a855f7;
+          animation: avaHealthSpin 0.85s linear infinite;
+          display: inline-block;
+        }
+        @keyframes avaHealthSpin { to { transform: rotate(360deg); } }
+      `}</style>
+    </div>
+  );
+}
+
 function FilterRow({ children }: { children: React.ReactNode }) {
-  return <div className="mb-5 flex flex-wrap gap-1.5">{children}</div>;
+  return <div className="mb-5 flex flex-wrap gap-0.5 border-b border-[var(--border)]">{children}</div>;
 }
 
 function FilterChip({
-  active, onClick, children, accent,
-}: { active: boolean; onClick: () => void; children: React.ReactNode; accent?: string }) {
-  const activeStyle = accent
-    ? { borderColor: `${accent}80`, background: `${accent}26`, color: accent }
-    : undefined;
+  active, onClick, children,
+}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-wider transition ${
+      className={`-mb-px cursor-pointer border-b-2 border-x-0 border-t-0 bg-transparent px-2.5 py-2 text-[11px] font-medium transition ${
         active
-          ? accent
-            ? ''
-            : 'border-vscode-textLink-foreground/50 bg-vscode-textLink-foreground/15 text-vscode-textLink-foreground'
-          : 'border-vscode-panelBorder text-vscode-descriptionForeground hover:text-vscode-foreground'
+          ? 'border-[var(--accent)] text-[var(--accent)]'
+          : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
       }`}
-      style={active && accent ? activeStyle : undefined}
     >
       {children}
     </button>

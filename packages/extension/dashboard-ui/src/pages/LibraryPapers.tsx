@@ -185,15 +185,15 @@ export function LibraryPapers({
             </button>
           )}
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-0.5 border-b border-[var(--border)]">
           {DISCIPLINES.map(d => (
             <button
               key={d.id}
               onClick={() => setDiscipline(d.id)}
-              className={`rounded-full px-3 py-1 text-[11px] font-medium transition ${
+              className={`-mb-px cursor-pointer border-b-2 border-x-0 border-t-0 bg-transparent px-2.5 py-2 text-[11px] font-medium transition ${
                 discipline === d.id
-                  ? 'bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/40'
-                  : 'border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                  ? 'border-[var(--accent)] text-[var(--accent)]'
+                  : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
               }`}
             >
               {d.label}
@@ -202,23 +202,19 @@ export function LibraryPapers({
         </div>
       </div>
 
-      {/* Sub-tabs (hidden when search is active — search displaces tabs) */}
+      {/* Sub-tabs (hidden when search is active — search displaces tabs).
+          Canonical dashboard tab style (border-b-2 + --accent var). */}
       {!isSearching && (
-        <div className="mb-4 flex items-end gap-0.5 border-b border-[rgba(168,85,247,0.12)]">
+        <div className="mb-4 flex items-end gap-0.5 border-b border-[var(--border)]">
           {TABS.map(t => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className="px-3 py-2 text-[11px] transition"
-              style={{
-                border: 'none',
-                background: 'transparent',
-                cursor: 'pointer',
-                fontWeight: tab === t.id ? 600 : 500,
-                color: tab === t.id ? '#c084fc' : '#6c7086',
-                borderBottom: `2px solid ${tab === t.id ? '#a855f7' : 'transparent'}`,
-                marginBottom: -1,
-              }}
+              className={`-mb-px cursor-pointer border-b-2 border-x-0 border-t-0 bg-transparent px-4 py-2 text-xs transition ${
+                tab === t.id
+                  ? 'border-[var(--accent)] text-[var(--accent)] font-semibold'
+                  : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+              }`}
               title={t.hint}
             >
               {t.label}

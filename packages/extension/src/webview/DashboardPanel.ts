@@ -50,6 +50,8 @@ import type {
   HealthExerciseDetail,
   HealthRecipeSummary,
   HealthRecipeDetail,
+  HealthTaxonomies,
+  HealthMySubmissions,
   ReleaseNote,
   RoadmapTheme,
 } from './dashboard-message-types.js';
@@ -958,6 +960,98 @@ export class DashboardPanel {
         } catch (err) {
           this.log(`[health] load recipe detail error: ${err instanceof Error ? err.message : String(err)}`);
           this.post({ type: 'health_recipe_detail_loaded', recipe: null });
+        }
+        break;
+      }
+
+      // ─── Health submission flow ────────────────────────────────────────
+      // Community contributions. Taxonomies + my-submissions are open
+      // public reads (no auth needed on GET /taxonomies; mine requires
+      // platformKey). Submission POSTs require platformKey since they
+      // write to the catalog as the authenticated user.
+
+      case 'load_health_taxonomies': {
+        try {
+          this.log('[health] load taxonomies');
+          const res = await fetch(
+            'https://ava-supernova.com/api/health/taxonomies',
+            { signal: AbortSignal.timeout(8000) },
+          );
+          if (!res.ok) {
+            this.log(`[health] load taxonomies failed: HTTP ${res.status}`);
+            break;
+          }
+          const data = (await res.json()) as HealthTaxonomies;
+          this.post({ type: 'health_taxonomies_loaded', taxonomies: data });
+        } catch (err) {
+          this.log(`[health] load taxonomies error: ${err instanceof Error ? err.message : String(err)}`);
+        }
+        break;
+      }
+
+      case 'submit_health_exercise':
+      case 'submit_health_recipe': {
+        const kind = msg.type === 'submit_health_exercise' ? 'exercise' : 'recipe';
+        try {
+          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+          if (!platformKey) {
+            this.post({
+              type: 'health_submission_result',
+              kind,
+              ok: false,
+              error: 'You need to sign in before contributing. Open Settings → Account.',
+            });
+            break;
+          }
+          this.log(`[health] submit ${kind}`);
+          const res = await apiFetch(`/health/submissions/${kind}`, {
+            platformKey,
+            method: 'POST',
+            body: msg.payload,
+            timeoutMs: 15000,
+          });
+          if (!res.ok) {
+            const errorMsg = (res.data as { error?: string } | string | null)
+              && typeof res.data === 'object'
+              ? (res.data as { error?: string }).error ?? `HTTP ${res.status}`
+              : `HTTP ${res.status}`;
+            this.log(`[health] submit ${kind} failed: ${errorMsg}`);
+            this.post({ type: 'health_submission_result', kind, ok: false, error: errorMsg });
+            break;
+          }
+          const sub = (res.data as { submission?: { id: string; slug: string; name: string; status: 'pending' | 'rejected' | 'published' } }).submission;
+          this.post({ type: 'health_submission_result', kind, ok: true, submission: sub });
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          this.log(`[health] submit ${kind} error: ${errorMsg}`);
+          this.post({ type: 'health_submission_result', kind, ok: false, error: errorMsg });
+        }
+        break;
+      }
+
+      case 'load_my_health_submissions': {
+        try {
+          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+          if (!platformKey) {
+            this.post({ type: 'health_my_submissions_loaded', data: { exercises: [], recipes: [] } });
+            break;
+          }
+          this.log('[health] load my submissions');
+          const res = await apiFetch('/health/submissions/mine', {
+            platformKey,
+            method: 'GET',
+            timeoutMs: 8000,
+          });
+          if (!res.ok) {
+            this.log(`[health] load my submissions failed: HTTP ${res.status}`);
+            this.post({ type: 'health_my_submissions_loaded', data: { exercises: [], recipes: [] } });
+            break;
+          }
+          const data = res.data as HealthMySubmissions;
+          this.post({ type: 'health_my_submissions_loaded', data });
+        } catch (err) {
+          this.log(`[health] load my submissions error: ${err instanceof Error ? err.message : String(err)}`);
+          this.post({ type: 'health_my_submissions_loaded', data: { exercises: [], recipes: [] } });
         }
         break;
       }
