@@ -602,6 +602,10 @@ export interface HealthGenerateExerciseIntake {
   goal?: string;
   equipment?: string;
   level?: string;
+  /** When true, Ava picks a concept herself — empty prompt is allowed and
+   *  the server switches to a creative-bias prompt that avoids names
+   *  already in the catalog. */
+  surprise?: boolean;
 }
 
 export interface HealthGenerateRecipeIntake {
@@ -610,6 +614,7 @@ export interface HealthGenerateRecipeIntake {
   course_hint?: string;
   dietary?: string;
   skill?: string;
+  surprise?: boolean;
 }
 
 /** Draft returned by /api/health/generate/exercise — same shape as the

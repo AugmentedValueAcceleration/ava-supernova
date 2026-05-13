@@ -548,7 +548,14 @@ function ExerciseIntake({
 
       {error && <InlineError message={error} />}
 
-      <div className="flex justify-end pt-4 border-t border-[rgba(168,85,247,0.10)] mt-2">
+      <div className="flex items-center justify-between pt-4 border-t border-[rgba(168,85,247,0.10)] mt-2 gap-3">
+        <button
+          onClick={() => onGenerate({ prompt: '', surprise: true })}
+          className={btnGhostCls}
+          title="Skip the form — Ava picks a fresh exercise the catalog doesn't already have"
+        >
+          ✨ Surprise me
+        </button>
         <button onClick={submit} disabled={!valid} className={btnPrimaryCls}>
           Draft with Ava · 2 credits →
         </button>
@@ -628,7 +635,14 @@ function RecipeIntake({
 
       {error && <InlineError message={error} />}
 
-      <div className="flex justify-end pt-4 border-t border-[rgba(168,85,247,0.10)] mt-2">
+      <div className="flex items-center justify-between pt-4 border-t border-[rgba(168,85,247,0.10)] mt-2 gap-3">
+        <button
+          onClick={() => onGenerate({ prompt: '', surprise: true })}
+          className={btnGhostCls}
+          title="Skip the form — Ava picks a fresh recipe the catalog doesn't already have"
+        >
+          ✨ Surprise me
+        </button>
         <button onClick={submit} disabled={!valid} className={btnPrimaryCls}>
           Draft with Ava · 2 credits →
         </button>
