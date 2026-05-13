@@ -986,7 +986,7 @@ export class DashboardPanel {
       // write to the catalog as the authenticated user.
 
       case 'load_health_taxonomies': {
-        const empty: HealthTaxonomies = { allergens: [], contraindications: [], cuisines: [] };
+        const empty: HealthTaxonomies = { allergens: [], contraindications: [], cuisines: [], diets: [], dietary_flags: [] };
         this.log('[health] load taxonomies — start');
         try {
           // Use the Node https helper instead of global fetch — global

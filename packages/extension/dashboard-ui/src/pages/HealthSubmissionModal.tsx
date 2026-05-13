@@ -5,6 +5,7 @@ import type {
   HealthExerciseType, HealthWorkoutType,
   HealthExerciseDraft, HealthRecipeDraft,
   HealthGenerateExerciseIntake, HealthGenerateRecipeIntake,
+  HealthRecipeVersionPayload,
 } from '../types/messages';
 
 /**
@@ -874,6 +875,13 @@ function RecipeForm({
     .filter(i => i.name.length > 0);
   const isValid = name.trim().length >= 3 && trimmedIngredients.length >= 1;
 
+  // Ava-drafted versions pass straight through to the submission. We
+  // surface them read-only in the form (full editor would be huge);
+  // the operator can fine-tune in the hub after approval. Manual mode
+  // submits with versions=[] and the operator can compose versions
+  // post-approval the same way they do for any pre-versions submission.
+  const draftVersions = initial?.versions ?? [];
+
   const submit = () => {
     if (!isValid || inflight) return;
     onSubmit({
@@ -890,6 +898,7 @@ function RecipeForm({
         notes: i.notes.trim() || null,
       })),
       allergen_slugs: Array.from(allergenSlugs),
+      versions: draftVersions,
     });
   };
 
@@ -934,6 +943,18 @@ function RecipeForm({
         <textarea value={overview} onChange={e => setOverview(e.target.value)} maxLength={2000}
           rows={3} className={inputCls} placeholder="Story, technique notes, what makes this dish what it is." />
       </Section>
+
+      {draftVersions.length > 0 && (
+        <Section title={`Skill versions · ${draftVersions.length}`}>
+          <p className="text-[11px] text-[var(--text-muted)] mb-3 leading-relaxed">
+            Ava produced one method per skill level — beginner, intermediate, and expert.
+            Submitted as-is; the operator can fine-tune timings, steps, or equipment after approval.
+          </p>
+          <div className="space-y-3">
+            {draftVersions.map(v => <DraftVersionPreview key={v.level} version={v} />)}
+          </div>
+        </Section>
+      )}
 
       <Section title="Ingredients (required)">
         {ingredients.map((ing, i) => (
@@ -1022,6 +1043,84 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div className="mb-3">
       <label className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)] mb-1">{label}</label>
       {children}
+    </div>
+  );
+}
+
+function DraftVersionPreview({ version }: { version: HealthRecipeVersionPayload }) {
+  const levelColour =
+    version.level === 'beginner' ? '#a6e3a1'
+    : version.level === 'intermediate' ? '#f9e2af'
+    : '#fab387';
+  const timeLine = [
+    version.prep_time_minutes != null ? `Prep ${version.prep_time_minutes}m` : null,
+    version.cook_time_minutes != null ? `Cook ${version.cook_time_minutes}m` : null,
+    version.total_time_minutes != null ? `Total ${version.total_time_minutes}m` : null,
+    version.default_servings != null ? `Serves ${version.default_servings}` : null,
+  ].filter(Boolean).join(' · ');
+
+  return (
+    <div className="rounded-lg border border-[rgba(168,85,247,0.18)] bg-[rgba(168,85,247,0.04)] p-3">
+      <div className="flex items-baseline gap-2 mb-1.5">
+        <span
+          className="px-2 py-0.5 rounded-full text-[9px] uppercase tracking-[0.15em]"
+          style={{ background: 'rgba(168,85,247,0.15)', color: levelColour }}
+        >
+          {version.level}
+        </span>
+        {timeLine && (
+          <span className="text-[10px] text-[var(--text-muted)]">{timeLine}</span>
+        )}
+      </div>
+      {version.description && (
+        <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed mb-2">{version.description}</p>
+      )}
+      {(version.diet_slugs.length > 0 || version.dietary_flag_slugs.length > 0) && (
+        <div className="flex flex-wrap gap-1 mb-2">
+          {version.diet_slugs.map(d => (
+            <span key={`d-${d}`} className="px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider"
+              style={{ background: 'rgba(168,85,247,0.12)', color: '#c084fc' }}>{d}</span>
+          ))}
+          {version.dietary_flag_slugs.map(f => (
+            <span key={`f-${f}`} className="px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider"
+              style={{ background: 'rgba(249,226,175,0.10)', color: '#f9e2af' }}>{f}</span>
+          ))}
+        </div>
+      )}
+      {version.equipment.length > 0 && (
+        <div className="mb-2">
+          <div className="text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)] mb-1">Equipment</div>
+          <ul className="m-0 pl-0 list-none flex flex-wrap gap-x-3 gap-y-0.5">
+            {version.equipment.map((e, i) => (
+              <li key={i} className="text-[11px] text-[var(--text-primary)]">
+                {e.name}
+                {e.optional && <span className="text-[var(--text-muted)] ml-1">(opt.)</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {version.steps.length > 0 && (
+        <div>
+          <div className="text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)] mb-1">Method · {version.steps.length} steps</div>
+          <ol className="m-0 pl-4">
+            {version.steps.map((s, i) => (
+              <li key={i} className="text-[11px] text-[var(--text-primary)] mb-1 leading-relaxed">
+                {s.action}
+                {s.tricky_flag && (
+                  <span className="ml-1.5 px-1 py-0.5 rounded text-[8px] uppercase tracking-wider"
+                    style={{ background: 'rgba(249,226,175,0.10)', color: '#f9e2af' }}>tricky</span>
+                )}
+                {s.technique_term && (
+                  <span className="ml-1.5 text-[9px] uppercase tracking-wider text-[var(--accent)]">
+                    {s.technique_term}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
     </div>
   );
 }

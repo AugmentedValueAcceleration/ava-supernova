@@ -534,10 +534,24 @@ export interface HealthTaxonomyCuisine {
   sort_order: number;
 }
 
+export interface HealthTaxonomyDiet {
+  slug: string;
+  name: string;
+  sort_order: number;
+}
+
+export interface HealthTaxonomyDietaryFlag {
+  slug: string;
+  name: string;
+  sort_order: number;
+}
+
 export interface HealthTaxonomies {
   allergens: HealthTaxonomyAllergen[];
   contraindications: HealthTaxonomyContraindication[];
   cuisines: HealthTaxonomyCuisine[];
+  diets: HealthTaxonomyDiet[];
+  dietary_flags: HealthTaxonomyDietaryFlag[];
 }
 
 export type HealthSubmissionStatus = 'pending' | 'rejected' | 'published';
@@ -554,6 +568,33 @@ export interface HealthExerciseSubmissionPayload {
   contraindication_slugs: string[];
 }
 
+export interface HealthRecipeVersionStepPayload {
+  action: string;
+  notes: string | null;
+  technique_term: string | null;
+  time_estimate_seconds: number | null;
+  tricky_flag: boolean;
+}
+
+export interface HealthRecipeVersionEquipmentPayload {
+  name: string;
+  notes: string | null;
+  optional: boolean;
+}
+
+export interface HealthRecipeVersionPayload {
+  level: HealthRecipeSkillLevel;
+  description: string | null;
+  prep_time_minutes: number | null;
+  cook_time_minutes: number | null;
+  total_time_minutes: number | null;
+  default_servings: number | null;
+  steps: HealthRecipeVersionStepPayload[];
+  equipment: HealthRecipeVersionEquipmentPayload[];
+  diet_slugs: string[];
+  dietary_flag_slugs: string[];
+}
+
 export interface HealthRecipeSubmissionPayload {
   name: string;
   cuisine_slug: string | null;
@@ -568,6 +609,11 @@ export interface HealthRecipeSubmissionPayload {
     notes: string | null;
   }>;
   allergen_slugs: string[];
+  /** Skill-level versions. Empty array = no versions persisted (operator
+   *  composes them post-approval). Ava-drafted submissions produce 3
+   *  versions (beginner / intermediate / expert); manual submissions
+   *  produce 0-3 depending on what the submitter fills in. */
+  versions: HealthRecipeVersionPayload[];
 }
 
 export interface HealthMySubmissionExercise {
@@ -636,7 +682,8 @@ export interface HealthExerciseDraft {
 
 /** Draft returned by /api/health/generate/recipe — same shape as the
  *  manual submission payload (modulo `quantity: number | null` matching
- *  what the form's number input accepts). */
+ *  what the form's number input accepts). Includes the full per-skill-
+ *  level versions structure so the review form can render every level. */
 export interface HealthRecipeDraft {
   name: string;
   cuisine_slug: string | null;
@@ -651,6 +698,7 @@ export interface HealthRecipeDraft {
     notes: string | null;
   }>;
   allergen_slugs: string[];
+  versions: HealthRecipeVersionPayload[];
 }
 
 // ─── Release Notes ──────────────────────────────────────────────────────────
