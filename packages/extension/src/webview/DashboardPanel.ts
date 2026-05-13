@@ -1069,10 +1069,13 @@ export class DashboardPanel {
             method: 'POST',
             body: msg.intake,
             extraHeaders,
-            // Surprise mode at temp=0.9 + the recipe surprise prompt + 200
-            // catalog avoid-list can push Qwen past 60s. Aligned with the
-            // server's new 120s maxDuration so neither side gives up first.
-            timeoutMs: 120000,
+            // Three full skill versions × steps + equipment + diets + flags
+            // can push the recipe generation well past 120s. Aligned with the
+            // recipe route's 300s maxDuration (Vercel Pro ceiling) so neither
+            // side gives up first. Exercise drafts will finish much sooner —
+            // they don't need this much headroom, but using the same timeout
+            // keeps the message handler simple.
+            timeoutMs: 300000,
           });
           if (!res.ok) {
             // Format error so the operator sees the actual reason, not
