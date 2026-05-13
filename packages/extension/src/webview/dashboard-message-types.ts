@@ -422,6 +422,9 @@ export interface HealthExerciseSummary {
    *  caller's own pending/rejected rows appear alongside public published
    *  rows; cards render a "pending review" badge when status !== 'published'. */
   status?: HealthSubmissionStatus;
+  /** Resolved workout_type → image_url from workout_type_thumbnails.
+   *  Null until the operator uploads a thumbnail for the workout_type. */
+  thumbnail_url?: string | null;
 }
 
 export interface HealthMuscleTag {

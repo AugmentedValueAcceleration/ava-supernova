@@ -450,22 +450,46 @@ function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading
                   <button
                     type="button"
                     onClick={() => onOpen(ex.slug)}
-                    className="group relative flex h-full w-full flex-col overflow-hidden rounded-lg border border-vscode-panelBorder bg-vscode-editor-background p-4 text-left transition hover:border-vscode-focusBorder"
+                    className="group block w-full overflow-hidden rounded-lg border border-vscode-panelBorder bg-vscode-editor-background text-left transition hover:border-vscode-focusBorder"
                   >
-                    <span
-                      aria-hidden
-                      className="absolute inset-x-0 top-0 h-[3px]"
-                      style={{ background: accent }}
-                    />
-                    {isMineAndPending && <SubmissionStatusBadge status={ex.status!} />}
-                    <div
-                      className="mb-2 mt-1 text-[10px] font-medium uppercase tracking-[0.2em]"
-                      style={{ color: accent }}
-                    >
-                      {WORKOUT_TYPE_LABEL[ex.workout_type]}
+                    {/* Thumbnail or fallback band — same shape recipe cards use
+                        so exercises read as part of the same visual system.
+                        Falls back to a coloured panel keyed to the workout_type
+                        accent when no thumbnail is set. */}
+                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-vscode-editor-inactiveSelectionBackground">
+                      {ex.thumbnail_url ? (
+                        <img
+                          src={ex.thumbnail_url}
+                          alt=""
+                          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div
+                          className="flex h-full w-full items-center justify-center text-3xl opacity-25"
+                          style={{ background: `linear-gradient(135deg, ${accent}33 0%, ${accent}11 100%)` }}
+                          aria-hidden
+                        >
+                          🏋
+                        </div>
+                      )}
+                      <span
+                        aria-hidden
+                        className="absolute inset-x-0 top-0 h-[3px]"
+                        style={{ background: accent }}
+                      />
+                      {isMineAndPending && <SubmissionStatusBadge status={ex.status!} />}
+                      <div aria-hidden className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+                      <div className="absolute inset-x-0 bottom-0 p-3">
+                        <div
+                          className="mb-1 text-[9px] font-medium uppercase tracking-[0.2em]"
+                          style={{ color: accent }}
+                        >
+                          {WORKOUT_TYPE_LABEL[ex.workout_type]}
+                        </div>
+                        <h3 className="text-[13px] font-light leading-tight text-white">{ex.name}</h3>
+                      </div>
                     </div>
-                    <h3 className="mb-3 text-[14px] leading-snug text-vscode-foreground">{ex.name}</h3>
-                    <div className="mt-auto flex items-center justify-between">
+                    <div className="flex items-center justify-between px-3 py-2.5">
                       <Dots value={ex.difficulty} accent={accent} />
                       <span className="text-[10px] capitalize text-vscode-descriptionForeground">{ex.exercise_type}</span>
                     </div>
