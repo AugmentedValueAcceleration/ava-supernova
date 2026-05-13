@@ -574,7 +574,6 @@ function RecipeIntake({
   const [cuisineHint, setCuisineHint] = useState('');
   const [courseHint, setCourseHint] = useState('');
   const [dietary, setDietary] = useState('');
-  const [skill, setSkill] = useState('');
 
   const valid = prompt.trim().length >= 5;
 
@@ -585,7 +584,6 @@ function RecipeIntake({
       cuisine_hint: cuisineHint.trim() || undefined,
       course_hint: courseHint.trim() || undefined,
       dietary: dietary.trim() || undefined,
-      skill: skill.trim() || undefined,
     });
   };
 
@@ -624,15 +622,10 @@ function RecipeIntake({
             className={inputCls}
           />
         </Field>
-        <Field label="Skill level">
-          <Select value={skill} onChange={setSkill} options={[
-            { value: '', label: '—' },
-            { value: 'beginner', label: 'Beginner' },
-            { value: 'intermediate', label: 'Intermediate' },
-            { value: 'expert', label: 'Expert' },
-          ]} />
-        </Field>
       </Section>
+      <p className="text-[10px] text-[var(--text-muted)] -mt-3 mb-4 leading-relaxed">
+        Ava drafts all three skill levels — beginner, intermediate, and expert — automatically.
+      </p>
 
       {error && <InlineError message={error} />}
 

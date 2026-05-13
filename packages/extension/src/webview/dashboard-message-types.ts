@@ -662,7 +662,6 @@ export interface HealthGenerateRecipeIntake {
   cuisine_hint?: string;
   course_hint?: string;
   dietary?: string;
-  skill?: string;
   surprise?: boolean;
 }
 
