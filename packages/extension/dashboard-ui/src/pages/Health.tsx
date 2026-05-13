@@ -337,6 +337,7 @@ export function Health({
             onOpen={openExercise}
             search={exerciseSearch}
             onSearch={setExerciseSearch}
+            onRefresh={() => goExercisesPage(0)}
           />
         )}
         {tab === 'recipes' && (
@@ -351,6 +352,7 @@ export function Health({
             onOpen={openRecipe}
             search={recipeSearch}
             onSearch={setRecipeSearch}
+            onRefresh={() => goRecipesPage(0)}
           />
         )}
         {tab === 'mine' && (
@@ -418,20 +420,26 @@ interface ExercisesGridProps {
   onOpen: (slug: string) => void;
   search: string;
   onSearch: (next: string) => void;
+  onRefresh: () => void;
 }
 
-function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading, onOpen, search, onSearch }: ExercisesGridProps) {
+function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading, onOpen, search, onSearch, onRefresh }: ExercisesGridProps) {
   if (loading && items.length === 0 && !search) {
     return <LoadingCard label="Loading exercises…" />;
   }
   return (
     <div>
-      <SearchInput
-        value={search}
-        onChange={onSearch}
-        placeholder="Search exercises — name, e.g. 'squat'"
-        loading={loading && search.length > 0}
-      />
+      <div className="flex items-center gap-3 mb-3">
+        <div className="flex-1">
+          <SearchInput
+            value={search}
+            onChange={onSearch}
+            placeholder="Search exercises — name, e.g. 'squat'"
+            loading={loading && search.length > 0}
+          />
+        </div>
+        <RefreshButton onClick={onRefresh} loading={loading && search.length === 0} />
+      </div>
       <FilterRow>
         <FilterChip active={filter === 'all'} onClick={() => onFilter('all')}>All</FilterChip>
         {WORKOUT_TYPE_ORDER.map((t) => (
@@ -524,20 +532,26 @@ interface RecipesGridProps {
   onOpen: (slug: string) => void;
   search: string;
   onSearch: (next: string) => void;
+  onRefresh: () => void;
 }
 
-function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, onOpen, search, onSearch }: RecipesGridProps) {
+function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, onOpen, search, onSearch, onRefresh }: RecipesGridProps) {
   if (loading && items.length === 0 && !search) {
     return <LoadingCard label="Loading recipes…" />;
   }
   return (
     <div>
-      <SearchInput
-        value={search}
-        onChange={onSearch}
-        placeholder="Search recipes — name, e.g. 'chicken'"
-        loading={loading && search.length > 0}
-      />
+      <div className="flex items-center gap-3 mb-3">
+        <div className="flex-1">
+          <SearchInput
+            value={search}
+            onChange={onSearch}
+            placeholder="Search recipes — name, e.g. 'chicken'"
+            loading={loading && search.length > 0}
+          />
+        </div>
+        <RefreshButton onClick={onRefresh} loading={loading && search.length === 0} />
+      </div>
       <FilterRow>
         <FilterChip active={filter === 'all'} onClick={() => onFilter('all')}>All</FilterChip>
         {COURSE_ORDER.map((c) => (
@@ -1055,6 +1069,28 @@ function SubmissionStatusBadge({ status }: { status: HealthSubmissionStatus }) {
     >
       {label}
     </span>
+  );
+}
+
+function RefreshButton({ onClick, loading }: { onClick: () => void; loading: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      aria-label="Refresh"
+      title="Refresh"
+      className="shrink-0 mb-3 inline-flex h-[34px] items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-input)] px-3 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--accent)]/50 transition cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+    >
+      <svg
+        aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`}
+      >
+        <path d="M21 12a9 9 0 1 1-3-6.7" />
+        <path d="M21 3v6h-6" />
+      </svg>
+      {loading ? 'Refreshing' : 'Refresh'}
+    </button>
   );
 }
 
