@@ -820,6 +820,17 @@ export function App() {
     return () => window.removeEventListener('message', handleMessage);
   }, [handleMessage]);
 
+  // Pre-warm Health content so Exercises + Recipes render instantly on
+  // first click instead of showing the loading card. ~5KB each, platform
+  // is stale-while-revalidate cached, fires once per dashboard open. Uses
+  // the existing handlers so loading state stays consistent if the user
+  // navigates to Health while the pre-warm is still in flight.
+  useEffect(() => {
+    handleLoadHealthExercises(24, 0);
+    handleLoadHealthRecipes(24, 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Re-fetch account info whenever the webview becomes visible — covers
   // the "upgraded on the website in a browser tab, came back to VSCode"
   // flow so tier / token allowance reflects the new plan without waiting
