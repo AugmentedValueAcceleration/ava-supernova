@@ -418,6 +418,10 @@ export interface HealthExerciseSummary {
   exercise_type: HealthExerciseType;
   workout_type: HealthWorkoutType;
   difficulty: number;
+  /** Submission status — driven by the auth-aware list endpoint. The
+   *  caller's own pending/rejected rows appear alongside public published
+   *  rows; cards render a "pending review" badge when status !== 'published'. */
+  status?: HealthSubmissionStatus;
 }
 
 export interface HealthMuscleTag {
@@ -454,6 +458,8 @@ export interface HealthRecipeSummary {
   origin_country: string | null;
   course: string | null;
   hero_image_url: string | null;
+  /** See HealthExerciseSummary.status — same auth-aware list behaviour. */
+  status?: HealthSubmissionStatus;
 }
 
 export interface HealthRecipeIngredient {

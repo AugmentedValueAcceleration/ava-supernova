@@ -444,6 +444,7 @@ function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {items.map((ex) => {
               const accent = WORKOUT_TYPE_ACCENT[ex.workout_type];
+              const isMineAndPending = ex.status && ex.status !== 'published';
               return (
                 <li key={ex.id}>
                   <button
@@ -456,6 +457,7 @@ function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading
                       className="absolute inset-x-0 top-0 h-[3px]"
                       style={{ background: accent }}
                     />
+                    {isMineAndPending && <SubmissionStatusBadge status={ex.status!} />}
                     <div
                       className="mb-2 mt-1 text-[10px] font-medium uppercase tracking-[0.2em]"
                       style={{ color: accent }}
@@ -522,7 +524,9 @@ function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, 
       ) : (
         <>
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {items.map((r) => (
+            {items.map((r) => {
+              const isMineAndPending = r.status && r.status !== 'published';
+              return (
               <li key={r.id}>
                 <button
                   type="button"
@@ -539,6 +543,7 @@ function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, 
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-3xl opacity-30">🍽</div>
                     )}
+                    {isMineAndPending && <SubmissionStatusBadge status={r.status!} />}
                     <div aria-hidden className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
                     <div className="absolute inset-x-0 bottom-0 p-3">
                       {r.cuisine_name && (
@@ -551,7 +556,8 @@ function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, 
                   </div>
                 </button>
               </li>
-            ))}
+              );
+            })}
           </ul>
           <Pagination total={total} offset={offset} onPage={onPage} loading={loading} />
         </>
@@ -1001,6 +1007,25 @@ function LoadingCard({ label }: { label: string }) {
 
 function FilterRow({ children }: { children: React.ReactNode }) {
   return <div className="mb-5 flex flex-wrap gap-0.5 border-b border-[var(--border)]">{children}</div>;
+}
+
+function SubmissionStatusBadge({ status }: { status: HealthSubmissionStatus }) {
+  // Surfaces on cards in the main grid when the row is the caller's own
+  // pending / rejected submission. Operator-curated rows + other people's
+  // submissions never carry status from the auth-aware list endpoint, so
+  // this never renders for them.
+  const label = status === 'pending' ? 'Pending review' : status === 'rejected' ? 'Rejected' : status;
+  const colour = status === 'rejected'
+    ? { bg: 'rgba(243,139,168,0.20)', border: 'rgba(243,139,168,0.45)', fg: '#f38ba8' }
+    : { bg: 'rgba(249,226,175,0.20)', border: 'rgba(249,226,175,0.45)', fg: '#f9e2af' };
+  return (
+    <span
+      className="absolute top-2 right-2 z-10 rounded-full border px-2 py-0.5 text-[9px] font-medium uppercase tracking-wider"
+      style={{ background: colour.bg, borderColor: colour.border, color: colour.fg }}
+    >
+      {label}
+    </span>
+  );
 }
 
 function SearchInput({

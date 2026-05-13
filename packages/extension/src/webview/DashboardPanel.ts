@@ -872,17 +872,22 @@ export class DashboardPanel {
         if (msg.workoutType) params.set('workout_type', msg.workoutType);
         if (msg.q && msg.q.trim()) params.set('q', msg.q.trim());
         try {
+          // Route through apiFetch so auth (when signed in) + X-Ava-Device
+          // (always) flow automatically. The server's auth-aware list path
+          // returns published + caller's own pending/rejected rows.
+          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
           this.log(`[health] load exercises seq=${seq} ${params.toString()}`);
-          const res = await fetch(
-            `https://ava-supernova.com/api/health/exercises?${params.toString()}`,
-            { signal: AbortSignal.timeout(8000) },
-          );
+          const res = await apiFetch(`/health/exercises?${params.toString()}`, {
+            platformKey,
+            method: 'GET',
+            timeoutMs: 8000,
+          });
           if (!res.ok) {
             this.log(`[health] load exercises seq=${seq} failed: HTTP ${res.status}`);
             this.post({ type: 'health_exercises_loaded', exercises: [], total: 0, offset, seq });
             break;
           }
-          const data = (await res.json()) as { exercises?: HealthExerciseSummary[]; total?: number };
+          const data = res.data as { exercises?: HealthExerciseSummary[]; total?: number };
           this.log(`[health] load exercises seq=${seq} ok count=${data.exercises?.length ?? 0} total=${data.total ?? 0}`);
           this.post({
             type: 'health_exercises_loaded',
@@ -906,17 +911,19 @@ export class DashboardPanel {
         if (msg.course) params.set('course', msg.course);
         if (msg.q && msg.q.trim()) params.set('q', msg.q.trim());
         try {
+          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
           this.log(`[health] load recipes seq=${seq} ${params.toString()}`);
-          const res = await fetch(
-            `https://ava-supernova.com/api/health/recipes?${params.toString()}`,
-            { signal: AbortSignal.timeout(8000) },
-          );
+          const res = await apiFetch(`/health/recipes?${params.toString()}`, {
+            platformKey,
+            method: 'GET',
+            timeoutMs: 8000,
+          });
           if (!res.ok) {
             this.log(`[health] load recipes seq=${seq} failed: HTTP ${res.status}`);
             this.post({ type: 'health_recipes_loaded', recipes: [], total: 0, offset, seq });
             break;
           }
-          const data = (await res.json()) as { recipes?: HealthRecipeSummary[]; total?: number };
+          const data = res.data as { recipes?: HealthRecipeSummary[]; total?: number };
           this.log(`[health] load recipes seq=${seq} ok count=${data.recipes?.length ?? 0} total=${data.total ?? 0}`);
           this.post({
             type: 'health_recipes_loaded',
