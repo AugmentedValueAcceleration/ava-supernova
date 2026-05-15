@@ -108,12 +108,10 @@ export function HealthProfilePage({ profile, taxonomies, onSave, onLoadTaxonomie
               onChange={v => patchBody({ height_cm: v })}
             />
           </Field>
-          <Field label="Weight (kg)">
-            <NumberInput
-              value={draft.body.weight_kg}
+          <Field label="Weight" className="sm:col-span-2">
+            <WeightField
+              kg={draft.body.weight_kg}
               onChange={v => patchBody({ weight_kg: v })}
-              placeholder="78"
-              step={0.1}
             />
           </Field>
           <Field label="Body fat % (optional)">
@@ -367,6 +365,58 @@ function HeightField({ cm, onChange }: { cm: number | null; onChange: (cm: numbe
       <div className="w-16">
         <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1">in</div>
         <NumberInput value={inches} onChange={v => setFromImperial(ft, v)} placeholder="10" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Weight field — kg is the source of truth (matches the data shape).
+ * Operator gets four live cells: kg, total lbs, and stone + lb (the
+ * UK "12 st 4 lb" format). Typing in any recomputes the rest. Total
+ * pounds is rounded first, then split into stone + remainder so the
+ * carry edge case can't show "5 st 14 lb" instead of "6 st 0 lb".
+ */
+function WeightField({ kg, onChange }: { kg: number | null; onChange: (kg: number | null) => void }) {
+  let lbs: number | null = null;
+  let stone: number | null = null;
+  let stoneLb: number | null = null;
+  if (kg != null && Number.isFinite(kg)) {
+    lbs = Math.round(kg * 2.20462);
+    stone = Math.floor(lbs / 14);
+    stoneLb = lbs % 14;
+  }
+
+  // kg stored to one decimal — finer than that is noise for a
+  // bodyweight field and keeps the round-trip stable.
+  const kgFromLbs = (totalLbs: number) => Math.round((totalLbs / 2.20462) * 10) / 10;
+
+  const setFromLbs = (newLbs: number | null) => {
+    if (newLbs == null) { onChange(null); return; }
+    onChange(kgFromLbs(newLbs));
+  };
+  const setFromStone = (newStone: number | null, newLb: number | null) => {
+    if (newStone == null && newLb == null) { onChange(null); return; }
+    onChange(kgFromLbs((newStone ?? 0) * 14 + (newLb ?? 0)));
+  };
+
+  return (
+    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 items-center">
+      <div>
+        <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1">kg</div>
+        <NumberInput value={kg} onChange={onChange} placeholder="78" step={0.1} />
+      </div>
+      <div className="w-16">
+        <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1">lbs</div>
+        <NumberInput value={lbs} onChange={setFromLbs} placeholder="172" />
+      </div>
+      <div className="w-14">
+        <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1">st</div>
+        <NumberInput value={stone} onChange={v => setFromStone(v, stoneLb)} placeholder="12" />
+      </div>
+      <div className="w-14">
+        <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1">lb</div>
+        <NumberInput value={stoneLb} onChange={v => setFromStone(stone, v)} placeholder="4" />
       </div>
     </div>
   );
