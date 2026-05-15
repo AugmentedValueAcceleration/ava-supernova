@@ -1297,12 +1297,21 @@ export class DashboardPanel {
             method: 'POST',
             body: { context },
             extraHeaders,
-            timeoutMs: 60000,
+            // 120s — matches the route's maxDuration. Equal-to-server
+            // timeouts caused false "HTTP 0" failures; the server now
+            // has 120s headroom and the client waits the same.
+            timeoutMs: 120000,
           });
           if (!res.ok) {
+            // res.data is an object with `error` for server-emitted
+            // failures, but a plain STRING for network / timeout
+            // failures ("timeout after 120000ms"). Surface the real
+            // reason instead of a bare "HTTP 0".
             const errorMsg = res.data && typeof res.data === 'object' && 'error' in res.data
               ? String((res.data as { error?: string }).error ?? `HTTP ${res.status}`)
-              : `HTTP ${res.status}`;
+              : typeof res.data === 'string' && res.data
+                ? `HTTP ${res.status} — ${res.data}`
+                : `HTTP ${res.status}`;
             this.log(`[health] generate morning brief failed: ${errorMsg}`);
             this.post({ type: 'health_morning_brief_generated', ok: false, error: errorMsg });
             break;
