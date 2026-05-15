@@ -109,6 +109,9 @@ interface OverviewProps {
   healthProfile: HealthProfile | null;
   healthDailyPlan: HealthDailyPlan | null;
   onSaveHealthDailyPlan: (plan: HealthDailyPlan) => void;
+  onGenerateHealthMorningBrief: (date: string) => void;
+  healthMorningBriefGenerating: boolean;
+  healthMorningBriefError: string | null;
 }
 
 // ── Inner-tab type — mirrors the IDE Command Centre's lenses, plus
@@ -138,6 +141,9 @@ export function Overview({
   healthProfile,
   healthDailyPlan,
   onSaveHealthDailyPlan,
+  onGenerateHealthMorningBrief,
+  healthMorningBriefGenerating,
+  healthMorningBriefError,
 }: OverviewProps) {
   useLocale();
   // Inner tab state — persists so the user lands back on whichever lens
@@ -367,6 +373,9 @@ export function Overview({
           profile={healthProfile}
           plan={healthDailyPlan}
           onSavePlan={onSaveHealthDailyPlan}
+          onGenerateMorningBrief={onGenerateHealthMorningBrief}
+          briefGenerating={healthMorningBriefGenerating}
+          briefError={healthMorningBriefError}
         />
       )}
 

@@ -1149,6 +1149,7 @@ export type ExtToDashboardMessage =
   | { type: 'health_profile_saved'; profile: HealthProfile }
   | { type: 'health_daily_plan_loaded'; plan: HealthDailyPlan }
   | { type: 'health_daily_plan_saved'; plan: HealthDailyPlan }
+  | { type: 'health_morning_brief_generated'; ok: boolean; brief?: string; error?: string }
   | { type: 'health_exercise_draft_generated'; ok: boolean; error?: string; draft?: HealthExerciseDraft }
   | { type: 'health_recipe_draft_generated'; ok: boolean; error?: string; draft?: HealthRecipeDraft }
   | { type: 'roadmap_loaded'; themes: RoadmapTheme[] }
@@ -1407,6 +1408,7 @@ export type DashboardToExtMessage =
   | { type: 'save_health_profile'; profile: HealthProfile }
   | { type: 'load_health_daily_plan'; date: string }
   | { type: 'save_health_daily_plan'; plan: HealthDailyPlan }
+  | { type: 'generate_health_morning_brief'; date: string }
   | { type: 'generate_health_exercise_draft'; intake: HealthGenerateExerciseIntake }
   | { type: 'generate_health_recipe_draft'; intake: HealthGenerateRecipeIntake }
   | { type: 'load_roadmap' }

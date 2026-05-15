@@ -1230,6 +1230,110 @@ export class DashboardPanel {
         break;
       }
 
+      case 'generate_health_morning_brief': {
+        // Ava writes the morning brief paragraph from a snapshot of
+        // the operator's profile + today's log. Snapshot is sent
+        // over the wire to /api/health/morning-brief — the profile
+        // itself stays local. Dual auth: sk-ava-... user (deducts 1
+        // credit) OR BYOK Qwen header (caller's own key).
+        try {
+          const profile = this.getHealthProfile();
+          const plan = this.getHealthDailyPlan(msg.date);
+
+          // Derive age from DOB so the model sees the current age,
+          // not a snapshot from years ago.
+          let age: number | null = null;
+          if (profile.body.date_of_birth) {
+            const dob = new Date(profile.body.date_of_birth);
+            const now = new Date();
+            if (!Number.isNaN(dob.getTime())) {
+              age = now.getFullYear() - dob.getFullYear() - (now < new Date(now.getFullYear(), dob.getMonth(), dob.getDate()) ? 1 : 0);
+            }
+          }
+
+          const context = {
+            date: msg.date,
+            hour: new Date().getHours(),
+            profile: {
+              sex: profile.body.sex,
+              age_years: age,
+              height_cm: profile.body.height_cm,
+              weight_kg: profile.body.weight_kg,
+              primary_goal: profile.goals.primary,
+              weekly_focus: profile.goals.weekly_focus,
+              allergens: profile.constraints.allergens,
+              dietary: profile.constraints.dietary,
+              injuries: profile.constraints.injuries,
+              equipment_available: profile.constraints.equipment_available,
+              minutes_per_day_target: profile.constraints.minutes_per_day_target,
+              training_window: profile.schedule.training_window,
+              meal_times: profile.schedule.meal_times,
+              sleep_target: profile.schedule.sleep_target,
+            },
+            log: {
+              meals_logged: plan.log.meals.length,
+              water_ml: plan.log.water_ml,
+              sleep_hours: plan.log.sleep_hours,
+              mood: plan.log.mood,
+            },
+          };
+
+          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+          const byokProvider = await this.secrets.get('ava-supernova.provider.qwen.apiKey').then(k => k ? 'qwen' : null);
+          const byokKey = byokProvider ? await this.secrets.get(`ava-supernova.provider.${byokProvider}.apiKey`) : null;
+          const extraHeaders: Record<string, string> = {};
+          if (!platformKey && byokProvider && byokKey) {
+            extraHeaders['X-BYOK-Provider'] = byokProvider;
+            extraHeaders['X-BYOK-Key'] = byokKey;
+          }
+          if (!platformKey && !byokKey) {
+            this.post({ type: 'health_morning_brief_generated', ok: false, error: 'Brief generation needs a platform account or a BYOK provider key in Settings.' });
+            break;
+          }
+
+          this.log(`[health] generate morning brief (auth=${platformKey ? 'user' : `byok:${byokProvider}`})`);
+          const res = await apiFetch('/health/morning-brief', {
+            platformKey,
+            method: 'POST',
+            body: { context },
+            extraHeaders,
+            timeoutMs: 60000,
+          });
+          if (!res.ok) {
+            const errorMsg = res.data && typeof res.data === 'object' && 'error' in res.data
+              ? String((res.data as { error?: string }).error ?? `HTTP ${res.status}`)
+              : `HTTP ${res.status}`;
+            this.log(`[health] generate morning brief failed: ${errorMsg}`);
+            this.post({ type: 'health_morning_brief_generated', ok: false, error: errorMsg });
+            break;
+          }
+          const brief = (res.data as { brief?: string }).brief;
+          if (!brief) {
+            this.post({ type: 'health_morning_brief_generated', ok: false, error: 'Empty brief returned' });
+            break;
+          }
+
+          // Persist the new brief onto today's plan locally so the
+          // dashboard mirrors what the API produced. updated_at
+          // stamps on save.
+          const nextPlan: HealthDailyPlan = {
+            ...plan,
+            morning_brief: brief,
+            schema_version: 1,
+            updated_at: new Date().toISOString(),
+          };
+          await this.context.globalState.update(`ava.healthPlan.${msg.date}`, nextPlan);
+
+          this.post({ type: 'health_daily_plan_saved', plan: nextPlan });
+          this.post({ type: 'health_morning_brief_generated', ok: true, brief });
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          this.log(`[health] generate morning brief error: ${errorMsg}`);
+          this.post({ type: 'health_morning_brief_generated', ok: false, error: errorMsg });
+        }
+        break;
+      }
+
       // ─── Sync messages ──────────────────────────────────────────────────
 
       case 'load_sync_status':

@@ -27,9 +27,12 @@ interface Props {
   profile: HealthProfile | null;
   plan: HealthDailyPlan | null;
   onSavePlan: (plan: HealthDailyPlan) => void;
+  onGenerateMorningBrief: (date: string) => void;
+  briefGenerating: boolean;
+  briefError: string | null;
 }
 
-export function HealthDashboard({ profile, plan, onSavePlan }: Props) {
+export function HealthDashboard({ profile, plan, onSavePlan, onGenerateMorningBrief, briefGenerating, briefError }: Props) {
   const today = todayIso();
   const greeting = useMemo(() => greetingFor(new Date()), []);
   const profileEmpty = useMemo(() => isProfileEmpty(profile), [profile]);
@@ -62,7 +65,13 @@ export function HealthDashboard({ profile, plan, onSavePlan }: Props) {
 
       {/* Section 1 — morning brief */}
       <Section title="Today's brief">
-        <BriefBlock plan={plan} profileEmpty={profileEmpty} />
+        <BriefBlock
+          plan={plan}
+          profileEmpty={profileEmpty}
+          generating={briefGenerating}
+          error={briefError}
+          onGenerate={() => onGenerateMorningBrief(today)}
+        />
       </Section>
 
       {/* Section 2 — timeline */}
@@ -109,19 +118,51 @@ function ProfileEmptyState() {
   );
 }
 
-function BriefBlock({ plan, profileEmpty }: { plan: HealthDailyPlan | null; profileEmpty: boolean }) {
-  if (plan?.morning_brief) {
-    return (
-      <p className="text-[15px] leading-[1.7] text-[var(--text-primary)] font-light">
-        {plan.morning_brief}
-      </p>
-    );
-  }
+function BriefBlock({
+  plan, profileEmpty, generating, error, onGenerate,
+}: {
+  plan: HealthDailyPlan | null;
+  profileEmpty: boolean;
+  generating: boolean;
+  error: string | null;
+  onGenerate: () => void;
+}) {
+  const brief = plan?.morning_brief;
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-transparent px-4 py-5 text-[12px] text-[var(--text-muted)] italic leading-relaxed">
-      {profileEmpty
-        ? "Ava will write today's brief once your profile is set up — what your week's looked like, what to do today, what to skip."
-        : "Today's brief hasn't been written yet. Once plans land, Ava will write this in her own voice based on your profile and recent activity."}
+    <div>
+      {brief ? (
+        <p className="text-[15px] leading-[1.7] text-[var(--text-primary)] font-light">{brief}</p>
+      ) : (
+        <div className="rounded-lg border border-[var(--border)] bg-transparent px-4 py-5 text-[12px] text-[var(--text-muted)] italic leading-relaxed">
+          {profileEmpty
+            ? "Ava will write today's brief once your profile is set up — what your week's looked like, what to do today, what to skip."
+            : "Today's brief hasn't been written yet. Click 'Write today's brief' below and Ava will draft it from your profile."}
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-3 rounded-md border border-red-500/30 bg-red-500/5 px-3 py-2 text-[12px] text-red-300/90 leading-relaxed">
+          {error}
+        </div>
+      )}
+
+      <div className="mt-3 flex items-center gap-3 text-[11px]">
+        <button
+          type="button"
+          onClick={onGenerate}
+          disabled={generating || profileEmpty}
+          className="rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {generating
+            ? 'Writing…'
+            : brief
+              ? 'Rewrite brief'
+              : "Write today's brief"}
+        </button>
+        <span className="text-[10px] text-[var(--text-muted)] leading-relaxed">
+          Ava reads a snapshot of your profile to write this. The profile itself stays local.
+        </span>
+      </div>
     </div>
   );
 }

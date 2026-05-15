@@ -243,6 +243,10 @@ export function App() {
   // Daily plan — keyed by today's ISO date. Reloaded on dashboard mount,
   // saved through onSavePlan / quick-log interactions.
   const [healthDailyPlan, setHealthDailyPlan] = useState<HealthDailyPlan | null>(null);
+  // Morning brief generation state — separate from plan loading so
+  // the button can show its own busy / error register.
+  const [healthMorningBriefGenerating, setHealthMorningBriefGenerating] = useState(false);
+  const [healthMorningBriefError, setHealthMorningBriefError] = useState<string | null>(null);
   const [healthSubmissionResult, setHealthSubmissionResult] = useState<
     { kind: 'exercise' | 'recipe'; ok: boolean; error?: string; status?: HealthSubmissionStatus; submissionName?: string } | null
   >(null);
@@ -327,6 +331,11 @@ export function App() {
   const handleSaveHealthDailyPlan = useCallback((plan: HealthDailyPlan) => {
     setHealthDailyPlan(plan);
     post({ type: 'save_health_daily_plan', plan });
+  }, []);
+  const handleGenerateHealthMorningBrief = useCallback((date: string) => {
+    setHealthMorningBriefGenerating(true);
+    setHealthMorningBriefError(null);
+    post({ type: 'generate_health_morning_brief', date });
   }, []);
   const handleSubmitHealthExercise = useCallback((payload: HealthExerciseSubmissionPayload) => {
     setHealthSubmissionInflight(true);
@@ -753,6 +762,13 @@ export function App() {
         break;
       case 'health_daily_plan_saved':
         setHealthDailyPlan(msg.plan);
+        break;
+      case 'health_morning_brief_generated':
+        setHealthMorningBriefGenerating(false);
+        setHealthMorningBriefError(msg.ok ? null : (msg.error ?? 'Unknown error'));
+        // Plan state is already updated by the host's
+        // health_daily_plan_saved echo (fired in the same handler);
+        // nothing else to do here.
         break;
       case 'health_my_submissions_cleared':
         setHealthClearingMySubmissions(false);
@@ -1198,7 +1214,7 @@ export function App() {
             />
           );
         }
-        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} healthProfile={healthProfile} healthDailyPlan={healthDailyPlan} onSaveHealthDailyPlan={handleSaveHealthDailyPlan} />;
+        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} healthProfile={healthProfile} healthDailyPlan={healthDailyPlan} onSaveHealthDailyPlan={handleSaveHealthDailyPlan} onGenerateHealthMorningBrief={handleGenerateHealthMorningBrief} healthMorningBriefGenerating={healthMorningBriefGenerating} healthMorningBriefError={healthMorningBriefError} />;
       case 'usage':
         return <Usage account={account} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} activeModel={settings.activeModel} />;
       case 'memory':
