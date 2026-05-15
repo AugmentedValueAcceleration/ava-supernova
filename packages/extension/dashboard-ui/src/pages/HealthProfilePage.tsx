@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { HealthProfile, HealthTaxonomies } from '../types/messages';
+import { Select } from '../components/Select';
 
 /**
  * Profile tab on the Health page — body stats, goals, constraints,
@@ -323,19 +324,9 @@ function Field({ label, children, className }: { label: string; children: React.
   );
 }
 
-const inputCls = 'w-full rounded-md border border-[var(--border)] bg-transparent px-2.5 py-1.5 text-[12px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/60 transition';
-
-function Select({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: Array<{ value: string; label: string }> }) {
-  return (
-    <select
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      className={inputCls}
-    >
-      {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
-  );
-}
+// Solid background — matches the canonical dashboard input register.
+// Transparent reads as "empty" against the dark dashboard surface.
+const inputCls = 'w-full rounded-md border border-[var(--border-input)] bg-[var(--bg-input)] px-2.5 py-1.5 text-[12px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/60 transition';
 
 function NumberInput({ value, onChange, placeholder, step }: { value: number | null; onChange: (next: number | null) => void; placeholder?: string; step?: number }) {
   return (
