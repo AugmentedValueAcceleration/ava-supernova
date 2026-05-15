@@ -5,7 +5,7 @@ import type { Page, DashboardJournalDaySummary } from '../types/messages';
 import { DataPortability } from './DataPortability';
 import {
   Lightning, ChatCircleDots, ListChecks, Books, Palette,
-  Brain, ChartLineUp, Cpu, GearSix, Question, Barbell, Heart,
+  Brain, ChartLineUp, Cpu, GearSix, Question, Barbell,
 } from '@phosphor-icons/react';
 
 interface NavSidebarProps {
@@ -74,7 +74,6 @@ function getNavItems(isAdmin?: boolean): NavItem[] {
     { page: 'chat', icon: <ChatCircleDots weight="duotone" size={18} />, label: tt('dash.nav.ava_chat', 'Chat'), description: tt('dash.nav.ava_chat_desc', 'Talk, build, create') },
     { page: 'planner', icon: <ListChecks weight="duotone" size={18} />, label: tt('dash.nav.planner', 'Planner'), description: tt('dash.nav.planner_desc', 'Tasks, journal, learning') },
     { page: 'library', icon: <Books weight="duotone" size={18} />, label: tt('dash.nav.library', 'Library'), description: tt('dash.nav.library_desc', 'Courses, assets, and documents') },
-    { page: 'health-dashboard', icon: <Heart weight="duotone" size={18} />, label: tt('dash.nav.health_dashboard', 'Health Dashboard'), description: tt('dash.nav.health_dashboard_desc', "Today's plan, brief, and stats") },
     { page: 'health', icon: <Barbell weight="duotone" size={18} />, label: tt('dash.nav.health', 'Health & Nutrition'), description: tt('dash.nav.health_desc', 'Exercises, recipes, plans') },
     { page: 'creative-studio', icon: <Palette weight="duotone" size={18} />, label: tt('dash.nav.creative_studio', 'Creative Studio'), description: tt('dash.nav.creative_studio_desc', 'Images, music, video, voice') },
     { page: 'memory', icon: <Brain weight="duotone" size={18} />, label: tt('dash.nav.memory', 'Memory'), description: tt('dash.nav.memory_desc', 'Patterns, preferences, decisions') },

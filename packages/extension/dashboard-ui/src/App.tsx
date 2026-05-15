@@ -22,7 +22,6 @@ import { ModelsPage } from './pages/Models';
 import { ArticleReader } from './pages/ArticleReader';
 import type { FullArticle, RelatedArticle } from './pages/ArticleReader';
 import { Health } from './pages/Health';
-import { HealthDashboard } from './pages/HealthDashboard';
 import type {
   Page,
   AccountInfo,
@@ -1199,7 +1198,7 @@ export function App() {
             />
           );
         }
-        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} />;
+        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} healthProfile={healthProfile} healthDailyPlan={healthDailyPlan} onSaveHealthDailyPlan={handleSaveHealthDailyPlan} />;
       case 'usage':
         return <Usage account={account} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} activeModel={settings.activeModel} />;
       case 'memory':
@@ -1240,14 +1239,6 @@ export function App() {
         return null;
       case 'creative-studio':
         return <CreativeStudio account={account} />;
-      case 'health-dashboard':
-        return (
-          <HealthDashboard
-            profile={healthProfile}
-            plan={healthDailyPlan}
-            onSavePlan={handleSaveHealthDailyPlan}
-          />
-        );
       case 'health':
         return (
           <Health

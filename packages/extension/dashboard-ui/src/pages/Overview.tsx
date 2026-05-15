@@ -11,11 +11,14 @@ import type {
   DashboardJournalDay,
   DashboardLearningCurriculum,
   DashboardTaskEntry,
+  HealthDailyPlan,
+  HealthProfile,
   MemoryEntry,
   Page,
   SessionStats,
   UsageLogEntry,
 } from '../types/messages';
+import { HealthDashboard } from './HealthDashboard';
 
 // ── Weather data (from extension host via Open-Meteo) ────────────────────────
 
@@ -102,10 +105,16 @@ interface OverviewProps {
   latestRelease: ReleaseInfo | null;
   articleLoading?: boolean;
   onOpenArticle?: (slug: string) => void;
+  // Health Dashboard tab — local-first profile + today's plan
+  healthProfile: HealthProfile | null;
+  healthDailyPlan: HealthDailyPlan | null;
+  onSaveHealthDailyPlan: (plan: HealthDailyPlan) => void;
 }
 
-// ── Inner-tab type — mirrors the IDE Command Centre's three lenses ──────────
-type CcTab = 'daily' | 'briefing' | 'reflect';
+// ── Inner-tab type — mirrors the IDE Command Centre's lenses, plus
+// the Health Dashboard which lives here too (separate sidebar entry
+// felt too heavyweight for what's the operator's daily view).
+type CcTab = 'daily' | 'briefing' | 'reflect' | 'health';
 
 // ── Main Component ───────────────────────────────────────────────────────────
 
@@ -126,6 +135,9 @@ export function Overview({
   latestRelease,
   articleLoading,
   onOpenArticle,
+  healthProfile,
+  healthDailyPlan,
+  onSaveHealthDailyPlan,
 }: OverviewProps) {
   useLocale();
   // Inner tab state — persists so the user lands back on whichever lens
@@ -135,7 +147,7 @@ export function Overview({
   const [tab, setTab] = useState<CcTab>(() => {
     try {
       const stored = localStorage.getItem('ava-ext-cc-tab');
-      return (stored === 'briefing' || stored === 'reflect') ? stored : 'daily';
+      return (stored === 'briefing' || stored === 'reflect' || stored === 'health') ? stored : 'daily';
     } catch { return 'daily'; }
   });
   const switchTab = (next: CcTab) => {
@@ -309,6 +321,7 @@ export function Overview({
         <TabBtn id="daily" label={tt('dash.chat.tab.daily', 'Daily')} active={tab === 'daily'} onClick={() => switchTab('daily')} />
         <TabBtn id="briefing" label={tt('dash.chat.tab.briefing', 'Briefing')} active={tab === 'briefing'} onClick={() => switchTab('briefing')} />
         <TabBtn id="reflect" label={tt('dash.chat.tab.reflect', 'Reflect')} active={tab === 'reflect'} onClick={() => switchTab('reflect')} />
+        <TabBtn id="health" label={tt('dash.chat.tab.health', 'Health')} active={tab === 'health'} onClick={() => switchTab('health')} />
       </div>
 
       {/* ── Daily tab — Tasks + Journal, then Working Hours + Weather ── */}
@@ -346,6 +359,15 @@ export function Overview({
           <MemoryWidget memories={memories} onNavigate={onNavigate} total={memoryTotal} />
           <LearningWidget curriculums={learningCurriculums} onNavigate={onNavigate} />
         </div>
+      )}
+
+      {/* ── Health tab — daily plan, brief, status, quick log ─────────── */}
+      {tab === 'health' && (
+        <HealthDashboard
+          profile={healthProfile}
+          plan={healthDailyPlan}
+          onSavePlan={onSaveHealthDailyPlan}
+        />
       )}
 
     </div>
