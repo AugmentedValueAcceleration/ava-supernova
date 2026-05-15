@@ -639,6 +639,54 @@ export interface HealthMySubmissionRecipe {
   course: string | null;
 }
 
+/**
+ * Health Profile — the operator's body stats, goals, constraints,
+ * and schedule. Drives the Health Dashboard's morning brief,
+ * today's plan, and Ava's plan-generation logic.
+ *
+ * Local-first by default — stored in VSCode globalState, works
+ * fully for BYOK / no-account users. Connected accounts can opt
+ * each category into cloud sync via the `privacy` block.
+ *
+ * Health data is the most sensitive category in the entire
+ * extension; defaults stay local. No category syncs without the
+ * user explicitly flipping its sync flag to true.
+ */
+export interface HealthProfile {
+  schema_version: 1;
+  updated_at: string | null;
+  body: {
+    sex: 'female' | 'male' | 'other' | null;
+    date_of_birth: string | null; // ISO date — DOB stored so age stays accurate over time
+    height_cm: number | null;
+    weight_kg: number | null;
+    body_fat_pct: number | null;
+  };
+  goals: {
+    primary: 'fat_loss' | 'muscle_gain' | 'maintenance' | 'athletic' | 'recovery' | 'longevity' | null;
+    weekly_focus: string | null; // free-text current focus, e.g. "deload week"
+  };
+  constraints: {
+    allergens: string[];          // slugs from public.allergens
+    dietary: string[];            // slugs from public.diets (vegan, gluten_free…)
+    injuries: string[];           // free-text current limiting conditions
+    equipment_available: string[]; // slugs from public.equipment
+    minutes_per_day_target: number | null;
+  };
+  schedule: {
+    training_window: { start: string | null; end: string | null }; // 24h "HH:MM"
+    meal_times: { breakfast: string | null; lunch: string | null; dinner: string | null };
+    sleep_target: { bedtime: string | null; wake: string | null };
+  };
+  privacy: {
+    sync_body: boolean;
+    sync_goals: boolean;
+    sync_constraints: boolean;
+    sync_schedule: boolean;
+    sync_logs: boolean;
+  };
+}
+
 export interface HealthMySubmissions {
   exercises: HealthMySubmissionExercise[];
   recipes: HealthMySubmissionRecipe[];
@@ -1064,6 +1112,8 @@ export type ExtToDashboardMessage =
   | { type: 'health_submission_result'; kind: 'exercise' | 'recipe'; ok: boolean; error?: string; submission?: { id: string; slug: string; name: string; status: HealthSubmissionStatus } }
   | { type: 'health_my_submissions_loaded'; data: HealthMySubmissions }
   | { type: 'health_my_submissions_cleared'; ok: boolean; exercises_cleared?: number; recipes_cleared?: number; error?: string }
+  | { type: 'health_profile_loaded'; profile: HealthProfile }
+  | { type: 'health_profile_saved'; profile: HealthProfile }
   | { type: 'health_exercise_draft_generated'; ok: boolean; error?: string; draft?: HealthExerciseDraft }
   | { type: 'health_recipe_draft_generated'; ok: boolean; error?: string; draft?: HealthRecipeDraft }
   | { type: 'roadmap_loaded'; themes: RoadmapTheme[] }
@@ -1318,6 +1368,8 @@ export type DashboardToExtMessage =
   | { type: 'submit_health_recipe'; payload: HealthRecipeSubmissionPayload }
   | { type: 'load_my_health_submissions' }
   | { type: 'clear_my_rejected_health_submissions' }
+  | { type: 'load_health_profile' }
+  | { type: 'save_health_profile'; profile: HealthProfile }
   | { type: 'generate_health_exercise_draft'; intake: HealthGenerateExerciseIntake }
   | { type: 'generate_health_recipe_draft'; intake: HealthGenerateRecipeIntake }
   | { type: 'load_roadmap' }

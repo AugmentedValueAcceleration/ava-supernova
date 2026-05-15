@@ -52,6 +52,7 @@ import type {
   HealthRecipeDetail,
   HealthTaxonomies,
   HealthMySubmissions,
+  HealthProfile,
   HealthExerciseDraft,
   HealthRecipeDraft,
   ReleaseNote,
@@ -1186,6 +1187,28 @@ export class DashboardPanel {
           this.log(`[health] clear rejected error: ${errorMsg}`);
           this.post({ type: 'health_my_submissions_cleared', ok: false, error: errorMsg });
         }
+        break;
+      }
+
+      // ─── Health profile (Profile tab on the Health page) ─────────────
+      // Local-first via globalState. Connected accounts can opt each
+      // category into cloud sync via privacy.sync_* flags — server
+      // sync is layered on later; for now everything is on-device.
+
+      case 'load_health_profile': {
+        const profile = this.getHealthProfile();
+        this.post({ type: 'health_profile_loaded', profile });
+        break;
+      }
+
+      case 'save_health_profile': {
+        const profile: HealthProfile = {
+          ...msg.profile,
+          schema_version: 1,
+          updated_at: new Date().toISOString(),
+        };
+        await this.context.globalState.update('ava.healthProfile', profile);
+        this.post({ type: 'health_profile_saved', profile });
         break;
       }
 
@@ -3828,6 +3851,31 @@ export class DashboardPanel {
     cfg.update('contributeSharedLearning', settings.contributeSharedLearning, vscode.ConfigurationTarget.Global);
     cfg.update('preferences.streamResponses', settings.streamResponses, vscode.ConfigurationTarget.Global);
     cfg.update('loopPrevention.enabled', settings.loopPreventionEnabled, vscode.ConfigurationTarget.Global);
+  }
+
+  // ─── Health profile ────────────────────────────────────────────────────────
+
+  /** Read the operator's HealthProfile from globalState. Returns the empty
+   *  scaffold (all fields null / arrays empty / sync flags false) when no
+   *  profile has been saved yet. Local-first by design — works fully for
+   *  BYOK / no-account users; cloud sync layers on later as per-category
+   *  opt-ins via the profile.privacy.sync_* flags. */
+  private getHealthProfile(): HealthProfile {
+    const stored = this.context.globalState.get<HealthProfile | null>('ava.healthProfile') ?? null;
+    if (stored && stored.schema_version === 1) return stored;
+    return {
+      schema_version: 1,
+      updated_at: null,
+      body: { sex: null, date_of_birth: null, height_cm: null, weight_kg: null, body_fat_pct: null },
+      goals: { primary: null, weekly_focus: null },
+      constraints: { allergens: [], dietary: [], injuries: [], equipment_available: [], minutes_per_day_target: null },
+      schedule: {
+        training_window: { start: null, end: null },
+        meal_times: { breakfast: null, lunch: null, dinner: null },
+        sleep_target: { bedtime: null, wake: null },
+      },
+      privacy: { sync_body: false, sync_goals: false, sync_constraints: false, sync_schedule: false, sync_logs: false },
+    };
   }
 
   // ─── Sync preferences ──────────────────────────────────────────────────────

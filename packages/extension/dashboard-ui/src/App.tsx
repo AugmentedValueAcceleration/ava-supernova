@@ -53,6 +53,7 @@ import type {
   HealthRecipeDetail,
   HealthTaxonomies,
   HealthMySubmissions,
+  HealthProfile,
   HealthExerciseSubmissionPayload,
   HealthRecipeSubmissionPayload,
   HealthSubmissionStatus,
@@ -236,6 +237,8 @@ export function App() {
   const [healthTaxonomies, setHealthTaxonomies] = useState<HealthTaxonomies | null>(null);
   const [healthMySubmissions, setHealthMySubmissions] = useState<HealthMySubmissions>({ exercises: [], recipes: [] });
   const [healthClearingMySubmissions, setHealthClearingMySubmissions] = useState(false);
+  // Health profile — local-first body stats + goals + constraints + schedule + privacy
+  const [healthProfile, setHealthProfile] = useState<HealthProfile | null>(null);
   const [healthSubmissionResult, setHealthSubmissionResult] = useState<
     { kind: 'exercise' | 'recipe'; ok: boolean; error?: string; status?: HealthSubmissionStatus; submissionName?: string } | null
   >(null);
@@ -310,6 +313,12 @@ export function App() {
   const handleClearMyRejectedHealthSubmissions = useCallback(() => {
     setHealthClearingMySubmissions(true);
     post({ type: 'clear_my_rejected_health_submissions' });
+  }, []);
+  const handleSaveHealthProfile = useCallback((profile: HealthProfile) => {
+    // Optimistic update — the host echoes back the saved state and
+    // we'll reconcile if the echo differs.
+    setHealthProfile(profile);
+    post({ type: 'save_health_profile', profile });
   }, []);
   const handleSubmitHealthExercise = useCallback((payload: HealthExerciseSubmissionPayload) => {
     setHealthSubmissionInflight(true);
@@ -723,6 +732,14 @@ export function App() {
       case 'health_my_submissions_loaded':
         setHealthMySubmissions(msg.data);
         break;
+      case 'health_profile_loaded':
+        setHealthProfile(msg.profile);
+        break;
+      case 'health_profile_saved':
+        // Host's echo — reconcile in case the saved shape was
+        // normalised (e.g. updated_at stamped server-side).
+        setHealthProfile(msg.profile);
+        break;
       case 'health_my_submissions_cleared':
         setHealthClearingMySubmissions(false);
         // Refresh the list either way — on success the rows are gone,
@@ -910,6 +927,10 @@ export function App() {
   useEffect(() => {
     handleLoadHealthExercises(24, 0);
     handleLoadHealthRecipes(24, 0);
+    // Health profile — local-first via globalState, so this is just
+    // an extension-host round-trip, not a network call. Loads once
+    // per dashboard mount so the Profile tab opens instantly.
+    post({ type: 'load_health_profile' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1234,6 +1255,8 @@ export function App() {
             onGenerateExerciseDraft={handleGenerateHealthExerciseDraft}
             onGenerateRecipeDraft={handleGenerateHealthRecipeDraft}
             onClearDraft={handleClearHealthDraft}
+            profile={healthProfile}
+            onSaveProfile={handleSaveHealthProfile}
           />
         );
     }

@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { post } from '../App';
 import { HealthSubmissionModal } from './HealthSubmissionModal';
 import { HealthMySubmissions } from './HealthMySubmissions';
+import { HealthProfilePage } from './HealthProfilePage';
 import type {
   HealthExerciseSummary, HealthExerciseDetail,
   HealthRecipeSummary, HealthRecipeDetail,
   HealthWorkoutType,
-  HealthTaxonomies, HealthMySubmissions as HealthMySubmissionsData,
+  HealthTaxonomies, HealthMySubmissions as HealthMySubmissionsData, HealthProfile,
   HealthExerciseSubmissionPayload, HealthRecipeSubmissionPayload,
   HealthSubmissionStatus,
   HealthExerciseDraft, HealthRecipeDraft,
@@ -75,7 +76,7 @@ const COURSE_LABEL: Record<string, string> = {
   dessert: 'Desserts',
 };
 
-type Tab = 'exercises' | 'recipes' | 'mine';
+type Tab = 'exercises' | 'recipes' | 'mine' | 'profile';
 
 const PAGE_SIZE = 24;
 
@@ -115,6 +116,9 @@ interface Props {
   onGenerateExerciseDraft: (intake: HealthGenerateExerciseIntake) => void;
   onGenerateRecipeDraft: (intake: HealthGenerateRecipeIntake) => void;
   onClearDraft: () => void;
+  // Profile tab — local-first health profile data
+  profile: HealthProfile | null;
+  onSaveProfile: (next: HealthProfile) => void;
 }
 
 export function Health({
@@ -151,6 +155,8 @@ export function Health({
   onGenerateExerciseDraft,
   onGenerateRecipeDraft,
   onClearDraft,
+  profile,
+  onSaveProfile,
 }: Props) {
   const [tab, setTab] = useState<Tab>('exercises');
   const [exerciseFilter, setExerciseFilter] = useState<'all' | HealthWorkoutType>('all');
@@ -295,16 +301,18 @@ export function Health({
         {/* Top tabs — canonical dashboard style (border-b-2 + --accent var,
             matches Settings/Planner/History/Overview). */}
         <div className="mt-5 flex items-end gap-0.5 border-b border-[var(--border)]">
-          {(['exercises', 'recipes', 'mine'] as Tab[]).map((t) => {
+          {(['exercises', 'recipes', 'mine', 'profile'] as Tab[]).map((t) => {
             const isActive = tab === t;
             const count =
               t === 'exercises' ? exercisesTotal :
               t === 'recipes' ? recipesTotal :
-              mySubmissions.exercises.length + mySubmissions.recipes.length;
+              t === 'mine' ? mySubmissions.exercises.length + mySubmissions.recipes.length :
+              0; // profile tab has no count
             const label =
               t === 'exercises' ? 'Exercises' :
               t === 'recipes' ? 'Recipes' :
-              'My submissions';
+              t === 'mine' ? 'My submissions' :
+              'Profile';
             return (
               <button
                 key={t}
@@ -362,6 +370,14 @@ export function Health({
             onContribute={openSubmissionModal}
             onClearRejected={onClearMyRejectedSubmissions}
             clearing={clearingMySubmissions}
+          />
+        )}
+        {tab === 'profile' && (
+          <HealthProfilePage
+            profile={profile}
+            taxonomies={taxonomies}
+            onSave={onSaveProfile}
+            onLoadTaxonomies={onLoadTaxonomies}
           />
         )}
       </div>
