@@ -36,16 +36,28 @@ export function HealthDashboard({ profile, plan, onSavePlan, onGenerateMorningBr
   const today = todayIso();
   const greeting = useMemo(() => greetingFor(new Date()), []);
   const profileEmpty = useMemo(() => isProfileEmpty(profile), [profile]);
-  const hasPlan = (plan?.items?.length ?? 0) > 0;
 
-  // Suppress unused-state warning until the why-drawer + quick-log
-  // wiring lands in the follow-up commits — the handlers are defined
-  // here so the prop API is locked from the start.
+  // onSavePlan reserved for the quick-log + plan-edit wiring in
+  // follow-up commits — the prop API is locked from the start.
   void onSavePlan;
-  void hasPlan;
+
+  // Inner tab — Overview (the synthesis: brief / status / log) vs
+  // Plans (the content: today's meals + training). Persisted so the
+  // operator lands back where they were. Separate localStorage key
+  // from the Command Centre's outer tab.
+  const [innerTab, setInnerTab] = useState<HealthInnerTab>(() => {
+    try {
+      const stored = localStorage.getItem('ava-ext-health-tab');
+      return stored === 'plans' ? 'plans' : 'overview';
+    } catch { return 'overview'; }
+  });
+  const switchInnerTab = (next: HealthInnerTab) => {
+    setInnerTab(next);
+    try { localStorage.setItem('ava-ext-health-tab', next); } catch { /* quota / disabled */ }
+  };
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8 space-y-8">
+    <div className="mx-auto max-w-3xl px-6 py-8">
       {/* Header — calm greeting, date, registers the dashboard's
           quiet tone before anything else loads. */}
       <header>
@@ -57,45 +69,75 @@ export function HealthDashboard({ profile, plan, onSavePlan, onGenerateMorningBr
         </h1>
       </header>
 
+      {/* Inner tab nav — Overview / Plans */}
+      <div className="mt-5 mb-6 flex gap-1 border-b border-[var(--border)]">
+        <InnerTabBtn label="Overview" active={innerTab === 'overview'} onClick={() => switchInnerTab('overview')} />
+        <InnerTabBtn label="Plans" active={innerTab === 'plans'} onClick={() => switchInnerTab('plans')} />
+      </div>
+
       {/* If the profile is empty there's nothing for Ava to read,
-          so the dashboard prompts setup instead of guessing. */}
+          so the dashboard prompts setup instead of guessing. Shown
+          on both tabs since both depend on the profile. */}
       {profileEmpty && (
-        <ProfileEmptyState />
+        <div className="mb-6">
+          <ProfileEmptyState />
+        </div>
       )}
 
-      {/* Section 1 — morning brief */}
-      <Section title="Today's brief">
-        <BriefBlock
-          plan={plan}
-          profileEmpty={profileEmpty}
-          generating={briefGenerating}
-          error={briefError}
-          onGenerate={() => onGenerateMorningBrief(today)}
-        />
-      </Section>
+      {/* ── Overview — the synthesis ──────────────────────────────── */}
+      {innerTab === 'overview' && (
+        <div className="space-y-8">
+          <Section title="Today's brief">
+            <BriefBlock
+              plan={plan}
+              profileEmpty={profileEmpty}
+              generating={briefGenerating}
+              error={briefError}
+              onGenerate={() => onGenerateMorningBrief(today)}
+            />
+          </Section>
 
-      {/* Section 2 — timeline */}
-      <Section title="Today">
-        <TimelineBlock plan={plan} />
-      </Section>
+          <Section title="Where you are">
+            <StatusRow plan={plan} />
+          </Section>
 
-      {/* Section 3 — status glance */}
-      <Section title="Where you are">
-        <StatusRow plan={plan} />
-      </Section>
+          <Section title="Quick log">
+            <QuickLogRow plan={plan} />
+          </Section>
 
-      {/* Section 4 — quick log */}
-      <Section title="Quick log">
-        <QuickLogRow plan={plan} />
-      </Section>
+          <WhyDrawer reasoning={plan?.brief_reasoning ?? null} />
+        </div>
+      )}
 
-      {/* Section 5 — why drawer (collapsible) */}
-      <WhyDrawer reasoning={plan?.brief_reasoning ?? null} />
+      {/* ── Plans — the content: today's meals + training ─────────── */}
+      {innerTab === 'plans' && (
+        <div className="space-y-8">
+          <PlansView plan={plan} />
+        </div>
+      )}
 
-      <footer className="pt-4 text-[10px] text-[var(--text-muted)]">
+      <footer className="pt-8 text-[10px] text-[var(--text-muted)]">
         Local-first — your health data stays on this machine unless you switch on sync in the Sync tab. {today}
       </footer>
     </div>
+  );
+}
+
+type HealthInnerTab = 'overview' | 'plans';
+
+function InnerTabBtn({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`-mb-px border-b-2 border-x-0 border-t-0 bg-transparent px-4 py-2 text-xs transition cursor-pointer ${
+        active
+          ? 'border-[var(--accent)] text-[var(--accent)] font-semibold'
+          : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -167,61 +209,107 @@ function BriefBlock({
   );
 }
 
-function TimelineBlock({ plan }: { plan: HealthDailyPlan | null }) {
+/**
+ * Plans tab — today's content, split into meals and training.
+ * Each is a strip of rich cards rather than a plain timeline.
+ * Empty states are deliberate "rest" treatments, not blanks.
+ *
+ * Plan generation isn't built yet, so the live data path is here
+ * but the empty states carry the surface for now. When plans land,
+ * the meal cards will pull recipe hero images + macros and the
+ * training cards will pull the equipment-still-life imagery.
+ */
+function PlansView({ plan }: { plan: HealthDailyPlan | null }) {
   const items = plan?.items ?? [];
-  if (items.length === 0) {
-    return (
-      <div className="rounded-lg border border-[var(--border)] bg-transparent px-4 py-5 text-[12px] text-[var(--text-muted)] italic leading-relaxed">
-        No plan for today yet. When the planner ships, this is where mobility, meals, training, and wind-down sit in time order.
-      </div>
-    );
-  }
+  const meals = items.filter(i => i.kind === 'meal');
+  const training = items.filter(i => i.kind === 'workout' || i.kind === 'mobility');
+  const recovery = items.filter(i => i.kind === 'rest' || i.kind === 'sleep' || i.kind === 'note');
+
   return (
-    <ol className="space-y-2">
-      {items.map(item => (
-        <li
-          key={item.id}
-          className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 transition ${
-            item.status === 'done'
-              ? 'border-[var(--border)] bg-[var(--accent)]/5'
-              : item.status === 'skipped'
-                ? 'border-[var(--border)] bg-transparent opacity-60'
-                : 'border-[var(--border)] bg-transparent hover:border-[var(--accent)]/40'
-          }`}
-        >
-          <span className="mt-0.5 shrink-0 font-mono text-[11px] text-[var(--text-muted)] w-12">{item.time}</span>
-          <KindBadge kind={item.kind} />
-          <div className="flex-1 min-w-0">
-            <div className={`text-[12px] ${item.status === 'done' ? 'line-through text-[var(--text-muted)]' : 'text-[var(--text-primary)]'}`}>
-              {item.title}
-            </div>
-            {item.detail && (
-              <div className="mt-0.5 text-[10px] text-[var(--text-muted)] leading-relaxed">{item.detail}</div>
-            )}
+    <>
+      <Section title="Today's meals">
+        {meals.length === 0 ? (
+          <PlansEmptyCard
+            title="No meals planned yet"
+            body="When meal planning ships, this is a strip of recipe cards — hero image, macros, prep time — slotted to your meal times."
+          />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {meals.map(m => <PlanItemCard key={m.id} item={m} accent="amber" />)}
           </div>
-          {item.duration_minutes != null && (
-            <span className="shrink-0 text-[10px] text-[var(--text-muted)]">{item.duration_minutes}m</span>
-          )}
-        </li>
-      ))}
-    </ol>
+        )}
+      </Section>
+
+      <Section title="Today's training">
+        {training.length === 0 ? (
+          <PlansEmptyCard
+            title="No training planned yet"
+            body="When fitness planning ships, today's workout shows here — exercises with their imagery, sets, reps, and rest, plus total duration."
+          />
+        ) : (
+          <div className="space-y-2">
+            {training.map(t => <PlanItemCard key={t.id} item={t} accent="accent" />)}
+          </div>
+        )}
+      </Section>
+
+      {recovery.length > 0 && (
+        <Section title="Recovery & notes">
+          <div className="space-y-2">
+            {recovery.map(r => <PlanItemCard key={r.id} item={r} accent="slate" />)}
+          </div>
+        </Section>
+      )}
+    </>
   );
 }
 
-function KindBadge({ kind }: { kind: HealthDailyPlan['items'][number]['kind'] }) {
-  const styles: Record<typeof kind, { label: string; cls: string }> = {
-    mobility: { label: 'Mobility',  cls: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' },
-    meal:     { label: 'Meal',      cls: 'bg-amber-500/10 text-amber-300 border-amber-500/30' },
-    workout:  { label: 'Train',     cls: 'bg-[var(--accent)]/15 text-[var(--accent)] border-[var(--accent)]/30' },
-    rest:     { label: 'Rest',      cls: 'bg-slate-500/10 text-slate-300 border-slate-500/30' },
-    sleep:    { label: 'Sleep',     cls: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30' },
-    note:     { label: 'Note',      cls: 'bg-[var(--border)]/40 text-[var(--text-muted)] border-[var(--border)]' },
-  };
-  const s = styles[kind];
+function PlansEmptyCard({ title, body }: { title: string; body: string }) {
   return (
-    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-wider ${s.cls}`}>
-      {s.label}
-    </span>
+    <div className="rounded-lg border border-[var(--border)] bg-transparent px-4 py-6 text-center">
+      <div className="text-[12px] text-[var(--text-secondary)]">{title}</div>
+      <div className="mt-1.5 mx-auto max-w-sm text-[10px] text-[var(--text-muted)] italic leading-relaxed">{body}</div>
+    </div>
+  );
+}
+
+function PlanItemCard({
+  item, accent,
+}: {
+  item: HealthDailyPlan['items'][number];
+  accent: 'amber' | 'accent' | 'slate';
+}) {
+  const accentBar =
+    accent === 'amber' ? 'bg-amber-400/70' :
+    accent === 'accent' ? 'bg-[var(--accent)]' :
+    'bg-slate-400/50';
+  const done = item.status === 'done';
+  return (
+    <div
+      className={`flex items-stretch gap-0 overflow-hidden rounded-lg border transition ${
+        done
+          ? 'border-[var(--border)] bg-[var(--accent)]/5'
+          : item.status === 'skipped'
+            ? 'border-[var(--border)] bg-transparent opacity-60'
+            : 'border-[var(--border)] bg-transparent hover:border-[var(--accent)]/40'
+      }`}
+    >
+      <div className={`w-1 shrink-0 ${accentBar}`} aria-hidden />
+      <div className="flex-1 min-w-0 px-3 py-2.5">
+        <div className="flex items-baseline justify-between gap-3">
+          <div className={`text-[12px] ${done ? 'line-through text-[var(--text-muted)]' : 'text-[var(--text-primary)]'}`}>
+            {item.title}
+          </div>
+          <span className="shrink-0 font-mono text-[10px] text-[var(--text-muted)]">{item.time}</span>
+        </div>
+        {item.detail && (
+          <div className="mt-1 text-[10px] text-[var(--text-muted)] leading-relaxed">{item.detail}</div>
+        )}
+        {item.duration_minutes != null && (
+          <div className="mt-1 text-[10px] text-[var(--text-muted)]">{item.duration_minutes} min</div>
+        )}
+      </div>
+    </div>
   );
 }
 
