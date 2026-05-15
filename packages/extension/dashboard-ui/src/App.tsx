@@ -22,6 +22,7 @@ import { ModelsPage } from './pages/Models';
 import { ArticleReader } from './pages/ArticleReader';
 import type { FullArticle, RelatedArticle } from './pages/ArticleReader';
 import { Health } from './pages/Health';
+import { HealthDashboard } from './pages/HealthDashboard';
 import type {
   Page,
   AccountInfo,
@@ -54,6 +55,7 @@ import type {
   HealthTaxonomies,
   HealthMySubmissions,
   HealthProfile,
+  HealthDailyPlan,
   HealthExerciseSubmissionPayload,
   HealthRecipeSubmissionPayload,
   HealthSubmissionStatus,
@@ -239,6 +241,9 @@ export function App() {
   const [healthClearingMySubmissions, setHealthClearingMySubmissions] = useState(false);
   // Health profile — local-first body stats + goals + constraints + schedule + privacy
   const [healthProfile, setHealthProfile] = useState<HealthProfile | null>(null);
+  // Daily plan — keyed by today's ISO date. Reloaded on dashboard mount,
+  // saved through onSavePlan / quick-log interactions.
+  const [healthDailyPlan, setHealthDailyPlan] = useState<HealthDailyPlan | null>(null);
   const [healthSubmissionResult, setHealthSubmissionResult] = useState<
     { kind: 'exercise' | 'recipe'; ok: boolean; error?: string; status?: HealthSubmissionStatus; submissionName?: string } | null
   >(null);
@@ -319,6 +324,10 @@ export function App() {
     // we'll reconcile if the echo differs.
     setHealthProfile(profile);
     post({ type: 'save_health_profile', profile });
+  }, []);
+  const handleSaveHealthDailyPlan = useCallback((plan: HealthDailyPlan) => {
+    setHealthDailyPlan(plan);
+    post({ type: 'save_health_daily_plan', plan });
   }, []);
   const handleSubmitHealthExercise = useCallback((payload: HealthExerciseSubmissionPayload) => {
     setHealthSubmissionInflight(true);
@@ -740,6 +749,12 @@ export function App() {
         // normalised (e.g. updated_at stamped server-side).
         setHealthProfile(msg.profile);
         break;
+      case 'health_daily_plan_loaded':
+        setHealthDailyPlan(msg.plan);
+        break;
+      case 'health_daily_plan_saved':
+        setHealthDailyPlan(msg.plan);
+        break;
       case 'health_my_submissions_cleared':
         setHealthClearingMySubmissions(false);
         // Refresh the list either way — on success the rows are gone,
@@ -931,6 +946,12 @@ export function App() {
     // an extension-host round-trip, not a network call. Loads once
     // per dashboard mount so the Profile tab opens instantly.
     post({ type: 'load_health_profile' });
+    // Today's daily plan — same local-first storage. Date computed
+    // here in the webview so the host doesn't have to know what
+    // "today" is in the user's timezone.
+    const now = new Date();
+    const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    post({ type: 'load_health_daily_plan', date: todayIso });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1219,6 +1240,14 @@ export function App() {
         return null;
       case 'creative-studio':
         return <CreativeStudio account={account} />;
+      case 'health-dashboard':
+        return (
+          <HealthDashboard
+            profile={healthProfile}
+            plan={healthDailyPlan}
+            onSavePlan={handleSaveHealthDailyPlan}
+          />
+        );
       case 'health':
         return (
           <Health

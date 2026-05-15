@@ -678,6 +678,48 @@ export interface HealthProfile {
   };
 }
 
+/**
+ * Daily Plan — what the Health Dashboard reads to render today.
+ * One document per date, keyed by ISO "YYYY-MM-DD" in globalState
+ * (`ava.healthPlan.{date}`). Lives on the same local-first
+ * substrate as the profile.
+ *
+ * The plan is the integrated day — mobility / meals / workout /
+ * wind-down on a single timeline. Items reference catalog rows
+ * (exercise slug, recipe slug) when applicable so the dashboard
+ * can drill in. Log captures completed activity for the day.
+ */
+export interface HealthDailyPlanItem {
+  id: string;
+  time: string;       // "HH:MM" 24h
+  kind: 'mobility' | 'meal' | 'workout' | 'rest' | 'sleep' | 'note';
+  title: string;
+  detail?: string | null;
+  /** Optional catalog reference so the timeline card can drill into
+   *  the recipe / exercise / workout detail on click. */
+  ref?: { kind: 'exercise' | 'recipe' | 'workout'; slug: string } | null;
+  duration_minutes?: number | null;
+  status: 'pending' | 'done' | 'skipped';
+}
+
+export interface HealthDailyLog {
+  meals: Array<{ id: string; time: string; description: string | null; calories: number | null; protein_g: number | null }>;
+  water_ml: number;
+  sleep_hours: number | null;
+  /** 1 = drained, 5 = thriving. */
+  mood: 1 | 2 | 3 | 4 | 5 | null;
+}
+
+export interface HealthDailyPlan {
+  schema_version: 1;
+  date: string;                       // ISO YYYY-MM-DD
+  morning_brief: string | null;       // Ava-authored paragraph for the top of the dashboard
+  brief_reasoning: string | null;     // why-drawer content explaining any plan adjustments
+  items: HealthDailyPlanItem[];
+  log: HealthDailyLog;
+  updated_at: string | null;
+}
+
 export interface HealthMySubmissions {
   exercises: HealthMySubmissionExercise[];
   recipes: HealthMySubmissionRecipe[];
@@ -808,7 +850,7 @@ export interface UsageHistoryData {
   totalSessions: number;
 }
 
-export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'creative-studio' | 'library' | 'health' | 'personality' | 'sync' | 'releases' | 'roadmap' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'planner' | 'account' | 'models' | 'help' | 'documentation';
+export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' | 'journal' | 'learning' | 'learning-library' | 'creative-studio' | 'library' | 'health' | 'health-dashboard' | 'personality' | 'sync' | 'releases' | 'roadmap' | 'connections' | 'history' | 'support' | 'billing' | 'settings' | 'planner' | 'account' | 'models' | 'help' | 'documentation';
 
 // ─── Chat UI Types ──────────────────────────────────────────────────────────
 
@@ -1105,6 +1147,8 @@ export type ExtToDashboardMessage =
   | { type: 'health_my_submissions_cleared'; ok: boolean; exercises_cleared?: number; recipes_cleared?: number; error?: string }
   | { type: 'health_profile_loaded'; profile: HealthProfile }
   | { type: 'health_profile_saved'; profile: HealthProfile }
+  | { type: 'health_daily_plan_loaded'; plan: HealthDailyPlan }
+  | { type: 'health_daily_plan_saved'; plan: HealthDailyPlan }
   | { type: 'health_exercise_draft_generated'; ok: boolean; error?: string; draft?: HealthExerciseDraft }
   | { type: 'health_recipe_draft_generated'; ok: boolean; error?: string; draft?: HealthRecipeDraft }
   | { type: 'roadmap_loaded'; themes: RoadmapTheme[] }
@@ -1361,6 +1405,8 @@ export type DashboardToExtMessage =
   | { type: 'clear_my_rejected_health_submissions' }
   | { type: 'load_health_profile' }
   | { type: 'save_health_profile'; profile: HealthProfile }
+  | { type: 'load_health_daily_plan'; date: string }
+  | { type: 'save_health_daily_plan'; plan: HealthDailyPlan }
   | { type: 'generate_health_exercise_draft'; intake: HealthGenerateExerciseIntake }
   | { type: 'generate_health_recipe_draft'; intake: HealthGenerateRecipeIntake }
   | { type: 'load_roadmap' }

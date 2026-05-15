@@ -53,6 +53,7 @@ import type {
   HealthTaxonomies,
   HealthMySubmissions,
   HealthProfile,
+  HealthDailyPlan,
   HealthExerciseDraft,
   HealthRecipeDraft,
   ReleaseNote,
@@ -1209,6 +1210,23 @@ export class DashboardPanel {
         };
         await this.context.globalState.update('ava.healthProfile', profile);
         this.post({ type: 'health_profile_saved', profile });
+        break;
+      }
+
+      case 'load_health_daily_plan': {
+        const plan = this.getHealthDailyPlan(msg.date);
+        this.post({ type: 'health_daily_plan_loaded', plan });
+        break;
+      }
+
+      case 'save_health_daily_plan': {
+        const plan: HealthDailyPlan = {
+          ...msg.plan,
+          schema_version: 1,
+          updated_at: new Date().toISOString(),
+        };
+        await this.context.globalState.update(`ava.healthPlan.${plan.date}`, plan);
+        this.post({ type: 'health_daily_plan_saved', plan });
         break;
       }
 
@@ -3874,6 +3892,23 @@ export class DashboardPanel {
         meal_times: { breakfast: null, lunch: null, dinner: null },
         sleep_target: { bedtime: null, wake: null },
       },
+    };
+  }
+
+  /** Read the daily plan for a given ISO date (YYYY-MM-DD). Returns
+   *  the empty scaffold when no plan has been saved yet — the
+   *  dashboard renders "no plan yet" placeholders against this. */
+  private getHealthDailyPlan(date: string): HealthDailyPlan {
+    const stored = this.context.globalState.get<HealthDailyPlan | null>(`ava.healthPlan.${date}`) ?? null;
+    if (stored && stored.schema_version === 1 && stored.date === date) return stored;
+    return {
+      schema_version: 1,
+      date,
+      morning_brief: null,
+      brief_reasoning: null,
+      items: [],
+      log: { meals: [], water_ml: 0, sleep_hours: null, mood: null },
+      updated_at: null,
     };
   }
 
