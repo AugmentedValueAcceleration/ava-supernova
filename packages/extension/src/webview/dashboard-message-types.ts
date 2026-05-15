@@ -645,12 +645,10 @@ export interface HealthMySubmissionRecipe {
  * today's plan, and Ava's plan-generation logic.
  *
  * Local-first by default — stored in VSCode globalState, works
- * fully for BYOK / no-account users. Connected accounts can opt
- * each category into cloud sync via the `privacy` block.
- *
- * Health data is the most sensitive category in the entire
- * extension; defaults stay local. No category syncs without the
- * user explicitly flipping its sync flag to true.
+ * fully for BYOK / no-account users. Cloud sync is managed from
+ * the existing Sync tab as a single `health_profile` category,
+ * not from this profile shape — keeps sync concerns in one place
+ * across the dashboard.
  */
 export interface HealthProfile {
   schema_version: 1;
@@ -677,13 +675,6 @@ export interface HealthProfile {
     training_window: { start: string | null; end: string | null }; // 24h "HH:MM"
     meal_times: { breakfast: string | null; lunch: string | null; dinner: string | null };
     sleep_target: { bedtime: string | null; wake: string | null };
-  };
-  privacy: {
-    sync_body: boolean;
-    sync_goals: boolean;
-    sync_constraints: boolean;
-    sync_schedule: boolean;
-    sync_logs: boolean;
   };
 }
 

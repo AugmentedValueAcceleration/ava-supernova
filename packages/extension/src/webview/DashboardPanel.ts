@@ -3856,10 +3856,10 @@ export class DashboardPanel {
   // ─── Health profile ────────────────────────────────────────────────────────
 
   /** Read the operator's HealthProfile from globalState. Returns the empty
-   *  scaffold (all fields null / arrays empty / sync flags false) when no
-   *  profile has been saved yet. Local-first by design — works fully for
-   *  BYOK / no-account users; cloud sync layers on later as per-category
-   *  opt-ins via the profile.privacy.sync_* flags. */
+   *  scaffold (all fields null / arrays empty) when no profile has been
+   *  saved yet. Local-first by design — works fully for BYOK / no-account
+   *  users; cloud sync is managed by the existing Sync tab as a single
+   *  `health_profile` category, not by per-section flags here. */
   private getHealthProfile(): HealthProfile {
     const stored = this.context.globalState.get<HealthProfile | null>('ava.healthProfile') ?? null;
     if (stored && stored.schema_version === 1) return stored;
@@ -3874,7 +3874,6 @@ export class DashboardPanel {
         meal_times: { breakfast: null, lunch: null, dinner: null },
         sleep_target: { bedtime: null, wake: null },
       },
-      privacy: { sync_body: false, sync_goals: false, sync_constraints: false, sync_schedule: false, sync_logs: false },
     };
   }
 

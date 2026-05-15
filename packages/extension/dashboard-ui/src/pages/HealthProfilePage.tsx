@@ -78,8 +78,6 @@ export function HealthProfilePage({ profile, taxonomies, onSave, onLoadTaxonomie
     setDraft({ ...draft, constraints: { ...draft.constraints, ...next } });
   const patchSchedule = (next: Partial<HealthProfile['schedule']>) =>
     setDraft({ ...draft, schedule: { ...draft.schedule, ...next } });
-  const patchPrivacy = (next: Partial<HealthProfile['privacy']>) =>
-    setDraft({ ...draft, privacy: { ...draft.privacy, ...next } });
 
   return (
     <div className="max-w-2xl space-y-8 pb-12">
@@ -250,17 +248,6 @@ export function HealthProfilePage({ profile, taxonomies, onSave, onLoadTaxonomie
         </FieldGrid>
       </Section>
 
-      {/* Privacy */}
-      <Section title="Privacy" subtitle="Health data is the most sensitive thing the app holds. Everything stays on this machine by default — flip a category on to sync it.">
-        <PrivacyToggle label="Sync body stats" hint="Height, weight, sex, DOB, body composition" checked={draft.privacy.sync_body} onChange={v => patchPrivacy({ sync_body: v })} />
-        <PrivacyToggle label="Sync goals" hint="Primary goal + weekly focus" checked={draft.privacy.sync_goals} onChange={v => patchPrivacy({ sync_goals: v })} />
-        <PrivacyToggle label="Sync constraints" hint="Allergens, dietary, equipment, injuries, time" checked={draft.privacy.sync_constraints} onChange={v => patchPrivacy({ sync_constraints: v })} />
-        <PrivacyToggle label="Sync schedule" hint="Training window, meal times, sleep target" checked={draft.privacy.sync_schedule} onChange={v => patchPrivacy({ sync_schedule: v })} />
-        <PrivacyToggle label="Sync daily logs" hint="Meals, water, sleep, mood quick-logs" checked={draft.privacy.sync_logs} onChange={v => patchPrivacy({ sync_logs: v })} />
-        <p className="mt-3 text-[10px] text-[var(--text-muted)] leading-relaxed">
-          Sync is per-category and off by default. Until cloud sync is fully wired up, these flags save your preference but everything still stays local.
-        </p>
-      </Section>
     </div>
   );
 }
@@ -409,19 +396,3 @@ function PickerChips({ selected, options, onToggle, emptyHint }: {
   );
 }
 
-function PrivacyToggle({ label, hint, checked, onChange }: { label: string; hint: string; checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <label className="flex items-start gap-3 cursor-pointer py-1.5">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={e => onChange(e.target.checked)}
-        className="mt-0.5 accent-[var(--accent)]"
-      />
-      <div>
-        <div className="text-[12px] text-[var(--text-primary)]">{label}</div>
-        <div className="text-[10px] text-[var(--text-muted)] leading-relaxed">{hint}</div>
-      </div>
-    </label>
-  );
-}
