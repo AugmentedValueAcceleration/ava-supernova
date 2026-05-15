@@ -326,7 +326,10 @@ function Field({ label, children, className }: { label: string; children: React.
 
 // Solid background — matches the canonical dashboard input register.
 // Transparent reads as "empty" against the dark dashboard surface.
-const inputCls = 'w-full rounded-md border border-[var(--border-input)] bg-[var(--bg-input)] px-2.5 py-1.5 text-[12px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/60 transition';
+// color-scheme: dark makes the browser render native input chrome
+// (date picker calendar, number spinner arrows, time picker) in
+// dark mode instead of bright white-on-dark which is unreadable.
+const inputCls = 'w-full rounded-md border border-[var(--border-input)] bg-[var(--bg-input)] px-2.5 py-1.5 text-[12px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/60 transition [color-scheme:dark]';
 
 function NumberInput({ value, onChange, placeholder, step }: { value: number | null; onChange: (next: number | null) => void; placeholder?: string; step?: number }) {
   return (

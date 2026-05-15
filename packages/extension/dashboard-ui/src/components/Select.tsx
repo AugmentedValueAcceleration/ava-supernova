@@ -41,7 +41,13 @@ export function Select({ value, onChange, options }: SelectProps) {
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] py-1 shadow-lg">
+        // bg-card var resolves to rgba(26,16,40,0.6) — 60% opacity is
+        // fine for cards rendered on the page background but the
+        // dropdown panel floats over OTHER content, so it reads
+        // transparent. Force opaque + add backdrop-blur as a
+        // belt-and-braces. Hardcoded hex matches the solid form of
+        // the --bg-card var.
+        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-[var(--border-card)] bg-[#1a1028] py-1 shadow-lg backdrop-blur-sm">
           {options.map(option => {
             const isSelected = option.value === value;
             return (
