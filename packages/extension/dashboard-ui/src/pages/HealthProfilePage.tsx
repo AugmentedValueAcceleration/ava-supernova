@@ -102,11 +102,10 @@ export function HealthProfilePage({ profile, taxonomies, onSave, onLoadTaxonomie
               className={inputCls}
             />
           </Field>
-          <Field label="Height (cm)">
-            <NumberInput
-              value={draft.body.height_cm}
+          <Field label="Height" className="sm:col-span-2">
+            <HeightField
+              cm={draft.body.height_cm}
               onChange={v => patchBody({ height_cm: v })}
-              placeholder="178"
             />
           </Field>
           <Field label="Weight (kg)">
@@ -330,6 +329,48 @@ function Field({ label, children, className }: { label: string; children: React.
 // (date picker calendar, number spinner arrows, time picker) in
 // dark mode instead of bright white-on-dark which is unreadable.
 const inputCls = 'w-full rounded-md border border-[var(--border-input)] bg-[var(--bg-input)] px-2.5 py-1.5 text-[12px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/60 transition [color-scheme:dark]';
+
+/**
+ * Height field — single source of truth is cm (matches the data
+ * shape), but the operator gets three live inputs: cm, ft, and in.
+ * Typing in any one immediately recomputes the others. The
+ * conversion rounds total inches to the nearest whole inch and
+ * normalises the carry (60.6 in → 5 ft 1 in, not 5 ft 0 in + leftover).
+ */
+function HeightField({ cm, onChange }: { cm: number | null; onChange: (cm: number | null) => void }) {
+  // Derive ft + in from cm by rounding total inches first. Avoids
+  // the edge case where round(in) → 12 makes the display nonsense.
+  let ft: number | null = null;
+  let inches: number | null = null;
+  if (cm != null && Number.isFinite(cm)) {
+    const totalIn = Math.round(cm / 2.54);
+    ft = Math.floor(totalIn / 12);
+    inches = totalIn % 12;
+  }
+
+  const setFromImperial = (newFt: number | null, newIn: number | null) => {
+    if (newFt == null && newIn == null) { onChange(null); return; }
+    const totalIn = (newFt ?? 0) * 12 + (newIn ?? 0);
+    onChange(Math.round(totalIn * 2.54));
+  };
+
+  return (
+    <div className="grid grid-cols-[1fr_auto_auto] gap-2 items-center">
+      <div>
+        <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1">cm</div>
+        <NumberInput value={cm} onChange={onChange} placeholder="178" />
+      </div>
+      <div className="w-16">
+        <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1">ft</div>
+        <NumberInput value={ft} onChange={v => setFromImperial(v, inches)} placeholder="5" />
+      </div>
+      <div className="w-16">
+        <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1">in</div>
+        <NumberInput value={inches} onChange={v => setFromImperial(ft, v)} placeholder="10" />
+      </div>
+    </div>
+  );
+}
 
 function NumberInput({ value, onChange, placeholder, step }: { value: number | null; onChange: (next: number | null) => void; placeholder?: string; step?: number }) {
   return (
