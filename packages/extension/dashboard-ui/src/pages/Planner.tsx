@@ -29,6 +29,11 @@ interface PlannerProps {
   onDeleteUserEntry?: (date: string) => void;
   onDeleteAvaEntry?: (date: string) => void;
   learningCurriculums: DashboardLearningCurriculum[];
+  /** Per-source load signals — true once the first load has landed.
+   *  Each sub-tab skeletons until its own data is in. */
+  tasksLoaded: boolean;
+  journalLoaded: boolean;
+  learningLoaded: boolean;
 }
 
 const TABS: { key: PlannerTab; icon: string }[] = [
@@ -47,6 +52,7 @@ export function Planner({
   tasks, sessionTasks,
   journalDay, journalDate, journalNavTick, userName, onSaveJournalEntry, onDeleteUserEntry, onDeleteAvaEntry,
   learningCurriculums,
+  tasksLoaded, journalLoaded, learningLoaded,
 }: PlannerProps) {
   useLocale();
   const [activeTab, setActiveTab] = useState<PlannerTab>('tasks');
@@ -94,7 +100,7 @@ export function Planner({
 
       {/* Tab content */}
       {activeTab === 'tasks' && (
-        <Tasks tasks={tasks} sessionTasks={sessionTasks} selectedDate={journalDate} />
+        <Tasks tasks={tasks} sessionTasks={sessionTasks} selectedDate={journalDate} loaded={tasksLoaded} />
       )}
 
       {activeTab === 'journal' && (
@@ -105,11 +111,12 @@ export function Planner({
           onSaveUserEntry={onSaveJournalEntry}
           onDeleteUserEntry={onDeleteUserEntry}
           onDeleteAvaEntry={onDeleteAvaEntry}
+          loaded={journalLoaded}
         />
       )}
 
       {activeTab === 'learning' && (
-        <Learning curriculums={learningCurriculums} />
+        <Learning curriculums={learningCurriculums} loaded={learningLoaded} />
       )}
     </div>
   );

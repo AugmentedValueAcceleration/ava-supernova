@@ -1173,6 +1173,9 @@ export function App() {
             onDeleteUserEntry={(date) => post({ type: 'delete_journal_user_entry', date })}
             onDeleteAvaEntry={(date) => post({ type: 'delete_journal_ava_entry', date })}
             learningCurriculums={learningCurriculums}
+            tasksLoaded={isLoaded('tasks')}
+            journalLoaded={isLoaded('journal_day')}
+            learningLoaded={isLoaded('learning')}
           />
         );
 

@@ -4,6 +4,7 @@ import { post } from '../App';
 import type { DashboardLearningCurriculum } from '../types/messages';
 import { SectionGroup } from '../components/SectionGroup';
 import { StorageBadge } from '../components/StorageBadge';
+import { Skeleton } from '../components/Skeleton';
 
 const levelColors: Record<string, string> = {
   beginner: 'color: #34d399; background: rgba(52,211,153,0.1)',
@@ -25,9 +26,11 @@ const typeIcons: Record<string, string> = {
 
 interface Props {
   curriculums: DashboardLearningCurriculum[];
+  /** True once the learning curriculums' first load has landed. */
+  loaded: boolean;
 }
 
-export function Learning({ curriculums }: Props) {
+export function Learning({ curriculums, loaded }: Props) {
   useLocale();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
@@ -155,7 +158,11 @@ export function Learning({ curriculums }: Props) {
         {t('dash.learning.subtitle')}
       </p>
 
-      {curriculums.length === 0 ? (
+      {!loaded ? (
+        <div className="space-y-2">
+          {[0, 1, 2].map(i => <Skeleton key={i} height={78} radius={8} />)}
+        </div>
+      ) : curriculums.length === 0 ? (
         <>
           <SectionGroup label={t('dash.learning.how_it_works')}>
             <div className="space-y-3">

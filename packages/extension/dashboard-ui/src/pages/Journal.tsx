@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { t, useLocale } from '../i18n';
 import { StorageBadge } from '../components/StorageBadge';
+import { Skeleton } from '../components/Skeleton';
 import type { DashboardJournalDay } from '../types/messages';
 
 type JournalTab = 'user' | 'ava';
@@ -12,6 +13,8 @@ interface JournalProps {
   onSaveUserEntry: (date: string, content: string, mood?: number, tags?: string[]) => void;
   onDeleteUserEntry?: (date: string) => void;
   onDeleteAvaEntry?: (date: string) => void;
+  /** True once the journal day's first load has landed. */
+  loaded: boolean;
 }
 
 const MOOD_LABEL_KEYS = ['', 'dash.journal.mood_rough', 'dash.journal.mood_low', 'dash.journal.mood_okay', 'dash.journal.mood_good', 'dash.journal.mood_great'];
@@ -23,7 +26,7 @@ function formatDate(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
-export function Journal({ day, selectedDate, userName, onSaveUserEntry, onDeleteUserEntry, onDeleteAvaEntry }: JournalProps) {
+export function Journal({ day, selectedDate, userName, onSaveUserEntry, onDeleteUserEntry, onDeleteAvaEntry, loaded }: JournalProps) {
   useLocale();
   const [tab, setTab] = useState<JournalTab>('user');
   const [editContent, setEditContent] = useState('');
@@ -125,7 +128,14 @@ export function Journal({ day, selectedDate, userName, onSaveUserEntry, onDelete
       <div className="flex-1 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] flex flex-col overflow-hidden"
         style={tab === 'ava' ? { borderColor: 'rgba(168, 85, 247, 0.2)' } : undefined}
       >
-        {tab === 'user' ? (
+        {!loaded ? (
+          <div className="space-y-3 p-5">
+            <Skeleton height={12} width="30%" />
+            <Skeleton height={12} />
+            <Skeleton height={12} />
+            <Skeleton height={12} width="80%" />
+          </div>
+        ) : tab === 'user' ? (
           <UserJournal
             entry={day?.user_entry ?? null}
             editing={editing}

@@ -3,6 +3,7 @@ import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
 import { StorageBadge } from '../components/StorageBadge';
+import { Skeleton } from '../components/Skeleton';
 import { Select } from '../components/Select';
 import { SearchIcon, TrashIcon, PencilIcon, PlusIcon, CalendarIcon } from '../components/Icons';
 import type { DashboardTaskEntry } from '../types/messages';
@@ -122,9 +123,11 @@ interface TasksProps {
    *  the visible task list to that day's due_date. Defaults to today
    *  on first load — same behaviour as before the prop existed. */
   selectedDate?: string;
+  /** True once the tasks list's first load has landed. */
+  loaded: boolean;
 }
 
-export function Tasks({ tasks, sessionTasks = [], selectedDate }: TasksProps) {
+export function Tasks({ tasks, sessionTasks = [], selectedDate, loaded }: TasksProps) {
   useLocale();
   const [viewTab, setViewTab] = useState<ViewTab>('active');
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
@@ -572,7 +575,11 @@ export function Tasks({ tasks, sessionTasks = [], selectedDate }: TasksProps) {
 
       {/* Task list */}
       <SectionGroup label={t('dash.tasks.section_label').replace('{tab}', t(TAB_KEYS[viewTab]))} count={t('dash.tasks.count_label').replace(/\{n\}/g, String(filtered.length))}>
-        {filtered.length === 0 ? (
+        {!loaded ? (
+          <div className="space-y-3">
+            {[0, 1, 2, 3].map(i => <Skeleton key={i} height={92} radius={8} />)}
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] p-8 text-center">
             <p className="text-sm text-[var(--text-muted)]">
               {search ? t('dash.tasks.empty_search') : viewTab === 'active' ? t('dash.tasks.empty_active') : t('dash.tasks.empty_tab').replace('{tab}', t(TAB_KEYS[viewTab]).toLowerCase())}
