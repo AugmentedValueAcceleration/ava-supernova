@@ -3,6 +3,7 @@ import { post } from '../App';
 import { HealthSubmissionModal } from './HealthSubmissionModal';
 import { HealthMySubmissions } from './HealthMySubmissions';
 import { HealthProfilePage } from './HealthProfilePage';
+import { Skeleton } from '../components/Skeleton';
 import type {
   HealthExerciseSummary, HealthExerciseDetail,
   HealthRecipeSummary, HealthRecipeDetail,
@@ -457,7 +458,13 @@ interface ExercisesGridProps {
 
 function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading, onOpen, search, onSearch, onRefresh }: ExercisesGridProps) {
   if (loading && items.length === 0 && !search) {
-    return <LoadingCard label="Loading exercises…" />;
+    return (
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <li key={i}><Skeleton height={196} radius={8} /></li>
+        ))}
+      </ul>
+    );
   }
   return (
     <div>
@@ -569,7 +576,13 @@ interface RecipesGridProps {
 
 function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, onOpen, search, onSearch, onRefresh }: RecipesGridProps) {
   if (loading && items.length === 0 && !search) {
-    return <LoadingCard label="Loading recipes…" />;
+    return (
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <li key={i}><Skeleton height={196} radius={8} /></li>
+        ))}
+      </ul>
+    );
   }
   return (
     <div>
