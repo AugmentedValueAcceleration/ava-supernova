@@ -4199,7 +4199,15 @@ export class DashboardPanel {
   /** Lightweight dashboard-side logger. Other code paths still call `console.log` directly;
    *  `this.log(...)` is provided for call sites that preferred the instance form. */
   private log(msg: string): void {
-    console.log(`[DashboardPanel] ${msg}`);
+    // Route through the view provider's "Ava Supernova" output channel
+    // when available, so dashboard logs land in the same visible channel
+    // as the chat host. Falls back to console.log (Extension Host log)
+    // when the panel is opened without a view provider.
+    if (this.viewProvider) {
+      this.viewProvider.logToChannel(`[DashboardPanel] ${msg}`);
+    } else {
+      console.log(`[DashboardPanel] ${msg}`);
+    }
   }
 
   /** User-scoped ~/.ava directory. Reads the account-scoped subdir when a

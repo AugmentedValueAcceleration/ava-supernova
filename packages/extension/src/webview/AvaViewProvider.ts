@@ -479,6 +479,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     logTo(this.outputChannel, message);
   }
 
+  /** Public log into the "Ava Supernova" output channel. Lets sibling
+   *  components (e.g. DashboardPanel) write to the same visible channel
+   *  instead of console.log, which only reaches the Extension Host log. */
+  public logToChannel(message: string): void {
+    logTo(this.outputChannel, message);
+  }
+
   /** Report token usage to the platform API and update webview with pool state */
   private async reportUsageToPlatform(usage: { prompt_tokens: number; completion_tokens: number }): Promise<void> {
     try {
