@@ -1,4 +1,5 @@
 import { useLocale } from '../i18n';
+import { Skeleton } from '../components/Skeleton';
 import type { RoadmapTheme } from '../types/messages';
 
 /**
@@ -27,8 +28,8 @@ export function Roadmap({ themes, loading }: Props) {
       <p className="text-[13px] text-[#6c7086] mb-6">Where Ava has been and where she&apos;s heading.</p>
 
       {loading && themes.length === 0 && (
-        <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] px-6 py-10 text-center text-sm text-[var(--text-muted)]">
-          Loading roadmap…
+        <div className="flex flex-col gap-3">
+          {[0, 1, 2].map(i => <Skeleton key={i} height={96} radius={12} />)}
         </div>
       )}
 

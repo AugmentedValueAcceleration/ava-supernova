@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import { Select } from '../components/Select';
+import { Skeleton } from '../components/Skeleton';
 
 interface SupportMessage {
   id: string;
@@ -267,8 +268,8 @@ export function Support({ tickets, loading, mode = 'platform' }: SupportProps) {
 
       {/* Loading */}
       {loading && (
-        <div className="flex items-center justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--border-card)] border-t-[var(--accent)]" />
+        <div className="flex flex-col gap-3">
+          {[0, 1, 2].map(i => <Skeleton key={i} height={84} radius={12} />)}
         </div>
       )}
 
