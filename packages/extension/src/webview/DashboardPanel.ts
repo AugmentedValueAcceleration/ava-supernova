@@ -896,7 +896,7 @@ export class DashboardPanel {
             method: 'GET',
             timeoutMs: 8000,
           });
-          this.log(`[health-perf] HOST apiFetch /health/exercises seq=${seq} took ${Date.now() - tFetch}ms ok=${res.ok} status=${res.status}`);
+          this.log(`[health-perf] HOST apiFetch /health/exercises seq=${seq} took ${Date.now() - tFetch}ms ok=${res.ok} status=${res.status}${res.ok ? '' : ` detail=${typeof res.data === 'string' ? res.data : JSON.stringify(res.data)}`}`);
           if (!res.ok) {
             this.log(`[health] load exercises seq=${seq} failed: HTTP ${res.status}`);
             this.post({ type: 'health_exercises_loaded', exercises: [], total: 0, offset, seq });
@@ -939,7 +939,7 @@ export class DashboardPanel {
             method: 'GET',
             timeoutMs: 8000,
           });
-          this.log(`[health-perf] HOST apiFetch /health/recipes seq=${seq} took ${Date.now() - tFetch}ms ok=${res.ok} status=${res.status}`);
+          this.log(`[health-perf] HOST apiFetch /health/recipes seq=${seq} took ${Date.now() - tFetch}ms ok=${res.ok} status=${res.status}${res.ok ? '' : ` detail=${typeof res.data === 'string' ? res.data : JSON.stringify(res.data)}`}`);
           if (!res.ok) {
             this.log(`[health] load recipes seq=${seq} failed: HTTP ${res.status}`);
             this.post({ type: 'health_recipes_loaded', recipes: [], total: 0, offset, seq });
