@@ -4,6 +4,7 @@ import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
 import { StorageBadge } from '../components/StorageBadge';
 import { SearchIcon, PencilIcon, TrashIcon } from '../components/Icons';
+import { Skeleton } from '../components/Skeleton';
 import type { MemoryEntry, MemoryCategory, GraphStats, ContradictionPair, ProceduralPatternUI } from '../types/messages';
 import { postData, postLoad, cloudSyncEnabled } from '../lib/data-mode';
 
@@ -243,9 +244,11 @@ interface MemoryProps {
   contradictions?: ContradictionPair[];
   patterns?: ProceduralPatternUI[];
   projectBrain?: { brief: string; stack: string[]; keyDecisions: string[]; confidenceAvg: number; nodeCount: number; lastSessionDate: string } | null;
+  /** True once the memories' first load has landed. */
+  loaded: boolean;
 }
 
-export function Memory({ memories, serverTotal, serverHasMore, graphStats, contradictions, patterns, projectBrain }: MemoryProps) {
+export function Memory({ memories, serverTotal, serverHasMore, graphStats, contradictions, patterns, projectBrain, loaded }: MemoryProps) {
   useLocale();
   // Display always shows local memories — cloud sync only affects
   // whether cloud-side actions (delete cloud copy, server pagination)
@@ -675,7 +678,11 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
         )}
 
         {/* List */}
-        {filtered.length === 0 ? (
+        {!loaded ? (
+          <div className="flex flex-col gap-3">
+            {[0, 1, 2, 3].map(i => <Skeleton key={i} height={72} radius={12} />)}
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[var(--border-card)] bg-[var(--bg-card)] p-8 text-center text-sm text-[var(--text-muted)]">
             {search || categoryFilter
               ? 'No memories match your filters.'

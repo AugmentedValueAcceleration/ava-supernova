@@ -4,6 +4,7 @@ import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
 import { UsageBar } from '../components/UsageBar';
 import { Select } from '../components/Select';
+import { Skeleton } from '../components/Skeleton';
 import type { AccountInfo, SessionStats, UsageHistoryData, ConversationEntry } from '../types/messages';
 
 // ─── Model pricing (per 1M tokens) ──────────────────────────────────────────
@@ -84,6 +85,8 @@ interface HistoryProps {
    *  tab — list, search, click-to-resume, delete. Mirrors IDE History
    *  page at DashboardPages.tsx:5807-6060. */
   conversations?: ConversationEntry[];
+  /** True once the conversations' first load has landed. */
+  loaded: boolean;
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
@@ -95,7 +98,7 @@ interface HistoryProps {
 type TopTab = 'conversations' | 'usage' | 'audit';
 type UsageSubTab = 'session' | 'alltime';
 
-export function History({ sessionStats, usageHistory, mode, account, auditLog, conversations }: HistoryProps) {
+export function History({ sessionStats, usageHistory, mode, account, auditLog, conversations, loaded }: HistoryProps) {
   useLocale();
   const [activeTab, setActiveTab] = useState<TopTab>(() => {
     const saved = localStorage.getItem('ava-analytics-tab');
@@ -160,7 +163,7 @@ export function History({ sessionStats, usageHistory, mode, account, auditLog, c
       </div>
 
       {activeTab === 'conversations' && (
-        <ConversationsView conversations={conversations || []} />
+        <ConversationsView conversations={conversations || []} loaded={loaded} />
       )}
 
       {activeTab === 'usage' && (
@@ -201,7 +204,7 @@ export function History({ sessionStats, usageHistory, mode, account, auditLog, c
 
 // ─── Conversations View ─────────────────────────────────────────────────────
 
-function ConversationsView({ conversations }: { conversations: ConversationEntry[] }) {
+function ConversationsView({ conversations, loaded }: { conversations: ConversationEntry[]; loaded: boolean }) {
   const [search, setSearch] = useState('');
 
   const filtered = useMemo(() => {
@@ -233,7 +236,11 @@ function ConversationsView({ conversations }: { conversations: ConversationEntry
         className="w-full max-w-sm rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]"
       />
 
-      {filtered.length === 0 ? (
+      {!loaded ? (
+        <div className="flex flex-col gap-2">
+          {[0, 1, 2, 3].map(i => <Skeleton key={i} height={58} radius={10} />)}
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-[var(--border-card)] bg-[var(--bg-card)] p-12 text-center">
           <div className="mb-2 text-2xl opacity-30">💬</div>
           <p className="text-xs text-[var(--text-muted)]">
