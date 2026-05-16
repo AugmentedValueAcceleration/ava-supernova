@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Rocket, ArrowSquareOut, ArrowsClockwise } from '@phosphor-icons/react';
+import { Skeleton } from '../components/Skeleton';
 import {
   fetchPublicLeaderboard,
   getCachedLeaderboard,
@@ -104,6 +105,11 @@ export function ModelsPage() {
           <div className="mb-1 text-sm font-medium text-[var(--text-primary)]">Leaderboard launching soon</div>
           <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-[var(--text-muted)]">{error}</p>
         </div>
+      )}
+
+      {/* Skeleton — first load with no cached leaderboard yet. */}
+      {loading && !leaderboard && !error && (
+        <Skeleton height={340} radius={16} />
       )}
 
       {/* Heatmap */}
