@@ -1135,7 +1135,20 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         } else {
           const headers: Record<string, string> = {};
           if (modelFetchKey) headers['Authorization'] = `Bearer ${modelFetchKey}`;
-          const res = await fetch('https://ava-supernova.com/api/models', { headers });
+          // Hard 6s timeout — this fetch is on the chat-init critical
+          // path: chat_init (which clears the webview's "loading…" gate)
+          // can't fire until it returns. Without a bound a cold/slow
+          // platform stalls the whole chat surface — the ~60s hang.
+          // On timeout we fall through to the catch and use every
+          // registered model, which is the correct safe default anyway.
+          const modelsAbort = new AbortController();
+          const modelsTimer = setTimeout(() => modelsAbort.abort(), 6000);
+          let res: Response;
+          try {
+            res = await fetch('https://ava-supernova.com/api/models', { headers, signal: modelsAbort.signal });
+          } finally {
+            clearTimeout(modelsTimer);
+          }
           if (res.ok) {
             const models = (await res.json()) as Array<{ id: string; enabled: boolean }>;
             const ids = models.filter(m => m.enabled !== false).map(m => m.id);
