@@ -4,6 +4,7 @@ import { post } from '../App';
 import type { LibraryImage, LibraryPath, LibraryPathDetail, LibraryPaper, PapersTab, PaperDiscipline, CreativeAsset, Page } from '../types/messages';
 import { LearningLibrary } from './LearningLibrary';
 import { LibraryPapers } from './LibraryPapers';
+import { Skeleton } from '../components/Skeleton';
 
 /**
  * Unified Library — single entry point for everything Ava has made for the
@@ -373,6 +374,17 @@ export function Library({
             </div>
           )}
 
+          {/* Skeleton grid while the first cloud-asset fetch is in
+              flight and nothing has arrived yet — keeps the page's
+              shape instead of an empty void under the pill. */}
+          {assetItems.length === 0 && cloudAssetsLoading && (
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <Skeleton key={i} height={120} radius={12} />
+              ))}
+            </div>
+          )}
+
           {assetItems.length > 0 && (
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
               {assetItems.map(item => (
@@ -455,6 +467,12 @@ export function Library({
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {documentItems.map(item => (
                 <AssetCard key={item.id} item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />
+              ))}
+            </div>
+          ) : cloudAssetsLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Skeleton key={i} height={132} radius={12} />
               ))}
             </div>
           ) : null}

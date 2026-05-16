@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { post } from '../App';
+import { Skeleton } from '../components/Skeleton';
 import type {
   LibraryPaper,
   PapersTab,
@@ -234,24 +235,14 @@ export function LibraryPapers({
       )}
 
       {/* List */}
-      {/* Loading state — shown for both search and tab fetches. The
-          loaded list takes over the moment data arrives. */}
+      {/* Loading state — skeleton list while a search or tab fetch is
+          in flight and nothing has arrived. The loaded list takes over
+          the moment data arrives. */}
       {((isSearching && searchLoading) || (!isSearching && papersTabLoading[tab])) && activeList.length === 0 && (
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-10 text-center">
-          <div className="inline-flex items-center gap-2 text-[var(--text-muted)] text-sm">
-            <span className="ava-papers-spinner" aria-hidden />
-            {isSearching ? 'Searching OpenAlex…' : 'Loading papers…'}
-          </div>
-          <style>{`
-            .ava-papers-spinner {
-              width: 12px; height: 12px; border-radius: 50%;
-              border: 1.5px solid rgba(168, 85, 247, 0.25);
-              border-top-color: #a855f7;
-              animation: avaPapersSpin 0.85s linear infinite;
-              display: inline-block;
-            }
-            @keyframes avaPapersSpin { to { transform: rotate(360deg); } }
-          `}</style>
+        <div className="space-y-2.5">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} height={96} radius={12} />
+          ))}
         </div>
       )}
       {!searchLoading && !papersTabLoading[tab] && activeList.length === 0 && (
