@@ -1136,8 +1136,11 @@ export type ExtToDashboardMessage =
   // is the count of ALL visible rows so the webview can render
   // prev/next + page count, even though it only renders the slice it
   // received in the `exercises` / `recipes` field).
-  | { type: 'health_exercises_loaded'; exercises: HealthExerciseSummary[]; total: number; offset: number; seq?: number }
-  | { type: 'health_recipes_loaded'; recipes: HealthRecipeSummary[]; total: number; offset: number; seq?: number }
+  // `error` is set when the host's platform fetch failed (network /
+  // timeout) — distinct from a genuinely empty list. The webview shows
+  // a "Couldn't load — Retry" state instead of "No exercises match".
+  | { type: 'health_exercises_loaded'; exercises: HealthExerciseSummary[]; total: number; offset: number; seq?: number; error?: boolean }
+  | { type: 'health_recipes_loaded'; recipes: HealthRecipeSummary[]; total: number; offset: number; seq?: number; error?: boolean }
   | { type: 'health_exercise_detail_loaded'; exercise: HealthExerciseDetail | null }
   | { type: 'health_recipe_detail_loaded'; recipe: HealthRecipeDetail | null }
   // Health submission flow (community contributions)

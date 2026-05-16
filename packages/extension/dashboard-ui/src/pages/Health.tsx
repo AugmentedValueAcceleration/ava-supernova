@@ -90,6 +90,9 @@ interface Props {
   recipesOffset: number;
   exercisesLoading: boolean;
   recipesLoading: boolean;
+  // Set when the host's platform fetch failed — grid shows a retry state.
+  exercisesError: boolean;
+  recipesError: boolean;
   exerciseDetail: HealthExerciseDetail | null;
   recipeDetail: HealthRecipeDetail | null;
   detailLoading: boolean;
@@ -136,6 +139,8 @@ export function Health({
   recipesOffset,
   exercisesLoading,
   recipesLoading,
+  exercisesError,
+  recipesError,
   exerciseDetail,
   recipeDetail,
   detailLoading,
@@ -296,7 +301,7 @@ export function Health({
           <div>
             <h1 className="text-[22px] font-light text-vscode-foreground">Health &amp; Nutrition</h1>
             <p className="mt-1 text-[12px] text-vscode-descriptionForeground">
-              {exercisesTotal} exercises · {recipesTotal} recipes · free, open library ·{' '}
+              {exercisesError ? '—' : exercisesTotal} exercises · {recipesError ? '—' : recipesTotal} recipes · free, open library ·{' '}
               <button
                 type="button"
                 onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/health/safety' })}
@@ -359,6 +364,7 @@ export function Health({
             onFilter={handleExerciseFilterChange}
             onPage={goExercisesPage}
             loading={exercisesLoading}
+            error={exercisesError}
             onOpen={openExercise}
             search={exerciseSearch}
             onSearch={setExerciseSearch}
@@ -374,6 +380,7 @@ export function Health({
             onFilter={handleRecipeFilterChange}
             onPage={goRecipesPage}
             loading={recipesLoading}
+            error={recipesError}
             onOpen={openRecipe}
             search={recipeSearch}
             onSearch={setRecipeSearch}
@@ -440,6 +447,29 @@ export function Health({
   );
 }
 
+// ── Load-failure state ─────────────────────────────────────────────────
+// Shown when the host's platform fetch failed — distinct from a genuinely
+// empty result. Tells the user it's a network hiccup (not lost data) and
+// offers an explicit retry.
+
+function HealthLoadError({ noun, onRetry }: { noun: string; onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-2 py-10 text-center">
+      <div className="text-[13px] text-vscode-foreground">Couldn&apos;t load {noun}.</div>
+      <div className="max-w-[280px] text-[11px] leading-relaxed text-vscode-descriptionForeground">
+        The connection to the library failed — your data is safe, this is a network hiccup.
+      </div>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="mt-1 cursor-pointer rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] transition hover:bg-[var(--accent)]/20"
+      >
+        Retry
+      </button>
+    </div>
+  );
+}
+
 // ── Exercises grid ─────────────────────────────────────────────────────
 
 interface ExercisesGridProps {
@@ -450,13 +480,14 @@ interface ExercisesGridProps {
   onFilter: (f: 'all' | HealthWorkoutType) => void;
   onPage: (newOffset: number) => void;
   loading: boolean;
+  error: boolean;
   onOpen: (slug: string) => void;
   search: string;
   onSearch: (next: string) => void;
   onRefresh: () => void;
 }
 
-function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading, onOpen, search, onSearch, onRefresh }: ExercisesGridProps) {
+function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading, error, onOpen, search, onSearch, onRefresh }: ExercisesGridProps) {
   if (loading && items.length === 0 && !search) {
     return (
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -489,9 +520,13 @@ function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading
       </FilterRow>
 
       {items.length === 0 ? (
-        <div className="py-8 text-center text-[12px] text-vscode-descriptionForeground">
-          {search ? `No exercises match "${search}".` : 'No exercises match.'}
-        </div>
+        error ? (
+          <HealthLoadError noun="exercises" onRetry={onRefresh} />
+        ) : (
+          <div className="py-8 text-center text-[12px] text-vscode-descriptionForeground">
+            {search ? `No exercises match "${search}".` : 'No exercises match.'}
+          </div>
+        )
       ) : (
         <>
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -568,13 +603,14 @@ interface RecipesGridProps {
   onFilter: (f: 'all' | string) => void;
   onPage: (newOffset: number) => void;
   loading: boolean;
+  error: boolean;
   onOpen: (slug: string) => void;
   search: string;
   onSearch: (next: string) => void;
   onRefresh: () => void;
 }
 
-function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, onOpen, search, onSearch, onRefresh }: RecipesGridProps) {
+function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, error, onOpen, search, onSearch, onRefresh }: RecipesGridProps) {
   if (loading && items.length === 0 && !search) {
     return (
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -607,9 +643,13 @@ function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, 
       </FilterRow>
 
       {items.length === 0 ? (
-        <div className="py-8 text-center text-[12px] text-vscode-descriptionForeground">
-          {search ? `No recipes match "${search}".` : 'No recipes match.'}
-        </div>
+        error ? (
+          <HealthLoadError noun="recipes" onRetry={onRefresh} />
+        ) : (
+          <div className="py-8 text-center text-[12px] text-vscode-descriptionForeground">
+            {search ? `No recipes match "${search}".` : 'No recipes match.'}
+          </div>
+        )
       ) : (
         <>
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

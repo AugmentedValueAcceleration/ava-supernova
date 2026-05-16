@@ -899,7 +899,7 @@ export class DashboardPanel {
           this.log(`[health-perf] HOST apiFetch /health/exercises seq=${seq} took ${Date.now() - tFetch}ms ok=${res.ok} status=${res.status}${res.ok ? '' : ` detail=${typeof res.data === 'string' ? res.data : JSON.stringify(res.data)}`}`);
           if (!res.ok) {
             this.log(`[health] load exercises seq=${seq} failed: HTTP ${res.status}`);
-            this.post({ type: 'health_exercises_loaded', exercises: [], total: 0, offset, seq });
+            this.post({ type: 'health_exercises_loaded', exercises: [], total: 0, offset, seq, error: true });
             break;
           }
           const data = res.data as { exercises?: HealthExerciseSummary[]; total?: number };
@@ -914,7 +914,7 @@ export class DashboardPanel {
           });
         } catch (err) {
           this.log(`[health] load exercises seq=${seq} error: ${err instanceof Error ? err.message : String(err)}`);
-          this.post({ type: 'health_exercises_loaded', exercises: [], total: 0, offset, seq });
+          this.post({ type: 'health_exercises_loaded', exercises: [], total: 0, offset, seq, error: true });
         }
         break;
       }
@@ -942,7 +942,7 @@ export class DashboardPanel {
           this.log(`[health-perf] HOST apiFetch /health/recipes seq=${seq} took ${Date.now() - tFetch}ms ok=${res.ok} status=${res.status}${res.ok ? '' : ` detail=${typeof res.data === 'string' ? res.data : JSON.stringify(res.data)}`}`);
           if (!res.ok) {
             this.log(`[health] load recipes seq=${seq} failed: HTTP ${res.status}`);
-            this.post({ type: 'health_recipes_loaded', recipes: [], total: 0, offset, seq });
+            this.post({ type: 'health_recipes_loaded', recipes: [], total: 0, offset, seq, error: true });
             break;
           }
           const data = res.data as { recipes?: HealthRecipeSummary[]; total?: number };
@@ -957,7 +957,7 @@ export class DashboardPanel {
           });
         } catch (err) {
           this.log(`[health] load recipes seq=${seq} error: ${err instanceof Error ? err.message : String(err)}`);
-          this.post({ type: 'health_recipes_loaded', recipes: [], total: 0, offset, seq });
+          this.post({ type: 'health_recipes_loaded', recipes: [], total: 0, offset, seq, error: true });
         }
         break;
       }

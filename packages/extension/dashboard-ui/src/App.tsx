@@ -237,6 +237,10 @@ export function App() {
   const [healthRecipesOffset, setHealthRecipesOffset] = useState(0);
   const [healthExercisesLoading, setHealthExercisesLoading] = useState(false);
   const [healthRecipesLoading, setHealthRecipesLoading] = useState(false);
+  // Set when the host's platform fetch failed (network / timeout) — lets
+  // the grid show "Couldn't load — Retry" instead of "No exercises match".
+  const [healthExercisesError, setHealthExercisesError] = useState(false);
+  const [healthRecipesError, setHealthRecipesError] = useState(false);
   const [healthExerciseDetail, setHealthExerciseDetail] = useState<HealthExerciseDetail | null>(null);
   const [healthRecipeDetail, setHealthRecipeDetail] = useState<HealthRecipeDetail | null>(null);
   const [healthDetailLoading, setHealthDetailLoading] = useState(false);
@@ -298,6 +302,7 @@ export function App() {
     healthExercisesSeqRef.current += 1;
     const seq = healthExercisesSeqRef.current;
     setHealthExercisesLoading(true);
+    setHealthExercisesError(false);
     const now = Date.now();
     healthPerfPostTs.set(seq, now);
     console.log(`[health-perf] webview POST load_health_exercises seq=${seq} at ${now} (+${now - HEALTH_PERF_BUNDLE_EVAL}ms since eval)`);
@@ -308,6 +313,7 @@ export function App() {
     healthRecipesSeqRef.current += 1;
     const seq = healthRecipesSeqRef.current;
     setHealthRecipesLoading(true);
+    setHealthRecipesError(false);
     const now = Date.now();
     healthPerfPostTs.set(seq, now);
     console.log(`[health-perf] webview POST load_health_recipes seq=${seq} at ${now} (+${now - HEALTH_PERF_BUNDLE_EVAL}ms since eval)`);
@@ -768,6 +774,7 @@ export function App() {
         setHealthExercisesTotal(msg.total);
         setHealthExercisesOffset(msg.offset);
         setHealthExercisesLoading(false);
+        setHealthExercisesError(msg.error ?? false);
         break;
       }
       case 'health_recipes_loaded': {
@@ -781,6 +788,7 @@ export function App() {
         setHealthRecipesTotal(msg.total);
         setHealthRecipesOffset(msg.offset);
         setHealthRecipesLoading(false);
+        setHealthRecipesError(msg.error ?? false);
         break;
       }
       case 'health_exercise_detail_loaded':
@@ -1319,6 +1327,8 @@ export function App() {
             recipesOffset={healthRecipesOffset}
             exercisesLoading={healthExercisesLoading}
             recipesLoading={healthRecipesLoading}
+            exercisesError={healthExercisesError}
+            recipesError={healthRecipesError}
             exerciseDetail={healthExerciseDetail}
             recipeDetail={healthRecipeDetail}
             detailLoading={healthDetailLoading}
