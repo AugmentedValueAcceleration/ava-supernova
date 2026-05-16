@@ -240,6 +240,11 @@ export function App() {
   const [healthClearingMySubmissions, setHealthClearingMySubmissions] = useState(false);
   // Health profile — local-first body stats + goals + constraints + schedule + privacy
   const [healthProfile, setHealthProfile] = useState<HealthProfile | null>(null);
+  // Deep-link target for the Health page's inner tab. Set when another
+  // surface (e.g. the Health Dashboard's "Set your goals" pointer)
+  // navigates here wanting a specific tab; Health consumes it once on
+  // mount then clears it so a later sidebar visit lands on the default.
+  const [healthInitialTab, setHealthInitialTab] = useState<'exercises' | 'recipes' | 'mine' | 'profile' | null>(null);
   // Daily plan — keyed by today's ISO date. Reloaded on dashboard mount,
   // saved through onSavePlan / quick-log interactions.
   const [healthDailyPlan, setHealthDailyPlan] = useState<HealthDailyPlan | null>(null);
@@ -1214,7 +1219,7 @@ export function App() {
             />
           );
         }
-        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} healthProfile={healthProfile} healthDailyPlan={healthDailyPlan} onSaveHealthDailyPlan={handleSaveHealthDailyPlan} onGenerateHealthMorningBrief={handleGenerateHealthMorningBrief} healthMorningBriefGenerating={healthMorningBriefGenerating} healthMorningBriefError={healthMorningBriefError} />;
+        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} healthProfile={healthProfile} healthDailyPlan={healthDailyPlan} onSaveHealthDailyPlan={handleSaveHealthDailyPlan} onGenerateHealthMorningBrief={handleGenerateHealthMorningBrief} healthMorningBriefGenerating={healthMorningBriefGenerating} healthMorningBriefError={healthMorningBriefError} onNavigateToHealthProfile={() => { setHealthInitialTab('profile'); setPagePersist('health'); }} />;
       case 'usage':
         return <Usage account={account} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} activeModel={settings.activeModel} />;
       case 'memory':
@@ -1293,6 +1298,8 @@ export function App() {
             onClearDraft={handleClearHealthDraft}
             profile={healthProfile}
             onSaveProfile={handleSaveHealthProfile}
+            initialTab={healthInitialTab}
+            onConsumeInitialTab={() => setHealthInitialTab(null)}
           />
         );
     }

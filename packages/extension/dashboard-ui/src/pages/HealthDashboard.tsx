@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import type { HealthDailyPlan, HealthProfile } from '../types/messages';
+import { useCallback, useMemo, useState } from 'react';
+import type { HealthDailyLog, HealthDailyPlan, HealthProfile } from '../types/messages';
 
 /**
  * Health Dashboard — the daily display surface, top-level entry in
@@ -30,16 +30,45 @@ interface Props {
   onGenerateMorningBrief: (date: string) => void;
   briefGenerating: boolean;
   briefError: string | null;
+  // Jumps to the Health & Nutrition page's Profile tab — the goals
+  // pointer and empty-state both use it so the dashboard's references
+  // to goals have somewhere to lead.
+  onNavigateToProfile: () => void;
 }
 
-export function HealthDashboard({ profile, plan, onSavePlan, onGenerateMorningBrief, briefGenerating, briefError }: Props) {
+export function HealthDashboard({ profile, plan, onSavePlan, onGenerateMorningBrief, briefGenerating, briefError, onNavigateToProfile }: Props) {
   const today = todayIso();
   const greeting = useMemo(() => greetingFor(new Date()), []);
   const profileEmpty = useMemo(() => isProfileEmpty(profile), [profile]);
+  // Goals unset but the profile isn't otherwise empty — the brief
+  // talks about goals, so the operator needs a direct route to set
+  // them. (Fully-empty profiles get the ProfileEmptyState instead.)
+  const goalUnset = !profile?.goals?.primary && !profile?.goals?.weekly_focus;
 
-  // onSavePlan reserved for the quick-log + plan-edit wiring in
-  // follow-up commits — the prop API is locked from the start.
-  void onSavePlan;
+  // Quick-log writes — every log action lands on today's plan. When no
+  // plan exists yet (common: the operator logs water before Ava has
+  // written anything) we mint a fresh empty plan for the date so the
+  // first log still has somewhere to live.
+  const commitLog = useCallback((mutate: (log: HealthDailyLog) => HealthDailyLog) => {
+    const base = plan ?? freshDailyPlan(today);
+    onSavePlan({
+      ...base,
+      log: mutate(base.log),
+      updated_at: new Date().toISOString(),
+    });
+  }, [plan, today, onSavePlan]);
+
+  const quickLog = useMemo<QuickLogApi>(() => ({
+    addWater: (ml) => commitLog(l => ({ ...l, water_ml: Math.max(0, l.water_ml + ml) })),
+    resetWater: () => commitLog(l => ({ ...l, water_ml: 0 })),
+    setSleep: (hours) => commitLog(l => ({ ...l, sleep_hours: hours })),
+    setMood: (mood) => commitLog(l => ({ ...l, mood })),
+    addMeal: (meal) => commitLog(l => ({
+      ...l,
+      meals: [...l.meals, { id: logId(), time: nowHHMM(), ...meal }],
+    })),
+    removeMeal: (id) => commitLog(l => ({ ...l, meals: l.meals.filter(m => m.id !== id) })),
+  }), [commitLog]);
 
   // Inner tab — Overview (the synthesis: brief / status / log) vs
   // Plans (the content: today's meals + training). Persisted so the
@@ -80,7 +109,7 @@ export function HealthDashboard({ profile, plan, onSavePlan, onGenerateMorningBr
           on both tabs since both depend on the profile. */}
       {profileEmpty && (
         <div className="mb-6">
-          <ProfileEmptyState />
+          <ProfileEmptyState onNavigateToProfile={onNavigateToProfile} />
         </div>
       )}
 
@@ -95,14 +124,17 @@ export function HealthDashboard({ profile, plan, onSavePlan, onGenerateMorningBr
               error={briefError}
               onGenerate={() => onGenerateMorningBrief(today)}
             />
+            {!profileEmpty && goalUnset && (
+              <GoalsPointer onNavigateToProfile={onNavigateToProfile} />
+            )}
           </Section>
 
           <Section title="Where you are">
-            <StatusRow plan={plan} />
+            <StatusRow plan={plan} profile={profile} />
           </Section>
 
           <Section title="Quick log">
-            <QuickLogRow plan={plan} />
+            <QuickLogRow plan={plan} api={quickLog} />
           </Section>
 
           <WhyDrawer reasoning={plan?.brief_reasoning ?? null} />
@@ -152,10 +184,42 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function ProfileEmptyState() {
+function ProfileEmptyState({ onNavigateToProfile }: { onNavigateToProfile: () => void }) {
   return (
-    <div className="rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-4 py-3 text-[12px] text-[var(--text-secondary)] leading-relaxed">
-      Set up your <strong>Profile</strong> on the Health & Nutrition page first — Ava reads it to draft your daily plan and brief. Body stats, goals, constraints, and your schedule.
+    <div className="rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-4 py-3">
+      <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
+        Set up your <strong>Profile</strong> first — Ava reads it to draft your daily plan and brief. Body stats, goals, constraints, and your schedule.
+      </p>
+      <button
+        type="button"
+        onClick={onNavigateToProfile}
+        className="mt-2.5 inline-flex items-center gap-1 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer"
+      >
+        Set up your profile <span aria-hidden>→</span>
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Goals pointer — shows when the profile has data but no goal set.
+ * The brief and plan both reference goals, so without this the
+ * operator reads "Ava mentions my goals" with no visible way to set
+ * them. Leads straight to the Profile tab where goals live.
+ */
+function GoalsPointer({ onNavigateToProfile }: { onNavigateToProfile: () => void }) {
+  return (
+    <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-4 py-2.5">
+      <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+        Ava writes your brief around your goals — but you haven&apos;t set one yet.
+      </p>
+      <button
+        type="button"
+        onClick={onNavigateToProfile}
+        className="shrink-0 inline-flex items-center gap-1 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer"
+      >
+        Set your goals <span aria-hidden>→</span>
+      </button>
     </div>
   );
 }
@@ -313,19 +377,145 @@ function PlanItemCard({
   );
 }
 
-function StatusRow({ plan }: { plan: HealthDailyPlan | null }) {
-  // Placeholder for the readiness / nutrition / load triplet. Real
-  // calculation lands in the status-row todo; rendering empty
-  // figures now so the layout is visible.
-  const water_ml = plan?.log?.water_ml ?? 0;
-  const meals = plan?.log?.meals?.length ?? 0;
+/**
+ * Status row — three honest, today-scoped reads. Everything here is
+ * computed from the day's own log + plan + the profile; nothing
+ * reaches for a rolling baseline or week trend, because the
+ * dashboard only loads one day at a time. When multi-day history
+ * lands (alongside plan generation) the hints can graduate to
+ * "vs your baseline" framing — until then they say what they mean.
+ */
+function StatusRow({ plan, profile }: { plan: HealthDailyPlan | null; profile: HealthProfile | null }) {
+  const readiness = useMemo(() => computeReadiness(profile, plan), [profile, plan]);
+  const nutrition = useMemo(() => computeNutrition(profile, plan), [profile, plan]);
+  const training = useMemo(() => computeTrainingLoad(plan), [plan]);
   return (
     <div className="grid grid-cols-3 gap-3">
-      <StatusTile label="Readiness" value="—" hint="Sleep + recovery vs your baseline" />
-      <StatusTile label="Nutrition" value={meals > 0 ? `${meals} meals` : '—'} hint={`${water_ml} ml water today`} />
-      <StatusTile label="Training load" value="—" hint="This week's volume vs trend" />
+      <StatusTile label="Readiness" value={readiness.value} hint={readiness.hint} />
+      <StatusTile label="Nutrition" value={nutrition.value} hint={nutrition.hint} />
+      <StatusTile label="Training load" value={training.value} hint={training.hint} />
     </div>
   );
+}
+
+interface StatusFigure { value: string; hint: string }
+
+/**
+ * Readiness — how rested + how you feel today, weighted 60/40
+ * towards sleep. Measured against your own sleep target (from the
+ * profile schedule), not a rolling baseline we don't have. Returns
+ * a calm word band rather than a bare number.
+ */
+function computeReadiness(profile: HealthProfile | null, plan: HealthDailyPlan | null): StatusFigure {
+  const sleep = plan?.log.sleep_hours ?? null;
+  const mood = plan?.log.mood ?? null;
+  if (sleep == null && mood == null) {
+    return { value: '—', hint: 'Log sleep and mood to see this' };
+  }
+  const target = targetSleepHours(profile);
+  let scoreSum = 0;
+  let weightSum = 0;
+  if (sleep != null) { scoreSum += Math.min(sleep / target, 1) * 0.6; weightSum += 0.6; }
+  if (mood != null)  { scoreSum += (mood / 5) * 0.4;                   weightSum += 0.4; }
+  const pct = Math.round((scoreSum / weightSum) * 100);
+  const word = pct >= 80 ? 'Strong' : pct >= 60 ? 'Good' : pct >= 40 ? 'Fair' : 'Low';
+  const bits: string[] = [];
+  if (sleep != null) bits.push(`${formatHours(sleep)} of ${formatHours(target)} sleep`);
+  if (mood != null)  bits.push(`mood ${mood}/5`);
+  return { value: word, hint: bits.join(' · ') };
+}
+
+/**
+ * Nutrition — meals logged today, with protein measured against a
+ * goal-derived target (≈1.6–2.0 g/kg by primary goal). Calories are
+ * shown as a raw total, not vs a target: a calorie target needs an
+ * activity estimate the profile doesn't carry, so we don't fake one.
+ */
+function computeNutrition(profile: HealthProfile | null, plan: HealthDailyPlan | null): StatusFigure {
+  const meals = plan?.log.meals ?? [];
+  const water = plan?.log.water_ml ?? 0;
+  if (meals.length === 0 && water === 0) {
+    return { value: '—', hint: 'Log meals and water to see this' };
+  }
+  const protein = meals.reduce((a, m) => a + (m.protein_g ?? 0), 0);
+  const kcal = meals.reduce((a, m) => a + (m.calories ?? 0), 0);
+  const proteinTarget = proteinTargetG(profile);
+  const value = meals.length > 0 ? `${meals.length} meal${meals.length === 1 ? '' : 's'}` : '—';
+  const bits: string[] = [];
+  if (protein > 0) {
+    bits.push(proteinTarget != null
+      ? `${Math.round(protein)} / ${proteinTarget} g protein`
+      : `${Math.round(protein)} g protein`);
+  }
+  if (kcal > 0) bits.push(`${kcal} kcal`);
+  bits.push(`${water} ml water`);
+  return { value, hint: bits.join(' · ') };
+}
+
+/**
+ * Training load — today's planned vs completed training, drawn
+ * straight from the plan's workout + mobility items. No week trend:
+ * the dashboard holds one day. An empty training set reads as an
+ * honest rest day, not a blank.
+ */
+function computeTrainingLoad(plan: HealthDailyPlan | null): StatusFigure {
+  const training = (plan?.items ?? []).filter(i => i.kind === 'workout' || i.kind === 'mobility');
+  if (training.length === 0) {
+    return { value: 'Rest day', hint: 'No training scheduled today' };
+  }
+  const doneItems = training.filter(i => i.status === 'done');
+  const plannedMin = training.reduce((a, i) => a + (i.duration_minutes ?? 0), 0);
+  const doneMin = doneItems.reduce((a, i) => a + (i.duration_minutes ?? 0), 0);
+  if (plannedMin > 0) {
+    return {
+      value: `${doneMin}/${plannedMin} min`,
+      hint: `${doneItems.length} of ${training.length} session${training.length === 1 ? '' : 's'} done`,
+    };
+  }
+  return {
+    value: `${doneItems.length}/${training.length}`,
+    hint: `Session${training.length === 1 ? '' : 's'} done today`,
+  };
+}
+
+/** Target sleep duration in hours from the profile's bedtime→wake
+ *  window, wrapping past midnight. Falls back to 8h when unset. */
+function targetSleepHours(profile: HealthProfile | null): number {
+  const bed = parseHHMM(profile?.schedule.sleep_target.bedtime ?? null);
+  const wake = parseHHMM(profile?.schedule.sleep_target.wake ?? null);
+  if (bed == null || wake == null) return 8;
+  let mins = wake - bed;
+  if (mins <= 0) mins += 24 * 60;
+  return mins / 60;
+}
+
+/** Daily protein target in grams — bodyweight × a goal-driven factor.
+ *  Null when weight is unset (no honest target without it). */
+function proteinTargetG(profile: HealthProfile | null): number | null {
+  const kg = profile?.body.weight_kg;
+  if (kg == null) return null;
+  const goal = profile?.goals.primary;
+  const factor =
+    goal === 'muscle_gain' || goal === 'athletic' ? 2.0 :
+    goal === 'fat_loss' ? 1.8 :
+    1.6;
+  return Math.round(kg * factor);
+}
+
+/** "HH:MM" → minutes since midnight, or null if malformed. */
+function parseHHMM(s: string | null): number | null {
+  if (!s) return null;
+  const m = /^(\d{1,2}):(\d{2})$/.exec(s.trim());
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return null;
+  return h * 60 + min;
+}
+
+/** Compact hours label — "7.5h", "8h". */
+function formatHours(h: number): string {
+  return `${Number(h.toFixed(1))}h`;
 }
 
 function StatusTile({ label, value, hint }: { label: string; value: string; hint: string }) {
@@ -338,29 +528,255 @@ function StatusTile({ label, value, hint }: { label: string; value: string; hint
   );
 }
 
-function QuickLogRow({ plan }: { plan: HealthDailyPlan | null }) {
-  // Placeholder — visible affordances now, wired in the quick-log
-  // commit. Each button is one-tap with no modal.
-  void plan;
+/**
+ * Quick log — meal / water / sleep / mood capture, no modal. Each
+ * tile toggles a compact inline editor below the row; the tile label
+ * reflects what's already logged so the row doubles as today's
+ * at-a-glance log summary. Every action writes straight through to
+ * the plan via the QuickLogApi.
+ */
+interface QuickLogApi {
+  addWater: (ml: number) => void;
+  resetWater: () => void;
+  setSleep: (hours: number | null) => void;
+  setMood: (mood: 1 | 2 | 3 | 4 | 5 | null) => void;
+  addMeal: (meal: { description: string; calories: number | null; protein_g: number | null }) => void;
+  removeMeal: (id: string) => void;
+}
+
+type QuickLogKind = 'meal' | 'water' | 'sleep' | 'mood';
+
+const MOOD_FACE: Record<number, string> = { 1: '😔', 2: '😕', 3: '😐', 4: '🙂', 5: '😄' };
+const MOOD_LABEL: Record<number, string> = { 1: 'Drained', 2: 'Low', 3: 'Okay', 4: 'Good', 5: 'Thriving' };
+
+function QuickLogRow({ plan, api }: { plan: HealthDailyPlan | null; api: QuickLogApi }) {
+  const [open, setOpen] = useState<QuickLogKind | null>(null);
+  const log = plan?.log;
+  const meals = log?.meals ?? [];
+  const water = log?.water_ml ?? 0;
+  const sleep = log?.sleep_hours ?? null;
+  const mood = log?.mood ?? null;
+  const toggle = (k: QuickLogKind) => setOpen(o => (o === k ? null : k));
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-      <LogButton label="+ Meal" disabled />
-      <LogButton label="+ Water" disabled />
-      <LogButton label="+ Sleep" disabled />
-      <LogButton label="+ Mood" disabled />
+    <div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <LogButton label={meals.length > 0 ? `Meals · ${meals.length}` : '+ Meal'} active={open === 'meal'} onClick={() => toggle('meal')} />
+        <LogButton label={water > 0 ? `Water · ${formatWater(water)}` : '+ Water'} active={open === 'water'} onClick={() => toggle('water')} />
+        <LogButton label={sleep != null ? `Sleep · ${formatHours(sleep)}` : '+ Sleep'} active={open === 'sleep'} onClick={() => toggle('sleep')} />
+        <LogButton label={mood != null ? `Mood ${MOOD_FACE[mood]}` : '+ Mood'} active={open === 'mood'} onClick={() => toggle('mood')} />
+      </div>
+
+      {open && (
+        <div className="mt-2 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/[0.04] px-4 py-3">
+          {open === 'meal'  && <MealEditor meals={meals} onAdd={api.addMeal} onRemove={api.removeMeal} />}
+          {open === 'water' && <WaterEditor water={water} onAdd={api.addWater} onReset={api.resetWater} />}
+          {open === 'sleep' && <SleepEditor sleep={sleep} onSet={api.setSleep} />}
+          {open === 'mood'  && <MoodEditor mood={mood} onSet={api.setMood} />}
+        </div>
+      )}
     </div>
   );
 }
 
-function LogButton({ label, disabled }: { label: string; disabled?: boolean }) {
+function LogButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
-      disabled={disabled}
-      className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-[12px] text-[var(--text-secondary)] transition hover:border-[var(--accent)]/40 hover:text-[var(--accent)] disabled:opacity-50 disabled:cursor-not-allowed"
+      onClick={onClick}
+      className={`rounded-lg border px-3 py-2 text-[12px] transition cursor-pointer ${
+        active
+          ? 'border-[var(--accent)]/60 bg-[var(--accent)]/10 text-[var(--accent)]'
+          : 'border-[var(--border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)]'
+      }`}
     >
       {label}
     </button>
+  );
+}
+
+function EditorChip({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="rounded-md border border-[var(--border)] bg-[var(--bg-input)] px-2.5 py-1 text-[11px] text-[var(--text-secondary)] transition hover:border-[var(--accent)]/40 hover:text-[var(--accent)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+    >
+      {children}
+    </button>
+  );
+}
+
+function WaterEditor({ water, onAdd, onReset }: { water: number; onAdd: (ml: number) => void; onReset: () => void }) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <span className="text-[11px] text-[var(--text-muted)]">Water today</span>
+        <span className="text-[14px] font-light text-[var(--text-primary)]">{formatWater(water)}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <EditorChip onClick={() => onAdd(250)}>+ 250 ml</EditorChip>
+        <EditorChip onClick={() => onAdd(500)}>+ 500 ml</EditorChip>
+        <EditorChip onClick={() => onAdd(-250)} disabled={water <= 0}>− 250 ml</EditorChip>
+        <EditorChip onClick={onReset} disabled={water <= 0}>Reset</EditorChip>
+      </div>
+    </div>
+  );
+}
+
+function SleepEditor({ sleep, onSet }: { sleep: number | null; onSet: (h: number | null) => void }) {
+  const current = sleep ?? 7.5;
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <span className="text-[11px] text-[var(--text-muted)]">Last night&apos;s sleep</span>
+        <span className="text-[14px] font-light text-[var(--text-primary)]">
+          {sleep != null ? formatHours(sleep) : 'Not logged'}
+        </span>
+      </div>
+      <div className="mt-2 flex items-center gap-2">
+        <EditorChip onClick={() => onSet(Math.max(0, round1(current - 0.5)))}>−30 min</EditorChip>
+        <span className="min-w-[3.5rem] text-center text-[13px] text-[var(--text-primary)]">{formatHours(current)}</span>
+        <EditorChip onClick={() => onSet(Math.min(14, round1(current + 0.5)))}>+30 min</EditorChip>
+        {sleep != null && <EditorChip onClick={() => onSet(null)}>Clear</EditorChip>}
+      </div>
+    </div>
+  );
+}
+
+function MoodEditor({ mood, onSet }: { mood: number | null; onSet: (m: 1 | 2 | 3 | 4 | 5 | null) => void }) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <span className="text-[11px] text-[var(--text-muted)]">How you feel today</span>
+        {mood != null && (
+          <button
+            type="button"
+            onClick={() => onSet(null)}
+            className="border-none bg-transparent text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] transition cursor-pointer"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      <div className="mt-2 flex gap-2">
+        {([1, 2, 3, 4, 5] as const).map(m => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => onSet(m)}
+            aria-label={MOOD_LABEL[m]}
+            title={MOOD_LABEL[m]}
+            className={`flex-1 rounded-lg border py-2 text-[18px] transition cursor-pointer ${
+              mood === m
+                ? 'border-[var(--accent)]/60 bg-[var(--accent)]/10'
+                : 'border-[var(--border)] bg-transparent hover:border-[var(--accent)]/40'
+            }`}
+          >
+            {MOOD_FACE[m]}
+          </button>
+        ))}
+      </div>
+      <div className="mt-1.5 flex justify-between text-[9px] uppercase tracking-wider text-[var(--text-muted)]">
+        <span>Drained</span>
+        <span>Thriving</span>
+      </div>
+    </div>
+  );
+}
+
+function MealEditor({ meals, onAdd, onRemove }: {
+  meals: HealthDailyLog['meals'];
+  onAdd: (m: { description: string; calories: number | null; protein_g: number | null }) => void;
+  onRemove: (id: string) => void;
+}) {
+  const [desc, setDesc] = useState('');
+  const [kcal, setKcal] = useState('');
+  const [protein, setProtein] = useState('');
+  const canAdd = desc.trim().length > 0;
+  const numOrNull = (s: string): number | null => {
+    const n = Number(s.trim());
+    return s.trim() && Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+  };
+  const submit = () => {
+    if (!canAdd) return;
+    onAdd({ description: desc.trim(), calories: numOrNull(kcal), protein_g: numOrNull(protein) });
+    setDesc('');
+    setKcal('');
+    setProtein('');
+  };
+  const fieldCls =
+    'rounded-md border border-[var(--border)] bg-[var(--bg-input)] px-3 py-1.5 text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)]/50 transition';
+
+  return (
+    <div>
+      {meals.length > 0 && (
+        <ul className="mb-3 space-y-1">
+          {meals.map(m => (
+            <li key={m.id} className="flex items-baseline justify-between gap-2 text-[12px]">
+              <span className="min-w-0 truncate text-[var(--text-primary)]">
+                <span className="font-mono text-[10px] text-[var(--text-muted)]">{m.time}</span>{' '}
+                {m.description ?? 'Meal'}
+              </span>
+              <span className="flex shrink-0 items-baseline gap-2">
+                {(m.calories != null || m.protein_g != null) && (
+                  <span className="text-[10px] text-[var(--text-muted)]">
+                    {[
+                      m.calories != null ? `${m.calories} kcal` : null,
+                      m.protein_g != null ? `${m.protein_g} g P` : null,
+                    ].filter(Boolean).join(' · ')}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onRemove(m.id)}
+                  aria-label="Remove meal"
+                  className="border-none bg-transparent text-[var(--text-muted)] hover:text-red-300 transition cursor-pointer"
+                >
+                  ×
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="space-y-2">
+        <input
+          value={desc}
+          onChange={e => setDesc(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') submit(); }}
+          placeholder="What did you eat?"
+          className={`w-full ${fieldCls}`}
+        />
+        <div className="flex gap-2">
+          <input
+            value={kcal}
+            onChange={e => setKcal(e.target.value.replace(/[^0-9]/g, ''))}
+            onKeyDown={e => { if (e.key === 'Enter') submit(); }}
+            inputMode="numeric"
+            placeholder="kcal (optional)"
+            className={`min-w-0 flex-1 ${fieldCls}`}
+          />
+          <input
+            value={protein}
+            onChange={e => setProtein(e.target.value.replace(/[^0-9]/g, ''))}
+            onKeyDown={e => { if (e.key === 'Enter') submit(); }}
+            inputMode="numeric"
+            placeholder="protein g (optional)"
+            className={`min-w-0 flex-1 ${fieldCls}`}
+          />
+          <button
+            type="button"
+            onClick={submit}
+            disabled={!canAdd}
+            className="shrink-0 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-4 py-1.5 text-[12px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Add
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -387,6 +803,47 @@ function WhyDrawer({ reasoning }: { reasoning: string | null }) {
 }
 
 // ── Utilities ────────────────────────────────────────────────────────
+
+/** A blank plan for a date — minted when the operator logs something
+ *  before any plan exists, so the first log still has a home. */
+function freshDailyPlan(date: string): HealthDailyPlan {
+  return {
+    schema_version: 1,
+    date,
+    morning_brief: null,
+    brief_reasoning: null,
+    items: [],
+    log: { meals: [], water_ml: 0, sleep_hours: null, mood: null },
+    updated_at: null,
+  };
+}
+
+/** Stable id for a logged meal — UUID where available, else a short
+ *  time-seeded fallback (webview crypto is normally present, but the
+ *  fallback keeps logging working if it isn't). */
+function logId(): string {
+  try {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  } catch { /* fall through to fallback */ }
+  return `m_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** Current local time as "HH:MM" — stamps the moment a meal is logged. */
+function nowHHMM(): string {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/** Water volume label — litres past 1 L, millilitres below. */
+function formatWater(ml: number): string {
+  if (ml >= 1000) return `${Number((ml / 1000).toFixed(1))} L`;
+  return `${ml} ml`;
+}
+
+/** Round to one decimal — guards float drift on the 0.5h sleep steps. */
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
 
 function todayIso(): string {
   const now = new Date();

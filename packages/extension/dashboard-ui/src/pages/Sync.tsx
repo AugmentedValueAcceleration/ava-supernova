@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
-import { t, useLocale } from '../i18n';
+import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
 import type { SyncStatus, ExtToDashboardMessage } from '../types/messages';
 import {
   Brain, CheckSquare, BookOpen, GraduationCap,
-  GearSix, MaskHappy, Lightbulb,
+  GearSix, MaskHappy, Lightbulb, Heartbeat,
 } from '@phosphor-icons/react';
+
+/** Sync categories the host accepts on set_sync_pref / push_to_cloud. */
+type SyncDataType =
+  | 'memory' | 'tasks' | 'journal' | 'learning' | 'history'
+  | 'settings' | 'personality' | 'learnings' | 'health_profile';
 
 function getSyncDataTypes() {
   // Chat history is intentionally absent — it's local-only by design
@@ -22,6 +27,7 @@ function getSyncDataTypes() {
     { key: 'settings',    label: t('dash.sync.settings'),         icon: <GearSix weight="duotone" size={18} />,  description: t('dash.sync.settings_desc') },
     { key: 'personality', label: t('dash.sync.personality'),       icon: <MaskHappy weight="duotone" size={18} />, description: t('dash.sync.personality_desc') },
     { key: 'learnings',   label: t('dash.sync.shared_learnings'), icon: <Lightbulb weight="duotone" size={18} />, description: t('dash.sync.shared_learnings_desc') },
+    { key: 'health_profile', label: tt('dash.sync.health_profile', 'Health profile'), icon: <Heartbeat weight="duotone" size={18} />, description: tt('dash.sync.health_profile_desc', 'Body stats, goals, constraints and your schedule — what Ava reads for your daily plan') },
   ] as const;
 }
 
@@ -47,13 +53,16 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
     return () => window.removeEventListener('message', onMessage);
   }, []);
 
-  const isSyncEnabled = (key: string) => syncPrefs[key] ?? (key === 'learnings' ? false : true);
+  // Default ON, except the opt-in categories — `learnings` (shares to a
+  // global pool) and `health_profile` (most sensitive data; cloud backup
+  // is an explicit choice). Mirrors the host's getSyncPrefs defaults.
+  const isSyncEnabled = (key: string) => syncPrefs[key] ?? !(key === 'learnings' || key === 'health_profile');
 
   const togglePref = (key: string) => {
     const next = !isSyncEnabled(key);
     // Optimistic UI; host echoes the authoritative state back via sync_prefs_loaded.
     setSyncPrefs(prev => ({ ...prev, [key]: next }));
-    post({ type: 'set_sync_pref', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings', enabled: next });
+    post({ type: 'set_sync_pref', dataType: key as SyncDataType, enabled: next });
   };
 
   return (
@@ -139,7 +148,7 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
 
                 {/* Push button */}
                 <button
-                  onClick={() => post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' })}
+                  onClick={() => post({ type: 'push_to_cloud', dataType: key as SyncDataType })}
                   disabled={!isConnected || syncing || localCount === 0 || (isUpToDate && !syncing) || !isSyncEnabled(key)}
                   className="flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-30 disabled:cursor-not-allowed"
                 >
@@ -179,7 +188,7 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
                 if (!isSyncEnabled(key)) continue; // Skip disabled sections
                 const status = syncStatus?.[key];
                 if (status && status.localCount > 0) {
-                  post({ type: 'push_to_cloud', dataType: key as 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' });
+                  post({ type: 'push_to_cloud', dataType: key as SyncDataType });
                 }
               }
             }}

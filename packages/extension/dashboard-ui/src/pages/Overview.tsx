@@ -112,6 +112,10 @@ interface OverviewProps {
   onGenerateHealthMorningBrief: (date: string) => void;
   healthMorningBriefGenerating: boolean;
   healthMorningBriefError: string | null;
+  // Jumps to the Health & Nutrition page's Profile tab — used by the
+  // dashboard's "Set your goals" pointer to close the discoverability
+  // gap (the brief references goals, but goals are set elsewhere).
+  onNavigateToHealthProfile: () => void;
 }
 
 // ── Inner-tab type — mirrors the IDE Command Centre's lenses, plus
@@ -144,22 +148,15 @@ export function Overview({
   onGenerateHealthMorningBrief,
   healthMorningBriefGenerating,
   healthMorningBriefError,
+  onNavigateToHealthProfile,
 }: OverviewProps) {
   useLocale();
-  // Inner tab state — persists so the user lands back on whichever lens
-  // they last had open instead of always hitting Daily. Mirrors the IDE
-  // Command Centre's behaviour with its own localStorage key (the
-  // extension webview has its own storage scope, independent of the IDE).
-  const [tab, setTab] = useState<CcTab>(() => {
-    try {
-      const stored = localStorage.getItem('ava-ext-cc-tab');
-      return (stored === 'briefing' || stored === 'reflect' || stored === 'health') ? stored : 'daily';
-    } catch { return 'daily'; }
-  });
-  const switchTab = (next: CcTab) => {
-    setTab(next);
-    try { localStorage.setItem('ava-ext-cc-tab', next); } catch { /* quota / disabled */ }
-  };
+  // Inner tab state — Command Centre always opens on Daily. The previous
+  // session's tab is intentionally NOT restored: opening the Command
+  // Centre is a fresh "where am I today" moment, so the first lens is
+  // always the one that orients the operator.
+  const [tab, setTab] = useState<CcTab>('daily');
+  const switchTab = (next: CcTab) => setTab(next);
 
   useEffect(() => {
     if (logs.length === 0 && account) {
@@ -376,6 +373,7 @@ export function Overview({
           onGenerateMorningBrief={onGenerateHealthMorningBrief}
           briefGenerating={healthMorningBriefGenerating}
           briefError={healthMorningBriefError}
+          onNavigateToProfile={onNavigateToHealthProfile}
         />
       )}
 

@@ -119,6 +119,11 @@ interface Props {
   // Profile tab — local-first health profile data
   profile: HealthProfile | null;
   onSaveProfile: (next: HealthProfile) => void;
+  // Deep-link — when another surface navigates here wanting a specific
+  // tab (e.g. the Health Dashboard's "Set your goals" pointer). Consumed
+  // once on mount so a later plain visit lands on the default tab.
+  initialTab: Tab | null;
+  onConsumeInitialTab: () => void;
 }
 
 export function Health({
@@ -157,8 +162,10 @@ export function Health({
   onClearDraft,
   profile,
   onSaveProfile,
+  initialTab,
+  onConsumeInitialTab,
 }: Props) {
-  const [tab, setTab] = useState<Tab>('exercises');
+  const [tab, setTab] = useState<Tab>(() => initialTab ?? 'exercises');
   const [exerciseFilter, setExerciseFilter] = useState<'all' | HealthWorkoutType>('all');
   const [recipeFilter, setRecipeFilter] = useState<'all' | string>('all');
   // Search state — local to the page; resets on close/reopen. Debounced
@@ -183,6 +190,15 @@ export function Health({
   // Load My Submissions on first mount + when the result of a fresh
   // submission lands (the host triggers a reload on success).
   useEffect(() => { onLoadMySubmissions(); }, [onLoadMySubmissions]);
+
+  // Honour a deep-link tab request, then clear it so the next plain
+  // visit to this page lands on the default Exercises tab.
+  useEffect(() => {
+    if (initialTab) {
+      setTab(initialTab);
+      onConsumeInitialTab();
+    }
+  }, [initialTab, onConsumeInitialTab]);
 
   // Initial load — only fires once per tab per session because App.tsx
   // caches the slice. Subsequent page/filter changes go through the

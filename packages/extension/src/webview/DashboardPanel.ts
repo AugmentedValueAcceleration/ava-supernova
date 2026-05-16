@@ -3740,6 +3740,29 @@ export class DashboardPanel {
       };
     }
 
+    // Health profile lives in globalState, not a data file — so it sits
+    // outside the file-path loop above. Counts 1 once a profile with
+    // real data has been saved, else 0 (the Sync UI disables the push
+    // button on a 0 count, so an untouched profile never offers sync).
+    {
+      const stored = this.context.globalState.get<HealthProfile | null>('ava.healthProfile') ?? null;
+      const hasData = !!stored && stored.schema_version === 1 && (
+        stored.body.height_cm != null || stored.body.weight_kg != null ||
+        stored.body.sex != null || stored.body.date_of_birth != null ||
+        stored.goals.primary != null
+      );
+      const localCount = hasData ? 1 : 0;
+      const synced = syncState['health_profile'];
+      const syncedCount = synced?.syncedCount ?? 0;
+      data['health_profile'] = {
+        available: !!platformKey,
+        lastSynced: synced?.syncedAt ?? null,
+        localCount,
+        syncedCount,
+        newCount: Math.max(0, localCount - syncedCount),
+      };
+    }
+
     this.post({ type: 'sync_status', data });
   }
 
@@ -3938,6 +3961,26 @@ export class DashboardPanel {
           break;
         }
 
+        case 'health_profile': {
+          // Single-doc push, mirroring `settings` — the whole profile
+          // is one JSONB row per user on the platform.
+          const profile = this.getHealthProfile();
+          const res = await apiFetch('/health/profile/sync', {
+            platformKey,
+            method: 'POST',
+            body: { profile },
+          });
+          if (!res.ok) {
+            // Surface the status so a not-yet-deployed route (404) reads
+            // differently from a real server fault (5xx) or auth (401).
+            throw new Error(`Failed to sync health profile — HTTP ${res.status}`);
+          }
+          await this.saveSyncState('health_profile', 1);
+          this.post({ type: 'sync_completed', dataType, count: 1 });
+          await this.loadSyncStatus();
+          break;
+        }
+
         default:
           this.post({ type: 'sync_error', dataType, message: `Unknown data type: ${dataType}` });
       }
@@ -4030,10 +4073,15 @@ export class DashboardPanel {
   /** Read all sync prefs from globalState. Defaults: everything ON except `learnings`. */
   private getSyncPrefs(): Record<string, boolean> {
     const stored = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
-    const keys = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings', 'personality', 'learnings', 'generations'] as const;
+    const keys = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings', 'personality', 'learnings', 'generations', 'health_profile'] as const;
+    // Default ON, except the two opt-in categories: `learnings` (shares
+    // to a global pool) and `health_profile` (the most sensitive data
+    // in the product — cloud backup is an explicit choice, never a
+    // default).
+    const optInOnly = new Set(['learnings', 'health_profile']);
     const out: Record<string, boolean> = {};
     for (const k of keys) {
-      out[k] = stored[k] ?? (k === 'learnings' ? false : true);
+      out[k] = stored[k] ?? !optInOnly.has(k);
     }
     return out;
   }
@@ -4044,7 +4092,7 @@ export class DashboardPanel {
 
   /** Persist a sync pref + apply it live to the manager (where applicable). */
   private async setSyncPref(
-    dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' | 'generations',
+    dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' | 'generations' | 'health_profile',
     enabled: boolean,
   ): Promise<void> {
     const stored = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};

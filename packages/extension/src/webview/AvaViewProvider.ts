@@ -1996,7 +1996,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    * DashboardPanel push site.
    */
   public applySyncPref(
-    dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' | 'generations',
+    dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' | 'generations' | 'health_profile',
     enabled: boolean,
   ): void {
     // Combine with Data Mode — pref can only narrow, not broaden. If Data

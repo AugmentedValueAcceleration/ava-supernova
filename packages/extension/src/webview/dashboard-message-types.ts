@@ -1416,8 +1416,8 @@ export type DashboardToExtMessage =
   // Sync messages
   | { type: 'load_sync_status' }
   | { type: 'load_sync_prefs' }
-  | { type: 'set_sync_pref'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings'; enabled: boolean }
-  | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' }
+  | { type: 'set_sync_pref'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' | 'health_profile'; enabled: boolean }
+  | { type: 'push_to_cloud'; dataType: 'memory' | 'tasks' | 'journal' | 'learning' | 'history' | 'settings' | 'personality' | 'learnings' | 'health_profile' }
   | { type: 'save_avatar'; data: string; mimeType: string }
   | { type: 'remove_avatar' }
   | { type: 'load_avatar' }
