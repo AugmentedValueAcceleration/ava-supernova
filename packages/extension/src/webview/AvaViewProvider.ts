@@ -1078,7 +1078,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
                 this.taskManager = new TaskManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: taskSync });
                 const journalSync = new PlatformJournalSyncImpl('https://ava-supernova.com/api', platformKey);
                 this.journalManager = new JournalManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: journalSync });
-                await this.memoryManager.loadAll(this.projectInstructions);
+                // Warm the memory stores in the background — do NOT await.
+                // Nothing on the chat-init path needs them: the system
+                // prompt build takes no memory input, and memory's
+                // consumers (recall tool, Memory page) load on demand.
+                // Awaiting here blocked chat_init for ~6.6s on a large
+                // memory store — measured via the session-init logs.
+                void this.memoryManager.loadAll(this.projectInstructions)
+                  .catch(() => { /* non-fatal — consumers load on demand */ });
               }
             } catch (scopeErr) {
               this.log(`Account scoping failed, using default directory: ${scopeErr}`);
