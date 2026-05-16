@@ -61,7 +61,7 @@ import {
 import { StatusBar, type StatusBarState } from './status-bar.js';
 import { buildCurrentSystemPrompt as buildCurrentSystemPromptFn } from './system-prompt-builder.js';
 import { HistoryCoordinator } from './history-coordinator.js';
-import { includesCloud as dataModeIncludesCloud } from './data-mode.js';
+import { setCloudSync, cloudSyncEnabled } from './data-mode.js';
 
 export class AvaViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'ava-supernova.chatView';
@@ -307,7 +307,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     });
 
     const syncPrefs = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
-    const cloudAllowed = dataModeIncludesCloud(this.context);
+    const cloudAllowed = cloudSyncEnabled(this.context);
     if (platformKey) {
       const projectId = this.projectRoot
         ? crypto.createHash('sha256').update(this.projectRoot).digest('hex').slice(0, 16)
@@ -1482,7 +1482,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // setupAgent() call to throw ReferenceError, which stranded users
     // with a disabled chat input and zero token display in v0.48.x.
     const syncPrefs = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
-    const cloudAllowed = dataModeIncludesCloud(this.context);
+    const cloudAllowed = cloudSyncEnabled(this.context);
     const learningLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.learningLocalOnly') ?? false)
       || syncPrefs.learning === false
       || !cloudAllowed;
@@ -2001,7 +2001,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   ): void {
     // Combine with Data Mode — pref can only narrow, not broaden. If Data
     // Mode is Local the manager stays localOnly regardless of the pref.
-    const cloudAllowed = dataModeIncludesCloud(this.context);
+    const cloudAllowed = cloudSyncEnabled(this.context);
     const localOnly = !(enabled && cloudAllowed);
     switch (dataType) {
       case 'memory': this.memoryManager?.setLocalOnly(localOnly); break;
@@ -2020,12 +2020,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  /** Apply a Data Mode change to every background-sync manager so the
+  /** Apply a cloud-sync change to every background-sync manager so the
    *  toggle in the chat header takes effect immediately without a reload.
-   *  Hard gate: when mode is 'local' every manager goes localOnly, period.
+   *  Hard gate: when cloud sync is off every manager goes localOnly.
    *  Per-category sync prefs can narrow further but can't override. */
-  public applyDataMode(mode: 'local' | 'cloud' | 'both'): void {
-    const cloudAllowed = mode === 'cloud' || mode === 'both';
+  public applyCloudSync(enabled: boolean): void {
+    const cloudAllowed = enabled;
     const syncPrefs = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
     // Default to enabled (true) when the pref hasn't been explicitly set —
     // matches the "enabled by default" shape used at init time.
@@ -2047,7 +2047,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // dashboard pill showing the stale value until it next reloads
     // (different localStorage origins). postMessage already forwards to
     // the dashboard webview when externalPostMessage is wired.
-    this.postMessage({ type: 'data_mode_changed', mode } as never);
+    this.postMessage({ type: 'cloud_sync_changed', enabled } as never);
   }
 
   public async resetMemoryManager(): Promise<void> {
@@ -2330,16 +2330,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         await this.initializeSession();
         break;
 
-      case 'set_data_mode': {
+      case 'set_cloud_sync': {
         // Panel webview sent the toggle. Persist host-side and apply to
         // every manager (memory, tasks, journal, learning, history,
         // creative-assets) so the next save in the in-flight turn lands
         // on the right side. Mirrors the dashboard handler in
         // DashboardPanel.ts so both webviews drive the same path.
-        const { setDataMode } = await import('./data-mode.js');
-        await setDataMode(this.context, message.mode);
-        this.applyDataMode(message.mode);
-        this.log(`Data mode set to ${message.mode}`);
+        await setCloudSync(this.context, message.enabled);
+        this.applyCloudSync(message.enabled);
+        this.log(`Cloud sync ${message.enabled ? 'enabled' : 'disabled'}`);
         break;
       }
 

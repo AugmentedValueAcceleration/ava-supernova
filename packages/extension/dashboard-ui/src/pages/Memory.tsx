@@ -5,7 +5,7 @@ import { SectionGroup } from '../components/SectionGroup';
 import { StorageBadge } from '../components/StorageBadge';
 import { SearchIcon, PencilIcon, TrashIcon } from '../components/Icons';
 import type { MemoryEntry, MemoryCategory, GraphStats, ContradictionPair, ProceduralPatternUI } from '../types/messages';
-import { postData, postLoad, getDataMode } from '../lib/data-mode';
+import { postData, postLoad, cloudSyncEnabled } from '../lib/data-mode';
 
 const CATEGORY_COLORS: Record<string, string> = {
   pattern: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
@@ -247,8 +247,10 @@ interface MemoryProps {
 
 export function Memory({ memories, serverTotal, serverHasMore, graphStats, contradictions, patterns, projectBrain }: MemoryProps) {
   useLocale();
-  const dataMode = getDataMode();
-  const isLocal = dataMode === 'local';
+  // Display always shows local memories — cloud sync only affects
+  // whether cloud-side actions (delete cloud copy, server pagination)
+  // are offered, never what the list renders.
+  const cloudSync = cloudSyncEnabled();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -259,10 +261,11 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
   const [viewMode, setViewMode] = useState<ViewMode>('active');
   const [loadingMore, setLoadingMore] = useState(false);
 
-  // Refresh memories from host when page mounts
+  // Refresh memories from host when page mounts — always from the
+  // local store; the display is local-first.
   useEffect(() => {
-    postLoad({ type: 'load_local_memories' }, { type: 'load_memories' });
-  }, [dataMode]);
+    postLoad({ type: 'load_local_memories' });
+  }, []);
 
   // Partition entries
   const { activeEntries, staleEntries, archivedEntries } = useMemo(() => {
@@ -325,7 +328,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
   }, [viewEntries, search, categoryFilter]);
 
   function loadMore() {
-    if (dataMode !== 'local' && serverHasMore) {
+    if (cloudSync && serverHasMore) {
       setLoadingMore(true);
       post({ type: 'load_more_memories' });
       // loadingMore will be cleared when new memories arrive
@@ -410,7 +413,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => postLoad({ type: 'load_local_memories' }, { type: 'load_memories' })}
+            onClick={() => postLoad({ type: 'load_local_memories' })}
             className="rounded-lg border border-[rgba(168,85,247,0.2)] bg-transparent px-3 py-1.5 text-xs text-[#9ca3af] transition hover:text-white"
             title="Refresh memories"
           >
@@ -451,7 +454,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
             >
               Local Only
             </button>
-            {dataMode !== 'local' &&(
+            {cloudSync &&(
               <button
                 onClick={() => deleteAllMemories('cloud')}
                 disabled={deletingAll}
@@ -460,7 +463,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
                 Cloud Only
               </button>
             )}
-            {dataMode !== 'local' &&(
+            {cloudSync &&(
               <button
                 onClick={() => deleteAllMemories('both')}
                 disabled={deletingAll}
@@ -479,9 +482,9 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
         </div>
       )}
 
-      {isLocal && (
+      {!cloudSync && (
         <div className="mb-6 rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] px-4 py-3 text-xs text-[var(--text-muted)]">
-          Memories stored locally — connect an account to sync across devices.
+          Memories are stored on this machine — turn on Cloud sync to back them up across devices.
         </div>
       )}
 
@@ -830,7 +833,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
             ))}
 
             {/* Load more from server */}
-            {dataMode !== 'local' &&serverHasMore && (
+            {cloudSync &&serverHasMore && (
               <button
                 onClick={loadMore}
                 disabled={loadingMore}

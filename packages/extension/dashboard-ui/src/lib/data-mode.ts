@@ -1,68 +1,55 @@
 /**
- * Data mode helper — reads the user's storage preference and posts
- * messages to the correct targets (local, cloud, or both).
+ * Cloud-sync helper for the dashboard webview. Data is ALWAYS saved
+ * locally — that is the floor, not a setting. This module only governs
+ * whether a copy is also written to the cloud.
+ *
+ * Replaces the old three-way local/cloud/both "Data Mode": in a
+ * local-first product "local" was never a mode, it was the foundation.
  */
 
 import { post } from '../vscode';
 import type { DashboardToExtMessage } from '../types/messages';
 
-export type DataMode = 'local' | 'cloud' | 'both';
+const KEY = 'ava-cloud-sync';
 
-export function getDataMode(): DataMode {
-  return (localStorage.getItem('ava-data-mode') as DataMode) || 'local';
+/** True when a cloud copy should also be written. Default OFF — nothing
+ *  leaves the machine until the operator opts in. Migrates the legacy
+ *  three-value `ava-data-mode`: `cloud`/`both` -> on, `local` -> off. */
+export function cloudSyncEnabled(): boolean {
+  try {
+    const v = localStorage.getItem(KEY);
+    if (v === 'true') return true;
+    if (v === 'false') return false;
+    const legacy = localStorage.getItem('ava-data-mode');
+    return legacy === 'cloud' || legacy === 'both';
+  } catch {
+    return false;
+  }
 }
 
 /**
- * Post a data operation to the correct target(s) based on the user's data mode.
+ * Write op — always saves locally, and also posts the cloud message
+ * when cloud sync is on.
  *
- * @param localMsg  - message to post for local storage
- * @param cloudMsg  - message to post for cloud storage
- *
- * When mode is 'local'  → posts localMsg only
- * When mode is 'cloud'  → posts cloudMsg only
- * When mode is 'both'   → posts localMsg first, then cloudMsg
+ * @param localMsg - message that writes to the local store
+ * @param cloudMsg - message that writes to the cloud
  */
 export function postData(
   localMsg: DashboardToExtMessage,
   cloudMsg: DashboardToExtMessage,
 ): void {
-  const mode = getDataMode();
-  if (mode === 'local' || mode === 'both') post(localMsg);
-  if (mode === 'cloud' || mode === 'both') post(cloudMsg);
+  post(localMsg);
+  if (cloudSyncEnabled()) post(cloudMsg);
 }
 
 /**
- * Post a load/read operation — reads from the appropriate source.
- * For 'both', loads from both so the UI gets a merged view.
+ * Read op — always loads from the local store. Display always shows
+ * your local data; pulling the cloud copy down is a separate, explicit
+ * action (the "refresh from cloud" button), never an implicit effect
+ * of a toggle.
+ *
+ * @param localMsg - message that reads from the local store
  */
-export function postLoad(
-  localMsg: DashboardToExtMessage,
-  cloudMsg: DashboardToExtMessage,
-): void {
-  const mode = getDataMode();
-  if (mode === 'local') {
-    post(localMsg);
-  } else if (mode === 'cloud') {
-    post(cloudMsg);
-  } else {
-    // Both — load from both, UI merges
-    post(localMsg);
-    post(cloudMsg);
-  }
-}
-
-/**
- * Check if local operations should be included.
- */
-export function includesLocal(): boolean {
-  const mode = getDataMode();
-  return mode === 'local' || mode === 'both';
-}
-
-/**
- * Check if cloud operations should be included.
- */
-export function includesCloud(): boolean {
-  const mode = getDataMode();
-  return mode === 'cloud' || mode === 'both';
+export function postLoad(localMsg: DashboardToExtMessage): void {
+  post(localMsg);
 }

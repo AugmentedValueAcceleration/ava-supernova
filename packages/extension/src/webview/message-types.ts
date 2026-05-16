@@ -103,7 +103,7 @@ export type ExtToWebviewMessage =
     }
   | { type: 'chat_cleared' }
   | { type: 'focus_input' }
-  | { type: 'data_mode_changed'; mode: 'local' | 'cloud' | 'both' }
+  | { type: 'cloud_sync_changed'; enabled: boolean }
   | { type: 'context_usage'; used: number; limit: number; percent: number }
   | { type: 'compression_start' }
   | { type: 'compression_end'; originalTokens: number; compressedTokens: number }
@@ -249,7 +249,7 @@ export type WebviewToExtMessage =
   | { type: 'webview_ready' }
   | { type: 'compress_context' }
   | { type: 'set_provider_source'; source: ProviderSource }
-  | { type: 'set_data_mode'; mode: 'local' | 'cloud' | 'both' }
+  | { type: 'set_cloud_sync'; enabled: boolean }
   | { type: 'request_memory' }
   | { type: 'save_memory'; scope: 'global' | 'project'; content: string }
   | { type: 'clear_memory'; scope: 'global' | 'project' }

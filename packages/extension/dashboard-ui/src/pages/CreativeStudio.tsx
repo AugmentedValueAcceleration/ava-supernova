@@ -413,9 +413,10 @@ function saveLocalAsset(type: string, url: string, title: string, prompt: string
     localStorage.setItem('ava-creative-assets', JSON.stringify(assets));
   } catch { /* quota */ }
 
-  // When Local or Both mode is active, also save the file to disk
-  const dataMode = localStorage.getItem('ava-data-mode') || 'local';
-  if (dataMode === 'local' || dataMode === 'both') {
+  // Always save the file to disk — local-first: the asset is kept on
+  // the machine regardless of cloud-sync state. (Cloud upload, when
+  // sync is on, is handled separately by the host.)
+  {
     const extMap: Record<string, string> = { image: 'png', music: 'mp3', voice: 'mp3', video: 'mp4' };
     const dirMap: Record<string, string> = { image: 'images', music: '.ava/creative/audio', voice: '.ava/creative/voice', video: '.ava/creative/video' };
     const ext = extMap[type] || 'bin';

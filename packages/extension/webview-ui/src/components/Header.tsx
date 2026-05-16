@@ -3,9 +3,6 @@ import { ModelSelector } from './ModelSelector';
 import { t, tt, useLocale } from '../i18n';
 import { useVSCodeApi } from '../hooks/useVSCodeApi';
 
-type DataMode = 'local' | 'cloud' | 'both';
-const DATA_MODES: DataMode[] = ['local', 'cloud', 'both'];
-
 interface HeaderProps {
   models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;
   activeModel: string | null;
@@ -49,48 +46,49 @@ export function Header({
   useLocale();
   const { postMessage } = useVSCodeApi();
 
-  // Local/Cloud/Both data-mode pill — mirrors IDE chat header at
-  // DashboardPages.tsx:4163-4205 and the dashboard chat Header. Persists
-  // to localStorage AND posts set_data_mode to the host so the active
-  // managers (memory, tasks, journal, learning, history, creative)
-  // honour the choice on the next save.
-  const [dataMode, setDataMode] = useState<DataMode>(() => {
+  // Cloud-sync toggle. Data is ALWAYS saved locally; this only controls
+  // whether a copy is also backed up to the platform. Persists to
+  // localStorage AND posts set_cloud_sync to the host so the active
+  // managers (memory, tasks, journal, learning, creative) honour the
+  // choice on the next save. Replaces the old three-way Local/Cloud/Both
+  // "Data Mode" — in a local-first product "local" was never a mode.
+  const [cloudSync, setCloudSync] = useState<boolean>(() => {
     try {
-      const stored = localStorage.getItem('ava-data-mode');
-      if (stored === 'cloud' || stored === 'both' || stored === 'local') return stored;
-    } catch { /* localStorage unavailable */ }
-    return 'local';
+      const stored = localStorage.getItem('ava-cloud-sync');
+      if (stored === 'true') return true;
+      if (stored === 'false') return false;
+      // Migrate the legacy three-value data mode: cloud/both -> on.
+      const legacy = localStorage.getItem('ava-data-mode');
+      return legacy === 'cloud' || legacy === 'both';
+    } catch { return false; }
   });
 
   useEffect(() => {
     // Echo current state to host on mount so the manager flags align
-    // with localStorage even before the user clicks the pill.
-    postMessage({ type: 'set_data_mode', mode: dataMode } as never);
+    // with localStorage even before the user clicks the toggle.
+    postMessage({ type: 'set_cloud_sync', enabled: cloudSync } as never);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Subscribe to host broadcasts so a flip on the dashboard pill is
-  // reflected here without a reload (and vice-versa). The host emits
-  // 'data_mode_changed' from applyDataMode regardless of which webview
-  // triggered the change.
+  // Subscribe to host broadcasts so a flip on the dashboard toggle is
+  // reflected here without a reload (and vice-versa).
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       const msg = e.data;
-      if (msg?.type === 'data_mode_changed' && (msg.mode === 'local' || msg.mode === 'cloud' || msg.mode === 'both')) {
-        setDataMode(msg.mode);
-        try { localStorage.setItem('ava-data-mode', msg.mode); } catch { /* */ }
+      if (msg?.type === 'cloud_sync_changed' && typeof msg.enabled === 'boolean') {
+        setCloudSync(msg.enabled);
+        try { localStorage.setItem('ava-cloud-sync', String(msg.enabled)); } catch { /* */ }
       }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  const cycleDataMode = useCallback(() => {
-    setDataMode(prev => {
-      const idx = DATA_MODES.indexOf(prev);
-      const next = DATA_MODES[(idx + 1) % DATA_MODES.length];
-      try { localStorage.setItem('ava-data-mode', next); } catch { /* */ }
-      postMessage({ type: 'set_data_mode', mode: next } as never);
+  const toggleCloudSync = useCallback(() => {
+    setCloudSync(prev => {
+      const next = !prev;
+      try { localStorage.setItem('ava-cloud-sync', String(next)); } catch { /* */ }
+      postMessage({ type: 'set_cloud_sync', enabled: next } as never);
       return next;
     });
   }, [postMessage]);
@@ -141,36 +139,26 @@ export function Header({
 
       <div className="flex-1" />
 
-      {/* Local / Cloud / Both data-mode pill — mirrors IDE chat header
-          at DashboardPages.tsx:4163-4205. */}
+      {/* Cloud-sync toggle — data is always local; this controls the
+          optional cloud backup. Green = local only, blue = cloud sync on. */}
       <button
-        onClick={cycleDataMode}
-        title={dataMode === 'local'
-          ? 'Local — data stays on your machine. Click to switch to Cloud.'
-          : dataMode === 'cloud'
-            ? 'Cloud — syncing to platform. Click to switch to Both.'
-            : 'Both — local backup + cloud sync. Click to switch to Local.'}
+        onClick={toggleCloudSync}
+        title={cloudSync
+          ? 'Cloud sync ON — a copy of your data is backed up to the platform. Click to turn off.'
+          : 'Cloud sync OFF — your data stays on this machine only. Click to turn on.'}
         style={{
           display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px',
-          background: dataMode === 'cloud' ? 'rgba(96,165,250,0.1)'
-            : dataMode === 'both' ? 'rgba(168,85,247,0.1)'
-            : 'rgba(166,227,161,0.1)',
-          border: `1px solid ${dataMode === 'cloud' ? 'rgba(96,165,250,0.3)'
-            : dataMode === 'both' ? 'rgba(168,85,247,0.3)'
-            : 'rgba(166,227,161,0.3)'}`,
+          background: cloudSync ? 'rgba(96,165,250,0.1)' : 'rgba(166,227,161,0.1)',
+          border: `1px solid ${cloudSync ? 'rgba(96,165,250,0.3)' : 'rgba(166,227,161,0.3)'}`,
           borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer',
-          color: dataMode === 'cloud' ? '#60a5fa'
-            : dataMode === 'both' ? '#a855f7'
-            : '#a6e3a1',
+          color: cloudSync ? '#60a5fa' : '#a6e3a1',
         }}
       >
         <span style={{
           width: 6, height: 6, borderRadius: '50%',
-          background: dataMode === 'cloud' ? '#60a5fa'
-            : dataMode === 'both' ? '#a855f7'
-            : '#a6e3a1',
+          background: cloudSync ? '#60a5fa' : '#a6e3a1',
         }} />
-        {dataMode === 'local' ? tt('dash.chat.local', 'Local') : dataMode === 'cloud' ? tt('dash.chat.cloud', 'Cloud') : tt('dash.chat.both', 'Both')}
+        {cloudSync ? tt('dash.chat.cloud_sync', 'Cloud sync') : tt('dash.chat.local_only', 'Local only')}
       </button>
 
       {/* Tasks — labelled pill with badge, mirrors IDE header at

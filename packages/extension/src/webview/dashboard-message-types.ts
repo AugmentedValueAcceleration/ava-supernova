@@ -1220,7 +1220,7 @@ export type ExtToDashboardMessage =
   | { type: 'history_search_results'; conversations: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean }> }
   | { type: 'conversation_loaded'; conversationId: string; title: string; messages: Array<{ role: 'user' | 'assistant'; content: string }> }
   | { type: 'chat_cleared' }
-  | { type: 'data_mode_changed'; mode: 'local' | 'cloud' | 'both' }
+  | { type: 'cloud_sync_changed'; enabled: boolean }
   | { type: 'context_usage'; used: number; limit: number; percent: number }
   | { type: 'compression_start' }
   | { type: 'compression_end'; originalTokens: number; compressedTokens: number }
@@ -1317,12 +1317,11 @@ export type DashboardToExtMessage =
   | { type: 'update_name'; name: string }
   | { type: 'refresh_account' }
   | { type: 'refresh_storage' }
-  // User toggled Data Mode in the chat header. Host persists the value
-  // and every save-path handler reads it via getDataMode() / includesLocal()
-  // / includesCloud() before writing. Single source of truth — previously
-  // the toggle lived only in localStorage and most save paths ignored it,
-  // leaking to the cloud regardless of the user's choice.
-  | { type: 'set_data_mode'; mode: 'local' | 'cloud' | 'both' }
+  // User toggled Cloud sync in the chat header. Data is always saved
+  // locally; this only controls whether a copy also goes to the cloud.
+  // Host persists the boolean and every cloud-write path checks
+  // cloudSyncEnabled() before pushing.
+  | { type: 'set_cloud_sync'; enabled: boolean }
   // Cloud-data wipes. Each posts to the corresponding /api/<category>/all
   // DELETE endpoint on the platform, then pushes a refreshed account
   // snapshot so storage totals reflect the drop.

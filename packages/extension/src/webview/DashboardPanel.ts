@@ -29,7 +29,7 @@ import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, Journa
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
 import { sessionStats } from '../session-stats.js';
-import { setDataMode as setHostDataMode, includesCloud as dataModeIncludesCloud } from './data-mode.js';
+import { setCloudSync, cloudSyncEnabled, dataModeHeader } from './data-mode.js';
 import type { AvaViewProvider } from './AvaViewProvider.js';
 import type {
   ExtToDashboardMessage,
@@ -438,12 +438,15 @@ export class DashboardPanel {
         await this.refreshStorage();
         break;
 
-      case 'set_data_mode': {
-        await setHostDataMode(this.context, msg.mode);
+      case 'set_cloud_sync': {
+        await setCloudSync(this.context, msg.enabled);
         // Flip each manager's localOnly state immediately so the toggle
         // takes effect without a reload. AvaViewProvider owns the
         // managers, so route through it.
-        this.viewProvider?.applyDataMode(msg.mode);
+        this.viewProvider?.applyCloudSync(msg.enabled);
+        // Re-emit sync status so the dashboard Sync tab activates /
+        // deactivates in step with the toggle.
+        this.loadSyncStatus().catch(() => { /* non-fatal */ });
         break;
       }
 
@@ -1837,7 +1840,7 @@ export class DashboardPanel {
     // local one, otherwise silent. Never blocks initial render.
     if (
       platformKey
-      && dataModeIncludesCloud(this.context)
+      && cloudSyncEnabled(this.context)
       && this.isSyncEnabled('settings')
     ) {
       this.pullSettingsFromCloud(platformKey).catch(() => { /* non-fatal */ });
@@ -3177,7 +3180,7 @@ export class DashboardPanel {
     assetType: 'document' | 'spreadsheet',
     prompt: string,
   ): Promise<void> {
-    if (!dataModeIncludesCloud(this.context)) return;
+    if (!cloudSyncEnabled(this.context)) return;
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
     if (!platformKey) return; // not signed in — cloud is opt-in, silently skip
 
@@ -3651,7 +3654,7 @@ export class DashboardPanel {
       // Previously this only checked isSyncEnabled, so choosing "Local"
       // in the chat header still pushed personality to the cloud whenever
       // the user edited Ava's style — a silent leak.
-      if (!dataModeIncludesCloud(this.context)) return;
+      if (!cloudSyncEnabled(this.context)) return;
       if (!this.isSyncEnabled('personality')) return;
       const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
       if (!platformKey) return;
@@ -3803,7 +3806,7 @@ export class DashboardPanel {
     // firing push_to_cloud, but any future caller (internal retries,
     // scheduled sync, a tool that wants to force-push) needs the
     // gate here too so Local mode stays truly local no matter what.
-    if (!dataModeIncludesCloud(this.context)) {
+    if (!cloudSyncEnabled(this.context)) {
       this.post({ type: 'sync_error', dataType, message: 'Data Mode is Local — cloud sync is disabled. Switch to Cloud or Both in the chat header.' });
       return;
     }
@@ -4135,7 +4138,7 @@ export class DashboardPanel {
   private async pushSettingsToCloud(settings: DashboardSettings): Promise<void> {
     try {
       // Data Mode hard gate first, then the per-category sync pref.
-      if (!dataModeIncludesCloud(this.context)) return;
+      if (!cloudSyncEnabled(this.context)) return;
       if (!this.isSyncEnabled('settings')) return;
       const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
       if (!platformKey) return;
@@ -4343,18 +4346,16 @@ export class DashboardPanel {
         this.post({ type: 'creative_result', success: false, error: 'Not connected. Add your account in Settings.' } as any);
         return;
       }
-      // Data Mode hard gate — when Local is set, the server skips the
+      // Cloud-sync hard gate — when sync is off the server skips the
       // Storage bucket upload + creative_assets insert and returns a
       // short-lived provider URL. The client is expected to save to
       // disk before the URL expires (see Creative Studio local save path).
-      const { getDataMode } = await import('./data-mode.js');
-      const mode = getDataMode(this.context);
       const res = await fetch(`https://ava-supernova.com/api/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${platformKey}`,
-          'X-Ava-Data-Mode': mode,
+          'X-Ava-Data-Mode': dataModeHeader(this.context),
         },
         body: JSON.stringify(body),
       });

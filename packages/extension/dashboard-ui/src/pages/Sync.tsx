@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
+import { cloudSyncEnabled } from '../lib/data-mode';
 import type { SyncStatus, ExtToDashboardMessage } from '../types/messages';
 import {
   Brain, CheckSquare, BookOpen, GraduationCap,
@@ -41,6 +42,10 @@ interface Props {
 export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Props) {
   useLocale();
   const [syncPrefs, setSyncPrefs] = useState<Record<string, boolean>>({});
+  // Whole tab is inactive when cloud sync is off — there's nothing to
+  // sync. Tracked live so flipping the chat-header toggle activates /
+  // deactivates the tab without a reload.
+  const [cloudSync, setCloudSync] = useState<boolean>(cloudSyncEnabled());
 
   // Source of truth lives in the extension host (globalState). Pull on mount
   // and whenever the host pushes an updated set.
@@ -48,6 +53,7 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
     post({ type: 'load_sync_prefs' });
     const onMessage = (e: MessageEvent<ExtToDashboardMessage>) => {
       if (e.data?.type === 'sync_prefs_loaded') setSyncPrefs(e.data.prefs);
+      if (e.data?.type === 'cloud_sync_changed') setCloudSync(e.data.enabled);
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
@@ -80,7 +86,14 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
         </div>
       )}
 
-      <div className="grid gap-3">
+      {isConnected && !cloudSync && (
+        <div className="rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] px-4 py-3 text-xs text-[var(--text-muted)] mb-6">
+          Cloud sync is off — your data stays on this machine. Turn on the{' '}
+          <span className="font-medium text-[#a6e3a1]">Cloud sync</span> toggle in the chat header to back up to the cloud.
+        </div>
+      )}
+
+      <div className={`grid gap-3 ${!cloudSync ? 'opacity-40 pointer-events-none select-none' : ''}`}>
         {getSyncDataTypes().map(({ key, label, icon, description }) => {
           const status = syncStatus?.[key];
           const syncing = syncingTypes.has(key);
@@ -180,7 +193,7 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
       </div>
 
       {/* Push all */}
-      {isConnected && (
+      {isConnected && cloudSync && (
         <div className="mt-6 flex justify-end">
           <button
             onClick={() => {

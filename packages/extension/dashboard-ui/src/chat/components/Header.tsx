@@ -4,9 +4,6 @@ import { t, tt, useLocale } from '../../i18n';
 import { post } from '../../vscode';
 import type { ProviderSource } from '../../types/messages';
 
-const SYNC_INTERVAL = 15 * 60 * 1000; // 15 minutes
-const SYNC_TYPES = ['memory', 'tasks', 'journal', 'learning', 'history', 'settings', 'personality'] as const;
-
 interface HeaderProps {
   models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;
   activeModel: string | null;
@@ -55,70 +52,53 @@ export function Header({
   // Knowledge-pack dropdown removed in v0.59.2. Stale localStorage key
   // 'ava-knowledge-packs' is harmless if it survives from a prior install.
 
-  // Local/Cloud/Both data mode — persisted
-  type DataMode = 'local' | 'cloud' | 'both';
-  const DATA_MODES: DataMode[] = ['local', 'cloud', 'both'];
-
-  const [dataMode, setDataMode] = useState<DataMode>(() => {
-    return (localStorage.getItem('ava-data-mode') as DataMode) || 'local';
+  // Cloud-sync toggle. Data is ALWAYS saved locally; this only controls
+  // whether a copy is also backed up to the platform. Replaces the old
+  // three-way Local/Cloud/Both data mode.
+  const [cloudSync, setCloudSyncState] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('ava-cloud-sync');
+      if (stored === 'true') return true;
+      if (stored === 'false') return false;
+      // Migrate the legacy three-value data mode: cloud/both -> on.
+      const legacy = localStorage.getItem('ava-data-mode');
+      return legacy === 'cloud' || legacy === 'both';
+    } catch { return false; }
   });
 
-  // Notify the extension host of the current mode on mount so its save
-  // handlers know whether to write locally, to the cloud, or both. Without
-  // this the host's default ('local') stays in place until the user
-  // clicks the toggle for the first time — and any sync in the meantime
-  // would ignore the user's actual pref stored in localStorage.
+  // Notify the host of the current state on mount so its save handlers
+  // know whether a cloud copy should be written.
   useEffect(() => {
-    post({ type: 'set_data_mode', mode: dataMode });
+    post({ type: 'set_cloud_sync', enabled: cloudSync });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Subscribe to host broadcasts so a flip on the panel pill is
-  // reflected here without a reload (and vice-versa). Mirrors the
-  // panel Header's subscription so both surfaces stay in sync.
+  // Subscribe to host broadcasts so a flip on the panel toggle is
+  // reflected here without a reload (and vice-versa).
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       const msg = e.data;
-      if (msg?.type === 'data_mode_changed' && (msg.mode === 'local' || msg.mode === 'cloud' || msg.mode === 'both')) {
-        setDataMode(msg.mode);
-        try { localStorage.setItem('ava-data-mode', msg.mode); } catch { /* */ }
+      if (msg?.type === 'cloud_sync_changed' && typeof msg.enabled === 'boolean') {
+        setCloudSyncState(msg.enabled);
+        try { localStorage.setItem('ava-cloud-sync', String(msg.enabled)); } catch { /* */ }
       }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  const cycleDataMode = useCallback(() => {
+  // Turning cloud sync on does NOT fire a mass upload — pushes are
+  // manual, per category, from the Sync tab. The toggle only opens the
+  // gate; the per-manager background sync handles ongoing writes.
+  const toggleCloudSync = useCallback(() => {
     if (!platformStatus?.connected) return;
-    setDataMode(prev => {
-      const idx = DATA_MODES.indexOf(prev);
-      const next = DATA_MODES[(idx + 1) % DATA_MODES.length];
-      localStorage.setItem('ava-data-mode', next);
-      // Tell the host immediately — save handlers read this before every
-      // write, so a delayed post would mean the first write after a
-      // toggle could still go the old direction.
-      post({ type: 'set_data_mode', mode: next });
+    setCloudSyncState(prev => {
+      const next = !prev;
+      try { localStorage.setItem('ava-cloud-sync', String(next)); } catch { /* */ }
+      post({ type: 'set_cloud_sync', enabled: next });
       return next;
     });
   }, [platformStatus?.connected]);
-
-  // Auto-sync when cloud or both mode is active
-  useEffect(() => {
-    if ((dataMode !== 'cloud' && dataMode !== 'both') || !platformStatus?.connected) return;
-
-    // Sync immediately on switching to cloud/both
-    for (const dt of SYNC_TYPES) {
-      post({ type: 'push_to_cloud', dataType: dt });
-    }
-
-    const interval = setInterval(() => {
-      for (const dt of SYNC_TYPES) {
-        post({ type: 'push_to_cloud', dataType: dt });
-      }
-    }, SYNC_INTERVAL);
-
-    return () => clearInterval(interval);
-  }, [dataMode, platformStatus?.connected]);
 
   return (
     <div className="border-b" style={{ borderColor: 'rgba(168, 85, 247, 0.12)' }}>
@@ -160,37 +140,27 @@ export function Header({
 
       {/* Right side: data mode + provider toggle + tokens + context ring + tasks */}
       <div className="flex items-center gap-3">
-        {/* Local/Cloud/Both data toggle */}
+        {/* Cloud-sync toggle — data is always saved locally; this
+            controls the optional cloud backup. Shown only when an
+            account is connected (cloud sync needs one). */}
         {platformStatus?.connected && (
           <button
-            onClick={cycleDataMode}
+            onClick={toggleCloudSync}
             className="flex items-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-[10px] font-semibold cursor-pointer transition-all"
             style={{
-              background: dataMode === 'cloud' ? 'rgba(137,180,250,0.1)'
-                : dataMode === 'both' ? 'rgba(168,85,247,0.1)'
-                : 'rgba(166,227,161,0.1)',
-              borderColor: dataMode === 'cloud' ? 'rgba(137,180,250,0.3)'
-                : dataMode === 'both' ? 'rgba(168,85,247,0.3)'
-                : 'rgba(166,227,161,0.3)',
-              color: dataMode === 'cloud' ? '#89b4fa'
-                : dataMode === 'both' ? '#a855f7'
-                : '#a6e3a1',
+              background: cloudSync ? 'rgba(137,180,250,0.1)' : 'rgba(166,227,161,0.1)',
+              borderColor: cloudSync ? 'rgba(137,180,250,0.3)' : 'rgba(166,227,161,0.3)',
+              color: cloudSync ? '#89b4fa' : '#a6e3a1',
             }}
-            title={dataMode === 'local'
-              ? 'Local — data stays on your machine. Click to switch to Cloud.'
-              : dataMode === 'cloud'
-              ? 'Cloud — syncing to platform. Click to switch to Both.'
-              : 'Both — local backup + cloud sync. Click to switch to Local.'}
+            title={cloudSync
+              ? 'Cloud sync ON — a copy of your data is backed up to the platform. Click to turn off.'
+              : 'Cloud sync OFF — your data stays on this machine only. Click to turn on.'}
           >
             <span
               className="inline-block w-1.5 h-1.5 rounded-full"
-              style={{
-                background: dataMode === 'cloud' ? '#89b4fa'
-                  : dataMode === 'both' ? '#a855f7'
-                  : '#a6e3a1',
-              }}
+              style={{ background: cloudSync ? '#89b4fa' : '#a6e3a1' }}
             />
-            {dataMode === 'local' ? tt('dash.chat.local', 'Local') : dataMode === 'cloud' ? tt('dash.chat.cloud', 'Cloud') : tt('dash.chat.both', 'Both')}
+            {cloudSync ? tt('dash.chat.cloud_sync', 'Cloud sync') : tt('dash.chat.local_only', 'Local only')}
           </button>
         )}
 
