@@ -211,13 +211,17 @@ export class DashboardPanel {
     }
 
     switch (msg.type) {
-      case 'webview_ready':
+      case 'webview_ready': {
+        const tReady = Date.now();
+        this.log(`[health-perf] HOST recv webview_ready at ${tReady}`);
         await this.sendInit();
+        this.log(`[health-perf] HOST sendInit done ${Date.now() - tReady}ms`);
         // Also initialise the chat engine
         if (this.viewProvider) {
           this.viewProvider.initChatForUnifiedPanel().catch((err) => console.error('[Ava] Chat init failed:', err));
         }
         break;
+      }
 
       case 'connect_account':
         await this.connectAccount(msg.key);
@@ -873,6 +877,7 @@ export class DashboardPanel {
         const limit = msg.limit ?? 24;
         const offset = msg.offset ?? 0;
         const seq = msg.seq;
+        const t0 = Date.now();
         const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
         if (msg.workoutType) params.set('workout_type', msg.workoutType);
         if (msg.q && msg.q.trim()) params.set('q', msg.q.trim());
@@ -880,13 +885,18 @@ export class DashboardPanel {
           // Route through apiFetch so auth (when signed in) + X-Ava-Device
           // (always) flow automatically. The server's auth-aware list path
           // returns published + caller's own pending/rejected rows.
+          this.log(`[health-perf] HOST recv load_health_exercises seq=${seq} at ${t0}`);
+          const tKey = Date.now();
           const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+          this.log(`[health-perf] HOST secrets.get seq=${seq} took ${Date.now() - tKey}ms`);
           this.log(`[health] load exercises seq=${seq} ${params.toString()}`);
+          const tFetch = Date.now();
           const res = await apiFetch(`/health/exercises?${params.toString()}`, {
             platformKey,
             method: 'GET',
             timeoutMs: 8000,
           });
+          this.log(`[health-perf] HOST apiFetch /health/exercises seq=${seq} took ${Date.now() - tFetch}ms ok=${res.ok} status=${res.status}`);
           if (!res.ok) {
             this.log(`[health] load exercises seq=${seq} failed: HTTP ${res.status}`);
             this.post({ type: 'health_exercises_loaded', exercises: [], total: 0, offset, seq });
@@ -894,6 +904,7 @@ export class DashboardPanel {
           }
           const data = res.data as { exercises?: HealthExerciseSummary[]; total?: number };
           this.log(`[health] load exercises seq=${seq} ok count=${data.exercises?.length ?? 0} total=${data.total ?? 0}`);
+          this.log(`[health-perf] HOST post health_exercises_loaded seq=${seq} total handler ${Date.now() - t0}ms`);
           this.post({
             type: 'health_exercises_loaded',
             exercises: data.exercises ?? [],
@@ -912,17 +923,23 @@ export class DashboardPanel {
         const limit = msg.limit ?? 24;
         const offset = msg.offset ?? 0;
         const seq = msg.seq;
+        const t0 = Date.now();
         const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
         if (msg.course) params.set('course', msg.course);
         if (msg.q && msg.q.trim()) params.set('q', msg.q.trim());
         try {
+          this.log(`[health-perf] HOST recv load_health_recipes seq=${seq} at ${t0}`);
+          const tKey = Date.now();
           const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+          this.log(`[health-perf] HOST secrets.get seq=${seq} took ${Date.now() - tKey}ms`);
           this.log(`[health] load recipes seq=${seq} ${params.toString()}`);
+          const tFetch = Date.now();
           const res = await apiFetch(`/health/recipes?${params.toString()}`, {
             platformKey,
             method: 'GET',
             timeoutMs: 8000,
           });
+          this.log(`[health-perf] HOST apiFetch /health/recipes seq=${seq} took ${Date.now() - tFetch}ms ok=${res.ok} status=${res.status}`);
           if (!res.ok) {
             this.log(`[health] load recipes seq=${seq} failed: HTTP ${res.status}`);
             this.post({ type: 'health_recipes_loaded', recipes: [], total: 0, offset, seq });
@@ -930,6 +947,7 @@ export class DashboardPanel {
           }
           const data = res.data as { recipes?: HealthRecipeSummary[]; total?: number };
           this.log(`[health] load recipes seq=${seq} ok count=${data.recipes?.length ?? 0} total=${data.total ?? 0}`);
+          this.log(`[health-perf] HOST post health_recipes_loaded seq=${seq} total handler ${Date.now() - t0}ms`);
           this.post({
             type: 'health_recipes_loaded',
             recipes: data.recipes ?? [],

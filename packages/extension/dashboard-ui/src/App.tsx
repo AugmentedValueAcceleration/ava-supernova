@@ -69,6 +69,14 @@ import type {
 
 export { post };
 
+// ── Health load instrumentation ───────────────────────────────────────────
+// Temporary perf probe — pinpoints where the "minutes to load" delay sits in
+// the exercises/recipes path. Module-eval timestamp anchors segment 1 (how
+// long after the bundle starts before the load message is posted).
+const HEALTH_PERF_BUNDLE_EVAL = Date.now();
+console.log(`[health-perf] webview bundle eval at ${HEALTH_PERF_BUNDLE_EVAL}`);
+const healthPerfPostTs = new Map<number, number>(); // seq -> post Date.now()
+
 export function App() {
   useLocale(); // re-render on language change
   const [initialized, setInitialized] = useState(false);
@@ -290,6 +298,9 @@ export function App() {
     healthExercisesSeqRef.current += 1;
     const seq = healthExercisesSeqRef.current;
     setHealthExercisesLoading(true);
+    const now = Date.now();
+    healthPerfPostTs.set(seq, now);
+    console.log(`[health-perf] webview POST load_health_exercises seq=${seq} at ${now} (+${now - HEALTH_PERF_BUNDLE_EVAL}ms since eval)`);
     post({ type: 'load_health_exercises', limit, offset, workoutType, q, seq });
     window.setTimeout(() => setHealthExercisesLoading(false), 15000);
   }, []);
@@ -297,6 +308,9 @@ export function App() {
     healthRecipesSeqRef.current += 1;
     const seq = healthRecipesSeqRef.current;
     setHealthRecipesLoading(true);
+    const now = Date.now();
+    healthPerfPostTs.set(seq, now);
+    console.log(`[health-perf] webview POST load_health_recipes seq=${seq} at ${now} (+${now - HEALTH_PERF_BUNDLE_EVAL}ms since eval)`);
     post({ type: 'load_health_recipes', limit, offset, course, q, seq });
     window.setTimeout(() => setHealthRecipesLoading(false), 15000);
   }, []);
@@ -736,7 +750,10 @@ export function App() {
         setPaperDetail(msg.paper);
         setPaperDetailLoading(false);
         break;
-      case 'health_exercises_loaded':
+      case 'health_exercises_loaded': {
+        const postedAt = msg.seq != null ? healthPerfPostTs.get(msg.seq) : undefined;
+        const rt = postedAt != null ? Date.now() - postedAt : null;
+        console.log(`[health-perf] webview RECV health_exercises_loaded seq=${msg.seq} count=${msg.exercises.length} roundtrip=${rt}ms stale=${msg.seq != null && msg.seq !== healthExercisesSeqRef.current}`);
         // Drop stale responses — only the most recent request wins. This
         // is the fix for "filter chip click doesn't update the list":
         // pre-warm fires with no filter on mount, filter click fires
@@ -752,7 +769,11 @@ export function App() {
         setHealthExercisesOffset(msg.offset);
         setHealthExercisesLoading(false);
         break;
-      case 'health_recipes_loaded':
+      }
+      case 'health_recipes_loaded': {
+        const postedAt = msg.seq != null ? healthPerfPostTs.get(msg.seq) : undefined;
+        const rt = postedAt != null ? Date.now() - postedAt : null;
+        console.log(`[health-perf] webview RECV health_recipes_loaded seq=${msg.seq} count=${msg.recipes.length} roundtrip=${rt}ms stale=${msg.seq != null && msg.seq !== healthRecipesSeqRef.current}`);
         if (msg.seq != null && msg.seq !== healthRecipesSeqRef.current) {
           break;
         }
@@ -761,6 +782,7 @@ export function App() {
         setHealthRecipesOffset(msg.offset);
         setHealthRecipesLoading(false);
         break;
+      }
       case 'health_exercise_detail_loaded':
         setHealthExerciseDetail(msg.exercise);
         setHealthDetailLoading(false);
@@ -969,6 +991,7 @@ export function App() {
 
   useEffect(() => {
     window.addEventListener('message', handleMessage);
+    console.log(`[health-perf] webview POST webview_ready (+${Date.now() - HEALTH_PERF_BUNDLE_EVAL}ms since eval)`);
     post({ type: 'webview_ready' });
     // Initialise i18n from core locale strings
     initLocale().catch(() => {});
@@ -981,6 +1004,7 @@ export function App() {
   // the existing handlers so loading state stays consistent if the user
   // navigates to Health while the pre-warm is still in flight.
   useEffect(() => {
+    console.log(`[health-perf] webview pre-warm useEffect fires (+${Date.now() - HEALTH_PERF_BUNDLE_EVAL}ms since eval)`);
     handleLoadHealthExercises(24, 0);
     handleLoadHealthRecipes(24, 0);
     // Health profile — local-first via globalState, so this is just
