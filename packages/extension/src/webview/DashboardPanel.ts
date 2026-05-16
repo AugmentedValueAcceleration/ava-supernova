@@ -1807,8 +1807,18 @@ export class DashboardPanel {
       this.fetchAccount(platformKey)
         .then((account) => {
           this.post({ type: 'account_updated', account });
-          // Memory load gated on account success — fire-and-forget too.
-          if (account) this.loadMemories().catch(() => { /* non-fatal */ });
+          if (account) {
+            // Own the account-scoped data dir the moment the account
+            // resolves — don't depend on the chat view having scoped
+            // first. Without this, sync status read the un-scoped dir
+            // and reported 0 local items for signed-in users.
+            this.accountScopedDir = path.join(AVA_HOME, 'users', account.id);
+            // Memory load gated on account success — fire-and-forget too.
+            this.loadMemories().catch(() => { /* non-fatal */ });
+            // Re-emit sync status now the scoped path is known, so a
+            // Sync page opened before this resolved corrects its counts.
+            this.loadSyncStatus().catch(() => { /* non-fatal */ });
+          }
         })
         .catch(() => {
           // fetchAccount swallows errors → returns null. This catch is
@@ -2708,10 +2718,17 @@ export class DashboardPanel {
   // account-connected users saw the wrong data everywhere in the dashboard — the
   // sync tab showed zero memories while the memory page correctly showed the real
   // (account-scoped) count. The fix is to route everything through this single
-  // getter which delegates to AvaViewProvider's account-scoping logic.
+  // getter.
+
+  /** Account-scoped dir resolved from this panel's OWN account fetch — set
+   *  the moment fetchAccount returns in initializeData. Preferred over the
+   *  chat view provider's copy: the chat view may not have scoped yet, and
+   *  that ordering race made loadSyncStatus read the un-scoped `~/.ava` and
+   *  report 0 local items even though the data was safe under `users/<id>/`. */
+  private accountScopedDir: string | null = null;
 
   private getUserDataDir(): string {
-    return this.viewProvider?.getAccountScopedDir() ?? AVA_HOME;
+    return this.accountScopedDir ?? this.viewProvider?.getAccountScopedDir() ?? AVA_HOME;
   }
 
   // ─── Local Memories (BYOK) ──────────────────────────────────────────────────
@@ -3766,6 +3783,21 @@ export class DashboardPanel {
     this.post({ type: 'sync_status', data });
   }
 
+  /** Turn an apiFetch result into a human reason. apiFetch reports
+   *  status 0 for a timeout / network error (data carries the detail);
+   *  any other non-2xx is a real HTTP status, with the server's error
+   *  body when it sent one. Without this every sync failure collapsed
+   *  to a blind "Failed to sync X" — undiagnosable. */
+  private syncFailReason(res: { status: number; data: unknown }): string {
+    if (res.status === 0) {
+      return typeof res.data === 'string' ? res.data : 'network error';
+    }
+    const detail = typeof res.data === 'string'
+      ? res.data
+      : (res.data as { error?: string } | null)?.error ?? '';
+    return `HTTP ${res.status}${detail ? ` — ${detail}` : ''}`;
+  }
+
   private async pushToCloud(dataType: string): Promise<void> {
     // Defence in depth: the UI already gates this on Data Mode before
     // firing push_to_cloud, but any future caller (internal retries,
@@ -3812,7 +3844,7 @@ export class DashboardPanel {
             method: 'POST',
             body: { tasks },
           });
-          if (!res.ok) throw new Error('Failed to sync tasks');
+          if (!res.ok) throw new Error(`Failed to sync tasks — ${this.syncFailReason(res)}`);
           await this.saveSyncState('tasks', tasks.length);
           this.post({ type: 'sync_completed', dataType, count: tasks.length });
           await this.loadSyncStatus();
@@ -3858,7 +3890,7 @@ export class DashboardPanel {
             method: 'POST',
             body: { curriculums },
           });
-          if (!res.ok) throw new Error('Failed to sync learning data');
+          if (!res.ok) throw new Error(`Failed to sync learning data — ${this.syncFailReason(res)}`);
           await this.saveSyncState('learning', curriculums.length);
           this.post({ type: 'sync_completed', dataType, count: curriculums.length });
           await this.loadSyncStatus();
@@ -3900,7 +3932,7 @@ export class DashboardPanel {
             method: 'POST',
             body: { settings },
           });
-          if (!res.ok) throw new Error('Failed to sync settings');
+          if (!res.ok) throw new Error(`Failed to sync settings — ${this.syncFailReason(res)}`);
           await this.saveSyncState('settings', 1);
           this.post({ type: 'sync_completed', dataType, count: 1 });
           await this.loadSyncStatus();
@@ -3915,7 +3947,7 @@ export class DashboardPanel {
             method: 'POST',
             body: { personality },
           });
-          if (!res.ok) throw new Error('Failed to sync personality');
+          if (!res.ok) throw new Error(`Failed to sync personality — ${this.syncFailReason(res)}`);
           await this.saveSyncState('personality', 1);
           this.post({ type: 'sync_completed', dataType, count: 1 });
           await this.loadSyncStatus();
@@ -3970,11 +4002,7 @@ export class DashboardPanel {
             method: 'POST',
             body: { profile },
           });
-          if (!res.ok) {
-            // Surface the status so a not-yet-deployed route (404) reads
-            // differently from a real server fault (5xx) or auth (401).
-            throw new Error(`Failed to sync health profile — HTTP ${res.status}`);
-          }
+          if (!res.ok) throw new Error(`Failed to sync health profile — ${this.syncFailReason(res)}`);
           await this.saveSyncState('health_profile', 1);
           this.post({ type: 'sync_completed', dataType, count: 1 });
           await this.loadSyncStatus();

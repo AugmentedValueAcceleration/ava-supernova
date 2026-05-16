@@ -133,7 +133,7 @@ export function Sync({ syncStatus, syncingTypes, syncResults, isConnected }: Pro
                   </div>
                   <p className="text-[11px] text-[var(--text-muted)] truncate mt-1">
                     {description}
-                    {lastSynced && <span className="ml-1 opacity-60">· Last synced {new Date(lastSynced).toLocaleDateString()}</span>}
+                    {lastSynced && <span className="ml-1 opacity-60">· Last synced {new Date(lastSynced).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
                   </p>
                 </div>
               </div>
