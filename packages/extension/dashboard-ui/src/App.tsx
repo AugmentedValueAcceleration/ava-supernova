@@ -450,6 +450,20 @@ export function App() {
   const [activeArticleRelated, setActiveArticleRelated] = useState<RelatedArticle[]>([]);
   const [articleLoading, setArticleLoading] = useState(false);
 
+  // ── Page load-state signals ─────────────────────────────────────────────
+  // A data source is "loaded" once its first `*_loaded` message arrives.
+  // Pages read this to tell "still loading" apart from "loaded and
+  // genuinely empty" — the difference between showing a skeleton and an
+  // empty state. Every ExtToDashboard message whose type ends in
+  // `_loaded` auto-registers in handleMessage, so no per-handler wiring
+  // is needed. Key = the message type with the `_loaded` suffix stripped
+  // (e.g. 'tasks', 'weather', 'journal_day').
+  const [loadedSources, setLoadedSources] = useState<Set<string>>(() => new Set());
+  const isLoaded = useCallback(
+    (source: string) => loadedSources.has(source),
+    [loadedSources],
+  );
+
   // ── Local-first persistence ─────────────────────────────────────────────
   useEffect(() => { try { localStorage.setItem('ava-dash-tasks', JSON.stringify(tasks)); } catch {} }, [tasks]);
   useEffect(() => { if (learningCurriculums.length > 0) { try { localStorage.setItem('ava-dash-learning', JSON.stringify(learningCurriculums)); } catch {} } }, [learningCurriculums]);
@@ -464,6 +478,13 @@ export function App() {
 
     // Forward ALL messages to chat dispatch — it filters internally
     chatDispatchRef.current?.(msg);
+
+    // Auto-register every data source the moment its first load lands —
+    // powers the per-page skeleton / empty-state distinction.
+    if (typeof msg.type === 'string' && msg.type.endsWith('_loaded')) {
+      const src = msg.type.slice(0, -'_loaded'.length);
+      setLoadedSources(prev => (prev.has(src) ? prev : new Set(prev).add(src)));
+    }
 
     switch (msg.type) {
       case 'init':
@@ -1219,7 +1240,7 @@ export function App() {
             />
           );
         }
-        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} healthProfile={healthProfile} healthDailyPlan={healthDailyPlan} onSaveHealthDailyPlan={handleSaveHealthDailyPlan} onGenerateHealthMorningBrief={handleGenerateHealthMorningBrief} healthMorningBriefGenerating={healthMorningBriefGenerating} healthMorningBriefError={healthMorningBriefError} onNavigateToHealthProfile={() => { setHealthInitialTab('profile'); setPagePersist('health'); }} />;
+        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} healthProfile={healthProfile} healthDailyPlan={healthDailyPlan} onSaveHealthDailyPlan={handleSaveHealthDailyPlan} onGenerateHealthMorningBrief={handleGenerateHealthMorningBrief} healthMorningBriefGenerating={healthMorningBriefGenerating} healthMorningBriefError={healthMorningBriefError} onNavigateToHealthProfile={() => { setHealthInitialTab('profile'); setPagePersist('health'); }} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} />;
       case 'usage':
         return <Usage account={account} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} activeModel={settings.activeModel} />;
       case 'memory':

@@ -46,3 +46,32 @@ body {
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb { background: rgba(168, 85, 247, 0.2); border-radius: 3px; }
 *::-webkit-scrollbar-thumb:hover { background: rgba(168, 85, 247, 0.35); }
+
+/* ── Skeleton loading placeholders ──────────────────────────────────
+   Shimmer blocks pages render while their data is in flight, so
+   content settles in place instead of flashing empty. See Skeleton.tsx. */
+.ava-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-card, rgba(26, 16, 40, 0.6));
+  border: 1px solid var(--border-card, rgba(168, 85, 247, 0.10));
+}
+.ava-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(168, 85, 247, 0.10) 50%,
+    transparent 100%
+  );
+  animation: avaSkeletonShimmer 1.4s ease-in-out infinite;
+}
+@keyframes avaSkeletonShimmer {
+  100% { transform: translateX(100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ava-skeleton::after { animation: none; }
+}

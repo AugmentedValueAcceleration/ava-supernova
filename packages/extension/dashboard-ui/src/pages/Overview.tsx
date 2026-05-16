@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { t, tt, useLocale } from '../i18n';
 import { SectionGroup } from '../components/SectionGroup';
+import { Skeleton } from '../components/Skeleton';
 import { post } from '../App';
 import {
   Lightning, ChartBar, Clock, CloudSun, Newspaper, Rocket,
@@ -116,6 +117,12 @@ interface OverviewProps {
   // dashboard's "Set your goals" pointer to close the discoverability
   // gap (the brief references goals, but goals are set elsewhere).
   onNavigateToHealthProfile: () => void;
+  // Per-source load signals — true once the first load has landed.
+  // Drive the Daily widgets' skeleton-vs-content decision so they
+  // never flash a misleading empty state before data arrives.
+  tasksLoaded: boolean;
+  journalLoaded: boolean;
+  weatherLoaded: boolean;
 }
 
 // ── Inner-tab type — mirrors the IDE Command Centre's lenses, plus
@@ -149,6 +156,9 @@ export function Overview({
   healthMorningBriefGenerating,
   healthMorningBriefError,
   onNavigateToHealthProfile,
+  tasksLoaded,
+  journalLoaded,
+  weatherLoaded,
 }: OverviewProps) {
   useLocale();
   // Inner tab state — Command Centre always opens on Daily. The previous
@@ -178,6 +188,9 @@ export function Overview({
         latestRelease={latestRelease}
         articleLoading={articleLoading}
         onOpenArticle={onOpenArticle}
+        tasksLoaded={tasksLoaded}
+        journalLoaded={journalLoaded}
+        weatherLoaded={weatherLoaded}
       />
     );
   }
@@ -334,12 +347,12 @@ export function Overview({
             className="mb-4 grid gap-4"
             style={{ gridTemplateColumns: '2fr 1fr' }}
           >
-            <TasksWidget tasks={tasks} onNavigate={onNavigate} />
-            <JournalWidget journalDay={journalDay} onNavigate={onNavigate} />
+            <TasksWidget tasks={tasks} loaded={tasksLoaded} onNavigate={onNavigate} />
+            <JournalWidget journalDay={journalDay} loaded={journalLoaded} onNavigate={onNavigate} />
           </div>
           <div className="mb-4 grid grid-cols-2 gap-4">
             <WorkingHoursClock />
-            <WeatherWidget weather={weatherData} />
+            <WeatherWidget weather={weatherData} loaded={weatherLoaded} />
           </div>
         </>
       )}
@@ -521,12 +534,19 @@ function WorkingHoursClock() {
   );
 }
 
-function WeatherWidget({ weather }: { weather: WeatherData | null }) {
-  if (weather === undefined) {
+function WeatherWidget({ weather, loaded }: { weather: WeatherData | null; loaded: boolean }) {
+  if (!loaded) {
     return (
       <WidgetCard title={t('dash.cc.weather')} icon={<CloudSun weight="duotone" size={16} />}>
-        <div className="flex items-center gap-2 py-4 text-xs text-[var(--text-muted)]">
-          <span className="animate-pulse">{t('dash.cc.weather_loading')}</span>
+        <div className="flex items-center gap-4">
+          <Skeleton width={40} height={40} circle />
+          <div className="flex-1 space-y-1.5">
+            <Skeleton height={20} width={70} />
+            <Skeleton height={11} width={110} />
+          </div>
+        </div>
+        <div className="mt-3 flex gap-3 border-t border-[var(--border-card)] pt-3">
+          {[0, 1, 2].map(i => <Skeleton key={i} height={48} width="100%" radius={8} />)}
         </div>
       </WidgetCard>
     );
@@ -698,7 +718,7 @@ function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { 
 
 // ── Tasks Widget ─────────────────────────────────────────────────────────────
 
-function TasksWidget({ tasks: rawTasks, onNavigate }: { tasks: DashboardTaskEntry[]; onNavigate: (p: Page) => void }) {
+function TasksWidget({ tasks: rawTasks, loaded, onNavigate }: { tasks: DashboardTaskEntry[]; loaded: boolean; onNavigate: (p: Page) => void }) {
   const tasks = Array.isArray(rawTasks) ? rawTasks : [];
   const today = new Date().toISOString().slice(0, 10);
 
@@ -729,7 +749,11 @@ function TasksWidget({ tasks: rawTasks, onNavigate }: { tasks: DashboardTaskEntr
       action={tasks.length > 0 ? { label: t('dash.cc.view_all'), onClick: () => onNavigate('tasks') } : undefined}
       onRefresh={() => post({ type: 'load_tasks' })}
     >
-      {todayTasks.length === 0 ? (
+      {!loaded ? (
+        <div className="space-y-1.5">
+          {[0, 1, 2].map(i => <Skeleton key={i} height={46} radius={8} />)}
+        </div>
+      ) : todayTasks.length === 0 ? (
         <div className="flex flex-col items-center py-6 text-center">
           <span className="mb-2 text-2xl opacity-30">{'🎉'}</span>
           <p className="text-xs text-[var(--text-muted)]">{t('dash.cc.no_tasks').replace('\n', ' ')}</p>
@@ -779,7 +803,7 @@ function TasksWidget({ tasks: rawTasks, onNavigate }: { tasks: DashboardTaskEntr
 
 // ── Journal Widget ───────────────────────────────────────────────────────────
 
-function JournalWidget({ journalDay, onNavigate }: { journalDay: DashboardJournalDay | null; onNavigate: (p: Page) => void }) {
+function JournalWidget({ journalDay, loaded, onNavigate }: { journalDay: DashboardJournalDay | null; loaded: boolean; onNavigate: (p: Page) => void }) {
   const userEntry = journalDay?.user_entry;
   const avaEntry = journalDay?.ava_entry;
   const hasContent = Boolean(userEntry || avaEntry);
@@ -791,7 +815,13 @@ function JournalWidget({ journalDay, onNavigate }: { journalDay: DashboardJourna
       action={{ label: hasContent ? t('dash.cc.open_journal') : t('dash.cc.write_entry'), onClick: () => onNavigate('journal') }}
       onRefresh={() => post({ type: 'load_journal_day', date: new Date().toISOString().slice(0, 10) })}
     >
-      {!hasContent ? (
+      {!loaded ? (
+        <div className="space-y-2.5">
+          <Skeleton height={12} width="40%" />
+          <Skeleton height={12} />
+          <Skeleton height={12} width="75%" />
+        </div>
+      ) : !hasContent ? (
         <div className="flex flex-col items-center py-4 text-center">
           <span className="mb-2 text-2xl opacity-30">{'📝'}</span>
           <p className="text-xs text-[var(--text-muted)]">{t('dash.cc.no_journal').replace('\n', ' ')}</p>
@@ -1045,6 +1075,9 @@ function ByokOverview({
   latestRelease,
   articleLoading,
   onOpenArticle,
+  tasksLoaded,
+  journalLoaded,
+  weatherLoaded,
 }: {
   stats?: SessionStats | null;
   onNavigate: (page: Page) => void;
@@ -1057,6 +1090,9 @@ function ByokOverview({
   articleLoading?: boolean;
   onOpenArticle?: (slug: string) => void;
   latestRelease: ReleaseInfo | null;
+  tasksLoaded: boolean;
+  journalLoaded: boolean;
+  weatherLoaded: boolean;
 }) {
   const totalTokens = stats ? stats.total_input_tokens + stats.total_output_tokens : 0;
   const sessionDuration = stats ? timeSince(stats.session_start) : '\u2014';
@@ -1072,7 +1108,7 @@ function ByokOverview({
 
       {/* ── Weather + Working Hours ──────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-4 mb-4">
-        <WeatherWidget weather={weatherData} />
+        <WeatherWidget weather={weatherData} loaded={weatherLoaded} />
         <WorkingHoursClock />
       </div>
 
@@ -1111,12 +1147,12 @@ function ByokOverview({
       {/* ── News + Tasks (2-col) ──────────────────────────────────────── */}
       <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <NewsWidget articles={newsArticles} articleLoading={articleLoading} onOpenArticle={onOpenArticle} />
-        <TasksWidget tasks={tasks} onNavigate={onNavigate} />
+        <TasksWidget tasks={tasks} loaded={tasksLoaded} onNavigate={onNavigate} />
       </div>
 
       {/* ── Journal + Learning + Memory + Release (2x2) ───────────────── */}
       <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <JournalWidget journalDay={journalDay} onNavigate={onNavigate} />
+        <JournalWidget journalDay={journalDay} loaded={journalLoaded} onNavigate={onNavigate} />
         <LearningWidget curriculums={learningCurriculums} onNavigate={onNavigate} />
         <MemoryWidget memories={memories} onNavigate={onNavigate} />
         <ReleaseWidget release={latestRelease} />
