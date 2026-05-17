@@ -1244,6 +1244,11 @@ export type ExtToDashboardMessage =
   | { type: 'health_plan_loaded'; plan: HealthPlan | null }
   | { type: 'health_plan_saved'; plan: HealthPlan; plans: HealthPlanSummary[] }
   | { type: 'health_plan_deleted'; id: string; plans: HealthPlanSummary[] }
+  // Catalog search for the plan editor's "+ Add" picker — separate from
+  // the Health page's grid state so the two never collide. `seq` drops
+  // stale responses when the user types faster than the network.
+  | { type: 'plan_exercises_searched'; exercises: HealthExerciseSummary[]; seq: number }
+  | { type: 'plan_recipes_searched'; recipes: HealthRecipeSummary[]; seq: number }
   | { type: 'health_morning_brief_generated'; ok: boolean; brief?: string; error?: string }
   | { type: 'health_exercise_draft_generated'; ok: boolean; error?: string; draft?: HealthExerciseDraft }
   | { type: 'health_recipe_draft_generated'; ok: boolean; error?: string; draft?: HealthRecipeDraft }
@@ -1507,6 +1512,9 @@ export type DashboardToExtMessage =
   | { type: 'load_health_plan'; id: string }
   | { type: 'save_health_plan'; plan: HealthPlan }
   | { type: 'delete_health_plan'; id: string }
+  // Catalog search for the plan editor's "+ Add" picker.
+  | { type: 'search_plan_exercises'; q: string; seq: number }
+  | { type: 'search_plan_recipes'; q: string; seq: number }
   | { type: 'generate_health_morning_brief'; date: string }
   | { type: 'generate_health_exercise_draft'; intake: HealthGenerateExerciseIntake }
   | { type: 'generate_health_recipe_draft'; intake: HealthGenerateRecipeIntake }

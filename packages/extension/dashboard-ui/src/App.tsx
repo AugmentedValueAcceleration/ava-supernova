@@ -266,6 +266,13 @@ export function App() {
   // full plan currently open in the editor. Loaded on dashboard mount.
   const [healthPlans, setHealthPlans] = useState<HealthPlanSummary[]>([]);
   const [healthPlanOpen, setHealthPlanOpen] = useState<HealthPlan | null>(null);
+  // Catalog search results for the plan editor's "+ Add" picker — kept
+  // separate from the Health page's grid state. seq drops stale hits.
+  const [planExerciseResults, setPlanExerciseResults] = useState<HealthExerciseSummary[]>([]);
+  const [planRecipeResults, setPlanRecipeResults] = useState<HealthRecipeSummary[]>([]);
+  const [planCatalogSearching, setPlanCatalogSearching] = useState(false);
+  const planExSearchSeq = useRef(0);
+  const planRecipeSearchSeq = useRef(0);
   // Morning brief generation state — separate from plan loading so
   // the button can show its own busy / error register.
   const [healthMorningBriefGenerating, setHealthMorningBriefGenerating] = useState(false);
@@ -376,6 +383,17 @@ export function App() {
   }, []);
   const handleCloseHealthPlan = useCallback(() => {
     setHealthPlanOpen(null);
+  }, []);
+  // Plan editor catalog picker — searches the exercise / recipe library.
+  const handleSearchPlanExercises = useCallback((q: string) => {
+    planExSearchSeq.current += 1;
+    setPlanCatalogSearching(true);
+    post({ type: 'search_plan_exercises', q, seq: planExSearchSeq.current });
+  }, []);
+  const handleSearchPlanRecipes = useCallback((q: string) => {
+    planRecipeSearchSeq.current += 1;
+    setPlanCatalogSearching(true);
+    post({ type: 'search_plan_recipes', q, seq: planRecipeSearchSeq.current });
   }, []);
   const handleGenerateHealthMorningBrief = useCallback((date: string) => {
     setHealthMorningBriefGenerating(true);
@@ -853,6 +871,16 @@ export function App() {
         setHealthPlans(msg.plans);
         setHealthPlanOpen(prev => (prev && prev.id === msg.id ? null : prev));
         break;
+      case 'plan_exercises_searched':
+        if (msg.seq !== planExSearchSeq.current) break;
+        setPlanExerciseResults(msg.exercises);
+        setPlanCatalogSearching(false);
+        break;
+      case 'plan_recipes_searched':
+        if (msg.seq !== planRecipeSearchSeq.current) break;
+        setPlanRecipeResults(msg.recipes);
+        setPlanCatalogSearching(false);
+        break;
       case 'health_morning_brief_generated':
         setHealthMorningBriefGenerating(false);
         setHealthMorningBriefError(msg.ok ? null : (msg.error ?? 'Unknown error'));
@@ -1312,7 +1340,7 @@ export function App() {
             />
           );
         }
-        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} healthProfile={healthProfile} healthDailyPlan={healthDailyPlan} onSaveHealthDailyPlan={handleSaveHealthDailyPlan} onGenerateHealthMorningBrief={handleGenerateHealthMorningBrief} healthMorningBriefGenerating={healthMorningBriefGenerating} healthMorningBriefError={healthMorningBriefError} onNavigateToHealthProfile={() => { setHealthInitialTab('profile'); setPagePersist('health'); }} healthPlans={healthPlans} healthPlanOpen={healthPlanOpen} onOpenHealthPlan={handleOpenHealthPlan} onSaveHealthPlan={handleSaveHealthPlan} onDeleteHealthPlan={handleDeleteHealthPlan} onCloseHealthPlan={handleCloseHealthPlan} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} />;
+        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} healthProfile={healthProfile} healthDailyPlan={healthDailyPlan} onSaveHealthDailyPlan={handleSaveHealthDailyPlan} onGenerateHealthMorningBrief={handleGenerateHealthMorningBrief} healthMorningBriefGenerating={healthMorningBriefGenerating} healthMorningBriefError={healthMorningBriefError} onNavigateToHealthProfile={() => { setHealthInitialTab('profile'); setPagePersist('health'); }} healthPlans={healthPlans} healthPlanOpen={healthPlanOpen} onOpenHealthPlan={handleOpenHealthPlan} onSaveHealthPlan={handleSaveHealthPlan} onDeleteHealthPlan={handleDeleteHealthPlan} onCloseHealthPlan={handleCloseHealthPlan} planExerciseResults={planExerciseResults} planRecipeResults={planRecipeResults} planCatalogSearching={planCatalogSearching} onSearchPlanExercises={handleSearchPlanExercises} onSearchPlanRecipes={handleSearchPlanRecipes} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} />;
       case 'usage':
         return <Usage account={account} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} activeModel={settings.activeModel} />;
       case 'memory':

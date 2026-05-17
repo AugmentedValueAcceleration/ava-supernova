@@ -15,6 +15,8 @@ import type {
   HealthDailyPlan,
   HealthPlan,
   HealthPlanSummary,
+  HealthExerciseSummary,
+  HealthRecipeSummary,
   HealthProfile,
   MemoryEntry,
   Page,
@@ -127,6 +129,12 @@ interface OverviewProps {
   onSaveHealthPlan: (plan: HealthPlan) => void;
   onDeleteHealthPlan: (id: string) => void;
   onCloseHealthPlan: () => void;
+  // Plan editor catalog picker — exercise / recipe search results.
+  planExerciseResults: HealthExerciseSummary[];
+  planRecipeResults: HealthRecipeSummary[];
+  planCatalogSearching: boolean;
+  onSearchPlanExercises: (q: string) => void;
+  onSearchPlanRecipes: (q: string) => void;
   // Per-source load signals — true once the first load has landed.
   // Drive the Daily widgets' skeleton-vs-content decision so they
   // never flash a misleading empty state before data arrives.
@@ -172,6 +180,11 @@ export function Overview({
   onSaveHealthPlan,
   onDeleteHealthPlan,
   onCloseHealthPlan,
+  planExerciseResults,
+  planRecipeResults,
+  planCatalogSearching,
+  onSearchPlanExercises,
+  onSearchPlanRecipes,
   tasksLoaded,
   journalLoaded,
   weatherLoaded,
@@ -406,6 +419,11 @@ export function Overview({
           onSavePlanProgram={onSaveHealthPlan}
           onDeletePlan={onDeleteHealthPlan}
           onClosePlan={onCloseHealthPlan}
+          exerciseResults={planExerciseResults}
+          recipeResults={planRecipeResults}
+          catalogSearching={planCatalogSearching}
+          onSearchExercises={onSearchPlanExercises}
+          onSearchRecipes={onSearchPlanRecipes}
           briefGenerating={healthMorningBriefGenerating}
           briefError={healthMorningBriefError}
           onNavigateToProfile={onNavigateToHealthProfile}

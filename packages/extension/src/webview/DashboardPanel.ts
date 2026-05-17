@@ -1277,6 +1277,38 @@ export class DashboardPanel {
         break;
       }
 
+      // Catalog search for the plan editor's "+ Add" picker. Reuses the
+      // public catalog endpoints; a small page is enough for a picker.
+      case 'search_plan_exercises': {
+        const seq = msg.seq;
+        const params = new URLSearchParams({ limit: '12', offset: '0' });
+        if (msg.q && msg.q.trim()) params.set('q', msg.q.trim());
+        try {
+          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+          const res = await apiFetch(`/health/exercises?${params.toString()}`, { platformKey, method: 'GET', timeoutMs: 8000 });
+          const data = (res.ok ? res.data : {}) as { exercises?: HealthExerciseSummary[] };
+          this.post({ type: 'plan_exercises_searched', exercises: data.exercises ?? [], seq });
+        } catch {
+          this.post({ type: 'plan_exercises_searched', exercises: [], seq });
+        }
+        break;
+      }
+
+      case 'search_plan_recipes': {
+        const seq = msg.seq;
+        const params = new URLSearchParams({ limit: '12', offset: '0' });
+        if (msg.q && msg.q.trim()) params.set('q', msg.q.trim());
+        try {
+          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+          const res = await apiFetch(`/health/recipes?${params.toString()}`, { platformKey, method: 'GET', timeoutMs: 8000 });
+          const data = (res.ok ? res.data : {}) as { recipes?: HealthRecipeSummary[] };
+          this.post({ type: 'plan_recipes_searched', recipes: data.recipes ?? [], seq });
+        } catch {
+          this.post({ type: 'plan_recipes_searched', recipes: [], seq });
+        }
+        break;
+      }
+
       case 'generate_health_morning_brief': {
         // Ava writes the morning brief paragraph from a snapshot of
         // the operator's profile + today's log. Snapshot is sent

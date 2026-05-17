@@ -3,6 +3,7 @@ import type {
   HealthDailyLog, HealthDailyPlan, HealthProfile,
   HealthPlan, HealthPlanSummary, HealthPlanType, HealthPlanStatus,
   HealthPlanDay, HealthPlanExercise, HealthPlanMeal,
+  HealthExerciseSummary, HealthRecipeSummary,
 } from '../types/messages';
 
 /**
@@ -46,11 +47,18 @@ interface Props {
   onSavePlanProgram: (plan: HealthPlan) => void;
   onDeletePlan: (id: string) => void;
   onClosePlan: () => void;
+  // Plan editor catalog picker — exercise / recipe search.
+  exerciseResults: HealthExerciseSummary[];
+  recipeResults: HealthRecipeSummary[];
+  catalogSearching: boolean;
+  onSearchExercises: (q: string) => void;
+  onSearchRecipes: (q: string) => void;
 }
 
 export function HealthDashboard({
   profile, plan, onSavePlan, onGenerateMorningBrief, briefGenerating, briefError, onNavigateToProfile,
   plans, planOpen, onOpenPlan, onSavePlanProgram, onDeletePlan, onClosePlan,
+  exerciseResults, recipeResults, catalogSearching, onSearchExercises, onSearchRecipes,
 }: Props) {
   const today = todayIso();
   const greeting = useMemo(() => greetingFor(new Date()), []);
@@ -174,6 +182,11 @@ export function HealthDashboard({
               onClose={onClosePlan}
               onSave={onSavePlanProgram}
               onDelete={onDeletePlan}
+              exerciseResults={exerciseResults}
+              recipeResults={recipeResults}
+              catalogSearching={catalogSearching}
+              onSearchExercises={onSearchExercises}
+              onSearchRecipes={onSearchRecipes}
             />
           ) : wizardOpen ? (
             <NewPlanWizard
@@ -697,15 +710,22 @@ function daySummary(day: HealthPlanDay, showTraining: boolean, showMeals: boolea
   return bits.join(' · ');
 }
 
-function PlanEditor({ plan, onClose, onSave, onDelete }: {
+function PlanEditor({ plan, onClose, onSave, onDelete, exerciseResults, recipeResults, catalogSearching, onSearchExercises, onSearchRecipes }: {
   plan: HealthPlan;
   onClose: () => void;
   onSave: (plan: HealthPlan) => void;
   onDelete: (id: string) => void;
+  exerciseResults: HealthExerciseSummary[];
+  recipeResults: HealthRecipeSummary[];
+  catalogSearching: boolean;
+  onSearchExercises: (q: string) => void;
+  onSearchRecipes: (q: string) => void;
 }) {
   const [draft, setDraft] = useState<HealthPlan>(plan);
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
   const [confirming, setConfirming] = useState(false);
+  // The catalog picker — which day + which kind of item it's adding.
+  const [picker, setPicker] = useState<{ dayIndex: number; kind: 'exercise' | 'recipe' } | null>(null);
   const saveTimer = useRef<number | undefined>(undefined);
 
   // Re-seed only when a *different* plan opens — the host's save echo
@@ -747,6 +767,19 @@ function PlanEditor({ plan, onClose, onSave, onDelete }: {
 
   const setDuration = (days: number) => {
     commit({ ...draft, duration_days: days, days: draft.days.filter(d => d.day_index <= days) });
+  };
+
+  // Add an exercise / meal to a day, then close the picker. Adding the
+  // first exercise to a rest day flips it to a training day.
+  const addExerciseToDay = (dayIndex: number, ex: HealthPlanExercise) => {
+    const day = dayByIndex.get(dayIndex) ?? defaultDay(dayIndex);
+    upsertDay({ ...day, kind: day.kind === 'rest' ? 'training' : day.kind, training: [...day.training, ex] });
+    setPicker(null);
+  };
+  const addMealToDay = (dayIndex: number, meal: HealthPlanMeal) => {
+    const day = dayByIndex.get(dayIndex) ?? defaultDay(dayIndex);
+    upsertDay({ ...day, meals: [...day.meals, meal] });
+    setPicker(null);
   };
 
   const weeks = Math.max(1, Math.ceil(draft.duration_days / 7));
@@ -813,9 +846,31 @@ function PlanEditor({ plan, onClose, onSave, onDelete }: {
             showTraining={showTraining}
             showMeals={showMeals}
             onChangeDay={upsertDay}
+            onOpenPicker={(dayIndex, kind) => setPicker({ dayIndex, kind })}
           />
         ))}
       </div>
+
+      {picker && (
+        <CatalogPicker
+          kind={picker.kind}
+          results={picker.kind === 'exercise' ? exerciseResults : recipeResults}
+          searching={catalogSearching}
+          onSearch={picker.kind === 'exercise' ? onSearchExercises : onSearchRecipes}
+          onPick={(item) => {
+            if (picker.kind === 'exercise') {
+              addExerciseToDay(picker.dayIndex, { ...emptyExercise(), ref: { kind: 'exercise', slug: item.slug }, name: item.name });
+            } else {
+              addMealToDay(picker.dayIndex, { ...emptyMeal('breakfast'), ref: { kind: 'recipe', slug: item.slug }, name: item.name });
+            }
+          }}
+          onAddCustom={() => {
+            if (picker.kind === 'exercise') addExerciseToDay(picker.dayIndex, emptyExercise());
+            else addMealToDay(picker.dayIndex, emptyMeal('breakfast'));
+          }}
+          onClose={() => setPicker(null)}
+        />
+      )}
 
       {/* Delete */}
       <div className="border-t border-[var(--border)] pt-4">
@@ -833,7 +888,7 @@ function PlanEditor({ plan, onClose, onSave, onDelete }: {
   );
 }
 
-function EditorWeek({ weekIndex, duration, dayByIndex, expandedDay, onToggleDay, showTraining, showMeals, onChangeDay }: {
+function EditorWeek({ weekIndex, duration, dayByIndex, expandedDay, onToggleDay, showTraining, showMeals, onChangeDay, onOpenPicker }: {
   weekIndex: number;
   duration: number;
   dayByIndex: Map<number, HealthPlanDay>;
@@ -842,6 +897,7 @@ function EditorWeek({ weekIndex, duration, dayByIndex, expandedDay, onToggleDay,
   showTraining: boolean;
   showMeals: boolean;
   onChangeDay: (day: HealthPlanDay) => void;
+  onOpenPicker: (dayIndex: number, kind: 'exercise' | 'recipe') => void;
 }) {
   const firstDay = weekIndex * 7 + 1;
   const dayIndices: number[] = [];
@@ -860,6 +916,7 @@ function EditorWeek({ weekIndex, duration, dayByIndex, expandedDay, onToggleDay,
             showTraining={showTraining}
             showMeals={showMeals}
             onChange={onChangeDay}
+            onOpenPicker={onOpenPicker}
           />
         ))}
       </div>
@@ -867,13 +924,14 @@ function EditorWeek({ weekIndex, duration, dayByIndex, expandedDay, onToggleDay,
   );
 }
 
-function DayBlock({ day, expanded, onToggle, showTraining, showMeals, onChange }: {
+function DayBlock({ day, expanded, onToggle, showTraining, showMeals, onChange, onOpenPicker }: {
   day: HealthPlanDay;
   expanded: boolean;
   onToggle: () => void;
   showTraining: boolean;
   showMeals: boolean;
   onChange: (day: HealthPlanDay) => void;
+  onOpenPicker: (dayIndex: number, kind: 'exercise' | 'recipe') => void;
 }) {
   return (
     <div className="rounded-lg border border-[var(--border)] bg-transparent">
@@ -910,7 +968,7 @@ function DayBlock({ day, expanded, onToggle, showTraining, showMeals, onChange }
               title="Training"
               addLabel="+ Add exercise"
               empty={day.training.length === 0}
-              onAdd={() => onChange({ ...day, training: [...day.training, emptyExercise()] })}
+              onAdd={() => onOpenPicker(day.day_index, 'exercise')}
             >
               {day.training.map(ex => (
                 <ExerciseEditor
@@ -928,7 +986,7 @@ function DayBlock({ day, expanded, onToggle, showTraining, showMeals, onChange }
               title="Meals"
               addLabel="+ Add meal"
               empty={day.meals.length === 0}
-              onAdd={() => onChange({ ...day, meals: [...day.meals, emptyMeal('breakfast')] })}
+              onAdd={() => onOpenPicker(day.day_index, 'recipe')}
             >
               {day.meals.map(meal => (
                 <PlanMealEditor
@@ -1047,6 +1105,86 @@ function TextInput({ label, value, placeholder, onChange }: {
       <span className="text-[9px] uppercase tracking-wide text-[var(--text-muted)]">{label}</span>
       <input value={value ?? ''} placeholder={placeholder} onChange={(e) => onChange(e.target.value || null)} className={editInput} />
     </label>
+  );
+}
+
+// ── Catalog picker ───────────────────────────────────────────────────
+// A modal over the editor: search the exercise / recipe library and
+// drop the chosen item into a plan day (catalog ref + name), or add a
+// blank custom entry. Debounced self-search; results arrive via the
+// parent's plan-catalog message state.
+
+function CatalogPicker({ kind, results, searching, onSearch, onPick, onAddCustom, onClose }: {
+  kind: 'exercise' | 'recipe';
+  results: Array<{ id: string; slug: string; name: string }>;
+  searching: boolean;
+  onSearch: (q: string) => void;
+  onPick: (item: { slug: string; name: string }) => void;
+  onAddCustom: () => void;
+  onClose: () => void;
+}) {
+  const [query, setQuery] = useState('');
+  const noun = kind === 'exercise' ? 'exercise' : 'recipe';
+
+  // Fires immediately on open (empty query → first slice of the
+  // catalog), then 300ms after each keystroke.
+  useEffect(() => {
+    const t = window.setTimeout(() => onSearch(query.trim()), query ? 300 : 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-6" onClick={onClose}>
+      <div
+        className="mt-10 w-full max-w-md rounded-xl border border-[rgba(168,85,247,0.2)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] p-4 shadow-[0_0_60px_rgba(168,85,247,0.12)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <span className="text-[12px] font-medium text-[var(--text-primary)]">Add {noun}</span>
+          <button type="button" onClick={onClose} className="border-none bg-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">✕</button>
+        </div>
+
+        <input
+          autoFocus
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={`Search the ${noun} library…`}
+          className={`${editInput} w-full`}
+        />
+
+        <div className="mt-3 max-h-[300px] space-y-1 overflow-y-auto">
+          {searching && results.length === 0 ? (
+            <div className="py-6 text-center text-[11px] text-[var(--text-muted)]">Searching…</div>
+          ) : results.length === 0 ? (
+            <div className="py-6 text-center text-[11px] text-[var(--text-muted)]">
+              {query ? `No ${noun}s match “${query}”.` : `No ${noun}s found.`}
+            </div>
+          ) : (
+            results.map(r => (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => onPick({ slug: r.slug, name: r.name })}
+                className="block w-full rounded-md border border-[var(--border)] bg-transparent px-3 py-2 text-left text-[12px] text-[var(--text-primary)] hover:border-[var(--accent)]/40 transition cursor-pointer"
+              >
+                {r.name}
+              </button>
+            ))
+          )}
+        </div>
+
+        <div className="mt-3 border-t border-[var(--border)] pt-3">
+          <button
+            type="button"
+            onClick={onAddCustom}
+            className="w-full rounded-md border border-dashed border-[var(--accent)]/40 bg-[var(--accent)]/5 px-3 py-2 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/10 transition cursor-pointer"
+          >
+            + Add a custom {noun}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
