@@ -625,8 +625,10 @@ function PlanEditor({ plan, onClose, onSave, onDelete, exerciseResults, recipeRe
         }}
       />
 
-      {/* Day panel — the selected day's editor, below the calendar. */}
-      {selectedDay != null && (
+      {/* Day panel — the selected day's editor, below the calendar.
+          When no day is open, a signpost: the calendar looks blank on
+          a fresh plan, so say plainly how to start filling it. */}
+      {selectedDay != null ? (
         <DayBlock
           day={dayByIndex.get(selectedDay) ?? defaultDay(selectedDay)}
           startDate={startISO}
@@ -636,6 +638,10 @@ function PlanEditor({ plan, onClose, onSave, onDelete, exerciseResults, recipeRe
           onChange={upsertDay}
           onOpenPicker={(dayIndex, kind) => setPicker({ dayIndex, kind })}
         />
+      ) : (
+        <p className="text-center text-[11px] italic text-[var(--text-muted)]">
+          Click any day on the calendar to add {showTraining && showMeals ? 'training and meals' : showMeals ? 'meals' : 'training'}.
+        </p>
       )}
 
       {picker && (
