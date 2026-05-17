@@ -1,7 +1,8 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   HealthDailyLog, HealthDailyPlan, HealthProfile,
   HealthPlan, HealthPlanSummary, HealthPlanType, HealthPlanStatus,
+  HealthPlanDay, HealthPlanExercise, HealthPlanMeal,
 } from '../types/messages';
 
 /**
@@ -164,9 +165,10 @@ export function HealthDashboard({
       {innerTab === 'plans' && (
         <div className="space-y-8">
           {planOpen ? (
-            <PlanDetail
+            <PlanEditor
               plan={planOpen}
               onClose={onClosePlan}
+              onSave={onSavePlanProgram}
               onDelete={onDeletePlan}
             />
           ) : (
@@ -546,66 +548,402 @@ function PlanCard({ plan, onOpen, onDelete }: {
   );
 }
 
-/** Plan detail — B1 is read-only (the editor lands in B2). Opening a
- *  plan loads the full HealthPlan; this shows its header + a delete. */
-function PlanDetail({ plan, onClose, onDelete }: {
+// ── Plan editor (B2) ─────────────────────────────────────────────────
+// Opening a plan loads the full HealthPlan into a local working copy.
+// Edits autosave (debounced 700ms); the host's save echo never clobbers
+// the open draft — re-seed fires only when a different plan id opens.
+
+const DURATION_PRESETS: Array<{ days: number; label: string }> = [
+  { days: 1,  label: '1 day' },
+  { days: 7,  label: '1 week' },
+  { days: 28, label: '4 weeks' },
+  { days: 56, label: '8 weeks' },
+  { days: 84, label: '12 weeks' },
+];
+
+const editInput =
+  'rounded border border-[var(--border)] bg-[var(--bg-input)] px-2 py-1 text-[12px] ' +
+  'text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50';
+
+function newItemId(): string {
+  return crypto?.randomUUID?.() ?? `i-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function emptyExercise(): HealthPlanExercise {
+  return { id: newItemId(), ref: null, name: '', sets: null, reps: null, weight: null, rest_seconds: null, tempo: null, notes: null };
+}
+function emptyMeal(slot: HealthPlanMeal['slot']): HealthPlanMeal {
+  return { id: newItemId(), slot, ref: null, name: '', calories: null, protein_g: null, carbs_g: null, fat_g: null, notes: null };
+}
+function defaultDay(dayIndex: number): HealthPlanDay {
+  return { day_index: dayIndex, kind: 'rest', title: null, training: [], meals: [], notes: null };
+}
+
+/** True when a day carries nothing — used to keep `days[]` sparse so an
+ *  untouched day isn't persisted as an explicit empty rest entry. */
+function isEmptyDay(d: HealthPlanDay): boolean {
+  return d.kind === 'rest' && d.training.length === 0 && d.meals.length === 0 && !d.title && !d.notes;
+}
+
+function daySummary(day: HealthPlanDay, showTraining: boolean, showMeals: boolean): string {
+  const bits: string[] = [];
+  if (showTraining && day.training.length > 0) bits.push(`${day.training.length} exercise${day.training.length === 1 ? '' : 's'}`);
+  if (showMeals && day.meals.length > 0) bits.push(`${day.meals.length} meal${day.meals.length === 1 ? '' : 's'}`);
+  if (bits.length === 0) return day.kind === 'active_recovery' ? 'Active recovery' : 'Rest';
+  if (day.kind === 'active_recovery') bits.unshift('Active recovery');
+  return bits.join(' · ');
+}
+
+function PlanEditor({ plan, onClose, onSave, onDelete }: {
   plan: HealthPlan;
   onClose: () => void;
+  onSave: (plan: HealthPlan) => void;
   onDelete: (id: string) => void;
 }) {
+  const [draft, setDraft] = useState<HealthPlan>(plan);
+  const [expandedDay, setExpandedDay] = useState<number | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const m = PLAN_TYPE_META[plan.type];
+  const saveTimer = useRef<number | undefined>(undefined);
+
+  // Re-seed only when a *different* plan opens — the host's save echo
+  // (same id) must never clobber the draft mid-edit.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setDraft(plan); }, [plan.id]);
+  useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
+
+  const commit = useCallback((next: HealthPlan) => {
+    setDraft(next);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => onSave(next), 700);
+  }, [onSave]);
+
+  // Flush any pending debounced save before leaving — closing within
+  // 700ms of an edit must not lose it.
+  const closeWithFlush = () => {
+    if (saveTimer.current) { clearTimeout(saveTimer.current); onSave(draft); }
+    onClose();
+  };
+
+  const m = PLAN_TYPE_META[draft.type];
+  const showTraining = draft.type === 'fitness' || draft.type === 'combined';
+  const showMeals = draft.type === 'meal' || draft.type === 'combined';
+
+  // days[] is sparse — absent days render as an implicit rest day.
+  const dayByIndex = useMemo(() => {
+    const map = new Map<number, HealthPlanDay>();
+    for (const d of draft.days) map.set(d.day_index, d);
+    return map;
+  }, [draft.days]);
+
+  const upsertDay = (day: HealthPlanDay) => {
+    const days = draft.days.filter(d => d.day_index !== day.day_index);
+    if (!isEmptyDay(day)) days.push(day);
+    days.sort((a, b) => a.day_index - b.day_index);
+    commit({ ...draft, days });
+  };
+
+  const setDuration = (days: number) => {
+    commit({ ...draft, duration_days: days, days: draft.days.filter(d => d.day_index <= days) });
+  };
+
+  const weeks = Math.max(1, Math.ceil(draft.duration_days / 7));
 
   return (
     <div className="space-y-5">
-      <button
-        type="button"
-        onClick={onClose}
-        className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
-      >
-        ← All plans
-      </button>
-
-      <div>
-        <div className="flex items-center gap-2">
-          <span className={`rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${m.tint}`}>{m.label}</span>
-          <span className="text-[10px] text-[var(--text-muted)]">
-            {durationLabel(plan.duration_days)} · {plan.source === 'ava' ? 'Ava-generated' : 'Built by you'}
-          </span>
-        </div>
-        <h2 className="mt-2 text-[18px] font-light text-[var(--text-primary)]">{plan.title}</h2>
-        {plan.goal && <p className="mt-1 text-[12px] text-[var(--text-secondary)] leading-relaxed">{plan.goal}</p>}
+      <div className="flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={closeWithFlush}
+          className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+        >
+          ← All plans
+        </button>
+        <span className="text-[10px] text-[var(--text-muted)]">Changes save automatically</span>
       </div>
 
-      {plan.days.length === 0 ? (
-        <PlansEmptyCard
-          title="This plan has no days yet"
-          body="The plan editor — weeks, training days, meals — lands in the next step. For now this is the shell its content will fill."
-        />
-      ) : (
-        <div className="text-[12px] text-[var(--text-secondary)]">
-          {plan.days.length} day{plan.days.length === 1 ? '' : 's'} planned.
+      {/* Header — type, status, title, goal, duration */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <span className={`rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${m.tint}`}>{m.label}</span>
+          <select
+            value={draft.status}
+            onChange={(e) => commit({ ...draft, status: e.target.value as HealthPlanStatus })}
+            className={editInput}
+            title="Activating a plan archives any other active plan of the same type"
+          >
+            <option value="draft">Draft</option>
+            <option value="active">Active</option>
+            <option value="completed">Completed</option>
+            <option value="archived">Archived</option>
+          </select>
         </div>
-      )}
+        <input
+          value={draft.title}
+          onChange={(e) => commit({ ...draft, title: e.target.value })}
+          placeholder="Plan title"
+          className={`${editInput} w-full text-[15px]`}
+        />
+        <input
+          value={draft.goal ?? ''}
+          onChange={(e) => commit({ ...draft, goal: e.target.value || null })}
+          placeholder="Goal — e.g. lose 4 kg, first 5 k, build pressing strength"
+          className={`${editInput} w-full`}
+        />
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-[var(--text-muted)]">Length</span>
+          <select value={draft.duration_days} onChange={(e) => setDuration(Number(e.target.value))} className={editInput}>
+            {DURATION_PRESETS.map(p => <option key={p.days} value={p.days}>{p.label}</option>)}
+          </select>
+        </div>
+      </div>
 
+      {/* Weeks → days */}
+      <div className="space-y-4">
+        {Array.from({ length: weeks }, (_, w) => (
+          <EditorWeek
+            key={w}
+            weekIndex={w}
+            duration={draft.duration_days}
+            dayByIndex={dayByIndex}
+            expandedDay={expandedDay}
+            onToggleDay={(idx) => setExpandedDay(prev => (prev === idx ? null : idx))}
+            showTraining={showTraining}
+            showMeals={showMeals}
+            onChangeDay={upsertDay}
+          />
+        ))}
+      </div>
+
+      {/* Delete */}
       <div className="border-t border-[var(--border)] pt-4">
         {confirming ? (
           <div className="flex items-center gap-3">
             <span className="text-[11px] text-[var(--text-secondary)]">Delete this plan permanently?</span>
-            <button type="button" onClick={() => { onDelete(plan.id); onClose(); }} className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-[11px] font-semibold text-red-300 hover:bg-red-500/20 transition cursor-pointer">Delete</button>
+            <button type="button" onClick={() => { onDelete(draft.id); onClose(); }} className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-[11px] font-semibold text-red-300 hover:bg-red-500/20 transition cursor-pointer">Delete</button>
             <button type="button" onClick={() => setConfirming(false)} className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">Cancel</button>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-red-300 transition cursor-pointer"
-          >
-            Delete plan
-          </button>
+          <button type="button" onClick={() => setConfirming(true)} className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-red-300 transition cursor-pointer">Delete plan</button>
         )}
       </div>
     </div>
+  );
+}
+
+function EditorWeek({ weekIndex, duration, dayByIndex, expandedDay, onToggleDay, showTraining, showMeals, onChangeDay }: {
+  weekIndex: number;
+  duration: number;
+  dayByIndex: Map<number, HealthPlanDay>;
+  expandedDay: number | null;
+  onToggleDay: (idx: number) => void;
+  showTraining: boolean;
+  showMeals: boolean;
+  onChangeDay: (day: HealthPlanDay) => void;
+}) {
+  const firstDay = weekIndex * 7 + 1;
+  const dayIndices: number[] = [];
+  for (let i = firstDay; i < firstDay + 7 && i <= duration; i++) dayIndices.push(i);
+  const multiWeek = duration > 7;
+  return (
+    <div>
+      {multiWeek && <h3 className="mb-2 text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Week {weekIndex + 1}</h3>}
+      <div className="space-y-2">
+        {dayIndices.map(idx => (
+          <DayBlock
+            key={idx}
+            day={dayByIndex.get(idx) ?? defaultDay(idx)}
+            expanded={expandedDay === idx}
+            onToggle={() => onToggleDay(idx)}
+            showTraining={showTraining}
+            showMeals={showMeals}
+            onChange={onChangeDay}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DayBlock({ day, expanded, onToggle, showTraining, showMeals, onChange }: {
+  day: HealthPlanDay;
+  expanded: boolean;
+  onToggle: () => void;
+  showTraining: boolean;
+  showMeals: boolean;
+  onChange: (day: HealthPlanDay) => void;
+}) {
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-transparent">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between gap-3 border-none bg-transparent px-3 py-2.5 text-left cursor-pointer"
+      >
+        <span className="flex items-center gap-2">
+          <span className="text-[11px] font-medium text-[var(--text-primary)]">Day {day.day_index}</span>
+          {day.title && <span className="text-[11px] text-[var(--text-secondary)]">— {day.title}</span>}
+        </span>
+        <span className="text-[10px] text-[var(--text-muted)]">{daySummary(day, showTraining, showMeals)}</span>
+      </button>
+
+      {expanded && (
+        <div className="space-y-3 border-t border-[var(--border)] px-3 py-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <select value={day.kind} onChange={(e) => onChange({ ...day, kind: e.target.value as HealthPlanDay['kind'] })} className={editInput}>
+              <option value="training">Training</option>
+              <option value="rest">Rest</option>
+              <option value="active_recovery">Active recovery</option>
+            </select>
+            <input
+              value={day.title ?? ''}
+              onChange={(e) => onChange({ ...day, title: e.target.value || null })}
+              placeholder="Day title — e.g. Upper body, Long run"
+              className={`${editInput} min-w-[140px] flex-1`}
+            />
+          </div>
+
+          {showTraining && (
+            <DaySection
+              title="Training"
+              addLabel="+ Add exercise"
+              empty={day.training.length === 0}
+              onAdd={() => onChange({ ...day, training: [...day.training, emptyExercise()] })}
+            >
+              {day.training.map(ex => (
+                <ExerciseEditor
+                  key={ex.id}
+                  ex={ex}
+                  onChange={(next) => onChange({ ...day, training: day.training.map(e => (e.id === ex.id ? next : e)) })}
+                  onRemove={() => onChange({ ...day, training: day.training.filter(e => e.id !== ex.id) })}
+                />
+              ))}
+            </DaySection>
+          )}
+
+          {showMeals && (
+            <DaySection
+              title="Meals"
+              addLabel="+ Add meal"
+              empty={day.meals.length === 0}
+              onAdd={() => onChange({ ...day, meals: [...day.meals, emptyMeal('breakfast')] })}
+            >
+              {day.meals.map(meal => (
+                <PlanMealEditor
+                  key={meal.id}
+                  meal={meal}
+                  onChange={(next) => onChange({ ...day, meals: day.meals.map(mm => (mm.id === meal.id ? next : mm)) })}
+                  onRemove={() => onChange({ ...day, meals: day.meals.filter(mm => mm.id !== meal.id) })}
+                />
+              ))}
+            </DaySection>
+          )}
+
+          <textarea
+            value={day.notes ?? ''}
+            onChange={(e) => onChange({ ...day, notes: e.target.value || null })}
+            placeholder="Day notes (optional)"
+            rows={2}
+            className={`${editInput} w-full resize-y`}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DaySection({ title, addLabel, empty, onAdd, children }: {
+  title: string;
+  addLabel: string;
+  empty: boolean;
+  onAdd: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">{title}</span>
+        <button type="button" onClick={onAdd} className="border-none bg-transparent text-[11px] text-[var(--accent)] hover:opacity-80 cursor-pointer">{addLabel}</button>
+      </div>
+      {empty ? <div className="text-[10px] italic text-[var(--text-muted)]">Nothing added yet.</div> : children}
+    </div>
+  );
+}
+
+function ExerciseEditor({ ex, onChange, onRemove }: {
+  ex: HealthPlanExercise;
+  onChange: (e: HealthPlanExercise) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="space-y-2 rounded-md border border-[var(--border)] bg-[var(--bg-input)]/40 p-2">
+      <div className="flex items-center gap-2">
+        <input value={ex.name} onChange={(e) => onChange({ ...ex, name: e.target.value })} placeholder="Exercise name" className={`${editInput} flex-1`} />
+        <button type="button" onClick={onRemove} title="Remove" className="border-none bg-transparent px-1 text-[var(--text-muted)] hover:text-red-300 cursor-pointer">✕</button>
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <NumInput label="Sets" value={ex.sets} onChange={(v) => onChange({ ...ex, sets: v })} />
+        <TextInput label="Reps" value={ex.reps} placeholder="8-12" onChange={(v) => onChange({ ...ex, reps: v })} />
+        <TextInput label="Weight" value={ex.weight} placeholder="60 kg / RPE 7" onChange={(v) => onChange({ ...ex, weight: v })} />
+        <NumInput label="Rest (s)" value={ex.rest_seconds} onChange={(v) => onChange({ ...ex, rest_seconds: v })} />
+      </div>
+      <input value={ex.notes ?? ''} onChange={(e) => onChange({ ...ex, notes: e.target.value || null })} placeholder="Notes — tempo, cues (optional)" className={`${editInput} w-full`} />
+    </div>
+  );
+}
+
+function PlanMealEditor({ meal, onChange, onRemove }: {
+  meal: HealthPlanMeal;
+  onChange: (m: HealthPlanMeal) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="space-y-2 rounded-md border border-[var(--border)] bg-[var(--bg-input)]/40 p-2">
+      <div className="flex items-center gap-2">
+        <select value={meal.slot} onChange={(e) => onChange({ ...meal, slot: e.target.value as HealthPlanMeal['slot'] })} className={editInput}>
+          <option value="breakfast">Breakfast</option>
+          <option value="lunch">Lunch</option>
+          <option value="dinner">Dinner</option>
+          <option value="snack">Snack</option>
+        </select>
+        <input value={meal.name} onChange={(e) => onChange({ ...meal, name: e.target.value })} placeholder="Meal name" className={`${editInput} flex-1`} />
+        <button type="button" onClick={onRemove} title="Remove" className="border-none bg-transparent px-1 text-[var(--text-muted)] hover:text-red-300 cursor-pointer">✕</button>
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <NumInput label="Cal" value={meal.calories} onChange={(v) => onChange({ ...meal, calories: v })} />
+        <NumInput label="Protein g" value={meal.protein_g} onChange={(v) => onChange({ ...meal, protein_g: v })} />
+        <NumInput label="Carbs g" value={meal.carbs_g} onChange={(v) => onChange({ ...meal, carbs_g: v })} />
+        <NumInput label="Fat g" value={meal.fat_g} onChange={(v) => onChange({ ...meal, fat_g: v })} />
+      </div>
+      <input value={meal.notes ?? ''} onChange={(e) => onChange({ ...meal, notes: e.target.value || null })} placeholder="Notes (optional)" className={`${editInput} w-full`} />
+    </div>
+  );
+}
+
+function NumInput({ label, value, onChange }: { label: string; value: number | null; onChange: (v: number | null) => void }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[9px] uppercase tracking-wide text-[var(--text-muted)]">{label}</span>
+      <input
+        type="number"
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
+        className={editInput}
+      />
+    </label>
+  );
+}
+
+function TextInput({ label, value, placeholder, onChange }: {
+  label: string;
+  value: string | null;
+  placeholder?: string;
+  onChange: (v: string | null) => void;
+}) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[9px] uppercase tracking-wide text-[var(--text-muted)]">{label}</span>
+      <input value={value ?? ''} placeholder={placeholder} onChange={(e) => onChange(e.target.value || null)} className={editInput} />
+    </label>
   );
 }
 
