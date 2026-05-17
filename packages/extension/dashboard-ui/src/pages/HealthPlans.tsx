@@ -73,6 +73,12 @@ export function HealthPlans({
       />
     );
   }
+  // No plans yet — the tab still shows a calendar (empty), so the Plans
+  // tab always opens onto a calendar.
+  if (plans.length === 0) {
+    return <EmptyPlansHome onNew={() => setWizardOpen(true)} />;
+  }
+  // Plans exist but none open — reached via "← All plans" from a plan.
   return (
     <PlansLibrary
       plans={plans}
@@ -80,6 +86,43 @@ export function HealthPlans({
       onNew={() => setWizardOpen(true)}
       onDelete={onDeletePlan}
     />
+  );
+}
+
+const EMPTY_MARKS = new Map<string, { training: boolean; meals: boolean }>();
+
+/** The Plans tab with no plans yet — still a calendar, so the surface
+ *  reads as "your calendar" from the first visit. */
+function EmptyPlansHome({ onNew }: { onNew: () => void }) {
+  const [month, setMonth] = useState<Date>(() => new Date());
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Your plans</h2>
+          <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
+            Multi-week fitness, meal, and combined programs — they fill the calendar below.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onNew}
+          className="shrink-0 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer"
+        >
+          + New plan
+        </button>
+      </div>
+      <MonthCalendar
+        month={month}
+        onMonthChange={setMonth}
+        marks={EMPTY_MARKS}
+        selected={null}
+        onSelectDate={() => onNew()}
+      />
+      <p className="text-center text-[11px] italic text-[var(--text-muted)]">
+        No plans yet — create one and its days appear here.
+      </p>
+    </div>
   );
 }
 
@@ -130,7 +173,9 @@ function blankPlan(type: HealthPlanType, durationDays: number): HealthPlan {
     source: 'manual',
     status: 'draft',
     duration_days: durationDays,
-    start_date: null,
+    // Anchored to today so the plan lands on the calendar immediately;
+    // the editor can re-anchor it later.
+    start_date: todayISO(),
     profile_snapshot: null,
     days: [],
     created_at: new Date().toISOString(),
@@ -421,6 +466,8 @@ function PlanEditor({ plan, onClose, onSave, onDelete, exerciseResults, recipeRe
   const [draft, setDraft] = useState<HealthPlan>(plan);
   // The day open in the panel below the calendar — null = none selected.
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  // The month the calendar is showing — defaults to the plan's start.
+  const [month, setMonth] = useState<Date>(() => new Date(`${plan.start_date ?? todayISO()}T00:00:00`));
   const [confirming, setConfirming] = useState(false);
   // The catalog picker — which day + which kind of item it's adding.
   const [picker, setPicker] = useState<{ dayIndex: number; kind: 'exercise' | 'recipe' } | null>(null);
@@ -455,6 +502,37 @@ function PlanEditor({ plan, onClose, onSave, onDelete, exerciseResults, recipeRe
     for (const d of draft.days) map.set(d.day_index, d);
     return map;
   }, [draft.days]);
+
+  // Plan start anchor — every day maps onto a real calendar date from
+  // here. Falls back to today for an older plan with no start_date.
+  const startISO = draft.start_date ?? todayISO();
+
+  /** day_index → ISO date. */
+  const dateForDay = useCallback((dayIndex: number): string => {
+    const d = new Date(`${startISO}T00:00:00`);
+    d.setDate(d.getDate() + dayIndex - 1);
+    return ymd(d);
+  }, [startISO]);
+
+  /** ISO date → day_index, or null when the date is outside the plan. */
+  const dayForDate = useCallback((key: string): number | null => {
+    const start = new Date(`${startISO}T00:00:00`);
+    const sel = new Date(`${key}T00:00:00`);
+    const idx = Math.round((sel.getTime() - start.getTime()) / 86400000) + 1;
+    return idx >= 1 && idx <= draft.duration_days ? idx : null;
+  }, [startISO, draft.duration_days]);
+
+  // Training / meal dots, keyed by real calendar date.
+  const calendarMarks = useMemo(() => {
+    const map = new Map<string, { training: boolean; meals: boolean }>();
+    for (const d of draft.days) {
+      map.set(dateForDay(d.day_index), {
+        training: showTraining && d.training.length > 0,
+        meals: showMeals && d.meals.length > 0,
+      });
+    }
+    return map;
+  }, [draft.days, dateForDay, showTraining, showMeals]);
 
   const upsertDay = (day: HealthPlanDay) => {
     const days = draft.days.filter(d => d.day_index !== day.day_index);
@@ -530,21 +608,22 @@ function PlanEditor({ plan, onClose, onSave, onDelete, exerciseResults, recipeRe
       </div>
 
       {/* Calendar — the plan at a glance. Click a day to open it. */}
-      <PlanCalendar
-        duration={draft.duration_days}
-        startDate={draft.start_date}
-        dayByIndex={dayByIndex}
-        selectedDay={selectedDay}
-        showTraining={showTraining}
-        showMeals={showMeals}
-        onSelectDay={(idx) => setSelectedDay(prev => (prev === idx ? null : idx))}
+      <MonthCalendar
+        month={month}
+        onMonthChange={setMonth}
+        marks={calendarMarks}
+        selected={selectedDay != null ? dateForDay(selectedDay) : null}
+        onSelectDate={(key) => {
+          const idx = dayForDate(key);
+          if (idx != null) setSelectedDay(prev => (prev === idx ? null : idx));
+        }}
       />
 
       {/* Day panel — the selected day's editor, below the calendar. */}
       {selectedDay != null && (
         <DayBlock
           day={dayByIndex.get(selectedDay) ?? defaultDay(selectedDay)}
-          startDate={draft.start_date}
+          startDate={startISO}
           onClose={() => setSelectedDay(null)}
           showTraining={showTraining}
           showMeals={showMeals}
@@ -602,81 +681,80 @@ function planDate(startDate: string | null, dayIndex: number): Date | null {
   return d;
 }
 
-/** The plan calendar — week rows of 7 day-cells. A cell shows the day
- *  number (or real date once the plan has a start date) and dots for
- *  training / meals. Clicking a cell opens that day's panel. */
-function PlanCalendar({ duration, startDate, dayByIndex, selectedDay, showTraining, showMeals, onSelectDay }: {
-  duration: number;
-  startDate: string | null;
-  dayByIndex: Map<number, HealthPlanDay>;
-  selectedDay: number | null;
-  showTraining: boolean;
-  showMeals: boolean;
-  onSelectDay: (idx: number) => void;
-}) {
-  const weeks = Math.max(1, Math.ceil(duration / 7));
-  return (
-    <div className="space-y-3">
-      {Array.from({ length: weeks }, (_, w) => {
-        const first = w * 7 + 1;
-        const indices: number[] = [];
-        for (let i = first; i < first + 7 && i <= duration; i++) indices.push(i);
-        return (
-          <div key={w}>
-            {weeks > 1 && (
-              <div className="mb-1.5 text-[9px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Week {w + 1}</div>
-            )}
-            <div className="grid grid-cols-7 gap-1.5">
-              {indices.map(idx => (
-                <CalendarCell
-                  key={idx}
-                  dayIndex={idx}
-                  day={dayByIndex.get(idx) ?? null}
-                  date={planDate(startDate, idx)}
-                  selected={selectedDay === idx}
-                  showTraining={showTraining}
-                  showMeals={showMeals}
-                  onClick={() => onSelectDay(idx)}
-                />
-              ))}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+const WEEKDAY_INITIAL = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-function CalendarCell({ dayIndex, day, date, selected, showTraining, showMeals, onClick }: {
-  dayIndex: number;
-  day: HealthPlanDay | null;
-  date: Date | null;
-  selected: boolean;
-  showTraining: boolean;
-  showMeals: boolean;
-  onClick: () => void;
+/** ISO YYYY-MM-DD for a Date, local time. */
+function ymd(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function todayISO(): string { return ymd(new Date()); }
+
+/** A real month calendar — the Plans surface's main view. Weekday
+ *  columns, the month's dates, training / meal dots per day. Clicking a
+ *  date calls onSelectDate with its ISO key. Works with no plan at all
+ *  (empty marks) so the Plans tab always shows a calendar. */
+function MonthCalendar({ month, onMonthChange, marks, selected, onSelectDate }: {
+  month: Date;
+  onMonthChange: (d: Date) => void;
+  marks: Map<string, { training: boolean; meals: boolean }>;
+  selected: string | null;
+  onSelectDate: (key: string) => void;
 }) {
-  const hasTraining = showTraining && !!day && day.training.length > 0;
-  const hasMeals = showMeals && !!day && day.meals.length > 0;
+  const year = month.getFullYear();
+  const mon = month.getMonth();
+  const firstDow = new Date(year, mon, 1).getDay();
+  const daysInMonth = new Date(year, mon + 1, 0).getDate();
+  const cells: Array<Date | null> = [];
+  for (let i = 0; i < firstDow; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, mon, d));
+  while (cells.length % 7 !== 0) cells.push(null);
+  const today = todayISO();
+  const monthLabel = new Date(year, mon, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={day?.title ?? `Day ${dayIndex}`}
-      className={`flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-md border p-1 transition cursor-pointer ${
-        selected
-          ? 'border-[var(--accent)] bg-[var(--accent)]/10'
-          : 'border-[var(--border)] bg-transparent hover:border-[var(--accent)]/40'
-      }`}
-    >
-      <span className="text-[12px] font-medium text-[var(--text-primary)]">{date ? date.getDate() : dayIndex}</span>
-      <span className="text-[8px] uppercase tracking-wide text-[var(--text-muted)]">{date ? WEEKDAY[date.getDay()] : 'Day'}</span>
-      <span className="flex h-1.5 items-center gap-0.5">
-        {hasTraining && <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden />}
-        {hasMeals && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" aria-hidden />}
-        {!hasTraining && !hasMeals && <span className="text-[8px] text-[var(--text-muted)]">·</span>}
-      </span>
-    </button>
+    <div className="rounded-lg border border-[var(--border)] bg-transparent p-3">
+      <div className="mb-3 flex items-center justify-between">
+        <button type="button" onClick={() => onMonthChange(new Date(year, mon - 1, 1))} aria-label="Previous month"
+          className="cursor-pointer border-none bg-transparent px-2 text-[14px] text-[var(--text-muted)] hover:text-[var(--text-primary)]">‹</button>
+        <span className="text-[12px] font-medium text-[var(--text-primary)]">{monthLabel}</span>
+        <button type="button" onClick={() => onMonthChange(new Date(year, mon + 1, 1))} aria-label="Next month"
+          className="cursor-pointer border-none bg-transparent px-2 text-[14px] text-[var(--text-muted)] hover:text-[var(--text-primary)]">›</button>
+      </div>
+      <div className="mb-1 grid grid-cols-7 gap-1">
+        {WEEKDAY_INITIAL.map((w, i) => (
+          <div key={i} className="text-center text-[9px] uppercase tracking-wide text-[var(--text-muted)]">{w}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((date, i) => {
+          if (!date) return <div key={i} />;
+          const key = ymd(date);
+          const mk = marks.get(key);
+          const isToday = key === today;
+          const isSelected = key === selected;
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onSelectDate(key)}
+              className={`flex min-h-[46px] flex-col items-center justify-center gap-1 rounded-md border p-1 transition cursor-pointer ${
+                isSelected
+                  ? 'border-[var(--accent)] bg-[var(--accent)]/10'
+                  : mk
+                    ? 'border-[var(--border)] bg-transparent hover:border-[var(--accent)]/40'
+                    : 'border-transparent bg-transparent hover:border-[var(--border)]'
+              }`}
+            >
+              <span className={`text-[11px] ${isToday ? 'font-bold text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{date.getDate()}</span>
+              <span className="flex h-1.5 items-center gap-0.5">
+                {mk?.training && <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden />}
+                {mk?.meals && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" aria-hidden />}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
