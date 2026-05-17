@@ -100,6 +100,10 @@ export function HealthDashboard({
     try { localStorage.setItem('ava-ext-health-tab', next); } catch { /* quota / disabled */ }
   };
 
+  // New-plan wizard — open state for the Plans tab. The tab renders one
+  // of three things: an open plan's editor, the wizard, or the library.
+  const [wizardOpen, setWizardOpen] = useState(false);
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
       {/* Header — calm greeting, date, registers the dashboard's
@@ -171,11 +175,16 @@ export function HealthDashboard({
               onSave={onSavePlanProgram}
               onDelete={onDeletePlan}
             />
+          ) : wizardOpen ? (
+            <NewPlanWizard
+              onCancel={() => setWizardOpen(false)}
+              onCreateManual={(p) => { setWizardOpen(false); onSavePlanProgram(p); }}
+            />
           ) : (
             <PlansLibrary
               plans={plans}
               onOpen={onOpenPlan}
-              onCreate={onSavePlanProgram}
+              onNew={() => setWizardOpen(true)}
               onDelete={onDeletePlan}
             />
           )}
@@ -399,9 +408,9 @@ function newPlanId(): string {
   return crypto?.randomUUID?.() ?? `plan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-/** A fresh, empty draft plan of the chosen type — the manual builder
- *  starts here, then the editor (B2) fills in its weeks and days. */
-function blankPlan(type: HealthPlanType): HealthPlan {
+/** A fresh, empty draft plan of the chosen type + duration — the
+ *  manual door of the wizard hands this straight to the editor. */
+function blankPlan(type: HealthPlanType, durationDays: number): HealthPlan {
   return {
     schema_version: 1,
     id: newPlanId(),
@@ -410,7 +419,7 @@ function blankPlan(type: HealthPlanType): HealthPlan {
     goal: null,
     source: 'manual',
     status: 'draft',
-    duration_days: 28,
+    duration_days: durationDays,
     start_date: null,
     profile_snapshot: null,
     days: [],
@@ -419,10 +428,10 @@ function blankPlan(type: HealthPlanType): HealthPlan {
   };
 }
 
-function PlansLibrary({ plans, onOpen, onCreate, onDelete }: {
+function PlansLibrary({ plans, onOpen, onNew, onDelete }: {
   plans: HealthPlanSummary[];
   onOpen: (id: string) => void;
-  onCreate: (plan: HealthPlan) => void;
+  onNew: () => void;
   onDelete: (id: string) => void;
 }) {
   return (
@@ -434,12 +443,18 @@ function PlansLibrary({ plans, onOpen, onCreate, onDelete }: {
         </p>
       </div>
 
-      <NewPlanRow onCreate={onCreate} />
+      <button
+        type="button"
+        onClick={onNew}
+        className="w-full rounded-lg border border-dashed border-[var(--accent)]/40 bg-[var(--accent)]/5 px-4 py-3 text-[12px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/10 transition cursor-pointer"
+      >
+        + New plan
+      </button>
 
       {plans.length === 0 ? (
         <PlansEmptyCard
           title="No plans yet"
-          body="Pick a type above to start a plan, then shape its weeks. Ava-generated plans land in a later step."
+          body="Start one with “+ New plan” — pick a type, choose to build it yourself or ask Ava, set the length."
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -448,55 +463,6 @@ function PlansLibrary({ plans, onOpen, onCreate, onDelete }: {
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-/** "+ New plan" — expands to a three-way type pick, then mints a
- *  blank draft of that type. B3 grows this into the full wizard. */
-function NewPlanRow({ onCreate }: { onCreate: (plan: HealthPlan) => void }) {
-  const [picking, setPicking] = useState(false);
-
-  if (!picking) {
-    return (
-      <button
-        type="button"
-        onClick={() => setPicking(true)}
-        className="w-full rounded-lg border border-dashed border-[var(--accent)]/40 bg-[var(--accent)]/5 px-4 py-3 text-[12px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/10 transition cursor-pointer"
-      >
-        + New plan
-      </button>
-    );
-  }
-
-  return (
-    <div className="rounded-lg border border-[var(--border)] bg-transparent p-3">
-      <div className="mb-2.5 flex items-center justify-between">
-        <span className="text-[11px] text-[var(--text-secondary)]">What kind of plan?</span>
-        <button
-          type="button"
-          onClick={() => setPicking(false)}
-          className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
-        >
-          Cancel
-        </button>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        {(['fitness', 'meal', 'combined'] as HealthPlanType[]).map(t => {
-          const m = PLAN_TYPE_META[t];
-          return (
-            <button
-              key={t}
-              type="button"
-              onClick={() => { onCreate(blankPlan(t)); setPicking(false); }}
-              className="rounded-md border border-[var(--border)] bg-transparent px-3 py-3 text-left hover:border-[var(--accent)]/40 transition cursor-pointer"
-            >
-              <div className="text-[12px] font-medium text-[var(--text-primary)]">{m.label}</div>
-              <div className="mt-1 text-[10px] text-[var(--text-muted)] leading-relaxed">{m.blurb}</div>
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }
@@ -545,6 +511,143 @@ function PlanCard({ plan, onOpen, onDelete }: {
         </button>
       )}
     </div>
+  );
+}
+
+// ── New-plan wizard (B3) ─────────────────────────────────────────────
+// Type → Door → Length. The manual door hands a blank plan straight to
+// the editor; the Ava door's intake + generate flow lands in C2 — a
+// placeholder panel marks the spot for now.
+
+function NewPlanWizard({ onCancel, onCreateManual }: {
+  onCancel: () => void;
+  onCreateManual: (plan: HealthPlan) => void;
+}) {
+  const [step, setStep] = useState<'type' | 'door' | 'length' | 'ava'>('type');
+  const [type, setType] = useState<HealthPlanType | null>(null);
+  const [door, setDoor] = useState<'manual' | 'ava' | null>(null);
+  const [duration, setDuration] = useState<number>(28);
+
+  const stepLabels = ['Type', 'How', 'Length'];
+  const currentIdx = step === 'type' ? 0 : step === 'door' ? 1 : 2;
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[13px] font-light text-[var(--text-primary)]">New plan</span>
+        <button type="button" onClick={onCancel} className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">Cancel</button>
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        {stepLabels.map((label, i) => (
+          <span key={label} className="flex items-center gap-1.5">
+            <span className={`text-[10px] uppercase tracking-wide ${i <= currentIdx ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'}`}>{label}</span>
+            {i < stepLabels.length - 1 && <span className="text-[10px] text-[var(--text-muted)]">·</span>}
+          </span>
+        ))}
+      </div>
+
+      {step === 'type' && (
+        <WizardStep title="What kind of plan?">
+          {(['fitness', 'meal', 'combined'] as HealthPlanType[]).map(t => {
+            const m = PLAN_TYPE_META[t];
+            return (
+              <WizardChoice key={t} title={m.label} blurb={m.blurb} accent={m.accent} onClick={() => { setType(t); setStep('door'); }} />
+            );
+          })}
+        </WizardStep>
+      )}
+
+      {step === 'door' && (
+        <WizardStep title="How do you want to build it?" onBack={() => setStep('type')}>
+          <WizardChoice
+            title="Build it myself"
+            blurb="Start from a blank plan and shape every week and day by hand."
+            onClick={() => { setDoor('manual'); setStep('length'); }}
+          />
+          <WizardChoice
+            title="Ask Ava"
+            blurb="Ava drafts the plan from your profile — you review and edit everything after."
+            onClick={() => { setDoor('ava'); setStep('length'); }}
+          />
+        </WizardStep>
+      )}
+
+      {step === 'length' && type && (
+        <WizardStep title="How long should it run?" onBack={() => setStep('door')}>
+          {DURATION_PRESETS.map(p => (
+            <WizardChoice
+              key={p.days}
+              title={p.label}
+              blurb=""
+              onClick={() => {
+                setDuration(p.days);
+                if (door === 'manual') onCreateManual(blankPlan(type, p.days));
+                else setStep('ava');
+              }}
+            />
+          ))}
+        </WizardStep>
+      )}
+
+      {step === 'ava' && type && (
+        <WizardStep title="Ask Ava" onBack={() => setStep('length')} plain>
+          <div className="rounded-lg border border-[var(--border)] bg-transparent px-4 py-6 text-center">
+            <div className="text-[12px] text-[var(--text-secondary)]">
+              Ava will draft your {durationLabel(duration)} {PLAN_TYPE_META[type].label.toLowerCase()} plan here.
+            </div>
+            <div className="mx-auto mt-1.5 max-w-sm text-[10px] italic leading-relaxed text-[var(--text-muted)]">
+              The intake-and-generate flow lands in the next update. For now, build it yourself — you can ask Ava to refine it later.
+            </div>
+            <button
+              type="button"
+              onClick={() => onCreateManual(blankPlan(type, duration))}
+              className="mt-3 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer"
+            >
+              Build it myself instead
+            </button>
+          </div>
+        </WizardStep>
+      )}
+    </div>
+  );
+}
+
+function WizardStep({ title, onBack, plain, children }: {
+  title: string;
+  onBack?: () => void;
+  plain?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        {onBack && (
+          <button type="button" onClick={onBack} className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">← Back</button>
+        )}
+        <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{title}</span>
+      </div>
+      {plain ? <div>{children}</div> : <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">{children}</div>}
+    </div>
+  );
+}
+
+function WizardChoice({ title, blurb, accent, onClick }: {
+  title: string;
+  blurb: string;
+  accent?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-md border border-[var(--border)] bg-transparent px-3 py-3 text-left hover:border-[var(--accent)]/40 transition cursor-pointer"
+    >
+      {accent && <div className="mb-2 h-[3px] w-8 rounded" style={{ background: accent }} aria-hidden />}
+      <div className="text-[12px] font-medium text-[var(--text-primary)]">{title}</div>
+      {blurb && <div className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">{blurb}</div>}
+    </button>
   );
 }
 
