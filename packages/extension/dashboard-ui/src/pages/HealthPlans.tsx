@@ -404,7 +404,8 @@ function PlanEditor({ plan, onClose, onSave, onDelete, exerciseResults, recipeRe
   onSearchRecipes: (q: string) => void;
 }) {
   const [draft, setDraft] = useState<HealthPlan>(plan);
-  const [expandedDay, setExpandedDay] = useState<number | null>(null);
+  // The day open in the panel below the calendar — null = none selected.
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [confirming, setConfirming] = useState(false);
   // The catalog picker — which day + which kind of item it's adding.
   const [picker, setPicker] = useState<{ dayIndex: number; kind: 'exercise' | 'recipe' } | null>(null);
@@ -464,8 +465,6 @@ function PlanEditor({ plan, onClose, onSave, onDelete, exerciseResults, recipeRe
     setPicker(null);
   };
 
-  const weeks = Math.max(1, Math.ceil(draft.duration_days / 7));
-
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
@@ -515,23 +514,29 @@ function PlanEditor({ plan, onClose, onSave, onDelete, exerciseResults, recipeRe
         </div>
       </div>
 
-      {/* Weeks → days */}
-      <div className="space-y-4">
-        {Array.from({ length: weeks }, (_, w) => (
-          <EditorWeek
-            key={w}
-            weekIndex={w}
-            duration={draft.duration_days}
-            dayByIndex={dayByIndex}
-            expandedDay={expandedDay}
-            onToggleDay={(idx) => setExpandedDay(prev => (prev === idx ? null : idx))}
-            showTraining={showTraining}
-            showMeals={showMeals}
-            onChangeDay={upsertDay}
-            onOpenPicker={(dayIndex, kind) => setPicker({ dayIndex, kind })}
-          />
-        ))}
-      </div>
+      {/* Calendar — the plan at a glance. Click a day to open it. */}
+      <PlanCalendar
+        duration={draft.duration_days}
+        startDate={draft.start_date}
+        dayByIndex={dayByIndex}
+        selectedDay={selectedDay}
+        showTraining={showTraining}
+        showMeals={showMeals}
+        onSelectDay={(idx) => setSelectedDay(prev => (prev === idx ? null : idx))}
+      />
+
+      {/* Day panel — the selected day's editor, below the calendar. */}
+      {selectedDay != null && (
+        <DayBlock
+          day={dayByIndex.get(selectedDay) ?? defaultDay(selectedDay)}
+          startDate={draft.start_date}
+          onClose={() => setSelectedDay(null)}
+          showTraining={showTraining}
+          showMeals={showMeals}
+          onChange={upsertDay}
+          onOpenPicker={(dayIndex, kind) => setPicker({ dayIndex, kind })}
+        />
+      )}
 
       {picker && (
         <CatalogPicker
@@ -570,67 +575,120 @@ function PlanEditor({ plan, onClose, onSave, onDelete, exerciseResults, recipeRe
   );
 }
 
-function EditorWeek({ weekIndex, duration, dayByIndex, expandedDay, onToggleDay, showTraining, showMeals, onChangeDay, onOpenPicker }: {
-  weekIndex: number;
+const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/** Real calendar date for a plan day — startDate + (dayIndex - 1).
+ *  Null when the plan has no start date yet (still a relative grid). */
+function planDate(startDate: string | null, dayIndex: number): Date | null {
+  if (!startDate) return null;
+  const d = new Date(`${startDate}T00:00:00`);
+  if (isNaN(d.getTime())) return null;
+  d.setDate(d.getDate() + dayIndex - 1);
+  return d;
+}
+
+/** The plan calendar — week rows of 7 day-cells. A cell shows the day
+ *  number (or real date once the plan has a start date) and dots for
+ *  training / meals. Clicking a cell opens that day's panel. */
+function PlanCalendar({ duration, startDate, dayByIndex, selectedDay, showTraining, showMeals, onSelectDay }: {
   duration: number;
+  startDate: string | null;
   dayByIndex: Map<number, HealthPlanDay>;
-  expandedDay: number | null;
-  onToggleDay: (idx: number) => void;
+  selectedDay: number | null;
   showTraining: boolean;
   showMeals: boolean;
-  onChangeDay: (day: HealthPlanDay) => void;
-  onOpenPicker: (dayIndex: number, kind: 'exercise' | 'recipe') => void;
+  onSelectDay: (idx: number) => void;
 }) {
-  const firstDay = weekIndex * 7 + 1;
-  const dayIndices: number[] = [];
-  for (let i = firstDay; i < firstDay + 7 && i <= duration; i++) dayIndices.push(i);
-  const multiWeek = duration > 7;
+  const weeks = Math.max(1, Math.ceil(duration / 7));
   return (
-    <div>
-      {multiWeek && <h3 className="mb-2 text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Week {weekIndex + 1}</h3>}
-      <div className="space-y-2">
-        {dayIndices.map(idx => (
-          <DayBlock
-            key={idx}
-            day={dayByIndex.get(idx) ?? defaultDay(idx)}
-            expanded={expandedDay === idx}
-            onToggle={() => onToggleDay(idx)}
-            showTraining={showTraining}
-            showMeals={showMeals}
-            onChange={onChangeDay}
-            onOpenPicker={onOpenPicker}
-          />
-        ))}
-      </div>
+    <div className="space-y-3">
+      {Array.from({ length: weeks }, (_, w) => {
+        const first = w * 7 + 1;
+        const indices: number[] = [];
+        for (let i = first; i < first + 7 && i <= duration; i++) indices.push(i);
+        return (
+          <div key={w}>
+            {weeks > 1 && (
+              <div className="mb-1.5 text-[9px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Week {w + 1}</div>
+            )}
+            <div className="grid grid-cols-7 gap-1.5">
+              {indices.map(idx => (
+                <CalendarCell
+                  key={idx}
+                  dayIndex={idx}
+                  day={dayByIndex.get(idx) ?? null}
+                  date={planDate(startDate, idx)}
+                  selected={selectedDay === idx}
+                  showTraining={showTraining}
+                  showMeals={showMeals}
+                  onClick={() => onSelectDay(idx)}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function DayBlock({ day, expanded, onToggle, showTraining, showMeals, onChange, onOpenPicker }: {
+function CalendarCell({ dayIndex, day, date, selected, showTraining, showMeals, onClick }: {
+  dayIndex: number;
+  day: HealthPlanDay | null;
+  date: Date | null;
+  selected: boolean;
+  showTraining: boolean;
+  showMeals: boolean;
+  onClick: () => void;
+}) {
+  const hasTraining = showTraining && !!day && day.training.length > 0;
+  const hasMeals = showMeals && !!day && day.meals.length > 0;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={day?.title ?? `Day ${dayIndex}`}
+      className={`flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-md border p-1 transition cursor-pointer ${
+        selected
+          ? 'border-[var(--accent)] bg-[var(--accent)]/10'
+          : 'border-[var(--border)] bg-transparent hover:border-[var(--accent)]/40'
+      }`}
+    >
+      <span className="text-[12px] font-medium text-[var(--text-primary)]">{date ? date.getDate() : dayIndex}</span>
+      <span className="text-[8px] uppercase tracking-wide text-[var(--text-muted)]">{date ? WEEKDAY[date.getDay()] : 'Day'}</span>
+      <span className="flex h-1.5 items-center gap-0.5">
+        {hasTraining && <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden />}
+        {hasMeals && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" aria-hidden />}
+        {!hasTraining && !hasMeals && <span className="text-[8px] text-[var(--text-muted)]">·</span>}
+      </span>
+    </button>
+  );
+}
+
+function DayBlock({ day, startDate, onClose, showTraining, showMeals, onChange, onOpenPicker }: {
   day: HealthPlanDay;
-  expanded: boolean;
-  onToggle: () => void;
+  startDate: string | null;
+  onClose: () => void;
   showTraining: boolean;
   showMeals: boolean;
   onChange: (day: HealthPlanDay) => void;
   onOpenPicker: (dayIndex: number, kind: 'exercise' | 'recipe') => void;
 }) {
+  const date = planDate(startDate, day.day_index);
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-transparent">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-center justify-between gap-3 border-none bg-transparent px-3 py-2.5 text-left cursor-pointer"
-      >
+    <div className="rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/5">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-3 py-2.5">
         <span className="flex items-center gap-2">
-          <span className="text-[11px] font-medium text-[var(--text-primary)]">Day {day.day_index}</span>
+          <span className="text-[12px] font-medium text-[var(--text-primary)]">
+            {date ? `${WEEKDAY[date.getDay()]} ${date.getDate()}` : `Day ${day.day_index}`}
+          </span>
           {day.title && <span className="text-[11px] text-[var(--text-secondary)]">— {day.title}</span>}
+          <span className="text-[10px] text-[var(--text-muted)]">{daySummary(day, showTraining, showMeals)}</span>
         </span>
-        <span className="text-[10px] text-[var(--text-muted)]">{daySummary(day, showTraining, showMeals)}</span>
-      </button>
+        <button type="button" onClick={onClose} title="Close day" className="border-none bg-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">✕</button>
+      </div>
 
-      {expanded && (
-        <div className="space-y-3 border-t border-[var(--border)] px-3 py-3">
+      <div className="space-y-3 px-3 py-3">
           <div className="flex flex-wrap items-center gap-2">
             <select value={day.kind} onChange={(e) => onChange({ ...day, kind: e.target.value as HealthPlanDay['kind'] })} className={editInput}>
               <option value="training">Training</option>
@@ -688,8 +746,7 @@ function DayBlock({ day, expanded, onToggle, showTraining, showMeals, onChange, 
             rows={2}
             className={`${editInput} w-full resize-y`}
           />
-        </div>
-      )}
+      </div>
     </div>
   );
 }
