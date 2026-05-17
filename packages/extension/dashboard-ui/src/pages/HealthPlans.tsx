@@ -50,42 +50,43 @@ export function HealthPlans({
     }
   }, [plans, planOpen, wizardOpen, onOpenPlan]);
 
-  if (planOpen) {
-    return (
-      <PlanEditor
-        plan={planOpen}
-        onClose={onClosePlan}
-        onSave={onSavePlan}
-        onDelete={onDeletePlan}
-        exerciseResults={exerciseResults}
-        recipeResults={recipeResults}
-        catalogSearching={catalogSearching}
-        onSearchExercises={onSearchExercises}
-        onSearchRecipes={onSearchRecipes}
-      />
-    );
-  }
-  if (wizardOpen) {
-    return (
-      <NewPlanWizard
-        onCancel={() => setWizardOpen(false)}
-        onCreateManual={(p) => { setWizardOpen(false); onSavePlan(p); }}
-      />
-    );
-  }
-  // No plans yet — the tab still shows a calendar (empty), so the Plans
-  // tab always opens onto a calendar.
-  if (plans.length === 0) {
-    return <EmptyPlansHome onNew={() => setWizardOpen(true)} />;
-  }
-  // Plans exist but none open — reached via "← All plans" from a plan.
-  return (
+  // The base view — calendar (a plan open), an empty calendar (no
+  // plans), or the library (stepped back via "← All plans").
+  const base = planOpen ? (
+    <PlanEditor
+      plan={planOpen}
+      onClose={onClosePlan}
+      onSave={onSavePlan}
+      onDelete={onDeletePlan}
+      exerciseResults={exerciseResults}
+      recipeResults={recipeResults}
+      catalogSearching={catalogSearching}
+      onSearchExercises={onSearchExercises}
+      onSearchRecipes={onSearchRecipes}
+    />
+  ) : plans.length === 0 ? (
+    <EmptyPlansHome onNew={() => setWizardOpen(true)} />
+  ) : (
     <PlansLibrary
       plans={plans}
       onOpen={onOpenPlan}
       onNew={() => setWizardOpen(true)}
       onDelete={onDeletePlan}
     />
+  );
+
+  // The new-plan wizard is an overlay over the base view — never a
+  // replacement, so the calendar stays in place behind it.
+  return (
+    <>
+      {base}
+      {wizardOpen && (
+        <NewPlanWizard
+          onCancel={() => setWizardOpen(false)}
+          onCreateManual={(p) => { setWizardOpen(false); onSavePlan(p); }}
+        />
+      )}
+    </>
   );
 }
 
@@ -287,7 +288,11 @@ function NewPlanWizard({ onCancel, onCreateManual }: {
   const currentIdx = step === 'type' ? 0 : step === 'door' ? 1 : 2;
 
   return (
-    <div className="space-y-5">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-6" onClick={onCancel}>
+      <div
+        className="mt-12 w-full max-w-md space-y-5 rounded-xl border border-[rgba(168,85,247,0.2)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] p-5 shadow-[0_0_60px_rgba(168,85,247,0.12)]"
+        onClick={(e) => e.stopPropagation()}
+      >
       <div className="flex items-center justify-between gap-3">
         <span className="text-[13px] font-light text-[var(--text-primary)]">New plan</span>
         <button type="button" onClick={onCancel} className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">Cancel</button>
@@ -364,6 +369,7 @@ function NewPlanWizard({ onCancel, onCreateManual }: {
           </div>
         </WizardStep>
       )}
+      </div>
     </div>
   );
 }
