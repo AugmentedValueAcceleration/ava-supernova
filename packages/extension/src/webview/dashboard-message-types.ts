@@ -725,6 +725,93 @@ export interface HealthMySubmissions {
   recipes: HealthMySubmissionRecipe[];
 }
 
+/**
+ * Multi-week Plan — a structured fitness / meal / combined program.
+ *
+ * Distinct from HealthDailyPlan: the Plan is the *program* (weeks of
+ * training and/or meals); the daily plan is a single day. The active
+ * Plan projects into the daily dashboard — Overview renders today's
+ * slice of it.
+ *
+ * Stored local-first in globalState — `ava.plan.{id}` per plan, with
+ * `ava.planIndex` holding lightweight summaries for the library grid
+ * so the card view never has to load every full plan. Cloud sync is
+ * the opt-in `health_plans` Sync category — never a default.
+ */
+export type HealthPlanType = 'fitness' | 'meal' | 'combined';
+export type HealthPlanSource = 'manual' | 'ava';
+export type HealthPlanStatus = 'draft' | 'active' | 'completed' | 'archived';
+
+/** A planned training exercise within a plan day. Links to a catalog
+ *  exercise by slug, or stands alone as a custom entry (ref null). */
+export interface HealthPlanExercise {
+  id: string;
+  ref?: { kind: 'exercise'; slug: string } | null;
+  name: string;
+  sets: number | null;
+  reps: string | null;          // "8-12", "AMRAP", "30s" — free-form target
+  weight: string | null;        // "bodyweight", "60kg", "RPE 7" — guidance
+  rest_seconds: number | null;
+  tempo: string | null;         // "3-1-1-0" or null
+  notes: string | null;
+}
+
+/** A planned meal within a plan day. Links to a catalog recipe by
+ *  slug, or stands alone as a custom entry. Macros are per serving. */
+export interface HealthPlanMeal {
+  id: string;
+  slot: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  ref?: { kind: 'recipe'; slug: string } | null;
+  name: string;
+  calories: number | null;
+  protein_g: number | null;
+  carbs_g: number | null;
+  fat_g: number | null;
+  notes: string | null;
+}
+
+/** One day of a Plan. `day_index` locates it absolutely (1-based);
+ *  the UI groups into weeks by ceil(day_index / 7). A combined plan's
+ *  day carries both `training` and `meals`. */
+export interface HealthPlanDay {
+  day_index: number;            // 1-based absolute day within the plan
+  kind: 'training' | 'rest' | 'active_recovery';
+  title: string | null;        // "Upper body", "Long run", "Rest day"
+  training: HealthPlanExercise[]; // empty on rest days / meal-only plans
+  meals: HealthPlanMeal[];        // empty on fitness-only plans
+  notes: string | null;
+}
+
+export interface HealthPlan {
+  schema_version: 1;
+  id: string;
+  type: HealthPlanType;
+  title: string;
+  goal: string | null;          // free-text, e.g. "lose 4kg", "first 5k"
+  source: HealthPlanSource;
+  status: HealthPlanStatus;
+  duration_days: number;        // 1 / 7 / 28 / 56 / 84 — the chosen preset
+  start_date: string | null;    // ISO YYYY-MM-DD — null until activated
+  /** Snapshot of the HealthProfile the plan was built against, so the
+   *  plan stays coherent if the profile later changes. */
+  profile_snapshot: HealthProfile | null;
+  days: HealthPlanDay[];
+  created_at: string;
+  updated_at: string | null;
+}
+
+/** Lightweight summary for the Plans library grid — held in
+ *  `ava.planIndex` so the card view skips loading every full plan. */
+export interface HealthPlanSummary {
+  id: string;
+  type: HealthPlanType;
+  title: string;
+  status: HealthPlanStatus;
+  duration_days: number;
+  source: HealthPlanSource;
+  updated_at: string | null;
+}
+
 // ─── Ava-assisted generation (community submission drafts) ─────────────────
 
 export interface HealthGenerateExerciseIntake {
@@ -1152,6 +1239,11 @@ export type ExtToDashboardMessage =
   | { type: 'health_profile_saved'; profile: HealthProfile }
   | { type: 'health_daily_plan_loaded'; plan: HealthDailyPlan }
   | { type: 'health_daily_plan_saved'; plan: HealthDailyPlan }
+  // Multi-week Plans — library summaries + a single full plan.
+  | { type: 'health_plans_loaded'; plans: HealthPlanSummary[] }
+  | { type: 'health_plan_loaded'; plan: HealthPlan | null }
+  | { type: 'health_plan_saved'; plan: HealthPlan; plans: HealthPlanSummary[] }
+  | { type: 'health_plan_deleted'; id: string; plans: HealthPlanSummary[] }
   | { type: 'health_morning_brief_generated'; ok: boolean; brief?: string; error?: string }
   | { type: 'health_exercise_draft_generated'; ok: boolean; error?: string; draft?: HealthExerciseDraft }
   | { type: 'health_recipe_draft_generated'; ok: boolean; error?: string; draft?: HealthRecipeDraft }
@@ -1410,6 +1502,11 @@ export type DashboardToExtMessage =
   | { type: 'save_health_profile'; profile: HealthProfile }
   | { type: 'load_health_daily_plan'; date: string }
   | { type: 'save_health_daily_plan'; plan: HealthDailyPlan }
+  // Multi-week Plans — library list, single load, save (upsert), delete.
+  | { type: 'load_health_plans' }
+  | { type: 'load_health_plan'; id: string }
+  | { type: 'save_health_plan'; plan: HealthPlan }
+  | { type: 'delete_health_plan'; id: string }
   | { type: 'generate_health_morning_brief'; date: string }
   | { type: 'generate_health_exercise_draft'; intake: HealthGenerateExerciseIntake }
   | { type: 'generate_health_recipe_draft'; intake: HealthGenerateRecipeIntake }

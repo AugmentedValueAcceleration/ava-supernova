@@ -54,6 +54,8 @@ import type {
   HealthMySubmissions,
   HealthProfile,
   HealthDailyPlan,
+  HealthPlan,
+  HealthPlanSummary,
   HealthExerciseDraft,
   HealthRecipeDraft,
   ReleaseNote,
@@ -1248,6 +1250,30 @@ export class DashboardPanel {
         };
         await this.context.globalState.update(`ava.healthPlan.${plan.date}`, plan);
         this.post({ type: 'health_daily_plan_saved', plan });
+        break;
+      }
+
+      // ── Multi-week Plans ───────────────────────────────────────────
+      case 'load_health_plans': {
+        this.post({ type: 'health_plans_loaded', plans: this.getHealthPlanIndex() });
+        break;
+      }
+
+      case 'load_health_plan': {
+        this.post({ type: 'health_plan_loaded', plan: this.getHealthPlan(msg.id) });
+        break;
+      }
+
+      case 'save_health_plan': {
+        const plans = await this.saveHealthPlan(msg.plan);
+        const saved = this.getHealthPlan(msg.plan.id);
+        if (saved) this.post({ type: 'health_plan_saved', plan: saved, plans });
+        break;
+      }
+
+      case 'delete_health_plan': {
+        const plans = await this.deleteHealthPlan(msg.id);
+        this.post({ type: 'health_plan_deleted', id: msg.id, plans });
         break;
       }
 
@@ -4115,6 +4141,72 @@ export class DashboardPanel {
       log: { meals: [], water_ml: 0, sleep_hours: null, mood: null },
       updated_at: null,
     };
+  }
+
+  // ─── Multi-week Plans store ────────────────────────────────────────────────
+  // Each plan lives at `ava.plan.{id}` in globalState. The library index
+  // is derived on demand by scanning globalState keys — never a separate
+  // stored list, so it can't drift out of sync with the plans themselves.
+
+  private static readonly PLAN_KEY_PREFIX = 'ava.plan.';
+  private healthPlanKey(id: string): string { return `${DashboardPanel.PLAN_KEY_PREFIX}${id}`; }
+
+  /** IDs of every stored plan, read from the globalState key set. */
+  private getHealthPlanIds(): string[] {
+    return this.context.globalState
+      .keys()
+      .filter((k) => k.startsWith(DashboardPanel.PLAN_KEY_PREFIX))
+      .map((k) => k.slice(DashboardPanel.PLAN_KEY_PREFIX.length));
+  }
+
+  /** Read a single plan by id. Returns null when missing or from an
+   *  unknown schema version. */
+  private getHealthPlan(id: string): HealthPlan | null {
+    const stored = this.context.globalState.get<HealthPlan | null>(this.healthPlanKey(id)) ?? null;
+    return stored && stored.schema_version === 1 ? stored : null;
+  }
+
+  /** Lightweight summaries for the Plans library grid, most recently
+   *  touched first. Derived live from the stored plans. */
+  private getHealthPlanIndex(): HealthPlanSummary[] {
+    const out: HealthPlanSummary[] = [];
+    for (const id of this.getHealthPlanIds()) {
+      const p = this.getHealthPlan(id);
+      if (p) {
+        out.push({
+          id: p.id, type: p.type, title: p.title, status: p.status,
+          duration_days: p.duration_days, source: p.source, updated_at: p.updated_at,
+        });
+      }
+    }
+    return out.sort((a, b) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''));
+  }
+
+  /** Upsert a plan, stamping updated_at. Activating a plan archives any
+   *  other active plan of the same type — one active plan per type feeds
+   *  the daily dashboard. Returns the refreshed library index. */
+  private async saveHealthPlan(plan: HealthPlan): Promise<HealthPlanSummary[]> {
+    const now = new Date().toISOString();
+    if (plan.status === 'active') {
+      for (const id of this.getHealthPlanIds()) {
+        if (id === plan.id) continue;
+        const other = this.getHealthPlan(id);
+        if (other && other.type === plan.type && other.status === 'active') {
+          await this.context.globalState.update(
+            this.healthPlanKey(id), { ...other, status: 'archived', updated_at: now },
+          );
+        }
+      }
+    }
+    const next: HealthPlan = { ...plan, schema_version: 1, updated_at: now };
+    await this.context.globalState.update(this.healthPlanKey(next.id), next);
+    return this.getHealthPlanIndex();
+  }
+
+  /** Delete a plan. Returns the refreshed library index. */
+  private async deleteHealthPlan(id: string): Promise<HealthPlanSummary[]> {
+    await this.context.globalState.update(this.healthPlanKey(id), undefined);
+    return this.getHealthPlanIndex();
   }
 
   // ─── Sync preferences ──────────────────────────────────────────────────────
