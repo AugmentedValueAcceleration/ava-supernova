@@ -613,36 +613,51 @@ function PlanEditor({ plan, onClose, onSave, onDelete, exerciseResults, recipeRe
         </div>
       </div>
 
-      {/* Calendar — the plan at a glance. Click a day to open it. */}
-      <MonthCalendar
-        month={month}
-        onMonthChange={setMonth}
-        marks={calendarMarks}
-        selected={selectedDay != null ? dateForDay(selectedDay) : null}
-        onSelectDate={(key) => {
-          const idx = dayForDate(key);
-          if (idx != null) setSelectedDay(prev => (prev === idx ? null : idx));
-        }}
-      />
+      {/* Workspace — calendar on the left, every day of the plan listed
+          and editable down the right, so you add to a day without
+          having to click it on the calendar. */}
+      <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+        <div>
+          <MonthCalendar
+            month={month}
+            onMonthChange={setMonth}
+            marks={calendarMarks}
+            selected={selectedDay != null ? dateForDay(selectedDay) : null}
+            onSelectDate={(key) => {
+              const idx = dayForDate(key);
+              if (idx != null) setSelectedDay(prev => (prev === idx ? null : idx));
+            }}
+          />
+        </div>
 
-      {/* Day panel — the selected day's editor, below the calendar.
-          When no day is open, a signpost: the calendar looks blank on
-          a fresh plan, so say plainly how to start filling it. */}
-      {selectedDay != null ? (
-        <DayBlock
-          day={dayByIndex.get(selectedDay) ?? defaultDay(selectedDay)}
-          startDate={startISO}
-          onClose={() => setSelectedDay(null)}
-          showTraining={showTraining}
-          showMeals={showMeals}
-          onChange={upsertDay}
-          onOpenPicker={(dayIndex, kind) => setPicker({ dayIndex, kind })}
-        />
-      ) : (
-        <p className="text-center text-[11px] italic text-[var(--text-muted)]">
-          Click any day on the calendar to add {showTraining && showMeals ? 'training and meals' : showMeals ? 'meals' : 'training'}.
-        </p>
-      )}
+        <div className="space-y-3">
+          <h3 className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+            {durationLabel(draft.duration_days)} · day by day
+          </h3>
+          {Array.from({ length: draft.duration_days }, (_, i) => i + 1).map(idx => {
+            const showWeekLabel = draft.duration_days > 7 && idx % 7 === 1;
+            return (
+              <div key={idx}>
+                {showWeekLabel && (
+                  <div className="mb-1.5 mt-1 text-[9px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                    Week {Math.ceil(idx / 7)}
+                  </div>
+                )}
+                <DayBlock
+                  day={dayByIndex.get(idx) ?? defaultDay(idx)}
+                  startDate={startISO}
+                  expanded={selectedDay === idx}
+                  onToggle={() => setSelectedDay(prev => (prev === idx ? null : idx))}
+                  showTraining={showTraining}
+                  showMeals={showMeals}
+                  onChange={upsertDay}
+                  onOpenPicker={(dayIndex, kind) => setPicker({ dayIndex, kind })}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {picker && (
         <CatalogPicker
@@ -770,10 +785,13 @@ function MonthCalendar({ month, onMonthChange, marks, selected, onSelectDate }: 
   );
 }
 
-function DayBlock({ day, startDate, onClose, showTraining, showMeals, onChange, onOpenPicker }: {
+/** One day in the right-hand day list — a collapsible row. The header
+ *  toggles it; expanded, it's the full day editor. */
+function DayBlock({ day, startDate, expanded, onToggle, showTraining, showMeals, onChange, onOpenPicker }: {
   day: HealthPlanDay;
   startDate: string | null;
-  onClose: () => void;
+  expanded: boolean;
+  onToggle: () => void;
   showTraining: boolean;
   showMeals: boolean;
   onChange: (day: HealthPlanDay) => void;
@@ -781,19 +799,23 @@ function DayBlock({ day, startDate, onClose, showTraining, showMeals, onChange, 
 }) {
   const date = planDate(startDate, day.day_index);
   return (
-    <div className="rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/5">
-      <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-3 py-2.5">
+    <div className={`rounded-lg border ${expanded ? 'border-[var(--accent)]/30 bg-[var(--accent)]/5' : 'border-[var(--border)] bg-transparent'}`}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between gap-3 border-none bg-transparent px-3 py-2.5 text-left cursor-pointer"
+      >
         <span className="flex items-center gap-2">
           <span className="text-[12px] font-medium text-[var(--text-primary)]">
             {date ? `${WEEKDAY[date.getDay()]} ${date.getDate()}` : `Day ${day.day_index}`}
           </span>
           {day.title && <span className="text-[11px] text-[var(--text-secondary)]">— {day.title}</span>}
-          <span className="text-[10px] text-[var(--text-muted)]">{daySummary(day, showTraining, showMeals)}</span>
         </span>
-        <button type="button" onClick={onClose} title="Close day" className="border-none bg-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">✕</button>
-      </div>
+        <span className="text-[10px] text-[var(--text-muted)]">{daySummary(day, showTraining, showMeals)}</span>
+      </button>
 
-      <div className="space-y-3 px-3 py-3">
+      {expanded && (
+      <div className="space-y-3 border-t border-[var(--border)] px-3 py-3">
           <div className="flex flex-wrap items-center gap-2">
             <select value={day.kind} onChange={(e) => onChange({ ...day, kind: e.target.value as HealthPlanDay['kind'] })} className={editInput}>
               <option value="training">Training</option>
@@ -852,6 +874,7 @@ function DayBlock({ day, startDate, onClose, showTraining, showMeals, onChange, 
             className={`${editInput} w-full resize-y`}
           />
       </div>
+      )}
     </div>
   );
 }
