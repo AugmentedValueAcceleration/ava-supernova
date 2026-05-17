@@ -3,9 +3,13 @@ import { useLocale } from '../i18n';
 import { Tasks } from './Tasks';
 import { Journal } from './Journal';
 import { Learning } from './Learning';
-import type { DashboardTaskEntry, DashboardJournalDay, DashboardLearningCurriculum } from '../types/messages';
+import { HealthPlans } from './HealthPlans';
+import type {
+  DashboardTaskEntry, DashboardJournalDay, DashboardLearningCurriculum,
+  HealthPlan, HealthPlanSummary, HealthExerciseSummary, HealthRecipeSummary,
+} from '../types/messages';
 
-type PlannerTab = 'tasks' | 'journal' | 'learning';
+type PlannerTab = 'tasks' | 'journal' | 'learning' | 'plans';
 
 interface SessionTask {
   id: string;
@@ -34,18 +38,33 @@ interface PlannerProps {
   tasksLoaded: boolean;
   journalLoaded: boolean;
   learningLoaded: boolean;
+  // Multi-week Health plans — the "Plans" tab. Threaded straight
+  // through to the HealthPlans surface.
+  healthPlans: HealthPlanSummary[];
+  healthPlanOpen: HealthPlan | null;
+  onOpenHealthPlan: (id: string) => void;
+  onSaveHealthPlan: (plan: HealthPlan) => void;
+  onDeleteHealthPlan: (id: string) => void;
+  onCloseHealthPlan: () => void;
+  planExerciseResults: HealthExerciseSummary[];
+  planRecipeResults: HealthRecipeSummary[];
+  planCatalogSearching: boolean;
+  onSearchPlanExercises: (q: string) => void;
+  onSearchPlanRecipes: (q: string) => void;
 }
 
 const TABS: { key: PlannerTab; icon: string }[] = [
   { key: 'tasks', icon: '\u2713' },
   { key: 'journal', icon: '\u270E' },
   { key: 'learning', icon: '\u2605' },
+  { key: 'plans', icon: '\u2630' },
 ];
 
 const TAB_LABELS: Record<PlannerTab, string> = {
   tasks: 'Tasks',
   journal: 'Journal',
   learning: 'Learning',
+  plans: 'Plans',
 };
 
 export function Planner({
@@ -53,6 +72,8 @@ export function Planner({
   journalDay, journalDate, journalNavTick, userName, onSaveJournalEntry, onDeleteUserEntry, onDeleteAvaEntry,
   learningCurriculums,
   tasksLoaded, journalLoaded, learningLoaded,
+  healthPlans, healthPlanOpen, onOpenHealthPlan, onSaveHealthPlan, onDeleteHealthPlan, onCloseHealthPlan,
+  planExerciseResults, planRecipeResults, planCatalogSearching, onSearchPlanExercises, onSearchPlanRecipes,
 }: PlannerProps) {
   useLocale();
   const [activeTab, setActiveTab] = useState<PlannerTab>('tasks');
@@ -117,6 +138,22 @@ export function Planner({
 
       {activeTab === 'learning' && (
         <Learning curriculums={learningCurriculums} loaded={learningLoaded} />
+      )}
+
+      {activeTab === 'plans' && (
+        <HealthPlans
+          plans={healthPlans}
+          planOpen={healthPlanOpen}
+          onOpenPlan={onOpenHealthPlan}
+          onSavePlan={onSaveHealthPlan}
+          onDeletePlan={onDeleteHealthPlan}
+          onClosePlan={onCloseHealthPlan}
+          exerciseResults={planExerciseResults}
+          recipeResults={planRecipeResults}
+          catalogSearching={planCatalogSearching}
+          onSearchExercises={onSearchPlanExercises}
+          onSearchRecipes={onSearchPlanRecipes}
+        />
       )}
     </div>
   );

@@ -13,10 +13,6 @@ import type {
   DashboardLearningCurriculum,
   DashboardTaskEntry,
   HealthDailyPlan,
-  HealthPlan,
-  HealthPlanSummary,
-  HealthExerciseSummary,
-  HealthRecipeSummary,
   HealthProfile,
   MemoryEntry,
   Page,
@@ -121,20 +117,6 @@ interface OverviewProps {
   // dashboard's "Set your goals" pointer to close the discoverability
   // gap (the brief references goals, but goals are set elsewhere).
   onNavigateToHealthProfile: () => void;
-  // Multi-week Plans — library summaries + the one full plan open in
-  // the editor. Threaded straight through to HealthDashboard.
-  healthPlans: HealthPlanSummary[];
-  healthPlanOpen: HealthPlan | null;
-  onOpenHealthPlan: (id: string) => void;
-  onSaveHealthPlan: (plan: HealthPlan) => void;
-  onDeleteHealthPlan: (id: string) => void;
-  onCloseHealthPlan: () => void;
-  // Plan editor catalog picker — exercise / recipe search results.
-  planExerciseResults: HealthExerciseSummary[];
-  planRecipeResults: HealthRecipeSummary[];
-  planCatalogSearching: boolean;
-  onSearchPlanExercises: (q: string) => void;
-  onSearchPlanRecipes: (q: string) => void;
   // Per-source load signals — true once the first load has landed.
   // Drive the Daily widgets' skeleton-vs-content decision so they
   // never flash a misleading empty state before data arrives.
@@ -174,17 +156,6 @@ export function Overview({
   healthMorningBriefGenerating,
   healthMorningBriefError,
   onNavigateToHealthProfile,
-  healthPlans,
-  healthPlanOpen,
-  onOpenHealthPlan,
-  onSaveHealthPlan,
-  onDeleteHealthPlan,
-  onCloseHealthPlan,
-  planExerciseResults,
-  planRecipeResults,
-  planCatalogSearching,
-  onSearchPlanExercises,
-  onSearchPlanRecipes,
   tasksLoaded,
   journalLoaded,
   weatherLoaded,
@@ -413,17 +384,6 @@ export function Overview({
           plan={healthDailyPlan}
           onSavePlan={onSaveHealthDailyPlan}
           onGenerateMorningBrief={onGenerateHealthMorningBrief}
-          plans={healthPlans}
-          planOpen={healthPlanOpen}
-          onOpenPlan={onOpenHealthPlan}
-          onSavePlanProgram={onSaveHealthPlan}
-          onDeletePlan={onDeleteHealthPlan}
-          onClosePlan={onCloseHealthPlan}
-          exerciseResults={planExerciseResults}
-          recipeResults={planRecipeResults}
-          catalogSearching={planCatalogSearching}
-          onSearchExercises={onSearchPlanExercises}
-          onSearchRecipes={onSearchPlanRecipes}
           briefGenerating={healthMorningBriefGenerating}
           briefError={healthMorningBriefError}
           onNavigateToProfile={onNavigateToHealthProfile}
