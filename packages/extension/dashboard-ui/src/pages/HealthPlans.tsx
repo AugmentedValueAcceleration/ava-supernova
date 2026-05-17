@@ -7,11 +7,14 @@ import type {
 
 /**
  * Health Plans — the multi-week plan feature, mounted as the Planner's
- * "Plans" tab. A plan is a program (fitness / meal / combined); this
- * surface is the library, the new-plan wizard, and the plan editor.
+ * "Plans" tab. A plan is a program (fitness / meal / combined).
+ *
+ * The tab LANDS on the calendar: when plans exist it auto-opens the
+ * active (or most recent) one straight onto its calendar view. "← All
+ * plans" steps back to the library; "+ New plan" runs the wizard.
  *
  * The daily slice of an active plan is shown separately on the Command
- * Centre's Health Dashboard; this is where plans are built and managed.
+ * Centre's Health Dashboard.
  */
 
 interface Props {
@@ -34,6 +37,18 @@ export function HealthPlans({
   exerciseResults, recipeResults, catalogSearching, onSearchExercises, onSearchRecipes,
 }: Props) {
   const [wizardOpen, setWizardOpen] = useState(false);
+
+  // Land on the calendar — auto-open the active (or most recent) plan
+  // once plans have loaded. The ref guards against re-opening after the
+  // operator steps back to the library within the same visit.
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    if (autoOpened.current || planOpen || wizardOpen) return;
+    if (plans.length > 0) {
+      autoOpened.current = true;
+      onOpenPlan((plans.find(p => p.status === 'active') ?? plans[0]).id);
+    }
+  }, [plans, planOpen, wizardOpen, onOpenPlan]);
 
   if (planOpen) {
     return (
