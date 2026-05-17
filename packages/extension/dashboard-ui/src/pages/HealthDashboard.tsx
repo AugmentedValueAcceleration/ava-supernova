@@ -1,5 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
-import type { HealthDailyLog, HealthDailyPlan, HealthProfile } from '../types/messages';
+import type {
+  HealthDailyLog, HealthDailyPlan, HealthProfile,
+  HealthPlan, HealthPlanSummary, HealthPlanType, HealthPlanStatus,
+} from '../types/messages';
 
 /**
  * Health Dashboard — the daily display surface, top-level entry in
@@ -34,9 +37,20 @@ interface Props {
   // pointer and empty-state both use it so the dashboard's references
   // to goals have somewhere to lead.
   onNavigateToProfile: () => void;
+  // Multi-week Plans — library summaries + the one full plan open in
+  // the detail view. Create / save / delete round-trip through the host.
+  plans: HealthPlanSummary[];
+  planOpen: HealthPlan | null;
+  onOpenPlan: (id: string) => void;
+  onSavePlanProgram: (plan: HealthPlan) => void;
+  onDeletePlan: (id: string) => void;
+  onClosePlan: () => void;
 }
 
-export function HealthDashboard({ profile, plan, onSavePlan, onGenerateMorningBrief, briefGenerating, briefError, onNavigateToProfile }: Props) {
+export function HealthDashboard({
+  profile, plan, onSavePlan, onGenerateMorningBrief, briefGenerating, briefError, onNavigateToProfile,
+  plans, planOpen, onOpenPlan, onSavePlanProgram, onDeletePlan, onClosePlan,
+}: Props) {
   const today = todayIso();
   const greeting = useMemo(() => greetingFor(new Date()), []);
   const profileEmpty = useMemo(() => isProfileEmpty(profile), [profile]);
@@ -113,7 +127,7 @@ export function HealthDashboard({ profile, plan, onSavePlan, onGenerateMorningBr
         </div>
       )}
 
-      {/* ── Overview — the synthesis ──────────────────────────────── */}
+      {/* ── Overview — the synthesis + today's content ────────────── */}
       {innerTab === 'overview' && (
         <div className="space-y-8">
           <Section title="Today's brief">
@@ -129,6 +143,11 @@ export function HealthDashboard({ profile, plan, onSavePlan, onGenerateMorningBr
             )}
           </Section>
 
+          {/* Today's meals + training — the slice of the day. Moved
+              here from the Plans tab: this is "today", and the Plans
+              tab is now the multi-week plan library. */}
+          <TodayPlanView plan={plan} />
+
           <Section title="Where you are">
             <StatusRow plan={plan} profile={profile} />
           </Section>
@@ -141,10 +160,23 @@ export function HealthDashboard({ profile, plan, onSavePlan, onGenerateMorningBr
         </div>
       )}
 
-      {/* ── Plans — the content: today's meals + training ─────────── */}
+      {/* ── Plans — the multi-week plan library / detail ──────────── */}
       {innerTab === 'plans' && (
         <div className="space-y-8">
-          <PlansView plan={plan} />
+          {planOpen ? (
+            <PlanDetail
+              plan={planOpen}
+              onClose={onClosePlan}
+              onDelete={onDeletePlan}
+            />
+          ) : (
+            <PlansLibrary
+              plans={plans}
+              onOpen={onOpenPlan}
+              onCreate={onSavePlanProgram}
+              onDelete={onDeletePlan}
+            />
+          )}
         </div>
       )}
 
@@ -274,16 +306,15 @@ function BriefBlock({
 }
 
 /**
- * Plans tab — today's content, split into meals and training.
- * Each is a strip of rich cards rather than a plain timeline.
- * Empty states are deliberate "rest" treatments, not blanks.
+ * Today's content — meals + training for the current day, split into
+ * rich-card strips. Rendered on the Overview tab (this is "today");
+ * the Plans tab now carries the multi-week plan library.
  *
- * Plan generation isn't built yet, so the live data path is here
- * but the empty states carry the surface for now. When plans land,
- * the meal cards will pull recipe hero images + macros and the
- * training cards will pull the equipment-still-life imagery.
+ * Empty states are deliberate "rest" treatments, not blanks. When the
+ * active plan projects into the day (Phase D) these strips fill from
+ * its day slice; for now they read from the per-date HealthDailyPlan.
  */
-function PlansView({ plan }: { plan: HealthDailyPlan | null }) {
+function TodayPlanView({ plan }: { plan: HealthDailyPlan | null }) {
   const items = plan?.items ?? [];
   const meals = items.filter(i => i.kind === 'meal');
   const training = items.filter(i => i.kind === 'workout' || i.kind === 'mobility');
@@ -333,6 +364,247 @@ function PlansEmptyCard({ title, body }: { title: string; body: string }) {
     <div className="rounded-lg border border-[var(--border)] bg-transparent px-4 py-6 text-center">
       <div className="text-[12px] text-[var(--text-secondary)]">{title}</div>
       <div className="mt-1.5 mx-auto max-w-sm text-[10px] text-[var(--text-muted)] italic leading-relaxed">{body}</div>
+    </div>
+  );
+}
+
+// ── Multi-week Plans — library + detail ──────────────────────────────
+// The Plans tab. A plan is a program (fitness / meal / combined); the
+// library lists them, the detail view opens one. Phase B1 ships the
+// library + create + a read-only detail; the editor lands in B2.
+
+const PLAN_TYPE_META: Record<HealthPlanType, { label: string; accent: string; tint: string; blurb: string }> = {
+  fitness:  { label: 'Fitness',  accent: 'var(--accent)', tint: 'border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]', blurb: 'Training weeks — exercises, sets, progression.' },
+  meal:     { label: 'Meal',     accent: '#f59e0b',       tint: 'border-amber-400/30 bg-amber-400/10 text-amber-300',                 blurb: 'Nutrition weeks — meals, macros, shopping list.' },
+  combined: { label: 'Combined', accent: '#34d399',       tint: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',           blurb: 'Training and meals woven together.' },
+};
+
+const PLAN_STATUS_META: Record<HealthPlanStatus, { label: string; cls: string }> = {
+  draft:     { label: 'Draft',     cls: 'bg-[var(--border)] text-[var(--text-muted)]' },
+  active:    { label: 'Active',    cls: 'bg-emerald-400/15 text-emerald-300' },
+  completed: { label: 'Completed', cls: 'bg-sky-400/15 text-sky-300' },
+  archived:  { label: 'Archived',  cls: 'bg-[var(--border)] text-[var(--text-muted)] opacity-70' },
+};
+
+/** Days → preset label. 1 → "1 day", 7 → "1 week", 28 → "4 weeks". */
+function durationLabel(days: number): string {
+  if (days <= 1) return '1 day';
+  const weeks = Math.round(days / 7);
+  return weeks === 1 ? '1 week' : `${weeks} weeks`;
+}
+
+function newPlanId(): string {
+  return crypto?.randomUUID?.() ?? `plan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** A fresh, empty draft plan of the chosen type — the manual builder
+ *  starts here, then the editor (B2) fills in its weeks and days. */
+function blankPlan(type: HealthPlanType): HealthPlan {
+  return {
+    schema_version: 1,
+    id: newPlanId(),
+    type,
+    title: `New ${PLAN_TYPE_META[type].label.toLowerCase()} plan`,
+    goal: null,
+    source: 'manual',
+    status: 'draft',
+    duration_days: 28,
+    start_date: null,
+    profile_snapshot: null,
+    days: [],
+    created_at: new Date().toISOString(),
+    updated_at: null,
+  };
+}
+
+function PlansLibrary({ plans, onOpen, onCreate, onDelete }: {
+  plans: HealthPlanSummary[];
+  onOpen: (id: string) => void;
+  onCreate: (plan: HealthPlan) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Your plans</h2>
+        <p className="mt-1 text-[11px] text-[var(--text-muted)] leading-relaxed">
+          Multi-week fitness, meal, and combined programs. Build one by hand, or ask Ava.
+        </p>
+      </div>
+
+      <NewPlanRow onCreate={onCreate} />
+
+      {plans.length === 0 ? (
+        <PlansEmptyCard
+          title="No plans yet"
+          body="Pick a type above to start a plan, then shape its weeks. Ava-generated plans land in a later step."
+        />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {plans.map(p => (
+            <PlanCard key={p.id} plan={p} onOpen={() => onOpen(p.id)} onDelete={() => onDelete(p.id)} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** "+ New plan" — expands to a three-way type pick, then mints a
+ *  blank draft of that type. B3 grows this into the full wizard. */
+function NewPlanRow({ onCreate }: { onCreate: (plan: HealthPlan) => void }) {
+  const [picking, setPicking] = useState(false);
+
+  if (!picking) {
+    return (
+      <button
+        type="button"
+        onClick={() => setPicking(true)}
+        className="w-full rounded-lg border border-dashed border-[var(--accent)]/40 bg-[var(--accent)]/5 px-4 py-3 text-[12px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/10 transition cursor-pointer"
+      >
+        + New plan
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-transparent p-3">
+      <div className="mb-2.5 flex items-center justify-between">
+        <span className="text-[11px] text-[var(--text-secondary)]">What kind of plan?</span>
+        <button
+          type="button"
+          onClick={() => setPicking(false)}
+          className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+        >
+          Cancel
+        </button>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        {(['fitness', 'meal', 'combined'] as HealthPlanType[]).map(t => {
+          const m = PLAN_TYPE_META[t];
+          return (
+            <button
+              key={t}
+              type="button"
+              onClick={() => { onCreate(blankPlan(t)); setPicking(false); }}
+              className="rounded-md border border-[var(--border)] bg-transparent px-3 py-3 text-left hover:border-[var(--accent)]/40 transition cursor-pointer"
+            >
+              <div className="text-[12px] font-medium text-[var(--text-primary)]">{m.label}</div>
+              <div className="mt-1 text-[10px] text-[var(--text-muted)] leading-relaxed">{m.blurb}</div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PlanCard({ plan, onOpen, onDelete }: {
+  plan: HealthPlanSummary;
+  onOpen: () => void;
+  onDelete: () => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const m = PLAN_TYPE_META[plan.type];
+  const s = PLAN_STATUS_META[plan.status];
+
+  return (
+    <div className="group relative overflow-hidden rounded-lg border border-[var(--border)] bg-transparent transition hover:border-[var(--accent)]/40">
+      <div className="h-[3px]" style={{ background: m.accent }} aria-hidden />
+      <button
+        type="button"
+        onClick={onOpen}
+        className="block w-full cursor-pointer border-none bg-transparent px-4 py-3 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <span className={`rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${m.tint}`}>{m.label}</span>
+          <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${s.cls}`}>{s.label}</span>
+        </div>
+        <div className="mt-2 text-[13px] leading-snug text-[var(--text-primary)]">{plan.title}</div>
+        <div className="mt-1 text-[10px] text-[var(--text-muted)]">
+          {durationLabel(plan.duration_days)} · {plan.source === 'ava' ? 'Ava-generated' : 'Built by you'}
+        </div>
+      </button>
+
+      {confirming ? (
+        <div className="absolute right-2 top-2 flex items-center gap-1.5 rounded-md border border-red-500/30 bg-[var(--bg-input)] px-2 py-1">
+          <span className="text-[10px] text-[var(--text-secondary)]">Delete?</span>
+          <button type="button" onClick={() => { onDelete(); setConfirming(false); }} className="border-none bg-transparent text-[10px] font-semibold text-red-300 hover:text-red-200 cursor-pointer">Yes</button>
+          <button type="button" onClick={() => setConfirming(false)} className="border-none bg-transparent text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">No</button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setConfirming(true)}
+          title="Delete plan"
+          className="absolute right-2 top-2 cursor-pointer rounded border-none bg-transparent p-1 text-[var(--text-muted)] opacity-0 transition hover:text-red-300 group-hover:opacity-100"
+        >
+          ✕
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Plan detail — B1 is read-only (the editor lands in B2). Opening a
+ *  plan loads the full HealthPlan; this shows its header + a delete. */
+function PlanDetail({ plan, onClose, onDelete }: {
+  plan: HealthPlan;
+  onClose: () => void;
+  onDelete: (id: string) => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const m = PLAN_TYPE_META[plan.type];
+
+  return (
+    <div className="space-y-5">
+      <button
+        type="button"
+        onClick={onClose}
+        className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+      >
+        ← All plans
+      </button>
+
+      <div>
+        <div className="flex items-center gap-2">
+          <span className={`rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${m.tint}`}>{m.label}</span>
+          <span className="text-[10px] text-[var(--text-muted)]">
+            {durationLabel(plan.duration_days)} · {plan.source === 'ava' ? 'Ava-generated' : 'Built by you'}
+          </span>
+        </div>
+        <h2 className="mt-2 text-[18px] font-light text-[var(--text-primary)]">{plan.title}</h2>
+        {plan.goal && <p className="mt-1 text-[12px] text-[var(--text-secondary)] leading-relaxed">{plan.goal}</p>}
+      </div>
+
+      {plan.days.length === 0 ? (
+        <PlansEmptyCard
+          title="This plan has no days yet"
+          body="The plan editor — weeks, training days, meals — lands in the next step. For now this is the shell its content will fill."
+        />
+      ) : (
+        <div className="text-[12px] text-[var(--text-secondary)]">
+          {plan.days.length} day{plan.days.length === 1 ? '' : 's'} planned.
+        </div>
+      )}
+
+      <div className="border-t border-[var(--border)] pt-4">
+        {confirming ? (
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] text-[var(--text-secondary)]">Delete this plan permanently?</span>
+            <button type="button" onClick={() => { onDelete(plan.id); onClose(); }} className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-[11px] font-semibold text-red-300 hover:bg-red-500/20 transition cursor-pointer">Delete</button>
+            <button type="button" onClick={() => setConfirming(false)} className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">Cancel</button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirming(true)}
+            className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-red-300 transition cursor-pointer"
+          >
+            Delete plan
+          </button>
+        )}
+      </div>
     </div>
   );
 }
