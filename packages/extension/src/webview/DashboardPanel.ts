@@ -1281,30 +1281,58 @@ export class DashboardPanel {
       // public catalog endpoints; a small page is enough for a picker.
       case 'search_plan_exercises': {
         const seq = msg.seq;
-        const params = new URLSearchParams({ limit: '12', offset: '0' });
+        const params = new URLSearchParams({ limit: '24', offset: String(msg.offset ?? 0) });
         if (msg.q && msg.q.trim()) params.set('q', msg.q.trim());
+        if (msg.workoutType) params.set('workout_type', msg.workoutType);
         try {
           const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
           const res = await apiFetch(`/health/exercises?${params.toString()}`, { platformKey, method: 'GET', timeoutMs: 8000 });
-          const data = (res.ok ? res.data : {}) as { exercises?: HealthExerciseSummary[] };
-          this.post({ type: 'plan_exercises_searched', exercises: data.exercises ?? [], seq });
+          const data = (res.ok ? res.data : {}) as { exercises?: HealthExerciseSummary[]; total?: number };
+          this.post({ type: 'plan_exercises_searched', exercises: data.exercises ?? [], total: data.total ?? 0, seq });
         } catch {
-          this.post({ type: 'plan_exercises_searched', exercises: [], seq });
+          this.post({ type: 'plan_exercises_searched', exercises: [], total: 0, seq });
         }
         break;
       }
 
       case 'search_plan_recipes': {
         const seq = msg.seq;
-        const params = new URLSearchParams({ limit: '12', offset: '0' });
+        const params = new URLSearchParams({ limit: '24', offset: String(msg.offset ?? 0) });
         if (msg.q && msg.q.trim()) params.set('q', msg.q.trim());
+        if (msg.course) params.set('course', msg.course);
         try {
           const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
           const res = await apiFetch(`/health/recipes?${params.toString()}`, { platformKey, method: 'GET', timeoutMs: 8000 });
-          const data = (res.ok ? res.data : {}) as { recipes?: HealthRecipeSummary[] };
-          this.post({ type: 'plan_recipes_searched', recipes: data.recipes ?? [], seq });
+          const data = (res.ok ? res.data : {}) as { recipes?: HealthRecipeSummary[]; total?: number };
+          this.post({ type: 'plan_recipes_searched', recipes: data.recipes ?? [], total: data.total ?? 0, seq });
         } catch {
-          this.post({ type: 'plan_recipes_searched', recipes: [], seq });
+          this.post({ type: 'plan_recipes_searched', recipes: [], total: 0, seq });
+        }
+        break;
+      }
+
+      case 'load_plan_exercise_detail': {
+        const slug = msg.slug;
+        try {
+          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+          const res = await apiFetch(`/health/exercises/${encodeURIComponent(slug)}`, { platformKey, method: 'GET', timeoutMs: 8000 });
+          const data = (res.ok ? res.data : {}) as { exercise?: HealthExerciseDetail | null };
+          this.post({ type: 'plan_exercise_detail_loaded', slug, exercise: data.exercise ?? null });
+        } catch {
+          this.post({ type: 'plan_exercise_detail_loaded', slug, exercise: null });
+        }
+        break;
+      }
+
+      case 'load_plan_recipe_detail': {
+        const slug = msg.slug;
+        try {
+          const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+          const res = await apiFetch(`/health/recipes/${encodeURIComponent(slug)}`, { platformKey, method: 'GET', timeoutMs: 8000 });
+          const data = (res.ok ? res.data : {}) as { recipe?: HealthRecipeDetail | null };
+          this.post({ type: 'plan_recipe_detail_loaded', slug, recipe: data.recipe ?? null });
+        } catch {
+          this.post({ type: 'plan_recipe_detail_loaded', slug, recipe: null });
         }
         break;
       }

@@ -490,6 +490,23 @@ export interface HealthRecipeEquipment {
   optional: boolean;
 }
 
+/** Per-serving nutrition for a recipe version — Ava-estimated on the
+ *  platform from the ingredient list. `source` stays 'estimated' until
+ *  an operator hand-verifies it in the Hub. All numeric fields optional;
+ *  a recipe with no nutrition yet returns {}. */
+export interface HealthRecipeNutrition {
+  calories?: number;
+  protein_g?: number;
+  carbs_g?: number;
+  fat_g?: number;
+  fibre_g?: number;
+  sugar_g?: number;
+  sodium_mg?: number;
+  saturated_fat_g?: number;
+  source?: 'estimated' | 'verified';
+  generated_at?: string;
+}
+
 export interface HealthRecipeVersionDetail {
   level: HealthRecipeSkillLevel;
   description: string | null;
@@ -497,6 +514,7 @@ export interface HealthRecipeVersionDetail {
   cook_time_minutes: number | null;
   total_time_minutes: number | null;
   default_servings: number | null;
+  nutrition: HealthRecipeNutrition;
   steps: HealthRecipeStep[];
   dietary_flags: string[];
   diets: string[];
@@ -756,14 +774,25 @@ export interface HealthPlanExercise {
   notes: string | null;
 }
 
-/** A planned meal within a plan day. Links to a catalog recipe by
- *  slug, or stands alone as a custom entry. Macros are per serving. */
+/** A planned meal within a plan day.
+ *
+ *  Two kinds share this shape:
+ *  - A catalog recipe (`ref` set): nutrition is NOT stored here — it is
+ *    derived live from the recipe's per-serving nutrition × `servings`,
+ *    so it stays correct if the recipe is later re-estimated. The
+ *    calories/macros fields stay null for these.
+ *  - A custom off-catalog meal (`ref` null): no recipe to derive from,
+ *    so the operator enters calories/macros by hand and they are stored.
+ *
+ *  `servings` is how many recipe servings this meal is on the day — the
+ *  one genuinely per-plan number for a catalog meal. */
 export interface HealthPlanMeal {
   id: string;
   slot: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   ref?: { kind: 'recipe'; slug: string } | null;
   name: string;
-  calories: number | null;
+  servings: number | null;       // recipe servings on this day; null for custom meals
+  calories: number | null;       // custom meals only — derived for recipe meals
   protein_g: number | null;
   carbs_g: number | null;
   fat_g: number | null;
@@ -1247,8 +1276,13 @@ export type ExtToDashboardMessage =
   // Catalog search for the plan editor's "+ Add" picker — separate from
   // the Health page's grid state so the two never collide. `seq` drops
   // stale responses when the user types faster than the network.
-  | { type: 'plan_exercises_searched'; exercises: HealthExerciseSummary[]; seq: number }
-  | { type: 'plan_recipes_searched'; recipes: HealthRecipeSummary[]; seq: number }
+  | { type: 'plan_exercises_searched'; exercises: HealthExerciseSummary[]; total: number; seq: number }
+  | { type: 'plan_recipes_searched'; recipes: HealthRecipeSummary[]; total: number; seq: number }
+  // Plan picker — full detail for a picked exercise / recipe, keyed by
+  // slug. Exercise detail carries the routine the builder pre-fills;
+  // recipe detail carries the per-version nutrition meals derive from.
+  | { type: 'plan_exercise_detail_loaded'; slug: string; exercise: HealthExerciseDetail | null }
+  | { type: 'plan_recipe_detail_loaded'; slug: string; recipe: HealthRecipeDetail | null }
   | { type: 'health_morning_brief_generated'; ok: boolean; brief?: string; error?: string }
   | { type: 'health_exercise_draft_generated'; ok: boolean; error?: string; draft?: HealthExerciseDraft }
   | { type: 'health_recipe_draft_generated'; ok: boolean; error?: string; draft?: HealthRecipeDraft }
@@ -1513,8 +1547,10 @@ export type DashboardToExtMessage =
   | { type: 'save_health_plan'; plan: HealthPlan }
   | { type: 'delete_health_plan'; id: string }
   // Catalog search for the plan editor's "+ Add" picker.
-  | { type: 'search_plan_exercises'; q: string; seq: number }
-  | { type: 'search_plan_recipes'; q: string; seq: number }
+  | { type: 'search_plan_exercises'; q: string; offset?: number; workoutType?: string; seq: number }
+  | { type: 'search_plan_recipes'; q: string; offset?: number; course?: string; seq: number }
+  | { type: 'load_plan_exercise_detail'; slug: string }
+  | { type: 'load_plan_recipe_detail'; slug: string }
   | { type: 'generate_health_morning_brief'; date: string }
   | { type: 'generate_health_exercise_draft'; intake: HealthGenerateExerciseIntake }
   | { type: 'generate_health_recipe_draft'; intake: HealthGenerateRecipeIntake }

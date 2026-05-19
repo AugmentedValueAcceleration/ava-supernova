@@ -273,6 +273,13 @@ export function App() {
   const [planCatalogSearching, setPlanCatalogSearching] = useState(false);
   const planExSearchSeq = useRef(0);
   const planRecipeSearchSeq = useRef(0);
+  // Plan picker — full detail caches keyed by slug. Exercise detail
+  // feeds routine pre-fill; recipe detail feeds meal nutrition.
+  const [planExerciseDetails, setPlanExerciseDetails] = useState<Record<string, HealthExerciseDetail>>({});
+  const [planRecipeDetails, setPlanRecipeDetails] = useState<Record<string, HealthRecipeDetail>>({});
+  // Picker pagination — total catalogue count for the current filter.
+  const [planExerciseTotal, setPlanExerciseTotal] = useState(0);
+  const [planRecipeTotal, setPlanRecipeTotal] = useState(0);
   // Morning brief generation state — separate from plan loading so
   // the button can show its own busy / error register.
   const [healthMorningBriefGenerating, setHealthMorningBriefGenerating] = useState(false);
@@ -385,15 +392,21 @@ export function App() {
     setHealthPlanOpen(null);
   }, []);
   // Plan editor catalog picker — searches the exercise / recipe library.
-  const handleSearchPlanExercises = useCallback((q: string) => {
+  const handleSearchPlanExercises = useCallback((o: { q: string; offset: number; category: string | null }) => {
     planExSearchSeq.current += 1;
     setPlanCatalogSearching(true);
-    post({ type: 'search_plan_exercises', q, seq: planExSearchSeq.current });
+    post({ type: 'search_plan_exercises', q: o.q, offset: o.offset, workoutType: o.category ?? undefined, seq: planExSearchSeq.current });
   }, []);
-  const handleSearchPlanRecipes = useCallback((q: string) => {
+  const handleSearchPlanRecipes = useCallback((o: { q: string; offset: number; category: string | null }) => {
     planRecipeSearchSeq.current += 1;
     setPlanCatalogSearching(true);
-    post({ type: 'search_plan_recipes', q, seq: planRecipeSearchSeq.current });
+    post({ type: 'search_plan_recipes', q: o.q, offset: o.offset, course: o.category ?? undefined, seq: planRecipeSearchSeq.current });
+  }, []);
+  const handleLoadPlanExerciseDetail = useCallback((slug: string) => {
+    post({ type: 'load_plan_exercise_detail', slug });
+  }, []);
+  const handleLoadPlanRecipeDetail = useCallback((slug: string) => {
+    post({ type: 'load_plan_recipe_detail', slug });
   }, []);
   const handleGenerateHealthMorningBrief = useCallback((date: string) => {
     setHealthMorningBriefGenerating(true);
@@ -874,13 +887,25 @@ export function App() {
       case 'plan_exercises_searched':
         if (msg.seq !== planExSearchSeq.current) break;
         setPlanExerciseResults(msg.exercises);
+        setPlanExerciseTotal(msg.total);
         setPlanCatalogSearching(false);
         break;
       case 'plan_recipes_searched':
         if (msg.seq !== planRecipeSearchSeq.current) break;
         setPlanRecipeResults(msg.recipes);
+        setPlanRecipeTotal(msg.total);
         setPlanCatalogSearching(false);
         break;
+      case 'plan_exercise_detail_loaded': {
+        const ex = msg.exercise;
+        if (ex) setPlanExerciseDetails(prev => ({ ...prev, [msg.slug]: ex }));
+        break;
+      }
+      case 'plan_recipe_detail_loaded': {
+        const rec = msg.recipe;
+        if (rec) setPlanRecipeDetails(prev => ({ ...prev, [msg.slug]: rec }));
+        break;
+      }
       case 'health_morning_brief_generated':
         setHealthMorningBriefGenerating(false);
         setHealthMorningBriefError(msg.ok ? null : (msg.error ?? 'Unknown error'));
@@ -1077,6 +1102,10 @@ export function App() {
     console.log(`[health-perf] webview pre-warm useEffect fires (+${Date.now() - HEALTH_PERF_BUNDLE_EVAL}ms since eval)`);
     handleLoadHealthExercises(24, 0);
     handleLoadHealthRecipes(24, 0);
+    // Plan-builder catalogue — pre-warm the picker's first page so it
+    // opens instantly, the same way Health's Exercises / Recipes do.
+    handleSearchPlanExercises({ q: '', offset: 0, category: null });
+    handleSearchPlanRecipes({ q: '', offset: 0, category: null });
     // Health profile — local-first via globalState, so this is just
     // an extension-host round-trip, not a network call. Loads once
     // per dashboard mount so the Profile tab opens instantly.
@@ -1284,6 +1313,12 @@ export function App() {
             planCatalogSearching={planCatalogSearching}
             onSearchPlanExercises={handleSearchPlanExercises}
             onSearchPlanRecipes={handleSearchPlanRecipes}
+            planExerciseTotal={planExerciseTotal}
+            planRecipeTotal={planRecipeTotal}
+            planExerciseDetails={planExerciseDetails}
+            planRecipeDetails={planRecipeDetails}
+            onLoadPlanExerciseDetail={handleLoadPlanExerciseDetail}
+            onLoadPlanRecipeDetail={handleLoadPlanRecipeDetail}
           />
         );
 

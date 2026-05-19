@@ -7,6 +7,7 @@ import { HealthPlans } from './HealthPlans';
 import type {
   DashboardTaskEntry, DashboardJournalDay, DashboardLearningCurriculum,
   HealthPlan, HealthPlanSummary, HealthExerciseSummary, HealthRecipeSummary,
+  HealthExerciseDetail, HealthRecipeDetail,
 } from '../types/messages';
 
 type PlannerTab = 'tasks' | 'journal' | 'learning' | 'plans';
@@ -49,8 +50,15 @@ interface PlannerProps {
   planExerciseResults: HealthExerciseSummary[];
   planRecipeResults: HealthRecipeSummary[];
   planCatalogSearching: boolean;
-  onSearchPlanExercises: (q: string) => void;
-  onSearchPlanRecipes: (q: string) => void;
+  planExerciseTotal: number;
+  planRecipeTotal: number;
+  onSearchPlanExercises: (o: { q: string; offset: number; category: string | null }) => void;
+  onSearchPlanRecipes: (o: { q: string; offset: number; category: string | null }) => void;
+  // Plan picker detail caches + loaders — routine pre-fill + meal nutrition.
+  planExerciseDetails: Record<string, HealthExerciseDetail>;
+  planRecipeDetails: Record<string, HealthRecipeDetail>;
+  onLoadPlanExerciseDetail: (slug: string) => void;
+  onLoadPlanRecipeDetail: (slug: string) => void;
 }
 
 const TABS: { key: PlannerTab; icon: string }[] = [
@@ -73,7 +81,9 @@ export function Planner({
   learningCurriculums,
   tasksLoaded, journalLoaded, learningLoaded,
   healthPlans, healthPlanOpen, onOpenHealthPlan, onSaveHealthPlan, onDeleteHealthPlan, onCloseHealthPlan,
-  planExerciseResults, planRecipeResults, planCatalogSearching, onSearchPlanExercises, onSearchPlanRecipes,
+  planExerciseResults, planRecipeResults, planCatalogSearching, planExerciseTotal, planRecipeTotal,
+  onSearchPlanExercises, onSearchPlanRecipes,
+  planExerciseDetails, planRecipeDetails, onLoadPlanExerciseDetail, onLoadPlanRecipeDetail,
 }: PlannerProps) {
   useLocale();
   const [activeTab, setActiveTab] = useState<PlannerTab>('tasks');
@@ -151,8 +161,14 @@ export function Planner({
           exerciseResults={planExerciseResults}
           recipeResults={planRecipeResults}
           catalogSearching={planCatalogSearching}
+          exerciseTotal={planExerciseTotal}
+          recipeTotal={planRecipeTotal}
           onSearchExercises={onSearchPlanExercises}
           onSearchRecipes={onSearchPlanRecipes}
+          exerciseDetails={planExerciseDetails}
+          recipeDetails={planRecipeDetails}
+          onLoadExerciseDetail={onLoadPlanExerciseDetail}
+          onLoadRecipeDetail={onLoadPlanRecipeDetail}
         />
       )}
     </div>
