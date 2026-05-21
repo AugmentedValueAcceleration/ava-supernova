@@ -43,7 +43,9 @@ import {
 } from '@ava/core';
 import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, ContentPart, PermissionMode, Message, AssistantMessage } from '@ava/core';
 import { creditsFor } from '@ava/core/billing/credits';
-import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus } from './message-types.js';
+import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus, PaletteTool } from './message-types.js';
+import { buildPaletteDirective } from './palette-directives.js';
+import { ExtensionHealthPlanStore } from './health-plan-store-impl.js';
 import type { AccountInfo } from './dashboard-message-types.js';
 import { DashboardPanel } from './DashboardPanel.js';
 import { SecretAccess } from '../secrets/secret-access.js';
@@ -763,6 +765,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         } catch (err) { this.log(`Knowledge pack toggle failed: ${err}`); }
         return;
       }
+      case 'palette_intent':
+        mapped = {
+          type: 'palette_intent',
+          tool: msg.tool as PaletteTool,
+          action: msg.action as string,
+          mode: (msg.mode ?? 'code') as AvaMode,
+        };
+        break;
       default:
         return; // Not a chat message
     }
@@ -1536,6 +1546,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       taskManager: this.taskManager,
       journalManager: this.journalManager,
       generationManager: this.generationManager,
+      // Surface-injected health plan store — wraps the same globalState
+      // keys DashboardPanel uses, so Ava-driven and UI-driven plan saves
+      // share storage. See COMMAND_PALETTE_PLAN.md §10.
+      healthPlanStore: new ExtensionHealthPlanStore(this.context),
       platformKey,
       learningLocalOnly,
       generationLocalOnly,
@@ -2251,6 +2265,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         await this.handleUserMessage(message.text, message.mode, message.attachments);
         break;
 
+      case 'palette_intent':
+        await this.handlePaletteIntent(message.tool, message.action, message.mode);
+        break;
+
       case 'retry_after_error':
         // Repair the live conversation BEFORE issuing another request.
         // A 400 typically leaves orphan tool_calls or mismatched tool
@@ -2535,10 +2553,27 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  /**
+   * Command palette — the user clicked a palette button, which delivers a
+   * pre-classified intent. Build the directive and run it as a turn: Ava
+   * receives the confirmed intent (no intent detection needed) while the
+   * chat shows the user a short clean label instead of the raw directive.
+   */
+  private async handlePaletteIntent(tool: PaletteTool, action: string, mode: AvaMode): Promise<void> {
+    const built = buildPaletteDirective(tool, action);
+    if (!built) {
+      this.log(`handlePaletteIntent: unknown palette intent "${tool}.${action}" — ignored`);
+      return;
+    }
+    this.log(`handlePaletteIntent: ${tool}.${action} (mode=${mode})`);
+    await this.handleUserMessage(built.directive, mode, undefined, { displayText: built.label });
+  }
+
   private async handleUserMessage(
     text: string,
     mode: AvaMode = 'code',
     attachments?: Array<{ type: 'image'; data: string; name: string }>,
+    options?: { displayText?: string },
   ): Promise<void> {
     this.log(`handleUserMessage called: text="${text.slice(0, 40)}", mode=${mode}, providerSource=${this.providerSource}`);
 
@@ -2597,7 +2632,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         // dedicated interjection_ack message type was never wired up in the
         // webview reducer, so it silently disappeared).
         const images = attachments?.map((a) => a.data);
-        this.postMessage({ type: 'user_message_ack', text, ...(images?.length ? { images } : {}) });
+        this.postMessage({ type: 'user_message_ack', text: options?.displayText ?? text, ...(images?.length ? { images } : {}) });
       }
       return;
     }
@@ -2629,7 +2664,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       this.conversation.addUserMessage(userText);
     }
     const images = attachments?.map((a) => a.data);
-    this.postMessage({ type: 'user_message_ack', text, ...(images?.length ? { images } : {}) });
+    this.postMessage({ type: 'user_message_ack', text: options?.displayText ?? text, ...(images?.length ? { images } : {}) });
 
     // Inject memory brief — but only in non-coding modes.
     // In Work mode (code), every-turn memory injection consumes context

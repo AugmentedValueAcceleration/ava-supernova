@@ -19,7 +19,10 @@ export class GenerateVoiceTool implements Tool {
   readonly name = 'generate_voice';
   readonly description = 'Generate AI voice/speech from text using MiniMax TTS.';
   readonly riskLevel: ToolRiskLevel = 'write';
-  readonly requiresConfirmation = false;
+  // Media generation costs credits — confirm before running so Ava never
+  // spends the user's balance without an explicit yes (palette click or
+  // chat confirmation).
+  readonly requiresConfirmation = true;
 
   readonly schema: FunctionSchema = {
     name: 'generate_voice',

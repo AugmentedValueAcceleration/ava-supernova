@@ -206,8 +206,24 @@ export interface MemoryEntryUI {
 
 export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm';
 
+/**
+ * Command palette — the user-aid tool categories a palette button can target.
+ * A palette button fires a pre-classified intent so Ava skips intent
+ * detection and goes straight to gathering the tool's fields.
+ * See COMMAND_PALETTE_PLAN.md.
+ */
+export type PaletteTool = 'task' | 'journal' | 'memory' | 'support' | 'learning' | 'creative' | 'plans';
+
 export type WebviewToExtMessage =
   | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }> }
+  /**
+   * Fired by a command-palette button. Carries the pre-classified intent
+   * (tool + action) and the mode the input is currently in. The host turns
+   * it into a directive turn — the user sees a short label, Ava receives the
+   * confirmed intent. `action` is 'create' for most tools; for `creative`
+   * it is one of 'image' | 'music' | 'video' | 'voice'.
+   */
+  | { type: 'palette_intent'; tool: PaletteTool; action: string; mode: AvaMode }
   /**
    * Sent by the error-message Retry button. Unlike send_message, the
    * extension first runs a conversation repair pass (fix orphan tool

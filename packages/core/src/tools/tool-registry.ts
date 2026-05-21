@@ -38,6 +38,9 @@ import { GetDateTimeTool } from './get-datetime.js';
 import { DetectLanguageTool } from './detect-language.js';
 import { TaskManageTool } from './task-manage.js';
 import { JournalWriteTool } from './journal.js';
+import { HealthPlanCreateTool } from './health-plan-create.js';
+import { HealthPlanUpdateDayTool } from './health-plan-update-day.js';
+import { HealthCatalogueSearchTool } from './health-catalogue-search.js';
 import { DocumentManageTool } from './document-manage.js';
 import { GitCommitTool } from './git-commit.js';
 import { GitCreatePrTool } from './git-create-pr.js';
@@ -382,6 +385,9 @@ export class ToolRegistry {
       new DetectLanguageTool(),
       new TaskManageTool(),
       new JournalWriteTool(),
+      new HealthCatalogueSearchTool(),
+      new HealthPlanCreateTool(),
+      new HealthPlanUpdateDayTool(),
       new DocumentManageTool(),
       new GitCommitTool(),
       new GitCreatePrTool(),

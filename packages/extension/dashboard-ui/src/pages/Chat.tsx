@@ -11,6 +11,7 @@ import { ChatContainer } from '../chat/components/ChatContainer';
 import { ContextBar } from '../chat/components/ContextBar';
 import { InputArea } from '../chat/components/InputArea';
 import type { ImageAttachment } from '../chat/components/InputArea';
+import type { PaletteTool } from '../chat/components/CommandPalette';
 import { Header } from '../chat/components/Header';
 import { MemoryPanel } from '../chat/components/MemoryPanel';
 import { TasksPanel, DEFAULT_WIDTH } from '../chat/components/TasksPanel';
@@ -871,6 +872,10 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     post({ type: 'send_message', text, mode, attachments });
   }, []);
 
+  const handlePaletteAction = useCallback((tool: PaletteTool, action: string, mode: AvaMode) => {
+    post({ type: 'palette_intent', tool, action, mode });
+  }, []);
+
   const handleModelSwitch = useCallback((modelId: string) => {
     post({ type: 'switch_model', modelId });
   }, []);
@@ -1079,6 +1084,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
 
           <InputArea
             onSend={handleSend}
+            onPaletteAction={handlePaletteAction}
             onCancel={handleCancel}
             isStreaming={state.isStreaming}
             disabled={state.needsSetup}

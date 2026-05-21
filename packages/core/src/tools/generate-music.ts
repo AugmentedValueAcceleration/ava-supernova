@@ -19,7 +19,10 @@ export class GenerateMusicTool implements Tool {
   readonly name = 'generate_music';
   readonly description = 'Generate AI music from a text prompt. Supports instrumental and vocal tracks with lyrics.';
   readonly riskLevel: ToolRiskLevel = 'write';
-  readonly requiresConfirmation = false;
+  // Media generation costs credits — confirm before running so Ava never
+  // spends the user's balance without an explicit yes (palette click or
+  // chat confirmation).
+  readonly requiresConfirmation = true;
 
   readonly schema: FunctionSchema = {
     name: 'generate_music',

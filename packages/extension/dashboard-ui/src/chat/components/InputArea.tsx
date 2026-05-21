@@ -1,8 +1,10 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { t, useLocale } from '../../i18n';
 import type { ProviderSource } from '../../types/messages';
 import { SecretVault } from './SecretVault';
 import type { SecretEntry } from './SecretVault';
+import { CommandPalette, filterPaletteActions } from './CommandPalette';
+import type { PaletteTool, PaletteAction } from './CommandPalette';
 import { useSecrets } from '../hooks/useSecrets';
 
 export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm';
@@ -50,6 +52,9 @@ interface InputAreaProps {
    * contents and focuses the input. Mirrors the webview-ui InputArea.
    */
   prefill?: { value: string; nonce: number } | null;
+  /** Fired when a command-palette button is clicked. Carries the
+   *  pre-classified intent (tool + action) and the current input mode. */
+  onPaletteAction?: (tool: PaletteTool, action: string, mode: AvaMode) => void;
 }
 
 const MODES: { id: AvaMode; labelKey: string; icon: string }[] = [
@@ -72,7 +77,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   brainstorm: 'input.placeholder.brainstorm',
 };
 
-export function InputArea({ onSend, onCancel, isStreaming, disabled, platformStatus, modelSupportsVision, prefill }: InputAreaProps) {
+export function InputArea({ onSend, onCancel, isStreaming, disabled, platformStatus, modelSupportsVision, prefill, onPaletteAction }: InputAreaProps) {
   useLocale();
   const [text, setText] = useState('');
   // Mode persists across page reload — same shape as webview-ui.
@@ -94,6 +99,10 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
   const [isFocused, setIsFocused] = useState(false);
   const [modesExpanded, setModesExpanded] = useState(false);
   const [vaultOpen, setVaultOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteActiveIndex, setPaletteActiveIndex] = useState(0);
+  const paletteOuterRef = useRef<HTMLDivElement>(null);
+  const paletteBtnRef = useRef<HTMLButtonElement>(null);
   const { secrets, setSecrets } = useSecrets();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -171,6 +180,52 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
     return () => document.removeEventListener('mousedown', handler);
   }, [modesExpanded]);
 
+  // ── Command palette: open/close + filter sync ───────────────────────────
+  // Typing `/` at the start of the input opens the palette and the rest of
+  // the text becomes the filter query. Typing anything else closes it so
+  // the input goes back to being a normal chat composer.
+  useEffect(() => {
+    if (text.startsWith('/')) {
+      setPaletteOpen(true);
+    } else if (text.length > 0) {
+      setPaletteOpen(false);
+    }
+    setPaletteActiveIndex(0);
+  }, [text]);
+
+  const paletteQuery = text.startsWith('/') ? text.slice(1) : '';
+  const filteredPaletteActions: PaletteAction[] = useMemo(
+    () => filterPaletteActions(paletteQuery),
+    [paletteQuery],
+  );
+
+  // Clamp active index when the filtered list shrinks below it.
+  useEffect(() => {
+    if (paletteActiveIndex >= filteredPaletteActions.length) {
+      setPaletteActiveIndex(Math.max(0, filteredPaletteActions.length - 1));
+    }
+  }, [filteredPaletteActions.length, paletteActiveIndex]);
+
+  // Close palette on outside click — mirrors the mode-menu handler above.
+  useEffect(() => {
+    if (!paletteOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (paletteOuterRef.current && paletteOuterRef.current.contains(e.target as Node)) return;
+      if (paletteBtnRef.current && paletteBtnRef.current.contains(e.target as Node)) return;
+      setPaletteOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [paletteOpen]);
+
+  const selectPaletteItem = useCallback((tool: PaletteTool, action: string) => {
+    setText('');
+    setPaletteOpen(false);
+    setPaletteActiveIndex(0);
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    onPaletteAction?.(tool, action, mode);
+  }, [mode, onPaletteAction]);
+
   const handleSend = useCallback(() => {
     let trimmed = text.trim();
     if (!trimmed && attachments.length === 0) return;
@@ -191,13 +246,43 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      // Palette takes over the keyboard while it is open — arrows navigate
+      // the dropdown, Enter fires the highlighted action, Escape closes
+      // and clears any `/query` text.
+      if (paletteOpen) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          setPaletteActiveIndex((i) => Math.min(filteredPaletteActions.length - 1, i + 1));
+          return;
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          setPaletteActiveIndex((i) => Math.max(0, i - 1));
+          return;
+        }
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          const item = filteredPaletteActions[paletteActiveIndex];
+          if (item) selectPaletteItem(item.tool, item.action);
+          return;
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setPaletteOpen(false);
+          if (text.startsWith('/')) {
+            setText('');
+            if (textareaRef.current) textareaRef.current.style.height = 'auto';
+          }
+          return;
+        }
+      }
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         if (isStreaming) return;
         handleSend();
       }
     },
-    [handleSend, isStreaming],
+    [paletteOpen, filteredPaletteActions, paletteActiveIndex, selectPaletteItem, text, handleSend, isStreaming],
   );
 
   const handleInput = useCallback(() => {
@@ -327,6 +412,17 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
           onClose={() => setVaultOpen(false)}
         />
       )}
+      {/* Command palette dropdown — slash-command picker */}
+      <div ref={paletteOuterRef}>
+        {paletteOpen && (
+          <CommandPalette
+            query={paletteQuery}
+            activeIndex={paletteActiveIndex}
+            onActiveIndexChange={setPaletteActiveIndex}
+            onSelect={selectPaletteItem}
+          />
+        )}
+      </div>
       <div
         className="rounded-xl overflow-visible relative transition-all duration-200 outline-none focus-within:outline-none"
         style={{
@@ -513,9 +609,31 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
               </svg>
             </button>
 
+            {/* Command palette button — opens the slash-command dropdown */}
+            <button
+              ref={paletteBtnRef}
+              onClick={() => { setPaletteOpen(!paletteOpen); setVaultOpen(false); }}
+              disabled={disabled}
+              title={t('palette.tooltip')}
+              aria-label={t('palette.title')}
+              className={`relative flex items-center justify-center w-9 h-9 rounded-lg
+                         cursor-pointer transition-all duration-200
+                         ${paletteOpen
+                           ? 'text-white border border-[rgba(168,85,247,0.5)]'
+                           : 'text-[var(--vscode-foreground)] opacity-50 hover:opacity-90 border border-[rgba(168,85,247,0.15)] hover:border-[rgba(168,85,247,0.4)] hover:bg-[rgba(168,85,247,0.1)]'
+                         }
+                         disabled:opacity-20 disabled:cursor-not-allowed`}
+              style={paletteOpen ? {
+                background: 'linear-gradient(135deg, #A855F7, #7C3AED)',
+                boxShadow: '0 2px 8px rgba(168, 85, 247, 0.35)',
+              } : { background: 'rgba(168, 85, 247, 0.05)' }}
+            >
+              <span style={{ fontSize: 18, fontWeight: 700, fontFamily: 'monospace', lineHeight: 1 }}>/</span>
+            </button>
+
             {/* Secret Vault button */}
             <button
-              onClick={() => setVaultOpen(!vaultOpen)}
+              onClick={() => { setVaultOpen(!vaultOpen); setPaletteOpen(false); }}
               disabled={disabled}
               title={t('secrets.vault_tooltip')}
               aria-label={t('secrets.title')}

@@ -1592,6 +1592,10 @@ export type DashboardToExtMessage =
   | { type: 'creative_generate'; endpoint: string; body: Record<string, unknown> }
   // ── Chat messages (forwarded to AvaViewProvider) ────────────────────────
   | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }> }
+  // Command palette — a pre-classified user-aid intent fired by a palette
+  // button. `action` is 'create' for most tools; 'image'|'music'|'video'|
+  // 'voice' for `creative`. See COMMAND_PALETTE_PLAN.md.
+  | { type: 'palette_intent'; tool: 'task' | 'journal' | 'memory' | 'support' | 'learning' | 'creative' | 'plans'; action: string; mode: AvaMode | string }
   | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllowCategory?: boolean; planSelection?: string; userResponse?: string }
   | { type: 'set_category_permission'; category: string; permission: string }
   | { type: 'request_audit_log' }

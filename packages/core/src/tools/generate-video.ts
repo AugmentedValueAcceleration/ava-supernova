@@ -19,7 +19,10 @@ export class GenerateVideoTool implements Tool {
   readonly name = 'generate_video';
   readonly description = 'Generate a short AI video from a text prompt using MiniMax Hailuo.';
   readonly riskLevel: ToolRiskLevel = 'write';
-  readonly requiresConfirmation = false;
+  // Media generation costs credits — confirm before running so Ava never
+  // spends the user's balance without an explicit yes (palette click or
+  // chat confirmation).
+  readonly requiresConfirmation = true;
 
   readonly schema: FunctionSchema = {
     name: 'generate_video',

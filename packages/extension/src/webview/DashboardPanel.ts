@@ -64,7 +64,7 @@ import type {
 
 /** Chat message types that should be forwarded to AvaViewProvider */
 const CHAT_MESSAGE_TYPES = new Set([
-  'send_message', 'tool_confirmation_response', 'switch_model', 'clear_chat',
+  'send_message', 'palette_intent', 'tool_confirmation_response', 'switch_model', 'clear_chat',
   'cancel', 'interrupt', 'request_history', 'load_chat_conversation',
   'delete_chat_conversation', 'search_history', 'rename_conversation',
   'pin_conversation', 'export_conversation', 'new_chat', 'compress_context',

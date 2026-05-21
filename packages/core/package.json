@@ -40,6 +40,11 @@
       "import": "./dist/audit/index.js",
       "require": "./dist/audit/index.js",
       "types": "./dist/audit/index.d.ts"
+    },
+    "./health": {
+      "import": "./dist/health/index.js",
+      "require": "./dist/health/index.js",
+      "types": "./dist/health/index.d.ts"
     }
   },
   "scripts": {

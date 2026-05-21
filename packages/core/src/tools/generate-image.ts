@@ -55,7 +55,10 @@ export class GenerateImageTool implements Tool {
   readonly name = 'generate_image';
   readonly description = 'Generate an AI image from a text prompt and save it to the project';
   readonly riskLevel: ToolRiskLevel = 'write';
-  readonly requiresConfirmation = false;
+  // Media generation costs credits — confirm before running so Ava never
+  // spends the user's balance without an explicit yes (palette click or
+  // chat confirmation).
+  readonly requiresConfirmation = true;
 
   readonly schema: FunctionSchema = {
     name: 'generate_image',
