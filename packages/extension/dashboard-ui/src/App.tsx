@@ -1506,6 +1506,7 @@ export function App() {
           onLoadJournalSummaries={(from, to) => post({ type: 'load_journal_summaries', from, to })}
           taskDates={taskDates}
           onLoadTaskDates={() => post({ type: 'load_task_dates' })}
+          healthPlans={healthPlans}
           onToggleSidebar={toggleSidebar}
           onFlipSidebar={flipSidebar}
           sidebarSide={sidebarSide}

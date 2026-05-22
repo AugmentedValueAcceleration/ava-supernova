@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Select } from '../components/Select';
 import type {
   HealthPlan, HealthPlanSummary, HealthPlanType, HealthPlanStatus,
   HealthPlanDay, HealthPlanExercise, HealthPlanMeal,
@@ -170,8 +171,6 @@ const editInput =
 const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const WEEKDAY_INITIAL = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-const EMPTY_MARKS = new Map<string, { training: boolean; meals: boolean }>();
-
 function durationLabel(days: number): string {
   if (days <= 1) return '1 day';
   const weeks = Math.round(days / 7);
@@ -294,7 +293,52 @@ function BasePlansTab({ plans, onNew, onOpen, onDelete }: {
   onDelete: (id: string) => void;
 }) {
   const [tab, setTab] = useState<'calendar' | 'programs'>('calendar');
-  const [month, setMonth] = useState<Date>(() => new Date());
+  // Default the calendar to the month of a dated plan so a created plan is
+  // visible the moment the tab opens — not a blank current month.
+  const [month, setMonth] = useState<Date>(() => {
+    const dated = plans.find(p => p.start_date);
+    return dated?.start_date ? new Date(`${dated.start_date}T00:00:00`) : new Date();
+  });
+
+  // Mark every day each plan spans: a training dot for fitness/combined, a
+  // meal dot for meal/combined. This is what makes created plans actually
+  // show up on the calendar (it used to be hardcoded empty).
+  const planMarks = useMemo(() => {
+    const map = new Map<string, { training: boolean; meals: boolean }>();
+    for (const p of plans) {
+      if (!p.start_date) continue;
+      const start = new Date(`${p.start_date}T00:00:00`);
+      if (isNaN(start.getTime())) continue;
+      const training = p.type === 'fitness' || p.type === 'combined';
+      const meals = p.type === 'meal' || p.type === 'combined';
+      for (let i = 0; i < p.duration_days; i++) {
+        const d = new Date(start);
+        d.setDate(d.getDate() + i);
+        const key = ymd(d);
+        const prev = map.get(key) ?? { training: false, meals: false };
+        map.set(key, { training: prev.training || training, meals: prev.meals || meals });
+      }
+    }
+    return map;
+  }, [plans]);
+
+  // Which plan covers a date? Prefer an active plan, then most recently
+  // updated — so clicking a day opens the plan you'd expect, not creation.
+  const planForDate = useCallback((key: string): HealthPlanSummary | null => {
+    const sel = new Date(`${key}T00:00:00`).getTime();
+    const covering = plans.filter(p => {
+      if (!p.start_date) return false;
+      const start = new Date(`${p.start_date}T00:00:00`).getTime();
+      if (isNaN(start)) return false;
+      return sel >= start && sel <= start + (p.duration_days - 1) * 86400000;
+    });
+    if (covering.length === 0) return null;
+    covering.sort((a, b) => {
+      if ((a.status === 'active') !== (b.status === 'active')) return a.status === 'active' ? -1 : 1;
+      return (b.updated_at ?? '').localeCompare(a.updated_at ?? '');
+    });
+    return covering[0];
+  }, [plans]);
 
   return (
     <div className="space-y-4">
@@ -333,7 +377,13 @@ function BasePlansTab({ plans, onNew, onOpen, onDelete }: {
       </div>
 
       {tab === 'calendar' ? (
-        <MonthCalendar month={month} onMonthChange={setMonth} marks={EMPTY_MARKS} selected={null} onSelectDate={() => onNew()} />
+        <MonthCalendar
+          month={month}
+          onMonthChange={setMonth}
+          marks={planMarks}
+          selected={null}
+          onSelectDate={(key) => { const p = planForDate(key); if (p) onOpen(p.id); else onNew(); }}
+        />
       ) : plans.length === 0 ? (
         <div className="rounded-lg border border-dashed border-[var(--border)] px-4 py-10 text-center">
           <div className="text-[12px] text-[var(--text-secondary)]">No programs yet</div>
@@ -663,20 +713,24 @@ function PlanBuilder({
             placeholder="Plan title"
             className={`${editInput} min-w-[180px] flex-1 text-[14px]`}
           />
-          <select
+          <Select
             value={draft.status}
-            onChange={(e) => commit({ ...draft, status: e.target.value as HealthPlanStatus })}
-            className={editInput}
+            onChange={(v) => commit({ ...draft, status: v as HealthPlanStatus })}
+            size="sm"
             title="Activating a plan archives any other active plan of the same type"
-          >
-            <option value="draft">Draft</option>
-            <option value="active">Active</option>
-            <option value="completed">Completed</option>
-            <option value="archived">Archived</option>
-          </select>
-          <select value={draft.duration_days} onChange={(e) => setDuration(Number(e.target.value))} className={editInput}>
-            {DURATION_PRESETS.map(p => <option key={p.days} value={p.days}>{p.label}</option>)}
-          </select>
+            options={[
+              { value: 'draft', label: 'Draft' },
+              { value: 'active', label: 'Active' },
+              { value: 'completed', label: 'Completed' },
+              { value: 'archived', label: 'Archived' },
+            ]}
+          />
+          <Select
+            value={String(draft.duration_days)}
+            onChange={(v) => setDuration(Number(v))}
+            size="sm"
+            options={DURATION_PRESETS.map(p => ({ value: String(p.days), label: p.label }))}
+          />
         </div>
         <input
           value={draft.goal ?? ''}
@@ -712,6 +766,8 @@ function PlanBuilder({
             onChange={upsertDay}
             onAddExercises={() => setPicker('exercise')}
             onAddMeals={() => setPicker('recipe')}
+            onLoadExerciseDetail={onLoadExerciseDetail}
+            onLoadRecipeDetail={onLoadRecipeDetail}
           />
         </div>
       </div>
@@ -809,8 +865,10 @@ function MonthCalendar({ month, onMonthChange, marks, selected, onSelectDate }: 
   );
 }
 
-/** The selected day's editor — kind, title, training, meals, totals. */
-function DayPanel({ day, startDate, showTraining, showMeals, recipeDetails, exerciseDetails, onChange, onAddExercises, onAddMeals }: {
+/** The selected day — a calm read view by default, full editor on demand.
+ *  Viewing a plan shouldn't be a wall of input boxes; "Edit day" reveals
+ *  the form. Switching days returns to the read view. */
+function DayPanel({ day, startDate, showTraining, showMeals, recipeDetails, exerciseDetails, onChange, onAddExercises, onAddMeals, onLoadExerciseDetail, onLoadRecipeDetail }: {
   day: HealthPlanDay;
   startDate: string | null;
   showTraining: boolean;
@@ -820,27 +878,54 @@ function DayPanel({ day, startDate, showTraining, showMeals, recipeDetails, exer
   onChange: (day: HealthPlanDay) => void;
   onAddExercises: () => void;
   onAddMeals: () => void;
+  onLoadExerciseDetail: (slug: string) => void;
+  onLoadRecipeDetail: (slug: string) => void;
 }) {
   const date = planDate(startDate, day.day_index);
   const { totals, estimated } = useMemo(() => dayTotals(day, recipeDetails), [day, recipeDetails]);
+  const [editing, setEditing] = useState(false);
+  // Navigating to another day drops back to the calm read view.
+  useEffect(() => { setEditing(false); }, [day.day_index]);
+
+  const dateLabel = date ? `${WEEKDAY[date.getDay()]} ${date.getDate()} — Day ${day.day_index}` : `Day ${day.day_index}`;
+  const kindLabel = day.kind === 'training' ? 'Training' : day.kind === 'active_recovery' ? 'Active recovery' : 'Rest';
+  const pillBtn = 'rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2.5 py-1 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer';
+
+  if (!editing) {
+    return (
+      <div className="space-y-4 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[13px] font-semibold text-[var(--text-primary)]">{dateLabel}</span>
+          <span className="rounded border border-[var(--border)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">{kindLabel}</span>
+          {day.title && <span className="text-[12px] text-[var(--text-secondary)]">{day.title}</span>}
+          <button type="button" onClick={() => setEditing(true)} className={`ml-auto ${pillBtn}`}>Edit day</button>
+        </div>
+        <DayReadView day={day} showTraining={showTraining} showMeals={showMeals} exerciseDetails={exerciseDetails} recipeDetails={recipeDetails} totals={totals} estimated={estimated} onLoadExerciseDetail={onLoadExerciseDetail} onLoadRecipeDetail={onLoadRecipeDetail} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[13px] font-semibold text-[var(--text-primary)]">
-          {date ? `${WEEKDAY[date.getDay()]} ${date.getDate()} — Day ${day.day_index}` : `Day ${day.day_index}`}
-        </span>
-        <select value={day.kind} onChange={(e) => onChange({ ...day, kind: e.target.value as HealthPlanDay['kind'] })} className={editInput}>
-          <option value="training">Training</option>
-          <option value="rest">Rest</option>
-          <option value="active_recovery">Active recovery</option>
-        </select>
+        <span className="text-[13px] font-semibold text-[var(--text-primary)]">{dateLabel}</span>
+        <Select
+          value={day.kind}
+          onChange={(v) => onChange({ ...day, kind: v as HealthPlanDay['kind'] })}
+          size="sm"
+          options={[
+            { value: 'training', label: 'Training' },
+            { value: 'rest', label: 'Rest' },
+            { value: 'active_recovery', label: 'Active recovery' },
+          ]}
+        />
         <input
           value={day.title ?? ''}
           onChange={(e) => onChange({ ...day, title: e.target.value || null })}
           placeholder="Day title — e.g. Upper body, Long run"
           className={`${editInput} min-w-[160px] flex-1`}
         />
+        <button type="button" onClick={() => setEditing(false)} className={pillBtn}>Done</button>
       </div>
 
       {showTraining && (
@@ -891,6 +976,261 @@ function DayPanel({ day, startDate, showTraining, showMeals, recipeDetails, exer
         rows={2}
         className={`${editInput} w-full resize-y`}
       />
+    </div>
+  );
+}
+
+/** One-line readable summary of an exercise — "3 × 12 · bodyweight · 60s rest". */
+function exerciseSummary(ex: HealthPlanExercise): string {
+  const parts: string[] = [];
+  if (ex.sets != null && ex.reps) parts.push(`${ex.sets} × ${ex.reps}`);
+  else if (ex.sets != null) parts.push(`${ex.sets} sets`);
+  else if (ex.reps) parts.push(ex.reps);
+  if (ex.weight) parts.push(ex.weight);
+  if (ex.rest_seconds != null) parts.push(`${ex.rest_seconds}s rest`);
+  return parts.join('  ·  ') || '—';
+}
+
+/** One-line readable summary of a meal — "1 serving · 350 cal · 30g protein". */
+function mealSummary(meal: HealthPlanMeal, recipeDetails: Record<string, HealthRecipeDetail>): string {
+  const parts: string[] = [];
+  if (meal.servings != null) parts.push(`${meal.servings} serving${meal.servings === 1 ? '' : 's'}`);
+  const { macros } = mealMacros(meal, recipeDetails);
+  if (macros.calories != null) parts.push(`${macros.calories} cal`);
+  if (macros.protein_g != null) parts.push(`${macros.protein_g}g protein`);
+  return parts.join('  ·  ') || '—';
+}
+
+/** The calm, scannable view of a day — small cards, each clickable to open
+ *  the exercise's technique guide or the recipe. Free-text items (no library
+ *  ref) render as plain, non-clickable cards. */
+function DayReadView({ day, showTraining, showMeals, exerciseDetails, recipeDetails, totals, estimated, onLoadExerciseDetail, onLoadRecipeDetail }: {
+  day: HealthPlanDay;
+  showTraining: boolean;
+  showMeals: boolean;
+  exerciseDetails: Record<string, HealthExerciseDetail>;
+  recipeDetails: Record<string, HealthRecipeDetail>;
+  totals: MealMacros;
+  estimated: boolean;
+  onLoadExerciseDetail: (slug: string) => void;
+  onLoadRecipeDetail: (slug: string) => void;
+}) {
+  const [detail, setDetail] = useState<{ kind: 'exercise' | 'recipe'; slug: string; name: string } | null>(null);
+
+  const openExercise = (ex: HealthPlanExercise) => {
+    if (!ex.ref) return;
+    onLoadExerciseDetail(ex.ref.slug);
+    setDetail({ kind: 'exercise', slug: ex.ref.slug, name: ex.name || 'Exercise' });
+  };
+  const openMeal = (meal: HealthPlanMeal) => {
+    if (!meal.ref) return;
+    onLoadRecipeDetail(meal.ref.slug);
+    setDetail({ kind: 'recipe', slug: meal.ref.slug, name: meal.name || 'Meal' });
+  };
+
+  if (day.training.length === 0 && day.meals.length === 0) {
+    return (
+      <div className="rounded-md border border-dashed border-[var(--border)] px-3 py-4 text-[11px] italic text-[var(--text-muted)]">
+        Nothing scheduled — hit “Edit day” to add {showTraining ? 'exercises' : ''}{showTraining && showMeals ? ' or ' : ''}{showMeals ? 'meals' : ''}.
+      </div>
+    );
+  }
+
+  const cardCls = (clickable: boolean) =>
+    `flex flex-col gap-1 rounded-md border border-[var(--border)] bg-[var(--bg-input)]/30 px-3 py-2 text-left transition ${
+      clickable ? 'cursor-pointer hover:border-[var(--accent)]/50 hover:bg-[var(--accent)]/5' : 'cursor-default'
+    }`;
+
+  return (
+    <div className="space-y-4">
+      {showTraining && day.training.length > 0 && (
+        <div className="space-y-1.5">
+          <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">Training</div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {day.training.map(ex => {
+              const clickable = !!ex.ref;
+              return (
+                <button key={ex.id} type="button" disabled={!clickable} onClick={() => openExercise(ex)} className={cardCls(clickable)}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate text-[12px] font-medium text-[var(--text-primary)]">{ex.name || 'Exercise'}</span>
+                    {clickable && <span className="shrink-0 text-[14px] leading-none text-[var(--accent)]">›</span>}
+                  </div>
+                  <span className="text-[10px] text-[var(--text-muted)]">{exerciseSummary(ex)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {showMeals && day.meals.length > 0 && (
+        <div className="space-y-1.5">
+          <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">Meals</div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {day.meals.map(meal => {
+              const clickable = !!meal.ref;
+              return (
+                <button key={meal.id} type="button" disabled={!clickable} onClick={() => openMeal(meal)} className={cardCls(clickable)}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate text-[12px] font-medium text-[var(--text-primary)]">
+                      <span className="mr-1.5 text-[10px] uppercase text-[var(--text-muted)]">{meal.slot}</span>{meal.name || 'Meal'}
+                    </span>
+                    {clickable && <span className="shrink-0 text-[14px] leading-none text-[var(--accent)]">›</span>}
+                  </div>
+                  <span className="text-[10px] text-[var(--text-muted)]">{mealSummary(meal, recipeDetails)}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-400/20 bg-amber-400/5 px-3 py-2">
+            <span className="text-[10px] uppercase tracking-[0.14em] text-amber-300/80">Day total</span>
+            {MACRO_FIELDS.map(f => (
+              <span key={f.key} className="text-[11px] text-[var(--text-secondary)]">
+                {f.label} <span className="font-semibold text-[var(--text-primary)]">{totals[f.key] ?? 0}{f.unit}</span>
+              </span>
+            ))}
+            {estimated && <span className="text-[9px] italic text-[var(--text-muted)]">estimated</span>}
+          </div>
+        </div>
+      )}
+      {day.notes && (
+        <div className="rounded-md border border-[var(--border)] px-3 py-2 text-[11px] leading-relaxed text-[var(--text-secondary)]">{day.notes}</div>
+      )}
+
+      {detail && (
+        <ItemDetailModal
+          detail={detail}
+          exercise={detail.kind === 'exercise' ? exerciseDetails[detail.slug] : undefined}
+          recipe={detail.kind === 'recipe' ? recipeDetails[detail.slug] : undefined}
+          onClose={() => setDetail(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Drill-down detail for a plan item — the exercise's technique guide or the
+ *  recipe. Renders from the detail cache; shows a loading note until it lands. */
+function ItemDetailModal({ detail, exercise, recipe, onClose }: {
+  detail: { kind: 'exercise' | 'recipe'; slug: string; name: string };
+  exercise: HealthExerciseDetail | undefined;
+  recipe: HealthRecipeDetail | undefined;
+  onClose: () => void;
+}) {
+  const loaded = detail.kind === 'exercise' ? !!exercise : !!recipe;
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div
+        className="flex max-h-[85vh] w-full max-w-[640px] flex-col overflow-hidden rounded-xl border border-[rgba(168,85,247,0.25)] bg-gradient-to-br from-[#100d1a] to-[#181327] shadow-[0_0_60px_rgba(168,85,247,0.18)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-3 border-b border-[rgba(168,85,247,0.14)] px-5 py-3">
+          <span className="text-[14px] font-semibold text-[var(--text-primary)]">{detail.name}</span>
+          <button type="button" onClick={onClose} className="border-none bg-transparent text-[14px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">✕</button>
+        </div>
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+          {!loaded ? (
+            <div className="py-8 text-center text-[12px] italic text-[var(--text-muted)]">Loading…</div>
+          ) : exercise ? (
+            <ExerciseDetailBody ex={exercise} />
+          ) : recipe ? (
+            <RecipeDetailBody rec={recipe} />
+          ) : (
+            <div className="py-8 text-center text-[12px] italic text-[var(--text-muted)]">No detail available for this item.</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const detailChip = 'rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] capitalize text-[var(--text-muted)]';
+const detailHd = 'text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]';
+
+function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
+  const r = ex.routine;
+  const routineParts = [
+    r.sets != null ? `${r.sets} sets` : null,
+    r.reps_target ? `${r.reps_target} reps` : null,
+    r.rest_seconds != null ? `${r.rest_seconds}s rest` : null,
+    r.tempo ? `tempo ${r.tempo}` : null,
+    r.frequency_per_week ? `${r.frequency_per_week}/wk` : null,
+  ].filter(Boolean);
+  return (
+    <div className="space-y-4 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+      <div className="flex flex-wrap gap-1.5">
+        <span className={detailChip}>{ex.exercise_type}</span>
+        <span className={detailChip}>{ex.workout_type}</span>
+        {typeof ex.difficulty === 'number' && <span className={detailChip}>difficulty {ex.difficulty}</span>}
+      </div>
+      {ex.thumbnail_url && <img src={ex.thumbnail_url} alt="" className="w-full rounded-lg object-cover" />}
+      {ex.description && <p>{ex.description}</p>}
+      {routineParts.length > 0 && (
+        <div><div className={detailHd}>Routine</div><p className="mt-1">{routineParts.join('  ·  ')}{r.progression ? ` — ${r.progression}` : ''}</p></div>
+      )}
+      {ex.steps.length > 0 && (
+        <div>
+          <div className={detailHd}>How to do it</div>
+          <ol className="mt-1 list-decimal space-y-1 pl-5">{ex.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
+        </div>
+      )}
+      {ex.common_mistakes && <div><div className={detailHd}>Common mistakes</div><p className="mt-1">{ex.common_mistakes}</p></div>}
+      {ex.muscles.length > 0 && (
+        <div><div className={detailHd}>Muscles</div><div className="mt-1 flex flex-wrap gap-1.5">{ex.muscles.map(mu => <span key={mu.slug} className={detailChip}>{mu.name}{mu.role === 'secondary' ? ' (secondary)' : ''}</span>)}</div></div>
+      )}
+      {ex.equipment.length > 0 && (
+        <div><div className={detailHd}>Equipment</div><div className="mt-1 flex flex-wrap gap-1.5">{ex.equipment.map(eq => <span key={eq.slug} className={detailChip}>{eq.name}</span>)}</div></div>
+      )}
+      {ex.demo_video_url && <a href={ex.demo_video_url} target="_blank" rel="noreferrer" className="inline-block text-[12px] text-[var(--accent)] hover:underline">Watch demo →</a>}
+    </div>
+  );
+}
+
+function RecipeDetailBody({ rec }: { rec: HealthRecipeDetail }) {
+  const version = rec.versions.find(v => v.level === 'intermediate') ?? rec.versions[0];
+  const n = version?.nutrition;
+  const timeParts = version ? [
+    version.prep_time_minutes != null ? `${version.prep_time_minutes}m prep` : null,
+    version.cook_time_minutes != null ? `${version.cook_time_minutes}m cook` : null,
+  ].filter(Boolean) : [];
+  return (
+    <div className="space-y-4 text-[12px] leading-relaxed text-[var(--text-secondary)]">
+      <div className="flex flex-wrap gap-1.5">
+        {rec.course && <span className={detailChip}>{rec.course}</span>}
+        {rec.cuisine_name && <span className={detailChip}>{rec.cuisine_name}</span>}
+        {version?.default_servings != null && <span className={detailChip}>{version.default_servings} servings</span>}
+      </div>
+      {rec.hero_image_url && <img src={rec.hero_image_url} alt="" className="w-full rounded-lg object-cover" />}
+      {(rec.overview || version?.description) && <p>{rec.overview ?? version?.description}</p>}
+      {timeParts.length > 0 && <p className="text-[var(--text-muted)]">{timeParts.join('  ·  ')}</p>}
+      {n && typeof n.calories === 'number' && (
+        <div>
+          <div className={detailHd}>Nutrition (per serving{n.source === 'verified' ? '' : ', estimated'})</div>
+          <div className="mt-1 flex flex-wrap gap-3">
+            {n.calories != null && <span>Cal <span className="font-semibold text-[var(--text-primary)]">{n.calories}</span></span>}
+            {n.protein_g != null && <span>Protein <span className="font-semibold text-[var(--text-primary)]">{n.protein_g}g</span></span>}
+            {n.carbs_g != null && <span>Carbs <span className="font-semibold text-[var(--text-primary)]">{n.carbs_g}g</span></span>}
+            {n.fat_g != null && <span>Fat <span className="font-semibold text-[var(--text-primary)]">{n.fat_g}g</span></span>}
+          </div>
+        </div>
+      )}
+      {rec.ingredients.length > 0 && (
+        <div>
+          <div className={detailHd}>Ingredients</div>
+          <ul className="mt-1 space-y-0.5">
+            {[...rec.ingredients].sort((a, b) => a.sort_order - b.sort_order).map((ing, i) => (
+              <li key={i}>{[ing.quantity != null ? ing.quantity : null, ing.unit, ing.name].filter(v => v != null && v !== '').join(' ')}{ing.optional ? ' (optional)' : ''}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {version && version.steps.length > 0 && (
+        <div>
+          <div className={detailHd}>Method</div>
+          <ol className="mt-1 list-decimal space-y-1 pl-5">
+            {[...version.steps].sort((a, b) => a.sort_order - b.sort_order).map((s, i) => <li key={i}>{s.action}</li>)}
+          </ol>
+        </div>
+      )}
     </div>
   );
 }
@@ -975,12 +1315,18 @@ function MealRow({ meal, recipeDetails, onChange, onRemove }: {
   return (
     <div className="space-y-2 rounded-md border border-[var(--border)] bg-[var(--bg-input)]/40 p-2">
       <div className="flex items-center gap-2">
-        <select value={meal.slot} onChange={(e) => onChange({ ...meal, slot: e.target.value as HealthPlanMeal['slot'] })} className={editInput}>
-          <option value="breakfast">Breakfast</option>
-          <option value="lunch">Lunch</option>
-          <option value="dinner">Dinner</option>
-          <option value="snack">Snack</option>
-        </select>
+        <Select
+          value={meal.slot}
+          onChange={(v) => onChange({ ...meal, slot: v as HealthPlanMeal['slot'] })}
+          size="sm"
+          className="min-w-[120px]"
+          options={[
+            { value: 'breakfast', label: 'Breakfast' },
+            { value: 'lunch', label: 'Lunch' },
+            { value: 'dinner', label: 'Dinner' },
+            { value: 'snack', label: 'Snack' },
+          ]}
+        />
         <input value={meal.name} onChange={(e) => onChange({ ...meal, name: e.target.value })} placeholder="Meal name" className={`${editInput} flex-1`} />
         <button type="button" onClick={onRemove} title="Remove" className="border-none bg-transparent px-1 text-[var(--text-muted)] hover:text-red-300 cursor-pointer">✕</button>
       </div>

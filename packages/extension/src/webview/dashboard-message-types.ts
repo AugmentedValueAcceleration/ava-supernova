@@ -837,6 +837,8 @@ export interface HealthPlanSummary {
   title: string;
   status: HealthPlanStatus;
   duration_days: number;
+  /** Plan start date (YYYY-MM-DD) so the Plans calendar can place it. */
+  start_date: string | null;
   source: HealthPlanSource;
   updated_at: string | null;
 }

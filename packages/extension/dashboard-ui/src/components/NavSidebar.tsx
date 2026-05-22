@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
-import type { Page, DashboardJournalDaySummary } from '../types/messages';
+import type { Page, DashboardJournalDaySummary, HealthPlanSummary } from '../types/messages';
 import { DataPortability } from './DataPortability';
 import {
   Lightning, ChatCircleDots, ListChecks, Books, Palette,
@@ -37,6 +37,9 @@ interface NavSidebarProps {
   onLoadJournalSummaries?: (from: string, to: string) => void;
   taskDates?: string[];
   onLoadTaskDates?: () => void;
+  /** Health plan summaries — drive the plan dots on the mini-calendar so
+   *  it shows the same training/meal marks as the Plans calendar. */
+  healthPlans?: HealthPlanSummary[];
   onToggleSidebar?: () => void;
   onFlipSidebar?: () => void;
   sidebarSide?: 'left' | 'right';
@@ -119,6 +122,7 @@ export function NavSidebar({
   onSelectJournalDate,
   taskDates,
   onLoadTaskDates,
+  healthPlans,
   onToggleSidebar,
   onFlipSidebar,
   sidebarSide,
@@ -340,6 +344,7 @@ export function NavSidebar({
       {/* Mini Calendar — always visible, task-focused */}
       <TaskCalendar
         taskDates={taskDates || []}
+        healthPlans={healthPlans || []}
         selectedDate={selectedJournalDate}
         onDayClick={(iso) => {
           // Set the planner-wide selected date BEFORE navigating so
@@ -528,11 +533,13 @@ function NavItem({
 
 function TaskCalendar({
   taskDates,
+  healthPlans,
   selectedDate,
   onDayClick,
   onRefresh,
 }: {
   taskDates: string[];
+  healthPlans: HealthPlanSummary[];
   /** ISO date currently selected in the planner. Renders with a
    *  distinct outline so the click registers visually — without this
    *  the calendar felt unclickable because only "today" was styled
@@ -542,11 +549,62 @@ function TaskCalendar({
   onRefresh?: () => void;
 }) {
   const [monthOffset, setMonthOffset] = useState(0);
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem('ava.sidebarCalCollapsed') === '1'; } catch { return false; }
+  });
+  const toggleCollapsed = () => setCollapsed(c => {
+    const next = !c;
+    try { localStorage.setItem('ava.sidebarCalCollapsed', next ? '1' : '0'); } catch { /* ignore */ }
+    return next;
+  });
   const taskSet = new Set(taskDates);
 
-  useEffect(() => { onRefresh?.(); }, [monthOffset]);
+  // Plan dots — same training (accent) / meal (amber) marks as the Plans
+  // calendar, so the schedule reads identically in both places.
+  const planMarks = useMemo(() => {
+    const map = new Map<string, { training: boolean; meals: boolean }>();
+    for (const p of healthPlans) {
+      if (!p.start_date) continue;
+      const start = new Date(`${p.start_date}T00:00:00`);
+      if (isNaN(start.getTime())) continue;
+      const training = p.type === 'fitness' || p.type === 'combined';
+      const meals = p.type === 'meal' || p.type === 'combined';
+      for (let i = 0; i < p.duration_days; i++) {
+        const d = new Date(start);
+        d.setDate(d.getDate() + i);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const prev = map.get(key) ?? { training: false, meals: false };
+        map.set(key, { training: prev.training || training, meals: prev.meals || meals });
+      }
+    }
+    return map;
+  }, [healthPlans]);
+
+  // Only refetch task dates when the (expanded) calendar changes month.
+  useEffect(() => { if (!collapsed) onRefresh?.(); }, [monthOffset, collapsed]);
 
   const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+
+  // Collapsed — just today's date with a chevron to expand.
+  if (collapsed) {
+    return (
+      <div className="border-t border-[var(--border-card)] px-3 py-2.5 shrink-0">
+        <button
+          onClick={toggleCollapsed}
+          title="Show calendar"
+          className="flex w-full items-center justify-between border-none bg-transparent cursor-pointer text-[var(--text-secondary)] hover:text-white transition"
+        >
+          <span className="flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)] text-[9px] font-semibold text-white">{now.getDate()}</span>
+            <span className="text-[11px]">{now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+          </span>
+          <span className="text-[9px] text-[var(--text-muted)]">{'▼'}</span>
+        </button>
+      </div>
+    );
+  }
+
   const target = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
   const year = target.getFullYear();
   const month = target.getMonth();
@@ -554,15 +612,23 @@ function TaskCalendar({
   const firstDay = new Date(year, month, 1).getDay();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
   const label = target.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
-  const todayStr = now.toISOString().slice(0, 10);
 
   return (
     <div className="border-t border-[var(--border-card)] px-3 py-2.5 shrink-0">
-      {/* Month nav */}
+      {/* Month nav + collapse */}
       <div className="flex items-center justify-between mb-1.5">
         <button onClick={() => setMonthOffset(o => o - 1)} className="text-[10px] text-[var(--text-muted)] bg-transparent border-none cursor-pointer hover:text-white">{'\u25C0'}</button>
         <span className="text-[10px] font-light text-[var(--text-secondary)]">{label}</span>
-        <button onClick={() => setMonthOffset(o => o + 1)} className="text-[10px] text-[var(--text-muted)] bg-transparent border-none cursor-pointer hover:text-white">{'\u25B6'}</button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setMonthOffset(o => o + 1)} className="text-[10px] text-[var(--text-muted)] bg-transparent border-none cursor-pointer hover:text-white">{'\u25B6'}</button>
+          <button onClick={toggleCollapsed} title="Hide calendar" className="text-[9px] text-[var(--text-muted)] bg-transparent border-none cursor-pointer hover:text-white">{'\u25B2'}</button>
+        </div>
+      </div>
+      {/* Legend \u2014 colour code for the day dots */}
+      <div className="flex items-center justify-center gap-2.5 mb-1.5 text-[8px] text-[var(--text-muted)]">
+        <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--accent)' }} />Training</span>
+        <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: '#f59e0b' }} />Meals</span>
+        <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: '#38bdf8' }} />Tasks</span>
       </div>
       {/* Day headers */}
       <div className="grid grid-cols-7 gap-0.5 text-center mb-0.5">
@@ -577,7 +643,12 @@ function TaskCalendar({
           const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
           const isToday = iso === todayStr;
           const isSelected = iso === selectedDate;
-          const hasTask = taskSet.has(iso);
+          const mk = planMarks.get(iso);
+          // Dots in legend order: training (accent), meals (amber), task (sky).
+          const dots: string[] = [];
+          if (mk?.training) dots.push('var(--accent)');
+          if (mk?.meals) dots.push('#f59e0b');
+          if (taskSet.has(iso)) dots.push('#38bdf8');
           // Selected wins on background (filled accent), today gets a
           // subtle ring underneath. When today is also selected, the
           // filled state covers it. Selection is the dominant signal —
@@ -608,15 +679,12 @@ function TaskCalendar({
               }}
             >
               {day}
-              {hasTask && (
-                <span
-                  className="absolute"
-                  style={{
-                    bottom: 1,
-                    width: 3, height: 3, borderRadius: '50%',
-                    background: isSelected ? '#fff' : isToday ? 'var(--accent)' : '#f59e0b',
-                  }}
-                />
+              {dots.length > 0 && (
+                <span className="absolute flex" style={{ bottom: 1, gap: 1 }}>
+                  {dots.map((c, di) => (
+                    <span key={di} style={{ width: 3, height: 3, borderRadius: '50%', background: isSelected ? '#fff' : c }} />
+                  ))}
+                </span>
               )}
             </button>
           );

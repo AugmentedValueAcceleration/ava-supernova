@@ -4235,7 +4235,7 @@ export class DashboardPanel {
       if (p) {
         out.push({
           id: p.id, type: p.type, title: p.title, status: p.status,
-          duration_days: p.duration_days, source: p.source, updated_at: p.updated_at,
+          duration_days: p.duration_days, start_date: p.start_date, source: p.source, updated_at: p.updated_at,
         });
       }
     }
