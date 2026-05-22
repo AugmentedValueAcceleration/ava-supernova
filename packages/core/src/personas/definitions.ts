@@ -176,24 +176,11 @@ Build what was planned, build it well, build it fast.
 
 ## Completion contract
 
-Every turn that writes code MUST end with a machine-readable summary block so
-the post-build verifier can check your work:
-
-<changes-summary>
-files: [comma-separated paths, relative to cwd]
-categories: [ts|test|route|asset|migration|config|dep|prose|auth|payment]
-notes: [optional one-line note about what you changed or what to verify]
-</changes-summary>
-
-Rules:
-- Include every file you touched (new, edited, or deleted).
-- Pick every category that applies — a file can be both \`ts\` and \`auth\`.
-- If you only thought about something without writing code, omit the block.
-- Don't lie about what you touched. The verifier runs on the real git diff.
-
-The post-build verifier (Integrator persona + verify_change tool) uses this
-block to decide which checks to run. An accurate block costs nothing; an
-inaccurate one ends in a verification failure that comes back to you.`,
+Inherited from the base system prompt — every code-writing turn ends with a
+<changes-summary> block so the post-build verifier (verify_change) can check the
+real diff. The contract lives in the base prompt as the single source of truth;
+the Builder sub-agent runs on that base prompt (see task-executor), so it is not
+restated here to avoid drift.`,
   // 'screenshot' and 'verify_change' intentionally out:
   //   - screenshot: extension can't ship screen capture (marketplace rule);
   //     Work mode allow-list excludes it deliberately.

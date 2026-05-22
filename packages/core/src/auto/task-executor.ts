@@ -7,7 +7,7 @@ import type { AgentEventHandler } from '../agent/agent.js';
 
 import { Agent } from '../agent/agent.js';
 import { Conversation } from '../agent/conversation.js';
-import { BUILDER } from '../personas/definitions.js';
+import { buildSystemPrompt, type SystemPromptOptions } from '../agent/system-prompt.js';
 import { logger } from '../core/logger.js';
 
 /**
@@ -41,15 +41,14 @@ export interface TaskExecutorOptions {
    */
   onActiveAgentChange?: (agent: Agent | null) => void;
   /**
-   * Project-scoped conventions the Builder needs to honour — currently the
-   * Decisions folder state, but this is where any future project-level
-   * convention flags should land. Routed through from AutoCoordinator's
-   * systemPromptOpts so the Builder's custom prompt picks up the same
-   * behavioural instructions the main agent's prompt carries.
+   * The same base-prompt options the main agent is built with. Threaded
+   * through so the Builder sub-agent inherits the full base prompt — every
+   * rule, the trust boundary, code craft, verified-done discipline and the
+   * completion contract — instead of the thin standalone prompt it used
+   * before. The Decisions-folder fields (context / exists / opt-in) live in
+   * here too and are rendered by buildSystemPrompt.
    */
-  decisionsContext?: string;
-  decisionsFolderExists?: boolean;
-  decisionsOptInStatus?: 'opted-in' | 'opted-out' | 'not-asked';
+  systemPromptOpts?: Record<string, unknown>;
 }
 
 export interface TaskExecutionResult {
@@ -68,9 +67,7 @@ export class TaskExecutor {
   private readonly cwd: string;
   private readonly sharedState: Record<string, unknown>;
   private readonly onActiveAgentChange?: (agent: Agent | null) => void;
-  private readonly decisionsContext?: string;
-  private readonly decisionsFolderExists?: boolean;
-  private readonly decisionsOptInStatus?: 'opted-in' | 'opted-out' | 'not-asked';
+  private readonly systemPromptOpts: Record<string, unknown>;
 
   constructor(opts: TaskExecutorOptions) {
     this.provider = opts.provider;
@@ -80,9 +77,7 @@ export class TaskExecutor {
     this.cwd = opts.cwd;
     this.sharedState = opts.sharedState;
     this.onActiveAgentChange = opts.onActiveAgentChange;
-    this.decisionsContext = opts.decisionsContext;
-    this.decisionsFolderExists = opts.decisionsFolderExists;
-    this.decisionsOptInStatus = opts.decisionsOptInStatus;
+    this.systemPromptOpts = opts.systemPromptOpts ?? {};
   }
 
   /**
@@ -276,49 +271,26 @@ export class TaskExecutor {
   }
 
   private buildBuilderSystemPrompt(): string {
-    // Decisions folder convention — same rules the main agent follows, reproduced
-    // here because the Builder has its own prompt path independent of the main
-    // system-prompt. Silent when opted-out or irrelevant.
-    let decisionsBlock = '';
-    const optIn = this.decisionsOptInStatus ?? 'not-asked';
-    if (this.decisionsFolderExists) {
-      decisionsBlock = `
+    // The Builder sub-agent runs on the SAME base prompt as the main agent —
+    // every rule, the trust boundary, code craft, verified-done discipline and
+    // the completion contract — then layers the focused-sub-agent framing
+    // below. Previously this path used a thin standalone prompt that inherited
+    // none of that, so orchestrated builds ran under far less discipline than
+    // direct ones. systemPromptOpts is threaded from AutoCoordinator; the
+    // Decisions-folder block is built by buildSystemPrompt from those same
+    // opts, so it is not repeated here.
+    const base = buildSystemPrompt({
+      ...(this.systemPromptOpts as Partial<SystemPromptOptions>),
+      cwd: this.cwd,
+    } as SystemPromptOptions);
 
-## Decisions folder (active for this project)
-This project has a \`Decisions/\` folder — it's the project's declared direction
-(palette, voice, architecture, conventions). Treat its contents as law. When
-your task involves a design or architectural decision — choosing a palette,
-picking typography, generating an asset, committing to a pattern — record it to
-the appropriate file (\`Decisions/design/palette.md\`, \`Decisions/design/typography.md\`,
-\`Decisions/design/assets.md\` with the prompt used, or \`Decisions/records/NNNN-<topic>.md\`
-for ADR-style records). Write these updates as you work. Never write secrets —
-the folder is committed to git.${this.decisionsContext ? `\n\n### Project direction (from Decisions folder)\n${this.decisionsContext}` : ''}`;
-    } else if (optIn === 'not-asked') {
-      decisionsBlock = `
+    return `${base}
 
-## Decisions folder (not yet set up for this project)
-**BEFORE your first file_write or file_edit in this task**, call \`ask_user\` with
-exactly this question: "Want me to set up a Decisions folder for this project?
-It's where I'll track design choices, architecture decisions, and generated
-assets as we go — committed to git so the context travels with the code."
-Wait for the answer. If yes, create \`Decisions/\` at the project root with the
-canonical structure (overview.md, context.md, design/palette.md, design/typography.md,
-design/voice.md, design/assets.md, ideas.md, progress.md, records/) and then
-proceed with the original task, recording decisions as you make them. If no,
-proceed with the task without mentioning it again.
-
-**This is non-negotiable.** Even if your task is urgent, even if the plan says
-to start coding immediately — ask_user first, then proceed. The one question
-takes two seconds and saves project context for the life of the codebase.`;
-    }
-    // optIn === 'opted-out' → silent, don't mention it.
-
-    return `${BUILDER.prompt}
-
-## You are running as a focused sub-agent
-You have been spawned for a single task. You do NOT have the full chat history —
-the task description below contains everything you need to know. Stay focused on
-your one task.
+## You are the Builder, running as a focused sub-agent
+You've been spawned for a single task. You do NOT have the full chat history —
+the task description below contains everything you need. Execute the approved
+plan: build what was asked, match the codebase, verify your work, and finish.
+Stay focused on this one task.
 
 ## Tools
 You have access to the full execution toolset: file_read, file_write, file_edit,
@@ -355,9 +327,9 @@ usually a Builder that didn't read the Decisions folder first.
 
 ## Output discipline
 - The plan is already approved. Do not redesign. Do not propose alternatives.
-- When done: end your response with a one-paragraph summary of what you built. Stop.
+- When done: end with a one-paragraph summary of what you built, then the <changes-summary> block from the completion contract above. Stop.
 - When blocked: start your final response with "BLOCKED:" then explain clearly.
-- Do not narrate every tool call. Tools speak for themselves.${decisionsBlock}`;
+- Do not narrate every tool call. Tools speak for themselves.`;
   }
 
   private lastAssistantText(messages: Message[]): string | null {

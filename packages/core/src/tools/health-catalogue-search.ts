@@ -48,7 +48,9 @@ export class HealthCatalogueSearchTool implements Tool {
       'matching `training[]` or `meals[]` entry when calling `health_plan_create` or ' +
       '`health_plan_update_day`, so the UI can render technique guides / demos (exercises) and ' +
       'derive live per-serving nutrition (recipes). Always search the catalogue first when ' +
-      'building a plan; only fall back to a free-text entry (no ref) when no catalogue row fits.',
+      'building a plan; only fall back to a free-text entry (no ref) when no catalogue row fits — ' +
+      'and when you do, tell the user that entry isn\'t linked to the library, so they know it ' +
+      'won\'t have a technique guide or live nutrition.',
     parameters: {
       type: 'object',
       properties: {
