@@ -61,7 +61,9 @@ export class HealthCatalogueSearchTool implements Tool {
         },
         query: {
           type: 'string',
-          description: 'Free-text search query — exercise name, recipe name, ingredient, equipment, etc.',
+          description:
+            'Optional free-text search by name. Omit it when you only want to enumerate a whole ' +
+            'class via `category` / `exercise_type` — e.g. every bodyweight exercise.',
         },
         category: {
           type: 'string',
@@ -71,12 +73,20 @@ export class HealthCatalogueSearchTool implements Tool {
             'hiit). For kind=recipe this maps to course (e.g. breakfast, starter, main, side, ' +
             'dessert, snack, beverage, sauce, bread).',
         },
+        exercise_type: {
+          type: 'string',
+          enum: ['compound', 'isolation', 'bodyweight', 'plyometric', 'mobility', 'cardio', 'isometric', 'stretching', 'breathing'],
+          description:
+            'kind=exercise only. Filter by exercise_type — the axis that holds "bodyweight". Use this ' +
+            'to pull a whole class with no name query (e.g. exercise_type="bodyweight" returns every ' +
+            'bodyweight movement; raise `limit` to see them all). Ignored for recipes.',
+        },
         limit: {
           type: 'number',
           description: `Max results to return (default ${DEFAULT_LIMIT}, hard cap ${MAX_LIMIT}).`,
         },
       },
-      required: ['kind', 'query'],
+      required: ['kind'],
     },
   };
 
@@ -84,26 +94,32 @@ export class HealthCatalogueSearchTool implements Tool {
     const kind = args.kind as 'exercise' | 'recipe' | undefined;
     const query = (args.query as string | undefined)?.trim();
     const category = (args.category as string | undefined)?.trim();
+    const exerciseType = kind === 'exercise' ? (args.exercise_type as string | undefined)?.trim() : undefined;
     const rawLimit = args.limit as number | undefined;
     const limit = Math.max(1, Math.min(MAX_LIMIT, typeof rawLimit === 'number' ? rawLimit : DEFAULT_LIMIT));
 
     if (kind !== 'exercise' && kind !== 'recipe') {
       return { success: false, output: 'Missing or invalid `kind` — must be "exercise" or "recipe".' };
     }
-    if (!query) {
-      return { success: false, output: 'Missing required field: `query`.' };
+    if (!query && !category && !exerciseType) {
+      return { success: false, output: 'Give a `query`, a `category`, or (for exercises) an `exercise_type` to search by.' };
     }
+
+    // Human-readable description of what we searched for — works whether the
+    // search was by name, by filter, or both.
+    const criteria = [query ? `"${query}"` : null, category, exerciseType].filter(Boolean).join(' · ') || 'your filters';
 
     const apiBase = (context.sharedState?.platformApiBase as string) || DEFAULT_API_BASE;
     const path = kind === 'exercise' ? '/api/health/exercises' : '/api/health/recipes';
     const url = new URL(`${apiBase}${path}`);
-    url.searchParams.set('q', query);
+    if (query) url.searchParams.set('q', query);
     url.searchParams.set('limit', String(limit));
     if (category) {
       // Endpoint param names differ — exercises filter by workout_type,
       // recipes by course.
       url.searchParams.set(kind === 'exercise' ? 'workout_type' : 'course', category);
     }
+    if (exerciseType) url.searchParams.set('exercise_type', exerciseType);
 
     const headers: Record<string, string> = { Accept: 'application/json' };
     const platformKey = context.sharedState?.platformKey as string | undefined;
@@ -124,7 +140,7 @@ export class HealthCatalogueSearchTool implements Tool {
       if (results.length === 0) {
         return {
           success: true,
-          output: `No ${kind === 'exercise' ? 'exercises' : 'recipes'} found for "${query}"${category ? ` (${category})` : ''}. You can fall back to a free-text entry (no ref) if nothing in the library fits, but try a different query first.`,
+          output: `No ${kind === 'exercise' ? 'exercises' : 'recipes'} found for ${criteria}. You can fall back to a free-text entry (no ref) if nothing in the library fits, but try a different query or filter first.`,
           metadata: { kind, count: 0, slugs: [] },
         };
       }
@@ -146,12 +162,12 @@ export class HealthCatalogueSearchTool implements Tool {
       });
 
       const total = typeof data.total === 'number' ? data.total : results.length;
-      const more = total > results.length ? ` (${total} total — narrow the query or raise \`limit\` to see more)` : '';
+      const more = total > results.length ? ` (${total} total — raise \`limit\` to see all)` : '';
 
       return {
         success: true,
         output:
-          `Found ${results.length} ${kind === 'exercise' ? 'exercise' : 'recipe'}${results.length === 1 ? '' : 's'} for "${query}"${category ? ` (${category})` : ''}${more}:\n` +
+          `Found ${results.length} ${kind === 'exercise' ? 'exercise' : 'recipe'}${results.length === 1 ? '' : 's'} for ${criteria}${more}:\n` +
           lines.join('\n') +
           `\n\nPass the slug as \`ref.slug\` on the relevant ${kind === 'exercise' ? '`training[]`' : '`meals[]`'} entry when calling health_plan_create or health_plan_update_day.`,
         metadata: {
