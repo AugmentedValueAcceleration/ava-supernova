@@ -892,7 +892,14 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
   const handleCancel = useCallback(() => { post({ type: 'cancel' }); }, []);
 
   const handleOpenHistory = useCallback(() => { post({ type: 'request_history' }); }, []);
-  const handleNewChat = useCallback(() => { post({ type: 'new_chat' }); }, []);
+  const handleNewChat = useCallback(() => {
+    // Clear the view immediately so the button always responds, then tell
+    // the host to reset the underlying conversation/agent. Previously this
+    // relied solely on the round-trip `chat_cleared` coming back — if that
+    // dropped anywhere, the button looked dead.
+    dispatch({ type: 'chat_cleared' } as ChatAction);
+    post({ type: 'new_chat' });
+  }, []);
 
   // History panel handlers (handleLoadConversation / handleDeleteConversation
   // / handleSearchHistory / handleRenameConversation / handlePinConversation

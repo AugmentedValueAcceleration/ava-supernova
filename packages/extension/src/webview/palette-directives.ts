@@ -122,16 +122,23 @@ function makeHealthPlanDirective(type: 'meal' | 'fitness' | 'combined'): Palette
   const LABELS = { meal: 'Meal plan', fitness: 'Fitness plan', combined: 'Combined plan' } as const;
   const label = LABELS[type];
 
-  let searchGuidance: string;
+  let surveyGuidance: string;
+  let buildGuidance: string;
   if (type === 'fitness') {
-    searchGuidance =
-      'For every exercise you want in the plan, FIRST call `health_catalogue_search` with kind="exercise" to find the canonical slug from the user\'s library. Pass that slug as `ref.slug` on the matching `training[]` entry.';
+    surveyGuidance =
+      'search the exercise library with `health_catalogue_search` (kind="exercise") for the movement patterns, muscle groups, and goal this plan needs — so you know what is actually available before you commit to a structure.';
+    buildGuidance =
+      'compose the training from the exercises you found, passing each catalogue slug as `ref.slug` on its `training[]` entry.';
   } else if (type === 'meal') {
-    searchGuidance =
-      'For every meal you want in the plan, FIRST call `health_catalogue_search` with kind="recipe" to find the canonical slug from the user\'s library. Pass that slug as `ref.slug` on the matching `meals[]` entry.';
+    surveyGuidance =
+      'search the recipe library with `health_catalogue_search` (kind="recipe") for the courses, cuisines, and goal this plan needs — so you know what is actually available before you commit to a structure.';
+    buildGuidance =
+      'compose the meals from the recipes you found, passing each catalogue slug as `ref.slug` on its `meals[]` entry.';
   } else {
-    searchGuidance =
-      'For every exercise call `health_catalogue_search` with kind="exercise" first; for every meal call it with kind="recipe" first. Pass the returned slug as `ref.slug` on the matching `training[]` or `meals[]` entry.';
+    surveyGuidance =
+      'search BOTH libraries with `health_catalogue_search` — kind="exercise" for the training and kind="recipe" for the meals — for what this plan needs, so you know what is actually available before you commit to a structure.';
+    buildGuidance =
+      'compose training from the exercises and meals from the recipes you found, passing each catalogue slug as `ref.slug` on the matching `training[]` / `meals[]` entry.';
   }
 
   return {
@@ -140,20 +147,24 @@ function makeHealthPlanDirective(type: 'meal' | 'fitness' | 'combined'): Palette
       `[Palette action] The user clicked "${label}" in the command palette. ` +
       `Their intent is confirmed — do NOT ask whether they want a plan, and do NOT ask the type ` +
       `(${type} is locked in).\n\n` +
-      `You have three tools for this flow: \`health_catalogue_search\` (find slugs), ` +
+      `You have three tools for this flow: \`health_catalogue_search\` (see what's in the library), ` +
       `\`health_plan_create\` (save the plan), \`health_plan_update_day\` (fill one day at a time).\n\n` +
-      `WORKFLOW:\n` +
+      `WORKFLOW — survey the library FIRST, then build the plan from it. Do NOT invent the whole ` +
+      `plan from memory and then check; that is what produces free-text orphans with no technique ` +
+      `guide or nutrition.\n` +
       `1. Ask the user for: (a) a clear title; (b) duration in days — one of 1, 7, 28, 56, 84; ` +
       `(c) an optional free-text goal; (d) status — \`draft\` (save without starting) or ` +
       `\`active\` (begin today; archives any existing active ${type} plan). Status has NO ` +
       `DEFAULT — ask explicitly.\n` +
-      `2. ${searchGuidance} Only fall back to a free-text entry (no \`ref\`) when no catalogue ` +
-      `row fits — and tell the user when you do, so they know that entry isn't linked to the ` +
-      `library.\n` +
-      `3. For 1- or 7-day plans, populate \`days[]\` in the same \`health_plan_create\` call. ` +
+      `2. SURVEY: before composing anything, ${surveyGuidance}\n` +
+      `3. BUILD FROM WHAT EXISTS: design a proper, well-structured plan — it still needs real ` +
+      `programming and sensible progression, not just whatever happened to turn up — but ` +
+      `${buildGuidance} Only free-text an entry (no \`ref\`) when the library genuinely has no fit ` +
+      `for something the plan needs, and tell the user that entry isn't library-linked.\n` +
+      `4. For 1- or 7-day plans, populate \`days[]\` in the same \`health_plan_create\` call. ` +
       `For 28 / 56 / 84-day plans, create the skeleton first then iterate ` +
       `\`health_plan_update_day\` per day with the plan_id from create — keeps each tool call bounded.\n` +
-      `4. CONFIRM the plan summary with the user before calling \`health_plan_create\`. When ` +
+      `5. CONFIRM the plan summary with the user before calling \`health_plan_create\`. When ` +
       `status=active, name the plan that will be archived if any.\n\n` +
       `For meal entries with a recipe \`ref.slug\`, the UI derives nutrition live from recipe ` +
       `per-serving × \`servings\` — leave calories/protein_g/carbs_g/fat_g null in that case. ` +

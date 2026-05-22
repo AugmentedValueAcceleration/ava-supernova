@@ -853,12 +853,24 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   // ── Public Commands ────────────────────────────────────────────────────────
 
   async newChat(): Promise<void> {
+    // Persist the outgoing conversation, but never let a save failure
+    // (e.g. a cloud-sync hiccup) block the reset — the user asked for a
+    // new chat and must get one. A throw here used to abort the whole
+    // method before chat_cleared was posted, so the button "did nothing".
     if (this.conversation) {
-      await this.historyManager.saveConversation(this.conversation);
+      try {
+        await this.historyManager.saveConversation(this.conversation);
+      } catch (err) {
+        this.log(`newChat: saveConversation failed (continuing): ${err instanceof Error ? err.message : String(err)}`);
+      }
     }
 
     this.conversation = new Conversation();
-    this.conversation.setSystemPrompt(await this.buildCurrentSystemPrompt());
+    try {
+      this.conversation.setSystemPrompt(await this.buildCurrentSystemPrompt());
+    } catch (err) {
+      this.log(`newChat: buildCurrentSystemPrompt failed (continuing): ${err instanceof Error ? err.message : String(err)}`);
+    }
     this.setLastConversationId(undefined);
 
     // Wipe Ava's granted secrets — fresh chat = fresh trust boundary.
