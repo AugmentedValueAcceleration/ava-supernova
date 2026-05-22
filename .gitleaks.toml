@@ -1,0 +1,21 @@
+# Ava Supernova — secret-scan config.
+# Extends the default gitleaks ruleset and allowlists the false positives
+# vetted in the full-history audit (May 2026). A new, real secret still trips
+# the scan; these entries only silence known-benign matches so the signal
+# stays meaningful.
+title = "ava-supernova secret scan"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Vetted false positives — full-history gitleaks audit, May 2026"
+paths = [
+  '''packages/core/tests/security\.test\.ts''',  # credential-detector test fixtures (fake keys, no key body)
+  '''.*sidecar-bundle\.mjs''',                    # generated minified bundle, not source
+]
+regexes = [
+  '''ctrlcmd\+shift''',         # editor keybinding strings, not secrets
+  '''Sec-WebSocket-Key''',      # WebSocket handshake sample nonce in the bundled ws library
+  '''znhqolmxbfmolatxcbph''',   # anon key (public-by-design) for a defunct prototype project
+]

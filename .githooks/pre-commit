@@ -1,0 +1,25 @@
+#!/bin/sh
+# Block commits that introduce secrets. Pairs with the secret-scan CI workflow.
+# Uses gitleaks from PATH or ~/.ava/bin. If gitleaks isn't installed it warns
+# and lets the commit through — CI is the hard gate, this is the fast local one.
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+
+GL=""
+if command -v gitleaks >/dev/null 2>&1; then GL="gitleaks"
+elif [ -x "$HOME/.ava/bin/gitleaks.exe" ]; then GL="$HOME/.ava/bin/gitleaks.exe"
+elif [ -x "$HOME/.ava/bin/gitleaks" ]; then GL="$HOME/.ava/bin/gitleaks"
+fi
+
+if [ -z "$GL" ]; then
+  echo "gitleaks not found (PATH or ~/.ava/bin) — skipping local secret scan; CI will still scan."
+  exit 0
+fi
+
+if ! "$GL" git --staged --no-banner -c .gitleaks.toml --redact --exit-code 1; then
+  echo ""
+  echo "BLOCKED: gitleaks found a potential secret in your staged changes."
+  echo "Review the finding above. If it's a genuine false positive, add it to"
+  echo ".gitleaks.toml and re-commit."
+  exit 1
+fi
