@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { t, useLocale } from '../i18n';
 import { Select } from '../components/Select';
 import type {
   HealthTaxonomies, HealthExerciseSubmissionPayload, HealthRecipeSubmissionPayload,
@@ -29,30 +30,32 @@ import type {
  * submitting. The operator locks the final list in the hub.
  */
 
-const EXERCISE_TYPES: { slug: HealthExerciseType; label: string }[] = [
-  { slug: 'compound', label: 'Compound' },
-  { slug: 'isolation', label: 'Isolation' },
-  { slug: 'bodyweight', label: 'Bodyweight' },
-  { slug: 'plyometric', label: 'Plyometric' },
-  { slug: 'mobility', label: 'Mobility' },
-  { slug: 'cardio', label: 'Cardio' },
-  { slug: 'isometric', label: 'Isometric' },
-  { slug: 'stretching', label: 'Stretching' },
-  { slug: 'breathing', label: 'Breathing' },
+// Labels resolved through t() at render (module consts evaluate once at
+// import, so a t() call here would freeze to English).
+const EXERCISE_TYPES: { slug: HealthExerciseType; labelKey: string }[] = [
+  { slug: 'compound', labelKey: 'health.submit.ex_type.compound' },
+  { slug: 'isolation', labelKey: 'health.submit.ex_type.isolation' },
+  { slug: 'bodyweight', labelKey: 'health.submit.ex_type.bodyweight' },
+  { slug: 'plyometric', labelKey: 'health.submit.ex_type.plyometric' },
+  { slug: 'mobility', labelKey: 'health.submit.ex_type.mobility' },
+  { slug: 'cardio', labelKey: 'health.submit.ex_type.cardio' },
+  { slug: 'isometric', labelKey: 'health.submit.ex_type.isometric' },
+  { slug: 'stretching', labelKey: 'health.submit.ex_type.stretching' },
+  { slug: 'breathing', labelKey: 'health.submit.ex_type.breathing' },
 ];
 
-const WORKOUT_TYPES: { slug: HealthWorkoutType; label: string }[] = [
-  { slug: 'strength', label: 'Strength' },
-  { slug: 'hypertrophy', label: 'Hypertrophy' },
-  { slug: 'conditioning', label: 'Conditioning' },
-  { slug: 'hiit', label: 'HIIT' },
-  { slug: 'mobility', label: 'Mobility' },
-  { slug: 'yoga', label: 'Yoga' },
-  { slug: 'pilates', label: 'Pilates' },
-  { slug: 'recovery', label: 'Recovery' },
-  { slug: 'running', label: 'Running' },
-  { slug: 'cycling', label: 'Cycling' },
-  { slug: 'hybrid', label: 'Hybrid' },
+const WORKOUT_TYPES: { slug: HealthWorkoutType; labelKey: string }[] = [
+  { slug: 'strength', labelKey: 'health.submit.wk_type.strength' },
+  { slug: 'hypertrophy', labelKey: 'health.submit.wk_type.hypertrophy' },
+  { slug: 'conditioning', labelKey: 'health.submit.wk_type.conditioning' },
+  { slug: 'hiit', labelKey: 'health.submit.wk_type.hiit' },
+  { slug: 'mobility', labelKey: 'health.submit.wk_type.mobility' },
+  { slug: 'yoga', labelKey: 'health.submit.wk_type.yoga' },
+  { slug: 'pilates', labelKey: 'health.submit.wk_type.pilates' },
+  { slug: 'recovery', labelKey: 'health.submit.wk_type.recovery' },
+  { slug: 'running', labelKey: 'health.submit.wk_type.running' },
+  { slug: 'cycling', labelKey: 'health.submit.wk_type.cycling' },
+  { slug: 'hybrid', labelKey: 'health.submit.wk_type.hybrid' },
 ];
 
 const COURSES = ['breakfast', 'main', 'starter', 'side', 'snack', 'dessert'];
@@ -87,6 +90,7 @@ export function HealthSubmissionModal({
   exerciseDraft, recipeDraft, draftInflight, draftError,
   onGenerateExerciseDraft, onGenerateRecipeDraft, onClearDraft,
 }: Props) {
+  useLocale();
   const [kind, setKind] = useState<Kind | null>(null);
   const [method, setMethod] = useState<Method | null>(null);
 
@@ -96,7 +100,7 @@ export function HealthSubmissionModal({
   useEffect(() => {
     if (!open || kind === null || taxonomies) return;
     setTaxLoadStartedAt(Date.now());
-    const timer = window.setTimeout(() => setTaxFailedTick(t => t + 1), 12000);
+    const timer = window.setTimeout(() => setTaxFailedTick(tick => tick + 1), 12000);
     return () => window.clearTimeout(timer);
   }, [open, kind, taxonomies, taxFailedTick]);
   const taxonomiesFailed =
@@ -172,7 +176,7 @@ export function HealthSubmissionModal({
         {/* Close */}
         <button
           onClick={onClose} disabled={inflight || draftInflight}
-          aria-label="Close"
+          aria-label={t('health.submit.close')}
           className="absolute top-3.5 right-3.5 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-none bg-[rgba(0,0,0,0.4)] text-[var(--text-muted)] hover:bg-[rgba(0,0,0,0.6)] hover:text-[var(--text-primary)] transition disabled:opacity-30 disabled:cursor-not-allowed"
         >
           ×
@@ -257,23 +261,24 @@ export function HealthSubmissionModal({
 // ── Step indicator ────────────────────────────────────────────────────
 
 function StepIndicator({ step, method }: { step: Step; method: Method | null }) {
+  useLocale();
   // Manual path: Type → Method → Details → Submitted (4)
   // Ava path:    Type → Method → Intake → Generating → Details → Submitted (6)
   const steps: { id: Step; label: string }[] =
     method === 'ava'
       ? [
-          { id: 'kind', label: 'Type' },
-          { id: 'method', label: 'Method' },
-          { id: 'intake', label: 'Intake' },
-          { id: 'generating', label: 'Drafting' },
-          { id: 'form', label: 'Review' },
-          { id: 'submitted', label: 'Submitted' },
+          { id: 'kind', label: t('health.submit.step.type') },
+          { id: 'method', label: t('health.submit.step.method') },
+          { id: 'intake', label: t('health.submit.step.intake') },
+          { id: 'generating', label: t('health.submit.step.drafting') },
+          { id: 'form', label: t('health.submit.step.review') },
+          { id: 'submitted', label: t('health.submit.step.submitted') },
         ]
       : [
-          { id: 'kind', label: 'Type' },
-          { id: 'method', label: 'Method' },
-          { id: 'form', label: 'Details' },
-          { id: 'submitted', label: 'Submitted' },
+          { id: 'kind', label: t('health.submit.step.type') },
+          { id: 'method', label: t('health.submit.step.method') },
+          { id: 'form', label: t('health.submit.step.details') },
+          { id: 'submitted', label: t('health.submit.step.submitted') },
         ];
   const currentIdx = steps.findIndex(s => s.id === step);
   return (
@@ -313,11 +318,12 @@ function StepIndicator({ step, method }: { step: Step; method: Method | null }) 
 // ── Generic loading + failure ─────────────────────────────────────────
 
 function LoadingTaxonomies() {
+  useLocale();
   return (
     <div className="py-12 text-center">
       <div className="inline-flex items-center gap-2 text-[var(--text-muted)] text-[12px]">
         <span className="ava-health-spin" aria-hidden />
-        Loading safety taxonomy…
+        {t('health.submit.loading_taxonomy')}
       </div>
       <SpinnerStyles />
     </div>
@@ -325,17 +331,17 @@ function LoadingTaxonomies() {
 }
 
 function TaxonomiesFailed({ onRetry, onBack }: { onRetry: () => void; onBack: () => void }) {
+  useLocale();
   return (
     <div className="py-12 text-center">
       <div className="text-3xl mb-3 text-amber-400">⚠</div>
-      <h2 className="text-[16px] font-light text-[var(--text-primary)] mb-2">Couldn't load the safety taxonomy</h2>
+      <h2 className="text-[16px] font-light text-[var(--text-primary)] mb-2">{t('health.submit.tax_failed_title')}</h2>
       <p className="text-[12px] text-[var(--text-muted)] mb-6 max-w-md mx-auto leading-relaxed">
-        We need the allergen + contraindication lists to render the form — the form is unsafe to fill in
-        without them. Check your connection or wait a moment if the platform's deploying.
+        {t('health.submit.tax_failed_body')}
       </p>
       <div className="flex gap-2 justify-center">
-        <button onClick={onBack} className={btnGhostCls}>Back</button>
-        <button onClick={onRetry} className={btnPrimaryCls}>Retry</button>
+        <button onClick={onBack} className={btnGhostCls}>{t('health.submit.back')}</button>
+        <button onClick={onRetry} className={btnPrimaryCls}>{t('health.submit.retry')}</button>
       </div>
     </div>
   );
@@ -368,23 +374,23 @@ function SpinnerStyles() {
 function ResultScreen({
   result, onContinue, onClose,
 }: { result: { kind: Kind; ok: boolean; error?: string; submissionName?: string }; onContinue: () => void; onClose: () => void }) {
+  useLocale();
   if (result.ok) {
     return (
       <div className="text-center py-10">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[rgba(166,227,161,0.10)] border border-[rgba(166,227,161,0.30)]">
           <span className="text-green-300 text-xl">✓</span>
         </div>
-        <h2 className="text-[18px] font-light text-[var(--text-primary)] mb-2">Submitted for review</h2>
+        <h2 className="text-[18px] font-light text-[var(--text-primary)] mb-2">{t('health.submit.success_title')}</h2>
         <p className="text-[13px] text-[var(--text-muted)] mb-6 max-w-md mx-auto leading-relaxed">
           {result.submissionName && <strong className="text-[var(--text-primary)]">{result.submissionName}</strong>}
-          {result.submissionName && ' is '}
-          in the moderation queue. You'll see it under <em>My submissions</em>{' '}
-          while it's reviewed. Held-until-reviewed because health content can affect bodies —
-          thank you for the contribution.
+          {result.submissionName && ` ${t('health.submit.success_is')} `}
+          {t('health.submit.success_body_a')} <em>{t('health.submit.my_submissions')}</em>{' '}
+          {t('health.submit.success_body_b')}
         </p>
         <div className="flex gap-2 justify-center">
-          <button onClick={onContinue} className={btnGhostCls}>Submit another</button>
-          <button onClick={onClose} className={btnPrimaryCls}>Done</button>
+          <button onClick={onContinue} className={btnGhostCls}>{t('health.submit.submit_another')}</button>
+          <button onClick={onClose} className={btnPrimaryCls}>{t('health.submit.done')}</button>
         </div>
       </div>
     );
@@ -395,11 +401,11 @@ function ResultScreen({
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[rgba(243,139,168,0.10)] border border-[rgba(243,139,168,0.30)]">
         <span className="text-red-300 text-xl">!</span>
       </div>
-      <h2 className="text-[18px] font-light text-[var(--text-primary)] mb-2">Submission failed</h2>
+      <h2 className="text-[18px] font-light text-[var(--text-primary)] mb-2">{t('health.submit.fail_title')}</h2>
       <p className="text-[13px] text-red-300/90 mb-6 max-w-md mx-auto leading-relaxed font-mono">
-        {result.error ?? 'Unknown error'}
+        {result.error ?? t('health.submit.unknown_error')}
       </p>
-      <button onClick={onContinue} className={btnGhostCls}>Try again</button>
+      <button onClick={onContinue} className={btnGhostCls}>{t('health.submit.try_again')}</button>
     </div>
   );
 }
@@ -407,17 +413,16 @@ function ResultScreen({
 // ── Step 1: kind picker ───────────────────────────────────────────────
 
 function KindPicker({ onPick }: { onPick: (k: Kind) => void }) {
+  useLocale();
   return (
     <div>
-      <h2 className="text-[20px] font-light text-[var(--text-primary)] mb-2">Contribute to the library</h2>
+      <h2 className="text-[20px] font-light text-[var(--text-primary)] mb-2">{t('health.submit.contribute_title')}</h2>
       <p className="text-[12px] text-[var(--text-muted)] mb-6 leading-relaxed max-w-lg">
-        Submissions are held for review before they go live. The operator locks the safety taxonomy
-        (allergens, contraindications) on every submission before approval — flag what you know, leave
-        the rest blank.
+        {t('health.submit.contribute_blurb')}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <KindCard label="Exercise" detail="Sets, reps, technique, contraindications." onClick={() => onPick('exercise')} />
-        <KindCard label="Recipe"   detail="Ingredients, method, allergens." onClick={() => onPick('recipe')} />
+        <KindCard label={t('health.submit.kind.exercise')} detail={t('health.submit.kind.exercise_detail')} onClick={() => onPick('exercise')} />
+        <KindCard label={t('health.submit.kind.recipe')}   detail={t('health.submit.kind.recipe_detail')} onClick={() => onPick('recipe')} />
       </div>
     </div>
   );
@@ -438,15 +443,16 @@ function KindCard({ label, detail, onClick }: { label: string; detail: string; o
 // ── Step 2: method picker ─────────────────────────────────────────────
 
 function MethodPicker({ kind, onPick, onBack }: { kind: Kind; onPick: (m: Method) => void; onBack: () => void }) {
-  const subject = kind === 'exercise' ? 'exercise' : 'recipe';
+  useLocale();
+  const subject = kind === 'exercise' ? t('health.submit.subject.exercise') : t('health.submit.subject.recipe');
   return (
     <div>
       <div className="flex items-center justify-between mb-5">
         <button onClick={onBack}
           className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition cursor-pointer bg-transparent border-none p-0">
-          ← Back
+          {t('health.submit.back_arrow')}
         </button>
-        <h2 className="text-[18px] font-light text-[var(--text-primary)]">How do you want to draft this {subject}?</h2>
+        <h2 className="text-[18px] font-light text-[var(--text-primary)]">{t('health.submit.method_title', { subject })}</h2>
         <span className="w-12" />
       </div>
 
@@ -455,10 +461,10 @@ function MethodPicker({ kind, onPick, onBack }: { kind: Kind; onPick: (m: Method
           onClick={() => onPick('manual')}
           className="group rounded-xl border border-[rgba(168,85,247,0.18)] bg-[rgba(168,85,247,0.04)] p-5 text-left transition cursor-pointer hover:border-[rgba(168,85,247,0.45)] hover:bg-[rgba(168,85,247,0.08)]"
         >
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--accent)] mb-2">Fill manually</div>
-          <div className="text-[15px] font-light text-[var(--text-primary)] mb-1">You write it</div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--accent)] mb-2">{t('health.submit.method_manual_kicker')}</div>
+          <div className="text-[15px] font-light text-[var(--text-primary)] mb-1">{t('health.submit.method_manual_title')}</div>
           <div className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-            Type the details yourself. Free. Best when you know exactly what you want to share.
+            {t('health.submit.method_manual_body')}
           </div>
         </button>
         <button
@@ -466,18 +472,17 @@ function MethodPicker({ kind, onPick, onBack }: { kind: Kind; onPick: (m: Method
           className="group rounded-xl border border-[rgba(168,85,247,0.18)] bg-[rgba(168,85,247,0.04)] p-5 text-left transition cursor-pointer hover:border-[rgba(168,85,247,0.45)] hover:bg-[rgba(168,85,247,0.08)]"
         >
           <div className="flex items-baseline justify-between mb-2">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--accent)]">Ask Ava to draft</div>
-            <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">2 credits</span>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--accent)]">{t('health.submit.method_ava_kicker')}</div>
+            <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">{t('health.submit.credits_2')}</span>
           </div>
-          <div className="text-[15px] font-light text-[var(--text-primary)] mb-1">Ava drafts, you review</div>
+          <div className="text-[15px] font-light text-[var(--text-primary)] mb-1">{t('health.submit.method_ava_title')}</div>
           <div className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-            Answer 3 short questions. Ava drafts the {subject}. You review, edit, submit.
+            {t('health.submit.method_ava_body', { subject })}
           </div>
         </button>
       </div>
       <p className="text-[10px] text-[var(--text-muted)] mt-3 leading-relaxed">
-        Either path lands the submission in the same review queue. Ava's draft is a starting point —
-        the operator still locks the safety taxonomy before approval.
+        {t('health.submit.method_footnote')}
       </p>
     </div>
   );
@@ -488,6 +493,7 @@ function MethodPicker({ kind, onPick, onBack }: { kind: Kind; onPick: (m: Method
 function ExerciseIntake({
   error, onBack, onGenerate,
 }: { error: string | null; onBack: () => void; onGenerate: (i: HealthGenerateExerciseIntake) => void }) {
+  useLocale();
   const [prompt, setPrompt] = useState('');
   const [goal, setGoal] = useState('');
   const [equipment, setEquipment] = useState('');
@@ -507,42 +513,42 @@ function ExerciseIntake({
 
   return (
     <div>
-      <FormHeader title="Tell Ava about the exercise" onBack={onBack} />
+      <FormHeader title={t('health.submit.ex_intake_title')} onBack={onBack} />
 
-      <Section title="What is it?">
-        <Field label="Describe the movement (required)">
+      <Section title={t('health.submit.ex_intake_what')}>
+        <Field label={t('health.submit.ex_intake_describe_label')}>
           <textarea
             value={prompt} onChange={e => setPrompt(e.target.value)} maxLength={1200}
             rows={3} className={inputCls}
-            placeholder="e.g. A goblet squat variation where the bottom position is held for 3 seconds before standing — for hypertrophy."
+            placeholder={t('health.submit.ex_intake_describe_ph')}
           />
         </Field>
       </Section>
 
-      <Section title="Optional hints">
-        <Field label="Primary goal">
+      <Section title={t('health.submit.optional_hints')}>
+        <Field label={t('health.submit.ex_goal_label')}>
           <Select value={goal} onChange={setGoal} options={[
             { value: '', label: '—' },
-            { value: 'strength', label: 'Strength' },
-            { value: 'hypertrophy', label: 'Hypertrophy' },
-            { value: 'conditioning', label: 'Conditioning' },
-            { value: 'mobility', label: 'Mobility' },
-            { value: 'general', label: 'General fitness' },
+            { value: 'strength', label: t('health.submit.goal.strength') },
+            { value: 'hypertrophy', label: t('health.submit.goal.hypertrophy') },
+            { value: 'conditioning', label: t('health.submit.goal.conditioning') },
+            { value: 'mobility', label: t('health.submit.goal.mobility') },
+            { value: 'general', label: t('health.submit.goal.general') },
           ]} />
         </Field>
-        <Field label="Equipment available">
+        <Field label={t('health.submit.ex_equipment_label')}>
           <input
             type="text" value={equipment} onChange={e => setEquipment(e.target.value)} maxLength={200}
-            placeholder="e.g. dumbbells + bench, bodyweight only, full gym"
+            placeholder={t('health.submit.ex_equipment_ph')}
             className={inputCls}
           />
         </Field>
-        <Field label="Submitter level">
+        <Field label={t('health.submit.ex_level_label')}>
           <Select value={level} onChange={setLevel} options={[
             { value: '', label: '—' },
-            { value: 'beginner', label: 'Beginner' },
-            { value: 'intermediate', label: 'Intermediate' },
-            { value: 'advanced', label: 'Advanced' },
+            { value: 'beginner', label: t('health.submit.level.beginner') },
+            { value: 'intermediate', label: t('health.submit.level.intermediate') },
+            { value: 'advanced', label: t('health.submit.level.advanced') },
           ]} />
         </Field>
       </Section>
@@ -553,12 +559,12 @@ function ExerciseIntake({
         <button
           onClick={() => onGenerate({ prompt: '', surprise: true })}
           className={btnGhostCls}
-          title="Skip the form — Ava picks a fresh exercise the catalog doesn't already have"
+          title={t('health.submit.ex_surprise_title')}
         >
-          ✨ Surprise me
+          {t('health.submit.surprise_me')}
         </button>
         <button onClick={submit} disabled={!valid} className={btnPrimaryCls}>
-          Draft with Ava · 2 credits →
+          {t('health.submit.draft_with_ava')}
         </button>
       </div>
     </div>
@@ -570,6 +576,7 @@ function ExerciseIntake({
 function RecipeIntake({
   error, onBack, onGenerate,
 }: { error: string | null; onBack: () => void; onGenerate: (i: HealthGenerateRecipeIntake) => void }) {
+  useLocale();
   const [prompt, setPrompt] = useState('');
   const [cuisineHint, setCuisineHint] = useState('');
   const [courseHint, setCourseHint] = useState('');
@@ -589,42 +596,42 @@ function RecipeIntake({
 
   return (
     <div>
-      <FormHeader title="Tell Ava about the dish" onBack={onBack} />
+      <FormHeader title={t('health.submit.rc_intake_title')} onBack={onBack} />
 
-      <Section title="What's the recipe?">
-        <Field label="Describe the dish (required)">
+      <Section title={t('health.submit.rc_intake_what')}>
+        <Field label={t('health.submit.rc_intake_describe_label')}>
           <textarea
             value={prompt} onChange={e => setPrompt(e.target.value)} maxLength={1200}
             rows={3} className={inputCls}
-            placeholder="e.g. A simple Mediterranean roast chicken with lemon and herbs — 4 servings, dinner main."
+            placeholder={t('health.submit.rc_intake_describe_ph')}
           />
         </Field>
       </Section>
 
-      <Section title="Optional hints">
-        <Field label="Cuisine direction">
+      <Section title={t('health.submit.optional_hints')}>
+        <Field label={t('health.submit.rc_cuisine_label')}>
           <input
             type="text" value={cuisineHint} onChange={e => setCuisineHint(e.target.value)} maxLength={60}
-            placeholder="e.g. Italian, Japanese, Mediterranean"
+            placeholder={t('health.submit.rc_cuisine_ph')}
             className={inputCls}
           />
         </Field>
-        <Field label="Course">
+        <Field label={t('health.submit.rc_course_label')}>
           <Select value={courseHint} onChange={setCourseHint} options={[
             { value: '', label: '—' },
             ...COURSES.map(c => ({ value: c, label: c[0].toUpperCase() + c.slice(1) })),
           ]} />
         </Field>
-        <Field label="Dietary notes">
+        <Field label={t('health.submit.rc_dietary_label')}>
           <input
             type="text" value={dietary} onChange={e => setDietary(e.target.value)} maxLength={100}
-            placeholder="e.g. vegan, gluten-free, low-FODMAP"
+            placeholder={t('health.submit.rc_dietary_ph')}
             className={inputCls}
           />
         </Field>
       </Section>
       <p className="text-[10px] text-[var(--text-muted)] -mt-3 mb-4 leading-relaxed">
-        Ava drafts all three skill levels — beginner, intermediate, and expert — automatically.
+        {t('health.submit.rc_three_levels_note')}
       </p>
 
       {error && <InlineError message={error} />}
@@ -633,12 +640,12 @@ function RecipeIntake({
         <button
           onClick={() => onGenerate({ prompt: '', surprise: true })}
           className={btnGhostCls}
-          title="Skip the form — Ava picks a fresh recipe the catalog doesn't already have"
+          title={t('health.submit.rc_surprise_title')}
         >
-          ✨ Surprise me
+          {t('health.submit.surprise_me')}
         </button>
         <button onClick={submit} disabled={!valid} className={btnPrimaryCls}>
-          Draft with Ava · 2 credits →
+          {t('health.submit.draft_with_ava')}
         </button>
       </div>
     </div>
@@ -656,13 +663,15 @@ function InlineError({ message }: { message: string }) {
 // ── Step 4: generating spinner ────────────────────────────────────────
 
 function GeneratingScreen({ kind }: { kind: Kind }) {
+  useLocale();
+  const subject = kind === 'exercise' ? t('health.submit.subject.exercise') : t('health.submit.subject.recipe');
+  const flag = kind === 'recipe' ? t('health.submit.flag.allergen') : t('health.submit.flag.contraindication');
   return (
     <div className="py-14 text-center">
       <span className="ava-health-spin-lg mb-5 inline-block" aria-hidden />
-      <h2 className="text-[18px] font-light text-[var(--text-primary)] mb-2 mt-4">Ava is drafting your {kind}…</h2>
+      <h2 className="text-[18px] font-light text-[var(--text-primary)] mb-2 mt-4">{t('health.submit.generating_title', { subject })}</h2>
       <p className="text-[12px] text-[var(--text-muted)] max-w-md mx-auto leading-relaxed">
-        Pulling from her training, biasing toward conservative {kind === 'recipe' ? 'allergen' : 'contraindication'} flags.
-        Usually 20–40 seconds.
+        {t('health.submit.generating_body', { flag })}
       </p>
       <SpinnerStyles />
     </div>
@@ -681,6 +690,7 @@ function ExerciseForm({
   onBack: () => void;
   onSubmit: (p: HealthExerciseSubmissionPayload) => void;
 }) {
+  useLocale();
   const [name, setName] = useState(initial?.name ?? '');
   const [exerciseType, setExerciseType] = useState<HealthExerciseType>(initial?.exercise_type ?? 'compound');
   const [workoutType, setWorkoutType] = useState<HealthWorkoutType>(initial?.workout_type ?? 'strength');
@@ -728,30 +738,30 @@ function ExerciseForm({
 
   return (
     <div>
-      <FormHeader title={fromAva ? 'Review Ava’s draft' : 'New exercise'} onBack={onBack} />
+      <FormHeader title={fromAva ? t('health.submit.ex_review_title') : t('health.submit.ex_new_title')} onBack={onBack} />
 
       {fromAva && (
         <div className="mb-5 rounded-md border border-[rgba(168,85,247,0.25)] bg-[rgba(168,85,247,0.07)] px-3 py-2 text-[11px] text-[var(--text-secondary)] leading-relaxed">
-          Ava drafted this from your description. Review and edit before submitting — she flagged contraindications generously, you may want to add or remove some.
+          {t('health.submit.ex_from_ava_note')}
         </div>
       )}
 
-      <Section title="Identity">
-        <Field label="Name">
+      <Section title={t('health.submit.identity')}>
+        <Field label={t('health.submit.name')}>
           <input type="text" value={name} onChange={e => setName(e.target.value)} maxLength={100}
-            placeholder="e.g. Bulgarian Split Squat" className={inputCls} />
+            placeholder={t('health.submit.ex_name_ph')} className={inputCls} />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Exercise type">
+          <Field label={t('health.submit.exercise_type')}>
             <Select value={exerciseType} onChange={v => setExerciseType(v as HealthExerciseType)}
-              options={EXERCISE_TYPES.map(t => ({ value: t.slug, label: t.label }))} />
+              options={EXERCISE_TYPES.map(et => ({ value: et.slug, label: t(et.labelKey) }))} />
           </Field>
-          <Field label="Workout type">
+          <Field label={t('health.submit.workout_type')}>
             <Select value={workoutType} onChange={v => setWorkoutType(v as HealthWorkoutType)}
-              options={WORKOUT_TYPES.map(t => ({ value: t.slug, label: t.label }))} />
+              options={WORKOUT_TYPES.map(wt => ({ value: wt.slug, label: t(wt.labelKey) }))} />
           </Field>
         </div>
-        <Field label="Difficulty">
+        <Field label={t('health.submit.difficulty')}>
           <div className="flex items-center gap-2">
             {[1, 2, 3, 4, 5].map(n => (
               <button key={n} type="button" onClick={() => setDifficulty(n)}
@@ -768,50 +778,49 @@ function ExerciseForm({
         </Field>
       </Section>
 
-      <Section title="Description">
-        <Field label="Overview (optional)">
+      <Section title={t('health.submit.description')}>
+        <Field label={t('health.submit.overview_optional')}>
           <textarea value={description} onChange={e => setDescription(e.target.value)} maxLength={1200}
-            rows={3} className={inputCls} placeholder="What is this movement? How should it feel done well?" />
+            rows={3} className={inputCls} placeholder={t('health.submit.ex_overview_ph')} />
         </Field>
-        <Field label="If you're new to this (optional)">
+        <Field label={t('health.submit.ex_beginner_label')}>
           <textarea value={beginnerDetail} onChange={e => setBeginnerDetail(e.target.value)} maxLength={800}
-            rows={2} className={inputCls} placeholder="Beginner cues, regressions, warm-up notes." />
+            rows={2} className={inputCls} placeholder={t('health.submit.ex_beginner_ph')} />
         </Field>
-        <Field label="Common mistakes (optional)">
+        <Field label={t('health.submit.ex_mistakes_label')}>
           <textarea value={commonMistakes} onChange={e => setCommonMistakes(e.target.value)} maxLength={800}
-            rows={2} className={inputCls} placeholder="What to watch out for." />
+            rows={2} className={inputCls} placeholder={t('health.submit.ex_mistakes_ph')} />
         </Field>
       </Section>
 
-      <Section title="Steps (required)">
+      <Section title={t('health.submit.steps_required')}>
         <p className="text-[11px] text-[var(--text-muted)] mb-3">
-          Numbered execution. Keep each step short — one action per line.
+          {t('health.submit.steps_hint')}
         </p>
         {steps.map((step, i) => (
           <div key={i} className="flex gap-2 mb-2 items-start">
             <span className="mt-2 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[rgba(168,85,247,0.40)] text-[11px] text-[var(--accent)]">{i + 1}</span>
             <input type="text" value={step} maxLength={400}
               onChange={e => { const next = [...steps]; next[i] = e.target.value; setSteps(next); }}
-              placeholder="Action…" className={`${inputCls} flex-1`} />
+              placeholder={t('health.submit.step_action_ph')} className={`${inputCls} flex-1`} />
             {steps.length > 1 && (
               <button type="button" onClick={() => setSteps(steps.filter((_, idx) => idx !== i))}
                 className="mt-1 h-7 w-7 rounded text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer border-none bg-transparent"
-                aria-label="Remove step">×</button>
+                aria-label={t('health.submit.remove_step')}>×</button>
             )}
           </div>
         ))}
         {steps.length < 20 && (
           <button type="button" onClick={() => setSteps([...steps, ''])}
             className="mt-1 text-[11px] text-[var(--accent)] hover:underline cursor-pointer bg-transparent border-none p-0">
-            + Add step
+            {t('health.submit.add_step')}
           </button>
         )}
       </Section>
 
-      <Section title="Safety · Contraindications (recommended)">
+      <Section title={t('health.submit.safety_contra_title')}>
         <p className="text-[11px] text-[var(--text-muted)] mb-3 leading-relaxed">
-          Flag any condition or injury where this exercise should NOT be performed. The reviewer locks
-          the final list before publishing — be liberal here; missed contraindications affect every user.
+          {t('health.submit.safety_contra_blurb')}
         </p>
         <div className="space-y-3">
           {Object.entries(groupedContras).map(([cat, items]) => (
@@ -820,7 +829,7 @@ function ExerciseForm({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                 {items.map(c => (
                   <CheckRow key={c.slug} checked={contraindicationSlugs.has(c.slug)} onToggle={() => toggleContra(c.slug)} label={c.name}
-                    badge={c.severity_hint === 'hard_block' ? 'hard block' : undefined} badgeColor="red" />
+                    badge={c.severity_hint === 'hard_block' ? t('health.submit.badge.hard_block') : undefined} badgeColor="red" />
                 ))}
               </div>
             </div>
@@ -828,7 +837,7 @@ function ExerciseForm({
         </div>
       </Section>
 
-      <FormFooter disabled={!isValid || inflight} loading={inflight} primaryLabel="Submit for review" onSubmit={submit} />
+      <FormFooter disabled={!isValid || inflight} loading={inflight} primaryLabel={t('health.submit.submit_for_review')} onSubmit={submit} />
     </div>
   );
 }
@@ -845,6 +854,7 @@ function RecipeForm({
   onBack: () => void;
   onSubmit: (p: HealthRecipeSubmissionPayload) => void;
 }) {
+  useLocale();
   const [name, setName] = useState(initial?.name ?? '');
   const [cuisineSlug, setCuisineSlug] = useState<string>(initial?.cuisine_slug ?? '');
   const [course, setCourse] = useState<string>(initial?.course ?? '');
@@ -903,45 +913,44 @@ function RecipeForm({
 
   return (
     <div>
-      <FormHeader title={fromAva ? 'Review Ava’s draft' : 'New recipe'} onBack={onBack} />
+      <FormHeader title={fromAva ? t('health.submit.rc_review_title') : t('health.submit.rc_new_title')} onBack={onBack} />
 
       {fromAva && (
         <div className="mb-5 rounded-md border border-[rgba(168,85,247,0.25)] bg-[rgba(168,85,247,0.07)] px-3 py-2 text-[11px] text-[var(--text-secondary)] leading-relaxed">
-          Ava drafted this from your description. Review and edit before submitting — she flagged allergens generously, including hidden ones. Double-check the ingredient list.
+          {t('health.submit.rc_from_ava_note')}
         </div>
       )}
 
-      <Section title="Identity">
-        <Field label="Name">
+      <Section title={t('health.submit.identity')}>
+        <Field label={t('health.submit.name')}>
           <input type="text" value={name} onChange={e => setName(e.target.value)} maxLength={120}
-            placeholder="e.g. Lemon Herb Roast Chicken" className={inputCls} />
+            placeholder={t('health.submit.rc_name_ph')} className={inputCls} />
         </Field>
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Cuisine (optional)">
+          <Field label={t('health.submit.rc_cuisine_optional')}>
             <Select value={cuisineSlug} onChange={setCuisineSlug}
               options={[{ value: '', label: '—' }, ...taxonomies.cuisines.map(c => ({ value: c.slug, label: c.name }))]} />
           </Field>
-          <Field label="Course (optional)">
+          <Field label={t('health.submit.rc_course_optional')}>
             <Select value={course} onChange={setCourse}
               options={[{ value: '', label: '—' }, ...COURSES.map(c => ({ value: c, label: c[0].toUpperCase() + c.slice(1) }))]} />
           </Field>
-          <Field label="Origin (optional)">
+          <Field label={t('health.submit.rc_origin_optional')}>
             <input type="text" value={originCountry} onChange={e => setOriginCountry(e.target.value)} maxLength={80}
-              placeholder="e.g. Italy" className={inputCls} />
+              placeholder={t('health.submit.rc_origin_ph')} className={inputCls} />
           </Field>
         </div>
       </Section>
 
-      <Section title="Overview (optional)">
+      <Section title={t('health.submit.overview_optional')}>
         <textarea value={overview} onChange={e => setOverview(e.target.value)} maxLength={2000}
-          rows={3} className={inputCls} placeholder="Story, technique notes, what makes this dish what it is." />
+          rows={3} className={inputCls} placeholder={t('health.submit.rc_overview_ph')} />
       </Section>
 
       {draftVersions.length > 0 && (
-        <Section title={`Skill versions · ${draftVersions.length}`}>
+        <Section title={t('health.submit.skill_versions', { n: draftVersions.length })}>
           <p className="text-[11px] text-[var(--text-muted)] mb-3 leading-relaxed">
-            Ava produced one method per skill level — beginner, intermediate, and expert.
-            Submitted as-is; the operator can fine-tune timings, steps, or equipment after approval.
+            {t('health.submit.skill_versions_blurb')}
           </p>
           <div className="space-y-3">
             {draftVersions.map(v => <DraftVersionPreview key={v.level} version={v} />)}
@@ -949,19 +958,19 @@ function RecipeForm({
         </Section>
       )}
 
-      <Section title="Ingredients (required)">
+      <Section title={t('health.submit.ingredients_required')}>
         {ingredients.map((ing, i) => (
           <div key={i} className="grid grid-cols-[60px_60px_1fr_24px_28px] gap-2 mb-2 items-start">
             <input type="number" step="any" value={ing.quantity}
               onChange={e => { const next = [...ingredients]; next[i] = { ...next[i], quantity: e.target.value }; setIngredients(next); }}
-              placeholder="Qty" className={`${inputCls} text-center`} />
+              placeholder={t('health.submit.qty')} className={`${inputCls} text-center`} />
             <input type="text" value={ing.unit} maxLength={24}
               onChange={e => { const next = [...ingredients]; next[i] = { ...next[i], unit: e.target.value }; setIngredients(next); }}
-              placeholder="Unit" className={`${inputCls} text-center`} />
+              placeholder={t('health.submit.unit')} className={`${inputCls} text-center`} />
             <input type="text" value={ing.name} maxLength={120}
               onChange={e => { const next = [...ingredients]; next[i] = { ...next[i], name: e.target.value }; setIngredients(next); }}
-              placeholder="Name" className={inputCls} />
-            <label className="flex items-center justify-center pt-2" title="Optional ingredient">
+              placeholder={t('health.submit.name')} className={inputCls} />
+            <label className="flex items-center justify-center pt-2" title={t('health.submit.optional_ingredient')}>
               <input type="checkbox" checked={ing.optional}
                 onChange={e => { const next = [...ingredients]; next[i] = { ...next[i], optional: e.target.checked }; setIngredients(next); }}
                 className="accent-[var(--accent)]" />
@@ -969,34 +978,32 @@ function RecipeForm({
             {ingredients.length > 1 ? (
               <button type="button" onClick={() => setIngredients(ingredients.filter((_, idx) => idx !== i))}
                 className="mt-1 h-7 w-7 rounded text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer border-none bg-transparent"
-                aria-label="Remove">×</button>
+                aria-label={t('health.submit.remove')}>×</button>
             ) : <span />}
           </div>
         ))}
-        <div className="text-[10px] text-[var(--text-muted)] mb-2">Tick = optional ingredient</div>
+        <div className="text-[10px] text-[var(--text-muted)] mb-2">{t('health.submit.tick_optional')}</div>
         {ingredients.length < 80 && (
           <button type="button" onClick={() => setIngredients([...ingredients, { name: '', quantity: '', unit: '', optional: false, notes: '' }])}
             className="text-[11px] text-[var(--accent)] hover:underline cursor-pointer bg-transparent border-none p-0">
-            + Add ingredient
+            {t('health.submit.add_ingredient')}
           </button>
         )}
       </Section>
 
-      <Section title="Safety · Allergens (strongly recommended)">
+      <Section title={t('health.submit.safety_allergen_title')}>
         <p className="text-[11px] text-[var(--text-muted)] mb-3 leading-relaxed">
-          Flag every allergen present, including hidden ones (dairy in butter, gluten in soy sauce,
-          sulphites in wine vinegar). A missed allergen here lands in every Ava-generated meal plan
-          that selects this recipe.
+          {t('health.submit.safety_allergen_blurb')}
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1">
           {taxonomies.allergens.map(a => (
             <CheckRow key={a.slug} checked={allergenSlugs.has(a.slug)} onToggle={() => toggleAllergen(a.slug)} label={a.name}
-              badge={a.severity_hint === 'major' ? 'major' : undefined} badgeColor="red" />
+              badge={a.severity_hint === 'major' ? t('health.submit.badge.major') : undefined} badgeColor="red" />
           ))}
         </div>
       </Section>
 
-      <FormFooter disabled={!isValid || inflight} loading={inflight} primaryLabel="Submit for review" onSubmit={submit} />
+      <FormFooter disabled={!isValid || inflight} loading={inflight} primaryLabel={t('health.submit.submit_for_review')} onSubmit={submit} />
     </div>
   );
 }
@@ -1010,11 +1017,12 @@ const btnPrimaryCls = 'rounded-md border border-[var(--accent)]/50 bg-[var(--acc
 const btnGhostCls = 'rounded-md border border-[rgba(168,85,247,0.18)] bg-transparent px-4 py-2 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[rgba(168,85,247,0.35)] transition cursor-pointer';
 
 function FormHeader({ title, onBack }: { title: string; onBack: () => void }) {
+  useLocale();
   return (
     <div className="flex items-center justify-between mb-5">
       <button onClick={onBack}
         className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition cursor-pointer bg-transparent border-none p-0">
-        ← Back
+        {t('health.submit.back_arrow')}
       </button>
       <h2 className="text-[18px] font-light text-[var(--text-primary)]">{title}</h2>
       <span className="w-12" />
@@ -1041,15 +1049,16 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function DraftVersionPreview({ version }: { version: HealthRecipeVersionPayload }) {
+  useLocale();
   const levelColour =
     version.level === 'beginner' ? '#a6e3a1'
     : version.level === 'intermediate' ? '#f9e2af'
     : '#fab387';
   const timeLine = [
-    version.prep_time_minutes != null ? `Prep ${version.prep_time_minutes}m` : null,
-    version.cook_time_minutes != null ? `Cook ${version.cook_time_minutes}m` : null,
-    version.total_time_minutes != null ? `Total ${version.total_time_minutes}m` : null,
-    version.default_servings != null ? `Serves ${version.default_servings}` : null,
+    version.prep_time_minutes != null ? t('health.submit.prep_m', { n: version.prep_time_minutes }) : null,
+    version.cook_time_minutes != null ? t('health.submit.cook_m', { n: version.cook_time_minutes }) : null,
+    version.total_time_minutes != null ? t('health.submit.total_m', { n: version.total_time_minutes }) : null,
+    version.default_servings != null ? t('health.submit.serves_n', { n: version.default_servings }) : null,
   ].filter(Boolean).join(' · ');
 
   return (
@@ -1082,12 +1091,12 @@ function DraftVersionPreview({ version }: { version: HealthRecipeVersionPayload 
       )}
       {version.equipment.length > 0 && (
         <div className="mb-2">
-          <div className="text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)] mb-1">Equipment</div>
+          <div className="text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)] mb-1">{t('health.submit.equipment')}</div>
           <ul className="m-0 pl-0 list-none flex flex-wrap gap-x-3 gap-y-0.5">
             {version.equipment.map((e, i) => (
               <li key={i} className="text-[11px] text-[var(--text-primary)]">
                 {e.name}
-                {e.optional && <span className="text-[var(--text-muted)] ml-1">(opt.)</span>}
+                {e.optional && <span className="text-[var(--text-muted)] ml-1">{t('health.submit.opt')}</span>}
               </li>
             ))}
           </ul>
@@ -1095,14 +1104,14 @@ function DraftVersionPreview({ version }: { version: HealthRecipeVersionPayload 
       )}
       {version.steps.length > 0 && (
         <div>
-          <div className="text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)] mb-1">Method · {version.steps.length} steps</div>
+          <div className="text-[9px] uppercase tracking-[0.15em] text-[var(--text-muted)] mb-1">{t('health.submit.method_n_steps', { n: version.steps.length })}</div>
           <ol className="m-0 pl-4">
             {version.steps.map((s, i) => (
               <li key={i} className="text-[11px] text-[var(--text-primary)] mb-1 leading-relaxed">
                 {s.action}
                 {s.tricky_flag && (
                   <span className="ml-1.5 px-1 py-0.5 rounded text-[8px] uppercase tracking-wider"
-                    style={{ background: 'rgba(249,226,175,0.10)', color: '#f9e2af' }}>tricky</span>
+                    style={{ background: 'rgba(249,226,175,0.10)', color: '#f9e2af' }}>{t('health.submit.tricky')}</span>
                 )}
                 {s.technique_term && (
                   <span className="ml-1.5 text-[9px] uppercase tracking-wider text-[var(--accent)]">
@@ -1136,10 +1145,11 @@ function CheckRow({
 function FormFooter({
   disabled, loading, primaryLabel, onSubmit,
 }: { disabled: boolean; loading: boolean; primaryLabel: string; onSubmit: () => void }) {
+  useLocale();
   return (
     <div className="flex justify-end pt-4 border-t border-[rgba(168,85,247,0.10)] mt-2">
       <button type="button" onClick={onSubmit} disabled={disabled} className={btnPrimaryCls}>
-        {loading ? 'Submitting…' : primaryLabel}
+        {loading ? t('health.submit.submitting') : primaryLabel}
       </button>
     </div>
   );

@@ -8,6 +8,7 @@
 // the trust claim.
 
 import { useState, useEffect, useCallback } from 'react';
+import { t, useLocale } from '../i18n';
 import { Rocket, ArrowSquareOut, ArrowsClockwise } from '@phosphor-icons/react';
 import { Skeleton } from '../components/Skeleton';
 import {
@@ -30,6 +31,7 @@ function cellColor(score: number | undefined): string {
 }
 
 export function ModelsPage() {
+  useLocale();
   const [leaderboard, setLeaderboard] = useState<BenchLeaderboard | null>(() => getCachedLeaderboard());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +41,7 @@ export function ModelsPage() {
     try {
       const fresh = await fetchPublicLeaderboard();
       if (fresh) setLeaderboard(fresh);
-      else setError("The public benchmark repo isn't live yet — the leaderboard publishes the moment Ava's first run batch is pushed.");
+      else setError(t('dash.models.repo_not_live'));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -56,9 +58,9 @@ export function ModelsPage() {
     <div className="w-full">
       {/* Hero — mirrors IDE ModelsPage at DashboardPages.tsx:14186-14190. */}
       <div className="mb-5">
-        <h1 className="m-0 text-[22px] font-semibold text-[#cdd6f4]">Models</h1>
+        <h1 className="m-0 text-[22px] font-semibold text-[#cdd6f4]">{t('dash.models.title')}</h1>
         <p className="mt-1.5 text-[13px] text-[#6c7086]">
-          Real coding tasks. Real model outputs. Real receipts. Auditable in the public bench repo.
+          {t('dash.models.subtitle')}
         </p>
       </div>
 
@@ -66,8 +68,8 @@ export function ModelsPage() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div className="text-[11px] text-[var(--text-muted)]">
           {leaderboard
-            ? `Generated ${leaderboard.generated_at} · ${leaderboard.total_runs} total runs · ${leaderboard.models.length} models`
-            : 'No leaderboard data yet'}
+            ? t('dash.models.generated', { date: leaderboard.generated_at, runs: leaderboard.total_runs, models: leaderboard.models.length })
+            : t('dash.models.no_data')}
         </div>
         <div className="flex gap-2">
           {/* GitHub link only shows once data has actually published —
@@ -81,7 +83,7 @@ export function ModelsPage() {
               className="inline-flex items-center gap-1 rounded-lg border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-3 py-1 text-[11px] text-[var(--text-primary)] transition hover:bg-[var(--accent)]/20"
             >
               <ArrowSquareOut size={12} weight="duotone" />
-              View on GitHub
+              {t('dash.models.view_on_github')}
             </a>
           )}
           <button
@@ -91,7 +93,7 @@ export function ModelsPage() {
             className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] px-3 py-1 text-[11px] text-[var(--text-primary)] transition hover:bg-[var(--bg-input)] disabled:opacity-50"
           >
             <ArrowsClockwise size={12} weight="duotone" className={loading ? 'animate-spin' : ''} />
-            {loading ? 'Refreshing…' : 'Refresh'}
+            {loading ? t('dash.models.refreshing') : t('dash.models.refresh')}
           </button>
         </div>
       </div>
@@ -102,7 +104,7 @@ export function ModelsPage() {
           <div className="mb-3 flex justify-center text-[var(--accent)]">
             <Rocket size={36} weight="duotone" />
           </div>
-          <div className="mb-1 text-sm font-medium text-[var(--text-primary)]">Leaderboard launching soon</div>
+          <div className="mb-1 text-sm font-medium text-[var(--text-primary)]">{t('dash.models.launching_soon')}</div>
           <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-[var(--text-muted)]">{error}</p>
         </div>
       )}
@@ -118,13 +120,13 @@ export function ModelsPage() {
           <table className="w-full" style={{ borderCollapse: 'separate', borderSpacing: 4 }}>
             <thead>
               <tr>
-                <th className="px-2 py-1.5 text-left text-[11px] font-medium text-[var(--text-muted)]">Model</th>
+                <th className="px-2 py-1.5 text-left text-[11px] font-medium text-[var(--text-muted)]">{t('dash.models.col_model')}</th>
                 {leaderboard.categories.map(cat => (
                   <th key={cat} className="px-2 py-1.5 text-center text-[10px] font-medium text-[var(--text-muted)]" style={{ minWidth: 110 }}>
                     {BENCH_CATEGORY_LABELS[cat]}
                   </th>
                 ))}
-                <th className="px-2 py-1.5 text-center text-[10px] font-medium text-[var(--text-muted)]">Overall</th>
+                <th className="px-2 py-1.5 text-center text-[10px] font-medium text-[var(--text-muted)]">{t('dash.models.col_overall')}</th>
               </tr>
             </thead>
             <tbody>
@@ -137,7 +139,7 @@ export function ModelsPage() {
                     return (
                       <td
                         key={cat}
-                        title={cell ? `${cell.score.toFixed(1)}% over ${cell.sample_size} runs${lowConfidence ? ' (low confidence)' : ''}` : 'no runs in this category yet'}
+                        title={cell ? t('dash.models.cell_title', { score: cell.score.toFixed(1), runs: cell.sample_size, conf: lowConfidence ? t('dash.models.low_confidence_suffix') : '' }) : t('dash.models.no_runs')}
                         className="rounded text-center font-mono text-[11px] text-[var(--text-primary)]"
                         style={{
                           background: cellColor(cell?.score),
@@ -181,7 +183,7 @@ export function ModelsPage() {
 
       {/* Trust footer */}
       <div className="rounded-2xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 text-[11px] leading-relaxed text-[var(--text-muted)]">
-        <strong className="text-[var(--text-primary)]">How this works.</strong> Ava runs a hand-curated suite of real coding tasks against every supported model on a weekly cadence. Every score links to the exact prompt sent and the exact response received — open the public repo to read any transcript, propose a tighter scoring rubric, or reproduce a score on your own machine with one command. No user data ever enters this repo.
+        <strong className="text-[var(--text-primary)]">{t('dash.models.how_it_works_lead')}</strong> {t('dash.models.how_it_works_body')}
       </div>
     </div>
   );

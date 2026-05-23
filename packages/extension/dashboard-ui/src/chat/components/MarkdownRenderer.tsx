@@ -2,12 +2,14 @@ import React, { useState, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
+import { t, useLocale } from '../../i18n';
 
 interface MarkdownRendererProps {
   content: string;
 }
 
 function CodeBlock({ children }: { children: React.ReactNode }) {
+  useLocale();
   const preRef = useRef<HTMLPreElement>(null);
   const [copied, setCopied] = useState(false);
 
@@ -35,7 +37,7 @@ function CodeBlock({ children }: { children: React.ReactNode }) {
                    text-[var(--vscode-button-secondaryForeground)]
                    border-none cursor-pointer transition-opacity"
       >
-        {copied ? 'Copied!' : 'Copy'}
+        {copied ? t('dash.chat.copied_excl') : t('dash.chat.copy_short')}
       </button>
     </div>
   );
@@ -52,6 +54,7 @@ class MarkdownErrorBoundary extends React.Component<{ children: React.ReactNode;
 }
 
 export function MarkdownRenderer({ content }: MarkdownRendererProps) {
+  useLocale();
   return (
     <MarkdownErrorBoundary fallback={content}>
     <div className="markdown-body space-y-2.5">

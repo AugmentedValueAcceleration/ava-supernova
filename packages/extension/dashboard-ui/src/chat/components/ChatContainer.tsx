@@ -4,7 +4,7 @@ import { MessageBubble } from './MessageBubble';
 import { ThinkingIndicator } from './ThinkingIndicator';
 import { PersonaStatus } from './PersonaStatus';
 // ContextBar is rendered by Chat.tsx above the composer — not in here anymore
-import { useLocale } from '../../i18n';
+import { t, useLocale } from '../../i18n';
 
 interface PersonaInfo {
   id: string;
@@ -101,7 +101,7 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
     <div className="flex-1 flex flex-col min-h-0">
       {/* ContextBar moved out — Chat.tsx renders it between the message
           list and the composer so the gauge is right where typing happens. */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3" role="log" aria-label="Chat messages" aria-live="polite">
+      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-3" role="log" aria-label={t('dash.chat.messages_log')} aria-live="polite">
         {messages.map((msg, i) => (
           <MessageBubble
             key={msg.id}
@@ -146,16 +146,18 @@ function buildSeededWelcome(userName: string | null): string {
   const name = userName ? `, ${userName}` : '';
 
   if (h >= 5 && h < 12) {
-    return `Morning${name}. It's ${day} — what are we tackling today?`;
+    return t('dash.chat.greeting.morning', { name, day });
   }
   if (h >= 12 && h < 18) {
-    return `Afternoon${name}. ${day} — what can I get into for you?`;
+    return t('dash.chat.greeting.afternoon', { name, day });
   }
   if (h >= 18 && h < 23) {
-    return `Evening${name}. Pull up a chair — what are we working on?`;
+    return t('dash.chat.greeting.evening', { name });
   }
   // Late hours — softer, acknowledges the time
-  return `Late one${name ? '' : ' here'}${name}. I'm awake if you are — what's on your mind?`;
+  return userName
+    ? t('dash.chat.greeting.late_named', { name })
+    : t('dash.chat.greeting.late_anon');
 }
 
 /**
@@ -171,13 +173,14 @@ function buildSeededWelcome(userName: string | null): string {
  * sight. Aim is "warm partner" not "onboarding tooltip".
  */
 function StarterHelper({ onSuggestion }: { onSuggestion: (prompt: string) => void }) {
+  useLocale();
   const chips: { label: string; prefix: string; prompt: string; color: string }[] = [
-    { label: 'Explain a file',  prefix: '>>', prompt: 'Explain what this file does: ',                  color: '#a855f7' },
-    { label: 'Plan a feature',  prefix: '::', prompt: ':: How should I approach adding ',                color: '#60a5fa' },
-    { label: 'Teach me',        prefix: '??', prompt: '?? Teach me about ',                              color: '#f9e2af' },
-    { label: 'Audit security',  prefix: '!!', prompt: '!! Audit this project for security issues',       color: '#f38ba8' },
-    { label: 'Brainstorm',      prefix: '**', prompt: '** Help me think through ',                       color: '#94e2d5' },
-    { label: 'Just chat',       prefix: '..', prompt: '.. ',                                             color: '#a6adc8' },
+    { label: t('dash.chat.starter.explain'),    prefix: '>>', prompt: t('dash.chat.starter.explain_prompt'),    color: '#a855f7' },
+    { label: t('dash.chat.starter.plan'),        prefix: '::', prompt: t('dash.chat.starter.plan_prompt'),        color: '#60a5fa' },
+    { label: t('dash.chat.starter.teach'),       prefix: '??', prompt: t('dash.chat.starter.teach_prompt'),       color: '#f9e2af' },
+    { label: t('dash.chat.starter.audit'),       prefix: '!!', prompt: t('dash.chat.starter.audit_prompt'),       color: '#f38ba8' },
+    { label: t('dash.chat.starter.brainstorm'),  prefix: '**', prompt: t('dash.chat.starter.brainstorm_prompt'),  color: '#94e2d5' },
+    { label: t('dash.chat.starter.chat'),        prefix: '..', prompt: '.. ',                                     color: '#a6adc8' },
   ];
 
   return (
@@ -191,11 +194,10 @@ function StarterHelper({ onSuggestion }: { onSuggestion: (prompt: string) => voi
     >
       <div className="flex items-center gap-2 mb-1.5">
         <span style={{ color: '#a855f7', fontSize: 14 }}>✦</span>
-        <div className="text-sm font-semibold" style={{ color: '#cdd6f4' }}>Where do we start?</div>
+        <div className="text-sm font-semibold" style={{ color: '#cdd6f4' }}>{t('dash.chat.starter.heading')}</div>
       </div>
       <p className="text-[12px] leading-relaxed mb-4" style={{ color: '#a6adc8' }}>
-        I can read your code, plan a feature, teach you something, audit security, brainstorm, or just chat.
-        Pick one — you can edit before sending.
+        {t('dash.chat.starter.subheading')}
       </p>
       <div className="flex flex-wrap gap-2">
         {chips.map((c) => (
@@ -226,7 +228,7 @@ function StarterHelper({ onSuggestion }: { onSuggestion: (prompt: string) => voi
         ))}
       </div>
       <p className="text-[10px] mt-4" style={{ color: '#6c7086' }}>
-        Tip: type <code style={{ color: '#a855f7' }}>{'>>'}</code> <code style={{ color: '#60a5fa' }}>::</code> <code style={{ color: '#a6adc8' }}>..</code> <code style={{ color: '#f9e2af' }}>??</code> <code style={{ color: '#f38ba8' }}>!!</code> <code style={{ color: '#94e2d5' }}>**</code> at the start of a message to switch modes any time.
+        {t('dash.chat.starter.tip_prefix')} <code style={{ color: '#a855f7' }}>{'>>'}</code> <code style={{ color: '#60a5fa' }}>::</code> <code style={{ color: '#a6adc8' }}>..</code> <code style={{ color: '#f9e2af' }}>??</code> <code style={{ color: '#f38ba8' }}>!!</code> <code style={{ color: '#94e2d5' }}>**</code> {t('dash.chat.starter.tip_suffix')}
       </p>
       <style>{`
         .ava-starter-card {

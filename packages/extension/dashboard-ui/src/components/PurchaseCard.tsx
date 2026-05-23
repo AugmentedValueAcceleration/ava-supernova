@@ -5,6 +5,8 @@
 // "Best value" inline badge and accent border rather than a loud
 // ribbon — this is a billing panel, not a pricing page.
 
+import { t, useLocale } from '../i18n';
+
 interface PurchaseCardProps {
   title: string;
   subtitle: string;
@@ -22,6 +24,7 @@ interface PurchaseCardProps {
 export function PurchaseCard({
   title, subtitle, price, priceSuffix, effectiveRate, popular, state, ctaLabel, onClick,
 }: PurchaseCardProps) {
+  useLocale();
   const isInteractive = state !== 'coming_soon';
   const isActive = state === 'active';
 
@@ -39,13 +42,13 @@ export function PurchaseCard({
       {popular && (
         <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--accent)]">
           <span>⭐</span>
-          <span>Best value</span>
+          <span>{t('dash.purchase.best_value')}</span>
         </div>
       )}
       {isActive && !popular && (
         <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-400">
           <span>✓</span>
-          <span>Active</span>
+          <span>{t('dash.purchase.active')}</span>
         </div>
       )}
 

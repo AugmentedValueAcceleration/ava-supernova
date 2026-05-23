@@ -1,3 +1,5 @@
+import { t, useLocale } from '../../i18n';
+
 interface PersonaTool {
   name: string;
   done: boolean;
@@ -32,35 +34,37 @@ const PERSONA_ICONS: Record<string, string> = {
   tutor: '👩‍🏫',
 };
 
-const PERSONA_LABELS: Record<string, string> = {
-  scout: 'Scout',
-  recon: 'Recon',
-  researcher: 'Researcher',
-  architect: 'Architect',
-  verifier: 'Verifier',
-  sequencer: 'Sequencer',
-  challenger: 'Challenger',
-  builder: 'Builder',
-  content_writer: 'Content Writer',
-  quiz_master: 'Quiz Master',
-  tutor: 'Tutor',
+// i18n keys (resolved via t() at render — never call t() at module scope).
+const PERSONA_LABEL_KEYS: Record<string, string> = {
+  scout: 'dash.chat.persona_label.scout',
+  recon: 'dash.chat.persona_label.recon',
+  researcher: 'dash.chat.persona_label.researcher',
+  architect: 'dash.chat.persona_label.architect',
+  verifier: 'dash.chat.persona_label.verifier',
+  sequencer: 'dash.chat.persona_label.sequencer',
+  challenger: 'dash.chat.persona_label.challenger',
+  builder: 'dash.chat.persona_label.builder',
+  content_writer: 'dash.chat.persona_label.content_writer',
+  quiz_master: 'dash.chat.persona_label.quiz_master',
+  tutor: 'dash.chat.persona_label.tutor',
 };
 
-const PERSONA_VERBS: Record<string, string> = {
-  scout: 'Mapping the codebase',
-  recon: 'Scanning the attack surface',
-  researcher: 'Researching',
-  architect: 'Designing the approach',
-  verifier: 'Fact-checking the plan',
-  sequencer: 'Ordering the steps',
-  challenger: 'Questioning the plan',
-  builder: 'Ready to build',
-  content_writer: 'Writing content',
-  quiz_master: 'Creating assessments',
-  tutor: 'Preparing to teach',
+const PERSONA_VERB_KEYS: Record<string, string> = {
+  scout: 'dash.chat.persona_verb.scout',
+  recon: 'dash.chat.persona_verb.recon',
+  researcher: 'dash.chat.persona_verb.researcher',
+  architect: 'dash.chat.persona_verb.architect',
+  verifier: 'dash.chat.persona_verb.verifier',
+  sequencer: 'dash.chat.persona_verb.sequencer',
+  challenger: 'dash.chat.persona_verb.challenger',
+  builder: 'dash.chat.persona_verb.builder',
+  content_writer: 'dash.chat.persona_verb.content_writer',
+  quiz_master: 'dash.chat.persona_verb.quiz_master',
+  tutor: 'dash.chat.persona_verb.tutor',
 };
 
 export function PersonaStatus({ active, mode, personas }: PersonaStatusProps) {
+  useLocale();
   if (!active && personas.length === 0) return null;
 
   const modeLabel = mode ? mode.charAt(0).toUpperCase() + mode.slice(1) : '';
@@ -78,7 +82,7 @@ export function PersonaStatus({ active, mode, personas }: PersonaStatusProps) {
             <span className="inline-block w-2 h-2 rounded-full bg-[var(--vscode-terminal-ansiGreen)]" />
           )}
           <span className="font-medium text-[var(--vscode-foreground)]">
-            {active ? `Ava's ${modeLabel} team is planning` : 'Planning complete'}
+            {active ? t('dash.chat.team_planning', { mode: modeLabel }) : t('dash.chat.planning_complete')}
           </span>
         </div>
         <span className="text-[10px] text-[var(--vscode-descriptionForeground)]">
@@ -107,7 +111,7 @@ export function PersonaStatus({ active, mode, personas }: PersonaStatusProps) {
         {active && personas.every(p => p.phase !== 'active') && (
           <div className="flex items-center gap-2 py-1 text-[var(--vscode-descriptionForeground)]">
             <span className="w-4 text-center animate-pulse">⏳</span>
-            <span className="italic">Preparing next specialist...</span>
+            <span className="italic">{t('dash.chat.preparing_next_specialist')}</span>
           </div>
         )}
       </div>
@@ -116,9 +120,12 @@ export function PersonaStatus({ active, mode, personas }: PersonaStatusProps) {
 }
 
 function PersonaRow({ persona }: { persona: PersonaInfo }) {
+  useLocale();
   const icon = PERSONA_ICONS[persona.id] || '🤖';
-  const label = PERSONA_LABELS[persona.id] || persona.id;
-  const verb = PERSONA_VERBS[persona.id] || 'Working';
+  const labelKey = PERSONA_LABEL_KEYS[persona.id];
+  const label = labelKey ? t(labelKey) : persona.id;
+  const verbKey = PERSONA_VERB_KEYS[persona.id];
+  const verb = verbKey ? t(verbKey) : t('dash.chat.persona_verb.default');
   const isActive = persona.phase === 'active';
   const isComplete = persona.phase === 'complete';
   const isError = persona.phase === 'error';
@@ -158,13 +165,13 @@ function PersonaRow({ persona }: { persona: PersonaInfo }) {
         {/* Tool activity indicators */}
         {persona.tools && persona.tools.length > 0 && (
           <div className="flex items-center gap-1 ml-auto">
-            {persona.tools.map((t, i) => (
+            {persona.tools.map((tool, i) => (
               <span
                 key={i}
-                title={t.name}
+                title={tool.name}
                 className={`inline-block w-1.5 h-1.5 rounded-full ${
-                  !t.done ? 'animate-pulse bg-[var(--ava-purple,#a855f7)]' :
-                  t.success ? 'bg-[var(--vscode-terminal-ansiGreen)]' :
+                  !tool.done ? 'animate-pulse bg-[var(--ava-purple,#a855f7)]' :
+                  tool.success ? 'bg-[var(--vscode-terminal-ansiGreen)]' :
                   'bg-[var(--vscode-errorForeground)]'
                 }`}
               />
@@ -176,21 +183,21 @@ function PersonaRow({ persona }: { persona: PersonaInfo }) {
       {/* Active persona: show tools being used */}
       {isActive && persona.tools && persona.tools.length > 0 && (
         <div className="mt-1 ml-6 flex flex-wrap gap-1">
-          {persona.tools.map((t, i) => (
+          {persona.tools.map((tool, i) => (
             <span
               key={i}
               className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-mono ${
-                !t.done
+                !tool.done
                   ? 'bg-[var(--ava-purple,#a855f7)]/15 text-[var(--ava-purple,#a855f7)]'
-                  : t.success
+                  : tool.success
                   ? 'bg-[var(--vscode-terminal-ansiGreen)]/10 text-[var(--vscode-terminal-ansiGreen)]'
                   : 'bg-[var(--vscode-errorForeground)]/10 text-[var(--vscode-errorForeground)]'
               }`}
             >
-              {!t.done && <span className="animate-spin">⚙</span>}
-              {t.done && t.success && <span>✓</span>}
-              {t.done && !t.success && <span>✗</span>}
-              {t.name}
+              {!tool.done && <span className="animate-spin">⚙</span>}
+              {tool.done && tool.success && <span>✓</span>}
+              {tool.done && !tool.success && <span>✗</span>}
+              {tool.name}
             </span>
           ))}
         </div>

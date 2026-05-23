@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { initLocale, useLocale } from './i18n';
+import { initLocale, useLocale, getLocale } from './i18n';
 import { post } from './vscode';
 
 import { NavSidebar } from './components/NavSidebar';
@@ -326,7 +326,7 @@ export function App() {
     const now = Date.now();
     healthPerfPostTs.set(seq, now);
     console.log(`[health-perf] webview POST load_health_exercises seq=${seq} at ${now} (+${now - HEALTH_PERF_BUNDLE_EVAL}ms since eval)`);
-    post({ type: 'load_health_exercises', limit, offset, workoutType, q, seq });
+    post({ type: 'load_health_exercises', limit, offset, workoutType, q, seq, locale: getLocale() });
     window.setTimeout(() => setHealthExercisesLoading(false), 15000);
   }, []);
   const handleLoadHealthRecipes = useCallback((limit?: number, offset?: number, course?: string, q?: string) => {
@@ -337,19 +337,19 @@ export function App() {
     const now = Date.now();
     healthPerfPostTs.set(seq, now);
     console.log(`[health-perf] webview POST load_health_recipes seq=${seq} at ${now} (+${now - HEALTH_PERF_BUNDLE_EVAL}ms since eval)`);
-    post({ type: 'load_health_recipes', limit, offset, course, q, seq });
+    post({ type: 'load_health_recipes', limit, offset, course, q, seq, locale: getLocale() });
     window.setTimeout(() => setHealthRecipesLoading(false), 15000);
   }, []);
   const handleLoadHealthExerciseDetail = useCallback((slug: string) => {
     setHealthDetailLoading(true);
     setHealthExerciseDetail(null);
-    post({ type: 'load_health_exercise_detail', slug });
+    post({ type: 'load_health_exercise_detail', slug, locale: getLocale() });
     window.setTimeout(() => setHealthDetailLoading(false), 15000);
   }, []);
   const handleLoadHealthRecipeDetail = useCallback((slug: string) => {
     setHealthDetailLoading(true);
     setHealthRecipeDetail(null);
-    post({ type: 'load_health_recipe_detail', slug });
+    post({ type: 'load_health_recipe_detail', slug, locale: getLocale() });
     window.setTimeout(() => setHealthDetailLoading(false), 15000);
   }, []);
 

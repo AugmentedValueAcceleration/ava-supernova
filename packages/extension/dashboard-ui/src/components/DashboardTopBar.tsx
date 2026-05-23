@@ -1,4 +1,5 @@
 import type { AccountInfo } from '../types/messages';
+import { t, useLocale } from '../i18n';
 
 /**
  * Thin status strip rendered above every non-Chat page. Shows the
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function DashboardTopBar({ account }: Props) {
+  useLocale();
   const tier = account?.tier ?? null;
   const usage = account?.usage ?? null;
 
@@ -28,12 +30,12 @@ export function DashboardTopBar({ account }: Props) {
         <span
           className="text-[11px] tabular-nums"
           style={{ fontFamily: 'monospace', color: '#6c7086', opacity: 0.6 }}
-          title="Unlimited credits"
+          title={t('dash.topbar.unlimited_credits')}
         >∞ credits</span>
       );
     } else if (!usage) {
       creditsNode = (
-        <span className="text-[11px] text-[var(--text-muted)]">Loading credits…</span>
+        <span className="text-[11px] text-[var(--text-muted)]">{t('dash.topbar.loading_credits')}</span>
       );
     } else {
       const limit = (usage.free_credits_limit ?? 0) + (usage.credits_limit ?? 0);
@@ -46,17 +48,17 @@ export function DashboardTopBar({ account }: Props) {
           <span
             className="text-[11px] tabular-nums font-semibold"
             style={{ fontFamily: 'monospace', color }}
-            title={`${remaining.toLocaleString()} of ${limit.toLocaleString()} credits remaining (${Math.round(pct)}% used)`}
+            title={t('dash.topbar.credits_remaining_title', { remaining: remaining.toLocaleString(), limit: limit.toLocaleString(), pct: Math.round(pct) })}
           >
-            {remaining.toLocaleString()} credits left
+            {t('dash.topbar.credits_left', { remaining: remaining.toLocaleString() })}
           </span>
         );
       }
     }
   } else {
     creditsNode = (
-      <span className="text-[11px] text-[var(--text-muted)]" title="Sign in to see your credit balance">
-        BYOK / no account
+      <span className="text-[11px] text-[var(--text-muted)]" title={t('dash.topbar.sign_in_balance')}>
+        {t('dash.topbar.byok_no_account')}
       </span>
     );
   }
@@ -73,7 +75,7 @@ export function DashboardTopBar({ account }: Props) {
       {tierLabel && (
         <span
           className="rounded-full border border-[rgba(168,85,247,0.30)] bg-[rgba(168,85,247,0.10)] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[var(--accent)]"
-          title={`Plan: ${tierLabel}`}
+          title={t('dash.topbar.plan_title', { tier: tierLabel })}
         >
           {tierLabel}
         </span>

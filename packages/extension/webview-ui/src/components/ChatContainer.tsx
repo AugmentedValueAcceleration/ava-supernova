@@ -309,13 +309,15 @@ function buildSeededWelcome(userName: string | null): string {
  * prefix-coloured tokens. Aim is "warm partner" not "onboarding tooltip".
  */
 function StarterHelper({ onSuggestion }: { onSuggestion: (prompt: string) => void }) {
-  const chips: { label: string; prefix: string; prompt: string; color: string }[] = [
-    { label: 'Explain a file',  prefix: '>>', prompt: 'Explain what this file does: ',                  color: '#a855f7' },
-    { label: 'Plan a feature',  prefix: '::', prompt: ':: How should I approach adding ',                color: '#60a5fa' },
-    { label: 'Teach me',        prefix: '??', prompt: '?? Teach me about ',                              color: '#f9e2af' },
-    { label: 'Audit security',  prefix: '!!', prompt: '!! Audit this project for security issues',       color: '#f38ba8' },
-    { label: 'Brainstorm',      prefix: '**', prompt: '** Help me think through ',                       color: '#94e2d5' },
-    { label: 'Just chat',       prefix: '..', prompt: '.. ',                                             color: '#a6adc8' },
+  useLocale();
+  // labelKey resolves to display text at render; prefix/prompt/color are static data.
+  const chips: { labelKey: string; prefix: string; prompt: string; color: string }[] = [
+    { labelKey: 'starter.chip.explain',  prefix: '>>', prompt: 'Explain what this file does: ',            color: '#a855f7' },
+    { labelKey: 'starter.chip.plan',     prefix: '::', prompt: ':: How should I approach adding ',         color: '#60a5fa' },
+    { labelKey: 'starter.chip.teach',    prefix: '??', prompt: '?? Teach me about ',                       color: '#f9e2af' },
+    { labelKey: 'starter.chip.audit',    prefix: '!!', prompt: '!! Audit this project for security issues',color: '#f38ba8' },
+    { labelKey: 'starter.chip.brainstorm', prefix: '**', prompt: '** Help me think through ',              color: '#94e2d5' },
+    { labelKey: 'starter.chip.chat',     prefix: '..', prompt: '.. ',                                      color: '#a6adc8' },
   ];
 
   return (
@@ -329,16 +331,15 @@ function StarterHelper({ onSuggestion }: { onSuggestion: (prompt: string) => voi
     >
       <div className="flex items-center gap-2 mb-1.5">
         <span style={{ color: '#a855f7', fontSize: 14 }}>✦</span>
-        <div className="text-[13px] font-semibold" style={{ color: '#cdd6f4' }}>Where do we start?</div>
+        <div className="text-[13px] font-semibold" style={{ color: '#cdd6f4' }}>{t('starter.title')}</div>
       </div>
       <p className="text-[11px] leading-relaxed mb-3" style={{ color: '#a6adc8' }}>
-        I can read your code, plan a feature, teach you something, audit security, brainstorm, or just chat.
-        Pick one — you can edit before sending.
+        {t('starter.description')}
       </p>
       <div className="flex flex-wrap gap-1.5">
         {chips.map((c) => (
           <button
-            key={c.label}
+            key={c.labelKey}
             onClick={() => onSuggestion(c.prompt)}
             className="text-[11px] px-2.5 py-1.5 rounded-lg flex items-center gap-1.5"
             style={{
@@ -359,12 +360,12 @@ function StarterHelper({ onSuggestion }: { onSuggestion: (prompt: string) => voi
             }}
           >
             <span style={{ color: c.color, fontFamily: 'monospace', fontSize: 10, fontWeight: 700 }}>{c.prefix}</span>
-            <span>{c.label}</span>
+            <span>{t(c.labelKey)}</span>
           </button>
         ))}
       </div>
       <p className="text-[10px] mt-3" style={{ color: '#6c7086' }}>
-        Tip: type <code style={{ color: '#a855f7' }}>{'>>'}</code> <code style={{ color: '#60a5fa' }}>::</code> <code style={{ color: '#a6adc8' }}>..</code> <code style={{ color: '#f9e2af' }}>??</code> <code style={{ color: '#f38ba8' }}>!!</code> <code style={{ color: '#94e2d5' }}>**</code> to switch modes any time.
+        {t('starter.tip_before')} <code style={{ color: '#a855f7' }}>{'>>'}</code> <code style={{ color: '#60a5fa' }}>::</code> <code style={{ color: '#a6adc8' }}>..</code> <code style={{ color: '#f9e2af' }}>??</code> <code style={{ color: '#f38ba8' }}>!!</code> <code style={{ color: '#94e2d5' }}>**</code> {t('starter.tip_after')}
       </p>
       <style>{`
         .ava-starter-card { animation: avaStarterFade 0.4s ease-out; }

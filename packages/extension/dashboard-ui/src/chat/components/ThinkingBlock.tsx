@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { CopyButton } from './CopyButton';
+import { t, useLocale } from '../../i18n';
 
 interface ThinkingBlockProps {
   content: string;
@@ -7,6 +8,7 @@ interface ThinkingBlockProps {
 }
 
 export function ThinkingBlock({ content, isStreaming }: ThinkingBlockProps) {
+  useLocale();
   const [expanded, setExpanded] = useState(false);
   const duration = estimateDuration(content);
   const getContent = useCallback(() => content, [content]);
@@ -20,7 +22,7 @@ export function ThinkingBlock({ content, isStreaming }: ThinkingBlockProps) {
                    text-[var(--vscode-foreground)]"
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
-        aria-label={isStreaming ? 'Thinking in progress' : `Thought for ${duration}`}
+        aria-label={isStreaming ? t('dash.chat.thinking_in_progress') : t('dash.chat.thought_for', { duration })}
       >
         {/* Spinner while thinking, checkmark when done */}
         {isStreaming ? (
@@ -39,7 +41,7 @@ export function ThinkingBlock({ content, isStreaming }: ThinkingBlockProps) {
 
         {/* Label */}
         <span className="font-medium opacity-80">
-          {isStreaming ? 'Thinking...' : `Thought for ${duration}`}
+          {isStreaming ? t('dash.chat.status.thinking') : t('dash.chat.thought_for', { duration })}
         </span>
 
         {/* Expand chevron */}

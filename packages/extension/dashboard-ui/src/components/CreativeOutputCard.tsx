@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { t, useLocale } from '../i18n';
 
 /**
  * Creative Studio output card — extension/webview equivalent of the IDE
@@ -78,6 +79,7 @@ interface OutputCardProps {
 }
 
 export function CreativeOutputCard({ item, onRegenerate, onDelete, onSendTo }: OutputCardProps) {
+  useLocale();
   const [copied, setCopied] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -113,7 +115,7 @@ export function CreativeOutputCard({ item, onRegenerate, onDelete, onSendTo }: O
     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false,
   }) : '';
 
-  const storageLabel = item.local && item.cloud ? 'both' : item.cloud ? 'cloud' : 'local';
+  const storageLabel = item.local && item.cloud ? t('dash.creative.storage_both') : item.cloud ? t('dash.creative.storage_cloud') : t('dash.creative.storage_local');
   const storageColor = item.cloud ? '#60a5fa' : '#a6e3a1';
 
   return (
@@ -130,7 +132,7 @@ export function CreativeOutputCard({ item, onRegenerate, onDelete, onSendTo }: O
         }}
         title={item.prompt}
       >
-        {item.prompt || '(no prompt)'}
+        {item.prompt || t('dash.creative.no_prompt')}
       </div>
 
       <div style={{ fontSize: 10, color: '#585b70', display: 'flex', justifyContent: 'space-between' }}>
@@ -153,7 +155,7 @@ export function CreativeOutputCard({ item, onRegenerate, onDelete, onSendTo }: O
           onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.15)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(49, 34, 68, 0.5)'; }}
         >
-          {copied ? '✓ Copied' : 'Copy prompt'}
+          {copied ? `✓ ${t('dash.creative.copied')}` : t('dash.creative.copy_prompt')}
         </button>
         <button
           onClick={handleDownload}
@@ -161,7 +163,7 @@ export function CreativeOutputCard({ item, onRegenerate, onDelete, onSendTo }: O
           onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.15)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(49, 34, 68, 0.5)'; }}
         >
-          Download
+          {t('dash.chat.download')}
         </button>
         {onRegenerate && (
           <button
@@ -170,7 +172,7 @@ export function CreativeOutputCard({ item, onRegenerate, onDelete, onSendTo }: O
             onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.15)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(49, 34, 68, 0.5)'; }}
           >
-            Regenerate
+            {t('dash.creative.regenerate')}
           </button>
         )}
         {onDelete && (
@@ -180,7 +182,7 @@ export function CreativeOutputCard({ item, onRegenerate, onDelete, onSendTo }: O
             onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(243,139,168,0.15)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(49, 34, 68, 0.5)'; }}
           >
-            {confirmDelete ? 'Click again to confirm' : 'Delete'}
+            {confirmDelete ? t('dash.creative.click_again_confirm') : t('dash.common.delete')}
           </button>
         )}
       </div>
@@ -212,11 +214,12 @@ export function CreativeOutputCard({ item, onRegenerate, onDelete, onSendTo }: O
 }
 
 function MediumPreview({ item }: { item: GalleryItem }) {
+  useLocale();
   if (item.kind === 'image') {
     return (
       <img
         src={item.url}
-        alt={item.title || 'Generated image'}
+        alt={item.title || t('dash.creative.generated_image_alt')}
         style={{
           width: '100%',
           aspectRatio: '1 / 1',
@@ -284,6 +287,7 @@ interface GalleryStripProps {
 }
 
 export function CreativeGalleryStrip({ items, onRegenerate, onDelete, onSendTo, emptyHint }: GalleryStripProps) {
+  useLocale();
   if (items.length === 0) {
     return (
       <div style={{
@@ -295,7 +299,7 @@ export function CreativeGalleryStrip({ items, onRegenerate, onDelete, onSendTo, 
         color: '#585b70',
         fontSize: 13,
       }}>
-        {emptyHint || 'Your generations will appear here. Make something — they stack up newest first.'}
+        {emptyHint || t('dash.creative.gallery_empty')}
       </div>
     );
   }

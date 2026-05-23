@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { t, useLocale } from '../../i18n';
 
 interface CopyButtonProps {
   getText: () => string;
@@ -6,6 +7,7 @@ interface CopyButtonProps {
 }
 
 export function CopyButton({ getText, className = '' }: CopyButtonProps) {
+  useLocale();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(() => {
@@ -17,8 +19,8 @@ export function CopyButton({ getText, className = '' }: CopyButtonProps) {
   return (
     <button
       onClick={handleCopy}
-      title={copied ? 'Copied!' : 'Copy'}
-      aria-label={copied ? 'Copied to clipboard' : 'Copy to clipboard'}
+      title={copied ? t('dash.chat.copied_excl') : t('dash.chat.copy_short')}
+      aria-label={copied ? t('dash.chat.copied_to_clipboard') : t('dash.chat.copy_to_clipboard')}
       className={`flex items-center justify-center rounded
                   border-none cursor-pointer transition-opacity
                   bg-[var(--vscode-button-secondaryBackground)]

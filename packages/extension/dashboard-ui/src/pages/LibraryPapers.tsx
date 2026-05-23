@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import { Skeleton } from '../components/Skeleton';
 import type {
@@ -29,25 +30,25 @@ import type {
  * four-layer-pass prompt for the selected paper.
  */
 
-const DISCIPLINES: { id: 'all' | PaperDiscipline; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'ai_cs', label: 'AI & CS' },
-  { id: 'biology', label: 'Biology' },
-  { id: 'medicine', label: 'Medicine' },
-  { id: 'physics', label: 'Physics' },
-  { id: 'chemistry', label: 'Chemistry' },
-  { id: 'earth_sciences', label: 'Earth Sciences' },
-  { id: 'social_sciences', label: 'Social Sciences' },
-  { id: 'economics', label: 'Economics' },
-  { id: 'engineering', label: 'Engineering' },
-  { id: 'math', label: 'Math' },
-  { id: 'other', label: 'Other' },
+const DISCIPLINES: { id: 'all' | PaperDiscipline; labelKey: string }[] = [
+  { id: 'all', labelKey: 'dash.library_papers.disc_all' },
+  { id: 'ai_cs', labelKey: 'dash.library_papers.disc_ai_cs' },
+  { id: 'biology', labelKey: 'dash.library_papers.disc_biology' },
+  { id: 'medicine', labelKey: 'dash.library_papers.disc_medicine' },
+  { id: 'physics', labelKey: 'dash.library_papers.disc_physics' },
+  { id: 'chemistry', labelKey: 'dash.library_papers.disc_chemistry' },
+  { id: 'earth_sciences', labelKey: 'dash.library_papers.disc_earth_sciences' },
+  { id: 'social_sciences', labelKey: 'dash.library_papers.disc_social_sciences' },
+  { id: 'economics', labelKey: 'dash.library_papers.disc_economics' },
+  { id: 'engineering', labelKey: 'dash.library_papers.disc_engineering' },
+  { id: 'math', labelKey: 'dash.library_papers.disc_math' },
+  { id: 'other', labelKey: 'dash.library_papers.disc_other' },
 ];
 
-const TABS: { id: PapersTab; label: string; hint: string }[] = [
-  { id: 'featured', label: 'Featured', hint: "Ava's editorial picks" },
-  { id: 'trending', label: 'Trending', hint: "What's getting attention" },
-  { id: 'latest', label: 'Latest', hint: 'Newest additions' },
+const TABS: { id: PapersTab; labelKey: string; hintKey: string }[] = [
+  { id: 'featured', labelKey: 'dash.library_papers.tab_featured', hintKey: 'dash.library_papers.tab_featured_hint' },
+  { id: 'trending', labelKey: 'dash.library_papers.tab_trending', hintKey: 'dash.library_papers.tab_trending_hint' },
+  { id: 'latest', labelKey: 'dash.library_papers.tab_latest', hintKey: 'dash.library_papers.tab_latest_hint' },
 ];
 
 /** Disciplines where the four-layer caveats need a strong "not advice"
@@ -98,6 +99,7 @@ export function LibraryPapers({
   onLoadPaperDetail,
   onClearPaperDetail,
 }: Props) {
+  useLocale();
   const [tab, setTab] = useState<PapersTab>('featured');
   const [discipline, setDiscipline] = useState<'all' | PaperDiscipline>('all');
   const [searchInput, setSearchInput] = useState('');
@@ -173,14 +175,14 @@ export function LibraryPapers({
             type="text"
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
-            placeholder="Search across all sciences — title, author, topic..."
+            placeholder={t('dash.library_papers.search_placeholder')}
             className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-input)] px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--accent)]/50 transition"
           />
           {searchInput && (
             <button
               onClick={() => { setSearchInput(''); onClearSearch(); }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-              aria-label="Clear search"
+              aria-label={t('dash.library_papers.clear_search')}
             >
               ×
             </button>
@@ -197,7 +199,7 @@ export function LibraryPapers({
                   : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
               }`}
             >
-              {d.label}
+              {t(d.labelKey)}
             </button>
           ))}
         </div>
@@ -207,18 +209,18 @@ export function LibraryPapers({
           Canonical dashboard tab style (border-b-2 + --accent var). */}
       {!isSearching && (
         <div className="mb-4 flex items-end gap-0.5 border-b border-[var(--border)]">
-          {TABS.map(t => (
+          {TABS.map(tb => (
             <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
+              key={tb.id}
+              onClick={() => setTab(tb.id)}
               className={`-mb-px cursor-pointer border-b-2 border-x-0 border-t-0 bg-transparent px-4 py-2 text-xs transition ${
-                tab === t.id
+                tab === tb.id
                   ? 'border-[var(--accent)] text-[var(--accent)] font-semibold'
                   : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
               }`}
-              title={t.hint}
+              title={t(tb.hintKey)}
             >
-              {t.label}
+              {t(tb.labelKey)}
             </button>
           ))}
         </div>
@@ -230,7 +232,7 @@ export function LibraryPapers({
           surface reminder for the user before they click. */}
       {hasMedicalInList && (
         <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-[11px] text-amber-200/90">
-          Some papers in this list are clinical or medical. Ava will summarise — that is not medical advice. Check with a healthcare professional before acting on anything you read here.
+          {t('dash.library_papers.medical_banner')}
         </div>
       )}
 
@@ -249,10 +251,10 @@ export function LibraryPapers({
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-10 text-center">
           <div className="text-3xl mb-2 opacity-60">{isSearching ? '\u{1F50D}' : '\u{1F4DA}'}</div>
           <p className="text-sm font-medium text-[var(--text-primary)]">
-            {isSearching ? `No papers found for "${searchQuery}"` : 'No papers in this tab yet'}
+            {isSearching ? t('dash.library_papers.empty_search', { query: searchQuery }) : t('dash.library_papers.empty_tab')}
           </p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            {isSearching ? 'Try different keywords or remove the discipline filter.' : 'New picks land regularly. Try the search bar to find something specific.'}
+            {isSearching ? t('dash.library_papers.empty_search_hint') : t('dash.library_papers.empty_tab_hint')}
           </p>
         </div>
       )}
@@ -284,18 +286,18 @@ export function LibraryPapers({
 function authorLine(authors: LibraryPaper['authors']): string {
   if (!authors || authors.length === 0) return '';
   if (authors.length <= 3) return authors.map(a => a.name).join(', ');
-  return `${authors.slice(0, 3).map(a => a.name).join(', ')}, et al.`;
+  return t('dash.library_papers.authors_et_al', { authors: authors.slice(0, 3).map(a => a.name).join(', ') });
 }
 
-function disciplineBadge(d?: PaperDiscipline): { label: string; color: string } | null {
+function disciplineBadge(d?: PaperDiscipline): { labelKey: string; color: string } | null {
   if (!d) return null;
-  const labels: Record<PaperDiscipline, string> = {
-    ai_cs: 'AI/CS', biology: 'Biology', medicine: 'Medicine',
-    physics: 'Physics', chemistry: 'Chemistry', earth_sciences: 'Earth Sci',
-    social_sciences: 'Social Sci', economics: 'Economics',
-    engineering: 'Engineering', math: 'Math', other: 'Other',
+  const labelKeys: Record<PaperDiscipline, string> = {
+    ai_cs: 'dash.library_papers.badge_ai_cs', biology: 'dash.library_papers.badge_biology', medicine: 'dash.library_papers.badge_medicine',
+    physics: 'dash.library_papers.badge_physics', chemistry: 'dash.library_papers.badge_chemistry', earth_sciences: 'dash.library_papers.badge_earth_sciences',
+    social_sciences: 'dash.library_papers.badge_social_sciences', economics: 'dash.library_papers.badge_economics',
+    engineering: 'dash.library_papers.badge_engineering', math: 'dash.library_papers.badge_math', other: 'dash.library_papers.badge_other',
   };
-  return { label: labels[d], color: 'text-[var(--accent)]' };
+  return { labelKey: labelKeys[d], color: 'text-[var(--accent)]' };
 }
 
 function PaperCard({
@@ -307,6 +309,7 @@ function PaperCard({
   onSelect: () => void;
   onReadWithAva: () => void;
 }) {
+  useLocale();
   const badge = disciplineBadge(paper.discipline);
   const abstractPreview = paper.abstract
     ? paper.abstract.length > 240 ? paper.abstract.slice(0, 240).trim() + '…' : paper.abstract
@@ -323,16 +326,16 @@ function PaperCard({
             {paper.title}
             {paper.retracted && (
               <span className="ml-2 inline-block rounded px-1.5 py-0.5 text-[9px] font-bold bg-red-500/15 text-red-400 border border-red-500/30">
-                RETRACTED
+                {t('dash.library_papers.retracted')}
               </span>
             )}
           </h3>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[var(--text-muted)]">
             {paper.authors.length > 0 && <span>{authorLine(paper.authors)}</span>}
             {paper.year && <span>· {paper.year}</span>}
-            {badge && <span className={`· ${badge.color} font-medium`}>· {badge.label}</span>}
+            {badge && <span className={`· ${badge.color} font-medium`}>· {t(badge.labelKey)}</span>}
             {paper.citation_count != null && paper.citation_count > 0 && (
-              <span>· {paper.citation_count.toLocaleString()} citations</span>
+              <span>· {t('dash.library_papers.citations', { n: paper.citation_count.toLocaleString() })}</span>
             )}
           </div>
           {paper.featured_note && (
@@ -350,7 +353,7 @@ function PaperCard({
           onClick={onReadWithAva}
           className="shrink-0 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition whitespace-nowrap"
         >
-          Read with Ava
+          {t('dash.library_papers.read_with_ava')}
         </button>
       </div>
     </div>
@@ -368,6 +371,7 @@ function PaperDetailModal({
   onClose: () => void;
   onReadWithAva: () => void;
 }) {
+  useLocale();
   const badge = disciplineBadge(paper.discipline);
   const isMedical = paper.discipline && MEDICAL_DISCIPLINES.has(paper.discipline);
 
@@ -383,7 +387,7 @@ function PaperDetailModal({
         <button
           onClick={onClose}
           className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center text-lg border-none cursor-pointer transition"
-          aria-label="Close"
+          aria-label={t('dash.library_papers.close')}
         >
           ×
         </button>
@@ -393,7 +397,7 @@ function PaperDetailModal({
             {paper.title}
             {paper.retracted && (
               <span className="ml-2 inline-block rounded px-1.5 py-0.5 text-[10px] font-bold bg-red-500/15 text-red-400 border border-red-500/30 align-middle">
-                RETRACTED
+                {t('dash.library_papers.retracted')}
               </span>
             )}
           </h2>
@@ -403,9 +407,9 @@ function PaperDetailModal({
               <span>{paper.authors.map(a => a.name).join(', ')}</span>
             )}
             {paper.year && <span>· {paper.year}</span>}
-            {badge && <span className={`· ${badge.color} font-medium`}>· {badge.label}</span>}
+            {badge && <span className={`· ${badge.color} font-medium`}>· {t(badge.labelKey)}</span>}
             {paper.citation_count != null && paper.citation_count > 0 && (
-              <span>· {paper.citation_count.toLocaleString()} citations</span>
+              <span>· {t('dash.library_papers.citations', { n: paper.citation_count.toLocaleString() })}</span>
             )}
           </div>
 
@@ -417,7 +421,7 @@ function PaperDetailModal({
 
           {paper.abstract ? (
             <div className="mt-4">
-              <h3 className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-medium mb-1.5">Abstract</h3>
+              <h3 className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-medium mb-1.5">{t('dash.library_papers.abstract')}</h3>
               <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">
                 {paper.abstract}
               </p>
@@ -425,13 +429,13 @@ function PaperDetailModal({
           ) : loading ? (
             <div className="mt-4 flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
               <span className="ava-papers-spinner" aria-hidden />
-              Loading paper details…
+              {t('dash.library_papers.loading_detail')}
             </div>
           ) : null}
 
           {isMedical && (
             <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-[11px] text-amber-200/90 leading-relaxed">
-              <strong>Not medical advice.</strong> Ava's explanation is summarisation, not clinical guidance. Talk to a healthcare professional before acting on anything from this paper.
+              <strong>{t('dash.library_papers.not_medical_advice_lead')}</strong> {t('dash.library_papers.not_medical_advice_body')}
             </p>
           )}
 
@@ -440,14 +444,14 @@ function PaperDetailModal({
               onClick={onReadWithAva}
               className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
             >
-              Read with Ava
+              {t('dash.library_papers.read_with_ava')}
             </button>
             {paper.primary_url && (
               <button
                 onClick={() => post({ type: 'open_url', url: paper.primary_url! })}
                 className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition"
               >
-                Original (publisher)
+                {t('dash.library_papers.original_publisher')}
               </button>
             )}
             {paper.oa_pdf_url && paper.oa_pdf_url !== paper.primary_url && (
@@ -455,7 +459,7 @@ function PaperDetailModal({
                 onClick={() => post({ type: 'open_url', url: paper.oa_pdf_url! })}
                 className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition"
               >
-                Open-access PDF
+                {t('dash.library_papers.open_access_pdf')}
               </button>
             )}
           </div>

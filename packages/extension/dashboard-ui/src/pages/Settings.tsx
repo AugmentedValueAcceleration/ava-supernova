@@ -176,8 +176,8 @@ export function Settings({
       apiKey: localApiKey.trim() || undefined,
       modelLabel: localModelLabel.trim() || undefined,
     });
-    setLocalSavedTick(t => t + 1);
-    setTimeout(() => setLocalSavedTick(t => t + 1), 1800);
+    setLocalSavedTick(n => n + 1);
+    setTimeout(() => setLocalSavedTick(n => n + 1), 1800);
   };
 
   const handleRemoveLocalModel = () => {
@@ -374,7 +374,7 @@ export function Settings({
       </div>
 
       {/* ── Avatar ──────────────────────────────────────────────────────── */}
-      <SectionLabel>Avatar</SectionLabel>
+      <SectionLabel>{t('dash.settings.avatar')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <div className="flex items-center gap-4">
           <div
@@ -394,18 +394,18 @@ export function Settings({
                 disabled={avatarUploading}
                 className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-[11px] font-medium text-white transition hover:opacity-90 disabled:opacity-50"
               >
-                {avatarUploading ? 'Saving...' : avatarDataUrl ? 'Change Avatar' : 'Upload Avatar'}
+                {avatarUploading ? t('dash.journal.saving') : avatarDataUrl ? t('dash.settings.change_avatar') : t('dash.settings.upload_avatar')}
               </button>
               {avatarDataUrl && (
                 <button
                   onClick={() => post({ type: 'remove_avatar' })}
                   className="rounded-lg border border-[var(--border-card)] px-3 py-1.5 text-[11px] text-red-400 transition hover:border-red-400/40"
                 >
-                  Remove
+                  {t('dash.settings.remove')}
                 </button>
               )}
             </div>
-            <p className="mt-1.5 text-[10px] text-[var(--text-muted)]">Saved locally. Sync to cloud from the Sync page. JPEG, PNG, WebP or GIF. Max 2 MB.</p>
+            <p className="mt-1.5 text-[10px] text-[var(--text-muted)]">{t('dash.settings.avatar_hint')}</p>
           </div>
         </div>
       </div>
@@ -457,12 +457,12 @@ export function Settings({
       </div>
 
       {/* ── 3. Dataset capture (Ava action capture) ─────────────────────── */}
-      <SectionLabel>Help train Ava's own model</SectionLabel>
+      <SectionLabel>{t('dash.settings.dataset_section')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <ToggleRow
           icon={<span className="text-base">&#x1f9ea;</span>}
-          title="Capture Ava's actions as training data"
-          description="Records Ava's tool choices, persona handoffs, memory ops, etc. to ~/.ava/datasets/. Local-only by default. Never captures your prompts or files — only her decisions and shape-only context."
+          title={t('dash.settings.dataset_capture_title')}
+          description={t('dash.settings.dataset_capture_desc')}
           value={datasetConfig?.enabled ?? false}
           onChange={setDatasetMaster}
         />
@@ -470,9 +470,9 @@ export function Settings({
         {datasetConfig?.enabled && (
           <>
             <Divider />
-            <p className="mb-2 text-xs font-semibold text-[var(--text-secondary)]">Modes captured</p>
+            <p className="mb-2 text-xs font-semibold text-[var(--text-secondary)]">{t('dash.settings.dataset_modes')}</p>
             <p className="mb-3 text-[11px] text-[var(--text-muted)]">
-              Choose which thought modes feed the dataset. Toggle any off to keep that mode private.
+              {t('dash.settings.dataset_modes_desc')}
             </p>
             <div className="mb-2 flex flex-wrap gap-1.5">
               {ALL_AVA_MODES.map(mode => {
@@ -487,16 +487,16 @@ export function Settings({
                         : 'border-[var(--border-card)] text-[var(--text-muted)] hover:border-emerald-400/40'
                     }`}
                   >
-                    {mode}
+                    {t('dash.settings.dataset_mode.' + mode)}
                   </button>
                 );
               })}
             </div>
 
             <Divider />
-            <p className="mb-2 text-xs font-semibold text-[var(--text-secondary)]">Dataset kinds</p>
+            <p className="mb-2 text-xs font-semibold text-[var(--text-secondary)]">{t('dash.settings.dataset_kinds')}</p>
             <p className="mb-3 text-[11px] text-[var(--text-muted)]">
-              The 10 distinct training datasets Ava generates. All on by default; uncheck any you'd rather not contribute to.
+              {t('dash.settings.dataset_kinds_desc')}
             </p>
             <div className="grid grid-cols-2 gap-1.5">
               {ALL_DATASET_KINDS.map(kind => {
@@ -514,14 +514,14 @@ export function Settings({
                     <span className={on ? 'text-emerald-400' : 'text-[var(--text-muted)]'}>
                       {on ? '\u25cf' : '\u25cb'}
                     </span>
-                    <span className="truncate">{kind}</span>
+                    <span className="truncate">{t('dash.settings.dataset_kind.' + kind)}</span>
                   </button>
                 );
               })}
             </div>
 
             <p className="mt-4 text-[10px] text-[var(--text-muted)]">
-              All capture is local and append-only. Nothing leaves your machine until you explicitly push to your private dataset repo (separate, opt-in).
+              {t('dash.settings.dataset_note')}
             </p>
           </>
         )}
@@ -557,16 +557,7 @@ export function Settings({
             selected={local.permissionMode === 'autonomous'}
             onClick={() => {
               if (local.permissionMode === 'autonomous') return; // already on
-              const ok = window.confirm(
-                'Switch to Autonomous mode?\n\n' +
-                'This auto-approves every tool category — bash, git, file_write, file_edit, ' +
-                'database_query, browser, http_request — including their destructive subset ' +
-                '(rm, format, deletes, overwrites). The only operations that still prompt are ' +
-                'irreversible patterns (force-push, hard reset, history rewrites, package publish, ' +
-                'git_commit --amend) — those never graduate.\n\n' +
-                'Pick this only if you want Ava to run without confirmations across long sessions, ' +
-                'and only on a workspace where you can recover from a wrong write via git.'
-              );
+              const ok = window.confirm(t('dash.settings.autonomous_confirm'));
               if (ok) saveImmediate('permissionMode', 'autonomous');
             }}
           />
@@ -574,34 +565,34 @@ export function Settings({
 
         {local.permissionMode === 'custom' && (
           <div className="mb-3 rounded-lg border border-purple-500/30 bg-purple-500/5 px-3 py-2 text-[11px] text-purple-300">
-            Custom — you've adjusted individual categories. Select a preset above to reset.
+            {t('dash.settings.custom_banner')}
           </div>
         )}
 
         {/* Category-level permissions */}
         <details className="mb-4 group">
           <summary className="cursor-pointer text-xs font-semibold text-[var(--text-secondary)] hover:text-white transition select-none">
-            Customise by Category
+            {t('dash.settings.customise_by_category')}
           </summary>
           <div className="mt-3 space-y-1.5">
             {([
-              { id: 'file_ops', icon: '📁', label: 'File Operations', desc: 'read, write, edit, glob, grep' },
-              { id: 'shell', icon: '💻', label: 'Shell', desc: 'bash, test_run, test_generate' },
-              { id: 'git', icon: '🔀', label: 'Git', desc: 'status, diff, commit, PR, rollback' },
-              { id: 'web', icon: '🌐', label: 'Web', desc: 'search, http_request, browser' },
-              { id: 'media', icon: '🎨', label: 'Media', desc: 'generate_image, generate_video, generate_voice, generate_music, remove_bg' },
-              { id: 'database', icon: '🗄️', label: 'Database', desc: 'database_query' },
-              { id: 'system', icon: '🖥️', label: 'System', desc: 'desktop_*, browser_* (IDE only)' },
-              { id: 'documents', icon: '📄', label: 'Documents', desc: 'docs, reports, emails' },
-              { id: 'memory', icon: '🧠', label: 'Memory', desc: 'save, recall, update, delete' },
-              { id: 'learning', icon: '🎓', label: 'Learning', desc: 'create, teach, progress' },
+              { id: 'file_ops', icon: '📁', labelKey: 'dash.settings.cat_file_ops', desc: 'read, write, edit, glob, grep' },
+              { id: 'shell', icon: '💻', labelKey: 'dash.settings.cat_shell', desc: 'bash, test_run, test_generate' },
+              { id: 'git', icon: '🔀', labelKey: 'dash.settings.cat_git', desc: 'status, diff, commit, PR, rollback' },
+              { id: 'web', icon: '🌐', labelKey: 'dash.settings.cat_web', desc: 'search, http_request, browser' },
+              { id: 'media', icon: '🎨', labelKey: 'dash.settings.cat_media', desc: 'generate_image, generate_video, generate_voice, generate_music, remove_bg' },
+              { id: 'database', icon: '🗄️', labelKey: 'dash.settings.cat_database', desc: 'database_query' },
+              { id: 'system', icon: '🖥️', labelKey: 'dash.settings.cat_system', desc: 'desktop_*, browser_* (IDE only)' },
+              { id: 'documents', icon: '📄', labelKey: 'dash.settings.cat_documents', desc: 'docs, reports, emails' },
+              { id: 'memory', icon: '🧠', labelKey: 'dash.settings.cat_memory', desc: 'save, recall, update, delete' },
+              { id: 'learning', icon: '🎓', labelKey: 'dash.settings.cat_learning', desc: 'create, teach, progress' },
             ] as const).map(cat => {
               const currentPerm = (local.categoryPermissions || {})[cat.id] || 'auto';
               return (
                 <div key={cat.id} className="flex items-center gap-3 rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)]/30 px-3 py-2">
                   <span className="text-sm">{cat.icon}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-medium text-[var(--text-secondary)]">{cat.label}</p>
+                    <p className="text-[11px] font-medium text-[var(--text-secondary)]">{t(cat.labelKey)}</p>
                     <p className="text-[9px] text-[var(--text-muted)] truncate">{cat.desc}</p>
                   </div>
                   <div className="flex gap-0.5 rounded-md border border-[var(--border-card)] bg-[var(--bg-card)] p-0.5">
@@ -619,7 +610,7 @@ export function Settings({
                             : 'bg-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                         }`}
                       >
-                        {perm === 'auto' ? 'Auto' : perm === 'first_time' ? 'First Time' : 'Always Ask'}
+                        {perm === 'auto' ? t('dash.settings.perm_auto') : perm === 'first_time' ? t('dash.settings.perm_first_time') : t('dash.settings.perm_always_ask')}
                       </button>
                     ))}
                   </div>
@@ -648,7 +639,7 @@ export function Settings({
         <Select
           value={local.language}
           onChange={v => saveImmediate('language', v)}
-          options={LANGUAGES}
+          options={LANGUAGES.map(l => l.value === 'auto' ? { ...l, label: t('dash.settings.auto_detect') } : l)}
         />
       </div>
 
@@ -662,31 +653,28 @@ export function Settings({
             Restart the chat panel after saving so AvaViewProvider re-reads
             SecretStorage and registers the generic provider with the new
             baseUrl + model name. */}
-      <SectionLabel>Custom Model</SectionLabel>
+      <SectionLabel>{t('dash.settings.custom_model')}</SectionLabel>
       <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <div className="flex items-start gap-3">
           <span className="text-[22px]">🦙</span>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <p className="text-sm font-semibold">Custom model — Ollama, LM Studio, vLLM, or any OpenAI-compatible endpoint</p>
+              <p className="text-sm font-semibold">{t('dash.settings.custom_model_title')}</p>
               {localIsConfigured && (
                 <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-400 border border-emerald-500/30">
-                  Configured
+                  {t('dash.settings.configured')}
                 </span>
               )}
             </div>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              Point Ava at any model — local (Ollama, LM Studio, vLLM on your machine) or remote (private vLLM cluster,
-              self-hosted finetune, OpenRouter, Together, anything that speaks the OpenAI Chat Completions API).
-              Local servers stay on your machine; remote endpoints get whatever security your endpoint exposes.
-              Restart the chat panel after saving for changes to take effect.
+              {t('dash.settings.custom_model_desc')}
             </p>
           </div>
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div className="col-span-2">
-            <p className="mb-1 text-xs font-medium">Base URL</p>
+            <p className="mb-1 text-xs font-medium">{t('dash.settings.base_url')}</p>
             <input
               value={localBaseUrl}
               onChange={e => setLocalBaseUrl(e.target.value)}
@@ -701,7 +689,7 @@ export function Settings({
           </div>
 
           <div>
-            <p className="mb-1 text-xs font-medium">Model name</p>
+            <p className="mb-1 text-xs font-medium">{t('dash.settings.model_name')}</p>
             <input
               value={localModelName}
               onChange={e => setLocalModelName(e.target.value)}
@@ -710,31 +698,31 @@ export function Settings({
               className="w-full rounded-md border border-[var(--border-input)] bg-[var(--bg-input)] px-3 py-1.5 font-mono text-xs text-white placeholder-[var(--text-muted)] outline-none transition focus:border-[var(--accent)]"
             />
             <p className="mt-1 text-[10px] text-[var(--text-muted)]">
-              Exact id your server reports (e.g. <code className="text-white">ollama list</code>).
+              {t('dash.settings.model_name_hint')} <code className="text-white">ollama list</code>
             </p>
           </div>
 
           <div>
-            <p className="mb-1 text-xs font-medium">Display name <span className="text-[var(--text-muted)] font-normal">(optional)</span></p>
+            <p className="mb-1 text-xs font-medium">{t('dash.settings.display_name')} <span className="text-[var(--text-muted)] font-normal">{t('dash.settings.optional_paren')}</span></p>
             <input
               value={localModelLabel}
               onChange={e => setLocalModelLabel(e.target.value)}
-              placeholder="Defaults to the model name"
+              placeholder={t('dash.settings.display_name_placeholder')}
               spellCheck={false}
               className="w-full rounded-md border border-[var(--border-input)] bg-[var(--bg-input)] px-3 py-1.5 font-mono text-xs text-white placeholder-[var(--text-muted)] outline-none transition focus:border-[var(--accent)]"
             />
             <p className="mt-1 text-[10px] text-[var(--text-muted)]">
-              What you'll see in the chat model picker.
+              {t('dash.settings.display_name_hint')}
             </p>
           </div>
 
           <div className="col-span-2">
-            <p className="mb-1 text-xs font-medium">API key <span className="text-[var(--text-muted)] font-normal">(optional — leave empty for local servers)</span></p>
+            <p className="mb-1 text-xs font-medium">{t('dash.settings.api_key')} <span className="text-[var(--text-muted)] font-normal">{t('dash.settings.api_key_optional')}</span></p>
             <input
               type="password"
               value={localApiKey}
               onChange={e => setLocalApiKey(e.target.value)}
-              placeholder={localHasSavedKey ? '•••••••• (saved — re-enter to change)' : "Most local servers don't require one"}
+              placeholder={localHasSavedKey ? t('dash.settings.api_key_saved_placeholder') : t('dash.settings.api_key_empty_placeholder')}
               spellCheck={false}
               autoComplete="off"
               className="w-full rounded-md border border-[var(--border-input)] bg-[var(--bg-input)] px-3 py-1.5 font-mono text-xs text-white placeholder-[var(--text-muted)] outline-none transition focus:border-[var(--accent)]"
@@ -748,14 +736,14 @@ export function Settings({
             disabled={!localBaseUrl.trim() || !localModelName.trim()}
             className="rounded-md bg-[var(--accent)] px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {localSavedTick % 2 === 1 ? 'Saved ✓' : 'Save'}
+            {localSavedTick % 2 === 1 ? t('dash.settings.saved_check') : t('dash.settings.save')}
           </button>
           {localIsConfigured && (
             <button
               onClick={handleRemoveLocalModel}
               className="rounded-md border border-red-500/30 px-3 py-1.5 text-[11px] font-medium text-red-400 transition hover:bg-red-500/10"
             >
-              Remove
+              {t('dash.settings.remove')}
             </button>
           )}
           <span className="flex-1" />
@@ -765,7 +753,7 @@ export function Settings({
             rel="noreferrer"
             className="text-[10px] text-[var(--text-muted)] transition hover:text-[var(--text-secondary)]"
           >
-            Get Ollama →
+            {t('dash.settings.get_ollama')}
           </a>
         </div>
       </div>
@@ -955,9 +943,9 @@ export function Settings({
                 independent review. */}
             <div className="mt-5 flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold">Loop prevention</p>
+                <p className="text-sm font-semibold">{t('dash.settings.loop_prevention')}</p>
                 <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-                  Run typecheck/tests before declaring a turn done. If the same failure recurs three times in a row, an independent review fires (one extra LLM call). Off = faster turn-end, but build-broken edits may slip through.
+                  {t('dash.settings.loop_prevention_desc')}
                 </p>
               </div>
               <ToggleSwitch

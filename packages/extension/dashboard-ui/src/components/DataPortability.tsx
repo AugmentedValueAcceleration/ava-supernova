@@ -1,14 +1,18 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { post } from '../vscode';
+import { t, useLocale } from '../i18n';
 
+// Visual-only metadata \u2014 labels/descriptions are resolved through t() at the
+// render site (module consts evaluate once at import, so a live t() here would
+// freeze to English; nameKey/descKey are read against the live locale below).
 const DATA_TYPES = [
-  { id: 'memory', name: 'Memory', icon: '\uD83E\uDDE0', desc: 'Patterns, preferences, decisions' },
-  { id: 'tasks', name: 'Tasks', icon: '\u2705', desc: 'Your task list' },
-  { id: 'journal', name: 'Journal', icon: '\uD83D\uDCD3', desc: 'Daily reflections' },
-  { id: 'learning', name: 'Learning', icon: '\uD83C\uDF93', desc: 'Curriculums and progress' },
-  { id: 'history', name: 'Chat History', icon: '\uD83D\uDCAC', desc: 'Conversation archive' },
-  { id: 'settings', name: 'Settings', icon: '\u2699\uFE0F', desc: 'Preferences and config' },
-  { id: 'personality', name: 'Personality', icon: '\uD83C\uDFA8', desc: 'Your AI design' },
+  { id: 'memory', nameKey: 'dash.nav.memory', icon: '\uD83E\uDDE0', descKey: 'dash.portability.type.memory_desc' },
+  { id: 'tasks', nameKey: 'dash.nav.tasks', icon: '\u2705', descKey: 'dash.portability.type.tasks_desc' },
+  { id: 'journal', nameKey: 'dash.nav.journal', icon: '\uD83D\uDCD3', descKey: 'dash.portability.type.journal_desc' },
+  { id: 'learning', nameKey: 'dash.nav.learning', icon: '\uD83C\uDF93', descKey: 'dash.portability.type.learning_desc' },
+  { id: 'history', nameKey: 'dash.nav.chat_history', icon: '\uD83D\uDCAC', descKey: 'dash.portability.type.history_desc' },
+  { id: 'settings', nameKey: 'dash.nav.settings', icon: '\u2699\uFE0F', descKey: 'dash.portability.type.settings_desc' },
+  { id: 'personality', nameKey: 'dash.nav.personality', icon: '\uD83C\uDFA8', descKey: 'dash.portability.type.personality_desc' },
 ];
 
 interface DataPortabilityProps {
@@ -17,6 +21,7 @@ interface DataPortabilityProps {
 }
 
 export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
+  useLocale();
   const [tab, setTab] = useState<'export' | 'import'>('export');
   const [exportSelected, setExportSelected] = useState<Set<string>>(new Set());
   const [exporting, setExporting] = useState<string | null>(null);
@@ -54,7 +59,7 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
       }
       if (msg?.type === 'data_imported') {
         setImporting(false);
-        setImportResult(`Imported ${msg.count} entries into ${msg.dataType}`);
+        setImportResult(t('dash.portability.imported_result', { count: msg.count, dataType: msg.dataType }));
         setTimeout(() => setImportResult(null), 3000);
       }
       if (msg?.type === 'import_files_picked') {
@@ -149,9 +154,9 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
 
   if (!isOpen) return null;
 
-  const tabBtn = (t: 'export' | 'import') => ({
-    background: tab === t ? 'rgba(168,85,247,0.15)' : 'transparent',
-    color: tab === t ? '#a855f7' : 'var(--text-muted)',
+  const tabBtn = (which: 'export' | 'import') => ({
+    background: tab === which ? 'rgba(168,85,247,0.15)' : 'transparent',
+    color: tab === which ? '#a855f7' : 'var(--text-muted)',
     border: 'none', borderRadius: 6, padding: '6px 16px',
     fontSize: 12, fontWeight: 600 as const, cursor: 'pointer' as const,
   });
@@ -168,10 +173,10 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'rgba(168,85,247,0.1)' }}>
-        <span className="text-xs font-semibold" style={{ color: '#cdd6f4' }}>Data Portability</span>
+        <span className="text-xs font-semibold" style={{ color: '#cdd6f4' }}>{t('dash.portability.title')}</span>
         <div className="flex gap-1">
-          <button onClick={() => setTab('export')} style={tabBtn('export')}>Export</button>
-          <button onClick={() => setTab('import')} style={tabBtn('import')}>Import</button>
+          <button onClick={() => setTab('export')} style={tabBtn('export')}>{t('dash.portability.export')}</button>
+          <button onClick={() => setTab('import')} style={tabBtn('import')}>{t('dash.portability.import')}</button>
         </div>
       </div>
 
@@ -193,20 +198,20 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
             <div className="flex items-center gap-2">
               <span className="text-base">{'\u{1F4E6}'}</span>
               <div className="flex-1">
-                <div className="text-xs font-semibold" style={{ color: '#cdd6f4' }}>Download all my cloud data</div>
+                <div className="text-xs font-semibold" style={{ color: '#cdd6f4' }}>{t('dash.portability.download_all')}</div>
                 <div className="text-[10px] opacity-60" style={{ color: '#a6adc8' }}>
-                  Everything the platform holds — GDPR Article 20 right of portability.
+                  {t('dash.portability.download_all_desc')}
                 </div>
               </div>
             </div>
           </button>
           <div className="mb-3 px-1 text-[10px] opacity-50" style={{ color: '#6c7086' }}>
-            Or pick specific data types to export individually:
+            {t('dash.portability.pick_specific')}
           </div>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] uppercase tracking-wider opacity-40">Select data to export</span>
+            <span className="text-[10px] uppercase tracking-wider opacity-40">{t('dash.portability.select_data')}</span>
             <button onClick={selectAllExport} className="text-[10px] bg-transparent border-none cursor-pointer" style={{ color: '#a855f7' }}>
-              Select all
+              {t('dash.portability.select_all')}
             </button>
           </div>
           {DATA_TYPES.map(dt => {
@@ -217,15 +222,15 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
               >
                 <span className="text-sm">{dt.icon}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-medium" style={{ color: selected ? '#cdd6f4' : '#6c7086' }}>{dt.name}</div>
-                  <div className="text-[10px] opacity-40">{dt.desc}</div>
+                  <div className="text-xs font-medium" style={{ color: selected ? '#cdd6f4' : '#6c7086' }}>{t(dt.nameKey)}</div>
+                  <div className="text-[10px] opacity-40">{t(dt.descKey)}</div>
                 </div>
                 {/* Quick export single */}
                 <button
                   onClick={(e) => { e.stopPropagation(); handleExportSingle(dt.id); }}
                   className="text-[10px] px-2 py-1 rounded bg-transparent border-none cursor-pointer opacity-0 group-hover:opacity-100 hover:bg-white/[0.06]"
                   style={{ color: '#a855f7' }}
-                  title={`Export ${dt.name}`}
+                  title={t('dash.portability.export_one', { name: t(dt.nameKey) })}
                 >
                   <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
                     <path d="M8 1v10.293L4.854 8.146l-.708.708L8 12.707l3.854-3.853-.708-.708L8 11.293V1H8zM2 14h12v1H2v-1z"/>
@@ -250,7 +255,7 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
               className="w-full mt-3 py-2 rounded-lg text-xs font-medium text-white border-none cursor-pointer"
               style={{ background: exporting ? '#6c7086' : 'linear-gradient(135deg, #a855f7, #7c3aed)' }}
             >
-              {exporting ? 'Exporting...' : `Export ${exportSelected.size} selected`}
+              {exporting ? t('dash.portability.exporting') : t('dash.portability.export_n_selected', { n: exportSelected.size })}
             </button>
           )}
         </div>
@@ -271,20 +276,20 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
             <svg width="24" height="24" viewBox="0 0 16 16" fill="#a855f7" opacity={0.4}>
               <path d="M8 1L4.146 4.854l.708.708L7.5 2.914V11h1V2.914l2.646 2.648.708-.708L8 1zM2 14h12v1H2v-1z"/>
             </svg>
-            <span className="text-xs opacity-40">Click to select files</span>
-            <span className="text-[10px] opacity-25">Accepts multiple JSON files at once</span>
+            <span className="text-xs opacity-40">{t('dash.portability.click_select')}</span>
+            <span className="text-[10px] opacity-25">{t('dash.portability.accepts_json')}</span>
           </div>
 
           {/* Detected files */}
           {importFiles.length > 0 && (
             <div className="mt-3 space-y-1">
-              <span className="text-[10px] uppercase tracking-wider opacity-40">Detected files</span>
+              <span className="text-[10px] uppercase tracking-wider opacity-40">{t('dash.portability.detected_files')}</span>
               {importFiles.map((file, i) => (
                 <div key={i} className="flex items-center gap-2 px-2 py-2 rounded-lg" style={{ background: 'rgba(168,85,247,0.05)' }}>
                   <span className="text-sm">{dataTypeIcon(file.dataType)}</span>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-medium truncate" style={{ color: file.dataType !== 'unknown' ? '#cdd6f4' : '#ef4444' }}>
-                      {file.dataType !== 'unknown' ? DATA_TYPES.find(d => d.id === file.dataType)?.name || file.dataType : 'Unknown format'}
+                      {file.dataType !== 'unknown' ? (() => { const dt = DATA_TYPES.find(d => d.id === file.dataType); return dt ? t(dt.nameKey) : file.dataType; })() : t('dash.portability.unknown_format')}
                     </div>
                     <div className="text-[10px] opacity-40">{file.name} ({fmtSize(file.size)})</div>
                   </div>
@@ -299,7 +304,7 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
                 className="w-full mt-2 py-2 rounded-lg text-xs font-medium text-white border-none cursor-pointer"
                 style={{ background: importing ? '#6c7086' : 'linear-gradient(135deg, #a855f7, #7c3aed)' }}
               >
-                {importing ? 'Importing...' : `Import ${importFiles.filter(f => f.dataType !== 'unknown').length} files`}
+                {importing ? t('dash.portability.importing') : t('dash.portability.import_n_files', { n: importFiles.filter(f => f.dataType !== 'unknown').length })}
               </button>
             </div>
           )}
@@ -315,7 +320,7 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
 
       {/* Footer */}
       <div className="px-4 py-2 text-[10px] opacity-30 border-t" style={{ borderColor: 'rgba(168,85,247,0.08)' }}>
-        Your data. Your choice. No cloud required.
+        {t('dash.portability.footer')}
       </div>
     </div>
   );

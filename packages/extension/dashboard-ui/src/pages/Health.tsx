@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import { HealthSubmissionModal } from './HealthSubmissionModal';
 import { HealthMySubmissions } from './HealthMySubmissions';
@@ -27,19 +28,12 @@ import type {
  * separate design for that surface.
  */
 
-const WORKOUT_TYPE_LABEL: Record<HealthWorkoutType, string> = {
-  strength: 'Strength',
-  hypertrophy: 'Hypertrophy',
-  conditioning: 'Conditioning',
-  mobility: 'Mobility',
-  hybrid: 'Hybrid',
-  yoga: 'Yoga',
-  pilates: 'Pilates',
-  running: 'Running',
-  cycling: 'Cycling',
-  recovery: 'Recovery',
-  hiit: 'HIIT',
-};
+// Discipline / course labels are resolved through t() at render (module
+// consts evaluate once at import, so a t() call here would freeze to
+// English; the helpers below read the live locale instead). The slugs
+// themselves are catalogue taxonomy and stay as data.
+const workoutTypeLabel = (type: HealthWorkoutType): string => t(`health.browse.workout.${type}`);
+const exerciseTypeLabel = (type: string): string => t(`health.submit.ex_type.${type}`);
 
 const WORKOUT_TYPE_ORDER: HealthWorkoutType[] = [
   'strength', 'hypertrophy', 'conditioning', 'hiit',
@@ -68,14 +62,7 @@ const WORKOUT_TYPE_ACCENT: Record<HealthWorkoutType, string> = {
 };
 
 const COURSE_ORDER = ['breakfast', 'main', 'starter', 'side', 'snack', 'dessert'] as const;
-const COURSE_LABEL: Record<string, string> = {
-  breakfast: 'Breakfast',
-  main: 'Mains',
-  starter: 'Starters',
-  side: 'Sides',
-  snack: 'Snacks',
-  dessert: 'Desserts',
-};
+const courseLabel = (course: string): string => t(`health.browse.course.${course}`);
 
 type Tab = 'exercises' | 'recipes' | 'mine' | 'profile';
 
@@ -171,6 +158,7 @@ export function Health({
   initialTab,
   onConsumeInitialTab,
 }: Props) {
+  useLocale();
   const [tab, setTab] = useState<Tab>(() => initialTab ?? 'exercises');
   const [exerciseFilter, setExerciseFilter] = useState<'all' | HealthWorkoutType>('all');
   const [recipeFilter, setRecipeFilter] = useState<'all' | string>('all');
@@ -243,7 +231,7 @@ export function Health({
   // empty-string initial mount; the duplicate empty-q load is harmless
   // because the seq logic in App.tsx drops stale responses.
   useEffect(() => {
-    const t = window.setTimeout(() => {
+    const timer = window.setTimeout(() => {
       console.log('[health] search exercises q=', JSON.stringify(exerciseSearch));
       onLoadExercises(
         PAGE_SIZE, 0,
@@ -251,11 +239,11 @@ export function Health({
         exerciseSearch.trim() || undefined,
       );
     }, 300);
-    return () => window.clearTimeout(t);
+    return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exerciseSearch]);
   useEffect(() => {
-    const t = window.setTimeout(() => {
+    const timer = window.setTimeout(() => {
       console.log('[health] search recipes q=', JSON.stringify(recipeSearch));
       onLoadRecipes(
         PAGE_SIZE, 0,
@@ -263,7 +251,7 @@ export function Health({
         recipeSearch.trim() || undefined,
       );
     }, 300);
-    return () => window.clearTimeout(t);
+    return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recipeSearch]);
 
@@ -299,15 +287,15 @@ export function Health({
       <div className="border-b border-vscode-panelBorder px-6 py-5">
         <div className="flex items-baseline justify-between gap-3">
           <div>
-            <h1 className="text-[22px] font-light text-vscode-foreground">Health &amp; Nutrition</h1>
+            <h1 className="text-[22px] font-light text-vscode-foreground">{t('health.browse.title')}</h1>
             <p className="mt-1 text-[12px] text-vscode-descriptionForeground">
-              {exercisesError ? '—' : exercisesTotal} exercises · {recipesError ? '—' : recipesTotal} recipes · free, open library ·{' '}
+              {t('health.browse.summary', { exercises: exercisesError ? '—' : exercisesTotal, recipes: recipesError ? '—' : recipesTotal })}{' · '}
               <button
                 type="button"
                 onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/health/safety' })}
                 className="cursor-pointer border-none bg-transparent p-0 text-vscode-descriptionForeground underline decoration-dotted underline-offset-2 transition hover:text-vscode-foreground"
               >
-                informational only — read safety policy
+                {t('health.browse.safety_link')}
               </button>
             </p>
           </div>
@@ -316,29 +304,29 @@ export function Health({
             onClick={openSubmissionModal}
             className="shrink-0 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer"
           >
-            + Contribute
+            {t('health.browse.contribute')}
           </button>
         </div>
 
         {/* Top tabs — canonical dashboard style (border-b-2 + --accent var,
             matches Settings/Planner/History/Overview). */}
         <div className="mt-5 flex items-end gap-0.5 border-b border-[var(--border)]">
-          {(['exercises', 'recipes', 'mine', 'profile'] as Tab[]).map((t) => {
-            const isActive = tab === t;
+          {(['exercises', 'recipes', 'mine', 'profile'] as Tab[]).map((tabKey) => {
+            const isActive = tab === tabKey;
             const count =
-              t === 'exercises' ? exercisesTotal :
-              t === 'recipes' ? recipesTotal :
-              t === 'mine' ? mySubmissions.exercises.length + mySubmissions.recipes.length :
+              tabKey === 'exercises' ? exercisesTotal :
+              tabKey === 'recipes' ? recipesTotal :
+              tabKey === 'mine' ? mySubmissions.exercises.length + mySubmissions.recipes.length :
               0; // profile tab has no count
             const label =
-              t === 'exercises' ? 'Exercises' :
-              t === 'recipes' ? 'Recipes' :
-              t === 'mine' ? 'My submissions' :
-              'Profile';
+              tabKey === 'exercises' ? t('health.browse.tab.exercises') :
+              tabKey === 'recipes' ? t('health.browse.tab.recipes') :
+              tabKey === 'mine' ? t('health.browse.tab.mine') :
+              t('health.browse.tab.profile');
             return (
               <button
-                key={t}
-                onClick={() => setTab(t)}
+                key={tabKey}
+                onClick={() => setTab(tabKey)}
                 className={`-mb-px border-b-2 border-x-0 border-t-0 bg-transparent px-4 py-2 text-xs transition cursor-pointer ${
                   isActive
                     ? 'border-[var(--accent)] text-[var(--accent)] font-semibold'
@@ -455,16 +443,16 @@ export function Health({
 function HealthLoadError({ noun, onRetry }: { noun: string; onRetry: () => void }) {
   return (
     <div className="flex flex-col items-center gap-2 py-10 text-center">
-      <div className="text-[13px] text-vscode-foreground">Couldn&apos;t load {noun}.</div>
+      <div className="text-[13px] text-vscode-foreground">{t('health.browse.load_error', { noun })}</div>
       <div className="max-w-[280px] text-[11px] leading-relaxed text-vscode-descriptionForeground">
-        The connection to the library failed — your data is safe, this is a network hiccup.
+        {t('health.browse.load_error_hint')}
       </div>
       <button
         type="button"
         onClick={onRetry}
         className="mt-1 cursor-pointer rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] transition hover:bg-[var(--accent)]/20"
       >
-        Retry
+        {t('health.browse.retry')}
       </button>
     </div>
   );
@@ -504,27 +492,27 @@ function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading
           <SearchInput
             value={search}
             onChange={onSearch}
-            placeholder="Search exercises — name, e.g. 'squat'"
+            placeholder={t('health.browse.search_exercises_placeholder')}
             loading={loading && search.length > 0}
           />
         </div>
         <RefreshButton onClick={onRefresh} loading={loading && search.length === 0} />
       </div>
       <FilterRow>
-        <FilterChip active={filter === 'all'} onClick={() => onFilter('all')}>All</FilterChip>
-        {WORKOUT_TYPE_ORDER.map((t) => (
-          <FilterChip key={t} active={filter === t} onClick={() => onFilter(t)}>
-            {WORKOUT_TYPE_LABEL[t]}
+        <FilterChip active={filter === 'all'} onClick={() => onFilter('all')}>{t('health.browse.filter.all')}</FilterChip>
+        {WORKOUT_TYPE_ORDER.map((wt) => (
+          <FilterChip key={wt} active={filter === wt} onClick={() => onFilter(wt)}>
+            {workoutTypeLabel(wt)}
           </FilterChip>
         ))}
       </FilterRow>
 
       {items.length === 0 ? (
         error ? (
-          <HealthLoadError noun="exercises" onRetry={onRefresh} />
+          <HealthLoadError noun={t('health.browse.noun.exercises')} onRetry={onRefresh} />
         ) : (
           <div className="py-8 text-center text-[12px] text-vscode-descriptionForeground">
-            {search ? `No exercises match "${search}".` : 'No exercises match.'}
+            {search ? t('health.browse.no_exercises_match_q', { q: search }) : t('health.browse.no_exercises_match')}
           </div>
         )
       ) : (
@@ -572,14 +560,14 @@ function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading
                           className="mb-1 text-[9px] font-medium uppercase tracking-[0.2em]"
                           style={{ color: accent }}
                         >
-                          {WORKOUT_TYPE_LABEL[ex.workout_type]}
+                          {workoutTypeLabel(ex.workout_type)}
                         </div>
                         <h3 className="text-[13px] font-light leading-tight text-white">{ex.name}</h3>
                       </div>
                     </div>
                     <div className="flex items-center justify-between px-3 py-2.5">
                       <Dots value={ex.difficulty} accent={accent} />
-                      <span className="text-[10px] capitalize text-vscode-descriptionForeground">{ex.exercise_type}</span>
+                      <span className="text-[10px] capitalize text-vscode-descriptionForeground">{exerciseTypeLabel(ex.exercise_type)}</span>
                     </div>
                   </button>
                 </li>
@@ -627,27 +615,27 @@ function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, 
           <SearchInput
             value={search}
             onChange={onSearch}
-            placeholder="Search recipes — name, e.g. 'chicken'"
+            placeholder={t('health.browse.search_recipes_placeholder')}
             loading={loading && search.length > 0}
           />
         </div>
         <RefreshButton onClick={onRefresh} loading={loading && search.length === 0} />
       </div>
       <FilterRow>
-        <FilterChip active={filter === 'all'} onClick={() => onFilter('all')}>All</FilterChip>
+        <FilterChip active={filter === 'all'} onClick={() => onFilter('all')}>{t('health.browse.filter.all')}</FilterChip>
         {COURSE_ORDER.map((c) => (
           <FilterChip key={c} active={filter === c} onClick={() => onFilter(c)}>
-            {COURSE_LABEL[c]}
+            {courseLabel(c)}
           </FilterChip>
         ))}
       </FilterRow>
 
       {items.length === 0 ? (
         error ? (
-          <HealthLoadError noun="recipes" onRetry={onRefresh} />
+          <HealthLoadError noun={t('health.browse.noun.recipes')} onRetry={onRefresh} />
         ) : (
           <div className="py-8 text-center text-[12px] text-vscode-descriptionForeground">
-            {search ? `No recipes match "${search}".` : 'No recipes match.'}
+            {search ? t('health.browse.no_recipes_match_q', { q: search }) : t('health.browse.no_recipes_match')}
           </div>
         )
       ) : (
@@ -715,11 +703,11 @@ function Pagination({
         disabled={atStart || loading}
         className="rounded border border-vscode-panelBorder px-3 py-1.5 transition hover:border-vscode-focusBorder hover:text-vscode-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-vscode-panelBorder disabled:hover:text-vscode-descriptionForeground"
       >
-        ← Prev
+        ← {t('health.browse.prev')}
       </button>
       <span className="uppercase tracking-wider">
-        Page {currentPage} of {totalPages}
-        {loading && <span className="ml-2 opacity-60">· loading…</span>}
+        {t('health.browse.page_of', { current: currentPage, total: totalPages })}
+        {loading && <span className="ml-2 opacity-60">· {t('health.browse.loading')}</span>}
       </span>
       <button
         type="button"
@@ -727,7 +715,7 @@ function Pagination({
         disabled={atEnd || loading}
         className="rounded border border-vscode-panelBorder px-3 py-1.5 transition hover:border-vscode-focusBorder hover:text-vscode-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-vscode-panelBorder disabled:hover:text-vscode-descriptionForeground"
       >
-        Next →
+        {t('health.browse.next')} →
       </button>
     </div>
   );
@@ -755,7 +743,7 @@ function ModalShell({ onClose, children }: { onClose: () => void; children: Reac
       >
         <button
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t('health.browse.close')}
           className="absolute top-3 right-3 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-none bg-black/40 text-lg text-white transition hover:bg-black/60"
         >
           ×
@@ -775,8 +763,8 @@ function ExerciseDetailModal({
       <div className="p-6 sm:p-8">
         {!ready && (
           loading
-            ? <LoadingCard label="Loading exercise…" />
-            : <div className="py-16 text-center text-[12px] text-vscode-descriptionForeground">Failed to load.</div>
+            ? <LoadingCard label={t('health.browse.loading_exercise')} />
+            : <div className="py-16 text-center text-[12px] text-vscode-descriptionForeground">{t('health.browse.failed_to_load')}</div>
         )}
         {ready && <ExerciseDetailBody ex={detail!} />}
       </div>
@@ -789,11 +777,11 @@ function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
   const primaries = ex.muscles.filter((m) => m.role === 'primary');
   const secondaries = ex.muscles.filter((m) => m.role === 'secondary');
   const routineEntries: Array<[string, string]> = [];
-  if (ex.routine.sets != null) routineEntries.push(['Sets', String(ex.routine.sets)]);
-  if (ex.routine.reps_target) routineEntries.push(['Reps', ex.routine.reps_target]);
-  if (ex.routine.rest_seconds != null) routineEntries.push(['Rest', `${ex.routine.rest_seconds}s`]);
-  if (ex.routine.tempo) routineEntries.push(['Tempo', ex.routine.tempo]);
-  if (ex.routine.frequency_per_week) routineEntries.push(['Freq.', ex.routine.frequency_per_week]);
+  if (ex.routine.sets != null) routineEntries.push([t('health.browse.routine.sets'), String(ex.routine.sets)]);
+  if (ex.routine.reps_target) routineEntries.push([t('health.browse.routine.reps'), ex.routine.reps_target]);
+  if (ex.routine.rest_seconds != null) routineEntries.push([t('health.browse.routine.rest'), `${ex.routine.rest_seconds}s`]);
+  if (ex.routine.tempo) routineEntries.push([t('health.browse.routine.tempo'), ex.routine.tempo]);
+  if (ex.routine.frequency_per_week) routineEntries.push([t('health.browse.routine.freq'), ex.routine.frequency_per_week]);
 
   return (
     <div className="space-y-6">
@@ -803,15 +791,15 @@ function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
           className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em]"
           style={{ color: accent }}
         >
-          {WORKOUT_TYPE_LABEL[ex.workout_type]}
+          {workoutTypeLabel(ex.workout_type)}
         </div>
         <h2 className="text-[22px] font-light leading-tight text-vscode-foreground">{ex.name}</h2>
         <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-vscode-descriptionForeground">
           <span className="rounded-md bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 capitalize">
-            {ex.exercise_type}
+            {exerciseTypeLabel(ex.exercise_type)}
           </span>
           <Dots value={ex.difficulty} accent={accent} />
-          <span>Difficulty {ex.difficulty}/5</span>
+          <span>{t('health.browse.difficulty_n', { n: ex.difficulty })}</span>
         </div>
       </header>
 
@@ -821,7 +809,7 @@ function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
 
       {ex.steps.length > 0 && (
         <section>
-          <h3 className="mb-3 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">How to do it</h3>
+          <h3 className="mb-3 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.how_to_do_it')}</h3>
           <ol className="space-y-2">
             {ex.steps.map((step, i) => (
               <li key={i} className="flex gap-3 rounded-md border border-vscode-panelBorder/60 px-3 py-2.5">
@@ -840,7 +828,7 @@ function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
 
       {routineEntries.length > 0 && (
         <section>
-          <h3 className="mb-3 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">How to use it</h3>
+          <h3 className="mb-3 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.how_to_use_it')}</h3>
           <div className="rounded-lg border border-vscode-panelBorder/60 p-4">
             <dl className="grid grid-cols-3 gap-x-5 gap-y-3 sm:grid-cols-5">
               {routineEntries.map(([label, value]) => (
@@ -861,7 +849,7 @@ function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
 
       {ex.beginner_detail && (
         <section>
-          <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">If you&apos;re new to this</h3>
+          <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.if_youre_new')}</h3>
           <div className="rounded-lg border border-vscode-panelBorder/60 px-4 py-3">
             <p className="text-[13px] leading-relaxed text-vscode-foreground/85">{ex.beginner_detail}</p>
           </div>
@@ -870,7 +858,7 @@ function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
 
       {ex.common_mistakes && (
         <section>
-          <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">Common mistakes</h3>
+          <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.common_mistakes')}</h3>
           <div className="rounded-lg border border-vscode-panelBorder/60 px-4 py-3">
             <p className="text-[13px] leading-relaxed text-vscode-foreground/85">{ex.common_mistakes}</p>
           </div>
@@ -881,7 +869,7 @@ function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
         <section className="grid gap-4 sm:grid-cols-2">
           {(primaries.length > 0 || secondaries.length > 0) && (
             <div>
-              <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">Muscles</h3>
+              <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.muscles')}</h3>
               <div className="flex flex-wrap gap-1">
                 {primaries.map((m) => (
                   <span
@@ -902,7 +890,7 @@ function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
           )}
           {ex.equipment.length > 0 && (
             <div>
-              <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">Equipment</h3>
+              <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.equipment')}</h3>
               <div className="flex flex-wrap gap-1">
                 {ex.equipment.map((e) => (
                   <span key={e.slug} className="rounded bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 text-[10px] capitalize text-vscode-descriptionForeground">
@@ -927,8 +915,8 @@ function RecipeDetailModal({
       {!ready && (
         <div className="p-6 sm:p-8">
           {loading
-            ? <LoadingCard label="Loading recipe…" />
-            : <div className="py-12 text-center text-[12px] text-vscode-descriptionForeground">Failed to load.</div>}
+            ? <LoadingCard label={t('health.browse.loading_recipe')} />
+            : <div className="py-12 text-center text-[12px] text-vscode-descriptionForeground">{t('health.browse.failed_to_load')}</div>}
         </div>
       )}
       {ready && <RecipeDetailBody r={detail!} />}
@@ -962,7 +950,7 @@ function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
               <span className="rounded-md bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 text-vscode-descriptionForeground">{r.origin_country}</span>
             )}
             {r.course && (
-              <span className="rounded-md bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 capitalize text-vscode-descriptionForeground">{r.course}</span>
+              <span className="rounded-md bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 capitalize text-vscode-descriptionForeground">{courseLabel(r.course)}</span>
             )}
           </div>
         </header>
@@ -973,7 +961,7 @@ function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
 
         {r.ingredients.length > 0 && (
           <section>
-            <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">Ingredients</h3>
+            <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.ingredients')}</h3>
             <ul className="grid gap-1.5 rounded-lg border border-vscode-panelBorder/60 p-4 sm:grid-cols-2">
               {r.ingredients.map((ing, i) => (
                 <li key={i} className="flex gap-2 text-[13px]">
@@ -982,7 +970,7 @@ function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
                   </span>
                   <span className="text-vscode-foreground/95">
                     {ing.name}
-                    {ing.optional && <span className="ml-1 text-vscode-descriptionForeground">(opt.)</span>}
+                    {ing.optional && <span className="ml-1 text-vscode-descriptionForeground">{t('health.browse.opt')}</span>}
                   </span>
                 </li>
               ))}
@@ -993,7 +981,7 @@ function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
         {r.versions.length > 0 && (
           <section>
             <div className="mb-3 flex items-center gap-3">
-              <h3 className="text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">Method</h3>
+              <h3 className="text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.method')}</h3>
               <div className="flex gap-1">
                 {(['beginner', 'intermediate', 'expert'] as const).map((l) => {
                   const has = r.versions.some((vv) => vv.level === l);
@@ -1010,7 +998,7 @@ function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
                           : 'text-vscode-descriptionForeground hover:text-vscode-foreground'
                       }`}
                     >
-                      {l}
+                      {t(`health.browse.level.${l}`)}
                     </button>
                   );
                 })}
@@ -1021,16 +1009,16 @@ function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
             {v && (
               <div className="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[11px] text-vscode-descriptionForeground">
                 {v.prep_time_minutes != null && (
-                  <span><span className="opacity-60">Prep</span> {v.prep_time_minutes}m</span>
+                  <span><span className="opacity-60">{t('health.browse.prep')}</span> {v.prep_time_minutes}m</span>
                 )}
                 {v.cook_time_minutes != null && (
-                  <span><span className="opacity-60">Cook</span> {v.cook_time_minutes}m</span>
+                  <span><span className="opacity-60">{t('health.browse.cook')}</span> {v.cook_time_minutes}m</span>
                 )}
                 {v.total_time_minutes != null && (
-                  <span><span className="opacity-60">Total</span> {v.total_time_minutes}m</span>
+                  <span><span className="opacity-60">{t('health.browse.total')}</span> {v.total_time_minutes}m</span>
                 )}
                 {v.default_servings != null && (
-                  <span><span className="opacity-60">Serves</span> {v.default_servings}</span>
+                  <span><span className="opacity-60">{t('health.browse.serves')}</span> {v.default_servings}</span>
                 )}
               </div>
             )}
@@ -1044,12 +1032,12 @@ function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
                 fetch it and the display didn't render it. */}
             {v && v.equipment && v.equipment.length > 0 && (
               <div className="mb-4">
-                <h4 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">Equipment</h4>
+                <h4 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.equipment')}</h4>
                 <ul className="grid gap-1.5 rounded-lg border border-vscode-panelBorder/60 p-4 sm:grid-cols-2">
                   {v.equipment.map((e, i) => (
                     <li key={i} className="flex items-baseline gap-2 text-[13px]">
                       <span className="text-vscode-foreground/95">{e.name}</span>
-                      {e.optional && <span className="text-[10px] text-vscode-descriptionForeground">optional</span>}
+                      {e.optional && <span className="text-[10px] text-vscode-descriptionForeground">{t('health.browse.optional')}</span>}
                       {e.notes && <span className="text-[11px] italic text-vscode-descriptionForeground">— {e.notes}</span>}
                     </li>
                   ))}
@@ -1085,7 +1073,7 @@ function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
                       <p className="text-vscode-foreground/95">
                         {s.action}
                         {s.tricky_flag && (
-                          <span className="ml-2 align-middle rounded-sm bg-amber-400/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-amber-300">tricky</span>
+                          <span className="ml-2 align-middle rounded-sm bg-amber-400/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-amber-300">{t('health.browse.tricky')}</span>
                         )}
                       </p>
                       {s.technique_term && (
@@ -1143,7 +1131,7 @@ function SubmissionStatusBadge({ status }: { status: HealthSubmissionStatus }) {
   // pending / rejected submission. Operator-curated rows + other people's
   // submissions never carry status from the auth-aware list endpoint, so
   // this never renders for them.
-  const label = status === 'pending' ? 'Pending review' : status === 'rejected' ? 'Rejected' : status;
+  const label = status === 'pending' ? t('health.browse.status.pending') : status === 'rejected' ? t('health.browse.status.rejected') : status;
   const colour = status === 'rejected'
     ? { bg: 'rgba(243,139,168,0.20)', border: 'rgba(243,139,168,0.45)', fg: '#f38ba8' }
     : { bg: 'rgba(249,226,175,0.20)', border: 'rgba(249,226,175,0.45)', fg: '#f9e2af' };
@@ -1163,8 +1151,8 @@ function RefreshButton({ onClick, loading }: { onClick: () => void; loading: boo
       type="button"
       onClick={onClick}
       disabled={loading}
-      aria-label="Refresh"
-      title="Refresh"
+      aria-label={t('health.browse.refresh')}
+      title={t('health.browse.refresh')}
       className="shrink-0 mb-3 inline-flex h-[34px] items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-input)] px-3 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--accent)]/50 transition cursor-pointer disabled:opacity-50 disabled:cursor-wait"
     >
       <svg
@@ -1174,7 +1162,7 @@ function RefreshButton({ onClick, loading }: { onClick: () => void; loading: boo
         <path d="M21 12a9 9 0 1 1-3-6.7" />
         <path d="M21 3v6h-6" />
       </svg>
-      {loading ? 'Refreshing' : 'Refresh'}
+      {loading ? t('health.browse.refreshing') : t('health.browse.refresh')}
     </button>
   );
 }
@@ -1202,7 +1190,7 @@ function SearchInput({
       {value && !loading && (
         <button
           type="button"
-          aria-label="Clear search"
+          aria-label={t('health.browse.clear_search')}
           onClick={() => onChange('')}
           className="absolute right-2.5 top-1/2 -translate-y-1/2 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border-none bg-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
         >
@@ -1242,7 +1230,7 @@ function FilterChip({
 function Dots({ value, accent }: { value: number; accent?: string }) {
   const on = accent || 'var(--vscode-textLink-foreground)';
   return (
-    <span className="inline-flex shrink-0 gap-[3px]" aria-label={`Difficulty ${value} of 5`}>
+    <span className="inline-flex shrink-0 gap-[3px]" aria-label={t('health.browse.difficulty_of_5', { n: value })}>
       {[1, 2, 3, 4, 5].map((n) => (
         <span
           key={n}

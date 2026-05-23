@@ -883,6 +883,7 @@ export class DashboardPanel {
         const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
         if (msg.workoutType) params.set('workout_type', msg.workoutType);
         if (msg.q && msg.q.trim()) params.set('q', msg.q.trim());
+        if (msg.locale && msg.locale !== 'en') params.set('locale', msg.locale);
         try {
           // Route through apiFetch so auth (when signed in) + X-Ava-Device
           // (always) flow automatically. The server's auth-aware list path
@@ -929,6 +930,7 @@ export class DashboardPanel {
         const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
         if (msg.course) params.set('course', msg.course);
         if (msg.q && msg.q.trim()) params.set('q', msg.q.trim());
+        if (msg.locale && msg.locale !== 'en') params.set('locale', msg.locale);
         try {
           this.log(`[health-perf] HOST recv load_health_recipes seq=${seq} at ${t0}`);
           const tKey = Date.now();
@@ -974,7 +976,8 @@ export class DashboardPanel {
           // own pending submission.
           const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
           this.log(`[health] load exercise detail slug=${msg.slug} (auth=${platformKey ? 'user' : 'anonymous'})`);
-          const res = await apiFetch(`/health/exercises/${encodeURIComponent(msg.slug)}`, {
+          const exDetailQs = msg.locale && msg.locale !== 'en' ? `?locale=${encodeURIComponent(msg.locale)}` : '';
+          const res = await apiFetch(`/health/exercises/${encodeURIComponent(msg.slug)}${exDetailQs}`, {
             platformKey,
             method: 'GET',
             timeoutMs: 8000,
@@ -996,7 +999,8 @@ export class DashboardPanel {
         try {
           const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
           this.log(`[health] load recipe detail slug=${msg.slug} (auth=${platformKey ? 'user' : 'anonymous'})`);
-          const res = await apiFetch(`/health/recipes/${encodeURIComponent(msg.slug)}`, {
+          const recDetailQs = msg.locale && msg.locale !== 'en' ? `?locale=${encodeURIComponent(msg.locale)}` : '';
+          const res = await apiFetch(`/health/recipes/${encodeURIComponent(msg.slug)}${recDetailQs}`, {
             platformKey,
             method: 'GET',
             timeoutMs: 8000,

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react';
-import { useLocale } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { AccountInfo } from '../types/messages';
 import {
@@ -45,16 +45,16 @@ const VALID_MODES = ['images', 'audio', 'voice', 'video'] as const;
 type Mode = typeof VALID_MODES[number];
 
 const VOICES = [
-  { id: 'Calm_Woman', label: 'Calm Woman' },
-  { id: 'Wise_Woman', label: 'Wise Woman' },
-  { id: 'Friendly_Person', label: 'Friendly' },
-  { id: 'Inspirational_girl', label: 'Inspirational' },
-  { id: 'Deep_Voice_Man', label: 'Deep Voice' },
-  { id: 'Calm_Man', label: 'Calm Man' },
-  { id: 'Newsman', label: 'Newscaster' },
-  { id: 'Lively_Girl', label: 'Lively' },
-  { id: 'Patient_Man', label: 'Patient' },
-  { id: 'Determined_Man', label: 'Determined' },
+  { id: 'Calm_Woman', labelKey: 'dash.creative.voice_calm_woman' },
+  { id: 'Wise_Woman', labelKey: 'dash.creative.voice_wise_woman' },
+  { id: 'Friendly_Person', labelKey: 'dash.creative.voice_friendly' },
+  { id: 'Inspirational_girl', labelKey: 'dash.creative.voice_inspirational' },
+  { id: 'Deep_Voice_Man', labelKey: 'dash.creative.voice_deep' },
+  { id: 'Calm_Man', labelKey: 'dash.creative.voice_calm_man' },
+  { id: 'Newsman', labelKey: 'dash.creative.voice_newscaster' },
+  { id: 'Lively_Girl', labelKey: 'dash.creative.voice_lively' },
+  { id: 'Patient_Man', labelKey: 'dash.creative.voice_patient' },
+  { id: 'Determined_Man', labelKey: 'dash.creative.voice_determined' },
 ];
 
 /* ── Preset registries ─────────────────────────────────────────────────
@@ -67,48 +67,48 @@ const VOICES = [
  * to nudge, not over-specify. Anything longer than one sentence per
  * preset is over-engineering. */
 
-const IMAGE_STYLES: { id: string; label: string; suffix: string }[] = [
-  { id: 'auto',         label: 'Auto',         suffix: '' },
-  { id: 'cinematic',    label: 'Cinematic',    suffix: ', cinematic lighting, anamorphic lens, film grain, professional colour grade' },
-  { id: 'photoreal',    label: 'Photoreal',    suffix: ', photorealistic, 50mm lens, natural lighting, sharp focus, high detail' },
-  { id: 'illustration', label: 'Illustration', suffix: ', digital illustration, vibrant colours, clean linework, painterly shading' },
-  { id: 'anime',        label: 'Anime',        suffix: ', anime style, expressive features, soft pastels, detailed background' },
-  { id: 'watercolour',  label: 'Watercolour',  suffix: ', watercolour painting, soft edges, paper texture, washed pigments' },
-  { id: 'graphic',      label: 'Graphic',      suffix: ', vector art, flat colours, bold shapes, modern poster aesthetic' },
+const IMAGE_STYLES: { id: string; labelKey: string; suffix: string }[] = [
+  { id: 'auto',         labelKey: 'dash.creative.style_auto',         suffix: '' },
+  { id: 'cinematic',    labelKey: 'dash.creative.style_cinematic',    suffix: ', cinematic lighting, anamorphic lens, film grain, professional colour grade' },
+  { id: 'photoreal',    labelKey: 'dash.creative.style_photoreal',    suffix: ', photorealistic, 50mm lens, natural lighting, sharp focus, high detail' },
+  { id: 'illustration', labelKey: 'dash.creative.style_illustration', suffix: ', digital illustration, vibrant colours, clean linework, painterly shading' },
+  { id: 'anime',        labelKey: 'dash.creative.style_anime',        suffix: ', anime style, expressive features, soft pastels, detailed background' },
+  { id: 'watercolour',  labelKey: 'dash.creative.style_watercolour',  suffix: ', watercolour painting, soft edges, paper texture, washed pigments' },
+  { id: 'graphic',      labelKey: 'dash.creative.style_graphic',      suffix: ', vector art, flat colours, bold shapes, modern poster aesthetic' },
 ];
 
-const MUSIC_MOODS: { id: string; label: string; suffix: string }[] = [
-  { id: 'auto',       label: 'Auto',       suffix: '' },
-  { id: 'cinematic',  label: 'Cinematic',  suffix: ', cinematic orchestral score, sweeping strings, epic build' },
-  { id: 'lofi',       label: 'Lo-fi',      suffix: ', lo-fi hip hop, mellow drums, vinyl crackle, warm bass' },
-  { id: 'synthwave',  label: 'Synthwave',  suffix: ', 80s synthwave, analogue synths, gated reverb drums, neon mood' },
-  { id: 'orchestral', label: 'Orchestral', suffix: ', full orchestral arrangement, lush strings, brass, timpani' },
-  { id: 'ambient',    label: 'Ambient',    suffix: ', ambient pads, drones, ethereal textures, no percussion' },
-  { id: 'trailer',    label: 'Trailer',    suffix: ', movie trailer score, hybrid orchestral, big drums, tension build' },
+const MUSIC_MOODS: { id: string; labelKey: string; suffix: string }[] = [
+  { id: 'auto',       labelKey: 'dash.creative.mood_auto',       suffix: '' },
+  { id: 'cinematic',  labelKey: 'dash.creative.mood_cinematic',  suffix: ', cinematic orchestral score, sweeping strings, epic build' },
+  { id: 'lofi',       labelKey: 'dash.creative.mood_lofi',       suffix: ', lo-fi hip hop, mellow drums, vinyl crackle, warm bass' },
+  { id: 'synthwave',  labelKey: 'dash.creative.mood_synthwave',  suffix: ', 80s synthwave, analogue synths, gated reverb drums, neon mood' },
+  { id: 'orchestral', labelKey: 'dash.creative.mood_orchestral', suffix: ', full orchestral arrangement, lush strings, brass, timpani' },
+  { id: 'ambient',    labelKey: 'dash.creative.mood_ambient',    suffix: ', ambient pads, drones, ethereal textures, no percussion' },
+  { id: 'trailer',    labelKey: 'dash.creative.mood_trailer',    suffix: ', movie trailer score, hybrid orchestral, big drums, tension build' },
 ];
 
-const VOICE_EMOTIONS: { id: string; label: string }[] = [
-  { id: 'neutral',  label: 'Neutral'   },
-  { id: 'calm',     label: 'Calm'      },
-  { id: 'excited',  label: 'Excited'   },
-  { id: 'serious',  label: 'Serious'   },
-  { id: 'playful',  label: 'Playful'   },
-  { id: 'whisper',  label: 'Whispered' },
+const VOICE_EMOTIONS: { id: string; labelKey: string }[] = [
+  { id: 'neutral',  labelKey: 'dash.creative.emotion_neutral'   },
+  { id: 'calm',     labelKey: 'dash.creative.emotion_calm'      },
+  { id: 'excited',  labelKey: 'dash.creative.emotion_excited'   },
+  { id: 'serious',  labelKey: 'dash.creative.emotion_serious'   },
+  { id: 'playful',  labelKey: 'dash.creative.emotion_playful'   },
+  { id: 'whisper',  labelKey: 'dash.creative.emotion_whispered' },
 ];
 
-const VIDEO_CAMERAS: { id: string; label: string; suffix: string }[] = [
-  { id: 'auto',   label: 'Auto',   suffix: '' },
-  { id: 'static', label: 'Static', suffix: ', static camera, locked-off shot' },
-  { id: 'pan',    label: 'Pan',    suffix: ', slow horizontal camera pan' },
-  { id: 'zoom',   label: 'Zoom',   suffix: ', gentle zoom in on subject' },
-  { id: 'dolly',  label: 'Dolly',  suffix: ', dolly forward, smooth tracking shot' },
-  { id: 'orbit',  label: 'Orbit',  suffix: ', orbital camera move around subject' },
+const VIDEO_CAMERAS: { id: string; labelKey: string; suffix: string }[] = [
+  { id: 'auto',   labelKey: 'dash.creative.camera_auto',   suffix: '' },
+  { id: 'static', labelKey: 'dash.creative.camera_static', suffix: ', static camera, locked-off shot' },
+  { id: 'pan',    labelKey: 'dash.creative.camera_pan',    suffix: ', slow horizontal camera pan' },
+  { id: 'zoom',   labelKey: 'dash.creative.camera_zoom',   suffix: ', gentle zoom in on subject' },
+  { id: 'dolly',  labelKey: 'dash.creative.camera_dolly',  suffix: ', dolly forward, smooth tracking shot' },
+  { id: 'orbit',  labelKey: 'dash.creative.camera_orbit',  suffix: ', orbital camera move around subject' },
 ];
 
-const VIDEO_MOTION: { id: 'subtle' | 'dynamic' | 'wild'; label: string; suffix: string }[] = [
-  { id: 'subtle',  label: 'Subtle',  suffix: ', minimal motion, gentle movement' },
-  { id: 'dynamic', label: 'Dynamic', suffix: ', dynamic motion, energetic action' },
-  { id: 'wild',    label: 'Wild',    suffix: ', explosive motion, high-energy action' },
+const VIDEO_MOTION: { id: 'subtle' | 'dynamic' | 'wild'; labelKey: string; suffix: string }[] = [
+  { id: 'subtle',  labelKey: 'dash.creative.motion_subtle',  suffix: ', minimal motion, gentle movement' },
+  { id: 'dynamic', labelKey: 'dash.creative.motion_dynamic', suffix: ', dynamic motion, energetic action' },
+  { id: 'wild',    labelKey: 'dash.creative.motion_wild',    suffix: ', explosive motion, high-energy action' },
 ];
 
 /* ── Cost estimates (credits per generation) ───────────────────────────
@@ -466,7 +466,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
         if (msg.success && pendingResolve.current) {
           pendingResolve.current(msg.data);
         } else if (!msg.success && pendingReject.current) {
-          pendingReject.current(msg.error || 'Generation failed');
+          pendingReject.current(msg.error || t('dash.creative.generation_failed'));
         }
         pendingResolve.current = null;
         pendingReject.current = null;
@@ -670,14 +670,14 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
           negative_prompt: negative,
         }).then(data => {
           if (data?.url) saveLocalAsset('image', data.url, imagePrompt.slice(0, 60), imagePrompt);
-          else throw new Error(data?.error || 'No image URL returned');
+          else throw new Error(data?.error || t('dash.creative.err_no_image_url'));
         }),
       );
       const results = await Promise.allSettled(calls);
       const failures = results.filter(r => r.status === 'rejected') as PromiseRejectedResult[];
       if (failures.length === results.length) {
         const first = failures[0]?.reason;
-        throw new Error(first?.message || first || 'Generation failed');
+        throw new Error(first?.message || first || t('dash.creative.generation_failed'));
       }
       // At least one variation succeeded — clear the composer so the
       // user can type the next prompt straight away. Errors keep the
@@ -703,7 +703,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
         // Clear the composer + lyrics on success — see image handler.
         setMusicPrompt('');
         setMusicLyrics('');
-      } else throw new Error(data.error || 'No audio URL returned');
+      } else throw new Error(data.error || t('dash.creative.err_no_audio_url'));
     } catch (e: any) { setError(e.message || e); }
     setGenerating(false);
   };
@@ -730,7 +730,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
         saveLocalAsset('voice', data.url, voiceText.slice(0, 60), voiceText);
         // Clear the text on success — see image handler.
         setVoiceText('');
-      } else throw new Error(data.error || 'No voice URL returned');
+      } else throw new Error(data.error || t('dash.creative.err_no_voice_url'));
     } catch (e: any) { setError(e.message || e); }
     setGenerating(false);
   };
@@ -756,9 +756,9 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
         // handler. Reference image consumed; user starts fresh.
         setVideoPrompt('');
         setVideoReference(null);
-      } else throw new Error(data.error || 'No video URL returned');
+      } else throw new Error(data.error || t('dash.creative.err_no_video_url'));
     } catch (e: any) {
-      setError(e.message || 'Video generation failed');
+      setError(e.message || t('dash.creative.err_video_failed'));
     }
     setGenerating(false);
   };
@@ -852,10 +852,10 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                         estimateVideoCredits(videoDuration);
 
   const currentPlaceholder =
-    mode === 'images' ? 'A 4K cinematic shot of…' :
-    mode === 'audio'  ? 'A lo-fi track with mellow drums and warm bass…' :
-    mode === 'voice'  ? 'What should she say?' :
-                        'A sweeping aerial shot of…';
+    mode === 'images' ? t('dash.creative.placeholder_image') :
+    mode === 'audio'  ? t('dash.creative.placeholder_music') :
+    mode === 'voice'  ? t('dash.creative.placeholder_voice') :
+                        t('dash.creative.placeholder_video');
 
   // Unified chronological feed across every mode. Oldest first so the
   // composer at the bottom is where the user's eye naturally tracks
@@ -899,10 +899,10 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
   // edge of the composer. Replaces the old tab bar so Creative Studio
   // doesn't read like a settings page. Selected glows accent.
   const modeGlyphs: { key: typeof mode; icon: ReactNode; label: string }[] = [
-    { key: 'images', icon: <ImageIcon weight="duotone" size={16} />,   label: 'Image' },
-    { key: 'audio',  icon: <MusicNotes weight="duotone" size={16} />,  label: 'Music' },
-    { key: 'voice',  icon: <Microphone weight="duotone" size={16} />,  label: 'Voice' },
-    { key: 'video',  icon: <VideoCamera weight="duotone" size={16} />, label: 'Video' },
+    { key: 'images', icon: <ImageIcon weight="duotone" size={16} />,   label: t('dash.creative.mode_image') },
+    { key: 'audio',  icon: <MusicNotes weight="duotone" size={16} />,  label: t('dash.creative.mode_music') },
+    { key: 'voice',  icon: <Microphone weight="duotone" size={16} />,  label: t('dash.creative.mode_voice') },
+    { key: 'video',  icon: <VideoCamera weight="duotone" size={16} />, label: t('dash.creative.mode_video') },
   ];
 
   return (
@@ -912,8 +912,8 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
           on the right when account is connected. */}
       <header className="flex items-start justify-between mb-3 shrink-0">
         <div>
-          <h1 className="text-[22px] font-semibold text-[#cdd6f4]">Creative Studio</h1>
-          <p className="mt-1 text-[12px] text-[#9b8caa]">Tell Ava what you want to make.</p>
+          <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.nav.creative_studio')}</h1>
+          <p className="mt-1 text-[12px] text-[#9b8caa]">{t('dash.creative.subtitle')}</p>
         </div>
         {/* Credit balance card. Four states, in priority order:
               1. admin tier → "Unlimited"
@@ -926,18 +926,18 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
             for chat — every signed-in user has a credit balance. */}
         {account?.tier === 'admin' ? (
           <div className="shrink-0 rounded-2xl border border-[rgba(168,85,247,0.30)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] px-4 py-2.5 shadow-[0_0_18px_rgba(168,85,247,0.10)] min-w-[200px]">
-            <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)] block mb-1.5">Credit balance</span>
+            <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)] block mb-1.5">{t('dash.creative.credit_balance')}</span>
             <div className="flex items-baseline gap-2">
               <span className="text-[18px] font-semibold leading-none bg-gradient-to-r from-[var(--accent)] to-purple-300 bg-clip-text text-transparent">
-                Unlimited
+                {t('dash.creative.unlimited')}
               </span>
             </div>
-            <p className="text-[10px] text-[var(--text-muted)] mt-1">Admin tier — no caps</p>
+            <p className="text-[10px] text-[var(--text-muted)] mt-1">{t('dash.creative.admin_no_caps')}</p>
           </div>
         ) : account?.usage ? (
           <div className="shrink-0 rounded-2xl border border-[rgba(168,85,247,0.20)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] px-4 py-2.5 shadow-[0_0_18px_rgba(168,85,247,0.06)] min-w-[200px]">
             <div className="flex items-baseline justify-between gap-3 mb-1.5">
-              <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)]">Credit balance</span>
+              <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)]">{t('dash.creative.credit_balance')}</span>
               <span className="text-[10px] text-[var(--text-muted)] tabular-nums">
                 {formatTokens(totalUsed)}<span className="opacity-60"> / {formatTokens(totalLimit)}</span>
               </span>
@@ -950,7 +950,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
               >
                 {formatTokens(tokensRemaining)}
               </span>
-              <span className="text-[10px] text-[var(--text-muted)]">credits left</span>
+              <span className="text-[10px] text-[var(--text-muted)]">{t('dash.creative.credits_left')}</span>
             </div>
             <div className="mt-2 h-1 w-full rounded-full bg-[var(--bg-input)] overflow-hidden">
               <div
@@ -963,15 +963,15 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
           </div>
         ) : account ? (
           <div className="shrink-0 rounded-2xl border border-[rgba(168,85,247,0.16)] bg-[#0f0f17]/60 px-4 py-2.5 min-w-[200px]">
-            <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)] block mb-1.5">Credit balance</span>
+            <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)] block mb-1.5">{t('dash.creative.credit_balance')}</span>
             <div className="h-4 w-20 rounded bg-[var(--bg-input)]/60 animate-pulse" />
             <div className="mt-2 h-1 w-full rounded-full bg-[var(--bg-input)] animate-pulse" />
           </div>
         ) : (
           <div className="shrink-0 rounded-2xl border border-[rgba(168,85,247,0.16)] bg-[#0f0f17]/60 px-4 py-2.5 min-w-[200px]">
-            <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)] block mb-1">Credit balance</span>
+            <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-muted)] block mb-1">{t('dash.creative.credit_balance')}</span>
             <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-              Sign in to see your credits.
+              {t('dash.creative.sign_in_credits')}
             </p>
           </div>
         )}
@@ -1113,8 +1113,8 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
               <Tooltip
                 content={
                   account?.usage && currentCredits > tokensRemaining
-                    ? `${currentCredits.toLocaleString()} credits — over your remaining ${tokensRemaining.toLocaleString()} balance`
-                    : `${currentCredits.toLocaleString()} credits for this generation`
+                    ? t('dash.creative.cost_over_balance', { credits: currentCredits.toLocaleString(), balance: tokensRemaining.toLocaleString() })
+                    : t('dash.creative.cost_for_generation', { credits: currentCredits.toLocaleString() })
                 }
               >
                 <span
@@ -1124,7 +1124,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                       : 'text-[var(--text-muted)]'
                   }`}
                 >
-                  {currentCredits.toLocaleString()} cr
+                  {t('dash.creative.cost_cr', { credits: currentCredits.toLocaleString() })}
                 </span>
               </Tooltip>
               <button
@@ -1132,15 +1132,15 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
                 disabled={!currentPrompt.trim() || generating}
                 className="rounded-lg bg-gradient-to-br from-[var(--accent)] to-purple-500 px-4 py-2 text-[12px] font-semibold text-white transition shadow-[0_0_18px_rgba(168,85,247,0.25)] hover:shadow-[0_0_22px_rgba(168,85,247,0.4)] disabled:cursor-not-allowed disabled:opacity-30 disabled:shadow-none border-none cursor-pointer"
               >
-                {generating ? 'Generating…' : 'Send'}
+                {generating ? t('dash.creative.generating') : t('dash.creative.send')}
               </button>
             </div>
           </div>
         </div>
         <p className="mt-1.5 text-center text-[10px] text-[var(--text-muted)]">
-          Enter for new line ·{' '}
-          <kbd className="rounded bg-[var(--bg-input)]/60 px-1 py-0.5 text-[9px]">{sendShortcutLabel()}</kbd> to send
-          {composerAcceptsReference && <> · drop an image to set the first frame</>}
+          {t('dash.creative.hint_newline')} ·{' '}
+          <kbd className="rounded bg-[var(--bg-input)]/60 px-1 py-0.5 text-[9px]">{sendShortcutLabel()}</kbd> {t('dash.creative.hint_to_send')}
+          {composerAcceptsReference && <> · {t('dash.creative.hint_drop_image')}</>}
         </p>
       </div>
     </div>
@@ -1236,11 +1236,12 @@ function pickRandom<T>(items: T[], n: number): T[] {
 }
 
 function EmptyInvitation({ mode, onSuggest }: { mode: 'images' | 'audio' | 'voice' | 'video'; onSuggest: (text: string) => void }) {
+  useLocale();
   const modeLabel =
-    mode === 'images' ? 'images' :
-    mode === 'audio'  ? 'music' :
-    mode === 'voice'  ? 'voice' :
-                        'video';
+    mode === 'images' ? t('dash.creative.modeword_images') :
+    mode === 'audio'  ? t('dash.creative.modeword_music') :
+    mode === 'voice'  ? t('dash.creative.modeword_voice') :
+                        t('dash.creative.modeword_video');
 
   // Pick 3 random suggestions per visit / mode change. Tick state lets
   // the user shuffle on demand without changing mode. useState (not
@@ -1255,9 +1256,9 @@ function EmptyInvitation({ mode, onSuggest }: { mode: 'images' | 'audio' | 'voic
 
   return (
     <div className="flex flex-col items-start py-10 px-1">
-      <h2 className="text-[18px] font-semibold text-[#cdd6f4]">Ready when you are.</h2>
+      <h2 className="text-[18px] font-semibold text-[#cdd6f4]">{t('dash.creative.ready_title')}</h2>
       <p className="mt-1.5 text-[12px] text-[#9b8caa] max-w-md leading-relaxed">
-        Describe the {modeLabel} you want — anything from a one-line idea to a fully scoped scene. Or pick a starter below.
+        {t('dash.creative.ready_desc', { mode: modeLabel })}
       </p>
       <div className="mt-5 flex flex-col gap-2 w-full">
         {picks.map((s, i) => (
@@ -1274,25 +1275,26 @@ function EmptyInvitation({ mode, onSuggest }: { mode: 'images' | 'audio' | 'voic
         onClick={() => setShuffleTick(t => t + 1)}
         className="mt-3 self-start text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] transition cursor-pointer bg-transparent border-none p-0"
       >
-        Show me different ones
+        {t('dash.creative.shuffle_suggestions')}
       </button>
     </div>
   );
 }
 
 function GeneratingCard({ mode, elapsed }: { mode: 'images' | 'audio' | 'voice' | 'video'; elapsed: number }) {
+  useLocale();
   const label =
-    mode === 'images' ? 'Generating image…' :
-    mode === 'audio'  ? 'Composing music…' :
-    mode === 'voice'  ? 'Synthesising voice…' :
-                        `Rendering video… ${elapsed}s`;
+    mode === 'images' ? t('dash.creative.gen_image') :
+    mode === 'audio'  ? t('dash.creative.gen_music') :
+    mode === 'voice'  ? t('dash.creative.gen_voice') :
+                        t('dash.creative.gen_video', { elapsed });
   return (
     <div className="rounded-2xl border border-[rgba(168,85,247,0.30)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] px-5 py-4 flex items-center gap-3">
       <div className="h-7 w-7 rounded-full border-[2.5px] border-[rgba(168,85,247,0.18)] border-t-[var(--accent)] animate-spin" />
       <div className="flex-1">
         <p className="text-[12px] font-medium text-[var(--text-primary)]">{label}</p>
         <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
-          {mode === 'video' ? 'Typically 2–4 minutes for video.' : 'Should be ready in moments.'}
+          {mode === 'video' ? t('dash.creative.gen_video_eta') : t('dash.creative.gen_eta')}
         </p>
       </div>
     </div>
@@ -1300,11 +1302,12 @@ function GeneratingCard({ mode, elapsed }: { mode: 'images' | 'audio' | 'voice' 
 }
 
 function ReferenceChip({ ref: refValue, onRemove }: { ref: { name: string; dataUrl: string }; onRemove: () => void }) {
+  useLocale();
   return (
     <div className="mb-2 inline-flex items-center gap-2 rounded-lg border border-[rgba(168,85,247,0.20)] bg-[var(--bg-input)]/60 pl-1 pr-2 py-1">
       <img src={refValue.dataUrl} alt={refValue.name} className="h-7 w-7 rounded-md object-cover" />
       <span className="text-[10px] text-[var(--text-secondary)] max-w-[180px] truncate">{refValue.name}</span>
-      <Tooltip content="Remove first-frame image">
+      <Tooltip content={t('dash.creative.remove_first_frame')}>
         <button
           onClick={onRemove}
           className="flex items-center justify-center text-[var(--text-muted)] hover:text-red-400 transition cursor-pointer bg-transparent border-none p-0"
@@ -1317,10 +1320,11 @@ function ReferenceChip({ ref: refValue, onRemove }: { ref: { name: string; dataU
 }
 
 function ReferenceAttachButton({ hasReference, onPick }: { hasReference: boolean; onPick: (file: File) => void }) {
+  useLocale();
   const inputRef = useRef<HTMLInputElement>(null);
   return (
     <>
-      <Tooltip content={hasReference ? 'Replace first-frame image' : 'Attach a first-frame image for image-to-video'}>
+      <Tooltip content={hasReference ? t('dash.creative.replace_first_frame') : t('dash.creative.attach_first_frame')}>
         <button
           onClick={() => inputRef.current?.click()}
           className={`flex h-8 w-8 items-center justify-center rounded-lg border transition cursor-pointer ${
@@ -1362,6 +1366,7 @@ function FeedCard({
   onSendToVoice: (item: GalleryItem) => void;
   onSendMusicToVideo: (item: GalleryItem) => void;
 }) {
+  useLocale();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -1398,7 +1403,7 @@ function FeedCard({
     >
       {/* Prompt header */}
       <div className="px-4 pt-3 pb-2 text-[11px] text-[#a6adc8] leading-relaxed">
-        {item.prompt || '(no prompt)'}
+        {item.prompt || t('dash.creative.no_prompt')}
       </div>
 
       {/* Asset. Images cap at 60% viewport height with object-contain
@@ -1410,7 +1415,7 @@ function FeedCard({
         {item.kind === 'image' && (
           <img
             src={item.url}
-            alt={item.title || 'Generated image'}
+            alt={item.title || t('dash.creative.generated_image_alt')}
             className="mx-auto block rounded-xl object-contain"
             style={{ maxHeight: '32vh', maxWidth: '100%' }}
             loading="lazy"
@@ -1426,20 +1431,20 @@ function FeedCard({
 
       {/* Actions */}
       <div className="px-4 pb-3 flex flex-wrap gap-1.5 border-t border-[rgba(168,85,247,0.08)] pt-2.5">
-        <FeedActionPill onClick={() => onRegenerate(item)}>Variations</FeedActionPill>
+        <FeedActionPill onClick={() => onRegenerate(item)}>{t('dash.creative.action_variations')}</FeedActionPill>
         {item.kind === 'image' && (
           <>
-            <FeedActionPill accent onClick={() => onSendToVideo(item)}>→ Animate</FeedActionPill>
-            <FeedActionPill accent onClick={() => onSendToVoice(item)}>→ Voice over</FeedActionPill>
+            <FeedActionPill accent onClick={() => onSendToVideo(item)}>→ {t('dash.creative.action_animate')}</FeedActionPill>
+            <FeedActionPill accent onClick={() => onSendToVoice(item)}>→ {t('dash.creative.action_voiceover')}</FeedActionPill>
           </>
         )}
         {item.kind === 'music' && (
-          <FeedActionPill accent onClick={() => onSendMusicToVideo(item)}>→ Use as score</FeedActionPill>
+          <FeedActionPill accent onClick={() => onSendMusicToVideo(item)}>→ {t('dash.creative.action_use_as_score')}</FeedActionPill>
         )}
-        <FeedActionPill onClick={handleCopy}>{copied ? '✓ Copied' : 'Copy prompt'}</FeedActionPill>
-        <FeedActionPill onClick={handleDownload}>Download</FeedActionPill>
+        <FeedActionPill onClick={handleCopy}>{copied ? `✓ ${t('dash.creative.copied')}` : t('dash.creative.copy_prompt')}</FeedActionPill>
+        <FeedActionPill onClick={handleDownload}>{t('dash.chat.download')}</FeedActionPill>
         <FeedActionPill danger onClick={handleDelete}>
-          {confirmDelete ? 'Click again' : 'Delete'}
+          {confirmDelete ? t('dash.creative.click_again') : t('dash.common.delete')}
         </FeedActionPill>
         {item.createdAt && (
           <span className="ml-auto text-[9px] text-[#585b70] self-center">
@@ -1489,6 +1494,7 @@ interface ModeSettingsStripProps {
 }
 
 function ModeSettingsStrip(props: ModeSettingsStripProps) {
+  useLocale();
   const { mode } = props;
   const [open, setOpen] = useState(false);
 
@@ -1498,25 +1504,32 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
   // when settings open.
   const summary = (() => {
     if (mode === 'images') {
-      const style = IMAGE_STYLES.find(s => s.id === props.imageStyle)?.label || 'Auto';
-      const size = props.imageSize === '1280*1280' ? 'Square' : props.imageSize === '768*1280' ? 'Portrait' : 'Landscape';
-      return `${style} · ${size} · ${props.imageVariations === 1 ? '1 image' : `${props.imageVariations} variations`}`;
+      const styleItem = IMAGE_STYLES.find(s => s.id === props.imageStyle);
+      const style = styleItem ? t(styleItem.labelKey) : t('dash.creative.style_auto');
+      const size = props.imageSize === '1280*1280' ? t('dash.creative.size_square') : props.imageSize === '768*1280' ? t('dash.creative.size_portrait') : t('dash.creative.size_landscape');
+      const count = props.imageVariations === 1 ? t('dash.creative.one_image') : t('dash.creative.n_variations', { n: props.imageVariations });
+      return `${style} · ${size} · ${count}`;
     }
     if (mode === 'audio') {
-      const mood = MUSIC_MOODS.find(m => m.id === props.musicMood)?.label || 'Auto';
-      return `${mood} · ${props.musicDuration}s${props.musicLyrics ? ' · with lyrics' : ''}`;
+      const moodItem = MUSIC_MOODS.find(m => m.id === props.musicMood);
+      const mood = moodItem ? t(moodItem.labelKey) : t('dash.creative.mood_auto');
+      return `${mood} · ${props.musicDuration}s${props.musicLyrics ? ` · ${t('dash.creative.with_lyrics')}` : ''}`;
     }
     if (mode === 'voice') {
-      const voiceLabel = props.avaVoice ? 'Ava' : (VOICES.find(v => v.id === props.voiceId)?.label || 'Calm Woman');
-      const emotion = VOICE_EMOTIONS.find(e => e.id === props.voiceEmotion)?.label || 'Neutral';
+      const voiceItem = VOICES.find(v => v.id === props.voiceId);
+      const voiceLabel = props.avaVoice ? t('dash.creative.voice_ava') : (voiceItem ? t(voiceItem.labelKey) : t('dash.creative.voice_calm_woman'));
+      const emotionItem = VOICE_EMOTIONS.find(e => e.id === props.voiceEmotion);
+      const emotion = emotionItem ? t(emotionItem.labelKey) : t('dash.creative.emotion_neutral');
       return `${voiceLabel} · ${emotion} · ${props.voiceSpeed}x`;
     }
-    const cam = VIDEO_CAMERAS.find(c => c.id === props.videoCamera)?.label || 'Auto';
-    const mot = VIDEO_MOTION.find(m => m.id === props.videoMotion)?.label || 'Dynamic';
+    const camItem = VIDEO_CAMERAS.find(c => c.id === props.videoCamera);
+    const cam = camItem ? t(camItem.labelKey) : t('dash.creative.camera_auto');
+    const motItem = VIDEO_MOTION.find(m => m.id === props.videoMotion);
+    const mot = motItem ? t(motItem.labelKey) : t('dash.creative.motion_dynamic');
     return `${cam} · ${mot} · ${props.videoDuration}s`;
   })();
 
-  const modeLabel = mode === 'images' ? 'Image' : mode === 'audio' ? 'Music' : mode === 'voice' ? 'Voice' : 'Video';
+  const modeLabel = mode === 'images' ? t('dash.creative.mode_image') : mode === 'audio' ? t('dash.creative.mode_music') : mode === 'voice' ? t('dash.creative.mode_voice') : t('dash.creative.mode_video');
 
   // Close on Escape — standard overlay affordance. Listener attached
   // only while open so it doesn't compete with the chat surface's
@@ -1540,7 +1553,7 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
         className="w-full mb-2 rounded-xl border border-[rgba(168,85,247,0.12)] bg-[#0f0f17]/60 px-3 py-2 flex items-center justify-between text-[10px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:border-[rgba(168,85,247,0.25)] transition cursor-pointer"
       >
         <span className="flex items-center gap-2 min-w-0">
-          <span className="uppercase tracking-wider font-semibold opacity-70 shrink-0">{modeLabel} settings</span>
+          <span className="uppercase tracking-wider font-semibold opacity-70 shrink-0">{t('dash.creative.mode_settings', { mode: modeLabel })}</span>
           <span className="opacity-90 truncate">{summary}</span>
         </span>
         <Gear weight="duotone" size={14} className="shrink-0 ml-2 opacity-60" />
@@ -1567,10 +1580,10 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(168,85,247,0.10)]">
               <div>
-                <h3 className="text-[13px] font-semibold text-[#cdd6f4]">{modeLabel} settings</h3>
+                <h3 className="text-[13px] font-semibold text-[#cdd6f4]">{t('dash.creative.mode_settings', { mode: modeLabel })}</h3>
                 <p className="text-[10px] text-[#9b8caa] mt-0.5">{summary}</p>
               </div>
-              <Tooltip content="Close (Esc)">
+              <Tooltip content={t('dash.creative.close_esc')}>
                 <button
                   onClick={() => setOpen(false)}
                   className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-input)]/60 transition cursor-pointer bg-transparent border-none"
@@ -1584,22 +1597,22 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
             <div className="px-4 py-4 space-y-3">
           {mode === 'images' && (
             <>
-              <ChipRow label="Style" options={IMAGE_STYLES.map(s => ({ id: s.id, label: s.label }))} value={props.imageStyle} onChange={props.setImageStyle} />
-              <ChipRow label="Size" options={[
-                { id: '1280*1280', label: 'Square' },
-                { id: '768*1280', label: 'Portrait' },
-                { id: '1280*768', label: 'Landscape' },
+              <ChipRow label={t('dash.creative.label_style')} options={IMAGE_STYLES.map(s => ({ id: s.id, label: t(s.labelKey) }))} value={props.imageStyle} onChange={props.setImageStyle} />
+              <ChipRow label={t('dash.creative.label_size')} options={[
+                { id: '1280*1280', label: t('dash.creative.size_square') },
+                { id: '768*1280', label: t('dash.creative.size_portrait') },
+                { id: '1280*768', label: t('dash.creative.size_landscape') },
               ]} value={props.imageSize} onChange={props.setImageSize} />
-              <ChipRow label="Variations" options={[
+              <ChipRow label={t('dash.creative.label_variations')} options={[
                 { id: '1', label: '1' }, { id: '2', label: '2' }, { id: '4', label: '4' },
               ]} value={String(props.imageVariations)} onChange={(v) => props.setImageVariations(Number(v) as 1 | 2 | 4)} />
               <div>
-                <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] block mb-1">Avoid</span>
+                <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] block mb-1">{t('dash.creative.label_avoid')}</span>
                 <input
                   type="text"
                   value={props.imageNegative}
                   onChange={e => props.setImageNegative(e.target.value)}
-                  placeholder="blurry, watermark, low detail…"
+                  placeholder={t('dash.creative.avoid_placeholder')}
                   className="w-full rounded-md border border-[rgba(168,85,247,0.16)] bg-[var(--bg-input)] px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] placeholder:text-[#6c7086] focus:border-[var(--accent)] focus:outline-none"
                 />
               </div>
@@ -1607,16 +1620,16 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
           )}
           {mode === 'audio' && (
             <>
-              <ChipRow label="Mood" options={MUSIC_MOODS.map(m => ({ id: m.id, label: m.label }))} value={props.musicMood} onChange={props.setMusicMood} />
-              <ChipRow label="Duration" options={[
+              <ChipRow label={t('dash.creative.label_mood')} options={MUSIC_MOODS.map(m => ({ id: m.id, label: t(m.labelKey) }))} value={props.musicMood} onChange={props.setMusicMood} />
+              <ChipRow label={t('dash.creative.label_duration')} options={[
                 { id: '30', label: '30s' }, { id: '60', label: '60s' }, { id: '90', label: '90s' }, { id: '120', label: '120s' },
               ]} value={String(props.musicDuration)} onChange={(v) => props.setMusicDuration(Number(v) as 30 | 60 | 90 | 120)} />
               <div>
-                <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] block mb-1">Lyrics</span>
+                <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] block mb-1">{t('dash.creative.label_lyrics')}</span>
                 <textarea
                   value={props.musicLyrics}
                   onChange={e => props.setMusicLyrics(e.target.value)}
-                  placeholder="Optional — leave empty for instrumental"
+                  placeholder={t('dash.creative.lyrics_placeholder')}
                   rows={2}
                   className="w-full resize-none rounded-md border border-[rgba(168,85,247,0.16)] bg-[var(--bg-input)] px-2.5 py-1.5 text-[11px] text-[var(--text-primary)] placeholder:text-[#6c7086] focus:border-[var(--accent)] focus:outline-none"
                 />
@@ -1626,7 +1639,7 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
           {mode === 'voice' && (
             <>
               <div>
-                <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] block mb-1">Voice</span>
+                <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] block mb-1">{t('dash.creative.label_voice')}</span>
                 <button
                   onClick={() => props.setAvaVoice(v => !v)}
                   className={`w-full flex items-center justify-between rounded-md px-2.5 py-1.5 text-[11px] font-medium transition border cursor-pointer mb-1 ${
@@ -1637,21 +1650,21 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
                 >
                   <span className="flex items-center gap-2">
                     <span className={`inline-block h-2 w-2 rounded-full ${props.avaVoice ? 'bg-[var(--accent)]' : 'bg-[var(--text-muted)]'}`} />
-                    Ava's voice
+                    {t('dash.creative.avas_voice')}
                   </span>
-                  <span className="text-[10px] opacity-70">{props.avaVoice ? 'Locked' : 'Pick a character'}</span>
+                  <span className="text-[10px] opacity-70">{props.avaVoice ? t('dash.creative.voice_locked') : t('dash.creative.voice_pick_character')}</span>
                 </button>
                 {!props.avaVoice && (
-                  <ChipRow label="" options={VOICES} value={props.voiceId} onChange={props.setVoiceId} />
+                  <ChipRow label="" options={VOICES.map(v => ({ id: v.id, label: t(v.labelKey) }))} value={props.voiceId} onChange={props.setVoiceId} />
                 )}
               </div>
-              <ChipRow label="Emotion" options={VOICE_EMOTIONS} value={props.voiceEmotion} onChange={props.setVoiceEmotion} />
-              <ChipRow label="Speed" options={[
+              <ChipRow label={t('dash.creative.label_emotion')} options={VOICE_EMOTIONS.map(e => ({ id: e.id, label: t(e.labelKey) }))} value={props.voiceEmotion} onChange={props.setVoiceEmotion} />
+              <ChipRow label={t('dash.creative.label_speed')} options={[
                 { id: '0.8', label: '0.8x' }, { id: '1', label: '1x' }, { id: '1.2', label: '1.2x' }, { id: '1.5', label: '1.5x' },
               ]} value={String(props.voiceSpeed)} onChange={(v) => props.setVoiceSpeed(Number(v))} />
               <div>
                 <div className="flex justify-between text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1">
-                  <span>Pitch</span>
+                  <span>{t('dash.creative.label_pitch')}</span>
                   <span className="opacity-90">{props.voicePitch >= 0 ? '+' : ''}{props.voicePitch} st</span>
                 </div>
                 <input
@@ -1665,9 +1678,9 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
           )}
           {mode === 'video' && (
             <>
-              <ChipRow label="Camera" options={VIDEO_CAMERAS.map(c => ({ id: c.id, label: c.label }))} value={props.videoCamera} onChange={props.setVideoCamera} />
-              <ChipRow label="Motion" options={VIDEO_MOTION.map(m => ({ id: m.id, label: m.label }))} value={props.videoMotion} onChange={(v) => props.setVideoMotion(v as 'subtle' | 'dynamic' | 'wild')} />
-              <ChipRow label="Duration" options={[
+              <ChipRow label={t('dash.creative.label_camera')} options={VIDEO_CAMERAS.map(c => ({ id: c.id, label: t(c.labelKey) }))} value={props.videoCamera} onChange={props.setVideoCamera} />
+              <ChipRow label={t('dash.creative.label_motion')} options={VIDEO_MOTION.map(m => ({ id: m.id, label: t(m.labelKey) }))} value={props.videoMotion} onChange={(v) => props.setVideoMotion(v as 'subtle' | 'dynamic' | 'wild')} />
+              <ChipRow label={t('dash.creative.label_duration')} options={[
                 { id: '6', label: '6s · 1080p' }, { id: '10', label: '10s · 768p' },
               ]} value={String(props.videoDuration)} onChange={(v) => props.setVideoDuration(Number(v) as 6 | 10)} />
             </>
@@ -1680,7 +1693,7 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
                 onClick={() => setOpen(false)}
                 className="rounded-lg bg-[var(--accent)]/15 border border-[var(--accent)]/35 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/25 transition cursor-pointer"
               >
-                Done
+                {t('dash.creative.done')}
               </button>
             </div>
           </div>

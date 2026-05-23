@@ -1530,10 +1530,10 @@ export type DashboardToExtMessage =
   // extension surface. Plans/personalised content land in a later pass.
   // limit + offset are optional; the host defaults to limit=24 offset=0
   // if either is missing.
-  | { type: 'load_health_exercises'; limit?: number; offset?: number; workoutType?: string; q?: string; seq?: number }
-  | { type: 'load_health_recipes'; limit?: number; offset?: number; course?: string; q?: string; seq?: number }
-  | { type: 'load_health_exercise_detail'; slug: string }
-  | { type: 'load_health_recipe_detail'; slug: string }
+  | { type: 'load_health_exercises'; limit?: number; offset?: number; workoutType?: string; q?: string; seq?: number; locale?: string }
+  | { type: 'load_health_recipes'; limit?: number; offset?: number; course?: string; q?: string; seq?: number; locale?: string }
+  | { type: 'load_health_exercise_detail'; slug: string; locale?: string }
+  | { type: 'load_health_recipe_detail'; slug: string; locale?: string }
   | { type: 'load_health_taxonomies' }
   | { type: 'submit_health_exercise'; payload: HealthExerciseSubmissionPayload }
   | { type: 'submit_health_recipe'; payload: HealthRecipeSubmissionPayload }

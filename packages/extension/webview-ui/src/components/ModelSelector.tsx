@@ -251,7 +251,7 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
                       <span style={{ fontWeight: active && m.available ? 600 : 400 }}>{m.name}</span>
                     </span>
                     {!m.available && (
-                      <span style={{ fontSize: 10, color: '#facc15', opacity: 0.7 }}>Add key</span>
+                      <span style={{ fontSize: 10, color: '#facc15', opacity: 0.7 }}>{t('model.add_key')}</span>
                     )}
                   </button>
                 );

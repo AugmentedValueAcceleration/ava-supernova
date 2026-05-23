@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { t, useLocale } from '../i18n';
 import type { HealthMySubmissions, HealthSubmissionStatus } from '../types/messages';
 
 /**
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function HealthMySubmissions({ data, onRefresh, onContribute, onClearRejected, clearing }: Props) {
+  useLocale();
   const total = data.exercises.length + data.recipes.length;
   const rejectedCount =
     data.exercises.filter(e => e.status === 'rejected').length +
@@ -35,13 +37,13 @@ export function HealthMySubmissions({ data, onRefresh, onContribute, onClearReje
     return (
       <div className="py-12 text-center">
         <p className="text-[13px] text-vscode-descriptionForeground mb-4">
-          You haven't submitted anything yet.
+          {t('health.mysubs.empty')}
         </p>
         <button
           onClick={onContribute}
           className="rounded-md border border-[var(--accent)] bg-[var(--accent)]/15 px-4 py-2 text-[12px] text-[var(--accent)] hover:bg-[var(--accent)]/25 transition cursor-pointer"
         >
-          Contribute now
+          {t('health.mysubs.contribute_now')}
         </button>
       </div>
     );
@@ -51,7 +53,7 @@ export function HealthMySubmissions({ data, onRefresh, onContribute, onClearReje
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <p className="text-[11px] text-vscode-descriptionForeground">
-          Pending and recently reviewed contributions. Approved rows stay listed for 30 days, then move into the public catalog.
+          {t('health.mysubs.intro')}
         </p>
         <div className="flex items-center gap-3 shrink-0">
           {rejectedCount > 0 && (
@@ -60,11 +62,11 @@ export function HealthMySubmissions({ data, onRefresh, onContribute, onClearReje
               disabled={clearing}
               className="text-[11px] text-red-300/90 hover:underline cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-transparent border-none p-0"
             >
-              {clearing ? 'Clearing…' : `Clear rejected (${rejectedCount})`}
+              {clearing ? t('health.mysubs.clearing') : t('health.mysubs.clear_rejected', { n: rejectedCount })}
             </button>
           )}
           <button onClick={onRefresh} className="text-[11px] text-[var(--accent)] hover:underline cursor-pointer">
-            Refresh
+            {t('health.mysubs.refresh')}
           </button>
         </div>
       </div>
@@ -72,20 +74,22 @@ export function HealthMySubmissions({ data, onRefresh, onContribute, onClearReje
       {confirming && (
         <div className="rounded-md border border-red-500/30 bg-red-500/5 px-3 py-3 flex items-center justify-between gap-3">
           <span className="text-[12px] text-red-300/90 leading-relaxed">
-            Permanently delete {rejectedCount} rejected {rejectedCount === 1 ? 'submission' : 'submissions'}? This can't be undone.
+            {rejectedCount === 1
+              ? t('health.mysubs.confirm_delete_one', { n: rejectedCount })
+              : t('health.mysubs.confirm_delete_many', { n: rejectedCount })}
           </span>
           <div className="flex gap-2 shrink-0">
             <button
               onClick={() => setConfirming(false)}
               className="rounded-md border border-[rgba(168,85,247,0.18)] bg-transparent px-3 py-1 text-[11px] text-vscode-descriptionForeground hover:text-vscode-foreground transition cursor-pointer"
             >
-              Cancel
+              {t('health.mysubs.cancel')}
             </button>
             <button
               onClick={() => { setConfirming(false); onClearRejected(); }}
               className="rounded-md border border-red-400/50 bg-red-500/15 px-3 py-1 text-[11px] text-red-300/90 hover:bg-red-500/25 transition cursor-pointer"
             >
-              Clear them
+              {t('health.mysubs.clear_them')}
             </button>
           </div>
         </div>
@@ -93,7 +97,7 @@ export function HealthMySubmissions({ data, onRefresh, onContribute, onClearReje
 
       {data.exercises.length > 0 && (
         <section>
-          <h3 className="text-[10px] uppercase tracking-[0.2em] text-vscode-descriptionForeground mb-2">Exercises ({data.exercises.length})</h3>
+          <h3 className="text-[10px] uppercase tracking-[0.2em] text-vscode-descriptionForeground mb-2">{t('health.mysubs.exercises', { n: data.exercises.length })}</h3>
           <ul className="space-y-2">
             {data.exercises.map(ex => (
               <SubmissionCard
@@ -112,7 +116,7 @@ export function HealthMySubmissions({ data, onRefresh, onContribute, onClearReje
 
       {data.recipes.length > 0 && (
         <section>
-          <h3 className="text-[10px] uppercase tracking-[0.2em] text-vscode-descriptionForeground mb-2">Recipes ({data.recipes.length})</h3>
+          <h3 className="text-[10px] uppercase tracking-[0.2em] text-vscode-descriptionForeground mb-2">{t('health.mysubs.recipes', { n: data.recipes.length })}</h3>
           <ul className="space-y-2">
             {data.recipes.map(r => (
               <SubmissionCard
@@ -138,6 +142,7 @@ function SubmissionCard({
   name: string; meta: string; status: HealthSubmissionStatus;
   submittedAt: string | null; reviewedAt: string | null; reviewNotes: string | null;
 }) {
+  useLocale();
   return (
     <li className="rounded-lg border border-vscode-panelBorder bg-vscode-editor-background p-4">
       <div className="flex items-start justify-between gap-3 mb-1">
@@ -148,19 +153,19 @@ function SubmissionCard({
         <StatusBadge status={status} />
       </div>
       <div className="text-[10px] text-vscode-descriptionForeground mt-2">
-        Submitted {submittedAt ? new Date(submittedAt).toLocaleString() : '—'}
+        {t('health.mysubs.submitted', { date: submittedAt ? new Date(submittedAt).toLocaleString() : '—' })}
         {reviewedAt && (
-          <> · Reviewed {new Date(reviewedAt).toLocaleString()}</>
+          <> · {t('health.mysubs.reviewed', { date: new Date(reviewedAt).toLocaleString() })}</>
         )}
       </div>
       {status === 'rejected' && reviewNotes && (
         <div className="mt-3 rounded-md border border-red-500/30 bg-red-500/5 px-3 py-2 text-[12px] text-red-300/90 leading-relaxed">
-          <strong className="font-medium">Reviewer feedback:</strong> {reviewNotes}
+          <strong className="font-medium">{t('health.mysubs.reviewer_feedback')}</strong> {reviewNotes}
         </div>
       )}
       {status === 'published' && reviewNotes && (
         <div className="mt-3 rounded-md border border-green-500/30 bg-green-500/5 px-3 py-2 text-[12px] text-green-300/90 leading-relaxed">
-          <strong className="font-medium">Reviewer note:</strong> {reviewNotes}
+          <strong className="font-medium">{t('health.mysubs.reviewer_note')}</strong> {reviewNotes}
         </div>
       )}
     </li>
@@ -168,7 +173,8 @@ function SubmissionCard({
 }
 
 function StatusBadge({ status }: { status: HealthSubmissionStatus }) {
-  const label = status === 'pending' ? 'Pending review' : status === 'rejected' ? 'Rejected' : 'Published';
+  useLocale();
+  const label = t(`health.mysubs.status.${status}`);
   const colour =
     status === 'pending' ? { bg: 'rgba(249,226,175,0.12)', fg: '#f9e2af' } :
     status === 'rejected' ? { bg: 'rgba(243,139,168,0.12)', fg: '#f38ba8' } :

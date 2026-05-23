@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { t, useLocale } from '../i18n';
 import type { SyncStatus, AccountInfo } from '../types/messages';
 import { Sync } from './Sync';
 import { CloudManagement } from './CloudManagement';
@@ -27,6 +28,7 @@ export function Cloud({
   isConnected,
   account,
 }: CloudProps) {
+  useLocale();
   const [subTab, setSubTab] = useState<CloudSubTab>('sync');
 
   return (
@@ -41,7 +43,7 @@ export function Cloud({
               : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
           }`}
         >
-          Sync
+          {t('dash.nav.sync')}
         </button>
         <button
           onClick={() => setSubTab('management')}
@@ -51,7 +53,7 @@ export function Cloud({
               : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
           }`}
         >
-          Cloud Management
+          {t('dash.cloud.management_tab')}
         </button>
       </div>
 

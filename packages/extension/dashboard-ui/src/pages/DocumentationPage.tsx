@@ -3,6 +3,7 @@
 
 import { useMemo, useState, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { t, useLocale } from '../i18n';
 import {
   type RendererAdapter,
   type DocBlock,
@@ -56,7 +57,7 @@ function makeAdapter(): RendererAdapter<ReactNode> {
     callout: (text, variant) => {
       const cls = variant === 'warning' ? 'border-amber-500/30 bg-amber-500/5' : variant === 'tip' ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-[var(--accent)]/30 bg-[var(--accent)]/5';
       const labelColour = variant === 'warning' ? 'text-amber-400' : variant === 'tip' ? 'text-emerald-400' : 'text-[var(--accent)]';
-      const label = variant === 'tip' ? 'Tip' : variant === 'warning' ? 'Warning' : 'Note';
+      const label = variant === 'tip' ? t('dash.docs.callout_tip') : variant === 'warning' ? t('dash.docs.callout_warning') : t('dash.docs.callout_note');
       return (
         <div key={k()} className={`rounded-md border ${cls} p-3 my-3 text-[12px] text-[var(--text-secondary)]`}>
           <span className={`font-medium ${labelColour}`}>{label}:</span> {text}
@@ -96,7 +97,7 @@ function makeAdapter(): RendererAdapter<ReactNode> {
     ),
 
     tools: (items) => {
-      const grouped = groupBy(items, t => t.category);
+      const grouped = groupBy(items, tl => tl.category);
       return (
         <div key={k()} className="space-y-4 mb-3">
           {Array.from(grouped.entries()).map(([cat, tools]) => (
@@ -106,15 +107,15 @@ function makeAdapter(): RendererAdapter<ReactNode> {
                 <table className="w-full text-[12px]">
                   <thead>
                     <tr className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
-                      <th className="text-left p-2">Tool</th><th className="text-left p-2">Risk</th><th className="text-left p-2">Description</th>
+                      <th className="text-left p-2">{t('dash.docs.col_tool')}</th><th className="text-left p-2">{t('dash.docs.col_risk')}</th><th className="text-left p-2">{t('dash.docs.col_description')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {tools.sort((a, b) => a.name.localeCompare(b.name)).map(t => (
-                      <tr key={t.name} className="border-t border-[var(--border-input)]">
-                        <td className="p-2"><code className="text-[11px] bg-black/40 px-1.5 py-0.5 rounded text-white">{t.name}</code></td>
-                        <td className="p-2"><RiskBadge risk={t.risk} /></td>
-                        <td className="p-2 text-[var(--text-secondary)]">{t.description}</td>
+                    {tools.sort((a, b) => a.name.localeCompare(b.name)).map(tl => (
+                      <tr key={tl.name} className="border-t border-[var(--border-input)]">
+                        <td className="p-2"><code className="text-[11px] bg-black/40 px-1.5 py-0.5 rounded text-white">{tl.name}</code></td>
+                        <td className="p-2"><RiskBadge risk={tl.risk} /></td>
+                        <td className="p-2 text-[var(--text-secondary)]">{tl.description}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -138,12 +139,12 @@ function makeAdapter(): RendererAdapter<ReactNode> {
               <table className="w-full text-[12px]">
                 <thead>
                   <tr className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
-                    <th className="text-left p-2">Model</th><th className="text-left p-2">Context</th><th className="text-left p-2">$/1M in/out</th><th className="text-left p-2">Capabilities</th>
+                    <th className="text-left p-2">{t('dash.docs.col_model')}</th><th className="text-left p-2">{t('dash.docs.col_context')}</th><th className="text-left p-2">{t('dash.docs.col_price')}</th><th className="text-left p-2">{t('dash.docs.col_capabilities')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {p.models.map(m => {
-                    const price = m.inputPricePerM === 0 && m.outputPricePerM === 0 ? 'Free' : `$${m.inputPricePerM.toFixed(2)} / $${m.outputPricePerM.toFixed(2)}`;
+                    const price = m.inputPricePerM === 0 && m.outputPricePerM === 0 ? t('dash.billing.plan.free') : `$${m.inputPricePerM.toFixed(2)} / $${m.outputPricePerM.toFixed(2)}`;
                     return (
                       <tr key={m.id} className="border-t border-[var(--border-input)]">
                         <td className="p-2 text-white">{m.displayName}</td>
@@ -166,7 +167,7 @@ function makeAdapter(): RendererAdapter<ReactNode> {
         <table className="w-full text-[12px]">
           <thead>
             <tr className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
-              <th className="text-left p-2">Prefix</th><th className="text-left p-2">Mode</th><th className="text-left p-2">Mindset</th><th className="text-left p-2">Summary</th>
+              <th className="text-left p-2">{t('dash.docs.col_prefix')}</th><th className="text-left p-2">{t('dash.docs.col_mode')}</th><th className="text-left p-2">{t('dash.docs.col_mindset')}</th><th className="text-left p-2">{t('dash.docs.col_summary')}</th>
             </tr>
           </thead>
           <tbody>
@@ -189,7 +190,7 @@ function makeAdapter(): RendererAdapter<ReactNode> {
         <div key={k()} className="space-y-4 mb-3">
           {Array.from(grouped.entries()).map(([mode, personas]) => (
             <div key={mode}>
-              <div className="text-[10px] uppercase tracking-wider text-[var(--accent)] mb-1 capitalize">{mode} team</div>
+              <div className="text-[10px] uppercase tracking-wider text-[var(--accent)] mb-1 capitalize">{t('dash.docs.team_label', { mode })}</div>
               <ol className="list-decimal pl-5 space-y-0.5 text-[12px] text-[var(--text-secondary)]">
                 {personas.sort((a, b) => a.order - b.order).map(p => (
                   <li key={p.id}><span className="text-white">{p.name}</span> — {p.role}</li>
@@ -208,7 +209,7 @@ function makeAdapter(): RendererAdapter<ReactNode> {
           <table className="w-full text-[12px]">
             <thead>
               <tr className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
-                <th className="text-left p-2">Category</th>
+                <th className="text-left p-2">{t('dash.docs.col_category')}</th>
                 {items.map(m => <th key={m.id} className="text-left p-2">{m.displayName}</th>)}
               </tr>
             </thead>
@@ -230,7 +231,7 @@ function makeAdapter(): RendererAdapter<ReactNode> {
         <table className="w-full text-[12px]">
           <thead>
             <tr className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
-              <th className="text-left p-2">Action</th><th className="text-left p-2">Win / Mac</th><th className="text-left p-2">Surface</th><th className="text-left p-2">Description</th>
+              <th className="text-left p-2">{t('dash.docs.col_action')}</th><th className="text-left p-2">{t('dash.docs.col_win_mac')}</th><th className="text-left p-2">{t('dash.docs.col_surface')}</th><th className="text-left p-2">{t('dash.docs.col_description')}</th>
             </tr>
           </thead>
           <tbody>
@@ -301,7 +302,7 @@ function renderBlock(block: DocBlock, adapter: RendererAdapter<ReactNode>, data:
       switch (block.kind) {
         case 'tools': {
           const f = block.filter;
-          const filtered = data.tools.filter(t => (!f?.category || t.category === f.category) && (!f?.risk || t.risk === f.risk));
+          const filtered = data.tools.filter(tl => (!f?.category || tl.category === f.category) && (!f?.risk || tl.risk === f.risk));
           return adapter.tools(filtered, block);
         }
         case 'providers': {
@@ -327,6 +328,7 @@ function renderBlock(block: DocBlock, adapter: RendererAdapter<ReactNode>, data:
 }
 
 export function DocumentationPage() {
+  useLocale();
   const { pages, sidebar } = useMemo(() => {
     // Static — no audience filtering, no search. Show every page available
     // on this surface, every time. Operator wanted no interactive controls
@@ -348,7 +350,7 @@ export function DocumentationPage() {
           docs body gets the full width — important on the cramped extension
           panel where a 224px sidebar ate a third of the screen. */}
       <div className="flex items-center justify-between border-b border-[var(--border-input)] pb-2 mb-3">
-        <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)]">Documentation</div>
+        <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)]">{t('dash.docs.title')}</div>
         <DocsDropdown sections={sidebar} />
       </div>
 
@@ -369,6 +371,7 @@ export function DocumentationPage() {
  * which matters on the cramped extension panel.
  */
 function DocsDropdown({ sections }: { sections: ReturnType<typeof buildSidebar> }) {
+  useLocale();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -387,7 +390,7 @@ function DocsDropdown({ sections }: { sections: ReturnType<typeof buildSidebar> 
         onClick={() => setOpen(o => !o)}
         className="flex items-center gap-1.5 px-2 py-1 rounded border border-[var(--border-input)] bg-[var(--bg-card)] text-[11px] text-[var(--text-secondary)] hover:text-white hover:border-[var(--accent)]/40 transition"
       >
-        Sections
+        {t('dash.docs.sections')}
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
           style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { AccountInfo, ExtToDashboardMessage } from '../types/messages';
 import { SectionGroup } from '../components/SectionGroup';
@@ -28,51 +29,56 @@ type WipeMessageType =
 // the user's machine — that's the one-line safety guarantee every button
 // repeats. If we later wire a listing view (per-item browse + delete),
 // it slots into the same card structure.
+//
+// Labels / descriptions / confirm copy are resolved through t() at the render
+// site — module consts evaluate once at import, so a live t() here would freeze
+// to English; the *Key fields are read against the live locale below.
 const CATEGORIES: Array<{
   id: string;
-  label: string;
-  description: string;
+  labelKey: string;
+  descKey: string;
   wipe: WipeMessageType;
-  confirmCopy: string;
+  confirmKey: string;
 }> = [
   {
     id: 'memories',
-    label: 'Memories',
-    description: 'Learned preferences, patterns, architecture decisions, and people Ava remembers.',
+    labelKey: 'dash.cloud.cat.memories',
+    descKey: 'dash.cloud.cat.memories_desc',
     wipe: 'delete_all_memories',
-    confirmCopy: 'Delete all memories from the cloud? Local memory files stay on your machine and can re-sync if you re-enable sync.',
+    confirmKey: 'dash.cloud.confirm.memories',
   },
   {
     id: 'conversations',
-    label: 'Chat History',
-    description: 'Every synced chat session — titles, messages, tool calls, and attachments.',
+    labelKey: 'dash.nav.chat_history',
+    descKey: 'dash.cloud.cat.conversations_desc',
     wipe: 'delete_all_cloud_conversations',
-    confirmCopy: 'Delete all chat history from the cloud? Local conversation files stay on your machine.',
+    confirmKey: 'dash.cloud.confirm.conversations',
   },
   {
     id: 'tasks',
-    label: 'Tasks',
-    description: 'Your life-management task list — priorities, categories, due dates, subtasks.',
+    labelKey: 'dash.nav.tasks',
+    descKey: 'dash.cloud.cat.tasks_desc',
     wipe: 'delete_all_cloud_tasks',
-    confirmCopy: 'Delete all tasks from the cloud? Local task data stays on your machine.',
+    confirmKey: 'dash.cloud.confirm.tasks',
   },
   {
     id: 'journal',
-    label: 'Journal',
-    description: 'Daily entries from both sides — yours and Ava\'s.',
+    labelKey: 'dash.nav.journal',
+    descKey: 'dash.cloud.cat.journal_desc',
     wipe: 'delete_all_cloud_journal',
-    confirmCopy: 'Delete all journal entries from the cloud? Local entries stay on your machine.',
+    confirmKey: 'dash.cloud.confirm.journal',
   },
   {
     id: 'creative',
-    label: 'Creative Assets',
-    description: 'AI-generated images, music, video, and voice from Creative Studio.',
+    labelKey: 'dash.cloud.cat.creative',
+    descKey: 'dash.cloud.cat.creative_desc',
     wipe: 'delete_all_cloud_creative',
-    confirmCopy: 'Delete all creative assets from the cloud? Local files stay; only the cloud copy is removed.',
+    confirmKey: 'dash.cloud.confirm.creative',
   },
 ];
 
 export function CloudManagement({ account, isConnected }: CloudManagementProps) {
+  useLocale();
   const [toast, setToast] = useState<{ kind: 'info' | 'error'; text: string } | null>(null);
   const [pendingWipe, setPendingWipe] = useState<string | null>(null);
 
@@ -99,12 +105,12 @@ export function CloudManagement({ account, isConnected }: CloudManagementProps) 
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
   }, [toast]);
 
   const triggerWipe = (cat: (typeof CATEGORIES)[number]) => {
-    if (!window.confirm(cat.confirmCopy)) return;
+    if (!window.confirm(t(cat.confirmKey))) return;
     setPendingWipe(cat.id);
     post({ type: cat.wipe });
   };
@@ -113,7 +119,7 @@ export function CloudManagement({ account, isConnected }: CloudManagementProps) 
     return (
       <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-8 text-center">
         <p className="text-sm text-[var(--text-secondary)]">
-          Sign in to see what's in your cloud storage.
+          {t('dash.cloud.signin_prompt')}
         </p>
       </div>
     );
@@ -139,18 +145,17 @@ export function CloudManagement({ account, isConnected }: CloudManagementProps) 
       <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="text-sm font-semibold text-white">Cloud Storage</h3>
+            <h3 className="text-sm font-semibold text-white">{t('dash.cloud.storage_title')}</h3>
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              Your cloud copy. Clearing anything here only touches the cloud —
-              local files always stay on your machine.
+              {t('dash.cloud.storage_blurb')}
             </p>
           </div>
           <button
             onClick={() => post({ type: 'refresh_storage' })}
-            title="Recalculate storage usage"
+            title={t('dash.cloud.recalculate')}
             className="shrink-0 rounded-md border border-[var(--border-input)] px-2 py-1 text-[10px] text-[var(--text-muted)] transition hover:text-[var(--text-secondary)] hover:border-[var(--border-card)] bg-transparent cursor-pointer"
           >
-            Refresh &#x21bb;
+            {t('health.browse.refresh')} &#x21bb;
           </button>
         </div>
 
@@ -158,11 +163,11 @@ export function CloudManagement({ account, isConnected }: CloudManagementProps) 
           <div className="mt-4">
             <p className="text-2xl font-semibold text-white">
               {fmtStorage(storage.used_gb)}
-              <span className="ml-2 text-sm font-normal text-[var(--text-muted)]">of {fmtStorage(storage.total_gb)}</span>
+              <span className="ml-2 text-sm font-normal text-[var(--text-muted)]">{t('dash.cloud.of_total', { total: fmtStorage(storage.total_gb) })}</span>
             </p>
             <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-              {fmtStorage(storage.base_gb)} plan
-              {storage.addon_gb > 0 && ` + ${fmtStorage(storage.addon_gb)} add-ons`}
+              {t('dash.cloud.plan_amount', { amount: fmtStorage(storage.base_gb) })}
+              {storage.addon_gb > 0 && ` ${t('dash.cloud.addons_amount', { amount: fmtStorage(storage.addon_gb) })}`}
             </p>
           </div>
         )}
@@ -170,8 +175,8 @@ export function CloudManagement({ account, isConnected }: CloudManagementProps) 
 
       {/* Per-category cards */}
       <SectionGroup
-        label="By type"
-        description="Clear everything in a category from your cloud copy. Local data is never touched."
+        label={t('dash.cloud.by_type')}
+        description={t('dash.cloud.by_type_desc')}
       >
         <div className="grid gap-3 sm:grid-cols-2">
           {CATEGORIES.map((cat) => {
@@ -182,13 +187,13 @@ export function CloudManagement({ account, isConnected }: CloudManagementProps) 
                 className="flex flex-col rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-white">{cat.label}</span>
+                  <span className="text-sm font-medium text-white">{t(cat.labelKey)}</span>
                   <span className="rounded-full bg-[var(--bg-input)] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                    Cloud
+                    {t('dash.chat.cloud')}
                   </span>
                 </div>
                 <p className="mt-1.5 flex-1 text-[11px] text-[var(--text-muted)] leading-relaxed">
-                  {cat.description}
+                  {t(cat.descKey)}
                 </p>
                 <button
                   onClick={() => triggerWipe(cat)}
@@ -196,7 +201,7 @@ export function CloudManagement({ account, isConnected }: CloudManagementProps) 
                   className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border-input)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] transition hover:border-red-500/30 hover:text-red-300 bg-transparent cursor-pointer disabled:cursor-wait disabled:opacity-50"
                 >
                   <TrashIcon className="h-3 w-3" />
-                  {inFlight ? 'Clearing…' : 'Clear all from cloud'}
+                  {inFlight ? t('dash.cloud.clearing') : t('dash.cloud.clear_all')}
                 </button>
               </div>
             );

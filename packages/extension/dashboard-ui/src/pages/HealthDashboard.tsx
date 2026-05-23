@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { t, useLocale } from '../i18n';
 import type { HealthDailyLog, HealthDailyPlan, HealthProfile } from '../types/messages';
 
 /**
@@ -39,6 +40,7 @@ interface Props {
 export function HealthDashboard({
   profile, plan, onSavePlan, onGenerateMorningBrief, briefGenerating, briefError, onNavigateToProfile,
 }: Props) {
+  useLocale();
   const today = todayIso();
   const greeting = useMemo(() => greetingFor(new Date()), []);
   const profileEmpty = useMemo(() => isProfileEmpty(profile), [profile]);
@@ -97,14 +99,14 @@ export function HealthDashboard({
           {formatLongDate(new Date())}
         </div>
         <h1 className="mt-1 text-[20px] font-light text-[var(--text-primary)]">
-          {greeting}.
+          {t(greeting)}.
         </h1>
       </header>
 
       {/* Inner tab nav — Overview / Plans */}
       <div className="mt-5 mb-6 flex gap-1 border-b border-[var(--border)]">
-        <InnerTabBtn label="Overview" active={innerTab === 'overview'} onClick={() => switchInnerTab('overview')} />
-        <InnerTabBtn label="Plans" active={innerTab === 'plans'} onClick={() => switchInnerTab('plans')} />
+        <InnerTabBtn label={t('health.home.tab.overview')} active={innerTab === 'overview'} onClick={() => switchInnerTab('overview')} />
+        <InnerTabBtn label={t('health.home.tab.plans')} active={innerTab === 'plans'} onClick={() => switchInnerTab('plans')} />
       </div>
 
       {/* If the profile is empty there's nothing for Ava to read,
@@ -119,7 +121,7 @@ export function HealthDashboard({
       {/* ── Overview — the synthesis ──────────────────────────────── */}
       {innerTab === 'overview' && (
         <div className="space-y-8">
-          <Section title="Today's brief">
+          <Section title={t('health.home.section.brief')}>
             <BriefBlock
               plan={plan}
               profileEmpty={profileEmpty}
@@ -132,11 +134,11 @@ export function HealthDashboard({
             )}
           </Section>
 
-          <Section title="Where you are">
+          <Section title={t('health.home.section.where_you_are')}>
             <StatusRow plan={plan} profile={profile} />
           </Section>
 
-          <Section title="Quick log">
+          <Section title={t('health.home.section.quick_log')}>
             <QuickLogRow plan={plan} api={quickLog} />
           </Section>
 
@@ -153,7 +155,7 @@ export function HealthDashboard({
       )}
 
       <footer className="pt-8 text-[10px] text-[var(--text-muted)]">
-        Local-first — your health data stays on this machine unless you switch on sync in the Sync tab. {today}
+        {t('health.home.footer', { date: today })}
       </footer>
     </div>
   );
@@ -192,14 +194,14 @@ function ProfileEmptyState({ onNavigateToProfile }: { onNavigateToProfile: () =>
   return (
     <div className="rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-4 py-3">
       <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
-        Set up your <strong>Profile</strong> first — Ava reads it to draft your daily plan and brief. Body stats, goals, constraints, and your schedule.
+        {t('health.home.empty.before')}<strong>{t('health.home.empty.profile')}</strong>{t('health.home.empty.after')}
       </p>
       <button
         type="button"
         onClick={onNavigateToProfile}
         className="mt-2.5 inline-flex items-center gap-1 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer"
       >
-        Set up your profile <span aria-hidden>→</span>
+        {t('health.home.empty.cta')} <span aria-hidden>→</span>
       </button>
     </div>
   );
@@ -215,14 +217,14 @@ function GoalsPointer({ onNavigateToProfile }: { onNavigateToProfile: () => void
   return (
     <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-4 py-2.5">
       <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-        Ava writes your brief around your goals — but you haven&apos;t set one yet.
+        {t('health.home.goals.prompt')}
       </p>
       <button
         type="button"
         onClick={onNavigateToProfile}
         className="shrink-0 inline-flex items-center gap-1 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer"
       >
-        Set your goals <span aria-hidden>→</span>
+        {t('health.home.goals.cta')} <span aria-hidden>→</span>
       </button>
     </div>
   );
@@ -245,8 +247,8 @@ function BriefBlock({
       ) : (
         <div className="rounded-lg border border-[var(--border)] bg-transparent px-4 py-5 text-[12px] text-[var(--text-muted)] italic leading-relaxed">
           {profileEmpty
-            ? "Ava will write today's brief once your profile is set up — what your week's looked like, what to do today, what to skip."
-            : "Today's brief hasn't been written yet. Click 'Write today's brief' below and Ava will draft it from your profile."}
+            ? t('health.home.brief.empty_profile')
+            : t('health.home.brief.empty')}
         </div>
       )}
 
@@ -264,13 +266,13 @@ function BriefBlock({
           className="rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {generating
-            ? 'Writing…'
+            ? t('health.home.brief.writing')
             : brief
-              ? 'Rewrite brief'
-              : "Write today's brief"}
+              ? t('health.home.brief.rewrite')
+              : t('health.home.brief.write')}
         </button>
         <span className="text-[10px] text-[var(--text-muted)] leading-relaxed">
-          Ava reads a snapshot of your profile to write this. The profile itself stays local.
+          {t('health.home.brief.snapshot_note')}
         </span>
       </div>
     </div>
@@ -294,11 +296,11 @@ function TodayPlanView({ plan }: { plan: HealthDailyPlan | null }) {
 
   return (
     <>
-      <Section title="Today's meals">
+      <Section title={t('health.home.section.todays_meals')}>
         {meals.length === 0 ? (
           <PlansEmptyCard
-            title="No meals planned yet"
-            body="When meal planning ships, this is a strip of recipe cards — hero image, macros, prep time — slotted to your meal times."
+            title={t('health.home.meals.empty_title')}
+            body={t('health.home.meals.empty_body')}
           />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -307,21 +309,21 @@ function TodayPlanView({ plan }: { plan: HealthDailyPlan | null }) {
         )}
       </Section>
 
-      <Section title="Today's training">
+      <Section title={t('health.home.section.todays_training')}>
         {training.length === 0 ? (
           <PlansEmptyCard
-            title="No training planned yet"
-            body="When fitness planning ships, today's workout shows here — exercises with their imagery, sets, reps, and rest, plus total duration."
+            title={t('health.home.training.empty_title')}
+            body={t('health.home.training.empty_body')}
           />
         ) : (
           <div className="space-y-2">
-            {training.map(t => <PlanItemCard key={t.id} item={t} accent="accent" />)}
+            {training.map(item => <PlanItemCard key={item.id} item={item} accent="accent" />)}
           </div>
         )}
       </Section>
 
       {recovery.length > 0 && (
-        <Section title="Recovery & notes">
+        <Section title={t('health.home.section.recovery')}>
           <div className="space-y-2">
             {recovery.map(r => <PlanItemCard key={r.id} item={r} accent="slate" />)}
           </div>
@@ -373,7 +375,7 @@ function PlanItemCard({
           <div className="mt-1 text-[10px] text-[var(--text-muted)] leading-relaxed">{item.detail}</div>
         )}
         {item.duration_minutes != null && (
-          <div className="mt-1 text-[10px] text-[var(--text-muted)]">{item.duration_minutes} min</div>
+          <div className="mt-1 text-[10px] text-[var(--text-muted)]">{t('health.home.n_min', { n: item.duration_minutes })}</div>
         )}
       </div>
     </div>
@@ -394,9 +396,9 @@ function StatusRow({ plan, profile }: { plan: HealthDailyPlan | null; profile: H
   const training = useMemo(() => computeTrainingLoad(plan), [plan]);
   return (
     <div className="grid grid-cols-3 gap-3">
-      <StatusTile label="Readiness" value={readiness.value} hint={readiness.hint} />
-      <StatusTile label="Nutrition" value={nutrition.value} hint={nutrition.hint} />
-      <StatusTile label="Training load" value={training.value} hint={training.hint} />
+      <StatusTile label={t('health.home.status.readiness')} value={readiness.value} hint={readiness.hint} />
+      <StatusTile label={t('health.home.status.nutrition')} value={nutrition.value} hint={nutrition.hint} />
+      <StatusTile label={t('health.home.status.training_load')} value={training.value} hint={training.hint} />
     </div>
   );
 }
@@ -413,7 +415,7 @@ function computeReadiness(profile: HealthProfile | null, plan: HealthDailyPlan |
   const sleep = plan?.log.sleep_hours ?? null;
   const mood = plan?.log.mood ?? null;
   if (sleep == null && mood == null) {
-    return { value: '—', hint: 'Log sleep and mood to see this' };
+    return { value: '—', hint: t('health.home.readiness.empty') };
   }
   const target = targetSleepHours(profile);
   let scoreSum = 0;
@@ -421,10 +423,10 @@ function computeReadiness(profile: HealthProfile | null, plan: HealthDailyPlan |
   if (sleep != null) { scoreSum += Math.min(sleep / target, 1) * 0.6; weightSum += 0.6; }
   if (mood != null)  { scoreSum += (mood / 5) * 0.4;                   weightSum += 0.4; }
   const pct = Math.round((scoreSum / weightSum) * 100);
-  const word = pct >= 80 ? 'Strong' : pct >= 60 ? 'Good' : pct >= 40 ? 'Fair' : 'Low';
+  const word = pct >= 80 ? t('health.home.readiness.strong') : pct >= 60 ? t('health.home.readiness.good') : pct >= 40 ? t('health.home.readiness.fair') : t('health.home.readiness.low');
   const bits: string[] = [];
-  if (sleep != null) bits.push(`${formatHours(sleep)} of ${formatHours(target)} sleep`);
-  if (mood != null)  bits.push(`mood ${mood}/5`);
+  if (sleep != null) bits.push(t('health.home.readiness.sleep_of', { actual: formatHours(sleep), target: formatHours(target) }));
+  if (mood != null)  bits.push(t('health.home.readiness.mood', { n: mood }));
   return { value: word, hint: bits.join(' · ') };
 }
 
@@ -438,20 +440,20 @@ function computeNutrition(profile: HealthProfile | null, plan: HealthDailyPlan |
   const meals = plan?.log.meals ?? [];
   const water = plan?.log.water_ml ?? 0;
   if (meals.length === 0 && water === 0) {
-    return { value: '—', hint: 'Log meals and water to see this' };
+    return { value: '—', hint: t('health.home.nutrition.empty') };
   }
   const protein = meals.reduce((a, m) => a + (m.protein_g ?? 0), 0);
   const kcal = meals.reduce((a, m) => a + (m.calories ?? 0), 0);
   const proteinTarget = proteinTargetG(profile);
-  const value = meals.length > 0 ? `${meals.length} meal${meals.length === 1 ? '' : 's'}` : '—';
+  const value = meals.length > 0 ? (meals.length === 1 ? t('health.home.nutrition.meals_one') : t('health.home.nutrition.meals', { n: meals.length })) : '—';
   const bits: string[] = [];
   if (protein > 0) {
     bits.push(proteinTarget != null
-      ? `${Math.round(protein)} / ${proteinTarget} g protein`
-      : `${Math.round(protein)} g protein`);
+      ? t('health.home.nutrition.protein_of', { actual: Math.round(protein), target: proteinTarget })
+      : t('health.home.nutrition.protein', { n: Math.round(protein) }));
   }
-  if (kcal > 0) bits.push(`${kcal} kcal`);
-  bits.push(`${water} ml water`);
+  if (kcal > 0) bits.push(t('health.home.nutrition.kcal', { n: kcal }));
+  bits.push(t('health.home.nutrition.water', { n: water }));
   return { value, hint: bits.join(' · ') };
 }
 
@@ -464,20 +466,22 @@ function computeNutrition(profile: HealthProfile | null, plan: HealthDailyPlan |
 function computeTrainingLoad(plan: HealthDailyPlan | null): StatusFigure {
   const training = (plan?.items ?? []).filter(i => i.kind === 'workout' || i.kind === 'mobility');
   if (training.length === 0) {
-    return { value: 'Rest day', hint: 'No training scheduled today' };
+    return { value: t('health.home.training_load.rest_day'), hint: t('health.home.training_load.none') };
   }
   const doneItems = training.filter(i => i.status === 'done');
   const plannedMin = training.reduce((a, i) => a + (i.duration_minutes ?? 0), 0);
   const doneMin = doneItems.reduce((a, i) => a + (i.duration_minutes ?? 0), 0);
   if (plannedMin > 0) {
     return {
-      value: `${doneMin}/${plannedMin} min`,
-      hint: `${doneItems.length} of ${training.length} session${training.length === 1 ? '' : 's'} done`,
+      value: t('health.home.training_load.min_of', { done: doneMin, planned: plannedMin }),
+      hint: training.length === 1
+        ? t('health.home.training_load.sessions_done_one', { done: doneItems.length })
+        : t('health.home.training_load.sessions_done', { done: doneItems.length, total: training.length }),
     };
   }
   return {
     value: `${doneItems.length}/${training.length}`,
-    hint: `Session${training.length === 1 ? '' : 's'} done today`,
+    hint: training.length === 1 ? t('health.home.training_load.done_today_one') : t('health.home.training_load.done_today'),
   };
 }
 
@@ -550,7 +554,8 @@ interface QuickLogApi {
 type QuickLogKind = 'meal' | 'water' | 'sleep' | 'mood';
 
 const MOOD_FACE: Record<number, string> = { 1: '😔', 2: '😕', 3: '😐', 4: '🙂', 5: '😄' };
-const MOOD_LABEL: Record<number, string> = { 1: 'Drained', 2: 'Low', 3: 'Okay', 4: 'Good', 5: 'Thriving' };
+const MOOD_LABEL_KEY: Record<number, string> = { 1: 'health.home.mood.drained', 2: 'health.home.mood.low', 3: 'health.home.mood.okay', 4: 'health.home.mood.good', 5: 'health.home.mood.thriving' };
+const moodLabel = (m: number): string => t(MOOD_LABEL_KEY[m]);
 
 function QuickLogRow({ plan, api }: { plan: HealthDailyPlan | null; api: QuickLogApi }) {
   const [open, setOpen] = useState<QuickLogKind | null>(null);
@@ -564,10 +569,10 @@ function QuickLogRow({ plan, api }: { plan: HealthDailyPlan | null; api: QuickLo
   return (
     <div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <LogButton label={meals.length > 0 ? `Meals · ${meals.length}` : '+ Meal'} active={open === 'meal'} onClick={() => toggle('meal')} />
-        <LogButton label={water > 0 ? `Water · ${formatWater(water)}` : '+ Water'} active={open === 'water'} onClick={() => toggle('water')} />
-        <LogButton label={sleep != null ? `Sleep · ${formatHours(sleep)}` : '+ Sleep'} active={open === 'sleep'} onClick={() => toggle('sleep')} />
-        <LogButton label={mood != null ? `Mood ${MOOD_FACE[mood]}` : '+ Mood'} active={open === 'mood'} onClick={() => toggle('mood')} />
+        <LogButton label={meals.length > 0 ? t('health.home.log.meals_count', { n: meals.length }) : t('health.home.log.add_meal')} active={open === 'meal'} onClick={() => toggle('meal')} />
+        <LogButton label={water > 0 ? t('health.home.log.water_count', { v: formatWater(water) }) : t('health.home.log.add_water')} active={open === 'water'} onClick={() => toggle('water')} />
+        <LogButton label={sleep != null ? t('health.home.log.sleep_count', { v: formatHours(sleep) }) : t('health.home.log.add_sleep')} active={open === 'sleep'} onClick={() => toggle('sleep')} />
+        <LogButton label={mood != null ? t('health.home.log.mood_count', { face: MOOD_FACE[mood] }) : t('health.home.log.add_mood')} active={open === 'mood'} onClick={() => toggle('mood')} />
       </div>
 
       {open && (
@@ -615,14 +620,14 @@ function WaterEditor({ water, onAdd, onReset }: { water: number; onAdd: (ml: num
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <span className="text-[11px] text-[var(--text-muted)]">Water today</span>
+        <span className="text-[11px] text-[var(--text-muted)]">{t('health.home.water.today')}</span>
         <span className="text-[14px] font-light text-[var(--text-primary)]">{formatWater(water)}</span>
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
-        <EditorChip onClick={() => onAdd(250)}>+ 250 ml</EditorChip>
-        <EditorChip onClick={() => onAdd(500)}>+ 500 ml</EditorChip>
-        <EditorChip onClick={() => onAdd(-250)} disabled={water <= 0}>− 250 ml</EditorChip>
-        <EditorChip onClick={onReset} disabled={water <= 0}>Reset</EditorChip>
+        <EditorChip onClick={() => onAdd(250)}>{t('health.home.water.add_250')}</EditorChip>
+        <EditorChip onClick={() => onAdd(500)}>{t('health.home.water.add_500')}</EditorChip>
+        <EditorChip onClick={() => onAdd(-250)} disabled={water <= 0}>{t('health.home.water.sub_250')}</EditorChip>
+        <EditorChip onClick={onReset} disabled={water <= 0}>{t('health.home.water.reset')}</EditorChip>
       </div>
     </div>
   );
@@ -633,16 +638,16 @@ function SleepEditor({ sleep, onSet }: { sleep: number | null; onSet: (h: number
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <span className="text-[11px] text-[var(--text-muted)]">Last night&apos;s sleep</span>
+        <span className="text-[11px] text-[var(--text-muted)]">{t('health.home.sleep.last_night')}</span>
         <span className="text-[14px] font-light text-[var(--text-primary)]">
-          {sleep != null ? formatHours(sleep) : 'Not logged'}
+          {sleep != null ? formatHours(sleep) : t('health.home.sleep.not_logged')}
         </span>
       </div>
       <div className="mt-2 flex items-center gap-2">
-        <EditorChip onClick={() => onSet(Math.max(0, round1(current - 0.5)))}>−30 min</EditorChip>
+        <EditorChip onClick={() => onSet(Math.max(0, round1(current - 0.5)))}>{t('health.home.sleep.sub_30')}</EditorChip>
         <span className="min-w-[3.5rem] text-center text-[13px] text-[var(--text-primary)]">{formatHours(current)}</span>
-        <EditorChip onClick={() => onSet(Math.min(14, round1(current + 0.5)))}>+30 min</EditorChip>
-        {sleep != null && <EditorChip onClick={() => onSet(null)}>Clear</EditorChip>}
+        <EditorChip onClick={() => onSet(Math.min(14, round1(current + 0.5)))}>{t('health.home.sleep.add_30')}</EditorChip>
+        {sleep != null && <EditorChip onClick={() => onSet(null)}>{t('health.home.sleep.clear')}</EditorChip>}
       </div>
     </div>
   );
@@ -652,14 +657,14 @@ function MoodEditor({ mood, onSet }: { mood: number | null; onSet: (m: 1 | 2 | 3
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <span className="text-[11px] text-[var(--text-muted)]">How you feel today</span>
+        <span className="text-[11px] text-[var(--text-muted)]">{t('health.home.mood.how_you_feel')}</span>
         {mood != null && (
           <button
             type="button"
             onClick={() => onSet(null)}
             className="border-none bg-transparent text-[10px] text-[var(--text-muted)] hover:text-[var(--accent)] transition cursor-pointer"
           >
-            Clear
+            {t('health.home.sleep.clear')}
           </button>
         )}
       </div>
@@ -669,8 +674,8 @@ function MoodEditor({ mood, onSet }: { mood: number | null; onSet: (m: 1 | 2 | 3
             key={m}
             type="button"
             onClick={() => onSet(m)}
-            aria-label={MOOD_LABEL[m]}
-            title={MOOD_LABEL[m]}
+            aria-label={moodLabel(m)}
+            title={moodLabel(m)}
             className={`flex-1 rounded-lg border py-2 text-[18px] transition cursor-pointer ${
               mood === m
                 ? 'border-[var(--accent)]/60 bg-[var(--accent)]/10'
@@ -682,8 +687,8 @@ function MoodEditor({ mood, onSet }: { mood: number | null; onSet: (m: 1 | 2 | 3
         ))}
       </div>
       <div className="mt-1.5 flex justify-between text-[9px] uppercase tracking-wider text-[var(--text-muted)]">
-        <span>Drained</span>
-        <span>Thriving</span>
+        <span>{t('health.home.mood.drained')}</span>
+        <span>{t('health.home.mood.thriving')}</span>
       </div>
     </div>
   );
@@ -720,21 +725,21 @@ function MealEditor({ meals, onAdd, onRemove }: {
             <li key={m.id} className="flex items-baseline justify-between gap-2 text-[12px]">
               <span className="min-w-0 truncate text-[var(--text-primary)]">
                 <span className="font-mono text-[10px] text-[var(--text-muted)]">{m.time}</span>{' '}
-                {m.description ?? 'Meal'}
+                {m.description ?? t('health.home.meal.fallback')}
               </span>
               <span className="flex shrink-0 items-baseline gap-2">
                 {(m.calories != null || m.protein_g != null) && (
                   <span className="text-[10px] text-[var(--text-muted)]">
                     {[
-                      m.calories != null ? `${m.calories} kcal` : null,
-                      m.protein_g != null ? `${m.protein_g} g P` : null,
+                      m.calories != null ? t('health.home.meal.kcal', { n: m.calories }) : null,
+                      m.protein_g != null ? t('health.home.meal.protein_g', { n: m.protein_g }) : null,
                     ].filter(Boolean).join(' · ')}
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={() => onRemove(m.id)}
-                  aria-label="Remove meal"
+                  aria-label={t('health.home.meal.remove')}
                   className="border-none bg-transparent text-[var(--text-muted)] hover:text-red-300 transition cursor-pointer"
                 >
                   ×
@@ -749,7 +754,7 @@ function MealEditor({ meals, onAdd, onRemove }: {
           value={desc}
           onChange={e => setDesc(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') submit(); }}
-          placeholder="What did you eat?"
+          placeholder={t('health.home.meal.desc_placeholder')}
           className={`w-full ${fieldCls}`}
         />
         <div className="flex gap-2">
@@ -758,7 +763,7 @@ function MealEditor({ meals, onAdd, onRemove }: {
             onChange={e => setKcal(e.target.value.replace(/[^0-9]/g, ''))}
             onKeyDown={e => { if (e.key === 'Enter') submit(); }}
             inputMode="numeric"
-            placeholder="kcal (optional)"
+            placeholder={t('health.home.meal.kcal_placeholder')}
             className={`min-w-0 flex-1 ${fieldCls}`}
           />
           <input
@@ -766,7 +771,7 @@ function MealEditor({ meals, onAdd, onRemove }: {
             onChange={e => setProtein(e.target.value.replace(/[^0-9]/g, ''))}
             onKeyDown={e => { if (e.key === 'Enter') submit(); }}
             inputMode="numeric"
-            placeholder="protein g (optional)"
+            placeholder={t('health.home.meal.protein_placeholder')}
             className={`min-w-0 flex-1 ${fieldCls}`}
           />
           <button
@@ -775,7 +780,7 @@ function MealEditor({ meals, onAdd, onRemove }: {
             disabled={!canAdd}
             className="shrink-0 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-4 py-1.5 text-[12px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Add
+            {t('health.home.meal.add')}
           </button>
         </div>
       </div>
@@ -794,7 +799,7 @@ function WhyDrawer({ reasoning }: { reasoning: string | null }) {
         className="text-[11px] text-[var(--text-muted)] hover:text-[var(--accent)] transition flex items-center gap-1"
       >
         <span>{open ? '▾' : '▸'}</span>
-        <span>Why Ava chose this</span>
+        <span>{t('health.home.why.title')}</span>
       </button>
       {open && (
         <div className="mt-2 rounded-lg border border-[var(--border)] bg-transparent px-4 py-3 text-[12px] text-[var(--text-secondary)] leading-relaxed">
@@ -858,11 +863,11 @@ function todayIso(): string {
 
 function greetingFor(date: Date): string {
   const h = date.getHours();
-  if (h < 5)  return 'Late night';
-  if (h < 12) return 'Morning';
-  if (h < 17) return 'Afternoon';
-  if (h < 21) return 'Evening';
-  return 'Late evening';
+  if (h < 5)  return 'health.home.greeting.late_night';
+  if (h < 12) return 'health.home.greeting.morning';
+  if (h < 17) return 'health.home.greeting.afternoon';
+  if (h < 21) return 'health.home.greeting.evening';
+  return 'health.home.greeting.late_evening';
 }
 
 function formatLongDate(date: Date): string {

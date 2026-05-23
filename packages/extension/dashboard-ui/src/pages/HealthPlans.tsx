@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { t, useLocale } from '../i18n';
 import { Select } from '../components/Select';
 import type {
   HealthPlan, HealthPlanSummary, HealthPlanType, HealthPlanStatus,
@@ -53,6 +54,7 @@ export function HealthPlans({
   exerciseResults, recipeResults, catalogSearching, exerciseTotal, recipeTotal, onSearchExercises, onSearchRecipes,
   exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail,
 }: Props) {
+  useLocale();
   const [setupOpen, setSetupOpen] = useState(false);
 
   return (
@@ -143,38 +145,39 @@ function PlanOverlay({
 
 // ── Shared meta + helpers ────────────────────────────────────────────
 
-const PLAN_TYPE_META: Record<HealthPlanType, { label: string; accent: string; tint: string; blurb: string }> = {
-  fitness:  { label: 'Fitness',  accent: 'var(--accent)', tint: 'border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]', blurb: 'Training weeks — exercises, sets, progression.' },
-  meal:     { label: 'Meal',     accent: '#f59e0b',       tint: 'border-amber-400/30 bg-amber-400/10 text-amber-300',                 blurb: 'Nutrition weeks — meals, servings, day totals.' },
-  combined: { label: 'Combined', accent: '#34d399',       tint: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',           blurb: 'Training and meals woven together.' },
+// Visual-only metadata — labels/blurbs are resolved through t() at render
+// (module consts evaluate once at import, so a t() call here would freeze to
+// English; the helpers below read the live locale instead).
+const PLAN_TYPE_META: Record<HealthPlanType, { accent: string; tint: string }> = {
+  fitness:  { accent: 'var(--accent)', tint: 'border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]' },
+  meal:     { accent: '#f59e0b',       tint: 'border-amber-400/30 bg-amber-400/10 text-amber-300' },
+  combined: { accent: '#34d399',       tint: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300' },
 };
+const planTypeLabel = (type: HealthPlanType): string => t(`health.plans.type.${type}`);
+const planTypeBlurb = (type: HealthPlanType): string => t(`health.plans.type.${type}.blurb`);
 
-const PLAN_STATUS_META: Record<HealthPlanStatus, { label: string; cls: string }> = {
-  draft:     { label: 'Draft',     cls: 'bg-[var(--border)] text-[var(--text-muted)]' },
-  active:    { label: 'Active',    cls: 'bg-emerald-400/15 text-emerald-300' },
-  completed: { label: 'Completed', cls: 'bg-sky-400/15 text-sky-300' },
-  archived:  { label: 'Archived',  cls: 'bg-[var(--border)] text-[var(--text-muted)] opacity-70' },
+const PLAN_STATUS_META: Record<HealthPlanStatus, { cls: string }> = {
+  draft:     { cls: 'bg-[var(--border)] text-[var(--text-muted)]' },
+  active:    { cls: 'bg-emerald-400/15 text-emerald-300' },
+  completed: { cls: 'bg-sky-400/15 text-sky-300' },
+  archived:  { cls: 'bg-[var(--border)] text-[var(--text-muted)] opacity-70' },
 };
+const planStatusLabel = (status: HealthPlanStatus): string => t(`health.plans.status.${status}`);
+const mealSlotLabel = (slot: HealthPlanMeal['slot']): string => t(`health.plans.slot.${slot}`);
 
-const DURATION_PRESETS: Array<{ days: number; label: string }> = [
-  { days: 1,  label: '1 day' },
-  { days: 7,  label: '1 week' },
-  { days: 28, label: '4 weeks' },
-  { days: 56, label: '8 weeks' },
-  { days: 84, label: '12 weeks' },
-];
+const DURATION_PRESETS: number[] = [1, 7, 28, 56, 84];
 
 const editInput =
   'rounded border border-[var(--border)] bg-[var(--bg-input)] px-2 py-1 text-[12px] ' +
   'text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50';
 
-const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const WEEKDAY_INITIAL = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const weekdayLabel = (dow: number): string => t(`health.plans.weekday.${dow}`);
+const weekdayInitial = (dow: number): string => t(`health.plans.weekday_initial.${dow}`);
 
 function durationLabel(days: number): string {
-  if (days <= 1) return '1 day';
+  if (days <= 1) return t('health.plans.duration.day_one');
   const weeks = Math.round(days / 7);
-  return weeks === 1 ? '1 week' : `${weeks} weeks`;
+  return weeks === 1 ? t('health.plans.duration.week_one') : t('health.plans.duration.weeks', { n: weeks });
 }
 
 function ymd(d: Date): string {
@@ -212,7 +215,7 @@ function blankPlan(type: HealthPlanType, durationDays: number): HealthPlan {
     schema_version: 1,
     id: newId('plan'),
     type,
-    title: `New ${PLAN_TYPE_META[type].label.toLowerCase()} plan`,
+    title: t('health.plans.new_plan_title', { type: planTypeLabel(type).toLowerCase() }),
     goal: null,
     source: 'manual',
     status: 'draft',
@@ -227,11 +230,11 @@ function blankPlan(type: HealthPlanType, durationDays: number): HealthPlan {
 
 // ── Nutrition derivation ─────────────────────────────────────────────
 
-const MACRO_FIELDS: Array<{ key: 'calories' | 'protein_g' | 'carbs_g' | 'fat_g'; label: string; unit: string }> = [
-  { key: 'calories',  label: 'Cal',     unit: '' },
-  { key: 'protein_g', label: 'Protein', unit: 'g' },
-  { key: 'carbs_g',   label: 'Carbs',   unit: 'g' },
-  { key: 'fat_g',     label: 'Fat',     unit: 'g' },
+const MACRO_FIELDS: Array<{ key: 'calories' | 'protein_g' | 'carbs_g' | 'fat_g'; labelKey: string; unit: string }> = [
+  { key: 'calories',  labelKey: 'health.plans.macro.cal',     unit: '' },
+  { key: 'protein_g', labelKey: 'health.plans.macro.protein', unit: 'g' },
+  { key: 'carbs_g',   labelKey: 'health.plans.macro.carbs',   unit: 'g' },
+  { key: 'fat_g',     labelKey: 'health.plans.macro.fat',     unit: 'g' },
 ];
 
 function recipePerServing(slug: string, recipeDetails: Record<string, HealthRecipeDetail>): HealthRecipeNutrition | null {
@@ -344,9 +347,9 @@ function BasePlansTab({ plans, onNew, onOpen, onDelete }: {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Your plans</h2>
+          <h2 className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{t('health.plans.your_plans')}</h2>
           <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">
-            Multi-week fitness, meal, and combined programs — built day by day from the recipe and exercise library.
+            {t('health.plans.your_plans_blurb')}
           </p>
         </div>
         <button
@@ -354,13 +357,13 @@ function BasePlansTab({ plans, onNew, onOpen, onDelete }: {
           onClick={onNew}
           className="shrink-0 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer"
         >
-          + New plan
+          {t('health.plans.new_plan')}
         </button>
       </div>
 
       {/* Inner tabs */}
       <div className="flex items-center gap-1 border-b border-[var(--border)]">
-        {([['calendar', 'Calendar'], ['programs', `Programs${plans.length ? ` · ${plans.length}` : ''}`]] as const).map(([key, label]) => (
+        {([['calendar', t('health.plans.tab.calendar')], ['programs', `${t('health.plans.tab.programs')}${plans.length ? ` · ${plans.length}` : ''}`]] as const).map(([key, label]) => (
           <button
             key={key}
             type="button"
@@ -386,9 +389,9 @@ function BasePlansTab({ plans, onNew, onOpen, onDelete }: {
         />
       ) : plans.length === 0 ? (
         <div className="rounded-lg border border-dashed border-[var(--border)] px-4 py-10 text-center">
-          <div className="text-[12px] text-[var(--text-secondary)]">No programs yet</div>
+          <div className="text-[12px] text-[var(--text-secondary)]">{t('health.plans.empty_title')}</div>
           <div className="mx-auto mt-1.5 max-w-sm text-[10px] italic leading-relaxed text-[var(--text-muted)]">
-            Start one with “+ New plan” — pick a type and a length, then fill the days.
+            {t('health.plans.empty_hint')}
           </div>
         </div>
       ) : (
@@ -416,21 +419,21 @@ function PlanCard({ plan, onOpen, onDelete }: {
       <div className="h-[3px]" style={{ background: m.accent }} aria-hidden />
       <button type="button" onClick={onOpen} className="block w-full cursor-pointer border-none bg-transparent px-4 py-3 text-left">
         <div className="flex items-center gap-2">
-          <span className={`rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${m.tint}`}>{m.label}</span>
-          <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${s.cls}`}>{s.label}</span>
+          <span className={`rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${m.tint}`}>{planTypeLabel(plan.type)}</span>
+          <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${s.cls}`}>{planStatusLabel(plan.status)}</span>
         </div>
         <div className="mt-2 text-[13px] leading-snug text-[var(--text-primary)]">{plan.title}</div>
-        <div className="mt-1 text-[10px] text-[var(--text-muted)]">{durationLabel(plan.duration_days)} · built by you</div>
+        <div className="mt-1 text-[10px] text-[var(--text-muted)]">{durationLabel(plan.duration_days)} · {t('health.plans.built_by_you')}</div>
       </button>
 
       {confirming ? (
         <div className="absolute right-2 top-2 flex items-center gap-1.5 rounded-md border border-red-500/30 bg-[var(--bg-input)] px-2 py-1">
-          <span className="text-[10px] text-[var(--text-secondary)]">Delete?</span>
-          <button type="button" onClick={() => { onDelete(); setConfirming(false); }} className="border-none bg-transparent text-[10px] font-semibold text-red-300 hover:text-red-200 cursor-pointer">Yes</button>
-          <button type="button" onClick={() => setConfirming(false)} className="border-none bg-transparent text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">No</button>
+          <span className="text-[10px] text-[var(--text-secondary)]">{t('health.plans.delete_q')}</span>
+          <button type="button" onClick={() => { onDelete(); setConfirming(false); }} className="border-none bg-transparent text-[10px] font-semibold text-red-300 hover:text-red-200 cursor-pointer">{t('health.plans.yes')}</button>
+          <button type="button" onClick={() => setConfirming(false)} className="border-none bg-transparent text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">{t('health.plans.no')}</button>
         </div>
       ) : (
-        <button type="button" onClick={() => setConfirming(true)} title="Delete plan"
+        <button type="button" onClick={() => setConfirming(true)} title={t('health.plans.delete_plan')}
           className="absolute right-2 top-2 cursor-pointer rounded border-none bg-transparent p-1 text-[var(--text-muted)] opacity-0 transition hover:text-red-300 group-hover:opacity-100">
           ✕
         </button>
@@ -453,34 +456,34 @@ function PlanSetup({ onCancel, onCreate }: {
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between gap-3 border-b border-[rgba(168,85,247,0.14)] px-6 py-4">
         <div>
-          <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">New plan</h2>
-          <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">Pick a type and a length — then build it day by day.</p>
+          <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">{t('health.plans.new_plan_title_short')}</h2>
+          <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{t('health.plans.setup_subtitle')}</p>
         </div>
         <button type="button" onClick={onCancel}
           className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">
-          Cancel
+          {t('health.plans.cancel')}
         </button>
       </div>
 
       <div className="flex-1 min-h-0 space-y-6 overflow-y-auto px-6 py-6">
         <div>
-          <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Type</div>
+          <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{t('health.plans.type_label')}</div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {(['fitness', 'meal', 'combined'] as HealthPlanType[]).map(t => {
-              const m = PLAN_TYPE_META[t];
-              const on = type === t;
+            {(['fitness', 'meal', 'combined'] as HealthPlanType[]).map(ty => {
+              const m = PLAN_TYPE_META[ty];
+              const on = type === ty;
               return (
                 <button
-                  key={t}
+                  key={ty}
                   type="button"
-                  onClick={() => setType(t)}
+                  onClick={() => setType(ty)}
                   className={`rounded-lg border px-4 py-4 text-left transition cursor-pointer ${
                     on ? 'border-[var(--accent)] bg-[var(--accent)]/10' : 'border-[var(--border)] hover:border-[var(--accent)]/40'
                   }`}
                 >
                   <div className="mb-2 h-[3px] w-10 rounded" style={{ background: m.accent }} aria-hidden />
-                  <div className="text-[13px] font-medium text-[var(--text-primary)]">{m.label}</div>
-                  <div className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">{m.blurb}</div>
+                  <div className="text-[13px] font-medium text-[var(--text-primary)]">{planTypeLabel(ty)}</div>
+                  <div className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">{planTypeBlurb(ty)}</div>
                 </button>
               );
             })}
@@ -488,20 +491,20 @@ function PlanSetup({ onCancel, onCreate }: {
         </div>
 
         <div>
-          <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">Length</div>
+          <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{t('health.plans.length_label')}</div>
           <div className="flex flex-wrap gap-2">
-            {DURATION_PRESETS.map(p => (
+            {DURATION_PRESETS.map(days => (
               <button
-                key={p.days}
+                key={days}
                 type="button"
-                onClick={() => setDuration(p.days)}
+                onClick={() => setDuration(days)}
                 className={`rounded-md border px-3 py-1.5 text-[11px] font-medium transition cursor-pointer ${
-                  duration === p.days
+                  duration === days
                     ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
                     : 'border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)]/40'
                 }`}
               >
-                {p.label}
+                {durationLabel(days)}
               </button>
             ))}
           </div>
@@ -519,9 +522,9 @@ function PlanSetup({ onCancel, onCreate }: {
               : 'border border-[var(--border)] text-[var(--text-muted)] cursor-not-allowed opacity-60'
           }`}
         >
-          Start building →
+          {t('health.plans.start_building')}
         </button>
-        {!type && <span className="text-[10px] italic text-[var(--text-muted)]">Pick a type first.</span>}
+        {!type && <span className="text-[10px] italic text-[var(--text-muted)]">{t('health.plans.pick_type_first')}</span>}
       </div>
     </div>
   );
@@ -701,41 +704,41 @@ function PlanBuilder({
         <div className="flex items-center justify-between gap-3">
           <button type="button" onClick={closeWithFlush}
             className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">
-            ← All plans
+            {t('health.plans.all_plans')}
           </button>
-          <span className="text-[10px] text-[var(--text-muted)]">Changes save automatically</span>
+          <span className="text-[10px] text-[var(--text-muted)]">{t('health.plans.autosave')}</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className={`rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${m.tint}`}>{m.label}</span>
+          <span className={`rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${m.tint}`}>{planTypeLabel(draft.type)}</span>
           <input
             value={draft.title}
             onChange={(e) => commit({ ...draft, title: e.target.value })}
-            placeholder="Plan title"
+            placeholder={t('health.plans.title_placeholder')}
             className={`${editInput} min-w-[180px] flex-1 text-[14px]`}
           />
           <Select
             value={draft.status}
             onChange={(v) => commit({ ...draft, status: v as HealthPlanStatus })}
             size="sm"
-            title="Activating a plan archives any other active plan of the same type"
+            title={t('health.plans.status_select_title')}
             options={[
-              { value: 'draft', label: 'Draft' },
-              { value: 'active', label: 'Active' },
-              { value: 'completed', label: 'Completed' },
-              { value: 'archived', label: 'Archived' },
+              { value: 'draft', label: planStatusLabel('draft') },
+              { value: 'active', label: planStatusLabel('active') },
+              { value: 'completed', label: planStatusLabel('completed') },
+              { value: 'archived', label: planStatusLabel('archived') },
             ]}
           />
           <Select
             value={String(draft.duration_days)}
             onChange={(v) => setDuration(Number(v))}
             size="sm"
-            options={DURATION_PRESETS.map(p => ({ value: String(p.days), label: p.label }))}
+            options={DURATION_PRESETS.map(days => ({ value: String(days), label: durationLabel(days) }))}
           />
         </div>
         <input
           value={draft.goal ?? ''}
           onChange={(e) => commit({ ...draft, goal: e.target.value || null })}
-          placeholder="Goal — e.g. lose 4 kg, first 5 k, build pressing strength"
+          placeholder={t('health.plans.goal_placeholder')}
           className={`${editInput} w-full`}
         />
       </div>
@@ -776,12 +779,12 @@ function PlanBuilder({
       <div className="flex items-center border-t border-[rgba(168,85,247,0.14)] px-6 py-3">
         {confirming ? (
           <div className="flex items-center gap-3">
-            <span className="text-[11px] text-[var(--text-secondary)]">Delete this plan permanently?</span>
-            <button type="button" onClick={() => { onDelete(draft.id); onClose(); }} className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-[11px] font-semibold text-red-300 hover:bg-red-500/20 transition cursor-pointer">Delete</button>
-            <button type="button" onClick={() => setConfirming(false)} className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">Cancel</button>
+            <span className="text-[11px] text-[var(--text-secondary)]">{t('health.plans.delete_confirm')}</span>
+            <button type="button" onClick={() => { onDelete(draft.id); onClose(); }} className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-[11px] font-semibold text-red-300 hover:bg-red-500/20 transition cursor-pointer">{t('health.plans.delete')}</button>
+            <button type="button" onClick={() => setConfirming(false)} className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">{t('health.plans.cancel')}</button>
           </div>
         ) : (
-          <button type="button" onClick={() => setConfirming(true)} className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-red-300 transition cursor-pointer">Delete plan</button>
+          <button type="button" onClick={() => setConfirming(true)} className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-red-300 transition cursor-pointer">{t('health.plans.delete_plan')}</button>
         )}
       </div>
     </div>
@@ -811,17 +814,17 @@ function MonthCalendar({ month, onMonthChange, marks, selected, onSelectDate }: 
   return (
     <div className="overflow-hidden rounded-xl border border-[rgba(168,85,247,0.18)] bg-gradient-to-br from-[#100d1a] to-[#181327] shadow-[0_4px_28px_rgba(0,0,0,0.28)]">
       <div className="flex items-center justify-between border-b border-[rgba(168,85,247,0.12)] bg-[var(--accent)]/5 px-4 py-2.5">
-        <button type="button" onClick={() => onMonthChange(new Date(year, mon - 1, 1))} aria-label="Previous month"
+        <button type="button" onClick={() => onMonthChange(new Date(year, mon - 1, 1))} aria-label={t('health.plans.prev_month')}
           className="flex h-7 w-7 items-center justify-center rounded-md border-none bg-[var(--accent)]/10 text-[14px] text-[var(--text-secondary)] transition hover:bg-[var(--accent)]/25 hover:text-white cursor-pointer">‹</button>
         <span className="text-[13px] font-semibold tracking-wide text-[var(--text-primary)]">{monthLabel}</span>
-        <button type="button" onClick={() => onMonthChange(new Date(year, mon + 1, 1))} aria-label="Next month"
+        <button type="button" onClick={() => onMonthChange(new Date(year, mon + 1, 1))} aria-label={t('health.plans.next_month')}
           className="flex h-7 w-7 items-center justify-center rounded-md border-none bg-[var(--accent)]/10 text-[14px] text-[var(--text-secondary)] transition hover:bg-[var(--accent)]/25 hover:text-white cursor-pointer">›</button>
       </div>
 
       <div className="p-3">
         <div className="mb-1.5 grid grid-cols-7 gap-1.5">
-          {WEEKDAY_INITIAL.map((w, i) => (
-            <div key={i} className="text-center text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{w}</div>
+          {[0, 1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="text-center text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{weekdayInitial(i)}</div>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-1.5">
@@ -887,8 +890,9 @@ function DayPanel({ day, startDate, showTraining, showMeals, recipeDetails, exer
   // Navigating to another day drops back to the calm read view.
   useEffect(() => { setEditing(false); }, [day.day_index]);
 
-  const dateLabel = date ? `${WEEKDAY[date.getDay()]} ${date.getDate()} — Day ${day.day_index}` : `Day ${day.day_index}`;
-  const kindLabel = day.kind === 'training' ? 'Training' : day.kind === 'active_recovery' ? 'Active recovery' : 'Rest';
+  const dayN = t('health.plans.day_n', { n: day.day_index });
+  const dateLabel = date ? `${weekdayLabel(date.getDay())} ${date.getDate()} — ${dayN}` : dayN;
+  const kindLabel = day.kind === 'training' ? t('health.plans.kind.training') : day.kind === 'active_recovery' ? t('health.plans.kind.active_recovery') : t('health.plans.kind.rest');
   const pillBtn = 'rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2.5 py-1 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer';
 
   if (!editing) {
@@ -898,7 +902,7 @@ function DayPanel({ day, startDate, showTraining, showMeals, recipeDetails, exer
           <span className="text-[13px] font-semibold text-[var(--text-primary)]">{dateLabel}</span>
           <span className="rounded border border-[var(--border)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">{kindLabel}</span>
           {day.title && <span className="text-[12px] text-[var(--text-secondary)]">{day.title}</span>}
-          <button type="button" onClick={() => setEditing(true)} className={`ml-auto ${pillBtn}`}>Edit day</button>
+          <button type="button" onClick={() => setEditing(true)} className={`ml-auto ${pillBtn}`}>{t('health.plans.edit_day')}</button>
         </div>
         <DayReadView day={day} showTraining={showTraining} showMeals={showMeals} exerciseDetails={exerciseDetails} recipeDetails={recipeDetails} totals={totals} estimated={estimated} onLoadExerciseDetail={onLoadExerciseDetail} onLoadRecipeDetail={onLoadRecipeDetail} />
       </div>
@@ -914,23 +918,23 @@ function DayPanel({ day, startDate, showTraining, showMeals, recipeDetails, exer
           onChange={(v) => onChange({ ...day, kind: v as HealthPlanDay['kind'] })}
           size="sm"
           options={[
-            { value: 'training', label: 'Training' },
-            { value: 'rest', label: 'Rest' },
-            { value: 'active_recovery', label: 'Active recovery' },
+            { value: 'training', label: t('health.plans.kind.training') },
+            { value: 'rest', label: t('health.plans.kind.rest') },
+            { value: 'active_recovery', label: t('health.plans.kind.active_recovery') },
           ]}
         />
         <input
           value={day.title ?? ''}
           onChange={(e) => onChange({ ...day, title: e.target.value || null })}
-          placeholder="Day title — e.g. Upper body, Long run"
+          placeholder={t('health.plans.day_title_placeholder')}
           className={`${editInput} min-w-[160px] flex-1`}
         />
-        <button type="button" onClick={() => setEditing(false)} className={pillBtn}>Done</button>
+        <button type="button" onClick={() => setEditing(false)} className={pillBtn}>{t('health.plans.done')}</button>
       </div>
 
       {showTraining && (
-        <DaySection title="Training" addLabel="+ Add exercises" empty={day.training.length === 0} onAdd={onAddExercises}
-          emptyHint="Pick exercises from the library — sets and reps fill in from each one's routine.">
+        <DaySection title={t('health.plans.training')} addLabel={t('health.plans.add_exercises')} empty={day.training.length === 0} onAdd={onAddExercises}
+          emptyHint={t('health.plans.training_empty_hint')}>
           {day.training.map(ex => (
             <ExerciseRow
               key={ex.id}
@@ -944,8 +948,8 @@ function DayPanel({ day, startDate, showTraining, showMeals, recipeDetails, exer
       )}
 
       {showMeals && (
-        <DaySection title="Meals" addLabel="+ Add recipes" empty={day.meals.length === 0} onAdd={onAddMeals}
-          emptyHint="Pick recipes from the library — nutrition is worked out from servings.">
+        <DaySection title={t('health.plans.meals')} addLabel={t('health.plans.add_recipes')} empty={day.meals.length === 0} onAdd={onAddMeals}
+          emptyHint={t('health.plans.meals_empty_hint')}>
           {day.meals.map(meal => (
             <MealRow
               key={meal.id}
@@ -957,13 +961,13 @@ function DayPanel({ day, startDate, showTraining, showMeals, recipeDetails, exer
           ))}
           {day.meals.length > 0 && (
             <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-400/20 bg-amber-400/5 px-3 py-2">
-              <span className="text-[10px] uppercase tracking-[0.14em] text-amber-300/80">Day total</span>
+              <span className="text-[10px] uppercase tracking-[0.14em] text-amber-300/80">{t('health.plans.day_total')}</span>
               {MACRO_FIELDS.map(f => (
                 <span key={f.key} className="text-[11px] text-[var(--text-secondary)]">
-                  {f.label} <span className="font-semibold text-[var(--text-primary)]">{totals[f.key] ?? 0}{f.unit}</span>
+                  {t(f.labelKey)} <span className="font-semibold text-[var(--text-primary)]">{totals[f.key] ?? 0}{f.unit}</span>
                 </span>
               ))}
-              {estimated && <span className="text-[9px] italic text-[var(--text-muted)]">estimated</span>}
+              {estimated && <span className="text-[9px] italic text-[var(--text-muted)]">{t('health.plans.estimated')}</span>}
             </div>
           )}
         </DaySection>
@@ -972,7 +976,7 @@ function DayPanel({ day, startDate, showTraining, showMeals, recipeDetails, exer
       <textarea
         value={day.notes ?? ''}
         onChange={(e) => onChange({ ...day, notes: e.target.value || null })}
-        placeholder="Day notes (optional)"
+        placeholder={t('health.plans.day_notes_placeholder')}
         rows={2}
         className={`${editInput} w-full resize-y`}
       />
@@ -984,20 +988,20 @@ function DayPanel({ day, startDate, showTraining, showMeals, recipeDetails, exer
 function exerciseSummary(ex: HealthPlanExercise): string {
   const parts: string[] = [];
   if (ex.sets != null && ex.reps) parts.push(`${ex.sets} × ${ex.reps}`);
-  else if (ex.sets != null) parts.push(`${ex.sets} sets`);
+  else if (ex.sets != null) parts.push(t('health.plans.n_sets', { n: ex.sets }));
   else if (ex.reps) parts.push(ex.reps);
   if (ex.weight) parts.push(ex.weight);
-  if (ex.rest_seconds != null) parts.push(`${ex.rest_seconds}s rest`);
+  if (ex.rest_seconds != null) parts.push(t('health.plans.n_rest', { n: ex.rest_seconds }));
   return parts.join('  ·  ') || '—';
 }
 
 /** One-line readable summary of a meal — "1 serving · 350 cal · 30g protein". */
 function mealSummary(meal: HealthPlanMeal, recipeDetails: Record<string, HealthRecipeDetail>): string {
   const parts: string[] = [];
-  if (meal.servings != null) parts.push(`${meal.servings} serving${meal.servings === 1 ? '' : 's'}`);
+  if (meal.servings != null) parts.push(t('health.plans.n_servings', { n: meal.servings }));
   const { macros } = mealMacros(meal, recipeDetails);
-  if (macros.calories != null) parts.push(`${macros.calories} cal`);
-  if (macros.protein_g != null) parts.push(`${macros.protein_g}g protein`);
+  if (macros.calories != null) parts.push(t('health.plans.n_cal', { n: macros.calories }));
+  if (macros.protein_g != null) parts.push(t('health.plans.n_protein', { n: macros.protein_g }));
   return parts.join('  ·  ') || '—';
 }
 
@@ -1020,18 +1024,22 @@ function DayReadView({ day, showTraining, showMeals, exerciseDetails, recipeDeta
   const openExercise = (ex: HealthPlanExercise) => {
     if (!ex.ref) return;
     onLoadExerciseDetail(ex.ref.slug);
-    setDetail({ kind: 'exercise', slug: ex.ref.slug, name: ex.name || 'Exercise' });
+    setDetail({ kind: 'exercise', slug: ex.ref.slug, name: ex.name || t('health.plans.exercise_fallback') });
   };
   const openMeal = (meal: HealthPlanMeal) => {
     if (!meal.ref) return;
     onLoadRecipeDetail(meal.ref.slug);
-    setDetail({ kind: 'recipe', slug: meal.ref.slug, name: meal.name || 'Meal' });
+    setDetail({ kind: 'recipe', slug: meal.ref.slug, name: meal.name || t('health.plans.meal_fallback') });
   };
 
   if (day.training.length === 0 && day.meals.length === 0) {
     return (
       <div className="rounded-md border border-dashed border-[var(--border)] px-3 py-4 text-[11px] italic text-[var(--text-muted)]">
-        Nothing scheduled — hit “Edit day” to add {showTraining ? 'exercises' : ''}{showTraining && showMeals ? ' or ' : ''}{showMeals ? 'meals' : ''}.
+        {showTraining && showMeals
+          ? t('health.plans.nothing_scheduled_both')
+          : showMeals
+            ? t('health.plans.nothing_scheduled_meals')
+            : t('health.plans.nothing_scheduled_training')}
       </div>
     );
   }
@@ -1045,14 +1053,14 @@ function DayReadView({ day, showTraining, showMeals, exerciseDetails, recipeDeta
     <div className="space-y-4">
       {showTraining && day.training.length > 0 && (
         <div className="space-y-1.5">
-          <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">Training</div>
+          <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">{t('health.plans.training')}</div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {day.training.map(ex => {
               const clickable = !!ex.ref;
               return (
                 <button key={ex.id} type="button" disabled={!clickable} onClick={() => openExercise(ex)} className={cardCls(clickable)}>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-[12px] font-medium text-[var(--text-primary)]">{ex.name || 'Exercise'}</span>
+                    <span className="truncate text-[12px] font-medium text-[var(--text-primary)]">{ex.name || t('health.plans.exercise_fallback')}</span>
                     {clickable && <span className="shrink-0 text-[14px] leading-none text-[var(--accent)]">›</span>}
                   </div>
                   <span className="text-[10px] text-[var(--text-muted)]">{exerciseSummary(ex)}</span>
@@ -1064,7 +1072,7 @@ function DayReadView({ day, showTraining, showMeals, exerciseDetails, recipeDeta
       )}
       {showMeals && day.meals.length > 0 && (
         <div className="space-y-1.5">
-          <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">Meals</div>
+          <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">{t('health.plans.meals')}</div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {day.meals.map(meal => {
               const clickable = !!meal.ref;
@@ -1072,7 +1080,7 @@ function DayReadView({ day, showTraining, showMeals, exerciseDetails, recipeDeta
                 <button key={meal.id} type="button" disabled={!clickable} onClick={() => openMeal(meal)} className={cardCls(clickable)}>
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate text-[12px] font-medium text-[var(--text-primary)]">
-                      <span className="mr-1.5 text-[10px] uppercase text-[var(--text-muted)]">{meal.slot}</span>{meal.name || 'Meal'}
+                      <span className="mr-1.5 text-[10px] uppercase text-[var(--text-muted)]">{mealSlotLabel(meal.slot)}</span>{meal.name || t('health.plans.meal_fallback')}
                     </span>
                     {clickable && <span className="shrink-0 text-[14px] leading-none text-[var(--accent)]">›</span>}
                   </div>
@@ -1082,13 +1090,13 @@ function DayReadView({ day, showTraining, showMeals, exerciseDetails, recipeDeta
             })}
           </div>
           <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-400/20 bg-amber-400/5 px-3 py-2">
-            <span className="text-[10px] uppercase tracking-[0.14em] text-amber-300/80">Day total</span>
+            <span className="text-[10px] uppercase tracking-[0.14em] text-amber-300/80">{t('health.plans.day_total')}</span>
             {MACRO_FIELDS.map(f => (
               <span key={f.key} className="text-[11px] text-[var(--text-secondary)]">
-                {f.label} <span className="font-semibold text-[var(--text-primary)]">{totals[f.key] ?? 0}{f.unit}</span>
+                {t(f.labelKey)} <span className="font-semibold text-[var(--text-primary)]">{totals[f.key] ?? 0}{f.unit}</span>
               </span>
             ))}
-            {estimated && <span className="text-[9px] italic text-[var(--text-muted)]">estimated</span>}
+            {estimated && <span className="text-[9px] italic text-[var(--text-muted)]">{t('health.plans.estimated')}</span>}
           </div>
         </div>
       )}
@@ -1129,13 +1137,13 @@ function ItemDetailModal({ detail, exercise, recipe, onClose }: {
         </div>
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
           {!loaded ? (
-            <div className="py-8 text-center text-[12px] italic text-[var(--text-muted)]">Loading…</div>
+            <div className="py-8 text-center text-[12px] italic text-[var(--text-muted)]">{t('health.plans.loading')}</div>
           ) : exercise ? (
             <ExerciseDetailBody ex={exercise} />
           ) : recipe ? (
             <RecipeDetailBody rec={recipe} />
           ) : (
-            <div className="py-8 text-center text-[12px] italic text-[var(--text-muted)]">No detail available for this item.</div>
+            <div className="py-8 text-center text-[12px] italic text-[var(--text-muted)]">{t('health.plans.no_detail')}</div>
           )}
         </div>
       </div>
@@ -1149,38 +1157,38 @@ const detailHd = 'text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted
 function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
   const r = ex.routine;
   const routineParts = [
-    r.sets != null ? `${r.sets} sets` : null,
-    r.reps_target ? `${r.reps_target} reps` : null,
-    r.rest_seconds != null ? `${r.rest_seconds}s rest` : null,
-    r.tempo ? `tempo ${r.tempo}` : null,
-    r.frequency_per_week ? `${r.frequency_per_week}/wk` : null,
+    r.sets != null ? t('health.plans.n_sets', { n: r.sets }) : null,
+    r.reps_target ? t('health.plans.n_reps', { n: r.reps_target }) : null,
+    r.rest_seconds != null ? t('health.plans.n_rest', { n: r.rest_seconds }) : null,
+    r.tempo ? t('health.plans.tempo', { v: r.tempo }) : null,
+    r.frequency_per_week ? t('health.plans.per_week', { n: r.frequency_per_week }) : null,
   ].filter(Boolean);
   return (
     <div className="space-y-4 text-[12px] leading-relaxed text-[var(--text-secondary)]">
       <div className="flex flex-wrap gap-1.5">
         <span className={detailChip}>{ex.exercise_type}</span>
         <span className={detailChip}>{ex.workout_type}</span>
-        {typeof ex.difficulty === 'number' && <span className={detailChip}>difficulty {ex.difficulty}</span>}
+        {typeof ex.difficulty === 'number' && <span className={detailChip}>{t('health.plans.difficulty', { n: ex.difficulty })}</span>}
       </div>
       {ex.thumbnail_url && <img src={ex.thumbnail_url} alt="" className="w-full rounded-lg object-cover" />}
       {ex.description && <p>{ex.description}</p>}
       {routineParts.length > 0 && (
-        <div><div className={detailHd}>Routine</div><p className="mt-1">{routineParts.join('  ·  ')}{r.progression ? ` — ${r.progression}` : ''}</p></div>
+        <div><div className={detailHd}>{t('health.plans.routine')}</div><p className="mt-1">{routineParts.join('  ·  ')}{r.progression ? ` — ${r.progression}` : ''}</p></div>
       )}
       {ex.steps.length > 0 && (
         <div>
-          <div className={detailHd}>How to do it</div>
+          <div className={detailHd}>{t('health.plans.how_to')}</div>
           <ol className="mt-1 list-decimal space-y-1 pl-5">{ex.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
         </div>
       )}
-      {ex.common_mistakes && <div><div className={detailHd}>Common mistakes</div><p className="mt-1">{ex.common_mistakes}</p></div>}
+      {ex.common_mistakes && <div><div className={detailHd}>{t('health.plans.common_mistakes')}</div><p className="mt-1">{ex.common_mistakes}</p></div>}
       {ex.muscles.length > 0 && (
-        <div><div className={detailHd}>Muscles</div><div className="mt-1 flex flex-wrap gap-1.5">{ex.muscles.map(mu => <span key={mu.slug} className={detailChip}>{mu.name}{mu.role === 'secondary' ? ' (secondary)' : ''}</span>)}</div></div>
+        <div><div className={detailHd}>{t('health.plans.muscles')}</div><div className="mt-1 flex flex-wrap gap-1.5">{ex.muscles.map(mu => <span key={mu.slug} className={detailChip}>{mu.name}{mu.role === 'secondary' ? ` ${t('health.plans.secondary_suffix')}` : ''}</span>)}</div></div>
       )}
       {ex.equipment.length > 0 && (
-        <div><div className={detailHd}>Equipment</div><div className="mt-1 flex flex-wrap gap-1.5">{ex.equipment.map(eq => <span key={eq.slug} className={detailChip}>{eq.name}</span>)}</div></div>
+        <div><div className={detailHd}>{t('health.plans.equipment')}</div><div className="mt-1 flex flex-wrap gap-1.5">{ex.equipment.map(eq => <span key={eq.slug} className={detailChip}>{eq.name}</span>)}</div></div>
       )}
-      {ex.demo_video_url && <a href={ex.demo_video_url} target="_blank" rel="noreferrer" className="inline-block text-[12px] text-[var(--accent)] hover:underline">Watch demo →</a>}
+      {ex.demo_video_url && <a href={ex.demo_video_url} target="_blank" rel="noreferrer" className="inline-block text-[12px] text-[var(--accent)] hover:underline">{t('health.plans.watch_demo')}</a>}
     </div>
   );
 }
@@ -1189,43 +1197,43 @@ function RecipeDetailBody({ rec }: { rec: HealthRecipeDetail }) {
   const version = rec.versions.find(v => v.level === 'intermediate') ?? rec.versions[0];
   const n = version?.nutrition;
   const timeParts = version ? [
-    version.prep_time_minutes != null ? `${version.prep_time_minutes}m prep` : null,
-    version.cook_time_minutes != null ? `${version.cook_time_minutes}m cook` : null,
+    version.prep_time_minutes != null ? t('health.plans.m_prep', { n: version.prep_time_minutes }) : null,
+    version.cook_time_minutes != null ? t('health.plans.m_cook', { n: version.cook_time_minutes }) : null,
   ].filter(Boolean) : [];
   return (
     <div className="space-y-4 text-[12px] leading-relaxed text-[var(--text-secondary)]">
       <div className="flex flex-wrap gap-1.5">
         {rec.course && <span className={detailChip}>{rec.course}</span>}
         {rec.cuisine_name && <span className={detailChip}>{rec.cuisine_name}</span>}
-        {version?.default_servings != null && <span className={detailChip}>{version.default_servings} servings</span>}
+        {version?.default_servings != null && <span className={detailChip}>{t('health.plans.n_servings', { n: version.default_servings })}</span>}
       </div>
       {rec.hero_image_url && <img src={rec.hero_image_url} alt="" className="w-full rounded-lg object-cover" />}
       {(rec.overview || version?.description) && <p>{rec.overview ?? version?.description}</p>}
       {timeParts.length > 0 && <p className="text-[var(--text-muted)]">{timeParts.join('  ·  ')}</p>}
       {n && typeof n.calories === 'number' && (
         <div>
-          <div className={detailHd}>Nutrition (per serving{n.source === 'verified' ? '' : ', estimated'})</div>
+          <div className={detailHd}>{n.source === 'verified' ? t('health.plans.nutrition_per_serving') : t('health.plans.nutrition_per_serving_est')}</div>
           <div className="mt-1 flex flex-wrap gap-3">
-            {n.calories != null && <span>Cal <span className="font-semibold text-[var(--text-primary)]">{n.calories}</span></span>}
-            {n.protein_g != null && <span>Protein <span className="font-semibold text-[var(--text-primary)]">{n.protein_g}g</span></span>}
-            {n.carbs_g != null && <span>Carbs <span className="font-semibold text-[var(--text-primary)]">{n.carbs_g}g</span></span>}
-            {n.fat_g != null && <span>Fat <span className="font-semibold text-[var(--text-primary)]">{n.fat_g}g</span></span>}
+            {n.calories != null && <span>{t('health.plans.macro.cal')} <span className="font-semibold text-[var(--text-primary)]">{n.calories}</span></span>}
+            {n.protein_g != null && <span>{t('health.plans.macro.protein')} <span className="font-semibold text-[var(--text-primary)]">{n.protein_g}g</span></span>}
+            {n.carbs_g != null && <span>{t('health.plans.macro.carbs')} <span className="font-semibold text-[var(--text-primary)]">{n.carbs_g}g</span></span>}
+            {n.fat_g != null && <span>{t('health.plans.macro.fat')} <span className="font-semibold text-[var(--text-primary)]">{n.fat_g}g</span></span>}
           </div>
         </div>
       )}
       {rec.ingredients.length > 0 && (
         <div>
-          <div className={detailHd}>Ingredients</div>
+          <div className={detailHd}>{t('health.plans.ingredients')}</div>
           <ul className="mt-1 space-y-0.5">
             {[...rec.ingredients].sort((a, b) => a.sort_order - b.sort_order).map((ing, i) => (
-              <li key={i}>{[ing.quantity != null ? ing.quantity : null, ing.unit, ing.name].filter(v => v != null && v !== '').join(' ')}{ing.optional ? ' (optional)' : ''}</li>
+              <li key={i}>{[ing.quantity != null ? ing.quantity : null, ing.unit, ing.name].filter(v => v != null && v !== '').join(' ')}{ing.optional ? ` ${t('health.plans.optional_suffix')}` : ''}</li>
             ))}
           </ul>
         </div>
       )}
       {version && version.steps.length > 0 && (
         <div>
-          <div className={detailHd}>Method</div>
+          <div className={detailHd}>{t('health.plans.method')}</div>
           <ol className="mt-1 list-decimal space-y-1 pl-5">
             {[...version.steps].sort((a, b) => a.sort_order - b.sort_order).map((s, i) => <li key={i}>{s.action}</li>)}
           </ol>
@@ -1275,28 +1283,28 @@ function ExerciseRow({ ex, detail, onChange, onRemove }: {
 
   const warnings: string[] = [];
   if (recSets != null && ex.sets != null && ex.sets > recSets) {
-    warnings.push(`${ex.sets} sets is above the recommended ${recSets}`);
+    warnings.push(t('health.plans.warn_sets', { sets: ex.sets, rec: recSets }));
   }
   if (recRest != null && ex.rest_seconds != null && ex.rest_seconds < recRest) {
-    warnings.push(`${ex.rest_seconds}s rest is shorter than the recommended ${recRest}s`);
+    warnings.push(t('health.plans.warn_rest', { rest: ex.rest_seconds, rec: recRest }));
   }
 
   return (
     <div className="space-y-2 rounded-md border border-[var(--border)] bg-[var(--bg-input)]/40 p-2">
       <div className="flex items-center gap-2">
-        <input value={ex.name} onChange={(e) => onChange({ ...ex, name: e.target.value })} placeholder="Exercise name" className={`${editInput} flex-1`} />
-        <button type="button" onClick={onRemove} title="Remove" className="border-none bg-transparent px-1 text-[var(--text-muted)] hover:text-red-300 cursor-pointer">✕</button>
+        <input value={ex.name} onChange={(e) => onChange({ ...ex, name: e.target.value })} placeholder={t('health.plans.exercise_name_placeholder')} className={`${editInput} flex-1`} />
+        <button type="button" onClick={onRemove} title={t('health.plans.remove')} className="border-none bg-transparent px-1 text-[var(--text-muted)] hover:text-red-300 cursor-pointer">✕</button>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <NumInput label="Sets" value={ex.sets} onChange={(v) => onChange({ ...ex, sets: v })} />
-        <TextInput label="Reps" value={ex.reps} placeholder="8-12" onChange={(v) => onChange({ ...ex, reps: v })} />
-        <TextInput label="Weight" value={ex.weight} placeholder="60 kg / RPE 7" onChange={(v) => onChange({ ...ex, weight: v })} />
-        <NumInput label="Rest (s)" value={ex.rest_seconds} onChange={(v) => onChange({ ...ex, rest_seconds: v })} />
+        <NumInput label={t('health.plans.field.sets')} value={ex.sets} onChange={(v) => onChange({ ...ex, sets: v })} />
+        <TextInput label={t('health.plans.field.reps')} value={ex.reps} placeholder="8-12" onChange={(v) => onChange({ ...ex, reps: v })} />
+        <TextInput label={t('health.plans.field.weight')} value={ex.weight} placeholder="60 kg / RPE 7" onChange={(v) => onChange({ ...ex, weight: v })} />
+        <NumInput label={t('health.plans.field.rest_s')} value={ex.rest_seconds} onChange={(v) => onChange({ ...ex, rest_seconds: v })} />
       </div>
-      <input value={ex.notes ?? ''} onChange={(e) => onChange({ ...ex, notes: e.target.value || null })} placeholder="Notes — tempo, cues (optional)" className={`${editInput} w-full`} />
+      <input value={ex.notes ?? ''} onChange={(e) => onChange({ ...ex, notes: e.target.value || null })} placeholder={t('health.plans.exercise_notes_placeholder')} className={`${editInput} w-full`} />
       {warnings.length > 0 && (
         <div className="rounded border border-amber-400/30 bg-amber-400/10 px-2 py-1.5 text-[10px] leading-relaxed text-amber-300">
-          ⚠ {warnings.join('; ')}. More isn't always better — give your body room to recover.
+          ⚠ {warnings.join('; ')}. {t('health.plans.warn_tail')}
         </div>
       )}
     </div>
@@ -1321,30 +1329,30 @@ function MealRow({ meal, recipeDetails, onChange, onRemove }: {
           size="sm"
           className="min-w-[120px]"
           options={[
-            { value: 'breakfast', label: 'Breakfast' },
-            { value: 'lunch', label: 'Lunch' },
-            { value: 'dinner', label: 'Dinner' },
-            { value: 'snack', label: 'Snack' },
+            { value: 'breakfast', label: mealSlotLabel('breakfast') },
+            { value: 'lunch', label: mealSlotLabel('lunch') },
+            { value: 'dinner', label: mealSlotLabel('dinner') },
+            { value: 'snack', label: mealSlotLabel('snack') },
           ]}
         />
-        <input value={meal.name} onChange={(e) => onChange({ ...meal, name: e.target.value })} placeholder="Meal name" className={`${editInput} flex-1`} />
-        <button type="button" onClick={onRemove} title="Remove" className="border-none bg-transparent px-1 text-[var(--text-muted)] hover:text-red-300 cursor-pointer">✕</button>
+        <input value={meal.name} onChange={(e) => onChange({ ...meal, name: e.target.value })} placeholder={t('health.plans.meal_name_placeholder')} className={`${editInput} flex-1`} />
+        <button type="button" onClick={onRemove} title={t('health.plans.remove')} className="border-none bg-transparent px-1 text-[var(--text-muted)] hover:text-red-300 cursor-pointer">✕</button>
       </div>
 
       {isRecipe ? (
         <div className="flex items-center gap-2">
-          <NumInput label="Servings" value={meal.servings} onChange={(v) => onChange({ ...meal, servings: v })} />
+          <NumInput label={t('health.plans.field.servings')} value={meal.servings} onChange={(v) => onChange({ ...meal, servings: v })} />
           <div className="flex-1">
-            <div className="text-[9px] uppercase tracking-wide text-[var(--text-muted)]">Per this meal{estimated ? ' · estimated' : ''}</div>
+            <div className="text-[9px] uppercase tracking-wide text-[var(--text-muted)]">{estimated ? t('health.plans.per_meal_est') : t('health.plans.per_meal')}</div>
             {pending ? (
-              <div className="mt-1 text-[11px] italic text-[var(--text-muted)]">Loading nutrition…</div>
+              <div className="mt-1 text-[11px] italic text-[var(--text-muted)]">{t('health.plans.loading_nutrition')}</div>
             ) : macros.calories == null ? (
-              <div className="mt-1 text-[11px] italic text-[var(--text-muted)]">No nutrition for this recipe yet.</div>
+              <div className="mt-1 text-[11px] italic text-[var(--text-muted)]">{t('health.plans.no_nutrition')}</div>
             ) : (
               <div className="mt-1 flex flex-wrap gap-3">
                 {MACRO_FIELDS.map(f => (
                   <span key={f.key} className="text-[11px] text-[var(--text-secondary)]">
-                    {f.label} <span className="font-semibold text-[var(--text-primary)]">{macros[f.key] ?? 0}{f.unit}</span>
+                    {t(f.labelKey)} <span className="font-semibold text-[var(--text-primary)]">{macros[f.key] ?? 0}{f.unit}</span>
                   </span>
                 ))}
               </div>
@@ -1353,13 +1361,13 @@ function MealRow({ meal, recipeDetails, onChange, onRemove }: {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <NumInput label="Cal" value={meal.calories} onChange={(v) => onChange({ ...meal, calories: v })} />
-          <NumInput label="Protein g" value={meal.protein_g} onChange={(v) => onChange({ ...meal, protein_g: v })} />
-          <NumInput label="Carbs g" value={meal.carbs_g} onChange={(v) => onChange({ ...meal, carbs_g: v })} />
-          <NumInput label="Fat g" value={meal.fat_g} onChange={(v) => onChange({ ...meal, fat_g: v })} />
+          <NumInput label={t('health.plans.macro.cal')} value={meal.calories} onChange={(v) => onChange({ ...meal, calories: v })} />
+          <NumInput label={t('health.plans.field.protein_g')} value={meal.protein_g} onChange={(v) => onChange({ ...meal, protein_g: v })} />
+          <NumInput label={t('health.plans.field.carbs_g')} value={meal.carbs_g} onChange={(v) => onChange({ ...meal, carbs_g: v })} />
+          <NumInput label={t('health.plans.field.fat_g')} value={meal.fat_g} onChange={(v) => onChange({ ...meal, fat_g: v })} />
         </div>
       )}
-      <input value={meal.notes ?? ''} onChange={(e) => onChange({ ...meal, notes: e.target.value || null })} placeholder="Notes (optional)" className={`${editInput} w-full`} />
+      <input value={meal.notes ?? ''} onChange={(e) => onChange({ ...meal, notes: e.target.value || null })} placeholder={t('health.plans.notes_placeholder')} className={`${editInput} w-full`} />
     </div>
   );
 }
@@ -1408,17 +1416,17 @@ function CatalogPickerPanel({ kind, results, total, searching, onSearch, onConfi
   const [category, setCategory] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [picked, setPicked] = useState<Map<string, { slug: string; name: string }>>(new Map());
-  const noun = kind === 'exercise' ? 'exercise' : 'recipe';
-  const categories = kind === 'exercise' ? EXERCISE_CATEGORIES : RECIPE_CATEGORIES;
+  const isEx = kind === 'exercise';
+  const categories = isEx ? EXERCISE_CATEGORIES : RECIPE_CATEGORIES;
 
   // Search fires on query / category / page change — typing debounced,
   // category and page changes immediate.
   useEffect(() => {
-    const t = window.setTimeout(
+    const timer = window.setTimeout(
       () => onSearch({ q: query.trim(), offset: page * PICKER_PAGE_SIZE, category }),
       query ? 300 : 0,
     );
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, category, page]);
 
@@ -1438,7 +1446,7 @@ function CatalogPickerPanel({ kind, results, total, searching, onSearch, onConfi
   const subtitle = (r: HealthExerciseSummary | HealthRecipeSummary): string => {
     if (kind === 'exercise') {
       const e = r as HealthExerciseSummary;
-      return [e.workout_type, e.difficulty ? `difficulty ${e.difficulty}` : null].filter(Boolean).join(' · ');
+      return [e.workout_type, e.difficulty ? t('health.plans.difficulty', { n: e.difficulty }) : null].filter(Boolean).join(' · ');
     }
     const rec = r as HealthRecipeSummary;
     return [rec.course, rec.cuisine_name].filter(Boolean).join(' · ');
@@ -1474,8 +1482,8 @@ function CatalogPickerPanel({ kind, results, total, searching, onSearch, onConfi
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between gap-3 border-b border-[rgba(168,85,247,0.14)] px-6 py-4">
-        <button type="button" onClick={onClose} className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">← Back to plan</button>
-        <span className="text-[13px] font-medium text-[var(--text-primary)]">Add {noun}s — tick as many as you need</span>
+        <button type="button" onClick={onClose} className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">{t('health.plans.back_to_plan')}</button>
+        <span className="text-[13px] font-medium text-[var(--text-primary)]">{isEx ? t('health.plans.picker.add_exercises_header') : t('health.plans.picker.add_recipes_header')}</span>
         <span className="w-[80px]" aria-hidden />
       </div>
 
@@ -1484,21 +1492,23 @@ function CatalogPickerPanel({ kind, results, total, searching, onSearch, onConfi
           autoFocus
           value={query}
           onChange={(e) => changeQuery(e.target.value)}
-          placeholder={`Search the ${noun} library…`}
+          placeholder={isEx ? t('health.plans.picker.search_exercises') : t('health.plans.picker.search_recipes')}
           className={`${editInput} w-full`}
         />
         <div className="flex flex-wrap gap-1.5">
-          {chip('All', null)}
+          {chip(t('health.plans.all'), null)}
           {categories.map(c => chip(c, c))}
         </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-3">
         {searching && results.length === 0 ? (
-          <div className="py-10 text-center text-[11px] text-[var(--text-muted)]">Searching…</div>
+          <div className="py-10 text-center text-[11px] text-[var(--text-muted)]">{t('health.plans.searching')}</div>
         ) : results.length === 0 ? (
           <div className="py-10 text-center text-[11px] text-[var(--text-muted)]">
-            {query ? `No ${noun}s match “${query}”.` : `No ${noun}s found.`}
+            {query
+              ? (isEx ? t('health.plans.picker.no_exercise_match', { query }) : t('health.plans.picker.no_recipe_match', { query }))
+              : (isEx ? t('health.plans.picker.no_exercises') : t('health.plans.picker.no_recipes'))}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -1544,7 +1554,7 @@ function CatalogPickerPanel({ kind, results, total, searching, onSearch, onConfi
           onClick={() => onConfirm([null])}
           className="text-[11px] text-[var(--text-muted)] hover:text-[var(--accent)] cursor-pointer border-none bg-transparent"
         >
-          + Add a custom {noun} instead
+          {isEx ? t('health.plans.picker.custom_exercise') : t('health.plans.picker.custom_recipe')}
         </button>
         {total > PICKER_PAGE_SIZE && (
           <div className="flex items-center gap-2 text-[10px] text-[var(--text-muted)]">
@@ -1554,16 +1564,16 @@ function CatalogPickerPanel({ kind, results, total, searching, onSearch, onConfi
               onClick={() => setPage(p => Math.max(0, p - 1))}
               className={`rounded border border-[var(--border)] px-2 py-0.5 transition ${page === 0 ? 'opacity-40 cursor-not-allowed' : 'hover:border-[var(--accent)]/40 cursor-pointer'}`}
             >
-              ‹ Prev
+              {t('health.plans.prev')}
             </button>
-            <span className="tabular-nums">{fromN}–{toN} of {total}</span>
+            <span className="tabular-nums">{t('health.plans.range', { from: fromN, to: toN, total })}</span>
             <button
               type="button"
               disabled={page >= lastPage}
               onClick={() => setPage(p => Math.min(lastPage, p + 1))}
               className={`rounded border border-[var(--border)] px-2 py-0.5 transition ${page >= lastPage ? 'opacity-40 cursor-not-allowed' : 'hover:border-[var(--accent)]/40 cursor-pointer'}`}
             >
-              Next ›
+              {t('health.plans.next')}
             </button>
           </div>
         )}
@@ -1577,7 +1587,7 @@ function CatalogPickerPanel({ kind, results, total, searching, onSearch, onConfi
               : 'border border-[var(--border)] text-[var(--text-muted)] cursor-not-allowed opacity-60'
           }`}
         >
-          Add {picked.size > 0 ? picked.size : ''} to this day
+          {t('health.plans.add_to_day', { n: picked.size > 0 ? picked.size : '' })}
         </button>
       </div>
     </div>

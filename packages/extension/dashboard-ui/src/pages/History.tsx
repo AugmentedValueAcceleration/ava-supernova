@@ -135,18 +135,18 @@ export function History({ sessionStats, usageHistory, mode, account, auditLog, c
   return (
     <div className="w-full">
       <div className="mb-6">
-        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">History</h1>
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.history.title')}</h1>
         <p className="mt-1.5 text-[13px] text-[#6c7086]">
-          Conversations, credits, and tool-call audit
+          {t('dash.history.subtitle')}
         </p>
       </div>
 
       {/* Top-level tabs — mirrors IDE History at DashboardPages.tsx:5814-5818 */}
       <div className="mb-6 flex gap-1 border-b border-[var(--border-card)]">
         {([
-          { id: 'conversations', label: 'Conversations' },
-          { id: 'usage',         label: 'Usage' },
-          { id: 'audit',         label: 'Audit' },
+          { id: 'conversations', label: t('dash.history.tab_conversations') },
+          { id: 'usage',         label: t('dash.history.tab_usage') },
+          { id: 'audit',         label: t('dash.history.tab_audit') },
         ] as const).map(tab => (
           <button
             key={tab.id}
@@ -205,6 +205,7 @@ export function History({ sessionStats, usageHistory, mode, account, auditLog, c
 // ─── Conversations View ─────────────────────────────────────────────────────
 
 function ConversationsView({ conversations, loaded }: { conversations: ConversationEntry[]; loaded: boolean }) {
+  useLocale();
   const [search, setSearch] = useState('');
 
   const filtered = useMemo(() => {
@@ -232,7 +233,7 @@ function ConversationsView({ conversations, loaded }: { conversations: Conversat
         type="text"
         value={search}
         onChange={e => setSearch(e.target.value)}
-        placeholder="Search conversations…"
+        placeholder={t('dash.history.search_conversations')}
         className="w-full max-w-sm rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]"
       />
 
@@ -244,7 +245,7 @@ function ConversationsView({ conversations, loaded }: { conversations: Conversat
         <div className="rounded-xl border border-dashed border-[var(--border-card)] bg-[var(--bg-card)] p-12 text-center">
           <div className="mb-2 text-2xl opacity-30">💬</div>
           <p className="text-xs text-[var(--text-muted)]">
-            {search ? 'No conversations match your search.' : 'No conversations yet. Start chatting with Ava!'}
+            {search ? t('dash.history.no_match') : t('dash.history.no_conversations')}
           </p>
         </div>
       ) : (
@@ -273,8 +274,8 @@ function ConversationsView({ conversations, loaded }: { conversations: Conversat
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      {conv.pinned && <span className="text-[10px] text-[var(--accent)]" title="Pinned">📌</span>}
-                      <span className="truncate text-sm font-semibold text-[#cdd6f4]">{conv.title || 'Untitled'}</span>
+                      {conv.pinned && <span className="text-[10px] text-[var(--accent)]" title={t('history.pinned')}>📌</span>}
+                      <span className="truncate text-sm font-semibold text-[#cdd6f4]">{conv.title || t('dash.chat.untitled')}</span>
                     </div>
                     {preview && (
                       <p className="mt-1 line-clamp-2 text-[11px] text-[var(--text-muted)]">{preview}</p>
@@ -284,17 +285,17 @@ function ConversationsView({ conversations, loaded }: { conversations: Conversat
                         {date && <span>{date}{time ? ` · ${time}` : ''}</span>}
                         {date && msgCount !== undefined && <span>·</span>}
                         {msgCount !== undefined && (
-                          <span>{msgCount} {msgCount === 1 ? 'message' : 'messages'}</span>
+                          <span>{msgCount === 1 ? t('dash.support.message_count', { count: msgCount }) : t('dash.support.messages_count', { count: msgCount })}</span>
                         )}
                       </div>
                     )}
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); deleteConversation(conv.id); }}
-                    title="Delete"
+                    title={t('dash.common.delete')}
                     className="shrink-0 rounded-md border border-transparent bg-transparent px-2 py-1 text-[10px] text-[var(--text-muted)] transition hover:border-red-500/30 hover:text-red-400"
                   >
-                    Delete
+                    {t('dash.common.delete')}
                   </button>
                 </div>
               </div>
@@ -327,10 +328,10 @@ const RISK_COLORS: Record<string, string> = {
   'dangerous': 'bg-red-500/15 text-red-400',
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  file_ops: 'File Ops', shell: 'Shell', git: 'Git', web: 'Web',
-  media: 'Media', database: 'Database', system: 'System',
-  documents: 'Documents', memory: 'Memory', learning: 'Learning',
+const CATEGORY_LABEL_KEYS: Record<string, string> = {
+  file_ops: 'dash.audit.cat_file_ops', shell: 'dash.audit.cat_shell', git: 'dash.audit.cat_git', web: 'dash.audit.cat_web',
+  media: 'dash.audit.cat_media', database: 'dash.audit.cat_database', system: 'dash.audit.cat_system',
+  documents: 'dash.audit.cat_documents', memory: 'dash.audit.cat_memory', learning: 'dash.audit.cat_learning',
 };
 
 // Pattern finding shape — must match @ava/core/audit/patterns Finding.
@@ -353,6 +354,7 @@ function formatAuditCost(cost: AuditEntry['cost']): string {
 const AUDIT_PAGE_SIZE = 25;
 
 function AuditView({ entries }: { entries: AuditEntry[] }) {
+  useLocale();
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [riskFilter, setRiskFilter] = useState<string>('all');
@@ -429,7 +431,7 @@ function AuditView({ entries }: { entries: AuditEntry[] }) {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Filter by tool name or argument…"
+          placeholder={t('dash.audit.filter_placeholder')}
           className="flex-1 min-w-[160px] rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2 py-1 text-[11px] text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]"
         />
         <div className="w-[120px] shrink-0">
@@ -437,10 +439,10 @@ function AuditView({ entries }: { entries: AuditEntry[] }) {
             value={riskFilter}
             onChange={setRiskFilter}
             options={[
-              { value: 'all',       label: 'All risk' },
-              { value: 'safe',      label: 'Safe' },
-              { value: 'write',     label: 'Write' },
-              { value: 'dangerous', label: 'Dangerous' },
+              { value: 'all',       label: t('dash.audit.risk_all') },
+              { value: 'safe',      label: t('dash.audit.risk_safe') },
+              { value: 'write',     label: t('dash.audit.risk_write') },
+              { value: 'dangerous', label: t('dash.audit.risk_dangerous') },
             ]}
           />
         </div>
@@ -449,27 +451,27 @@ function AuditView({ entries }: { entries: AuditEntry[] }) {
             value={statusFilter}
             onChange={setStatusFilter}
             options={[
-              { value: 'all',     label: 'All status' },
-              { value: 'success', label: 'Success' },
-              { value: 'failed',  label: 'Failed' },
-              { value: 'denied',  label: 'Denied' },
+              { value: 'all',     label: t('dash.audit.status_all') },
+              { value: 'success', label: t('dash.audit.status_success') },
+              { value: 'failed',  label: t('dash.audit.status_failed') },
+              { value: 'denied',  label: t('dash.audit.status_denied') },
             ]}
           />
         </div>
         <div className="ml-auto flex gap-1">
           <button
             onClick={() => exportLog('markdown')}
-            title="Export the filtered audit log as a Markdown report — auditable, human-readable, never leaves your machine."
+            title={t('dash.audit.export_md_title')}
             className="rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2.5 py-1 text-[11px] text-[var(--text-primary)] transition hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30"
           >
-            Export .md
+            {t('dash.audit.export_md')}
           </button>
           <button
             onClick={() => exportLog('json')}
-            title="Export the filtered audit log as JSON — for SIEM ingest or programmatic analysis."
+            title={t('dash.audit.export_json_title')}
             className="rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2.5 py-1 text-[11px] text-[var(--text-primary)] transition hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30"
           >
-            Export .json
+            {t('dash.audit.export_json')}
           </button>
         </div>
       </div>
@@ -478,12 +480,12 @@ function AuditView({ entries }: { entries: AuditEntry[] }) {
       {(totals.credits > 0 || totals.usd > 0) && (
         <div className="flex gap-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] px-3 py-2 text-[11px]">
           {totals.credits > 0 && (
-            <span><span className="text-[var(--text-muted)]">Credits:</span> <span className="font-semibold text-[var(--text-primary)]">{totals.credits.toLocaleString()}</span></span>
+            <span><span className="text-[var(--text-muted)]">{t('dash.audit.credits_label')}</span> <span className="font-semibold text-[var(--text-primary)]">{totals.credits.toLocaleString()}</span></span>
           )}
           {totals.usd > 0 && (
-            <span><span className="text-[var(--text-muted)]">BYOK estimate:</span> <span className="font-semibold text-[var(--text-primary)]">${totals.usd.toFixed(4)}</span></span>
+            <span><span className="text-[var(--text-muted)]">{t('dash.audit.byok_estimate_label')}</span> <span className="font-semibold text-[var(--text-primary)]">${totals.usd.toFixed(4)}</span></span>
           )}
-          <span className="ml-auto text-[var(--text-muted)]">{filtered.length} of {entries.length} entries shown</span>
+          <span className="ml-auto text-[var(--text-muted)]">{t('dash.audit.entries_shown', { shown: filtered.length, total: entries.length })}</span>
         </div>
       )}
 
@@ -492,7 +494,7 @@ function AuditView({ entries }: { entries: AuditEntry[] }) {
         <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-8 text-center">
           <span className="block text-2xl opacity-30 mb-2">📋</span>
           <p className="text-xs text-[var(--text-muted)]">
-            {entries.length === 0 ? 'No tool calls recorded yet.' : 'No entries match your filters.'}
+            {entries.length === 0 ? t('dash.audit.empty_none') : t('dash.audit.empty_filtered')}
           </p>
         </div>
       )}
@@ -501,13 +503,13 @@ function AuditView({ entries }: { entries: AuditEntry[] }) {
       {filtered.length > 0 && (
         <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] overflow-hidden">
           <div className="grid grid-cols-[80px_1fr_80px_60px_90px_70px_60px] gap-2 px-3 py-2 border-b border-[var(--border-card)] text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-            <span>Time</span>
-            <span>Tool</span>
-            <span>Category</span>
-            <span>Risk</span>
-            <span>Approval</span>
-            <span className="text-right">Cost</span>
-            <span>Status</span>
+            <span>{t('dash.audit.col_time')}</span>
+            <span>{t('dash.audit.col_tool')}</span>
+            <span>{t('dash.audit.col_category')}</span>
+            <span>{t('dash.audit.col_risk')}</span>
+            <span>{t('dash.audit.col_approval')}</span>
+            <span className="text-right">{t('dash.audit.col_cost')}</span>
+            <span>{t('dash.audit.col_status')}</span>
           </div>
           {paged.map((entry, localI) => {
             // Use the absolute filtered index so expandedIdx stays
@@ -525,7 +527,7 @@ function AuditView({ entries }: { entries: AuditEntry[] }) {
                 >
                   <span className="text-[var(--text-muted)] font-mono text-[10px]">{time}</span>
                   <span className="text-white font-medium truncate">{entry.toolName}</span>
-                  <span className="text-[var(--text-secondary)]">{CATEGORY_LABELS[entry.category] || entry.category}</span>
+                  <span className="text-[var(--text-secondary)]">{CATEGORY_LABEL_KEYS[entry.category] ? t(CATEGORY_LABEL_KEYS[entry.category]) : entry.category}</span>
                   <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium text-center ${RISK_COLORS[entry.riskLevel] || ''}`}>{entry.riskLevel}</span>
                   <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium text-center ${APPROVAL_COLORS[entry.approvalMethod] || ''}`}>{entry.approvalMethod}</span>
                   <span className="text-right font-mono text-[10px] text-[var(--text-secondary)]">{formatAuditCost(entry.cost)}</span>
@@ -534,14 +536,14 @@ function AuditView({ entries }: { entries: AuditEntry[] }) {
                 {isExpanded && (
                   <div className="px-3 pb-3 space-y-2">
                     <div className="rounded-lg bg-[var(--bg-input)]/50 p-2.5 text-[10px] font-mono text-[var(--text-secondary)]">
-                      <p className="font-semibold text-[var(--text-muted)] mb-1">Arguments</p>
+                      <p className="font-semibold text-[var(--text-muted)] mb-1">{t('dash.audit.arguments')}</p>
                       <pre className="whitespace-pre-wrap break-all max-h-40 overflow-y-auto">
                         {entry.fullArgs ? JSON.stringify(entry.fullArgs, null, 2) : entry.argsSummary}
                       </pre>
                     </div>
                     {entry.result && (
                       <div className="rounded-lg bg-[var(--bg-input)]/50 p-2.5 text-[10px] font-mono text-[var(--text-secondary)]">
-                        <p className="font-semibold text-[var(--text-muted)] mb-1">Result</p>
+                        <p className="font-semibold text-[var(--text-muted)] mb-1">{t('dash.audit.result')}</p>
                         <pre className="whitespace-pre-wrap break-all max-h-40 overflow-y-auto">{entry.result}</pre>
                       </div>
                     )}
@@ -556,20 +558,20 @@ function AuditView({ entries }: { entries: AuditEntry[] }) {
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-[var(--border-card)] px-3 py-2 text-[11px] text-[var(--text-muted)]">
               <span>
-                Showing {pageStart + 1}–{Math.min(pageStart + AUDIT_PAGE_SIZE, filtered.length)} of {filtered.length}
+                {t('dash.audit.showing_range', { from: pageStart + 1, to: Math.min(pageStart + AUDIT_PAGE_SIZE, filtered.length), total: filtered.length })}
               </span>
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setPage(p => Math.max(0, p - 1))}
                   disabled={safePage === 0}
                   className="rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2.5 py-1 text-[11px] text-[var(--text-primary)] transition hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30 disabled:opacity-40 disabled:cursor-default disabled:hover:bg-[var(--bg-input)] disabled:hover:border-[var(--border-card)]"
-                >Prev</button>
-                <span className="min-w-[80px] text-center">Page {safePage + 1} of {totalPages}</span>
+                >{t('dash.usage.prev')}</button>
+                <span className="min-w-[80px] text-center">{t('health.browse.page_of', { current: safePage + 1, total: totalPages })}</span>
                 <button
                   onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
                   disabled={safePage >= totalPages - 1}
                   className="rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2.5 py-1 text-[11px] text-[var(--text-primary)] transition hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30 disabled:opacity-40 disabled:cursor-default disabled:hover:bg-[var(--bg-input)] disabled:hover:border-[var(--border-card)]"
-                >Next</button>
+                >{t('dash.usage.next')}</button>
               </div>
             </div>
           )}
@@ -591,17 +593,17 @@ function detectClientSidePatterns(entries: AuditEntry[]): AuditFinding[] {
   const byTool = new Map<string, { auto: number; autoFailed: number }>();
   for (const e of recent) {
     if (e.approvalMethod !== 'auto') continue;
-    const t = byTool.get(e.toolName) ?? { auto: 0, autoFailed: 0 };
-    t.auto++;
-    if (e.status === 'failed' || e.status === 'denied') t.autoFailed++;
-    byTool.set(e.toolName, t);
+    const bt = byTool.get(e.toolName) ?? { auto: 0, autoFailed: 0 };
+    bt.auto++;
+    if (e.status === 'failed' || e.status === 'denied') bt.autoFailed++;
+    byTool.set(e.toolName, bt);
   }
   for (const [tool, s] of byTool) {
     if (s.auto >= 5 && s.autoFailed / s.auto > 0.2) {
       findings.push({
         severity: 'warning',
-        message: `You auto-approve ${tool} but ${Math.round((s.autoFailed / s.auto) * 100)}% of those calls fail (${s.autoFailed} of ${s.auto} this week).`,
-        suggestion: 'Consider tightening the approval rule to first-time, so failures get a second look.',
+        message: t('dash.audit.finding_auto_fail', { tool, pct: Math.round((s.autoFailed / s.auto) * 100), failed: s.autoFailed, total: s.auto }),
+        suggestion: t('dash.audit.finding_auto_fail_hint'),
         relatedTools: [tool],
       });
     }
@@ -611,8 +613,10 @@ function detectClientSidePatterns(entries: AuditEntry[]): AuditFinding[] {
   if (dangerousSucceeded.length > 0) {
     findings.push({
       severity: 'critical',
-      message: `${dangerousSucceeded.length} dangerous tool call${dangerousSucceeded.length === 1 ? '' : 's'} succeeded this week.`,
-      suggestion: 'Review these in the audit table to confirm they touched only what you expected.',
+      message: dangerousSucceeded.length === 1
+        ? t('dash.audit.finding_dangerous_one', { n: dangerousSucceeded.length })
+        : t('dash.audit.finding_dangerous_other', { n: dangerousSucceeded.length }),
+      suggestion: t('dash.audit.finding_dangerous_hint'),
       relatedTools: [...new Set(dangerousSucceeded.map(e => e.toolName))],
     });
   }
@@ -904,7 +908,7 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
                   <div key={m.model} title={`${formatNumber(m.tokens)} raw tokens`}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-medium truncate mr-3">{m.model}</span>
-                      <span className="text-[10px] text-[var(--text-muted)] shrink-0">{credits.toLocaleString()} credits</span>
+                      <span className="text-[10px] text-[var(--text-muted)] shrink-0">{t('dash.history.n_credits', { n: credits.toLocaleString() })}</span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-[var(--bg-input)]">
                       <div

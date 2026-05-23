@@ -14,6 +14,8 @@
  * "…expand" affordance. The parent ToolCallBlock handles expand state.
  */
 
+import { t, useLocale } from '../../i18n';
+
 interface DiffViewProps {
   toolName: string;
   argsJson: string;
@@ -24,6 +26,7 @@ interface DiffViewProps {
 const PREVIEW_LINE_LIMIT = 8;
 
 export function DiffView({ toolName, argsJson, expanded }: DiffViewProps) {
+  useLocale();
   let args: Record<string, unknown> = {};
   try {
     args = JSON.parse(argsJson);
@@ -63,7 +66,7 @@ export function DiffView({ toolName, argsJson, expanded }: DiffViewProps) {
           ))}
           {removedHidden > 0 && (
             <div className="px-2 py-0.5 text-[10px] opacity-40 italic">
-              … {removedHidden} more removed lines hidden (expand to see all)
+              {t('dash.chat.diff_more_removed', { count: removedHidden })}
             </div>
           )}
         </div>
@@ -75,7 +78,7 @@ export function DiffView({ toolName, argsJson, expanded }: DiffViewProps) {
           ))}
           {addedHidden > 0 && (
             <div className="px-2 py-0.5 text-[10px] opacity-40 italic">
-              … {addedHidden} more added lines hidden (expand to see all)
+              {t('dash.chat.diff_more_added', { count: addedHidden })}
             </div>
           )}
         </div>

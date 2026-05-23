@@ -278,7 +278,7 @@ export function Overview({
                   if (e.key === 'Enter') { e.preventDefault(); saveDisplayName(); }
                   else if (e.key === 'Escape') { setEditingName(false); setNameInput(''); }
                 }}
-                placeholder="What should Ava call you?"
+                placeholder={t('dash.cc.name_placeholder')}
                 maxLength={40}
                 className="text-2xl font-light text-white outline-none rounded-md px-2 py-0 bg-[rgba(168,85,247,0.08)] border border-[rgba(168,85,247,0.3)]"
                 style={{ minWidth: 220, fontFamily: 'inherit' }}
@@ -288,7 +288,7 @@ export function Overview({
                 onClick={() => { setNameInput(firstName); setEditingName(true); }}
                 onMouseEnter={() => setNameHover(true)}
                 onMouseLeave={() => setNameHover(false)}
-                title="Click to change what Ava calls you"
+                title={t('dash.cc.name_change_title')}
                 style={{
                   cursor: 'pointer',
                   borderBottom: nameHover ? '1px dashed #a855f7' : '1px dashed transparent',
@@ -300,10 +300,10 @@ export function Overview({
             ) : (
               <span
                 onClick={() => { setNameInput(''); setEditingName(true); }}
-                title="Tell Ava what to call you"
+                title={t('dash.cc.name_set_title')}
                 style={{ cursor: 'pointer', color: '#a855f7', fontSize: 16, marginLeft: 4 }}
               >
-                + add name
+                {t('dash.cc.add_name')}
               </span>
             )}
           </div>
@@ -675,7 +675,7 @@ function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { 
       {articleLoading && (
         <div className="flex items-center justify-center py-6">
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
-          <span className="ml-2 text-xs text-[var(--text-muted)]">Loading article...</span>
+          <span className="ml-2 text-xs text-[var(--text-muted)]">{t('dash.cc.loading_article')}</span>
         </div>
       )}
 
@@ -723,14 +723,14 @@ function TasksWidget({ tasks: rawTasks, loaded, onNavigate }: { tasks: Dashboard
   const today = new Date().toISOString().slice(0, 10);
 
   const todayTasks = useMemo(() => {
-    return tasks.filter(t => {
-      if (t.status === 'done' || t.status === 'archived') return false;
+    return tasks.filter(tk => {
+      if (tk.status === 'done' || tk.status === 'archived') return false;
       // Overdue or due today
-      if (t.due_date && t.due_date <= today) return true;
+      if (tk.due_date && tk.due_date <= today) return true;
       // In-progress tasks
-      if (t.status === 'in-progress') return true;
+      if (tk.status === 'in-progress') return true;
       // No due date but active today
-      if (!t.due_date && t.status === 'todo') return false;
+      if (!tk.due_date && tk.status === 'todo') return false;
       return false;
     }).sort((a, b) => {
       // Overdue first, then by priority
@@ -775,7 +775,7 @@ function TasksWidget({ tasks: rawTasks, loaded, onNavigate }: { tasks: Dashboard
                 <button
                   onClick={() => post({ type: 'complete_task', id: task.id })}
                   className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[var(--border-card)] text-[var(--text-muted)] transition hover:border-emerald-500 hover:text-emerald-400"
-                  title="Complete task"
+                  title={t('dash.cc.complete_task')}
                 >
                   <span className="text-[10px]">{task.status === 'in-progress' ? '\u27F3' : '\u25CB'}</span>
                 </button>
@@ -1015,7 +1015,7 @@ function WidgetCard({
             <button
               onClick={handleRefresh}
               className="text-[var(--text-muted)] hover:text-[var(--accent)] transition"
-              title={`Refresh ${title.toLowerCase()}`}
+              title={t('dash.cc.refresh_widget', { name: title.toLowerCase() })}
             >
               <svg className={`w-3.5 h-3.5 ${spinning ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />

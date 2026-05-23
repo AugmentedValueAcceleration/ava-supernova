@@ -201,7 +201,7 @@ export function NavSidebar({
         {onToggleSidebar && (
           <button
             onClick={onToggleSidebar}
-            title="Expand sidebar"
+            title={t('dash.nav.expand_sidebar')}
             className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-[rgba(168,85,247,0.15)] text-[var(--text-muted)] hover:text-white bg-transparent border-none cursor-pointer mb-1"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style={sidebarSide === 'right' ? { transform: 'scaleX(-1)' } : undefined}>
@@ -221,7 +221,7 @@ export function NavSidebar({
               key={item.page}
               onClick={() => handleNavigate(item.page)}
               disabled={item.comingSoon}
-              title={`${item.label}${item.comingSoon ? ' (coming soon)' : ''}`}
+              title={`${item.label}${item.comingSoon ? ` (${t('dash.nav.coming_soon_full')})` : ''}`}
               className={`relative flex items-center justify-center w-9 h-9 rounded-lg cursor-pointer transition border-none ${
                 currentPage === item.page
                   ? 'bg-[var(--bg-input)] text-white'
@@ -283,7 +283,7 @@ export function NavSidebar({
           {onToggleSidebar && (
             <button
               onClick={onToggleSidebar}
-              title="Hide sidebar"
+              title={t('dash.nav.hide_sidebar')}
               className="flex h-[22px] w-[22px] items-center justify-center rounded bg-transparent border-none cursor-pointer text-[#6c7086] hover:text-[#cdd6f4] transition-colors"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={sidebarSide === 'right' ? { transform: 'scaleX(-1)' } : undefined}>
@@ -295,7 +295,7 @@ export function NavSidebar({
           {onFlipSidebar && (
             <button
               onClick={onFlipSidebar}
-              title={sidebarSide === 'left' ? 'Move sidebar to right' : 'Move sidebar to left'}
+              title={sidebarSide === 'left' ? t('dash.nav.move_sidebar_right') : t('dash.nav.move_sidebar_left')}
               className="flex h-[22px] w-[22px] items-center justify-center rounded bg-transparent border-none cursor-pointer text-[#6c7086] hover:text-[#cdd6f4] transition-colors"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -310,7 +310,7 @@ export function NavSidebar({
           <div className="relative">
             <button
               onClick={() => setDataPortOpen(!dataPortOpen)}
-              title="Export / Import data"
+              title={t('dash.nav.export_import')}
               className="flex h-[22px] w-[22px] items-center justify-center rounded bg-transparent border-none cursor-pointer text-[#6c7086] hover:text-[#cdd6f4] transition-colors"
               style={dataPortOpen ? { color: '#cdd6f4' } : undefined}
             >
@@ -488,6 +488,7 @@ function NavItem({
   comingSoon?: boolean;
   badge?: number;
 }) {
+  useLocale();
   if (comingSoon) {
     return (
       <div className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-[var(--text-muted)] cursor-not-allowed opacity-50">
@@ -495,7 +496,7 @@ function NavItem({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className="text-[12px]">{label}</span>
-            <span className="rounded bg-[var(--bg-input)] px-1 py-0.5 text-[8px]">Soon</span>
+            <span className="rounded bg-[var(--bg-input)] px-1 py-0.5 text-[8px]">{t('dash.nav.coming_soon')}</span>
           </div>
           <p className="text-[9px] text-[var(--text-muted)] truncate">{description}</p>
         </div>
@@ -548,6 +549,7 @@ function TaskCalendar({
   onDayClick: (date: string) => void;
   onRefresh?: () => void;
 }) {
+  useLocale();
   const [monthOffset, setMonthOffset] = useState(0);
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem('ava.sidebarCalCollapsed') === '1'; } catch { return false; }
@@ -592,7 +594,7 @@ function TaskCalendar({
       <div className="border-t border-[var(--border-card)] px-3 py-2.5 shrink-0">
         <button
           onClick={toggleCollapsed}
-          title="Show calendar"
+          title={t('dash.nav.show_calendar')}
           className="flex w-full items-center justify-between border-none bg-transparent cursor-pointer text-[var(--text-secondary)] hover:text-white transition"
         >
           <span className="flex items-center gap-2">
@@ -621,14 +623,14 @@ function TaskCalendar({
         <span className="text-[10px] font-light text-[var(--text-secondary)]">{label}</span>
         <div className="flex items-center gap-2">
           <button onClick={() => setMonthOffset(o => o + 1)} className="text-[10px] text-[var(--text-muted)] bg-transparent border-none cursor-pointer hover:text-white">{'\u25B6'}</button>
-          <button onClick={toggleCollapsed} title="Hide calendar" className="text-[9px] text-[var(--text-muted)] bg-transparent border-none cursor-pointer hover:text-white">{'\u25B2'}</button>
+          <button onClick={toggleCollapsed} title={t('dash.nav.hide_calendar')} className="text-[9px] text-[var(--text-muted)] bg-transparent border-none cursor-pointer hover:text-white">{'\u25B2'}</button>
         </div>
       </div>
       {/* Legend \u2014 colour code for the day dots */}
       <div className="flex items-center justify-center gap-2.5 mb-1.5 text-[8px] text-[var(--text-muted)]">
-        <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--accent)' }} />Training</span>
-        <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: '#f59e0b' }} />Meals</span>
-        <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: '#38bdf8' }} />Tasks</span>
+        <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--accent)' }} />{t('health.plans.training')}</span>
+        <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: '#f59e0b' }} />{t('health.plans.meals')}</span>
+        <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: '#38bdf8' }} />{t('dash.nav.tasks')}</span>
       </div>
       {/* Day headers */}
       <div className="grid grid-cols-7 gap-0.5 text-center mb-0.5">

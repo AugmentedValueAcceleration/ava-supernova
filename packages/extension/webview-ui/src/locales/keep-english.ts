@@ -19,4 +19,7 @@ export const KEEP_ENGLISH: ReadonlySet<StringKey> = new Set<StringKey>([
   // Placeholder-only strings
   'tool.git',
   'tool.http',
-] as StringKey[]);
+] as StringKey[
+  // auto-classified invariants (brand/units/loanwords)
+  'dash.chat.ava',
+]);

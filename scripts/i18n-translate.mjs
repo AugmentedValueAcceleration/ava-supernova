@@ -48,7 +48,25 @@ const LOCALE_FILTER = args.locales ? new Set(args.locales.split(',')) : null;
 const SURFACE_FILTER = args.surface || null;
 const MODEL = args.model || 'qwen3.5-flash';
 const BATCH_SIZE = Number(args['batch-size'] || 40);
+// Locales translated concurrently. The platform endpoint forces reasoning
+// mode (~15-25s/call), so wall-time is dominated by call latency, not the
+// model — running locales in parallel is the only real speed lever.
+const CONCURRENCY = Math.max(1, Number(args['concurrency'] || 1));
 const CRED = resolveCredential();
+
+/** Run async fn over items with at most `limit` in flight. Preserves nothing
+ *  about order; each task is independent (one locale's file write). */
+async function pool(items, limit, fn) {
+  const queue = [...items.entries()];
+  const workers = Array.from({ length: Math.min(limit, queue.length) }, async () => {
+    while (queue.length) {
+      const next = queue.shift();
+      if (!next) break;
+      await fn(next[1], next[0]);
+    }
+  });
+  await Promise.all(workers);
+}
 
 if (!CRED && !DRY_RUN) {
   console.error('❌ No credential found for translation.');
@@ -129,7 +147,6 @@ const DO_NOT_TRANSLATE = [
   'IDE', 'CLI', 'API', 'URL', 'HTTP', 'HTTPS', 'JSON', 'YAML', 'SQL',
   'Pro', 'Ultra', 'Enterprise', 'Admin', 'Free',
   'OWASP', 'CVE',
-  'Creative Studio',
   'OK',
 ];
 
@@ -218,7 +235,9 @@ function replaceTsValue(text, key, newValue) {
   // Match the whole key/value line (supports ' " ` quote styles for the value)
   const re = new RegExp(`(^\\s*['"]${keyPat}['"]\\s*:\\s*)(['"\`])((?:\\\\[\\s\\S]|(?!\\2)[\\s\\S])*)\\2`, 'm');
   const escaped = escapeTs(newValue);
-  return text.replace(re, `$1'${escaped}'`);
+  // Function replacement — a literal `$` in `escaped` would otherwise be
+  // interpreted as a replacement pattern ($&, $1, $') and corrupt the line.
+  return text.replace(re, (_m, p1) => `${p1}'${escaped}'`);
 }
 
 // ── Translation prompt ──────────────────────────────────────────────────────
@@ -257,7 +276,7 @@ async function translateBatch({ targetLanguage, entries, attempt = 1 }) {
   };
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 90_000);
+  const timeoutId = setTimeout(() => controller.abort(), 150_000);
   let res;
   try {
     res = await fetch(COMPLETION_URL, {
@@ -355,7 +374,7 @@ async function processSurface(surface) {
   }
 
   let translated = 0;
-  for (const locale of localeList) {
+  await pool(localeList, CONCURRENCY, async (locale) => {
     const { file, filePath, entries } = perLocale[locale];
     const lookupKey = LANGUAGE_NAMES[locale] || LANGUAGE_NAMES[locale.toLowerCase()];
     const targetLanguage = lookupKey || locale;
@@ -388,10 +407,10 @@ async function processSurface(surface) {
       }
     }
 
-    if (DRY_RUN) continue;
+    if (DRY_RUN) return;
     if (Object.keys(translations).length === 0) {
       console.log(`    no accepted translations — leaving ${file} unchanged.`);
-      continue;
+      return;
     }
 
     // Write back in place
@@ -408,7 +427,7 @@ async function processSurface(surface) {
     }
     translated += Object.keys(translations).length;
     console.log(`    wrote ${Object.keys(translations).length} translations to ${file}`);
-  }
+  });
 
   return { translated, skipped: false };
 }
