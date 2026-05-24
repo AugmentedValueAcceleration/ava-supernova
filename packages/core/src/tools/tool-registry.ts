@@ -26,6 +26,7 @@ import { DatabaseQueryTool } from './database-query.js';
 import { BrowserTool } from './browser.js';
 import { MemorySaveTool } from './memory-save.js';
 import { MemoryRecallTool } from './memory-recall.js';
+import { ConversationRecallTool } from './conversation-recall.js';
 import { MemoryUpdateTool } from './memory-update.js';
 import { MemoryDeleteTool } from './memory-delete.js';
 import { RollbackTool } from './rollback.js';
@@ -163,6 +164,7 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   present_plan: 'documents', apply_plan: 'documents', switch_mode: 'documents', browse_library: 'file_ops',
   // Memory — persistent knowledge
   memory_save: 'memory', memory_recall: 'memory',
+  conversation_recall: 'memory',
   memory_update: 'memory', memory_delete: 'memory',
   // Learning — education system
   learning_create: 'learning', learning_teach: 'learning',
@@ -373,6 +375,7 @@ export class ToolRegistry {
       new BrowserTool(),
       new MemorySaveTool(),
       new MemoryRecallTool(),
+      new ConversationRecallTool(),
       new MemoryUpdateTool(),
       new MemoryDeleteTool(),
       new RollbackTool(),

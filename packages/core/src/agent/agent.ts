@@ -877,6 +877,19 @@ export class Agent {
     // (closes over a dead realEvents) but is never read again.
     this.currentRunRecoveryHook = finalHistory;
 
+    // ─── Recoverability backstop for compression ───────────────────────────
+    // Stash the uncompressed transcript as it stands at the START of this turn
+    // so the conversation_recall tool can read it. `messages` here is the full
+    // canonical history the caller passed in; the compression/truncation
+    // transforms below only ever REASSIGN the local `messages` variable (they
+    // build new arrays, never mutate in place), so a shallow copy taken now
+    // stays lossless for the whole turn even after the working context is
+    // compressed. This is what makes "Ava lost context" structurally
+    // impossible: the summary is the fast path, this is the source of truth.
+    if (this.toolContext.sharedState) {
+      (this.toolContext.sharedState as Record<string, unknown>).recallTranscript = [...messages];
+    }
+
     // ─── Stop-command detection ────────────────────────────────────────────
     // If the user's latest message is an explicit stop command ("stop",
     // "halt", "leave it", "don't touch", "how dare you i said stop", etc.),
@@ -1137,10 +1150,10 @@ export class Agent {
         // Qwen's "system must be at beginning" error.
         const fixedKeep = this.fixToolPairing(toKeep);
         const compressionNote = [
-          `[${toCompress.length} earlier messages compressed to memory. Your active task is still in flight — continue from where you left off. Do NOT treat this as a new conversation.]`,
-          'Your memory system has saved the important context from those messages.',
-          'If the user references something from earlier in the conversation, use memory_recall to retrieve it.',
-          'Do NOT say you don\'t have context — check memory first. Do NOT greet the user.',
+          `[${toCompress.length} earlier messages compressed out of your working context. Your active task is still in flight — continue from where you left off. Do NOT treat this as a new conversation.]`,
+          'The full transcript of those messages is still on record.',
+          'If the user references something from earlier — or you need an exact detail, decision, path or value — call conversation_recall to read it from the real transcript instead of guessing.',
+          'Do NOT say you don\'t have context — recall it first. Do NOT greet the user.',
         ].join(' ');
 
         // Session tasks re-injection — same pattern as compressContext()

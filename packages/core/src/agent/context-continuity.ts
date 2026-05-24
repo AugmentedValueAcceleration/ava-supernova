@@ -163,6 +163,7 @@ export function buildCompressionContinuationHeader(
   lines.push(summaryBody.trim());
   lines.push('');
   lines.push('[Resume the current task from the state described above. Do NOT treat this as a new conversation. Do NOT greet. Do NOT ask what to do next — the answer is in the summary.]');
+  lines.push('[This summary is lossy. If you need an exact detail from earlier — what the user said, a decision, a path or value — call conversation_recall to read the real transcript. Recall it; do not guess it or ask the user to repeat themselves.]');
 
   return lines.join('\n');
 }
