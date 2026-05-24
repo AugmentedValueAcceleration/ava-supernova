@@ -26,6 +26,13 @@ import {
   type CheckId,
 } from '../personas/verification-matrix.js';
 import { loadTrustState, isTrusted, recordCheckResults } from './verification-trust.js';
+import {
+  loadDeployManifest,
+  deployPrefixes,
+  fileMatchesSurface,
+  type DeployManifest,
+  type DeploySurface,
+} from './deploy-manifest.js';
 
 // ── Check result shape ───────────────────────────────────────────────────────
 
@@ -583,7 +590,139 @@ async function runAuthFullSuite(check: Check, cwd: string): Promise<CheckResult>
   };
 }
 
-async function runSingleCheck(check: Check, cwd: string, trusted: boolean): Promise<CheckResult> {
+/**
+ * Read a dot-path (e.g. `build.sha`) out of a parsed JSON object. Returns the
+ * stringified leaf, or null if any segment is missing.
+ */
+function readJsonPath(obj: unknown, path: string): string | null {
+  let cur: unknown = obj;
+  for (const key of path.split('.')) {
+    if (cur === null || typeof cur !== 'object' || !(key in (cur as Record<string, unknown>))) {
+      return null;
+    }
+    cur = (cur as Record<string, unknown>)[key];
+  }
+  return cur === null || cur === undefined ? null : String(cur);
+}
+
+/** Lenient commit-id comparison — short shas vs full shas both compare clean. */
+function commitsMatch(a: string, b: string): boolean {
+  const x = a.trim().toLowerCase();
+  const y = b.trim().toLowerCase();
+  if (!x || !y) return false;
+  const min = Math.min(x.length, y.length, 40);
+  if (min < 7) return x === y; // too short to be a sha — exact only
+  return x.slice(0, min) === y.slice(0, min);
+}
+
+/** Fetch with a hard timeout. Returns null on any network/abort failure. */
+async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal, redirect: 'follow' });
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Probe one declared surface for its live commit marker and classify it
+ * against the local HEAD. Pure of side effects beyond the HTTP GET.
+ */
+async function probeSurface(
+  surface: DeploySurface,
+  headSha: string,
+  timeoutMs: number,
+): Promise<{ state: 'live' | 'stale' | 'unverifiable'; detail: string }> {
+  const res = await fetchWithTimeout(surface.url, timeoutMs);
+  if (!res) {
+    return { state: 'unverifiable', detail: `${surface.name}: ${surface.url} unreachable` };
+  }
+
+  let live: string | null = null;
+  if (surface.markerJsonPath) {
+    try {
+      live = readJsonPath(await res.json(), surface.markerJsonPath);
+    } catch {
+      live = null;
+    }
+  } else {
+    live = res.headers.get(surface.marker || 'x-ava-commit');
+  }
+
+  if (!live) {
+    const where = surface.markerJsonPath ? `json:${surface.markerJsonPath}` : `header:${surface.marker || 'x-ava-commit'}`;
+    return { state: 'unverifiable', detail: `${surface.name}: no marker (${where}) at ${surface.url}` };
+  }
+
+  if (headSha && commitsMatch(live, headSha)) {
+    return { state: 'live', detail: `${surface.name}: live @ ${live.slice(0, 8)}` };
+  }
+  return {
+    state: 'stale',
+    detail: `${surface.name}: serving ${live.slice(0, 8)}, HEAD is ${headSha.slice(0, 8) || '?'} — deploy pending/not triggered`,
+  };
+}
+
+/**
+ * deploy_state — confirm the change is LIVE on its deployed surface, not just
+ * committed. Reads the deploy manifest, maps changed files to surfaces, probes
+ * each for its serving commit, and compares to local HEAD.
+ *
+ * NEVER fails the build: deploys are asynchronous and outside the agent's
+ * control, so "not yet live" is information, not an error. The whole point is
+ * to make liveness OBSERVED — turning "I pushed it, so it's live" from a silent
+ * assumption into a visible line in the report.
+ */
+async function runDeployState(
+  check: Check,
+  cwd: string,
+  manifest: DeployManifest,
+): Promise<CheckResult> {
+  const start = Date.now();
+
+  // Which declared surfaces actually own one of the changed files?
+  const matched = manifest.surfaces.filter((s) =>
+    check.files.some((f) => fileMatchesSurface(f, s)),
+  );
+  if (matched.length === 0) {
+    return {
+      check: 'deploy_state',
+      status: 'na',
+      durationMs: Date.now() - start,
+      message: 'No declared surface owns the changed files',
+    };
+  }
+
+  const { output: headOut, code: headCode } = await runCommand('git rev-parse HEAD', cwd, 10_000);
+  const headSha = headCode === 0 ? headOut.trim() : '';
+
+  const probes = await Promise.all(matched.map((s) => probeSurface(s, headSha, 5_000)));
+  const live = probes.filter((p) => p.state === 'live');
+  const details = probes.map((p) => p.detail).join(' | ');
+
+  // Pass ONLY when every matched surface is confirmed live. Anything else
+  // (stale, unverifiable) is a skip — surfaced, never blocking.
+  const allLive = probes.length > 0 && probes.every((p) => p.state === 'live');
+  return {
+    check: 'deploy_state',
+    status: allLive ? 'pass' : 'skip',
+    durationMs: Date.now() - start,
+    message: allLive
+      ? `All ${live.length} surface(s) live @ HEAD — ${details}`
+      : `Liveness not confirmed — ${details}`,
+  };
+}
+
+async function runSingleCheck(
+  check: Check,
+  cwd: string,
+  trusted: boolean,
+  manifest: DeployManifest | null,
+): Promise<CheckResult> {
   switch (check.id) {
     case 'typecheck':         return runTypecheck(check, cwd, trusted);
     case 'test_run':          return runTestCheck(check, cwd);
@@ -594,6 +733,15 @@ async function runSingleCheck(check: Check, cwd: string, trusted: boolean): Prom
     case 'deps_install':      return runDepsInstall(check, cwd);
     case 'link_check':        return runLinkCheck(check, cwd);
     case 'auth_full_suite':   return runAuthFullSuite(check, cwd);
+    case 'deploy_state':
+      return manifest
+        ? runDeployState(check, cwd, manifest)
+        : {
+            check: 'deploy_state',
+            status: 'skip',
+            durationMs: 0,
+            message: 'Deployed-surface change, but no ava.deploy.json — live state UNVERIFIED',
+          };
   }
 }
 
@@ -676,7 +824,11 @@ export class VerifyChangeTool implements Tool {
       };
     }
 
-    const allChecks = selectChecks(files);
+    // Load the deploy manifest (if any) so the matrix can tag deployed-surface
+    // files and the deploy_state check can probe their live commit. Absent
+    // manifest = no deploy awareness; the check simply won't be selected.
+    const manifest = await loadDeployManifest(context.cwd);
+    const allChecks = selectChecks(files, { deployPrefixes: deployPrefixes(manifest) });
     const toRun = skip ? allChecks.filter((c) => c.stakesFloor === 'mandatory') : allChecks;
 
     if (toRun.length === 0) {
@@ -693,7 +845,7 @@ export class VerifyChangeTool implements Tool {
 
     // Run in parallel — each implementation owns its own timeout.
     const results = await Promise.all(
-      toRun.map((c) => runSingleCheck(c, context.cwd, isTrusted(trustState, c.id))),
+      toRun.map((c) => runSingleCheck(c, context.cwd, isTrusted(trustState, c.id), manifest)),
     );
 
     const output = formatReport(files, toRun, results);

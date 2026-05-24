@@ -19,7 +19,8 @@ export type ChangeCategory =
   | 'dep'           // Dependency change (package.json, lockfile)
   | 'prose'         // Markdown, plain docs
   | 'auth'          // Auth / session / token-handling code
-  | 'payment';      // Payment / billing / Stripe code
+  | 'payment'       // Payment / billing / Stripe code
+  | 'deployed';     // File under a declared deployed surface (ava.deploy.json)
 
 export type CheckId =
   | 'typecheck'          // tsc --noEmit scoped to changed package
@@ -30,7 +31,8 @@ export type CheckId =
   | 'build_smoke'        // cached `next build --no-lint` smoke
   | 'deps_install'       // pnpm install --lockfile-only + audit
   | 'link_check'         // check internal links resolve (prose)
-  | 'auth_full_suite';   // mandatory full suite for high-stakes paths
+  | 'auth_full_suite'    // mandatory full suite for high-stakes paths
+  | 'deploy_state';      // confirm the change is live on its deployed surface
 
 export interface Check {
   id: CheckId;
@@ -96,14 +98,31 @@ const PAYMENT_PATTERNS: RegExp[] = [
 ];
 
 /**
+ * True when `p` (already forward-slash normalised) sits under one of the
+ * declared deployed-surface prefixes. Prefixes come from ava.deploy.json via
+ * the caller — the matrix never reads the manifest itself, so it stays pure.
+ */
+function isUnderDeployPrefix(p: string, deployPrefixes: string[]): boolean {
+  const f = p.replace(/^\.\//, '');
+  return deployPrefixes.some((prefix) => f === prefix || f.startsWith(prefix + '/'));
+}
+
+/**
  * Classify a single changed file. A file can be in multiple categories
  * (e.g. an auth middleware is both `auth` and `ts`). Order returned is
  * high-stakes → low-stakes so the caller can short-circuit on the first
  * mandatory check if they only want the minimum gate.
+ *
+ * `deployPrefixes` (optional) are the literal path prefixes of declared
+ * deployed surfaces; a file under one is additionally tagged `deployed` so
+ * the liveness check fires for it. Empty/omitted = no deploy awareness.
  */
-export function classifyFile(path: string): ChangeCategory[] {
+export function classifyFile(path: string, deployPrefixes: string[] = []): ChangeCategory[] {
   const categories: ChangeCategory[] = [];
   const p = path.replace(/\\/g, '/');
+
+  // Deployed-surface marker (additive — combines with the file's own type)
+  if (isUnderDeployPrefix(p, deployPrefixes)) categories.push('deployed');
 
   // High-stakes markers first
   if (AUTH_PATTERNS.some((r) => r.test(p))) categories.push('auth');
@@ -127,19 +146,27 @@ export function classifyFile(path: string): ChangeCategory[] {
 /**
  * Select the checks to run given a list of changed files. Deduplicates
  * so `tsc` is requested once regardless of how many .ts files were touched.
+ *
+ * `opts.deployPrefixes` (from ava.deploy.json) opt the run into a liveness
+ * check: any changed file under a declared surface gets a `deploy_state`
+ * check that confirms the change is actually serving, not just committed.
  */
-export function selectChecks(changedFiles: string[]): Check[] {
+export function selectChecks(
+  changedFiles: string[],
+  opts: { deployPrefixes?: string[] } = {},
+): Check[] {
   if (changedFiles.length === 0) return [];
 
+  const deployPrefixes = opts.deployPrefixes ?? [];
   const allCategories = new Set<ChangeCategory>();
   const filesByCategory: Record<ChangeCategory, string[]> = {
     ts: [], test: [], route: [], asset: [],
     migration: [], config: [], dep: [], prose: [],
-    auth: [], payment: [],
+    auth: [], payment: [], deployed: [],
   };
 
   for (const file of changedFiles) {
-    const cats = classifyFile(file);
+    const cats = classifyFile(file, deployPrefixes);
     for (const c of cats) {
       allCategories.add(c);
       filesByCategory[c].push(file);
@@ -236,6 +263,18 @@ export function selectChecks(changedFiles: string[]): Check[] {
       id: 'link_check',
       files: filesByCategory.prose,
       reason: 'Prose-only change — link check',
+    });
+  }
+
+  // Deploy-state — last, after correctness. Confirms the change is live on its
+  // declared surface, not just committed. Only fires when a deploy manifest
+  // matched at least one changed file. Never blocks (deploys are async) — it
+  // turns "shipped means live" from an assumption into an observation.
+  if (allCategories.has('deployed')) {
+    checks.push({
+      id: 'deploy_state',
+      files: filesByCategory.deployed,
+      reason: 'File under a deployed surface — confirm it is live, not just committed',
     });
   }
 
