@@ -13,7 +13,9 @@
     "format": "prettier --write .",
     "i18n:check": "node scripts/i18n-check.mjs",
     "i18n:seed": "node scripts/i18n-seed.mjs",
-    "i18n:translate": "node scripts/i18n-translate.mjs"
+    "i18n:translate": "node scripts/i18n-translate.mjs",
+    "i18n:docs": "node scripts/i18n-docs-translate.mjs",
+    "docs:sync": "node scripts/docs-sync.mjs"
   },
   "engines": {
     "node": ">=20.0.0"

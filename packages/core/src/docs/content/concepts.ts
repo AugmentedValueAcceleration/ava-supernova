@@ -11,7 +11,10 @@ export const CONCEPT_PAGES: DocPage[] = [
     order: 10,
     section: 'models',
     body: [
-      { type: 'paragraph', text: 'Ava is a thinking system, not a model menu. You pick one of three orchestration strategies — Maestro, Supernova, or Aurora — and Ava routes each subtask to the model best suited for it. Coordinator-tier reasoning where it matters, flash-tier specialists for high-volume work. Same persona pipeline runs on all three; what changes is the underlying fleet.' },
+      { type: 'paragraph', text: "Here is the short version: you never have to pick which AI model to use. Ava does it for you, choosing the best tool for each part of a job — the way a good manager hands the right task to the right person. The rest of this page explains how that works under the hood. You can ignore almost all of it and just enjoy that it happens." },
+      { type: 'paragraph', text: 'Ava is a thinking system, not a model menu. You pick one of three orchestration strategies (an "orchestration strategy" is just a named recipe for which AI models get used) — Maestro, Supernova, or Aurora — and Ava routes each subtask to the model best suited for it. ("Routing" means sending each piece of work to the model that handles it best.) Coordinator-tier reasoning where it matters, flash-tier specialists for high-volume work. (The "coordinator" is the lead model that thinks and plans; "specialists" are faster, cheaper models that do the bulk grunt work.) Same persona pipeline runs on all three; what changes is the underlying fleet.' },
+
+      { type: 'callout', variant: 'tip', text: "You don't need to read the table below to use Ava — it's here for the curious. The one thing worth knowing: Maestro is live on every plan today, and it is a good default." },
 
       { type: 'heading', level: 3, text: 'Side-by-side' },
       { type: 'table',
@@ -31,6 +34,8 @@ export const CONCEPT_PAGES: DocPage[] = [
           ['Best for',        'Daily work, predictable cost', 'Heavy multi-step work, frontier coordinator on every plan', 'GDPR-strict, public-sector, sovereign EU stacks'],
         ],
       },
+
+      { type: 'callout', variant: 'note', text: 'The next three sections name specific AI models and their sizes (the "B" numbers are billions of parameters — roughly, how big the model\'s brain is; bigger usually means smarter but slower and pricier). This is power-user detail. You can skip straight to "Why orchestration?" if you just want the gist.' },
 
       { type: 'heading', level: 3, text: 'Maestro' },
       { type: 'paragraph', text: 'Tier-differentiated Qwen routing, light footprint. Qwen 3.6 Plus owns the coordinator, Builder, planning, security, brainstorm, and long-context work — the slots where its 1M-context hybrid linear-attention pays off. Qwen 3.5 Flash handles chat, image-gen orchestration, and the upstream intent gate, where its $0.07/$0.26 pricing and faster TTFT win on the bulk of low-depth token volume. Qwen 3.5 Omni Plus owns vision input (Qwen 3.6 Plus has no native vision). Qwen 3.5 Plus carries cost-sensitive long-form work. Falls through the priority ladder Qwen 3.6 Plus → 3.5 Plus → 3.5 Flash if the primary coordinator is unavailable.' },
@@ -55,7 +60,8 @@ export const CONCEPT_PAGES: DocPage[] = [
     order: 10,
     section: 'credits',
     body: [
-      { type: 'paragraph', text: 'Ava bills in credits, not raw tokens. One credit covers one unit of work — a chat turn, a persona spawn, an image generation. Decoupling from token-level metering means you do not need to know which model is running to know what an action will cost. The same chat_turn costs the same whether Maestro routes it to Qwen 3.6 Plus or Supernova routes it to V4 Pro.' },
+      { type: 'paragraph', text: "Credits are simply how Ava counts what you use — like minutes on a phone plan. Every plan, including the free one, comes with a pool of credits, and each thing Ava does (answering you, making an image) costs a small number of them. That's the whole idea. The detail below is for when you want to know exactly what costs what." },
+      { type: 'paragraph', text: 'Ava bills in credits, not raw tokens. (A "token" is the tiny chunk of text — roughly a few letters — that AI models read and write in; most services charge you per token, which is hard to predict.) One credit covers one unit of work — a chat turn, a persona spawn (one helper doing a piece of the task), an image generation. Decoupling from token-level metering means you do not need to know which model is running to know what an action will cost. The same chat turn costs the same whether Maestro routes it to Qwen 3.6 Plus or Supernova routes it to V4 Pro.' },
 
       { type: 'heading', level: 3, text: 'Plans' },
       { type: 'paragraph', text: 'Every plan has access to every feature — model access, Creative Studio, all six modes, the full persona orchestration. Higher tiers buy more credits and a higher rate-limit ceiling, not unlocked features.' },
@@ -68,7 +74,7 @@ export const CONCEPT_PAGES: DocPage[] = [
       { type: 'callout', variant: 'note', text: 'Unused credits roll over while your subscription is active — there is no forced clawback. Top-ups stack on the subscription pool: 750 credits for $3, 2,000 for $8, 4,000 for $15.' },
 
       { type: 'heading', level: 3, text: 'What things cost' },
-      { type: 'paragraph', text: 'Per-action cost table — what gets deducted from your credit pool when each action runs. Cache hits discount the charge by 70% (or 50% on output-heavy models like DeepSeek V4 Pro).' },
+      { type: 'paragraph', text: 'Per-action cost table — what gets deducted from your credit pool when each action runs. (A "cache hit" is when Ava reuses work it already did instead of redoing it; when that happens you pay less — the charge drops by 70%, or 50% on output-heavy models like DeepSeek V4 Pro.)' },
       { type: 'list', ordered: false, items: [
         'Chat turn — 2 credits. A single back-and-forth in any mode.',
         'Light call — 1 credit. Intent gate, classification, single-shot read.',
@@ -83,6 +89,7 @@ export const CONCEPT_PAGES: DocPage[] = [
       ]},
 
       { type: 'heading', level: 3, text: 'Per-model multipliers' },
+      { type: 'paragraph', text: "This bit is for the curious — you don't need it to use Ava. A multiplier just scales the credit cost up or down depending on how expensive the model behind an action is, so heavier models cost a bit more. (\"Net margin\" is the slice the project keeps after paying its own bills — we aim low so the value flows back to you.)" },
       { type: 'paragraph', text: 'Heavier models multiply the action cost so credits track real spend instead of a flat bracket. Calibrated for ~55% net margin.' },
       { type: 'list', ordered: false, items: [
         '0.6× — Mistral Small 4 (Aurora\'s specialist seat). Sub-1× because Mistral Small 4 is cheaper than the Qwen 3.6 Plus anchor.',
@@ -95,6 +102,7 @@ export const CONCEPT_PAGES: DocPage[] = [
       { type: 'callout', variant: 'note', text: 'Anthropic models (Claude Opus / Sonnet / Haiku) skip credit billing entirely — they are BYOK only and you pay Anthropic directly. Same for any other BYOK provider when used with your own key.' },
 
       { type: 'heading', level: 3, text: 'BYOK and credits' },
+      { type: 'paragraph', text: 'BYOK ("bring your own key" — you supply your own account with an AI provider and a key, which is a private password that lets software use that paid account) is for people who already pay an AI provider directly. If that is not you, you can ignore this section entirely.' },
       { type: 'paragraph', text: 'Bring-your-own-key requests bypass platform infrastructure entirely — the call goes direct from Ava to the provider, you pay the provider, no credits are consumed. The only exception is when a BYOK session spawns a managed-tier persona for a sub-task; the credit deduction still applies because Ava\'s orchestration surface is being used.' },
 
       { type: 'heading', level: 3, text: 'Where to check your balance' },
@@ -114,18 +122,20 @@ export const CONCEPT_PAGES: DocPage[] = [
     order: 10,
     section: 'concepts',
     body: [
-      { type: 'paragraph', text: 'Modes change how Ava thinks, not what she can do. The same agent, the same memory, but a different mindset and a different team of specialists behind her. Type a two-character prefix to switch, or pick from the mode selector.' },
+      { type: 'paragraph', text: "A mode is the mindset Ava is in — like a colleague swapping hats. Same person, same memory of you, but a builder thinks differently from a teacher. You pick the mode and it changes how she behaves and which helpers she brings. Switch any time with the mode selector, or type a two-character shortcut." },
       { type: 'facts', kind: 'modes' },
-      { type: 'heading', level: 3, text: 'When to use which' },
+      { type: 'heading', level: 3, text: 'Which one do you want?' },
+      { type: 'paragraph', text: 'Start from what you are trying to do — the mode follows from that:' },
       { type: 'list', ordered: false, items: [
-        'Work (>>) — you know what you want and you want it built. Full tool access. For complex multi-file work the persona team runs automatically.',
-        'Plan (::) — you want a considered approach before any code changes. Read-only. You get a plan you can approve, edit, or discard.',
-        'Chat (..) — you want to talk. About life, about an idea, about nothing in particular. She has memory, news, weather, and journal — and no personas.',
-        'Teach (??) — you want to learn. Curriculum, lessons, quizzes, spaced repetition. Free on every plan forever.',
-        'Security (!!) — you want the whole project audited. Five specialists systematically check OWASP categories and CVEs, then produce a severity-sorted report.',
-        'Brainstorm (**) — you want ideas. Grounded in your context, challenged before they leave the room, refined into next steps.',
+        'I want something built or changed → Work (>>). You describe it, she builds it, showing you every change first. The full helper team kicks in for bigger jobs.',
+        'I want a plan before anything changes → Plan (::). She thinks it through and hands you a plan to approve or edit. She will not touch your files in this mode.',
+        'I just want to talk or ask → Chat (..). A thinking partner with memory, news, and weather. No file changes, no code — just conversation.',
+        'I want to learn something → Teach (??). A real course built for you: lessons, quizzes, the lot. Free on every plan, forever. Perfect if you are new.',
+        'I want my project checked for security holes → Security (!!). A team works through the standard list of common web vulnerabilities (the "OWASP" categories) and known reported flaws (called "CVEs"), then hands you a report sorted by how serious each issue is. This one is aimed at developers — skip it if that is not you.',
+        'I want ideas → Brainstorm (**). She generates options grounded in your actual situation, pokes holes in the weak ones, and refines the rest into next steps.',
       ]},
-      { type: 'callout', variant: 'tip', text: 'You can switch modes mid-conversation. Memory carries across. The specialists do not.' },
+      { type: 'callout', variant: 'note', text: "The \"helper team\" (personas) runs entirely behind the scenes — you never talk to them directly. You just get a more thorough answer. You do not need to know their names." },
+      { type: 'callout', variant: 'tip', text: 'You can switch modes mid-conversation. Your memory carries across; the specialists reset to suit the new mode.' },
     ],
   },
   {
@@ -136,7 +146,8 @@ export const CONCEPT_PAGES: DocPage[] = [
     order: 20,
     section: 'concepts',
     body: [
-      { type: 'paragraph', text: 'Ava has a persistent memory that survives across conversations, across projects, and across machines if you enable sync. It is not a chat log. It is a structured, searchable understanding of who you are, what you like, and what you have decided.' },
+      { type: 'paragraph', text: "In plain terms: Ava remembers you. Tell her something once — what you like, a decision you made — and she keeps it, so you don't have to repeat yourself in the next chat or next week. That's the headline. The layers below just explain how she keeps that memory tidy over time." },
+      { type: 'paragraph', text: 'Ava has a persistent memory ("persistent" means it sticks around after you close the app) that survives across conversations, across projects, and across machines if you enable sync (sync copies your memory between your devices). It is not a chat log. It is a structured, searchable understanding of who you are, what you like, and what you have decided.' },
       { type: 'heading', level: 3, text: 'Five layers' },
       { type: 'list', ordered: true, items: [
         'Extract — key facts captured from every message in real time.',
@@ -145,9 +156,10 @@ export const CONCEPT_PAGES: DocPage[] = [
         'Analyse — the graph engine links related memories and flags contradictions when new information conflicts with old.',
         'Consolidate — similar memories merge; stale ones prune. Memory gets sharper over time, not noisier.',
       ]},
+      { type: 'callout', variant: 'note', text: "The five layers above run on their own — you never have to manage them. They're here so you can see the memory genuinely improves over time rather than turning into a pile of clutter." },
       { type: 'heading', level: 3, text: 'Recall' },
-      { type: 'paragraph', text: 'When you ask a question, Ava searches memory by meaning (semantic search), not keywords. Mode-specific filters run alongside — Chat mode pulls personal context, Work mode pulls project decisions and code patterns.' },
-      { type: 'callout', variant: 'note', text: 'Memory is scoped per-user and per-project. Secrets and credentials are blocked at the save boundary — they can never land in memory.' },
+      { type: 'paragraph', text: 'When you ask a question, Ava searches memory by meaning ("semantic search" — it understands what you mean, so it finds the right memory even if you phrase it differently), not just by matching exact words. Mode-specific filters run alongside — Chat mode pulls personal context, Work mode pulls project decisions and code patterns.' },
+      { type: 'callout', variant: 'note', text: 'Memory is scoped per-user and per-project (your memories are yours, kept separate by person and by project). Secrets and credentials (passwords, keys) are blocked at the save boundary — they can never land in memory.' },
     ],
   },
   {
@@ -158,13 +170,14 @@ export const CONCEPT_PAGES: DocPage[] = [
     order: 30,
     section: 'concepts',
     body: [
+      { type: 'paragraph', text: "Ava keeps three kinds of notes for you, and it's easy to mix them up. The quick way to remember: memory is what she knows about you, tasks are what you still need to do, and the journal is a diary of how things went. Here is when to use which." },
       { type: 'paragraph', text: 'Three things that sound similar and are not: memory, tasks, and journal. Here is when to use which.' },
       { type: 'list', ordered: false, items: [
         'Memory — persistent facts. Preferences, decisions, patterns. Asked about repeatedly, rarely created manually.',
         'Tasks — things to do. Action items with due dates and status. You tick them off when done.',
         'Journal — reflection. Daily log, dual entries (yours and Ava observations about the session). Useful for mood tracking, session reviews, context for tomorrow.',
       ]},
-      { type: 'paragraph', text: 'Ava writes to all three when it makes sense. You can write to any of them directly from the dashboard. Nothing is locked to a surface — tasks created in the CLI appear in the IDE.' },
+      { type: 'paragraph', text: 'Ava writes to all three when it makes sense. You can write to any of them directly from the dashboard. Nothing is locked to a single place you use Ava — a task you create in one (say the command-line tool) shows up everywhere else (like the desktop app), automatically.' },
     ],
   },
   {
@@ -175,9 +188,10 @@ export const CONCEPT_PAGES: DocPage[] = [
     order: 40,
     section: 'concepts',
     body: [
-      { type: 'paragraph', text: 'Ava has 60 tools. Every tool belongs to a category (file operations, shell, git, web, media, database, system, documents, memory, learning). Every tool call passes through the permission gate before it executes. You control what gets auto-approved, what asks once, and what always asks.' },
+      { type: 'paragraph', text: "Permissions are your safety dial. They decide when Ava asks your okay before doing something on your computer, versus just getting on with it. You can set her to ask about everything, ask about the risky stuff only, or trust her to run — and you can change it any time. If you're not sure, leave it on the default and you'll be fine." },
+      { type: 'paragraph', text: 'Ava has 60 tools ("tools" are the actions she can take — reading a file, searching the web, and so on). Every tool belongs to a category (file operations, shell, git, web, media, database, system, documents, memory, learning). Every tool call passes through the permission gate (a checkpoint that decides whether to ask you first) before it runs. You control what gets auto-approved, what asks once, and what always asks.' },
       { type: 'facts', kind: 'permissions' },
-      { type: 'paragraph', text: 'Balanced is the default. Strict for when you are auditing her behaviour. Autonomous for when you want her to just go.' },
+      { type: 'paragraph', text: 'Balanced is the default. Strict for when you are auditing her behaviour (watching closely to check each step). Autonomous for when you want her to just go.' },
       { type: 'callout', variant: 'warning', text: 'Autonomous does not mean unchecked. Plans, clarifying questions, and explicit ask-user prompts still pause for your input. Irreversible operations (git force-push, database drops) always confirm regardless of mode.' },
     ],
   },
@@ -189,7 +203,8 @@ export const CONCEPT_PAGES: DocPage[] = [
     order: 50,
     section: 'concepts',
     body: [
-      { type: 'paragraph', text: 'Ava runs until her plan completes or you stop her. You have two ways to intervene while she is running.' },
+      { type: 'paragraph', text: "You are always in charge. While Ava is busy working, you can either nudge her in a new direction without breaking her stride, or stop her cold. Two buttons, two outcomes — that's all this page is about." },
+      { type: 'paragraph', text: 'Ava runs until her plan completes or you stop her. You have two ways to step in (the word for this is "intervene") while she is running.' },
       { type: 'heading', level: 3, text: 'Interject — steer without cancelling' },
       { type: 'paragraph', text: 'Type a new message while Ava is working. She finishes her current tool call, reads your message, and adjusts her plan. No context is lost. Use this when you want to redirect, add information, or change priorities mid-run.' },
       { type: 'heading', level: 3, text: 'Hard-stop — cancel and clear' },
@@ -209,7 +224,8 @@ export const CONCEPT_PAGES: DocPage[] = [
     section: 'concepts',
     body: [
       { type: 'callout', variant: 'note', text: 'Available in the Ava Supernova IDE only. The VS Code extension and CLI/companion don\'t ship desktop-automation tools — open the IDE to use this feature.' },
-      { type: 'paragraph', text: 'Every step in a desktop trajectory runs a five-persona wave. Each persona has one job and only one job. The separation keeps prompts tight, outputs structured, and reasoning skeptical by design.' },
+      { type: 'paragraph', text: "This page is for the curious and for power users. \"Desktop automation\" (sometimes called \"computer use\") means Ava can actually click around your screen and use apps for you — open Gmail, fill a form, send a message — like a person at the keyboard. To do that safely, she splits the job across five small helpers, each with one narrow role. You never deal with them directly; this just shows you who does what." },
+      { type: 'paragraph', text: 'Every step in a desktop trajectory (one run of Ava driving your screen toward a goal) runs a five-persona wave. Each persona has one job and only one job. The separation keeps prompts tight, outputs structured, and reasoning skeptical by design.' },
       { type: 'heading', level: 3, text: 'Scout' },
       { type: 'paragraph', text: 'Reports what is visible on screen right now. Never invents elements. Never plans. Returns a ScreenState JSON with element IDs, names, bboxes, confidence, and a grounding source (UIA, Playwright DOM, or OmniParser vision).' },
       { type: 'heading', level: 3, text: 'Planner' },
@@ -232,7 +248,8 @@ export const CONCEPT_PAGES: DocPage[] = [
     section: 'concepts',
     body: [
       { type: 'callout', variant: 'note', text: 'Available in the Ava Supernova IDE only — describes the safety model that gates every desktop automation action before Actor runs.' },
-      { type: 'paragraph', text: 'Every proposed action is classified into one of five risk classes. The classification combines three signals — target metadata, semantic caption, and action parameters — and escalates up when they disagree. False positives are a nag. False negatives are a product-ending incident.' },
+      { type: 'paragraph', text: "In short: before Ava clicks anything on your screen, she sorts the action by how risky it is. Reading the screen? Harmless. Sending money or deleting something? She always stops and asks you first — every single time, no exceptions. The five labels below are just the rungs on that risk ladder. This is power-user detail, but the takeaway is simple: the dangerous stuff always needs your yes." },
+      { type: 'paragraph', text: 'Every proposed action is classified into one of five risk classes. The classification combines three signals — what the on-screen target is, a plain-language description of it ("semantic caption" — Ava\'s own words for what she\'s looking at), and the action\'s settings — and escalates up (treats it as riskier) when they disagree. A false positive (asking when it didn\'t need to) is just a nag. A false negative (not asking when it should have) is a product-ending incident.' },
       { type: 'heading', level: 3, text: 'The five classes' },
       { type: 'list', ordered: false, items: [
         'Observational — read UIA tree, screenshot, hover. Always auto-allowed.',
@@ -242,9 +259,9 @@ export const CONCEPT_PAGES: DocPage[] = [
         'Privileged — UAC elevation, sudo, registry edits, credential prompts. Forbidden by default. Single-use opt-in required per session.',
       ]},
       { type: 'heading', level: 3, text: 'Never-cached approvals' },
-      { type: 'paragraph', text: 'Every competitor caches approvals. That is the largest foothold for prompt injection — a compromised page trains the agent that clicks of that class are pre-approved. Ava never caches. Each mutative-irreversible action asks fresh.' },
+      { type: 'paragraph', text: 'Every competitor caches approvals (remembers your "yes" and reuses it next time). That is the largest foothold for prompt injection — an attack where a booby-trapped web page sneaks hidden instructions to the AI to make it act against you. If approvals are cached, a compromised page can ride on a "yes" you gave earlier. Ava never caches. Each mutative-irreversible action asks fresh.' },
       { type: 'heading', level: 3, text: 'Secrets handling' },
-      { type: 'paragraph', text: 'Passwords, API keys, and 2FA codes are handled via opaque handles. Ava sees "{secret}", not the value. Never in memory, trajectory log, or prompt context — the Rust input layer substitutes the real value at keypress time.' },
+      { type: 'paragraph', text: 'Passwords, API keys, and 2FA codes (the one-time codes a second app or text gives you when you log in) are handled via opaque handles — placeholders that stand in for the real value. Ava sees "{secret}", not the actual password. The real value never enters her memory, her activity log, or what she "reads" — a separate low-level layer types it in at the last moment, at the keypress, so the AI part never touches it.' },
     ],
   },
 
@@ -257,13 +274,14 @@ export const CONCEPT_PAGES: DocPage[] = [
     section: 'concepts',
     body: [
       { type: 'callout', variant: 'warning', text: 'Preview — how Scout decides which grounding source to use each step.' },
+      { type: 'paragraph', text: "Before Ava can click a button, she has to actually understand what's on your screen and where things are — that's \"grounding\" (figuring out what each thing on screen is and its exact spot). She has three ways to do it and picks the most reliable one that works for the app you're in. This is deep power-user detail; the point is just that she prefers solid, accurate methods over guessing from a picture." },
       { type: 'paragraph', text: 'Three tiers, evaluated in order. Cheapest reliable source wins.' },
       { type: 'heading', level: 3, text: '1. Browser window → Playwright DOM' },
-      { type: 'paragraph', text: 'If the active window is a browser, Ava drives a dedicated headed Chromium via Playwright. DOM queries beat pixel guessing by about 10× in reliability — stable selectors, accurate wait states, precise clicks. Not a fallback; the primary path for all web.' },
+      { type: 'paragraph', text: "If the active window is a web browser, Ava reads the page's own structure (the \"DOM\" — the underlying list of what's on a page) instead of guessing from the picture. Reading the structure is about 10× more reliable than eyeballing pixels — she knows exactly where each button is and when the page has finished loading. This is the main path for anything on the web, not a backup." },
       { type: 'heading', level: 3, text: '2. Native app with UIA → Windows UI Automation' },
-      { type: 'paragraph', text: 'For native apps on Windows, Scout reads the UIA tree directly — control types, accessible names, bounding rectangles. If UIA returns at least five interactable elements with non-empty names, that tier wins.' },
+      { type: 'paragraph', text: 'For ordinary desktop apps on Windows, Ava reads a built-in accessibility map ("UIA", the same data screen-readers use to describe a window) — it lists each control, its name, and where it sits. If that map returns at least five usable, named items, she trusts it and uses it.' },
       { type: 'heading', level: 3, text: '3. UIA empty or junk → OmniParser vision' },
-      { type: 'paragraph', text: 'When UIA fails (Electron apps with poor accessibility, canvas rendering, games, remote desktop), Ava sends a redacted screenshot to OmniParser v2 — YOLOv8 detects interactable regions, Florence-2 captions each. Returns structured element tuples we can combine with any sparse UIA data.' },
+      { type: 'paragraph', text: "When that map is missing or useless (some apps, games, and remote screens don't provide one), Ava falls back to actually looking at a screenshot. A vision tool (OmniParser) spots the clickable regions and labels what each one is, turning the picture back into a list she can act on — combined with whatever little the accessibility map did give." },
       { type: 'callout', variant: 'note', text: 'OmniParser is opt-in the first time Ava needs it, with a clear privacy prompt. BYOK users can point at their own local OmniParser deployment.' },
     ],
   },
@@ -277,13 +295,14 @@ export const CONCEPT_PAGES: DocPage[] = [
     section: 'concepts',
     body: [
       { type: 'callout', variant: 'warning', text: 'Preview — three independent ways to abort a running trajectory. Any one of them wins.' },
-      { type: 'paragraph', text: 'After reading every public autonomy incident (agents that ignored stop commands, deleted email archives, wiped drives), we built three kill switches in three different layers. None of them depend on the LLM — if Ava is wedged, you can still stop her.' },
+      { type: 'paragraph', text: "A \"kill switch\" is exactly what it sounds like — an emergency way to stop Ava instantly when she's controlling your screen. The reassuring part: there are three of them, each built separately, so if one fails another still works. You don't have to learn all three. Just know that when something looks wrong, you can always stop it, and the strongest stop (the panic kill below) doesn't rely on Ava cooperating." },
+      { type: 'paragraph', text: 'After reading every public autonomy incident (real cases where AI agents ignored stop commands, deleted email archives, wiped drives), we built three kill switches in three different layers. None of them depend on the AI model itself — if Ava is stuck or unresponsive, you can still stop her.' },
       { type: 'heading', level: 3, text: 'Pause — space or the Pause button' },
       { type: 'paragraph', text: 'Freezes on the next step boundary. Resumable. Use this when you want to intervene without losing the trajectory.' },
       { type: 'heading', level: 3, text: 'Stop — Escape or the Stop button' },
       { type: 'paragraph', text: 'Clean abort. Narrator summarises what was done so far. Not resumable. Audit log commits.' },
       { type: 'heading', level: 3, text: 'Panic kill — triple-Escape or Ctrl+Shift+K' },
-      { type: 'paragraph', text: 'Process-level abort. Rust sidecar force-quits the subprocess. Does not depend on the LLM responding, the webview being alive, or the trajectory being in a recoverable state. This is the one for when something is genuinely wrong.' },
+      { type: 'paragraph', text: 'The hardest stop there is. A small, separate watchdog program force-quits the part of Ava that is driving your screen. It does not wait for the AI to respond, does not need the app window to be working, and does not care what state things are in — it just kills it. This is the one for when something is genuinely wrong.' },
       { type: 'paragraph', text: 'All three work from the companion app too. Either driver can end it.' },
     ],
   },

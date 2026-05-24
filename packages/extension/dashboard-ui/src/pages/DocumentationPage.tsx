@@ -328,14 +328,15 @@ function renderBlock(block: DocBlock, adapter: RendererAdapter<ReactNode>, data:
 }
 
 export function DocumentationPage() {
-  useLocale();
+  const locale = useLocale();
   const { pages, sidebar } = useMemo(() => {
     // Static — no audience filtering, no search. Show every page available
     // on this surface, every time. Operator wanted no interactive controls
-    // in the sidebar; keep it as a fixed nav.
-    const all = filterBySurface(getPages(), 'ext');
+    // in the sidebar; keep it as a fixed nav. Content localizes to the active
+    // locale (English fallback per block).
+    const all = filterBySurface(getPages(locale), 'ext');
     return { pages: all, sidebar: buildSidebar(all) };
-  }, []);
+  }, [locale]);
 
   const data: FactsData = {
     tools: TOOLS, providers: PROVIDERS, modes: MODES, personas: PERSONAS,

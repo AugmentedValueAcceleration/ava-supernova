@@ -1,7 +1,18 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import { AVA_DOCS, type DocSection } from '../docs/ava-docs.js';
+import { getPages } from '../docs/corpus.js';
+import { SECTION_LABELS, SECTION_ORDER, type DocPage, type DocBlock, type Section } from '../docs/types.js';
 
+/**
+ * Searches Ava's own documentation. Reads the SAME canonical corpus the web,
+ * extension, and IDE render (packages/core/src/docs/content) so the tool can
+ * never drift from what users actually see — there is one source of truth.
+ *
+ * The previous implementation searched a parallel hand-maintained text file
+ * (ava-docs.ts) that had gone stale (old tool counts, retired model names).
+ * That file is gone; this tool flattens the structured DocPages to searchable
+ * text at call time.
+ */
 export class DocsLookupTool implements Tool {
   readonly name = 'docs_lookup';
   readonly description = 'Search Ava\'s documentation to help users with features, setup, and troubleshooting';
@@ -26,26 +37,10 @@ export class DocsLookupTool implements Tool {
         },
         topic: {
           type: 'string',
-          enum: [
-            'getting-started',
-            'models',
-            'tools',
-            'modes',
-            'permissions',
-            'memory',
-            'configuration',
-            'project-context',
-            'cli-commands',
-            'languages',
-            'keyboard-shortcuts',
-            'troubleshooting',
-            'platform-account',
-            'dashboard',
-            'history',
-            'security-audit',
-          ],
+          enum: [...SECTION_ORDER],
           description:
-            'Optional: directly select a specific topic. If provided, returns that topic\'s full documentation.',
+            'Optional: return every page in a documentation section. One of: ' +
+            SECTION_ORDER.join(', ') + '. If provided, the section\'s full content is returned.',
         },
       },
       required: [],
@@ -55,103 +50,91 @@ export class DocsLookupTool implements Tool {
   async execute(args: Record<string, unknown>, _context: ToolExecutionContext): Promise<ToolResult> {
     const query = (args.query as string)?.trim().toLowerCase();
     const topic = (args.topic as string)?.trim().toLowerCase();
+    const pages = getPages();
 
-    // Direct topic lookup — return the full section
+    // Direct section lookup — return every page in that section.
     if (topic) {
-      const section = AVA_DOCS.find(s => s.topic === topic);
-      if (section) {
-        return { success: true, output: section.content };
+      const inSection = pages.filter(p => p.section === topic);
+      if (inSection.length > 0) {
+        const heading = `# ${SECTION_LABELS[topic as Section] ?? topic}\n\n`;
+        return { success: true, output: heading + inSection.map(p => this.pageToText(p)).join('\n\n---\n\n') };
       }
       return {
         success: false,
-        output: `Topic "${topic}" not found. Available topics: ${AVA_DOCS.map(s => s.topic).join(', ')}`,
+        output: `Section "${topic}" not found. Available sections: ${SECTION_ORDER.join(', ')}`,
       };
     }
 
-    // No query and no topic — return topic list
+    // No query and no topic — list the sections and their pages.
     if (!query) {
-      const list = AVA_DOCS.map(s => `- **${s.topic}** — ${s.title}`).join('\n');
+      const list = SECTION_ORDER.map(s => {
+        const titles = pages.filter(p => p.section === s).map(p => p.title);
+        return `- **${s}** (${SECTION_LABELS[s]}) — ${titles.join(', ')}`;
+      }).join('\n');
       return {
         success: true,
-        output: `# Available Documentation Topics\n\n${list}\n\nUse \`topic\` to get a specific section, or \`query\` to search across all docs.`,
+        output: `# Available Documentation\n\n${list}\n\nUse \`topic\` for a whole section, or \`query\` to search across all docs.`,
       };
     }
 
-    // Search: score each section by relevance
-    const scored = AVA_DOCS.map(section => ({
-      section,
-      score: this.scoreSection(section, query),
-    }));
+    // Search: score each page by relevance.
+    const scored = pages
+      .map(page => ({ page, score: this.scorePage(page, query) }))
+      .filter(s => s.score > 0)
+      .sort((a, b) => b.score - a.score);
 
-    // Sort by score descending, filter out zero-relevance
-    scored.sort((a, b) => b.score - a.score);
-    const matches = scored.filter(s => s.score > 0);
-
-    if (matches.length === 0) {
+    if (scored.length === 0) {
       return {
         success: true,
-        output: `No documentation found matching "${query}". Available topics: ${AVA_DOCS.map(s => s.topic).join(', ')}`,
+        output: `No documentation found matching "${query}". Sections: ${SECTION_ORDER.join(', ')}`,
       };
     }
 
-    // Return top matches (max 3 to keep output manageable)
-    const topMatches = matches.slice(0, 3);
-
-    // If the top match is significantly better, just return that one
-    if (topMatches.length > 1 && topMatches[0].score > topMatches[1].score * 2) {
-      return { success: true, output: topMatches[0].section.content };
+    const top = scored.slice(0, 3);
+    // A clearly dominant match is returned on its own; otherwise the top few.
+    if (top.length > 1 && top[0].score > top[1].score * 2) {
+      return { success: true, output: this.pageToText(top[0].page) };
     }
-
-    // Otherwise return all top matches with separators
-    const output = topMatches
-      .map(m => m.section.content)
-      .join('\n\n---\n\n');
-
-    return { success: true, output };
+    return { success: true, output: top.map(m => this.pageToText(m.page)).join('\n\n---\n\n') };
   }
 
-  /** Score how relevant a section is to the query. Higher = better match. */
-  private scoreSection(section: DocSection, query: string): number {
+  /** Flatten a DocPage's blocks into plain searchable/printable text. */
+  private pageToText(page: DocPage): string {
+    const lines: string[] = [`## ${page.title}`];
+    for (const b of page.body) lines.push(this.blockToText(b));
+    return lines.filter(Boolean).join('\n\n');
+  }
+
+  private blockToText(b: DocBlock): string {
+    switch (b.type) {
+      case 'paragraph': return b.text;
+      case 'heading': return `${'#'.repeat(b.level)} ${b.text}`;
+      case 'list': return b.items.map((i, n) => (b.ordered ? `${n + 1}. ${i}` : `- ${i}`)).join('\n');
+      case 'code': return '```' + (b.language ?? '') + '\n' + b.text + '\n```';
+      case 'callout': return `> ${b.variant.toUpperCase()}: ${b.text}`;
+      case 'link': return `${b.text}: ${b.href}`;
+      case 'table': return [b.headers.join(' | '), ...b.rows.map(r => r.join(' | '))].join('\n');
+      case 'facts': return `(live ${b.kind} table — rendered in-app from current data)`;
+      default: return '';
+    }
+  }
+
+  /** Relevance score for a page against the query. Higher = better. */
+  private scorePage(page: DocPage, query: string): number {
     let score = 0;
     const words = query.split(/\s+/).filter(w => w.length > 1);
+    const title = page.title.toLowerCase();
+    const id = page.id.toLowerCase();
+    const body = this.pageToText(page).toLowerCase();
 
-    // Exact topic match — highest priority
-    if (section.topic === query || section.topic.replace(/-/g, ' ') === query) {
-      score += 100;
+    if (id === query || page.section === query) score += 100;
+    if (title === query) score += 60;
+    if (title.includes(query)) score += 30;
+    for (const w of words) {
+      if (id.includes(w)) score += 10;
+      if (title.includes(w)) score += 8;
+      if (w.length > 2 && body.includes(w)) score += 2;
     }
-
-    // Keyword matches
-    for (const keyword of section.keywords) {
-      if (query.includes(keyword)) {
-        score += 20;
-      }
-      // Check individual query words against keywords
-      for (const word of words) {
-        if (keyword.includes(word)) {
-          score += 5;
-        }
-      }
-    }
-
-    // Title match
-    const lowerTitle = section.title.toLowerCase();
-    if (lowerTitle.includes(query)) {
-      score += 30;
-    }
-    for (const word of words) {
-      if (lowerTitle.includes(word)) {
-        score += 8;
-      }
-    }
-
-    // Content match — lower weight since content is large
-    const lowerContent = section.content.toLowerCase();
-    for (const word of words) {
-      if (word.length > 2 && lowerContent.includes(word)) {
-        score += 2;
-      }
-    }
-
     return score;
   }
 }

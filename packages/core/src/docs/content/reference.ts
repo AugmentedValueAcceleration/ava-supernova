@@ -11,13 +11,15 @@ export const REFERENCE_PAGES: DocPage[] = [
     order: 10,
     section: 'reference',
     body: [
-      { type: 'paragraph', text: 'The full built-in toolbox. Every tool here is registered in the core runtime and available to Ava when the mode and permission mode allow it. Filter by category or risk.' },
+      { type: 'paragraph', text: 'This is the full lookup of every tool Ava has — a "tool" just being a specific action she can take, like reading a file or running a search. You do not need to read this page. Ava picks the right tool herself every time. It is here for when you are curious about exactly what she can do.' },
+      { type: 'paragraph', text: 'The full built-in toolbox. Every tool here is registered in the core runtime (the engine underneath all three surfaces) and available to Ava when the mode and permission mode allow it. Filter by category or risk.' },
+      { type: 'paragraph', text: 'No need to memorise any of this — the table below is just a reference card.' },
       { type: 'facts', kind: 'tools' },
       { type: 'heading', level: 3, text: 'Risk levels' },
       { type: 'list', ordered: false, items: [
-        'Safe — reads state without modifying anything. file_read, glob, grep, git_status.',
-        'Write — modifies files, creates commits, produces artefacts. file_edit, git_commit, generate_image.',
-        'Dangerous — runs shell, controls the desktop, hits the network, queries databases. bash, browser, desktop_*.',
+        'Safe — reads things without changing anything. file_read, glob (find files by name pattern), grep (search inside files for text), git_status (Git is the system that tracks changes to your project).',
+        'Write — changes files, saves a checkpoint of your work (a "commit"), or produces something new. file_edit, git_commit, generate_image.',
+        'Dangerous — runs commands on your computer (the "shell"), controls the desktop, goes out to the internet, or queries databases. bash, browser, desktop_*.',
       ]},
       { type: 'callout', variant: 'note', text: 'Persona specialists have their own tool allowlists. Scout can read but not write. Builder has full access. Challenger has no tools at all — its job is to question the plan.' },
     ],
@@ -30,20 +32,22 @@ export const REFERENCE_PAGES: DocPage[] = [
     order: 5,
     section: 'reference',
     body: [
-      { type: 'paragraph', text: 'Every model Ava can route to, plus the three orchestration strategies that decide which model handles each subtask. Pick a routing mode and let Ava dispatch, or pick a single model and skip routing entirely.' },
+      { type: 'paragraph', text: 'A "model" is the AI brain doing the thinking — Qwen, DeepSeek, Mistral and others. This page lists every model Ava can use. The short version: you do not have to choose one. Ava picks the right model for each step herself. Read on only if you want to understand or override that.' },
+      { type: 'paragraph', text: 'Every model Ava can route to, plus the three orchestration strategies — the rules that decide which model handles each part of a job. Pick a routing mode and let Ava dispatch, or pick a single model and skip routing entirely.' },
 
       { type: 'heading', level: 3, text: 'Routing modes' },
-      { type: 'paragraph', text: 'Three orchestrated strategies. The same persona pipeline runs on all three; what changes is the underlying fleet. Pick a mode in the model selector and Ava handles the rest. Each card below shows the constituent specialists the conductor routes to.' },
+      { type: 'paragraph', text: 'Three orchestrated strategies. The same persona pipeline (the small team of specialist helpers Ava runs behind the scenes) runs on all three; what changes is the underlying fleet of models. Pick a mode in the model selector and Ava handles the rest. Each card below shows the constituent specialists the conductor routes to.' },
+      { type: 'paragraph', text: 'You do not need to memorise the cards below — they are here so you can see what each strategy is made of.' },
       { type: 'facts', kind: 'providers', filter: { kind: 'orchestration' } },
       { type: 'callout', variant: 'note', text: 'Aurora is deliberately Mistral-only. If a Mistral model is unavailable the router returns an error rather than cross-routing — that is the EU-stack guarantee. Pick Maestro or Supernova for graceful degradation.' },
       { type: 'callout', variant: 'tip', text: 'All three modes are universally available — on platform credits and on your own keys. BYOK adds the option to bypass orchestration and drive a single model directly.' },
 
       { type: 'heading', level: 3, text: 'Platform-managed models' },
-      { type: 'paragraph', text: 'Available on every plan, including the free tier. Tokens count against your plan allowance. Managed keys are rotated and monitored by the platform — nothing for you to configure.' },
+      { type: 'paragraph', text: 'Available on every plan, including the free tier. Tokens (the units of text AI is measured in — roughly three-quarters of a word each) count against your plan allowance. The keys (the private passwords that unlock each paid model) are rotated and monitored by the platform — nothing for you to configure.' },
       { type: 'facts', kind: 'providers', filter: { kind: 'managed' } },
 
       { type: 'heading', level: 3, text: 'Bring your own key' },
-      { type: 'paragraph', text: 'Paste your API key in settings. BYOK requests go direct from Ava to the provider — they do not pass through our infrastructure and do not consume platform tokens. You pay the provider; we do not see the traffic.' },
+      { type: 'paragraph', text: 'An "API key" is a private password that lets software use a paid service on your own account. "BYOK" just means "bring your own key" — using yours instead of ours. Paste your API key in settings. BYOK requests go direct from Ava to the provider (the company that runs the model) — they do not pass through our infrastructure and do not consume platform tokens. You pay the provider; we do not see the traffic.' },
       { type: 'facts', kind: 'providers', filter: { kind: 'byok' } },
 
       { type: 'callout', variant: 'tip', text: 'For benchmark scores, capability tags, and side-by-side filtering, see the full Models page at ava-supernova.com/models. Pricing shown above is our best read of each provider rate card at publication — always check the provider website before committing to a workload.' },
@@ -57,7 +61,8 @@ export const REFERENCE_PAGES: DocPage[] = [
     order: 30,
     section: 'reference',
     body: [
-      { type: 'paragraph', text: '24 specialists across 5 mode teams. The Conductor decides which team runs, in what order, and with what context. Chat mode has no personas — it is Ava herself.' },
+      { type: 'paragraph', text: 'A "persona" is a helper role Ava plays behind the scenes for harder jobs — an explorer, a planner, a fact-checker. You never talk to them directly and you do not need to understand this page to use Ava. It is here for when you are curious how she breaks a big job into a small expert team.' },
+      { type: 'paragraph', text: '24 specialists across 5 mode teams. The Conductor (the helper that coordinates the rest) decides which team runs, in what order, and with what context. Chat mode has no personas — it is Ava herself.' },
       { type: 'heading', level: 3, text: 'How orchestration runs' },
       { type: 'list', ordered: true, items: [
         'You send a message in Plan, Teach, Security, or Brainstorm mode (or a complex Work request).',
@@ -66,6 +71,7 @@ export const REFERENCE_PAGES: DocPage[] = [
         'The final persona produces a summary, a plan, or a report, depending on mode.',
         'Ava presents the result to you. You approve, tweak, or redirect.',
       ]},
+      { type: 'paragraph', text: 'The full roster below is reference only — no need to memorise who does what. Ava assembles the right team for you.' },
       { type: 'facts', kind: 'personas' },
       { type: 'callout', variant: 'tip', text: 'Work mode only invokes the full team for complex tasks. Simple edits run Ava directly — no orchestration overhead.' },
     ],
@@ -78,7 +84,8 @@ export const REFERENCE_PAGES: DocPage[] = [
     order: 40,
     section: 'reference',
     body: [
-      { type: 'paragraph', text: 'The CLI is a REPL. These slash commands work from the prompt.' },
+      { type: 'paragraph', text: 'This page is for the CLI — the version of Ava you type to in a terminal window, rather than clicking buttons. If you use the extension or the desktop app, you can skip it entirely. It is here for people who prefer the keyboard.' },
+      { type: 'paragraph', text: 'The CLI is a REPL — a prompt that waits for you to type, runs what you typed, then waits again. These slash commands (instructions that start with "/") work from the prompt.' },
       { type: 'list', ordered: false, items: [
         '/help — list commands and current mode.',
         '/mode <name> — switch mode (work, plan, chat, teach, security, brainstorm).',
@@ -92,6 +99,7 @@ export const REFERENCE_PAGES: DocPage[] = [
         '/exit — quit the REPL.',
       ]},
       { type: 'heading', level: 3, text: 'Launch flags' },
+      { type: 'paragraph', text: 'Flags are extra options you add when you start Ava, each beginning with "--", to set how she opens.' },
       { type: 'list', ordered: false, items: [
         '--mode <name> — start in a specific mode.',
         '--model <id> — start with a specific model.',
@@ -108,7 +116,8 @@ export const REFERENCE_PAGES: DocPage[] = [
     order: 50,
     section: 'reference',
     body: [
-      { type: 'paragraph', text: 'Ava reads configuration from two scopes. Global settings live in ~/.ava/. Project settings live in .ava/ at the project root.' },
+      { type: 'paragraph', text: 'This page shows where Ava keeps her settings and files on your computer. You almost never need to touch any of it by hand — the app manages it for you. It is here for when you want to see, back up, or share those files yourself.' },
+      { type: 'paragraph', text: 'Ava reads configuration (her saved settings) from two scopes. Global settings — the ones that apply everywhere — live in a folder called ~/.ava/ (the "~" is shorthand for your home folder). Per-project settings live in a .ava/ folder inside the project itself.' },
       { type: 'heading', level: 3, text: 'Global — ~/.ava/' },
       { type: 'list', ordered: false, items: [
         'settings.json — model preferences, permission mode, personality, language.',
@@ -123,7 +132,7 @@ export const REFERENCE_PAGES: DocPage[] = [
         'memory/ — memories scoped to this project.',
         'datasets/config.json — opt-in dataset capture configuration.',
       ]},
-      { type: 'callout', variant: 'tip', text: 'Add .ava/ to .gitignore if you do not want to share memories with your team. Keep instructions.md in the repo — that is how Ava learns the project conventions.' },
+      { type: 'callout', variant: 'tip', text: 'Add .ava/ to your .gitignore (a list of files Git is told to leave out of the shared project) if you do not want to share memories with your team. Keep instructions.md in the repo (the shared project folder) — that is how Ava learns the project conventions.' },
     ],
   },
   {
@@ -134,7 +143,8 @@ export const REFERENCE_PAGES: DocPage[] = [
     order: 60,
     section: 'reference',
     body: [
-      { type: 'paragraph', text: 'Shortcuts by surface. Customise them in each surface settings.' },
+      { type: 'paragraph', text: 'Keyboard shortcuts are optional speed-ups — every one of them is also a button you can click. Look here only if you want to drive Ava faster from the keyboard.' },
+      { type: 'paragraph', text: 'Shortcuts by surface (each of the three places Ava runs: the VS Code extension, the desktop app, and the terminal). Customise them in each surface settings. No need to memorise the list below.' },
       { type: 'facts', kind: 'shortcuts' },
     ],
   },
@@ -146,20 +156,22 @@ export const REFERENCE_PAGES: DocPage[] = [
     order: 70,
     section: 'reference',
     body: [
-      { type: 'paragraph', text: 'Ava loads several layers of context when you open a project. Understanding the layers helps you put information in the right place.' },
+      { type: 'paragraph', text: 'This explains how Ava reads up on your project before she starts — the files she looks at to understand what you are working on. You do not need to set any of this up; she does it on her own. Read it if you want to know where to put a note so she always sees it.' },
+      { type: 'paragraph', text: 'Ava loads several layers of context (background information she holds in mind) when you open a project. Understanding the layers helps you put information in the right place.' },
       { type: 'heading', level: 3, text: 'Loaded automatically' },
       { type: 'list', ordered: false, items: [
         '.ava/instructions.md — treated as durable, high-priority guidance. Always in context.',
         '.ava/context.md — freeform notes. Loaded, lower priority.',
         'README.md — scanned on first run for project summary.',
-        'package.json / pyproject.toml / Cargo.toml — read to detect language, framework, test command.',
-        '.gitignore — respected by all file tools (glob, grep, project_index).',
+        'package.json / pyproject.toml / Cargo.toml — the small files that list a project setup; read to detect the language, framework, and test command.',
+        '.gitignore — the list of files to leave out of version control; respected by all file tools (glob, grep, project_index).',
       ]},
       { type: 'heading', level: 3, text: 'Loaded on demand' },
+      { type: 'paragraph', text: '"On demand" means Ava only fetches these when a task actually needs them, rather than up front.' },
       { type: 'list', ordered: false, items: [
-        'Project index — a structured map of files, symbols, and imports. Built lazily when Ava needs it.',
-        'Git history — pulled when git_status, git_diff, or git_create_pr are called.',
-        'Memory — semantically matched entries are injected per turn, not all at once.',
+        'Project index — a structured map of your files and the named pieces inside them (functions, classes — "symbols") and how they connect ("imports"). Built lazily, meaning only when Ava needs it.',
+        'Git history — the record of past changes; pulled when git_status, git_diff, or git_create_pr are called (git is the tool that tracks every change to a project; "PR" is a pull request, a proposed batch of changes).',
+        'Memory — entries are matched by meaning ("semantically") and injected one turn at a time, not all at once.',
       ]},
       { type: 'callout', variant: 'tip', text: 'Put conventions in instructions.md. Put notes in context.md. Let memory capture the rest on its own.' },
     ],
@@ -176,7 +188,8 @@ export const REFERENCE_PAGES: DocPage[] = [
     section: 'reference',
     body: [
       { type: 'callout', variant: 'note', text: 'Available in the Ava Supernova IDE only. Budget limits for desktop automation trajectories.' },
-      { type: 'paragraph', text: 'Every trajectory runs under three simultaneous caps. The first one hit wins. The trajectory never silently continues past a breach — Narrator pauses and asks what to do.' },
+      { type: 'paragraph', text: 'When Ava controls your desktop on your behalf — clicking, typing, opening apps — each run is called a "trajectory". This page explains the safety limits that stop any one run from going on too long or costing too much. The takeaway: she always stops and checks in before overrunning. The numbers are here if you want the detail.' },
+      { type: 'paragraph', text: 'Every trajectory runs under three simultaneous caps (hard limits). The first one hit wins. The trajectory never silently continues past a breach — the Narrator (the helper that talks you through what is happening) pauses and asks what to do.' },
       { type: 'heading', level: 3, text: 'Three hard caps (default)' },
       { type: 'list', ordered: false, items: [
         'Step count — 30 steps',
@@ -203,9 +216,10 @@ export const REFERENCE_PAGES: DocPage[] = [
     section: 'reference',
     body: [
       { type: 'callout', variant: 'note', text: 'Available in the Ava Supernova IDE only. Scoped app/site permissions for desktop trajectories.' },
-      { type: 'paragraph', text: 'At mode entry Ava asks where she is allowed to act. Natural language works: "Gmail, Cursor, the Azure portal." She parses and confirms the match ("Gmail web, Cursor the app, portal.azure.com").' },
+      { type: 'paragraph', text: 'A "whitelist" is simply the list of apps and websites you have said Ava is allowed to touch while she controls your desktop. This page explains how you grant that permission and why it resets each time. The short version: she can only act where you let her, and she asks before going anywhere new.' },
+      { type: 'paragraph', text: 'At the start of a desktop session Ava asks where she is allowed to act. Plain English works: "Gmail, Cursor, the Azure portal." She reads that and confirms the match back to you ("Gmail web, Cursor the app, portal.azure.com").' },
       { type: 'heading', level: 3, text: 'How it enforces' },
-      { type: 'paragraph', text: 'Observational actions (screenshots, reading the UIA tree) are allowed everywhere — you need to see what is on screen to decide whether to add an app to the whitelist. Mutative actions are blocked outside the list; Ava pauses and asks whether to add it.' },
+      { type: 'paragraph', text: 'Looking-only actions — taking a screenshot, reading the list of buttons and fields on screen (the "UIA tree", Windows own map of what is in a window) — are allowed everywhere, because you need to see what is on screen to decide whether to add an app to the whitelist. Anything that changes something is blocked outside the list; Ava pauses and asks whether to add it.' },
       { type: 'heading', level: 3, text: 'Session-scoped, deliberately' },
       { type: 'paragraph', text: 'The whitelist does NOT persist across sessions. There is no "remember this app" option. Every new trajectory starts with a fresh scope. Inconvenient by design — forgetting to reauthorise is a feature, not a bug.' },
       { type: 'heading', level: 3, text: 'Mid-trajectory additions' },

@@ -8,6 +8,7 @@ export { renderPage, renderBlock } from './adapter.js';
 
 export { filterBySurface, filterByAudience, buildSidebar, anchorFor } from './filter.js';
 export { getPages, getPage } from './corpus.js';
+export { docTranslatableEntries, localizePages, availableDocLocales } from './i18n.js';
 
 export * from './data/tools.js';
 export * from './data/providers.js';
