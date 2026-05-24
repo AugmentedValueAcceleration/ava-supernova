@@ -252,13 +252,13 @@ You block the Builder — be quick. One or two tool calls max.`,
 
 // ── Integrator (formerly Tester) ─────────────────────────────────────────
 //
-// Runs after Builder has claimed completion. Reads Builder's trailing
-// <changes-summary> block, drives the verify_change tool on the real diff,
-// and halts the pipeline with VERIFY_FAIL if anything broke. This is the
-// post-build gate that was missing: Tester (old name) was structurally dead
-// code because it depended on Builder, and Builder was stripped from the
-// planning team. The post-build hook in auto-coordinator now invokes this
-// persona (or runs verify_change directly) after the main agent finishes.
+// NOTE: this persona does NOT run in the pipeline. It dependsOn 'builder',
+// and Builder is filtered out of the planning team (the main agent IS the
+// Builder), so the Integrator never had Builder output to verify. The real
+// post-build gate runs verify_change DIRECTLY — via the auto-coordinator
+// post-build hook and the agent loop's pre-closure verify guard — not via
+// this persona. Kept only for the back-compat id/type alias below; safe to
+// retire in a persona cleanup. Its prompt describes the intended behaviour.
 
 export const INTEGRATOR: PersonaDefinition = {
   id: 'tester', // id kept for back-compat with any serialised state

@@ -945,11 +945,15 @@ export class Agent {
     // to close out" failure where the model terminates cleanly but leaves
     // the user staring at a wall of tool calls with no visible confirmation.
     let closureFallbackAttempted = false;
-    // Pre-closure verify guard — limit to one verify+retry cycle per run
-    // to avoid spinning on the same fix attempt forever. After one cycle,
-    // closure is allowed even with pending files (the model gets a final
-    // chance to declare done with whatever it has).
-    let closureVerifyAttempted = false;
+    // Pre-closure verify guard — bounded to MAX_CLOSURE_VERIFY cycles per run.
+    // One cycle isn't enough: when the first verify fails and the model fixes
+    // it, that *recovery* edit must itself be re-verified — otherwise the fix
+    // sails through unchecked. A small cap (not a single boolean) lets the fix
+    // be checked while still guaranteeing exit so an unfixable verify can't
+    // trap a turn. The fresh-eyes/signature escalation still fires on repeated
+    // same-cause failures within these cycles.
+    const MAX_CLOSURE_VERIFY = 3;
+    let closureVerifyCount = 0;
 
     const latestUserMessage = this.findLatestNonMetaUserMessage(messages);
     if (latestUserMessage) {
@@ -1520,8 +1524,9 @@ export class Agent {
         // verifiedFiles and closure proceeds. On fail, inject the
         // failure report (or a fresh-eyes review if we've looped on
         // the same root cause) as user-role context and re-enter the
-        // loop. Limited to one cycle per run via closureVerifyAttempted
-        // — guaranteed exit so an unfixable verify can't trap a turn.
+        // loop. Bounded to MAX_CLOSURE_VERIFY cycles per run via
+        // closureVerifyCount — re-verifies recovery fixes, still guaranteed
+        // to exit so an unfixable verify can't trap a turn.
         //
         // Lives in the universal agent loop, NOT AutoCoordinator, so
         // single-model BYOK chats get the same enforcement orchestrated
@@ -1532,11 +1537,11 @@ export class Agent {
           this.loopPreventionEnabled &&
           pendingFiles &&
           pendingFiles.length > 0 &&
-          !closureVerifyAttempted &&
+          closureVerifyCount < MAX_CLOSURE_VERIFY &&
           !signal?.aborted &&
           trajForVerify
         ) {
-          closureVerifyAttempted = true;
+          closureVerifyCount++;
           logger.debug(`[agent] Pre-closure verify on ${pendingFiles.length} pending file(s)`);
           onEvent({ type: 'verify_started', files: pendingFiles });
           const verifyResult = await runPendingVerify(trajForVerify, this.toolContext);
