@@ -8,6 +8,7 @@ import type { AgentEventHandler } from '../agent/agent.js';
 import { Agent } from '../agent/agent.js';
 import { Conversation } from '../agent/conversation.js';
 import { buildSystemPrompt, type SystemPromptOptions } from '../agent/system-prompt.js';
+import { extractChangesSummary } from './changes-summary.js';
 import { logger } from '../core/logger.js';
 
 /**
@@ -57,6 +58,12 @@ export interface TaskExecutionResult {
   blocked: number;
   blockerMessage?: string;
   summary: string;
+  /**
+   * The union of all files the completed Builders declared in their
+   * <changes-summary> blocks. AutoCoordinator runs a single integration
+   * verification pass over this set once execution finishes clean.
+   */
+  changedFiles: string[];
 }
 
 export class TaskExecutor {
@@ -94,7 +101,7 @@ export class TaskExecutor {
     const pending = allTasks.filter(t => t.status === 'todo');
 
     if (pending.length === 0) {
-      return { totalTasks: 0, completed: 0, blocked: 0, summary: 'No pending tasks to execute.' };
+      return { totalTasks: 0, completed: 0, blocked: 0, summary: 'No pending tasks to execute.', changedFiles: [] };
     }
 
     logger.debug(`[task-executor] Starting execution of ${pending.length} tasks`);
@@ -104,6 +111,8 @@ export class TaskExecutor {
     let blocked = 0;
     let blockerMessage: string | undefined;
     const summaries: string[] = [];
+    // Union of files touched across all completed tasks, for the integration pass
+    const changedFiles = new Set<string>();
 
     for (let i = 0; i < pending.length; i++) {
       if (signal?.aborted) {
@@ -129,6 +138,7 @@ export class TaskExecutor {
         if (outcome.success) {
           this.taskManager.updateSessionTask(task.id, 'done');
           completed++;
+          for (const f of outcome.files ?? []) changedFiles.add(f);
           summaries.push(`✓ ${task.title}${outcome.summary ? ` — ${outcome.summary}` : ''}`);
           onEvent({
             type: 'task_complete',
@@ -190,6 +200,7 @@ export class TaskExecutor {
       blocked,
       blockerMessage,
       summary: [headline, '', ...summaries].join('\n'),
+      changedFiles: [...changedFiles],
     };
   }
 
@@ -205,7 +216,7 @@ export class TaskExecutor {
     currentIndex: number,
     onEvent: AgentEventHandler,
     signal?: AbortSignal,
-  ): Promise<{ success: boolean; summary?: string }> {
+  ): Promise<{ success: boolean; summary?: string; files?: string[] }> {
     const conversation = new Conversation();
     conversation.setSystemPrompt(this.buildBuilderSystemPrompt());
 
@@ -258,9 +269,11 @@ export class TaskExecutor {
         return { success: false, summary: reason || 'Builder reported a blocker without details.' };
       }
 
+      const parsed = lastAssistant ? extractChangesSummary(lastAssistant) : null;
       return {
         success: true,
         summary: lastAssistant ? this.shorten(lastAssistant, 240) : undefined,
+        files: parsed?.files,
       };
     } catch (err) {
       logger.debug(`[task-executor] Builder agent threw: ${err}`);

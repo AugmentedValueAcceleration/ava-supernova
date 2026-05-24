@@ -22,6 +22,7 @@ import { AURORA_COORDINATOR_ID, AURORA_BUILDER_ID } from './aurora-router.js';
 import type { RoutingMode } from './model-router.js';
 import { buildSystemPrompt } from '../agent/system-prompt.js';
 import { TaskExecutor } from './task-executor.js';
+import { extractChangesSummary } from './changes-summary.js';
 import { logger } from '../core/logger.js';
 import { avaEvents, withTrajectory, withChildTrajectory, getTrajectory } from '../dataset/emitter.js';
 import type { AvaSurface, AvaMode } from '../dataset/events.js';
@@ -30,43 +31,6 @@ import { randomUUID } from 'node:crypto';
 
 // Categories where Conductor orchestration may trigger on the spawned agent
 const ORCHESTRATED_CATEGORIES = new Set<TaskCategory>(['planning', 'security', 'brainstorm', 'teach']);
-
-/**
- * Parse Builder's trailing <changes-summary> block, if present. The format
- * is intentionally forgiving — the block can appear anywhere in the message
- * and field lines can use : or = as separators. Returns null when no block
- * is found or no files are declared.
- */
-function extractChangesSummary(
-  message: string,
-): { files: string[]; categories: string[]; notes: string | null } | null {
-  const blockMatch = message.match(/<changes-summary>([\s\S]*?)<\/changes-summary>/i);
-  if (!blockMatch) return null;
-  const body = blockMatch[1];
-  const parseLine = (label: string): string | null => {
-    const re = new RegExp(`(?:^|\\n)\\s*${label}\\s*[:=]\\s*(.+)$`, 'im');
-    const m = body.match(re);
-    return m ? m[1].trim() : null;
-  };
-  const filesLine = parseLine('files');
-  if (!filesLine) return null;
-  const files = filesLine
-    .replace(/^\[|\]$/g, '')
-    .split(/[,\n]+/)
-    .map((f) => f.trim().replace(/^["']|["']$/g, ''))
-    .filter(Boolean);
-  if (files.length === 0) return null;
-  const categoriesLine = parseLine('categories');
-  const categories = categoriesLine
-    ? categoriesLine
-        .replace(/^\[|\]$/g, '')
-        .split(/[,|\s]+/)
-        .map((c) => c.trim().toLowerCase())
-        .filter(Boolean)
-    : [];
-  const notes = parseLine('notes');
-  return { files, categories, notes };
-}
 
 // Categories the coordinator handles directly (no agent spawn)
 const DIRECT_CATEGORIES = new Set<TaskCategory>(['chat', 'image_gen', 'vision']);
@@ -427,10 +391,45 @@ export class AutoCoordinator {
         try {
           const execResult = await executor.executeAll(planContext, interceptedOnEvent, signal);
 
+          // ── Cross-task integration verification ──────────────────────────
+          // Each Builder verifies its OWN changes in isolation, but a clean
+          // run of N independent tasks can still leave the project broken at
+          // the seams — task 3 renames an export task 1 still imports, a
+          // migration lands without the route that reads it. Once execution
+          // finishes with nothing blocked, run a single verify pass over the
+          // UNION of every file the completed Builders touched, so typechecks
+          // and route/migration checks see the assembled whole. Reuses the
+          // existing runPostBuildVerification (with its built-in single retry
+          // semantics) — here we surface a failure rather than auto-fixing,
+          // since the fix could span multiple tasks and is the user's call.
+          let integrationBlock: string | null = null;
+          if (execResult.blocked === 0 && execResult.changedFiles.length > 0 && !signal?.aborted) {
+            try {
+              const integrationResult = await this.runPostBuildVerification(
+                execResult.changedFiles,
+                interceptedOnEvent,
+                signal,
+              );
+              if (integrationResult) {
+                integrationBlock = integrationResult.block;
+              }
+            } catch (err) {
+              logger.debug(
+                `[auto-coordinator] Integration verification failed to run: ${
+                  err instanceof Error ? err.message : String(err)
+                }`,
+              );
+            }
+          }
+
           // Append the execution summary as the final assistant message so
-          // the user sees a clear "what got built" recap in the chat.
-          if (execResult.summary) {
-            const summaryMessage: AssistantMessage = { role: 'assistant', content: execResult.summary };
+          // the user sees a clear "what got built" recap in the chat — with
+          // the integration verification block composed in when present.
+          const composedSummary = execResult.summary
+            ? (integrationBlock ? `${execResult.summary}\n\n${integrationBlock}` : execResult.summary)
+            : integrationBlock;
+          if (composedSummary) {
+            const summaryMessage: AssistantMessage = { role: 'assistant', content: composedSummary };
             planResult.push(summaryMessage);
             lastFinalMessage = summaryMessage;
           }
