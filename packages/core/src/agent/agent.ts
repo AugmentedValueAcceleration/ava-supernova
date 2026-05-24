@@ -21,6 +21,7 @@ import {
   findOriginalUserTaskIndex,
   formatSessionTasksBlock,
   buildCompressionContinuationHeader,
+  buildVerbatimUserTurnsBlock,
   extractStructuredFields,
   trimMessageBody,
   OLD_MESSAGE_BODY_MAX_CHARS,
@@ -2702,7 +2703,12 @@ export class Agent {
     const toCompress = rest.slice(0, -KEEP_RECENT);
     const toKeep = rest.slice(-KEEP_RECENT);
 
-    // Build the text to summarize (extract text content, skip raw tool JSON)
+    // Build the text to summarize. Tool-role bodies are already trimmed to
+    // ~200 chars by trimOldToolResults before we get here (token economy), so
+    // the summariser sees each tool result's head, not raw JSON. Full tool
+    // outputs remain in the persisted transcript and are retrievable via
+    // conversation_recall — the backstop, not the summary, is the place for
+    // exact tool detail.
     const transcript = toCompress
       .map((m) => {
         const text = getTextContent(m.content);
@@ -2734,6 +2740,15 @@ Rules:
 TRANSCRIPT:
 ${transcript}`;
 
+    // Scale the summary budget to how much is being compressed. A flat cap
+    // under-summarises a large zone — 1500 tokens for a 300K-token compress
+    // zone loses real fidelity. Proportional (~8%) keeps detail where there's
+    // a lot to keep, with a 1500 floor (the old default, fine for small zones)
+    // and a 4000 ceiling so the summary can't itself bloat the context it's
+    // meant to shrink.
+    const compressedTokens = this.estimateTokenCount(toCompress);
+    const summaryBudget = Math.min(4000, Math.max(1500, Math.floor(compressedTokens / 12)));
+
     try {
       const response = await this.provider.createCompletion(
         {
@@ -2742,7 +2757,7 @@ ${transcript}`;
             { role: 'system', content: 'You are a precise conversation summarizer.' },
             { role: 'user', content: compressionPrompt },
           ],
-          max_tokens: 1500,
+          max_tokens: summaryBudget,
           temperature: 0.2,
         },
         signal,
@@ -2825,6 +2840,11 @@ ${transcript}`;
       // and gets the full context without seeing what looks like a new
       // user turn.
       const middle: Message[] = [summaryMessage];
+      // Keep the user's own turns from the compress zone verbatim — the
+      // summariser paraphrases them, and their exact words are the truest
+      // record of intent. Framed as historical reference, not new requests.
+      const verbatimUserTurns = buildVerbatimUserTurnsBlock(toCompress);
+      if (verbatimUserTurns) middle.push(verbatimUserTurns);
       if (sessionTasksMessage) middle.push(sessionTasksMessage);
 
       const enrichedSystem: Message | null = systemMsg

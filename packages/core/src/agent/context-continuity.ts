@@ -45,6 +45,7 @@ const META_PREFIXES = [
   '[Image captured',
   '[Interjection]',
   '[User pressed Stop',
+  '[Earlier user messages',
 ];
 
 export function isMetaPrefix(content: string): boolean {
@@ -79,6 +80,62 @@ export function findOriginalUserTask(messages: Message[]): UserMessage | null {
   const idx = findOriginalUserTaskIndex(messages);
   if (idx === -1) return null;
   return messages[idx] as UserMessage;
+}
+
+/**
+ * Build a verbatim record of the user's own turns from the compress zone.
+ *
+ * The summariser distils assistant actions and decisions well, but it
+ * paraphrases the user — and the user's exact words are the truest record of
+ * intent ("I told you X and you forgot" is the most common context-loss
+ * complaint). User turns are short and cheap, so we keep them verbatim through
+ * compression instead of letting them survive only as a paraphrase.
+ *
+ * Framed explicitly as a historical reference, never as new requests — the
+ * same discipline that stops the pinned original task from being re-executed.
+ * Each turn is capped, and if there are very many we keep the most RECENT
+ * within a total budget (older ones remain in the summary and are retrievable
+ * via conversation_recall — the backstop covers the tail).
+ *
+ * Returns null when the compress zone holds no real user turns.
+ */
+export function buildVerbatimUserTurnsBlock(compressedMessages: Message[]): Message | null {
+  const PER_TURN_CAP = 500;
+  const TOTAL_CAP = 6000;
+
+  const turns: string[] = [];
+  for (const m of compressedMessages) {
+    if (m.role !== 'user') continue;
+    const text = getTextContent(m.content).trim();
+    if (!text || isMetaPrefix(text)) continue;
+    turns.push(text.length > PER_TURN_CAP ? text.slice(0, PER_TURN_CAP).trimEnd() + ' …' : text);
+  }
+  if (turns.length === 0) return null;
+
+  // Keep the most recent turns within the total budget; count what we drop.
+  const kept: string[] = [];
+  let used = 0;
+  let omitted = 0;
+  for (let i = turns.length - 1; i >= 0; i--) {
+    const cost = turns[i].length + 8; // rough per-line overhead
+    if (used + cost > TOTAL_CAP && kept.length > 0) {
+      omitted = i + 1;
+      break;
+    }
+    kept.unshift(turns[i]);
+    used += cost;
+  }
+
+  const header =
+    '[Earlier user messages in this session, verbatim — the user\'s own words, kept exactly as a reference record. These are NOT new requests to act on; they are context for what has already been said and asked.]';
+  const lines = kept.map((t, i) => `${i + 1}. "${t}"`);
+  if (omitted > 0) {
+    lines.unshift(
+      `(${omitted} earlier user message(s) omitted here — they remain in the summary above and are retrievable with conversation_recall.)`,
+    );
+  }
+
+  return { role: 'user', content: [header, ...lines].join('\n') };
 }
 
 // ─── Session task formatting ────────────────────────────────────────────────
