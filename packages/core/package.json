@@ -5,6 +5,11 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "license": "Apache-2.0",
+  "files": ["dist"],
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -50,6 +55,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch",
+    "publish:public": "node scripts/publish-public.mjs",
+    "publish:public:dry": "node scripts/publish-public.mjs --dry-run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "test": "vitest run",
