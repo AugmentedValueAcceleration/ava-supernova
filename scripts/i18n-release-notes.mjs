@@ -104,6 +104,27 @@ const RELEASES = [
       'Ava can confirm work is actually live on its surface, not just committed — closing the gap between "I pushed it" and "it works for you".',
     ],
   },
+  {
+    migration: 296,
+    version: '0.2.0',
+    platform: 'companion',
+    toolCount: 10,
+    publishedAt: '2026-05-28 19:00:00+00',
+    title: 'She lifts with you, in your language, on your device',
+    body: `The companion's wellbeing tab shipped functional last release — this one makes it real. A gym partner that actually times you. A whole interface that speaks your tongue, not just the chat. And a privacy default that finally matches what we said all along: your data stays on your phone unless you opt in.
+
+**A gym partner, not a placeholder.** Tap the circle to start — that's your timer. Switch between stopwatch, countdown, sets and Tabata from the same screen, with the ring colour and pulse telling you which phase you are in. When you hit Finished, if there is a workout planned for today, an overlay drops in with the exercises and you tick off what you actually did. No setup, no menus to dig through, no waiting for a feature to land.
+
+**The whole companion, not just the chat.** Wellbeing was the last surface still mostly English when you flipped your language — Today, Profile, Plans, the gym, the recipe library, even the More menu. Every label, badge, button and empty state now switches with your locale, in all 19 supported languages. And when you change language in Settings, the next message you send tells Ava — so she replies in your tongue on the very next turn, without you asking.
+
+**Local by default, not local on opt-in.** Data Mode used to start in Cloud and offer three settings. It now starts in Local and offers two: Local (on-device only) and Cloud (local-first with sync). The wording matches what local-first actually means — your tasks, journal, memories and plans stay on this phone unless you turn sync on. Old "Both" preferences migrate to Cloud silently — same behaviour, cleaner choice.`,
+    highlights: [
+      'Gym tab is now a session partner you actually tap — start, pause and resume the timer with one touch, switch between Stopwatch, Countdown, Sets and Tabata, and tick off what you did when you finish.',
+      'The entire companion surface is translated into 19 languages — every panel, button, menu and empty state, not just the chat.',
+      'Ava replies in your chosen interface language on every chat turn — pick German in Settings and the very next message comes back in German.',
+      'Data Mode now defaults to Local with two options instead of three — your data stays on your phone unless you opt into cloud sync.',
+    ],
+  },
 ];
 
 // ── Credential ───────────────────────────────────────────────────────────────
