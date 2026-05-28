@@ -32,6 +32,23 @@ export type RetryHandler = () => void;
 export type CompactHandler = () => Promise<void>;
 export type SecurityHandler = (focus: string) => Promise<void>;
 export type BrainstormHandler = (topic: string) => Promise<void>;
+export type RoutingMode = 'auto' | 'supernova' | 'aurora';
+export type RouteSwitchHandler = (next: RoutingMode) => Promise<void>;
+export type RouteGetter = () => RoutingMode;
+
+const ROUTE_INFO: Record<RoutingMode, { label: string; stack: string; tagline: string }> = {
+  auto:      { label: 'Maestro',   stack: 'Qwen',            tagline: 'orchestration-tuned, balanced cost' },
+  supernova: { label: 'Supernova', stack: 'DeepSeek + Qwen', tagline: 'polyglot depth for serious work' },
+  aurora:    { label: 'Aurora',    stack: 'Mistral',         tagline: 'EU-sovereign three-tier' },
+};
+
+function resolveRouteArg(raw: string): RoutingMode | null {
+  const a = raw.trim().toLowerCase();
+  if (a === 'auto' || a === 'maestro' || a === 'm') return 'auto';
+  if (a === 'supernova' || a === 'sn' || a === 's') return 'supernova';
+  if (a === 'aurora' || a === 'a') return 'aurora';
+  return null;
+}
 
 export class CommandHandler {
   private commands: Map<string, Command> = new Map();
@@ -47,6 +64,8 @@ export class CommandHandler {
     onCompact?: CompactHandler;
     onSecurity?: SecurityHandler;
     onBrainstorm?: BrainstormHandler;
+    onRouteSwitch?: RouteSwitchHandler;
+    getRoute?: RouteGetter;
   }) {
     this.registerCommand({
       name: 'help',
@@ -101,6 +120,44 @@ export class CommandHandler {
           }
           console.log('');
         }
+        return true;
+      },
+    });
+
+    this.registerCommand({
+      name: 'route',
+      aliases: ['r'],
+      description: 'Switch the routing mode (Maestro / Supernova / Aurora) — picks which model stack the orchestrator uses.',
+      execute: async (args) => {
+        const current = opts.getRoute?.() ?? 'auto';
+        if (!args.trim()) {
+          console.log('');
+          console.log(`  Current route: ${chalk.bold(ROUTE_INFO[current].label)} — ${ROUTE_INFO[current].stack} (${ROUTE_INFO[current].tagline})`);
+          console.log('');
+          console.log('  Available:');
+          for (const [, info] of Object.entries(ROUTE_INFO)) {
+            console.log(`    ${chalk.bold('/route ' + info.label.toLowerCase())} - ${info.stack} · ${info.tagline}`);
+          }
+          console.log('');
+          return true;
+        }
+        const next = resolveRouteArg(args);
+        if (!next) {
+          console.log(`  ${chalk.red('Unknown route')} — use one of: maestro, supernova, aurora`);
+          return true;
+        }
+        if (next === current) {
+          console.log(`  Already on ${chalk.bold(ROUTE_INFO[next].label)}.`);
+          return true;
+        }
+        if (!opts.onRouteSwitch) {
+          console.log('  Route switching not wired up in this CLI build.');
+          return true;
+        }
+        await opts.onRouteSwitch(next);
+        console.log(
+          chalk.green(`  Route switched to ${chalk.bold(ROUTE_INFO[next].label)} — ${ROUTE_INFO[next].stack} (${ROUTE_INFO[next].tagline})`),
+        );
         return true;
       },
     });

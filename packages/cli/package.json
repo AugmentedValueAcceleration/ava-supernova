@@ -1,6 +1,6 @@
 {
   "name": "@ava/cli",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "CLI interface for Ava Supernova — interactive coding agent",
   "type": "module",
   "bin": {

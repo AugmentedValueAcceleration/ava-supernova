@@ -5,6 +5,16 @@ export interface ProviderSettings {
 
 export interface AvaConfig {
   activeModel: string;
+  /**
+   * Routing mode for AutoCoordinator's model-router — picks which
+   * preset routing table is used for per-category model selection.
+   *  • 'auto'      = Maestro, Qwen-only tier-differentiated (default)
+   *  • 'supernova' = DeepSeek polyglot with Qwen builder fallback
+   *  • 'aurora'    = Mistral-only EU-sovereign three-tier
+   * The CLI exposes this via the /route command; the extension and IDE
+   * surface it in their Auto Mode settings.
+   */
+  routingMode?: 'auto' | 'supernova' | 'aurora';
   platformKey?: string;
   providers: {
     anthropic?: ProviderSettings;

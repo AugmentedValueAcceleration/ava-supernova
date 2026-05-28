@@ -218,7 +218,12 @@ async function main(): Promise<void> {
   if (appConfig.providers?.anthropic?.apiKey || process.env.ANTHROPIC_API_KEY) availableProviders.add('anthropic');
   if (appConfig.providers?.mistral?.apiKey || process.env.MISTRAL_API_KEY) availableProviders.add('mistral');
 
-  // Auto Mode — picks Kimi K2.5 for platform, best available for BYOK
+  // Routing mode — persisted in config, defaults to 'auto' (Maestro / Qwen-only).
+  // Changed at runtime via /route maestro|supernova|aurora — onRouteSwitch
+  // below rebuilds the AutoCoordinator with the new mode.
+  let routingMode: 'auto' | 'supernova' | 'aurora' = appConfig.routingMode ?? 'auto';
+
+  // Auto Mode — picks the right coordinator for the routing mode.
   const autoCoordinator = (availableProviders.size > 1 || availableProviders.has('platform')
     ? AutoCoordinator.create({
         providerRegistry,
@@ -227,6 +232,7 @@ async function main(): Promise<void> {
         sharedState,
         availableProviders,
         platformKey: appConfig.platformKey,
+        mode: routingMode,
       })
     : undefined) ?? undefined;
 
@@ -258,10 +264,27 @@ async function main(): Promise<void> {
           sharedState,
           availableProviders,
           platformKey: appConfig.platformKey,
+          mode: routingMode,
         }) ?? undefined);
       }
       repl.setModelLabel(`${provider.name}:${model.id}`);
     },
+    onRouteSwitch: async (next) => {
+      routingMode = next;
+      await config.set('routingMode', next);
+      if (availableProviders.size > 1 || availableProviders.has('platform')) {
+        repl.setAutoCoordinator(AutoCoordinator.create({
+          providerRegistry,
+          toolRegistry,
+          cwd,
+          sharedState,
+          availableProviders,
+          platformKey: appConfig.platformKey,
+          mode: routingMode,
+        }) ?? undefined);
+      }
+    },
+    getRoute: () => routingMode,
     onRetry: () => {
       repl.retry();
     },
