@@ -20,7 +20,7 @@ import type { FunctionSchema } from '../providers/types.js';
 const PLATFORM_SOURCE_URL = 'https://ava-supernova.com/api/source';
 
 const REPO_DESCRIPTIONS: Record<string, string> = {
-  core: 'Main monorepo — packages/core (agent engine, providers, 54 tools, memory), packages/cli (REPL), packages/extension (VS Code)',
+  core: 'Main monorepo — packages/core (agent engine, providers, tools, memory), packages/cli (REPL), packages/extension (VS Code)',
   extension: 'VS Code extension — host, webview UI, dashboard UI',
   ide: 'Desktop IDE (Tauri) + Node.js sidecar',
   mobile: 'Companion web app (Next.js) — mobile-first chat, tasks, memory, journal',
@@ -60,7 +60,15 @@ export class SelfInspectTool implements Tool {
         },
         query: {
           type: 'string',
-          description: 'For search: text to find in source files',
+          description: 'For search: text to find in source files. Returns matching lines with their line numbers (grep-style), not just filenames.',
+        },
+        offset: {
+          type: 'number',
+          description: 'For read_file: 1-based line number to start reading from. Use with limit to page through a large file (e.g. offset=400, limit=200 reads lines 400-599).',
+        },
+        limit: {
+          type: 'number',
+          description: 'For read_file: how many lines to read from offset. Omit to read the whole file (capped for very large files — page with offset).',
         },
         surface: {
           type: 'string',
@@ -78,6 +86,8 @@ export class SelfInspectTool implements Tool {
     const path = (args.path as string) || '';
     const query = (args.query as string) || '';
     const surface = (args.surface as string) || 'all';
+    const offset = typeof args.offset === 'number' ? args.offset : undefined;
+    const limit = typeof args.limit === 'number' ? args.limit : undefined;
 
     // deploy_state is a separate read path — operator hub writes the JSON
     // to ~/.ava/deploy-state.json. Doesn't touch source code at all.
@@ -92,7 +102,7 @@ export class SelfInspectTool implements Tool {
     // Try platform API first (synced file bases — always available)
     const platformKey = (context.sharedState as Record<string, unknown> | undefined)?.platformKey as string | undefined;
     if (platformKey) {
-      const result = await this.readFromPlatform(platformKey, action, base, path, query);
+      const result = await this.readFromPlatform(platformKey, action, base, path, query, offset, limit);
       if (result) return result;
     }
 
@@ -101,7 +111,7 @@ export class SelfInspectTool implements Tool {
     if (monorepoRoot) {
       const localRoot = this.getLocalPath(monorepoRoot, base);
       if (localRoot) {
-        return this.readLocal(action, base, localRoot, path, query);
+        return this.readLocal(action, base, localRoot, path, query, offset, limit);
       }
     }
 
@@ -199,11 +209,13 @@ export class SelfInspectTool implements Tool {
 
   // ── Platform API ────────────────────────────────────────────────────────
 
-  private async readFromPlatform(platformKey: string, action: string, base: string, path: string, query: string): Promise<ToolResult | null> {
+  private async readFromPlatform(platformKey: string, action: string, base: string, path: string, query: string, offset?: number, limit?: number): Promise<ToolResult | null> {
     try {
       const params = new URLSearchParams({ base, action });
       if (path) params.set('path', path);
       if (query) params.set('query', query);
+      if (offset !== undefined) params.set('offset', String(offset));
+      if (limit !== undefined) params.set('limit', String(limit));
 
       const res = await fetch(`${PLATFORM_SOURCE_URL}?${params}`, {
         headers: { 'Authorization': `Bearer ${platformKey}` },
@@ -238,19 +250,18 @@ export class SelfInspectTool implements Tool {
 
       if (action === 'read_file') {
         const content = data.content as string;
-        if (!content) return null;
-        const lines = content.split('\n').length;
-        const MAX = 15000;
-        if (content.length > MAX) {
-          return { success: true, output: `**${base}/${path}** (${lines} lines, truncated)\n\n\`\`\`\n${content.slice(0, MAX)}\n\`\`\`\n\n*Truncated at ${MAX} chars*` };
-        }
-        return { success: true, output: `**${base}/${path}** (${lines} lines)\n\n\`\`\`\n${content}\n\`\`\`` };
+        if (content === undefined || content === null) return null;
+        const startLine = typeof data.startLine === 'number' ? data.startLine : 1;
+        const endLine = typeof data.endLine === 'number' ? data.endLine : content.split('\n').length;
+        const totalLines = typeof data.totalLines === 'number' ? data.totalLines : endLine;
+        return { success: true, output: this.formatFileRead(base, path, content, startLine, endLine, totalLines) };
       }
 
       if (action === 'search') {
-        const matches = data.matches as string[];
+        const matches = data.matches as Array<{ path: string; line: number; text: string }> | undefined;
         if (!matches || matches.length === 0) return { success: true, output: `No results for "${query}" in ${base}` };
-        return { success: true, output: `**Search "${query}" in ${base}** (${matches.length} matches)\n\n${matches.map(m => `- **${m}**`).join('\n')}\n\nUse read_file to see the content.` };
+        const capped = data.capped === true;
+        return { success: true, output: this.formatSearch(base, query, matches, capped) };
       }
 
       return null;
@@ -259,9 +270,51 @@ export class SelfInspectTool implements Tool {
     }
   }
 
+  // ── Shared output formatting (platform + local) ──────────────────────────
+
+  /** cat -n style line numbering so Ava can quote exact line ranges. */
+  private numberLines(text: string, startLine: number): string {
+    const lines = text.split('\n');
+    const width = String(startLine + lines.length - 1).length;
+    return lines.map((l, i) => `${String(startLine + i).padStart(width, ' ')}\t${l}`).join('\n');
+  }
+
+  /** Render a (possibly partial) file read with line numbers + a paging
+   *  hint. Caps very large slices by LINE so numbering stays coherent and
+   *  tells Ava the exact offset to continue from. */
+  private formatFileRead(base: string, path: string, content: string, startLine: number, endLine: number, totalLines: number): string {
+    const MAX = 15000;
+    let body = content;
+    let shownEnd = endLine;
+    let note = '';
+    if (body.length > MAX) {
+      const lines = body.split('\n');
+      let acc = 0; let keep = 0;
+      for (let i = 0; i < lines.length; i++) {
+        acc += lines[i].length + 1;
+        if (acc > MAX) break;
+        keep = i + 1;
+      }
+      body = lines.slice(0, Math.max(1, keep)).join('\n');
+      shownEnd = startLine + Math.max(1, keep) - 1;
+      note = `\n\n*Output capped at line ${shownEnd}. Continue with offset=${shownEnd + 1}.*`;
+    } else if (endLine < totalLines) {
+      note = `\n\n*Lines ${endLine + 1}–${totalLines} not shown — call again with offset=${endLine + 1}.*`;
+    }
+    return `**${base}/${path}** (lines ${startLine}–${shownEnd} of ${totalLines})\n\n\`\`\`\n${this.numberLines(body, startLine)}\n\`\`\`${note}`;
+  }
+
+  /** Render grep-style search matches: path:line: text. */
+  private formatSearch(base: string, query: string, matches: Array<{ path: string; line: number; text: string }>, capped: boolean): string {
+    const head = `**Search "${query}" in ${base}** (${matches.length}${capped ? '+' : ''} match${matches.length === 1 ? '' : 'es'})`;
+    const body = matches.map(m => `${base}/${m.path}:${m.line}: ${m.text}`).join('\n');
+    const tail = capped ? '\n\n*More matches exist — narrow the query or read the files directly.*' : '';
+    return `${head}\n\n\`\`\`\n${body}\n\`\`\`${tail}`;
+  }
+
   // ── Local filesystem ────────────────────────────────────────────────────
 
-  private async readLocal(action: string, base: string, localRoot: string, path: string, query: string): Promise<ToolResult> {
+  private async readLocal(action: string, base: string, localRoot: string, path: string, query: string, offset?: number, limit?: number): Promise<ToolResult> {
     switch (action) {
       case 'overview': {
         const lines = Object.entries(REPO_DESCRIPTIONS).map(([key, desc]) => `**${key}** — ${desc}`);
@@ -283,12 +336,12 @@ export class SelfInspectTool implements Tool {
         if (!cleanPath) return { success: false, output: 'path is required' };
         try {
           const content = await readFile(join(localRoot, cleanPath), 'utf-8');
-          const MAX = 15000;
-          const lines = content.split('\n').length;
-          if (content.length > MAX) {
-            return { success: true, output: `**${base}/${cleanPath}** (${lines} lines, truncated)\n\n\`\`\`\n${content.slice(0, MAX)}\n\`\`\`\n\n*Truncated at ${MAX} chars*` };
-          }
-          return { success: true, output: `**${base}/${cleanPath}** (${lines} lines)\n\n\`\`\`\n${content}\n\`\`\`` };
+          const all = content.split('\n');
+          const totalLines = all.length;
+          const startLine = Math.min(Math.max(1, offset ?? 1), totalLines);
+          const endLine = limit ? Math.min(totalLines, startLine + limit - 1) : totalLines;
+          const slice = all.slice(startLine - 1, endLine).join('\n');
+          return { success: true, output: this.formatFileRead(base, cleanPath, slice, startLine, endLine, totalLines) };
         } catch {
           return { success: false, output: `Could not read ${base}/${cleanPath}` };
         }
@@ -313,9 +366,10 @@ export class SelfInspectTool implements Tool {
 
       case 'search': {
         if (!query) return { success: false, output: 'query is required' };
-        const matches = await this.localSearch(localRoot, query, base);
+        const MAX_MATCHES = 60;
+        const matches = await this.localSearch(localRoot, query, MAX_MATCHES);
         if (matches.length === 0) return { success: true, output: `No results for "${query}" in ${base}` };
-        return { success: true, output: `**Search "${query}" in ${base}** (${matches.length} matches)\n\n${matches.join('\n')}\n\nUse read_file to see the content.` };
+        return { success: true, output: this.formatSearch(base, query, matches, matches.length >= MAX_MATCHES) };
       }
 
       default:
@@ -323,10 +377,11 @@ export class SelfInspectTool implements Tool {
     }
   }
 
-  private async localSearch(rootDir: string, query: string, base: string, maxResults = 15): Promise<string[]> {
-    const matches: string[] = [];
+  private async localSearch(rootDir: string, query: string, maxResults = 60): Promise<Array<{ path: string; line: number; text: string }>> {
+    const matches: Array<{ path: string; line: number; text: string }> = [];
     const skipDirs = new Set(['node_modules', 'dist', '.git', '.next', 'build', 'coverage']);
     const extensions = new Set(['.ts', '.tsx', '.js', '.mjs', '.json', '.md', '.sql']);
+    const needle = query.toLowerCase();
 
     const walk = async (dir: string, relative: string) => {
       if (matches.length >= maxResults) return;
@@ -344,7 +399,14 @@ export class SelfInspectTool implements Tool {
         } else if (s.isFile() && extensions.has(extname(name))) {
           try {
             const content = await readFile(fullPath, 'utf-8');
-            if (content.includes(query)) matches.push(`- **${base}/${relPath}**`);
+            if (!content.toLowerCase().includes(needle)) continue;
+            const lines = content.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+              if (lines[i].toLowerCase().includes(needle)) {
+                matches.push({ path: relPath, line: i + 1, text: lines[i].trim().slice(0, 200) });
+                if (matches.length >= maxResults) return;
+              }
+            }
           } catch { /* skip */ }
         }
       }

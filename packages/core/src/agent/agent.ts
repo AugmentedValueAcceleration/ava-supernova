@@ -14,6 +14,7 @@ import { MAX_TOOL_CALL_ITERATIONS, ITERATION_WARNING_THRESHOLD } from '../core/c
 import { t } from '../i18n/index.js';
 import { logger } from '../core/logger.js';
 import { buildToolPrompt, parseToolCalls, formatToolResult } from './text-tool-parser.js';
+import { auditClaims } from './claims-auditor.js';
 import { autoExtractAndSave } from '../memory/auto-extract.js';
 import type { MemoryManager } from '../memory/memory-manager.js';
 import { maybeBuildDesignReinjection, isUIFilePath as isUIFilePathLocal } from './design-reinjection.js';
@@ -459,6 +460,9 @@ export class Agent {
   private readonly toolRegistry: ToolRegistry;
   private readonly toolContext: ToolExecutionContext;
   private readonly pendingInterjections: string[] = [];
+  // Verifying tools that ran this run() (name + success), for the soft
+  // honesty gate (claims-auditor) at final-answer time. Reset per run.
+  private runToolEvidence: Array<{ name: string; ok: boolean }> = [];
   private _inThinkTag = false;
 
   // ─── Exploration budget tracking (token-cost discipline) ────────────────
@@ -710,6 +714,8 @@ export class Agent {
     const detectedMode = (detectModeFromMessages(messages) ?? 'work') as AvaMode;
     const previousMode = this.lastDetectedMode;
     this.lastDetectedMode = detectedMode;
+    // Reset per-run tool evidence for the honesty gate (claims-auditor).
+    this.runToolEvidence = [];
 
     // If we're nested inside an outer trajectory (e.g. AutoCoordinator
     // wrapped its own run), open a child trajectory so the chain is
@@ -2241,7 +2247,20 @@ export class Agent {
     // DeepSeek Reasoner rule: "If reasoning_content is set, content must not be empty."
     // When the model returns reasoning + tool_calls but no text, content would be null —
     // which causes a 400 on the next request if reasoning_content is also present.
-    const finalContent = (!content && reasoningContent) ? '' : (content || null);
+    let finalContent = (!content && reasoningContent) ? '' : (content || null);
+
+    // Honesty gate (soft): on the user-facing answer turn (no tool calls),
+    // flag a state-claim ("done" / "it works" / "it's live") that ran no
+    // verifying tool this run, and append a visible caveat so the unverified
+    // claim doesn't stand as fact. Soft by design — annotates, never blocks.
+    if (toolCalls.length === 0 && typeof finalContent === 'string' && finalContent.trim()) {
+      const audit = auditClaims({ text: finalContent, toolsUsed: this.runToolEvidence });
+      if (audit.flagged && audit.caveat) {
+        const caveatText = `\n\n${audit.caveat}`;
+        onEvent({ type: 'stream_delta', content: caveatText });
+        finalContent = finalContent + caveatText;
+      }
+    }
 
     const message: AssistantMessage = {
       role: 'assistant',
@@ -2345,6 +2364,9 @@ export class Agent {
       duration_ms: Date.now() - start,
       error_summary: result.success ? undefined : result.output.slice(0, 200),
     });
+
+    // Record for the soft honesty gate: did a verifying tool succeed this run?
+    this.runToolEvidence.push({ name: toolName, ok: result.success });
 
     // ── Tool-error + guidance emits ─────────────────────────────────────
     // On failure, emit tool_error with the matched pattern key (if any),

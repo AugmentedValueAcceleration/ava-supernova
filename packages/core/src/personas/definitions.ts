@@ -8,7 +8,7 @@ import type { PersonaDefinition } from './types.js';
 const READ_TOOLS = [
   'file_read', 'glob', 'grep', 'list_directory', 'find_symbol',
   'project_index', 'git_status', 'git_diff', 'docs_lookup',
-  'self_inspect', 'release_notes', 'detect_language', 'get_datetime',
+  'self_inspect', 'release_notes', 'browse_library', 'detect_language', 'get_datetime',
 ];
 
 const MEMORY_TOOLS = ['memory_save', 'memory_recall', 'memory_update', 'memory_delete'];
@@ -167,6 +167,7 @@ export const BUILDER: PersonaDefinition = {
 Your focus:
 - Follow the Sequencer's task list
 - Write clean, minimal code that matches existing patterns
+- Need a logo, image, or media asset? browse_library to find what the user already has and wire in its REAL path — don't generate new media (that's user-initiated and costs credits)
 - Run tests after changes
 - Commit when complete
 - Report what you built

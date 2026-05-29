@@ -42,17 +42,19 @@ interface AssetEntry {
 
 export class BrowseLibraryTool implements Tool {
   readonly name = 'browse_library';
-  readonly description = 'Browse the project\'s creative asset library — images, videos, audio, documents.';
+  readonly description = 'Browse the project\'s creative asset library to find and reuse existing assets (logos, images, video, audio, documents) by their real path.';
   readonly riskLevel: ToolRiskLevel = 'safe';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'browse_library',
     description:
-      'List all creative assets in the project (images, videos, audio, documents). ' +
-      'Scans standard asset directories. Use this to find existing assets before generating new ones, ' +
-      'or to reference assets when building UI components. ' +
-      'Filter by type to narrow results.',
+      'List the project\'s creative assets — images, video, audio, documents the user has created ' +
+      '(logos, graphics, clips, voice-overs, music). Use this whenever the project needs an existing ' +
+      'asset: to find a user-made logo/image/media and wire it into code or UI by its REAL path. ' +
+      'Always browse_library to get the actual path — never invent or guess an asset filename. ' +
+      'Generation of new media is user-initiated (it costs credits), so reach for existing assets here ' +
+      'rather than assuming something needs to be created. Filter by type to narrow results.',
     parameters: {
       type: 'object',
       properties: {
