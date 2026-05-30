@@ -125,6 +125,27 @@ const RELEASES = [
       'Data Mode now defaults to Local with two options instead of three — your data stays on your phone unless you opt into cloud sync.',
     ],
   },
+  {
+    migration: 298,
+    version: '0.65.0',
+    platform: 'extension',
+    toolCount: 62,
+    publishedAt: '2026-05-30 21:00:00+00',
+    title: 'She shows the receipts — costs, wins, and the losses too',
+    body: `A benchmark number is easy to print and hard to verify. Ava's Models page does it the other way round — it shows you the work behind every score, so you can decide for yourself which model to trust on real coding.
+
+**Real tasks, real receipts.** Each model is run against hand-curated coding tasks and scored by actually running the code — not by one AI grading another. Every score links to the exact prompt sent and the exact answer received, so you can open the transcript and check it yourself. Nothing to take on faith.
+
+**No naked accuracy.** A pass-rate on its own hides the cost. Every score now carries the price per task and the time it took, right beside it — because a model that's right 90% of the time but slow and pricey is a different choice than one that's right 85% and instant. You see the trade, not a cherry-picked headline.
+
+**Modes and models, never mixed.** Ava's orchestration modes are judged in their own table, never ranked against a single raw model — a mode runs several models and costs more by design, so a head-to-head would be a lie. And the page shows where the field loses, on purpose: the weakest results get their own panel, because publishing your losses is the part nobody fakes.`,
+    highlights: [
+      'Every benchmark score links to the exact prompt and answer behind it — open the transcript and check it yourself instead of trusting a number.',
+      'Scores are decided by actually running the code, not by one AI grading another — so a model can\'t talk its way to a pass.',
+      'Cost and speed sit beside every accuracy score, so you see the real trade-off rather than a cherry-picked headline.',
+      'Where models lose is shown on purpose, in its own panel — because publishing your losses is the part nobody fakes.',
+    ],
+  },
 ];
 
 // ── Credential ───────────────────────────────────────────────────────────────
@@ -261,6 +282,13 @@ ON CONFLICT (version, platform) DO UPDATE SET
 (async () => {
   console.log(`i18n-release-notes — model=${MODEL}, auth=${CRED.kind}${DRY_RUN ? ' (dry-run)' : ''}`);
   for (const release of RELEASES) {
+    // Don't re-translate / clobber migrations that already exist (they may be
+    // applied + committed). Only generate new entries. Use --force to override.
+    const existing = path.join(MIGRATIONS_DIR, `${release.migration}_release_notes_v${release.version.replace(/\./g, '_')}.sql`);
+    if (!DRY_RUN && args.force !== 'true' && fs.existsSync(existing)) {
+      console.log(`\n=== v${release.version} — already written, skipping (use --force to regenerate) ===`);
+      continue;
+    }
     console.log(`\n=== v${release.version} (${LOCALES.length} locales) ===`);
     const translations = {};
     let done = 0;
