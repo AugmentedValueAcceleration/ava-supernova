@@ -16,7 +16,7 @@
 // fakes. Every v2 field is optional, so a not-yet-run bench still renders.
 
 import { useState, useEffect, useCallback, Fragment } from 'react';
-import { t, tt, useLocale } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { Rocket, ArrowSquareOut, ArrowsClockwise, CaretRight, Stack } from '@phosphor-icons/react';
 import { Skeleton } from '../components/Skeleton';
 import {
@@ -107,7 +107,7 @@ export function ModelsPage() {
           <thead>
             <tr>
               <th className="px-2 py-1.5 text-left text-[11px] font-medium text-[var(--text-muted)]">
-                {expandable ? tt('dash.models.col_mode', 'Mode') : t('dash.models.col_model')}
+                {expandable ? t('dash.models.col_mode') : t('dash.models.col_model')}
               </th>
               {leaderboard.categories.map(cat => (
                 <th key={cat} className="px-2 py-1.5 text-center text-[10px] font-medium text-[var(--text-muted)]" style={{ minWidth: 110 }}>
@@ -141,10 +141,10 @@ export function ModelsPage() {
                         {meta && <span className="font-mono text-[10px] text-[var(--text-muted)]">{meta}</span>}
                         {m.tasks_after_release != null && m.tasks_total != null && (
                           <span
-                            title={tt('dash.models.clean_title', 'Tasks published after this model shipped — no training-data contamination on those.')}
+                            title={t('dash.models.clean_title')}
                             className="rounded bg-emerald-500/10 px-1.5 py-0.5 font-mono text-[9px] text-emerald-300"
                           >
-                            {tt('dash.models.clean', 'clean')} {m.tasks_after_release}/{m.tasks_total}
+                            {t('dash.models.clean')} {m.tasks_after_release}/{m.tasks_total}
                           </span>
                         )}
                         {m.receipts_url && (
@@ -155,7 +155,7 @@ export function ModelsPage() {
                             className="inline-flex items-center gap-0.5 font-mono text-[10px] text-[var(--accent)] hover:underline"
                           >
                             <ArrowSquareOut size={10} weight="duotone" />
-                            {tt('dash.models.receipts', 'receipts')}
+                            {t('dash.models.receipts')}
                           </a>
                         )}
                       </div>
@@ -186,7 +186,7 @@ export function ModelsPage() {
                       <td colSpan={leaderboard.categories.length + 2} className="px-2 pb-2">
                         <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)]/40 px-3 py-2">
                           <Stack size={12} weight="duotone" className="text-[var(--accent)]" />
-                          <span className="mr-1 text-[10px] uppercase tracking-wide text-[var(--text-muted)]">{tt('dash.models.fleet', 'Fleet')}</span>
+                          <span className="mr-1 text-[10px] uppercase tracking-wide text-[var(--text-muted)]">{t('dash.models.fleet')}</span>
                           {m.constituent_models!.map(cm => (
                             <span key={cm} className="rounded bg-[var(--accent)]/10 px-1.5 py-0.5 font-mono text-[10px] text-[var(--text-primary)]">{cm}</span>
                           ))}
@@ -263,7 +263,7 @@ export function ModelsPage() {
       {/* Models table (raw models, Tier 1) */}
       {leaderboard && models.length > 0 && (
         <>
-          <h2 className="mb-2 text-[13px] font-semibold text-[var(--text-primary)]">{tt('dash.models.section_models', 'Models')}</h2>
+          <h2 className="mb-2 text-[13px] font-semibold text-[var(--text-primary)]">{t('dash.models.section_models')}</h2>
           {renderTable(models, false)}
         </>
       )}
@@ -272,9 +272,9 @@ export function ModelsPage() {
           mode's number can never be misread as beating a raw model's. */}
       {leaderboard && modes.length > 0 && (
         <>
-          <h2 className="mb-1 mt-5 text-[13px] font-semibold text-[var(--text-primary)]">{tt('dash.models.section_modes', 'Ava Modes')}</h2>
+          <h2 className="mb-1 mt-5 text-[13px] font-semibold text-[var(--text-primary)]">{t('dash.models.section_modes')}</h2>
           <p className="mb-2 max-w-2xl text-[11px] leading-relaxed text-[var(--text-muted)]">
-            {tt('dash.models.modes_explainer', 'Modes orchestrate several models. They are compared only to each other — never ranked against a raw model, because a mode costs more and runs slower by design. Expand a mode to see the fleet it actually ran.')}
+            {t('dash.models.modes_explainer')}
           </p>
           {renderTable(modes, true)}
         </>
@@ -283,9 +283,9 @@ export function ModelsPage() {
       {/* Where we lose — our weakest cells, surfaced on purpose. */}
       {leaderboard && leaderboard.total_runs > 0 && (
         <div className="mb-4 rounded-2xl border border-red-500/20 bg-red-500/[0.04] p-4">
-          <div className="mb-1 text-[12px] font-semibold text-red-300">{tt('dash.models.losses_title', 'Where we lose')}</div>
+          <div className="mb-1 text-[12px] font-semibold text-red-300">{t('dash.models.losses_title')}</div>
           <p className="mb-2.5 text-[11px] leading-relaxed text-[var(--text-muted)]">
-            {tt('dash.models.losses_body', 'Our weakest results, shown on purpose. Publishing your own losses is the part nobody fakes.')}
+            {t('dash.models.losses_body')}
           </p>
           <div className="flex flex-wrap gap-1.5">
             {worstCells(leaderboard).map((w, i) => (
@@ -308,7 +308,7 @@ export function ModelsPage() {
                 <span className="text-sm font-semibold text-[var(--text-primary)]">
                   {m.display_name}
                   {m.entry_kind === 'mode' && (
-                    <span className="ml-1.5 rounded bg-[var(--accent)]/15 px-1.5 py-0.5 align-middle text-[9px] uppercase tracking-wide text-[var(--accent)]">{tt('dash.models.mode_tag', 'mode')}</span>
+                    <span className="ml-1.5 rounded bg-[var(--accent)]/15 px-1.5 py-0.5 align-middle text-[9px] uppercase tracking-wide text-[var(--accent)]">{t('dash.models.mode_tag')}</span>
                   )}
                 </span>
                 <span className={`font-mono text-xs ${m.overall_pass_rate >= 80 ? 'text-emerald-300' : m.overall_pass_rate >= 60 ? 'text-yellow-300' : 'text-red-300'}`}>
