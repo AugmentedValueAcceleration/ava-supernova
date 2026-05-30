@@ -2,6 +2,19 @@ import type { ModelDefinition } from '../../core/types.js';
 
 export const ANTHROPIC_MODELS: ModelDefinition[] = [
   {
+    id: 'claude-opus-4-8',
+    name: 'Claude Opus 4.8',
+    provider: 'anthropic',
+    contextWindow: 200000,
+    maxOutputTokens: 32768,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsVision: true,
+    desktopCapable: true, // Current Anthropic flagship.
+    // Pricing mirrored from Opus 4.7 — confirm against Anthropic's actual 4.8 rates.
+    pricing: { inputPerMillion: 5, outputPerMillion: 25 },
+  },
+  {
     id: 'claude-opus-4-7',
     name: 'Claude Opus 4.7',
     provider: 'anthropic',

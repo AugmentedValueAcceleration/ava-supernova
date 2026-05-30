@@ -34,6 +34,35 @@ export interface BenchModelScores {
   overall_pass_rate: number;
   scores: Partial<Record<BenchCategory, BenchCategoryScore>>;
   summary: string;
+  // ── v2 fields (all optional — older leaderboard.json and a not-yet-run
+  //    bench both render fine; the page shows each only when present, so it
+  //    never fabricates a cost or a fleet it doesn't have data for) ──────────
+  /** 'model' = a raw model scored standalone (Tier 1). 'mode' = an Ava
+   *  orchestration — Maestro / Supernova / Aurora (Tier 2). The page renders
+   *  the two in SEPARATE tables: a mode costs more and runs slower by design,
+   *  so ranking it against a raw model would be the apples-to-oranges lie the
+   *  charter refuses. Absent => treat as 'model'. */
+  entry_kind?: 'model' | 'mode';
+  /** ISO release date of the model. Paired with how many scored tasks were
+   *  published AFTER it, so contamination is visible, not asserted. */
+  model_released?: string;
+  /** For a mode entry: the underlying models the orchestration actually ran
+   *  (coordinator + builder + specialists). Lets the row expand to show the
+   *  fleet instead of presenting the mode as a black box. */
+  constituent_models?: string[];
+  /** Credits per accepted task — the cost half of "no naked score". */
+  cost_credits_per_task?: number;
+  /** Median wall-clock seconds per run — the latency half. */
+  median_latency_s?: number;
+  /** Total runs behind this row's overall number, for the n= caveat. */
+  overall_sample_size?: number;
+  /** Of the tasks this entry was scored on, how many were published after the
+   *  model's release (the uncontaminated subset) and the total. Renders as a
+   *  "clean N / M" badge. */
+  tasks_after_release?: number;
+  tasks_total?: number;
+  /** Deep link to this entry's run receipts on the public bench repo. */
+  receipts_url?: string;
 }
 
 export interface BenchLeaderboard {
@@ -41,6 +70,10 @@ export interface BenchLeaderboard {
   categories: BenchCategory[];
   models: BenchModelScores[];
   total_runs: number;
+  /** Models that couldn't be scored this batch because every run errored
+   *  (bad key, not in catalog, etc.). Shown so their absence is explained,
+   *  never faked as a 0%. */
+  excluded?: { model_id: string; display_name: string; errored_runs: number; reason: string }[];
 }
 
 const LEADERBOARD_URL = 'https://raw.githubusercontent.com/AugmentedValueAcceleration/ava-supernova-bench/main/leaderboard.json';
