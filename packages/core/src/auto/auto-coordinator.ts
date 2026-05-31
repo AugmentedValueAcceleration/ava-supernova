@@ -469,6 +469,11 @@ export class AutoCoordinator {
       return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
     }
 
+    // First feedback the moment the coordinator starts. The classification and
+    // the intent-gate model call below run silently — without this, the UI
+    // shows nothing for several seconds (worst in the orchestration modes).
+    onEvent({ type: 'progress', labelKey: 'thinking.reading' });
+
     const mode = this.detectMode(messages);
     const tokenCount = this.estimateTokenCount(messages);
 
@@ -494,6 +499,7 @@ export class AutoCoordinator {
 
     // Direct handling — no spawn needed
     if (DIRECT_CATEGORIES.has(classification.category) && !classification.modelOverride) {
+      onEvent({ type: 'progress', labelKey: 'thinking.working', model: this.coordinatorModel.name });
       return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
     }
 
@@ -521,6 +527,7 @@ export class AutoCoordinator {
         // Flip the flag so shouldOrchestrate() short-circuits. Saves ~300
         // tokens + ~2.5s on every direct route that happens to spawn tasks.
         if (this.sharedState) this.sharedState.conductorSynthesizedThisTurn = true;
+        onEvent({ type: 'progress', labelKey: 'thinking.working', model: this.coordinatorModel.name });
         return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
       }
     }
@@ -550,6 +557,10 @@ export class AutoCoordinator {
       // No model available — fallback to coordinator
       return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
     }
+
+    // Routing resolved — name the model taking it before the still-silent
+    // agent spin-up + first-token latency.
+    onEvent({ type: 'progress', labelKey: 'thinking.working', model: route.model.name });
 
     // ── Dataset event: routing decision ────────────────────────────────
     avaEvents.emit('routing_decision', {

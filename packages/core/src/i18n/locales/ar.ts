@@ -40,6 +40,8 @@ export const arStrings: Partial<Record<StringKey, string>> = {
 
   // ── Thinking Indicator ────────────────────────────────────────────────────
   'thinking.0': 'Ava تفكّر...',
+  'thinking.reading': 'أقرأ طلبك…',
+  'thinking.working': '{model} يعمل الآن…',
   'thinking.1': 'جارٍ تحليل الكود...',
   'thinking.2': 'جارٍ دراسة الأساليب...',
   'thinking.3': 'جارٍ صياغة الرد...',

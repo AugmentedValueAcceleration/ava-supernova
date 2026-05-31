@@ -40,6 +40,8 @@ export const koStrings: Partial<Record<StringKey, string>> = {
 
   // ── Thinking Indicator ────────────────────────────────────────────────────
   'thinking.0': 'Ava가 생각하고 있습니다...',
+  'thinking.reading': '요청을 읽고 있어요…',
+  'thinking.working': '{model} 작업 중…',
   'thinking.1': '코드를 분석하고 있습니다...',
   'thinking.2': '접근 방식을 검토하고 있습니다...',
   'thinking.3': '응답을 작성하고 있습니다...',

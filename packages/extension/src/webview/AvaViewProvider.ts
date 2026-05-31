@@ -3007,6 +3007,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         case 'interjection':
           this.log(`Interjection processed: "${event.content.slice(0, 80)}"`);
           break;
+        case 'progress':
+          // Prep/routing status for the thinking indicator (covers the silent
+          // classify + intent-gate + routing window, worst in the modes).
+          this.postMessage({ type: 'progress', labelKey: (event as any).labelKey, model: (event as any).model });
+          break;
         case 'auto_routing':
           this.postMessage({ type: 'auto_routing', category: (event as any).category, model: (event as any).model, reason: (event as any).reason });
           this.log(`Coordinator: routing ${(event as any).category} → ${(event as any).model}`);

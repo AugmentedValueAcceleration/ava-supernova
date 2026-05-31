@@ -40,6 +40,8 @@ export const itStrings: Partial<Record<StringKey, string>> = {
 
   // \u2500\u2500 Thinking Indicator \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   'thinking.0': 'Ava sta pensando...',
+  'thinking.reading': 'Sto leggendo la tua richiesta…',
+  'thinking.working': '{model} sta lavorando…',
   'thinking.1': 'Analisi del tuo codice...',
   'thinking.2': 'Valutazione degli approcci...',
   'thinking.3': 'Preparazione della risposta...',

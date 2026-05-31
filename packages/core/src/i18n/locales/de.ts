@@ -40,6 +40,8 @@ export const deStrings: Partial<Record<StringKey, string>> = {
 
   // \u2500\u2500 Thinking Indicator \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   'thinking.0': 'Ava denkt nach...',
+  'thinking.reading': 'Lese deine Anfrage…',
+  'thinking.working': '{model} arbeitet…',
   'thinking.1': 'Analysiere deinen Code...',
   'thinking.2': '\u00dcberpr\u00fcfe Ans\u00e4tze...',
   'thinking.3': 'Formuliere eine Antwort...',

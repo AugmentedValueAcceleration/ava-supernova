@@ -193,6 +193,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         currentAssistantId: null,
         isStreaming: true,
         isThinking: true,
+        thinkingLabel: undefined,
       };
     }
 
@@ -245,6 +246,19 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       };
     }
 
+    case 'progress': {
+      // Localized prep/routing status during the silent pre-stream window
+      // (classify + intent gate + routing — worst in the orchestration modes).
+      // Keep the indicator up but give it a SPECIFIC line instead of the
+      // generic rotating "thinking…", so the user sees real activity.
+      return {
+        ...state,
+        isThinking: true,
+        isStreaming: true,
+        thinkingLabel: t(action.labelKey, action.model ? { model: action.model } : undefined),
+      };
+    }
+
     case 'thinking_delta': {
       // Append to the last thinking event in the current bubble. If the
       // previous event was a different kind (text or tool call), start a
@@ -256,7 +270,8 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       const messages = updateMessageEvents(state.messages, state.currentAssistantId, (events) =>
         appendToLastEventOfKind(events, 'thinking', action.content),
       );
-      return { ...state, messages, isThinking: true, isStreaming: true };
+      // Real model output is flowing now — drop the prep label.
+      return { ...state, messages, isThinking: true, isStreaming: true, thinkingLabel: undefined };
     }
 
     case 'stream_delta': {
@@ -269,7 +284,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
       const messages = updateMessageEvents(state.messages, state.currentAssistantId, (events) =>
         appendToLastEventOfKind(events, 'text', action.content),
       );
-      return { ...state, messages, isThinking: false, isStreaming: true };
+      return { ...state, messages, isThinking: false, isStreaming: true, thinkingLabel: undefined };
     }
 
     case 'stream_end': {
@@ -1346,6 +1361,7 @@ export function App() {
         <ChatContainer
           messages={state.messages}
           isThinking={state.isThinking}
+          thinkingLabel={state.thinkingLabel}
           onConfirmation={handleConfirmation}
           onContinue={handleContinue}
           onSuggestion={handleSuggestion}

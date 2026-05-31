@@ -40,6 +40,8 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
 
   // ── Thinking Indicator ────────────────────────────────────────────────────
   'thinking.0': 'Ava думает...',
+  'thinking.reading': 'Читаю ваш запрос…',
+  'thinking.working': '{model} работает…',
   'thinking.1': 'Анализирую ваш код...',
   'thinking.2': 'Рассматриваю подходы...',
   'thinking.3': 'Формирую ответ...',

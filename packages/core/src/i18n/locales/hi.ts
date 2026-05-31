@@ -40,6 +40,8 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
 
   // ── Thinking Indicator ────────────────────────────────────────────────────
   'thinking.0': 'Ava सोच रही है...',
+  'thinking.reading': 'आपका अनुरोध पढ़ रही हूँ…',
+  'thinking.working': '{model} काम कर रहा है…',
   'thinking.1': 'आपका कोड विश्लेषण कर रही है...',
   'thinking.2': 'तरीकों पर विचार कर रही है...',
   'thinking.3': 'जवाब तैयार कर रही है...',

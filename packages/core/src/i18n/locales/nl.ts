@@ -40,6 +40,8 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
 
   // ── Thinking Indicator ────────────────────────────────────────────────────
   'thinking.0': 'Ava denkt na...',
+  'thinking.reading': 'Je verzoek lezen…',
+  'thinking.working': '{model} is bezig…',
   'thinking.1': 'Je code analyseren...',
   'thinking.2': 'Benaderingen overwegen...',
   'thinking.3': 'Antwoord opstellen...',

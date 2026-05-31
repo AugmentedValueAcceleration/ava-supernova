@@ -40,6 +40,8 @@ export const plStrings: Partial<Record<StringKey, string>> = {
 
   // ── Thinking Indicator ────────────────────────────────────────────────────
   'thinking.0': 'Ava myśli...',
+  'thinking.reading': 'Czytam Twoją prośbę…',
+  'thinking.working': '{model} pracuje…',
   'thinking.1': 'Analizuję Twój kod...',
   'thinking.2': 'Rozważam podejścia...',
   'thinking.3': 'Przygotowuję odpowiedź...',

@@ -40,6 +40,8 @@ export const idStrings: Partial<Record<StringKey, string>> = {
 
   // ── Thinking Indicator ────────────────────────────────────────────────────
   'thinking.0': 'Ava sedang berpikir...',
+  'thinking.reading': 'Membaca permintaanmu…',
+  'thinking.working': '{model} sedang bekerja…',
   'thinking.1': 'Menganalisis kode Anda...',
   'thinking.2': 'Mempertimbangkan pendekatan...',
   'thinking.3': 'Menyusun respons...',

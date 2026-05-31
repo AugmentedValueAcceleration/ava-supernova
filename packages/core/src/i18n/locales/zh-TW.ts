@@ -40,6 +40,8 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
 
   // ── Thinking Indicator ────────────────────────────────────────────────────
   'thinking.0': 'Ava 正在思考...',
+  'thinking.reading': '正在閱讀你的請求…',
+  'thinking.working': '{model} 正在處理…',
   'thinking.1': '正在分析你的程式碼...',
   'thinking.2': '正在考慮方案...',
   'thinking.3': '正在組織回覆...',

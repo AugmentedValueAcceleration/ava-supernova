@@ -40,6 +40,8 @@ export const viStrings: Partial<Record<StringKey, string>> = {
 
   // ── Thinking Indicator ────────────────────────────────────────────────────
   'thinking.0': 'Ava đang suy nghĩ...',
+  'thinking.reading': 'Đang đọc yêu cầu của bạn…',
+  'thinking.working': '{model} đang xử lý…',
   'thinking.1': 'Đang phân tích mã nguồn của bạn...',
   'thinking.2': 'Đang xem xét các phương pháp...',
   'thinking.3': 'Đang soạn câu trả lời...',

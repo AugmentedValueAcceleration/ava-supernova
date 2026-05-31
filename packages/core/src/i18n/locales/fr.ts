@@ -40,6 +40,8 @@ export const frStrings: Partial<Record<StringKey, string>> = {
 
   // \u2500\u2500 Thinking Indicator \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   'thinking.0': 'Ava r\u00e9fl\u00e9chit...',
+  'thinking.reading': 'Lecture de votre demande…',
+  'thinking.working': '{model} travaille…',
   'thinking.1': 'Analyse de votre code...',
   'thinking.2': '\u00c9valuation des approches...',
   'thinking.3': 'R\u00e9daction d\u2019une r\u00e9ponse...',

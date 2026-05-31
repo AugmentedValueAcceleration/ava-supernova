@@ -379,6 +379,12 @@ export type AgentEvent =
   | { type: 'thinking_delta'; content: string }
   | { type: 'stream_delta'; content: string }
   | { type: 'stream_end'; message: AssistantMessage }
+  // Human-readable prep/routing status for the thinking indicator. Emitted
+  // during the silent pre-stream window (task classification, intent gate,
+  // model routing) — especially the orchestration modes, where that window
+  // can run ~10s with nothing else on screen. `labelKey` is an i18n key the
+  // surface localizes; `model` fills the {model} placeholder where present.
+  | { type: 'progress'; labelKey: string; model?: string }
   | { type: 'tool_call_start'; toolCall: ToolCall }
   | { type: 'tool_call_partial'; toolCallId: string; data: string }
   | { type: 'tool_call_end'; toolCall: ToolCall; result: string; success: boolean; metadata?: Record<string, unknown> }

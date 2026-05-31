@@ -10,8 +10,13 @@ const MESSAGE_KEYS = ['thinking.0', 'thinking.1', 'thinking.2', 'thinking.3'];
  * tiny opacity-50 spinner that disappeared into the dark theme during
  * the 1-3s prep window before stream_start lands. The user sees Ava
  * picking up the moment they hit send.
+ *
+ * `label` overrides the rotating generic line with a specific status
+ * ("Reading your request…", "DeepSeek V4 Pro is working…") emitted by the
+ * coordinator during its silent classify/route window — so the longer
+ * orchestration-mode prep shows real progress, not a blank pulse.
  */
-export function ThinkingIndicator() {
+export function ThinkingIndicator({ label }: { label?: string } = {}) {
   useLocale();
   const [index, setIndex] = useState(0);
 
@@ -48,7 +53,7 @@ export function ThinkingIndicator() {
             <span />
             <span />
           </span>
-          <span>{t(MESSAGE_KEYS[index])}</span>
+          <span>{label ?? t(MESSAGE_KEYS[index])}</span>
         </div>
       </div>
       <style>{`

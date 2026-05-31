@@ -44,6 +44,9 @@ export type ExtToWebviewMessage =
   | ({ type: 'platform_status' } & PlatformStatus)
   | { type: 'user_message_ack'; text: string; images?: string[] }
   | { type: 'stream_start' }
+  /** Prep/routing status for the thinking indicator during the silent
+   *  pre-stream window (classify + intent gate + routing). */
+  | { type: 'progress'; labelKey: string; model?: string }
   | { type: 'thinking_delta'; content: string }
   | { type: 'stream_delta'; content: string }
   | { type: 'stream_end' }
@@ -386,6 +389,10 @@ export interface ChatState {
   activeModel: string | null;
   isStreaming: boolean;
   isThinking: boolean;
+  /** Localized prep/routing status shown in the thinking indicator while the
+   *  coordinator classifies + routes (the silent pre-stream window). Cleared
+   *  when real content arrives. Undefined => generic rotating "thinking…". */
+  thinkingLabel?: string;
   needsSetup: boolean;
   consentRequired: boolean;
   initialized: boolean;

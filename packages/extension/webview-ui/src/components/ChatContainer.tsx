@@ -18,6 +18,7 @@ interface PersonaInfo {
 interface ChatContainerProps {
   messages: UIMessage[];
   isThinking: boolean;
+  thinkingLabel?: string;
   conductorActive?: boolean;
   conductorMode?: string | null;
   activePersonas?: PersonaInfo[];
@@ -58,7 +59,7 @@ interface ChatContainerProps {
 // IDE's single-seeded-message empty state. Props onSuggestion / activeModel
 // / models stay in ChatContainerProps for caller compatibility but are no
 // longer destructured here.
-export function ChatContainer({ messages, isThinking, onConfirmation, onContinue, onRate, chatEndRef, needsSetup, consentRequired, onAcceptConsent, initialized, onOpenDashboard, conductorActive, conductorMode, activePersonas, signInPending, signInError, onStartSignIn, onCancelSignIn, onClearSignInError, onSuggestion, userName, userAvatarUrl }: ChatContainerProps) {
+export function ChatContainer({ messages, isThinking, thinkingLabel, onConfirmation, onContinue, onRate, chatEndRef, needsSetup, consentRequired, onAcceptConsent, initialized, onOpenDashboard, conductorActive, conductorMode, activePersonas, signInPending, signInError, onStartSignIn, onCancelSignIn, onClearSignInError, onSuggestion, userName, userAvatarUrl }: ChatContainerProps) {
   useLocale();
   const [consentChecked, setConsentChecked] = useState(false);
 
@@ -272,7 +273,7 @@ export function ChatContainer({ messages, isThinking, onConfirmation, onContinue
             personas={activePersonas || []}
           />
         )}
-        {isThinking && <ThinkingIndicator />}
+        {isThinking && <ThinkingIndicator label={thinkingLabel} />}
         <div ref={chatEndRef} />
       </div>
     </div>

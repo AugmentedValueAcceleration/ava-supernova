@@ -40,6 +40,8 @@ export const enStrings = {
 
   // ── Thinking Indicator ────────────────────────────────────────────────────
   'thinking.0': 'Ava is thinking...',
+  'thinking.reading': 'Reading your request…',
+  'thinking.working': '{model} is working…',
   'thinking.1': 'Analyzing your code...',
   'thinking.2': 'Considering approaches...',
   'thinking.3': 'Crafting a response...',
