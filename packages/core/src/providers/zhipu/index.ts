@@ -3,9 +3,9 @@ import type { ChatCompletionRequest } from '../types.js';
 import type { CompletionResponse, ModelDefinition, StreamChunk } from '../../core/types.js';
 import { ZHIPU_MODELS } from './models.js';
 
-// Flash models have thinking enabled by default on Zhipu's API.
+// Light/Air models have thinking enabled by default on Zhipu's API.
 // Disable it — they're meant to be fast, and thinking adds 30-60s latency.
-const FLASH_MODELS = new Set(['glm-4.5-flash']);
+const FLASH_MODELS = new Set(['glm-4.5-air']);
 
 export class ZhipuProvider extends BaseProvider {
   readonly name = 'zhipu';

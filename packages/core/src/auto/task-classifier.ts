@@ -22,15 +22,16 @@ const MODEL_ALIASES: Record<string, string> = {
   'qwen plus': 'qwen3.5-plus',
   // DeepSeek
   'deepseek': 'deepseek-chat',
-  // Claude — bare 'opus' routes to current flagship 4.7; legacy '4.6' pin kept.
+  // Claude — bare 'opus' routes to current flagship 4.8; legacy '4.7'/'4.6' pins kept.
   'claude': 'claude-sonnet-4-6',
-  'opus': 'claude-opus-4-7',
+  'opus': 'claude-opus-4-8',
+  'opus 4.8': 'claude-opus-4-8',
   'opus 4.7': 'claude-opus-4-7',
   'opus 4.6': 'claude-opus-4-6',
   'sonnet': 'claude-sonnet-4-6',
   'haiku': 'claude-haiku-4-5-20251001',
-  // Mistral
-  'mistral': 'mistral-large-latest',
+  // Mistral — 'mistral-large-3' canonical id maps to mistral-large-2512 at the API boundary.
+  'mistral': 'mistral-large-3',
   'codestral': 'codestral-latest',
 };
 

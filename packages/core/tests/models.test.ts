@@ -84,10 +84,10 @@ describe('Model definitions', () => {
       }
     });
 
-    it('contains free tier model (glm-4.5-flash)', () => {
-      const flash = ZHIPU_MODELS.find((m) => m.id === 'glm-4.5-flash');
-      expect(flash).toBeDefined();
-      expect(flash?.pricing?.inputPerMillion).toBe(0);
+    it('contains the light-tier Air model (glm-4.5-air)', () => {
+      const air = ZHIPU_MODELS.find((m) => m.id === 'glm-4.5-air');
+      expect(air).toBeDefined();
+      expect(air?.pricing?.inputPerMillion).toBe(0.2);
     });
   });
 

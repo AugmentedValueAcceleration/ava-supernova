@@ -275,9 +275,9 @@ describe('Zhipu AI contract', () => {
   });
 
   it('disables thinking for Flash models', async () => {
-    mockFetch.mockResolvedValue(jsonResponse(makeCompletion('glm-4.5-flash')));
+    mockFetch.mockResolvedValue(jsonResponse(makeCompletion('glm-4.5-air')));
     const p = new ZhipuProvider({ apiKey: 'sk-test' });
-    await p.createCompletion({ ...baseRequest, model: 'glm-4.5-flash' });
+    await p.createCompletion({ ...baseRequest, model: 'glm-4.5-air' });
     expect(lastFetchBody().enable_thinking).toBe(false);
   });
 
@@ -410,53 +410,53 @@ describe('Mistral AI contract', () => {
   afterEach(() => vi.useRealTimers());
 
   it('sends requests to Mistral API', async () => {
-    mockFetch.mockResolvedValue(jsonResponse(makeCompletion('mistral-large-latest')));
+    mockFetch.mockResolvedValue(jsonResponse(makeCompletion('mistral-large-3')));
     const p = new MistralProvider({ apiKey: 'sk-test' });
-    await p.createCompletion({ ...baseRequest, model: 'mistral-large-latest' });
+    await p.createCompletion({ ...baseRequest, model: 'mistral-large-3' });
     expect(lastFetchUrl()).toBe('https://api.mistral.ai/v1/chat/completions');
   });
 
   it('transforms tool_choice "required" to "any"', async () => {
-    mockFetch.mockResolvedValue(jsonResponse(makeCompletion('mistral-large-latest')));
+    mockFetch.mockResolvedValue(jsonResponse(makeCompletion('mistral-large-3')));
     const p = new MistralProvider({ apiKey: 'sk-test' });
     await p.createCompletion({
       ...baseRequest,
-      model: 'mistral-large-latest',
+      model: 'mistral-large-3',
       tool_choice: 'required',
     } as any);
     expect(lastFetchBody().tool_choice).toBe('any');
   });
 
   it('leaves tool_choice "auto" unchanged', async () => {
-    mockFetch.mockResolvedValue(jsonResponse(makeCompletion('mistral-large-latest')));
+    mockFetch.mockResolvedValue(jsonResponse(makeCompletion('mistral-large-3')));
     const p = new MistralProvider({ apiKey: 'sk-test' });
     await p.createCompletion({
       ...baseRequest,
-      model: 'mistral-large-latest',
+      model: 'mistral-large-3',
       tool_choice: 'auto',
     } as any);
     expect(lastFetchBody().tool_choice).toBe('auto');
   });
 
   it('leaves tool_choice "none" unchanged', async () => {
-    mockFetch.mockResolvedValue(jsonResponse(makeCompletion('mistral-large-latest')));
+    mockFetch.mockResolvedValue(jsonResponse(makeCompletion('mistral-large-3')));
     const p = new MistralProvider({ apiKey: 'sk-test' });
     await p.createCompletion({
       ...baseRequest,
-      model: 'mistral-large-latest',
+      model: 'mistral-large-3',
       tool_choice: 'none',
     } as any);
     expect(lastFetchBody().tool_choice).toBe('none');
   });
 
   it('streams standard SSE format', async () => {
-    const chunk = makeChunk('mistral-large-latest', 'Bonjour');
+    const chunk = makeChunk('mistral-large-3', 'Bonjour');
     mockFetch.mockResolvedValue(streamResponse([
       `data: ${JSON.stringify(chunk)}`,
       'data: [DONE]',
     ]));
     const p = new MistralProvider({ apiKey: 'sk-test' });
-    const chunks = await collectChunks(p.createStreamingCompletion({ ...baseRequest, model: 'mistral-large-latest' }));
+    const chunks = await collectChunks(p.createStreamingCompletion({ ...baseRequest, model: 'mistral-large-3' }));
     expect(chunks).toHaveLength(1);
     expect((chunks[0] as any).choices[0].delta.content).toBe('Bonjour');
   });

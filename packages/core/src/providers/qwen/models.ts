@@ -1,6 +1,24 @@
 import type { ModelDefinition } from '../../core/types.js';
 
 export const QWEN_MODELS: ModelDefinition[] = [
+  // Qwen 3.7 Max (May 2026) — Alibaba's strongest model. BYOK-only here:
+  // exposed for users with their own DashScope key. NOT wired into the
+  // Maestro coordinator slot — at $2.50/$7.50 it would ~3× the managed
+  // coordinator cost and break the credit-plan margin. Qwen 3.6 Plus
+  // stays the Maestro conductor.
+  {
+    id: 'qwen3.7-max',
+    name: 'Qwen 3.7 Max',
+    provider: 'qwen',
+    contextWindow: 1000000,
+    maxOutputTokens: 65536,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: true,
+    desktopCapable: true,
+    pricing: { inputPerMillion: 2.50, outputPerMillion: 7.50 },
+  },
   {
     id: 'qwen3.6-plus',
     name: 'Qwen 3.6 Plus',

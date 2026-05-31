@@ -262,7 +262,7 @@ describe('BaseProvider', () => {
       vi.useRealTimers(); // No timers needed for sync test
       const provider = new MistralProvider({ apiKey: 'sk-test' });
       const transformed = (provider as any).transformRequest({
-        model: 'mistral-large-latest',
+        model: 'mistral-large-3',
         messages: [],
         tool_choice: 'required',
       });
@@ -273,7 +273,7 @@ describe('BaseProvider', () => {
       vi.useRealTimers();
       const provider = new MistralProvider({ apiKey: 'sk-test' });
       const transformed = (provider as any).transformRequest({
-        model: 'mistral-large-latest',
+        model: 'mistral-large-3',
         messages: [],
         tool_choice: 'auto',
       });

@@ -40,12 +40,12 @@ const PLATFORM_PRIORITY = [
 
 const BYOK_PRIORITY = [
   { id: 'kimi-k2.6',            reason: 'Kimi K2.6 — SoTA agentic coding (SWE-Bench Pro 58.6), 256K context, built for orchestration' },
-  { id: 'claude-opus-4-7',      reason: 'Claude Opus 4.7 — strongest general reasoning' },
+  { id: 'claude-opus-4-8',      reason: 'Claude Opus 4.8 — strongest general reasoning' },
   { id: 'claude-sonnet-4-6',    reason: 'Claude Sonnet — fast reasoning' },
   { id: 'kimi-k2.5',            reason: 'Kimi K2.5 — legacy agentic fallback' },
   { id: 'deepseek-chat',        reason: 'DeepSeek — capable coding model' },
   { id: 'glm-5',                reason: 'Zhipu GLM-5 — 200K context, tools + vision' },
-  { id: 'mistral-large-latest', reason: 'Mistral Large — reasoning fallback' },
+  { id: 'mistral-large-3',      reason: 'Mistral Large 3 — reasoning fallback' },
   { id: 'qwen3.5-plus',         reason: 'Qwen 3.5 Plus — 1M context fallback' },
   { id: 'qwen3.5-flash',        reason: 'Qwen 3.5 Flash — lightweight fallback' },
 ];

@@ -144,8 +144,8 @@ export const PROVIDERS: ProviderFact[] = [
     notes: 'Same models the Aurora routing mode uses — pick them directly with your own Mistral key, or let Aurora orchestrate. EU infrastructure, Apache-2.0 open weights.',
     models: [
       { id: 'mistral-large-3', displayName: 'Mistral Large 3', inputPricePerM: 0.50, outputPricePerM: 1.50, contextWindow: 262_000, capabilities: ['tools', 'thinking', 'streaming'] },
-      { id: 'mistral-small-4', displayName: 'Mistral Small 4', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'mistral-large-latest', displayName: 'Mistral Large', inputPricePerM: 2.00, outputPricePerM: 6.00, contextWindow: 262_000, capabilities: ['tools', 'vision', 'streaming'] },
+      { id: 'mistral-medium-3.5', displayName: 'Mistral Medium 3.5', inputPricePerM: 1.50, outputPricePerM: 7.50, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'mistral-small-4', displayName: 'Mistral Small 4', inputPricePerM: 0.10, outputPricePerM: 0.30, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'codestral-latest', displayName: 'Codestral', inputPricePerM: 0.30, outputPricePerM: 0.90, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
       { id: 'devstral-latest', displayName: 'Devstral 2', inputPricePerM: 0.40, outputPricePerM: 2.00, contextWindow: 262_000, capabilities: ['tools', 'streaming'] },
     ],
@@ -156,9 +156,10 @@ export const PROVIDERS: ProviderFact[] = [
     kind: 'byok',
     notes: 'GLM-5 reports 77.8% on SWE-Bench.',
     models: [
+      { id: 'glm-5.1', displayName: 'GLM-5.1', inputPricePerM: 1.40, outputPricePerM: 4.40, contextWindow: 200_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'glm-5', displayName: 'GLM-5', inputPricePerM: 1.00, outputPricePerM: 3.20, contextWindow: 200_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'glm-4.7-flash', displayName: 'GLM-4.7 Flash', inputPricePerM: 0.07, outputPricePerM: 0.40, contextWindow: 128_000, capabilities: ['tools', 'streaming'] },
-      { id: 'glm-4.5-flash', displayName: 'GLM-4.5 Flash (Free)', inputPricePerM: 0, outputPricePerM: 0, contextWindow: 128_000, capabilities: ['tools', 'streaming'] },
+      { id: 'glm-4.7', displayName: 'GLM-4.7', inputPricePerM: 0.60, outputPricePerM: 2.20, contextWindow: 200_000, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'glm-4.5-air', displayName: 'GLM-4.5 Air', inputPricePerM: 0.20, outputPricePerM: 1.10, contextWindow: 128_000, capabilities: ['tools', 'streaming'] },
     ],
   },
   {

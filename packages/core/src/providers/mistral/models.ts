@@ -4,7 +4,7 @@ export const MISTRAL_MODELS: ModelDefinition[] = [
   // Mistral Small 4 (March 2026) — unified Magistral + Pixtral + Devstral
   // merge. Vision-aware, agentic-coding capable, configurable reasoning
   // effort. The model that anchors Aurora's Builder route — frontier
-  // capability at flash-tier cost ($0.15/$0.60). Replaces the single-
+  // capability at flash-tier cost ($0.10/$0.30). Replaces the single-
   // purpose Codestral / Devstral pair for most agentic workloads.
   {
     id: 'mistral-small-4',
@@ -17,7 +17,7 @@ export const MISTRAL_MODELS: ModelDefinition[] = [
     supportsThinking: true,
     supportsVision: true,
     desktopCapable: true,
-    pricing: { inputPerMillion: 0.15, outputPerMillion: 0.60 },
+    pricing: { inputPerMillion: 0.10, outputPerMillion: 0.30 },
   },
   // Mistral Large 3 (December 2025) — sparse MoE, 41B active / 675B
   // total. Frontier-tier reasoning + long-context synthesis at a price
@@ -55,18 +55,6 @@ export const MISTRAL_MODELS: ModelDefinition[] = [
     supportsVision: true,
     desktopCapable: true,
     pricing: { inputPerMillion: 1.50, outputPerMillion: 7.50 },
-  },
-  {
-    id: 'mistral-large-latest',
-    name: 'Mistral Large',
-    provider: 'mistral',
-    contextWindow: 262000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsVision: true,
-    desktopCapable: true,
-    pricing: { inputPerMillion: 2.00, outputPerMillion: 6.00 },
   },
   {
     id: 'codestral-latest',

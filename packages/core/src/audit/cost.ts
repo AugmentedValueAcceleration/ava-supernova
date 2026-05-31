@@ -23,7 +23,7 @@ interface ProviderRate {
 /** BYOK provider rate cards. Sourced from each provider's public pricing
  *  page — verify before adding entries. Update in PRs only, never via
  *  silent commits, so the rate-card history is auditable in git blame.
- *  Last verified: 2026-04-26. */
+ *  Last verified: 2026-05-31 (provider /models + official pricing pages). */
 const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
   deepseek: {
     'deepseek-v4-pro':   { inputPerMillion: 1.74,  outputPerMillion: 3.48 },
@@ -34,22 +34,29 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
     'kimi-k2.5': { inputPerMillion: 0.55,  outputPerMillion: 2.20 },
   },
   qwen: {
+    'qwen3.7-max':  { inputPerMillion: 2.50,  outputPerMillion: 7.50 }, // BYOK-only, DashScope intl
     'qwen3.6-plus': { inputPerMillion: 0.80,  outputPerMillion: 2.40 },
     'qwen3.5-plus': { inputPerMillion: 0.40,  outputPerMillion: 1.20 },
     'qwen3.5-flash':{ inputPerMillion: 0.05,  outputPerMillion: 0.15 },
   },
   zhipu: {
-    'glm-5':   { inputPerMillion: 0.50, outputPerMillion: 1.50 },
-    'glm-4.7': { inputPerMillion: 0.30, outputPerMillion: 1.00 },
+    'glm-5.1':     { inputPerMillion: 1.40, outputPerMillion: 4.40 },
+    'glm-5':       { inputPerMillion: 1.00, outputPerMillion: 3.20 },
+    'glm-4.7':     { inputPerMillion: 0.60, outputPerMillion: 2.20 },
+    'glm-4.5-air': { inputPerMillion: 0.20, outputPerMillion: 1.10 },
   },
   mistral: {
-    'mistral-large-latest': { inputPerMillion: 2.00, outputPerMillion: 6.00 },
-    'codestral-latest':     { inputPerMillion: 0.30, outputPerMillion: 0.90 },
+    'mistral-large-3':    { inputPerMillion: 0.50, outputPerMillion: 1.50 },
+    'mistral-medium-3.5': { inputPerMillion: 1.50, outputPerMillion: 7.50 },
+    'mistral-small-4':    { inputPerMillion: 0.10, outputPerMillion: 0.30 },
+    'codestral-latest':   { inputPerMillion: 0.30, outputPerMillion: 0.90 },
   },
   anthropic: {
-    'claude-opus-4-7':    { inputPerMillion: 15.00, outputPerMillion: 75.00 },
-    'claude-sonnet-4-6':  { inputPerMillion: 3.00,  outputPerMillion: 15.00 },
-    'claude-haiku-4-5':   { inputPerMillion: 1.00,  outputPerMillion: 5.00 },
+    'claude-opus-4-8':            { inputPerMillion: 5.00,  outputPerMillion: 25.00 },
+    'claude-opus-4-7':            { inputPerMillion: 5.00,  outputPerMillion: 25.00 },
+    'claude-opus-4-6':            { inputPerMillion: 5.00,  outputPerMillion: 25.00 },
+    'claude-sonnet-4-6':          { inputPerMillion: 3.00,  outputPerMillion: 15.00 },
+    'claude-haiku-4-5-20251001':  { inputPerMillion: 1.00,  outputPerMillion: 5.00 },
   },
 };
 
