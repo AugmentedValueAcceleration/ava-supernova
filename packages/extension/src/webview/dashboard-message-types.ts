@@ -271,12 +271,32 @@ export interface DashboardJournalDaySummary {
 
 // ─── Learning Types ─────────────────────────────────────────────────────────
 
+export interface DashboardLessonStep {
+  id: string;
+  teach: string;
+  interaction: {
+    kind: 'choice' | 'free_text' | 'code' | 'predict';
+    prompt: string;
+    options?: string[];
+    answer?: string;
+    evaluation?: string;
+    starter?: string;
+  };
+  feedback?: { correct: string; incorrect: string };
+  status: string;
+  attempts: number;
+  last_attempt: string | null;
+}
+
 export interface DashboardLearningLesson {
   id: string;
   title: string;
   type: string;
   status: string;
   score: number | null;
+  // Brilliant-style interactive steps — present when the lesson has been
+  // authored in the new format; the player renders them as cards.
+  steps?: DashboardLessonStep[];
 }
 
 export interface DashboardLearningModule {
@@ -1515,6 +1535,9 @@ export type DashboardToExtMessage =
   // Learning messages
   | { type: 'load_learning' }
   | { type: 'delete_curriculum'; id: string }
+  // Interactive lesson player → persist progress back to the learning store
+  | { type: 'learning_step_progress'; curriculumId: string; lessonId: string; stepId: string; status: 'attempted' | 'mastered'; lastAttempt: string | null }
+  | { type: 'learning_lesson_complete'; curriculumId: string; lessonId: string; score: number }
   // Learning Library messages
   | { type: 'load_library_paths'; search?: string; subject?: string; level?: string; sort?: string }
   | { type: 'load_library_path_detail'; id: string }

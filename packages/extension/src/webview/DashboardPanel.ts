@@ -639,6 +639,14 @@ export class DashboardPanel {
         await this.deleteCurriculum(msg.id);
         break;
 
+      case 'learning_step_progress':
+        await this.persistStepProgress(msg.curriculumId, msg.lessonId, msg.stepId, msg.status, msg.lastAttempt);
+        break;
+
+      case 'learning_lesson_complete':
+        await this.completeLessonInStore(msg.curriculumId, msg.lessonId, msg.score);
+        break;
+
       // ─── Learning Library messages ─────────────────────────────────────
 
       case 'load_library_paths': {
@@ -3062,6 +3070,86 @@ export class DashboardPanel {
     } catch {
       this.post({ type: 'error', message: 'Failed to delete curriculum.' });
     }
+  }
+
+  // ── Interactive lesson player → persist progress to the learning store ──
+  // The dashboard player writes back to the same learning.json the core
+  // learning tools read, so on her next turn Ava sees per-step progress + the
+  // learner's last attempts and can resume them exactly where they left off.
+
+  private async persistStepProgress(
+    curriculumId: string,
+    lessonId: string,
+    stepId: string,
+    status: 'attempted' | 'mastered',
+    lastAttempt: string | null,
+  ): Promise<void> {
+    try {
+      const fs = await import('node:fs/promises');
+      const learningPath = path.join(this.getUserDataDir(), 'learning.json');
+      const store = JSON.parse(await fs.readFile(learningPath, 'utf-8'));
+      const lesson = this.locateLesson(store, curriculumId, lessonId);
+      const step = lesson?.steps?.find((s: { id: string }) => s.id === stepId);
+      if (!step) return;
+      step.status = status;
+      step.attempts = (step.attempts ?? 0) + 1;
+      step.last_attempt = lastAttempt;
+      if (lesson.status === 'not_started') {
+        lesson.status = 'in_progress';
+        lesson.started_at = lesson.started_at ?? new Date().toISOString();
+      }
+      await fs.writeFile(learningPath, JSON.stringify(store, null, 2), 'utf-8');
+    } catch { /* best-effort — local copy is the source of truth */ }
+  }
+
+  private async completeLessonInStore(curriculumId: string, lessonId: string, score: number): Promise<void> {
+    try {
+      const fs = await import('node:fs/promises');
+      const learningPath = path.join(this.getUserDataDir(), 'learning.json');
+      const store = JSON.parse(await fs.readFile(learningPath, 'utf-8'));
+      const curr = (store.curriculums ?? []).find((c: { id: string }) => c.id === curriculumId);
+      const lesson = this.locateLesson(store, curriculumId, lessonId);
+      if (!curr || !lesson) return;
+      lesson.status = 'completed';
+      lesson.score = score;
+      lesson.best_score = Math.max(lesson.best_score ?? 0, score);
+      lesson.completed_at = new Date().toISOString();
+      // Recompute module + curriculum progress so the UI bars + ticks update.
+      for (const mod of curr.modules ?? []) {
+        const lessons = mod.lessons ?? [];
+        if (lessons.length === 0) continue;
+        const done = lessons.filter((l: { status: string }) => l.status === 'completed').length;
+        mod.progress_percent = Math.round((done / lessons.length) * 100);
+        if (mod.progress_percent === 100) mod.status = 'completed';
+        else if (done > 0 || lessons.some((l: { status: string }) => l.status === 'in_progress')) {
+          mod.status = mod.status === 'locked' ? 'locked' : 'in_progress';
+        }
+      }
+      const mods = curr.modules ?? [];
+      if (mods.length > 0) {
+        curr.progress_percent = Math.round(
+          mods.reduce((s: number, m: { progress_percent?: number }) => s + (m.progress_percent ?? 0), 0) / mods.length,
+        );
+        if (curr.progress_percent === 100) curr.status = 'completed';
+      }
+      await fs.writeFile(learningPath, JSON.stringify(store, null, 2), 'utf-8');
+      this.post({ type: 'learning_loaded', curriculums: Array.isArray(store.curriculums) ? store.curriculums : [] });
+    } catch { /* best-effort */ }
+  }
+
+  /** Locate a lesson within the parsed (untyped) learning store JSON. */
+  private locateLesson(
+    store: { curriculums?: Array<{ id: string; modules?: Array<{ lessons?: Array<{ id: string }> }> }> },
+    curriculumId: string,
+    lessonId: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): any {
+    const curr = (store.curriculums ?? []).find((c) => c.id === curriculumId);
+    for (const mod of curr?.modules ?? []) {
+      const lesson = (mod.lessons ?? []).find((l) => l.id === lessonId);
+      if (lesson) return lesson;
+    }
+    return null;
   }
 
   private async createTask(msg: { title: string; description?: string; priority?: string; category?: string; due_date?: string; recurrence?: string }): Promise<void> {
