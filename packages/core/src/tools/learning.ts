@@ -17,10 +17,57 @@ interface QuizQuestion {
   explanation?: string;
 }
 
+/**
+ * A single interactive step in a lesson — the Brilliant-style atom: teach a
+ * bite, the learner does something, Ava checks it live, then advances. This is
+ * the teach→do→check loop that replaces the old read-then-test model (a
+ * `content` blob + `quiz_questions` at the end).
+ *
+ * `interaction.evaluation` is the agent-native part: for open input
+ * (free_text / code) there is no single right answer, so Ava grades the
+ * learner's *actual* attempt against the rubric — e.g. "did they write a prompt
+ * with context + task + constraint, for a real situation of their own?". That
+ * live grading of novel input is what Brilliant's fixed widgets can't do, and
+ * what makes "a tutor for whatever you wish to learn" hold.
+ */
+interface LessonStep {
+  id: string;
+  /** The bite Ava presents before the learner acts — short concept, markdown. */
+  teach: string;
+  interaction: {
+    kind: 'choice' | 'free_text' | 'code' | 'predict';
+    /** What Ava asks the learner to do. */
+    prompt: string;
+    /** For 'choice' — the options shown. */
+    options?: string[];
+    /** Canonical answer for a deterministic check (choice / predict). */
+    answer?: string;
+    /** Rubric/intent for Ava to grade OPEN input (free_text / code), where
+     *  there is no single right answer. The agent reads the learner's real
+     *  attempt against this. */
+    evaluation?: string;
+    /** Starter code for 'code' interactions (real sandbox execution). */
+    starter?: string;
+  };
+  /** Deterministic feedback for choice / predict checks. */
+  feedback?: { correct: string; incorrect: string };
+  // ── Per-step progress ──
+  status: 'not_started' | 'attempted' | 'mastered';
+  attempts: number;
+  /** The learner's last typed answer / code — for resume + spaced recall. */
+  last_attempt: string | null;
+}
+
 interface Lesson {
   id: string;
   title: string;
   content: string | null;
+  // Brilliant-style interactive steps — the teach→do→check loop. When present
+  // these supersede `content` + `quiz_questions` (the legacy read-then-test
+  // shape). Optional for backward-compat: legacy lessons keep content + quiz;
+  // new and re-authored lessons use steps. Delivery runs steps when set, and
+  // falls back to content/quiz when not.
+  steps?: LessonStep[];
   type: 'concept' | 'exercise' | 'project' | 'quiz' | 'recap' | 'challenge';
   status: 'not_started' | 'in_progress' | 'completed' | 'needs_review';
   difficulty: 'easy' | 'medium' | 'hard';
@@ -676,7 +723,7 @@ export class LearningTeachTool implements Tool {
     description:
       'Teach the user by delivering lesson content, providing feedback, running quizzes, or triggering reviews. ' +
       'Use this after the user says they want to continue learning or asks about a specific topic. ' +
-      'Actions: assess (diagnostic before creating curriculum — pass subject + assessment_level only, no curriculum_id needed), deliver (present lesson), write_content (update lesson content — follow the content template for the lesson type), ' +
+      'Actions: assess (diagnostic before creating curriculum — pass subject + assessment_level only, no curriculum_id needed), deliver (present lesson), write_content (author the lesson — pass `steps` for the interactive teach→do→check loop (preferred), following the step template returned for the lesson type), ' +
       'set_quiz (persist quiz questions on a lesson — call this when you generate quiz questions so they survive restarts), ' +
       'feedback (give feedback — pass or fail), quiz (run quiz questions and grade), review (spaced repetition review of completed lessons).',
     parameters: {
@@ -687,11 +734,11 @@ export class LearningTeachTool implements Tool {
         action: {
           type: 'string',
           enum: ['assess', 'deliver', 'feedback', 'write_content', 'set_quiz', 'quiz', 'review'],
-          description: 'assess = diagnostic before curriculum creation (pass subject+assessment_level, no curriculum_id required), deliver = present lesson, feedback = pass/fail, write_content = update content (follow content template), set_quiz = persist quiz questions on a lesson, quiz = run quiz, review = spaced repetition',
+          description: 'assess = diagnostic before curriculum creation (pass subject+assessment_level, no curriculum_id required), deliver = present lesson, feedback = pass/fail, write_content = author the lesson as interactive `steps` (preferred) or legacy `content`, set_quiz = persist quiz questions on a lesson, quiz = run quiz, review = spaced repetition',
         },
         subject: { type: 'string', description: 'For assess: the subject to assess knowledge in' },
         assessment_level: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'], description: 'For assess: claimed level to verify' },
-        content: { type: 'string', description: 'For write_content: markdown teaching content. For feedback: Ava\'s feedback text.' },
+        content: { type: 'string', description: 'For write_content (legacy fallback — prefer `steps`): markdown teaching content. For feedback: Ava\'s feedback text.' },
         passed: { type: 'boolean', description: 'For feedback: did the user pass? true = completed, false = needs_review (retry)' },
         score: { type: 'number', description: 'For feedback/quiz: score 0-100' },
         quiz_answers: {
@@ -711,6 +758,37 @@ export class LearningTeachTool implements Tool {
               explanation: { type: 'string', description: 'Why this answer is correct — shown to the learner after grading. Makes the quiz itself teach.' },
             },
             required: ['question', 'correct_answer'],
+          },
+        },
+        steps: {
+          type: 'array',
+          description: 'For write_content: the interactive teach→do→check steps (the Brilliant-style loop). PREFERRED over `content`. Each step teaches one small bite, then has the learner DO something you check live. Aim for 3-6 steps that build to the learner doing the whole skill on their own example. Follow the step template returned for the lesson type.',
+          items: {
+            type: 'object',
+            properties: {
+              teach: { type: 'string', description: 'The bite of concept to present before the learner acts — ONE idea, ~1-2 sentences, markdown. Not a wall of text.' },
+              interaction: {
+                type: 'object',
+                properties: {
+                  kind: { type: 'string', enum: ['choice', 'free_text', 'code', 'predict'], description: 'choice = pick an option; free_text = type an answer Ava grades; code = write + run real code; predict = guess an outcome, then see it.' },
+                  prompt: { type: 'string', description: 'What you ask the learner to DO — concrete and small.' },
+                  options: { type: 'array', items: { type: 'string' }, description: 'For kind=choice: the options shown.' },
+                  answer: { type: 'string', description: 'For choice/predict: the canonical correct answer (deterministic check).' },
+                  evaluation: { type: 'string', description: 'For free_text/code where there is no single right answer: the rubric you grade the learner\'s REAL attempt against, e.g. "has context + a task + a constraint, applied to a situation of their own". This is what lets Ava tutor open answers — always set it on free_text/code steps.' },
+                  starter: { type: 'string', description: 'For kind=code: starter code placed in the sandbox.' },
+                },
+                required: ['kind', 'prompt'],
+              },
+              feedback: {
+                type: 'object',
+                description: 'For choice/predict deterministic checks: what to say on right vs wrong.',
+                properties: {
+                  correct: { type: 'string' },
+                  incorrect: { type: 'string' },
+                },
+              },
+            },
+            required: ['teach', 'interaction'],
           },
         },
       },
@@ -734,6 +812,18 @@ export class LearningTeachTool implements Tool {
       options?: string[];
       correct_answer: string;
       explanation?: string;
+    }> | undefined;
+    const steps = args.steps as Array<{
+      teach: string;
+      interaction: {
+        kind: 'choice' | 'free_text' | 'code' | 'predict';
+        prompt: string;
+        options?: string[];
+        answer?: string;
+        evaluation?: string;
+        starter?: string;
+      };
+      feedback?: { correct?: string; incorrect?: string };
     }> | undefined;
 
     // The 'assess' action runs BEFORE a curriculum exists — it generates
@@ -803,7 +893,32 @@ export class LearningTeachTool implements Tool {
           out += `\n_Adaptive guidance: ${ADAPTIVE_GUIDANCE[adaptive]}_\n`;
         }
 
-        if (lesson.content) {
+        if (lesson.steps && lesson.steps.length > 0) {
+          // Interactive lesson — the Tutor RUNS the teach→do→check loop, one
+          // step at a time, in conversation. Serve the steps + how to run them.
+          out += '\n**This is an interactive lesson — run it as a loop, ONE step at a time. Do NOT dump all the steps at once.**\n';
+          out += '\nFor each step: present its `teach` (a bite), then its `do` prompt, and STOP — wait for the learner\'s real answer before the next step.\n';
+          out += '\nGrading:\n';
+          out += '- `choice`/`predict`: check against `answer`; use the step\'s feedback if present.\n';
+          out += '- `free_text`/`code`: there is no single right answer — judge the learner\'s ACTUAL attempt against `evaluation`. ';
+          out += 'Be firm on the outcome but soft on the path: if they fall short, do NOT just say "wrong" — scaffold down (a smaller hint, a simpler sub-step, break it in half) and let them try again. ';
+          out += 'Push harder when they\'re cruising, give more support when they struggle. Move on once they\'ve shown it once.\n';
+          out += '\nWhen every step is done, call learning_teach action "feedback" with passed:true (and a score) — mastery earned because you watched them do it, not because they scrolled.\n';
+          const masteredCount = lesson.steps.filter(s => s.status === 'mastered').length;
+          if (masteredCount > 0) {
+            out += `\n_Returning learner: ${masteredCount}/${lesson.steps.length} steps already mastered. Pick up at the first un-mastered step — acknowledge what they've done, don't re-teach it. Their last attempts are shown below so you can reference them naturally ("last time you wrote …")._\n`;
+          }
+          out += '\n**Steps:**';
+          out += lesson.steps.map((s, i) => {
+            let str = `\n\n${i + 1}. teach: ${s.teach}\n   do (${s.interaction.kind}): ${s.interaction.prompt}`;
+            if (s.interaction.options?.length) str += `\n   options: ${s.interaction.options.join(' | ')}`;
+            if (s.interaction.answer) str += `\n   answer: ${s.interaction.answer}`;
+            if (s.interaction.evaluation) str += `\n   evaluation (grade their real answer against this): ${s.interaction.evaluation}`;
+            if (s.interaction.starter) str += `\n   starter code: ${s.interaction.starter}`;
+            if (s.status && s.status !== 'not_started') str += `\n   [learner progress: ${s.status}${s.last_attempt ? ` — last attempt: "${s.last_attempt}"` : ''}]`;
+            return str;
+          }).join('');
+        } else if (lesson.content) {
           out += `\n${lesson.content}`;
         } else {
           out += `\nThis lesson has no content yet. Use action "write_content" to add teaching material.`;
@@ -827,19 +942,69 @@ export class LearningTeachTool implements Tool {
       }
 
       case 'write_content': {
-        if (!content) return { success: false, output: 'Content is required for write_content action' };
-
-        // Content quality guidance based on lesson type
-        const contentTemplates: Record<string, string> = {
-          concept: '**Template: Concept Lesson**\n1. Explain the concept clearly\n2. Give 2-3 concrete examples\n3. Show a common mistake and how to avoid it\n4. Summarise the key takeaway',
-          exercise: '**Template: Exercise**\n1. Describe the problem clearly\n2. State the expected input/output\n3. Give a hint (not the answer)\n4. Provide acceptance criteria',
-          project: '**Template: Project**\n1. Project requirements (what to build)\n2. Starter code or setup steps\n3. Milestones to work through\n4. Acceptance criteria for completion',
-          quiz: '**Template: Quiz**\nQuestions themselves are set via action "set_quiz" (pass a `questions` array). Use `write_content` on a quiz lesson only to set a short intro / instructions shown above the questions.',
-          recap: '**Template: Recap**\n1. Summary of key concepts from previous lessons\n2. How they connect together\n3. Quick self-check questions',
-          challenge: '**Template: Challenge**\n1. Advanced problem combining multiple concepts\n2. Constraints that make it harder\n3. No hints — the user should apply what they\'ve learned\n4. Bonus criteria for excellence',
+        // Step templates — the Brilliant-style teach→do→check loop. This is the
+        // guidance that makes a *generated* lesson feel crafted: small bites,
+        // the learner doing the thing immediately, Ava grading their real
+        // answer. Returned to the writer when the steps are thin or missing.
+        const stepTemplates: Record<string, string> = {
+          concept: '**Step template — Concept (teach→do→check loop)**\n' +
+            'Break the idea into 3-6 small steps. Each: teach ONE bite (≤2 sentences), then have the learner USE it right away.\n' +
+            '1. Open with a `predict` or `choice` that makes them FEEL the idea before you name it.\n' +
+            '2. Then `free_text` steps where they apply it to THEIR OWN example — set an `evaluation` rubric so you grade their real answer (e.g. "has X, Y and Z").\n' +
+            '3. End on a synthesis step: they do the whole skill unaided on something real to them — that is the mastery check.\n' +
+            'They learn by doing, not reading — never more than a bite of teach before an interaction.',
+          exercise: '**Step template — Exercise**\n' +
+            'Walk them INTO the solution, do not hand it over. `teach` the goal + first sub-step, then a `code`/`free_text` step for it (with `answer` or an `evaluation` rubric). Build up one checked sub-step at a time; final step assembles the whole thing, graded against acceptance criteria in `evaluation`.',
+          project: '**Step template — Project**\n' +
+            'A sequence of build milestones, each a `code` step the learner runs. `teach` the requirement + provide `starter` code; each milestone is a `code` interaction with an `evaluation` rubric ("does it do X?"); final step: it all works together.',
+          challenge: '**Step template — Challenge**\n' +
+            'Less scaffolding — they apply what they learned. One `teach` setting the problem + constraints, then a `code`/`free_text` step where they solve it with a tough `evaluation` rubric (and a bonus criterion). Hints only on a wrong attempt.',
+          recap: '**Step template — Recap**\n' +
+            'Active recall, not a summary to read. `predict`/`choice`/`free_text` steps that make them RETRIEVE each key idea from earlier lessons (with `answer` or `evaluation`), then an open step connecting them.',
+          quiz: '**Quiz lessons** use action "set_quiz" for the questions; `write_content` only sets a short intro shown above them.',
         };
 
-        // Check content quality
+        // ── Preferred path: interactive steps (teach→do→check) ──
+        if (steps && steps.length > 0) {
+          const w: string[] = [];
+          if (steps.length < 3 && lesson.type !== 'quiz') w.push('A lesson is a loop, not a card or two — aim for 3-6 steps that build to the learner doing the whole skill.');
+          if (steps.some(s => !s.teach || s.teach.trim().length < 8)) w.push('Every step should teach a bite before it asks the learner to act.');
+          if (steps.some(s => !s.interaction?.kind || !s.interaction?.prompt)) w.push('Every step needs an interaction (kind + prompt) — that is the "do" in teach→do→check.');
+          const openNoRubric = steps.filter(s => (s.interaction?.kind === 'free_text' || s.interaction?.kind === 'code') && !s.interaction?.evaluation?.trim());
+          if (openNoRubric.length) w.push(`${openNoRubric.length} open step(s) have no \`evaluation\` rubric — without it you can't grade the learner's real answer. That is the whole point; add one to each.`);
+          const detNoAnswer = steps.filter(s => (s.interaction?.kind === 'choice' || s.interaction?.kind === 'predict') && !s.interaction?.answer?.trim());
+          if (detNoAnswer.length) w.push(`${detNoAnswer.length} choice/predict step(s) have no \`answer\` for the check — add it.`);
+          if (!steps.some(s => s.interaction?.kind === 'free_text' || s.interaction?.kind === 'code')) w.push('No open step where the learner applies the skill to their OWN example — add at least one free_text/code step with an evaluation rubric. That is what makes it more than a clickthrough.');
+
+          lesson.steps = steps.map(s => ({
+            id: generateId(),
+            teach: s.teach,
+            interaction: {
+              kind: s.interaction.kind,
+              prompt: s.interaction.prompt,
+              options: s.interaction.options,
+              answer: s.interaction.answer,
+              evaluation: s.interaction.evaluation,
+              starter: s.interaction.starter,
+            },
+            feedback: s.feedback && (s.feedback.correct || s.feedback.incorrect)
+              ? { correct: s.feedback.correct ?? '', incorrect: s.feedback.incorrect ?? '' }
+              : undefined,
+            status: 'not_started' as const,
+            attempts: 0,
+            last_attempt: null,
+          }));
+          curriculum.updated_at = new Date().toISOString();
+          await persist(globalDir, store, context);
+
+          let out = `Wrote ${steps.length} interactive step${steps.length === 1 ? '' : 's'} for "${lesson.title}".`;
+          if (w.length) out += `\n\n⚠️ Make it land:\n${w.map(x => `- ${x}`).join('\n')}\n\n${stepTemplates[lesson.type] || stepTemplates.concept}`;
+          return { success: true, output: out };
+        }
+
+        // ── Legacy path: markdown content blob (read-then-test) ──
+        if (!content) return { success: false, output: 'Provide `steps` (preferred — the interactive teach→do→check loop) or `content` (legacy markdown).' };
+
         const warnings: string[] = [];
         if (content.length < 100 && lesson.type !== 'quiz') warnings.push('Content seems short. Good lessons have depth — examples, explanations, edge cases.');
         if (lesson.type === 'concept' && !content.includes('example') && !content.includes('Example') && !content.includes('```')) {
@@ -848,6 +1013,7 @@ export class LearningTeachTool implements Tool {
         if (lesson.type === 'exercise' && !content.includes('expected') && !content.includes('output') && !content.includes('should')) {
           warnings.push('Exercises should have clear expected outcomes. What should the result look like?');
         }
+        warnings.push('Prefer `steps` — an interactive teach→do→check loop the learner works through, not a blob they read.');
 
         lesson.content = content;
         curriculum.updated_at = new Date().toISOString();
@@ -855,8 +1021,8 @@ export class LearningTeachTool implements Tool {
 
         let out = `Updated content for "${lesson.title}" (${content.length} chars)`;
         if (warnings.length > 0) {
-          out += `\n\n⚠️ Quality notes:\n${warnings.map(w => `- ${w}`).join('\n')}`;
-          out += `\n\nReference template for ${lesson.type} lessons:\n${contentTemplates[lesson.type] || ''}`;
+          out += `\n\n⚠️ Quality notes:\n${warnings.map(x => `- ${x}`).join('\n')}`;
+          out += `\n\n${stepTemplates[lesson.type] || ''}`;
         }
         return { success: true, output: out };
       }
