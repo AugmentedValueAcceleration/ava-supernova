@@ -239,6 +239,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       this.signInManager.onEvent((event) => {
         this.postMessage(event as any);
       });
+      // Resume a sign-in that was in flight when the extension host last
+      // reloaded — restarts the polling loop so a browser authorization that
+      // happened (or happens) during the reload still completes.
+      this.signInManager.resumePendingSignIn();
     })();
 
     // Detect project and load instructions (also creates historyManager)
