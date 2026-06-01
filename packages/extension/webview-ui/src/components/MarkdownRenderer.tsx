@@ -53,9 +53,17 @@ class MarkdownErrorBoundary extends React.Component<{ children: React.ReactNode;
   }
 }
 
+// Hide the internal <changes-summary> completion-contract block. The
+// coordinator parses it from the stored message for post-build verification,
+// so it must stay in the message — but it's never meant for display, and
+// ReactMarkdown (no rehype-raw) would otherwise escape the raw tags into
+// literal text. Matches a complete block or an unterminated one (mid-stream).
+const CHANGES_SUMMARY_RE = /\s*<changes-summary>[\s\S]*?(?:<\/changes-summary>|$)/i;
+
 export function MarkdownRenderer({ content }: MarkdownRendererProps) {
+  const cleaned = content.replace(CHANGES_SUMMARY_RE, '');
   return (
-    <MarkdownErrorBoundary fallback={content}>
+    <MarkdownErrorBoundary fallback={cleaned}>
     <div className="markdown-body space-y-2.5">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
@@ -171,7 +179,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
           ),
         }}
       >
-        {content}
+        {cleaned}
       </ReactMarkdown>
     </div>
     </MarkdownErrorBoundary>

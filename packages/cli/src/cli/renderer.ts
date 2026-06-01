@@ -100,9 +100,15 @@ export class Renderer {
     this.endThinking();
     if (!this.streamBuffer) return;
 
-    const hasMarkdown = /```[\s\S]*```|^#{1,6}\s|^\*\*|^- |\|.*\|/m.test(this.streamBuffer);
+    // Strip the internal <changes-summary> completion-contract block — the
+    // coordinator parses it for post-build verification, it's never meant for
+    // display. streamText already echoed it live, so when it's present we take
+    // the erase + re-render path below to remove it from the terminal.
+    const cleaned = this.streamBuffer.replace(/\s*<changes-summary>[\s\S]*?(?:<\/changes-summary>|$)/i, '');
+    const hadSummary = cleaned !== this.streamBuffer;
+    const hasMarkdown = /```[\s\S]*```|^#{1,6}\s|^\*\*|^- |\|.*\|/m.test(cleaned);
 
-    if (hasMarkdown) {
+    if (hasMarkdown || hadSummary) {
       process.stdout.write('\r');
       for (let i = 0; i < this.streamLineCount; i++) {
         process.stdout.write('\x1b[2K');
@@ -111,8 +117,8 @@ export class Renderer {
       process.stdout.write('\x1b[2K\r');
 
       // Sanitise raw ANSI escape sequences from AI output before rendering
-      const sanitised = this.streamBuffer.replace(/\x1b\[[0-9;]*[a-zA-Z~]/g, '');
-      const rendered = marked.parse(sanitised) as string;
+      const sanitised = cleaned.replace(/\x1b\[[0-9;]*[a-zA-Z~]/g, '');
+      const rendered = hasMarkdown ? (marked.parse(sanitised) as string) : sanitised + '\n';
       process.stdout.write(rendered);
     } else {
       process.stdout.write('\n');
