@@ -17,8 +17,8 @@ import { generateBrief, formatBriefAsSystem } from './brief-generator.js';
 import { ContextTracker } from './context-tracker.js';
 import { resolveCoordinatorModel } from './coordinator-model.js';
 import { classifyIntent, classifyTeachDepth, resolveIntentGateModel } from './intent-gate.js';
-import { SUPERNOVA_COORDINATOR_ID, SUPERNOVA_BUILDER_ID } from './supernova-router.js';
-import { AURORA_COORDINATOR_ID, AURORA_BUILDER_ID } from './aurora-router.js';
+import { SUPERNOVA_COORDINATOR_ID, SUPERNOVA_BUILDER_ID, SUPERNOVA_VISION_ID } from './supernova-router.js';
+import { AURORA_COORDINATOR_ID, AURORA_BUILDER_ID, AURORA_VISION_ID } from './aurora-router.js';
 import type { RoutingMode } from './model-router.js';
 import { buildSystemPrompt } from '../agent/system-prompt.js';
 import { TaskExecutor } from './task-executor.js';
@@ -93,6 +93,15 @@ export class AutoCoordinator {
    *  loops, vision-aware so screenshots don't need a re-route). */
   private readonly builderProvider: Provider;
   private readonly builderModel: ModelDefinition;
+  /** Provider+model for image/vision input. The coordinators are blind to
+   *  images (DeepSeek V4 Pro, Mistral Large 3 — no vision via API), so an
+   *  attached image is handed to a vision-capable model instead: Supernova /
+   *  Auto → Qwen 3.5 Omni Plus, Aurora → Mistral Medium 3.5. Null when none
+   *  is reachable — then the coordinator runs and honestly says it can't see
+   *  the image (rather than hallucinate one). Agent built lazily on first image. */
+  private readonly visionProvider: Provider | null;
+  private readonly visionModel: ModelDefinition | null;
+  private visionAgent: Agent | null = null;
 
   constructor(opts: {
     coordinatorProvider: Provider;
@@ -158,6 +167,16 @@ export class AutoCoordinator {
       this.builderProvider = opts.coordinatorProvider;
       this.builderModel = opts.coordinatorModel;
     }
+
+    // Resolve the vision model for image inputs (see field doc). Mirrors the
+    // builder resolution: platform-managed first, then BYOK, then null.
+    const visionId = this.mode === 'aurora' ? AURORA_VISION_ID : SUPERNOVA_VISION_ID;
+    const visionResolved =
+      opts.providerRegistry.resolveModel(`platform:${visionId}`)
+      ?? opts.providerRegistry.resolveModel(visionId)
+      ?? (this.mode === 'aurora' ? opts.providerRegistry.resolveModel(`mistral:${visionId}`) : null);
+    this.visionProvider = visionResolved?.provider ?? null;
+    this.visionModel = visionResolved?.model ?? null;
 
     // Resolve a cheap fast model for the upstream intent gate.
     // Prefers Qwen 3.5 Flash on platform; falls through to Haiku/DeepSeek
@@ -499,6 +518,20 @@ export class AutoCoordinator {
 
     // Direct handling — no spawn needed
     if (DIRECT_CATEGORIES.has(classification.category) && !classification.modelOverride) {
+      // Image inputs need a vision-capable model. The coordinators (V4 Pro,
+      // Mistral Large 3) are blind to images — Agent.run() would strip the
+      // image parts and tell the user to switch models. Hand the turn to the
+      // resolved vision model (Qwen 3.5 Omni Plus / Mistral Medium 3.5) when
+      // the coordinator can't see. Falls through to the coordinator if no
+      // vision model resolved or the coordinator already supports vision
+      // (e.g. a BYOK Claude/Qwen coordinator that can see images itself).
+      if (classification.category === 'vision'
+          && this.visionProvider && this.visionModel
+          && !this.coordinatorModel.supportsVision) {
+        const visionAgent = this.getVisionAgent();
+        onEvent({ type: 'progress', labelKey: 'thinking.working', model: this.visionModel.name });
+        return this.runWithActiveAgent(visionAgent, messages, onEvent, signal);
+      }
       onEvent({ type: 'progress', labelKey: 'thinking.working', model: this.coordinatorModel.name });
       return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
     }
@@ -606,6 +639,22 @@ export class AutoCoordinator {
    * inject() can route mid-run user messages to whichever agent is actually
    * executing right now.
    */
+  /** Lazily build + cache the vision agent (Qwen 3.5 Omni Plus / Mistral
+   *  Medium 3.5). Only constructed the first time an image is attached, so
+   *  text-only sessions never pay for it. Mirrors coordinatorAgent's build. */
+  private getVisionAgent(): Agent {
+    if (!this.visionAgent) {
+      this.visionAgent = new Agent({
+        provider: this.visionProvider!,
+        model: this.visionModel!,
+        toolRegistry: this.toolRegistry,
+        cwd: this.cwd,
+        sharedState: this.sharedState,
+      });
+    }
+    return this.visionAgent;
+  }
+
   private async runWithActiveAgent(
     agent: Agent,
     messages: Message[],
