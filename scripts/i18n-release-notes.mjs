@@ -146,6 +146,29 @@ const RELEASES = [
       'Where models lose is shown on purpose, in its own panel — because publishing your losses is the part nobody fakes.',
     ],
   },
+  {
+    migration: 300,
+    version: '0.67.0',
+    platform: 'extension',
+    toolCount: 62,
+    publishedAt: '2026-06-01 21:00:00+00',
+    title: 'She shows her work, sees your screen, and signs you in clean',
+    body: `The big features get the headlines, but trust is built in the small moments — the spinner that finally tells you what's happening, the image she can actually read, the sign-in that just works. This release is those moments, smoothed.
+
+**No more staring at a blank spinner.** Send a prompt to a coordinator model and Ava used to go quiet for ten seconds while she classified the task and picked the right model — a silent wheel with nothing behind it. Now she tells you what she's doing in that window — reading your request, choosing the model — so you're never left wondering whether anything is happening.
+
+**She can see your screen now.** Drop in a screenshot, a game viewport, a design mockup — and Ava actually reads it. Before, some modes would politely tell you they couldn't process images; now an attached image is handed straight to a vision-capable model, so "look at this" just works.
+
+**The model list is current, and honestly priced.** Every provider's latest models are here for your own key — Claude Opus 4.8, Qwen 3.7 Max, the GLM-5 family, and Mistral's Large 3 / Medium 3.5 / Small 4 trio — each with pricing verified against the provider's own published rates, so the cost you see is the cost you pay.
+
+**Sign-in that just works.** Connecting your account is faster and far harder to break. It now recovers from the things that used to fail it silently — a slow browser handoff, a reloaded window, a second editor open at the same time — instead of leaving you stuck on a screen that never finished.`,
+    highlights: [
+      'See what Ava is doing while she preps your request — the silent ten-second spinner now tells you she is reading and routing, not nothing.',
+      'Attach an image and she actually reads it — screenshots, game viewports and mockups now go to a vision-capable model instead of "I can\'t see that".',
+      'Every provider\'s latest models for your own key, with pricing verified against their published rates — Claude Opus 4.8, Qwen 3.7 Max, the GLM-5 family and Mistral\'s three-tier lineup.',
+      'Sign-in is faster and far more reliable — it recovers from slow handoffs, reloaded windows and a second editor open, instead of failing silently.',
+    ],
+  },
 ];
 
 // ── Credential ───────────────────────────────────────────────────────────────
