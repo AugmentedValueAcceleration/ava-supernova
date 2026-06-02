@@ -915,9 +915,26 @@ export class Agent {
     // even give the model a chance to decide otherwise.
     const earlyUserMsg = this.findLatestNonMetaUserMessage(messages);
     if (earlyUserMsg) {
-      const stopLower = earlyUserMsg.toLowerCase().trim();
-      const isStopCommand = /\b(?:stop|halt|leave it|don'?t touch|quit|enough|i said stop|how dare you)\b/i.test(stopLower)
-        && stopLower.length < 200; // Only short messages — long messages with "stop" in them are probably about something else
+      // Normalise: lowercase, punctuation → spaces (so "stop!", "stop." and
+      // "stop-motion" reduce cleanly), collapse whitespace.
+      const stopNorm = earlyUserMsg
+        .toLowerCase()
+        .replace(/[^a-z'\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      // A genuine stop is an imperative aimed AT Ava — the message is
+      // essentially ONLY a stop directive (optionally wrapped in filler,
+      // address or politeness), NOT the word "stop" buried inside a request.
+      // Anchored ^…$ so "stop by the shop", "add a stop button", "stop the
+      // loop", "don't stop", "stop-motion" do NOT match, while "stop",
+      // "ok stop", "just stop ava", "stop it now", "i said stop", "enough",
+      // "leave it" still do. The Stop button remains the unconditional hard
+      // stop regardless of wording.
+      const STOP_LEAD = "(?:(?:ok|okay|alright|aight|right|now|just|please|pls|hey|ava|oi|yo|yeah|oh|ugh|ffs|no|nah|jesus|christ|for fuck'?s sake|for god'?s sake)\\s+)*";
+      const STOP_CORE = "(?:stop|stahp|halt|quit|enough|leave it(?:\\s+alone)?|cut it out|knock it off|pack it in|drop it|abort|i said stop|how dare you|don'?t\\s+touch(?:\\s+(?:it|that))?)";
+      const STOP_TRAIL = "(?:\\s+(?:it|this|that|everything|now|please|pls|ava|already|then|stop|halt|quit|enough|man|mate|ok|okay))*";
+      const isStopCommand = new RegExp(`^${STOP_LEAD}${STOP_CORE}${STOP_TRAIL}$`, 'i').test(stopNorm)
+        && stopNorm.length < 80; // belt-and-braces: a genuine stop is short
       if (isStopCommand) {
         const stopResponse: AssistantMessage = {
           role: 'assistant',
