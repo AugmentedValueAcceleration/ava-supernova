@@ -4492,6 +4492,13 @@ export class DashboardPanel {
     this.post({ type: 'session_tasks_updated', tasks });
   }
 
+  /** Notify dashboard that health plans changed (called from AvaViewProvider
+   *  after an Ava-driven plan create/update). Re-posts the plan index so the
+   *  Plans-tab calendar shows the new plan live, without a dashboard reload. */
+  public notifyHealthPlansUpdated(): void {
+    this.post({ type: 'health_plans_loaded', plans: this.getHealthPlanIndex() });
+  }
+
   // ─── Overview Widgets (Weather, News, Release) ─────────────────────────────
 
   private static mapWmoCondition(code: number): { condition: string; emoji: string } {

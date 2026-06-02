@@ -1576,7 +1576,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       // Surface-injected health plan store — wraps the same globalState
       // keys DashboardPanel uses, so Ava-driven and UI-driven plan saves
       // share storage. See COMMAND_PALETTE_PLAN.md §10.
-      healthPlanStore: new ExtensionHealthPlanStore(this.context),
+      // onPlansChanged fires after every Ava-driven create/update so the
+      // dashboard's Plans-tab calendar refreshes live (previously a plan Ava
+      // created only appeared after a manual dashboard reload).
+      healthPlanStore: new ExtensionHealthPlanStore(this.context, () => {
+        DashboardPanel.currentPanel?.notifyHealthPlansUpdated();
+      }),
       platformKey,
       learningLocalOnly,
       generationLocalOnly,
