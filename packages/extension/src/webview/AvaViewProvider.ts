@@ -729,6 +729,17 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       case 'toggle_task':
         mapped = { type: 'toggle_task', taskId: msg.taskId as string };
         break;
+      case 'panel_create_task':
+        mapped = {
+          type: 'panel_create_task',
+          title: msg.title as string,
+          description: msg.description as string | undefined,
+          priority: msg.priority as string | undefined,
+          category: msg.category as string | undefined,
+          due_date: msg.due_date as string | undefined,
+          recurrence: msg.recurrence as string | undefined,
+        };
+        break;
       case 'rate_message':
         mapped = { type: 'rate_message', messageId: msg.messageId as string, rating: msg.rating as 'up' | 'down', reason: msg.reason as string | undefined };
         break;
@@ -2506,6 +2517,24 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       case 'toggle_task':
         if (this.taskManager && message.taskId) {
           await this.taskManager.completeTask(message.taskId);
+          await this.sendTodayTasks();
+          await this.sendAllTasks();
+        }
+        break;
+
+      case 'panel_create_task':
+        if (this.taskManager && message.title) {
+          type AddOpts = Parameters<TaskManager['addTask']>[0];
+          await this.taskManager.addTask({
+            title: message.title,
+            description: message.description,
+            priority: (message.priority as AddOpts['priority']) ?? 'medium',
+            category: (message.category as AddOpts['category']) ?? 'personal',
+            dueDate: message.due_date,
+            recurrence: (message.recurrence as AddOpts['recurrence']) ?? 'none',
+            scope: 'project',
+            source: 'user',
+          });
           await this.sendTodayTasks();
           await this.sendAllTasks();
         }

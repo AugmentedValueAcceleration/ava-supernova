@@ -11,11 +11,17 @@ export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 /** Status of a task. */
 export type TaskStatus = 'todo' | 'in-progress' | 'done' | 'archived' | 'blocked';
 
-/** Categories for task entries. */
-export type TaskCategory = 'coding' | 'personal' | 'admin' | 'meeting' | 'custom';
+/** Category for a task. The values in TASK_CATEGORIES are common presets, but
+ *  any custom label is allowed — not everyone's life fits five buckets
+ *  (fitness, study, garden… all get their own identity). */
+export type TaskCategory = string;
 
-/** Recurrence options. */
-export type TaskRecurrence = 'none' | 'daily' | 'weekly';
+/** Recurrence options.
+ *  - daily: every day
+ *  - weekdays: every Mon–Fri
+ *  - weekly: same weekday each week
+ *  - monthly: same date each month */
+export type TaskRecurrence = 'none' | 'daily' | 'weekdays' | 'weekly' | 'monthly';
 
 /** Who created the task. */
 export type TaskSource = 'user' | 'ava';
@@ -82,8 +88,12 @@ export interface TaskListOptions {
 /** All valid priorities as an array. */
 export const TASK_PRIORITIES: TaskPriority[] = ['low', 'medium', 'high', 'urgent'];
 
-/** All valid categories as an array. */
-export const TASK_CATEGORIES: TaskCategory[] = ['coding', 'personal', 'admin', 'meeting', 'custom'];
+/** Suggested preset categories surfaced in pickers. Not exhaustive — any
+ *  custom label is valid; these just seed the dropdown for the common cases
+ *  (deliberately broad so non-coders feel at home). */
+export const TASK_CATEGORIES: TaskCategory[] = [
+  'personal', 'coding', 'admin', 'meeting', 'health', 'finance', 'errands', 'study', 'home',
+];
 
 /** Default empty task store. */
 export function createEmptyTaskStore(): TaskStore {

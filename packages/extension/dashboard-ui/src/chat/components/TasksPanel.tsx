@@ -1,8 +1,20 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { t, useLocale } from '../../i18n';
+import { t, tt, useLocale } from '../../i18n';
 import type { TodayTaskUI, SessionTaskUI, AvaCompletedTaskUI } from '../../types/messages';
 
-type Tab = 'personal' | 'ava';
+
+/** Payload for a manually created task from the panel's quick-add. */
+export interface CreateTaskInput {
+  title: string;
+  priority?: string;
+  category?: string;
+  due_date?: string;
+}
+
+/** Preset categories that seed the picker. Default is neutral, not coding —
+ *  and the field is free-form, so a user can type ANY label (fitness, garden…). */
+const CATEGORY_OPTIONS = ['personal', 'coding', 'admin', 'meeting', 'health', 'finance', 'errands', 'study', 'home'] as const;
+const PRIORITY_OPTIONS = ['low', 'medium', 'high', 'urgent'] as const;
 
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 500;
@@ -15,6 +27,7 @@ interface TasksPanelProps {
   avaCompletedTasks: AvaCompletedTaskUI[];
   onClose: () => void;
   onToggleTask: (taskId: string) => void;
+  onCreateTask: (task: CreateTaskInput) => void;
   width: number;
   onWidthChange: (width: number) => void;
 }
@@ -26,11 +39,14 @@ export function TasksPanel({
   avaCompletedTasks,
   onClose,
   onToggleTask,
+  onCreateTask,
   width,
   onWidthChange,
 }: TasksPanelProps) {
   useLocale();
-  const [tab, setTab] = useState<Tab>('personal');
+  // Your tasks are the home view; Ava's live work appears as a sticky band on
+  // top only while she's working (no tabs — the relevant thing is just there).
+  const [filter, setFilter] = useState<PersonalFilter>('today');
   const panelRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const startX = useRef(0);
@@ -55,12 +71,6 @@ export function TasksPanel({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  // ── Auto-switch to Ava tab ───────────────────────────────────────────
-  useEffect(() => {
-    if (sessionTasks.length > 0 && tab === 'personal' && todayTasks.length === 0) {
-      setTab('ava');
-    }
-  }, [sessionTasks.length, tab, todayTasks.length]);
 
   // ── Drag resize — smooth with rAF, commit on mouseup ────────────────
   const onMouseDown = useCallback((e: React.MouseEvent) => {
@@ -118,8 +128,9 @@ export function TasksPanel({
         width: liveWidth,
         minWidth: MIN_WIDTH,
         maxWidth: MAX_WIDTH,
-        borderLeft: '1px solid rgba(168, 85, 247, 0.12)',
-        background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(168, 85, 247, 0.04) 0%, transparent 70%), var(--vscode-sideBar-background)',
+        borderLeft: '1px solid var(--border-card)',
+        background: 'radial-gradient(ellipse 90% 40% at 50% 0%, rgba(168, 85, 247, 0.10) 0%, transparent 65%), linear-gradient(180deg, rgba(26,16,40,0.95) 0%, rgba(20,13,34,0.97) 100%)',
+        backdropFilter: 'blur(12px)',
       }}
     >
       {/* Drag handle — left edge */}
@@ -129,89 +140,140 @@ export function TasksPanel({
         style={{ width: 4, cursor: 'col-resize' }}
       />
 
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-3 py-2.5 flex-shrink-0"
-        style={{ borderBottom: '1px solid rgba(168, 85, 247, 0.12)' }}
+      {/* Persistent grip — same spot as the collapsed spine's, points right to
+          collapse. The single, never-moving expand/collapse control. */}
+      <button
+        onClick={onClose}
+        title={tt('tasks.collapse', 'Collapse')}
+        aria-label={tt('tasks.collapse', 'Collapse')}
+        className="absolute top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-6 h-6 rounded-full cursor-pointer transition hover:scale-110"
+        style={{ left: -12, background: 'var(--bg-page)', border: '1px solid rgba(168,85,247,0.35)', color: 'var(--accent)', boxShadow: '0 1px 4px rgba(0,0,0,0.25)' }}
       >
-        <div className="flex items-center gap-2">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" className="opacity-50">
-            <path d="M3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 3.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 7.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 11.5h8v1H6v-1z"/>
-          </svg>
-          <span className="text-xs font-semibold">{t('tasks.today')}</span>
-        </div>
-        <button
-          onClick={onClose}
-          title={t('tasks.close')}
-          className="flex items-center justify-center w-6 h-6 rounded-lg
-                     hover:bg-white/[0.06]
-                     text-[var(--vscode-foreground)] opacity-50 hover:opacity-100
-                     bg-transparent border-none cursor-pointer transition"
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 8.707l3.646 3.647.708-.707L8.707 8l3.647-3.646-.707-.708L8 7.293 4.354 3.646l-.707.708L7.293 8l-3.646 3.646.707.708L8 8.707z"/>
-          </svg>
-        </button>
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M5.646 3.646a.5.5 0 0 1 .708 0l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L9.293 8 5.646 4.354a.5.5 0 0 1 0-.708z" />
+        </svg>
+      </button>
+
+      {/* Header — title only; collapse is the persistent grip on the border. */}
+      <div
+        className="flex items-center gap-2 px-3 py-2.5 flex-shrink-0"
+        style={{ borderBottom: '1px solid var(--border-card)' }}
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style={{ color: 'var(--accent)' }} className="opacity-80">
+          <path d="M3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 3.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 7.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 11.5h8v1H6v-1z"/>
+        </svg>
+        <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{t('tasks.today')}</span>
       </div>
 
-      {/* Tabs */}
-      <div className="flex" style={{ borderBottom: '1px solid rgba(168, 85, 247, 0.08)' }}>
-        <button
-          onClick={() => setTab('personal')}
-          className={`flex-1 px-3 py-2 text-[11px] font-medium border-none cursor-pointer transition-all
-            ${tab === 'personal'
-              ? 'text-[var(--vscode-foreground)] opacity-90'
-              : 'text-[var(--vscode-foreground)] opacity-40 hover:opacity-60 bg-transparent'
-            }`}
-          style={{
-            background: 'transparent',
-            borderBottom: tab === 'personal' ? '2px solid #A855F7' : '2px solid transparent',
-          }}
-        >
-          {t('tasks.personal')}
-          {allTasks.length > 0 && (
-            <span className="ml-1.5 text-[9px] opacity-50">
-              {allTasks.filter(t => t.status !== 'done').length}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setTab('ava')}
-          className={`flex-1 px-3 py-2 text-[11px] font-medium border-none cursor-pointer transition-all
-            ${tab === 'ava'
-              ? 'text-[var(--vscode-foreground)] opacity-90'
-              : 'text-[var(--vscode-foreground)] opacity-40 hover:opacity-60 bg-transparent'
-            }`}
-          style={{
-            background: 'transparent',
-            borderBottom: tab === 'ava' ? '2px solid #A855F7' : '2px solid transparent',
-          }}
-        >
-          {t('tasks.ava')}
-          {sessionTasks.length > 0 && (
-            <span className="ml-1.5 text-[9px] opacity-50">
-              {completedSession}/{sessionTasks.length}
-            </span>
-          )}
-        </button>
+      {/* Quick add — pinned under the header. The front door. */}
+      <div className="flex-shrink-0">
+        <QuickAdd onCreate={onCreateTask} defaultDueToday={filter === 'today'} />
       </div>
 
-      {/* Content */}
+      {/* Body — your tasks fill it; Ava's live work pins to the top as a sticky
+          band only while she's working; her recent work tucks away at the bottom. */}
       <div className="flex-1 overflow-y-auto">
-        {tab === 'personal' ? (
-          <PersonalTab
-            todayTasks={todayTasks}
-            allTasks={allTasks}
-            onToggleTask={onToggleTask}
-          />
-        ) : (
-          <AvaTab
-            sessionTasks={sessionTasks}
-            completedSession={completedSession}
-            avaCompletedTasks={avaCompletedTasks}
-          />
+        {sessionTasks.length > 0 && (
+          <AvaBand sessionTasks={sessionTasks} completedSession={completedSession} />
+        )}
+
+        <YourTasks
+          todayTasks={todayTasks}
+          allTasks={allTasks}
+          filter={filter}
+          onFilterChange={setFilter}
+          onToggleTask={onToggleTask}
+        />
+
+        {avaCompletedTasks.length > 0 && (
+          <AvaRecentWork avaCompletedTasks={avaCompletedTasks} />
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Ava band — sticky live-work indicator ──────────────────────────────────────
+
+function AvaBand({ sessionTasks, completedSession }: { sessionTasks: SessionTaskUI[]; completedSession: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const total = sessionTasks.length;
+  const allDone = completedSession === total;
+  const current = sessionTasks.find(t => t.status === 'in_progress')
+    ?? sessionTasks.find(t => t.status !== 'completed');
+
+  return (
+    <div
+      className="sticky top-0 z-10"
+      style={{
+        background: 'linear-gradient(180deg, rgba(40,22,58,0.97) 0%, rgba(30,18,46,0.97) 100%)',
+        backdropFilter: 'blur(6px)',
+        borderBottom: '1px solid rgba(168,85,247,0.18)',
+      }}
+    >
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex flex-col gap-1.5 px-3 py-2 bg-transparent border-none cursor-pointer text-left"
+      >
+        <div className="flex items-center gap-2">
+          <span
+            className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"
+            style={{ color: allDone ? '#34d399' : '#A855F7' }}
+          >
+            {!allDone && <span className="inline-block animate-spin" style={{ animationDuration: '1.5s' }}>⟳</span>}
+            {tt('tasks.ava', 'Ava')}
+          </span>
+          <span className="text-[10px] opacity-50 flex-1 truncate">
+            {allDone ? tt('tasks.all_complete', 'All steps complete') : current?.title}
+          </span>
+          <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: allDone ? '#34d399' : '#A855F7' }}>
+            {completedSession}/{total}
+          </span>
+          <svg
+            width="10" height="10" viewBox="0 0 16 16" fill="currentColor"
+            className="opacity-40 flex-shrink-0 transition-transform"
+            style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+          >
+            <path d="M6 4l4 4-4 4V4z" />
+          </svg>
+        </div>
+        <div className="w-full h-1 rounded-full" style={{ background: 'rgba(168,85,247,0.12)' }}>
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{ width: `${total > 0 ? (completedSession / total) * 100 : 0}%`, background: allDone ? '#34d399' : '#A855F7' }}
+          />
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="px-2 pb-2 flex flex-col gap-0.5">
+          {sessionTasks.map(task => (
+            <SessionItem key={task.id} task={task} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Ava recent work — collapsible history at the bottom ─────────────────────────
+
+function AvaRecentWork({ avaCompletedTasks }: { avaCompletedTasks: AvaCompletedTaskUI[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-1" style={{ borderTop: '1px solid rgba(168, 85, 247, 0.06)' }}>
+      <CollapsibleSection
+        title={tt('tasks.ava_recent_work', "Ava's recent work")}
+        count={String(avaCompletedTasks.length)}
+        open={open}
+        onToggle={() => setOpen(o => !o)}
+      >
+        <div className="flex flex-col gap-0.5">
+          {avaCompletedTasks.map(task => (
+            <CompletedItem key={task.id} task={task} />
+          ))}
+        </div>
+      </CollapsibleSection>
     </div>
   );
 }
@@ -220,33 +282,176 @@ export function TasksPanel({
 
 type PersonalFilter = 'today' | 'all';
 
-function PersonalTab({
+// ── Quick add ─────────────────────────────────────────────────────────────────
+
+const QUICK_INPUT_STYLE: React.CSSProperties = {
+  background: 'var(--bg-input)',
+  color: 'var(--text-primary)',
+  border: '1px solid var(--border-input)',
+};
+
+function QuickAdd({
+  onCreate,
+  defaultDueToday,
+}: {
+  onCreate: (task: CreateTaskInput) => void;
+  defaultDueToday: boolean;
+}) {
+  useLocale();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [priority, setPriority] = useState('medium');
+  const [category, setCategory] = useState('personal');
+  const [dueDate, setDueDate] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) inputRef.current?.focus();
+  }, [open]);
+
+  const reset = useCallback(() => {
+    setTitle('');
+    setPriority('medium');
+    setCategory('personal');
+    setDueDate('');
+  }, []);
+
+  const submit = useCallback(() => {
+    const trimmed = title.trim();
+    if (!trimmed) return;
+    // "Today" view implies the task belongs to today unless a date is picked,
+    // so it shows up where the user added it. The "All" view stays date-free.
+    const due = dueDate || (defaultDueToday ? new Date().toISOString().slice(0, 10) : undefined);
+    onCreate({ title: trimmed, priority, category, due_date: due });
+    reset();
+    inputRef.current?.focus(); // keep open for rapid entry
+  }, [title, dueDate, defaultDueToday, priority, category, onCreate, reset]);
+
+  const cancel = useCallback(() => {
+    reset();
+    setOpen(false);
+  }, [reset]);
+
+  if (!open) {
+    return (
+      <div className="px-3 pt-2.5">
+        <button
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-1.5 w-full px-2.5 py-1.5 rounded-lg text-[11px] font-medium
+                     border border-dashed cursor-pointer transition-all
+                     text-[var(--text-secondary)] opacity-50 hover:opacity-90"
+          style={{ borderColor: 'rgba(168,85,247,0.25)', background: 'transparent' }}
+        >
+          <span className="text-[13px] leading-none" style={{ color: '#A855F7' }}>+</span>
+          {tt('tasks.add_task', 'Add a task')}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="mx-3 mt-2.5 p-2 rounded-lg flex flex-col gap-2"
+      style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}
+    >
+      <input
+        ref={inputRef}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') submit();
+          else if (e.key === 'Escape') cancel();
+        }}
+        placeholder={tt('tasks.add_placeholder', 'What needs doing?')}
+        className="w-full px-2 py-1.5 rounded-md text-xs outline-none"
+        style={QUICK_INPUT_STYLE}
+      />
+
+      <div className="flex items-center gap-1.5">
+        <select
+          value={priority}
+          onChange={(e) => setPriority(e.target.value)}
+          title={tt('tasks.priority', 'Priority')}
+          className="flex-1 min-w-0 px-1.5 py-1 rounded-md text-[10px] outline-none cursor-pointer"
+          style={QUICK_INPUT_STYLE}
+        >
+          {PRIORITY_OPTIONS.map((p) => (
+            <option key={p} value={p}>{tt(`tasks.priority_${p}`, p)}</option>
+          ))}
+        </select>
+        <input
+          list="quickadd-categories"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          title={tt('tasks.category', 'Category')}
+          placeholder={tt('tasks.category', 'Category')}
+          className="flex-1 min-w-0 px-1.5 py-1 rounded-md text-[10px] outline-none"
+          style={QUICK_INPUT_STYLE}
+        />
+        <datalist id="quickadd-categories">
+          {CATEGORY_OPTIONS.map((c) => <option key={c} value={c} />)}
+        </datalist>
+        <input
+          type="date"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+          title={tt('tasks.due_date', 'Due date')}
+          className="flex-1 min-w-0 px-1.5 py-1 rounded-md text-[10px] outline-none cursor-pointer"
+          style={QUICK_INPUT_STYLE}
+        />
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={submit}
+          disabled={!title.trim()}
+          className="px-3 py-1 rounded-md text-[11px] font-semibold border-none cursor-pointer transition
+                     disabled:opacity-30 disabled:cursor-default"
+          style={{ background: '#A855F7', color: 'white' }}
+        >
+          {tt('tasks.add', 'Add')}
+        </button>
+        <button
+          onClick={cancel}
+          className="px-2.5 py-1 rounded-md text-[11px] font-medium border-none cursor-pointer bg-transparent
+                     text-[var(--text-secondary)] opacity-50 hover:opacity-90 transition"
+        >
+          {tt('tasks.cancel', 'Cancel')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function YourTasks({
   todayTasks,
   allTasks,
+  filter,
+  onFilterChange,
   onToggleTask,
 }: {
   todayTasks: TodayTaskUI[];
   allTasks: TodayTaskUI[];
+  filter: PersonalFilter;
+  onFilterChange: (f: PersonalFilter) => void;
   onToggleTask: (id: string) => void;
 }) {
-  const [filter, setFilter] = useState<PersonalFilter>('today');
-
   const tasks = filter === 'today' ? todayTasks : allTasks;
   const activeTasks = tasks.filter(t => t.status !== 'done');
   const doneTasks = tasks.filter(t => t.status === 'done');
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Toggle */}
+    <div className="flex flex-col">
+      {/* Today / All toggle */}
       <div className="flex items-center gap-1 px-3 pt-2 pb-1">
         {(['today', 'all'] as const).map(f => (
           <button
             key={f}
-            onClick={() => setFilter(f)}
+            onClick={() => onFilterChange(f)}
             className={`px-2.5 py-1 rounded-md text-[10px] font-medium border-none cursor-pointer transition-all
               ${filter === f
                 ? 'text-white'
-                : 'text-[var(--vscode-foreground)] opacity-40 hover:opacity-60 bg-transparent'
+                : 'text-[var(--text-secondary)] opacity-40 hover:opacity-60 bg-transparent'
               }`}
             style={filter === f ? { background: '#A855F7' } : undefined}
           >
@@ -260,7 +465,7 @@ function PersonalTab({
 
       {/* Tasks */}
       {activeTasks.length === 0 && doneTasks.length === 0 ? (
-        <div className="flex flex-col items-center justify-center flex-1 opacity-30 text-xs gap-2 px-4 text-center">
+        <div className="flex flex-col items-center justify-center py-12 opacity-30 text-xs gap-2 px-4 text-center">
           <svg width="24" height="24" viewBox="0 0 16 16" fill="currentColor" className="opacity-40">
             <path d="M3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 3.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 7.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 11.5h8v1H6v-1z"/>
           </svg>
@@ -268,7 +473,7 @@ function PersonalTab({
           <span className="text-[10px] opacity-60">{t('tasks.add_hint')}</span>
         </div>
       ) : (
-        <div className="px-2 pt-1 pb-3 flex-1 overflow-y-auto">
+        <div className="px-2 pt-1 pb-3">
           {activeTasks.length > 0 && (
             <div className="flex flex-col gap-0.5">
               {activeTasks.map(task => (
@@ -294,86 +499,6 @@ function PersonalTab({
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-// ── Ava Tab ───────────────────────────────────────────────────────────────────
-
-function AvaTab({
-  sessionTasks,
-  completedSession,
-  avaCompletedTasks,
-}: {
-  sessionTasks: SessionTaskUI[];
-  completedSession: number;
-  avaCompletedTasks: AvaCompletedTaskUI[];
-}) {
-  const [currentOpen, setCurrentOpen] = useState(true);
-  const [completedOpen, setCompletedOpen] = useState(false);
-
-  const hasSession = sessionTasks.length > 0;
-  const allDone = hasSession && completedSession === sessionTasks.length;
-
-  return (
-    <div className="pb-3">
-      {/* ── Current section ─────────────────────────────────────────── */}
-      <CollapsibleSection
-        title={t('tasks.current')}
-        count={hasSession ? `${completedSession}/${sessionTasks.length}` : undefined}
-        open={currentOpen}
-        onToggle={() => setCurrentOpen(!currentOpen)}
-      >
-        {hasSession ? (
-          <>
-            {/* Progress bar */}
-            <div className="px-2 mb-2">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] opacity-40">
-                  {allDone ? t('tasks.all_complete') : t('tasks.step_of', { current: String(completedSession + 1), total: String(sessionTasks.length) })}
-                </span>
-                <span className="text-[10px] opacity-30">
-                  {Math.round((completedSession / sessionTasks.length) * 100)}%
-                </span>
-              </div>
-              <div className="w-full h-1.5 rounded-full" style={{ background: 'rgba(168, 85, 247, 0.1)' }}>
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${(completedSession / sessionTasks.length) * 100}%`,
-                    background: allDone ? '#34d399' : '#A855F7',
-                  }}
-                />
-              </div>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              {sessionTasks.map(task => (
-                <SessionItem key={task.id} task={task} />
-              ))}
-            </div>
-          </>
-        ) : (
-          <p className="text-[11px] opacity-30 italic px-2 m-0">{t('tasks.no_active_session')}</p>
-        )}
-      </CollapsibleSection>
-
-      {/* ── Completed section ───────────────────────────────────────── */}
-      <CollapsibleSection
-        title={t('tasks.completed')}
-        count={avaCompletedTasks.length > 0 ? String(avaCompletedTasks.length) : undefined}
-        open={completedOpen}
-        onToggle={() => setCompletedOpen(!completedOpen)}
-      >
-        {avaCompletedTasks.length > 0 ? (
-          <div className="flex flex-col gap-0.5">
-            {avaCompletedTasks.map(task => (
-              <CompletedItem key={task.id} task={task} />
-            ))}
-          </div>
-        ) : (
-          <p className="text-[11px] opacity-30 italic px-2 m-0">{t('tasks.no_completed_yet')}</p>
-        )}
-      </CollapsibleSection>
     </div>
   );
 }
@@ -460,16 +585,38 @@ const PRIORITY_STYLES: Record<string, { bg: string; text: string }> = {
   high: { bg: 'rgba(245,158,11,0.12)', text: '#f59e0b' },
 };
 
+// Subtle per-category tint so the board is scannable. Unknown / user-defined
+// categories fall back to slate.
+const CATEGORY_COLORS: Record<string, string> = {
+  personal: '#38bdf8',
+  coding: '#a855f7',
+  admin: '#f59e0b',
+  meeting: '#34d399',
+  custom: '#94a3b8',
+};
+function categoryColor(cat: string): string {
+  return CATEGORY_COLORS[cat] ?? '#94a3b8';
+}
+function formatDueShort(iso: string): string {
+  const d = new Date(iso + 'T00:00:00');
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+}
+
 function TaskItem({ task, onToggle, done }: { task: TodayTaskUI; onToggle: () => void; done?: boolean }) {
   const style = PRIORITY_STYLES[task.priority];
+  const today = new Date().toISOString().slice(0, 10);
+  const overdue = !!task.dueDate && !done && task.dueDate < today;
+  const dueToday = !!task.dueDate && !done && task.dueDate === today;
+  const hasMeta = !done && (task.category || task.dueDate);
 
   return (
     <div
-      className="group flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/[0.04] transition cursor-pointer"
+      className="group flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-white/[0.04] transition cursor-pointer"
       onClick={onToggle}
     >
       <div
-        className={`flex items-center justify-center w-4 h-4 rounded-full border flex-shrink-0 transition
+        className={`flex items-center justify-center w-4 h-4 rounded-full border flex-shrink-0 transition mt-px
           ${done
             ? 'border-emerald-400/50 text-emerald-400'
             : 'border-white/[0.15] text-transparent group-hover:border-white/[0.3] group-hover:text-white/[0.15]'
@@ -479,18 +626,45 @@ function TaskItem({ task, onToggle, done }: { task: TodayTaskUI; onToggle: () =>
         ✓
       </div>
 
-      <span className={`text-xs flex-1 truncate transition ${done ? 'line-through opacity-30' : 'opacity-80'}`}>
-        {task.title}
-      </span>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className={`text-xs flex-1 truncate transition ${done ? 'line-through opacity-30' : 'opacity-80'}`}>
+            {task.title}
+          </span>
+          {style && !done && (
+            <span
+              className="text-[9px] px-1.5 py-0 rounded-full font-medium flex-shrink-0"
+              style={{ backgroundColor: style.bg, color: style.text }}
+            >
+              {task.priority}
+            </span>
+          )}
+        </div>
 
-      {style && !done && (
-        <span
-          className="text-[9px] px-1.5 py-0 rounded-full font-medium flex-shrink-0"
-          style={{ backgroundColor: style.bg, color: style.text }}
-        >
-          {task.priority}
-        </span>
-      )}
+        {hasMeta && (
+          <div className="flex items-center gap-1.5 mt-0.5">
+            {task.category && (
+              <span
+                className="text-[9px] px-1.5 rounded-full font-medium"
+                style={{ color: categoryColor(task.category), backgroundColor: `${categoryColor(task.category)}1a` }}
+              >
+                {task.category}
+              </span>
+            )}
+            {task.dueDate && (
+              <span
+                className="text-[9px]"
+                style={{
+                  color: overdue ? '#ef4444' : dueToday ? '#f59e0b' : 'var(--text-muted)',
+                  opacity: overdue || dueToday ? 1 : 0.6,
+                }}
+              >
+                {formatDueShort(task.dueDate)}{overdue ? ' · overdue' : ''}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

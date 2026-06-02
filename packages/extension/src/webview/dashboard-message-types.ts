@@ -236,10 +236,11 @@ export interface DashboardTaskEntry {
   priority: 'low' | 'medium' | 'high' | 'urgent';
   status: 'todo' | 'in-progress' | 'done' | 'archived' | 'blocked';
   due_date?: string;
-  category: 'coding' | 'personal' | 'admin' | 'meeting' | 'custom';
+  // Free-form — common presets exist but any custom label is valid.
+  category: string;
   source: 'user' | 'ava';
   project: string;
-  recurrence: 'none' | 'daily' | 'weekly';
+  recurrence: 'none' | 'daily' | 'weekdays' | 'weekly' | 'monthly';
   subtasks: { id: string; title: string; done: boolean }[];
   created_at: string;
   updated_at: string;
@@ -1650,6 +1651,7 @@ export type DashboardToExtMessage =
   | { type: 'request_today_tasks' }
   | { type: 'request_all_tasks' }
   | { type: 'toggle_task'; taskId: string }
+  | { type: 'panel_create_task'; title: string; description?: string; priority?: string; category?: string; due_date?: string; recurrence?: string }
   | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; model?: string; mode?: string }
   | { type: 'save_secrets'; secrets: Array<{ id: string; label: string; value: string }> }
   | { type: 'load_secrets' }

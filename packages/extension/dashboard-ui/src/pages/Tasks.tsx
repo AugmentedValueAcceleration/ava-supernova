@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { t, useLocale } from '../i18n';
+import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
 import { StorageBadge } from '../components/StorageBadge';
@@ -7,6 +7,10 @@ import { Skeleton } from '../components/Skeleton';
 import { Select } from '../components/Select';
 import { SearchIcon, TrashIcon, PencilIcon, PlusIcon, CalendarIcon } from '../components/Icons';
 import type { DashboardTaskEntry } from '../types/messages';
+
+// Preset categories that seed the picker. Not a closed set — the field is
+// free-form, so a user can type any label (fitness, garden, kids…).
+const CATEGORY_SUGGESTIONS = ['personal', 'coding', 'admin', 'meeting', 'health', 'finance', 'errands', 'study', 'home'];
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -149,7 +153,7 @@ export function Tasks({ tasks, sessionTasks = [], selectedDate, loaded }: TasksP
   const [formTitle, setFormTitle] = useState('');
   const [formDesc, setFormDesc] = useState('');
   const [formPriority, setFormPriority] = useState<string>('medium');
-  const [formCategory, setFormCategory] = useState<string>('coding');
+  const [formCategory, setFormCategory] = useState<string>('personal');
   const [formDueDate, setFormDueDate] = useState('');
   const [formRecurrence, setFormRecurrence] = useState<string>('none');
 
@@ -209,7 +213,7 @@ export function Tasks({ tasks, sessionTasks = [], selectedDate, loaded }: TasksP
     setFormTitle('');
     setFormDesc('');
     setFormPriority('medium');
-    setFormCategory('coding');
+    setFormCategory('personal');
     setFormDueDate('');
     setFormRecurrence('none');
     setShowForm(false);
@@ -439,16 +443,19 @@ export function Tasks({ tasks, sessionTasks = [], selectedDate, loaded }: TasksP
                     { value: 'urgent', label: t('dash.tasks.priority_urgent') },
                   ]} />
                 </div>
-                {/* Category */}
+                {/* Category — free-form: pick a preset or type your own */}
                 <div>
                   <label className="mb-1 block text-[10px] text-[var(--text-muted)]">{t('dash.tasks.label_category')}</label>
-                  <Select value={formCategory} onChange={setFormCategory} options={[
-                    { value: 'coding', label: t('dash.tasks.cat_coding') },
-                    { value: 'personal', label: t('dash.tasks.cat_personal') },
-                    { value: 'admin', label: t('dash.tasks.cat_admin') },
-                    { value: 'meeting', label: t('dash.tasks.cat_meeting') },
-                    { value: 'custom', label: t('dash.tasks.cat_custom') },
-                  ]} />
+                  <input
+                    list="task-category-suggestions"
+                    value={formCategory}
+                    onChange={e => setFormCategory(e.target.value)}
+                    placeholder={tt('dash.tasks.cat_placeholder', 'e.g. personal, fitness…')}
+                    className="w-full rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-xs text-white placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]/50"
+                  />
+                  <datalist id="task-category-suggestions">
+                    {CATEGORY_SUGGESTIONS.map(c => <option key={c} value={c} />)}
+                  </datalist>
                 </div>
                 {/* Due date */}
                 <div>
@@ -466,7 +473,9 @@ export function Tasks({ tasks, sessionTasks = [], selectedDate, loaded }: TasksP
                   <Select value={formRecurrence} onChange={setFormRecurrence} options={[
                     { value: 'none', label: t('dash.tasks.recurrence_none') },
                     { value: 'daily', label: t('dash.tasks.recurrence_daily') },
+                    { value: 'weekdays', label: tt('dash.tasks.recurrence_weekdays', 'Weekdays (Mon–Fri)') },
                     { value: 'weekly', label: t('dash.tasks.recurrence_weekly') },
+                    { value: 'monthly', label: tt('dash.tasks.recurrence_monthly', 'Monthly') },
                   ]} />
                 </div>
               </div>

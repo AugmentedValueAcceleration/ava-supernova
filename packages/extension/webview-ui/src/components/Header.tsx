@@ -38,9 +38,6 @@ export function Header({
   onSwitch,
   onOpenDashboard,
   onNewChat,
-  onToggleTasks,
-  tasksOpen,
-  sessionTaskCount = 0,
   conversationTitle,
 }: HeaderProps) {
   useLocale();
@@ -161,33 +158,8 @@ export function Header({
         {cloudSync ? tt('dash.chat.cloud_sync', 'Cloud sync') : tt('dash.chat.local_only', 'Local only')}
       </button>
 
-      {/* Tasks — labelled pill with badge, mirrors IDE header at
-          DashboardPages.tsx:4232-4254. */}
-      <button
-        onClick={onToggleTasks}
-        title={t('header.tasks')}
-        aria-label={t('header.tasks')}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
-          background: tasksOpen ? 'rgba(168,85,247,0.2)' : 'rgba(168,85,247,0.05)',
-          border: `1px solid ${tasksOpen ? 'rgba(168,85,247,0.4)' : 'rgba(168,85,247,0.15)'}`,
-          borderRadius: 8,
-          color: tasksOpen ? '#a855f7' : '#6c7086',
-          fontSize: 11, fontWeight: 600, cursor: 'pointer',
-          transition: 'all 0.15s',
-        }}
-      >
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-          <path d="M3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 3.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 7.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 11.5h8v1H6v-1z"/>
-        </svg>
-        {tt('header.tasks', 'Tasks')}
-        {sessionTaskCount > 0 && (
-          <span style={{
-            fontSize: 9, padding: '1px 5px', borderRadius: 8,
-            background: 'rgba(168,85,247,0.25)', color: '#a855f7',
-          }}>{sessionTaskCount}</span>
-        )}
-      </button>
+      {/* Tasks toggle removed — the always-visible Tasks spine on the right
+          edge is the single control now (its grip expands/collapses). */}
 
       {/* New Chat — labelled pill, mirrors IDE header at
           DashboardPages.tsx:4256-4273. */}

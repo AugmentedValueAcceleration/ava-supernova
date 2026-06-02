@@ -74,6 +74,7 @@ import { HistoryPanel } from './components/HistoryPanel';
 import { SecretGrantPrompt } from './components/SecretGrantPrompt';
 import { MemoryPanel } from './components/MemoryPanel';
 import { TasksPanel, DEFAULT_WIDTH } from './components/TasksPanel';
+import { TasksSpine } from './components/TasksSpine';
 import { ContextBar } from './components/ContextBar';
 import { WelcomeModal } from './components/WelcomeModal';
 import type { AvaMode, ImageAttachment } from './components/InputArea';
@@ -1009,11 +1010,10 @@ export function App() {
     // Signal webview is ready
     postMessage({ type: 'webview_ready' });
 
-    // If tasks panel was persisted as open, request today tasks
-    const saved = getState() as { tasksOpen?: boolean } | null;
-    if (saved?.tasksOpen) {
-      postMessage({ type: 'request_today_tasks' });
-    }
+    // Preload tasks on mount — the collapsed spine shows a live active-count,
+    // so the data has to be there even before the panel is first opened.
+    postMessage({ type: 'request_today_tasks' });
+    postMessage({ type: 'request_all_tasks' });
 
     return () => {
       window.removeEventListener('message', handler);
@@ -1221,6 +1221,13 @@ export function App() {
   const handleToggleTask = useCallback(
     (taskId: string) => {
       postMessage({ type: 'toggle_task', taskId });
+    },
+    [postMessage],
+  );
+
+  const handleCreateTask = useCallback(
+    (task: { title: string; priority?: string; category?: string; due_date?: string }) => {
+      postMessage({ type: 'panel_create_task', ...task });
     },
     [postMessage],
   );
@@ -1471,9 +1478,10 @@ export function App() {
         )}
       </div>
 
-      {/* Tasks side panel — collapsible on the right */}
-      {state.tasksOpen && (
-        <ErrorBoundary>
+      {/* Tasks — always present on the right: full panel when open, thin
+          self-advertising spine when collapsed. */}
+      <ErrorBoundary>
+        {state.tasksOpen ? (
           <TasksPanel
             todayTasks={state.todayTasks}
             allTasks={state.allTasks}
@@ -1481,11 +1489,18 @@ export function App() {
             avaCompletedTasks={state.avaCompletedTasks}
             onClose={handleCloseTasks}
             onToggleTask={handleToggleTask}
+            onCreateTask={handleCreateTask}
             width={state.tasksPanelWidth}
             onWidthChange={handleTasksWidthChange}
           />
-        </ErrorBoundary>
-      )}
+        ) : (
+          <TasksSpine
+            activeCount={state.allTasks.filter(t => t.status !== 'done').length}
+            sessionTasks={state.sessionTasks}
+            onExpand={handleToggleTasks}
+          />
+        )}
+      </ErrorBoundary>
     </div>
     </SecretsProvider>
   );

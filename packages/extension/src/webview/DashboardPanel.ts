@@ -70,7 +70,7 @@ const CHAT_MESSAGE_TYPES = new Set([
   'pin_conversation', 'export_conversation', 'new_chat', 'compress_context',
   'set_provider_source', 'request_memory', 'save_chat_memory', 'clear_chat_memory',
   'archive_chat_memory', 'restore_chat_memory', 'delete_chat_memory_entry',
-  'pong', 'request_today_tasks', 'request_all_tasks', 'toggle_task',
+  'pong', 'request_today_tasks', 'request_all_tasks', 'toggle_task', 'panel_create_task',
   'rate_message', 'save_secrets',
 ]);
 
@@ -3159,7 +3159,7 @@ export class DashboardPanel {
         title: msg.title,
         description: msg.description,
         priority: (msg.priority as CoreTaskEntry['priority']) ?? 'medium',
-        category: (msg.category as CoreTaskEntry['category']) ?? 'coding',
+        category: (msg.category as CoreTaskEntry['category']) ?? 'personal',
         dueDate: msg.due_date,
         recurrence: (msg.recurrence as CoreTaskEntry['recurrence']) ?? 'none',
         scope: 'project',

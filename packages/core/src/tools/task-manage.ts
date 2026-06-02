@@ -48,17 +48,16 @@ export class TaskManageTool implements Tool {
         },
         category: {
           type: 'string',
-          enum: ['coding', 'personal', 'admin', 'meeting', 'custom'],
-          description: 'Category (default: coding)',
+          description: 'Category — a free-form label. Common ones: personal, coding, admin, meeting, health, finance, errands, study, home — but use ANY label that fits the task (e.g. "fitness", "garden", "kids"). Pick from the content: software work → coding, paperwork/accounts → admin, calls/appointments → meeting. Most users are NOT coders; only use "coding" for actual software work. Default: personal.',
         },
         due_date: {
           type: 'string',
-          description: 'Due date in YYYY-MM-DD format (optional)',
+          description: 'Due date in YYYY-MM-DD format. Only set this when the user gives a real date or deadline — never invent one. Leave unset for tasks with no due date.',
         },
         recurrence: {
           type: 'string',
-          enum: ['none', 'daily', 'weekly'],
-          description: 'Recurrence pattern (default: none)',
+          enum: ['none', 'daily', 'weekdays', 'weekly', 'monthly'],
+          description: 'Recurrence: none, daily, weekdays (Mon–Fri), weekly (same weekday), or monthly (same date). Default: none.',
         },
         scope: {
           type: 'string',
@@ -151,8 +150,12 @@ export class TaskManageTool implements Tool {
       title,
       description: args.description as string | undefined,
       priority: (args.priority as TaskCreateOptions['priority']) ?? 'medium',
-      category: (args.category as TaskCreateOptions['category']) ?? 'coding',
-      dueDate: (args.due_date as string | undefined) ?? new Date().toISOString().slice(0, 10),
+      // Neutral default — most users aren't coders. Ava picks the fitting
+      // category from the task content (see schema); fall back to personal.
+      category: (args.category as TaskCreateOptions['category']) ?? 'personal',
+      // No auto due-date — a task only lands in "Today" if the user gave a
+      // real deadline. Auto-stamping today polluted the Today view.
+      dueDate: args.due_date as string | undefined,
       recurrence: (args.recurrence as TaskCreateOptions['recurrence']) ?? 'none',
       scope: (args.scope as 'project' | 'global') ?? 'project',
       source: 'ava',

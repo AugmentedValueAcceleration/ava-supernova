@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { CheckIcon, ChevronDownIcon } from './Icons';
 
 interface SelectOption {
@@ -19,20 +20,62 @@ interface SelectProps {
   title?: string;
 }
 
+const MENU_DESIRED_HEIGHT = 240; // px — the old max-h-60
+
 export function Select({ value, onChange, options, size = 'md', className = '', title }: SelectProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
+
+  // The menu is rendered in a portal on document.body with fixed positioning
+  // so it escapes any `overflow-hidden`/clipping ancestor (e.g. a rounded
+  // modal). Position is measured from the trigger and flips above when there
+  // isn't room below.
+  const reposition = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const gap = 4;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const openUp = spaceBelow < MENU_DESIRED_HEIGHT && spaceAbove > spaceBelow;
+    const maxHeight = Math.max(
+      120,
+      Math.min(MENU_DESIRED_HEIGHT, (openUp ? spaceAbove : spaceBelow) - gap - 8),
+    );
+    setMenuStyle({
+      position: 'fixed',
+      left: rect.left,
+      minWidth: rect.width,
+      maxWidth: Math.max(rect.width, window.innerWidth - rect.left - 8),
+      maxHeight,
+      ...(openUp
+        ? { bottom: window.innerHeight - rect.top + gap }
+        : { top: rect.bottom + gap }),
+    });
+  }, []);
 
   useEffect(() => {
     if (!open) return;
+    reposition();
     function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      const target = e.target as Node;
+      if (ref.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
     }
+    const onScrollResize = () => reposition();
     document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [open]);
+    // capture: catch scrolls on any ancestor (the modal body scrolls), not just window
+    window.addEventListener('scroll', onScrollResize, true);
+    window.addEventListener('resize', onScrollResize);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      window.removeEventListener('scroll', onScrollResize, true);
+      window.removeEventListener('resize', onScrollResize);
+    };
+  }, [open, reposition]);
 
   const selected = options.find(o => o.value === value);
   const btnSize = size === 'sm' ? 'px-2.5 py-1 text-[12px]' : 'px-4 py-2.5 text-sm';
@@ -50,14 +93,16 @@ export function Select({ value, onChange, options, size = 'md', className = '', 
         <ChevronDownIcon className={`ml-2 h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
-      {open && (
-        // bg-card var resolves to rgba(26,16,40,0.6) — 60% opacity is
-        // fine for cards rendered on the page background but the
-        // dropdown panel floats over OTHER content, so it reads
-        // transparent. Force opaque + add backdrop-blur as a
-        // belt-and-braces. Hardcoded hex matches the solid form of
-        // the --bg-card var.
-        <div className="absolute z-50 mt-1 max-h-60 w-max min-w-full overflow-y-auto rounded-lg border border-[var(--border-card)] bg-[#1a1028] py-1 shadow-lg backdrop-blur-sm">
+      {open && createPortal(
+        // Portaled to body with fixed positioning so the modal's
+        // `overflow-hidden` (needed for its rounded corners) can't clip it.
+        // bg-card var is 60% opaque which reads transparent when floating over
+        // other content, so force the solid hex + backdrop-blur.
+        <div
+          ref={menuRef}
+          style={menuStyle}
+          className="z-[1000] overflow-y-auto rounded-lg border border-[var(--border-card)] bg-[#1a1028] py-1 shadow-lg backdrop-blur-sm"
+        >
           {options.map(option => {
             const isSelected = option.value === value;
             return (
@@ -79,7 +124,8 @@ export function Select({ value, onChange, options, size = 'md', className = '', 
               </button>
             );
           })}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

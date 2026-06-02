@@ -113,7 +113,8 @@ export class TaskManager {
       priority: opts.priority ?? 'medium',
       status: opts.status ?? 'todo',
       dueDate: opts.dueDate,
-      category: opts.category ?? 'coding',
+      // Neutral default — not everyone uses Ava to build software.
+      category: opts.category ?? 'personal',
       source: opts.source ?? 'user',
       project: opts.project ?? (this.projectDir ? basename(join(this.projectDir, '..')) : 'global'),
       recurrence: opts.recurrence ?? 'none',
@@ -328,15 +329,27 @@ export class TaskManager {
 
         // Calculate next due date
         const completedDate = new Date(entry.completedAt);
-        let nextDue: Date;
+        const nextDue = new Date(completedDate);
 
-        if (entry.recurrence === 'daily') {
-          nextDue = new Date(completedDate);
-          nextDue.setDate(nextDue.getDate() + 1);
-        } else {
-          // weekly
-          nextDue = new Date(completedDate);
-          nextDue.setDate(nextDue.getDate() + 7);
+        switch (entry.recurrence) {
+          case 'daily':
+            nextDue.setDate(nextDue.getDate() + 1);
+            break;
+          case 'weekdays': {
+            // Next Mon–Fri: step a day, then skip the weekend.
+            nextDue.setDate(nextDue.getDate() + 1);
+            const day = nextDue.getDay(); // 0 Sun … 6 Sat
+            if (day === 6) nextDue.setDate(nextDue.getDate() + 2);
+            else if (day === 0) nextDue.setDate(nextDue.getDate() + 1);
+            break;
+          }
+          case 'monthly':
+            nextDue.setMonth(nextDue.getMonth() + 1);
+            break;
+          case 'weekly':
+          default:
+            nextDue.setDate(nextDue.getDate() + 7);
+            break;
         }
 
         // Cap at 7 days catchup

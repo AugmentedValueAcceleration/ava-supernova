@@ -15,6 +15,7 @@ import type { PaletteTool } from '../chat/components/CommandPalette';
 import { Header } from '../chat/components/Header';
 import { MemoryPanel } from '../chat/components/MemoryPanel';
 import { TasksPanel, DEFAULT_WIDTH } from '../chat/components/TasksPanel';
+import { TasksSpine } from '../chat/components/TasksSpine';
 import { SecretsProvider } from '../chat/hooks/useSecrets';
 import { t, setLocale, loadStrings } from '../i18n';
 import { post } from '../vscode';
@@ -849,6 +850,14 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     }
   }, [isActive]);
 
+  // Preload tasks on mount — the collapsed spine shows a live active-count, so
+  // the data must be there even before the panel is first opened.
+  useEffect(() => {
+    post({ type: 'request_today_tasks' });
+    post({ type: 'request_all_tasks' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Auto-scroll
   useEffect(() => {
     if (!isActive || state.messages.length === 0) return;
@@ -953,6 +962,10 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
 
   const handleToggleTask = useCallback((taskId: string) => {
     post({ type: 'toggle_task', taskId });
+  }, []);
+
+  const handleCreateTask = useCallback((task: { title: string; priority?: string; category?: string; due_date?: string }) => {
+    post({ type: 'panel_create_task', ...task });
   }, []);
 
   const handleTasksWidthChange = useCallback((width: number) => {
@@ -1127,8 +1140,9 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
           )}
         </div>
 
-        {/* Tasks side panel */}
-        {state.tasksOpen && (
+        {/* Tasks — always present: full panel when open, thin self-advertising
+            spine when collapsed. */}
+        {state.tasksOpen ? (
           <TasksPanel
             todayTasks={state.todayTasks}
             allTasks={state.allTasks}
@@ -1136,8 +1150,15 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             avaCompletedTasks={state.avaCompletedTasks}
             onClose={handleCloseTasks}
             onToggleTask={handleToggleTask}
+            onCreateTask={handleCreateTask}
             width={state.tasksPanelWidth}
             onWidthChange={handleTasksWidthChange}
+          />
+        ) : (
+          <TasksSpine
+            activeCount={state.allTasks.filter(t => t.status !== 'done').length}
+            sessionTasks={state.sessionTasks}
+            onExpand={handleToggleTasks}
           />
         )}
       </div>
