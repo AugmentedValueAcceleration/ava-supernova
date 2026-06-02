@@ -13,7 +13,7 @@ import { Tooltip } from '../components/Tooltip';
 // Granular import — webview can't load `@ava/core` root export because
 // it transitively pulls Node-only constants. The billing/credits leaf
 // is browser-safe.
-import { CREDIT_COST } from '@ava/core/billing/credits';
+import { CREDIT_COST, videoCreditCost } from '@ava/core/billing/credits';
 
 // Exact credit count with locale-grouped digits — operator wants
 // the precise number, not "5K" / "1.2M" rounded buckets, so they can
@@ -43,6 +43,12 @@ function sendShortcutLabel(): string {
 // from prior versions are normalised back to 'images' on load.
 const VALID_MODES = ['images', 'audio', 'voice', 'video'] as const;
 type Mode = typeof VALID_MODES[number];
+
+// Temporarily hidden modes — MiniMax music (audio) + voice are hidden in the UI
+// while the MiniMax provider relationship is pending a reply. Reversible: drop a
+// key from this set to bring the tab back; the generation handlers and the
+// /generate-music + /generate-voice routes stay intact behind it.
+const HIDDEN_MODES: ReadonlySet<Mode> = new Set<Mode>(['audio', 'voice']);
 
 const VOICES = [
   { id: 'Calm_Woman', labelKey: 'dash.creative.voice_calm_woman' },
@@ -117,8 +123,7 @@ const VIDEO_MOTION: { id: 'subtle' | 'dynamic' | 'wild'; labelKey: string; suffi
  * updates both the preview here and the actual charge. Variations
  * fan out client-side (N parallel image calls) so they multiply.
  * Voice scales by 500-char chunks because TTS cost scales with
- * audio duration. Video duration is approximately linear: 6s = 150,
- * 10s ≈ 250.
+ * audio duration. Video is flat-charged regardless of clip length.
  */
 
 const VOICE_CHARS_PER_UNIT = 500;
@@ -139,11 +144,11 @@ function estimateVoiceCredits(textLen: number): number {
   const chunks = Math.max(1, Math.ceil(textLen / VOICE_CHARS_PER_UNIT));
   return CREDIT_COST.voice_gen * chunks;
 }
-function estimateVideoCredits(durationSec: number): number {
-  // Server flat charges 6s. 10s scales proportionally — closest
-  // honest estimate without a separate server constant for 10s yet.
-  if (durationSec === 10) return Math.round(CREDIT_COST.video_gen * (10 / 6));
-  return CREDIT_COST.video_gen;
+function estimateVideoCredits(resolution: string): number {
+  // Charge scales with output resolution (720p base, 1080p ~2×), flat
+  // across clip length. Mirror the server's resolution → credit tiers.
+  const sr = resolution === '1080P' ? 1080 : resolution === '480P' ? 480 : 720;
+  return videoCreditCost(sr);
 }
 
 // Library filter types and asset-type icons retired — browsing now lives
@@ -493,7 +498,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
   const [activeTab, setActiveTab] = useState<Mode>(() => {
     try {
       const stored = localStorage.getItem('ava-creative-studio-tab');
-      if (stored && (VALID_MODES as readonly string[]).includes(stored)) return stored as Mode;
+      if (stored && (VALID_MODES as readonly string[]).includes(stored) && !HIDDEN_MODES.has(stored as Mode)) return stored as Mode;
     } catch { /* ignore storage access failures */ }
     return 'images';
   });
@@ -530,7 +535,8 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
 
   // Video
   const [videoPrompt, setVideoPrompt] = useState('');
-  const [videoDuration, setVideoDuration] = useState<6 | 10>(6);
+  const [videoDuration, setVideoDuration] = useState<5 | 10>(5);
+  const [videoResolution, setVideoResolution] = useState<'720P' | '1080P'>('720P');
   const [videoCamera, setVideoCamera] = useState<string>('auto');
   const [videoMotion, setVideoMotion] = useState<'subtle' | 'dynamic' | 'wild'>('dynamic');
   const [videoReference, setVideoReference] = useState<{ name: string; dataUrl: string } | null>(null);
@@ -741,13 +747,14 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     if (!videoPrompt.trim() || generating) return;
     setGenerating(true); setError(null);
     try {
-      // MiniMax accepts an optional first-frame image-to-video input.
-      // Server-side expects `first_frame_image` exactly — see
-      // generate-video/route.ts. Sending `reference_image` was a no-op
-      // before this fix.
+      // Wan supports an optional first-frame image-to-video input
+      // (wan2.5-i2v-preview). The server expects `first_frame_image`
+      // exactly — see generate-video/route.ts, which maps it to Wan's
+      // `img_url`. Sending `reference_image` was a no-op before this fix.
       const data = await apiCall('generate-video', {
         prompt: composeVideoPrompt(),
         duration: videoDuration,
+        resolution: videoResolution,
         first_frame_image: videoReference?.dataUrl,
       });
       if (data.url) {
@@ -791,9 +798,9 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
   }, [videoPrompt]);
 
   /* ── Reference image upload (video only) ──────────────────────────── */
-  // Wired to MiniMax's `first_frame_image` parameter on the
-  // generate-video endpoint. Image generation (Wan 2.6 T2I) doesn't
-  // accept a reference, so we don't surface the affordance there.
+  // Wired to the `first_frame_image` parameter on the generate-video
+  // endpoint (Wan i2v). Image generation (Wan 2.6 T2I) doesn't accept a
+  // reference, so we don't surface the affordance there.
 
   const handleUploadVideoReference = useCallback(
     (file: File) => {
@@ -849,7 +856,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
     mode === 'images' ? estimateImageCredits(imageVariations) :
     mode === 'audio'  ? estimateMusicCredits(musicDuration) :
     mode === 'voice'  ? estimateVoiceCredits(voiceText.length) :
-                        estimateVideoCredits(videoDuration);
+                        estimateVideoCredits(videoResolution);
 
   const currentPlaceholder =
     mode === 'images' ? t('dash.creative.placeholder_image') :
@@ -878,9 +885,9 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
   }, [feedAsc.length, generating]);
 
   // Drop reference image directly onto the composer. Only video mode
-  // accepts one (MiniMax image-to-video via first_frame_image). Wan
-  // 2.6 T2I has no image-input slot so the image tab doesn't surface
-  // the affordance.
+  // accepts one (Wan image-to-video via first_frame_image). Wan 2.6 T2I
+  // has no image-input slot so the image tab doesn't surface the
+  // affordance.
   const composerAcceptsReference = mode === 'video';
 
   const handleComposerDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -898,12 +905,13 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
   // Mode glyph dock — small phosphor icons that float at the right
   // edge of the composer. Replaces the old tab bar so Creative Studio
   // doesn't read like a settings page. Selected glows accent.
-  const modeGlyphs: { key: typeof mode; icon: ReactNode; label: string }[] = [
+  const allModeGlyphs: { key: Mode; icon: ReactNode; label: string }[] = [
     { key: 'images', icon: <ImageIcon weight="duotone" size={16} />,   label: t('dash.creative.mode_image') },
     { key: 'audio',  icon: <MusicNotes weight="duotone" size={16} />,  label: t('dash.creative.mode_music') },
     { key: 'voice',  icon: <Microphone weight="duotone" size={16} />,  label: t('dash.creative.mode_voice') },
     { key: 'video',  icon: <VideoCamera weight="duotone" size={16} />, label: t('dash.creative.mode_video') },
   ];
+  const modeGlyphs = allModeGlyphs.filter(g => !HIDDEN_MODES.has(g.key));
 
   return (
     <div className="w-full flex flex-col" style={{ height: 'calc(100vh - 80px)', minHeight: 0 }}>
@@ -1044,6 +1052,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
           videoCamera={videoCamera} setVideoCamera={setVideoCamera}
           videoMotion={videoMotion} setVideoMotion={setVideoMotion}
           videoDuration={videoDuration} setVideoDuration={setVideoDuration}
+          videoResolution={videoResolution} setVideoResolution={setVideoResolution}
         />
 
         <div
@@ -1490,7 +1499,8 @@ interface ModeSettingsStripProps {
   // video
   videoCamera: string; setVideoCamera: (v: string) => void;
   videoMotion: 'subtle' | 'dynamic' | 'wild'; setVideoMotion: (v: 'subtle' | 'dynamic' | 'wild') => void;
-  videoDuration: 6 | 10; setVideoDuration: (v: 6 | 10) => void;
+  videoDuration: 5 | 10; setVideoDuration: (v: 5 | 10) => void;
+  videoResolution: '720P' | '1080P'; setVideoResolution: (v: '720P' | '1080P') => void;
 }
 
 function ModeSettingsStrip(props: ModeSettingsStripProps) {
@@ -1681,8 +1691,12 @@ function ModeSettingsStrip(props: ModeSettingsStripProps) {
               <ChipRow label={t('dash.creative.label_camera')} options={VIDEO_CAMERAS.map(c => ({ id: c.id, label: t(c.labelKey) }))} value={props.videoCamera} onChange={props.setVideoCamera} />
               <ChipRow label={t('dash.creative.label_motion')} options={VIDEO_MOTION.map(m => ({ id: m.id, label: t(m.labelKey) }))} value={props.videoMotion} onChange={(v) => props.setVideoMotion(v as 'subtle' | 'dynamic' | 'wild')} />
               <ChipRow label={t('dash.creative.label_duration')} options={[
-                { id: '6', label: '6s · 1080p' }, { id: '10', label: '10s · 768p' },
-              ]} value={String(props.videoDuration)} onChange={(v) => props.setVideoDuration(Number(v) as 6 | 10)} />
+                { id: '5', label: '5s · audio' }, { id: '10', label: '10s · audio' },
+              ]} value={String(props.videoDuration)} onChange={(v) => props.setVideoDuration(Number(v) as 5 | 10)} />
+              <ChipRow label="Resolution" options={[
+                { id: '720P', label: `720p · ${videoCreditCost(720)} cr` },
+                { id: '1080P', label: `1080p · ${videoCreditCost(1080)} cr` },
+              ]} value={props.videoResolution} onChange={(v) => props.setVideoResolution(v as '720P' | '1080P')} />
             </>
           )}
             </div>

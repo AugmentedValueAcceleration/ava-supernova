@@ -56,11 +56,29 @@ export const CREDIT_COST: Record<CreditAction, number> = {
   light_persona:  1,   // ~$0.0001 raw
   orchestration: 10,   // ~$0.003 raw (4-6 personas combined)
   image_gen:     12,   // ~$0.04 raw (Hailuo image-01) — bumped 10→12 (2026-04-25 calibration)
-  video_gen:    150,   // ~$0.48 raw (Hailuo 02 Pro 1080p 6s) — bumped 100→150 (2026-04-25)
+  video_gen:    150,   // 720p base tier — see VIDEO_GEN_CREDITS for resolution tiers
   voice_gen:     10,   // ~$0.03 raw (Speech 2.8 HD ~500 chars) — bumped 3→10 (2026-04-25)
   music_gen:     50,   // ~$0.15 raw (Music 2.5 / 2.6 paid; Free pinned to Music 2.0 ~$0.03)
   bg_removal:     2,   // ~$0.002 raw
 };
+
+/**
+ * Video credits scale with Wan output resolution. 720p is the base; 1080p
+ * costs ~2× because Wan's per-clip cost roughly doubles, holding the same
+ * margin. Charge is flat across clip duration. Kept in sync with the web
+ * platform's credits-pricing VIDEO_GEN_CREDITS. `video_gen` above is the
+ * 720p base for callers that don't tier.
+ */
+export const VIDEO_GEN_CREDITS: Record<'480' | '720' | '1080', number> = {
+  '480': 100,   // ~$0.25/clip
+  '720': 150,   // ~$0.50/clip — base tier
+  '1080': 300,  // ~$1.00/clip — 2× the 720p tier
+};
+
+export function videoCreditCost(sr: number | string | null | undefined): number {
+  const key = String(sr ?? 720) as '480' | '720' | '1080';
+  return VIDEO_GEN_CREDITS[key] ?? VIDEO_GEN_CREDITS['720'];
+}
 
 // ── Cache-hit discount ────────────────────────────────────────────────────
 /** Default cache-hit discount: user pays 0.3× normal cost when the provider

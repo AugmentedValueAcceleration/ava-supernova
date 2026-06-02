@@ -4627,13 +4627,14 @@ export class DashboardPanel {
       // Storage bucket upload + creative_assets insert and returns a
       // short-lived provider URL. The client is expected to save to
       // disk before the URL expires (see Creative Studio local save path).
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${platformKey}`,
+        'X-Ava-Data-Mode': dataModeHeader(this.context),
+      };
       const res = await fetch(`https://ava-supernova.com/api/${endpoint}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${platformKey}`,
-          'X-Ava-Data-Mode': dataModeHeader(this.context),
-        },
+        headers,
         body: JSON.stringify(body),
       });
       if (!res.ok) {
@@ -4641,11 +4642,55 @@ export class DashboardPanel {
         this.post({ type: 'creative_result', success: false, error: errData.error || `Request failed (${res.status})` } as any);
         return;
       }
-      const data = await res.json();
+      const data = await res.json() as { task_id?: string; url?: string; [k: string]: unknown };
+
+      // Video generation is async — the submit endpoint returns a task_id and
+      // the clip (with Wan's auto-dubbed audio) is produced over the next
+      // 1–6 minutes. We poll the status route here in the extension host,
+      // which has no serverless timeout, until the job reaches a terminal
+      // state, then hand the webview the finished { url }. Images / music /
+      // voice come back synchronously and fall through unchanged.
+      if (endpoint === 'generate-video' && data?.task_id && !data?.url) {
+        const final = await this.pollVideoStatus(String(data.task_id), platformKey);
+        this.post({ type: 'creative_result', success: final.success, data: final.data, error: final.error } as any);
+        return;
+      }
+
       this.post({ type: 'creative_result', success: true, data } as any);
     } catch (err) {
       this.post({ type: 'creative_result', success: false, error: err instanceof Error ? err.message : 'Generation failed' } as any);
     }
+  }
+
+  /**
+   * Poll the async video status route until the job finishes. Runs in the
+   * extension host (no Vercel 60s cap), on a 5s cadence with an ~8-minute
+   * ceiling. Transient poll failures are tolerated — only an explicit
+   * `failed` status or the timeout ends the loop. Returns the final status
+   * payload ({ url, asset }) so the webview's `data.url` read works
+   * unchanged.
+   */
+  private async pollVideoStatus(
+    taskId: string,
+    platformKey: string,
+  ): Promise<{ success: boolean; data?: unknown; error?: string }> {
+    const statusUrl = `https://ava-supernova.com/api/generate-video/status/${encodeURIComponent(taskId)}`;
+    const intervalMs = 5000;
+    const maxAttempts = 96; // ~8 min ceiling — well past a typical Wan clip
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await new Promise(r => setTimeout(r, intervalMs));
+      try {
+        const res = await fetch(statusUrl, { headers: { 'Authorization': `Bearer ${platformKey}` } });
+        if (!res.ok) continue; // transient — keep polling
+        const data = await res.json() as { status?: string; url?: string; error?: string };
+        if (data?.status === 'success' && data?.url) return { success: true, data };
+        if (data?.status === 'failed') return { success: false, error: data?.error || 'Video generation failed' };
+        // status === 'processing' — keep going
+      } catch {
+        // transient network blip — keep polling until the ceiling
+      }
+    }
+    return { success: false, error: 'Video generation timed out' };
   }
 
   private async handleLoadLatestRelease(): Promise<void> {

@@ -7,17 +7,20 @@ import { startGenerationTracking } from '../dataset/generation-emit.js';
 import { chargeCredits } from '../billing/meter.js';
 
 /**
- * Generate a short AI video from a text prompt using MiniMax Hailuo.
+ * Generate a short AI video (with synchronized audio) from a text prompt
+ * using Wan 2.5 on the Ava platform.
  *
- * Supports 6-second (1080P) and 10-second (768P) clips.
- * Routes through the Ava platform API which handles async polling internally.
+ * Supports 5-second and 10-second clips at 720P. The platform submit
+ * endpoint is async — it returns a task_id and the clip is produced over
+ * the next 1–6 minutes — so this tool submits, then polls the status
+ * route until the job reaches a terminal state.
  */
 
 const PLATFORM_URL = 'https://ava-supernova.com/api';
 
 export class GenerateVideoTool implements Tool {
   readonly name = 'generate_video';
-  readonly description = 'Generate a short AI video from a text prompt using MiniMax Hailuo.';
+  readonly description = 'Generate a short AI video with synced audio from a text prompt using Wan 2.5.';
   readonly riskLevel: ToolRiskLevel = 'write';
   // Media generation costs credits — confirm before running so Ava never
   // spends the user's balance without an explicit yes (palette click or
@@ -27,7 +30,7 @@ export class GenerateVideoTool implements Tool {
   readonly schema: FunctionSchema = {
     name: 'generate_video',
     description:
-      'Generate a short AI video (6s or 10s) from a prompt and save to project.',
+      'Generate a short AI video with synchronized audio (5s or 10s) from a prompt and save to project.',
     parameters: {
       type: 'object',
       properties: {
@@ -41,8 +44,13 @@ export class GenerateVideoTool implements Tool {
         },
         duration: {
           type: 'number',
-          enum: [6, 10],
-          description: 'Duration in seconds. 6s at 1080P, 10s at 768P. Default: 6.',
+          enum: [5, 10],
+          description: 'Duration in seconds. 5 or 10, with synchronized audio. Default: 5.',
+        },
+        resolution: {
+          type: 'string',
+          enum: ['720P', '1080P'],
+          description: 'Output resolution. 720P (default) or 1080P (~2× the credit cost).',
         },
         target_path: {
           type: 'string',
@@ -56,8 +64,8 @@ export class GenerateVideoTool implements Tool {
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const prompt = args.prompt as string;
     const filename = (args.filename as string).replace(/\.\w+$/, '');
-    const duration = (args.duration as number) || 6;
-    const resolution = duration === 10 ? '768P' : '1080P';
+    const duration = (args.duration as number) === 10 ? 10 : 5;
+    const resolution = args.resolution === '1080P' ? '1080P' : '720P';
     const targetPath = args.target_path as string | undefined;
 
     const genManager = (context.sharedState as Record<string, unknown>)?.generationManager as
@@ -71,7 +79,7 @@ export class GenerateVideoTool implements Tool {
       genManager?.fail(jobId, 'No API key');
       return {
         success: false,
-        output: 'Video generation requires a MiniMax API key (BYOK) or platform account.',
+        output: 'Video generation requires an Ava platform account.',
       };
     }
 
@@ -80,13 +88,14 @@ export class GenerateVideoTool implements Tool {
 
     const tracker = startGenerationTracking({
       type: 'video',
-      model: 'minimax-video',
+      model: 'wan2.5-t2v-preview',
       prompt,
       paramsSummary: `duration=${duration}s, resolution=${resolution}`,
     });
 
     try {
-      const res = await fetch(`${PLATFORM_URL}/generate-video`, {
+      // Submit the async job — the platform returns a task_id immediately.
+      const submitRes = await fetch(`${PLATFORM_URL}/generate-video`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${resolved.key}`,
@@ -95,18 +104,25 @@ export class GenerateVideoTool implements Tool {
         body: JSON.stringify({ prompt, duration, resolution }),
       });
 
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Video generation API error (${res.status}): ${errText}`);
+      if (!submitRes.ok) {
+        const errText = await submitRes.text();
+        throw new Error(`Video generation API error (${submitRes.status}): ${errText}`);
       }
 
-      const data = await res.json() as { url?: string; error?: string };
-      if (data.error) throw new Error(data.error);
-      if (!data.url) throw new Error('No video URL returned from API');
+      const submitData = await submitRes.json() as { task_id?: string; url?: string; error?: string };
+      if (submitData.error) throw new Error(submitData.error);
+
+      // Poll the status route until the clip is ready (Wan runs 1–6 min).
+      // A synchronous `url` (legacy path) is honoured if ever present.
+      let videoUrl = submitData.url;
+      if (!videoUrl && submitData.task_id) {
+        videoUrl = await this.pollVideoStatus(submitData.task_id, resolved.key, genManager, jobId, context);
+      }
+      if (!videoUrl) throw new Error('No video URL returned from API');
 
       // Download video buffer
       genManager?.update(jobId, { status: 'downloading', progress: 70 });
-      const videoBuffer = await this.downloadVideo(data.url);
+      const videoBuffer = await this.downloadVideo(videoUrl);
 
       // Save to project — use target_path if provided
       const relativePath = targetPath || `.ava/creative/video/${filename}.mp4`;
@@ -144,6 +160,42 @@ export class GenerateVideoTool implements Tool {
     }
   }
 
+  /**
+   * Poll the platform's async video status route until the job finishes.
+   * Runs in the core process (CLI / extension host) with no serverless
+   * timeout, on a 5s cadence with an ~8-minute ceiling. Transient poll
+   * failures are tolerated — only an explicit `failed` status or the
+   * timeout ends the loop.
+   */
+  private async pollVideoStatus(
+    taskId: string,
+    key: string,
+    genManager: { update: (id: string, p: any) => void } | undefined,
+    jobId: string,
+    context: ToolExecutionContext,
+  ): Promise<string | undefined> {
+    const statusUrl = `${PLATFORM_URL}/generate-video/status/${encodeURIComponent(taskId)}`;
+    const intervalMs = 5000;
+    const maxAttempts = 96; // ~8 min ceiling — well past a typical Wan clip
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await new Promise(r => setTimeout(r, intervalMs));
+      let data: { status?: string; url?: string; error?: string } | null = null;
+      try {
+        const res = await fetch(statusUrl, { headers: { 'Authorization': `Bearer ${key}` } });
+        if (!res.ok) continue; // transient — keep polling
+        data = await res.json() as { status?: string; url?: string; error?: string };
+      } catch {
+        continue; // network blip — keep polling until the ceiling
+      }
+      if (data?.status === 'success' && data?.url) return data.url;
+      if (data?.status === 'failed') throw new Error(data?.error || 'Video generation failed');
+      // status === 'processing' — surface progress and keep going
+      genManager?.update(jobId, { status: 'generating', progress: Math.min(60, 10 + attempt * 3) });
+      context.onOutput?.('.');
+    }
+    throw new Error('Video generation timed out');
+  }
+
   private async downloadVideo(url: string): Promise<Buffer> {
     if (url.startsWith('data:')) {
       const base64 = url.split(',')[1];
@@ -155,11 +207,10 @@ export class GenerateVideoTool implements Tool {
     return Buffer.from(await res.arrayBuffer());
   }
 
-  private resolveKey(context: ToolExecutionContext): { key: string; via: 'minimax' | 'platform' } | null {
+  private resolveKey(context: ToolExecutionContext): { key: string; via: 'platform' } | null {
+    // Video runs on Wan 2.5 via the platform route, which uses the server's
+    // DashScope key — so this is platform-only (no provider BYOK path).
     const state = context.sharedState as Record<string, unknown> | undefined;
-    const getKey = state?.getProviderKey as ((p: string) => string | undefined) | undefined;
-    const minimaxKey = getKey?.('minimax');
-    if (minimaxKey) return { key: minimaxKey, via: 'minimax' };
     const platformKey = state?.platformKey as string | undefined;
     if (platformKey) return { key: platformKey, via: 'platform' };
     return null;
