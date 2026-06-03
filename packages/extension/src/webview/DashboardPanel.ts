@@ -2223,7 +2223,10 @@ export class DashboardPanel {
       console.log('[Ava] No viewProvider reference — cannot reset AvaViewProvider memory manager');
     }
 
+    // Clear both UI lists — the Memory page may render either the cloud or the
+    // local list depending on account state, so empty both to be sure.
     this.post({ type: 'memories_loaded', memories: [], total: 0, hasMore: false });
+    this.post({ type: 'local_memories_loaded', memories: [] });
   }
 
   private async upsertMemory(msg: Extract<DashboardToExtMessage, { type: 'upsert_memory' }>): Promise<void> {
@@ -2918,7 +2921,9 @@ export class DashboardPanel {
       const mgr = this.getMemoryManager();
       await mgr.clearAll('global');
       await mgr.clearAll('project');
+      // Clear both UI lists — the Memory page may render either source.
       this.post({ type: 'local_memories_loaded', memories: [] });
+      this.post({ type: 'memories_loaded', memories: [], total: 0, hasMore: false });
     } catch {
       this.post({ type: 'error', message: 'Failed to delete all memories.' });
     }

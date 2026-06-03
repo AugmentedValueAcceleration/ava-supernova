@@ -367,10 +367,14 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
     setConfirmDeleteId(null);
   }
 
-  function deleteAllMemories(scope: 'local' | 'cloud' | 'both') {
+  function deleteAllMemories() {
     setDeletingAll(true);
-    if (scope === 'local' || scope === 'both') post({ type: 'delete_all_local_memories' });
-    if (scope === 'cloud' || scope === 'both') post({ type: 'delete_all_memories' });
+    // One full wipe. The host handler deletes the cloud copy (when there's an
+    // account) AND clears every local store, then empties both UI lists. The
+    // cloud delete is gated host-side on the platform key — never on the
+    // cloud-sync toggle. Gating on the toggle was the bug: account memories
+    // load from the server regardless of it, so they reloaded on refresh.
+    post({ type: 'delete_all_memories' });
     setConfirmDeleteAll(false);
     setTimeout(() => setDeletingAll(false), 30000);
   }
@@ -448,33 +452,17 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
       {confirmDeleteAll && (
         <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4">
           <p className="text-sm font-medium text-red-400 mb-2">Delete all memories?</p>
-          <p className="text-xs text-[var(--text-muted)] mb-4">This is permanent and cannot be undone.</p>
+          <p className="text-xs text-[var(--text-muted)] mb-4">
+            This permanently deletes every memory — on this machine and any cloud copy. It cannot be undone.
+          </p>
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => deleteAllMemories('local')}
+              onClick={() => deleteAllMemories()}
               disabled={deletingAll}
-              className="rounded-lg border border-emerald-500/30 bg-emerald-500/15 px-4 py-1.5 text-xs font-medium text-emerald-400 transition hover:bg-emerald-500/25 disabled:opacity-50"
+              className="rounded-lg bg-red-500 px-4 py-1.5 text-xs font-medium text-white transition hover:bg-red-600 disabled:opacity-50"
             >
-              Local Only
+              Delete Everything
             </button>
-            {cloudSync &&(
-              <button
-                onClick={() => deleteAllMemories('cloud')}
-                disabled={deletingAll}
-                className="rounded-lg border border-blue-500/30 bg-blue-500/15 px-4 py-1.5 text-xs font-medium text-blue-400 transition hover:bg-blue-500/25 disabled:opacity-50"
-              >
-                Cloud Only
-              </button>
-            )}
-            {cloudSync &&(
-              <button
-                onClick={() => deleteAllMemories('both')}
-                disabled={deletingAll}
-                className="rounded-lg bg-red-500 px-4 py-1.5 text-xs font-medium text-white transition hover:bg-red-600 disabled:opacity-50"
-              >
-                Both
-              </button>
-            )}
             <button
               onClick={() => setConfirmDeleteAll(false)}
               className="rounded-lg border border-[var(--border-card)] px-4 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-white"
