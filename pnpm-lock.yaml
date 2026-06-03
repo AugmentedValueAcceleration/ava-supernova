@@ -78,6 +78,9 @@ importers:
       '@tauri-apps/plugin-fs':
         specifier: ^2.5.0
         version: 2.5.0
+      '@tauri-apps/plugin-notification':
+        specifier: ^2.3.3
+        version: 2.3.3
       '@tauri-apps/plugin-opener':
         specifier: ^2
         version: 2.5.3
@@ -461,6 +464,9 @@ importers:
 
   packages/web:
     dependencies:
+      '@ava-supernova/core':
+        specifier: ^0.1.0
+        version: 0.1.0(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)
       '@ffmpeg-installer/ffmpeg':
         specifier: ^1.1.0
         version: 1.1.0
@@ -579,6 +585,41 @@ packages:
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
     engines: {node: '>=10'}
+
+  '@ava-supernova/core@0.1.0':
+    resolution: {integrity: sha512-ijQqnR2eroUPnqcCCZf8C77Q/LZze70aIBPeyM3LO9xbl3Zy1rqnk8AiO5So53pOsVvsavP23KxcmepFxNb6SQ==}
+    peerDependencies:
+      better-sqlite3: '>=9.0.0'
+      docx: '>=9.0.0'
+      exceljs: '>=4.0.0'
+      mammoth: '>=1.6.0'
+      mysql2: '>=3.0.0'
+      pdf-parse: '>=1.1.0'
+      pdfkit: '>=0.15.0'
+      pg: '>=8.0.0'
+      playwright: '>=1.40.0'
+      screenshot-desktop: '>=1.15.0'
+    peerDependenciesMeta:
+      better-sqlite3:
+        optional: true
+      docx:
+        optional: true
+      exceljs:
+        optional: true
+      mammoth:
+        optional: true
+      mysql2:
+        optional: true
+      pdf-parse:
+        optional: true
+      pdfkit:
+        optional: true
+      pg:
+        optional: true
+      playwright:
+        optional: true
+      screenshot-desktop:
+        optional: true
 
   '@babel/code-frame@7.29.0':
     resolution: {integrity: sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw==}
@@ -2716,6 +2757,9 @@ packages:
 
   '@tauri-apps/plugin-fs@2.5.0':
     resolution: {integrity: sha512-c83kbz61AK+rKjhS+je9+stIO27nXj7p9cqeg36TwkIUtxpCFTttlHHtqon6h6FN54cXjyAjlMPOJcW3mwE5XQ==}
+
+  '@tauri-apps/plugin-notification@2.3.3':
+    resolution: {integrity: sha512-Zw+ZH18RJb41G4NrfHgIuofJiymusqN+q8fGUIIV7vyCH+5sSn5coqRv/MWB9qETsUs97vmU045q7OyseCV3Qg==}
 
   '@tauri-apps/plugin-opener@2.5.3':
     resolution: {integrity: sha512-CCcUltXMOfUEArbf3db3kCE7Ggy1ExBEBl51Ko2ODJ6GDYHRp1nSNlQm5uNCFY5k7/ufaK5Ib3Du/Zir19IYQQ==}
@@ -6590,6 +6634,23 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
+  '@ava-supernova/core@0.1.0(better-sqlite3@12.6.2)(docx@9.6.1)(exceljs@4.4.0)(mammoth@1.12.0)(mysql2@3.19.0(@types/node@22.19.11))(pdf-parse@2.4.5)(pdfkit@0.18.0)(pg@8.20.0)(playwright@1.58.2)(screenshot-desktop@1.15.3)':
+    dependencies:
+      glob: 13.0.6
+      pngjs: 7.0.0
+      zod: 4.3.6
+    optionalDependencies:
+      better-sqlite3: 12.6.2
+      docx: 9.6.1
+      exceljs: 4.4.0
+      mammoth: 1.12.0
+      mysql2: 3.19.0(@types/node@22.19.11)
+      pdf-parse: 2.4.5
+      pdfkit: 0.18.0
+      pg: 8.20.0
+      playwright: 1.58.2
+      screenshot-desktop: 1.15.3
+
   '@babel/code-frame@7.29.0':
     dependencies:
       '@babel/helper-validator-identifier': 7.28.5
@@ -8173,6 +8234,10 @@ snapshots:
       '@tauri-apps/api': 2.10.1
 
   '@tauri-apps/plugin-fs@2.5.0':
+    dependencies:
+      '@tauri-apps/api': 2.10.1
+
+  '@tauri-apps/plugin-notification@2.3.3':
     dependencies:
       '@tauri-apps/api': 2.10.1
 
@@ -11259,6 +11324,19 @@ snapshots:
   mp4box@0.5.4: {}
 
   ms@2.1.3: {}
+
+  mysql2@3.19.0(@types/node@22.19.11):
+    dependencies:
+      '@types/node': 22.19.11
+      aws-ssl-profiles: 1.1.2
+      denque: 2.1.0
+      generate-function: 2.3.1
+      iconv-lite: 0.7.2
+      long: 5.3.2
+      lru.min: 1.1.4
+      named-placeholders: 1.1.6
+      sql-escaper: 1.3.3
+    optional: true
 
   mysql2@3.19.0(@types/node@25.3.0):
     dependencies:
