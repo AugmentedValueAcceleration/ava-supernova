@@ -5,7 +5,7 @@ import { SectionGroup } from '../components/SectionGroup';
 import { UsageBar } from '../components/UsageBar';
 import { Select } from '../components/Select';
 import { Skeleton } from '../components/Skeleton';
-import type { AccountInfo, SessionStats, UsageHistoryData, ConversationEntry } from '../types/messages';
+import type { AccountInfo, SessionStats, UsageHistoryData, ConversationEntry, Page } from '../types/messages';
 
 // ─── Model pricing (per 1M tokens) ──────────────────────────────────────────
 
@@ -87,6 +87,9 @@ interface HistoryProps {
   conversations?: ConversationEntry[];
   /** True once the conversations' first load has landed. */
   loaded: boolean;
+  /** Navigate to another dashboard page. Used to jump to chat after a
+   *  conversation is clicked, so the loaded thread is actually shown. */
+  onNavigate: (page: Page) => void;
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
@@ -98,7 +101,7 @@ interface HistoryProps {
 type TopTab = 'conversations' | 'usage' | 'audit';
 type UsageSubTab = 'session' | 'alltime';
 
-export function History({ sessionStats, usageHistory, mode, account, auditLog, conversations, loaded }: HistoryProps) {
+export function History({ sessionStats, usageHistory, mode, account, auditLog, conversations, loaded, onNavigate }: HistoryProps) {
   useLocale();
   const [activeTab, setActiveTab] = useState<TopTab>(() => {
     const saved = localStorage.getItem('ava-analytics-tab');
@@ -163,7 +166,7 @@ export function History({ sessionStats, usageHistory, mode, account, auditLog, c
       </div>
 
       {activeTab === 'conversations' && (
-        <ConversationsView conversations={conversations || []} loaded={loaded} />
+        <ConversationsView conversations={conversations || []} loaded={loaded} onNavigate={onNavigate} />
       )}
 
       {activeTab === 'usage' && (
@@ -204,7 +207,7 @@ export function History({ sessionStats, usageHistory, mode, account, auditLog, c
 
 // ─── Conversations View ─────────────────────────────────────────────────────
 
-function ConversationsView({ conversations, loaded }: { conversations: ConversationEntry[]; loaded: boolean }) {
+function ConversationsView({ conversations, loaded, onNavigate }: { conversations: ConversationEntry[]; loaded: boolean; onNavigate: (page: Page) => void }) {
   useLocale();
   const [search, setSearch] = useState('');
 
@@ -221,6 +224,10 @@ function ConversationsView({ conversations, loaded }: { conversations: Conversat
 
   const loadConversation = (conv: ConversationEntry) => {
     post({ type: 'load_conversation', id: conv.id });
+    // Jump to the chat view so the loaded thread is actually shown —
+    // clicking on the History page otherwise loads it silently in the
+    // background with no visible change.
+    onNavigate('chat');
   };
 
   const deleteConversation = (id: string) => {

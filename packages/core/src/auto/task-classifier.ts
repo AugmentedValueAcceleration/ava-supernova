@@ -11,10 +11,11 @@ const MODEL_ALIASES: Record<string, string> = {
   'k2.6': 'kimi-k2.6',
   'k2.5': 'kimi-k2.5',
   'moonshot': 'kimi-k2.6',
-  // MiniMax
+  // MiniMax (BYOK) — bare 'minimax'/'m3' route to the current flagship M3;
+  // 'm2.7' pins the older standard model.
+  'minimax': 'MiniMax-M3',
+  'm3': 'MiniMax-M3',
   'm2.7': 'MiniMax-M2.7',
-  'm2.5': 'MiniMax-M2.5',
-  'minimax': 'MiniMax-M2.7',
   // Qwen
   'qwen': 'qwen3.6-plus',
   'qwen flash': 'qwen3.5-flash',

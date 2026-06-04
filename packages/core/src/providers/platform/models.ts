@@ -2,8 +2,10 @@ import type { ModelDefinition } from '../../core/types.js';
 
 /**
  * Platform models — available on managed plans + free accounts.
- * Paid plans: Qwen family + MiniMax creative stack.
+ * Paid plans: Qwen family + the managed coordinators (Supernova/Aurora).
  * Free accounts: Qwen only (Omni Flash default).
+ * MiniMax is BYOK only — users supply their own MiniMax API key (see
+ *   providers/minimax/models.ts). It carries no managed/platform entry.
  * Kimi is BYOK only — users supply a Moonshot API key to use K2.6 / K2.5.
  */
 export const PLATFORM_MODELS: ModelDefinition[] = [
@@ -20,36 +22,6 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsVision: true,
     desktopCapable: true, // Default Maestro coordinator. Reliable tool calls, fast enough.
     pricing: { inputPerMillion: 0.29, outputPerMillion: 1.70 },
-  },
-  // MiniMax M2.7 — self-evolving, premium reasoning, fewer hallucinations.
-  // Not flagged desktop-capable: MiniMax models are tuned for Creative
-  // Studio media tasks, not for the high-frequency tool-call cadence of
-  // desktop automation; tool-call reliability under sequential desktop_*
-  // calls hasn't been characterised.
-  {
-    id: 'MiniMax-M2.7',
-    name: 'MiniMax M2.7',
-    provider: 'platform',
-    contextWindow: 204800,
-    maxOutputTokens: 128000,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsThinking: true,
-    supportsVision: false,
-    pricing: { inputPerMillion: 0.30, outputPerMillion: 1.20 },
-  },
-  // MiniMax M2.5 — best tool calling, cheapest agentic model
-  {
-    id: 'MiniMax-M2.5',
-    name: 'MiniMax M2.5',
-    provider: 'platform',
-    contextWindow: 1000000,
-    maxOutputTokens: 128000,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsThinking: true,
-    supportsVision: false,
-    pricing: { inputPerMillion: 0.15, outputPerMillion: 1.20 },
   },
   // Qwen 3.5 Omni Plus — multimodal
   {

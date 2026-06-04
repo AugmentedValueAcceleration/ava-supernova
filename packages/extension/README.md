@@ -252,7 +252,8 @@ Every plan gets every model. Tiers differ only on monthly credit allowance (Free
 
 | Source | Models |
 |---|---|
-| **Ava Managed** | Qwen 3.6 Plus, Qwen 3.5 Plus, Qwen 3.5 Omni Plus, Qwen 3.5 Omni Flash, Qwen 3.5 Flash, MiniMax M2.7, MiniMax M2.5 |
+| **Ava Managed** | Qwen 3.6 Plus, Qwen 3.5 Plus, Qwen 3.5 Omni Plus, Qwen 3.5 Omni Flash, Qwen 3.5 Flash |
+| **BYOK — MiniMax** | M3 *(flagship, 1M context, vision)*, M2.7, M2.7 HighSpeed |
 | **BYOK — DeepSeek** | V4 Pro, V4 Flash *(2026-04-24, MIT-licensed open-weight, 1M context)* |
 | **BYOK — Moonshot** | Kimi K2.6, K2.5 |
 | **BYOK — Anthropic** | Claude Opus 4.8, Opus 4.7, Sonnet 4.6, Haiku 4.5 |

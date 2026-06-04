@@ -78,12 +78,12 @@ export const PROVIDERS: ProviderFact[] = [
   {
     id: 'minimax',
     name: 'MiniMax',
-    kind: 'managed',
-    notes: 'Powers Creative Studio — image, video, music, voice.',
+    kind: 'byok',
+    notes: 'BYOK chat models — bring your own MiniMax API key. (MiniMax also powers Creative Studio voice.)',
     models: [
+      { id: 'MiniMax-M3', displayName: 'MiniMax M3', inputPricePerM: 0.60, outputPricePerM: 2.40, contextWindow: 1_048_576, capabilities: ['tools', 'thinking', 'streaming', 'vision'] },
       { id: 'MiniMax-M2.7', displayName: 'MiniMax M2.7', inputPricePerM: 0.30, outputPricePerM: 1.20, contextWindow: 204_800, capabilities: ['tools', 'thinking', 'streaming'] },
-      { id: 'MiniMax-M2.5', displayName: 'MiniMax M2.5', inputPricePerM: 0.15, outputPricePerM: 1.20, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
-      { id: 'MiniMax-M2', displayName: 'MiniMax M2', inputPricePerM: 0.255, outputPricePerM: 1.00, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'MiniMax-M2.7-highspeed', displayName: 'MiniMax M2.7 HighSpeed', inputPricePerM: 0.60, outputPricePerM: 2.40, contextWindow: 204_800, capabilities: ['tools', 'thinking', 'streaming'] },
     ],
   },
   {

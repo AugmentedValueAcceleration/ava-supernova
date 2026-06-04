@@ -1392,7 +1392,7 @@ export function App() {
       case 'memory':
         return <Memory memories={account ? memories : localMemories} mode={mode} serverTotal={account ? memoryTotal : undefined} serverHasMore={account ? memoryHasMore : undefined} loaded={account ? isLoaded('memories') : isLoaded('local_memories')} />;
       case 'history':
-        return <History sessionStats={sessionStatsData} usageHistory={usageHistoryData} mode={account ? 'platform' : 'byok'} account={account} auditLog={auditLog} conversations={conversations} loaded={isLoaded('conversations')} />;
+        return <History sessionStats={sessionStatsData} usageHistory={usageHistoryData} mode={account ? 'platform' : 'byok'} account={account} auditLog={auditLog} conversations={conversations} loaded={isLoaded('conversations')} onNavigate={setPagePersist} />;
       case 'library':
         return (
           <Library
