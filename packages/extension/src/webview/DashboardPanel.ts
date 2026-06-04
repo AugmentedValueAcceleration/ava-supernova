@@ -2086,6 +2086,10 @@ export class DashboardPanel {
   // ─── Memories ──────────────────────────────────────────────────────────────
 
   private memoryOffset = 0;
+  // Full local+cloud memory list, sorted, built once per load. The panel pages
+  // through it (a 2,500+ memory store froze the webview when posted at once).
+  private memoryCache: MemoryEntry[] = [];
+  private static readonly MEMORY_PAGE_SIZE = 100;
 
   private async loadMemories(): Promise<void> {
     this.memoryOffset = 0;
@@ -2125,10 +2129,15 @@ export class DashboardPanel {
       }
     }
 
-    const memories = [...byId.values()];
-    this.memoryOffset = memories.length;
-    console.log(`[Ava] loadMemories: ${memories.length} memories (local-first)`);
-    this.post({ type: 'memories_loaded', memories, total: memories.length, hasMore: false });
+    // Sort newest-first and cache; post only the first page so a large store
+    // doesn't freeze the webview. Subsequent pages come via loadMoreMemories.
+    const all = [...byId.values()].sort((a, b) =>
+      new Date(b.updated_at || b.created_at || 0).getTime() - new Date(a.updated_at || a.created_at || 0).getTime());
+    this.memoryCache = all;
+    const page = all.slice(0, DashboardPanel.MEMORY_PAGE_SIZE);
+    this.memoryOffset = page.length;
+    console.log(`[Ava] loadMemories: ${all.length} memories (local-first), showing first ${page.length}`);
+    this.post({ type: 'memories_loaded', memories: page, total: all.length, hasMore: all.length > page.length });
   }
 
   /** Send v3 graph stats, contradictions, patterns, and brain to the dashboard. */
@@ -2182,23 +2191,17 @@ export class DashboardPanel {
     }
   }
 
-  private async loadMoreMemories(): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) return;
-
-    try {
-      const res = await apiFetch(`/memories?limit=100&offset=${this.memoryOffset}`, { platformKey });
-      if (res.ok) {
-        const body = res.data as { memories?: never[]; total?: number; hasMore?: boolean } | never[];
-        const memories = Array.isArray(body) ? body : (body.memories || []);
-        const total = Array.isArray(body) ? memories.length : (body.total || memories.length);
-        const hasMore = Array.isArray(body) ? false : (body.hasMore || false);
-        this.memoryOffset += memories.length;
-        this.post({ type: 'memories_more_loaded', memories, total, hasMore });
-      }
-    } catch {
-      // silent
-    }
+  private loadMoreMemories(): void {
+    // Page through the cached local+cloud list built in loadMemories — no
+    // round-trip, no re-read of the whole graph.
+    const page = this.memoryCache.slice(this.memoryOffset, this.memoryOffset + DashboardPanel.MEMORY_PAGE_SIZE);
+    this.memoryOffset += page.length;
+    this.post({
+      type: 'memories_more_loaded',
+      memories: page,
+      total: this.memoryCache.length,
+      hasMore: this.memoryOffset < this.memoryCache.length,
+    });
   }
 
   private async deleteMemory(id: string): Promise<void> {
