@@ -2088,28 +2088,47 @@ export class DashboardPanel {
   private memoryOffset = 0;
 
   private async loadMemories(): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      console.log('[Ava] loadMemories: no platform key');
-      return;
+    this.memoryOffset = 0;
+    const byId = new Map<string, MemoryEntry>();
+
+    // LOCAL-FIRST. Read the on-device memory (the v3 graph, via getEntries)
+    // so memories show even when the user is local-only — the cloud is opt-in
+    // and empty for them, so reading only /memories showed 0 while the local
+    // graph held hundreds. Use the AGENT's memory manager when available: it's
+    // scoped to the signed-in account dir (~/.ava/users/<id>) where saves land,
+    // whereas this panel's own manager defaults to ~/.ava and would miss them.
+    try {
+      const mgr = (this.viewProvider as unknown as { memoryManager?: MemoryManager }).memoryManager
+        ?? this.getMemoryManager();
+      const [g, p] = await Promise.all([
+        mgr.getEntries('global'),
+        mgr.getEntries('project').catch(() => [] as CoreMemoryEntry[]),
+      ]);
+      for (const e of g) byId.set(e.id, this.coreToDisplayEntry(e, 'global'));
+      for (const e of p) byId.set(e.id, this.coreToDisplayEntry(e, 'project'));
+    } catch (err) {
+      console.error('[Ava] loadMemories local read error:', err);
     }
 
-    try {
-      this.memoryOffset = 0;
-      const res = await apiFetch('/memories?limit=100&offset=0', { platformKey });
-      console.log('[Ava] loadMemories response:', res.status, 'ok:', res.ok);
-      if (res.ok) {
-        const body = res.data as { memories?: never[]; total?: number; hasMore?: boolean } | never[];
-        const memories = Array.isArray(body) ? body : (body.memories || []);
-        const total = Array.isArray(body) ? memories.length : (body.total || memories.length);
-        const hasMore = Array.isArray(body) ? false : (body.hasMore || false);
-        console.log(`[Ava] loadMemories: got ${memories.length} memories, total=${total}, hasMore=${hasMore}`);
-        this.memoryOffset = memories.length;
-        this.post({ type: 'memories_loaded', memories, total, hasMore });
+    // Cloud on top — for signed-in users who DO sync. Local id wins on clash.
+    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
+    if (platformKey) {
+      try {
+        const res = await apiFetch('/memories?limit=100&offset=0', { platformKey });
+        if (res.ok) {
+          const body = res.data as { memories?: MemoryEntry[] } | MemoryEntry[];
+          const cloud = Array.isArray(body) ? body : (body.memories || []);
+          for (const m of cloud) if (m?.id && !byId.has(m.id)) byId.set(m.id, m);
+        }
+      } catch (err) {
+        console.error('[Ava] loadMemories cloud error:', err);
       }
-    } catch (err) {
-      console.error('[Ava] loadMemories error:', err);
     }
+
+    const memories = [...byId.values()];
+    this.memoryOffset = memories.length;
+    console.log(`[Ava] loadMemories: ${memories.length} memories (local-first)`);
+    this.post({ type: 'memories_loaded', memories, total: memories.length, hasMore: false });
   }
 
   /** Send v3 graph stats, contradictions, patterns, and brain to the dashboard. */
