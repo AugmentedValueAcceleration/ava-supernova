@@ -130,6 +130,17 @@ export { ProceduralObserver } from './memory/procedural.js';
 export { AmbientCaptureManager, heuristicScore, buildScoringPrompt, parseScoringResponse } from './memory/ambient-capture.js';
 export { synthesiseProjectBrain, loadProjectBrain, saveProjectBrain } from './memory/project-brain.js';
 export { needsMigration, migrateV2ToV3 } from './memory/migration-v3.js';
+
+// Data portability — encrypted local backup + transfer bundle (the foundation
+// of "we never store your data": one sealed bundle, delivered as a file or a
+// device-to-device transfer).
+export {
+  seal, open, isSealedEnvelope,
+  gatherBundle, restoreBundle, exportEncryptedBackup, importEncryptedBackup,
+  USER_DATA_PATHS, BUNDLE_VERSION,
+  type SealedEnvelope, type DataBundle, type RestoreResult,
+} from './portability/index.js';
+
 export { exportTrainingData, toJsonlSft, toJsonlWithReasoning } from './memory/training-export.js';
 export type { TrainingExample } from './memory/training-export.js';
 export { MODE_CATEGORY_WEIGHTS } from './memory/mode-recall.js';
