@@ -18,6 +18,7 @@ Ava isn't a single tool. She's a partner who plays multiple roles depending on w
 - **Strategist** — plans features, audits architecture, researches your competitors
 - **Security auditor** — full OWASP-aligned scan with verified findings, not noise
 - **Assistant** — drafts emails, writes reports, builds spreadsheets, drives a browser
+- **Coach** — builds fitness and meal plans and tracks your progress, from a real exercise and recipe library
 - **Friend** — checks in, remembers your goals, journals with you
 
 Switch roles with a keystroke. Same brain. Same memory. Different mindset.
@@ -79,7 +80,7 @@ Ava approaches your features the way a real engineer would, not the way a fast a
 - **Work pipeline** — Scout → Architect → Verifier → Sequencer → Challenger → Builder
 - Simple questions skip orchestration entirely. Zero overhead.
 
-Three orchestrated modes ship in the dropdown. **Maestro** runs a single Qwen 3.6 Plus conductor — Terminal-Bench leader, predictable cost, the daily driver. **Supernova** is the polyglot: DeepSeek V4 Pro coordinator + V4 Flash mid-tier specialists + Qwen builders (3.6 Plus for builds, 3.5 Flash for the intent gate, 3.5 Omni Plus for vision, 3.5 Plus for long-form). **Aurora** is the European AI stack — three-tier Mistral fleet: Mistral Large 3 coordinator + heavy specialists, Mistral Medium 3.5 (the merged flagship released April 2026 — 77.6% SWE-Bench Verified, 256K context, vision encoder from scratch) for Builder + mid-tier specialists + vision + long-form, Mistral Small 4 at the intent gate. Open weights, never leaves EU infrastructure. Sovereign by default. Pick whichever fits the job.
+Three orchestrated modes ship in the dropdown. **Maestro** runs a single Qwen 3.6 Plus conductor — predictable cost, the daily driver. **Supernova** is the polyglot: DeepSeek V4 Pro coordinator + V4 Flash mid-tier specialists + Qwen builders (3.6 Plus for builds, 3.5 Flash for the intent gate, 3.5 Omni Plus for vision, 3.5 Plus for long-form). **Aurora** is the European AI stack — three-tier Mistral fleet: Mistral Large 3 coordinator + heavy specialists, Mistral Medium 3.5 (256K context, native vision) for Builder + mid-tier specialists + vision + long-form, Mistral Small 4 at the intent gate. Open weights, never leaves EU infrastructure. Sovereign by default. Pick whichever fits the job.
 
 ---
 
@@ -95,7 +96,7 @@ Ava ships with a **Creative Studio** that generates real assets and integrates t
 | **Voice** | Voiceovers and narration in multiple voices |
 | **Background removal** | Cut out subjects from existing images |
 
-**Image generation runs on Wan** — Alibaba's open-weight image model, 2026 SoTA on graphic-design output (icons, banners, thumbnails, vector marks). Music, voice, and video stay on MiniMax. Each backend plays to its strength.
+**Image and video run on Wan** — Alibaba's open-weight models, built for graphic-design output (icons, banners, thumbnails, vector marks) and short clips with synchronized audio. Music and voice stay on MiniMax. Each backend plays to its strength.
 
 **The integration is the point.** When Ava generates a logo, she can drop it into your `public/` folder and reference it in your JSX. When she generates a hero video, she can wire it into your landing page component. When she generates a voice clip for an onboarding flow, she can save it to `assets/audio/` and add the `<audio>` element. **The Creative Studio isn't a separate app — it's a tool Ava uses in the middle of building your project.**
 
@@ -105,7 +106,7 @@ Every asset she generates is tracked in the **Library** tab — grid or list vie
 
 ## As Your Tutor
 
-Teach mode is free for everyone. Forever. Education shouldn't have a price tag.
+Tell Ava what you want to learn and she becomes a real teacher. Teach runs on the same credits as every other mode — so the 300 free each month gets the Free tier learning at no cost.
 
 **Ava builds the curriculum from scratch.** Tell her what you want to learn — *"teach me Rust for game development"*, *"I need to understand transformers"*, *"help me get good at React Server Components"* — and her Curriculum Architect persona designs a full learning path: modules, lessons, prerequisites, exercises, projects, and quizzes. All sequenced based on your level and your goal.
 
@@ -155,6 +156,18 @@ The work that isn't code, but still has to happen:
 - **Tasks** — track work across global and project scopes, sync to the dashboard, flag overdue items in the daily briefing
 - **Journal** — your entry and Ava's, side by side, with mood tracking and streak counting
 - **Daily briefing** — proactive morning check-in: today's tasks, overdue items, journal streak, learning progress
+
+---
+
+## As Your Health & Fitness Coach
+
+Ava's care goes past the codebase. Health mode adds a full fitness and nutrition arm — same free-for-everyone posture as the rest of Ava.
+
+**A real catalogue.** Exercises across every style — strength, hypertrophy, conditioning, HIIT, mobility, yoga, pilates, recovery, running, cycling, hybrid — and recipes across every course: breakfast, mains, starters, sides, snacks, desserts. Search, filter, and open any entry for the full detail. Submit your own, too.
+
+**Plans built around you.** Tell Ava your goal and she generates a structured fitness, meal, or combined plan — day by day, shaped by your profile: level, goals, dietary needs, schedule. Track each day as you go.
+
+**Same memory, same Ava.** The goals you set and the progress you log live in the same memory as your code decisions — so it all connects.
 
 ---
 
@@ -215,6 +228,7 @@ Grouped for the work you actually do:
 | **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete`, `curator` |
 | **Tasks & Planning** | `present_plan`, `todo_write`, `task_manage`, `apply_plan`, `switch_mode` |
 | **Journal & Learning** | `journal_write`, `learning_create`, `learning_teach`, `learning_progress` |
+| **Health & Fitness** | `health_catalogue_search`, `health_plan_create`, `health_plan_update_day` |
 | **Testing & Quality** | `test_run`, `test_generate`, `benchmark`, `analyze_architecture`, `audit_dependencies`, `debug_logs` |
 | **Secret Vault** | `secret_request`, `env_write` |
 | **Data** | `database_query` |
@@ -226,23 +240,23 @@ Grouped for the work you actually do:
 
 ## Models
 
-**Maestro coordinator** — Qwen 3.6 Plus. Tier-differentiated Qwen routing: 3.6 Plus on the heavy slots (coordinator, Builder, planning, security, brainstorm, long-context), 3.5 Flash on the high-volume low-depth slots (chat, image-gen orchestration, intent gate), Omni Plus on vision input, 3.5 Plus on long-form writing. Terminal-Bench leader on real agent loops, 1M context, native MCP function calling.
+**Maestro coordinator** — Qwen 3.6 Plus. Tier-differentiated Qwen routing: 3.6 Plus on the heavy slots (coordinator, Builder, planning, security, brainstorm, long-context), 3.5 Flash on the high-volume low-depth slots (chat, image-gen orchestration, intent gate), Omni Plus on vision input, 3.5 Plus on long-form writing. 1M context, native MCP function calling.
 
 **Supernova coordinator** — DeepSeek V4 Pro. Polyglot mode: V4 Pro reads the task, picks specialists (Qwen 3.6 Plus for Builder, V4 Flash for chat + review-tier work, Qwen Omni Plus for vision, Omni Flash for image-gen orchestration). Each role runs on the model that's actually best at it, not whatever the coordinator happens to be.
 
 **Aurora coordinator** — Mistral Large 3. EU-sovereign three-tier Mistral fleet: Large 3 on the coordinator + heavy reasoning specialists, Medium 3.5 on Builder + mid-tier + vision + long-form, Small 4 on chat + image-gen + intent gate. Open weights end to end, never leaves EU infrastructure.
 
-**Creative Studio** — runs MiniMax exclusively. Image, video, music, voice. Kept separate from the chat coordinator so creative work and code work never compete for the same context window.
+**Creative Studio** — image and video on Wan, music and voice on MiniMax. Kept separate from the chat coordinator so creative work and code work never compete for the same context window.
 
-Every plan gets every model. Tiers differ only on monthly credit allowance (Free 300 · Pro 5,000 · Ultra 10,000 · Enterprise 20,000) — never on which models are available. Coming soon: **Supernova** — a polyglot multi-model orchestration mode in development; rolls out platform-wide once active.
+Every plan gets every model. Tiers differ only on monthly credit allowance (Free 300 · Pro 5,000 · Ultra 10,000 · Enterprise 20,000) — never on which models are available.
 
 | Source | Models |
 |---|---|
 | **Ava Managed** | Qwen 3.6 Plus, Qwen 3.5 Plus, Qwen 3.5 Omni Plus, Qwen 3.5 Omni Flash, Qwen 3.5 Flash, MiniMax M2.7, MiniMax M2.5 |
 | **BYOK — DeepSeek** | V4 Pro, V4 Flash *(2026-04-24, MIT-licensed open-weight, 1M context)* |
-| **BYOK — Moonshot** | Kimi K2.6 *(SoTA agentic coding, SWE-Bench Pro 58.6)*, K2.5 |
-| **BYOK — Anthropic** | Claude Opus 4.7, Opus 4.6, Sonnet 4.6, Haiku 4.5 |
-| **BYOK — Mistral** | Large, Codestral, Devstral 2 |
+| **BYOK — Moonshot** | Kimi K2.6, K2.5 |
+| **BYOK — Anthropic** | Claude Opus 4.8, Opus 4.7, Sonnet 4.6, Haiku 4.5 |
+| **BYOK — Mistral** | Large 3, Medium 3.5, Small 4, Codestral, Devstral 2 |
 | **BYOK — Zhipu** | GLM-5 |
 | **BYOK — Xiaomi** | MiMo V2.5, V2.5-Pro |
 | **BYOK — Custom** | Ollama, LM Studio, any standard API endpoint |
@@ -264,6 +278,7 @@ Every plan gets every model. Tiers differ only on monthly credit allowance (Free
 
 - API keys encrypted in your OS keychain (VSCode SecretStorage)
 - All memory and conversation data stored locally by default
+- Export everything as readable JSON, or a passphrase-encrypted `.ava-backup` you can move between devices — your data, in your hands
 - Credentials blocked from memory at runtime
 - Streaming-safe redaction — high-confidence key patterns are scrubbed from chat output before they hit the screen, even for keys not yet in the vault
 - Capability-based secret access — Ava only sees secrets you grant for the current chat session, and receives opaque handles instead of raw values
