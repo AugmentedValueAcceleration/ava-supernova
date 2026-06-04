@@ -15,6 +15,13 @@ const DATA_TYPES = [
   { id: 'personality', nameKey: 'dash.nav.personality', icon: '\uD83C\uDFA8', descKey: 'dash.portability.type.personality_desc' },
 ];
 
+/** Cheap client-side check for an encrypted .ava-backup (no crypto needed —
+ *  just the envelope magic / extension). */
+function looksLikeSealedBackup(content: string, name: string): boolean {
+  if (name.toLowerCase().endsWith('.ava-backup')) return true;
+  try { return (JSON.parse(content) as { magic?: string })?.magic === 'AVABKP'; } catch { return false; }
+}
+
 interface DataPortabilityProps {
   isOpen: boolean;
   onClose: () => void;
@@ -29,6 +36,13 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // Encrypted backup / readable export (data sovereignty). Inline English for
+  // now — TODO: lift to i18n keys like the rest of the panel.
+  const [passModal, setPassModal] = useState<null | { mode: 'export' | 'import'; content?: string; name?: string }>(null);
+  const [passInput, setPassInput] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [statusMsg, setStatusMsg] = useState<string | null>(null);
 
   // Close on outside click
   useEffect(() => {
@@ -64,13 +78,29 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
       }
       if (msg?.type === 'import_files_picked') {
         const files = msg.files as Array<{ name: string; content: string; size: number }>;
-        const detected = files.map(f => ({
-          name: f.name,
-          dataType: detectDataType(f.content, f.name),
-          content: f.content,
-          size: f.size,
-        }));
-        setImportFiles(prev => [...prev, ...detected]);
+        // An encrypted .ava-backup takes the passphrase path; everything else
+        // is per-type readable JSON.
+        const backup = files.find(f => looksLikeSealedBackup(f.content, f.name));
+        if (backup) {
+          setPassModal({ mode: 'import', content: backup.content, name: backup.name });
+        } else {
+          const detected = files.map(f => ({
+            name: f.name,
+            dataType: detectDataType(f.content, f.name),
+            content: f.content,
+            size: f.size,
+          }));
+          setImportFiles(prev => [...prev, ...detected]);
+        }
+      }
+      if (msg?.type === 'backup_done') {
+        setBusy(false); setPassModal(null); setPassInput('');
+        if (msg.ok) { setStatusMsg(t('dash.portability.backup_saved')); setTimeout(() => setStatusMsg(null), 4000); }
+      }
+      if (msg?.type === 'backup_imported') {
+        setBusy(false); setPassModal(null); setPassInput('');
+        setStatusMsg(msg.ok ? t('dash.portability.restored') : t('dash.portability.import_failed'));
+        setTimeout(() => setStatusMsg(null), 5000);
       }
     };
     window.addEventListener('message', handler);
@@ -146,6 +176,16 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
     setImportFiles(prev => prev.filter((_, i) => i !== index));
   }, []);
 
+  const confirmPass = useCallback(() => {
+    if (!passModal || !passInput) return;
+    setBusy(true);
+    if (passModal.mode === 'export') {
+      post({ type: 'export_encrypted_backup', passphrase: passInput } as any);
+    } else {
+      post({ type: 'import_encrypted_backup', content: passModal.content, passphrase: passInput } as any);
+    }
+  }, [passModal, passInput]);
+
   const fmtSize = (bytes: number) => {
     if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
     if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -183,6 +223,39 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
       {/* Export Tab */}
       {tab === 'export' && (
         <div className="p-3">
+          {/* Data sovereignty — local backup + readable export. These live
+              ABOVE the cloud export: your data is on your machine; this is how
+              you keep it safe, move it, and see it. */}
+          <button
+            onClick={() => { setPassInput(''); setPassModal({ mode: 'export' }); }}
+            className="mb-2 w-full rounded-lg border px-3 py-2.5 text-left transition hover:bg-[var(--accent)]/10"
+            style={{ borderColor: 'rgba(168,85,247,0.35)', background: 'rgba(168,85,247,0.06)' }}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-base">{'\u{1F512}'}</span>
+              <div className="flex-1">
+                <div className="text-xs font-semibold" style={{ color: '#cdd6f4' }}>{t('dash.portability.enc_backup')} (.ava-backup)</div>
+                <div className="text-[10px] opacity-60" style={{ color: '#a6adc8' }}>
+                  {t('dash.portability.enc_backup_desc')}
+                </div>
+              </div>
+            </div>
+          </button>
+          <button
+            onClick={() => { setStatusMsg(t('dash.portability.preparing')); post({ type: 'export_readable_all' } as { type: 'export_readable_all' }); }}
+            className="mb-3 w-full rounded-lg border px-3 py-2.5 text-left transition hover:bg-white/[0.04]"
+            style={{ borderColor: 'rgba(108,112,134,0.3)' }}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-base">{'\u{1F4D6}'}</span>
+              <div className="flex-1">
+                <div className="text-xs font-semibold" style={{ color: '#cdd6f4' }}>{t('dash.portability.readable')}</div>
+                <div className="text-[10px] opacity-60" style={{ color: '#a6adc8' }}>
+                  {t('dash.portability.readable_desc')}
+                </div>
+              </div>
+            </div>
+          </button>
           {/* GDPR Article 20 — full cloud-stored data export. Lives at
               the top of the Export tab as a hero CTA so users see the
               "everything in one file" path before the per-type list.
@@ -318,10 +391,53 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
         </div>
       )}
 
+      {/* Status banner (backup saved / restored) */}
+      {statusMsg && (
+        <div className="mx-3 mb-2 px-3 py-2 rounded-lg text-[11px]" style={{ background: 'rgba(168,85,247,0.1)', color: '#cdd6f4' }}>
+          {statusMsg}
+        </div>
+      )}
+
       {/* Footer */}
       <div className="px-4 py-2 text-[10px] opacity-30 border-t" style={{ borderColor: 'rgba(168,85,247,0.08)' }}>
         {t('dash.portability.footer')}
       </div>
+
+      {/* Passphrase modal — for creating or opening an encrypted backup. */}
+      {passModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', padding: 16 }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) { setPassModal(null); setPassInput(''); } }}
+        >
+          <div className="rounded-xl border p-4" style={{ width: 320, background: '#1e1e2e', borderColor: 'rgba(168,85,247,0.3)' }}>
+            <div className="text-xs font-semibold mb-1" style={{ color: '#cdd6f4' }}>
+              {passModal.mode === 'export' ? t('dash.portability.pass_set') : t('dash.portability.pass_enter')}
+            </div>
+            <div className="text-[10px] opacity-60 mb-3" style={{ color: '#a6adc8', lineHeight: 1.5 }}>
+              {passModal.mode === 'export' ? t('dash.portability.pass_set_desc') : (passModal.name || '')}
+            </div>
+            <input
+              type="password" value={passInput} autoFocus
+              onChange={(e) => setPassInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && passInput && !busy) confirmPass(); }}
+              placeholder={t('dash.portability.passphrase')}
+              className="w-full mb-3 px-2 py-1.5 rounded text-xs"
+              style={{ background: '#11111b', color: '#cdd6f4', border: '1px solid rgba(168,85,247,0.2)', outline: 'none' }}
+            />
+            <div className="flex gap-2">
+              <button onClick={() => { setPassModal(null); setPassInput(''); }} disabled={busy}
+                className="flex-1 py-1.5 rounded text-xs cursor-pointer"
+                style={{ background: 'transparent', color: '#a6adc8', border: '1px solid rgba(108,112,134,0.3)' }}>
+                {t('dash.portability.cancel')}
+              </button>
+              <button onClick={confirmPass} disabled={!passInput || busy}
+                className="flex-1 py-1.5 rounded text-xs text-white border-none cursor-pointer"
+                style={{ background: (!passInput || busy) ? '#6c7086' : 'linear-gradient(135deg, #a855f7, #7c3aed)' }}>
+                {busy ? t('dash.portability.working') : passModal.mode === 'export' ? t('dash.portability.create_backup') : t('dash.portability.restore')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -22,6 +22,7 @@ import {
   MemoryManager, TaskManager, JournalManager, AVA_HOME,
   loadPersonality, savePersonality, resetPersonality,
   loadDatasetConfig, saveDatasetConfig, configPathFor,
+  exportEncryptedBackup, importEncryptedBackup, gatherBundle,
   type DatasetConfig,
 } from '@ava/core';
 import type { Personality } from '@ava/core';
@@ -1863,6 +1864,22 @@ export class DashboardPanel {
         break;
       }
 
+      case 'export_encrypted_backup':
+        await this.handleExportEncryptedBackup((msg as { passphrase?: string }).passphrase ?? '');
+        break;
+
+      case 'export_readable_all':
+        await this.handleExportReadableAll();
+        break;
+
+      case 'import_encrypted_backup':
+        await this.handleImportEncryptedBackup(
+          (msg as { content?: string }).content ?? '',
+          (msg as { passphrase?: string }).passphrase ?? '',
+          (msg as { overwrite?: boolean }).overwrite,
+        );
+        break;
+
       case 'import_data':
         await this.handleImportData((msg as any).dataType, (msg as any).content);
         break;
@@ -1871,7 +1888,7 @@ export class DashboardPanel {
         const uris = await vscode.window.showOpenDialog({
           canSelectFiles: true,
           canSelectMany: true,
-          filters: { 'JSON': ['json'] },
+          filters: { 'Ava data': ['json', 'ava-backup'] },
           openLabel: 'Import',
         });
         if (uris && uris.length > 0) {
@@ -4728,6 +4745,70 @@ export class DashboardPanel {
   }
 
   // ─── Data Portability ─────────────────────────────────────────────────────
+
+  /** Encrypted full backup (.ava-backup) — seal everything under ~/.ava with a
+   *  passphrase (the cryptographic core lives in @ava/core/portability). The
+   *  file is opaque; only the passphrase, never sent anywhere, can open it. */
+  private async handleExportEncryptedBackup(passphrase: string): Promise<void> {
+    if (!passphrase) {
+      this.post({ type: 'error', message: 'A passphrase is required to create an encrypted backup.' } as any);
+      this.post({ type: 'backup_done', ok: false } as any);
+      return;
+    }
+    try {
+      const avaDir = this.getUserDataDir();
+      const envelope = await exportEncryptedBackup(avaDir, passphrase, { source: 'extension' });
+      const datePart = new Date().toISOString().slice(0, 10);
+      const uri = await vscode.window.showSaveDialog({
+        defaultUri: vscode.Uri.file(`ava-backup-${datePart}.ava-backup`),
+        filters: { 'Ava backup': ['ava-backup'] },
+      });
+      if (!uri) { this.post({ type: 'backup_done', ok: false } as any); return; }
+      const fs = await import('node:fs/promises');
+      await fs.writeFile(uri.fsPath, envelope, 'utf-8');
+      this.post({ type: 'backup_done', ok: true, message: `Encrypted backup saved to ${uri.fsPath}` } as any);
+    } catch (err) {
+      this.post({ type: 'error', message: `Backup failed: ${err instanceof Error ? err.message : err}` } as any);
+      this.post({ type: 'backup_done', ok: false } as any);
+    }
+  }
+
+  /** Readable export — the same local data as plain JSON so the user can SEE
+   *  exactly what's on their machine. Unencrypted by design (it's for reading),
+   *  so we tell them to keep it safe. */
+  private async handleExportReadableAll(): Promise<void> {
+    try {
+      const avaDir = this.getUserDataDir();
+      const bundle = await gatherBundle(avaDir, { source: 'extension' });
+      const datePart = new Date().toISOString().slice(0, 10);
+      const uri = await vscode.window.showSaveDialog({
+        defaultUri: vscode.Uri.file(`ava-data-readable-${datePart}.json`),
+        filters: { JSON: ['json'] },
+      });
+      if (!uri) return;
+      const fs = await import('node:fs/promises');
+      await fs.writeFile(uri.fsPath, JSON.stringify(bundle, null, 2), 'utf-8');
+      this.post({ type: 'info', message: `Readable export saved to ${uri.fsPath} — unencrypted, keep it somewhere safe.` } as any);
+    } catch (err) {
+      this.post({ type: 'error', message: `Export failed: ${err instanceof Error ? err.message : err}` } as any);
+    }
+  }
+
+  /** Restore an encrypted .ava-backup into ~/.ava. Safe-merge by default
+   *  (won't clobber existing files unless overwrite is set). */
+  private async handleImportEncryptedBackup(content: string, passphrase: string, overwrite?: boolean): Promise<void> {
+    if (!content || !passphrase) {
+      this.post({ type: 'backup_imported', ok: false, message: 'Missing backup file or passphrase.' } as any);
+      return;
+    }
+    try {
+      const avaDir = this.getUserDataDir();
+      const { result } = await importEncryptedBackup(avaDir, content, passphrase, { overwrite: !!overwrite });
+      this.post({ type: 'backup_imported', ok: true, written: result.written, skipped: result.skipped } as any);
+    } catch (err) {
+      this.post({ type: 'backup_imported', ok: false, message: err instanceof Error ? err.message : String(err) } as any);
+    }
+  }
 
   private async handleExportData(dataType: string): Promise<void> {
     const fs = await import('node:fs/promises');

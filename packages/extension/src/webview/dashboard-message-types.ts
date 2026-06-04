@@ -1397,6 +1397,9 @@ export type ExtToDashboardMessage =
   | { type: 'briefing'; text: string; todayTasks: number; overdueTasks: number; totalActive: number }
   | { type: 'data_exported'; dataType: string; content: string; filename: string }
   | { type: 'data_imported'; dataType: string; count: number }
+  // Encrypted backup / restore results (data sovereignty).
+  | { type: 'backup_done'; ok: boolean; message?: string }
+  | { type: 'backup_imported'; ok: boolean; written?: number; skipped?: number; message?: string }
   // Chat streaming — partial tool output chunks during execution
   | { type: 'tool_call_partial'; toolCallId: string; data: string }
   // Agent-generated creative asset landed in the user's library
@@ -1657,6 +1660,10 @@ export type DashboardToExtMessage =
   | { type: 'load_secrets' }
   | { type: 'export_data'; dataType: string }
   | { type: 'import_data'; dataType: string; content: string }
+  // Data sovereignty — encrypted backup (.ava-backup) + readable export.
+  | { type: 'export_encrypted_backup'; passphrase: string }
+  | { type: 'export_readable_all' }
+  | { type: 'import_encrypted_backup'; content: string; passphrase: string; overwrite?: boolean }
   // Open the built-in Ava docs surface (extension command routed from
   // the dashboard welcome flow / help buttons).
   | { type: 'open_docs' }
