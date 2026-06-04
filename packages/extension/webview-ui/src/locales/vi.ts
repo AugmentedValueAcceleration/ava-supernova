@@ -206,7 +206,7 @@ export const viStrings: Record<StringKey, string> = {
   'input.provider_api_key': 'Khóa API',
   'input.provider_switch_free': 'Chuyển sang token miễn phí/nền tảng',
   'input.provider_use_own_key': 'Dùng khóa API của bạn',
-  'input.tokens_remaining': 'Còn {remaining} token miễn phí',
+  'input.tokens_remaining': 'Còn {remaining} tín dụng miễn phí',
   'input.tokens_unlimited': 'Token không giới hạn',
   'input.mode_switch_hint': 'Nhấp để chuyển chế độ (Ctrl+Shift+1–6)',
 

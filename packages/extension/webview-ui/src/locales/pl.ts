@@ -206,7 +206,7 @@ export const plStrings: Record<StringKey, string> = {
   'input.provider_api_key': 'Klucz API',
   'input.provider_switch_free': 'Przełącz na tokeny bezpłatne/platformowe',
   'input.provider_use_own_key': 'Użyj własnego klucza API',
-  'input.tokens_remaining': 'Pozostało bezpłatnych tokenów: {remaining}',
+  'input.tokens_remaining': 'Pozostało bezpłatnych kredytów: {remaining}',
   'input.tokens_unlimited': 'Nielimitowane tokeny',
   'input.mode_switch_hint': 'Kliknij, aby zmienić tryb (Ctrl+Shift+1–6)',
 

@@ -206,7 +206,7 @@ export const arStrings: Record<StringKey, string> = {
   'input.provider_api_key': 'مفتاح API',
   'input.provider_switch_free': 'التبديل إلى رموز مجانية/المنصة',
   'input.provider_use_own_key': 'استخدم مفتاح API الخاص بك',
-  'input.tokens_remaining': '{remaining} رمز مجاني متبقي',
+  'input.tokens_remaining': '{remaining} رصيد مجاني متبقي',
   'input.tokens_unlimited': 'رموز غير محدودة',
   'input.mode_switch_hint': 'انقر لتبديل الوضع (Ctrl+Shift+1–6)',
 

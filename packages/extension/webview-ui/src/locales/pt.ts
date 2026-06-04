@@ -206,7 +206,7 @@ export const ptStrings: Record<StringKey, string> = {
   'input.provider_api_key': 'Chave API',
   'input.provider_switch_free': 'Mudar para tokens grátis/plataforma',
   'input.provider_use_own_key': 'Use sua própria chave API',
-  'input.tokens_remaining': '{remaining} tokens grátis restantes',
+  'input.tokens_remaining': '{remaining} créditos grátis restantes',
   'input.tokens_unlimited': 'Tokens ilimitados',
   'input.mode_switch_hint': 'Clique para alternar modo (Ctrl+Shift+1–6)',
 

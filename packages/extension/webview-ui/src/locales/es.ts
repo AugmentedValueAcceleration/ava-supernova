@@ -205,7 +205,7 @@ export const esStrings: Record<StringKey, string> = {
   'input.provider_api_key': 'Clave API',
   'input.provider_switch_free': 'Cambiar a tokens gratuitos/plataforma',
   'input.provider_use_own_key': 'Usar tu propia clave API',
-  'input.tokens_remaining': '{remaining} tokens gratuitos restantes',
+  'input.tokens_remaining': '{remaining} créditos gratuitos restantes',
   'input.tokens_unlimited': 'Tokens ilimitados',
   'input.mode_switch_hint': 'Clic para cambiar modo (Ctrl+Shift+1\u20146)',
 

@@ -206,7 +206,7 @@ export const ukStrings: Record<StringKey, string> = {
   'input.provider_api_key': 'Ключ API',
   'input.provider_switch_free': 'Перемкнутися на безкоштовні/платформні токени',
   'input.provider_use_own_key': 'Використовуйте власний ключ API',
-  'input.tokens_remaining': 'Залишилось безкоштовних токенів: {remaining}',
+  'input.tokens_remaining': 'Залишилось безкоштовних кредитів: {remaining}',
   'input.tokens_unlimited': 'Необмежені токени',
   'input.mode_switch_hint': 'Клацніть, щоб змінити режим (Ctrl+Shift+1–6)',
 

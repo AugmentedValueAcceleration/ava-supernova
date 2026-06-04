@@ -40,7 +40,7 @@
   "command.gettingStarted.title": "Getting Started — Setup wizard for new users",
   "walkthrough.title": "Getting Started with Ava",
   "walkthrough.description": "Set up your AI coding agent in minutes — or skip setup and use a free model instantly",
-  "walkthrough.step.apiKey.title": "Add your API key (or use free Qwen tokens)",
+  "walkthrough.step.apiKey.title": "Add your API key (or use free credits)",
   "walkthrough.step.apiKey.description": "Sign up for 300 free credits per month, or bring your own API key from [DeepSeek](https://platform.deepseek.com/api_keys), [Kimi](https://platform.moonshot.ai/console/api-keys), [Qwen](https://bailian.console.alibabacloud.com/), or any supported provider.",
   "walkthrough.step.model.title": "Select a model",
   "walkthrough.step.model.description": "Choose a model from the [Active Model setting](command:workbench.action.openSettings?%22ava-supernova.activeModel%22). Each model has different strengths — pick what fits your workflow.",

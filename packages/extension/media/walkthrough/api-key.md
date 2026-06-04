@@ -1,6 +1,6 @@
 # Add Your API Key (or Use Free Qwen Tokens)
 
-**Qwen Flash is free — 3M tokens per month with a free account.**
+**Qwen Flash is free — 300 credits per month with a free account.**
 
 Sign up at [ava-supernova.com](https://ava-supernova.com) for free managed tokens, or bring your own API key from any provider.
 

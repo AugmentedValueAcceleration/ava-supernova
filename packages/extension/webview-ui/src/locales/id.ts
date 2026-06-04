@@ -206,7 +206,7 @@ export const idStrings: Record<StringKey, string> = {
   'input.provider_api_key': 'Kunci API',
   'input.provider_switch_free': 'Beralih ke token gratis/platform',
   'input.provider_use_own_key': 'Gunakan kunci API Anda sendiri',
-  'input.tokens_remaining': 'Sisa {remaining} token gratis',
+  'input.tokens_remaining': 'Sisa {remaining} kredit gratis',
   'input.tokens_unlimited': 'Token tak terbatas',
   'input.mode_switch_hint': 'Klik untuk ganti mode (Ctrl+Shift+1–6)',
 

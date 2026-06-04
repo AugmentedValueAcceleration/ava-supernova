@@ -206,7 +206,7 @@ export const deStrings: Record<StringKey, string> = {
   'input.provider_api_key': 'API-Schlüssel',
   'input.provider_switch_free': 'Zu kostenlosen/Plattform-Tokens wechseln',
   'input.provider_use_own_key': 'Eigenen API-Schlüssel verwenden',
-  'input.tokens_remaining': '{remaining} kostenlose Tokens übrig',
+  'input.tokens_remaining': '{remaining} kostenlose Credits übrig',
   'input.tokens_unlimited': 'Unbegrenzte Tokens',
   'input.mode_switch_hint': 'Klicken zum Moduswechsel (Strg+Umschalt+1–6)',
 

@@ -206,7 +206,7 @@ export const itStrings: Record<StringKey, string> = {
   'input.provider_api_key': 'Chiave API',
   'input.provider_switch_free': 'Passa ai token gratuiti/piattaforma',
   'input.provider_use_own_key': 'Usa la tua chiave API',
-  'input.tokens_remaining': '{remaining} token gratuiti rimasti',
+  'input.tokens_remaining': '{remaining} crediti gratuiti rimasti',
   'input.tokens_unlimited': 'Token illimitati',
   'input.mode_switch_hint': 'Clicca per cambiare modalità (Ctrl+Maiusc+1–6)',
 

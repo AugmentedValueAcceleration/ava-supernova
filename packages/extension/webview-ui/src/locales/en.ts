@@ -214,7 +214,7 @@ export const enStrings = {
   'input.provider_api_key': 'API Key',
   'input.provider_switch_free': 'Switch to free/platform tokens',
   'input.provider_use_own_key': 'Use your own API key',
-  'input.tokens_remaining': '{remaining} free tokens remaining',
+  'input.tokens_remaining': '{remaining} free credits remaining',
   'input.tokens_unlimited': 'Unlimited tokens',
   'input.mode_switch_hint': 'Click to switch mode (Ctrl+Shift+1\u20146)',
 

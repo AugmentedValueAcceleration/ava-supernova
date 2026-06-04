@@ -206,7 +206,7 @@ export const jaStrings: Record<StringKey, string> = {
   'input.provider_api_key': 'APIキー',
   'input.provider_switch_free': '無料/プラットフォームのトークンに切替',
   'input.provider_use_own_key': '独自のAPIキーを使用',
-  'input.tokens_remaining': '無料トークン残り {remaining}',
+  'input.tokens_remaining': '無料クレジット残り {remaining}',
   'input.tokens_unlimited': 'トークン無制限',
   'input.mode_switch_hint': 'クリックしてモード切替 (Ctrl+Shift+1–6)',
 

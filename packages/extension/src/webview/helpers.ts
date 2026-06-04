@@ -38,7 +38,7 @@ export function deriveErrorInfo(error: unknown): { message: string; code: string
       case 401:
         return { message: msg, code: 'auth', suggestion: 'Go to the Dashboard and check that your API key is correct and hasn\'t expired.' };
       case 402:
-        return { message: msg, code: 'credits', suggestion: 'Add credits to your provider account, or sign up for 3M free Qwen tokens, or add your own API key.' };
+        return { message: msg, code: 'credits', suggestion: 'Add credits to your provider account, or sign up for 300 free credits, or add your own API key.' };
       case 403:
         return { message: msg, code: 'forbidden', suggestion: 'Your API key may not have the right permissions. Check your provider dashboard.' };
       case 413:

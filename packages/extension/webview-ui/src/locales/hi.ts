@@ -206,7 +206,7 @@ export const hiStrings: Record<StringKey, string> = {
   'input.provider_api_key': 'API कुंजी',
   'input.provider_switch_free': 'मुफ़्त/प्लेटफ़ॉर्म टोकन पर स्विच करें',
   'input.provider_use_own_key': 'अपनी API कुंजी का उपयोग करें',
-  'input.tokens_remaining': '{remaining} मुफ़्त टोकन बचे',
+  'input.tokens_remaining': '{remaining} मुफ़्त क्रेडिट बचे',
   'input.tokens_unlimited': 'असीमित टोकन',
   'input.mode_switch_hint': 'मोड बदलने के लिए क्लिक करें (Ctrl+Shift+1–6)',
 

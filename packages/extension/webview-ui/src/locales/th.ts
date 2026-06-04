@@ -206,7 +206,7 @@ export const thStrings: Record<StringKey, string> = {
   'input.provider_api_key': 'คีย์ API',
   'input.provider_switch_free': 'สลับเป็นโทเค็นฟรี/แพลตฟอร์ม',
   'input.provider_use_own_key': 'ใช้คีย์ API ของคุณเอง',
-  'input.tokens_remaining': 'โทเค็นฟรีเหลือ {remaining}',
+  'input.tokens_remaining': 'เครดิตฟรีเหลือ {remaining}',
   'input.tokens_unlimited': 'โทเค็นไม่จำกัด',
   'input.mode_switch_hint': 'คลิกเพื่อเปลี่ยนโหมด (Ctrl+Shift+1–6)',
 

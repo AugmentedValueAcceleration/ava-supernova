@@ -206,7 +206,7 @@ export const zhCNStrings: Record<StringKey, string> = {
   'input.provider_api_key': 'API 密钥',
   'input.provider_switch_free': '切换到免费/平台令牌',
   'input.provider_use_own_key': '使用自己的 API 密钥',
-  'input.tokens_remaining': '剩余 {remaining} 免费令牌',
+  'input.tokens_remaining': '剩余 {remaining} 免费积分',
   'input.tokens_unlimited': '无限令牌',
   'input.mode_switch_hint': '点击切换模式 (Ctrl+Shift+1–6)',
 

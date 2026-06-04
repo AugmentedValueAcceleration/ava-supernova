@@ -206,7 +206,7 @@ export const nlStrings: Record<StringKey, string> = {
   'input.provider_api_key': 'API-sleutel',
   'input.provider_switch_free': 'Schakel naar gratis/platform tokens',
   'input.provider_use_own_key': 'Gebruik je eigen API-sleutel',
-  'input.tokens_remaining': '{remaining} gratis tokens over',
+  'input.tokens_remaining': '{remaining} gratis credits over',
   'input.tokens_unlimited': 'Onbeperkte tokens',
   'input.mode_switch_hint': 'Klik om modus te wisselen (Ctrl+Shift+1–6)',
 

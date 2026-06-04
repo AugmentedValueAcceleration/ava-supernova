@@ -206,7 +206,7 @@ export const trStrings: Record<StringKey, string> = {
   'input.provider_api_key': 'API Anahtarı',
   'input.provider_switch_free': 'Ücretsiz/platform tokenlara geç',
   'input.provider_use_own_key': 'Kendi API anahtarınızı kullanın',
-  'input.tokens_remaining': 'Kalan ücretsiz token: {remaining}',
+  'input.tokens_remaining': 'Kalan ücretsiz kredi: {remaining}',
   'input.tokens_unlimited': 'Sınırsız token',
   'input.mode_switch_hint': 'Modu değiştirmek için tıklayın (Ctrl+Shift+1–6)',
 

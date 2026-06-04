@@ -206,7 +206,7 @@ export const koStrings: Record<StringKey, string> = {
   'input.provider_api_key': 'API 키',
   'input.provider_switch_free': '무료/플랫폼 토큰으로 전환',
   'input.provider_use_own_key': '자신의 API 키 사용',
-  'input.tokens_remaining': '{remaining}개의 무료 토큰 남음',
+  'input.tokens_remaining': '{remaining}개의 무료 크레딧 남음',
   'input.tokens_unlimited': '무제한 토큰',
   'input.mode_switch_hint': '클릭하여 모드 전환 (Ctrl+Shift+1–6)',
 

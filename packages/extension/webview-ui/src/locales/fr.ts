@@ -206,7 +206,7 @@ export const frStrings: Record<StringKey, string> = {
   'input.provider_api_key': 'Clé API',
   'input.provider_switch_free': 'Passer aux tokens gratuits/plateforme',
   'input.provider_use_own_key': 'Utiliser votre propre clé API',
-  'input.tokens_remaining': '{remaining} tokens gratuits restants',
+  'input.tokens_remaining': '{remaining} crédits gratuits restants',
   'input.tokens_unlimited': 'Tokens illimités',
   'input.mode_switch_hint': 'Cliquez pour changer de mode (Ctrl+Maj+1–6)',
 

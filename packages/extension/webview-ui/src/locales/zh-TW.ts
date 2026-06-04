@@ -206,7 +206,7 @@ export const zhTWStrings: Record<StringKey, string> = {
   'input.provider_api_key': 'API 金鑰',
   'input.provider_switch_free': '切換到免費/平台權杖',
   'input.provider_use_own_key': '使用自己的 API 金鑰',
-  'input.tokens_remaining': '剩餘 {remaining} 免費權杖',
+  'input.tokens_remaining': '剩餘 {remaining} 免費點數',
   'input.tokens_unlimited': '無限權杖',
   'input.mode_switch_hint': '點擊切換模式 (Ctrl+Shift+1–6)',
 

@@ -1,10 +1,10 @@
 # Choose Your Model
 
-Pick the model that fits your workflow. **Qwen Flash is free with a platform account (3M tokens/month).**
+Pick the model that fits your workflow. **Qwen Flash is free with a platform account (300 credits/month).**
 
 | Model | Best For |
 |---|---|
-| **Qwen Flash** | **FREE** (3M tokens) — Fast and reliable |
+| **Qwen Flash** | **FREE** (300 credits) — Fast and reliable |
 | **GLM-5** | Best tool-call reliability, vision, thinking (77.8% SWE-Bench) |
 | **Kimi K2.5** | Best tool calling, vision, 256K context (76.8% SWE-Bench) |
 | **DeepSeek V3.2** | Best value at $0.28/M, fast general-purpose coding |

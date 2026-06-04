@@ -206,7 +206,7 @@ export const ruStrings: Record<StringKey, string> = {
   'input.provider_api_key': 'API-ключ',
   'input.provider_switch_free': 'Переключиться на бесплатные/платформенные токены',
   'input.provider_use_own_key': 'Использовать свой API-ключ',
-  'input.tokens_remaining': 'Осталось бесплатных токенов: {remaining}',
+  'input.tokens_remaining': 'Осталось бесплатных кредитов: {remaining}',
   'input.tokens_unlimited': 'Безлимитные токены',
   'input.mode_switch_hint': 'Нажмите для смены режима (Ctrl+Shift+1–6)',
 
