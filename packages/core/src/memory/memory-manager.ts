@@ -67,6 +67,9 @@ export class MemoryManager {
   private graphGlobal: MemoryGraph | null = null;
   private graphProject: MemoryGraph | null = null;
   private graphInitialized = false;
+  // Resolves when initGraph() completes — saveEntry awaits this so it never
+  // writes to a not-yet-loaded graph.
+  private initGraphPromise: Promise<void> = Promise.resolve();
   private proceduralGlobal: ProceduralObserver | null = null;
   private proceduralProject: ProceduralObserver | null = null;
   private ambientGlobal: AmbientCaptureManager | null = null;
@@ -98,10 +101,17 @@ export class MemoryManager {
       this.registerProject(opts.projectRoot).catch(() => {});
     }
 
-    // Initialize v3 graph layer (async, non-blocking)
-    this.initGraph().catch(err =>
-      logger.debug(`[memory] Graph init deferred: ${err instanceof Error ? err.message : String(err)}`),
+    // Initialize v3 graph layer (async, non-blocking). Keep the promise so
+    // saveEntry/recall can await readiness; warn (not debug) on failure so a
+    // broken graph init is visible rather than silently dropping memories.
+    this.initGraphPromise = this.initGraph().catch(err =>
+      logger.warn(`[memory] Graph init failed: ${err instanceof Error ? err.message : String(err)}`),
     );
+  }
+
+  /** Resolves once the v3 graph layer has finished initializing. */
+  private async ensureGraphReady(): Promise<void> {
+    await this.initGraphPromise;
   }
 
   /**
@@ -407,6 +417,35 @@ export class MemoryManager {
     }
 
     this.syncEntries(effectiveScope, store.entries);
+
+    // ── v3 graph write ──────────────────────────────────────────────────
+    // The v2 store above is the legacy layer; getEntries() and the dashboard
+    // read from the GRAPH. Without this mirror, new memories saved here never
+    // appeared in the Memory panel ("nothing being logged"). Reinforces a
+    // near-duplicate node or adds a new one. Non-fatal on failure — the v2
+    // write already succeeded.
+    try {
+      await this.ensureGraphReady();
+      const graph = this.getGraph(effectiveScope);
+      if (graph) {
+        graph.upsertNode({
+          content: entry.content,
+          category: entry.category,
+          scope: effectiveScope,
+          layer: entry.layer,
+          tags: entry.tags,
+          branch: entry.branch,
+          directoryScope: entry.directoryScope,
+          confidenceSource: 'explicit',
+        });
+        await graph.save();
+        logger.debug(`[memory] saved to ${effectiveScope} graph: "${entry.content.slice(0, 48)}"`);
+      } else {
+        logger.warn(`[memory] saveEntry: ${effectiveScope} graph unavailable — saved to v2 store only`);
+      }
+    } catch (err) {
+      logger.warn(`[memory] saveEntry graph write failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
 
     // ── Dataset event ──────────────────────────────────────────────────
     avaEvents.emit('memory_save', {

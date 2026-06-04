@@ -26,7 +26,13 @@ const V2_BACKUP = 'memory-v2-backup.json';
  */
 export function needsMigration(dir: string): boolean {
   const v2Path = join(dir, V2_FILENAME);
-  const v3Path = join(dir, 'graph.json');
+  // The graph lives in the `memory/` subdir (MemoryGraph is constructed with
+  // `join(dir, 'memory')`), so graph.json is at `<dir>/memory/graph.json` —
+  // NOT `<dir>/graph.json`. Checking the wrong path made this always return
+  // true while a memory.json existed, so the migration re-ran on every load
+  // and kept renaming memory.json → memory-v2-backup.json (clobbering the
+  // backup). Check the real path so migration runs exactly once.
+  const v3Path = join(dir, 'memory', 'graph.json');
   return existsSync(v2Path) && !existsSync(v3Path);
 }
 

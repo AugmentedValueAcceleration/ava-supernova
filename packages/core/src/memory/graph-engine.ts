@@ -186,6 +186,48 @@ export class MemoryGraph {
     return node;
   }
 
+  /**
+   * Insert a memory, or reinforce the closest near-duplicate in place. This is
+   * what MemoryManager.saveEntry calls so explicit + auto-extracted saves land
+   * in the GRAPH — the source of truth getEntries()/the dashboard read from —
+   * not only the legacy v2 store. Near-identical content (>=0.92 similarity,
+   * same category) updates the existing node instead of creating a duplicate.
+   */
+  upsertNode(opts: {
+    content: string;
+    category: MemoryCategory;
+    scope: 'global' | 'project';
+    layer?: string;
+    tags?: string[];
+    branch?: string | null;
+    directoryScope?: string | null;
+    confidenceSource?: ConfidenceSource;
+    source?: NodeSource;
+  }): MemoryNode {
+    const similar = this.findSimilar(opts.content, { category: opts.category, minSimilarity: 0.92 });
+    const top = similar[0];
+    if (top && top.similarity >= 0.92) {
+      const node = top.node;
+      const now = new Date().toISOString();
+      node.content = opts.content;
+      node.category = opts.category;
+      if (opts.layer) node.layer = opts.layer as MemoryNode['layer'];
+      if (opts.tags) node.tags = opts.tags;
+      if (opts.branch !== undefined) node.branch = opts.branch ?? null;
+      if (opts.directoryScope !== undefined) node.directoryScope = opts.directoryScope ?? null;
+      node.updatedAt = now;
+      node.lastReinforcedAt = now;
+      node.reinforcementCount = (node.reinforcementCount ?? 0) + 1;
+      node.archived = false;
+      node.archivedAt = null;
+      node.archivedReason = null;
+      this.dirty = true;
+      this.invalidateTfIdf();
+      return node;
+    }
+    return this.addNode(opts);
+  }
+
   /** Update fields on an existing node. */
   updateNode(id: string, patch: Partial<MemoryNode>): MemoryNode | null {
     const node = this.store.nodes.find(n => n.id === id);
