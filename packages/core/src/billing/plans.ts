@@ -108,25 +108,6 @@ export type TokenTopupDefinition = CreditTopupDefinition;
 /** @deprecated — use CREDIT_TOPUPS. Points at the same array. */
 export const TOKEN_TOPUPS: CreditTopupDefinition[] = CREDIT_TOPUPS;
 
-export interface StorageAddonDefinition {
-  id: '50gb' | '250gb' | '1tb';
-  gb: number;
-  price: number;
-  label: string;
-  /** One-line pitch surfaced under the title on purchase cards. */
-  subtitle: string;
-  /** Monthly cost per GB. Lets users see that +1TB is 4c/GB vs +50GB at 6c/GB. */
-  effectiveRate: string;
-  /** Subtle "Best value" marker in the UI. */
-  popular?: boolean;
-}
-
-export const STORAGE_ADDONS: StorageAddonDefinition[] = [
-  { id: '50gb',  gb: 50,   price: 3,  label: '+50 GB',  subtitle: 'A little more room',        effectiveRate: '$0.06 / GB / mo' },
-  { id: '250gb', gb: 250,  price: 12, label: '+250 GB', subtitle: 'Creative Studio scale',     effectiveRate: '$0.048 / GB / mo', popular: true },
-  { id: '1tb',   gb: 1024, price: 45, label: '+1 TB',   subtitle: 'Power user',                effectiveRate: '$0.044 / GB / mo' },
-];
-
 // ── Website URL builders ──────────────────────────────────────────────────
 // Surfaces that can't host checkout themselves (the VS Code webview sandbox,
 // Tauri's blocked origins) redirect the user to the website. One helper
@@ -134,7 +115,7 @@ export const STORAGE_ADDONS: StorageAddonDefinition[] = [
 
 export const AVA_SITE_BASE = 'https://ava-supernova.com';
 
-/** Public pricing page — plan cards, top-ups, storage addons all on one page. */
+/** Public pricing page — plan cards + top-ups all on one page. */
 export function pricingUrl(): string {
   return `${AVA_SITE_BASE}/pricing`;
 }
@@ -156,8 +137,3 @@ export function creditTopupUrl(topup: CreditTopupDefinition['id']): string {
 
 /** @deprecated — use creditTopupUrl. */
 export const tokenTopupUrl = creditTopupUrl;
-
-/** Pricing page scrolled to the storage add-on grid. */
-export function storageAddonUrl(addon: StorageAddonDefinition['id']): string {
-  return `${AVA_SITE_BASE}/pricing?storage=${addon}#storage`;
-}

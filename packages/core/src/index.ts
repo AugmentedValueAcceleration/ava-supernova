@@ -73,19 +73,16 @@ export { EnvWriteTool, pickEnvFile, isGitignored, upsertEnvLine } from './tools/
 export {
   PLANS,
   TOKEN_TOPUPS,
-  STORAGE_ADDONS,
   AVA_SITE_BASE,
   pricingUrl,
   dashboardBillingUrl,
   upgradeUrl,
   tokenTopupUrl,
-  storageAddonUrl,
 } from './billing/plans.js';
 export type {
   PlanTier,
   PlanDefinition,
   TokenTopupDefinition,
-  StorageAddonDefinition,
 } from './billing/plans.js';
 // Canonical per-action credit costs — single source of truth for what
 // the platform charges. Surfaces (Creative Studio cost preview, etc.)

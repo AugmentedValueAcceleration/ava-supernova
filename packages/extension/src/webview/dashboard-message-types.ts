@@ -1457,7 +1457,6 @@ export type DashboardToExtMessage =
   | { type: 'load_usage_logs'; period: '7d' | '30d' | 'all' }
   | { type: 'open_checkout'; plan: 'pro' | 'ultra' }
   | { type: 'open_topup'; package: 'starter' | 'standard' | 'pro_pack' }
-  | { type: 'open_storage_addon'; size: '50gb' | '250gb' | '1tb' }
   | { type: 'open_portal' }
   | { type: 'save_settings'; settings: DashboardSettings }
   | { type: 'open_chat' }

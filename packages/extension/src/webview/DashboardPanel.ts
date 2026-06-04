@@ -329,10 +329,6 @@ export class DashboardPanel {
         await this.openTopup(msg.package);
         break;
 
-      case 'open_storage_addon':
-        await this.openStorageAddon((msg as { size: '50gb' | '250gb' | '1tb' }).size);
-        break;
-
       case 'open_portal':
         await this.openPortal();
         break;
@@ -2478,27 +2474,6 @@ export class DashboardPanel {
       }
     } catch {
       this.post({ type: 'error', message: 'Failed to create top-up session.' });
-    }
-  }
-
-  private async openStorageAddon(size: '50gb' | '250gb' | '1tb'): Promise<void> {
-    const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-    if (!platformKey) {
-      this.post({ type: 'error', message: 'Please connect your account first.' });
-      return;
-    }
-
-    try {
-      const res = await apiFetch('/billing/checkout', { method: 'POST', body: { storage_addon: size }, platformKey });
-      if (res.ok && typeof res.data === 'object' && res.data && 'url' in res.data) {
-        const uri = vscode.Uri.parse((res.data as { url: string }).url);
-        if (uri.scheme !== 'https') { this.post({ type: 'error', message: 'Invalid checkout URL.' }); return; }
-        vscode.env.openExternal(uri);
-      } else {
-        this.post({ type: 'error', message: 'Failed to create storage checkout session.' });
-      }
-    } catch {
-      this.post({ type: 'error', message: 'Failed to create storage checkout session.' });
     }
   }
 
