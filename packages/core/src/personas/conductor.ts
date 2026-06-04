@@ -15,6 +15,7 @@ import type {
   PersonaId,
 } from './types.js';
 import { MODE_PERSONAS, MODE_PERSONAS_LIGHT } from './definitions.js';
+import { bridgeImagesForTextModel } from '../agent/vision-bridge.js';
 
 /**
  * How much of the persona pipeline to run.
@@ -94,6 +95,15 @@ export class Conductor {
   private readonly toolRegistry: ToolRegistry;
   private readonly toolContext: ToolExecutionContext;
   private readonly config: Required<ConductorConfig>;
+  /**
+   * Optional vision provider/model so text-only coordinators (Supernova/
+   * DeepSeek, Aurora/Mistral) can still "see" attached images: each persona's
+   * messages get images described by this model and injected as text. Shared
+   * one cache across all personas so an image is described once per turn.
+   */
+  private readonly visionProvider: Provider | null;
+  private readonly visionModel: ModelDefinition | null;
+  private readonly visionDescriptionCache = new Map<string, string>();
 
   constructor(opts: {
     provider: Provider;
@@ -107,6 +117,13 @@ export class Conductor {
      */
     lightProvider?: Provider;
     lightModel?: ModelDefinition;
+    /**
+     * Optional vision provider/model (e.g. Qwen 3.5 Omni) used to describe
+     * attached images for text-only coordinators. When omitted, image-bearing
+     * messages fall back to a "switch to a vision model" note.
+     */
+    visionProvider?: Provider;
+    visionModel?: ModelDefinition;
     toolRegistry: ToolRegistry;
     cwd: string;
     sharedState?: Record<string, unknown>;
@@ -116,6 +133,8 @@ export class Conductor {
     this.model = opts.model;
     this.lightProvider = opts.lightProvider ?? null;
     this.lightModel = opts.lightModel ?? null;
+    this.visionProvider = opts.visionProvider ?? null;
+    this.visionModel = opts.visionModel ?? null;
     this.toolRegistry = opts.toolRegistry;
     this.toolContext = {
       cwd: opts.cwd,
@@ -690,6 +709,20 @@ export class Conductor {
       // one is configured, cutting their call cost by roughly 4-8× with
       // no meaningful quality loss for comparison/flagging/reading work.
       const runtime = this.resolvePersonaModel(persona);
+
+      // Vision bridge — if this persona's model can't see images but a vision
+      // model is configured, describe any attached images and inject them as
+      // text so the persona can still act on them. No-op for vision-capable
+      // models. Shared cache means each image is described once per turn.
+      const bridgedMessages = await bridgeImagesForTextModel(
+        messages,
+        runtime.model,
+        this.visionProvider ?? undefined,
+        this.visionModel ?? undefined,
+        this.visionDescriptionCache,
+      );
+      messages.length = 0;
+      messages.push(...bridgedMessages);
 
       // Run the model with tool support
       let iterations = 0;

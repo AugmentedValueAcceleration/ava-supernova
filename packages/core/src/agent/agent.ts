@@ -14,6 +14,7 @@ import { MAX_TOOL_CALL_ITERATIONS, ITERATION_WARNING_THRESHOLD } from '../core/c
 import { t } from '../i18n/index.js';
 import { logger } from '../core/logger.js';
 import { buildToolPrompt, parseToolCalls, formatToolResult } from './text-tool-parser.js';
+import { bridgeImagesForTextModel } from './vision-bridge.js';
 import { auditClaims } from './claims-auditor.js';
 import { autoExtractAndSave } from '../memory/auto-extract.js';
 import type { MemoryManager } from '../memory/memory-manager.js';
@@ -463,6 +464,15 @@ export type AgentEventHandler = (event: AgentEvent) => void;
 export class Agent {
   private readonly provider: Provider;
   private readonly model: ModelDefinition;
+  // Vision bridge — a dedicated vision-capable provider+model (e.g. Qwen Omni)
+  // used to DESCRIBE images when the main coordinator is text-only (DeepSeek,
+  // Mistral Codestral, etc.), so it can "see" the image as text. Optional; when
+  // absent, text-only models fall back to a "switch model" note.
+  private readonly visionProvider?: Provider;
+  private readonly visionModel?: ModelDefinition;
+  // Image descriptions cached per session (keyed by the image data URL) so a
+  // text-only coordinator doesn't re-run the vision model on every turn.
+  private readonly visionDescriptionCache = new Map<string, string>();
   private readonly toolRegistry: ToolRegistry;
   private readonly toolContext: ToolExecutionContext;
   private readonly pendingInterjections: string[] = [];
@@ -538,6 +548,11 @@ export class Agent {
   constructor(opts: {
     provider: Provider;
     model: ModelDefinition;
+    /** Vision bridge — provider + model used to describe images for a text-only
+     *  coordinator (e.g. Qwen Omni Plus). When omitted, images get the legacy
+     *  "switch to a vision model" note instead of being described. */
+    visionProvider?: Provider;
+    visionModel?: ModelDefinition;
     toolRegistry: ToolRegistry;
     cwd: string;
     sharedState?: Record<string, unknown>;
@@ -562,6 +577,8 @@ export class Agent {
   }) {
     this.provider = opts.provider;
     this.model = opts.model;
+    this.visionProvider = opts.visionProvider;
+    this.visionModel = opts.visionModel;
     this.toolRegistry = opts.toolRegistry;
     this.toolContext = {
       cwd: opts.cwd,
@@ -1353,28 +1370,22 @@ export class Agent {
       const filteredMessages = !useNativeTools
         ? messages.filter((m) => m.role !== 'tool')  // Drop any stray tool messages in text mode
         : messages;
-      let sanitizedMessages = filteredMessages.map((m) => {
-        let msg = m;
 
-        // Strip image_url parts for non-vision models (DeepSeek, Mistral Codestral, etc.)
-        // The image stays in local history so vision-capable models can still see it.
-        if (!this.model.supportsVision && Array.isArray(msg.content)) {
-          const textParts = (msg.content as ContentPart[]).filter((p) => p.type === 'text');
-          const visionNote = [
-            `Your current model (${this.model.name || this.model.id}) doesn't support images.`,
-            'To analyse images, switch to one of these vision-capable models:',
-            '- Qwen 3.6 Plus (best quality, 1M context)',
-            '- Qwen 3.5 Plus (1M context)',
-            '- Qwen 3.5 Omni Plus (multimodal)',
-            '- Qwen 3.5 Omni Flash (multimodal, fast)',
-            '- Kimi K2.5, GLM-5, Mistral Large, Claude (BYOK)',
-          ].join('\n');
-          if (textParts.length === 0) {
-            msg = { ...msg, content: visionNote };
-          } else {
-            msg = { ...msg, content: textParts.map((p) => p.text).join('\n') + '\n\n' + visionNote };
-          }
-        }
+      // Vision bridge — when the coordinator can't see images but a vision
+      // provider is configured (e.g. Supernova/DeepSeek with Qwen Omni), describe
+      // every image FIRST (async, cached per image) so the model gets the image
+      // as text instead of a "switch model" nag. This is what lets DeepSeek "see".
+      // No-op for vision-capable models. See agent/vision-bridge.ts.
+      const bridgedMessages = await bridgeImagesForTextModel(
+        filteredMessages,
+        this.model,
+        this.visionProvider,
+        this.visionModel,
+        this.visionDescriptionCache,
+      );
+
+      let sanitizedMessages = bridgedMessages.map((m) => {
+        let msg = m;
 
         // Strip empty tool_calls arrays from assistant messages. Qwen
         // rejects `tool_calls: []` with a 400 error — the field must be

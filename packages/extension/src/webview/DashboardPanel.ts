@@ -2644,7 +2644,12 @@ export class DashboardPanel {
    *  hence the host-mediated route here). */
   private async loadConversationIntoChat(id: string): Promise<void> {
     if (!this.viewProvider) return;
-    await this.viewProvider.handleChatMessage({ type: 'load_conversation', conversationId: id });
+    // handleChatMessage's remap switch keys on 'load_chat_conversation' — NOT
+    // 'load_conversation' (that's the already-mapped internal type). Sending
+    // the internal type here hit the switch's `default: return` and was
+    // silently dropped, so clicking a row in History → Conversations did
+    // nothing. Use the dashboard-facing type so it maps + loads.
+    await this.viewProvider.handleChatMessage({ type: 'load_chat_conversation', conversationId: id });
   }
 
   private async deleteConversation(id: string): Promise<void> {

@@ -94,14 +94,14 @@ export class AutoCoordinator {
   private readonly builderProvider: Provider;
   private readonly builderModel: ModelDefinition;
   /** Provider+model for image/vision input. The coordinators are blind to
-   *  images (DeepSeek V4 Pro, Mistral Large 3 — no vision via API), so an
-   *  attached image is handed to a vision-capable model instead: Supernova /
-   *  Auto → Qwen 3.5 Omni Plus, Aurora → Mistral Medium 3.5. Null when none
-   *  is reachable — then the coordinator runs and honestly says it can't see
-   *  the image (rather than hallucinate one). Agent built lazily on first image. */
+   *  images (DeepSeek V4 Pro, Mistral Large 3 — no vision via API), so the
+   *  coordinator/task agents carry this as a vision bridge: an attached image
+   *  is DESCRIBED by a vision-capable model (Supernova / Auto → Qwen 3.5 Omni
+   *  Plus, Aurora → Mistral Medium 3.5) and injected as text, so the coordinator
+   *  still does the work. Null when none is reachable — then the coordinator
+   *  runs and honestly says it can't see the image (rather than hallucinate one). */
   private readonly visionProvider: Provider | null;
   private readonly visionModel: ModelDefinition | null;
-  private visionAgent: Agent | null = null;
 
   constructor(opts: {
     coordinatorProvider: Provider;
@@ -188,10 +188,16 @@ export class AutoCoordinator {
       !!opts.platformKey || opts.availableProviders.has('platform'),
     );
 
-    // The coordinator's own agent — handles direct tasks (chat, simple questions)
+    // The coordinator's own agent — handles direct tasks (chat, simple questions).
+    // Wired with the vision bridge so a text-only coordinator (DeepSeek V4 /
+    // Mistral) can still "see" attached images: the bridge runs the vision model
+    // (Qwen Omni) to describe them and injects that as text. This is what lets
+    // Supernova act on an image instead of handing the whole turn to Omni.
     this.coordinatorAgent = new Agent({
       provider: opts.coordinatorProvider,
       model: opts.coordinatorModel,
+      visionProvider: this.visionProvider ?? undefined,
+      visionModel: this.visionModel ?? undefined,
       toolRegistry: opts.toolRegistry,
       cwd: opts.cwd,
       sharedState: opts.sharedState,
@@ -518,20 +524,13 @@ export class AutoCoordinator {
 
     // Direct handling — no spawn needed
     if (DIRECT_CATEGORIES.has(classification.category) && !classification.modelOverride) {
-      // Image inputs need a vision-capable model. The coordinators (V4 Pro,
-      // Mistral Large 3) are blind to images — Agent.run() would strip the
-      // image parts and tell the user to switch models. Hand the turn to the
-      // resolved vision model (Qwen 3.5 Omni Plus / Mistral Medium 3.5) when
-      // the coordinator can't see. Falls through to the coordinator if no
-      // vision model resolved or the coordinator already supports vision
-      // (e.g. a BYOK Claude/Qwen coordinator that can see images itself).
-      if (classification.category === 'vision'
-          && this.visionProvider && this.visionModel
-          && !this.coordinatorModel.supportsVision) {
-        const visionAgent = this.getVisionAgent();
-        onEvent({ type: 'progress', labelKey: 'thinking.working', model: this.visionModel.name });
-        return this.runWithActiveAgent(visionAgent, messages, onEvent, signal);
-      }
+      // Image inputs: the coordinators (DeepSeek V4, Mistral Large 3) are blind
+      // to images. Rather than hand the whole turn to the vision model (which
+      // loses the coordinator's agentic depth), the coordinatorAgent carries the
+      // vision bridge — it runs the vision model (Qwen Omni) to DESCRIBE the
+      // image, then acts on that description itself. So Supernova "sees" the
+      // image and still does the work. No-op when the coordinator already
+      // supports vision (a BYOK Claude/Qwen that can see images directly).
       onEvent({ type: 'progress', labelKey: 'thinking.working', model: this.coordinatorModel.name });
       return this.runWithActiveAgent(this.coordinatorAgent, messages, onEvent, signal);
     }
@@ -639,22 +638,6 @@ export class AutoCoordinator {
    * inject() can route mid-run user messages to whichever agent is actually
    * executing right now.
    */
-  /** Lazily build + cache the vision agent (Qwen 3.5 Omni Plus / Mistral
-   *  Medium 3.5). Only constructed the first time an image is attached, so
-   *  text-only sessions never pay for it. Mirrors coordinatorAgent's build. */
-  private getVisionAgent(): Agent {
-    if (!this.visionAgent) {
-      this.visionAgent = new Agent({
-        provider: this.visionProvider!,
-        model: this.visionModel!,
-        toolRegistry: this.toolRegistry,
-        cwd: this.cwd,
-        sharedState: this.sharedState,
-      });
-    }
-    return this.visionAgent;
-  }
-
   private async runWithActiveAgent(
     agent: Agent,
     messages: Message[],
@@ -902,10 +885,15 @@ Should these tasks be executed as a plan? Output yes or no.`;
     const originalActiveModel = this.sharedState.activeModelId;
     this.sharedState.activeModelId = route.model.id;
 
-    // Create the task agent
+    // Create the task agent. Wired with the vision bridge so a text-only
+    // routed model (e.g. a coding task that arrives with a screenshot) can
+    // still see the image via the vision model. No-op when route.model sees
+    // images itself.
     const taskAgent = new Agent({
       provider: route.provider,
       model: route.model,
+      visionProvider: this.visionProvider ?? undefined,
+      visionModel: this.visionModel ?? undefined,
       toolRegistry: this.toolRegistry,
       cwd: this.cwd,
       sharedState: this.sharedState,
@@ -944,6 +932,9 @@ Should these tasks be executed as a plan? Output yes or no.`;
         // falls back to the heavy pair for everything.
         lightProvider: this.intentGate?.provider,
         lightModel: this.intentGate?.model,
+        // Vision bridge so text-only personas can see attached images.
+        visionProvider: this.visionProvider ?? undefined,
+        visionModel: this.visionModel ?? undefined,
         toolRegistry: this.toolRegistry,
         cwd: this.cwd,
         sharedState: this.sharedState,
