@@ -17,22 +17,34 @@ export interface ConversationRecord {
 const MAX_HISTORY = 100;
 
 export class HistoryStorage {
+  /**
+   * Directory holding the `{id}.json` transcripts. Defaults to the global
+   * `~/.ava/history` (CLI, anonymous local). The extension passes an
+   * account-scoped dir (`~/.ava/users/<id>/history`) so signed-in users'
+   * conversations are isolated AND land where the scoped export reads them.
+   */
+  private readonly dir: string;
+
+  constructor(historyDir: string = HISTORY_DIR) {
+    this.dir = historyDir;
+  }
+
   async init(): Promise<void> {
-    await mkdir(HISTORY_DIR, { recursive: true });
+    await mkdir(this.dir, { recursive: true });
     // Clean up orphaned temp files from interrupted writes
     try {
-      const files = await readdir(HISTORY_DIR);
+      const files = await readdir(this.dir);
       for (const file of files) {
         if (file.endsWith('.tmp')) {
-          await unlink(join(HISTORY_DIR, file)).catch(() => {});
+          await unlink(join(this.dir, file)).catch(() => {});
         }
       }
     } catch { /* directory might not exist yet */ }
   }
 
   async save(record: ConversationRecord): Promise<void> {
-    const path = join(HISTORY_DIR, `${record.id}.json`);
-    const tmpPath = join(HISTORY_DIR, `.${record.id}.tmp`);
+    const path = join(this.dir, `${record.id}.json`);
+    const tmpPath = join(this.dir, `.${record.id}.tmp`);
     const data = JSON.stringify(record, null, 2);
 
     // Atomic write with lock — prevents concurrent corruption
@@ -59,7 +71,7 @@ export class HistoryStorage {
   }
 
   async load(id: string): Promise<ConversationRecord | null> {
-    const path = join(HISTORY_DIR, `${id}.json`);
+    const path = join(this.dir, `${id}.json`);
     try {
       const raw = await readFile(path, 'utf-8');
       const parsed = JSON.parse(raw);
@@ -72,13 +84,13 @@ export class HistoryStorage {
 
   async list(): Promise<Array<{ id: string; title: string; updatedAt: string; pinned?: boolean; projectPath?: string }>> {
     await this.init();
-    const files = await readdir(HISTORY_DIR);
+    const files = await readdir(this.dir);
     const summaries: Array<{ id: string; title: string; updatedAt: string; pinned?: boolean; projectPath?: string }> = [];
 
     for (const file of files) {
       if (!file.endsWith('.json')) continue;
       try {
-        const raw = await readFile(join(HISTORY_DIR, file), 'utf-8');
+        const raw = await readFile(join(this.dir, file), 'utf-8');
         const record = JSON.parse(raw);
         if (!this.isValidRecord(record)) continue;
         summaries.push({
@@ -97,7 +109,7 @@ export class HistoryStorage {
   }
 
   async delete(id: string): Promise<boolean> {
-    const path = join(HISTORY_DIR, `${id}.json`);
+    const path = join(this.dir, `${id}.json`);
     try {
       await unlink(path);
       return true;

@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import type { Conversation } from '../agent/conversation.js';
 import { getTextContent } from '../core/types.js';
 import { HistoryStorage, type ConversationRecord } from './storage.js';
@@ -25,13 +26,30 @@ export class HistoryManager {
   private storage: HistoryStorage;
   private projectPath?: string;
 
-  constructor(projectPath?: string) {
-    this.storage = new HistoryStorage();
+  /**
+   * @param projectPath  optional workspace path, for per-project filtering.
+   * @param globalDir     base data dir; transcripts live in `<globalDir>/history`.
+   *                      Omit for the default `~/.ava/history` (CLI / anonymous).
+   *                      The extension passes the account-scoped dir so signed-in
+   *                      history is isolated and matches where the export reads.
+   */
+  constructor(projectPath?: string, globalDir?: string) {
+    this.storage = new HistoryStorage(globalDir ? join(globalDir, 'history') : undefined);
     this.projectPath = projectPath;
   }
 
   async init(): Promise<void> {
     await this.storage.init();
+  }
+
+  /**
+   * Re-point storage at a new base dir (transcripts → `<globalDir>/history`).
+   * Mutates this instance in place rather than forcing callers to construct a
+   * new one — so existing holders (HistoryCoordinator, sharedState) stay valid
+   * after the account-scoped dir is resolved post-construction.
+   */
+  setBaseDir(globalDir: string): void {
+    this.storage = new HistoryStorage(join(globalDir, 'history'));
   }
 
   async saveConversation(conversation: Conversation): Promise<void> {

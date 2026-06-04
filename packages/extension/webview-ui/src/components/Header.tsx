@@ -1,7 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
 import { ModelSelector } from './ModelSelector';
 import { t, tt, useLocale } from '../i18n';
-import { useVSCodeApi } from '../hooks/useVSCodeApi';
 
 interface HeaderProps {
   models: Array<{ id: string; name: string; provider: string; supportsVision?: boolean; available: boolean }>;
@@ -41,54 +39,9 @@ export function Header({
   conversationTitle,
 }: HeaderProps) {
   useLocale();
-  const { postMessage } = useVSCodeApi();
 
-  // Cloud-sync toggle. Data is ALWAYS saved locally; this only controls
-  // whether a copy is also backed up to the platform. Persists to
-  // localStorage AND posts set_cloud_sync to the host so the active
-  // managers (memory, tasks, journal, learning, creative) honour the
-  // choice on the next save. Replaces the old three-way Local/Cloud/Both
-  // "Data Mode" — in a local-first product "local" was never a mode.
-  const [cloudSync, setCloudSync] = useState<boolean>(() => {
-    try {
-      const stored = localStorage.getItem('ava-cloud-sync');
-      if (stored === 'true') return true;
-      if (stored === 'false') return false;
-      // Migrate the legacy three-value data mode: cloud/both -> on.
-      const legacy = localStorage.getItem('ava-data-mode');
-      return legacy === 'cloud' || legacy === 'both';
-    } catch { return false; }
-  });
-
-  useEffect(() => {
-    // Echo current state to host on mount so the manager flags align
-    // with localStorage even before the user clicks the toggle.
-    postMessage({ type: 'set_cloud_sync', enabled: cloudSync } as never);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Subscribe to host broadcasts so a flip on the dashboard toggle is
-  // reflected here without a reload (and vice-versa).
-  useEffect(() => {
-    const handler = (e: MessageEvent) => {
-      const msg = e.data;
-      if (msg?.type === 'cloud_sync_changed' && typeof msg.enabled === 'boolean') {
-        setCloudSync(msg.enabled);
-        try { localStorage.setItem('ava-cloud-sync', String(msg.enabled)); } catch { /* */ }
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
-
-  const toggleCloudSync = useCallback(() => {
-    setCloudSync(prev => {
-      const next = !prev;
-      try { localStorage.setItem('ava-cloud-sync', String(next)); } catch { /* */ }
-      postMessage({ type: 'set_cloud_sync', enabled: next } as never);
-      return next;
-    });
-  }, [postMessage]);
+  // Cloud-sync toggle removed — Ava is local-first; nothing syncs to the
+  // cloud (storage sunsets 1 Jul 2026). Managers default to local-only.
 
   return (
     <div
@@ -136,27 +89,8 @@ export function Header({
 
       <div className="flex-1" />
 
-      {/* Cloud-sync toggle — data is always local; this controls the
-          optional cloud backup. Green = local only, blue = cloud sync on. */}
-      <button
-        onClick={toggleCloudSync}
-        title={cloudSync
-          ? 'Cloud sync ON — a copy of your data is backed up to the platform. Click to turn off.'
-          : 'Cloud sync OFF — your data stays on this machine only. Click to turn on.'}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px',
-          background: cloudSync ? 'rgba(96,165,250,0.1)' : 'rgba(166,227,161,0.1)',
-          border: `1px solid ${cloudSync ? 'rgba(96,165,250,0.3)' : 'rgba(166,227,161,0.3)'}`,
-          borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer',
-          color: cloudSync ? '#60a5fa' : '#a6e3a1',
-        }}
-      >
-        <span style={{
-          width: 6, height: 6, borderRadius: '50%',
-          background: cloudSync ? '#60a5fa' : '#a6e3a1',
-        }} />
-        {cloudSync ? tt('dash.chat.cloud_sync', 'Cloud sync') : tt('dash.chat.local_only', 'Local only')}
-      </button>
+      {/* Cloud-sync toggle removed — Ava is local-first; everything stays on
+          this machine. Cloud storage is sunsetting (1 Jul 2026). */}
 
       {/* Tasks toggle removed — the always-visible Tasks spine on the right
           edge is the single control now (its grip expands/collapses). */}

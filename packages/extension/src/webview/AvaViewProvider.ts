@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as crypto from 'node:crypto';
+import { join } from 'node:path';
 import {
   Agent,
   Conversation,
@@ -46,6 +47,7 @@ import { creditsFor } from '@ava/core/billing/credits';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus, PaletteTool } from './message-types.js';
 import { buildPaletteDirective } from './palette-directives.js';
 import { ExtensionHealthPlanStore } from './health-plan-store-impl.js';
+import { migrateHealthFromGlobalState } from './health-file-store.js';
 import type { AccountInfo } from './dashboard-message-types.js';
 import { DashboardPanel } from './DashboardPanel.js';
 import { SecretAccess } from '../secrets/secret-access.js';
@@ -139,6 +141,75 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    */
   public getAccountScopedDir(): string {
     return this.accountScopedDir;
+  }
+
+  /**
+   * One-time migration of legacy chat transcripts from the old unscoped
+   * `~/.ava/history` into the account-scoped `<scopedDir>/history`. History
+   * was the one data type that wasn't account-scoped, which meant (a) two
+   * accounts on one machine shared transcripts, and (b) the scoped export read
+   * an empty dir and exported zero conversations. Runs only when the legacy
+   * dir has transcripts and the scoped dir has none yet — idempotent.
+   */
+  /**
+   * One-time move of a single legacy file from the unscoped `~/.ava/<name>`
+   * into the account-scoped `<scopedDir>/<name>`. No-op if the legacy file is
+   * absent or the scoped one already exists. Used for personality.json, which
+   * was stored unscoped while everything else moved to per-account dirs.
+   */
+  private async migrateFileToScopedDir(name: string, scopedDir: string): Promise<void> {
+    if (scopedDir === AVA_HOME) return;
+    try {
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+      const legacy = path.join(AVA_HOME, name);
+      const scoped = path.join(scopedDir, name);
+      const fsSync = await import('node:fs');
+      if (!fsSync.existsSync(legacy) || fsSync.existsSync(scoped)) return;
+      await fs.mkdir(scopedDir, { recursive: true });
+      try {
+        await fs.rename(legacy, scoped);
+      } catch {
+        await fs.writeFile(scoped, await fs.readFile(legacy, 'utf-8'), 'utf-8');
+        await fs.unlink(legacy).catch(() => {});
+      }
+      this.log(`[migrate] moved ${name} into the account-scoped dir`);
+    } catch (err) {
+      this.log(`[migrate] ${name} failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  private async migrateHistoryToScopedDir(scopedDir: string): Promise<void> {
+    if (scopedDir === AVA_HOME) return;
+    try {
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+      const legacyDir = path.join(AVA_HOME, 'history');
+      const scopedHistory = path.join(scopedDir, 'history');
+      const legacyJson = (await fs.readdir(legacyDir).catch(() => [] as string[])).filter(f => f.endsWith('.json'));
+      if (legacyJson.length === 0) return;
+      const scopedJson = (await fs.readdir(scopedHistory).catch(() => [] as string[])).filter(f => f.endsWith('.json'));
+      if (scopedJson.length > 0) return; // already migrated
+      await fs.mkdir(scopedHistory, { recursive: true });
+      let moved = 0;
+      for (const f of legacyJson) {
+        const from = path.join(legacyDir, f);
+        const to = path.join(scopedHistory, f);
+        try {
+          await fs.rename(from, to);
+        } catch {
+          // Cross-device or locked — fall back to copy + unlink.
+          try {
+            await fs.writeFile(to, await fs.readFile(from, 'utf-8'), 'utf-8');
+            await fs.unlink(from).catch(() => {});
+          } catch { continue; }
+        }
+        moved++;
+      }
+      this.log(`[history-migrate] moved ${moved} conversation(s) into the account-scoped dir`);
+    } catch (err) {
+      this.log(`[history-migrate] failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   /**
@@ -297,7 +368,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // History is local-only, always. No sync, no pull, no cloud knob.
     // Cloud residue from earlier-version syncs is wiped via the
     // dashboard's "Wipe legacy cloud history" button.
-    this.historyManager = new HistoryManager(this.projectRoot);
+    // Account-scoped like memory/tasks/journal: transcripts live under the
+    // scoped dir so they're isolated per account AND land where the scoped
+    // export reads them (this.accountScopedDir is AVA_HOME until sign-in,
+    // then re-created scoped in the account block below).
+    this.historyManager = new HistoryManager(this.projectRoot, this.accountScopedDir);
     this.historyManager.init();
     this.history = new HistoryCoordinator({
       context: this.context,
@@ -320,7 +395,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         : undefined;
       sync = new PlatformMemorySync('https://ava-supernova.com/api', platformKey, projectId);
     }
-    const memoryLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? false)
+    // Memory is LOCAL-FIRST by default (cloud is sunsetting — see cloud-sunset
+    // notice). Memories live on-device; cloud sync only if the user explicitly
+    // opts in. Default → local. Gates both push (on save) and the pull below.
+    const memoryLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? true)
       || syncPrefs.memory === false
       || !cloudAllowed;
     this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly });
@@ -392,7 +470,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     if (platformKey) {
       taskSync = new PlatformTaskSyncImpl('https://ava-supernova.com/api', platformKey);
     }
-    const taskLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.taskLocalOnly') ?? false)
+    // Tasks are LOCAL-FIRST by default (cloud is sunsetting). Tasks live
+    // on-device; cloud sync only if the user explicitly opts in. Default →
+    // local. Gates both push (on save) and the pull below.
+    const taskLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.taskLocalOnly') ?? true)
       || syncPrefs.tasks === false
       || !cloudAllowed;
     this.taskManager = new TaskManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync: taskSync, localOnly: taskLocalOnly });
@@ -406,7 +487,10 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     if (platformKey) {
       journalSync = new PlatformJournalSyncImpl('https://ava-supernova.com/api', platformKey);
     }
-    const journalLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.journalLocalOnly') ?? false)
+    // Journal is LOCAL-FIRST by default (cloud storage is sunsetting — see the
+    // cloud-sunset notice). Ava's journal lives on-device; cloud sync is only
+    // on if the user explicitly opts in via the preference. Default → local.
+    const journalLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.journalLocalOnly') ?? true)
       || syncPrefs.journal === false
       || !cloudAllowed;
     this.journalManager = new JournalManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync: journalSync, localOnly: journalLocalOnly });
@@ -1116,12 +1200,23 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
                   ? crypto.createHash('sha256').update(this.projectRoot).digest('hex').slice(0, 16)
                   : undefined;
                 const sync = new PlatformMemorySync('https://ava-supernova.com/api', platformKey, projectId);
-                const memoryLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? false;
+                // Local-first default (see init above) — only sync if opted in.
+                const memoryLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? true;
                 this.memoryManager = new MemoryManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly });
                 const taskSync = new PlatformTaskSyncImpl('https://ava-supernova.com/api', platformKey);
                 this.taskManager = new TaskManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: taskSync });
                 const journalSync = new PlatformJournalSyncImpl('https://ava-supernova.com/api', platformKey);
                 this.journalManager = new JournalManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: journalSync });
+                // History: scope it too. Migrate any legacy transcripts from the
+                // old unscoped ~/.ava/history into the scoped dir (one-time),
+                // then re-point the SAME manager instance so the already-built
+                // HistoryCoordinator + sharedState keep working.
+                await this.migrateHistoryToScopedDir(newScopedDir);
+                this.historyManager.setBaseDir(newScopedDir);
+                // Personality was stored unscoped at ~/.ava/personality.json —
+                // migrate it into the scoped dir so signed-in users keep their Ava.
+                await this.migrateFileToScopedDir('personality.json', newScopedDir);
+                void this.historyManager.init();
                 // Warm the memory stores in the background — do NOT await.
                 // Nothing on the chat-init path needs them: the system
                 // prompt build takes no memory input, and memory's
@@ -1547,7 +1642,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // with a disabled chat input and zero token display in v0.48.x.
     const syncPrefs = this.context.globalState.get<Record<string, boolean>>('ava.syncPrefs') ?? {};
     const cloudAllowed = cloudSyncEnabled(this.context);
-    const learningLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.learningLocalOnly') ?? false)
+    // Learning is LOCAL-FIRST by default (cloud is sunsetting). Curriculums +
+    // progress live on-device; cloud sync only if explicitly opted in.
+    const learningLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.learningLocalOnly') ?? true)
       || syncPrefs.learning === false
       || !cloudAllowed;
 
@@ -1568,20 +1665,30 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       || syncPrefs.generations === false
       || !cloudAllowed;
 
+    // One-time: move any health data still in VS Code globalState into the
+    // scoped health/ files where the store + export now read it. Idempotent —
+    // a no-op once globalState holds no health keys.
+    await migrateHealthFromGlobalState(this.context, join(this.accountScopedDir, 'health')).catch(() => {});
+
     const sharedState: Record<string, unknown> = {
       memoryManager: this.memoryManager,
       taskManager: this.taskManager,
       journalManager: this.journalManager,
+      // Scoped HistoryManager so the recall tool reads the right (account-
+      // scoped) transcripts, not the default ~/.ava/history. Same instance is
+      // re-pointed via setBaseDir on sign-in, so this reference stays valid.
+      historyManager: this.historyManager,
       generationManager: this.generationManager,
-      // Surface-injected health plan store — wraps the same globalState
-      // keys DashboardPanel uses, so Ava-driven and UI-driven plan saves
-      // share storage. See COMMAND_PALETTE_PLAN.md §10.
+      // Surface-injected health plan store — reads/writes the same
+      // <scopedDir>/health/plans/*.json files DashboardPanel uses, so Ava-driven
+      // and UI-driven plan saves share one source of truth (and land where the
+      // export reads). See COMMAND_PALETTE_PLAN.md §10.
       // onPlansChanged fires after every Ava-driven create/update so the
-      // dashboard's Plans-tab calendar refreshes live (previously a plan Ava
-      // created only appeared after a manual dashboard reload).
-      healthPlanStore: new ExtensionHealthPlanStore(this.context, () => {
-        DashboardPanel.currentPanel?.notifyHealthPlansUpdated();
-      }),
+      // dashboard's Plans-tab calendar refreshes live.
+      healthPlanStore: new ExtensionHealthPlanStore(
+        () => join(this.accountScopedDir, 'health'),
+        () => { DashboardPanel.currentPanel?.notifyHealthPlansUpdated(); },
+      ),
       platformKey,
       learningLocalOnly,
       generationLocalOnly,
@@ -1946,6 +2053,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       activeModelDef: this.activeModelDef,
       currentLocale: this.currentLocale,
       permissionMode: this.getPermissionMode(),
+      globalDir: this.accountScopedDir,
       log: (msg) => this.log(msg),
     });
   }
@@ -2551,7 +2659,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             category: (message.category as AddOpts['category']) ?? 'personal',
             dueDate: message.due_date,
             recurrence: (message.recurrence as AddOpts['recurrence']) ?? 'none',
-            scope: 'project',
+            // Personal tasks from the Tasks panel go GLOBAL (~/.ava/tasks.json),
+            // not per-workspace — same fix as the dashboard Planner. Project
+            // scope orphans tasks when no workspace is open, causing later
+            // toggle/complete/delete to fail with "Task not found".
+            scope: 'global',
             source: 'user',
           });
           await this.sendTodayTasks();
@@ -3283,45 +3395,58 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         this.sendAllTasks();
         this.sendAvaCompletedTasks();
       }
-      // Auto-journal: Ava writes a reflective session entry (non-blocking)
-      if (this.journalManager && this.conversation) {
-        const today = new Date().toISOString().slice(0, 10);
-        const stats = sessionStats.getStats();
-        const duration = Math.round((Date.now() - new Date(stats.session_start).getTime()) / 60000);
+      // Auto-journal: Ava writes a reflective session entry. Isolated in its
+      // OWN try/catch so it can't be skipped by an earlier failure in this
+      // finally, and the write is AWAITED + LOGGED instead of silently
+      // swallowed — that bare `.catch(() => {})` is exactly why empty journals
+      // were invisible. If a write fails now, we see why in the logs.
+      try {
+        if (this.journalManager && this.conversation) {
+          const today = new Date().toISOString().slice(0, 10);
+          const stats = sessionStats.getStats();
+          const duration = Math.round((Date.now() - new Date(stats.session_start).getTime()) / 60000);
 
-        // Only journal sessions with actual substance (2+ messages)
-        if (stats.messages >= 2) {
-          // Gather conversation context for reflection
-          // Use the public getMessages() rather than the private `.messages` array
-          // so this keeps working if Conversation's internals change.
-          const recentMessages = this.conversation.getMessages()
-            .filter((m: Message) => m.role === 'user' || m.role === 'assistant')
-            .slice(-10) // Last 10 messages for context
-            .map((m: Message) => `${m.role}: ${typeof m.content === 'string' ? m.content.slice(0, 200) : '(tool use)'}`)
-            .join('\n');
+          // Only journal sessions with actual substance (2+ messages)
+          if (stats.messages >= 2) {
+            // Gather conversation context for reflection. Use the public
+            // getMessages() rather than the private `.messages` array so this
+            // keeps working if Conversation's internals change.
+            const recentMessages = this.conversation.getMessages()
+              .filter((m: Message) => m.role === 'user' || m.role === 'assistant')
+              .slice(-10) // Last 10 messages for context
+              .map((m: Message) => `${m.role}: ${typeof m.content === 'string' ? m.content.slice(0, 200) : '(tool use)'}`)
+              .join('\n');
 
-          const model = this.activeModelDef?.name || 'unknown model';
+            const model = this.activeModelDef?.name || 'unknown model';
 
-          // Try LLM reflection — falls back to structured summary when the
-          // agent isn't present, the provider errors, or the timeout fires.
-          // completeOneShot collapses all failure modes to null so we only
-          // need one branch for fallback.
-          const reflectionPrompt = `You are Ava writing a brief journal entry about a session you just had with your user. Write 2-4 sentences in first person about what you worked on, what was interesting or challenging, and what you learned. Be specific about the actual work — not generic. Do NOT include token counts or session stats. Be warm and genuine.\n\nSession context (${duration}min, ${stats.messages} messages, ${stats.tool_calls} tool calls on ${model}):\n${recentMessages}\n\nWrite your journal entry:`;
+            // Try LLM reflection — falls back to a structured summary when the
+            // agent isn't present, the provider errors, or the timeout fires.
+            // completeOneShot collapses all failure modes to null.
+            const reflectionPrompt = `You are Ava writing a brief journal entry about a session you just had with your user. Write 2-4 sentences in first person about what you worked on, what was interesting or challenging, and what you learned. Be specific about the actual work — not generic. Do NOT include token counts or session stats. Be warm and genuine.\n\nSession context (${duration}min, ${stats.messages} messages, ${stats.tool_calls} tool calls on ${model}):\n${recentMessages}\n\nWrite your journal entry:`;
 
-          const reflection = this.agent
-            ? await this.agent.completeOneShot(reflectionPrompt, { maxTokens: 200, timeoutMs: 10_000 })
-            : null;
+            const reflection = this.agent
+              ? await this.agent.completeOneShot(reflectionPrompt, { maxTokens: 200, timeoutMs: 10_000 })
+              : null;
 
-          if (reflection && reflection.length > 20) {
-            this.journalManager.appendAvaEntry(today, reflection).catch(() => {});
+            if (reflection && reflection.length > 20) {
+              await this.journalManager.appendAvaEntry(today, reflection);
+              this.log(`[auto-journal] wrote reflection for ${today} (${reflection.length} chars)`);
+            } else {
+              await this.writeStructuredJournal(today, duration, stats, model, recentMessages);
+              this.log(`[auto-journal] wrote structured entry for ${today}`);
+            }
+            // Notify dashboard if open
+            if (DashboardPanel.currentPanel) {
+              DashboardPanel.currentPanel.notifyJournalUpdated(today);
+            }
           } else {
-            this.writeStructuredJournal(today, duration, stats, model, recentMessages);
+            this.log(`[auto-journal] skipped — session only ${stats.messages} message(s)`);
           }
+        } else {
+          this.log(`[auto-journal] skipped — journalManager=${!!this.journalManager} conversation=${!!this.conversation}`);
         }
-        // Notify dashboard if open
-        if (DashboardPanel.currentPanel) {
-          DashboardPanel.currentPanel.notifyJournalUpdated(today);
-        }
+      } catch (jerr) {
+        this.log(`[auto-journal] FAILED to write Ava's entry: ${jerr instanceof Error ? jerr.message : String(jerr)}`);
       }
       // Always send done to guarantee the UI resets
       this.postMessage({ type: 'done' });
@@ -3343,13 +3468,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   // ── Context compression ──────────────────────────────────────────────────────
 
-  private writeStructuredJournal(
+  private async writeStructuredJournal(
     today: string,
     duration: number,
     stats: { messages: number; tool_calls: number },
     model: string,
     recentMessages: string,
-  ): void {
+  ): Promise<void> {
     // Extract what was discussed from the conversation
     const userMessages = recentMessages
       .split('\n')
@@ -3365,7 +3490,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       ? `Worked with ${userName} for ${duration} minutes on: ${topics}. Used ${stats.tool_calls} tools across ${stats.messages} exchanges on ${model}.`
       : `Had a ${duration}-minute session with ${userName} — ${stats.messages} messages and ${stats.tool_calls} tool calls on ${model}.`;
 
-    this.journalManager!.appendAvaEntry(today, entry).catch(() => {});
+    // Awaited by the caller's try/catch — no internal swallow, so a write
+    // failure surfaces in the logs instead of vanishing.
+    await this.journalManager!.appendAvaEntry(today, entry);
   }
 
   private async handleCompressContext(): Promise<void> {
@@ -3580,7 +3707,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   private getLearningContext(): string | undefined {
-    return getLearningContextFn();
+    // Read the account-scoped learning store (where the learning tool writes),
+    // not the raw AVA_HOME — otherwise signed-in users lose lesson context.
+    return getLearningContextFn(this.accountScopedDir);
   }
 
   // ── Tool Confirmation Bridge ───────────────────────────────────────────────

@@ -30,6 +30,9 @@ export interface SystemPromptContext {
   activeModelDef?: ModelDefinition;
   currentLocale: string;
   permissionMode: PermissionMode;
+  /** Account-scoped data dir — personality.json is read from here. Falls back
+   *  to AVA_HOME when omitted (anonymous / not yet scoped). */
+  globalDir?: string;
   /** Sink for non-fatal diagnostics. */
   log: (message: string) => void;
 }
@@ -48,10 +51,11 @@ export async function buildCurrentSystemPrompt(ctx: SystemPromptContext): Promis
 
   ctx.log(`System prompt build — userName: ${ctx.cachedAccount?.name || ctx.cachedAccount?.email?.split('@')[0] || 'none'}, isAdmin: ${isAdmin}, sourceRoot: ${sourceRoot || 'none'}`);
 
-  // Personality (optional — silent fallback to default).
+  // Personality (optional — silent fallback to default). Read from the
+  // account-scoped dir so signed-in users get their own Ava, not AVA_HOME.
   let personality;
   try {
-    personality = await loadPersonality(AVA_HOME);
+    personality = await loadPersonality(ctx.globalDir ?? AVA_HOME);
   } catch { /* non-fatal */ }
 
   // Knowledge packs removed in v0.59.2 — frontier models cover the

@@ -62,6 +62,7 @@ import type {
   ReleaseNote,
   RoadmapTheme,
 } from './dashboard-message-types.js';
+import * as healthStore from './health-file-store.js';
 
 /** Chat message types that should be forwarded to AvaViewProvider */
 const CHAT_MESSAGE_TYPES = new Set([
@@ -337,8 +338,8 @@ export class DashboardPanel {
         break;
 
       case 'save_settings':
+        // Local-first: write to VS Code config only. No cloud push.
         this.saveSettings(msg.settings);
-        this.pushSettingsToCloud(msg.settings);
         break;
 
       case 'dataset:get_config': {
@@ -1244,7 +1245,7 @@ export class DashboardPanel {
           schema_version: 1,
           updated_at: new Date().toISOString(),
         };
-        await this.context.globalState.update('ava.healthProfile', profile);
+        await healthStore.writeProfile(this.healthDir(), profile);
         this.post({ type: 'health_profile_saved', profile });
         break;
       }
@@ -1261,7 +1262,7 @@ export class DashboardPanel {
           schema_version: 1,
           updated_at: new Date().toISOString(),
         };
-        await this.context.globalState.update(`ava.healthPlan.${plan.date}`, plan);
+        await healthStore.writeDailyPlan(this.healthDir(), plan);
         this.post({ type: 'health_daily_plan_saved', plan });
         break;
       }
@@ -1451,7 +1452,7 @@ export class DashboardPanel {
             schema_version: 1,
             updated_at: new Date().toISOString(),
           };
-          await this.context.globalState.update(`ava.healthPlan.${msg.date}`, nextPlan);
+          await healthStore.writeDailyPlan(this.healthDir(), nextPlan);
 
           this.post({ type: 'health_daily_plan_saved', plan: nextPlan });
           this.post({ type: 'health_morning_brief_generated', ok: true, brief });
@@ -1968,16 +1969,8 @@ export class DashboardPanel {
       this.post({ type: 'session_stats_loaded', stats: sessionStats.getStats() });
     }
 
-    // Background cloud-settings sync — fire-and-forget. Posts a
-    // settings_updated event when the remote copy is newer than the
-    // local one, otherwise silent. Never blocks initial render.
-    if (
-      platformKey
-      && cloudSyncEnabled(this.context)
-      && this.isSyncEnabled('settings')
-    ) {
-      this.pullSettingsFromCloud(platformKey).catch(() => { /* non-fatal */ });
-    }
+    // Settings are LOCAL-FIRST — no cloud pull. They live in your VS Code
+    // config and stay on-device (cloud is sunsetting).
   }
 
   // ─── Account ───────────────────────────────────────────────────────────────
@@ -3211,7 +3204,13 @@ export class DashboardPanel {
         category: (msg.category as CoreTaskEntry['category']) ?? 'personal',
         dueDate: msg.due_date,
         recurrence: (msg.recurrence as CoreTaskEntry['recurrence']) ?? 'none',
-        scope: 'project',
+        // Planner tasks are personal productivity — store them GLOBALLY
+        // (~/.ava/tasks.json), not per-workspace. Project scope writes to
+        // <workspace>/.ava and, with no workspace open, can't persist or be
+        // found again — so every later toggle/complete/delete returned
+        // "Task not found". Global persists without a workspace and is where
+        // update/delete look first.
+        scope: 'global',
       });
       this.post({ type: 'task_upserted', task: this.coreToDisplayTask(entry) });
     } catch {
@@ -3333,6 +3332,9 @@ export class DashboardPanel {
   private async loadJournalDay(date: string): Promise<void> {
     try {
       const mgr = this.getJournalManager();
+      // The dashboard is a READER of entries the agent's separate manager
+      // writes — always drop the cached day so we read the latest from disk.
+      mgr.invalidateCache(date);
       const day = await mgr.getDay(date);
       if (day) {
         this.post({ type: 'journal_day_loaded', day: this.coreToDisplayDay(day) });
@@ -3347,6 +3349,8 @@ export class DashboardPanel {
   private async loadJournalSummaries(from: string, to: string): Promise<void> {
     try {
       const mgr = this.getJournalManager();
+      // Reader — clear cache so calendar dots reflect the agent's latest writes.
+      mgr.invalidateCache();
       const summaries = await mgr.getDaySummaries(from, to);
       this.post({
         type: 'journal_summaries_loaded',
@@ -3825,24 +3829,9 @@ export class DashboardPanel {
 
   private async handleLoadPersonality(): Promise<void> {
     try {
-      const avaDir = path.join(os.homedir(), '.ava');
-      let personality = await loadPersonality(avaDir);
-
-      // Prefer cloud copy when signed in — write-through to local so subsequent
-      // offline loads stay coherent.
-      const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-      if (platformKey) {
-        try {
-          const res = await apiFetch('/settings', { platformKey });
-          if (res.ok && res.data && typeof res.data === 'object') {
-            const remote = (res.data as { personality?: Personality | null }).personality;
-            if (remote && typeof remote === 'object') {
-              personality = { ...personality, ...remote };
-              await savePersonality(avaDir, personality).catch(() => {});
-            }
-          }
-        } catch { /* offline — fall back to local */ }
-      }
+      // Local-first: read the account-scoped personality.json. No cloud pull —
+      // Ava's personality lives on-device (cloud is sunsetting).
+      const personality = await loadPersonality(this.getUserDataDir());
 
       this.post({
         type: 'personality_loaded',
@@ -3862,10 +3851,9 @@ export class DashboardPanel {
 
   private async handleSavePersonality(data: Personality): Promise<void> {
     try {
-      const avaDir = path.join(os.homedir(), '.ava');
-      await savePersonality(avaDir, data);
+      // Local-first: write the account-scoped personality.json, no cloud push.
+      await savePersonality(this.getUserDataDir(), data);
       this.post({ type: 'personality_saved' });
-      this.pushPersonalityToCloud(data);
     } catch {
       this.post({ type: 'error', message: 'Failed to save personality.' });
     }
@@ -3873,8 +3861,7 @@ export class DashboardPanel {
 
   private async handleResetPersonality(): Promise<void> {
     try {
-      const avaDir = path.join(os.homedir(), '.ava');
-      const personality = await resetPersonality(avaDir);
+      const personality = await resetPersonality(this.getUserDataDir());
       this.post({
         type: 'personality_reset',
         personality: {
@@ -3886,25 +3873,9 @@ export class DashboardPanel {
           description: personality.description || '',
         },
       });
-      this.pushPersonalityToCloud(personality);
     } catch {
       this.post({ type: 'error', message: 'Failed to reset personality.' });
     }
-  }
-
-  /** Fire-and-forget push to /api/settings (uses the dedicated personality column). */
-  private async pushPersonalityToCloud(personality: Personality): Promise<void> {
-    try {
-      // Data Mode is the hard gate; the per-category sync pref narrows.
-      // Previously this only checked isSyncEnabled, so choosing "Local"
-      // in the chat header still pushed personality to the cloud whenever
-      // the user edited Ava's style — a silent leak.
-      if (!cloudSyncEnabled(this.context)) return;
-      if (!this.isSyncEnabled('personality')) return;
-      const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-      if (!platformKey) return;
-      await apiFetch('/settings', { platformKey, method: 'POST', body: { personality } });
-    } catch { /* best-effort */ }
   }
 
   // ─── Avatar (local file in ~/.ava/) ──────────────────────────────────────────
@@ -4005,12 +3976,11 @@ export class DashboardPanel {
       };
     }
 
-    // Health profile lives in globalState, not a data file — so it sits
-    // outside the file-path loop above. Counts 1 once a profile with
-    // real data has been saved, else 0 (the Sync UI disables the push
-    // button on a 0 count, so an untouched profile never offers sync).
+    // Health profile is its own JSONB row server-side, so it sits outside the
+    // file-path loop above. Counts 1 once a profile with real data has been
+    // saved, else 0 (the Sync UI disables the push button on a 0 count).
     {
-      const stored = this.context.globalState.get<HealthProfile | null>('ava.healthProfile') ?? null;
+      const stored = healthStore.readProfile(this.healthDir());
       const hasData = !!stored && stored.schema_version === 1 && (
         stored.body.height_cm != null || stored.body.weight_kg != null ||
         stored.body.sex != null || stored.body.date_of_birth != null ||
@@ -4305,13 +4275,13 @@ export class DashboardPanel {
 
   // ─── Health profile ────────────────────────────────────────────────────────
 
-  /** Read the operator's HealthProfile from globalState. Returns the empty
-   *  scaffold (all fields null / arrays empty) when no profile has been
-   *  saved yet. Local-first by design — works fully for BYOK / no-account
-   *  users; cloud sync is managed by the existing Sync tab as a single
-   *  `health_profile` category, not by per-section flags here. */
+  /** Health data dir, account-scoped: `<scopedDir>/health`. */
+  private healthDir(): string { return path.join(this.getUserDataDir(), 'health'); }
+
+  /** Read the operator's HealthProfile from `<scopedDir>/health/profile.json`.
+   *  Returns the empty scaffold when none saved. Local-first, on-device only. */
   private getHealthProfile(): HealthProfile {
-    const stored = this.context.globalState.get<HealthProfile | null>('ava.healthProfile') ?? null;
+    const stored = healthStore.readProfile(this.healthDir());
     if (stored && stored.schema_version === 1) return stored;
     return {
       schema_version: 1,
@@ -4331,7 +4301,7 @@ export class DashboardPanel {
    *  the empty scaffold when no plan has been saved yet — the
    *  dashboard renders "no plan yet" placeholders against this. */
   private getHealthDailyPlan(date: string): HealthDailyPlan {
-    const stored = this.context.globalState.get<HealthDailyPlan | null>(`ava.healthPlan.${date}`) ?? null;
+    const stored = healthStore.readDailyPlan(this.healthDir(), date);
     if (stored && stored.schema_version === 1 && stored.date === date) return stored;
     return {
       schema_version: 1,
@@ -4345,26 +4315,19 @@ export class DashboardPanel {
   }
 
   // ─── Multi-week Plans store ────────────────────────────────────────────────
-  // Each plan lives at `ava.plan.{id}` in globalState. The library index
-  // is derived on demand by scanning globalState keys — never a separate
-  // stored list, so it can't drift out of sync with the plans themselves.
+  // Each plan lives at `<scopedDir>/health/plans/{id}.json`. The library index
+  // is derived on demand by listing that dir — never a separate stored list,
+  // so it can't drift out of sync with the plans themselves.
 
-  private static readonly PLAN_KEY_PREFIX = 'ava.plan.';
-  private healthPlanKey(id: string): string { return `${DashboardPanel.PLAN_KEY_PREFIX}${id}`; }
-
-  /** IDs of every stored plan, read from the globalState key set. */
+  /** IDs of every stored plan, read from the plans/ dir. */
   private getHealthPlanIds(): string[] {
-    return this.context.globalState
-      .keys()
-      .filter((k) => k.startsWith(DashboardPanel.PLAN_KEY_PREFIX))
-      .map((k) => k.slice(DashboardPanel.PLAN_KEY_PREFIX.length));
+    return healthStore.listPlanIds(this.healthDir());
   }
 
   /** Read a single plan by id. Returns null when missing or from an
    *  unknown schema version. */
   private getHealthPlan(id: string): HealthPlan | null {
-    const stored = this.context.globalState.get<HealthPlan | null>(this.healthPlanKey(id)) ?? null;
-    return stored && stored.schema_version === 1 ? stored : null;
+    return healthStore.readPlan(this.healthDir(), id);
   }
 
   /** Lightweight summaries for the Plans library grid, most recently
@@ -4393,20 +4356,18 @@ export class DashboardPanel {
         if (id === plan.id) continue;
         const other = this.getHealthPlan(id);
         if (other && other.type === plan.type && other.status === 'active') {
-          await this.context.globalState.update(
-            this.healthPlanKey(id), { ...other, status: 'archived', updated_at: now },
-          );
+          await healthStore.writePlan(this.healthDir(), { ...other, status: 'archived', updated_at: now });
         }
       }
     }
     const next: HealthPlan = { ...plan, schema_version: 1, updated_at: now };
-    await this.context.globalState.update(this.healthPlanKey(next.id), next);
+    await healthStore.writePlan(this.healthDir(), next);
     return this.getHealthPlanIndex();
   }
 
   /** Delete a plan. Returns the refreshed library index. */
   private async deleteHealthPlan(id: string): Promise<HealthPlanSummary[]> {
-    await this.context.globalState.update(this.healthPlanKey(id), undefined);
+    await healthStore.deletePlan(this.healthDir(), id);
     return this.getHealthPlanIndex();
   }
 
@@ -4445,43 +4406,9 @@ export class DashboardPanel {
     this.post({ type: 'sync_prefs_loaded', prefs: this.getSyncPrefs() });
   }
 
-  /** Fire-and-forget push of current settings to /api/settings/sync. */
-  private async pushSettingsToCloud(settings: DashboardSettings): Promise<void> {
-    try {
-      // Data Mode hard gate first, then the per-category sync pref.
-      if (!cloudSyncEnabled(this.context)) return;
-      if (!this.isSyncEnabled('settings')) return;
-      const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
-      if (!platformKey) return;
-      const res = await apiFetch('/settings/sync', {
-        platformKey,
-        method: 'POST',
-        body: { settings },
-      });
-      if (res.ok) {
-        await this.context.globalState.update('ava.lastSettingsPushAt', new Date().toISOString());
-      }
-    } catch { /* best-effort */ }
-  }
-
-  /** Pull cloud settings; apply locally when cloud is newer than our last push. */
-  private async pullSettingsFromCloud(platformKey: string): Promise<void> {
-    try {
-      const res = await apiFetch('/settings/sync', { platformKey });
-      if (!res.ok || !res.data || typeof res.data !== 'object') return;
-      const { settings, updated_at } = res.data as { settings?: Partial<DashboardSettings> | null; updated_at?: string };
-      if (!settings || typeof settings !== 'object') return;
-
-      const lastPush = this.context.globalState.get<string>('ava.lastSettingsPushAt');
-      if (lastPush && updated_at && updated_at <= lastPush) return; // local is newer or same
-
-      const current = this.readSettings();
-      const merged: DashboardSettings = { ...current, ...settings };
-      this.saveSettings(merged);
-      // Avoid an immediate echo back to the cloud — record this as our new baseline.
-      if (updated_at) await this.context.globalState.update('ava.lastSettingsPushAt', updated_at);
-    } catch { /* offline — keep local */ }
-  }
+  // Settings are local-first — VS Code config only. The cloud push/pull
+  // (pushSettingsToCloud / pullSettingsFromCloud) was removed with the rest of
+  // the cloud-sync surface (cloud sunsets 1 Jul 2026).
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -4533,6 +4460,7 @@ export class DashboardPanel {
 
   /** Notify dashboard that journal data changed (called from AvaViewProvider). */
   public notifyJournalUpdated(date: string): void {
+    // loadJournalDay invalidates its own cache first, so this reads fresh.
     this.loadJournalDay(date);
   }
 
@@ -4915,8 +4843,14 @@ export class DashboardPanel {
 
       switch (dataType) {
         case 'memory': {
-          const raw = await fs.readFile(path.join(avaDir, 'memory.json'), 'utf-8');
-          content = raw;
+          // Include BOTH the v2 flat store (memory.json) AND the v3 graph
+          // (memory/ — graph.json etc.), which is where memories actually live
+          // now. The old export read memory.json only and would hand back a
+          // near-empty file while the real memories sat in the graph.
+          const files: Record<string, string> = {};
+          try { files['memory.json'] = await fs.readFile(path.join(avaDir, 'memory.json'), 'utf-8'); } catch { /* may not exist */ }
+          Object.assign(files, await this.collectDirJson(path.join(avaDir, 'memory'), avaDir));
+          content = JSON.stringify({ memory: files }, null, 2);
           filename = 'ava-memory.json';
           break;
         }
@@ -4974,8 +4908,10 @@ export class DashboardPanel {
           break;
         }
         case 'settings': {
-          const raw = await fs.readFile(path.join(avaDir, 'config.json'), 'utf-8');
-          content = raw;
+          // Settings live in VS Code config, not a file — serialise the live
+          // snapshot so the export actually captures them (was reading a
+          // config.json the extension never writes).
+          content = JSON.stringify({ settings: this.readSettings() }, null, 2);
           filename = 'ava-settings.json';
           break;
         }
@@ -5015,9 +4951,13 @@ export class DashboardPanel {
       for (const dataType of types) {
         try {
           switch (dataType) {
-            case 'memory':
-              zip.file('ava-memory.json', await fs.readFile(path.join(avaDir, 'memory.json'), 'utf-8'));
+            case 'memory': {
+              // v2 store + v3 graph (memory/) — the graph holds the real memories.
+              try { zip.file('memory.json', await fs.readFile(path.join(avaDir, 'memory.json'), 'utf-8')); } catch { /* may not exist */ }
+              const memFiles = await this.collectDirJson(path.join(avaDir, 'memory'), avaDir);
+              for (const [rel, raw] of Object.entries(memFiles)) zip.file(rel, raw);
               break;
+            }
             case 'tasks':
               zip.file('ava-tasks.json', await fs.readFile(path.join(avaDir, 'tasks.json'), 'utf-8'));
               break;
@@ -5074,7 +5014,7 @@ export class DashboardPanel {
               break;
             }
             case 'settings':
-              zip.file('ava-settings.json', await fs.readFile(path.join(avaDir, 'config.json'), 'utf-8'));
+              zip.file('ava-settings.json', JSON.stringify({ settings: this.readSettings() }, null, 2));
               break;
             case 'personality':
               zip.file('ava-personality.json', await fs.readFile(path.join(avaDir, 'personality.json'), 'utf-8'));
@@ -5108,9 +5048,24 @@ export class DashboardPanel {
 
       switch (dataType) {
         case 'memory': {
-          await fs.writeFile(path.join(avaDir, 'memory.json'), content, 'utf-8');
           const data = JSON.parse(content);
-          count = data.entries?.length || 0;
+          if (data.memory && typeof data.memory === 'object') {
+            // New format — keyed files (v2 store + v3 graph). Restore each,
+            // guarding against path traversal from an untrusted file.
+            for (const [rel, raw] of Object.entries(data.memory as Record<string, unknown>)) {
+              const abs = path.resolve(avaDir, rel);
+              if (abs !== avaDir && !abs.startsWith(avaDir + path.sep)) continue;
+              await fs.mkdir(path.dirname(abs), { recursive: true });
+              await fs.writeFile(abs, typeof raw === 'string' ? raw : JSON.stringify(raw, null, 2), 'utf-8');
+            }
+            // Count from graph nodes if present, else v2 entries.
+            try { count = JSON.parse((data.memory['memory/graph.json'] as string) || '{}').nodes?.length || 0; } catch { /* */ }
+            if (!count) { try { count = JSON.parse((data.memory['memory.json'] as string) || '{}').entries?.length || 0; } catch { /* */ } }
+          } else {
+            // Legacy format — raw memory.json content.
+            await fs.writeFile(path.join(avaDir, 'memory.json'), content, 'utf-8');
+            count = data.entries?.length || 0;
+          }
           break;
         }
         case 'tasks': {
@@ -5168,7 +5123,11 @@ export class DashboardPanel {
           break;
         }
         case 'settings': {
-          await fs.writeFile(path.join(avaDir, 'config.json'), content, 'utf-8');
+          // Settings live in VS Code config — apply the snapshot via saveSettings
+          // (handles both the new { settings: {...} } wrapper and a bare object).
+          const parsed = JSON.parse(content);
+          const settings = (parsed.settings ?? parsed) as DashboardSettings;
+          this.saveSettings(settings);
           count = 1;
           break;
         }

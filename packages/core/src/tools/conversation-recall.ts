@@ -139,7 +139,10 @@ export class ConversationRecallTool implements Tool {
     const conversationId = context.conversationId;
     if (!conversationId) return null;
     try {
-      const hm = new HistoryManager();
+      // Prefer the surface's account-scoped HistoryManager (extension puts it
+      // in sharedState) so we read the right transcripts; fall back to the
+      // default ~/.ava/history for the CLI / anonymous local use.
+      const hm = (context.sharedState?.historyManager as HistoryManager | undefined) ?? new HistoryManager();
       await hm.init();
       const record = await hm.resumeConversation(conversationId);
       return record?.messages ?? null;

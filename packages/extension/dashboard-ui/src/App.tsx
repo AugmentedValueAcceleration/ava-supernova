@@ -39,7 +39,6 @@ import type {
   UsageLogEntry,
   ExtToDashboardMessage,
   DashboardLearningCurriculum,
-  SyncStatus,
   ReleaseNote,
   LibraryImage,
   LibraryPath,
@@ -459,10 +458,6 @@ export function App() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [supportLoading, setSupportLoading] = useState(false);
   const [supportUnread, setSupportUnread] = useState(0);
-  // Sync state
-  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
-  const [syncingTypes, setSyncingTypes] = useState<Set<string>>(new Set());
-  const [syncResults, setSyncResults] = useState<Record<string, { success: boolean; count?: number; error?: string }>>({});
   // Release notes state
   const [releases, setReleases] = useState<ReleaseNote[]>([]);
   // Library state
@@ -963,22 +958,7 @@ export function App() {
       case 'task_dates_loaded':
         setTaskDates(msg.dates);
         break;
-      // Sync messages
-      case 'sync_status':
-        setSyncStatus(msg.data);
-        break;
-      case 'sync_started':
-        setSyncingTypes(prev => new Set([...prev, msg.dataType]));
-        setSyncResults(prev => { const next = { ...prev }; delete next[msg.dataType]; return next; });
-        break;
-      case 'sync_completed':
-        setSyncingTypes(prev => { const next = new Set(prev); next.delete(msg.dataType); return next; });
-        setSyncResults(prev => ({ ...prev, [msg.dataType]: { success: true, count: msg.count } }));
-        break;
-      case 'sync_error':
-        setSyncingTypes(prev => { const next = new Set(prev); next.delete(msg.dataType); return next; });
-        setSyncResults(prev => ({ ...prev, [msg.dataType]: { success: false, error: msg.message } }));
-        break;
+      // Sync messages removed — Ava is local-first, nothing syncs to cloud.
       case 'releases_loaded':
         setReleases(msg.releases);
         break;
@@ -1178,10 +1158,6 @@ export function App() {
       post({ type: 'load_journal_summaries', from, to });
       post({ type: 'load_journal_day', date: now.toISOString().slice(0, 10) });
     }
-    // Load sync status when navigating to sync page
-    if (page === 'sync') {
-      post({ type: 'load_sync_status' });
-    }
     // Load overview widget data
     if (page === 'overview') {
       post({ type: 'load_tasks' });
@@ -1339,9 +1315,6 @@ export function App() {
             account={account}
             avatarDataUrl={avatarDataUrl}
             connections={connections}
-            syncStatus={syncStatus}
-            syncingTypes={syncingTypes}
-            syncResults={syncResults}
             isPlatform={!!account}
           />
         );

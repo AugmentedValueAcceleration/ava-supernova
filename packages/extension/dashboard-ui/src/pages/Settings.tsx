@@ -428,17 +428,6 @@ export function Settings({
 
         <Divider />
 
-        {/* Local Only */}
-        <ToggleRow
-          icon={<span className="text-base">&#x1f512;</span>}
-          title={t('dash.settings.local_only')}
-          description={t('dash.settings.local_only_desc')}
-          value={local.memoryLocalOnly}
-          onChange={v => saveImmediate('memoryLocalOnly', v)}
-        />
-
-        <Divider />
-
         {/* Shared Learning */}
         <div>
           <ToggleRow

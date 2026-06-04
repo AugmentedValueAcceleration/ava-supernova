@@ -4,13 +4,12 @@ import { Settings } from './Settings';
 import { Billing } from './Billing';
 import { Connections } from './Connections';
 import { Personality } from './Personality';
-import { Cloud } from './Cloud';
 import type {
   DashboardSettings, ProviderKeyStatus, PersonalityData,
-  ConnectionStatus, SyncStatus, Page, AccountInfo,
+  ConnectionStatus, Page, AccountInfo,
 } from '../types/messages';
 
-type AccountTab = 'settings' | 'billing' | 'connections' | 'personality' | 'sync';
+type AccountTab = 'settings' | 'billing' | 'connections' | 'personality';
 
 interface AccountPageProps {
   settings: DashboardSettings;
@@ -26,28 +25,24 @@ interface AccountPageProps {
   account?: AccountInfo | null;
   avatarDataUrl?: string;
   connections: ConnectionStatus;
-  syncStatus: SyncStatus | null;
-  syncingTypes: Set<string>;
-  syncResults: Record<string, { success: boolean; count?: number; error?: string }>;
   isPlatform: boolean;
 }
 
-// Tab order + labels mirror the IDE AccountPage at DashboardPages.tsx:12897-12903.
-// Connections shows always (matches IDE); Billing + Sync gate on platform connection.
+// Sync tab removed — Ava is local-first; nothing syncs to the cloud (storage
+// sunsets 1 Jul 2026). Connections shows always; Billing gates on platform.
 function getAccountTabs(): { key: AccountTab; label: string; platformOnly?: boolean }[] {
   return [
     { key: 'settings', label: tt('dash.account.tab_settings', 'Settings') },
     { key: 'billing', label: tt('dash.account.tab_billing', 'Billing'), platformOnly: true },
     { key: 'connections', label: tt('dash.account.tab_connections', 'Connections') },
     { key: 'personality', label: tt('dash.account.tab_personality', "Ava's Style") },
-    { key: 'sync', label: tt('dash.account.tab_sync', 'Sync'), platformOnly: true },
   ];
 }
 
 export function AccountPage({
   settings, onSettingsChange, providerKeys, onNavigate,
   personality, account, avatarDataUrl,
-  connections, syncStatus, syncingTypes, syncResults, isPlatform,
+  connections, isPlatform,
 }: AccountPageProps) {
   useLocale();
   const [activeTab, setActiveTab] = useState<AccountTab>('settings');
@@ -103,16 +98,6 @@ export function AccountPage({
 
       {activeTab === 'personality' && (
         <Personality personality={personality ?? null} />
-      )}
-
-      {activeTab === 'sync' && (
-        <Cloud
-          syncStatus={syncStatus}
-          syncingTypes={syncingTypes}
-          syncResults={syncResults}
-          isConnected={!!account}
-          account={account ?? null}
-        />
       )}
     </div>
   );

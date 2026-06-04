@@ -123,14 +123,18 @@ export function buildUIMessages(messages: Message[]): Array<{ role: 'user' | 'as
 // ── Learning context loader ────────────────────────────────────────────────
 
 /**
- * Read the user's active learning curriculums from ~/.ava/learning.json and
- * format them for system prompt injection. Returns undefined if no active
+ * Read the user's active learning curriculums from `<globalDir>/learning.json`
+ * and format them for system prompt injection. Returns undefined if no active
  * curriculums, or if the file cannot be read for any reason.
+ *
+ * `globalDir` must be the account-scoped data dir (the learning tool writes to
+ * the scoped store); reading the raw AVA_HOME here meant signed-in users lost
+ * their active-lesson context in the system prompt.
  */
-export function getLearningContext(): string | undefined {
+export function getLearningContext(globalDir: string = AVA_HOME): string | undefined {
   try {
     const fs = require('node:fs');
-    const learningPath = require('node:path').join(AVA_HOME, 'learning.json');
+    const learningPath = require('node:path').join(globalDir, 'learning.json');
     if (!fs.existsSync(learningPath)) return undefined;
     const store = JSON.parse(fs.readFileSync(learningPath, 'utf-8'));
     const active = (store.curriculums || []).filter((c: { status: string }) => c.status === 'active');

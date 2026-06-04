@@ -34,6 +34,19 @@ export class JournalManager {
     this.localOnly = value;
   }
 
+  /**
+   * Drop cached days so the next read hits disk. Needed when ANOTHER instance
+   * (e.g. the agent's JournalManager) wrote to the same files this instance has
+   * cached — without this, a long-lived reader (the dashboard) keeps serving a
+   * stale, entry-less day even after Ava's auto-journal landed on disk.
+   */
+  invalidateCache(date?: string): void {
+    if (!date) { this.cache.clear(); return; }
+    for (const key of [...this.cache.keys()]) {
+      if (key.endsWith(`:${date}`)) this.cache.delete(key);
+    }
+  }
+
   // ── Public API — Write ─────────────────────────────────────────────────────
 
   /** Write or update the user's journal entry for a date. */

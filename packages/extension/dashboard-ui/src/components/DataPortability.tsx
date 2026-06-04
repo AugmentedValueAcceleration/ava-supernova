@@ -158,6 +158,7 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
     // Try detecting from content
     try {
       const data = JSON.parse(content);
+      if (data.memory && typeof data.memory === 'object') return 'memory';
       if (data.entries && data.entries[0]?.category) return 'memory';
       if (data.tasks || (Array.isArray(data) && data[0]?.priority)) return 'tasks';
       if (data.date && (data.userEntry || data.avaEntry)) return 'journal';

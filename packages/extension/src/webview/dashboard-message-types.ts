@@ -719,9 +719,8 @@ export interface HealthProfile {
 
 /**
  * Daily Plan — what the Health Dashboard reads to render today.
- * One document per date, keyed by ISO "YYYY-MM-DD" in globalState
- * (`ava.healthPlan.{date}`). Lives on the same local-first
- * substrate as the profile.
+ * One file per date at `<scopedDir>/health/daily-plans/{YYYY-MM-DD}.json`.
+ * Lives on the same local-first file substrate as the profile.
  *
  * The plan is the integrated day — mobility / meals / workout /
  * wind-down on a single timeline. Items reference catalog rows
@@ -772,10 +771,9 @@ export interface HealthMySubmissions {
  * Plan projects into the daily dashboard — Overview renders today's
  * slice of it.
  *
- * Stored local-first in globalState — `ava.plan.{id}` per plan, with
- * `ava.planIndex` holding lightweight summaries for the library grid
- * so the card view never has to load every full plan. Cloud sync is
- * the opt-in `health_plans` Sync category — never a default.
+ * Stored local-first as files — `<scopedDir>/health/plans/{id}.json` per plan;
+ * the library index is derived by listing that dir (no separate index file, so
+ * it can't drift). On-device only.
  */
 export type HealthPlanType = 'fitness' | 'meal' | 'combined';
 export type HealthPlanSource = 'manual' | 'ava';

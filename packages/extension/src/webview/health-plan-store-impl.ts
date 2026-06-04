@@ -1,17 +1,16 @@
-// ─── Extension HealthPlanStore (VS Code globalState) ────────────────────────
+// ─── Extension HealthPlanStore (file-backed) ────────────────────────────────
 //
-// Concrete implementation of the core HealthPlanStore interface, wrapping the
-// same VS Code globalState keys that DashboardPanel reads/writes — so the
-// UI-driven and Ava-driven plan paths share one source of truth.
+// Concrete implementation of the core HealthPlanStore interface, reading/writing
+// the same `<scopedDir>/health/plans/*.json` files DashboardPanel uses — so the
+// UI-driven and Ava-driven plan paths share one source of truth, and plans are
+// captured by the file-based export + `.ava-backup` (globalState was not).
 //
 // Mirrors the auto-archive rule in DashboardPanel.saveHealthPlan: one active
-// plan per type. UI live-refresh after an Ava-driven save is a follow-up; the
-// impl exposes `onPlansChanged` so a future host can broadcast
-// `health_plans_loaded` to the dashboard webview without re-plumbing this.
+// plan per type. The impl exposes `onPlansChanged` so the host can broadcast
+// `health_plans_loaded` to the dashboard webview after an Ava-driven save.
 //
 // See COMMAND_PALETTE_PLAN.md §10.
 
-import * as vscode from 'vscode';
 import type {
   HealthPlanStore,
   HealthPlanCreateInput,
@@ -21,12 +20,7 @@ import type {
   HealthPlanSummary,
 } from '@ava/core/health';
 import type { HealthPlan } from './dashboard-message-types.js';
-
-// Same prefix DashboardPanel.PLAN_KEY_PREFIX uses — keep in sync. Plans
-// in globalState are addressed as `ava.plan.${id}`; the list comes from
-// scanning globalState.keys() for that prefix (no separate index key).
-const PLAN_KEY_PREFIX = 'ava.plan.';
-const planKey = (id: string): string => `${PLAN_KEY_PREFIX}${id}`;
+import * as healthStore from './health-file-store.js';
 
 function newId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -49,18 +43,18 @@ function toSummary(p: HealthPlan): HealthPlanSummary {
 }
 
 export class ExtensionHealthPlanStore implements HealthPlanStore {
+  /** @param getHealthDir returns the account-scoped `<scopedDir>/health` dir
+   *  (a getter so it stays correct if the scope is resolved post-construction). */
   constructor(
-    private readonly context: vscode.ExtensionContext,
+    private readonly getHealthDir: () => string,
     private readonly onPlansChanged?: () => void,
   ) {}
 
   async list(): Promise<HealthPlanSummary[]> {
-    const ids = this.context.globalState.keys()
-      .filter((k) => k.startsWith(PLAN_KEY_PREFIX))
-      .map((k) => k.slice(PLAN_KEY_PREFIX.length));
+    const dir = this.getHealthDir();
     const out: HealthPlanSummary[] = [];
-    for (const id of ids) {
-      const p = this.context.globalState.get<HealthPlan | null>(planKey(id)) ?? null;
+    for (const id of healthStore.listPlanIds(dir)) {
+      const p = healthStore.readPlan(dir, id);
       if (p) out.push(toSummary(p));
     }
     return out.sort((a, b) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''));
@@ -88,16 +82,12 @@ export class ExtensionHealthPlanStore implements HealthPlanStore {
 
     // Activating archives OTHER active plans OF THE SAME TYPE — mirrors
     // DashboardPanel.saveHealthPlan's one-active-per-type rule.
+    const dir = this.getHealthDir();
     if (input.status === 'active') {
-      const ids = this.context.globalState.keys()
-        .filter((k) => k.startsWith(PLAN_KEY_PREFIX))
-        .map((k) => k.slice(PLAN_KEY_PREFIX.length));
-      for (const otherId of ids) {
-        const other = this.context.globalState.get<HealthPlan | null>(planKey(otherId)) ?? null;
+      for (const otherId of healthStore.listPlanIds(dir)) {
+        const other = healthStore.readPlan(dir, otherId);
         if (other && other.type === input.type && other.status === 'active') {
-          await this.context.globalState.update(planKey(otherId), {
-            ...other, status: 'archived', updated_at: now,
-          });
+          await healthStore.writePlan(dir, { ...other, status: 'archived', updated_at: now });
         }
       }
     }
@@ -120,7 +110,7 @@ export class ExtensionHealthPlanStore implements HealthPlanStore {
       created_at: now,
       updated_at: now,
     };
-    await this.context.globalState.update(planKey(id), plan);
+    await healthStore.writePlan(dir, plan);
     this.onPlansChanged?.();
 
     return {
@@ -134,7 +124,8 @@ export class ExtensionHealthPlanStore implements HealthPlanStore {
   }
 
   async updateDay(planId: string, day: HealthPlanDay): Promise<HealthPlanDayUpdated | null> {
-    const plan = this.context.globalState.get<HealthPlan | null>(planKey(planId)) ?? null;
+    const dir = this.getHealthDir();
+    const plan = healthStore.readPlan(dir, planId);
     if (!plan) return null;
     if (day.day_index < 1 || day.day_index > plan.duration_days) return null;
 
@@ -148,7 +139,7 @@ export class ExtensionHealthPlanStore implements HealthPlanStore {
     }
     const now = new Date().toISOString();
     const next: HealthPlan = { ...plan, days, updated_at: now };
-    await this.context.globalState.update(planKey(planId), next);
+    await healthStore.writePlan(dir, next);
     this.onPlansChanged?.();
 
     return { plan_id: planId, day_index: day.day_index };
