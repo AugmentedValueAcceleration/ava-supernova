@@ -93,6 +93,7 @@ export class HistoryCoordinator {
   async load(conversationId: string): Promise<void> {
     const record = await this.deps.historyManager.resumeConversation(conversationId);
     if (!record) {
+      console.warn(`[history] load: conversation ${conversationId} not found on disk`);
       this.deps.postMessage({ type: 'error', message: 'Conversation not found.' });
       return;
     }
@@ -100,13 +101,21 @@ export class HistoryCoordinator {
     const conversation = new Conversation(record.id);
     const messages = record.messages;
     if (messages.length > 0 && messages[0].role === 'system') {
-      messages[0] = { role: 'system' as const, content: await this.deps.buildSystemPrompt() };
+      // Refresh the system prompt, but never let a failure here abort the load
+      // — a thrown buildSystemPrompt() used to swallow the whole click, so the
+      // chat appeared to do nothing. Fall back to the stored system message.
+      try {
+        messages[0] = { role: 'system' as const, content: await this.deps.buildSystemPrompt() };
+      } catch (err) {
+        console.warn(`[history] load: buildSystemPrompt failed, keeping stored system message: ${err instanceof Error ? err.message : err}`);
+      }
     }
     conversation.setMessages(messages);
     this.deps.setConversation(conversation);
 
     this.setLastConversationId(record.id);
 
+    console.log(`[history] loaded conversation ${record.id}: ${record.messages.length} messages`);
     this.deps.postMessage({
       type: 'conversation_loaded',
       conversationId: record.id,
