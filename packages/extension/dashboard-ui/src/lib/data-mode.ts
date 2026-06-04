@@ -10,21 +10,12 @@
 import { post } from '../vscode';
 import type { DashboardToExtMessage } from '../types/messages';
 
-const KEY = 'ava-cloud-sync';
-
-/** True when a cloud copy should also be written. Default OFF — nothing
- *  leaves the machine until the operator opts in. Migrates the legacy
- *  three-value `ava-data-mode`: `cloud`/`both` -> on, `local` -> off. */
+/** Ava is LOCAL-FIRST: nothing syncs to the cloud (storage sunsets 1 Jul
+ *  2026). Hard-OFF now — the chat-header toggle and Sync tab that flipped it
+ *  are gone, and the StorageBadge consistently reads "Local only". Kept as a
+ *  function so callers (postData, StorageBadge) don't churn. */
 export function cloudSyncEnabled(): boolean {
-  try {
-    const v = localStorage.getItem(KEY);
-    if (v === 'true') return true;
-    if (v === 'false') return false;
-    const legacy = localStorage.getItem('ava-data-mode');
-    return legacy === 'cloud' || legacy === 'both';
-  } catch {
-    return false;
-  }
+  return false;
 }
 
 /**

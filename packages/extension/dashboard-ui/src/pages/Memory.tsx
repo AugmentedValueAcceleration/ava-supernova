@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
-import { StorageBadge } from '../components/StorageBadge';
 import { SearchIcon, PencilIcon, TrashIcon } from '../components/Icons';
 import { Skeleton } from '../components/Skeleton';
 import type { MemoryEntry, MemoryCategory, GraphStats, ContradictionPair, ProceduralPatternUI } from '../types/messages';
@@ -411,9 +410,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
       <div className="mb-8 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.memory.title')}</h1>
-            <StorageBadge />
-          </div>
+            <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.memory.title')}</h1>          </div>
           <p className="mt-1.5 text-[13px] text-[#6c7086]">
             {t('dash.memory.subtitle')}
           </p>

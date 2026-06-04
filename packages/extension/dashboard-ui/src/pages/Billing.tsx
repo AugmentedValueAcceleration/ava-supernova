@@ -1,19 +1,15 @@
 // Browser-safe subpath — pulls ONLY the billing data module, not the
 // node-side tool surface that @ava/core's main entry also exports.
-import { useEffect } from 'react';
 import {
   PLANS,
   CREDIT_TOPUPS,
-  STORAGE_ADDONS,
   pricingUrl,
   dashboardBillingUrl,
   type CreditTopupDefinition,
-  type StorageAddonDefinition,
 } from '@ava/core/billing';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { AccountInfo } from '../types/messages';
-import { UsageBar } from '../components/UsageBar';
 import { TierBadge } from '../components/TierBadge';
 import { SectionGroup } from '../components/SectionGroup';
 import { CheckIcon } from '../components/Icons';
@@ -34,16 +30,7 @@ interface BillingProps {
 export function Billing({ account }: BillingProps) {
   useLocale();
 
-  // Trigger a fresh storage calculation whenever the Billing tab mounts.
-  // The server endpoint re-sums pg_column_size across all the user's
-  // cloud-synced objects and writes the result to usage.storage_gb_used,
-  // then the host pushes an updated account snapshot back to the webview.
-  // Silent + fire-and-forget — never blocks initial render, never surfaces
-  // errors. If the platform is unreachable the user keeps seeing whatever
-  // cached value they had.
-  useEffect(() => {
-    post({ type: 'refresh_storage' });
-  }, []);
+  // Storage usage / refresh removed — cloud storage is sunsetting (1 Jul 2026).
 
   // Credits-redesign read shim. Free tier's free pool defaults to 300;
   // paid tiers have no free pool — their allowance lives in credits_limit.
@@ -183,72 +170,11 @@ export function Billing({ account }: BillingProps) {
         );
       })()}
 
-      {/* Cloud Storage */}
-      {account.storage && (
-        <div className="mb-10">
-          <SectionGroup
-            label="Cloud Storage"
-            description="Syncs across every device you use Ava on. Local files always work, even at cap."
-          >
-            <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-              <div className="mb-4 flex items-baseline justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Used</p>
-                  <p className="mt-1 text-xl font-semibold">
-                    {formatStorage(account.storage.used_gb)} <span className="text-sm text-[var(--text-muted)]">of {formatStorage(account.storage.total_gb)}</span>
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-[var(--text-muted)]">
-                    {formatStorage(account.storage.base_gb)} plan
-                    {account.storage.addon_gb > 0 && ` + ${formatStorage(account.storage.addon_gb)} add-ons`}
-                  </p>
-                  <button
-                    onClick={() => post({ type: 'refresh_storage' })}
-                    title="Recalculate storage usage"
-                    className="mt-1 text-[10px] text-[var(--text-muted)] transition hover:text-[var(--text-secondary)] bg-transparent border-none cursor-pointer p-0"
-                  >
-                    Refresh &#x21bb;
-                  </button>
-                </div>
-              </div>
-              <UsageBar used={account.storage.used_gb} limit={account.storage.total_gb} accent />
-              <p className="mt-3 text-[11px] text-[var(--text-muted)]">
-                Hit the cap? Cloud sync pauses; local work keeps going. Add a top-up anytime to raise it.
-              </p>
-            </div>
-          </SectionGroup>
-        </div>
-      )}
+      {/* Cloud Storage display removed — cloud storage is sunsetting
+          (1 Jul 2026); data is local-first, nothing to meter. */}
 
-      {/* Storage Add-ons — every CTA opens the web billing dashboard in
-          the browser. The extension stays out of the Stripe flow and the
-          user sees identical prices to the marketing site. */}
-      {account.tier !== 'admin' && (
-        <div className="mb-10">
-          <SectionGroup
-            label="Add Storage"
-            description="Recurring monthly add-ons. Stack multiple if you need more."
-          >
-            <div className="grid gap-3 sm:grid-cols-3">
-              {STORAGE_ADDONS.map((a: StorageAddonDefinition) => (
-                <PurchaseCard
-                  key={a.id}
-                  title={a.label}
-                  subtitle={a.subtitle}
-                  price={`$${a.price}`}
-                  priceSuffix="/mo"
-                  effectiveRate={a.effectiveRate}
-                  popular={a.popular}
-                  state="live"
-                  ctaLabel="Add storage"
-                  onClick={() => openUrl(dashboardBillingUrl())}
-                />
-              ))}
-            </div>
-          </SectionGroup>
-        </div>
-      )}
+      {/* Storage add-ons removed — cloud storage is sunsetting (1 Jul 2026);
+          we no longer sell it. Credit top-ups remain below. */}
 
       {/* Token top-ups — CTAs deep-link to the dashboard billing page
           (same flow used by Pricing). Canonical data + effective rate
@@ -367,13 +293,6 @@ function PlanCard({
       )}
     </div>
   );
-}
-
-function formatStorage(gb: number): string {
-  if (gb >= 1000) return `${(gb / 1024).toFixed(2)} TB`;
-  if (gb >= 10) return `${Math.round(gb)} GB`;
-  if (gb >= 1) return `${gb.toFixed(1)} GB`;
-  return `${Math.round(gb * 1024)} MB`;
 }
 
 // Re-export so callers can reach the website URL helpers without pulling

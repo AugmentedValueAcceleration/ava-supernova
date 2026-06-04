@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
-import { StorageBadge } from '../components/StorageBadge';
 import { Skeleton } from '../components/Skeleton';
 import { Select } from '../components/Select';
 import { SearchIcon, TrashIcon, PencilIcon, PlusIcon, CalendarIcon } from '../components/Icons';
@@ -265,7 +264,6 @@ export function Tasks({ tasks, sessionTasks = [], selectedDate, loaded }: TasksP
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.tasks.title')}</h1>
-          <StorageBadge />
         </div>
         <button
           onClick={() => { resetForm(); setShowForm(!showForm); }}

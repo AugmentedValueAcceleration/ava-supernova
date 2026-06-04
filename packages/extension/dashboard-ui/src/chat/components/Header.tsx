@@ -1,7 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
 import { ModelSelector } from './ModelSelector';
 import { t, tt, useLocale } from '../../i18n';
-import { post } from '../../vscode';
 import type { ProviderSource } from '../../types/messages';
 
 interface HeaderProps {
@@ -49,53 +47,8 @@ export function Header({
   // Knowledge-pack dropdown removed in v0.59.2. Stale localStorage key
   // 'ava-knowledge-packs' is harmless if it survives from a prior install.
 
-  // Cloud-sync toggle. Data is ALWAYS saved locally; this only controls
-  // whether a copy is also backed up to the platform. Replaces the old
-  // three-way Local/Cloud/Both data mode.
-  const [cloudSync, setCloudSyncState] = useState<boolean>(() => {
-    try {
-      const stored = localStorage.getItem('ava-cloud-sync');
-      if (stored === 'true') return true;
-      if (stored === 'false') return false;
-      // Migrate the legacy three-value data mode: cloud/both -> on.
-      const legacy = localStorage.getItem('ava-data-mode');
-      return legacy === 'cloud' || legacy === 'both';
-    } catch { return false; }
-  });
-
-  // Notify the host of the current state on mount so its save handlers
-  // know whether a cloud copy should be written.
-  useEffect(() => {
-    post({ type: 'set_cloud_sync', enabled: cloudSync });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Subscribe to host broadcasts so a flip on the panel toggle is
-  // reflected here without a reload (and vice-versa).
-  useEffect(() => {
-    const handler = (e: MessageEvent) => {
-      const msg = e.data;
-      if (msg?.type === 'cloud_sync_changed' && typeof msg.enabled === 'boolean') {
-        setCloudSyncState(msg.enabled);
-        try { localStorage.setItem('ava-cloud-sync', String(msg.enabled)); } catch { /* */ }
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
-
-  // Turning cloud sync on does NOT fire a mass upload — pushes are
-  // manual, per category, from the Sync tab. The toggle only opens the
-  // gate; the per-manager background sync handles ongoing writes.
-  const toggleCloudSync = useCallback(() => {
-    if (!platformStatus?.connected) return;
-    setCloudSyncState(prev => {
-      const next = !prev;
-      try { localStorage.setItem('ava-cloud-sync', String(next)); } catch { /* */ }
-      post({ type: 'set_cloud_sync', enabled: next });
-      return next;
-    });
-  }, [platformStatus?.connected]);
+  // Cloud-sync toggle removed — Ava is local-first; nothing syncs to the
+  // cloud (storage sunsets 1 Jul 2026). Managers default to local-only.
 
   return (
     <div className="border-b" style={{ borderColor: 'rgba(168, 85, 247, 0.12)' }}>
@@ -135,31 +88,10 @@ export function Header({
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Right side: data mode + provider toggle + tokens + context ring + tasks */}
+      {/* Right side: tokens + context ring + tasks */}
       <div className="flex items-center gap-3">
-        {/* Cloud-sync toggle — data is always saved locally; this
-            controls the optional cloud backup. Shown only when an
-            account is connected (cloud sync needs one). */}
-        {platformStatus?.connected && (
-          <button
-            onClick={toggleCloudSync}
-            className="flex items-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-[10px] font-semibold cursor-pointer transition-all"
-            style={{
-              background: cloudSync ? 'rgba(137,180,250,0.1)' : 'rgba(166,227,161,0.1)',
-              borderColor: cloudSync ? 'rgba(137,180,250,0.3)' : 'rgba(166,227,161,0.3)',
-              color: cloudSync ? '#89b4fa' : '#a6e3a1',
-            }}
-            title={cloudSync
-              ? 'Cloud sync ON — a copy of your data is backed up to the platform. Click to turn off.'
-              : 'Cloud sync OFF — your data stays on this machine only. Click to turn on.'}
-          >
-            <span
-              className="inline-block w-1.5 h-1.5 rounded-full"
-              style={{ background: cloudSync ? '#89b4fa' : '#a6e3a1' }}
-            />
-            {cloudSync ? tt('dash.chat.cloud_sync', 'Cloud sync') : tt('dash.chat.local_only', 'Local only')}
-          </button>
-        )}
+        {/* Cloud-sync toggle removed — Ava is local-first; nothing syncs to
+            the cloud (storage sunsets 1 Jul 2026). */}
 
         {/* Credit balance display — matches IDE chat header at
             DashboardPages.tsx:4210-4225. Shows total platform balance

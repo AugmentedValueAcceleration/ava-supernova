@@ -3,7 +3,6 @@ import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { DashboardLearningCurriculum } from '../types/messages';
 import { SectionGroup } from '../components/SectionGroup';
-import { StorageBadge } from '../components/StorageBadge';
 import { Skeleton } from '../components/Skeleton';
 import { LessonPlayer } from './LessonPlayer';
 
@@ -230,7 +229,6 @@ export function Learning({ curriculums, loaded }: Props) {
     <div>
       <div className="flex items-center gap-2.5 mb-1">
         <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.learning.title')}</h1>
-        <StorageBadge />
       </div>
       <p className="text-[13px] text-[#6c7086] mb-4 mt-1.5">
         {t('dash.learning.subtitle')}
