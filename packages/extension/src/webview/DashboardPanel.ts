@@ -4837,7 +4837,75 @@ export class DashboardPanel {
     }
   }
 
+  /** Recursively collect a directory into a flat { posixRelPath: utf8 } map,
+   *  relative to `root`. Used to gather health/ and creative metadata as JSON. */
+  private async collectDirJson(absDir: string, root: string): Promise<Record<string, string>> {
+    const fs = await import('node:fs/promises');
+    const out: Record<string, string> = {};
+    const walk = async (dir: string): Promise<void> => {
+      const entries = await fs.readdir(dir, { withFileTypes: true }).catch(() => []);
+      for (const e of entries) {
+        const abs = path.join(dir, e.name);
+        if (e.isDirectory()) await walk(abs);
+        else if (e.isFile() && e.name.endsWith('.json')) {
+          out[path.relative(root, abs).split(path.sep).join('/')] = await fs.readFile(abs, 'utf-8');
+        }
+      }
+    };
+    await walk(absDir);
+    return out;
+  }
+
+  /** Creative Studio export — a zip of metadata.json + the actual media files
+   *  (images/music/video/voice). Binaries aren't JSON-serialisable, so this is
+   *  its own path rather than the single-JSON flow. */
+  private async handleExportCreativeZip(): Promise<void> {
+    const fs = await import('node:fs/promises');
+    const JSZip = require('jszip');
+    const avaDir = this.getUserDataDir();
+    const creativeDir = path.join(avaDir, 'creative');
+    try {
+      const dirStat = await fs.stat(creativeDir).catch(() => null);
+      if (!dirStat?.isDirectory()) {
+        this.post({ type: 'error', message: 'No Creative Studio data to export yet.' } as any);
+        return;
+      }
+      const zip = new JSZip();
+      let fileCount = 0;
+      const walk = async (dir: string): Promise<void> => {
+        const entries = await fs.readdir(dir, { withFileTypes: true }).catch(() => []);
+        for (const e of entries) {
+          const abs = path.join(dir, e.name);
+          if (e.isDirectory()) await walk(abs);
+          else if (e.isFile()) {
+            const rel = path.relative(creativeDir, abs).split(path.sep).join('/');
+            // JSON metadata as text; media as raw bytes.
+            zip.file(`creative/${rel}`, e.name.endsWith('.json')
+              ? await fs.readFile(abs, 'utf-8')
+              : await fs.readFile(abs));
+            fileCount++;
+          }
+        }
+      };
+      await walk(creativeDir);
+      const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+      const uri = await vscode.window.showSaveDialog({
+        defaultUri: vscode.Uri.file('ava-creative.zip'),
+        filters: { 'ZIP Archive': ['zip'] },
+      });
+      if (uri) {
+        await vscode.workspace.fs.writeFile(uri, zipBuffer);
+        vscode.window.showInformationMessage(`Exported Creative Studio (${fileCount} files) to ${uri.fsPath}`);
+      }
+    } catch (err) {
+      this.post({ type: 'error', message: `Export failed: ${err instanceof Error ? err.message : String(err)}` });
+    }
+  }
+
   private async handleExportData(dataType: string): Promise<void> {
+    // Creative Studio takes the zip path (metadata + binary media).
+    if (dataType === 'creative') { await this.handleExportCreativeZip(); return; }
+
     const fs = await import('node:fs/promises');
     const avaDir = this.getUserDataDir();
 
@@ -4892,6 +4960,17 @@ export class DashboardPanel {
           }
           content = JSON.stringify({ conversations: convos }, null, 2);
           filename = 'ava-history.json';
+          break;
+        }
+        case 'health': {
+          // Fitness + recipe + meal plans and the health profile, under ~/.ava/health.
+          const files = await this.collectDirJson(path.join(avaDir, 'health'), path.join(avaDir, 'health'));
+          const parsed: Record<string, unknown> = {};
+          for (const [rel, raw] of Object.entries(files)) {
+            try { parsed[rel] = JSON.parse(raw); } catch { parsed[rel] = raw; }
+          }
+          content = JSON.stringify({ health: parsed }, null, 2);
+          filename = 'ava-health.json';
           break;
         }
         case 'settings': {
@@ -4965,6 +5044,33 @@ export class DashboardPanel {
                 try { convos.push(JSON.parse(await fs.readFile(path.join(histDir, file), 'utf-8'))); } catch { /* skip */ }
               }
               zip.file('ava-history.json', JSON.stringify({ conversations: convos }, null, 2));
+              break;
+            }
+            case 'health': {
+              const root = path.join(avaDir, 'health');
+              const files = await this.collectDirJson(root, root);
+              const parsed: Record<string, unknown> = {};
+              for (const [rel, raw] of Object.entries(files)) {
+                try { parsed[rel] = JSON.parse(raw); } catch { parsed[rel] = raw; }
+              }
+              zip.file('ava-health.json', JSON.stringify({ health: parsed }, null, 2));
+              break;
+            }
+            case 'creative': {
+              // Metadata + media files, preserving their relative paths.
+              const root = path.join(avaDir, 'creative');
+              const walk = async (dir: string): Promise<void> => {
+                const entries = await fs.readdir(dir, { withFileTypes: true }).catch(() => []);
+                for (const e of entries) {
+                  const abs = path.join(dir, e.name);
+                  if (e.isDirectory()) await walk(abs);
+                  else if (e.isFile()) {
+                    const rel = path.relative(root, abs).split(path.sep).join('/');
+                    zip.file(`creative/${rel}`, e.name.endsWith('.json') ? await fs.readFile(abs, 'utf-8') : await fs.readFile(abs));
+                  }
+                }
+              };
+              await walk(root);
               break;
             }
             case 'settings':
@@ -5042,6 +5148,22 @@ export class DashboardPanel {
               await fs.writeFile(path.join(histDir, `${conv.id}.json`), JSON.stringify(conv, null, 2), 'utf-8');
               count++;
             }
+          }
+          break;
+        }
+        case 'health': {
+          // Write each health file back under ~/.ava/health, recreating the
+          // plans/ + daily-plans/ structure from the keyed export object.
+          const data = JSON.parse(content);
+          const files = (data.health || {}) as Record<string, unknown>;
+          const healthDir = path.join(avaDir, 'health');
+          for (const [rel, value] of Object.entries(files)) {
+            // Guard against path traversal from an untrusted file.
+            const abs = path.resolve(healthDir, rel);
+            if (abs !== healthDir && !abs.startsWith(healthDir + path.sep)) continue;
+            await fs.mkdir(path.dirname(abs), { recursive: true });
+            await fs.writeFile(abs, typeof value === 'string' ? value : JSON.stringify(value, null, 2), 'utf-8');
+            count++;
           }
           break;
         }

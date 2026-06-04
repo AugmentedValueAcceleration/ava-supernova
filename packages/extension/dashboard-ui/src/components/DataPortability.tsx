@@ -11,6 +11,11 @@ const DATA_TYPES = [
   { id: 'journal', nameKey: 'dash.nav.journal', icon: '\uD83D\uDCD3', descKey: 'dash.portability.type.journal_desc' },
   { id: 'learning', nameKey: 'dash.nav.learning', icon: '\uD83C\uDF93', descKey: 'dash.portability.type.learning_desc' },
   { id: 'history', nameKey: 'dash.nav.chat_history', icon: '\uD83D\uDCAC', descKey: 'dash.portability.type.history_desc' },
+  // Health & Nutrition \u2014 fitness + recipe + meal plans (~/.ava/health: profile, plans, daily-plans).
+  { id: 'health', nameKey: 'dash.nav.health', icon: '\uD83E\uDD57', descKey: 'dash.portability.type.health_desc' },
+  // Creative Studio \u2014 generated images/music/video/voice. Exports a zip of
+  // metadata + the media files (binaries aren't JSON-serialisable).
+  { id: 'creative', nameKey: 'dash.nav.creative_studio', icon: '\uD83C\uDFAC', descKey: 'dash.portability.type.creative_desc' },
   { id: 'settings', nameKey: 'dash.nav.settings', icon: '\u2699\uFE0F', descKey: 'dash.portability.type.settings_desc' },
   { id: 'personality', nameKey: 'dash.nav.personality', icon: '\uD83C\uDFA8', descKey: 'dash.portability.type.personality_desc' },
 ];
@@ -146,6 +151,8 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
     if (lower.includes('journal')) return 'journal';
     if (lower.includes('learn') || lower.includes('curriculum')) return 'learning';
     if (lower.includes('history') || lower.includes('conversation')) return 'history';
+    if (lower.includes('health') || lower.includes('plan') || lower.includes('fitness') || lower.includes('recipe')) return 'health';
+    if (lower.includes('creative')) return 'creative';
     if (lower.includes('setting') || lower.includes('config')) return 'settings';
     if (lower.includes('personality')) return 'personality';
     // Try detecting from content
@@ -156,6 +163,8 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
       if (data.date && (data.userEntry || data.avaEntry)) return 'journal';
       if (data.curriculums || (Array.isArray(data) && data[0]?.modules)) return 'learning';
       if (data.messages && data.title) return 'history';
+      if (data.health || data.plans || data.profile) return 'health';
+      if (data.creative || data.assets) return 'creative';
       if (data.name && data.pronouns) return 'personality';
       if (data.language || data.permissionMode) return 'settings';
     } catch { /* not JSON */ }
@@ -263,16 +272,22 @@ export function DataPortability({ isOpen, onClose }: DataPortabilityProps) {
               SecretStorage). Distinct from per-type below because it
               covers tables the per-type flow doesn't (subscriptions,
               consent records, etc.) — true GDPR completeness. */}
+          {/* Cloud sunset — the platform stops storing user data on 1 Jul 2026.
+              This is the last-chance path to pull anything we still hold in the
+              cloud before it's deleted for good. Styled amber as a warning. */}
           <button
             onClick={() => post({ type: 'export_full_account_data' } as { type: 'export_full_account_data' })}
-            className="mb-3 w-full rounded-lg border px-3 py-2.5 text-left transition hover:bg-[var(--accent)]/10"
-            style={{ borderColor: 'rgba(168,85,247,0.35)', background: 'rgba(168,85,247,0.06)' }}
+            className="mb-3 w-full rounded-lg border px-3 py-2.5 text-left transition hover:bg-amber-500/10"
+            style={{ borderColor: 'rgba(245,158,11,0.4)', background: 'rgba(245,158,11,0.08)' }}
           >
             <div className="flex items-center gap-2">
-              <span className="text-base">{'\u{1F4E6}'}</span>
+              <span className="text-base">{'⚠️'}</span>
               <div className="flex-1">
-                <div className="text-xs font-semibold" style={{ color: '#cdd6f4' }}>{t('dash.portability.download_all')}</div>
-                <div className="text-[10px] opacity-60" style={{ color: '#a6adc8' }}>
+                <div className="text-xs font-semibold" style={{ color: '#fbbf24' }}>{t('dash.portability.download_all')}</div>
+                <div className="text-[10px] font-semibold mt-0.5" style={{ color: '#fbbf24' }}>
+                  {t('dash.portability.cloud_sunset')}
+                </div>
+                <div className="text-[10px] opacity-60 mt-0.5" style={{ color: '#a6adc8' }}>
                   {t('dash.portability.download_all_desc')}
                 </div>
               </div>
