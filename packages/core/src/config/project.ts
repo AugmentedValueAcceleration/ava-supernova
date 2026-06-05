@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises';
 import { join, dirname, resolve } from 'node:path';
 import {
   loadProjectConfig,
@@ -108,16 +108,23 @@ export function hasDecisionsFolder(projectRoot: string): boolean {
 export interface DecisionsState {
   /** True if `Decisions/` exists at the project root. */
   hasFolder: boolean;
-  /** Combined contents of overview.md + context.md, if present. */
+  /** Combined contents of overview.md + context.md + progress.md, plus a
+   *  filename index of records/, if present. */
   context: string | null;
   /** Per-project opt-in status from `.ava/project-config.json`. */
   optInStatus: DecisionsOptInStatus;
 }
 
 /**
- * Read `Decisions/overview.md` and `Decisions/context.md` if they exist,
- * concatenated into a single string suitable for injection into the system
- * prompt. Returns null if neither file exists.
+ * Read the backbone of the Decisions folder for injection into the system
+ * prompt at session start: `overview.md`, `context.md` and `progress.md`
+ * (full, each capped), plus a filename INDEX of `records/` (names only — Ava
+ * reads the relevant record on demand via file_read instead of re-deriving a
+ * decision already on file). Returns null if nothing readable exists.
+ *
+ * Deeper docs (design/*.md, individual record bodies) are deliberately left
+ * out here — design files get fresh re-injection before UI edits, and record
+ * bodies are reference-on-demand to keep the prompt bounded.
  */
 export async function loadDecisionsContext(projectRoot: string): Promise<string | null> {
   const root = getDecisionsRoot(projectRoot);
@@ -127,16 +134,31 @@ export async function loadDecisionsContext(projectRoot: string): Promise<string 
   const files: Array<{ name: string; header: string }> = [
     { name: 'overview.md', header: 'Overview' },
     { name: 'context.md',  header: 'Context' },
+    { name: 'progress.md', header: 'Progress (shipped / next / blocked)' },
   ];
 
   for (const { name, header } of files) {
     try {
       const raw = await readFile(join(root, name), 'utf-8');
       const trimmed = raw.trim();
-      if (trimmed) parts.push(`### ${header}\n${trimmed}`);
+      // Cap each file so one long doc can't dominate the system prompt.
+      if (trimmed) parts.push(`### ${header}\n${trimmed.slice(0, 4000)}`);
     } catch {
       /* file doesn't exist — skip */
     }
+  }
+
+  // Records index — names only, so Ava knows what decision records exist and
+  // can read the relevant one on demand rather than re-deciding from scratch.
+  try {
+    const records = (await readdir(join(root, 'records')))
+      .filter((f) => f.endsWith('.md') && f.toLowerCase() !== 'readme.md')
+      .sort();
+    if (records.length > 0) {
+      parts.push(`### Decision records (read \`Decisions/records/<file>\` on demand)\n${records.map((f) => `- ${f}`).join('\n')}`);
+    }
+  } catch {
+    /* no records/ dir — skip */
   }
 
   if (parts.length === 0) return null;

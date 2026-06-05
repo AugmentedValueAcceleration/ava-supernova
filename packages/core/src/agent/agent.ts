@@ -19,6 +19,7 @@ import { auditClaims } from './claims-auditor.js';
 import { autoExtractAndSave } from '../memory/auto-extract.js';
 import type { MemoryManager } from '../memory/memory-manager.js';
 import { maybeBuildDesignReinjection, isUIFilePath as isUIFilePathLocal } from './design-reinjection.js';
+import { isStopCommand } from './stop-command.js';
 import {
   findOriginalUserTaskIndex,
   formatSessionTasksBlock,
@@ -476,6 +477,11 @@ export class Agent {
   private readonly toolRegistry: ToolRegistry;
   private readonly toolContext: ToolExecutionContext;
   private readonly pendingInterjections: string[] = [];
+
+  // Graceful-pause flag — set by requestPause(), checked at each loop
+  // boundary. A "pause" finishes the current step then exits cleanly, unlike
+  // the abort signal which is an immediate hard stop.
+  private pauseRequested = false;
   // Verifying tools that ran this run() (name + success), for the soft
   // honesty gate (claims-auditor) at final-answer time. Reset per run.
   private runToolEvidence: Array<{ name: string; ok: boolean }> = [];
@@ -675,6 +681,17 @@ export class Agent {
       return;
     }
     this.pendingInterjections.push(message);
+  }
+
+  /**
+   * Request a graceful pause. Unlike the abort signal (a hard, immediate
+   * stop), this lets the current step finish and then exits the loop cleanly
+   * at the next boundary — so a typed "wait"/"pause" never rips Ava out
+   * mid-write. The conversation keeps everything completed; the user's next
+   * message continues from there.
+   */
+  requestPause(): void {
+    this.pauseRequested = true;
   }
 
   /**
@@ -932,27 +949,11 @@ export class Agent {
     // even give the model a chance to decide otherwise.
     const earlyUserMsg = this.findLatestNonMetaUserMessage(messages);
     if (earlyUserMsg) {
-      // Normalise: lowercase, punctuation → spaces (so "stop!", "stop." and
-      // "stop-motion" reduce cleanly), collapse whitespace.
-      const stopNorm = earlyUserMsg
-        .toLowerCase()
-        .replace(/[^a-z'\s]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-      // A genuine stop is an imperative aimed AT Ava — the message is
-      // essentially ONLY a stop directive (optionally wrapped in filler,
-      // address or politeness), NOT the word "stop" buried inside a request.
-      // Anchored ^…$ so "stop by the shop", "add a stop button", "stop the
-      // loop", "don't stop", "stop-motion" do NOT match, while "stop",
-      // "ok stop", "just stop ava", "stop it now", "i said stop", "enough",
-      // "leave it" still do. The Stop button remains the unconditional hard
-      // stop regardless of wording.
-      const STOP_LEAD = "(?:(?:ok|okay|alright|aight|right|now|just|please|pls|hey|ava|oi|yo|yeah|oh|ugh|ffs|no|nah|jesus|christ|for fuck'?s sake|for god'?s sake)\\s+)*";
-      const STOP_CORE = "(?:stop|stahp|halt|quit|enough|leave it(?:\\s+alone)?|cut it out|knock it off|pack it in|drop it|abort|i said stop|how dare you|don'?t\\s+touch(?:\\s+(?:it|that))?)";
-      const STOP_TRAIL = "(?:\\s+(?:it|this|that|everything|now|please|pls|ava|already|then|stop|halt|quit|enough|man|mate|ok|okay))*";
-      const isStopCommand = new RegExp(`^${STOP_LEAD}${STOP_CORE}${STOP_TRAIL}$`, 'i').test(stopNorm)
-        && stopNorm.length < 80; // belt-and-braces: a genuine stop is short
-      if (isStopCommand) {
+      // A typed stop/pause directive aimed at Ava ("stop", "leave it", "wait",
+      // "hold on") halts here, so the model never gets a chance to re-engage
+      // work the user told us to drop. Shared with the mid-run path via
+      // isStopCommand so a typed halt behaves identically whenever it arrives.
+      if (isStopCommand(earlyUserMsg)) {
         const stopResponse: AssistantMessage = {
           role: 'assistant',
           content: 'Stopped. Not touching anything else. Let me know when you want to continue.',
@@ -1133,6 +1134,7 @@ export class Agent {
     const runContext = { ...this.toolContext, signal };
 
     let iterations = 0;
+    this.pauseRequested = false; // clear any stale pause from a prior run
     this._inThinkTag = false;
     let warningInjected = false;
     let lastToolName: string | null = null;
@@ -1256,18 +1258,35 @@ export class Agent {
         return finalHistory();
       }
 
-      // Check for user interjections — messages injected mid-run.
-      // Append as plain user messages with no wrapper. The previous
-      // "[User interjection]:" prefix framed every mid-run message as a
-      // corrective interruption, priming the model to read questions as
-      // criticism and respond with apology instead of answer.
+      // Check for user interjections — messages the user sent mid-run.
+      // Frame them neutrally: enough signal that this arrived WHILE Ava was
+      // working (so she folds it into the current task instead of treating it
+      // as a brand-new request) without the corrective tone of the old
+      // "[User interjection]:" prefix, which primed her to read questions as
+      // criticism and apologise instead of answering. The UI event still
+      // carries the raw text — the frame is for the model only.
       while (this.pendingInterjections.length > 0) {
         const interjection = this.pendingInterjections.shift()!;
         messages = [
           ...messages,
-          { role: 'user' as const, content: interjection },
+          {
+            role: 'user' as const,
+            content: `[The user added this while you were working — take it into account and carry on]: ${interjection}`,
+          },
         ];
         onEvent({ type: 'interjection', content: interjection });
+      }
+
+      // Graceful pause — the user typed "wait"/"pause" mid-run. We're at a
+      // clean step boundary (the previous step's tools have finished), so end
+      // the turn here rather than aborting mid-step. Everything completed
+      // stays in the conversation; the user's next message continues from
+      // here. Distinct from the hard stop (abort signal), which is immediate.
+      if (this.pauseRequested) {
+        this.pauseRequested = false;
+        logger.info('[agent] Graceful pause requested — halting at step boundary');
+        onEvent({ type: 'done', finalMessage: { role: 'assistant', content: null } });
+        return finalHistory();
       }
 
       iterations++;

@@ -16,6 +16,10 @@ export interface HistoryCoordinatorDeps {
   getConversation: () => Conversation | undefined;
   /** Replace the active conversation when loading from history. */
   setConversation: (conversation: Conversation) => void;
+  /** Reflect the outgoing session into memory before it's swapped out.
+   *  Called on resume/load (a genuine session boundary) — NOT on delete,
+   *  where the operator's intent is to discard the conversation. */
+  reflectOutgoing?: () => void;
   /** Produce a fresh system prompt for a loaded conversation. */
   buildSystemPrompt: () => Promise<string>;
   /** Emit a context_usage event based on the current active conversation
@@ -97,6 +101,10 @@ export class HistoryCoordinator {
       this.deps.postMessage({ type: 'error', message: 'Conversation not found.' });
       return;
     }
+
+    // Switching to a different conversation ends the current one — reflect it
+    // into memory before swapping it out.
+    this.deps.reflectOutgoing?.();
 
     const conversation = new Conversation(record.id);
     const messages = record.messages;

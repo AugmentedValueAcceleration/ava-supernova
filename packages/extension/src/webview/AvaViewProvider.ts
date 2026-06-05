@@ -41,6 +41,7 @@ import {
   saveSelfImprovementStore,
   getRelevantLearnings,
   GenerationManager,
+  haltIntent,
 } from '@ava/core';
 import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, ContentPart, PermissionMode, Message, AssistantMessage } from '@ava/core';
 import { creditsFor } from '@ava/core/billing/credits';
@@ -380,6 +381,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       postMessage: (m) => this.postMessage(m),
       getConversation: () => this.conversation,
       setConversation: (c) => { this.conversation = c; },
+      reflectOutgoing: () => this.reflectOutgoingSession(this.conversation),
       buildSystemPrompt: () => this.buildCurrentSystemPrompt(),
       // Refresh the context bar whenever a conversation is loaded /
       // restored. Without this the bar stays at "awaiting first turn"
@@ -543,6 +545,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // Save current conversation before switching
     if (this.conversation) {
       await this.historyManager.saveConversation(this.conversation);
+      // Reflect the outgoing session into THIS project's memory before
+      // refreshProjectContext rebuilds the agent for the new project.
+      this.reflectOutgoingSession(this.conversation);
     }
 
     await this.refreshProjectContext();
@@ -951,6 +956,21 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   // ── Public Commands ────────────────────────────────────────────────────────
 
+  /**
+   * Fire end-of-session memory reflection over an outgoing conversation
+   * before it's cleared or swapped out (New Chat, project switch, resume).
+   * Distils durable user/project facts the per-turn capture may have missed
+   * and compression would have dropped. Off the hot path — the session is
+   * ending — so it can't create a conversation→memory feedback loop.
+   * Fire-and-forget; no-op for an empty conversation (reflectOnSession needs
+   * >= 2 user turns).
+   */
+  private reflectOutgoingSession(conversation: Conversation | undefined): void {
+    if (!conversation) return;
+    void this.memoryAgent?.reflectOnSession(conversation.getMessages(), conversation.id)
+      .catch((err) => this.log(`end-of-session reflection failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`));
+  }
+
   async newChat(): Promise<void> {
     // Persist the outgoing conversation, but never let a save failure
     // (e.g. a cloud-sync hiccup) block the reset — the user asked for a
@@ -962,6 +982,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       } catch (err) {
         this.log(`newChat: saveConversation failed (continuing): ${err instanceof Error ? err.message : String(err)}`);
       }
+      // Reflect the outgoing session into memory before it's cleared.
+      this.reflectOutgoingSession(this.conversation);
     }
 
     this.conversation = new Conversation();
@@ -2050,6 +2072,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       projectInstructions: this.projectInstructions,
       projectRoot: this.projectRoot,
       decisionsState: this.decisionsState,
+      projectBrainBrief: this.memoryManager?.getProjectBrain?.()?.brief,
       activeModelDef: this.activeModelDef,
       currentLocale: this.currentLocale,
       permissionMode: this.getPermissionMode(),
@@ -2795,20 +2818,49 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
 
     if (this.isRunning) {
-      // Mid-run interjection — forward to whichever runner is actually
-      // executing right now. AutoCoordinator's inject() routes to the
-      // active sub-agent (planning task agent or current Builder); plain
-      // Agent's inject() queues into its own pendingInterjections.
+      const images = attachments?.map((a) => a.data);
+      const ackImages = images?.length ? { images } : {};
+      // Echo the user's text so they always see what they typed land, then
+      // act on it. (The dedicated interjection_ack type was never wired into
+      // the webview reducer, so it silently disappeared — user_message_ack is.)
+      const echo = () => this.postMessage({ type: 'user_message_ack', text: options?.displayText ?? text, ...ackImages });
+      const halt = haltIntent(text);
+
+      // "stop / abort / leave it / enough" — emergency brake. Abort now, even
+      // mid-step. Same as the Stop button.
+      if (halt === 'stop') {
+        this.log(`handleUserMessage: mid-run STOP — "${text.slice(0, 80)}"`);
+        echo();
+        this.cancelRun();
+        return;
+      }
+
+      // "wait / pause / hold on" — gentle hold. Let the current step finish,
+      // then stop cleanly at the next boundary, so she's never pulled out
+      // mid-write. Graceful pause is wired on the plain Agent; in team mode
+      // (AutoCoordinator) fall back to the hard stop until per-sub-agent pause
+      // lands.
+      if (halt === 'pause') {
+        this.log(`handleUserMessage: mid-run PAUSE — "${text.slice(0, 80)}"`);
+        echo();
+        if (!this.autoCoordinator && this.agent) {
+          this.agent.requestPause();
+        } else {
+          this.cancelRun();
+        }
+        return;
+      }
+
+      // Anything else is added context — forward to whichever runner is
+      // executing right now. AutoCoordinator's inject() routes to the active
+      // sub-agent (planning task agent or current Builder); plain Agent's
+      // inject() queues into its own pendingInterjections, drained at the next
+      // step boundary so it folds in without interrupting a mid-write.
       const runner = this.autoCoordinator || this.agent;
       if (runner) {
         this.log(`handleUserMessage: injecting interjection — "${text.slice(0, 80)}"`);
         runner.inject(text);
-        // Echo the user's text back to the webview as a normal user_message_ack
-        // so they actually see what they typed appear in the chat (the
-        // dedicated interjection_ack message type was never wired up in the
-        // webview reducer, so it silently disappeared).
-        const images = attachments?.map((a) => a.data);
-        this.postMessage({ type: 'user_message_ack', text: options?.displayText ?? text, ...(images?.length ? { images } : {}) });
+        echo();
       }
       return;
     }

@@ -27,6 +27,9 @@ export interface SystemPromptContext {
   projectInstructions?: string;
   projectRoot?: string;
   decisionsState?: DecisionsState;
+  /** Pre-computed Project Brain brief (from memory) — warm-start project
+   *  profile, injected into the system prompt in every mode. */
+  projectBrainBrief?: string;
   activeModelDef?: ModelDefinition;
   currentLocale: string;
   permissionMode: PermissionMode;
@@ -81,5 +84,6 @@ export async function buildCurrentSystemPrompt(ctx: SystemPromptContext): Promis
     decisionsContext: ctx.decisionsState?.context ?? undefined,
     decisionsFolderExists: ctx.decisionsState?.hasFolder ?? false,
     decisionsOptInStatus: ctx.decisionsState?.optInStatus ?? 'not-asked',
+    projectBrainBrief: ctx.projectBrainBrief,
   });
 }

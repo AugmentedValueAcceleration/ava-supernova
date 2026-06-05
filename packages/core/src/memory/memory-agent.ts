@@ -23,8 +23,15 @@ import type { ModelDefinition } from '../core/types.js';
 import type { MemoryManager } from './memory-manager.js';
 import type { MemoryCategory, MemoryLayer } from './types.js';
 import { inferLayer } from './types.js';
-import { autoExtractAndSave } from './auto-extract.js';
+import { autoExtractAndSave, reflectAndSave } from './auto-extract.js';
 import { logger } from '../core/logger.js';
+
+/**
+ * Transcript budget for the end-of-session reflection. Much larger than the
+ * per-turn default (4000) so a full session is distilled rather than just its
+ * tail — Qwen Flash's context easily absorbs it, and it runs once per session.
+ */
+const SESSION_REFLECT_MAX_TRANSCRIPT = 40000;
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -125,6 +132,36 @@ export class MemoryAgent {
     this.provider = opts.provider;
     this.model = opts.model;
     this.maxBriefTokens = opts.maxBriefTokens ?? 300;
+  }
+
+  /**
+   * End-of-session reflection — the safe place for conversation→memory
+   * distillation.
+   *
+   * Pass the FULL conversation (the persisted transcript keeps everything the
+   * live working context may have compressed away). One cheap Flash call
+   * distills durable user/project facts via REFLECTION_PROMPT; dedup is the
+   * memory manager's job. Because this runs only at the session boundary —
+   * never on the hot path — it cannot create the conversation→memory feedback
+   * loop that per-turn derivation did (there is no "same session" left to
+   * re-inject into). Fire-and-forget; never throws.
+   */
+  async reflectOnSession(messages: Message[], conversationId?: string): Promise<number> {
+    try {
+      const saved = await reflectAndSave(
+        messages,
+        this.memoryManager,
+        this.provider,
+        this.model,
+        conversationId,
+        SESSION_REFLECT_MAX_TRANSCRIPT,
+      );
+      if (saved > 0) logger.info(`[memory] End-of-session reflection saved ${saved} ${saved === 1 ? 'memory' : 'memories'}`);
+      return saved;
+    } catch (err) {
+      logger.debug(`[memory] End-of-session reflection failed: ${err instanceof Error ? err.message : String(err)}`);
+      return 0;
+    }
   }
 
   /**

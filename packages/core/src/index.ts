@@ -2,6 +2,8 @@
 export { Agent } from './agent/agent.js';
 export type { AgentEvent, AgentEventHandler, ContextUsage } from './agent/agent.js';
 export { Conversation } from './agent/conversation.js';
+export { isStopCommand, haltIntent } from './agent/stop-command.js';
+export type { HaltIntent } from './agent/stop-command.js';
 
 // Auto Mode
 export { AutoCoordinator, ModelRouter, classifyTask, ContextTracker, resolveCoordinatorModel } from './auto/index.js';

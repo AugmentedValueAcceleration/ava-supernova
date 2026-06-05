@@ -136,6 +136,7 @@ async function main(): Promise<void> {
       decisionsContext: decisionsState?.context ?? undefined,
       decisionsFolderExists: decisionsState?.hasFolder ?? false,
       decisionsOptInStatus: decisionsState?.optInStatus ?? 'not-asked',
+      projectBrainBrief: memoryManager.getProjectBrain?.()?.brief,
     }),
   );
 

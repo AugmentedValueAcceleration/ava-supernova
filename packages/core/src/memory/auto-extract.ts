@@ -363,9 +363,10 @@ const REFLECTION_PROMPT = `You are a memory extraction assistant. Analyze this c
 2. **Corrections with substance** — things the user corrected with a NEW preference attached ("instead of X use Y"). Skip bare "stop"/"don't" without a replacement — those are noise, not preferences.
 3. **Decisions** — technical choices, architecture decisions, workflow decisions
 4. **Project knowledge** — endpoints (NOT credentials/passwords/tokens/secrets), deployment info, gotchas, workarounds
-5. **Personal info** — name, role, team, expertise level
-6. **Solutions** — bugs that were fixed and how, tricky problems and their solutions
-7. **Patterns** — recurring workflows or conventions discovered during the conversation
+5. **Project state** — the current situation of the project: what exists, what's been built or shipped, inventory/counts, status, where things stand, what's planned next. These are durable facts even though they describe a state rather than a preference — do NOT dismiss them as "ephemeral."
+6. **Personal info** — name, role, team, expertise level
+7. **Solutions** — bugs that were fixed and how, tricky problems and their solutions
+8. **Patterns** — recurring workflows or conventions discovered during the conversation
 
 NEVER extract:
 - The user's emotional state (frustrated, excited, stressed) — emotions are transient and biasing them into permanent memory poisons future interactions
@@ -415,6 +416,7 @@ export async function reflectAndExtract(
   messages: Message[],
   provider: Provider,
   model: ModelDefinition,
+  maxTranscript = 4000,
 ): Promise<ExtractedMemory[]> {
   // Only reflect on meaningful conversations (lowered from 4 — even 2-turn sessions can have critical decisions)
   const userMsgCount = messages.filter((m) => m.role === 'user').length;
@@ -431,8 +433,9 @@ export async function reflectAndExtract(
     })
     .join('\n');
 
-  // Cap total transcript size to stay well within context
-  const maxTranscript = 4000;
+  // Cap total transcript size to stay well within context. Default 4000
+  // (per-turn callers); the end-of-session pass passes a much larger cap so
+  // a full session is distilled, not just its tail.
   const trimmedTranscript = transcript.length > maxTranscript
     ? transcript.slice(-maxTranscript)
     : transcript;
@@ -544,9 +547,10 @@ export async function reflectAndSave(
   provider: Provider,
   model: ModelDefinition,
   conversationId?: string,
+  maxTranscript = 4000,
 ): Promise<number> {
   try {
-    const extracted = await reflectAndExtract(messages, provider, model);
+    const extracted = await reflectAndExtract(messages, provider, model, maxTranscript);
     if (extracted.length === 0) return 0;
 
     let saved = 0;

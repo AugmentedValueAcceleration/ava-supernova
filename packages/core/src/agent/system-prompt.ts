@@ -16,6 +16,11 @@ export interface SystemPromptOptions {
   supportsVision?: boolean;
   projectInstructions?: string;
   projectSummary?: string;
+  /** Pre-computed Project Brain brief (project identity, stack, key decisions,
+   *  active work — from memory). Loaded at session start in EVERY mode,
+   *  including Work, so jumping back into a project restores its profile
+   *  without depending on a recall keyword match. */
+  projectBrainBrief?: string;
   memory?: string;
   autoMemory?: boolean;
   activeTasks?: string;
@@ -242,6 +247,7 @@ Continuity.
   if (opts.projectInstructions) parts.push(`Project instructions:\n${opts.projectInstructions}`);
   if (opts.decisionsContext) parts.push(`Decisions folder content (apply as law):\n${opts.decisionsContext}`);
   if (opts.projectSummary) parts.push(`Project: ${opts.projectSummary}`);
+  if (opts.projectBrainBrief) parts.push(`[Project Brain] — what this project is and where it stands (from memory; reference for warm-start, not law):\n${opts.projectBrainBrief}`);
   if (opts.knowledgeContext) parts.push(opts.knowledgeContext);
   if (opts.memory) {
     // Recalled memory is third-party-ish: auto-extract may have captured
