@@ -376,3 +376,49 @@ export function pdfTable(
   doc.y = y + 8;
   doc.x = doc.page.margins.left;
 }
+
+// ── Rich-document additions (authoring engine) ───────────────────────────────
+//
+// These extend the brand kit for the Markdown-source authoring engine: deeper
+// heading sizes, per-document brand resolution (house style), the callout
+// palette, and the ordered-list numbering id. The model-aware builders that
+// consume them live in the renderers (authoring/render-docx.ts, render-pdf.ts).
+
+export const AVA_H3_SIZE_DOCX = 26;   // 13pt
+export const AVA_H4_SIZE_DOCX = 24;   // 12pt
+export const AVA_H3_SIZE_PDF = 12;
+export const AVA_H4_SIZE_PDF = 11;
+
+/** Fully-resolved brand for a single document (house-style overrides merged
+ *  over the Ava defaults). Colours are 6-digit hex without '#'. */
+export interface Brand {
+  font: string;
+  headingColor: string;
+  bodyColor: string;
+  subtitleColor: string;
+}
+
+/** Merge optional per-document overrides over the Ava brand defaults. */
+export function resolveBrand(overrides?: Partial<Brand>): Brand {
+  return {
+    font: overrides?.font || AVA_FONT,
+    headingColor: overrides?.headingColor || AVA_HEADING_COLOR,
+    bodyColor: overrides?.bodyColor || AVA_BODY_COLOR,
+    subtitleColor: overrides?.subtitleColor || AVA_SUBTITLE_COLOR,
+  };
+}
+
+/** Per-variant callout palette: tinted fill, accent bar, and default label. */
+export const CALLOUT_COLORS: Record<string, { fill: string; bar: string; label: string }> = {
+  note:      { fill: 'F5F3FF', bar: '7C3AED', label: 'Note' },
+  tip:       { fill: 'ECFDF5', bar: '059669', label: 'Tip' },
+  warning:   { fill: 'FFFBEB', bar: 'D97706', label: 'Warning' },
+  important: { fill: 'FEF2F2', bar: 'DC2626', label: 'Important' },
+  quote:     { fill: 'F8FAFC', bar: '94A3B8', label: '' },
+};
+
+/** Hyperlink colour (Word default blue) for rendered links. */
+export const AVA_LINK_COLOR = '0563C1';
+
+/** Reference id for the ordered-list numbering config on the docx Document. */
+export const AVA_ORDERED_REF = 'ava-ordered';
