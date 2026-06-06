@@ -37,6 +37,9 @@ const PROJECTS_REGISTRY = 'projects.json';
 const SEMANTIC_RECALL_THRESHOLD = 0.5;
 /** Backfill: flush the store + yield to the event loop every N embeds. */
 const EMBED_BACKFILL_BATCH = 50;
+/** Backfill: embed this many nodes concurrently (Ollama handles parallel
+ *  requests; keeps a 29k backfill to minutes, not tens of minutes). */
+const EMBED_BACKFILL_CONCURRENCY = 6;
 
 interface ProjectRegistryEntry {
   path: string;
@@ -260,8 +263,8 @@ export class MemoryManager {
       const missing = nodes.filter(n => !store.has(n.id) && n.content?.trim());
       if (missing.length === 0) continue;
       logger.info(`[embeddings] backfill ${scope}: ${missing.length}/${nodes.length} nodes need embedding`);
-      let done = 0, embedded = 0;
-      for (const node of missing) {
+      let done = 0, embedded = 0, sinceFlush = 0;
+      for (let i = 0; i < missing.length; i += EMBED_BACKFILL_CONCURRENCY) {
         if (signal?.aborted) { await store.flush(); return; }
         // Endpoint just failed → stop and resume next session rather than
         // spinning through thousands of fast-fails.
@@ -269,10 +272,16 @@ export class MemoryManager {
           logger.debug(`[embeddings] backfill ${scope}: endpoint unavailable, pausing after ${embedded}`);
           break;
         }
-        const vec = await this.embeddingService.embed(node.content);
-        if (vec) { store.set(node.id, vec); embedded++; }
-        done++;
-        if (done % EMBED_BACKFILL_BATCH === 0) {
+        const batch = missing.slice(i, i + EMBED_BACKFILL_CONCURRENCY);
+        const vecs = await Promise.all(batch.map(n => this.embeddingService!.embed(n.content)));
+        for (let j = 0; j < batch.length; j++) {
+          const vec = vecs[j];
+          if (vec) { store.set(batch[j].id, vec); embedded++; }
+        }
+        done += batch.length;
+        sinceFlush += batch.length;
+        if (sinceFlush >= EMBED_BACKFILL_BATCH) {
+          sinceFlush = 0;
           await store.flush();
           await new Promise(r => setTimeout(r, 0)); // yield
           logger.debug(`[embeddings] backfill ${scope}: ${done}/${missing.length}`);
