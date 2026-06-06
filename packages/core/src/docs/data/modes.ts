@@ -15,7 +15,7 @@ export const MODES: ModeFact[] = [
   {
     id: 'work',
     prefix: '>>',
-    displayName: 'Work',
+    displayName: 'Code',
     mindset: 'Builder — full tool access, executes plans with precision.',
     usesConductor: 'conditional',
     summary: 'Write code, run tests, ship changes. Simple tasks run directly; complex multi-file or architecture work triggers the persona conductor.',

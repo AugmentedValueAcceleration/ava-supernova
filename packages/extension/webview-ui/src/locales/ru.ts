@@ -47,7 +47,7 @@ export const ruStrings: Record<StringKey, string> = {
   'input.placeholder.disabled': 'Настройте провайдера для начала работы...',
   'input.placeholder.security': 'Опишите, что нужно проверить, или нажмите Enter для полного аудита...',
   'input.placeholder.teach': 'Что вы хотите изучить?',
-  'input.mode.code': 'Работа',
+  'input.mode.code': 'Код',
   'input.mode.plan': 'План',
   'input.mode.chat': 'Чат',
   'input.mode.teach': 'Учёба',

@@ -47,7 +47,7 @@ export const ptStrings: Record<StringKey, string> = {
   'input.placeholder.disabled': 'Configure um provedor para come\u00e7ar...',
   'input.placeholder.security': 'Descreva o que deseja escanear, ou pressione Enter para uma auditoria completa...',
   'input.placeholder.teach': 'O que você quer aprender?',
-  'input.mode.code': 'Trabalho',
+  'input.mode.code': 'C\u00f3digo',
   'input.mode.plan': 'Plano',
   'input.mode.chat': 'Conversa',
   'input.mode.teach': 'Aprender',

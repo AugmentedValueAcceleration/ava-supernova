@@ -47,7 +47,7 @@ export const idStrings: Record<StringKey, string> = {
   'input.placeholder.disabled': 'Konfigurasikan provider untuk memulai...',
   'input.placeholder.security': 'Jelaskan apa yang ingin dipindai, atau tekan Enter untuk audit penuh...',
   'input.placeholder.teach': 'Apa yang ingin kamu pelajari?',
-  'input.mode.code': 'Kerja',
+  'input.mode.code': 'Kode',
   'input.mode.plan': 'Rencana',
   'input.mode.chat': 'Obrolan',
   'input.mode.teach': 'Belajar',

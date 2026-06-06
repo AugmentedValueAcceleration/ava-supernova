@@ -50,7 +50,7 @@ export const enStrings = {
   'input.placeholder.teach': 'What do you want to learn?',
   'input.placeholder.brainstorm': 'What do you want to explore?',
   'input.placeholder.write': 'What would you like to write?',
-  'input.mode.code': 'Work',
+  'input.mode.code': 'Code',
   'input.mode.plan': 'Plan',
   'input.mode.brainstorm': 'Brainstorm',
   'input.mode.chat': 'Chat',

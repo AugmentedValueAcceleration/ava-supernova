@@ -47,7 +47,7 @@ export const jaStrings: Record<StringKey, string> = {
   'input.placeholder.disabled': 'まずプロバイダーを設定してください...',
   'input.placeholder.security': 'スキャン対象を記述するか、Enter を押してフルオーディットを実行...',
   'input.placeholder.teach': '何を学びたいですか？',
-  'input.mode.code': 'ワーク',
+  'input.mode.code': 'コード',
   'input.mode.plan': '計画',
   'input.mode.chat': 'チャット',
   'input.mode.teach': '学習',

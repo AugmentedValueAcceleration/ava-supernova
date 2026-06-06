@@ -47,7 +47,7 @@ export const frStrings: Record<StringKey, string> = {
   'input.placeholder.disabled': 'Configurez un fournisseur pour commencer...',
   'input.placeholder.security': 'D\u00e9crivez ce qu\u2019il faut analyser, ou appuyez sur Entr\u00e9e pour un audit complet...',
   'input.placeholder.teach': 'Que voulez-vous apprendre ?',
-  'input.mode.code': 'Travail',
+  'input.mode.code': 'Code',
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Discussion',
   'input.mode.teach': 'Apprendre',

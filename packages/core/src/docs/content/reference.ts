@@ -65,7 +65,7 @@ export const REFERENCE_PAGES: DocPage[] = [
       { type: 'paragraph', text: '24 specialists across 5 mode teams. The Conductor (the helper that coordinates the rest) decides which team runs, in what order, and with what context. Chat mode has no personas — it is Ava herself.' },
       { type: 'heading', level: 3, text: 'How orchestration runs' },
       { type: 'list', ordered: true, items: [
-        'You send a message in Plan, Teach, Security, or Brainstorm mode (or a complex Work request).',
+        'You send a message in Plan, Teach, Security, or Brainstorm mode (or a complex Code request).',
         'The Conductor reads the request, picks the mode team, and builds an execution plan — some personas run sequentially, some in parallel waves.',
         'Each persona has its own system prompt, a restricted tool allowlist, and a shared context pool of what previous personas found.',
         'The final persona produces a summary, a plan, or a report, depending on mode.',
@@ -73,7 +73,7 @@ export const REFERENCE_PAGES: DocPage[] = [
       ]},
       { type: 'paragraph', text: 'The full roster below is reference only — no need to memorise who does what. Ava assembles the right team for you.' },
       { type: 'facts', kind: 'personas' },
-      { type: 'callout', variant: 'tip', text: 'Work mode only invokes the full team for complex tasks. Simple edits run Ava directly — no orchestration overhead.' },
+      { type: 'callout', variant: 'tip', text: 'Code mode only invokes the full team for complex tasks. Simple edits run Ava directly — no orchestration overhead.' },
     ],
   },
   {

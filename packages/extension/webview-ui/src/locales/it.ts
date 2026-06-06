@@ -47,7 +47,7 @@ export const itStrings: Record<StringKey, string> = {
   'input.placeholder.disabled': 'Configura un provider per iniziare...',
   'input.placeholder.security': 'Descrivi cosa analizzare, oppure premi Invio per un audit completo...',
   'input.placeholder.teach': 'Cosa vuoi imparare?',
-  'input.mode.code': 'Lavoro',
+  'input.mode.code': 'Codice',
   'input.mode.plan': 'Piano',
   'input.mode.chat': 'Conversazione',
   'input.mode.teach': 'Imparare',

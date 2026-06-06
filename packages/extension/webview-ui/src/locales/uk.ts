@@ -47,7 +47,7 @@ export const ukStrings: Record<StringKey, string> = {
   'input.placeholder.disabled': 'Налаштуйте провайдера, щоб почати...',
   'input.placeholder.security': 'Опишіть, що потрібно перевірити, або натисніть Enter для повного аудиту...',
   'input.placeholder.teach': 'Що ви хочете вивчити?',
-  'input.mode.code': 'Робота',
+  'input.mode.code': 'Код',
   'input.mode.plan': 'План',
   'input.mode.chat': 'Чат',
   'input.mode.teach': 'Навчання',

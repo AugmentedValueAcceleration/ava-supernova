@@ -47,7 +47,7 @@ export const viStrings: Record<StringKey, string> = {
   'input.placeholder.disabled': 'Hãy cấu hình nhà cung cấp trước...',
   'input.placeholder.security': 'Mô tả nội dung cần quét, hoặc nhấn Enter để kiểm tra toàn bộ...',
   'input.placeholder.teach': 'Bạn muốn học gì?',
-  'input.mode.code': 'Công việc',
+  'input.mode.code': 'Mã',
   'input.mode.plan': 'Kế hoạch',
   'input.mode.chat': 'Trò chuyện',
   'input.mode.teach': 'Học',

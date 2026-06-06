@@ -47,7 +47,7 @@ export const trStrings: Record<StringKey, string> = {
   'input.placeholder.disabled': 'Başlamak için bir sağlayıcı yapılandırın...',
   'input.placeholder.security': 'Neyin taranacağını açıklayın veya tam denetim için Enter tuşuna basın...',
   'input.placeholder.teach': 'Ne öğrenmek istiyorsun?',
-  'input.mode.code': 'Çalışma',
+  'input.mode.code': 'Kod',
   'input.mode.plan': 'Planlama',
   'input.mode.chat': 'Sohbet',
   'input.mode.teach': 'Öğren',

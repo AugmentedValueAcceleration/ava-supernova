@@ -47,7 +47,7 @@ export const koStrings: Record<StringKey, string> = {
   'input.placeholder.disabled': '먼저 공급자를 설정해 주세요...',
   'input.placeholder.security': '스캔할 내용을 설명하거나, Enter를 눌러 전체 감사를 실행하세요...',
   'input.placeholder.teach': '무엇을 배우고 싶으세요?',
-  'input.mode.code': '작업',
+  'input.mode.code': '코드',
   'input.mode.plan': '계획',
   'input.mode.chat': '채팅',
   'input.mode.teach': '학습',

@@ -47,7 +47,7 @@ export const arStrings: Record<StringKey, string> = {
   'input.placeholder.disabled': 'قم بإعداد مزوّد للبدء...',
   'input.placeholder.security': 'صِف ما تريد فحصه، أو اضغط Enter لتدقيق كامل...',
   'input.placeholder.teach': 'ماذا تريد أن تتعلم؟',
-  'input.mode.code': 'عمل',
+  'input.mode.code': 'كود',
   'input.mode.plan': 'خطة',
   'input.mode.chat': 'محادثة',
   'input.mode.teach': 'تعلّم',

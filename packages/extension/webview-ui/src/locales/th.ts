@@ -47,7 +47,7 @@ export const thStrings: Record<StringKey, string> = {
   'input.placeholder.disabled': 'ตั้งค่าผู้ให้บริการเพื่อเริ่มต้น...',
   'input.placeholder.security': 'อธิบายสิ่งที่ต้องการสแกน หรือกด Enter เพื่อตรวจสอบทั้งหมด...',
   'input.placeholder.teach': 'คุณอยากเรียนรู้อะไร?',
-  'input.mode.code': 'งาน',
+  'input.mode.code': 'โค้ด',
   'input.mode.plan': 'แผน',
   'input.mode.chat': 'แชท',
   'input.mode.teach': 'เรียนรู้',

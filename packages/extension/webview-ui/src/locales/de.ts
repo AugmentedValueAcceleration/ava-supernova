@@ -47,7 +47,7 @@ export const deStrings: Record<StringKey, string> = {
   'input.placeholder.disabled': 'Konfiguriere einen Anbieter, um zu beginnen...',
   'input.placeholder.security': 'Beschreibe, was gescannt werden soll, oder dr\u00fccke Enter f\u00fcr ein vollst\u00e4ndiges Audit...',
   'input.placeholder.teach': 'Was möchtest du lernen?',
-  'input.mode.code': 'Arbeit',
+  'input.mode.code': 'Code',
   'input.mode.plan': 'Planung',
   'input.mode.chat': 'Chat',
   'input.mode.teach': 'Lernen',

@@ -47,7 +47,7 @@ export const esStrings: Record<StringKey, string> = {
   'input.placeholder.disabled': 'Configura un proveedor para comenzar...',
   'input.placeholder.security': 'Describe qu\u00e9 escanear, o simplemente presiona Enter para una auditor\u00eda completa...',
   'input.placeholder.teach': '¿Qué quieres aprender?',
-  'input.mode.code': 'Trabajo',
+  'input.mode.code': 'C\u00f3digo',
   'input.mode.plan': 'Planificación',
   'input.mode.chat': 'Conversación',
   'input.mode.teach': 'Aprender',

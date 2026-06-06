@@ -26,7 +26,7 @@ export const START_PAGES: DocPage[] = [
         'Free for everyone. 3M tokens every month on the free tier. No credit card, no account required with your own keys.',
         'Teaching is free forever. Education should not have a price tag.',
       ]},
-      { type: 'paragraph', text: 'If you are new to coding, start with Teach mode and ask her to explain something. If you are a seasoned engineer, drop her into Work mode and let the full persona team loose on your codebase. Same agent — different mindset.' },
+      { type: 'paragraph', text: 'If you are new to coding, start with Teach mode and ask her to explain something. If you are a seasoned engineer, drop her into Code mode and let the full persona team loose on your codebase. Same agent — different mindset.' },
     ],
   },
   {
@@ -105,7 +105,7 @@ export const START_PAGES: DocPage[] = [
         'Type a question about a file in your project. Try: "Explain what this file does." — or pick a bug and say "Find what is wrong with this function."',
         'Ava will read the file (tool call #1). She will ask you to approve the first read. Say yes.',
         'Watch her stream an answer. If she wants to make a change, she will show you the diff and wait for you to approve.',
-        'Switch modes. Type >> to enter Work mode, then ?? to try Teach mode with the same question. Feel the difference.',
+        'Switch modes. Type >> to enter Code mode, then ?? to try Teach mode with the same question. Feel the difference.',
       ]},
       { type: 'paragraph', text: 'That is it. You have used 4 of 60 tools and 2 of 6 modes. The rest is progressive — you learn what exists when you need it.' },
       { type: 'callout', variant: 'note', text: 'Prefer structure? Jump to Core concepts for a proper tour. Prefer learning by doing? Keep going — Ava will ask before she does anything risky.' },

@@ -47,7 +47,7 @@ export const hiStrings: Record<StringKey, string> = {
   'input.placeholder.disabled': 'शुरू करने के लिए एक प्रोवाइडर कॉन्फ़िगर करें...',
   'input.placeholder.security': 'बताएँ कि क्या स्कैन करना है, या पूर्ण ऑडिट के लिए Enter दबाएँ...',
   'input.placeholder.teach': 'आप क्या सीखना चाहते हैं?',
-  'input.mode.code': 'कार्य',
+  'input.mode.code': 'कोड',
   'input.mode.plan': 'प्लान',
   'input.mode.chat': 'चैट',
   'input.mode.teach': 'सीखें',

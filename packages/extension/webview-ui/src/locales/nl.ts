@@ -47,7 +47,7 @@ export const nlStrings: Record<StringKey, string> = {
   'input.placeholder.disabled': 'Configureer een provider om te beginnen...',
   'input.placeholder.security': 'Beschrijf wat gescand moet worden, of druk op Enter voor een volledige audit...',
   'input.placeholder.teach': 'Wat wil je leren?',
-  'input.mode.code': 'Werk',
+  'input.mode.code': 'Code',
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Chat',
   'input.mode.teach': 'Leren',
