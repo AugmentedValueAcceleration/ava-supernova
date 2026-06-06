@@ -43,6 +43,7 @@ import { HealthPlanCreateTool } from './health-plan-create.js';
 import { HealthPlanUpdateDayTool } from './health-plan-update-day.js';
 import { HealthCatalogueSearchTool } from './health-catalogue-search.js';
 import { DocumentManageTool } from './document-manage.js';
+import { DocumentAuthorTool } from './document-author.js';
 import { GitCommitTool } from './git-commit.js';
 import { GitCreatePrTool } from './git-create-pr.js';
 import { TestRunTool } from './test-run.js';
@@ -157,7 +158,7 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   desktop_focus_window: 'system', desktop_type: 'system',
   desktop_key_press: 'system',
   // Documents — creation, planning, tasks
-  document_manage: 'documents',
+  document_manage: 'documents', document_author: 'documents',
   report_generate: 'documents', email_draft: 'documents',
   doc_generate: 'documents', todo_write: 'documents',
   task_manage: 'documents', journal_write: 'documents',
@@ -392,6 +393,7 @@ export class ToolRegistry {
       new HealthPlanCreateTool(),
       new HealthPlanUpdateDayTool(),
       new DocumentManageTool(),
+      new DocumentAuthorTool(),
       new GitCommitTool(),
       new GitCreatePrTool(),
       new TestRunTool(),
