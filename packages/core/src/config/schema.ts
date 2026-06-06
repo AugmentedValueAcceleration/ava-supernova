@@ -42,6 +42,13 @@ export interface AvaConfig {
     markdownRendering?: boolean;
     language?: string;
     autoMemory?: boolean;
+    /** Opt-in: use a local Ollama embedding model for SEMANTIC memory recall.
+     *  Off by default — recall stays on TF-IDF, no external dependency. */
+    useLocalEmbeddings?: boolean;
+    /** Embedding model served locally. Default 'nomic-embed-text'. */
+    embeddingModel?: string;
+    /** OpenAI-compatible embeddings base URL. Default Ollama 'http://localhost:11434/v1'. */
+    embeddingBaseUrl?: string;
   };
   knowledgePacks?: {
     enabled?: string[];

@@ -49,6 +49,11 @@ export interface Provider {
 
   createCompletion(request: ChatCompletionRequest, signal?: AbortSignal): Promise<CompletionResponse>;
 
+  /** Optional — embed a single text via an OpenAI-compatible `/embeddings`
+   *  endpoint. Only providers that actually have one (e.g. local Ollama, used
+   *  for semantic memory recall) support it; callers degrade gracefully. */
+  createEmbedding?(text: string, model: string, signal?: AbortSignal): Promise<number[]>;
+
   createStreamingCompletion(
     request: ChatCompletionRequest,
     signal?: AbortSignal,

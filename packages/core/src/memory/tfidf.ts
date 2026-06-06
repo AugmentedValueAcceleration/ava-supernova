@@ -72,6 +72,22 @@ export function cosineSimilarity(a: TermVector, b: TermVector): number {
 }
 
 /**
+ * Cosine similarity between two DENSE vectors (e.g. neural embeddings).
+ * Returns ~-1..1 (0 if empty, length-mismatched, or zero-magnitude).
+ */
+export function cosineDense(a: number[], b: number[]): number {
+  if (a.length === 0 || a.length !== b.length) return 0;
+  let dot = 0, normA = 0, normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  if (normA === 0 || normB === 0) return 0;
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+/**
  * A lightweight TF-IDF index over a set of documents.
  *
  * Documents are identified by string IDs. The index is rebuilt in-memory

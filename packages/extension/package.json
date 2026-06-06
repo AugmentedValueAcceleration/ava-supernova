@@ -363,6 +363,24 @@
             "order": 6,
             "description": "%setting.memoryLocalOnly.description%"
           },
+          "ava-supernova.preferences.useLocalEmbeddings": {
+            "type": "boolean",
+            "default": false,
+            "order": 8,
+            "description": "Semantic memory recall via a local embedding model. Off = keyword recall only (no dependency). Requires Ollama running with an embedding model (e.g. nomic-embed-text)."
+          },
+          "ava-supernova.preferences.embeddingModel": {
+            "type": "string",
+            "default": "nomic-embed-text",
+            "order": 9,
+            "description": "Local embedding model (served by Ollama) used when semantic recall is enabled."
+          },
+          "ava-supernova.preferences.embeddingBaseUrl": {
+            "type": "string",
+            "default": "http://localhost:11434/v1",
+            "order": 10,
+            "description": "OpenAI-compatible embeddings base URL. Default: local Ollama."
+          },
           "ava-supernova.preferences.streamResponses": {
             "type": "boolean",
             "default": true,

@@ -95,6 +95,7 @@ export type { CreditAction } from './billing/credits.js';
 
 // Memory
 export { MemoryManager } from './memory/memory-manager.js';
+export { EmbeddingService, createEmbeddingServiceFromConfig } from './memory/embedding-service.js';
 export { PlatformMemorySync } from './memory/platform-sync.js';
 export type { PlatformMemory, SemanticMatch } from './memory/platform-sync.js';
 export type {

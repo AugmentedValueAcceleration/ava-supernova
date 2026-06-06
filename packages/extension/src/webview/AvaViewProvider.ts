@@ -42,6 +42,7 @@ import {
   getRelevantLearnings,
   GenerationManager,
   haltIntent,
+  createEmbeddingServiceFromConfig,
 } from '@ava/core';
 import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, ContentPart, PermissionMode, Message, AssistantMessage } from '@ava/core';
 import { creditsFor } from '@ava/core/billing/credits';
@@ -403,7 +404,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const memoryLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? true)
       || syncPrefs.memory === false
       || !cloudAllowed;
-    this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly });
+    this.memoryManager = new MemoryManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly, embeddingService: this.resolveEmbeddingService() });
 
     // Pull the latest memories from cloud on every session start where
     // platform sync is active. Previously this only ran on sign-in /
@@ -1224,7 +1225,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
                 const sync = new PlatformMemorySync('https://ava-supernova.com/api', platformKey, projectId);
                 // Local-first default (see init above) — only sync if opted in.
                 const memoryLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? true;
-                this.memoryManager = new MemoryManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly });
+                this.memoryManager = new MemoryManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly, embeddingService: this.resolveEmbeddingService() });
                 const taskSync = new PlatformTaskSyncImpl('https://ava-supernova.com/api', platformKey);
                 this.taskManager = new TaskManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: taskSync });
                 const journalSync = new PlatformJournalSyncImpl('https://ava-supernova.com/api', platformKey);
@@ -2064,6 +2065,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     return config.get<string>('activeModel') || null;
   }
 
+  /** Build the optional local-embedding service from VS Code settings (opt-in;
+   *  off by default → recall stays on TF-IDF). Shared by every MemoryManager
+   *  construction so semantic recall is consistent across re-inits. */
+  private resolveEmbeddingService() {
+    const cfg = vscode.workspace.getConfiguration('ava-supernova');
+    return createEmbeddingServiceFromConfig({
+      useLocalEmbeddings: cfg.get<boolean>('preferences.useLocalEmbeddings'),
+      embeddingModel: cfg.get<string>('preferences.embeddingModel'),
+      embeddingBaseUrl: cfg.get<string>('preferences.embeddingBaseUrl'),
+    });
+  }
+
   private async buildCurrentSystemPrompt(): Promise<string> {
     return buildCurrentSystemPromptFn({
       cachedAccount: this.cachedAccount,
@@ -2273,7 +2286,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       await this.memoryManager.clearEverything();
     }
     // Recreate with sync disabled until next session
-    this.memoryManager = new MemoryManager({ globalDir: this.accountScopedDir, projectRoot: this.projectRoot, localOnly: true });
+    this.memoryManager = new MemoryManager({ globalDir: this.accountScopedDir, projectRoot: this.projectRoot, localOnly: true, embeddingService: this.resolveEmbeddingService() });
   }
 
   private async saveMemory(scope: 'global' | 'project', content: string): Promise<void> {

@@ -11,6 +11,7 @@ import {
   buildSystemPrompt,
   HistoryManager,
   MemoryManager,
+  createEmbeddingServiceFromConfig,
   TaskManager,
   JournalManager,
   PlatformMemorySync,
@@ -88,7 +89,8 @@ async function main(): Promise<void> {
       }
     } catch { /* fall back to default AVA_HOME */ }
   }
-  const memoryManager = new MemoryManager({ globalDir, projectRoot, sync });
+  const embeddingService = createEmbeddingServiceFromConfig(appConfig.preferences);
+  const memoryManager = new MemoryManager({ globalDir, projectRoot, sync, embeddingService });
   const configToRegistry: Record<string, string> = { glm: 'zhipu' };
   for (const [name, providerConfig] of Object.entries(appConfig.providers)) {
     if (name === 'generic' || !providerConfig) continue;

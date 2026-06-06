@@ -165,6 +165,32 @@ export abstract class BaseProvider implements Provider {
     return this.normalizeResponse(raw);
   }
 
+  /**
+   * Embed a single text via the OpenAI-compatible `/embeddings` endpoint
+   * (Ollama serves this at `/v1/embeddings`; OpenAI and compatible servers
+   * too). Returns the raw vector. Optional on the Provider interface — only
+   * used for providers that actually have an embeddings endpoint (local
+   * Ollama for semantic memory); the caller degrades gracefully on throw.
+   */
+  async createEmbedding(text: string, model: string, signal?: AbortSignal): Promise<number[]> {
+    const url = `${this.baseUrl}/embeddings`;
+    const response = await this.fetchWithRetry(url, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ model, input: text }),
+      signal,
+    });
+    const raw = await response.json() as {
+      data?: Array<{ embedding?: number[] }>;
+      embedding?: number[]; // Ollama native /api/embeddings shape, defensive
+    };
+    const vec = raw.data?.[0]?.embedding ?? raw.embedding;
+    if (!Array.isArray(vec) || vec.length === 0) {
+      throw new Error(`[${this.name}] embeddings endpoint returned no vector`);
+    }
+    return vec;
+  }
+
   async *createStreamingCompletion(
     request: ChatCompletionRequest,
     signal?: AbortSignal,

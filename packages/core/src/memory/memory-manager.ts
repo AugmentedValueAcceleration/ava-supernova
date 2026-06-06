@@ -2,8 +2,10 @@ import { readFile, writeFile, rename, mkdir, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { TfIdfIndex } from './tfidf.js';
+import { TfIdfIndex, cosineDense } from './tfidf.js';
 import type { PlatformMemorySync, SemanticMatch } from './platform-sync.js';
+import type { EmbeddingService } from './embedding-service.js';
+import { EmbeddingStore } from './embedding-store.js';
 import type {
   MemoryEntry,
   MemoryCategory,
@@ -14,6 +16,7 @@ import type {
   MemoryRecallResult,
   MemoryStoreSummary,
   MemoryConsolidationGroup,
+  MemoryNode,
   ProjectBrain,
 } from './types.js';
 import { MEMORY_CATEGORIES, createEmptyStore, inferLayer } from './types.js';
@@ -28,6 +31,12 @@ import { avaEvents } from '../dataset/emitter.js';
 const MEMORY_FILENAME_V1 = 'memory.md';
 const MEMORY_FILENAME_V2 = 'memory.json';
 const PROJECTS_REGISTRY = 'projects.json';
+
+/** Minimum cosine for a node to count as a semantic recall hit. Related text
+ *  sits well above this; unrelated text falls below. */
+const SEMANTIC_RECALL_THRESHOLD = 0.5;
+/** Backfill: flush the store + yield to the event loop every N embeds. */
+const EMBED_BACKFILL_BATCH = 50;
 
 interface ProjectRegistryEntry {
   path: string;
@@ -76,6 +85,14 @@ export class MemoryManager {
   private ambientProject: AmbientCaptureManager | null = null;
   private projectBrainCache: ProjectBrain | null = null;
 
+  // ── Semantic recall (optional, local Ollama) ──────────────────────────────
+  // When an embedding service is injected, memories are embedded on write and
+  // recall adds a graph-wide semantic phase. All null/absent → pure TF-IDF, no
+  // external dependency. Vectors live in a SEPARATE embeddings.json per scope.
+  private embeddingService: EmbeddingService | null = null;
+  private embeddingStoreGlobal: EmbeddingStore | null = null;
+  private embeddingStoreProject: EmbeddingStore | null = null;
+
   // ── Sync coalescing — debounce + in-flight guard ──────────────────────────
   // syncEntries() used to fire every store mutation, with each call doing a
   // full pull + per-entry POST/PATCH against the platform. With the Memory
@@ -90,11 +107,12 @@ export class MemoryManager {
   private readonly syncInFlight = new Set<'global' | 'project'>();
   private readonly syncDirty = new Set<'global' | 'project'>();
 
-  constructor(opts: { globalDir: string; projectRoot?: string; sync?: PlatformMemorySync; localOnly?: boolean }) {
+  constructor(opts: { globalDir: string; projectRoot?: string; sync?: PlatformMemorySync; localOnly?: boolean; embeddingService?: EmbeddingService }) {
     this.globalDir = opts.globalDir;
     this.projectDir = opts.projectRoot ? join(opts.projectRoot, '.ava') : null;
     this.sync = opts.sync;
     this.localOnly = opts.localOnly ?? true;
+    this.embeddingService = opts.embeddingService ?? null;
 
     // Auto-register this project in the global registry (fire-and-forget)
     if (opts.projectRoot) {
@@ -136,6 +154,10 @@ export class MemoryManager {
       this.proceduralGlobal = new ProceduralObserver(globalMemDir);
       await this.proceduralGlobal.load();
       this.ambientGlobal = new AmbientCaptureManager(this.graphGlobal);
+      if (this.embeddingService) {
+        this.embeddingStoreGlobal = new EmbeddingStore(globalMemDir, this.embeddingService.embedModel);
+        await this.embeddingStoreGlobal.load();
+      }
 
       // Project graph
       if (this.projectDir) {
@@ -150,6 +172,10 @@ export class MemoryManager {
         this.proceduralProject = new ProceduralObserver(projectMemDir);
         await this.proceduralProject.load();
         this.ambientProject = new AmbientCaptureManager(this.graphProject);
+        if (this.embeddingService) {
+          this.embeddingStoreProject = new EmbeddingStore(projectMemDir, this.embeddingService.embedModel);
+          await this.embeddingStoreProject.load();
+        }
 
         // Load or generate project brain
         const brainDir = join(this.projectDir, 'memory');
@@ -164,6 +190,13 @@ export class MemoryManager {
 
       this.graphInitialized = true;
       logger.debug(`[memory] v3 graph initialized: global=${this.graphGlobal?.nodeCount ?? 0} nodes, project=${this.graphProject?.nodeCount ?? 0} nodes`);
+
+      // Background semantic backfill — embed any nodes missing a vector so
+      // recall spans the whole graph. Fire-and-forget; resumable (only fills
+      // gaps); fast-no-ops if Ollama is unreachable (breaker trips).
+      if (this.embeddingService) {
+        void this.runEmbeddingBackfill().catch(() => {});
+      }
     } catch (err) {
       logger.warn(`[memory] v3 graph init failed: ${err instanceof Error ? err.message : String(err)}`);
       // Non-fatal — v2 stores still work as fallback
@@ -190,6 +223,64 @@ export class MemoryManager {
   /** Get the ambient capture manager for a scope. */
   getAmbientCapture(scope: 'global' | 'project'): AmbientCaptureManager | null {
     return scope === 'global' ? this.ambientGlobal : this.ambientProject;
+  }
+
+  // ── Semantic embeddings (optional, local Ollama) ──────────────────────────
+
+  private embeddingStore(scope: 'global' | 'project'): EmbeddingStore | null {
+    return scope === 'global' ? this.embeddingStoreGlobal : this.embeddingStoreProject;
+  }
+
+  /** Embed a node's content and stash the vector. Background; never throws. */
+  private async embedNode(scope: 'global' | 'project', nodeId: string, content: string): Promise<void> {
+    const store = this.embeddingStore(scope);
+    if (!store || !this.embeddingService) return;
+    try {
+      const vec = await this.embeddingService.embed(content);
+      if (vec) store.set(nodeId, vec);
+    } catch { /* never throw on a background embed */ }
+  }
+
+  /**
+   * Backfill embeddings for active graph nodes missing a vector, so recall can
+   * span the whole memory (not just newly-saved entries). Resumable (only
+   * fills gaps), batched (flush + yield every N), and bails fast if the
+   * endpoint is down (breaker trips → embed returns null). Fire-and-forget on
+   * init; also callable from maintenance.
+   */
+  async runEmbeddingBackfill(signal?: AbortSignal): Promise<void> {
+    if (!this.embeddingService) return;
+    await this.ensureGraphReady();
+    const jobs: Array<{ graph: MemoryGraph; store: EmbeddingStore; scope: string }> = [];
+    if (this.graphGlobal && this.embeddingStoreGlobal) jobs.push({ graph: this.graphGlobal, store: this.embeddingStoreGlobal, scope: 'global' });
+    if (this.graphProject && this.embeddingStoreProject) jobs.push({ graph: this.graphProject, store: this.embeddingStoreProject, scope: 'project' });
+
+    for (const { graph, store, scope } of jobs) {
+      const nodes = graph.getActiveNodes();
+      const missing = nodes.filter(n => !store.has(n.id) && n.content?.trim());
+      if (missing.length === 0) continue;
+      logger.info(`[embeddings] backfill ${scope}: ${missing.length}/${nodes.length} nodes need embedding`);
+      let done = 0, embedded = 0;
+      for (const node of missing) {
+        if (signal?.aborted) { await store.flush(); return; }
+        // Endpoint just failed → stop and resume next session rather than
+        // spinning through thousands of fast-fails.
+        if (this.embeddingService.tripped) {
+          logger.debug(`[embeddings] backfill ${scope}: endpoint unavailable, pausing after ${embedded}`);
+          break;
+        }
+        const vec = await this.embeddingService.embed(node.content);
+        if (vec) { store.set(node.id, vec); embedded++; }
+        done++;
+        if (done % EMBED_BACKFILL_BATCH === 0) {
+          await store.flush();
+          await new Promise(r => setTimeout(r, 0)); // yield
+          logger.debug(`[embeddings] backfill ${scope}: ${done}/${missing.length}`);
+        }
+      }
+      await store.flush();
+      logger.info(`[embeddings] backfill ${scope} done: ${embedded} embedded`);
+    }
   }
 
   /** Run confidence decay + forgetting pass on both graphs. Called on session end. */
@@ -428,7 +519,7 @@ export class MemoryManager {
       await this.ensureGraphReady();
       const graph = this.getGraph(effectiveScope);
       if (graph) {
-        graph.upsertNode({
+        const node = graph.upsertNode({
           content: entry.content,
           category: entry.category,
           scope: effectiveScope,
@@ -440,6 +531,11 @@ export class MemoryManager {
         });
         await graph.save();
         logger.debug(`[memory] saved to ${effectiveScope} graph: "${entry.content.slice(0, 48)}"`);
+        // Semantic: embed the node's content in the background (never blocks
+        // the write). No-op if embeddings disabled / Ollama unreachable.
+        if (this.embeddingService) {
+          void this.embedNode(effectiveScope, node.id, node.content);
+        }
       } else {
         logger.warn(`[memory] saveEntry: ${effectiveScope} graph unavailable — saved to v2 store only`);
       }
@@ -695,6 +791,41 @@ export class MemoryManager {
 
     // Sort by composite relevance score
     results.sort((a, b) => b.relevance - a.relevance);
+
+    // ── Local semantic phase (graph-wide, optional) ────────────────────────
+    // Embed the query and cosine against the graph's stored vectors. Unlike the
+    // keyword phases above (which see only the ≤500 v2 store), this spans the
+    // FULL graph — surfacing memories that are semantically related but share
+    // no keywords. Additive + graceful: no embeddings / endpoint down → skipped
+    // entirely, leaving the keyword results exactly as they are today.
+    if (this.embeddingService) {
+      const qVec = await this.embeddingService.embed(opts.query);
+      if (qVec) {
+        await this.ensureGraphReady();
+        const seen = new Set(results.map(r => r.entry.id));
+        const addSemantic = (graph: MemoryGraph | null, store: EmbeddingStore | null, scope: string) => {
+          if (!graph || !store) return;
+          const hits: Array<{ node: MemoryNode; sim: number }> = [];
+          for (const node of graph.getActiveNodes()) {
+            if (seen.has(node.id)) continue;
+            if (opts.category && node.category !== opts.category) continue;
+            if (opts.branch && node.branch && node.branch !== opts.branch) continue;
+            const vec = store.get(node.id);
+            if (!vec) continue;
+            const sim = cosineDense(qVec, vec);
+            if (sim >= SEMANTIC_RECALL_THRESHOLD) hits.push({ node, sim });
+          }
+          hits.sort((a, b) => b.sim - a.sim);
+          for (const { node, sim } of hits.slice(0, limit)) {
+            seen.add(node.id);
+            results.push({ entry: node, scope, relevance: this.computeRelevance(sim, node), matchType: 'semantic' });
+          }
+        };
+        if (opts.scope !== 'project') addSemantic(this.graphGlobal, this.embeddingStoreGlobal, 'global');
+        if (opts.scope !== 'global') addSemantic(this.graphProject, this.embeddingStoreProject, 'project');
+        results.sort((a, b) => b.relevance - a.relevance);
+      }
+    }
 
     // If no local matches, try semantic search via platform
     if (results.length === 0 && this.sync) {
