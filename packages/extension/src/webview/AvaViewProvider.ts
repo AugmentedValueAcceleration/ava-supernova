@@ -3064,6 +3064,25 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
                 });
               } catch { /* preview is non-critical */ }
             }
+            // Live preview for the Markdown authoring tool: the result is a
+            // status line, so read the .md source itself and render it. Updates
+            // in place as Ava creates / edits sections.
+            if (event.toolCall.function.name === 'document_author') {
+              try {
+                const meta = typeof event.metadata === 'object' && event.metadata ? event.metadata as Record<string, unknown> : {};
+                const p = meta.path as string | undefined;
+                if (p && /\.(md|markdown)$/i.test(p)) {
+                  const md = require('node:fs').readFileSync(p, 'utf-8');
+                  DocumentPreviewPanel.show(this.extensionUri, {
+                    title: p.split(/[/\\]/).pop() || 'document',
+                    type: 'markdown',
+                    content: md,
+                    filePath: p,
+                    metadata: meta,
+                  });
+                }
+              } catch { /* preview is non-critical */ }
+            }
           }
           // Register creative assets in the dashboard library so Creative Studio sees them
           const creativeTools: Record<string, string> = {

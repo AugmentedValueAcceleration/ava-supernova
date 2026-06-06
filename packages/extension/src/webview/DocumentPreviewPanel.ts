@@ -34,8 +34,11 @@ export class DocumentPreviewPanel {
    *  factories but isn't currently needed (no webview-local assets). */
   public static show(_extensionUri: vscode.Uri, doc: DocumentPreview): void {
     if (DocumentPreviewPanel.currentPanel) {
-      DocumentPreviewPanel.currentPanel.addDocument(doc);
-      DocumentPreviewPanel.currentPanel.panel.reveal(vscode.ViewColumn.Beside);
+      // Update in place when the same file is re-previewed (live editing),
+      // otherwise add a tab. Don't steal focus on an update — the writer is
+      // working in the chat; the preview refreshes beside them.
+      DocumentPreviewPanel.currentPanel.upsertDocument(doc);
+      DocumentPreviewPanel.currentPanel.panel.reveal(vscode.ViewColumn.Beside, true);
       return;
     }
 
@@ -76,6 +79,22 @@ export class DocumentPreviewPanel {
   public addDocument(doc: DocumentPreview): void {
     this.documents.push(doc);
     this.activeIndex = this.documents.length - 1;
+    this.panel.title = `Preview: ${doc.title}`;
+    this.updatePanel();
+  }
+
+  /** Update the tab for this file if it's already open (live editing), else add
+   *  a new tab. Keyed by filePath so re-rendering a document Ava is editing
+   *  refreshes in place instead of stacking duplicates. */
+  public upsertDocument(doc: DocumentPreview): void {
+    const idx = doc.filePath ? this.documents.findIndex(d => d.filePath && d.filePath === doc.filePath) : -1;
+    if (idx >= 0) {
+      this.documents[idx] = doc;
+      this.activeIndex = idx;
+    } else {
+      this.documents.push(doc);
+      this.activeIndex = this.documents.length - 1;
+    }
     this.panel.title = `Preview: ${doc.title}`;
     this.updatePanel();
   }
@@ -242,6 +261,12 @@ export class DocumentPreviewPanel {
       margin: 12px 0;
       color: var(--vscode-descriptionForeground, #aaa);
     }
+    .content table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 0.95em; }
+    .content th, .content td { border: 1px solid var(--vscode-panel-border, #333); padding: 6px 10px; text-align: left; }
+    .content th { background: var(--vscode-sideBar-background, #252526); font-weight: 600; }
+    .content tr:nth-child(even) td { background: var(--vscode-textCodeBlock-background, #2d2d2d33); }
+    .content .callout { border-left: 3px solid var(--vscode-focusBorder, #7c3aed); background: var(--vscode-textCodeBlock-background, #2d2d2d44); padding: 10px 14px; margin: 12px 0; border-radius: 0 4px 4px 0; }
+    .content .callout-label { font-weight: 600; display: block; margin-bottom: 4px; }
 
     /* Email layout */
     .email-header {
@@ -331,13 +356,24 @@ export class DocumentPreviewPanel {
   }
 
   private renderMarkdown(md: string): string {
+    // Lift the authoring front-matter / directives so the preview shows a clean
+    // document, not raw source. Safe no-op for plain markdown (e.g. email body).
+    md = this.preprocessAuthoring(md);
+
     // Simple markdown → HTML (covers the common cases)
     let html = this.escHtml(md);
 
-    // Headings
+    // Tables (before block wrapping; operates on escaped pipe rows)
+    html = this.renderTables(html);
+
+    // Headings (H1-H4)
+    html = html.replace(/^#### (.+)$/gm, '<h3>$1</h3>');
     html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
     html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
     html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+    // Links
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
 
     // Bold + italic
     html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
@@ -369,8 +405,56 @@ export class DocumentPreviewPanel {
     html = html.replace(/<p>\s*(<hr>)/g, '$1');
     html = html.replace(/(<hr>)\s*<\/p>/g, '$1');
     html = html.replace(/<p>\s*(<blockquote>)/g, '$1');
+    html = html.replace(/<p>\s*(<table>)/g, '$1');
+    html = html.replace(/(<\/table>)\s*<\/p>/g, '$1');
 
     return html;
+  }
+
+  /** Lift authoring extras (front-matter, ::: directives) into something the
+   *  basic markdown renderer can show cleanly. No-op for plain markdown. */
+  private preprocessAuthoring(md: string): string {
+    const fm = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*\r?\n?/.exec(md);
+    let title = '';
+    if (fm) {
+      const tm = /^title:[ \t]*(.+)$/m.exec(fm[1]);
+      if (tm) title = tm[1].trim().replace(/^["']|["']$/g, '');
+      md = md.slice(fm[0].length);
+    }
+    md = md.replace(/^:::[ \t]*pagebreak[ \t]*$/gim, '\n---\n');
+    md = md.replace(/^:::[ \t]*(\w+)(?:\{([^}]*)\})?[ \t]*\r?\n([\s\S]*?)\r?\n:::[ \t]*$/gim, (_m, variant: string, attrs: string, inner: string) => {
+      const tm = /title="([^"]*)"/.exec(attrs || '');
+      const label = tm ? tm[1] : variant.charAt(0).toUpperCase() + variant.slice(1);
+      const quoted = inner.split(/\r?\n/).map(l => '> ' + l).join('\n');
+      return `> **${label}**\n${quoted}`;
+    });
+    md = md.replace(/^:::[ \t]*$/gim, '');
+    if (title) md = `# ${title}\n\n${md}`;
+    return md;
+  }
+
+  /** Render GitHub-style pipe tables from already-escaped HTML lines. */
+  private renderTables(html: string): string {
+    const lines = html.split('\n');
+    const out: string[] = [];
+    const isRow = (s: string) => /^\s*\|(.+)\|\s*$/.test(s);
+    const isSep = (s: string) => /^\s*\|[\s:|-]+\|\s*$/.test(s);
+    const cells = (s: string) => s.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+    for (let i = 0; i < lines.length; i++) {
+      if (isRow(lines[i]) && i + 1 < lines.length && isSep(lines[i + 1])) {
+        const header = cells(lines[i]);
+        i += 2;
+        const rows: string[][] = [];
+        while (i < lines.length && isRow(lines[i])) { rows.push(cells(lines[i])); i++; }
+        i--;
+        const thead = `<tr>${header.map(h => `<th>${h}</th>`).join('')}</tr>`;
+        const tbody = rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
+        out.push(`<table>${thead}${tbody}</table>`);
+      } else {
+        out.push(lines[i]);
+      }
+    }
+    return out.join('\n');
   }
 
   private escHtml(s: string): string {
