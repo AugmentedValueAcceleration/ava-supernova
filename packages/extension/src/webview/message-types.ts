@@ -207,7 +207,7 @@ export interface MemoryEntryUI {
 
 // ─── Webview → Extension Host ────────────────────────────────────────────────
 
-export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm';
+export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write';
 
 /**
  * Command palette — the user-aid tool categories a palette button can target.

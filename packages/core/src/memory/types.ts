@@ -390,7 +390,7 @@ export interface ProjectBrain {
 // ── Graph Recall ───────────────────────────────────────────────────────────
 
 /** Ava's 6 modes for mode-aware recall weighting. */
-export type AvaMode = 'work' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm';
+export type AvaMode = 'work' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write';
 
 /** Options for graph-based recall (extends v2 RecallOptions). */
 export interface GraphRecallOptions {

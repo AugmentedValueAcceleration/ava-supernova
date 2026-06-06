@@ -3,7 +3,9 @@
 
 import type { ModeId } from './modes.js';
 
-export type PersonaMode = Exclude<ModeId, 'chat'>;
+// Chat and Write run without a persona conductor (just Ava), so they have no
+// persona team here.
+export type PersonaMode = Exclude<ModeId, 'chat' | 'write'>;
 
 export interface PersonaFact {
   id: string;

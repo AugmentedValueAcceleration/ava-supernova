@@ -15,6 +15,8 @@ export const enStrings = {
   'input.mode.plan': 'Plan',
   'input.mode.chat': 'Chat',
   'input.mode.security': 'Security',
+  'input.mode.write': 'Write',
+  'input.placeholder.write': 'What would you like to write?',
   'input.send': 'Send (Enter)',
   'input.send_aria': 'Send message',
   'input.stop': 'Stop',

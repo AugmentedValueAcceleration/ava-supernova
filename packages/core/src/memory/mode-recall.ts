@@ -41,6 +41,17 @@ export const MODE_CATEGORY_WEIGHTS: Record<AvaMode, Record<MemoryCategory, numbe
     convention: 0.3,
     'tool-config': 0.2,
   },
+  write: {
+    preference: 1.8,   // house style, voice, tone
+    general: 1.4,
+    decision: 1.2,     // what we decided about this document
+    person: 1.0,       // audience / author context
+    convention: 0.6,
+    architecture: 0.3,
+    pattern: 0.3,
+    'bug-fix': 0.2,
+    'tool-config': 0.3,
+  },
   teach: {
     pattern: 1.5,
     general: 1.3,

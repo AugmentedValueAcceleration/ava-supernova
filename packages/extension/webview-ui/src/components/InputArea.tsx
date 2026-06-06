@@ -5,7 +5,7 @@ import { SecretVault } from './SecretVault';
 import type { SecretEntry } from './SecretVault';
 import { useSecrets } from '../hooks/useSecrets';
 
-export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm';
+export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write';
 
 export interface ImageAttachment {
   type: 'image';
@@ -56,6 +56,7 @@ const MODES: { id: AvaMode; labelKey: string; descKey: string; icon: string }[] 
   { id: 'chat',       labelKey: 'input.mode.chat',       descKey: 'input.mode.chat.desc',       icon: '..' },
   { id: 'teach',      labelKey: 'input.mode.teach',      descKey: 'input.mode.teach.desc',      icon: '??' },
   { id: 'security',   labelKey: 'input.mode.security',   descKey: 'input.mode.security.desc',   icon: '!!' },
+  { id: 'write',      labelKey: 'input.mode.write',      descKey: 'input.mode.write.desc',      icon: '<<' },
 ];
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -67,6 +68,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   teach: 'input.placeholder.teach',
   security: 'input.placeholder.security',
   brainstorm: 'input.placeholder.brainstorm',
+  write: 'input.placeholder.write',
 };
 
 // onProviderSourceChange is no longer destructured — the Platform/API-key
@@ -83,7 +85,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, providerSou
   const [mode, setMode] = useState<AvaMode>(() => {
     try {
       const stored = localStorage.getItem('ava-ext-chat-mode');
-      const valid: AvaMode[] = ['code', 'plan', 'chat', 'teach', 'security', 'brainstorm'];
+      const valid: AvaMode[] = ['code', 'plan', 'chat', 'teach', 'security', 'brainstorm', 'write'];
       if (stored && (valid as string[]).includes(stored)) return stored as AvaMode;
     } catch { /* localStorage unavailable */ }
     return 'code';

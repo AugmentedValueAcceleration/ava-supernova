@@ -23,6 +23,7 @@ import {
   getSecurityModePrefix,
   getPlanModePrefix,
   getBrainstormModePrefix,
+  getWriteModePrefix,
   killBackgroundProcesses,
   detectProjectRoot,
   loadProjectInstructions,
@@ -3341,7 +3342,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     try {
       // ── Conductor: run persona team for complex tasks ──────────────────
-      const modeMap: Record<string, string> = { code: 'work', plan: 'plan', chat: 'chat', teach: 'teach', security: 'security', brainstorm: 'brainstorm' };
+      const modeMap: Record<string, string> = { code: 'work', plan: 'plan', chat: 'chat', teach: 'teach', security: 'security', brainstorm: 'brainstorm', write: 'write' };
       const conductorMode = modeMap[mode] || 'work';
 
       if (this.conductor && this.conductor.needsOrchestration(text, conductorMode)) {
@@ -3785,6 +3786,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         return getSecurityModePrefix(text || 'Perform a comprehensive security audit of this project.');
       case 'brainstorm':
         return getBrainstormModePrefix(text || 'Help me brainstorm ideas.');
+      case 'write':
+        return getWriteModePrefix(text || 'What would you like to write?');
       default:
         return text;
     }

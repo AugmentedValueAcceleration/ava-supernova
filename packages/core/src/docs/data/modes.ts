@@ -1,6 +1,6 @@
 // Canonical fact table for the 6 modes — states of thought.
 
-export type ModeId = 'work' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm';
+export type ModeId = 'work' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write';
 
 export interface ModeFact {
   id: ModeId;
@@ -59,5 +59,13 @@ export const MODES: ModeFact[] = [
     mindset: 'Ideator — grounded ideas, actionable paths.',
     usesConductor: true,
     summary: 'Mines your context, researches the market, generates specific ideas, challenges them, and refines the survivors into next steps.',
+  },
+  {
+    id: 'write',
+    prefix: '<<',
+    displayName: 'Write',
+    mindset: 'Author — compose, edit, and design real documents.',
+    usesConductor: false,
+    summary: 'Author reports, proposals, articles and more in Markdown, then export branded Word/PDF. Start from a template, refine section by section, see it live. No code — just writing.',
   },
 ];

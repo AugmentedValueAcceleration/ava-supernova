@@ -992,7 +992,7 @@ export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' |
 // ─── Chat UI Types ──────────────────────────────────────────────────────────
 
 export type ProviderSource = 'platform' | 'byok';
-export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm';
+export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write';
 
 export interface ChatPlatformStatus {
   connected: boolean;

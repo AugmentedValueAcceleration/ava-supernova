@@ -18,7 +18,7 @@ export { IntentClassifier } from './agent/intent-classifier.js';
 export type { UserIntent, IntentClassifierOptions } from './agent/intent-classifier.js';
 
 export type { SystemPromptOptions } from './agent/system-prompt.js';
-export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix, getDesktopModePrefix } from './agent/system-prompt.js';
+export { buildSystemPrompt, buildContextualInjection, getChatModePrefix, getTeachModePrefix, getSecurityModePrefix, getPlanModePrefix, getBrainstormModePrefix, getWriteModePrefix, getDesktopModePrefix } from './agent/system-prompt.js';
 
 // Personality
 export type { Personality } from './config/personality.js';

@@ -319,6 +319,30 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'test_run', 'ask_user',
     'switch_mode',
   ]),
+  // Write mode — the author's surface. Markdown is the editable source;
+  // Word/PDF are exports. Ships the authoring tool + the supporting cast a
+  // writer reaches for (research, images for covers, the file ops the .md
+  // lives in, memory for house style/templates). Coding tools stay out — this
+  // is writing, not building.
+  write: new Set([
+    // Authoring
+    'document_author', 'document_manage', 'report_generate', 'email_draft',
+    // The .md source lives on disk
+    'file_read', 'file_write', 'file_edit', 'glob', 'grep', 'list_directory',
+    // Research to ground the writing
+    'web_search', 'http_request', 'browser',
+    // Illustrations / covers
+    'generate_image', 'remove_background',
+    // Memory — house style, saved templates, continuity across a long piece
+    'memory_save', 'memory_recall', 'memory_update',
+    // Light planning for long documents
+    'present_plan', 'todo_write',
+    // Utility + interaction
+    'get_datetime', 'detect_language', 'ask_user', 'support_request',
+    'docs_lookup', 'curator',
+    // Mode switch
+    'switch_mode',
+  ]),
   // Desktop Automation mode. Two layers of hands:
   //   - desktop_launch_app to open apps (denylist-scoped — no shell)
   //   - desktop_* for UIA-tree targeting of native windows
@@ -360,6 +384,7 @@ function detectModeFromMessages(messages: Message[]): string | null {
     if (text.startsWith('[Plan Mode]')) return 'plan';
     if (text.startsWith('[Chat Mode]')) return 'chat';
     if (text.startsWith('[Brainstorm Mode]')) return 'brainstorm';
+    if (text.startsWith('[Write Mode]')) return 'write';
     if (text.startsWith('[Teach Mode]')) return 'teach';
     if (text.startsWith('[Security Audit Mode]')) return 'security';
     if (text.startsWith('[Desktop Automation Mode]')) return 'desktop';

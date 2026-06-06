@@ -7,7 +7,7 @@ import { CommandPalette, filterPaletteActions } from './CommandPalette';
 import type { PaletteTool, PaletteAction } from './CommandPalette';
 import { useSecrets } from '../hooks/useSecrets';
 
-export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm';
+export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write';
 
 export interface ImageAttachment {
   type: 'image';
@@ -64,6 +64,7 @@ const MODES: { id: AvaMode; labelKey: string; icon: string }[] = [
   { id: 'chat', labelKey: 'input.mode.chat', icon: '..' },
   { id: 'teach', labelKey: 'input.mode.teach', icon: '??' },
   { id: 'security', labelKey: 'input.mode.security', icon: '!!' },
+  { id: 'write', labelKey: 'input.mode.write', icon: '<<' },
 ];
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -75,6 +76,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   teach: 'input.placeholder.teach',
   security: 'input.placeholder.security',
   brainstorm: 'input.placeholder.brainstorm',
+  write: 'input.placeholder.write',
 };
 
 export function InputArea({ onSend, onCancel, isStreaming, disabled, platformStatus, modelSupportsVision, prefill, onPaletteAction }: InputAreaProps) {
@@ -87,7 +89,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
   const [mode, setMode] = useState<AvaMode>(() => {
     try {
       const stored = localStorage.getItem('ava-dashboard-chat-mode');
-      const valid: AvaMode[] = ['code', 'plan', 'chat', 'teach', 'security', 'brainstorm'];
+      const valid: AvaMode[] = ['code', 'plan', 'chat', 'teach', 'security', 'brainstorm', 'write'];
       if (stored && (valid as string[]).includes(stored)) return stored as AvaMode;
     } catch { /* localStorage unavailable */ }
     return 'code';
