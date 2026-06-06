@@ -248,6 +248,10 @@ async function main(): Promise<void> {
     config,
     toolRegistry,
     historyManager,
+    onSessionEnd: () => {
+      const ma = sharedState.memoryAgent as MemoryAgent | undefined;
+      if (ma) void ma.reflectOnSession(conversation.getMessages(), conversation.id).catch(() => {});
+    },
     onModelSwitch: (provider, model) => {
       sharedState.activeModelId = model.id;
       repl.setAgent(
@@ -325,6 +329,16 @@ async function main(): Promise<void> {
   process.on('SIGTERM', gracefulExit);
 
   await repl.start();
+
+  // End-of-session reflection over the full conversation before we exit —
+  // distils durable user/project facts the per-turn capture may have missed.
+  // The user left deliberately (/exit), so a brief pause to persist is fine;
+  // it's bounded by the reflection's own Flash call. (SIGINT is too abrupt to
+  // block, so it's skipped there.)
+  const exitMemoryAgent = sharedState.memoryAgent as MemoryAgent | undefined;
+  if (exitMemoryAgent) {
+    await exitMemoryAgent.reflectOnSession(conversation.getMessages(), conversation.id).catch(() => {});
+  }
 
   await historyManager.saveConversation(conversation);
 }

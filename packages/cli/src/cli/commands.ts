@@ -66,6 +66,9 @@ export class CommandHandler {
     onBrainstorm?: BrainstormHandler;
     onRouteSwitch?: RouteSwitchHandler;
     getRoute?: RouteGetter;
+    /** Reflect the outgoing session into memory before /clear or /resume
+     *  swaps it out — mirrors the extension's end-of-session reflection. */
+    onSessionEnd?: () => void;
   }) {
     this.registerCommand({
       name: 'help',
@@ -167,6 +170,7 @@ export class CommandHandler {
       aliases: ['c'],
       description: t('cmd.clear.desc'),
       execute: async () => {
+        opts.onSessionEnd?.();
         opts.conversation.clear();
         console.log(`  ${t('cmd.clear.done')}`);
         return true;
@@ -295,6 +299,7 @@ export class CommandHandler {
           return true;
         }
 
+        opts.onSessionEnd?.();
         opts.conversation.setMessages(record.messages);
         console.log(chalk.green(`  ${t('cmd.resume.done', { title: record.title })}`));
         console.log(chalk.dim(`  ${t('cmd.resume.count', { count: String(record.messages.length) })}`));

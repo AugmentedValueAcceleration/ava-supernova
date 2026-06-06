@@ -1,7 +1,7 @@
 import * as readline from 'node:readline';
 import { stdin, stdout } from 'node:process';
 import chalk from 'chalk';
-import { t, getSecurityModePrefix, getBrainstormModePrefix, Conductor } from '@ava/core';
+import { t, getSecurityModePrefix, getBrainstormModePrefix, Conductor, haltIntent } from '@ava/core';
 import type { Agent, AgentEvent, ConductorEvent, Conversation, ToolRegistry, HistoryManager, AutoCoordinator } from '@ava/core';
 import { Renderer } from './renderer.js';
 import { CommandHandler } from './commands.js';
@@ -389,14 +389,27 @@ export class Repl {
           return;
         }
 
-        // Enter → inject interjection
+        // Enter → stop / pause / or inject, depending on intent
         if (ch === '\r' || ch === '\n') {
           const text = lineBuffer.trim();
           lineBuffer = '';
           if (text) {
-            this.agent.inject(text);
-            this.conversation.addUserMessage(text);
-            console.log(chalk.hex(THEME.accent)(`\n  [interjection] `) + chalk.dim(text));
+            const halt = haltIntent(text);
+            if (halt === 'stop') {
+              // Emergency brake — abort now, same as Escape / Ctrl-C.
+              console.log(chalk.yellow('\n  ' + t('cli.cancelled')));
+              this.runAbortController?.abort();
+              cleanup();
+            } else if (halt === 'pause') {
+              // Gentle hold — let the current step finish, then stop cleanly
+              // at the next boundary (never mid-write).
+              this.agent.requestPause();
+              console.log(chalk.hex(THEME.accent)(`\n  [pause] `) + chalk.dim('finishing this step, then holding…'));
+            } else {
+              this.agent.inject(text);
+              this.conversation.addUserMessage(text);
+              console.log(chalk.hex(THEME.accent)(`\n  [interjection] `) + chalk.dim(text));
+            }
           }
           return;
         }
