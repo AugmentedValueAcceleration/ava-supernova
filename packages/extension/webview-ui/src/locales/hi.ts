@@ -436,7 +436,7 @@ export const hiStrings: Record<StringKey, string> = {
   'welcome_modal.step3.or_explore': 'या खोजें',
   'welcome_modal.step3.title': 'अभी आज़माएं।',
   'welcome_modal.try_in_mode': 'इसे {mode} मोड में आज़माएं',
-  'welcome_modal.mode.code.name': 'काम',
+  'welcome_modal.mode.code.name': 'कोड',
   'welcome_modal.mode.code.tagline': 'बिल्डर की सोच। कोड रिलीज़ करता है।',
   'welcome_modal.mode.code.example': 'अपलोड फॉर्म में एक रद्द करने का बटन जोड़ें',
   'welcome_modal.mode.plan.name': 'योजना',

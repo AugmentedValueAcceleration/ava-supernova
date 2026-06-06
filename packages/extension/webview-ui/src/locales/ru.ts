@@ -436,7 +436,7 @@ export const ruStrings: Record<StringKey, string> = {
   'welcome_modal.step3.or_explore': 'Или исследуйте',
   'welcome_modal.step3.title': 'Попробуйте это сейчас.',
   'welcome_modal.try_in_mode': 'Попробуйте это в режиме {mode}',
-  'welcome_modal.mode.code.name': 'Работа',
+  'welcome_modal.mode.code.name': 'Код',
   'welcome_modal.mode.code.tagline': 'Мышление строителя. Выпускает код.',
   'welcome_modal.mode.code.example': 'добавьте кнопку отмены к форме загрузки',
   'welcome_modal.mode.plan.name': 'План',

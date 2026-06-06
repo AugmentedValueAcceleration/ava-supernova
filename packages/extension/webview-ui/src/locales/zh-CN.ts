@@ -436,7 +436,7 @@ export const zhCNStrings: Record<StringKey, string> = {
   'welcome_modal.step3.or_explore': '或探索',
   'welcome_modal.step3.title': '现在就试试。',
   'welcome_modal.try_in_mode': '在 {mode} 模式下尝试此操作',
-  'welcome_modal.mode.code.name': '工作',
+  'welcome_modal.mode.code.name': '编码',
   'welcome_modal.mode.code.tagline': '构建者思维。交付代码。',
   'welcome_modal.mode.code.example': '为上传表单添加取消按钮',
   'welcome_modal.mode.plan.name': '计划',

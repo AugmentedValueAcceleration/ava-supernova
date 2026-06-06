@@ -436,7 +436,7 @@ export const deStrings: Record<StringKey, string> = {
   'welcome_modal.step3.or_explore': 'Oder erkunden',
   'welcome_modal.step3.title': 'Probier das jetzt aus.',
   'welcome_modal.try_in_mode': 'Probier das im {mode}-Modus aus.',
-  'welcome_modal.mode.code.name': 'Arbeiten',
+  'welcome_modal.mode.code.name': 'Code',
   'welcome_modal.mode.code.tagline': 'Builder-Denkweise. Stellt Code bereit.',
   'welcome_modal.mode.code.example': 'Füge einen Abbrechen-Button zum Upload-Formular hinzu',
   'welcome_modal.mode.plan.name': 'Planen',

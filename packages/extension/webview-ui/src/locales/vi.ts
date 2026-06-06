@@ -436,7 +436,7 @@ export const viStrings: Record<StringKey, string> = {
   'welcome_modal.step3.or_explore': 'Hoặc khám phá',
   'welcome_modal.step3.title': 'Thử ngay bây giờ.',
   'welcome_modal.try_in_mode': 'Thử điều này ở chế độ {mode}',
-  'welcome_modal.mode.code.name': 'Làm việc',
+  'welcome_modal.mode.code.name': 'Mã',
   'welcome_modal.mode.code.tagline': 'Tư duy xây dựng. Phát hành mã.',
   'welcome_modal.mode.code.example': 'thêm nút hủy vào biểu mẫu tải lên',
   'welcome_modal.mode.plan.name': 'Lập kế hoạch',

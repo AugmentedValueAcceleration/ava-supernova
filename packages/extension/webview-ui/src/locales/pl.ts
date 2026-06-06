@@ -436,7 +436,7 @@ export const plStrings: Record<StringKey, string> = {
   'welcome_modal.step3.or_explore': 'Albo eksploruj',
   'welcome_modal.step3.title': 'Wypróbuj to teraz.',
   'welcome_modal.try_in_mode': 'Wypróbuj to w trybie {mode}',
-  'welcome_modal.mode.code.name': 'Praca',
+  'welcome_modal.mode.code.name': 'Kod',
   'welcome_modal.mode.code.tagline': 'Myślenie twórcy. Dostarcza kod.',
   'welcome_modal.mode.code.example': 'dodaj przycisk anulowania do formularza wysyłania',
   'welcome_modal.mode.plan.name': 'Planowanie',

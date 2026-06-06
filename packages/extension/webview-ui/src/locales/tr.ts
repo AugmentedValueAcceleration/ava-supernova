@@ -436,7 +436,7 @@ export const trStrings: Record<StringKey, string> = {
   'welcome_modal.step3.or_explore': 'Ya da keşfet',
   'welcome_modal.step3.title': 'Şimdi dene.',
   'welcome_modal.try_in_mode': 'Bunu {mode} modunda dene',
-  'welcome_modal.mode.code.name': 'Çalışma',
+  'welcome_modal.mode.code.name': 'Kod',
   'welcome_modal.mode.code.tagline': 'Oluşturucu zihniyeti. Kodu teslim eder.',
   'welcome_modal.mode.code.example': 'Yükleme formuna iptal düğmesi ekle',
   'welcome_modal.mode.plan.name': 'Plan',

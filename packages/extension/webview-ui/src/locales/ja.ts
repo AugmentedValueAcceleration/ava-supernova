@@ -436,7 +436,7 @@ export const jaStrings: Record<StringKey, string> = {
   'welcome_modal.step3.or_explore': 'または探索する',
   'welcome_modal.step3.title': '今すぐ試す',
   'welcome_modal.try_in_mode': '{mode} モードで試す',
-  'welcome_modal.mode.code.name': '作業',
+  'welcome_modal.mode.code.name': 'コード',
   'welcome_modal.mode.code.tagline': 'ビルダー思考。コードをリリースする。',
   'welcome_modal.mode.code.example': 'アップロードフォームにキャンセルボタンを追加する',
   'welcome_modal.mode.plan.name': '計画',

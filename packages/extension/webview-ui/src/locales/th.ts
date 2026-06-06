@@ -436,7 +436,7 @@ export const thStrings: Record<StringKey, string> = {
   'welcome_modal.step3.or_explore': 'หรือสำรวจ',
   'welcome_modal.step3.title': 'ลองทำดูเลย',
   'welcome_modal.try_in_mode': 'ลองทำสิ่งนี้ในโหมด {mode}',
-  'welcome_modal.mode.code.name': 'ทำงาน',
+  'welcome_modal.mode.code.name': 'โค้ด',
   'welcome_modal.mode.code.tagline': 'มุมมองผู้สร้าง ส่งโค้ด',
   'welcome_modal.mode.code.example': 'เพิ่มปุ่มยกเลิกในแบบฟอร์มอัปโหลด',
   'welcome_modal.mode.plan.name': 'วางแผน',

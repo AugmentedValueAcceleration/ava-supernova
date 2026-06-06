@@ -436,7 +436,7 @@ export const ukStrings: Record<StringKey, string> = {
   'welcome_modal.step3.or_explore': 'Або дослідити',
   'welcome_modal.step3.title': 'Спробуйте це зараз.',
   'welcome_modal.try_in_mode': 'Спробуйте це в режимі {mode}',
-  'welcome_modal.mode.code.name': 'Робота',
+  'welcome_modal.mode.code.name': 'Код',
   'welcome_modal.mode.code.tagline': 'Мислення будівника. Випускає код.',
   'welcome_modal.mode.code.example': 'додати кнопку скасування до форми завантаження',
   'welcome_modal.mode.plan.name': 'План',

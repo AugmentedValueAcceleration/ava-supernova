@@ -436,7 +436,7 @@ export const nlStrings: Record<StringKey, string> = {
   'welcome_modal.step3.or_explore': 'Of verken',
   'welcome_modal.step3.title': 'Probeer dit nu.',
   'welcome_modal.try_in_mode': 'Probeer dit in {mode}-modus',
-  'welcome_modal.mode.code.name': 'Werken',
+  'welcome_modal.mode.code.name': 'Code',
   'welcome_modal.mode.code.tagline': 'Bouwer-denkwijze. Levert code.',
   'welcome_modal.mode.code.example': 'voeg een annuleren-knop toe aan het uploadformulier',
   'welcome_modal.mode.plan.name': 'Plannen',

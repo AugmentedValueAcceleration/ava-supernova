@@ -436,7 +436,7 @@ export const arStrings: Record<StringKey, string> = {
   'welcome_modal.step3.or_explore': 'أو استكشف',
   'welcome_modal.step3.title': 'جرب هذا الآن.',
   'welcome_modal.try_in_mode': 'جرب هذا في وضع {mode}',
-  'welcome_modal.mode.code.name': 'عمل',
+  'welcome_modal.mode.code.name': 'كود',
   'welcome_modal.mode.code.tagline': 'عقلية البناء. تُصدر الكود.',
   'welcome_modal.mode.code.example': 'أضف زر إلغاء إلى نموذج الرفع',
   'welcome_modal.mode.plan.name': 'تخطيط',

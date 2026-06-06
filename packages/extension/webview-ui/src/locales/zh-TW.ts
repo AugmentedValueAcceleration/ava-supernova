@@ -436,7 +436,7 @@ export const zhTWStrings: Record<StringKey, string> = {
   'welcome_modal.step3.or_explore': '或探索',
   'welcome_modal.step3.title': '立即嘗試。',
   'welcome_modal.try_in_mode': '在 {mode} 模式中嘗試',
-  'welcome_modal.mode.code.name': '工作',
+  'welcome_modal.mode.code.name': '程式碼',
   'welcome_modal.mode.code.tagline': '建構者思維。交付程式碼。',
   'welcome_modal.mode.code.example': '為上傳表單新增取消按鈕',
   'welcome_modal.mode.plan.name': '規劃',

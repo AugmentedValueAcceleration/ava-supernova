@@ -436,7 +436,7 @@ export const frStrings: Record<StringKey, string> = {
   'welcome_modal.step3.or_explore': 'Ou explorer',
   'welcome_modal.step3.title': 'Essayez ceci maintenant.',
   'welcome_modal.try_in_mode': 'Essayez ceci en mode {mode}',
-  'welcome_modal.mode.code.name': 'Développement',
+  'welcome_modal.mode.code.name': 'Code',
   'welcome_modal.mode.code.tagline': 'État d\'esprit de constructeur. Livraison de code.',
   'welcome_modal.mode.code.example': 'ajoutez un bouton annuler au formulaire de téléchargement',
   'welcome_modal.mode.plan.name': 'Planification',

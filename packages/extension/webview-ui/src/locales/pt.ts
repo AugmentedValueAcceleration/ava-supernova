@@ -436,7 +436,7 @@ export const ptStrings: Record<StringKey, string> = {
   'welcome_modal.step3.or_explore': 'Ou explorar',
   'welcome_modal.step3.title': 'Experimente agora.',
   'welcome_modal.try_in_mode': 'Experimente isso no modo {mode}',
-  'welcome_modal.mode.code.name': 'Trabalho',
+  'welcome_modal.mode.code.name': 'C\u00f3digo',
   'welcome_modal.mode.code.tagline': 'Mentalidade de construtor. Entrega código.',
   'welcome_modal.mode.code.example': 'adicione um botão de cancelar ao formulário de carregamento',
   'welcome_modal.mode.plan.name': 'Planejamento',

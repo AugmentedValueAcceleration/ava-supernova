@@ -445,7 +445,7 @@ export const enStrings = {
   'welcome_modal.step3.or_explore': 'Or explore',
   'welcome_modal.step3.title': 'Try this now.',
   'welcome_modal.try_in_mode': 'Try this in {mode} mode',
-  'welcome_modal.mode.code.name': 'Work',
+  'welcome_modal.mode.code.name': 'Code',
   'welcome_modal.mode.code.tagline': 'Builder mindset. Ships code.',
   'welcome_modal.mode.code.example': 'add a cancel button to the upload form',
   'welcome_modal.mode.plan.name': 'Plan',

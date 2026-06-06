@@ -436,7 +436,7 @@ export const koStrings: Record<StringKey, string> = {
   'welcome_modal.step3.or_explore': '또는 탐색하기',
   'welcome_modal.step3.title': '지금 바로 시도해 보세요.',
   'welcome_modal.try_in_mode': '{mode} 모드에서 시도해 보세요',
-  'welcome_modal.mode.code.name': '작업',
+  'welcome_modal.mode.code.name': '코드',
   'welcome_modal.mode.code.tagline': '빌더 마인드셋. 코드를 출시합니다.',
   'welcome_modal.mode.code.example': '업로드 폼에 취소 버튼을 추가하세요',
   'welcome_modal.mode.plan.name': '계획',

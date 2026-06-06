@@ -436,7 +436,7 @@ export const idStrings: Record<StringKey, string> = {
   'welcome_modal.step3.or_explore': 'Atau jelajahi',
   'welcome_modal.step3.title': 'Coba sekarang.',
   'welcome_modal.try_in_mode': 'Coba ini dalam mode {mode}',
-  'welcome_modal.mode.code.name': 'Kerja',
+  'welcome_modal.mode.code.name': 'Kode',
   'welcome_modal.mode.code.tagline': 'Pola pikir pembangun. Mengirimkan kode.',
   'welcome_modal.mode.code.example': 'tambahkan tombol batal ke formulir unggah',
   'welcome_modal.mode.plan.name': 'Rencana',

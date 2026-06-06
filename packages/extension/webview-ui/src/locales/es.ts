@@ -434,7 +434,7 @@ export const esStrings: Record<StringKey, string> = {
   'welcome_modal.step3.or_explore': 'O explora',
   'welcome_modal.step3.title': 'Pruébalo ahora.',
   'welcome_modal.try_in_mode': 'Prueba esto en modo {mode}',
-  'welcome_modal.mode.code.name': 'Trabajo',
+  'welcome_modal.mode.code.name': 'C\u00f3digo',
   'welcome_modal.mode.code.tagline': 'Mentalidad de constructor. Entrega código.',
   'welcome_modal.mode.code.example': 'agrega un botón de cancelar al formulario de carga',
   'welcome_modal.mode.plan.name': 'Planificación',

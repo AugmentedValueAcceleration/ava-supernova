@@ -436,7 +436,7 @@ export const itStrings: Record<StringKey, string> = {
   'welcome_modal.step3.or_explore': 'Oppure esplora',
   'welcome_modal.step3.title': 'Provalo ora.',
   'welcome_modal.try_in_mode': 'Provalo in modalità {mode}',
-  'welcome_modal.mode.code.name': 'Lavoro',
+  'welcome_modal.mode.code.name': 'Codice',
   'welcome_modal.mode.code.tagline': 'Mentalità da costruttore. Consegna codice.',
   'welcome_modal.mode.code.example': 'aggiungi un pulsante di annullamento al modulo di caricamento',
   'welcome_modal.mode.plan.name': 'Piano',
