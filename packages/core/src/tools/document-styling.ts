@@ -88,6 +88,21 @@ export const STYLE_PROFILES: Record<string, DocumentStyleProfile> = {
   letter:        { margins: AVA_FORMAL_MARGINS, coverPage: false, metadataBlock: false, footer: false },
   meeting_notes: { margins: AVA_PAGE_MARGINS,   coverPage: false, metadataBlock: true,  footer: false },
   resume:        { margins: AVA_FORMAL_MARGINS, coverPage: false, metadataBlock: false, footer: false },
+  // Editorial / short-form: inline title, no cover page.
+  brief:         { margins: AVA_PAGE_MARGINS,   coverPage: false, metadataBlock: true,  footer: false },
+  one_pager:     { margins: AVA_PAGE_MARGINS,   coverPage: false, metadataBlock: true,  footer: false },
+  article:       { margins: AVA_PAGE_MARGINS,   coverPage: false, metadataBlock: true,  footer: false },
+  blog_post:     { margins: AVA_PAGE_MARGINS,   coverPage: false, metadataBlock: true,  footer: false },
+  press_release: { margins: AVA_PAGE_MARGINS,   coverPage: false, metadataBlock: true,  footer: false },
+  newsletter:    { margins: AVA_PAGE_MARGINS,   coverPage: false, metadataBlock: false, footer: false },
+  case_study:    { margins: AVA_PAGE_MARGINS,   coverPage: true,  metadataBlock: true,  footer: false },
+  // Academic.
+  essay:         { margins: AVA_PAGE_MARGINS,   coverPage: false, metadataBlock: true,  footer: false },
+  lab_report:    { margins: AVA_PAGE_MARGINS,   coverPage: true,  metadataBlock: true,  footer: false },
+  abstract:      { margins: AVA_PAGE_MARGINS,   coverPage: false, metadataBlock: true,  footer: false },
+  // Career.
+  cover_letter:  { margins: AVA_FORMAL_MARGINS, coverPage: false, metadataBlock: false, footer: false },
+  bio:           { margins: AVA_PAGE_MARGINS,   coverPage: false, metadataBlock: false, footer: false },
 };
 
 export function getStyleProfile(template?: string): DocumentStyleProfile {
