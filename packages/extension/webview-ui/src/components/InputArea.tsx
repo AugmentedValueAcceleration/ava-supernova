@@ -51,12 +51,12 @@ interface InputAreaProps {
 
 const MODES: { id: AvaMode; labelKey: string; descKey: string; icon: string }[] = [
   { id: 'code',       labelKey: 'input.mode.code',       descKey: 'input.mode.code.desc',       icon: '>>' },
+  { id: 'write',      labelKey: 'input.mode.write',      descKey: 'input.mode.write.desc',      icon: '<<' },
   { id: 'plan',       labelKey: 'input.mode.plan',       descKey: 'input.mode.plan.desc',       icon: '::' },
   { id: 'brainstorm', labelKey: 'input.mode.brainstorm', descKey: 'input.mode.brainstorm.desc', icon: '**' },
   { id: 'chat',       labelKey: 'input.mode.chat',       descKey: 'input.mode.chat.desc',       icon: '..' },
   { id: 'teach',      labelKey: 'input.mode.teach',      descKey: 'input.mode.teach.desc',      icon: '??' },
   { id: 'security',   labelKey: 'input.mode.security',   descKey: 'input.mode.security.desc',   icon: '!!' },
-  { id: 'write',      labelKey: 'input.mode.write',      descKey: 'input.mode.write.desc',      icon: '<<' },
 ];
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
