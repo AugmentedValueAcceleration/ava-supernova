@@ -5123,12 +5123,15 @@ export class DashboardPanel {
   }
 
   private getHtml(webview: vscode.Webview): string {
-    const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'dist', 'dashboard', 'index.js'),
-    );
-    const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'dist', 'dashboard', 'index.css'),
-    );
+    // Cache-bust the fixed-name entry bundle (index.js/index.css aren't
+    // content-hashed) so a rebuild isn't masked by Electron's webview cache.
+    const distDir = vscode.Uri.joinPath(this.extensionUri, 'dist', 'dashboard');
+    let stamp = '0';
+    try {
+      stamp = String(Math.floor(require('node:fs').statSync(vscode.Uri.joinPath(distDir, 'index.js').fsPath).mtimeMs));
+    } catch { /* file missing during dev */ }
+    const scriptUri = `${webview.asWebviewUri(vscode.Uri.joinPath(distDir, 'index.js'))}?v=${stamp}`;
+    const styleUri = `${webview.asWebviewUri(vscode.Uri.joinPath(distDir, 'index.css'))}?v=${stamp}`;
     const iconUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'dist', 'dashboard', 'icon.png'),
     );

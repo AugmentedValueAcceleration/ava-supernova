@@ -4116,12 +4116,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   }
 
   private getHtmlForWebview(webview: vscode.Webview): string {
-    const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'index.js'),
-    );
-    const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'index.css'),
-    );
+    // Cache-bust the fixed-name entry bundle. index.js/index.css are NOT
+    // content-hashed (only the lazy locale chunks are), so their webview URL is
+    // identical across builds and Electron serves a stale copy — the webview
+    // wouldn't pick up a rebuild even after restarting. Append the file's mtime
+    // as ?v= so every rebuild yields a fresh URL.
+    const distDir = vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview');
+    let stamp = '0';
+    try {
+      stamp = String(Math.floor(require('node:fs').statSync(vscode.Uri.joinPath(distDir, 'index.js').fsPath).mtimeMs));
+    } catch { /* file missing during dev — fall back to a static stamp */ }
+    const scriptUri = `${webview.asWebviewUri(vscode.Uri.joinPath(distDir, 'index.js'))}?v=${stamp}`;
+    const styleUri = `${webview.asWebviewUri(vscode.Uri.joinPath(distDir, 'index.css'))}?v=${stamp}`;
     // Ava's preset chat avatar — absolute webview-resource:// URL
     // exposed via #root dataset; MessageBubble reads it at render time.
     const avaAvatarUri = webview.asWebviewUri(
