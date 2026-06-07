@@ -5,28 +5,33 @@ import type { DocPage } from '../types.js';
 export const START_PAGES: DocPage[] = [
   {
     id: 'start.what',
-    title: 'What is Ava Supernova?',
-    audience: ['newcomer'],
+    title: 'What is Ava?',
+    audience: ['newcomer', 'both'],
     surfaces: ['web', 'ext', 'ide'],
     order: 10,
     section: 'start',
     body: [
-      { type: 'paragraph', text: 'Ava Supernova is an open-source agentic coding assistant. She writes code with you, teaches you anything you want to learn, audits your projects for security issues, and can control your desktop when you need her to. She remembers what you told her last week, respects the conventions of your project, and runs on your machine by default.' },
-      { type: 'paragraph', text: 'Three surfaces, one agent. Use whichever fits your workflow — they share the same brain.' },
-      { type: 'heading', level: 3, text: 'The three surfaces' },
-      { type: 'list', ordered: false, items: [
-        'VS Code extension — Ava lives next to your editor. Chat panel, unified dashboard, inline diffs.',
-        'Desktop IDE — standalone native app for when you want the whole thing in one window. Built with Tauri.',
-        'Companion — a mobile-friendly web app for when you are away from your desk. Tasks, journal, memory, quick chats.',
-      ]},
+      { type: 'paragraph', text: 'Ava is an AI that actually does things — not just talks. She\'ll build you an app, write you a document, teach you something from scratch, design you a logo, or take care of the admin you keep putting off. And she remembers you: what you\'re working on, how you like things, what you asked for last week.' },
+      { type: 'paragraph', text: 'There\'s one Ava, and she works wherever you do — in your code editor, as a desktop app, on your phone, or in a terminal. Same memory, same personality, everywhere.' },
       { type: 'heading', level: 3, text: 'What makes her different' },
       { type: 'list', ordered: false, items: [
-        'Local-first. Your data stays on your machine unless you opt in to cloud sync. No telemetry. Ever.',
-        'Open source. Every line is public — extension, IDE, companion, CLI. Fork it, audit it, verify our claims.',
-        'Free for everyone. 3M tokens every month on the free tier. No credit card, no account required with your own keys.',
-        'Teaching is free forever. Education should not have a price tag.',
+        'Yours by default. Your work stays on your own machine. No tracking, no telemetry — ever.',
+        'Open for anyone to see. Every line of Ava is public. Nothing to take on trust.',
+        'Free to start. 300 credits every month, no card, no catch — or plug in your own AI keys and pay us nothing at all.',
+        'Teaching is free, forever. Learning shouldn\'t have a price tag.',
       ]},
-      { type: 'paragraph', text: 'If you are new to coding, start with Teach mode and ask her to explain something. If you are a seasoned engineer, drop her into Code mode and let the full persona team loose on your codebase. Same agent — different mindset.' },
+      { type: 'paragraph', text: 'Never written code? The next page is written just for you. Already technical? Skip ahead — she\'ll keep up.' },
+    ],
+    deeper: [
+      { type: 'heading', level: 3, text: 'Where Ava lives' },
+      { type: 'list', ordered: false, items: [
+        'VS Code extension — Ava next to your editor: a chat panel, a dashboard, and changes shown inline before they happen.',
+        'Desktop IDE — a standalone app with the whole thing in one window. Adds desktop control (opening apps, clicking, typing for you).',
+        'Companion — a mobile app for when you\'re away from your desk: tasks, journal, memory, quick chats.',
+        'CLI — Ava in your terminal, for people who live there.',
+      ]},
+      { type: 'heading', level: 3, text: 'How she works, in brief' },
+      { type: 'paragraph', text: 'Ava switches mindsets (called modes) to match the job, quietly runs a small team of specialist helpers on harder work, and picks the best AI model for each step automatically. You never manage any of it. The Core concepts section has the full tour whenever you\'re curious.' },
     ],
   },
   {
@@ -138,34 +143,36 @@ export const START_PAGES: DocPage[] = [
     section: 'start',
     body: [
       { type: 'paragraph', text: 'Everything Ava does is local unless you explicitly opt in. Memory, tasks, journal, personality, settings — all stored on your machine in ~/.ava/ and .ava/ (per project). She talks to model providers over HTTPS to run your request, then returns home. She does not phone home. She does not collect telemetry. She does not train on your code.' },
-      { type: 'paragraph', text: 'If you sign in, you get 3M free tokens per month on platform-managed models (Qwen, MiniMax) and optional cloud sync for memory and settings across machines. Sync is per-feature, revocable anytime. Bring your own API key and Ava works fully without an account.' },
+      { type: 'paragraph', text: 'If you sign in, you get 300 free credits a month on platform-managed models (Qwen, MiniMax) and optional cloud sync for memory and settings across machines. Sync is per-feature, revocable anytime. Bring your own API key and Ava works fully without an account.' },
       { type: 'callout', variant: 'tip', text: 'The rule: local is sacred. Cloud is additive.' },
     ],
   },
   {
     id: 'start.first-model',
-    title: 'Choosing your routing mode',
-    audience: ['newcomer'],
+    title: 'Do I need to choose an AI?',
+    audience: ['newcomer', 'both'],
     surfaces: ['web', 'ext', 'ide'],
     order: 50,
     section: 'start',
     body: [
-      { type: 'paragraph', text: 'You do not pick a model — you pick a routing strategy. Ava drives the right model for each subtask under the hood. Three strategies cover every workload, available on every plan.' },
-
-      { type: 'heading', level: 3, text: 'Maestro — the default' },
-      { type: 'paragraph', text: 'One conductor (Qwen 3.6 Plus) handles every persona, every step. Production-tuned, proven, predictable cost. Pick this if you want Ava to "just work" without thinking about routing. Live on every plan.' },
-
-      { type: 'heading', level: 3, text: 'Supernova — the polyglot ensemble' },
-      { type: 'paragraph', text: 'A frontier coordinator (DeepSeek V4 Pro, 1.6T parameters / 49B active, 1M context) hands off to specialists per subtask. V4 Flash for high-volume builds, Qwen 3.6 Plus as fallback, Qwen Omni when vision is in play. Best for heavy multi-step work where each step deserves its own specialist.' },
-
-      { type: 'heading', level: 3, text: 'Aurora — the European stack' },
-      { type: 'paragraph', text: 'Mistral-only routing in three tiers — Mistral Large 3 coordinator + heavy specialists, Mistral Medium 3.5 (the merged flagship released April 2026 — 128B dense, 256K context, vision encoder from scratch, modified-MIT open weights, 77.6% SWE-Bench Verified) for Builder + mid-tier specialists + vision + long-form, Mistral Small 4 at the intent gate. Open weights end to end, never leaves EU infrastructure. Built for GDPR-strict deployments, public-sector, healthcare, anyone with a sovereignty mandate.' },
-
-      { type: 'callout', variant: 'tip', text: 'Switch routing mode any time from the model picker — top of the chat panel on every surface. Nothing is sticky.' },
-
-      { type: 'heading', level: 3, text: 'Want to drive a specific model yourself?' },
-      { type: 'paragraph', text: 'BYOK (bring your own key) gives you both — the three orchestration modes plus the ability to pick a single model and skip routing entirely. Useful when you have a strong preference, a strict budget, or you are testing a specific model. Paste your provider key in settings, pick the model from the picker, done. Full provider matrix lives in the Reference section.' },
-
+      { type: 'paragraph', text: 'Here\'s a relief: you don\'t pick the AI. Ava chooses the right one for each step automatically, so you get good results without having to think about it.' },
+      { type: 'paragraph', text: 'The one thing you can choose is a routing style — and the default suits almost everyone. You only need the others for a specific reason.' },
+      { type: 'heading', level: 3, text: 'The three styles' },
+      { type: 'list', ordered: false, items: [
+        'Maestro — the default. Steady, reliable, predictable. Not sure? This is the one.',
+        'Supernova — for heavy, multi-step work, where it pays to put a different specialist on each part of the job.',
+        'Aurora — for when your data must stay in the EU (public sector, healthcare, strict privacy). Runs entirely on European, open-weight AI.',
+      ]},
+      { type: 'paragraph', text: 'Switch any time from the model picker at the top of the chat. Nothing\'s locked in.' },
+      { type: 'callout', variant: 'tip', text: 'Want to drive one specific model yourself? You can — open "Show me the details".' },
+    ],
+    deeper: [
+      { type: 'heading', level: 3, text: 'What\'s actually in each style' },
+      { type: 'paragraph', text: 'Maestro — one conductor (Qwen 3.6 Plus) handles every step. Production-tuned, proven, predictable cost.' },
+      { type: 'paragraph', text: 'Supernova — a frontier coordinator (DeepSeek V4 Pro, 1.6T parameters / 49B active, 1M context) hands each subtask to a specialist: V4 Flash for high-volume builds, Qwen 3.6 Plus as fallback, Qwen Omni for vision.' },
+      { type: 'paragraph', text: 'Aurora — Mistral only, in three tiers: Mistral Large 3 (coordinator + heavy specialists), Mistral Medium 3.5 (128B dense, 256K context, native vision, modified-MIT open weights, 77.6% SWE-Bench Verified) for Builder + mid-tier + vision + long-form, and Mistral Small 4 at the intent gate. Open weights end to end, never leaves EU infrastructure.' },
+      { type: 'heading', level: 3, text: 'Bring your own model (BYOK)' },
+      { type: 'paragraph', text: 'Prefer to use your own AI account? Paste your provider key in settings and you get both — the three routing styles, plus the option to pick a single model and skip routing entirely. Useful for a strong preference, a strict budget, or testing a specific model. The full provider list is in the Reference section.' },
       { type: 'facts', kind: 'providers', filter: { kind: 'managed' } },
     ],
   },
@@ -181,7 +188,7 @@ export const START_PAGES: DocPage[] = [
       { type: 'table', headers: ['Word', 'What it actually means'], rows: [
         ['Agent', 'An AI that can take actions for you — read a file, run a command, search the web — not just chat. Ava is an agent: she does things, with your say-so.'],
         ['Model', 'The actual AI brain doing the thinking (Qwen, DeepSeek, Mistral, and others). Different models have different strengths. You normally never pick one — Ava does.'],
-        ['Mode', 'The mindset Ava is in. Like a colleague switching hats: builder, teacher, planner, friend. You pick the mode; it changes how she behaves. There are six.'],
+        ['Mode', 'The mindset Ava is in. Like a colleague switching hats: builder, writer, teacher, planner, friend. You pick the mode; it changes how she behaves. There are seven.'],
         ['Persona / specialist', 'Helper roles Ava runs behind the scenes for harder jobs — an explorer, a planner, a fact-checker. Think of a small expert team. You never talk to them directly; Ava coordinates them.'],
         ['Routing', "Ava deciding which model to use for each step so you get good answers without overpaying. It happens automatically — \"routing mode\" just picks the overall strategy."],
         ['Tool', 'A specific action Ava can take — read a file, run a search, send an email. A "tool call" is her using one. She asks permission before anything risky.'],

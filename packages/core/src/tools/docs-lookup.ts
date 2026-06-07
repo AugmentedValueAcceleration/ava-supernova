@@ -98,10 +98,16 @@ export class DocsLookupTool implements Tool {
     return { success: true, output: top.map(m => this.pageToText(m.page)).join('\n\n---\n\n') };
   }
 
-  /** Flatten a DocPage's blocks into plain searchable/printable text. */
+  /** Flatten a DocPage's blocks into plain searchable/printable text. Includes
+   *  the optional `deeper` ("Show me the details") layer — that's where the
+   *  technical depth now lives, so it must be searchable and returnable too. */
   private pageToText(page: DocPage): string {
     const lines: string[] = [`## ${page.title}`];
     for (const b of page.body) lines.push(this.blockToText(b));
+    if (page.deeper && page.deeper.length > 0) {
+      lines.push('### Details');
+      for (const b of page.deeper) lines.push(this.blockToText(b));
+    }
     return lines.filter(Boolean).join('\n\n');
   }
 
