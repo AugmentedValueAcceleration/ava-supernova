@@ -11,11 +11,14 @@ export const CONCEPT_PAGES: DocPage[] = [
     order: 10,
     section: 'models',
     body: [
-      { type: 'paragraph', text: "Here is the short version: you never have to pick which AI model to use. Ava does it for you, choosing the best tool for each part of a job — the way a good manager hands the right task to the right person. The rest of this page explains how that works under the hood. You can ignore almost all of it and just enjoy that it happens." },
-      { type: 'paragraph', text: 'Ava is a thinking system, not a model menu. You pick one of three orchestration strategies (an "orchestration strategy" is just a named recipe for which AI models get used) — Maestro, Supernova, or Aurora — and Ava routes each subtask to the model best suited for it. ("Routing" means sending each piece of work to the model that handles it best.) Coordinator-tier reasoning where it matters, flash-tier specialists for high-volume work. (The "coordinator" is the lead model that thinks and plans; "specialists" are faster, cheaper models that do the bulk grunt work.) Same persona pipeline runs on all three; what changes is the underlying fleet.' },
-
-      { type: 'callout', variant: 'tip', text: "You don't need to read the table below to use Ava — it's here for the curious. The one thing worth knowing: Maestro is live on every plan today, and it is a good default." },
-
+      { type: 'paragraph', text: "Here is the short version: you never have to pick which AI model to use. Ava does it for you, choosing the best tool for each part of a job — the way a good manager hands the right task to the right person." },
+      { type: 'paragraph', text: 'You pick one of three styles — Maestro, Supernova, or Aurora — and Ava sends each piece of work to the model that handles it best. Maestro is the default, it is live on every plan, and it is a good choice for almost everyone.' },
+      { type: 'heading', level: 3, text: 'Why bother routing?' },
+      { type: 'paragraph', text: 'Putting the right model on each step costs less than running everything on one big expensive model — and gives better results, because each model does what it is best at. You get steady cost and high quality without ever needing to know which model is which.' },
+      { type: 'callout', variant: 'note', text: 'All three styles work on platform credits and on your own keys. With your own key you can also skip routing and drive a single model directly. The full fleet breakdown is under "Show me the details".' },
+    ],
+    deeper: [
+      { type: 'callout', variant: 'note', text: 'The "B" numbers below are billions of parameters — roughly how big a model\'s brain is; bigger usually means smarter but slower and pricier. This is the under-the-hood detail; you never need it to use Ava.' },
       { type: 'heading', level: 3, text: 'Side-by-side' },
       { type: 'table',
         headers: ['', 'Maestro', 'Supernova', 'Aurora'],
@@ -34,22 +37,12 @@ export const CONCEPT_PAGES: DocPage[] = [
           ['Best for',        'Daily work, predictable cost', 'Heavy multi-step work, frontier coordinator on every plan', 'GDPR-strict, public-sector, sovereign EU stacks'],
         ],
       },
-
-      { type: 'callout', variant: 'note', text: 'The next three sections name specific AI models and their sizes (the "B" numbers are billions of parameters — roughly, how big the model\'s brain is; bigger usually means smarter but slower and pricier). This is power-user detail. You can skip straight to "Why orchestration?" if you just want the gist.' },
-
       { type: 'heading', level: 3, text: 'Maestro' },
       { type: 'paragraph', text: 'Tier-differentiated Qwen routing, light footprint. Qwen 3.6 Plus owns the coordinator, Builder, planning, security, brainstorm, and long-context work — the slots where its 1M-context hybrid linear-attention pays off. Qwen 3.5 Flash handles chat, image-gen orchestration, and the upstream intent gate, where its $0.07/$0.26 pricing and faster TTFT win on the bulk of low-depth token volume. Qwen 3.5 Omni Plus owns vision input (Qwen 3.6 Plus has no native vision). Qwen 3.5 Plus carries cost-sensitive long-form work. Falls through the priority ladder Qwen 3.6 Plus → 3.5 Plus → 3.5 Flash if the primary coordinator is unavailable.' },
-
       { type: 'heading', level: 3, text: 'Supernova' },
       { type: 'paragraph', text: 'Polyglot ensemble. DeepSeek V4 Pro coordinates and dispatches each subtask to its best-suited specialist: Qwen 3.6 Plus runs every Builder spawn, V4 Flash handles chat plus the mid-tier review/audit personas, Qwen 3.5 Flash absorbs the light-tier classifier work, Qwen 3.5 Omni Plus owns vision input, Qwen 3.5 Omni Flash orchestrates image-gen tool calls, Qwen 3.5 Plus carries the cost-sensitive long-form Content Writer persona. Frontier reasoning where it matters, flash-tier economics on the bulk of token volume.' },
-
       { type: 'heading', level: 3, text: 'Aurora' },
       { type: 'paragraph', text: 'European AI stack — sovereign by design. Mistral-only routing in three tiers: Mistral Large 3 (675B/41B-active sparse MoE) handles the coordinator role plus the heavy specialists that need depth — Researcher, Challenger, CVE Researcher, Ideator, Fact Checker, Security Verifier — and the long-context grunt where its sparse-MoE efficiency wins. Mistral Medium 3.5 — the merged flagship released April 2026, 128B dense, 256K context, vision encoder trained from scratch, modified-MIT open weights, 77.6% SWE-Bench Verified — runs the actual working tier: Builder spawns, mid-tier specialists (Architect, Verifier, Sequencer, Tutor, Reporter), vision input, and long-form writing. Mistral Small 4 expanded from a single role at the intent gate to also handling chat and image-gen orchestration — its $0.15/$0.60 pricing and configurable reasoning earn their keep on the high-volume low-depth routes. Open weights end to end, never leaves EU infrastructure. Aurora deliberately does not silently cross-route to a non-Mistral model when one is unavailable; the router surfaces an error instead — that is what makes it "Aurora" rather than a Mistral-flavoured Maestro.' },
-
-      { type: 'heading', level: 3, text: 'Why orchestration?' },
-      { type: 'paragraph', text: 'Routing each subtask to the right specialist costs less than running every step on a frontier model — and produces better results, because each model is used for what it is best at. Coordinator tokens get spent on reasoning and planning; build-tier tokens flow to flash-tier models. Cost stays predictable, quality stays high, and you do not need to know which model to pick — Ava picks for each step.' },
-
-      { type: 'callout', variant: 'note', text: 'All three modes are universally available — on platform credits and on your own keys. BYOK adds the option to bypass orchestration and drive a single model directly when you want that level of control.' },
     ],
   },
   {
@@ -64,7 +57,7 @@ export const CONCEPT_PAGES: DocPage[] = [
       { type: 'paragraph', text: 'Ava bills in credits, not raw tokens. (A "token" is the tiny chunk of text — roughly a few letters — that AI models read and write in; most services charge you per token, which is hard to predict.) One credit covers one unit of work — a chat turn, a persona spawn (one helper doing a piece of the task), an image generation. Decoupling from token-level metering means you do not need to know which model is running to know what an action will cost. The same chat turn costs the same whether Maestro routes it to Qwen 3.6 Plus or Supernova routes it to V4 Pro.' },
 
       { type: 'heading', level: 3, text: 'Plans' },
-      { type: 'paragraph', text: 'Every plan has access to every feature — model access, Creative Studio, all six modes, the full persona orchestration. Higher tiers buy more credits and a higher rate-limit ceiling, not unlocked features.' },
+      { type: 'paragraph', text: 'Every plan has access to every feature — model access, Creative Studio, all seven modes, the full persona orchestration. Higher tiers buy more credits and a higher rate-limit ceiling, not unlocked features.' },
       { type: 'list', ordered: false, items: [
         'Free — $0/month. 300 credits. 20 requests/minute rate limit. No card required.',
         'Pro — $19/month. 5,000 credits. 60 requests/minute.',
@@ -116,7 +109,7 @@ export const CONCEPT_PAGES: DocPage[] = [
   },
   {
     id: 'concepts.modes',
-    title: 'The six modes',
+    title: "Modes — Ava's states of mind",
     audience: ['both'],
     surfaces: ['web', 'ext', 'ide'],
     order: 10,
@@ -172,7 +165,6 @@ export const CONCEPT_PAGES: DocPage[] = [
     section: 'concepts',
     body: [
       { type: 'paragraph', text: "Ava keeps three kinds of notes for you, and it's easy to mix them up. The quick way to remember: memory is what she knows about you, tasks are what you still need to do, and the journal is a diary of how things went. Here is when to use which." },
-      { type: 'paragraph', text: 'Three things that sound similar and are not: memory, tasks, and journal. Here is when to use which.' },
       { type: 'list', ordered: false, items: [
         'Memory — persistent facts. Preferences, decisions, patterns. Asked about repeatedly, rarely created manually.',
         'Tasks — things to do. Action items with due dates and status. You tick them off when done.',
@@ -183,7 +175,7 @@ export const CONCEPT_PAGES: DocPage[] = [
   },
   {
     id: 'concepts.permissions',
-    title: 'Permissions — three modes, ten categories',
+    title: 'Permissions — your safety dial',
     audience: ['both'],
     surfaces: ['web', 'ext', 'ide'],
     order: 40,
@@ -198,7 +190,7 @@ export const CONCEPT_PAGES: DocPage[] = [
   },
   {
     id: 'concepts.interjection',
-    title: 'Interjection and hard-stop',
+    title: 'Steering and stopping Ava',
     audience: ['both'],
     surfaces: ['web', 'ext', 'ide'],
     order: 50,
@@ -221,6 +213,7 @@ export const CONCEPT_PAGES: DocPage[] = [
     title: 'Desktop personas',
     audience: ['power'],
     surfaces: ['web', 'ext', 'ide'],
+    requires: ['desktop_automation'],
     order: 200,
     section: 'concepts',
     body: [
@@ -245,6 +238,7 @@ export const CONCEPT_PAGES: DocPage[] = [
     title: 'Desktop safety ontology',
     audience: ['power'],
     surfaces: ['web', 'ext', 'ide'],
+    requires: ['desktop_automation'],
     order: 210,
     section: 'concepts',
     body: [
@@ -271,6 +265,7 @@ export const CONCEPT_PAGES: DocPage[] = [
     title: 'Desktop grounding hierarchy (Preview)',
     audience: ['power'],
     surfaces: ['web', 'ide'],
+    requires: ['desktop_automation'],
     order: 220,
     section: 'concepts',
     body: [
@@ -292,6 +287,7 @@ export const CONCEPT_PAGES: DocPage[] = [
     title: 'Desktop kill switches (Preview)',
     audience: ['both'],
     surfaces: ['web', 'ide'],
+    requires: ['desktop_automation'],
     order: 230,
     section: 'concepts',
     body: [
