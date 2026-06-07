@@ -125,12 +125,12 @@ export function cacheHitMultiplier(model: string | null | undefined): number {
  *  in sync; web is the authoritative billing surface and core's meter
  *  dual-writes for dataset audit. Default 1.0 for unlisted models. */
 export const MODEL_COST_MULTIPLIER: Record<string, number> = {
-  // V4 Pro: 6.0 → 3.75. Supernova orchestration / planning / security /
-  // brainstorm / long_context all coordinate on V4 Pro — the workloads
-  // where its MoE coordinator pattern actually pays off. Supernova chat
-  // moved off V4 Pro on 2026-04-30 (was overkill — see V4 Flash entry).
-  'deepseek-v4-pro':            3.75,
-  'deepseek-v4-pro-platform':   3.75,
+  // V4 Pro: 3.75 → 0.9. The 3.75× was calibrated against a wrong, 4×-inflated
+  // price ($1.74/$3.48); the real price is $0.435/$0.87, so the multiplier
+  // scales down ~4× to restore the 40% margin. V4 Pro is the Supernova
+  // coordinator — this stops a ~4× overcharge on every orchestration.
+  'deepseek-v4-pro':            0.9,
+  'deepseek-v4-pro-platform':   0.9,
   // V4 Flash: explicit 0.5× (was falling through to default 1.0×, which
   // would over-charge it relative to its $0.14/$0.28 per-million rate).
   // Now Supernova's chat tier — fast, MIT open-weight, 13B active params,

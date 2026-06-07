@@ -26,7 +26,7 @@ interface ProviderRate {
  *  Last verified: 2026-05-31 (provider /models + official pricing pages). */
 const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
   deepseek: {
-    'deepseek-v4-pro':   { inputPerMillion: 1.74,  outputPerMillion: 3.48 },
+    'deepseek-v4-pro':   { inputPerMillion: 0.435, outputPerMillion: 0.87 },
     'deepseek-v4-flash': { inputPerMillion: 0.14,  outputPerMillion: 0.28 },
   },
   kimi: {

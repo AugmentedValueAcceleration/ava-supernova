@@ -24,7 +24,11 @@ export const DEEPSEEK_MODELS: ModelDefinition[] = [
     // button + show a "text only" badge in the picker.
     supportsVision: false,
     desktopCapable: true, // V4 Pro = Supernova's coordinator. Frontier tool-call reliability.
-    pricing: { inputPerMillion: 1.74, outputPerMillion: 3.48 },
+    // Artificial Analysis Intelligence Index 52 (median 31). Price verified
+    // against api.deepseek.com + Artificial Analysis: $0.435/$0.87 — the prior
+    // $1.74/$3.48 was 4× too high, which over-charged the Supernova coordinator
+    // on every turn via the credit multiplier.
+    pricing: { inputPerMillion: 0.435, outputPerMillion: 0.87 },
   },
   {
     id: 'deepseek-v4-flash',

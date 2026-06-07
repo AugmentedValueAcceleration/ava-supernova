@@ -43,7 +43,7 @@ export const PROVIDERS: ProviderFact[] = [
     kind: 'orchestration',
     notes: 'Best-of-breed routing — the coordinator picks the right specialist for each subtask. Frontier reasoning where it matters, flash-tier cost where it does not.',
     models: [
-      { id: 'deepseek-v4-pro-platform', displayName: 'DeepSeek V4 Pro — coordinator + planning, chat, long-context, security, brainstorm; Researcher, CVE Researcher, Ideator personas', inputPricePerM: 1.74, outputPricePerM: 3.48, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'deepseek-v4-pro-platform', displayName: 'DeepSeek V4 Pro — coordinator + planning, chat, long-context, security, brainstorm; Researcher, CVE Researcher, Ideator personas', inputPricePerM: 0.435, outputPricePerM: 0.87, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
       { id: 'qwen3.6-plus', displayName: 'Qwen 3.6 Plus — Builder + coding, image-gen; Architect persona', inputPricePerM: 0.29, outputPricePerM: 1.70, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'deepseek-v4-flash-platform', displayName: 'DeepSeek V4 Flash — Teach route; Code Reviewer, Fact Checker, Quiz Master, Recon, Scanner, Curriculum Architect, Tutor, Curator, Explorer, Refiner, Security Verifier/Reporter personas', inputPricePerM: 0.14, outputPricePerM: 0.28, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
       { id: 'qwen3.5-plus', displayName: 'Qwen 3.5 Plus — Content Writer persona (cost-sensitive long-output writing)', inputPricePerM: 0.20, outputPricePerM: 1.20, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
@@ -93,7 +93,7 @@ export const PROVIDERS: ProviderFact[] = [
     kind: 'managed',
     notes: 'Powers Supernova routing mode. V4 Pro coordinates the persona pipeline; V4 Flash handles high-volume builds and review. Both open-weight MIT, 1M context, dual thinking/non-thinking modes.',
     models: [
-      { id: 'deepseek-v4-pro-platform', displayName: 'DeepSeek V4 Pro', inputPricePerM: 1.74, outputPricePerM: 3.48, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'deepseek-v4-pro-platform', displayName: 'DeepSeek V4 Pro', inputPricePerM: 0.435, outputPricePerM: 0.87, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
       { id: 'deepseek-v4-flash-platform', displayName: 'DeepSeek V4 Flash', inputPricePerM: 0.14, outputPricePerM: 0.28, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
     ],
   },
@@ -125,7 +125,7 @@ export const PROVIDERS: ProviderFact[] = [
     kind: 'byok',
     notes: 'V4 launched 2026-04-24 — open-weight MIT, 1M context, dual thinking modes. Legacy V3.2 IDs are auto-routed to V4 Flash and retire 2026-07-24.',
     models: [
-      { id: 'deepseek-v4-pro', displayName: 'DeepSeek V4 Pro', inputPricePerM: 1.74, outputPricePerM: 3.48, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'deepseek-v4-pro', displayName: 'DeepSeek V4 Pro', inputPricePerM: 0.435, outputPricePerM: 0.87, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
       { id: 'deepseek-v4-flash', displayName: 'DeepSeek V4 Flash', inputPricePerM: 0.14, outputPricePerM: 0.28, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
     ],
   },

@@ -95,7 +95,8 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsThinking: true,
     supportsVision: false,
     desktopCapable: true, // Supernova coordinator. Frontier tool-call reliability.
-    pricing: { inputPerMillion: 1.74, outputPerMillion: 3.48 },
+    // Corrected from $1.74/$3.48 (4× too high) — real DeepSeek API rate.
+    pricing: { inputPerMillion: 0.435, outputPerMillion: 0.87 },
   },
   // DeepSeek V4 Flash (managed) — admin-gated. 284B / 13B active. 1M ctx.
   // Not desktop-capable: Flash bracket on the V4 line, same caution as

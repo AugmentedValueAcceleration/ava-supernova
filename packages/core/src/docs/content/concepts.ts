@@ -90,7 +90,7 @@ export const CONCEPT_PAGES: DocPage[] = [
         '1.2× — Qwen 3.5 Plus, Qwen 3.5 Omni Plus.',
         '1.25× — Mistral Large 3 (Aurora\'s heavy reserve).',
         '1.5× — Qwen 3.6 Plus (Maestro coordinator).',
-        '6.0× — DeepSeek V4 Pro (Supernova coordinator + heavy specialists). Recalibrated from 5.0× to restore margin parity at the published V4 Pro rate.',
+        '0.9× — DeepSeek V4 Pro (Supernova coordinator), at its corrected $0.435/$0.87 rate (was over-charged against a 4×-inflated price).',
       ]},
       { type: 'callout', variant: 'note', text: 'Anthropic models (Claude Opus / Sonnet / Haiku) skip credit billing entirely — they are BYOK only and you pay Anthropic directly. Same for any other BYOK provider when used with your own key.' },
 
