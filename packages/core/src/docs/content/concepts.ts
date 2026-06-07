@@ -83,14 +83,18 @@ export const CONCEPT_PAGES: DocPage[] = [
 
       { type: 'heading', level: 3, text: 'Per-model multipliers' },
       { type: 'paragraph', text: "This bit is for the curious — you don't need it to use Ava. A multiplier just scales the credit cost up or down depending on how expensive the model behind an action is, so heavier models cost a bit more. (\"Net margin\" is the slice the project keeps after paying its own bills — we aim low so the value flows back to you.)" },
-      { type: 'paragraph', text: 'Heavier models multiply the action cost so credits track real spend instead of a flat bracket. Calibrated for ~55% net margin.' },
+      { type: 'paragraph', text: 'Each model carries a multiplier that scales an action\'s cost to track what that model actually costs to run — lighter models cost less than the flat bracket, heavier ones more. Calibrated for ~40% net margin (rebalanced down from 55% so more of the value flows back to you).' },
       { type: 'list', ordered: false, items: [
-        '1.15× — Mistral Small 4 (Aurora\'s high-volume workhorse), at its real $0.15/$0.60 rate.',
-        '1.0× — Qwen 3.5 Flash, Qwen Omni Flash, DeepSeek V4 Flash, MiniMax. Base rate.',
-        '1.2× — Qwen 3.5 Plus, Qwen 3.5 Omni Plus.',
+        '4.25× — Mistral Medium 3.5 (Aurora\'s lead coordinator), at its $1.50/$7.50 frontier-flagship rate.',
         '1.25× — Mistral Large 3 (Aurora\'s heavy reserve).',
-        '1.5× — Qwen 3.6 Plus (Maestro coordinator).',
+        '1.15× — Mistral Small 4 (Aurora\'s high-volume workhorse), at its real $0.15/$0.60 rate.',
         '0.9× — DeepSeek V4 Pro (Supernova coordinator), at its corrected $0.435/$0.87 rate (was over-charged against a 4×-inflated price).',
+        '0.7× — Qwen 3.6 Plus (Maestro coordinator).',
+        '0.6× — Qwen 3.5 Plus, Qwen 3.5 Omni Plus.',
+        '0.5× — DeepSeek V4 Flash.',
+        '0.4× — Qwen 3.5 Omni Flash.',
+        '0.3× — Qwen 3.5 Flash.',
+        '1.0× — MiniMax and any other model without a listed multiplier. Base rate.',
       ]},
       { type: 'callout', variant: 'note', text: 'Anthropic models (Claude Opus / Sonnet / Haiku) skip credit billing entirely — they are BYOK only and you pay Anthropic directly. Same for any other BYOK provider when used with your own key.' },
 
