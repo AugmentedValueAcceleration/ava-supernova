@@ -18,9 +18,8 @@ function pageKey(pageId: string): string {
   return `${pageId}#title`;
 }
 
-/** Every translatable [key, englishText] pair in a block. */
-function blockEntries(pageId: string, idx: number, b: DocBlock): Array<[string, string]> {
-  const base = `${pageId}#${idx}`;
+/** Every translatable [key, englishText] pair in a block, under a key prefix. */
+function blockEntries(base: string, b: DocBlock): Array<[string, string]> {
   switch (b.type) {
     case 'paragraph': return [[`${base}#p`, b.text]];
     case 'heading': return [[`${base}#h`, b.text]];
@@ -38,8 +37,7 @@ function blockEntries(pageId: string, idx: number, b: DocBlock): Array<[string, 
 }
 
 /** Apply a translation dict to one block, English fallback per field. */
-function applyBlock(pageId: string, idx: number, b: DocBlock, dict: Record<string, string>): DocBlock {
-  const base = `${pageId}#${idx}`;
+function applyBlock(base: string, b: DocBlock, dict: Record<string, string>): DocBlock {
   const t = (k: string, fallback: string): string => dict[k] ?? fallback;
   switch (b.type) {
     case 'paragraph': return { ...b, text: t(`${base}#p`, b.text) };
@@ -64,7 +62,8 @@ export function docTranslatableEntries(pages: DocPage[]): Array<[string, string]
   const out: Array<[string, string]> = [];
   for (const p of pages) {
     out.push([pageKey(p.id), p.title]);
-    p.body.forEach((b, i) => { for (const e of blockEntries(p.id, i, b)) out.push(e); });
+    p.body.forEach((b, i) => { for (const e of blockEntries(`${p.id}#${i}`, b)) out.push(e); });
+    p.deeper?.forEach((b, i) => { for (const e of blockEntries(`${p.id}#deeper#${i}`, b)) out.push(e); });
   }
   return out;
 }
@@ -86,6 +85,7 @@ export function localizePages(pages: DocPage[], locale: string | undefined): Doc
   return pages.map(p => ({
     ...p,
     title: dict[pageKey(p.id)] ?? p.title,
-    body: p.body.map((b, i) => applyBlock(p.id, i, b, dict)),
+    body: p.body.map((b, i) => applyBlock(`${p.id}#${i}`, b, dict)),
+    deeper: p.deeper?.map((b, i) => applyBlock(`${p.id}#deeper#${i}`, b, dict)),
   }));
 }
