@@ -79,7 +79,7 @@ const chatStrings: Record<string, string> = {
   'error.unknown': 'Error',
   'error.continue': 'Continue',
   'feedback.didnt_understand': "Didn't understand me",
-  'input.mode.code': 'Work',
+  'input.mode.code': 'Code',
 };
 
 const translations: Record<string, Record<string, string>> = {
