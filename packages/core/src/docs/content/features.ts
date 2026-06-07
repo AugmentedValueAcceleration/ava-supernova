@@ -21,7 +21,7 @@ export const FEATURE_PAGES: DocPage[] = [
     id: 'features.knowledge-packs',
     title: 'Knowledge packs',
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide', 'companion'],
+    surfaces: ['web', 'ext', 'ide'],
     order: 20,
     section: 'features',
     body: [
@@ -111,7 +111,7 @@ export const FEATURE_PAGES: DocPage[] = [
     id: 'features.workflows',
     title: 'Workflows',
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide', 'companion'],
+    surfaces: ['web', 'ext', 'ide'],
     order: 80,
     section: 'features',
     body: [
