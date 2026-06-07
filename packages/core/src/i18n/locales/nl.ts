@@ -420,7 +420,7 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.connect_or_byok': 'Verbind je account of voeg een BYOK-sleutel toe om te beginnen',
 
   // ── Chat Modes ──────────────────────────────────────────────────────────
-  'mode.work': 'Werk',
+  'mode.work': 'Code',
   'mode.plan': 'Plan',
   'mode.chat': 'Chat',
   'mode.teach': 'Leren',

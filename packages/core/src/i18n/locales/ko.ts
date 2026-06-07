@@ -420,7 +420,7 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.connect_or_byok': '계정을 연결하거나 BYOK 키를 추가하여 시작하세요',
 
   // ── Chat Modes ──────────────────────────────────────────────────────────
-  'mode.work': '작업',
+  'mode.work': '코드',
   'mode.plan': '계획',
   'mode.chat': '채팅',
   'mode.teach': '교육',

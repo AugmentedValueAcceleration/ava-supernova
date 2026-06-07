@@ -420,7 +420,7 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.connect_or_byok': 'Подключите аккаунт или добавьте BYOK-ключ, чтобы начать',
 
   // ── Chat Modes ──────────────────────────────────────────────────────────
-  'mode.work': 'Работа',
+  'mode.work': 'Код',
   'mode.plan': 'План',
   'mode.chat': 'Чат',
   'mode.teach': 'Обучение',

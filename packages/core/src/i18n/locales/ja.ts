@@ -420,7 +420,7 @@ export const jaStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.connect_or_byok': 'アカウントを接続するか BYOK キーを追加して始めましょう',
 
   // ── Chat Modes ──────────────────────────────────────────────────────────
-  'mode.work': 'ワーク',
+  'mode.work': 'コード',
   'mode.plan': 'プラン',
   'mode.chat': 'チャット',
   'mode.teach': 'ティーチ',

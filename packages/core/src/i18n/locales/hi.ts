@@ -420,7 +420,7 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.connect_or_byok': 'शुरू करने के लिए अपना खाता कनेक्ट करें या BYOK कुंजी जोड़ें',
 
   // ── Chat Modes ──────────────────────────────────────────────────────────
-  'mode.work': 'वर्क',
+  'mode.work': 'कोड',
   'mode.plan': 'प्लान',
   'mode.chat': 'चैट',
   'mode.teach': 'टीच',

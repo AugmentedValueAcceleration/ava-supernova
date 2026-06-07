@@ -424,7 +424,7 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.connect_or_byok': 'Połącz swoje konto lub dodaj klucz BYOK, aby rozpocząć',
 
   // ── Chat Modes ──────────────────────────────────────────────────────────
-  'mode.work': 'Praca',
+  'mode.work': 'Kod',
   'mode.plan': 'Tryb planowania',
   'mode.chat': 'Czat',
   'mode.teach': 'Nauka',

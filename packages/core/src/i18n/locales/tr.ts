@@ -420,7 +420,7 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.connect_or_byok': 'Başlamak için hesabınızı bağlayın veya bir BYOK anahtarı ekleyin',
 
   // ── Chat Modes ──────────────────────────────────────────────────────────
-  'mode.work': 'Çalışma',
+  'mode.work': 'Kod',
   'mode.plan': 'Planlama',
   'mode.chat': 'Sohbet',
   'mode.teach': 'Öğret',

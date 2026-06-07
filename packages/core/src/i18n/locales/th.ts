@@ -420,7 +420,7 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.connect_or_byok': 'เชื่อมต่อบัญชีของคุณหรือเพิ่มคีย์ BYOK เพื่อเริ่มใช้งาน',
 
   // ── Chat Modes ──────────────────────────────────────────────────────────
-  'mode.work': 'ทำงาน',
+  'mode.work': 'โค้ด',
   'mode.plan': 'วางแผน',
   'mode.chat': 'แชท',
   'mode.teach': 'สอน',

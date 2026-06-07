@@ -420,7 +420,7 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.connect_or_byok': 'Kết nối tài khoản hoặc thêm khóa BYOK để bắt đầu',
 
   // ── Chat Modes ──────────────────────────────────────────────────────────
-  'mode.work': 'Làm việc',
+  'mode.work': 'Mã',
   'mode.plan': 'Kế hoạch',
   'mode.chat': 'Trò chuyện',
   'mode.teach': 'Dạy học',

@@ -420,7 +420,7 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.connect_or_byok': '連結帳戶或新增 BYOK 金鑰以開始使用',
 
   // ── 聊天模式 ──────────────────────────────────────────────────────────────
-  'mode.work': '工作',
+  'mode.work': '程式碼',
   'mode.plan': '規劃',
   'mode.chat': '聊天',
   'mode.teach': '教學',

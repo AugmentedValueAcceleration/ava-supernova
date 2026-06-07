@@ -491,7 +491,7 @@ export const enStrings = {
   'dash.chat.inactive_no_cloud': 'Connect your platform account to use Cloud mode.',
 
   // ── Chat Modes ──────────────────────────────────────────────────────────
-  'mode.work': 'Work',
+  'mode.work': 'Code',
   'mode.plan': 'Plan',
   'mode.chat': 'Chat',
   'mode.teach': 'Teach',

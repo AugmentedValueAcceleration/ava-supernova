@@ -473,7 +473,7 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.inactive_no_cloud': 'Conecta tu cuenta de plataforma para usar el modo Nube.',
 
   // ── Chat Modes ──────────────────────────────────────────────────────────
-  'mode.work': 'Trabajo',
+  'mode.work': 'C\u00f3digo',
   'mode.plan': 'Planificación',
   'mode.chat': 'Chat',
   'mode.teach': 'Ense\u00f1ar',

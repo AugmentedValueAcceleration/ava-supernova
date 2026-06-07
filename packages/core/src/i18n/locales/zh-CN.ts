@@ -424,7 +424,7 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'dash.chat.connect_or_byok': '连接你的账户或添加 BYOK 密钥以开始使用',
 
   // ── Chat Modes ──────────────────────────────────────────────────────────
-  'mode.work': '工作',
+  'mode.work': '编码',
   'mode.plan': '规划',
   'mode.chat': '聊天',
   'mode.teach': '教学',
