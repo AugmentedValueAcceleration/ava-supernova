@@ -154,12 +154,17 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
   'qwen3.5-flash':              0.3,
   'qwen-flash':                 0.3,
   'qwen3.5-omni-flash':         0.4,
-  // Mistral Small 4 stays sub-1× — already cheaper than the anchor and
-  // sits at the intent gate where short calls dominate.
-  'mistral-small-4':            0.6,
-  'mistral-small-4-platform':   0.6,
-  // Mistral Large 3: 1.4 → 1.25. Aurora coordinator-direct chat used to
-  // charge 7 credits/turn (~59% margin); now 5 credits (~40%).
+  // Mistral Small 4: 0.6 → 1.15. The old 0.6× was calibrated against a wrong,
+  // too-low price ($0.10/$0.30); the real price is $0.15/$0.60 (~1.9× higher
+  // blended), so the multiplier scales ~1.9× to restore the 40% margin target.
+  // Sits below Large 3 (1.25×, pricier) as it should. Small 4 is now Aurora's
+  // high-volume workhorse, so this drives a lot of turns — calibrating it
+  // right matters.
+  'mistral-small-4':            1.15,
+  'mistral-small-4-platform':   1.15,
+  // Mistral Large 3: 1.25× — cost-accurate at $0.50/$1.50 (price unchanged).
+  // Now Aurora's heavy reserve/fallback, not the coordinator, so it sees
+  // far less traffic.
   'mistral-large-3':            1.25,
   'mistral-large-3-platform':   1.25,
   // Mistral Medium 3.5: 3.0 → 4.25. The ONE multiplier that goes UP at

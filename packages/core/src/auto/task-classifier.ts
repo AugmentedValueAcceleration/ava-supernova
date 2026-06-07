@@ -31,8 +31,9 @@ const MODEL_ALIASES: Record<string, string> = {
   'opus 4.6': 'claude-opus-4-6',
   'sonnet': 'claude-sonnet-4-6',
   'haiku': 'claude-haiku-4-5-20251001',
-  // Mistral — 'mistral-large-3' canonical id maps to mistral-large-2512 at the API boundary.
-  'mistral': 'mistral-large-3',
+  // Mistral — "use mistral" should give the flagship: Medium 3.5 is the
+  // current frontier model (Index 39), above Large 3 (23).
+  'mistral': 'mistral-medium-3.5',
   'codestral': 'codestral-latest',
 };
 

@@ -57,8 +57,9 @@ export const PROVIDERS: ProviderFact[] = [
     kind: 'orchestration',
     notes: 'Mistral-only routing. Every call lands on a Mistral model — Aurora deployments never leave European infrastructure. For GDPR-strict deployments, AI Act compliance, sovereignty mandates. Apache-2.0 open weights end-to-end. No cross-routing fallback — that is the EU-stack guarantee.',
     models: [
-      { id: 'mistral-large-3-platform', displayName: 'Mistral Large 3 — coordinator + planning, chat, long-context, security, brainstorm; Researcher, Challenger, Fact Checker, CVE Researcher, Security Verifier, Ideator personas', inputPricePerM: 0.50, outputPricePerM: 1.50, contextWindow: 262_000, capabilities: ['tools', 'thinking', 'streaming'] },
-      { id: 'mistral-small-4-platform', displayName: 'Mistral Small 4 — Builder + coding, vision, image-gen, teach; intent gate; Architect, Verifier, Sequencer, Curriculum Architect, Content Writer, Quiz Master, Tutor, Recon, Scanner, Reporter, Explorer, Refiner personas', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'mistral-medium-3.5-platform', displayName: 'Mistral Medium 3.5 — lead seat: coordinator + Builder + vision + deep specialists (Researcher, Challenger, CVE Researcher, Fact Checker, Security Verifier, Architect, Tutor, Content Writer). Frontier flagship, AA Index 39', inputPricePerM: 1.50, outputPricePerM: 7.50, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'mistral-small-4-platform', displayName: 'Mistral Small 4 — high-volume workhorse: chat, intent gate, image-gen orchestration, long-context, brainstorm; light specialists (Verifier, Sequencer, Recon, Scanner, Reporter, Quiz Master). Cheaper and smarter than Large 3', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'mistral-large-3-platform', displayName: 'Mistral Large 3 — heavy reserve / fallback (675B/41B MoE, Apache-2.0, broad knowledge, multimodal; non-reasoning today)', inputPricePerM: 0.50, outputPricePerM: 1.50, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },
   // ── Platform-managed providers ────────────────────────────────────────────
@@ -100,10 +101,11 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'mistral-managed',
     name: 'Mistral AI (Aurora orchestration)',
     kind: 'managed',
-    notes: 'Powers Aurora routing mode. EU-based, Apache-2.0 open weights, never leaves European infrastructure. Large 3 coordinates; Small 4 handles specialists with vision support.',
+    notes: 'Powers Aurora routing mode. EU-based, Apache-2.0 open weights, never leaves European infrastructure. Medium 3.5 (frontier flagship) leads; Small 4 carries volume; Large 3 is the heavy reserve.',
     models: [
-      { id: 'mistral-large-3-platform', displayName: 'Mistral Large 3', inputPricePerM: 0.50, outputPricePerM: 1.50, contextWindow: 262_000, capabilities: ['tools', 'thinking', 'streaming'] },
+      { id: 'mistral-medium-3.5-platform', displayName: 'Mistral Medium 3.5', inputPricePerM: 1.50, outputPricePerM: 7.50, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'mistral-small-4-platform', displayName: 'Mistral Small 4', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'mistral-large-3-platform', displayName: 'Mistral Large 3', inputPricePerM: 0.50, outputPricePerM: 1.50, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
     ],
   },
   {
@@ -143,9 +145,9 @@ export const PROVIDERS: ProviderFact[] = [
     kind: 'byok',
     notes: 'Same models the Aurora routing mode uses — pick them directly with your own Mistral key, or let Aurora orchestrate. EU infrastructure, Apache-2.0 open weights.',
     models: [
-      { id: 'mistral-large-3', displayName: 'Mistral Large 3', inputPricePerM: 0.50, outputPricePerM: 1.50, contextWindow: 262_000, capabilities: ['tools', 'thinking', 'streaming'] },
-      { id: 'mistral-medium-3.5', displayName: 'Mistral Medium 3.5', inputPricePerM: 1.50, outputPricePerM: 7.50, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
-      { id: 'mistral-small-4', displayName: 'Mistral Small 4', inputPricePerM: 0.10, outputPricePerM: 0.30, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'mistral-medium-3.5', displayName: 'Mistral Medium 3.5 (frontier flagship)', inputPricePerM: 1.50, outputPricePerM: 7.50, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'mistral-small-4', displayName: 'Mistral Small 4', inputPricePerM: 0.15, outputPricePerM: 0.60, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'mistral-large-3', displayName: 'Mistral Large 3', inputPricePerM: 0.50, outputPricePerM: 1.50, contextWindow: 262_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'codestral-latest', displayName: 'Codestral', inputPricePerM: 0.30, outputPricePerM: 0.90, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
       { id: 'devstral-latest', displayName: 'Devstral 2', inputPricePerM: 0.40, outputPricePerM: 2.00, contextWindow: 262_000, capabilities: ['tools', 'streaming'] },
     ],
