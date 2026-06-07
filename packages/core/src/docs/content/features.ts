@@ -21,7 +21,7 @@ export const FEATURE_PAGES: DocPage[] = [
     id: 'features.knowledge-packs',
     title: 'Knowledge packs',
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 20,
     section: 'features',
     body: [
@@ -34,7 +34,7 @@ export const FEATURE_PAGES: DocPage[] = [
     id: 'features.creative-studio',
     title: 'Creative Studio',
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 30,
     section: 'features',
     body: [
@@ -55,7 +55,7 @@ export const FEATURE_PAGES: DocPage[] = [
     id: 'features.office-suite',
     title: 'Office Suite',
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 40,
     section: 'features',
     body: [
@@ -98,7 +98,7 @@ export const FEATURE_PAGES: DocPage[] = [
     id: 'features.daily-briefing',
     title: 'Daily briefing',
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 70,
     section: 'features',
     body: [
@@ -111,7 +111,7 @@ export const FEATURE_PAGES: DocPage[] = [
     id: 'features.workflows',
     title: 'Workflows',
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 80,
     section: 'features',
     body: [
@@ -124,7 +124,7 @@ export const FEATURE_PAGES: DocPage[] = [
     id: 'features.events',
     title: 'Events and notifications',
     audience: ['power'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 90,
     section: 'features',
     body: [
@@ -137,7 +137,7 @@ export const FEATURE_PAGES: DocPage[] = [
     id: 'features.personality',
     title: 'Personality Designer',
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 100,
     section: 'features',
     body: [
@@ -162,7 +162,7 @@ export const FEATURE_PAGES: DocPage[] = [
     id: 'features.desktop-automation',
     title: 'Desktop Automation',
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     requires: ['desktop_automation'],
     order: 120,
     section: 'features',

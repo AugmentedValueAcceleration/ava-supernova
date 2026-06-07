@@ -7,7 +7,7 @@ export const START_PAGES: DocPage[] = [
     id: 'start.what',
     title: 'What is Ava?',
     audience: ['newcomer', 'both'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 10,
     section: 'start',
     body: [
@@ -38,7 +38,7 @@ export const START_PAGES: DocPage[] = [
     id: 'start.for-non-coders',
     title: "Never written code? Start here",
     audience: ['newcomer'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 15,
     section: 'start',
     body: [
@@ -65,7 +65,7 @@ export const START_PAGES: DocPage[] = [
     id: 'start.install',
     title: 'Install',
     audience: ['newcomer'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 20,
     section: 'start',
     body: [
@@ -100,7 +100,7 @@ export const START_PAGES: DocPage[] = [
     id: 'start.first-five',
     title: 'Your first thing with Ava',
     audience: ['newcomer', 'both'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 30,
     section: 'start',
     task: 'build',
@@ -138,7 +138,7 @@ export const START_PAGES: DocPage[] = [
     id: 'start.local-vs-cloud',
     title: 'Local vs cloud, in one paragraph',
     audience: ['newcomer', 'both'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 40,
     section: 'start',
     body: [
@@ -151,7 +151,7 @@ export const START_PAGES: DocPage[] = [
     id: 'start.first-model',
     title: 'Do I need to choose an AI?',
     audience: ['newcomer', 'both'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 50,
     section: 'start',
     body: [
@@ -180,7 +180,7 @@ export const START_PAGES: DocPage[] = [
     id: 'start.glossary',
     title: 'Plain-English glossary',
     audience: ['newcomer', 'both'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 60,
     section: 'start',
     body: [

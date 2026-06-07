@@ -21,7 +21,12 @@ import url from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(repoRoot, 'packages/core/src/docs');
-const DST = path.join(repoRoot, 'packages/web/src/lib/docs');
+// Standalone-deploy surfaces that can't import the workspace package each keep a
+// generated mirror under src/lib/docs/. Add a target here to keep it in step.
+const DSTS = [
+  path.join(repoRoot, 'packages/web/src/lib/docs'),
+  path.join(repoRoot, 'packages/mobile/src/lib/docs'),
+];
 
 const BANNER = [
   '// -----------------------------------------------------------------------------',
@@ -49,17 +54,8 @@ function listTs(dir, base = dir) {
 }
 
 const files = listTs(SRC);
-let written = 0;
-for (const rel of files) {
-  const code = fs.readFileSync(path.join(SRC, rel), 'utf8');
-  const out = BANNER + transform(code);
-  const dstPath = path.join(DST, rel);
-  fs.mkdirSync(path.dirname(dstPath), { recursive: true });
-  fs.writeFileSync(dstPath, out, 'utf8');
-  written++;
-}
 
-// Remove web mirror files that no longer exist in core (e.g. retired ava-docs.ts).
+// Remove mirror files that no longer exist in core (e.g. retired ava-docs.ts).
 function prune(dir, base = dir) {
   if (!fs.existsSync(dir)) return;
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -70,6 +66,17 @@ function prune(dir, base = dir) {
     if (!fs.existsSync(path.join(SRC, rel))) { fs.rmSync(full); console.log('  pruned stale', rel); }
   }
 }
-prune(DST);
 
-console.log(`docs:sync — wrote ${written} files from core → web (src/lib/docs).`);
+for (const DST of DSTS) {
+  let written = 0;
+  for (const rel of files) {
+    const code = fs.readFileSync(path.join(SRC, rel), 'utf8');
+    const out = BANNER + transform(code);
+    const dstPath = path.join(DST, rel);
+    fs.mkdirSync(path.dirname(dstPath), { recursive: true });
+    fs.writeFileSync(dstPath, out, 'utf8');
+    written++;
+  }
+  prune(DST);
+  console.log(`docs:sync — wrote ${written} files → ${path.relative(repoRoot, DST)}`);
+}

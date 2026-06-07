@@ -7,7 +7,7 @@ export const CONCEPT_PAGES: DocPage[] = [
     id: 'models.routing',
     title: 'Routing — how Ava picks models',
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 10,
     section: 'models',
     body: [
@@ -49,7 +49,7 @@ export const CONCEPT_PAGES: DocPage[] = [
     id: 'credits.overview',
     title: 'Ava Credits — how billing works',
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 10,
     section: 'credits',
     body: [
@@ -111,7 +111,7 @@ export const CONCEPT_PAGES: DocPage[] = [
     id: 'concepts.modes',
     title: "Modes — Ava's states of mind",
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 10,
     section: 'concepts',
     body: [
@@ -136,7 +136,7 @@ export const CONCEPT_PAGES: DocPage[] = [
     id: 'concepts.memory',
     title: 'Memory — how Ava remembers you',
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 20,
     section: 'concepts',
     body: [
@@ -160,7 +160,7 @@ export const CONCEPT_PAGES: DocPage[] = [
     id: 'concepts.tasks-journal',
     title: 'Tasks and journal',
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 30,
     section: 'concepts',
     body: [
@@ -177,7 +177,7 @@ export const CONCEPT_PAGES: DocPage[] = [
     id: 'concepts.permissions',
     title: 'Permissions — your safety dial',
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 40,
     section: 'concepts',
     body: [
@@ -192,7 +192,7 @@ export const CONCEPT_PAGES: DocPage[] = [
     id: 'concepts.interjection',
     title: 'Steering and stopping Ava',
     audience: ['both'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     order: 50,
     section: 'concepts',
     body: [
@@ -212,7 +212,7 @@ export const CONCEPT_PAGES: DocPage[] = [
     id: 'concepts.desktop-personas',
     title: 'Desktop personas',
     audience: ['power'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     requires: ['desktop_automation'],
     order: 200,
     section: 'concepts',
@@ -236,7 +236,7 @@ export const CONCEPT_PAGES: DocPage[] = [
     id: 'concepts.desktop-safety',
     title: 'Desktop safety ontology',
     audience: ['power'],
-    surfaces: ['web', 'ext', 'ide'],
+    surfaces: ['web', 'ext', 'ide', 'companion'],
     requires: ['desktop_automation'],
     order: 210,
     section: 'concepts',
