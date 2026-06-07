@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { t, useLocale } from '../i18n';
+import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
 import { HealthSubmissionModal } from './HealthSubmissionModal';
 import { HealthMySubmissions } from './HealthMySubmissions';
@@ -65,6 +65,9 @@ const COURSE_ORDER = ['breakfast', 'main', 'starter', 'side', 'snack', 'dessert'
 const courseLabel = (course: string): string => t(`health.browse.course.${course}`);
 
 type Tab = 'exercises' | 'recipes' | 'mine' | 'profile';
+/** Card layout for the browse grids. Persisted + shared across both tabs. */
+type View = 'grid' | 'list';
+const VIEW_KEY = 'ava-health-view';
 
 const PAGE_SIZE = 24;
 
@@ -160,6 +163,14 @@ export function Health({
 }: Props) {
   useLocale();
   const [tab, setTab] = useState<Tab>(() => initialTab ?? 'exercises');
+  // Grid/list view — shared across both browse tabs, persisted across sessions.
+  const [view, setView] = useState<View>(() => {
+    try { return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'grid'; } catch { return 'grid'; }
+  });
+  const changeView = (next: View) => {
+    setView(next);
+    try { localStorage.setItem(VIEW_KEY, next); } catch { /* localStorage unavailable */ }
+  };
   const [exerciseFilter, setExerciseFilter] = useState<'all' | HealthWorkoutType>('all');
   const [recipeFilter, setRecipeFilter] = useState<'all' | string>('all');
   // Search state — local to the page; resets on close/reopen. Debounced
@@ -357,6 +368,8 @@ export function Health({
             search={exerciseSearch}
             onSearch={setExerciseSearch}
             onRefresh={() => goExercisesPage(0)}
+            view={view}
+            onView={changeView}
           />
         )}
         {tab === 'recipes' && (
@@ -373,6 +386,8 @@ export function Health({
             search={recipeSearch}
             onSearch={setRecipeSearch}
             onRefresh={() => goRecipesPage(0)}
+            view={view}
+            onView={changeView}
           />
         )}
         {tab === 'mine' && (
@@ -458,6 +473,101 @@ function HealthLoadError({ noun, onRetry }: { noun: string; onRetry: () => void 
   );
 }
 
+// ── Browse view helpers (shared by both grids) ─────────────────────────
+
+/** The <ul> layout class for the chosen view. Grid is the compact-hero
+ *  card grid (denser on wide screens); list is dense horizontal rows. */
+function browseLayoutClass(view: View): string {
+  return view === 'list'
+    ? 'grid gap-2 grid-cols-1 2xl:grid-cols-2'
+    : 'grid gap-2.5 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6';
+}
+
+function GridIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+      <rect x="1" y="1" width="6" height="6" rx="1.2" /><rect x="9" y="1" width="6" height="6" rx="1.2" />
+      <rect x="1" y="9" width="6" height="6" rx="1.2" /><rect x="9" y="9" width="6" height="6" rx="1.2" />
+    </svg>
+  );
+}
+function ListIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+      <rect x="1" y="2.5" width="14" height="2.4" rx="1.2" /><rect x="1" y="6.8" width="14" height="2.4" rx="1.2" /><rect x="1" y="11.1" width="14" height="2.4" rx="1.2" />
+    </svg>
+  );
+}
+
+/** Grid/list toggle for the browse toolbar. */
+function ViewToggle({ view, onView }: { view: View; onView: (v: View) => void }) {
+  const cls = (active: boolean) =>
+    `flex h-7 w-7 items-center justify-center rounded border transition ${
+      active
+        ? 'border-vscode-focusBorder text-vscode-foreground bg-vscode-list-activeSelectionBackground'
+        : 'border-vscode-panelBorder text-vscode-descriptionForeground hover:text-vscode-foreground hover:border-vscode-focusBorder'
+    }`;
+  return (
+    <div className="flex items-center gap-1" role="group" aria-label={tt('health.browse.view_label', 'View')}>
+      <button type="button" onClick={() => onView('grid')} aria-pressed={view === 'grid'} title={tt('health.browse.view_grid', 'Grid view')} className={cls(view === 'grid')}>
+        <GridIcon />
+      </button>
+      <button type="button" onClick={() => onView('list')} aria-pressed={view === 'list'} title={tt('health.browse.view_list', 'List view')} className={cls(view === 'list')}>
+        <ListIcon />
+      </button>
+    </div>
+  );
+}
+
+// ── Exercise card (grid + list variants) ───────────────────────────────
+
+function ExerciseCard({ ex, view, onOpen }: { ex: HealthExerciseSummary; view: View; onOpen: (slug: string) => void }) {
+  const accent = WORKOUT_TYPE_ACCENT[ex.workout_type];
+  const pending = ex.status && ex.status !== 'published';
+  const thumb = ex.thumbnail_url
+    ? <img src={ex.thumbnail_url} alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+    : <div className="flex h-full w-full items-center justify-center text-2xl opacity-25" style={{ background: `linear-gradient(135deg, ${accent}33 0%, ${accent}11 100%)` }} aria-hidden>🏋</div>;
+
+  if (view === 'list') {
+    return (
+      <li>
+        <button type="button" onClick={() => onOpen(ex.slug)} className="group flex w-full items-center gap-3 overflow-hidden rounded-md border border-vscode-panelBorder bg-vscode-editor-background p-2 text-left transition hover:border-vscode-focusBorder">
+          <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded">
+            {thumb}
+            <span aria-hidden className="absolute inset-x-0 top-0 h-[2px]" style={{ background: accent }} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[9px] font-medium uppercase tracking-[0.18em]" style={{ color: accent }}>{workoutTypeLabel(ex.workout_type)}</div>
+            <h3 className="truncate text-[13px] font-light leading-tight">{ex.name}</h3>
+            <div className="mt-1 flex items-center gap-2"><Dots value={ex.difficulty} accent={accent} /><span className="text-[10px] capitalize text-vscode-descriptionForeground">{exerciseTypeLabel(ex.exercise_type)}</span></div>
+          </div>
+          {pending && <SubmissionStatusBadge status={ex.status!} />}
+        </button>
+      </li>
+    );
+  }
+  return (
+    <li>
+      <button type="button" onClick={() => onOpen(ex.slug)} className="group block w-full overflow-hidden rounded-md border border-vscode-panelBorder bg-vscode-editor-background text-left transition hover:border-vscode-focusBorder">
+        <div className="relative aspect-[3/2] w-full overflow-hidden bg-vscode-editor-inactiveSelectionBackground">
+          {thumb}
+          <span aria-hidden className="absolute inset-x-0 top-0 h-[3px]" style={{ background: accent }} />
+          {pending && <SubmissionStatusBadge status={ex.status!} />}
+          <div aria-hidden className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 p-2">
+            <div className="mb-0.5 text-[9px] font-medium uppercase tracking-[0.2em]" style={{ color: accent }}>{workoutTypeLabel(ex.workout_type)}</div>
+            <h3 className="text-[13px] font-light leading-tight text-white">{ex.name}</h3>
+          </div>
+        </div>
+        <div className="flex items-center justify-between px-2.5 py-2">
+          <Dots value={ex.difficulty} accent={accent} />
+          <span className="text-[10px] capitalize text-vscode-descriptionForeground">{exerciseTypeLabel(ex.exercise_type)}</span>
+        </div>
+      </button>
+    </li>
+  );
+}
+
 // ── Exercises grid ─────────────────────────────────────────────────────
 
 interface ExercisesGridProps {
@@ -473,14 +583,16 @@ interface ExercisesGridProps {
   search: string;
   onSearch: (next: string) => void;
   onRefresh: () => void;
+  view: View;
+  onView: (v: View) => void;
 }
 
-function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading, error, onOpen, search, onSearch, onRefresh }: ExercisesGridProps) {
+function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading, error, onOpen, search, onSearch, onRefresh, view, onView }: ExercisesGridProps) {
   if (loading && items.length === 0 && !search) {
     return (
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <li key={i}><Skeleton height={196} radius={8} /></li>
+      <ul className={browseLayoutClass(view)}>
+        {Array.from({ length: view === 'list' ? 6 : 10 }).map((_, i) => (
+          <li key={i}><Skeleton height={view === 'list' ? 72 : 150} radius={6} /></li>
         ))}
       </ul>
     );
@@ -496,6 +608,7 @@ function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading
             loading={loading && search.length > 0}
           />
         </div>
+        <ViewToggle view={view} onView={onView} />
         <RefreshButton onClick={onRefresh} loading={loading && search.length === 0} />
       </div>
       <FilterRow>
@@ -517,67 +630,60 @@ function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading
         )
       ) : (
         <>
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {items.map((ex) => {
-              const accent = WORKOUT_TYPE_ACCENT[ex.workout_type];
-              const isMineAndPending = ex.status && ex.status !== 'published';
-              return (
-                <li key={ex.id}>
-                  <button
-                    type="button"
-                    onClick={() => onOpen(ex.slug)}
-                    className="group block w-full overflow-hidden rounded-lg border border-vscode-panelBorder bg-vscode-editor-background text-left transition hover:border-vscode-focusBorder"
-                  >
-                    {/* Thumbnail or fallback band — same shape recipe cards use
-                        so exercises read as part of the same visual system.
-                        Falls back to a coloured panel keyed to the workout_type
-                        accent when no thumbnail is set. */}
-                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-vscode-editor-inactiveSelectionBackground">
-                      {ex.thumbnail_url ? (
-                        <img
-                          src={ex.thumbnail_url}
-                          alt=""
-                          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div
-                          className="flex h-full w-full items-center justify-center text-3xl opacity-25"
-                          style={{ background: `linear-gradient(135deg, ${accent}33 0%, ${accent}11 100%)` }}
-                          aria-hidden
-                        >
-                          🏋
-                        </div>
-                      )}
-                      <span
-                        aria-hidden
-                        className="absolute inset-x-0 top-0 h-[3px]"
-                        style={{ background: accent }}
-                      />
-                      {isMineAndPending && <SubmissionStatusBadge status={ex.status!} />}
-                      <div aria-hidden className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-                      <div className="absolute inset-x-0 bottom-0 p-3">
-                        <div
-                          className="mb-1 text-[9px] font-medium uppercase tracking-[0.2em]"
-                          style={{ color: accent }}
-                        >
-                          {workoutTypeLabel(ex.workout_type)}
-                        </div>
-                        <h3 className="text-[13px] font-light leading-tight text-white">{ex.name}</h3>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between px-3 py-2.5">
-                      <Dots value={ex.difficulty} accent={accent} />
-                      <span className="text-[10px] capitalize text-vscode-descriptionForeground">{exerciseTypeLabel(ex.exercise_type)}</span>
-                    </div>
-                  </button>
-                </li>
-              );
-            })}
+          <ul className={browseLayoutClass(view)}>
+            {items.map((ex) => (
+              <ExerciseCard key={ex.id} ex={ex} view={view} onOpen={onOpen} />
+            ))}
           </ul>
           <Pagination total={total} offset={offset} onPage={onPage} loading={loading} />
         </>
       )}
     </div>
+  );
+}
+
+// ── Recipe card (grid + list variants) ─────────────────────────────────
+
+function RecipeCard({ r, view, onOpen }: { r: HealthRecipeSummary; view: View; onOpen: (slug: string) => void }) {
+  const pending = r.status && r.status !== 'published';
+  // Footer shows what isn't already on the image (cuisine sits on the photo).
+  const footer = r.course || r.origin_country || r.cuisine_name || '';
+  const thumb = r.hero_image_url
+    ? <img src={r.hero_image_url} alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+    : <div className="flex h-full w-full items-center justify-center text-2xl opacity-30" aria-hidden>🍽</div>;
+
+  if (view === 'list') {
+    return (
+      <li>
+        <button type="button" onClick={() => onOpen(r.slug)} className="group flex w-full items-center gap-3 overflow-hidden rounded-md border border-vscode-panelBorder bg-vscode-editor-background p-2 text-left transition hover:border-vscode-focusBorder">
+          <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded">{thumb}</div>
+          <div className="min-w-0 flex-1">
+            {r.cuisine_name && <div className="text-[9px] font-medium uppercase tracking-[0.18em] text-amber-300">{r.cuisine_name}</div>}
+            <h3 className="truncate text-[13px] font-light leading-tight">{r.name}</h3>
+            {r.course && <div className="mt-0.5 text-[10px] capitalize text-vscode-descriptionForeground">{r.course}</div>}
+          </div>
+          {pending && <SubmissionStatusBadge status={r.status!} />}
+        </button>
+      </li>
+    );
+  }
+  return (
+    <li>
+      <button type="button" onClick={() => onOpen(r.slug)} className="group block w-full overflow-hidden rounded-md border border-vscode-panelBorder bg-vscode-editor-background text-left transition hover:border-vscode-focusBorder">
+        <div className="relative aspect-[3/2] w-full overflow-hidden bg-vscode-editor-inactiveSelectionBackground">
+          {thumb}
+          {pending && <SubmissionStatusBadge status={r.status!} />}
+          <div aria-hidden className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 p-2">
+            {r.cuisine_name && <div className="mb-0.5 text-[9px] font-medium uppercase tracking-[0.2em] text-amber-300">{r.cuisine_name}</div>}
+            <h3 className="text-[13px] font-light leading-tight text-white">{r.name}</h3>
+          </div>
+        </div>
+        <div className="flex items-center px-2.5 py-2">
+          <span className="truncate text-[10px] capitalize text-vscode-descriptionForeground">{footer}</span>
+        </div>
+      </button>
+    </li>
   );
 }
 
@@ -596,14 +702,16 @@ interface RecipesGridProps {
   search: string;
   onSearch: (next: string) => void;
   onRefresh: () => void;
+  view: View;
+  onView: (v: View) => void;
 }
 
-function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, error, onOpen, search, onSearch, onRefresh }: RecipesGridProps) {
+function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, error, onOpen, search, onSearch, onRefresh, view, onView }: RecipesGridProps) {
   if (loading && items.length === 0 && !search) {
     return (
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <li key={i}><Skeleton height={196} radius={8} /></li>
+      <ul className={browseLayoutClass(view)}>
+        {Array.from({ length: view === 'list' ? 6 : 10 }).map((_, i) => (
+          <li key={i}><Skeleton height={view === 'list' ? 72 : 150} radius={6} /></li>
         ))}
       </ul>
     );
@@ -619,6 +727,7 @@ function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, 
             loading={loading && search.length > 0}
           />
         </div>
+        <ViewToggle view={view} onView={onView} />
         <RefreshButton onClick={onRefresh} loading={loading && search.length === 0} />
       </div>
       <FilterRow>
@@ -640,41 +749,10 @@ function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, 
         )
       ) : (
         <>
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {items.map((r) => {
-              const isMineAndPending = r.status && r.status !== 'published';
-              return (
-              <li key={r.id}>
-                <button
-                  type="button"
-                  onClick={() => onOpen(r.slug)}
-                  className="group block w-full overflow-hidden rounded-lg border border-vscode-panelBorder bg-vscode-editor-background text-left transition hover:border-vscode-focusBorder"
-                >
-                  <div className="relative aspect-[4/3] w-full overflow-hidden bg-vscode-editor-inactiveSelectionBackground">
-                    {r.hero_image_url ? (
-                      <img
-                        src={r.hero_image_url}
-                        alt=""
-                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-3xl opacity-30">🍽</div>
-                    )}
-                    {isMineAndPending && <SubmissionStatusBadge status={r.status!} />}
-                    <div aria-hidden className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 p-3">
-                      {r.cuisine_name && (
-                        <div className="mb-1 text-[9px] font-medium uppercase tracking-[0.2em] text-amber-300">
-                          {r.cuisine_name}
-                        </div>
-                      )}
-                      <h3 className="text-[13px] font-light leading-tight text-white">{r.name}</h3>
-                    </div>
-                  </div>
-                </button>
-              </li>
-              );
-            })}
+          <ul className={browseLayoutClass(view)}>
+            {items.map((r) => (
+              <RecipeCard key={r.id} r={r} view={view} onOpen={onOpen} />
+            ))}
           </ul>
           <Pagination total={total} offset={offset} onPage={onPage} loading={loading} />
         </>
