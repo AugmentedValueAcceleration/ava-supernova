@@ -192,7 +192,7 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
                       : o.id === 'auto'
                         ? 'One coordinator handles everything — proven, production-tuned'
                         : o.id === 'aurora'
-                          ? 'Aurora — Mistral-only three-tier EU stack. Large 3 coordinator + heavy specialists, Medium 3.5 for Builder + mid-tier + vision + long-form, Small 4 at the intent gate. Stays inside European infrastructure.'
+                          ? 'Aurora — Mistral-only three-tier EU stack. Medium 3.5 leads (coordinator + Builder + vision + deep specialists), Small 4 carries the volume (chat, long-context, brainstorm, intent gate), Large 3 is the heavy reserve. Stays inside European infrastructure.'
                           : 'Multi-model orchestration — coordinator picks the best specialist for each task'}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',

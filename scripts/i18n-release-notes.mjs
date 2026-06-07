@@ -169,6 +169,27 @@ const RELEASES = [
       'Sign-in is faster and far more reliable — it recovers from slow handoffs, reloaded windows and a second editor open, instead of failing silently.',
     ],
   },
+  {
+    migration: 314,
+    version: '0.72.0',
+    platform: 'extension',
+    toolCount: 63,
+    publishedAt: '2026-06-07 22:00:00+00',
+    title: 'Choose how Ava thinks — Aurora and Supernova are live',
+    body: `Since day one, Ava has run on Maestro — her Qwen-based brain. Now there are two more, each a different team of models tuned for a different kind of work, and both are live for everyone, on every plan.
+
+**Aurora — a fully European stack.** Mistral, end to end, that never leaves EU infrastructure. Mistral Medium 3.5 leads — coordinator, Builder, vision and the deep specialists — with Small 4 carrying the high-volume work and Large 3 held in reserve. Built for GDPR-strict, public-sector and sovereignty-bound work where your data has to stay in Europe. If a Mistral model isn't reachable, Aurora stops rather than quietly routing elsewhere — that's the guarantee.
+
+**Supernova — the best specialist for every step.** A polyglot ensemble: DeepSeek V4 Pro coordinates and hands each subtask to whichever model is best at it — Qwen builders for the agent loops, DeepSeek for deep reasoning and long context, the lighter tiers for the fast work. Frontier thinking where it counts, flash-tier economics on the rest.
+
+**Free on every plan, or bring your own keys.** Both modes work on platform credits, free tier included. Prefer your own accounts? Add a Mistral key for Aurora, or DeepSeek + Qwen for Supernova — and bring-your-own-key now reaches every model in each fleet, on every surface.`,
+    highlights: [
+      'Aurora is live — a fully European, Mistral-only stack that never leaves EU infrastructure, led by Mistral\'s frontier Medium 3.5. Built for GDPR-strict and sovereign deployments.',
+      'Supernova is live — a polyglot ensemble where DeepSeek V4 Pro coordinates and hands each subtask to its best-suited specialist, from Qwen builders to deep DeepSeek reasoning.',
+      'Both modes run free on every plan, or with your own keys — add Mistral for Aurora, or DeepSeek + Qwen for Supernova.',
+      'Bring-your-own-key now reaches every model in each fleet, on every surface — your key unlocks the whole lineup, not just part of it.',
+    ],
+  },
 ];
 
 // ── Credential ───────────────────────────────────────────────────────────────
