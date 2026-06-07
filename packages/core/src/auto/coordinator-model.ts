@@ -43,9 +43,10 @@ const BYOK_PRIORITY = [
   { id: 'claude-opus-4-8',      reason: 'Claude Opus 4.8 — strongest general reasoning' },
   { id: 'claude-sonnet-4-6',    reason: 'Claude Sonnet — fast reasoning' },
   { id: 'kimi-k2.5',            reason: 'Kimi K2.5 — legacy agentic fallback' },
-  { id: 'deepseek-chat',        reason: 'DeepSeek — capable coding model' },
+  { id: 'deepseek-v4-pro',      reason: 'DeepSeek V4 Pro — frontier coding + long-context reasoning' },
+  { id: 'qwen3.6-plus',         reason: 'Qwen 3.6 Plus — flagship Maestro coordinator: #1 SWE-bench Pro, Terminal-Bench leader, 1M context, reasoning-capable' },
   { id: 'glm-5',                reason: 'Zhipu GLM-5 — 200K context, tools + vision' },
-  { id: 'mistral-large-3',      reason: 'Mistral Large 3 — reasoning fallback' },
+  { id: 'mistral-large-3',      reason: 'Mistral Large 3 — broad-knowledge fallback (non-reasoning today)' },
   { id: 'qwen3.5-plus',         reason: 'Qwen 3.5 Plus — 1M context fallback' },
   { id: 'qwen3.5-flash',        reason: 'Qwen 3.5 Flash — lightweight fallback' },
 ];

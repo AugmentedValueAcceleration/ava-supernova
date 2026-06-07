@@ -130,9 +130,9 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     desktopCapable: true,
     pricing: { inputPerMillion: 0.15, outputPerMillion: 0.60 },
   },
-  // Mistral Large 3 (managed, platform key) — Aurora's Coordinator.
-  // Sparse MoE 41B active / 675B total, frontier reasoning + long
-  // context synthesis at competitive pricing.
+  // Mistral Large 3 (managed, platform key) — Aurora's heavy reserve / fallback.
+  // Sparse MoE 41B active / 675B total, broad knowledge + long-context
+  // synthesis. Non-reasoning today, so it holds no primary Aurora route.
   {
     id: 'mistral-large-3-platform',
     name: 'Mistral Large 3',
@@ -145,5 +145,23 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsVision: false,
     desktopCapable: true,
     pricing: { inputPerMillion: 0.50, outputPerMillion: 1.50 },
+  },
+  // Mistral Medium 3.5 (managed, platform key) — Aurora's LEAD seat:
+  // coordinator + Builder + vision + the deep specialists. Mistral's frontier
+  // flagship (128B dense, 256K, from-scratch vision encoder, configurable
+  // reasoning, AA Intelligence Index 39). The Aurora routing table targets
+  // this model for every hard/deep route, so it must exist on platform.
+  {
+    id: 'mistral-medium-3.5-platform',
+    name: 'Mistral Medium 3.5',
+    provider: 'platform',
+    contextWindow: 256_000,
+    maxOutputTokens: 8192,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsThinking: true,
+    supportsVision: true,
+    desktopCapable: true,
+    pricing: { inputPerMillion: 1.50, outputPerMillion: 7.50 },
   },
 ];

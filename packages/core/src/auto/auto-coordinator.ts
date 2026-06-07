@@ -230,19 +230,21 @@ export class AutoCoordinator {
     // Large 3. Falls through to the default priority ladder if the
     // operator already passed an explicit preference (rare; means they're
     // admin-overriding the override).
-    const modeCoordinator =
-      opts.mode === 'supernova' && !opts.preferredCoordinatorId
-        ? `platform:${SUPERNOVA_COORDINATOR_ID}`
-        : opts.preferredCoordinatorId;
-
+    const hasPlatform = !!opts.platformKey || opts.availableProviders.has('platform');
     let coordinator: ReturnType<typeof resolveCoordinatorModel> = null;
 
-    // Aurora is Mistral-only — never silently routes to a non-Mistral
-    // coordinator. Try Large 3 platform-managed → Large 3 BYOK → Small 4
-    // platform-managed → Small 4 BYOK. Returns null if no Mistral model
-    // is reachable so the caller can surface a clear error rather than
-    // breaking the EU-stack guarantee with a Qwen fallback.
-    if (opts.mode === 'aurora' && !opts.preferredCoordinatorId) {
+    if (opts.preferredCoordinatorId) {
+      // Explicit operator override wins for any mode.
+      coordinator = resolveCoordinatorModel(
+        opts.providerRegistry, opts.availableProviders, hasPlatform, opts.preferredCoordinatorId,
+      );
+    } else if (opts.mode === 'aurora') {
+      // Aurora is Mistral-only — never silently routes to a non-Mistral
+      // coordinator. Try Medium 3.5 platform-managed → BYOK → Large 3 reserve.
+      // Returns null if no Mistral model is reachable so the caller can surface
+      // a clear error rather than breaking the EU-stack guarantee with a Qwen
+      // fallback. The registry bridges the native/-platform id-suffix duality,
+      // so the native AURORA_* ids resolve on both managed and BYOK surfaces.
       const tries = [
         `platform:${AURORA_COORDINATOR_ID}`,
         `mistral:${AURORA_COORDINATOR_ID}`,
@@ -262,13 +264,32 @@ export class AutoCoordinator {
           break;
         }
       }
+    } else if (opts.mode === 'supernova') {
+      // Supernova pins DeepSeek V4 Pro as coordinator — try platform-managed →
+      // BYOK deepseek → native. Unlike Aurora, Supernova is polyglot, so it
+      // falls through to the generic priority ladder if DeepSeek isn't
+      // reachable rather than erroring.
+      for (const id of [
+        `platform:${SUPERNOVA_COORDINATOR_ID}`,
+        `deepseek:${SUPERNOVA_COORDINATOR_ID}`,
+        SUPERNOVA_COORDINATOR_ID,
+      ]) {
+        const resolved = opts.providerRegistry.resolveModel(id);
+        if (resolved) {
+          coordinator = {
+            provider: resolved.provider,
+            model: resolved.model,
+            reason: `${resolved.model.name} — Supernova coordinator`,
+          };
+          break;
+        }
+      }
+      if (!coordinator) {
+        coordinator = resolveCoordinatorModel(opts.providerRegistry, opts.availableProviders, hasPlatform);
+      }
     } else {
-      coordinator = resolveCoordinatorModel(
-        opts.providerRegistry,
-        opts.availableProviders,
-        !!opts.platformKey || opts.availableProviders.has('platform'),
-        modeCoordinator,
-      );
+      // Auto / Maestro — generic priority ladder.
+      coordinator = resolveCoordinatorModel(opts.providerRegistry, opts.availableProviders, hasPlatform);
     }
     if (!coordinator) return null;
 

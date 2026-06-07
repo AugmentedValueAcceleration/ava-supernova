@@ -74,17 +74,39 @@ export class ProviderRegistry {
     if (providerName) {
       const provider = this.providers.get(providerName);
       if (!provider) return undefined;
-      const model = provider.listModels().find((m) => m.id === modelId);
+      const model = this.findModel(provider, modelId);
       if (!model) return undefined;
       return { provider, model };
     }
 
     for (const [, provider] of this.providers) {
-      const model = provider.listModels().find((m) => m.id === modelId);
+      const model = this.findModel(provider, modelId);
       if (model) return { provider, model };
     }
 
     return undefined;
+  }
+
+  /**
+   * Find a model on a provider, bridging the platform/native id-suffix duality.
+   *
+   * The same logical model is listed under different ids depending on surface:
+   * the managed platform serves DeepSeek/Mistral under `<id>-platform` rows
+   * (the server `models` table key), while a BYOK provider lists the native
+   * `<id>`. A routing table written against either form must resolve on both
+   * surfaces. So after an exact match, also try the id with `-platform`
+   * stripped and appended. Qwen uses one native id on both surfaces and is
+   * unaffected. Returns the concrete model so callers use its real `.id`.
+   */
+  private findModel(provider: Provider, modelId: string): ModelDefinition | undefined {
+    const models = provider.listModels();
+    const exact = models.find((m) => m.id === modelId);
+    if (exact) return exact;
+
+    const alt = modelId.endsWith('-platform')
+      ? modelId.slice(0, -'-platform'.length) // platform route → native BYOK id
+      : `${modelId}-platform`;                // BYOK/native route → platform row
+    return models.find((m) => m.id === alt);
   }
 
   listAllModels(): ModelDefinition[] {

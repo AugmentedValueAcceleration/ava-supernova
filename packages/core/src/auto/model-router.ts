@@ -170,25 +170,28 @@ export class ModelRouter {
   }
 
   private resolveModel(modelId: string, reason: string): RouteResult | null {
-    // Try platform first
+    // Try platform first. The registry bridges the native/-platform id-suffix
+    // duality, so a route written in either form resolves; we surface the
+    // concrete resolved id (e.g. `platform:deepseek-v4-pro-platform`) so the
+    // downstream API call + billing key match the model actually served.
     if (this.hasPlatform) {
       const result = this.providerRegistry.resolveModel(`platform:${modelId}`);
       if (result) {
-        return { modelId: `platform:${modelId}`, provider: result.provider, model: result.model, reason };
+        return { modelId: `platform:${result.model.id}`, provider: result.provider, model: result.model, reason };
       }
     }
 
     // Try direct provider
     const result = this.providerRegistry.resolveModel(modelId);
     if (result && this.isProviderAvailable(result.provider.name)) {
-      return { modelId, provider: result.provider, model: result.model, reason };
+      return { modelId: result.model.id, provider: result.provider, model: result.model, reason };
     }
 
     // Try with provider prefix
     for (const providerName of this.availableProviders) {
       const qualified = `${providerName}:${modelId}`;
       const r = this.providerRegistry.resolveModel(qualified);
-      if (r) return { modelId: qualified, provider: r.provider, model: r.model, reason };
+      if (r) return { modelId: `${providerName}:${r.model.id}`, provider: r.provider, model: r.model, reason };
     }
 
     return null;
