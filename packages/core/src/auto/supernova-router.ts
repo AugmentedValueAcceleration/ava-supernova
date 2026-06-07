@@ -57,7 +57,7 @@ export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
   // we've tuned the Builder persona against.
   coding:       { modelId: 'qwen3.6-plus',                reason: 'Qwen 3.6 Plus — Terminal-Bench leader, production-tested Builder',                  fallbackModelId: 'deepseek-v4-flash-platform' },
   // Vision input → Omni only path.
-  vision:       { modelId: 'qwen3.5-omni-plus',           reason: 'Qwen 3.5 Omni Plus — only vision-capable model in scope',                            fallbackModelId: 'qwen3.6-plus', requiresVision: true },
+  vision:       { modelId: 'qwen3.5-omni-plus',           reason: 'Qwen 3.5 Omni Plus — dedicated vision + audio specialist (3.6 Plus is also vision-capable, kept as fallback)', fallbackModelId: 'qwen3.6-plus', requiresVision: true },
   // image_gen orchestrates a generate_image tool call to Wan / MiniMax —
   // no agentic depth needed at this layer. Omni Flash is materially cheaper
   // than 3.6 Plus and still vision-capable for the result handoff.

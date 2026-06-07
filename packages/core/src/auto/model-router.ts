@@ -27,14 +27,15 @@ interface RouteEntry {
 
 // Maestro routing — Qwen-only, tier-differentiated by task. Heavy reasoning
 // and long-context work go to Qwen 3.6 Plus (#1 on SWE-bench Pro, Terminal-
-// Bench 2.0, SkillsBench as of 2026-04-20). Light orchestration / chat go
-// to Qwen 3.5 Flash at $0.07/$0.26 per million. Vision-input tasks land on
-// Qwen 3.5 Omni Plus directly because Qwen 3.6 Plus has no vision capability.
+// Bench 2.0, SkillsBench as of 2026-04-20). Light orchestration / chat go to
+// Qwen 3.5 Flash. Vision-input tasks land on Qwen 3.5 Omni Plus — the dedicated
+// vision+audio specialist. (Qwen 3.6 Plus is ALSO vision-capable; the Omni tier
+// is under modernisation review vs the newer Qwen 3.6 Flash.)
 // MiniMax reserved for creative generation (image/video/music/voice).
 const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
   coding:       { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — #1 SWE-bench Pro + Terminal-Bench 2.0, 1M context', fallbackModelId: 'qwen3.5-plus' },
   // Vision needs an actually vision-capable Qwen — Omni Plus is the only one.
-  vision:       { modelId: 'qwen3.5-omni-plus', reason: 'Qwen 3.5 Omni Plus — vision + audio multimodal, 3.6 Plus has no vision', fallbackModelId: 'qwen3.5-omni-flash', requiresVision: true },
+  vision:       { modelId: 'qwen3.5-omni-plus', reason: 'Qwen 3.5 Omni Plus — dedicated vision + audio multimodal specialist', fallbackModelId: 'qwen3.5-omni-flash', requiresVision: true },
   // image_gen orchestrates the generate_image tool call to Wan/MiniMax —
   // no agentic depth needed at this layer. Flash is ~6× cheaper.
   image_gen:    { modelId: 'qwen3.5-flash',     reason: 'Qwen 3.5 Flash — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'qwen3.5-omni-plus' },
