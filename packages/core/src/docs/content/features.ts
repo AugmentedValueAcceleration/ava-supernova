@@ -47,7 +47,7 @@ export const FEATURE_PAGES: DocPage[] = [
         'Music — instrumental or vocal tracks with lyrics.',
         'Voice — text-to-speech with selectable voices.',
       ]},
-      { type: 'paragraph', text: 'Creative Studio costs deduct from the same token allowance as coding — one pool, one number. BYOK your own MiniMax key and it is free to your plan.' },
+      { type: 'paragraph', text: 'Creative Studio costs come out of the same credit pool as everything else — one pool, one number. BYOK your own MiniMax key and it is free to your plan.' },
       { type: 'callout', variant: 'tip', text: 'Creative Studio is free-tier eligible. Not a paid add-on.' },
     ],
   },
@@ -167,7 +167,6 @@ export const FEATURE_PAGES: DocPage[] = [
     order: 120,
     section: 'features',
     body: [
-      { type: 'callout', variant: 'note', text: 'Available in the Ava Supernova IDE only. The VS Code extension and CLI/companion don\'t ship desktop-automation tools — driving the OS needs a native shell, which is what the Tauri IDE provides. Open the IDE to use this feature.' },
       { type: 'paragraph', text: 'In plain terms: Ava can take over your mouse and keyboard to do tasks for you — open an app, click buttons, fill in a form — while you watch and approve anything important.' },
       { type: 'paragraph', text: 'A new mode for Ava, prefix @@. She observes the desktop, decides what to do, and drives UI automation (controlling the apps on your screen for you) to get it done. Runs on your actual machine with your actual credentials — not a cloud browser. Available on every tier once shipped.' },
       { type: 'heading', level: 3, text: 'Why another one' },

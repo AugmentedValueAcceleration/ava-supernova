@@ -217,7 +217,6 @@ export const CONCEPT_PAGES: DocPage[] = [
     order: 200,
     section: 'concepts',
     body: [
-      { type: 'callout', variant: 'note', text: 'Available in the Ava Supernova IDE only. The VS Code extension and CLI/companion don\'t ship desktop-automation tools — open the IDE to use this feature.' },
       { type: 'paragraph', text: "This page is for the curious and for power users. \"Desktop automation\" (sometimes called \"computer use\") means Ava can actually click around your screen and use apps for you — open Gmail, fill a form, send a message — like a person at the keyboard. To do that safely, she splits the job across five small helpers, each with one narrow role. You never deal with them directly; this just shows you who does what." },
       { type: 'paragraph', text: 'Every step in a desktop trajectory (one run of Ava driving your screen toward a goal) runs a five-persona wave. Each persona has one job and only one job. The separation keeps prompts tight, outputs structured, and reasoning skeptical by design.' },
       { type: 'heading', level: 3, text: 'Scout' },
@@ -242,7 +241,6 @@ export const CONCEPT_PAGES: DocPage[] = [
     order: 210,
     section: 'concepts',
     body: [
-      { type: 'callout', variant: 'note', text: 'Available in the Ava Supernova IDE only — describes the safety model that gates every desktop automation action before Actor runs.' },
       { type: 'paragraph', text: "In short: before Ava clicks anything on your screen, she sorts the action by how risky it is. Reading the screen? Harmless. Sending money or deleting something? She always stops and asks you first — every single time, no exceptions. The five labels below are just the rungs on that risk ladder. This is power-user detail, but the takeaway is simple: the dangerous stuff always needs your yes." },
       { type: 'paragraph', text: 'Every proposed action is classified into one of five risk classes. The classification combines three signals — what the on-screen target is, a plain-language description of it ("semantic caption" — Ava\'s own words for what she\'s looking at), and the action\'s settings — and escalates up (treats it as riskier) when they disagree. A false positive (asking when it didn\'t need to) is just a nag. A false negative (not asking when it should have) is a product-ending incident.' },
       { type: 'heading', level: 3, text: 'The five classes' },
