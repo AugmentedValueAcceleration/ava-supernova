@@ -937,6 +937,16 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     setPendingPrefill({ value: prompt, nonce: Date.now() });
   }, []);
 
+  // "Ask Ava" from the docs page drops the question in localStorage and
+  // navigates here; pick it up on mount and prefill the input (don't auto-send,
+  // so the user can tweak before firing).
+  useEffect(() => {
+    try {
+      const ask = localStorage.getItem('ava-pending-ask');
+      if (ask) { localStorage.removeItem('ava-pending-ask'); setPendingPrefill({ value: ask, nonce: Date.now() }); }
+    } catch { /* no storage */ }
+  }, []);
+
   const handleCompress = useCallback(() => { post({ type: 'compress_context' }); }, []);
 
   const handleRate = useCallback((messageId: string, rating: 'up' | 'down', reason?: string) => {

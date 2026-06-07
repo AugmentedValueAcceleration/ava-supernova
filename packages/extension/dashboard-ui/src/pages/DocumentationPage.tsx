@@ -364,6 +364,14 @@ export function DocumentationPage() {
   };
 
   const adapter = makeAdapter();
+  const [ask, setAsk] = useState('');
+  const submitAsk = () => {
+    const q = ask.trim();
+    if (!q) return;
+    try { localStorage.setItem('ava-pending-ask', q); } catch { /* no storage */ }
+    window.dispatchEvent(new CustomEvent('ava-ask-docs'));
+    setAsk('');
+  };
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -374,6 +382,23 @@ export function DocumentationPage() {
         <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)]">{t('dash.docs.title')}</div>
         <DocsDropdown sections={sidebar} />
       </div>
+
+      {/* Ask Ava — type a question, get a surface-aware answer in chat. The
+          "ask, don't read" front door; docs_lookup grounds the reply. */}
+      <form
+        onSubmit={(e) => { e.preventDefault(); submitAsk(); }}
+        className="mb-3 flex gap-2"
+      >
+        <input
+          value={ask}
+          onChange={(e) => setAsk(e.target.value)}
+          placeholder={tt('dash.docs.ask_placeholder', 'Ask Ava anything…')}
+          className="flex-1 rounded-lg border border-[var(--border-input)] bg-[var(--bg-card)] px-3 py-2 text-xs text-white placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]"
+        />
+        <button type="submit" className="shrink-0 rounded-lg bg-[var(--accent)] px-3.5 py-2 text-xs font-medium text-white transition hover:brightness-110 cursor-pointer">
+          {tt('dash.docs.ask_button', 'Ask Ava')}
+        </button>
+      </form>
 
       <main className="min-w-0 flex-1 overflow-y-auto pr-1">
         {pages.map(page => {

@@ -1788,6 +1788,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       sharedState,
       secretGranter: (label, reason) => this.requestSecretGrant(label, reason),
       loopPreventionEnabled,
+      surface: 'extension',
     });
 
     this.conductor = new Conductor({

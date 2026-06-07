@@ -611,12 +611,16 @@ export class Agent {
     this.visionProvider = opts.visionProvider;
     this.visionModel = opts.visionModel;
     this.toolRegistry = opts.toolRegistry;
+    const sf: AvaSurface = opts.surface ?? 'cli';
     this.toolContext = {
       cwd: opts.cwd,
       sharedState: opts.sharedState,
       secretGranter: opts.secretGranter,
+      // Map the host's AvaSurface to the docs Surface ('extension' -> 'ext') so
+      // surface-aware tools (docs_lookup) know where Ava is running.
+      surface: sf === 'extension' ? 'ext' : sf,
     };
-    this.surface = opts.surface ?? 'cli';
+    this.surface = sf;
     this.sessionId = opts.sessionId ?? randomUUID();
     this.loopPreventionEnabled = opts.loopPreventionEnabled ?? true;
   }

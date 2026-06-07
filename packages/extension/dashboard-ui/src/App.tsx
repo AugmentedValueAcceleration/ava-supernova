@@ -535,6 +535,14 @@ export function App() {
   useEffect(() => { if (journalDay) { try { localStorage.setItem(`ava-dash-journal-${selectedJournalDate}`, JSON.stringify(journalDay)); } catch {} } }, [journalDay, selectedJournalDate]);
   useEffect(() => { if (personalityData) { try { localStorage.setItem('ava-dash-personality', JSON.stringify(personalityData)); } catch {} } }, [personalityData]);
 
+  // "Ask Ava" from the docs page — the question is stashed in localStorage by
+  // DocumentationPage; we just navigate to chat, which reads it on mount.
+  useEffect(() => {
+    const onAsk = () => setPagePersist('chat');
+    window.addEventListener('ava-ask-docs', onAsk);
+    return () => window.removeEventListener('ava-ask-docs', onAsk);
+  }, []);
+
   const handleMessage = useCallback((event: MessageEvent) => {
     // Ignore messages from unexpected origins (e.g. browser extensions)
     // Accept vscode-webview:// and vscode-file:// (Electron/WebView2 on Windows)

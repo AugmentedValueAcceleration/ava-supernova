@@ -123,6 +123,13 @@ export interface ToolExecutionContext {
    * Returns null when the user denies the grant.
    */
   secretGranter?: (label: string, reason?: string) => Promise<{ id: string; label: string } | null>;
+  /**
+   * Which product surface Ava is running on ('ext' | 'ide' | 'cli' |
+   * 'companion' | 'web'). Lets surface-aware tools (e.g. docs_lookup) tailor
+   * answers — "that's an IDE-only feature, you're on the extension". Optional:
+   * absent just means no current-surface tailoring. Mirrors the docs Surface.
+   */
+  surface?: 'ext' | 'ide' | 'cli' | 'companion' | 'web';
 }
 
 // Returns boolean (true=approved, false=denied) or a string (approved with custom tool result).

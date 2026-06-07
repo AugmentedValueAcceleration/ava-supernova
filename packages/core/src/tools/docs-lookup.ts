@@ -2,6 +2,14 @@ import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './ty
 import type { FunctionSchema } from '../providers/types.js';
 import { getPages } from '../docs/corpus.js';
 import { SECTION_LABELS, SECTION_ORDER, type DocPage, type DocBlock, type Section } from '../docs/types.js';
+import { commonSurfaces } from '../docs/data/capabilities.js';
+
+// Friendly names for the surface-availability note, so Ava can say where a
+// capability-gated feature actually works.
+const SURFACE_NAME: Record<string, string> = {
+  ext: 'the VS Code extension', ide: 'the desktop IDE', companion: 'the companion app',
+  cli: 'the CLI', web: 'the website',
+};
 
 /**
  * Searches Ava's own documentation. Reads the SAME canonical corpus the web,
@@ -47,9 +55,10 @@ export class DocsLookupTool implements Tool {
     },
   };
 
-  async execute(args: Record<string, unknown>, _context: ToolExecutionContext): Promise<ToolResult> {
+  async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
     const query = (args.query as string)?.trim().toLowerCase();
     const topic = (args.topic as string)?.trim().toLowerCase();
+    const surface = context.surface;
     const pages = getPages();
 
     // Direct section lookup — return every page in that section.
@@ -57,7 +66,7 @@ export class DocsLookupTool implements Tool {
       const inSection = pages.filter(p => p.section === topic);
       if (inSection.length > 0) {
         const heading = `# ${SECTION_LABELS[topic as Section] ?? topic}\n\n`;
-        return { success: true, output: heading + inSection.map(p => this.pageToText(p)).join('\n\n---\n\n') };
+        return { success: true, output: heading + inSection.map(p => this.pageToText(p, surface)).join('\n\n---\n\n') };
       }
       return {
         success: false,
@@ -93,22 +102,36 @@ export class DocsLookupTool implements Tool {
     const top = scored.slice(0, 3);
     // A clearly dominant match is returned on its own; otherwise the top few.
     if (top.length > 1 && top[0].score > top[1].score * 2) {
-      return { success: true, output: this.pageToText(top[0].page) };
+      return { success: true, output: this.pageToText(top[0].page, surface) };
     }
-    return { success: true, output: top.map(m => this.pageToText(m.page)).join('\n\n---\n\n') };
+    return { success: true, output: top.map(m => this.pageToText(m.page, surface)).join('\n\n---\n\n') };
+  }
+
+  /** A surface-availability footnote for capability-gated features, so Ava can
+   *  say where a feature works and whether it's usable on the current surface. */
+  private availabilityNote(page: DocPage, surface?: string): string {
+    if (!page.requires || page.requires.length === 0) return '';
+    const surfaces = commonSurfaces(page.requires);
+    if (surfaces.length === 0) return '';
+    const names = surfaces.map(s => SURFACE_NAME[s] ?? s).join(', ');
+    let note = `\n\n_Availability: this feature works in ${names}._`;
+    if (surface && surface !== 'web' && !surfaces.includes(surface as never)) {
+      note += ` _It is not available on your current surface (${SURFACE_NAME[surface] ?? surface})._`;
+    }
+    return note;
   }
 
   /** Flatten a DocPage's blocks into plain searchable/printable text. Includes
    *  the optional `deeper` ("Show me the details") layer — that's where the
    *  technical depth now lives, so it must be searchable and returnable too. */
-  private pageToText(page: DocPage): string {
+  private pageToText(page: DocPage, surface?: string): string {
     const lines: string[] = [`## ${page.title}`];
     for (const b of page.body) lines.push(this.blockToText(b));
     if (page.deeper && page.deeper.length > 0) {
       lines.push('### Details');
       for (const b of page.deeper) lines.push(this.blockToText(b));
     }
-    return lines.filter(Boolean).join('\n\n');
+    return lines.filter(Boolean).join('\n\n') + this.availabilityNote(page, surface);
   }
 
   private blockToText(b: DocBlock): string {
