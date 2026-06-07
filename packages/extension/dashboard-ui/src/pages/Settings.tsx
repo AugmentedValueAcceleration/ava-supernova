@@ -1,19 +1,16 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { t, tt, initLocale, useLocale } from '../i18n';
 import { post } from '../App';
 import { Select } from '../components/Select';
 import { ChevronDownIcon } from '../components/Icons';
-import type { DashboardSettings, ProviderKeyStatus, PersonalityData, Page } from '../types/messages';
+import type { DashboardSettings, ProviderKeyStatus } from '../types/messages';
 
 interface SettingsProps {
   settings: DashboardSettings;
   onSettingsChange: (s: DashboardSettings) => void;
   providerKeys: ProviderKeyStatus;
   showProviderKeys: boolean;
-  onNavigate?: (page: Page) => void;
-  personality?: PersonalityData | null;
   account?: { email?: string; tier?: string } | null;
-  avatarDataUrl?: string;
 }
 
 // ── Static Data ──────────────────────────────────────────────────────────────
@@ -101,10 +98,7 @@ export function Settings({
   onSettingsChange,
   providerKeys,
   showProviderKeys,
-  onNavigate,
-  personality,
   account,
-  avatarDataUrl,
 }: SettingsProps) {
   useLocale();
   const [local, setLocal] = useState<DashboardSettings>(settings);
@@ -114,14 +108,14 @@ export function Settings({
   const [apiKeysOpen, setApiKeysOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
-  // 5-tab Settings refactor — mirrors IDE Settings (Models / Personality /
-  // Permissions / Data / Advanced). State persists so the user lands on
-  // whichever tab they last had open instead of always hitting Models.
-  type SettingsTab = 'models' | 'personality' | 'permissions' | 'data' | 'advanced';
+  // Settings tabs — Models / Permissions / Data / Advanced. Ava's identity
+  // (avatar, tone, energy, style) lives in the Account "Ava's Style" tab, not
+  // here. State persists so the user lands on whichever tab they last opened.
+  type SettingsTab = 'models' | 'permissions' | 'data' | 'advanced';
   const [tab, setTab] = useState<SettingsTab>(() => {
     try {
       const stored = localStorage.getItem('ava-ext-settings-tab');
-      const valid: SettingsTab[] = ['models', 'personality', 'permissions', 'data', 'advanced'];
+      const valid: SettingsTab[] = ['models', 'permissions', 'data', 'advanced'];
       if (stored && (valid as string[]).includes(stored)) return stored as SettingsTab;
     } catch { /* */ }
     return 'models';
@@ -130,8 +124,6 @@ export function Settings({
     setTab(next);
     try { localStorage.setItem('ava-ext-settings-tab', next); } catch { /* */ }
   };
-  const [avatarUploading, setAvatarUploading] = useState(false);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Local / custom OpenAI-compatible provider state — Ollama, LM Studio, vLLM.
   // Loads from the host on mount (it reads SecretStorage); writes go back
@@ -188,22 +180,6 @@ export function Settings({
     setLocalModelLabel('');
     setLocalHasSavedKey(false);
   };
-
-  function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) return;
-    if (file.size > 2 * 1024 * 1024) return;
-    setAvatarUploading(true);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      post({ type: 'save_avatar', data: dataUrl, mimeType: file.type });
-      setAvatarUploading(false);
-    };
-    reader.readAsDataURL(file);
-    if (avatarInputRef.current) avatarInputRef.current.value = '';
-  }
 
   useEffect(() => setLocal(settings), [settings]);
 
@@ -324,7 +300,6 @@ export function Settings({
       <div className="mb-6 flex gap-1 border-b border-[var(--border-card)]">
         {([
           { id: 'models' as const,       label: tt('dash.settings.tab.models',       'Models') },
-          { id: 'personality' as const,  label: tt('dash.settings.tab.personality',  'Personality') },
           { id: 'permissions' as const,  label: tt('dash.settings.tab.permissions',  'Permissions') },
           { id: 'data' as const,         label: tt('dash.settings.tab.data',         'Data') },
           { id: 'advanced' as const,     label: tt('dash.settings.tab.advanced',     'Advanced') },
@@ -344,73 +319,6 @@ export function Settings({
         ))}
       </div>
 
-      {/* ── Personality tab — Your AI + Avatar ──────────────────────── */}
-      {tab === 'personality' && <>
-      <SectionLabel>{t('dash.settings.section.your_ai')}</SectionLabel>
-      <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/20 text-lg">
-              {personality?.name?.[0]?.toUpperCase() ?? 'A'}
-            </div>
-            <div>
-              <p className="text-sm font-semibold">{personality?.name ?? 'Ava'}</p>
-              <p className="text-xs text-[var(--text-muted)]">
-                {personality
-                  ? `${personality.tone} / ${personality.energy} / ${personality.style}`
-                  : t('dash.settings.default_personality')}
-              </p>
-            </div>
-          </div>
-          {onNavigate && (
-            <button
-              onClick={() => onNavigate('personality')}
-              className="text-xs font-medium text-purple-400 transition hover:text-purple-300"
-            >
-              {t('dash.settings.customise')} &rarr;
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* ── Avatar ──────────────────────────────────────────────────────── */}
-      <SectionLabel>{t('dash.settings.avatar')}</SectionLabel>
-      <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
-        <div className="flex items-center gap-4">
-          <div
-            className="h-14 w-14 shrink-0 rounded-full border-2 border-[var(--border-card)] flex items-center justify-center text-lg font-light overflow-hidden"
-            style={{
-              background: avatarDataUrl ? `url(${avatarDataUrl}) center/cover no-repeat` : 'rgba(168,85,247,0.15)',
-              color: 'var(--accent)',
-            }}
-          >
-            {!avatarDataUrl && (account?.email?.[0]?.toUpperCase() || personality?.name?.[0]?.toUpperCase() || 'A')}
-          </div>
-          <div>
-            <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleAvatarUpload} className="hidden" />
-            <div className="flex gap-2">
-              <button
-                onClick={() => avatarInputRef.current?.click()}
-                disabled={avatarUploading}
-                className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-[11px] font-medium text-white transition hover:opacity-90 disabled:opacity-50"
-              >
-                {avatarUploading ? t('dash.journal.saving') : avatarDataUrl ? t('dash.settings.change_avatar') : t('dash.settings.upload_avatar')}
-              </button>
-              {avatarDataUrl && (
-                <button
-                  onClick={() => post({ type: 'remove_avatar' })}
-                  className="rounded-lg border border-[var(--border-card)] px-3 py-1.5 text-[11px] text-red-400 transition hover:border-red-400/40"
-                >
-                  {t('dash.settings.remove')}
-                </button>
-              )}
-            </div>
-            <p className="mt-1.5 text-[10px] text-[var(--text-muted)]">{t('dash.settings.avatar_hint')}</p>
-          </div>
-        </div>
-      </div>
-
-      </>}
       {/* ── Data tab — Privacy + Help train Ava (Language renders below
             Behavior since it shares the same tab but the page order
             keeps the legacy section sequence) ──────────────────────── */}

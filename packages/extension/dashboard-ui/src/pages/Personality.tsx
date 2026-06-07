@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { PersonalityData } from '../types/messages';
 
 interface Props {
   personality: PersonalityData | null;
+  /** Avatar lives with Ava's identity now (moved here from Settings). */
+  avatarDataUrl?: string;
+  account?: { email?: string } | null;
 }
 
 // ── Option descriptors ─────────────────────────────────────────────────────
@@ -39,13 +42,31 @@ function getStyles() {
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export function Personality({ personality }: Props) {
+export function Personality({ personality, avatarDataUrl, account }: Props) {
   useLocale();
   const [tone, setTone] = useState('warm');
   const [energy, setEnergy] = useState('enthusiastic');
   const [style, setStyle] = useState('conversational');
   const [description, setDescription] = useState('');
   const [saved, setSaved] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) return;
+    if (file.size > 2 * 1024 * 1024) return;
+    setAvatarUploading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      post({ type: 'save_avatar', data: dataUrl, mimeType: file.type });
+      setAvatarUploading(false);
+    };
+    reader.readAsDataURL(file);
+    if (avatarInputRef.current) avatarInputRef.current.value = '';
+  }
 
   // Sync from loaded personality
   useEffect(() => {
@@ -91,6 +112,42 @@ export function Personality({ personality }: Props) {
           {t('dash.personality.subtitle')}
         </p>
       </div>
+
+      {/* Avatar — Ava's identity lives here now (moved from Settings). */}
+      <Section label={t('dash.settings.avatar')}>
+        <div className="flex items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--bg-input)] p-5">
+          <div
+            className="h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-[var(--border)] flex items-center justify-center text-lg font-light"
+            style={{
+              background: avatarDataUrl ? `url(${avatarDataUrl}) center/cover no-repeat` : 'rgba(168,85,247,0.15)',
+              color: 'var(--accent)',
+            }}
+          >
+            {!avatarDataUrl && (account?.email?.[0]?.toUpperCase() || personality?.name?.[0]?.toUpperCase() || 'A')}
+          </div>
+          <div>
+            <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleAvatarUpload} className="hidden" />
+            <div className="flex gap-2">
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-[11px] font-medium text-white transition hover:opacity-90 disabled:opacity-50 cursor-pointer"
+              >
+                {avatarUploading ? t('dash.journal.saving') : avatarDataUrl ? t('dash.settings.change_avatar') : t('dash.settings.upload_avatar')}
+              </button>
+              {avatarDataUrl && (
+                <button
+                  onClick={() => post({ type: 'remove_avatar' })}
+                  className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-[11px] text-red-400 transition hover:border-red-400/40 cursor-pointer"
+                >
+                  {t('dash.settings.remove')}
+                </button>
+              )}
+            </div>
+            <p className="mt-1.5 text-[10px] text-[var(--text-muted)]">{t('dash.settings.avatar_hint')}</p>
+          </div>
+        </div>
+      </Section>
 
       {/* Tone */}
       <Section label={t('dash.personality.tone')}>

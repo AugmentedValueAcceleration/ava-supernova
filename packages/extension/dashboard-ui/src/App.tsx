@@ -6,7 +6,6 @@ import { NavSidebar } from './components/NavSidebar';
 import { DashboardTopBar } from './components/DashboardTopBar';
 import { ConnectAccount } from './pages/ConnectAccount';
 import { Overview } from './pages/Overview';
-import { Usage } from './pages/Usage';
 import { Memory } from './pages/Memory';
 import { History } from './pages/History';
 import { Library } from './pages/Library';
@@ -1172,8 +1171,8 @@ export function App() {
         post({ type: 'load_local_memories' });
       }
     }
-    // BYOK: refresh session stats when viewing usage or overview
-    if ((page === 'usage' || page === 'overview') && byokMode && !account) {
+    // BYOK: refresh session stats when viewing the overview
+    if (page === 'overview' && byokMode && !account) {
       post({ type: 'load_session_stats' });
     }
     // Unified Library — load all three data sources when the page opens.
@@ -1360,8 +1359,6 @@ export function App() {
           );
         }
         return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} healthProfile={healthProfile} healthDailyPlan={healthDailyPlan} onSaveHealthDailyPlan={handleSaveHealthDailyPlan} onGenerateHealthMorningBrief={handleGenerateHealthMorningBrief} healthMorningBriefGenerating={healthMorningBriefGenerating} healthMorningBriefError={healthMorningBriefError} onNavigateToHealthProfile={() => { setHealthInitialTab('profile'); setPagePersist('health'); }} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} />;
-      case 'usage':
-        return <Usage account={account} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} activeModel={settings.activeModel} />;
       case 'memory':
         return <Memory memories={account ? memories : localMemories} mode={mode} serverTotal={account ? memoryTotal : undefined} serverHasMore={account ? memoryHasMore : undefined} loaded={account ? isLoaded('memories') : isLoaded('local_memories')} />;
       case 'history':

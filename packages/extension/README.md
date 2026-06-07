@@ -17,6 +17,7 @@ Ava isn't a single tool. She's a partner who plays multiple roles depending on w
 - **Tutor** — builds personalised learning paths from scratch and teaches them like a real human teacher
 - **Strategist** — plans features, audits architecture, researches your competitors
 - **Security auditor** — full OWASP-aligned scan with verified findings, not noise
+- **Writer** — authors real documents (reports, proposals, letters, articles) in plain words and exports branded Word & PDF — edit by talking, never lose your formatting
 - **Assistant** — drafts emails, writes reports, builds spreadsheets, drives a browser
 - **Coach** — builds fitness and meal plans and tracks your progress, from a real exercise and recipe library
 - **Friend** — checks in, remembers your goals, journals with you
@@ -47,20 +48,21 @@ BYOK users also get raw individual models (Claude, Kimi, GLM, etc.) per the keys
 
 ---
 
-## 6 Modes — One Ava, Six States of Thought
+## 7 Modes — One Ava, Seven States of Thought
 
 Modes aren't tool restrictions. They're states of mind. The toolkit and the persona team change to match the work.
 
 | Mode | Prefix | Mindset | Use it for |
 |---|---|---|---|
-| **Work** | `>>` | Builder | Writing, editing, shipping code |
+| **Code** | `>>` | Builder | Writing, editing, shipping code |
+| **Write** | `<<` | Author | Drafting real documents — reports, proposals, letters, articles — exported as branded Word & PDF |
 | **Plan** | `::` | Architect | Read-only analysis, feature design, strategic proposals |
 | **Brainstorm** | `**` | Ideator | New product ideas, problem framing, refinement |
 | **Chat** | `..` | Friend | Personal conversation, journal, life check-ins |
 | **Teach** | `??` | Tutor | Personalised learning paths and Socratic delivery |
 | **Security** | `!!` | Auditor | OWASP-aligned vulnerability scanning |
 
-Switch with the dropdown or `Ctrl+Shift+1` through `Ctrl+Shift+6`.
+Switch with the dropdown or `Ctrl+Shift+1` through `Ctrl+Shift+7`.
 
 ---
 
@@ -77,7 +79,7 @@ Ava approaches your features the way a real engineer would, not the way a fast a
 **She summarises when done.** Each Builder reports back. You get a clean recap of what got built, what was tested, and what got committed. Not a wall of tool calls.
 
 **Her internal team activates for complex work:**
-- **Work pipeline** — Scout → Architect → Verifier → Sequencer → Challenger → Builder
+- **Code pipeline** — Scout → Architect → Verifier → Sequencer → Challenger → Builder
 - Simple questions skip orchestration entirely. Zero overhead.
 
 Three orchestrated modes ship in the dropdown. **Maestro** runs a single Qwen 3.6 Plus conductor — predictable cost, the daily driver. **Supernova** is the polyglot: DeepSeek V4 Pro coordinator + V4 Flash mid-tier specialists + Qwen builders (3.6 Plus for builds, 3.5 Flash for the intent gate, 3.5 Omni Plus for vision, 3.5 Plus for long-form). **Aurora** is the European AI stack — three-tier Mistral fleet: Mistral Large 3 coordinator + heavy specialists, Mistral Medium 3.5 (256K context, native vision) for Builder + mid-tier specialists + vision + long-form, Mistral Small 4 at the intent gate. Open weights, never leaves EU infrastructure. Sovereign by default. Pick whichever fits the job.
@@ -126,7 +128,7 @@ Two modes for thinking work, no code touched until you approve.
 
 **Brainstorm mode** — for ideation and decision-making. The Explorer mines your context (memory, journal, what you've built). The Researcher checks the market. The Ideator generates options. The Challenger cuts the weak ones. The Refiner turns survivors into "here's what you do Monday morning" plans.
 
-Both modes produce structured output you can approve, edit, save to memory, or transition into Work mode for execution.
+Both modes produce structured output you can approve, edit, save to memory, or transition into Code mode for execution.
 
 ---
 
@@ -156,6 +158,18 @@ The work that isn't code, but still has to happen:
 - **Tasks** — track work across global and project scopes, sync to the dashboard, flag overdue items in the daily briefing
 - **Journal** — your entry and Ava's, side by side, with mood tracking and streak counting
 - **Daily briefing** — proactive morning check-in: today's tasks, overdue items, journal streak, learning progress
+
+---
+
+## As Your Writer
+
+A dedicated **Write** mode for anyone who writes — reports, proposals, letters, articles — with no coding required.
+
+**You write in plain words; she handles the document.** Tell Ava what you need, or start from a real worked template, and she drafts it properly: headings, tables, callouts, even a cover image she generates herself. When it's ready, she exports a branded **Word** document or **PDF**.
+
+**Edit by talking, and never lose your formatting.** Say *"tighten the pricing section"* or *"make the intro warmer"* and Ava changes just that part — the rest of your document stays exactly as it was. You watch it render live as she writes.
+
+**It's yours.** Save a document you love as a reusable template, and pin your brand — fonts and colours — so every new document inherits it. The source is plain Markdown, so nothing's ever locked in.
 
 ---
 
@@ -224,7 +238,7 @@ Grouped for the work you actually do:
 | **Git** | `git_status`, `git_diff`, `rollback`, `git_commit`, `git_create_pr` |
 | **Web** | `web_search`, `http_request`, `browser` |
 | **Creative Studio** | `generate_image`, `generate_video`, `generate_music`, `generate_voice`, `remove_background`, `browse_library` |
-| **Office** | `email_draft`, `report_generate`, `document_manage`, `doc_generate` |
+| **Office & Authoring** | `document_author`, `email_draft`, `report_generate`, `document_manage`, `doc_generate` |
 | **Memory** | `memory_save`, `memory_recall`, `memory_update`, `memory_delete`, `curator` |
 | **Tasks & Planning** | `present_plan`, `todo_write`, `task_manage`, `apply_plan`, `switch_mode` |
 | **Journal & Learning** | `journal_write`, `learning_create`, `learning_teach`, `learning_progress` |

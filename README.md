@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">Ava Supernova</h1>
   <p align="center">
-    <strong>Open-source AI coding agent — 60+ tools, 6 modes, 24 specialist personas, frontier open-source models from every major Chinese + Western lab. Creative Studio for images, video, music, voice. 300 free credits per month with an account, or bring your own API keys.</strong>
+    <strong>Open-source AI coding agent — 60+ tools, 7 modes, 24 specialist personas, frontier open-source models from every major Chinese + Western lab. Creative Studio for images, video, music, voice. 300 free credits per month with an account, or bring your own API keys.</strong>
   </p>
   <p align="center">
     <a href="#supported-models">Models</a> &middot;
@@ -23,7 +23,7 @@
 
 ---
 
-Ava Supernova is an open-source AI coding agent that brings full agentic coding to every developer — as a **VS Code extension**, a **standalone IDE**, a **terminal CLI**, and a **companion app**. She remembers you across sessions, teaches for free, and thinks before she builds with 24 specialist personas across 6 modes.
+Ava Supernova is an open-source AI coding agent that brings full agentic coding to every developer — as a **VS Code extension**, a **standalone IDE**, a **terminal CLI**, and a **companion app**. She remembers you across sessions, teaches for free, and thinks before she builds with 24 specialist personas across 7 modes.
 
 > **Start coding with AI in 30 seconds.** Install, open, go. Sign up for 300 free credits per month, or bring your own API keys.
 
@@ -43,7 +43,7 @@ Agentic coding shouldn't be a luxury. The open-source model ecosystem now matche
 ## What Makes Ava Different
 
 - **She remembers you** — 5-layer memory system that learns your coding style, decisions, conventions, and preferences. Every session she's better at helping you specifically.
-- **She thinks before she builds** — 24 specialist personas across 6 modes plan before executing. Complex tasks get proper analysis, not just code generation.
+- **She thinks before she builds** — 24 specialist personas across 7 modes plan before executing. Complex tasks get proper analysis, not just code generation.
 - **She teaches for free** — Switch to Teach mode, say "teach me Python", and she builds a personalised curriculum with spaced repetition. Education shouldn't have a price tag.
 - **She picks the right brain** — three orchestrated modes ship in the dropdown. **Maestro** runs a single-coordinator pipeline (Qwen 3.6 Plus, the Terminal-Bench leader). **Supernova** *(in development)* extends to polyglot multi-model orchestration — DeepSeek V4 Pro coordinator + Qwen 3.6 Plus Builder + V4 Flash for review + Omni for vision. **Aurora** *(in development)* is the European AI stack — three-tier Mistral fleet: Large 3 coordinator + heavy specialists, Medium 3.5 (the merged flagship released April 2026 — 128B dense, 256K context, vision encoder from scratch, 77.6% SWE-Bench Verified) for Builder + mid-tier + vision + long-form, Small 4 at the intent gate. Never leaves European infrastructure. Open weights, sovereign by design.
 - **She's yours to design** — Choose the tone, energy, and communication style. Same brain, your personality.
@@ -51,20 +51,21 @@ Agentic coding shouldn't be a luxury. The open-source model ecosystem now matche
 - **She's always aware** — Tick Engine runs every 2 minutes, checking tasks, journal streaks, token balance, and support messages. She speaks up only when it matters.
 - **She gets sharper, not noisier** — 4-phase memory consolidation (Orient → Gather → Consolidate → Prune) with a 25KB cap keeps memory lean at scale.
 
-## 6 Modes — States of Thought
+## 7 Modes — States of Thought
 
 Modes aren't tool restrictions — they're states of mind.
 
 | Mode | Prefix | Purpose |
 |---|---|---|
-| **Work** | `>>` | Builder mindset — full agent with 60+ tools |
+| **Code** | `>>` | Builder mindset — full agent with 60+ tools |
+| **Write** | `<<` | Author mindset — drafts real documents (reports, proposals, letters, articles), exports branded Word & PDF |
 | **Plan** | `::` | Architect mindset — read-only analysis and strategic planning |
 | **Brainstorm** | `**` | Ideation mindset — research, generate, challenge, refine ideas |
 | **Chat** | `..` | Friend mindset — personal conversation, memory, journal |
 | **Teach** | `??` | Tutor mindset — personalised learning with spaced repetition |
 | **Security** | `!!` | Auditor mindset — OWASP-aligned security scanning |
 
-Switch modes with the dropdown or keyboard shortcuts `Ctrl+Shift+1` through `Ctrl+Shift+6`.
+Switch modes with the dropdown or keyboard shortcuts `Ctrl+Shift+1` through `Ctrl+Shift+7`.
 
 ## Personas — Internal Specialist Team
 
@@ -136,7 +137,7 @@ Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/item
 ### Extension Features
 
 - **Agentic coding** — Ava reads, writes, edits, searches, and executes code autonomously
-- **Six modes** — Work (`>>` full agent), Plan (`::` read-only), Brainstorm (`**` ideation), Chat (`..` friend), Teach (`??` personal tutor), Security (`!!` OWASP audit)
+- **Seven modes** — Code (`>>` full agent), Write (`<<` document authoring), Plan (`::` read-only), Brainstorm (`**` ideation), Chat (`..` friend), Teach (`??` personal tutor), Security (`!!` OWASP audit)
 - **24 specialist personas** — Internal team orchestrated by Conductor across 5 modes
 - **5-layer memory** — Pattern extraction, LLM reflection, habit detection, cross-memory insights, cloud sync with semantic search
 - **Custom personality** — Name, pronouns, tone, energy, communication style — design your own AI companion
@@ -487,7 +488,7 @@ cd packages/extension && pnpm build
 - [x] Standalone IDE (Tauri v2 + Node.js sidecar — in development)
 - [x] 60+ built-in tools (file ops, search, bash, git, web, browser, database, memory, media, office, planning, docs)
 - [x] Frontier open-source models from every major lab — DeepSeek V4, Qwen 3.6, Kimi K2.6, GLM-5, MiniMax, Mistral, Xiaomi MiMo + Anthropic BYOK
-- [x] 6 modes — Work, Plan, Brainstorm, Chat, Teach, Security
+- [x] 7 modes — Code, Write, Plan, Brainstorm, Chat, Teach, Security
 - [x] 24 specialist personas with Conductor orchestration
 - [x] 5-layer memory — pattern extraction, LLM reflection, habit detection, cross-memory insights, cloud sync
 - [x] Custom personality designer

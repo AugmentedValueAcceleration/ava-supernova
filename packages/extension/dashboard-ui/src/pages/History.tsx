@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, type ReactNode } from 'react';
 import { t, useLocale, getLocale } from '../i18n';
 import { post } from '../App';
 import { SectionGroup } from '../components/SectionGroup';
@@ -44,11 +44,85 @@ function timeSince(iso: string): string {
   return `${hours}h ${remaining}m`;
 }
 
+// ─── Shared visual language ──────────────────────────────────────────────────
+// One tone system feeds cost, status, risk and approval across all three tabs,
+// so the same green (etc.) always means the same thing. Unifies four formerly
+// independent colour maps.
+type Tone = 'success' | 'warn' | 'danger' | 'info' | 'neutral';
+
+const TONE_TEXT: Record<Tone, string> = {
+  success: 'text-emerald-400', warn: 'text-yellow-400', danger: 'text-red-400',
+  info: 'text-blue-400', neutral: 'text-[var(--text-muted)]',
+};
+const TONE_BADGE: Record<Tone, string> = {
+  success: 'bg-emerald-500/15 text-emerald-400', warn: 'bg-yellow-500/15 text-yellow-400',
+  danger: 'bg-red-500/15 text-red-400', info: 'bg-blue-500/15 text-blue-400',
+  neutral: 'bg-white/5 text-[var(--text-muted)]',
+};
+
+// Shared interactive-card surface — calm flat base, brand accent on hover only.
+// This is the one "clickable row" treatment for standalone cards across tabs.
+const INTERACTIVE_CARD = 'rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] transition hover:border-[var(--accent)]/45 hover:shadow-[0_0_12px_rgba(168,85,247,0.16)]';
+
+function costTone(cost: number): Tone {
+  if (cost < 0.10) return 'success';
+  if (cost < 0.50) return 'warn';
+  return 'danger';
+}
 function costColour(cost: number): string {
-  if (cost < 0.10) return 'text-emerald-400';
-  if (cost < 0.50) return 'text-yellow-400';
-  if (cost < 1.00) return 'text-orange-400';
-  return 'text-red-400';
+  return TONE_TEXT[costTone(cost)];
+}
+
+// Shared search box — one styled input used by both the Conversations and
+// Audit tabs (they previously diverged). `compact` is the audit-toolbar size.
+function SearchInput({ value, onChange, placeholder, compact, className }: {
+  value: string; onChange: (v: string) => void; placeholder: string; compact?: boolean; className?: string;
+}) {
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className={`rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition focus:border-[var(--accent)] ${compact ? 'px-2 py-1 text-[11px]' : 'px-3 py-2 text-xs'} ${className ?? ''}`}
+    />
+  );
+}
+
+// Shared empty state — one solid-border look (the dashed variant read as
+// unfinished), used by every tab.
+function EmptyState({ icon, children }: { icon: string; children: ReactNode }) {
+  return (
+    <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-10 text-center">
+      <div className="mb-2 text-2xl opacity-30">{icon}</div>
+      <p className="text-xs text-[var(--text-muted)]">{children}</p>
+    </div>
+  );
+}
+
+// Compact in-section placeholder — keeps every Usage section rendering a
+// consistent "nothing yet" card instead of some hiding and some showing zeros,
+// so a region header never sits above missing content.
+function SectionEmpty({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-6 text-center">
+      <p className="text-xs text-[var(--text-muted)]">{children}</p>
+    </div>
+  );
+}
+
+// Labelled zone header — orients the two halves of the flattened Usage view
+// (This session / All time) now that the sub-toggle is gone.
+function UsageRegion({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <div className="mb-3 flex items-center gap-3">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">{label}</span>
+        <div className="h-px flex-1 bg-[var(--border-card)]" />
+      </div>
+      {children}
+    </div>
+  );
 }
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -94,12 +168,10 @@ interface HistoryProps {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-// Tabs mirror the IDE History page at DashboardPages.tsx:5814-5818:
-// Conversations / Usage / Audit. The Usage tab nests the existing Session
-// + All-time views under a sub-toggle so we keep both views without
-// drifting from the IDE's three-tab top-level shape.
+// Tabs mirror the IDE History page: Conversations / Usage / Audit. Usage is a
+// single scrolling view — the Session summary up top, the All-time history
+// below — rather than a nested sub-toggle.
 type TopTab = 'conversations' | 'usage' | 'audit';
-type UsageSubTab = 'session' | 'alltime';
 
 export function History({ sessionStats, usageHistory, mode, account, auditLog, conversations, loaded, onNavigate }: HistoryProps) {
   useLocale();
@@ -108,15 +180,11 @@ export function History({ sessionStats, usageHistory, mode, account, auditLog, c
     if (saved === 'conversations' || saved === 'usage' || saved === 'audit') return saved;
     return 'conversations';
   });
-  const [usageSubTab, setUsageSubTab] = useState<UsageSubTab>(() => {
-    const saved = localStorage.getItem('ava-analytics-usage-subtab');
-    return (saved === 'alltime' && mode === 'platform') ? 'alltime' : 'session';
-  });
 
   const handleTabChange = (tab: TopTab) => {
     setActiveTab(tab);
     localStorage.setItem('ava-analytics-tab', tab);
-    if (tab === 'usage' && usageSubTab === 'alltime' && mode === 'platform') {
+    if (tab === 'usage' && mode === 'platform') {
       post({ type: 'load_usage_history' });
     }
     if (tab === 'audit') {
@@ -124,14 +192,6 @@ export function History({ sessionStats, usageHistory, mode, account, auditLog, c
     }
     if (tab === 'conversations') {
       post({ type: 'load_conversations' });
-    }
-  };
-
-  const handleUsageSubChange = (sub: UsageSubTab) => {
-    setUsageSubTab(sub);
-    localStorage.setItem('ava-analytics-usage-subtab', sub);
-    if (sub === 'alltime' && mode === 'platform') {
-      post({ type: 'load_usage_history' });
     }
   };
 
@@ -170,32 +230,16 @@ export function History({ sessionStats, usageHistory, mode, account, auditLog, c
       )}
 
       {activeTab === 'usage' && (
-        <>
-          {/* Usage sub-toggle — Session vs All-time. */}
-          <div className="mb-4 flex gap-1 border-b border-[var(--border-card)]">
-            {([
-              { id: 'session', label: t('dash.usage.session') },
-              { id: 'alltime', label: t('dash.usage.all_time') },
-            ] as const).map(sub => (
-              <button
-                key={sub.id}
-                onClick={() => handleUsageSubChange(sub.id)}
-                className={`-mb-px border-b-2 px-3 py-1.5 text-[11px] font-medium transition border-x-0 border-t-0 bg-transparent cursor-pointer ${
-                  usageSubTab === sub.id
-                    ? 'border-[var(--accent)] text-[var(--accent)]'
-                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                {sub.label}
-              </button>
-            ))}
-          </div>
-          {usageSubTab === 'session' ? (
+        <div className="space-y-8">
+          {/* This session — always available (works for BYOK + local). */}
+          <UsageRegion label={t('dash.usage.session')}>
             <SessionView stats={sessionStats} />
-          ) : (
+          </UsageRegion>
+          {/* All-time — credits, charts, history (or the connect hint for BYOK). */}
+          <UsageRegion label={t('dash.usage.all_time')}>
             <AllTimeView data={usageHistory} mode={mode} account={account} />
-          )}
-        </>
+          </UsageRegion>
+        </div>
       )}
 
       {activeTab === 'audit' && (
@@ -236,12 +280,11 @@ function ConversationsView({ conversations, loaded, onNavigate }: { conversation
 
   return (
     <div className="space-y-3">
-      <input
-        type="text"
+      <SearchInput
         value={search}
-        onChange={e => setSearch(e.target.value)}
+        onChange={setSearch}
         placeholder={t('dash.history.search_conversations')}
-        className="w-full max-w-sm rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]"
+        className="w-full max-w-sm"
       />
 
       {!loaded ? (
@@ -249,12 +292,9 @@ function ConversationsView({ conversations, loaded, onNavigate }: { conversation
           {[0, 1, 2, 3].map(i => <Skeleton key={i} height={58} radius={10} />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[var(--border-card)] bg-[var(--bg-card)] p-12 text-center">
-          <div className="mb-2 text-2xl opacity-30">💬</div>
-          <p className="text-xs text-[var(--text-muted)]">
-            {search ? t('dash.history.no_match') : t('dash.history.no_conversations')}
-          </p>
-        </div>
+        <EmptyState icon="💬">
+          {search ? t('dash.history.no_match') : t('dash.history.no_conversations')}
+        </EmptyState>
       ) : (
         <div className="flex flex-col gap-2">
           {filtered.map(conv => {
@@ -275,8 +315,7 @@ function ConversationsView({ conversations, loaded, onNavigate }: { conversation
               <div
                 key={conv.id}
                 onClick={() => loadConversation(conv)}
-                className="cursor-pointer rounded-xl border border-[rgba(168,85,247,0.20)] px-4 py-3 transition hover:border-[rgba(168,85,247,0.55)] hover:shadow-[0_0_10px_rgba(168,85,247,0.18)]"
-                style={{ background: 'linear-gradient(135deg, #0f0f17 0%, #1a1625 100%)' }}
+                className={`cursor-pointer px-4 py-3 ${INTERACTIVE_CARD}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
@@ -316,23 +355,16 @@ function ConversationsView({ conversations, loaded, onNavigate }: { conversation
 
 // ─── Audit View ─────────────────────────────────────────────────────────────
 
-const APPROVAL_COLORS: Record<string, string> = {
-  'auto': 'bg-emerald-500/15 text-emerald-400',
-  'first-time': 'bg-blue-500/15 text-blue-400',
-  'user-approved': 'bg-yellow-500/15 text-yellow-400',
-  'denied': 'bg-red-500/15 text-red-400',
+// Audit dimensions map onto the shared tone system (TONE_BADGE / TONE_TEXT)
+// so a green here is the same green as a low cost or a successful status.
+const APPROVAL_TONE: Record<string, Tone> = {
+  'auto': 'success', 'first-time': 'info', 'user-approved': 'warn', 'denied': 'danger',
 };
-
-const STATUS_COLORS: Record<string, string> = {
-  'success': 'text-emerald-400',
-  'failed': 'text-red-400',
-  'denied': 'text-red-400',
+const STATUS_TONE: Record<string, Tone> = {
+  'success': 'success', 'failed': 'danger', 'denied': 'danger',
 };
-
-const RISK_COLORS: Record<string, string> = {
-  'safe': 'bg-emerald-500/15 text-emerald-400',
-  'write': 'bg-yellow-500/15 text-yellow-400',
-  'dangerous': 'bg-red-500/15 text-red-400',
+const RISK_TONE: Record<string, Tone> = {
+  'safe': 'success', 'write': 'warn', 'dangerous': 'danger',
 };
 
 const CATEGORY_LABEL_KEYS: Record<string, string> = {
@@ -434,12 +466,12 @@ function AuditView({ entries }: { entries: AuditEntry[] }) {
 
       {/* Search + filter + export controls */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-2.5">
-        <input
-          type="text"
+        <SearchInput
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={setSearch}
           placeholder={t('dash.audit.filter_placeholder')}
-          className="flex-1 min-w-[160px] rounded-md border border-[var(--border-card)] bg-[var(--bg-input)] px-2 py-1 text-[11px] text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--accent)]"
+          compact
+          className="flex-1 min-w-[160px]"
         />
         <div className="w-[120px] shrink-0">
           <Select
@@ -498,12 +530,9 @@ function AuditView({ entries }: { entries: AuditEntry[] }) {
 
       {/* Empty state */}
       {filtered.length === 0 && (
-        <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-8 text-center">
-          <span className="block text-2xl opacity-30 mb-2">📋</span>
-          <p className="text-xs text-[var(--text-muted)]">
-            {entries.length === 0 ? t('dash.audit.empty_none') : t('dash.audit.empty_filtered')}
-          </p>
-        </div>
+        <EmptyState icon="📋">
+          {entries.length === 0 ? t('dash.audit.empty_none') : t('dash.audit.empty_filtered')}
+        </EmptyState>
       )}
 
       {/* Entry table */}
@@ -535,10 +564,10 @@ function AuditView({ entries }: { entries: AuditEntry[] }) {
                   <span className="text-[var(--text-muted)] font-mono text-[10px]">{time}</span>
                   <span className="text-white font-medium truncate">{entry.toolName}</span>
                   <span className="text-[var(--text-secondary)]">{CATEGORY_LABEL_KEYS[entry.category] ? t(CATEGORY_LABEL_KEYS[entry.category]) : entry.category}</span>
-                  <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium text-center ${RISK_COLORS[entry.riskLevel] || ''}`}>{entry.riskLevel}</span>
-                  <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium text-center ${APPROVAL_COLORS[entry.approvalMethod] || ''}`}>{entry.approvalMethod}</span>
+                  <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium text-center ${TONE_BADGE[RISK_TONE[entry.riskLevel] ?? 'neutral']}`}>{entry.riskLevel}</span>
+                  <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium text-center ${TONE_BADGE[APPROVAL_TONE[entry.approvalMethod] ?? 'neutral']}`}>{entry.approvalMethod}</span>
                   <span className="text-right font-mono text-[10px] text-[var(--text-secondary)]">{formatAuditCost(entry.cost)}</span>
-                  <span className={`text-[10px] font-medium ${STATUS_COLORS[entry.status] || 'text-[var(--text-muted)]'}`}>{entry.status}</span>
+                  <span className={`text-[10px] font-medium ${TONE_TEXT[STATUS_TONE[entry.status] ?? 'neutral']}`}>{entry.status}</span>
                 </button>
                 {isExpanded && (
                   <div className="px-3 pb-3 space-y-2">
@@ -713,9 +742,7 @@ function SessionView({ stats }: { stats: SessionStats | null }) {
               })}
             </div>
           ) : (
-            <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-6 text-center">
-              <p className="text-xs text-[var(--text-muted)]">{t('dash.usage.no_usage_session')}</p>
-            </div>
+            <SectionEmpty>{t('dash.usage.no_usage_session')}</SectionEmpty>
           )}
         </SectionGroup>
       </div>
@@ -904,9 +931,9 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
       </div>
 
       {/* Most Used Models */}
-      {data.topModels.length > 0 && (
-        <div className="mb-6">
-          <SectionGroup label={t('dash.usage.most_used_models')}>
+      <div className="mb-6">
+        <SectionGroup label={t('dash.usage.most_used_models')}>
+          {data.topModels.length > 0 ? (
             <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-4 space-y-3">
               {data.topModels.map((m) => {
                 const credits = tokensToCredits(m.tokens);
@@ -927,14 +954,16 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
                 );
               })}
             </div>
-          </SectionGroup>
-        </div>
-      )}
+          ) : (
+            <SectionEmpty>{t('dash.usage.no_usage_period')}</SectionEmpty>
+          )}
+        </SectionGroup>
+      </div>
 
       {/* Session History */}
-      {data.sessions.length > 0 && (
-        <div className="mb-6">
-          <SectionGroup label={t('dash.usage.session_history')} count={t('dash.usage.sessions_count', { count: data.sessions.length })}>
+      <div className="mb-6">
+        <SectionGroup label={t('dash.usage.session_history')} count={data.sessions.length > 0 ? t('dash.usage.sessions_count', { count: data.sessions.length }) : undefined}>
+          {data.sessions.length > 0 ? (
             <div className="rounded-xl border border-[var(--border-card)] overflow-hidden">
               {/* Header */}
               <div className="grid grid-cols-6 gap-2 bg-[var(--bg-card)] px-4 py-2 border-b border-[var(--border-card)]">
@@ -997,9 +1026,11 @@ function AllTimeView({ data, mode, account }: { data: UsageHistoryData | null; m
                 ))}
               </div>
             </div>
-          </SectionGroup>
-        </div>
-      )}
+          ) : (
+            <SectionEmpty>{t('dash.usage.no_usage_period')}</SectionEmpty>
+          )}
+        </SectionGroup>
+      </div>
     </>
   );
 }

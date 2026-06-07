@@ -34,13 +34,14 @@ function getAccountTabs(): { key: AccountTab; label: string; platformOnly?: bool
   return [
     { key: 'settings', label: tt('dash.account.tab_settings', 'Settings') },
     { key: 'billing', label: tt('dash.account.tab_billing', 'Billing'), platformOnly: true },
-    { key: 'connections', label: tt('dash.account.tab_connections', 'Connections') },
+    // Connections tab hidden for now — being reworked later this week.
+    // Re-enable by restoring: { key: 'connections', label: tt('dash.account.tab_connections', 'Connections') },
     { key: 'personality', label: tt('dash.account.tab_personality', "Ava's Style") },
   ];
 }
 
 export function AccountPage({
-  settings, onSettingsChange, providerKeys, onNavigate,
+  settings, onSettingsChange, providerKeys,
   personality, account, avatarDataUrl,
   connections, isPlatform,
 }: AccountPageProps) {
@@ -81,10 +82,7 @@ export function AccountPage({
           onSettingsChange={onSettingsChange}
           providerKeys={providerKeys}
           showProviderKeys
-          onNavigate={onNavigate}
-          personality={personality}
           account={account}
-          avatarDataUrl={avatarDataUrl}
         />
       )}
 
@@ -97,7 +95,7 @@ export function AccountPage({
       )}
 
       {activeTab === 'personality' && (
-        <Personality personality={personality ?? null} />
+        <Personality personality={personality ?? null} avatarDataUrl={avatarDataUrl} account={account} />
       )}
     </div>
   );
