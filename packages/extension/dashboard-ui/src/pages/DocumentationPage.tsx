@@ -3,7 +3,7 @@
 
 import { useMemo, useState, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { t, useLocale } from '../i18n';
+import { t, tt, useLocale } from '../i18n';
 import {
   type RendererAdapter,
   type DocBlock,
@@ -16,7 +16,8 @@ import {
   PERMISSION_MODES,
   PERMISSION_LABELS,
   SHORTCUTS,
-  filterBySurface,
+  filterForSurface,
+  pageBadges,
   buildSidebar,
   anchorFor,
   getPages,
@@ -248,10 +249,26 @@ function makeAdapter(): RendererAdapter<ReactNode> {
       </div>
     ),
 
-    page: (title, blocks, anchor) => (
+    page: (title, blocks, anchor, extras) => (
       <section key={anchor} id={anchor} className="mb-8 scroll-mt-4">
-        <h2 className="text-xl font-medium text-white mb-4 pb-2 border-b border-[var(--border-input)]">{title}</h2>
+        <div className="mb-4 pb-2 border-b border-[var(--border-input)]">
+          <h2 className="text-xl font-medium text-white">{title}</h2>
+          {extras?.badges && extras.badges.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">{tt('dash.docs.works_on', 'Works on')}</span>
+              {extras.badges.map(s => <Pill key={s}>{SURFACE_LABELS[s]}</Pill>)}
+            </div>
+          )}
+        </div>
         {blocks}
+        {extras?.deeper && extras.deeper.length > 0 && (
+          <details className="mt-4 rounded-lg border border-[var(--border-input)] bg-[var(--bg-card)]">
+            <summary className="cursor-pointer select-none px-3 py-2 text-[12px] font-medium text-[var(--accent)] hover:brightness-110">
+              {tt('dash.docs.show_details', 'Show me the details')}
+            </summary>
+            <div className="px-3 pb-3 pt-1">{extras.deeper}</div>
+          </details>
+        )}
       </section>
     ),
 
@@ -280,6 +297,9 @@ function PermBadge({ perm }: { perm: 'auto' | 'first_time' | 'always_ask' }) {
   const cls = perm === 'auto' ? 'bg-emerald-500/15 text-emerald-400' : perm === 'first_time' ? 'bg-amber-500/15 text-amber-400' : 'bg-red-500/15 text-red-400';
   return <span className={`px-1.5 py-0.5 rounded text-[9px] ${cls}`}>{PERMISSION_LABELS[perm]}</span>;
 }
+
+// Friendly labels for the "works on" surface badges (derived from the capability matrix).
+const SURFACE_LABELS: Record<string, string> = { ext: 'Extension', ide: 'IDE', companion: 'Companion', cli: 'CLI', web: 'Web' };
 
 function Pill({ children }: { children: ReactNode }) {
   return <span className="px-1.5 py-0.5 rounded text-[9px] bg-white/5 text-[var(--text-muted)]">{children}</span>;
@@ -334,7 +354,7 @@ export function DocumentationPage() {
     // on this surface, every time. Operator wanted no interactive controls
     // in the sidebar; keep it as a fixed nav. Content localizes to the active
     // locale (English fallback per block).
-    const all = filterBySurface(getPages(locale), 'ext');
+    const all = filterForSurface(getPages(locale), 'ext');
     return { pages: all, sidebar: buildSidebar(all) };
   }, [locale]);
 
@@ -358,7 +378,8 @@ export function DocumentationPage() {
       <main className="min-w-0 flex-1 overflow-y-auto pr-1">
         {pages.map(page => {
           const blocks = page.body.map(b => renderBlock(b, adapter, data));
-          return adapter.page(page.title, blocks, anchorFor(page.id));
+          const deeper = page.deeper?.length ? page.deeper.map(b => renderBlock(b, adapter, data)) : undefined;
+          return adapter.page(page.title, blocks, anchorFor(page.id), { deeper, badges: pageBadges(page) });
         })}
       </main>
     </div>

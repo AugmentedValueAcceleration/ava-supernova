@@ -2,6 +2,7 @@
 
 import type { DocPage, Audience, Surface, SidebarNode } from './types.js';
 import { SECTION_LABELS, SECTION_ORDER } from './types.js';
+import { surfaceSupports } from './data/capabilities.js';
 
 /**
  * Keep only pages that should render on this surface.
@@ -9,6 +10,28 @@ import { SECTION_LABELS, SECTION_ORDER } from './types.js';
  */
 export function filterBySurface(pages: DocPage[], surface: Surface): DocPage[] {
   return pages.filter(p => p.surfaces.includes(surface));
+}
+
+/**
+ * Drop pages whose required capabilities the surface doesn't have. So a page
+ * tagged `requires: ['screenshot']` is hidden on the extension (no screen
+ * capture) but shown on the IDE — derived from the capability matrix, never
+ * written by hand. The public website ('web') is the superset: it always keeps
+ * every page (the surface badges say where each one applies).
+ */
+export function filterByCapability(pages: DocPage[], surface: Surface): DocPage[] {
+  if (surface === 'web') return pages;
+  return pages.filter(p =>
+    !p.requires || p.requires.every(cap => surfaceSupports(surface, cap)),
+  );
+}
+
+/**
+ * The full surface gate every renderer should apply: a page must render on the
+ * surface AND have its required capabilities there.
+ */
+export function filterForSurface(pages: DocPage[], surface: Surface): DocPage[] {
+  return filterByCapability(filterBySurface(pages, surface), surface);
 }
 
 /**

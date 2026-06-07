@@ -16,6 +16,26 @@ import type { ModeFact } from './data/modes.js';
 import type { PersonaFact } from './data/personas.js';
 import type { PermissionModeFact } from './data/permissions.js';
 import type { ShortcutFact } from './data/shortcuts.js';
+import type { ProductSurface } from './data/capabilities.js';
+import { commonSurfaces } from './data/capabilities.js';
+
+/**
+ * Optional per-page extras a renderer can surface alongside the body:
+ *  - `deeper`: rendered "Show me the details" blocks shown behind an expander,
+ *     so one page serves newcomers and power users.
+ *  - `badges`: the product surfaces this page applies to (derived from its
+ *     `requires`). Undefined means it works everywhere — no badge needed.
+ */
+export interface PageExtras<Out> {
+  deeper?: Out[];
+  badges?: ProductSurface[];
+}
+
+/** Which product surfaces to badge a page with — undefined when it works everywhere. */
+export function pageBadges(page: DocPage): ProductSurface[] | undefined {
+  if (!page.requires || page.requires.length === 0) return undefined;
+  return commonSurfaces(page.requires);
+}
 
 /**
  * A surface renderer produces a value of type `Out` for each block. For React surfaces
@@ -39,8 +59,12 @@ export interface RendererAdapter<Out> {
   permissions(items: PermissionModeFact[]): Out;
   shortcuts(items: ShortcutFact[], filter: FactsBlock & { kind: 'shortcuts' }): Out;
 
-  /** Assemble a list of rendered blocks into a page container. */
-  page(title: string, blocks: Out[], anchor: string): Out;
+  /**
+   * Assemble a list of rendered blocks into a page container. `extras` carries
+   * the optional "Show me the details" depth and the surface badges; renderers
+   * that don't yet support them can ignore the param (it's optional).
+   */
+  page(title: string, blocks: Out[], anchor: string, extras?: PageExtras<Out>): Out;
   /** Assemble a list of rendered pages into the top-level document. */
   document(pages: Out[], sidebar: SidebarNode[], surface: Surface): Out;
 }
@@ -55,7 +79,10 @@ export function renderPage<Out>(
   data: FactsData,
 ): Out {
   const blocks = page.body.map(block => renderBlock(block, adapter, data));
-  return adapter.page(page.title, blocks, anchorFromId(page.id));
+  const deeper = page.deeper && page.deeper.length
+    ? page.deeper.map(block => renderBlock(block, adapter, data))
+    : undefined;
+  return adapter.page(page.title, blocks, anchorFromId(page.id), { deeper, badges: pageBadges(page) });
 }
 
 export function renderBlock<Out>(

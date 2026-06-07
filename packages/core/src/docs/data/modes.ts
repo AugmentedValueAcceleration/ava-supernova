@@ -1,4 +1,4 @@
-// Canonical fact table for the 6 modes — states of thought.
+// Canonical fact table for the 7 modes — states of thought.
 
 export type ModeId = 'work' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write';
 

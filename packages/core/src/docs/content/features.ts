@@ -86,6 +86,7 @@ export const FEATURE_PAGES: DocPage[] = [
     title: 'Document preview',
     audience: ['both'],
     surfaces: ['ext', 'ide'],
+    requires: ['live_doc_preview'],
     order: 60,
     section: 'features',
     body: [
@@ -162,6 +163,7 @@ export const FEATURE_PAGES: DocPage[] = [
     title: 'Desktop Automation',
     audience: ['both'],
     surfaces: ['web', 'ext', 'ide'],
+    requires: ['desktop_automation'],
     order: 120,
     section: 'features',
     body: [

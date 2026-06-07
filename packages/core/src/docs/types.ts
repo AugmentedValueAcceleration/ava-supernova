@@ -3,7 +3,41 @@
 // Each surface (web, extension, IDE) implements its own render pass over these types.
 
 export type Audience = 'newcomer' | 'power' | 'both';
-export type Surface = 'web' | 'ext' | 'ide';
+
+/**
+ * A surface is both a doc-rendering target and a product. For 'ext' | 'ide' |
+ * 'companion' | 'cli' the in-app docs describe that product, so capability
+ * filtering applies. 'web' is the public site — a superset that shows every
+ * page with per-surface badges, so capability filtering never hides on web.
+ */
+export type Surface = 'web' | 'ext' | 'ide' | 'companion' | 'cli';
+
+/**
+ * What you want to do — the task-first front door. Pages are grouped by task;
+ * the section taxonomy below becomes the "go deeper" reference layer.
+ * Canonical list + copy live in `data/tasks.ts`.
+ */
+export type TaskId =
+  | 'build'
+  | 'write'
+  | 'learn'
+  | 'create'
+  | 'health'
+  | 'make-it-yours'
+  | 'troubleshoot';
+
+/**
+ * A product capability that isn't available on every surface (e.g. the IDE has
+ * desktop automation and screenshots; the extension does not). The surface set
+ * for each capability is declared once in `data/capabilities.ts`. A page that
+ * `requires` a capability auto-hides on surfaces that lack it.
+ */
+export type Capability =
+  | 'desktop_automation'
+  | 'screenshot'
+  | 'browser'
+  | 'document_authoring'
+  | 'live_doc_preview';
 
 export type Section =
   | 'start'
@@ -27,8 +61,23 @@ export interface DocPage {
   order: number;
   /** Top-level section the page belongs to. */
   section: Section;
+  /**
+   * Outcome group for the task-first front door. Optional during migration —
+   * untagged pages still render under their `section` in the reference layer.
+   */
+  task?: TaskId;
+  /**
+   * Capabilities this page depends on. The page auto-hides on any surface that
+   * lacks them (per `data/capabilities.ts`). 'web' always shows it (badged).
+   */
+  requires?: Capability[];
   /** Body blocks parsed from the markdown file. */
   body: DocBlock[];
+  /**
+   * Optional "Show me the details" depth — power-user blocks rendered behind an
+   * expander beneath `body`, so one page serves newcomers and experts alike.
+   */
+  deeper?: DocBlock[];
 }
 
 export type DocBlock =
