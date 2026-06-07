@@ -4122,12 +4122,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // wouldn't pick up a rebuild even after restarting. Append the file's mtime
     // as ?v= so every rebuild yields a fresh URL.
     const distDir = vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview');
-    let stamp = '0';
-    try {
-      stamp = String(Math.floor(require('node:fs').statSync(vscode.Uri.joinPath(distDir, 'index.js').fsPath).mtimeMs));
-    } catch { /* file missing during dev — fall back to a static stamp */ }
+    // Unique per render so a retained/cached webview can never reuse the URL.
+    let mtime = '0';
+    try { mtime = String(Math.floor(require('node:fs').statSync(vscode.Uri.joinPath(distDir, 'index.js').fsPath).mtimeMs)); } catch { /* dev */ }
+    const stamp = `${mtime}-${Date.now()}`;
     const scriptUri = `${webview.asWebviewUri(vscode.Uri.joinPath(distDir, 'index.js'))}?v=${stamp}`;
     const styleUri = `${webview.asWebviewUri(vscode.Uri.joinPath(distDir, 'index.css'))}?v=${stamp}`;
+    this.log(`[webview-html] built getHtml — script=${scriptUri}`);
     // Ava's preset chat avatar — absolute webview-resource:// URL
     // exposed via #root dataset; MessageBubble reads it at render time.
     const avaAvatarUri = webview.asWebviewUri(
