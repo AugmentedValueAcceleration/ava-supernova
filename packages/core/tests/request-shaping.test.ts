@@ -134,8 +134,9 @@ describe('shapeMessages — provider-aware', () => {
 });
 
 describe('isZhipuFlashModel', () => {
-  it('matches zhipu flash models only', () => {
+  it('matches zhipu flash models only (union of substring + explicit set)', () => {
     expect(isZhipuFlashModel('zhipu', 'glm-5-flash')).toBe(true);
+    expect(isZhipuFlashModel('zhipu', 'glm-4.5-air')).toBe(true); // core's explicit fast model
     expect(isZhipuFlashModel('zhipu', 'glm-5')).toBe(false);
     expect(isZhipuFlashModel('qwen', 'qwen3.5-flash')).toBe(false);
   });

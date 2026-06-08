@@ -2,6 +2,7 @@ import type { Provider, ProviderConfig, ChatCompletionRequest } from './types.js
 import type { ModelDefinition, CompletionResponse, StreamChunk } from '../core/types.js';
 import { ProviderError } from '../core/errors.js';
 import { logger } from '../core/logger.js';
+import { shapeOpenAICompatBody } from './request-shaping/index.js';
 
 export abstract class BaseProvider implements Provider {
   abstract readonly name: string;
@@ -35,8 +36,31 @@ export abstract class BaseProvider implements Provider {
     };
   }
 
+  /**
+   * Shape the outbound body for an OpenAI-compatible provider. Delegates to the
+   * shared request-shaper (the single source of truth both this BYOK path and
+   * the platform routes use): model-id translation + vision reroute, message
+   * massaging (reasoning_content strip, Qwen system-reorder), and per-provider
+   * param quirks (MiniMax max_completion_tokens, Qwen frequency_penalty drop,
+   * Zhipu-Flash enable_thinking, stream_options). Providers with a quirk the
+   * shaper doesn't cover (e.g. Mistral's tool_choice 'required'->'any') call
+   * super and tweak the result. Non-OpenAI providers (Anthropic) override the
+   * transport methods instead and never reach here.
+   */
   protected transformRequest(request: ChatCompletionRequest): Record<string, unknown> {
-    return { ...request };
+    return shapeOpenAICompatBody({
+      provider: this.name,
+      model: request.model,
+      messages: request.messages as unknown as Record<string, unknown>[],
+      temperature: request.temperature,
+      max_tokens: request.max_tokens,
+      top_p: request.top_p,
+      stop: request.stop,
+      tools: request.tools,
+      tool_choice: request.tool_choice,
+      stream: request.stream,
+      stream_options: request.stream_options,
+    });
   }
 
   protected normalizeResponse(raw: unknown): CompletionResponse {

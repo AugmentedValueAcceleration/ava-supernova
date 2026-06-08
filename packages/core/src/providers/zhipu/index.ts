@@ -1,11 +1,6 @@
 import { BaseProvider } from '../base-provider.js';
-import type { ChatCompletionRequest } from '../types.js';
 import type { CompletionResponse, ModelDefinition, StreamChunk } from '../../core/types.js';
 import { ZHIPU_MODELS } from './models.js';
-
-// Light/Air models have thinking enabled by default on Zhipu's API.
-// Disable it — they're meant to be fast, and thinking adds 30-60s latency.
-const FLASH_MODELS = new Set(['glm-4.5-air']);
 
 export class ZhipuProvider extends BaseProvider {
   readonly name = 'zhipu';
@@ -19,16 +14,10 @@ export class ZhipuProvider extends BaseProvider {
     return ZHIPU_MODELS;
   }
 
-  protected transformRequest(request: ChatCompletionRequest): Record<string, unknown> {
-    const transformed = { ...request } as Record<string, unknown>;
-
-    if (FLASH_MODELS.has(request.model)) {
-      // Disable thinking for Flash models — drastically reduces latency
-      transformed.enable_thinking = false;
-    }
-
-    return transformed;
-  }
+  // enable_thinking:false for fast models (glm-4.5-air + any *flash* id) is now
+  // handled by the shared shaper in BaseProvider.transformRequest
+  // (isZhipuFlashModel), reconciling the old explicit-set check here with the
+  // platform route's substring check.
 
   // Zhipu sometimes returns tool_call arguments as objects instead of strings
   protected normalizeResponse(raw: unknown): CompletionResponse {

@@ -37,9 +37,11 @@ export class AvaFreeProvider extends BaseProvider {
   }
 
   protected transformRequest(request: ChatCompletionRequest): Record<string, unknown> {
-    // Only allow Qwen models — default to qwen3.5-flash if unknown
+    // Only allow Qwen models — default to qwen3.5-flash if unknown — then run
+    // the shared shaper (reasoning_content strip etc.) via super. The free proxy
+    // applies Qwen's server-side specifics; this guards the model and shapes.
     const model = ALLOWED_FREE_MODELS.has(request.model) ? request.model : 'qwen3.5-flash';
-    return { ...request, model };
+    return super.transformRequest({ ...request, model });
   }
 
   protected normalizeResponse(raw: unknown): CompletionResponse {

@@ -19,10 +19,14 @@ export interface ShapeableParams {
   stream_options?: Record<string, unknown>;
 }
 
-/** Zhipu Flash models have thinking on by default — disabling it avoids a
- *  30–60s latency hit on every request. */
+/** Zhipu fast models that ship with thinking ON by default but where we want
+ *  it OFF (30–60s latency hit otherwise). Reconciles two previously-divergent
+ *  checks: the platform route used a `flash` substring; core used an explicit
+ *  set `{glm-4.5-air}` (no "flash" in the name). The union preserves both. */
+const ZHIPU_FAST_MODELS = new Set(['glm-4.5-air']);
 export function isZhipuFlashModel(provider: string, model: string): boolean {
-  return provider === 'zhipu' && (model.includes('flash') || model.includes('Flash'));
+  if (provider !== 'zhipu') return false;
+  return ZHIPU_FAST_MODELS.has(model) || model.includes('flash') || model.includes('Flash');
 }
 
 /**
