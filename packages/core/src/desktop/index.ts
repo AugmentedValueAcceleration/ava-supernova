@@ -51,6 +51,18 @@ export type {
   DesktopPersonaDefinition,
 } from './personas.js';
 
+// Conductor — orchestrates the five-persona wave into a trajectory loop
+export { runDesktopTrajectory } from './conductor.js';
+export type {
+  DesktopProviders,
+  PersonaModelCall,
+  ApprovalRequest,
+  ApprovalFn,
+  ConductorEvent,
+  EmitFn,
+  RunTrajectoryOptions,
+} from './conductor.js';
+
 // Shared types
 export type {
   GroundingSource,
