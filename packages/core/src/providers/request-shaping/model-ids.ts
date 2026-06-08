@@ -30,10 +30,12 @@ export const MODEL_API_NAMES: Record<string, string> = {
   'deepseek-v4-pro-platform':   'deepseek-v4-pro',
   'deepseek-v4-flash-platform': 'deepseek-v4-flash',
   // Managed Mistral (Aurora's fleet) — friendly name -> the id Mistral accepts.
-  // Large 3 and Small 4 use date-stamped snapshots; Medium 3.5 uses Mistral's
-  // SEMANTIC id `mistral-medium-3-5` (NOT a YYMM snapshot — confirmed against
-  // Mistral's own rate-limit console, which lists `mistral-medium-3-5`). The
-  // dotted form `mistral-medium-3.5` is rejected; there is no `mistral-medium-2604`.
+  // Large 3 and Small 4 use date-stamped snapshots. Medium 3.5 is pinned to the
+  // SEMANTIC id `mistral-medium-3-5` (what Mistral's own rate-limit console
+  // lists). Mistral ALSO accepts the dated snapshot `mistral-medium-2604` (both
+  // return 200); we keep the semantic id. The dotted `mistral-medium-3.5` is rejected.
+  // NB: the 429s during the Aurora launch were a free-tier rate limit, NOT the
+  // id — fixed by upgrading the Mistral account tier, not by changing this value.
   'mistral-small-4-platform':   'mistral-small-2603',
   'mistral-large-3-platform':   'mistral-large-2512',
   'mistral-medium-3.5-platform':'mistral-medium-3-5',
