@@ -190,6 +190,25 @@ const RELEASES = [
       'Bring-your-own-key now reaches every model in each fleet, on every surface — your key unlocks the whole lineup, not just part of it.',
     ],
   },
+  {
+    migration: 315,
+    version: '0.73.0',
+    platform: 'extension',
+    toolCount: 63,
+    publishedAt: '2026-06-08 14:00:00+00',
+    title: 'Cook it From Scratch — a new way to browse the recipe library',
+    body: `The recipe library has a new lens: **From Scratch**.
+
+**Real food, nothing processed.** From Scratch recipes are made entirely from fresh ingredients — everything done by hand, no processed shortcuts. Open Health & Nutrition, hit the **From Scratch** toggle above the recipes, and the whole library narrows to just those. Look for the ✦ badge on a card and you know it qualifies, even while you're browsing everything.
+
+**A free collection that keeps growing.** This isn't a fixed set — it fills out as more from-scratch recipes are added, so the library gets richer over time. Free for everyone, no account needed.`,
+    highlights: [
+      'New From Scratch filter in the recipe library — one tap narrows the whole collection to recipes made entirely from fresh ingredients, nothing processed.',
+      'From Scratch recipes carry a ✦ badge, so they\'re easy to spot even when you\'re browsing everything.',
+      'It composes with the course filters — From Scratch + Breakfast, From Scratch + Mains, and so on.',
+      'A free, growing collection that fills out as more from-scratch recipes are added — no account needed.',
+    ],
+  },
 ];
 
 // ── Credential ───────────────────────────────────────────────────────────────
