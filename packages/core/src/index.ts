@@ -64,6 +64,25 @@ export type { ProviderHealthSnapshot } from './providers/health-tracker.js';
 export { ResilientProvider } from './providers/resilient-provider.js';
 export type { FallbackEntry, ResilientProviderOptions } from './providers/resilient-provider.js';
 
+// Shared request-shaping — the single source of truth for upstream model-id
+// translation, message massaging, and per-provider param quirks. Imported by
+// BOTH the platform routes (packages/web) and the BYOK providers below, so the
+// two paths can't drift (the cause of the Aurora ghost-id + reasoning_content
+// bugs). Transport-free: callers supply their own fetch/auth.
+export {
+  MODEL_API_NAMES,
+  VISION_REROUTE,
+  resolveApiModel,
+  messagesHaveImages,
+  stripReasoningContent,
+  reorderSystemForQwen,
+  shapeMessages,
+  isZhipuFlashModel,
+  shapeParams,
+  shapeOpenAICompatBody,
+} from './providers/request-shaping/index.js';
+export type { ShapeableParams, ShapeOpenAICompatInput } from './providers/request-shaping/index.js';
+
 // Tools
 export { ToolRegistry } from './tools/tool-registry.js';
 export { killBackgroundProcesses } from './tools/bash.js';
