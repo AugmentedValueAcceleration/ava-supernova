@@ -1567,7 +1567,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  private async setupAgent(provider: Provider, model: ModelDefinition): Promise<void> {
+  private async setupAgent(provider: Provider, model: ModelDefinition, routingModeOverride?: 'auto' | 'supernova' | 'aurora'): Promise<void> {
     this.toolRegistry = new ToolRegistry();
     this.toolRegistry.registerBuiltins();
 
@@ -1821,11 +1821,16 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // selection (V4 Pro on Supernova, Mistral Large 3 on Aurora) and
     // for the Builder spawn model (Qwen 3.6 Plus on Supernova,
     // Mistral Small 4 on Aurora).
+    // Prefer the fleet passed in by setActiveModel — it is known synchronously
+    // at switch time, BEFORE the activeModel config write lands. Re-reading the
+    // config here would lag a fleet switch by one selection (the classic cause
+    // of "switched to Aurora but it still ran Supernova's DeepSeek coordinator").
     const activeModel = vscode.workspace.getConfiguration('ava-supernova').get<string>('activeModel');
     const routingMode: 'auto' | 'supernova' | 'aurora' =
-      activeModel === 'supernova' ? 'supernova'
-      : activeModel === 'aurora' ? 'aurora'
-      : 'auto';
+      routingModeOverride
+      ?? (activeModel === 'supernova' ? 'supernova'
+        : activeModel === 'aurora' ? 'aurora'
+        : 'auto');
 
     // Use static create() — picks Kimi K2.5 for platform, best available for BYOK
     if (availableProviders.size > 1 || availableProviders.has('platform')) {
@@ -1923,7 +1928,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       }
 
       this.log(`${modeLabel} coordinator: ${coordinator.model.name} (${coordinator.reason})`);
-      await this.setupAgent(coordinator.provider, coordinator.model);
+      // Pass the fleet explicitly so the coordinator is built for the mode the
+      // user just picked — not the one still persisted in config (written below).
+      await this.setupAgent(coordinator.provider, coordinator.model, modelId);
 
       const config = vscode.workspace.getConfiguration('ava-supernova');
       config.update('activeModel', modelId, vscode.ConfigurationTarget.Global);
