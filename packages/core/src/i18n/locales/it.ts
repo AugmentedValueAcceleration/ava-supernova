@@ -2506,7 +2506,7 @@ export const itStrings: Partial<Record<StringKey, string>> = {
   'dash.portability.pass_set': "Imposta una passphrase",
   'dash.portability.pass_enter': "Inserisci la passphrase",
   'dash.portability.pass_set_desc': "Cifra su questo dispositivo. Non la vediamo mai — se la perdi, il backup non potrà essere aperto.",
-  'dash.portability.passphrase': "Passphrase",
+  'dash.portability.passphrase': 'Frase d\'accesso',
   'dash.portability.create_backup': "Crea backup",
   'dash.portability.restore': "Ripristina",
   'dash.portability.cancel': "Annulla",

@@ -935,6 +935,7 @@ export class DashboardPanel {
         const t0 = Date.now();
         const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
         if (msg.course) params.set('course', msg.course);
+        if (msg.collection) params.set('collection', msg.collection);
         if (msg.q && msg.q.trim()) params.set('q', msg.q.trim());
         if (msg.locale && msg.locale !== 'en') params.set('locale', msg.locale);
         try {

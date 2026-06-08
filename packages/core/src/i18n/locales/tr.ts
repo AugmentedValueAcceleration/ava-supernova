@@ -2416,7 +2416,7 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'dash.docs.col_summary': 'Özet',
   'dash.docs.col_surface': 'Yüzey',
   'dash.docs.col_tool': 'Araç',
-  'dash.docs.col_win_mac': 'Win / Mac',
+  'dash.docs.col_win_mac': 'Windows / Mac',
   'dash.docs.sections': 'Bölümler',
   'dash.docs.team_label': '{mode} ekibi',
   'dash.history.n_credits': '{n} kredi',

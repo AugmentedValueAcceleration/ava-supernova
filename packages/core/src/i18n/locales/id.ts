@@ -1177,7 +1177,7 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'dash.docs.mode_brainstorm_desc': 'Pola pikir ideasi — riset, hasilkan, tantang, perbaiki ide.',
   'dash.docs.tools_intro': 'Tersedia dalam mode Lokal. Ava memilih dan merangkai alat secara otomatis berdasarkan instruksi Anda.',
   'dash.docs.tools_cat_file': 'Operasi File',
-  'dash.docs.tools_cat_shell': 'Shell & Git',
+  'dash.docs.tools_cat_shell': 'Cangkang & Git',
   'dash.docs.tools_cat_web': 'Web dan API',
   'dash.docs.tools_cat_media': 'Media',
   'dash.docs.tools_cat_memory': 'Memori',

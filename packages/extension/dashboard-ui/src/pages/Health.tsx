@@ -87,7 +87,7 @@ interface Props {
   recipeDetail: HealthRecipeDetail | null;
   detailLoading: boolean;
   onLoadExercises: (limit?: number, offset?: number, workoutType?: string, q?: string) => void;
-  onLoadRecipes: (limit?: number, offset?: number, course?: string, q?: string) => void;
+  onLoadRecipes: (limit?: number, offset?: number, course?: string, q?: string, collection?: string) => void;
   onLoadExerciseDetail: (slug: string) => void;
   onLoadRecipeDetail: (slug: string) => void;
   // Submission flow
@@ -173,6 +173,10 @@ export function Health({
   };
   const [exerciseFilter, setExerciseFilter] = useState<'all' | HealthWorkoutType>('all');
   const [recipeFilter, setRecipeFilter] = useState<'all' | string>('all');
+  // "From Scratch" section — the curated `unprocessed` collection (made entirely
+  // from fresh ingredients, nothing processed). A separate dimension that
+  // composes with the course chips, so From Scratch + Breakfast works.
+  const [recipeFromScratch, setRecipeFromScratch] = useState(false);
   // Search state — local to the page; resets on close/reopen. Debounced
   // to 300ms via the effects below so we don't fire a request per keystroke.
   const [exerciseSearch, setExerciseSearch] = useState('');
@@ -213,7 +217,7 @@ export function Health({
       onLoadExercises(PAGE_SIZE, 0, exerciseFilter === 'all' ? undefined : exerciseFilter);
     }
     if (tab === 'recipes' && recipes.length === 0 && recipesTotal === 0 && !recipesLoading) {
-      onLoadRecipes(PAGE_SIZE, 0, recipeFilter === 'all' ? undefined : recipeFilter);
+      onLoadRecipes(PAGE_SIZE, 0, recipeFilter === 'all' ? undefined : recipeFilter, undefined, recipeFromScratch ? 'unprocessed' : undefined);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
@@ -226,7 +230,12 @@ export function Health({
   };
   const handleRecipeFilterChange = (next: 'all' | string) => {
     setRecipeFilter(next);
-    onLoadRecipes(PAGE_SIZE, 0, next === 'all' ? undefined : next, recipeSearch.trim() || undefined);
+    onLoadRecipes(PAGE_SIZE, 0, next === 'all' ? undefined : next, recipeSearch.trim() || undefined, recipeFromScratch ? 'unprocessed' : undefined);
+  };
+  // From Scratch toggle — resets to page 0, keeps the current course + search.
+  const handleFromScratchToggle = (next: boolean) => {
+    setRecipeFromScratch(next);
+    onLoadRecipes(PAGE_SIZE, 0, recipeFilter === 'all' ? undefined : recipeFilter, recipeSearch.trim() || undefined, next ? 'unprocessed' : undefined);
   };
 
   // Page navigation — current offset comes from App.tsx so we always
@@ -235,7 +244,7 @@ export function Health({
     onLoadExercises(PAGE_SIZE, newOffset, exerciseFilter === 'all' ? undefined : exerciseFilter, exerciseSearch.trim() || undefined);
   };
   const goRecipesPage = (newOffset: number) => {
-    onLoadRecipes(PAGE_SIZE, newOffset, recipeFilter === 'all' ? undefined : recipeFilter, recipeSearch.trim() || undefined);
+    onLoadRecipes(PAGE_SIZE, newOffset, recipeFilter === 'all' ? undefined : recipeFilter, recipeSearch.trim() || undefined, recipeFromScratch ? 'unprocessed' : undefined);
   };
 
   // Search — debounced 300ms. Fires on every value change including the
@@ -260,6 +269,7 @@ export function Health({
         PAGE_SIZE, 0,
         recipeFilter === 'all' ? undefined : recipeFilter,
         recipeSearch.trim() || undefined,
+        recipeFromScratch ? 'unprocessed' : undefined,
       );
     }, 300);
     return () => window.clearTimeout(timer);
@@ -379,6 +389,8 @@ export function Health({
             offset={recipesOffset}
             filter={recipeFilter}
             onFilter={handleRecipeFilterChange}
+            fromScratch={recipeFromScratch}
+            onFromScratch={handleFromScratchToggle}
             onPage={goRecipesPage}
             loading={recipesLoading}
             error={recipesError}
@@ -644,6 +656,25 @@ function ExercisesGrid({ items, total, offset, filter, onFilter, onPage, loading
 
 // ── Recipe card (grid + list variants) ─────────────────────────────────
 
+/** "From Scratch" badge — marks a recipe in the curated `unprocessed`
+ *  collection. `floating` is the absolute-positioned variant for the grid
+ *  card's photo; the inline variant sits in the list row meta. */
+function FromScratchBadge({ floating }: { floating?: boolean }) {
+  const label = tt('health.browse.from_scratch', 'From Scratch');
+  if (floating) {
+    return (
+      <div className="absolute left-1.5 top-1.5 z-[1] inline-flex items-center gap-1 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-white shadow-sm">
+        <span aria-hidden>✦</span>{label}
+      </div>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-0.5 rounded-full bg-[var(--accent)]/15 px-1.5 py-0.5 text-[9px] font-medium text-[var(--accent)]">
+      <span aria-hidden>✦</span>{label}
+    </span>
+  );
+}
+
 function RecipeCard({ r, view, onOpen }: { r: HealthRecipeSummary; view: View; onOpen: (slug: string) => void }) {
   const pending = r.status && r.status !== 'published';
   // Footer shows what isn't already on the image (cuisine sits on the photo).
@@ -660,7 +691,10 @@ function RecipeCard({ r, view, onOpen }: { r: HealthRecipeSummary; view: View; o
           <div className="min-w-0 flex-1">
             {r.cuisine_name && <div className="text-[9px] font-medium uppercase tracking-[0.18em] text-amber-300">{r.cuisine_name}</div>}
             <h3 className="truncate text-[13px] font-light leading-tight">{r.name}</h3>
-            {r.course && <div className="mt-0.5 text-[10px] capitalize text-vscode-descriptionForeground">{r.course}</div>}
+            <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+              {r.course && <span className="text-[10px] capitalize text-vscode-descriptionForeground">{r.course}</span>}
+              {r.from_scratch && <FromScratchBadge />}
+            </div>
           </div>
           {pending && <SubmissionStatusBadge status={r.status!} />}
         </button>
@@ -672,6 +706,7 @@ function RecipeCard({ r, view, onOpen }: { r: HealthRecipeSummary; view: View; o
       <button type="button" onClick={() => onOpen(r.slug)} className="group block w-full overflow-hidden rounded-md border border-vscode-panelBorder bg-vscode-editor-background text-left transition hover:border-vscode-focusBorder">
         <div className="relative aspect-[3/2] w-full overflow-hidden bg-vscode-editor-inactiveSelectionBackground">
           {thumb}
+          {r.from_scratch && <FromScratchBadge floating />}
           {pending && <SubmissionStatusBadge status={r.status!} />}
           <div aria-hidden className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-2">
@@ -695,6 +730,8 @@ interface RecipesGridProps {
   offset: number;
   filter: 'all' | string;
   onFilter: (f: 'all' | string) => void;
+  fromScratch: boolean;
+  onFromScratch: (next: boolean) => void;
   onPage: (newOffset: number) => void;
   loading: boolean;
   error: boolean;
@@ -706,7 +743,7 @@ interface RecipesGridProps {
   onView: (v: View) => void;
 }
 
-function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, error, onOpen, search, onSearch, onRefresh, view, onView }: RecipesGridProps) {
+function RecipesGrid({ items, total, offset, filter, onFilter, fromScratch, onFromScratch, onPage, loading, error, onOpen, search, onSearch, onRefresh, view, onView }: RecipesGridProps) {
   if (loading && items.length === 0 && !search) {
     return (
       <ul className={browseLayoutClass(view)}>
@@ -729,6 +766,23 @@ function RecipesGrid({ items, total, offset, filter, onFilter, onPage, loading, 
         </div>
         <ViewToggle view={view} onView={onView} />
         <RefreshButton onClick={onRefresh} loading={loading && search.length === 0} />
+      </div>
+      {/* From Scratch — the curated `unprocessed` collection. A separate
+          dimension (rounded pill) that composes with the course chips below. */}
+      <div className="mb-3 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onFromScratch(!fromScratch)}
+          title={tt('health.browse.from_scratch_hint', 'Made entirely from scratch — fresh ingredients, nothing processed')}
+          className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium transition ${
+            fromScratch
+              ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]'
+              : 'border-[var(--border)] bg-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+          }`}
+        >
+          <span aria-hidden>✦</span>
+          {tt('health.browse.from_scratch', 'From Scratch')}
+        </button>
       </div>
       <FilterRow>
         <FilterChip active={filter === 'all'} onClick={() => onFilter('all')}>{t('health.browse.filter.all')}</FilterChip>

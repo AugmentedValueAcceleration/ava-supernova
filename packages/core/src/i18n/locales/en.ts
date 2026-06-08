@@ -1568,6 +1568,8 @@ export const enStrings = {
   'health.browse.search_exercises_placeholder': 'Search exercises — name, e.g. \'squat\'',
   'health.browse.search_recipes_placeholder': 'Search recipes — name, e.g. \'chicken\'',
   'health.browse.filter.all': 'All',
+  'health.browse.from_scratch': 'From Scratch',
+  'health.browse.from_scratch_hint': 'Made entirely from scratch — fresh ingredients, nothing processed',
   'health.browse.no_exercises_match_q': 'No exercises match "{q}".',
   'health.browse.no_exercises_match': 'No exercises match.',
   'health.browse.no_recipes_match_q': 'No recipes match "{q}".',

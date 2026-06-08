@@ -410,7 +410,7 @@ export const esStrings: Record<StringKey, string> = {
   'welcome_modal.credits_left': '{count} restantes',
   'welcome_modal.free_credits': 'Free créditos',
   'welcome_modal.lets_go': 'Vamos',
-  'welcome_modal.local_byok': 'Local / BYOK',
+  'welcome_modal.local_byok': 'Local / Clave Propia',
   'welcome_modal.model': 'Modelo',
   'welcome_modal.next': 'Siguiente',
   'welcome_modal.not_set': 'No establecido',

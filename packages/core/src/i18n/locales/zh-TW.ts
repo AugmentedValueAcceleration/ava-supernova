@@ -2296,7 +2296,7 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.creative.style_watercolour': '水彩',
   'dash.creative.style_graphic': '圖形',
   'dash.creative.mood_cinematic': '電影感',
-  'dash.creative.mood_lofi': 'Lo-fi',
+  'dash.creative.mood_lofi': '低保真',
   'dash.creative.mood_synthwave': '合成器浪潮',
   'dash.creative.mood_orchestral': '管弦樂',
   'dash.creative.mood_ambient': '氛圍',

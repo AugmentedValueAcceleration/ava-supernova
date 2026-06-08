@@ -892,7 +892,7 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   // ── Support Page (missing) ────────────────────────────────────────────
   'dash.support.back_to_tickets': 'Voltar aos chamados',
   'dash.support.opened_date': 'Aberto em {date}',
-  'dash.support.via_source': 'via {source}',
+  'dash.support.via_source': 'por meio de {source}',
   'dash.support.badge_support': 'Suporte',
   'dash.support.reply_placeholder': 'Escreva uma resposta...',
   'dash.support.sending': 'Enviando...',
@@ -1490,7 +1490,7 @@ export const ptStrings: Partial<Record<StringKey, string>> = {
   'health.plans.loading': 'Carregando…',
   'health.plans.no_detail': 'Nenhum detalhe disponível para este item.',
   'health.plans.n_reps': '{n} repetições',
-  'health.plans.tempo': 'tempo {v}',
+  'health.plans.tempo': 'Tempo {v}',
   'health.plans.per_week': '{n}/sem',
   'health.plans.difficulty': 'dificuldade {n}',
   'health.plans.routine': 'Rotina',
