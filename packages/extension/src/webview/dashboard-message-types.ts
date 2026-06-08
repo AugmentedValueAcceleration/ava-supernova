@@ -1210,6 +1210,9 @@ export type ExtToDashboardMessage =
       locale: string;
       /** Present when the user has a platform key saved — lets the dashboard show signed-in state at boot. */
       platformKey?: string;
+      /** Persisted Platform/API-Key routing choice, so the NavSidebar toggle
+       *  renders the host's actual source on load instead of guessing. */
+      providerSource?: 'platform' | 'byok';
     }
   | { type: 'account_updated'; account: AccountInfo | null }
   | { type: 'dataset:config'; config: {

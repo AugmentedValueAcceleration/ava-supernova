@@ -1926,12 +1926,16 @@ export class DashboardPanel {
     const settings = this.readSettings();
     const providerKeys = await this.getProviderKeyStatus();
     const locale = vscode.workspace.getConfiguration('ava-supernova').get<string>('preferences.language') ?? 'auto';
+    // Persisted Platform/API-Key choice so the NavSidebar toggle renders the
+    // host's ACTUAL routing source on load (not just a key-presence guess) —
+    // keeps the toggle honest and in sync with the chat-header switch.
+    const providerSource = this.context.workspaceState.get<'platform' | 'byok'>('providerSource');
 
     // Post init with account=null. The webview reads `platformKey` to
     // know the user is signed in but the account snapshot is still
     // loading — surfaces (NavSidebar account block, Billing) show their
     // own loading state until account_updated arrives.
-    this.post({ type: 'init', account: null, connections, settings, providerKeys, locale, platformKey: platformKey || undefined });
+    this.post({ type: 'init', account: null, connections, settings, providerKeys, locale, platformKey: platformKey || undefined, providerSource });
 
     // Background account fetch — fire-and-forget. Posts account_updated
     // when the platform responds (or times out at 10s). The dashboard

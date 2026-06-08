@@ -569,7 +569,13 @@ export function App() {
         // sendInit posts init with account=null and fetches the account
         // in the background, so this fires the skeleton immediately.
         setAccountLoading(Boolean((msg as any).platformKey) && !msg.account);
-        if (!msg.account && !((msg as any).platformKey) && Object.values(msg.providerKeys).some(Boolean)) {
+        // Reflect the host's persisted Platform/API-Key choice when present, so
+        // the sidebar toggle shows the REAL routing source rather than a guess;
+        // fall back to the key-presence heuristic on fresh/never-set installs.
+        const persistedSource = (msg as any).providerSource;
+        if (persistedSource === 'platform' || persistedSource === 'byok') {
+          setByokMode(persistedSource === 'byok');
+        } else if (!msg.account && !((msg as any).platformKey) && Object.values(msg.providerKeys).some(Boolean)) {
           setByokMode(true);
         }
         // Store key in memory only (not localStorage) for Creative Studio API calls
@@ -1242,6 +1248,17 @@ export function App() {
     setPagePersist('overview');
   }
 
+  // The NavSidebar Platform / API-Key toggle. Posts set_provider_source to the
+  // host (DashboardPanel forwards it to AvaViewProvider, which persists the
+  // choice and re-initializes the session so routing actually switches) AND
+  // flips local state for instant feedback. Without the post the toggle was
+  // cosmetic — it showed "API Key" while requests still used the platform key,
+  // i.e. the UI lied about a signed-in user being able to use their own keys.
+  function handleSourceToggle(byok: boolean) {
+    setByokMode(byok);
+    post({ type: 'set_provider_source', source: byok ? 'byok' : 'platform' });
+  }
+
   const renderPage = () => {
     if (!hasAccess) {
       return (
@@ -1466,7 +1483,7 @@ export function App() {
           isAdmin={account?.tier === 'admin'}
           tier={account?.tier}
           byokMode={byokMode}
-          onSetByokMode={setByokMode}
+          onSetByokMode={handleSourceToggle}
           accountLoading={accountLoading}
           onConnectAccount={handleConnectAccount}
           aiName={personalityData?.name}
