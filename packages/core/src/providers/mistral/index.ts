@@ -16,7 +16,7 @@ import { MISTRAL_MODELS } from './models.js';
 const MISTRAL_API_ID: Record<string, string> = {
   'mistral-large-3':    'mistral-large-2512',   // Mistral Large 3, Dec 2025 release
   'mistral-small-4':    'mistral-small-2603',   // Mistral Small 4, March 2026 release
-  'mistral-medium-3.5': 'mistral-medium-3-5',   // hyphenated, not dotted, at api.mistral.ai
+  'mistral-medium-3.5': 'mistral-medium-2604',  // Apr 28 2026 / v26.04 snapshot id (Mistral docs)
 };
 
 export class MistralProvider extends BaseProvider {
