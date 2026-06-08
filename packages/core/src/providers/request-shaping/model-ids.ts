@@ -29,18 +29,17 @@ export const MODEL_API_NAMES: Record<string, string> = {
   // Managed DeepSeek V4 — strip the `-platform` disambiguator
   'deepseek-v4-pro-platform':   'deepseek-v4-pro',
   'deepseek-v4-flash-platform': 'deepseek-v4-flash',
-  // Managed Mistral (Aurora's fleet) — friendly name -> date-stamped snapshot.
-  // - Large 3    -> mistral-large-2512  (Dec 2025 / v25.12)
-  // - Small 4    -> mistral-small-2603  (March 2026 / v26.03)
-  // - Medium 3.5 -> mistral-medium-2604 (Apr 28 2026 / v26.04). The earlier
-  //   guessed `mistral-medium-3-5` was rejected upstream as a 429 and broke
-  //   Aurora's lead seat — keep this pinned to the real snapshot id.
+  // Managed Mistral (Aurora's fleet) — friendly name -> the id Mistral accepts.
+  // Large 3 and Small 4 use date-stamped snapshots; Medium 3.5 uses Mistral's
+  // SEMANTIC id `mistral-medium-3-5` (NOT a YYMM snapshot — confirmed against
+  // Mistral's own rate-limit console, which lists `mistral-medium-3-5`). The
+  // dotted form `mistral-medium-3.5` is rejected; there is no `mistral-medium-2604`.
   'mistral-small-4-platform':   'mistral-small-2603',
   'mistral-large-3-platform':   'mistral-large-2512',
-  'mistral-medium-3.5-platform':'mistral-medium-2604',
+  'mistral-medium-3.5-platform':'mistral-medium-3-5',
   'mistral-small-4':            'mistral-small-2603',
   'mistral-large-3':            'mistral-large-2512',
-  'mistral-medium-3.5':         'mistral-medium-2604',
+  'mistral-medium-3.5':         'mistral-medium-3-5',
 };
 
 /**
@@ -59,7 +58,7 @@ export const VISION_REROUTE: Record<string, string> = {
   'qwen-turbo':          'qwen3.5-omni-flash',
   'deepseek-v4-pro':     'qwen3.5-omni-plus',
   'deepseek-v4-flash':   'qwen3.5-omni-plus',
-  'mistral-large-2512':  'mistral-medium-2604',
+  'mistral-large-2512':  'mistral-medium-3-5',
 };
 
 /**

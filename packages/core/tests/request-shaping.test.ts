@@ -23,10 +23,10 @@ describe('resolveApiModel — model-id translation', () => {
     expect(resolveApiModel('mistral-large-3')).toBe('mistral-large-2512');
     expect(resolveApiModel('mistral-small-4-platform')).toBe('mistral-small-2603');
     expect(resolveApiModel('mistral-small-4')).toBe('mistral-small-2603');
-    // The bug that started this: Medium 3.5 must resolve to the REAL snapshot,
-    // not the ghost `mistral-medium-3-5` that 429'd.
-    expect(resolveApiModel('mistral-medium-3.5-platform')).toBe('mistral-medium-2604');
-    expect(resolveApiModel('mistral-medium-3.5')).toBe('mistral-medium-2604');
+    // Medium 3.5 resolves to Mistral's SEMANTIC id `mistral-medium-3-5` (the
+    // real id per Mistral's own console — not a YYMM snapshot, not the dotted form).
+    expect(resolveApiModel('mistral-medium-3.5-platform')).toBe('mistral-medium-3-5');
+    expect(resolveApiModel('mistral-medium-3.5')).toBe('mistral-medium-3-5');
   });
 
   it('strips the -platform suffix for DeepSeek V4', () => {
@@ -51,12 +51,12 @@ describe('resolveApiModel — model-id translation', () => {
     expect(resolveApiModel('deepseek-v4-pro-platform', true)).toBe('qwen3.5-omni-plus');
     // Aurora's Large 3 coordinator -> Medium 3.5 (its own vision encoder),
     // applied AFTER the id translation (large-3 -> large-2512 -> medium-2604).
-    expect(resolveApiModel('mistral-large-3-platform', true)).toBe('mistral-medium-2604');
+    expect(resolveApiModel('mistral-large-3-platform', true)).toBe('mistral-medium-3-5');
   });
 
   it('does not reroute natively-multimodal models', () => {
     expect(resolveApiModel('qwen3.5-omni-plus', true)).toBe('qwen3.5-omni-plus');
-    expect(resolveApiModel('mistral-medium-3.5', true)).toBe('mistral-medium-2604');
+    expect(resolveApiModel('mistral-medium-3.5', true)).toBe('mistral-medium-3-5');
   });
 });
 
@@ -195,7 +195,7 @@ describe('shapeOpenAICompatBody — end-to-end', () => {
       max_tokens: 500,
       stream: true,
     });
-    expect(body.model).toBe('mistral-medium-2604');
+    expect(body.model).toBe('mistral-medium-3-5');
     expect(body.temperature).toBe(0.7);
     expect(body.max_tokens).toBe(500);
     expect(body.stream).toBe(true);
@@ -210,6 +210,6 @@ describe('shapeOpenAICompatBody — end-to-end', () => {
       model: 'mistral-large-3-platform',
       messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: 'x' } }] }],
     });
-    expect(body.model).toBe('mistral-medium-2604');
+    expect(body.model).toBe('mistral-medium-3-5');
   });
 });
