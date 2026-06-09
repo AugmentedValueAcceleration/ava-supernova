@@ -79,13 +79,19 @@ export interface RunTrajectoryOptions {
   emit: EmitFn;
   /** Kill switch (Ctrl+Alt+K). Checked at the top of every step. */
   signal?: AbortSignal;
+  /**
+   * Optional diagnostic trace — one line per persona boundary (Scout saw /
+   * Planner chose / gate decided / Verifier verdict). Host routes it to its
+   * log (stderr); never user-facing. No-op if omitted.
+   */
+  log?: (line: string) => void;
 }
 
 // ── Runtime constants ──────────────────────────────────────────────────────
 
 const ACTION_KINDS: ReadonlySet<ActionKind> = new Set([
   'click', 'double_click', 'right_click', 'type', 'key',
-  'scroll', 'navigate', 'wait', 'observe_more', 'stuck', 'done',
+  'scroll', 'navigate', 'launch', 'wait', 'observe_more', 'stuck', 'done',
 ]);
 
 // Advisory only — the authoritative credential gate is classifyAction(). This
@@ -104,6 +110,7 @@ const MAX_CONSECUTIVE_DEVIATIONS = 3;
  */
 export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<Trajectory> {
   const { task, permissionLevel, providers, callModel, requestApproval, emit, signal } = opts;
+  const log = opts.log ?? (() => {});
   const budget = new BudgetTracker(opts.budget ?? {});
 
   const trajectory: Trajectory = {
@@ -129,10 +136,12 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
 
       // 1 — Scout: perceive (deterministic structuring of the accessibility blob).
       const { state: screenState, raw } = await scout(providers);
+      log(`step ${stepNumber} · Scout: ${screenState.elements.length} elements, activeApp=${screenState.activeApp ?? '?'}, confidence=${screenState.confidence}`);
 
       // 2 — Planner: the one reasoning call. Decide the single next action.
       const planned = await runPlanner(callModel, task, trajectory, screenState);
       const action = planned.action;
+      log(`step ${stepNumber} · Planner: ${action.kind}${action.target ? ` → "${action.target}"` : ''} [${action.riskClass}] — ${truncate(action.reasoning, 120)}`);
 
       // Terminal / control kinds short-circuit the wave.
       if (action.kind === 'done') {
@@ -163,6 +172,7 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
         appName: screenState.activeApp,
       });
       const decision = decideApproval(classification.riskClass, permissionLevel, opts.privilegedOptIn ?? false);
+      log(`step ${stepNumber} · Gate: ${decision.forbidden ? 'FORBIDDEN' : decision.requiresApproval ? 'approval required' : 'auto-allowed'} (${classification.riskClass})`);
 
       if (decision.forbidden) {
         emit({ type: 'narrate', line: `Blocked a ${classification.riskClass} action — ${decision.reason}.` });
@@ -181,11 +191,13 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
 
       // 4 — Actor: execute exactly (deterministic).
       const executionResult = await runActor(providers, action, raw);
+      log(`step ${stepNumber} · Actor: ${executionResult.ok ? `ok (${executionResult.latencyMs}ms)` : `FAILED — ${executionResult.error ?? 'unknown'}`}`);
 
       // 5 — Verifier: re-read the screen, judge against the prediction.
       const { state: freshState } = await scout(providers);
       const verified = await runVerifier(callModel, action, executionResult, freshState);
       const verificationResult = verified.verification;
+      log(`step ${stepNumber} · Verifier: ${verificationResult.status} — ${truncate(verificationResult.detail, 120)}`);
       consecutiveDeviations = verificationResult.status === 'verified' ? 0 : consecutiveDeviations + 1;
 
       // 6 — Narrator: the user-facing line + audit (deterministic in Phase A).
@@ -339,6 +351,15 @@ async function runActor(providers: DesktopProviders, action: ProposedAction, raw
         await providers.browser.navigate(String(action.params?.url ?? ''));
         break;
       }
+      case 'launch': {
+        if (!providers.appLauncher) throw new Error('no app launcher provider');
+        const app = String(action.params?.app ?? action.target ?? '').trim();
+        if (!app) throw new Error('launch requires params.app (the app name or path)');
+        // The host's launcher is the trust boundary — it rejects shell
+        // interpreters and admin tools by basename. Core just forwards the name.
+        const { launched } = await providers.appLauncher.launch(app);
+        return { ok: true, latencyMs: Date.now() - start, sideEffects: [`launched ${launched}`] };
+      }
       case 'wait': {
         await delay(Math.min(5000, Number(action.params?.ms) || 500));
         break;
@@ -420,6 +441,7 @@ function describeAction(action: ProposedAction, element?: ScreenElement): string
     case 'key': return `press ${String(action.params?.key ?? 'a key')}`;
     case 'scroll': return `scroll ${String(action.params?.direction ?? 'down')}`;
     case 'navigate': return `open ${String(action.params?.url ?? 'a page')}`;
+    case 'launch': return `open ${String(action.params?.app ?? action.target ?? 'an app')}`;
     case 'wait': return 'wait';
     default: return action.kind;
   }
@@ -435,6 +457,7 @@ function pastTense(action: ProposedAction): string {
     case 'key': return `pressed ${String(action.params?.key ?? 'a key')}`;
     case 'scroll': return `scrolled ${String(action.params?.direction ?? 'down')}`;
     case 'navigate': return `opened ${String(action.params?.url ?? 'a page')}`;
+    case 'launch': return `opened ${String(action.params?.app ?? action.target ?? 'an app')}`;
     case 'wait': return 'waited';
     default: return action.kind;
   }
@@ -467,6 +490,10 @@ function parseJson<T>(text: string): T | null {
 }
 
 function capitalise(s: string): string { return s.charAt(0).toUpperCase() + s.slice(1); }
+function truncate(s: string, max: number): string {
+  const str = (s ?? '').trim();
+  return str.length > max ? `${str.slice(0, max - 1)}…` : str;
+}
 function delay(ms: number): Promise<void> { return new Promise(r => setTimeout(r, ms)); }
 function genId(): string {
   return `traj-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`;

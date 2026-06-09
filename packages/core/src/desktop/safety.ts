@@ -144,7 +144,7 @@ export function classifyAction(input: ActionClassificationInput): Classification
 
   const observationalKinds = new Set(['screenshot', 'observe', 'observe_more', 'snapshot', 'ping']);
   const navigationalKinds = new Set(['scroll', 'hover', 'focus', 'wait', 'mouse_move']);
-  const mutativeKinds = new Set(['click', 'double_click', 'right_click', 'type', 'key', 'navigate', 'paste']);
+  const mutativeKinds = new Set(['click', 'double_click', 'right_click', 'type', 'key', 'navigate', 'launch', 'paste']);
 
   if (observationalKinds.has(kind)) {
     escalate('observational', `kind '${kind}' is observational`);

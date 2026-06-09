@@ -39,7 +39,7 @@ export interface DesktopPersonaDefinition {
 
 const ACTION_KINDS: ActionKind[] = [
   'click', 'double_click', 'right_click', 'type', 'key',
-  'scroll', 'navigate', 'wait', 'observe_more', 'stuck', 'done',
+  'scroll', 'navigate', 'launch', 'wait', 'observe_more', 'stuck', 'done',
 ];
 
 const ACTION_KINDS_LIST = ACTION_KINDS.map(k => `"${k}"`).join(', ');
@@ -104,6 +104,7 @@ Action reference:
 - "key" — press a key (params.key required, e.g. "Enter", "Tab")
 - "scroll" — scroll a region (params.direction + params.amount)
 - "navigate" — go to a URL in the browser (params.url required)
+- "launch" — open / start an application by name (params.app required, e.g. "notepad", "chrome", "calc"). Use this when the app you need is not already open — check Scout's activeApp and the visible windows first. The host rejects shell interpreters and admin tools, so name the actual application, never a command line.
 - "wait" — pause briefly (params.ms, max 5000)
 - "observe_more" — you need to re-read the screen before you can choose (params.reason required)
 - "stuck" — three or more steps have made no visible progress (params.reason required)

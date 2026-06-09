@@ -61,6 +61,7 @@ export type ActionKind =
   | 'key'
   | 'scroll'
   | 'navigate'
+  | 'launch'
   | 'wait'
   | 'observe_more'
   | 'stuck'
