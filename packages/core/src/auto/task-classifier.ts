@@ -25,6 +25,8 @@ const MODEL_ALIASES: Record<string, string> = {
   'deepseek': 'deepseek-chat',
   // Claude — bare 'opus' routes to current flagship 4.8; legacy '4.7'/'4.6' pins kept.
   'claude': 'claude-sonnet-4-6',
+  'fable': 'claude-fable-5',
+  'fable 5': 'claude-fable-5',
   'opus': 'claude-opus-4-8',
   'opus 4.8': 'claude-opus-4-8',
   'opus 4.7': 'claude-opus-4-7',

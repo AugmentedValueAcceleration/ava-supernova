@@ -263,13 +263,18 @@ export class AnthropicProvider extends BaseProvider {
       ? [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }]
       : undefined;
 
+    // Fable 5 and Opus 4.7+ removed sampling parameters — sending temperature
+    // or top_p returns a 400. Strip them for that family; older models keep
+    // honouring the caller's values.
+    const acceptsSampling = !/^claude-(fable-|opus-4-(7|8))/.test(request.model);
+
     return {
       model: request.model,
       messages,
       max_tokens: request.max_tokens || 4096,
       ...(systemBlock && { system: systemBlock }),
-      ...(request.temperature !== undefined && { temperature: request.temperature }),
-      ...(request.top_p !== undefined && { top_p: request.top_p }),
+      ...(acceptsSampling && request.temperature !== undefined && { temperature: request.temperature }),
+      ...(acceptsSampling && request.top_p !== undefined && { top_p: request.top_p }),
       ...(request.stop && { stop_sequences: Array.isArray(request.stop) ? request.stop : [request.stop] }),
       ...(tools && tools.length > 0 ? { tools } : {}),
       ...(toolChoice ? { tool_choice: toolChoice } : {}),

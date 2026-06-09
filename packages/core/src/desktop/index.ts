@@ -51,6 +51,10 @@ export type {
   DesktopPersonaDefinition,
 } from './personas.js';
 
+// Perception merge layer (Phase C1) — one ranked ScreenState from all tiers
+export { mergeTiers, browserSnapshotToTier } from './perception.js';
+export type { PerceptionTier } from './perception.js';
+
 // Conductor — orchestrates the five-persona wave into a trajectory loop
 export { runDesktopTrajectory } from './conductor.js';
 export type {

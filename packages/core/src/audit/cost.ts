@@ -52,6 +52,7 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
     'codestral-latest':   { inputPerMillion: 0.30, outputPerMillion: 0.90 },
   },
   anthropic: {
+    'claude-fable-5':             { inputPerMillion: 10.00, outputPerMillion: 50.00 },
     'claude-opus-4-8':            { inputPerMillion: 5.00,  outputPerMillion: 25.00 },
     'claude-opus-4-7':            { inputPerMillion: 5.00,  outputPerMillion: 25.00 },
     'claude-opus-4-6':            { inputPerMillion: 5.00,  outputPerMillion: 25.00 },

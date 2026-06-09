@@ -2,6 +2,21 @@ import type { ModelDefinition } from '../../core/types.js';
 
 export const ANTHROPIC_MODELS: ModelDefinition[] = [
   {
+    id: 'claude-fable-5',
+    name: 'Claude Fable 5',
+    provider: 'anthropic',
+    contextWindow: 1000000,
+    maxOutputTokens: 32768,
+    supportsToolCalls: true,
+    supportsStreaming: true,
+    supportsVision: true,
+    desktopCapable: true, // Anthropic's Mythos-class flagship (released 2026-06-09).
+    // NOTE Fable 5 API quirks (shared with Opus 4.7/4.8 plus one of its own):
+    // adaptive thinking only; temperature/top_p/top_k are rejected (400); an
+    // explicit thinking:{type:'disabled'} also 400s — omit the param instead.
+    pricing: { inputPerMillion: 10, outputPerMillion: 50 },
+  },
+  {
     id: 'claude-opus-4-8',
     name: 'Claude Opus 4.8',
     provider: 'anthropic',

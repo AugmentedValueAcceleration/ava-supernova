@@ -210,9 +210,9 @@ export class ModelRouter {
     }
 
     // BYOK models (dynamic — try whatever providers are available, best first).
-    // K2.6 first: SoTA agentic coding. Opus 4.8 current Anthropic flagship.
-    // K2.5 kept as legacy fallback. MiniMax excluded — creative only.
-    const byokModels = ['kimi-k2.6', 'claude-opus-4-8', 'claude-sonnet-4-6', 'kimi-k2.5', 'deepseek-chat', 'glm-5', 'mistral-medium-3.5', 'qwen3.5-omni-plus', 'qwen3.5-omni-flash', 'qwen3.5-flash'];
+    // Fable 5 first: Anthropic's Mythos-class flagship. K2.6 next: SoTA
+    // agentic coding. K2.5 kept as legacy fallback. MiniMax excluded — creative only.
+    const byokModels = ['claude-fable-5', 'kimi-k2.6', 'claude-opus-4-8', 'claude-sonnet-4-6', 'kimi-k2.5', 'deepseek-chat', 'glm-5', 'mistral-medium-3.5', 'qwen3.5-omni-plus', 'qwen3.5-omni-flash', 'qwen3.5-flash'];
     for (const id of byokModels) {
       const result = this.providerRegistry.resolveModel(id);
       if (result && this.isProviderAvailable(result.provider.name)) {

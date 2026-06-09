@@ -39,6 +39,7 @@ const PLATFORM_PRIORITY = [
 ];
 
 const BYOK_PRIORITY = [
+  { id: 'claude-fable-5',       reason: 'Claude Fable 5 — Anthropic Mythos-class flagship, strongest reasoning available, 1M context' },
   { id: 'kimi-k2.6',            reason: 'Kimi K2.6 — SoTA agentic coding (SWE-Bench Pro 58.6), 256K context, built for orchestration' },
   { id: 'claude-opus-4-8',      reason: 'Claude Opus 4.8 — strongest general reasoning' },
   { id: 'claude-sonnet-4-6',    reason: 'Claude Sonnet — fast reasoning' },

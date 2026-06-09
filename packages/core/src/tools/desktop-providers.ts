@@ -57,9 +57,19 @@ export interface BrowserProvider {
   navigate(url: string): Promise<{ url: string; title: string }>;
   snapshot(): Promise<BrowserSnapshot>;
   click(selector: string): Promise<void>;
-  type(text: string): Promise<void>;
+  /** Type into the focused element, or into `selector` when given (page.fill). */
+  type(text: string, selector?: string): Promise<void>;
   key(key: string): Promise<void>;
+  /** Wheel-scroll the page. Optional — native scroll is a Phase D primitive. */
+  scroll?(direction: 'up' | 'down' | 'left' | 'right', amount?: number): Promise<void>;
   close(): Promise<void>;
+  /**
+   * Whether a browser is ALREADY running. Perception must only snapshot a
+   * live browser — snapshot()/navigate() may launch one as a side effect,
+   * which observation must never do. Hosts that can't tell should omit this;
+   * absent means "not live" for perception purposes.
+   */
+  isLive?(): boolean;
 }
 
 export interface AppLauncherProvider {

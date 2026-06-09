@@ -19,10 +19,11 @@
 // the approval prompt, and an emit callback. Core never imports Tauri.
 
 import type {
-  ScreenState, ScreenElement, ConfidenceLevel,
+  ScreenState, ScreenElement,
   ProposedAction, ActionKind, ExecutionResult,
   VerificationResult, UserUpdate, TrajectoryStep, Trajectory,
 } from './types.js';
+import { mergeTiers, browserSnapshotToTier, type PerceptionTier } from './perception.js';
 import {
   DESKTOP_PLANNER, DESKTOP_VERIFIER,
   type DesktopPersonaName,
@@ -125,6 +126,14 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
 
   let observeMore = 0;
   let consecutiveDeviations = 0;
+  // Hard cycle brake: count verified successes per action signature. A small
+  // Planner re-runs the task like a checklist forever (click → arrive →
+  // re-navigate → re-click …); the second verified success of an IDENTICAL
+  // action means the work is done and the model has lost track — end the
+  // trajectory deterministically instead of letting it lap.
+  const successSignatures = new Map<string, number>();
+  const actionSignature = (a: ProposedAction) =>
+    JSON.stringify([a.kind, a.target ?? '', a.params ?? {}]);
 
   try {
     // eslint-disable-next-line no-constant-condition
@@ -172,7 +181,25 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
         appName: screenState.activeApp,
       });
       const decision = decideApproval(classification.riskClass, permissionLevel, opts.privilegedOptIn ?? false);
-      log(`step ${stepNumber} · Gate: ${decision.forbidden ? 'FORBIDDEN' : decision.requiresApproval ? 'approval required' : 'auto-allowed'} (${classification.riskClass})`);
+
+      // Ava's own browser is her sandbox. In Ask mode, REVERSIBLE actions
+      // that stay inside it (navigate, selector-grounded click/type/scroll)
+      // auto-run — confirming every web click breaks the trajectory's focus
+      // (the approval card steals foreground from the browser) and gates
+      // nothing real. Irreversible verbs, sensitive fields and privileged
+      // contexts still classify higher and still confirm. Watch mode keeps
+      // every confirmation — that's what Watch is for.
+      const inOwnBrowser = action.kind === 'navigate'
+        || action.kind === 'scroll' && !!providers.browser?.isLive?.()
+        || element?.source === 'playwright';
+      if (decision.requiresApproval && !decision.forbidden
+          && permissionLevel === 'ask'
+          && classification.riskClass === 'mutative-reversible'
+          && inOwnBrowser) {
+        decision.requiresApproval = false;
+        decision.reason = "Reversible action inside Ava's own browser — auto-allowed in Ask";
+      }
+      log(`step ${stepNumber} · Gate: ${decision.forbidden ? 'FORBIDDEN' : decision.requiresApproval ? 'approval required' : 'auto-allowed'} (${classification.riskClass}${inOwnBrowser ? ', own-browser' : ''})`);
 
       if (decision.forbidden) {
         emit({ type: 'narrate', line: `Blocked a ${classification.riskClass} action — ${decision.reason}.` });
@@ -190,18 +217,31 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
       }
 
       // 4 — Actor: execute exactly (deterministic).
-      const executionResult = await runActor(providers, action, raw);
+      const executionResult = await runActor(providers, action, raw, screenState.elements);
       log(`step ${stepNumber} · Actor: ${executionResult.ok ? `ok (${executionResult.latencyMs}ms)` : `FAILED — ${executionResult.error ?? 'unknown'}`}`);
 
-      // 5 — Verifier: re-read the screen, judge against the prediction.
+      // 5 — Verifier: re-read the screen, judge against the prediction — WITH
+      // measured evidence (URL/title/element-count deltas). The LLM's
+      // impression of "did anything change" is unreliable; the deltas aren't.
       const { state: freshState } = await scout(providers);
-      const verified = await runVerifier(callModel, action, executionResult, freshState);
+      const evidence = {
+        urlBefore: screenState.activeUrl ?? null,
+        urlAfter: freshState.activeUrl ?? null,
+        urlChanged: (screenState.activeUrl ?? null) !== (freshState.activeUrl ?? null),
+        titleBefore: screenState.activeTitle ?? null,
+        titleAfter: freshState.activeTitle ?? null,
+        elementCountBefore: screenState.elements.length,
+        elementCountAfter: freshState.elements.length,
+      };
+      const verified = await runVerifier(callModel, action, executionResult, freshState, evidence);
       const verificationResult = verified.verification;
       log(`step ${stepNumber} · Verifier: ${verificationResult.status} — ${truncate(verificationResult.detail, 120)}`);
       consecutiveDeviations = verificationResult.status === 'verified' ? 0 : consecutiveDeviations + 1;
 
       // 6 — Narrator: the user-facing line + audit (deterministic in Phase A).
-      const userUpdate = narrate(stepNumber, action, executionResult, verificationResult);
+      // `element` resolves the target to its human name — the user must never
+      // see a raw selector or internal id in chat.
+      const userUpdate = narrate(stepNumber, action, executionResult, verificationResult, element);
 
       // 7 — Record the step + advance the budget.
       const tokensConsumed: StepTokens = {
@@ -225,6 +265,17 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
         trajectory.outcome = 'stuck';
         break;
       }
+      if (executionResult.ok && verificationResult.status === 'verified') {
+        const sig = actionSignature(action);
+        const count = (successSignatures.get(sig) ?? 0) + 1;
+        successSignatures.set(sig, count);
+        if (count >= 2) {
+          trajectory.outcome = 'completed';
+          log(`step ${stepNumber} · Brake: action repeated successfully (${action.kind}) — task treated as complete`);
+          emit({ type: 'narrate', line: 'Done — everything the task asked for has been carried out.' });
+          break;
+        }
+      }
       if (snap.breached) { trajectory.outcome = 'budget_exceeded'; break; }
     }
   } catch (err) {
@@ -238,33 +289,42 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
 }
 
 // ── Scout (deterministic) ──────────────────────────────────────────────────
+//
+// Phase C1: Scout gathers every perception tier that is already live and
+// merges them into one ranked ScreenState (perception.ts). The UIA tree is
+// always attempted; the Playwright DOM contributes only when a browser is
+// already open (observation never launches anything). Vision joins in C3.
 
 async function scout(providers: DesktopProviders): Promise<{ state: ScreenState; raw: UIAElement[] }> {
   const raw = providers.uia ? await providers.uia.listElements() : [];
 
-  const elements: ScreenElement[] = raw.map((e, i) => ({
-    id: e.name && e.name.trim() ? e.name : `${e.control_type || 'el'}-${i}`,
-    kind: e.control_type || 'unknown',
-    name: e.name || '',
+  const uiaTier: PerceptionTier = {
     source: 'uia',
-    interactable: true,
-    sensitive: SENSITIVE_NAME.test(e.name || ''),
-  }));
-
-  const confidence: ConfidenceLevel = elements.length > 8 ? 'high' : elements.length > 0 ? 'medium' : 'low';
-
-  return {
-    state: {
-      capturedAt: new Date().toISOString(),
-      groundingSource: 'uia',
-      confidence,
-      elements,
-      notes: elements.length === 0
-        ? 'No elements from the accessibility tree — the window may be custom-rendered (vision fallback arrives in Phase C).'
-        : undefined,
-    },
-    raw,
+    elements: raw.map((e, i) => ({
+      id: e.name && e.name.trim() ? e.name : `${e.control_type || 'el'}-${i}`,
+      kind: e.control_type || 'unknown',
+      name: e.name || '',
+      source: 'uia',
+      interactable: true,
+      sensitive: SENSITIVE_NAME.test(e.name || ''),
+    })),
   };
+
+  const tiers: PerceptionTier[] = [uiaTier];
+  if (providers.browser?.isLive?.()) {
+    try {
+      tiers.push(browserSnapshotToTier(await providers.browser.snapshot()));
+    } catch {
+      uiaTier.notes = 'A browser is open but its DOM snapshot failed — web elements may be missing.';
+    }
+  } else if (providers.browser) {
+    // Affordance, not just absence: the Planner needs to know the door
+    // exists, or an empty screen reads as a dead end instead of a start.
+    uiaTier.notes = [uiaTier.notes, "Ava's built-in browser is closed — the 'navigate' action opens it automatically."]
+      .filter(Boolean).join(' ');
+  }
+
+  return { state: mergeTiers(tiers), raw };
 }
 
 // ── Planner (LLM) ──────────────────────────────────────────────────────────
@@ -275,17 +335,116 @@ async function runPlanner(
   trajectory: Trajectory,
   screen: ScreenState,
 ): Promise<{ action: ProposedAction; tokens: number }> {
+  // Explicit completion ledger — a small model can't reliably infer "I already
+  // did that" from raw step history, so we hand it the conclusion: a plain
+  // list of everything that has already succeeded this run.
+  const alreadyCompleted = trajectory.steps
+    .filter(s => s.executionResult.ok && s.verificationResult.status === 'verified')
+    .map(s => pastTense(s.proposedAction));
   const userContent = JSON.stringify({
     task,
+    alreadyCompletedThisRun: alreadyCompleted.length > 0
+      ? { actions: alreadyCompleted, rule: 'These are DONE. Never repeat them. If they cover the whole task, output kind "done" now.' }
+      : undefined,
     recentSteps: summariseTrajectory(trajectory),
-    screen: { activeApp: screen.activeApp, confidence: screen.confidence, notes: screen.notes, elements: screen.elements },
+    // activeUrl/activeTitle matter as much as the elements: without them the
+    // Planner cannot recognise "the page I'm on IS the destination" and
+    // re-navigates to confirm instead of declaring done.
+    screen: {
+      activeApp: screen.activeApp, activeUrl: screen.activeUrl, activeTitle: screen.activeTitle,
+      confidence: screen.confidence, notes: screen.notes, elements: screen.elements,
+    },
   });
   const { text, tokensIn, tokensOut } = await callModel({
     persona: 'planner', systemPrompt: DESKTOP_PLANNER.systemPrompt, userContent,
   });
-  const parsed = parseJson<ProposedAction>(text);
-  const action = coerceAction(parsed);
-  return { action, tokens: tokensIn + tokensOut };
+  let tokens = tokensIn + tokensOut;
+  let action = coerceAction(parseJson<ProposedAction>(text));
+
+  // Structural validation + ONE corrective retry. Smaller local models drop
+  // required fields (a click with no target executes as a guaranteed miss and
+  // burns a whole wave on it) — a pointed correction usually snaps them back.
+  const problem = validateAction(action, screen) ?? validatePrediction(action);
+  if (problem) {
+    const retry = await callModel({
+      persona: 'planner',
+      systemPrompt: DESKTOP_PLANNER.systemPrompt,
+      userContent: `${userContent}\n\nYour previous output was INVALID: ${problem}\nPrevious output: ${text.slice(0, 400)}\nReturn ONE corrected JSON ProposedAction now. No prose.`,
+    });
+    tokens += retry.tokensIn + retry.tokensOut;
+    const retried = coerceAction(parseJson<ProposedAction>(retry.text));
+    if (!(validateAction(retried, screen) ?? validatePrediction(retried))) {
+      action = retried;
+    } else {
+      // Still malformed — take another look next cycle rather than crash
+      // or execute a doomed action.
+      action = {
+        kind: 'observe_more',
+        riskClass: 'observational',
+        reasoning: `Planner output stayed invalid after a retry (${problem}).`,
+        expectedPostState: 'n/a',
+        params: { reason: problem },
+      };
+    }
+  }
+  return { action, tokens };
+}
+
+/**
+ * Structural check — does the action carry what its kind requires, and does
+ * its target actually exist on the CURRENT screen? The second half matters
+ * because recalled memories contain element ids from past sessions; small
+ * models copy them verbatim and click ghosts (observed: a planner repeating
+ * a dead selector from memory while 21 live elements sat in front of it).
+ */
+function validateAction(action: ProposedAction, screen?: ScreenState): string | null {
+  switch (action.kind) {
+    case 'click':
+    case 'double_click':
+    case 'right_click': {
+      if (!action.target) {
+        return `"${action.kind}" requires "target" — the exact id or name of an element from the screen list`;
+      }
+      if (screen && screen.elements.length > 0) {
+        const t = action.target.toLowerCase();
+        const onScreen = screen.elements.some(e =>
+          e.id === action.target || e.name.toLowerCase() === t || (!!e.name && e.name.toLowerCase().includes(t)));
+        if (!onScreen) {
+          return `target "${action.target}" is NOT on the current screen — it may be a stale id from notes of a previous session. Pick the exact "id" of an element from the CURRENT screen.elements list`;
+        }
+      }
+      return null;
+    }
+    case 'type':
+      return typeof action.params?.text === 'string' && String(action.params.text).length > 0
+        ? null : '"type" requires params.text (the text to type)';
+    case 'key':
+      return action.params?.key ? null : '"key" requires params.key (e.g. "Enter")';
+    case 'navigate':
+      return action.params?.url ? null : '"navigate" requires params.url';
+    case 'launch':
+      return (action.params?.app || action.target) ? null : '"launch" requires params.app (the application name)';
+    default:
+      return null;
+  }
+}
+
+/**
+ * Acting kinds must carry a real expectedPostState. Without a prediction the
+ * Verifier has nothing to check and confabulates verdicts — observed: it ruled
+ * "no navigation happened" while standing on the destination page, sending the
+ * Planner into an undo/redo loop of its own completed task.
+ */
+const ACTING_KINDS: ReadonlySet<ActionKind> = new Set([
+  'click', 'double_click', 'right_click', 'type', 'key', 'scroll', 'navigate', 'launch',
+]);
+
+function validatePrediction(action: ProposedAction): string | null {
+  if (!ACTING_KINDS.has(action.kind)) return null;
+  const p = (action.expectedPostState ?? '').trim();
+  return p.length >= 5
+    ? null
+    : '"expectedPostState" is required — one concrete sentence describing what the screen should show after this action (the Verifier checks against it)';
 }
 
 /** Defensive: a malformed Planner output becomes a controlled 'stuck', never a crash. */
@@ -311,23 +470,56 @@ function coerceAction(parsed: Partial<ProposedAction> | null): ProposedAction {
 
 // ── Actor (deterministic) ──────────────────────────────────────────────────
 
-async function runActor(providers: DesktopProviders, action: ProposedAction, raw: UIAElement[]): Promise<ExecutionResult> {
+async function runActor(
+  providers: DesktopProviders,
+  action: ProposedAction,
+  raw: UIAElement[],
+  merged: ScreenElement[] = [],
+): Promise<ExecutionResult> {
   const start = Date.now();
   try {
     const input = providers.input;
+    // Phase C2: a target grounded by the DOM tier carries a selector — those
+    // actions route through the browser (exact under scroll/resize), while
+    // UIA-grounded targets keep the native coordinate path.
+    const webEl = action.target ? resolveWebTarget(action.target, merged) : null;
     switch (action.kind) {
-      case 'click':
+      case 'click': {
+        if (webEl?.selector && providers.browser) {
+          await providers.browser.click(webEl.selector);
+          break;
+        }
+        const el = resolveTarget(action.target, raw);
+        if (!el) throw new Error(`target '${action.target ?? '?'}' not found on screen`);
+        // Native clicks go through UIA's name-based invoke (exact, and the
+        // host may not wire coordinate input at all); coords are the fallback.
+        if (providers.uia?.clickElement) {
+          const clicked = await providers.uia.clickElement(el.name);
+          if (!clicked) throw new Error(`could not click '${el.name}' via UIA`);
+          break;
+        }
+        if (!input || typeof input.click !== 'function') throw new Error('no click provider');
+        await input.click(el.cx, el.cy);
+        break;
+      }
       case 'double_click':
       case 'right_click': {
         if (!input) throw new Error('no input provider');
         const el = resolveTarget(action.target, raw);
-        if (!el) throw new Error(`target '${action.target ?? '?'}' not found on screen`);
-        if (action.kind === 'click') await input.click(el.cx, el.cy);
-        else if (action.kind === 'double_click') await input.doubleClick(el.cx, el.cy);
+        if (!el) {
+          throw new Error(webEl
+            ? `'${action.target}' is a web element — ${action.kind} on web elements isn't supported yet; use click`
+            : `target '${action.target ?? '?'}' not found on screen`);
+        }
+        if (action.kind === 'double_click') await input.doubleClick(el.cx, el.cy);
         else await input.rightClick(el.cx, el.cy);
         break;
       }
       case 'type': {
+        if (webEl?.selector && providers.browser) {
+          await providers.browser.type(String(action.params?.text ?? ''), webEl.selector);
+          break;
+        }
         if (!input) throw new Error('no input provider');
         const el = action.target ? resolveTarget(action.target, raw) : null;
         if (el) await input.click(el.cx, el.cy); // focus the field first
@@ -340,11 +532,19 @@ async function runActor(providers: DesktopProviders, action: ProposedAction, raw
         break;
       }
       case 'scroll': {
-        if (!input) throw new Error('no input provider');
         const dir = (action.params?.direction as 'up' | 'down' | 'left' | 'right') ?? 'down';
         const amount = Number(action.params?.amount) || undefined;
-        await input.scroll(dir, amount);
-        break;
+        // Web scroll rides the browser when it's open; native wheel input is
+        // a Phase D primitive, so fail with the truth rather than a TypeError.
+        if (providers.browser?.isLive?.() && providers.browser.scroll) {
+          await providers.browser.scroll(dir, amount);
+          break;
+        }
+        if (input && typeof input.scroll === 'function') {
+          await input.scroll(dir, amount);
+          break;
+        }
+        throw new Error('native scroll is not available yet — only the browser can scroll for now');
       }
       case 'navigate': {
         if (!providers.browser) throw new Error('no browser provider for navigate');
@@ -382,6 +582,16 @@ function resolveTarget(target: string | undefined, raw: UIAElement[]): UIAElemen
     ?? null;
 }
 
+/** Match a target to a DOM-grounded element from the merged ScreenState. */
+function resolveWebTarget(target: string, merged: ScreenElement[]): ScreenElement | null {
+  const t = target.toLowerCase();
+  const web = merged.filter(e => e.source === 'playwright' && e.selector);
+  return web.find(e => e.id === target)
+    ?? web.find(e => e.name.toLowerCase() === t)
+    ?? web.find(e => !!e.name && e.name.toLowerCase().includes(t))
+    ?? null;
+}
+
 // ── Verifier (LLM) ─────────────────────────────────────────────────────────
 
 async function runVerifier(
@@ -389,11 +599,17 @@ async function runVerifier(
   action: ProposedAction,
   result: ExecutionResult,
   freshScreen: ScreenState,
+  evidence?: Record<string, unknown>,
 ): Promise<{ verification: VerificationResult; tokens: number }> {
   const userContent = JSON.stringify({
     proposedAction: action,
     executionResult: result,
-    freshScreen: { activeApp: freshScreen.activeApp, confidence: freshScreen.confidence, notes: freshScreen.notes, elements: freshScreen.elements },
+    // Measured facts — the Verifier is instructed these outrank impressions.
+    evidence,
+    freshScreen: {
+      activeApp: freshScreen.activeApp, activeUrl: freshScreen.activeUrl, activeTitle: freshScreen.activeTitle,
+      confidence: freshScreen.confidence, notes: freshScreen.notes, elements: freshScreen.elements,
+    },
   });
   const { text, tokensIn, tokensOut } = await callModel({
     persona: 'verifier', systemPrompt: DESKTOP_VERIFIER.systemPrompt, userContent,
@@ -414,16 +630,16 @@ async function runVerifier(
 
 // ── Narrator (deterministic, Phase A) ──────────────────────────────────────
 
-function narrate(step: number, action: ProposedAction, result: ExecutionResult, vr: VerificationResult): UserUpdate {
+function narrate(step: number, action: ProposedAction, result: ExecutionResult, vr: VerificationResult, element?: ScreenElement): UserUpdate {
   let line: string;
   if (!result.ok) {
-    line = `Tried to ${describeAction(action)}, but it failed${result.error ? `: ${result.error}` : '.'}`;
+    line = `Tried to ${describeAction(action, element)}, but it failed${result.error ? `: ${humaniseDetail(result.error)}` : '.'}`;
   } else if (vr.status === 'deviated') {
-    line = `${capitalise(describeAction(action))} — but ${vr.deviation ?? 'the screen didn’t change as expected'}.`;
+    line = `${capitalise(describeAction(action, element))} — but ${humaniseDetail(vr.deviation ?? 'the screen didn’t change as expected')}.`;
   } else if (vr.status === 'rollback_needed') {
-    line = `${capitalise(describeAction(action))} — that left things worse than before; pausing.`;
+    line = `${capitalise(describeAction(action, element))} — that left things worse than before; pausing.`;
   } else {
-    line = `${capitalise(pastTense(action))}.`;
+    line = `${capitalise(pastTense(action, element))}.`;
   }
   return {
     line,
@@ -431,12 +647,37 @@ function narrate(step: number, action: ProposedAction, result: ExecutionResult, 
   };
 }
 
+// The user-facing rule (from the Narrator spec): no selectors, no internal
+// identifiers. A target the merge layer can't resolve to a human name is
+// shown as a plain phrase, never as raw CSS/ids.
+const SELECTOR_LIKE = /^\[|^#|^\.|data-ava-id|^web-\d+$|nth-of-type|^[a-z]+\[/i;
+
+function displayTarget(action: ProposedAction, element?: ScreenElement): string | undefined {
+  const name = element?.name?.trim();
+  if (name) return name;
+  const target = action.target?.trim();
+  if (!target || SELECTOR_LIKE.test(target)) return undefined;
+  return target;
+}
+
+/** Strip selector debris from Verifier/Actor prose before it reaches chat. */
+function humaniseDetail(detail: string): string {
+  return detail
+    // Playwright timeout dumps include a multi-line call log — replace the
+    // whole thing with a sentence a person can act on.
+    .replace(/page\.\w+: Timeout \d+ms exceeded[\s\S]*/i, "the element couldn't be found on the page in time")
+    .replace(/['"`]?\[data-ava-id="[^"]*"\]['"`]?/gi, 'that element')
+    .replace(/data-ava-id="?[^\s"\]]*"?\]?/gi, 'that element')
+    .replace(/['"`]web-\d+['"`]/gi, 'that element')
+    .replace(/\bweb-\d+\b/gi, 'that element');
+}
+
 function describeAction(action: ProposedAction, element?: ScreenElement): string {
-  const target = element?.name || action.target;
+  const target = displayTarget(action, element);
   switch (action.kind) {
-    case 'click': return target ? `click "${target}"` : 'click';
-    case 'double_click': return target ? `double-click "${target}"` : 'double-click';
-    case 'right_click': return target ? `right-click "${target}"` : 'right-click';
+    case 'click': return target ? `click "${target}"` : 'click an element on the page';
+    case 'double_click': return target ? `double-click "${target}"` : 'double-click an element';
+    case 'right_click': return target ? `right-click "${target}"` : 'right-click an element';
     case 'type': return target ? `type into "${target}"` : 'type';
     case 'key': return `press ${String(action.params?.key ?? 'a key')}`;
     case 'scroll': return `scroll ${String(action.params?.direction ?? 'down')}`;
@@ -447,12 +688,12 @@ function describeAction(action: ProposedAction, element?: ScreenElement): string
   }
 }
 
-function pastTense(action: ProposedAction): string {
-  const target = action.target;
+function pastTense(action: ProposedAction, element?: ScreenElement): string {
+  const target = displayTarget(action, element);
   switch (action.kind) {
-    case 'click': return target ? `clicked "${target}"` : 'clicked';
-    case 'double_click': return target ? `double-clicked "${target}"` : 'double-clicked';
-    case 'right_click': return target ? `right-clicked "${target}"` : 'right-clicked';
+    case 'click': return target ? `clicked "${target}"` : 'clicked an element on the page';
+    case 'double_click': return target ? `double-clicked "${target}"` : 'double-clicked an element';
+    case 'right_click': return target ? `right-clicked "${target}"` : 'right-clicked an element';
     case 'type': return target ? `typed into "${target}"` : 'typed';
     case 'key': return `pressed ${String(action.params?.key ?? 'a key')}`;
     case 'scroll': return `scrolled ${String(action.params?.direction ?? 'down')}`;
