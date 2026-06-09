@@ -252,6 +252,10 @@ export {
   loadDecisionsState,
   scaffoldDecisionsFolder,
   type DecisionsState,
+  // Machine-global decisions (standing rules for desktop automation)
+  getGlobalDecisionsRoot,
+  appendMachineRule,
+  loadMachineRules,
 } from './config/project.js';
 
 // Per-project config (decisionsOptIn etc.)

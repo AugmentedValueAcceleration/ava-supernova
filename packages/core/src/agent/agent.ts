@@ -361,6 +361,8 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // guessing is a failure mode. Ava must use tree/DOM-based targeting.
     'desktop_list_elements', 'desktop_click_by_name', 'desktop_focus_window',
     'desktop_type', 'desktop_key_press',
+    // Persist a standing rule the user wants obeyed on this machine forever
+    'record_machine_rule',
     // Browser automation via Playwright DOM — visible Chromium, stable.
     'browser_navigate', 'browser_snapshot', 'browser_click', 'browser_type', 'browser_close',
     // Light support

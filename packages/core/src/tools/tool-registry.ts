@@ -86,6 +86,7 @@ import { DesktopTypeTool } from './desktop-type.js';
 import { DesktopKeyPressTool } from './desktop-key-press.js';
 import { DesktopLaunchAppTool } from './desktop-launch-app.js';
 import { DesktopPlanApproveTool } from './desktop-plan-approve.js';
+import { RecordMachineRuleTool } from './record-machine-rule.js';
 import { BrowserNavigateTool } from './browser-navigate.js';
 import { BrowserSnapshotTool } from './browser-snapshot.js';
 import { BrowserClickTool } from './browser-click.js';
@@ -433,6 +434,7 @@ export class ToolRegistry {
       new DesktopFocusWindowTool(),
       new DesktopTypeTool(),
       new DesktopKeyPressTool(),
+      new RecordMachineRuleTool(),
       new BrowserNavigateTool(),
       new BrowserSnapshotTool(),
       new BrowserClickTool(),

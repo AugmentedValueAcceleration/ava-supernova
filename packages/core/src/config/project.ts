@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises';
+import { readFile, readdir, mkdir, writeFile, appendFile } from 'node:fs/promises';
 import { join, dirname, resolve } from 'node:path';
 import {
   loadProjectConfig,
@@ -180,6 +180,61 @@ export async function loadDecisionsState(projectRoot: string): Promise<Decisions
     context,
     optInStatus: config.decisionsOptIn ?? 'not-asked',
   };
+}
+
+// ── Machine-global decisions (standing rules) ──────────────────────────────
+// Desktop automation operates the whole MACHINE, which spans projects — so its
+// standing rules ("never auto-send", "save reports to D:\\Work", "don't close
+// my browser tabs") live at the global AVA_HOME level, NOT a project Decisions/
+// folder. Same append-only, human-readable backbone as the project Decisions
+// folder — just machine-scoped. Ava reads these before every desktop turn and
+// is expected to obey them.
+
+const MACHINE_RULES_FILE = 'machine-rules.md';
+
+/** The machine-global Decisions root: `<globalDir>/Decisions`. */
+export function getGlobalDecisionsRoot(globalDir: string): string {
+  return join(globalDir, DECISIONS_DIR_NAME);
+}
+
+/**
+ * Append a standing machine rule (append-only). Creates the folder + file on
+ * first use. Deduped on the rule text (case-insensitive) so the same rule isn't
+ * stored twice. Tags are optional provenance (e.g. ['desktop', 'email']).
+ */
+export async function appendMachineRule(
+  globalDir: string,
+  rule: string,
+  tags: string[] = [],
+): Promise<boolean> {
+  const clean = rule.trim();
+  if (!clean) return false;
+  const root = getGlobalDecisionsRoot(globalDir);
+  await mkdir(root, { recursive: true });
+  const file = join(root, MACHINE_RULES_FILE);
+  let existing = '';
+  try { existing = await readFile(file, 'utf-8'); } catch { /* new file */ }
+  // Dedup: skip if this exact rule text is already recorded.
+  if (existing.toLowerCase().includes(clean.toLowerCase())) return false;
+  const header = existing.trim()
+    ? ''
+    : '# Standing rules for this machine\n\n'
+      + 'Append-only. Ava reads these before every desktop turn and obeys them.\n\n';
+  const date = new Date().toISOString().slice(0, 10);
+  const tagStr = tags.length ? ` _(${tags.join(', ')})_` : '';
+  await appendFile(file, `${header}- **[${date}]** ${clean}${tagStr}\n`);
+  return true;
+}
+
+/** Read the standing machine rules (for injection into desktop turns). Null if none. */
+export async function loadMachineRules(globalDir: string): Promise<string | null> {
+  try {
+    const raw = await readFile(join(getGlobalDecisionsRoot(globalDir), MACHINE_RULES_FILE), 'utf-8');
+    const trimmed = raw.trim();
+    return trimmed || null;
+  } catch {
+    return null;
+  }
 }
 
 // ─── Worked-example templates ───────────────────────────────────────────────
