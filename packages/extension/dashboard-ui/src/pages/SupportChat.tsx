@@ -14,6 +14,7 @@ interface SupportMessage {
 interface SupportConversation {
   id: string;
   status: string;
+  category: string | null;
   unread_user: number;
   summary: string | null;
   last_message_at: string;
@@ -24,6 +25,18 @@ interface SupportConversation {
     timestamp: string;
   };
 }
+
+// Intent-based ticket reasons (migration 317) — same set as web + IDE.
+const SUPPORT_CATEGORIES = [
+  { slug: 'bug', label: 'Bug or broken', icon: '🐞', placeholder: 'What broke, and what were you doing when it happened?' },
+  { slug: 'question', label: 'Question / how-to', icon: '❓', placeholder: 'What are you trying to do?' },
+  { slug: 'feature', label: 'Feature request', icon: '✨', placeholder: 'What would you love Ava to do?' },
+  { slug: 'billing', label: 'Billing & payments', icon: '💳', placeholder: 'Tell us about the billing or payment issue…' },
+  { slug: 'account', label: 'Account & login', icon: '👤', placeholder: 'What is happening with your account or sign-in?' },
+  { slug: 'feedback', label: 'Feedback', icon: '💬', placeholder: "What's on your mind?" },
+  { slug: 'other', label: 'Something else', icon: '💭', placeholder: 'How can we help?' },
+] as const;
+const categoryMeta = (slug?: string | null) => SUPPORT_CATEGORIES.find(c => c.slug === slug) || null;
 
 interface SupportChatProps {
   conversations: SupportConversation[];
@@ -37,6 +50,8 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
   useLocale();
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [newCategory, setNewCategory] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -62,12 +77,13 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
     if (activeConversationId) {
       post({ type: 'send_support_message', conversationId: activeConversationId, message: text });
     } else {
-      post({ type: 'start_support_conversation', message: text });
+      post({ type: 'start_support_conversation', message: text, category: newCategory });
+      setNewCategory(null);
     }
     // Confirmation arrives via the message-update push; this just clears
     // the local "sending" guard so a stuck network doesn't lock the input.
     setTimeout(() => setSending(false), 1000);
-  }, [input, sending, activeConversationId]);
+  }, [input, sending, activeConversationId, newCategory]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -81,8 +97,11 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
     post({ type: 'mark_support_read', conversationId: id });
   };
 
-  const startNewChat = () => {
+  // Picking a reason from the "+ New ticket" dropdown starts a fresh thread.
+  const pickNewReason = (slug: string) => {
     post({ type: 'clear_support_chat' });
+    setNewCategory(slug);
+    setMenuOpen(false);
     setTimeout(() => textareaRef.current?.focus(), 50);
   };
 
@@ -91,6 +110,8 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
   }
 
   const hasActiveThread = !!activeConversationId || activeMessages.length > 0;
+  const isNewTicket = !hasActiveThread;
+  const newCatMeta = categoryMeta(newCategory);
 
   return (
     <div className="w-full flex flex-col gap-3" style={{ minHeight: 'calc(100vh - 220px)' }}>
@@ -103,12 +124,31 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
             Stuck on something? Send it through and I&apos;ll take a look first — the team picks up if I can&apos;t solve it.
           </p>
         </div>
-        <button
-          onClick={startNewChat}
-          className="rounded-lg border border-[var(--border-card)] bg-transparent px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-white hover:border-[var(--accent)]/40 transition cursor-pointer"
-        >
-          + New chat
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setMenuOpen(o => !o)}
+            className="rounded-lg border border-[var(--border-card)] bg-transparent px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-white hover:border-[var(--accent)]/40 transition cursor-pointer"
+          >
+            + New ticket
+          </button>
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+              <div className="absolute right-0 top-10 z-50 w-56 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-1 shadow-xl shadow-black/40">
+                <p className="px-2.5 py-1.5 text-[10px] uppercase tracking-wider text-[var(--text-muted)]">New ticket — pick a reason</p>
+                {SUPPORT_CATEGORIES.map(c => (
+                  <button
+                    key={c.slug}
+                    onClick={() => pickNewReason(c.slug)}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)] hover:text-white cursor-pointer"
+                  >
+                    <span className="text-sm">{c.icon}</span>{c.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Main area — left rail (conversations) + right card (chat) */}
@@ -151,6 +191,11 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
                 <p className="text-[11px] leading-snug truncate">
                   {conv.lastMessage?.preview || conv.summary || 'New conversation'}
                 </p>
+                {categoryMeta(conv.category) && (
+                  <span className="mt-1 inline-flex items-center gap-1 rounded border border-[var(--border-card)] px-1.5 py-0.5 text-[9px] text-[var(--text-muted)]">
+                    <span>{categoryMeta(conv.category)!.icon}</span>{categoryMeta(conv.category)!.label}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -169,7 +214,7 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
                 <div ref={messagesEndRef} />
               </div>
             ) : (
-              <EmptyState />
+              <EmptyState newCategory={newCategory} />
             )}
           </div>
 
@@ -183,14 +228,15 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={hasActiveThread ? 'Reply…' : "What's going on?"}
+                disabled={isNewTicket && !newCategory}
+                placeholder={isNewTicket ? (newCatMeta ? newCatMeta.placeholder : 'Pick a reason above to start…') : 'Reply…'}
                 rows={1}
-                className="flex-1 rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none resize-none focus:border-[var(--accent)]/60 transition leading-relaxed"
+                className="flex-1 rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none resize-none focus:border-[var(--accent)]/60 transition leading-relaxed disabled:opacity-50"
                 style={{ maxHeight: 160 }}
               />
               <button
                 onClick={handleSend}
-                disabled={!input.trim() || sending}
+                disabled={!input.trim() || sending || (isNewTicket && !newCategory)}
                 className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed shrink-0"
               >
                 Send
@@ -223,19 +269,30 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
   );
 }
 
-// ── Empty state — Ava's voice, no clunky icon-circle ──────────────────
-function EmptyState() {
+// ── Empty state — Ava's voice; reason is chosen from the + New dropdown ──
+function EmptyState({ newCategory }: { newCategory: string | null }) {
+  const picked = categoryMeta(newCategory);
+  if (picked) {
+    return (
+      <div className="h-full flex flex-col items-start justify-center max-w-md">
+        <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed mb-2">
+          {picked.icon} {picked.label}
+        </p>
+        <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
+          Tell me what&apos;s going on in the box below — I&apos;ll do my best to help right now, and if it needs the team I&apos;ll
+          hand it over and they&apos;ll pick up the same thread.
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="h-full flex flex-col items-start justify-center max-w-md">
       <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-3">
         Hey — I&apos;m Ava.
       </p>
-      <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-3">
-        Tell me what&apos;s going on and I&apos;ll do my best to help right now. If it needs the team — billing fix, a refund,
-        anything I can&apos;t change myself — I&apos;ll hand it over and they&apos;ll pick it up.
-      </p>
-      <p className="text-[12px] text-[var(--text-muted)] leading-relaxed">
-        Your message goes in the box below.
+      <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
+        Hit <span className="text-white">+ New ticket</span> up top and pick what it&apos;s about — I&apos;ll route you to the
+        right place and do my best to help right now.
       </p>
     </div>
   );

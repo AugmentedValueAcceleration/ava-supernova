@@ -501,7 +501,7 @@ export class DashboardPanel {
       // ─── Live chat support ─────────────────────────────────────────────────
 
       case 'start_support_conversation':
-        await this.startSupportConversation(msg.message);
+        await this.startSupportConversation(msg.message, msg.category);
         break;
 
       case 'send_support_message':
@@ -2716,14 +2716,14 @@ export class DashboardPanel {
 
   // ─── Live Chat Support ───────────────────────────────────────────────────
 
-  private async startSupportConversation(message: string): Promise<void> {
+  private async startSupportConversation(message: string, category?: string | null): Promise<void> {
     const platformKey = await this.secrets.get(PLATFORM_KEY_SECRET);
     if (!platformKey) return;
 
     try {
       const res = await apiFetch('/support/conversations', {
         method: 'POST',
-        body: { message, platform: 'extension' },
+        body: { message, platform: 'extension', category: category ?? null },
         platformKey,
       });
       if (res.ok) {

@@ -1504,7 +1504,7 @@ export type DashboardToExtMessage =
   | { type: 'create_support_ticket'; subject: string; message: string; category?: string }
   | { type: 'reply_support_ticket'; ticketId: string; message: string }
   // Live chat support
-  | { type: 'start_support_conversation'; message: string }
+  | { type: 'start_support_conversation'; message: string; category?: string | null }
   | { type: 'send_support_message'; conversationId: string; message: string }
   | { type: 'load_support_conversations' }
   | { type: 'load_support_messages'; conversationId: string }
