@@ -2019,7 +2019,7 @@ export const frStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.chat': 'Discussion avec Ava',
   'dash.nav.sync': 'Synchroniser',
   'dash.nav.releases': 'Versions',
-  'welcome.tagline': '60 outils · 7 fournisseurs · 2 modèles gratuits · 20 langues',
+  'welcome.tagline': '60+ outils · 7 fournisseurs · 2 modèles gratuits · 20 langues',
   'welcome.setup_title': 'Bien démarrer — Ajouter une clé d\'API',
   'welcome.setup_desc': 'Inscrivez-vous pour 3M jetons Qwen gratuits, ou ajoutez votre propre clé d\'API depuis n\'importe quel fournisseur.',
   'welcome.setup_cta': 'Ouvrir les paramètres',

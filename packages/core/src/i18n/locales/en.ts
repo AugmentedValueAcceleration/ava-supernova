@@ -2026,7 +2026,7 @@ export const enStrings = {
   'dash.nav.chat': 'Chat with Ava',
   'dash.nav.sync': 'Sync',
   'dash.nav.releases': 'Releases',
-  'welcome.tagline': '60 tools \u00B7 7 providers \u00B7 2 free models \u00B7 20 languages',
+  'welcome.tagline': '60+ tools \u00B7 7 providers \u00B7 2 free models \u00B7 20 languages',
   'welcome.setup_title': 'Get Started \u2014 Add an API Key',
   'welcome.setup_desc': 'Sign up for 3M free Qwen tokens, or add your own API key from any provider.',
   'welcome.setup_cta': 'Open Settings',

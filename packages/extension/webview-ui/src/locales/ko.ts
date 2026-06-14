@@ -4,7 +4,7 @@ export const koStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': '코드에 대해 무엇이든 물어보세요.',
-  'welcome.tagline': '60개 도구 · 7개 공급자 · 2개 무료 모델 · 20개 언어',
+  'welcome.tagline': '60+개 도구 · 7개 공급자 · 2개 무료 모델 · 20개 언어',
 
   // Welcome — Setup
   'welcome.setup_title': '시작하기 — API 키 추가',

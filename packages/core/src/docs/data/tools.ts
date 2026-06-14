@@ -1,4 +1,7 @@
-// Canonical tool fact table — single source of truth for all 61 built-in tools.
+// Canonical tool fact table — single source of truth for the 60 user-facing
+// built-in tools documented here. (The full registry also includes IDE-only
+// desktop-automation, browser-automation, and internal infrastructure tools
+// that aren't part of this user-facing catalogue.)
 // Rendered by the website, extension DocsPanel, and IDE DocumentationPage.
 // Update here when tools are added/renamed/recategorised, not in any surface renderer.
 

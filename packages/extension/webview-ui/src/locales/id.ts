@@ -4,7 +4,7 @@ export const idStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Tanyakan apa saja tentang kode Anda.',
-  'welcome.tagline': '60 alat · 7 provider · 2 model gratis · 20 bahasa',
+  'welcome.tagline': '60+ alat · 7 provider · 2 model gratis · 20 bahasa',
 
   // Welcome — Setup
   'welcome.setup_title': 'Mulai — Tambahkan Kunci API',

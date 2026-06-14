@@ -4,7 +4,7 @@ export const arStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'اسأل أي شيء عن الكود الخاص بك.',
-  'welcome.tagline': '60 أداة · 7 مزوّدين · 2 نموذج مجاني · 20 لغة',
+  'welcome.tagline': '60+ أداة · 7 مزوّدين · 2 نموذج مجاني · 20 لغة',
 
   // Welcome — Setup
   'welcome.setup_title': 'ابدأ — أضف مفتاح API',

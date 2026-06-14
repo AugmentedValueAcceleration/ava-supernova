@@ -4,7 +4,7 @@ export const deStrings: Record<StringKey, string> = {
   // Welcome / Branding
   'welcome.title': 'Ava Supernova',
   'welcome.subtitle': 'Stell jede Frage zu deinem Code.',
-  'welcome.tagline': '60 Tools · 7 Anbieter · 2 kostenlose Modelle · 20 Sprachen',
+  'welcome.tagline': '60+ Tools · 7 Anbieter · 2 kostenlose Modelle · 20 Sprachen',
 
   // Welcome — Setup
   'welcome.setup_title': 'Erste Schritte — API-Schlüssel hinzufügen',

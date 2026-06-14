@@ -2023,7 +2023,7 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.chat': 'Ava 와 채팅',
   'dash.nav.sync': '동기화',
   'dash.nav.releases': '릴리스',
-  'welcome.tagline': '60 개 도구 · 7 개 제공자 · 2 개 무료 모델 · 20 개 언어',
+  'welcome.tagline': '60+ 개 도구 · 7 개 제공자 · 2 개 무료 모델 · 20 개 언어',
   'welcome.setup_title': '시작하기 — API 키 추가',
   'welcome.setup_desc': '3M 무료 Qwen 토큰을 받거나, 어떤 제공자든 자신의 API 키를 추가하세요.',
   'welcome.setup_cta': '설정 열기',

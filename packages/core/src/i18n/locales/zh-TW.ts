@@ -2023,7 +2023,7 @@ export const zhTWStrings: Partial<Record<StringKey, string>> = {
   'dash.nav.chat': '與 Ava 對話',
   'dash.nav.sync': '同步',
   'dash.nav.releases': '版本更新',
-  'welcome.tagline': '60 種工具 · 7 個提供者 · 2 個免費模型 · 20 種語言',
+  'welcome.tagline': '60+ 種工具 · 7 個提供者 · 2 個免費模型 · 20 種語言',
   'welcome.setup_title': '開始使用 — 新增 API 金鑰',
   'welcome.setup_desc': '註冊獲取 300 萬免費 Qwen Token，或從任何提供者新增自己的 API 金鑰。',
   'welcome.setup_cta': '開啟設定',
