@@ -99,7 +99,9 @@ export class ProviderRegistry {
    * unaffected. Returns the concrete model so callers use its real `.id`.
    */
   private findModel(provider: Provider, modelId: string): ModelDefinition | undefined {
-    const models = provider.listModels();
+    // Disabled models are invisible to resolution — auto-routing skips them and
+    // a stale saved selection falls back instead of failing. See ModelDefinition.disabled.
+    const models = provider.listModels().filter((m) => !m.disabled);
     const exact = models.find((m) => m.id === modelId);
     if (exact) return exact;
 
@@ -112,7 +114,7 @@ export class ProviderRegistry {
   listAllModels(): ModelDefinition[] {
     const models: ModelDefinition[] = [];
     for (const [, provider] of this.providers) {
-      models.push(...provider.listModels());
+      models.push(...provider.listModels().filter((m) => !m.disabled));
     }
     return models;
   }
@@ -135,6 +137,8 @@ export class ProviderRegistry {
       if (provider === primary.provider) continue; // skip primary's own provider
 
       for (const model of provider.listModels()) {
+        // Never fall back onto a disabled model
+        if (model.disabled) continue;
         // Must support tool calls if primary does
         if (primaryModel.supportsToolCalls && !model.supportsToolCalls) continue;
         // Must support streaming if primary does
@@ -175,6 +179,7 @@ export class ProviderRegistry {
     for (const [providerName, models] of Object.entries(ALL_MODELS)) {
       const isAvailable = this.providers.has(providerName);
       for (const m of models) {
+        if (m.disabled) continue; // hidden from the picker while disabled
         results.push({ ...m, available: isAvailable });
       }
     }
@@ -182,6 +187,7 @@ export class ProviderRegistry {
     for (const [name, provider] of this.providers) {
       if (!(name in ALL_MODELS)) {
         for (const m of provider.listModels()) {
+          if (m.disabled) continue;
           results.push({ ...m, available: true });
         }
       }

@@ -156,6 +156,18 @@ export interface ModelDefinition {
    * Default false / omitted — opt in per model.
    */
   desktopCapable?: boolean;
+  /**
+   * Availability kill-switch. When true, the model is treated as if it does
+   * not exist: the registry refuses to resolve it (so auto-routing skips it
+   * and a saved selection silently falls back) and omits it from every model
+   * listing (so it vanishes from the picker). Existing routing tables can keep
+   * referencing the id — resolution just returns undefined.
+   *
+   * Use for models that must be pulled temporarily without deleting their
+   * definition — regulatory holds, provider outages, paused rollouts. Flip
+   * back to false (or remove) to re-enable instantly.
+   */
+  disabled?: boolean;
   pricing?: {
     inputPerMillion: number;
     outputPerMillion: number;
