@@ -89,10 +89,12 @@ Each persona has scoped tool access. Challenger can read but never write. Simple
 | **Moonshot AI** | Kimi K2.6, K2.5 | SoTA agentic coding (K2.6 SWE-Pro 58.6, HLE-w/tools 54.0), 256K context |
 | **Zhipu AI** | GLM-5 | 77.8% SWE-Bench, best tool-call reliability, separate vision SKU |
 | **MiniMax** | M2.7, M2.5 | Creative Studio specialist — image / video / music / voice |
-| **Anthropic** | Claude Opus 4.7, Opus 4.6, Sonnet 4.6, Haiku 4.5 | Frontier closed-source, vision, 1M context (Opus 4.7) |
+| **Anthropic** | Claude Opus 4.8, Sonnet 4.6, Haiku 4.5 | Frontier closed-source, vision, 200K context |
 | **Mistral** | Large, Codestral, Devstral 2 | European provider, code-specialised, up to 262K context |
 | **Xiaomi** | MiMo V2.5, V2.5-Pro | 1M context, native multimodal, frontier-tier at lower cost |
 | **Generic** | Custom / Local | Ollama, LM Studio, or any standard API format endpoint |
+
+> **Note — Claude Fable 5 temporarily disabled.** Anthropic's Mythos-class flagship is temporarily unavailable due to an Anthropic-side availability restriction. It will be re-enabled automatically once access is restored. No other models are affected.
 
 ## Getting Started
 

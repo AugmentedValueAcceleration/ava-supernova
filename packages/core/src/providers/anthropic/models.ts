@@ -29,31 +29,8 @@ export const ANTHROPIC_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsVision: true,
     desktopCapable: true, // Current Anthropic flagship.
-    // Pricing mirrored from Opus 4.7 — confirm against Anthropic's actual 4.8 rates.
-    pricing: { inputPerMillion: 5, outputPerMillion: 25 },
-  },
-  {
-    id: 'claude-opus-4-7',
-    name: 'Claude Opus 4.7',
-    provider: 'anthropic',
-    contextWindow: 200000,
-    maxOutputTokens: 32768,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsVision: true,
-    desktopCapable: true, // Anthropic flagship — strongest tool-call reliability we ship.
-    pricing: { inputPerMillion: 5, outputPerMillion: 25 },
-  },
-  {
-    id: 'claude-opus-4-6',
-    name: 'Claude Opus 4.6',
-    provider: 'anthropic',
-    contextWindow: 200000,
-    maxOutputTokens: 32768,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsVision: true,
-    desktopCapable: true,
+    // Latest-only policy: superseded Opus versions (4.7, 4.6) are not offered.
+    // Confirm pricing against Anthropic's actual 4.8 rates.
     pricing: { inputPerMillion: 5, outputPerMillion: 25 },
   },
   {

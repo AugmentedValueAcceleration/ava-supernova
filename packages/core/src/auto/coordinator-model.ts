@@ -13,7 +13,7 @@ import type { ModelDefinition } from '../core/types.js';
  * Priority (all coordinator-eligible Plus models are 1M context; Flash tiers are 256K).
  * Every plan has access to every model — tier differs by token allowance, not model access.
  *   Platform  → Qwen 3.6 Plus (1M) → Qwen 3.5 Plus (1M) → Qwen 3.5 Flash (256K)
- *   BYOK      → Kimi K2.6 > Opus 4.7 > Sonnet > K2.5 > DeepSeek > GLM-5 > Mistral > Qwen
+ *   BYOK      → Kimi K2.6 > Opus 4.8 > Sonnet > K2.5 > DeepSeek > GLM-5 > Mistral > Qwen
  *
  * BYOK ordering puts Kimi K2.6 at the top because Ava is an agentic coder first
  * and K2.6 is SoTA on the benchmarks that measure that job:

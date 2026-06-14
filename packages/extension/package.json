@@ -2,7 +2,7 @@
   "name": "ava-supernova",
   "displayName": "Ava Supernova",
   "description": "%description%",
-  "version": "0.75.0",
+  "version": "0.75.1",
   "publisher": "augmentedvalueacceleration",
   "license": "Apache-2.0",
   "repository": {
@@ -215,8 +215,6 @@
               "mistral:codestral-latest",
               "mistral:devstral-latest",
               "anthropic:claude-opus-4-8",
-              "anthropic:claude-opus-4-7",
-              "anthropic:claude-opus-4-6",
               "anthropic:claude-sonnet-4-6",
               "anthropic:claude-haiku-4-5-20251001"
             ],
@@ -236,8 +234,6 @@
               "Codestral — code-specialized, 256K context, optimised for development",
               "Devstral 2 — 262K context, built for agentic coding workflows",
               "Claude Opus 4.8 — current Anthropic flagship, strongest reasoning, vision, 200K context",
-              "Claude Opus 4.7 — prior flagship, strong reasoning, vision, 200K context",
-              "Claude Opus 4.6 — earlier frontier model, vision, 200K context",
               "Claude Sonnet 4.6 — balanced speed and intelligence, vision",
               "Claude Haiku 4.5 — fastest Anthropic model, affordable"
             ],

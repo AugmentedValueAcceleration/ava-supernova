@@ -270,11 +270,13 @@ Every plan gets every model. Tiers differ only on monthly credit allowance (Free
 | **BYOK — MiniMax** | M3 *(flagship, 1M context, vision)*, M2.7, M2.7 HighSpeed |
 | **BYOK — DeepSeek** | V4 Pro, V4 Flash *(2026-04-24, MIT-licensed open-weight, 1M context)* |
 | **BYOK — Moonshot** | Kimi K2.6, K2.5 |
-| **BYOK — Anthropic** | Claude Opus 4.8, Opus 4.7, Sonnet 4.6, Haiku 4.5 |
+| **BYOK — Anthropic** | Claude Opus 4.8, Sonnet 4.6, Haiku 4.5 |
 | **BYOK — Mistral** | Large 3, Medium 3.5, Small 4, Codestral, Devstral 2 |
 | **BYOK — Zhipu** | GLM-5 |
 | **BYOK — Xiaomi** | MiMo V2.5, V2.5-Pro |
 | **BYOK — Custom** | Ollama, LM Studio, any standard API endpoint |
+
+> **Note — Claude Fable 5 temporarily disabled.** Anthropic's Mythos-class flagship is temporarily unavailable due to an Anthropic-side availability restriction. It will be re-enabled automatically as soon as access is restored. No other models are affected.
 
 ---
 

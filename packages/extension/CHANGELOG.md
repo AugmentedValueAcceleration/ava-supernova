@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.75.1 — 2026-06-14 — Claude Fable 5 temporarily disabled; model picker fixes
+
+### Changed
+- **Claude Fable 5 temporarily disabled.** Anthropic's Mythos-class flagship is temporarily unavailable due to an Anthropic-side availability restriction. It's hidden from the model picker and auto-routing falls through to the next model automatically; it will be re-enabled as soon as access is restored. Implemented via a reusable `disabled` flag on the model registry, so no other models are affected.
+
+### Fixed
+- **Model picker descriptions realigned.** An off-by-one in the settings model dropdown meant every model showed the *wrong* description (an orphaned "Qwen Flash" entry had shifted them all). Each model now shows its correct description.
+- **Claude Opus 4.8 added** as the current Anthropic flagship in the picker; 4.7/4.6 wording demoted accordingly.
+
 ## 0.62.3 — 2026-05-05 — Brainstorm mode tuned for breadth, not depth
 
 ### Changed

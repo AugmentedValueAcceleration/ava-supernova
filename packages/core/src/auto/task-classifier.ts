@@ -23,14 +23,13 @@ const MODEL_ALIASES: Record<string, string> = {
   'qwen plus': 'qwen3.5-plus',
   // DeepSeek
   'deepseek': 'deepseek-chat',
-  // Claude — bare 'opus' routes to current flagship 4.8; legacy '4.7'/'4.6' pins kept.
+  // Claude — bare 'opus' routes to current flagship 4.8. Latest-only: superseded
+  // Opus versions are not offered, so no 4.7/4.6 aliases.
   'claude': 'claude-sonnet-4-6',
   'fable': 'claude-fable-5',
   'fable 5': 'claude-fable-5',
   'opus': 'claude-opus-4-8',
   'opus 4.8': 'claude-opus-4-8',
-  'opus 4.7': 'claude-opus-4-7',
-  'opus 4.6': 'claude-opus-4-6',
   'sonnet': 'claude-sonnet-4-6',
   'haiku': 'claude-haiku-4-5-20251001',
   // Mistral — "use mistral" should give the flagship: Medium 3.5 is the
