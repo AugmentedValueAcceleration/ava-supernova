@@ -17,12 +17,14 @@ const SRC_ROOT = join(__dirname, '..', 'src', 'docs');
 const WEB_ROOT = join(__dirname, '..', '..', 'web', 'src', 'lib', 'docs');
 
 // Files/folders to copy. Everything else in the docs/ dir (outline, sync script itself) stays put.
-const COPY = ['types.ts', 'filter.ts', 'adapter.ts', 'corpus.ts', 'index.ts', 'data', 'content'];
+// NOTE: i18n.ts + i18n/ MUST be here — the web docs page imports DOC_TRANSLATIONS from them.
+// Omitting them while main() wipes WEB_ROOT first would delete the localized docs on every sync.
+const COPY = ['types.ts', 'filter.ts', 'adapter.ts', 'corpus.ts', 'index.ts', 'i18n.ts', 'data', 'content', 'i18n'];
 
 const GENERATED_HEADER =
   '// -----------------------------------------------------------------------------\n' +
   '// GENERATED FILE — do not edit directly.\n' +
-  '// Source of truth: packages/core/docs/\n' +
+  '// Source of truth: packages/core/src/docs/\n' +
   '// Run  pnpm docs:sync  from the repo root to regenerate.\n' +
   '// -----------------------------------------------------------------------------\n\n';
 

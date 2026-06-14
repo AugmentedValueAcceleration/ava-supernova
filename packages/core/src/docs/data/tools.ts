@@ -1,4 +1,4 @@
-// Canonical tool fact table — single source of truth for the 60 user-facing
+// Canonical tool fact table — single source of truth for the 62 user-facing
 // built-in tools documented here. (The full registry also includes IDE-only
 // desktop-automation, browser-automation, and internal infrastructure tools
 // that aren't part of this user-facing catalogue.)
@@ -33,6 +33,7 @@ export const TOOLS: ToolFact[] = [
   { name: 'detect_language', category: 'system', description: 'Detect the human language of a text snippet from 20+ supported languages.', risk: 'safe' },
   { name: 'doc_generate', category: 'documents', description: 'Generate project documentation (README, API docs, architecture overview) from source code.', risk: 'write' },
   { name: 'docs_lookup', category: 'file_ops', description: 'Search Ava documentation to help users with features, setup, and troubleshooting.', risk: 'safe' },
+  { name: 'document_author', category: 'documents', description: 'Author and edit prose documents (Markdown source → branded Word/PDF), non-destructive and section-surgical. Powers Write mode.', risk: 'write' },
   { name: 'document_manage', category: 'documents', description: 'Create, read, edit, and export documents (Word, Excel, PDF, CSV, Markdown).', risk: 'write' },
   { name: 'email_draft', category: 'documents', description: 'Draft an email with structured content, tone control, and .docx file output.', risk: 'safe' },
   { name: 'env_write', category: 'system', description: 'Write a granted secret to the project env file. Hard-fails if the env file is not in .gitignore.', risk: 'write' },
@@ -62,6 +63,7 @@ export const TOOLS: ToolFact[] = [
   { name: 'memory_save', category: 'memory', description: 'Save information to persistent memory that survives across conversations.', risk: 'safe' },
   { name: 'memory_update', category: 'memory', description: 'Update an existing memory entry by ID.', risk: 'safe' },
   { name: 'news', category: 'web', description: 'Fetch curated tech and AI news, filterable by category or keyword.', risk: 'safe' },
+  { name: 'paper_fetch_full_text', category: 'web', description: 'Fetch a scientific paper (title, authors, abstract, and section-extracted body when available) from arXiv, OpenAlex, or Crossref. Powers the Library.', risk: 'safe' },
   { name: 'present_plan', category: 'documents', description: 'Present a structured plan for the user to review and approve before execution.', risk: 'write' },
   { name: 'project_index', category: 'file_ops', description: 'Scan, refresh, or display the project structure index.', risk: 'safe' },
   { name: 'propose_tool', category: 'system', description: 'Propose a new tool to the development team when a capability gap is hit.', risk: 'write' },
