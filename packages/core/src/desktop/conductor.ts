@@ -34,7 +34,7 @@ import {
 } from './safety.js';
 import { BudgetTracker, type BudgetConfig, type BudgetSnapshot, type StepTokens } from './budget.js';
 import type {
-  UIAProvider, InputProvider, BrowserProvider, AppLauncherProvider, UIAElement,
+  UIAProvider, InputProvider, BrowserProvider, AppLauncherProvider, VisionProvider, UIAElement,
 } from '../tools/desktop-providers.js';
 
 // ── Injected host capabilities ─────────────────────────────────────────────
@@ -44,6 +44,8 @@ export interface DesktopProviders {
   input?: InputProvider;
   browser?: BrowserProvider;
   appLauncher?: AppLauncherProvider;
+  /** Phase C3 — visual grounding fallback for windows the tree can't see. */
+  vision?: VisionProvider;
 }
 
 /** The host calls the LLM for a persona and returns the raw text + token counts. */
@@ -148,7 +150,7 @@ export async function runDesktopTrajectory(opts: RunTrajectoryOptions): Promise<
       log(`step ${stepNumber} · Scout: ${screenState.elements.length} elements, activeApp=${screenState.activeApp ?? '?'}, confidence=${screenState.confidence}`);
 
       // 2 — Planner: the one reasoning call. Decide the single next action.
-      const planned = await runPlanner(callModel, task, trajectory, screenState);
+      const planned = await runPlanner(callModel, task, trajectory, screenState, providers.vision?.isAvailable() ?? false);
       const action = planned.action;
       log(`step ${stepNumber} · Planner: ${action.kind}${action.target ? ` → "${action.target}"` : ''} [${action.riskClass}] — ${truncate(action.reasoning, 120)}`);
 
@@ -324,7 +326,16 @@ async function scout(providers: DesktopProviders): Promise<{ state: ScreenState;
       .filter(Boolean).join(' ');
   }
 
-  return { state: mergeTiers(tiers), raw };
+  const state = mergeTiers(tiers);
+  // Phase C3 — when the structured tiers came back thin and a vision lane is
+  // enabled, tell the Planner it can target by DESCRIPTION: the Actor will
+  // locate described elements visually.
+  if (state.elements.length < 3 && providers.vision?.isAvailable()) {
+    state.notes = [state.notes,
+      "Vision is available: you may 'click' elements by DESCRIBING them in plain words (e.g. \"the blue Save button\") — the system locates them visually on screen."]
+      .filter(Boolean).join(' ');
+  }
+  return { state, raw };
 }
 
 // ── Planner (LLM) ──────────────────────────────────────────────────────────
@@ -334,6 +345,7 @@ async function runPlanner(
   task: string,
   trajectory: Trajectory,
   screen: ScreenState,
+  visionAvailable = false,
 ): Promise<{ action: ProposedAction; tokens: number }> {
   // Explicit completion ledger — a small model can't reliably infer "I already
   // did that" from raw step history, so we hand it the conclusion: a plain
@@ -364,7 +376,7 @@ async function runPlanner(
   // Structural validation + ONE corrective retry. Smaller local models drop
   // required fields (a click with no target executes as a guaranteed miss and
   // burns a whole wave on it) — a pointed correction usually snaps them back.
-  const problem = validateAction(action, screen) ?? validatePrediction(action);
+  const problem = validateAction(action, screen, visionAvailable) ?? validatePrediction(action);
   if (problem) {
     const retry = await callModel({
       persona: 'planner',
@@ -373,7 +385,7 @@ async function runPlanner(
     });
     tokens += retry.tokensIn + retry.tokensOut;
     const retried = coerceAction(parseJson<ProposedAction>(retry.text));
-    if (!(validateAction(retried, screen) ?? validatePrediction(retried))) {
+    if (!(validateAction(retried, screen, visionAvailable) ?? validatePrediction(retried))) {
       action = retried;
     } else {
       // Still malformed — take another look next cycle rather than crash
@@ -397,7 +409,7 @@ async function runPlanner(
  * models copy them verbatim and click ghosts (observed: a planner repeating
  * a dead selector from memory while 21 live elements sat in front of it).
  */
-function validateAction(action: ProposedAction, screen?: ScreenState): string | null {
+function validateAction(action: ProposedAction, screen?: ScreenState, visionAvailable = false): string | null {
   switch (action.kind) {
     case 'click':
     case 'double_click':
@@ -405,7 +417,9 @@ function validateAction(action: ProposedAction, screen?: ScreenState): string | 
       if (!action.target) {
         return `"${action.kind}" requires "target" — the exact id or name of an element from the screen list`;
       }
-      if (screen && screen.elements.length > 0) {
+      // With a vision lane available, a descriptive target the structured
+      // tiers can't see is legitimate — the Actor will ground it visually.
+      if (!visionAvailable && screen && screen.elements.length > 0) {
         const t = action.target.toLowerCase();
         const onScreen = screen.elements.some(e =>
           e.id === action.target || e.name.toLowerCase() === t || (!!e.name && e.name.toLowerCase().includes(t)));
@@ -490,17 +504,29 @@ async function runActor(
           break;
         }
         const el = resolveTarget(action.target, raw);
-        if (!el) throw new Error(`target '${action.target ?? '?'}' not found on screen`);
-        // Native clicks go through UIA's name-based invoke (exact, and the
-        // host may not wire coordinate input at all); coords are the fallback.
-        if (providers.uia?.clickElement) {
-          const clicked = await providers.uia.clickElement(el.name);
-          if (!clicked) throw new Error(`could not click '${el.name}' via UIA`);
+        if (el) {
+          // Native clicks go through UIA's name-based invoke (exact, and the
+          // host may not wire coordinate input at all); coords are the fallback.
+          if (providers.uia?.clickElement) {
+            const clicked = await providers.uia.clickElement(el.name);
+            if (!clicked) throw new Error(`could not click '${el.name}' via UIA`);
+            break;
+          }
+          if (!input || typeof input.click !== 'function') throw new Error('no click provider');
+          await input.click(el.cx, el.cy);
           break;
         }
-        if (!input || typeof input.click !== 'function') throw new Error('no click provider');
-        await input.click(el.cx, el.cy);
-        break;
+        // Phase C3 — vision fallback: the target isn't in any structured
+        // tier (custom-rendered UI), so locate it visually from the
+        // description and click the returned screen coordinates.
+        if (providers.vision?.isAvailable() && action.target) {
+          const pt = await providers.vision.localize(action.target);
+          if (!pt) throw new Error(`couldn't locate '${action.target}' visually on the screen`);
+          if (!input || typeof input.click !== 'function') throw new Error('vision located the element but no coordinate click is available');
+          await input.click(pt.x, pt.y);
+          return { ok: true, latencyMs: Date.now() - start, sideEffects: ['located visually'] };
+        }
+        throw new Error(`target '${action.target ?? '?'}' not found on screen`);
       }
       case 'double_click':
       case 'right_click': {

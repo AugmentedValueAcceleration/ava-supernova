@@ -72,6 +72,20 @@ export interface BrowserProvider {
   isLive?(): boolean;
 }
 
+export interface VisionProvider {
+  /**
+   * Visually locate an element on the CURRENT screen from a plain-English
+   * description ("the blue Save button"). The host captures the screenshot,
+   * runs the grounding model (local or cloud per the user's perception
+   * setting), and returns SCREEN-PIXEL coordinates — or null if the element
+   * can't be found. Hosts must never capture or transmit a screenshot unless
+   * the user's vision setting allows it.
+   */
+  localize(targetDescription: string): Promise<{ x: number; y: number } | null>;
+  /** Whether a vision lane is currently usable (setting + key/model present). */
+  isAvailable(): boolean;
+}
+
 export interface AppLauncherProvider {
   /**
    * Launch a named executable or full path. The host MUST reject shell
