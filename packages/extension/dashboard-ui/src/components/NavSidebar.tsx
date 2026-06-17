@@ -5,7 +5,7 @@ import type { Page, DashboardJournalDaySummary, HealthPlanSummary } from '../typ
 import { DataPortability } from './DataPortability';
 import {
   Lightning, ChatCircleDots, ListChecks, Books, Palette,
-  Brain, ChartLineUp, Cpu, GearSix, Question, Barbell,
+  Brain, ChartLineUp, GearSix, Question, Barbell,
 } from '@phosphor-icons/react';
 
 interface NavSidebarProps {
@@ -85,7 +85,6 @@ function getNavItems(isAdmin?: boolean): NavItem[] {
     // because the i18n key exists in the locale (the fallback only fires
     // for missing keys). Hardcoding the label like the IDE does.
     { page: 'history', icon: <ChartLineUp weight="duotone" size={18} />, label: tt('dash.nav.history', 'History'), description: tt('dash.nav.history_desc', 'Credits, sessions, models') },
-    { page: 'models', icon: <Cpu weight="duotone" size={18} />, label: tt('dash.nav.models', 'Models'), description: tt('dash.nav.models_desc', 'Public benchmark · auditable receipts') },
     { page: 'account', icon: <GearSix weight="duotone" size={18} />, label: tt('dash.nav.account', 'Account'), description: tt('dash.nav.account_desc', 'Settings, billing, personalisation') },
     // Documentation folded under Help to match the IDE Sidebar — the IDE
     // doesn't carry a separate Documentation row; docs are reachable

@@ -1336,8 +1336,17 @@ export class Agent {
         ];
       }
 
-      // Trim old tool results to save tokens — after 4 messages, collapse to summary
-      messages = this.trimOldToolResults(messages);
+      // Trim old tool results to save tokens — but ONLY when context is
+      // genuinely filling up. Trimming on raw message count (regardless of how
+      // much window is free) crushed files the model still needed on multi-file
+      // tasks: it would lose a file read a few turns ago, re-read it, lose
+      // another, and loop forever without ever reaching an edit. Gate on the
+      // token budget so we keep full tool results while there's plenty of room
+      // (the common case) and only collapse them once we cross half the window.
+      const trimThreshold = Math.floor(this.model.contextWindow * 0.5);
+      if (this.estimateTokenCount(messages) > trimThreshold) {
+        messages = this.trimOldToolResults(messages);
+      }
 
       // Auto-compress at 70% of the model's context window, capped at
       // 400K tokens as an absolute ceiling.

@@ -6,7 +6,6 @@ import { QwenProvider } from '../src/providers/qwen/index.js';
 import { MistralProvider } from '../src/providers/mistral/index.js';
 import { AnthropicProvider } from '../src/providers/anthropic/index.js';
 import { GenericProvider } from '../src/providers/generic/index.js';
-import { AvaFreeProvider } from '../src/providers/ava-free/index.js';
 
 // ── Mock fetch ───────────────────────────────────────────────────────────────
 
@@ -163,7 +162,7 @@ describe('DeepSeek contract', () => {
     mockFetch.mockResolvedValue(jsonResponse(makeCompletion('deepseek-chat')));
     const p = new DeepSeekProvider({ apiKey: 'sk-test' });
     await p.createCompletion({ ...baseRequest, model: 'deepseek-chat' });
-    expect(lastFetchUrl()).toBe('https://api.deepseek.com/chat/completions');
+    expect(lastFetchUrl()).toBe('https://api.deepseek.com/v1/chat/completions');
   });
 
   it('sends Bearer auth header', async () => {
@@ -809,87 +808,6 @@ describe('Generic provider contract', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Ava Free — no auth, model whitelist, tool arg normalization
-// ═══════════════════════════════════════════════════════════════════════════════
-
-describe('Ava Free contract', () => {
-  beforeEach(() => { vi.clearAllMocks(); vi.useFakeTimers({ shouldAdvanceTime: true }); });
-  afterEach(() => vi.useRealTimers());
-
-  it('sends to Ava platform proxy URL', async () => {
-    mockFetch.mockResolvedValue(jsonResponse(makeCompletion('glm-4.5-flash')));
-    const p = new AvaFreeProvider();
-    await p.createCompletion({ ...baseRequest, model: 'glm-4.5-flash' });
-    expect(lastFetchUrl()).toBe('https://ava-supernova.com/api/v1/free/chat');
-  });
-
-  it('sends no Authorization header', async () => {
-    mockFetch.mockResolvedValue(jsonResponse(makeCompletion('glm-4.5-flash')));
-    const p = new AvaFreeProvider();
-    await p.createCompletion({ ...baseRequest, model: 'glm-4.5-flash' });
-    expect(lastFetchHeaders().Authorization).toBeUndefined();
-    expect(lastFetchHeaders()['Content-Type']).toBe('application/json');
-  });
-
-  it('allows glm-4.5-flash model', async () => {
-    mockFetch.mockResolvedValue(jsonResponse(makeCompletion('glm-4.5-flash')));
-    const p = new AvaFreeProvider();
-    await p.createCompletion({ ...baseRequest, model: 'glm-4.5-flash' });
-    expect(lastFetchBody().model).toBe('glm-4.5-flash');
-  });
-
-  it('allows glm-4.7-flash model', async () => {
-    mockFetch.mockResolvedValue(jsonResponse(makeCompletion('glm-4.7-flash')));
-    const p = new AvaFreeProvider();
-    await p.createCompletion({ ...baseRequest, model: 'glm-4.7-flash' });
-    expect(lastFetchBody().model).toBe('glm-4.7-flash');
-  });
-
-  it('falls back to glm-4.7-flash for non-whitelisted models', async () => {
-    mockFetch.mockResolvedValue(jsonResponse(makeCompletion('glm-4.7-flash')));
-    const p = new AvaFreeProvider();
-    await p.createCompletion({ ...baseRequest, model: 'gpt-4-turbo' });
-    expect(lastFetchBody().model).toBe('glm-4.7-flash');
-  });
-
-  it('normalizes tool_call arguments from object to string (non-streaming)', async () => {
-    mockFetch.mockResolvedValue(jsonResponse(makeToolCompletion('glm-4.5-flash', { file_path: '/f.ts' })));
-    const p = new AvaFreeProvider();
-    const result = await p.createCompletion({ ...baseRequest, model: 'glm-4.5-flash' });
-    const args = result.choices[0].message.tool_calls![0].function.arguments;
-    expect(typeof args).toBe('string');
-    expect(JSON.parse(args)).toEqual({ file_path: '/f.ts' });
-  });
-
-  it('normalizes tool_call arguments in streaming chunks', async () => {
-    const chunk = makeToolChunk('glm-4.5-flash', { file_path: '/f.ts' });
-    mockFetch.mockResolvedValue(streamResponse([
-      `data: ${JSON.stringify(chunk)}`,
-      'data: [DONE]',
-    ]));
-    const p = new AvaFreeProvider();
-    const chunks = await collectChunks(p.createStreamingCompletion({ ...baseRequest, model: 'glm-4.5-flash' }));
-    const args = (chunks[0] as any).choices[0].delta.tool_calls[0].function.arguments;
-    expect(typeof args).toBe('string');
-  });
-
-  it('only lists free tier models', () => {
-    const p = new AvaFreeProvider();
-    const models = p.listModels();
-    expect(models.length).toBeGreaterThan(0);
-    for (const m of models) {
-      expect(m.id).toMatch(/glm/);
-    }
-  });
-
-  it('exposes correct provider metadata', () => {
-    const p = new AvaFreeProvider();
-    expect(p.name).toBe('ava-free');
-    expect(p.displayName).toBe('Ava Free');
-  });
-});
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // Cross-provider contract validation
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -903,7 +821,6 @@ describe('Cross-provider contracts', () => {
       new MistralProvider({ apiKey: 'sk-test' }),
       new AnthropicProvider({ apiKey: 'sk-test' }),
       new GenericProvider({ apiKey: '' }),
-      new AvaFreeProvider(),
     ];
 
     for (const p of providers) {
@@ -925,7 +842,6 @@ describe('Cross-provider contracts', () => {
       new MistralProvider({ apiKey: 'sk-test' }),
       new AnthropicProvider({ apiKey: 'sk-test' }),
       new GenericProvider({ apiKey: '' }),
-      new AvaFreeProvider(),
     ];
 
     for (const p of providers) {

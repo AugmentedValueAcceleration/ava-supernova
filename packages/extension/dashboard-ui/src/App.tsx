@@ -17,7 +17,6 @@ import { CreativeStudio } from './pages/CreativeStudio';
 import { AccountPage } from './pages/AccountPage';
 import { HelpPage } from './pages/HelpPage';
 import { DocumentationPage } from './pages/DocumentationPage';
-import { ModelsPage } from './pages/Models';
 import { ArticleReader } from './pages/ArticleReader';
 import type { FullArticle, RelatedArticle } from './pages/ArticleReader';
 import { Health } from './pages/Health';
@@ -1363,9 +1362,6 @@ export function App() {
 
       case 'documentation':
         return <DocumentationPage />;
-
-      case 'models':
-        return <ModelsPage />;
 
       // ── Standalone pages ────────────────────────────────────────────
       case 'overview':

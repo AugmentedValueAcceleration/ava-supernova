@@ -56,7 +56,6 @@ export type {
 export { BaseProvider } from './providers/base-provider.js';
 export { ProviderRegistry } from './providers/provider-registry.js';
 export { PlatformProvider } from './providers/platform/index.js';
-export { AvaFreeProvider } from './providers/ava-free/index.js';
 export { GenericProvider } from './providers/generic/index.js';
 export type { GenericProviderConfig } from './providers/generic/index.js';
 export { ProviderHealthTracker } from './providers/health-tracker.js';
