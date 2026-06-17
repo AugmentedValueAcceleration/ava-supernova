@@ -189,7 +189,7 @@ export class EventDetector {
       for (let i = 1; i <= 7; i++) {
         const date = this.offsetDate(today, -i);
         const day = await journalManager.getDay(date);
-        if (day?.userEntry) {
+        if (day?.entries.some((e) => e.author === 'user')) {
           streak++;
         } else {
           break;
@@ -212,7 +212,7 @@ export class EventDetector {
       if (streak === 0) {
         const twoDaysAgo = this.offsetDate(today, -2);
         const hadEntry = await journalManager.getDay(twoDaysAgo);
-        if (hadEntry?.userEntry) {
+        if (hadEntry?.entries.some((e) => e.author === 'user')) {
           events.push({
             type: 'journal_missed',
             message: 'You missed your journal yesterday. Want to write a quick entry?',

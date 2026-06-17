@@ -1,117 +1,120 @@
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
-import type { JournalManager } from '../journal/journal-manager.js';
-import type { JournalMood } from '../journal/types.js';
+import type { JournalManager, SearchFilters } from '../journal/journal-manager.js';
+import type { JournalAuthor, JournalDay, JournalMood } from '../journal/types.js';
+import { DEFAULT_AVA_KIND, DEFAULT_USER_KIND } from '../journal/types.js';
 
 export class JournalWriteTool implements Tool {
   readonly name = 'journal_write';
-  readonly description = 'Write daily journal entries. Two journals: yours (Ava observations about the session — what was built, patterns noticed, mood) and the user\'s (their reflections). Use at end of sessions or when the user wants to reflect. Different from memory (persistent facts) and task_manage (action items).';
+  readonly description =
+    'Write and read the local journal — a stream of typed entries (personal, feeling, idea, business, observation, or a custom kind). ' +
+    "You and the user share it: log your own observations as you work, or help the user capture a reflection. " +
+    'Different from memory (persistent facts) and task_manage (action items). Fully local — never leaves the machine.';
   readonly riskLevel: ToolRiskLevel = 'safe';
   readonly requiresConfirmation = false;
 
   readonly schema: FunctionSchema = {
     name: 'journal_write',
     description:
-      'Dual journal system. You and the user each have a journal — same day, two perspectives. ' +
-      'The user writes what they\'re feeling and experiencing. You write what you\'re observing — ' +
-      'ideas for the project, concerns, progress notes, things you noticed. ' +
-      'Use write_user to help them journal (prompt reflection based on what happened). ' +
-      'Use write_ava to write YOUR OWN thoughts — be authentic, share ideas, flag concerns. ' +
-      'Use read to review past entries. Use search to find specific topics across all entries.',
+      'Local journal of typed entries. Many entries per day, each with a kind. ' +
+      'Use add_entry to log a new entry — set author to "ava" for your own observations (kind defaults to "observation") ' +
+      'or "user" to capture the user\'s reflection (kind "personal"/"feeling" carry a 1-5 mood). ' +
+      'Use update_entry / delete_entry by id, read to review a day or range, and search (with optional kind/author filters) to find topics.',
     parameters: {
       type: 'object',
       properties: {
         action: {
           type: 'string',
-          enum: ['write_user', 'write_ava', 'read', 'search'],
+          enum: ['add_entry', 'update_entry', 'delete_entry', 'read', 'search'],
           description: 'The action to perform',
         },
-        content: {
+        author: {
           type: 'string',
-          description: 'Journal entry content in markdown (required for write_user, write_ava)',
+          enum: ['ava', 'user'],
+          description: 'Who the entry is for (add_entry). Defaults to "ava".',
         },
-        date: {
+        kind: {
           type: 'string',
-          description: 'Date in YYYY-MM-DD format (defaults to today)',
+          description: 'Entry kind id: personal, feeling, idea, business, observation, or a custom kind. Optional.',
         },
-        mood: {
-          type: 'number',
-          description: 'Mood rating 1-5 for user entries (1=low, 5=great). Optional.',
-        },
-        tags: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Tags for the entry (optional)',
-        },
-        from: {
-          type: 'string',
-          description: 'Start date for range read (YYYY-MM-DD)',
-        },
-        to: {
-          type: 'string',
-          description: 'End date for range read (YYYY-MM-DD)',
-        },
-        query: {
-          type: 'string',
-          description: 'Search query for the search action',
-        },
+        title: { type: 'string', description: 'Optional short heading for the entry.' },
+        content: { type: 'string', description: 'Entry content in markdown (required for add_entry).' },
+        id: { type: 'string', description: 'Entry id (required for update_entry, delete_entry).' },
+        date: { type: 'string', description: 'Date in YYYY-MM-DD format (defaults to today).' },
+        mood: { type: 'number', description: 'Mood 1-5 for reflective kinds (1=low, 5=great). Optional.' },
+        tags: { type: 'array', items: { type: 'string' }, description: 'Tags for the entry (optional).' },
+        from: { type: 'string', description: 'Start date for range read / search filter (YYYY-MM-DD).' },
+        to: { type: 'string', description: 'End date for range read / search filter (YYYY-MM-DD).' },
+        query: { type: 'string', description: 'Search query for the search action.' },
       },
       required: ['action'],
     },
   };
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
-    const journalManager = context.sharedState?.journalManager as JournalManager | undefined;
-    if (!journalManager) {
-      return { success: false, output: 'Journal system not available.' };
-    }
+    const jm = context.sharedState?.journalManager as JournalManager | undefined;
+    if (!jm) return { success: false, output: 'Journal system not available.' };
 
     const action = args.action as string;
     const today = new Date().toISOString().slice(0, 10);
     const date = (args.date as string) || today;
 
     switch (action) {
-      case 'write_user':
-        return this.handleWriteUser(journalManager, date, args);
-      case 'write_ava':
-        return this.handleWriteAva(journalManager, date, args);
+      case 'add_entry':
+      case 'write_user': // legacy alias
+      case 'write_ava': // legacy alias
+        return this.handleAdd(jm, date, args, action);
+      case 'update_entry':
+        return this.handleUpdate(jm, date, args);
+      case 'delete_entry':
+        return this.handleDelete(jm, date, args);
       case 'read':
-        return this.handleRead(journalManager, date, args);
+        return this.handleRead(jm, date, args);
       case 'search':
-        return this.handleSearch(journalManager, args);
+        return this.handleSearch(jm, args);
       default:
         return { success: false, output: `Unknown action: ${action}` };
     }
   }
 
-  private async handleWriteUser(jm: JournalManager, date: string, args: Record<string, unknown>): Promise<ToolResult> {
+  private async handleAdd(jm: JournalManager, date: string, args: Record<string, unknown>, action: string): Promise<ToolResult> {
     const content = args.content as string | undefined;
-    if (!content) {
-      return { success: false, output: 'Missing required field: content' };
-    }
+    if (!content) return { success: false, output: 'Missing required field: content' };
 
+    const author: JournalAuthor = (args.author as JournalAuthor) || (action === 'write_user' ? 'user' : 'ava');
+    const kind = (args.kind as string) || (author === 'user' ? DEFAULT_USER_KIND : DEFAULT_AVA_KIND);
     const mood = args.mood as JournalMood | undefined;
     const tags = args.tags as string[] | undefined;
+    const title = args.title as string | undefined;
 
-    await jm.writeUserEntry(date, content, mood, tags);
+    const { id } = await jm.addEntry(date, { author, kind, content, title, mood, tags });
 
-    const parts = [`User journal entry saved for ${date}`];
-    if (mood) parts.push(`(mood: ${mood}/5)`);
+    const parts = [`${author === 'user' ? 'User' : 'Ava'} entry added for ${date} (${kind}, id ${id})`];
+    if (mood) parts.push(`mood ${mood}/5`);
     if (tags?.length) parts.push(`[${tags.join(', ')}]`);
     return { success: true, output: parts.join(' ') };
   }
 
-  private async handleWriteAva(jm: JournalManager, date: string, args: Record<string, unknown>): Promise<ToolResult> {
-    const content = args.content as string | undefined;
-    if (!content) {
-      return { success: false, output: 'Missing required field: content' };
-    }
+  private async handleUpdate(jm: JournalManager, date: string, args: Record<string, unknown>): Promise<ToolResult> {
+    const id = args.id as string | undefined;
+    if (!id) return { success: false, output: 'Missing required field: id' };
+    const day = await jm.updateEntry(date, id, {
+      kind: args.kind as string | undefined,
+      title: args.title as string | undefined,
+      content: args.content as string | undefined,
+      mood: args.mood as JournalMood | undefined,
+      tags: args.tags as string[] | undefined,
+    });
+    if (!day) return { success: false, output: `No entry ${id} on ${date}.` };
+    return { success: true, output: `Updated entry ${id} on ${date}.` };
+  }
 
-    const tags = args.tags as string[] | undefined;
-
-    await jm.appendAvaEntry(date, content, tags);
-
-    return { success: true, output: `Ava journal entry saved for ${date}` };
+  private async handleDelete(jm: JournalManager, date: string, args: Record<string, unknown>): Promise<ToolResult> {
+    const id = args.id as string | undefined;
+    if (!id) return { success: false, output: 'Missing required field: id' };
+    const day = await jm.deleteEntry(date, id);
+    if (!day) return { success: false, output: `No entry ${id} on ${date}.` };
+    return { success: true, output: `Deleted entry ${id} on ${date}.` };
   }
 
   private async handleRead(jm: JournalManager, date: string, args: Record<string, unknown>): Promise<ToolResult> {
@@ -120,56 +123,42 @@ export class JournalWriteTool implements Tool {
 
     if (from && to) {
       const days = await jm.getDaysInRange(from, to);
-      if (days.length === 0) {
-        return { success: true, output: `No journal entries between ${from} and ${to}.` };
-      }
-
-      const output = days.map(d => this.formatDay(d)).join('\n\n---\n\n');
-      return { success: true, output: `${days.length} journal entries (${from} to ${to}):\n\n${output}` };
+      if (days.length === 0) return { success: true, output: `No journal entries between ${from} and ${to}.` };
+      const output = days.map((d) => this.formatDay(d)).join('\n\n---\n\n');
+      return { success: true, output: `${days.length} day(s) with entries (${from} to ${to}):\n\n${output}` };
     }
 
     const day = await jm.getDay(date);
-    if (!day) {
-      return { success: true, output: `No journal entry for ${date}.` };
-    }
-
+    if (!day || day.entries.length === 0) return { success: true, output: `No journal entries for ${date}.` };
     return { success: true, output: this.formatDay(day) };
   }
 
   private async handleSearch(jm: JournalManager, args: Record<string, unknown>): Promise<ToolResult> {
     const query = args.query as string | undefined;
-    if (!query) {
-      return { success: false, output: 'Missing required field: query' };
-    }
-
-    const results = await jm.search(query);
-    if (results.length === 0) {
-      return { success: true, output: `No journal entries matching "${query}".` };
-    }
-
-    const lines = results.map(r =>
-      `**${r.date}:**\n${r.matches.map(m => `  ${m}`).join('\n')}`
+    if (!query) return { success: false, output: 'Missing required field: query' };
+    const filters: SearchFilters = {
+      kind: args.kind as string | undefined,
+      author: args.author as JournalAuthor | undefined,
+      from: args.from as string | undefined,
+      to: args.to as string | undefined,
+    };
+    const hits = await jm.search(query, filters);
+    if (hits.length === 0) return { success: true, output: `No journal entries matching "${query}".` };
+    const lines = hits.map(
+      (h) => `**${h.date}** [${h.author}/${h.kind}] (id ${h.entryId})${h.title ? ` — ${h.title}` : ''}\n  …${h.snippet}…`,
     );
-
-    return { success: true, output: `Found ${results.length} entries matching "${query}":\n\n${lines.join('\n\n')}` };
+    return { success: true, output: `Found ${hits.length} matching "${query}":\n\n${lines.join('\n\n')}` };
   }
 
-  private formatDay(day: { date: string; userEntry: { content: string; mood?: number; tags?: string[] } | null; avaEntry: { content: string; tags?: string[] } | null }): string {
+  private formatDay(day: JournalDay): string {
     const parts = [`## ${day.date}`];
-
-    if (day.userEntry) {
-      parts.push(`\n**User:**`);
-      if (day.userEntry.mood) parts.push(`Mood: ${day.userEntry.mood}/5`);
-      parts.push(day.userEntry.content);
-      if (day.userEntry.tags?.length) parts.push(`Tags: ${day.userEntry.tags.join(', ')}`);
+    for (const e of day.entries) {
+      const head = `**${e.author === 'user' ? 'You' : 'Ava'} · ${e.kind}**${e.mood ? ` · mood ${e.mood}/5` : ''} (id ${e.id})`;
+      parts.push(`\n${head}`);
+      if (e.title) parts.push(`### ${e.title}`);
+      parts.push(e.content);
+      if (e.tags?.length) parts.push(`Tags: ${e.tags.join(', ')}`);
     }
-
-    if (day.avaEntry) {
-      parts.push(`\n**Ava:**`);
-      parts.push(day.avaEntry.content);
-      if (day.avaEntry.tags?.length) parts.push(`Tags: ${day.avaEntry.tags.join(', ')}`);
-    }
-
     return parts.join('\n');
   }
 }

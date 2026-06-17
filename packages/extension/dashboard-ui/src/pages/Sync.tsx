@@ -4,7 +4,7 @@ import { post } from '../App';
 import { cloudSyncEnabled } from '../lib/data-mode';
 import type { SyncStatus, ExtToDashboardMessage } from '../types/messages';
 import {
-  Brain, CheckSquare, BookOpen, GraduationCap,
+  Brain, CheckSquare, GraduationCap,
   GearSix, MaskHappy, Lightbulb, Heartbeat,
 } from '@phosphor-icons/react';
 
@@ -23,7 +23,8 @@ function getSyncDataTypes() {
   return [
     { key: 'memory',      label: t('dash.sync.memory'),           icon: <Brain weight="duotone" size={18} />, description: t('dash.sync.memory_desc') },
     { key: 'tasks',       label: t('dash.sync.tasks'),            icon: <CheckSquare weight="duotone" size={18} />,  description: t('dash.sync.tasks_desc') },
-    { key: 'journal',     label: t('dash.sync.journal'),          icon: <BookOpen weight="duotone" size={18} />, description: t('dash.sync.journal_desc') },
+    // Journal is intentionally absent — it's local-only by design and never
+    // syncs to the cloud. Download/transfer is via the Data export page.
     { key: 'learning',    label: t('dash.nav.learning'),          icon: <GraduationCap weight="duotone" size={18} />, description: t('dash.nav.learning_desc') },
     { key: 'settings',    label: t('dash.sync.settings'),         icon: <GearSix weight="duotone" size={18} />,  description: t('dash.sync.settings_desc') },
     { key: 'personality', label: t('dash.sync.personality'),       icon: <MaskHappy weight="duotone" size={18} />, description: t('dash.sync.personality_desc') },

@@ -249,7 +249,13 @@ export interface DashboardTaskEntry {
 
 // ─── Journal Types ───────────────────────────────────────────────────────────
 
+export type DashboardJournalAuthor = 'user' | 'ava';
+
 export interface DashboardJournalEntry {
+  id: string;
+  author: DashboardJournalAuthor;
+  kind: string;
+  title?: string;
   content: string;
   mood?: number;
   tags?: string[];
@@ -257,17 +263,44 @@ export interface DashboardJournalEntry {
   updated_at: string;
 }
 
+/** An entry annotated with its day — for month and search lists. */
+export interface DashboardJournalMonthEntry extends DashboardJournalEntry {
+  date: string;
+}
+
 export interface DashboardJournalDay {
   date: string;
-  user_entry: DashboardJournalEntry | null;
-  ava_entry: DashboardJournalEntry | null;
+  entries: DashboardJournalEntry[];
+}
+
+/** A journal entry kind (built-in or user-defined). */
+export interface DashboardJournalKind {
+  id: string;
+  label: string;
+  color: string;
+  tracksMood: boolean;
+  builtin: boolean;
 }
 
 export interface DashboardJournalDaySummary {
   date: string;
+  count: number;
+  authors: { user: boolean; ava: boolean };
+  dominant_mood?: number;
+  avg_mood?: number;
+  // Legacy fields — kept so the existing mini-calendar dots keep working.
   has_user_entry: boolean;
   has_ava_entry: boolean;
   mood?: number;
+}
+
+export interface DashboardJournalSearchHit {
+  date: string;
+  entry_id: string;
+  author: DashboardJournalAuthor;
+  kind: string;
+  title?: string;
+  snippet: string;
 }
 
 // ─── Learning Types ─────────────────────────────────────────────────────────
@@ -1263,8 +1296,12 @@ export type ExtToDashboardMessage =
   | { type: 'task_deleted'; id: string }
   // Journal messages
   | { type: 'journal_day_loaded'; day: DashboardJournalDay }
+  | { type: 'journal_month_loaded'; year: number; month: number; entries: DashboardJournalMonthEntry[] }
+  | { type: 'journal_year_summaries'; year: number; summaries: DashboardJournalDaySummary[] }
   | { type: 'journal_summaries_loaded'; summaries: DashboardJournalDaySummary[] }
-  | { type: 'journal_day_updated'; day: DashboardJournalDay }
+  | { type: 'journal_search_results'; query: string; hits: DashboardJournalSearchHit[] }
+  | { type: 'journal_kinds_loaded'; kinds: DashboardJournalKind[] }
+  | { type: 'journal_changed'; date: string }
   // Session tasks (Ava's progress)
   | { type: 'session_tasks_updated'; tasks: Array<{ id: string; title: string; status: 'pending' | 'in_progress' | 'completed' }> }
   // Learning messages
@@ -1533,10 +1570,17 @@ export type DashboardToExtMessage =
   | { type: 'restore_task'; id: string }
   // Journal messages
   | { type: 'load_journal_day'; date: string }
+  | { type: 'load_journal_month'; year: number; month: number }
+  | { type: 'load_journal_year'; year: number }
   | { type: 'load_journal_summaries'; from: string; to: string }
-  | { type: 'save_journal_user_entry'; date: string; content: string; mood?: number; tags?: string[] }
-  | { type: 'delete_journal_user_entry'; date: string }
-  | { type: 'delete_journal_ava_entry'; date: string }
+  | { type: 'load_journal_kinds' }
+  | { type: 'journal_add_entry'; date: string; author: DashboardJournalAuthor; kind: string; content: string; title?: string; mood?: number; tags?: string[] }
+  | { type: 'journal_update_entry'; date: string; id: string; kind?: string; title?: string; content?: string; mood?: number | null; tags?: string[] }
+  | { type: 'journal_delete_entry'; date: string; id: string }
+  | { type: 'journal_search'; query: string; kind?: string; author?: DashboardJournalAuthor; from?: string; to?: string }
+  | { type: 'journal_add_kind'; id: string; label: string; color: string; tracksMood: boolean }
+  | { type: 'journal_update_kind'; id: string; label?: string; color?: string; tracksMood?: boolean }
+  | { type: 'journal_delete_kind'; id: string }
   // Session tasks (Ava's progress)
   | { type: 'load_session_tasks' }
   // Learning messages

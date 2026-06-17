@@ -5,7 +5,8 @@ import { Journal } from './Journal';
 import { Learning } from './Learning';
 import { HealthPlans } from './HealthPlans';
 import type {
-  DashboardTaskEntry, DashboardJournalDay, DashboardLearningCurriculum,
+  DashboardTaskEntry, DashboardJournalMonthEntry, DashboardJournalKind, DashboardJournalSearchHit,
+  DashboardJournalDaySummary, DashboardLearningCurriculum,
   HealthPlan, HealthPlanSummary, HealthExerciseSummary, HealthRecipeSummary,
   HealthExerciseDetail, HealthRecipeDetail,
 } from '../types/messages';
@@ -21,18 +22,21 @@ interface SessionTask {
 interface PlannerProps {
   tasks: DashboardTaskEntry[];
   sessionTasks?: SessionTask[];
-  journalDay: DashboardJournalDay | null;
   journalDate: string;
+  journalYear: number;
+  journalMonth: number;
+  journalMonthEntries: DashboardJournalMonthEntry[];
+  journalKinds: DashboardJournalKind[];
+  journalSearchHits: DashboardJournalSearchHit[] | null;
+  journalYearSummaries: DashboardJournalDaySummary[];
+  onChangeJournalMonth: (year: number, month: number) => void;
+  onClearJournalSearch: () => void;
   /** Counter that ticks when the operator picks a day on the sidebar
    *  mini-calendar. Watched by a useEffect that switches the active tab
    *  to Journal — without this, Planner stayed on Tasks and the calendar
    *  click looked like a no-op. Counter not boolean so re-clicking the
    *  same day still re-fires the tab switch. */
   journalNavTick?: number;
-  userName: string | null;
-  onSaveJournalEntry: (date: string, content: string, mood?: number, tags?: string[]) => void;
-  onDeleteUserEntry?: (date: string) => void;
-  onDeleteAvaEntry?: (date: string) => void;
   learningCurriculums: DashboardLearningCurriculum[];
   /** Per-source load signals — true once the first load has landed.
    *  Each sub-tab skeletons until its own data is in. */
@@ -77,7 +81,8 @@ const TAB_LABELS: Record<PlannerTab, string> = {
 
 export function Planner({
   tasks, sessionTasks,
-  journalDay, journalDate, journalNavTick, userName, onSaveJournalEntry, onDeleteUserEntry, onDeleteAvaEntry,
+  journalDate, journalNavTick,
+  journalYear, journalMonth, journalMonthEntries, journalKinds, journalSearchHits, journalYearSummaries, onChangeJournalMonth, onClearJournalSearch,
   learningCurriculums,
   tasksLoaded, journalLoaded, learningLoaded,
   healthPlans, healthPlanOpen, onOpenHealthPlan, onSaveHealthPlan, onDeleteHealthPlan, onCloseHealthPlan,
@@ -136,13 +141,15 @@ export function Planner({
 
       {activeTab === 'journal' && (
         <Journal
-          day={journalDay}
-          selectedDate={journalDate}
-          userName={userName}
-          onSaveUserEntry={onSaveJournalEntry}
-          onDeleteUserEntry={onDeleteUserEntry}
-          onDeleteAvaEntry={onDeleteAvaEntry}
+          year={journalYear}
+          month={journalMonth}
+          monthEntries={journalMonthEntries}
+          kinds={journalKinds}
+          searchHits={journalSearchHits}
+          yearSummaries={journalYearSummaries}
           loaded={journalLoaded}
+          onChangeMonth={onChangeJournalMonth}
+          onClearSearch={onClearJournalSearch}
         />
       )}
 

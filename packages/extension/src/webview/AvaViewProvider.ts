@@ -14,7 +14,6 @@ import {
   PlatformMemorySync,
   PlatformTaskSyncImpl,
   JournalManager,
-  PlatformJournalSyncImpl,
   ProviderHealthTracker,
   ResilientProvider,
   AVA_HOME,
@@ -486,24 +485,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       this.taskManager.pullLatest().catch(() => {});
     }
 
-    // Set up journal with optional platform sync
-    let journalSync: PlatformJournalSyncImpl | undefined;
-    if (platformKey) {
-      journalSync = new PlatformJournalSyncImpl('https://ava-supernova.com/api', platformKey);
-    }
-    // Journal is LOCAL-FIRST by default (cloud storage is sunsetting — see the
-    // cloud-sunset notice). Ava's journal lives on-device; cloud sync is only
-    // on if the user explicitly opts in via the preference. Default → local.
-    const journalLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.journalLocalOnly') ?? true)
-      || syncPrefs.journal === false
-      || !cloudAllowed;
-    this.journalManager = new JournalManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync: journalSync, localOnly: journalLocalOnly });
-    if (journalSync && !journalLocalOnly) {
-      // Pull journal entries on session start — same fire-and-forget
-      // pattern as memory and tasks. No date range = last 30 days by
-      // default on the server side.
-      this.journalManager.pullLatest().catch(() => {});
-    }
+    // Journal is fully local — entries live on-device only and never sync to
+    // the cloud. Download/transfer is handled by the local export system.
+    this.journalManager = new JournalManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot });
 
     // Generation manager — persists across page navigation, tracks creative jobs
     this.generationManager = new GenerationManager();
@@ -1229,8 +1213,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
                 this.memoryManager = new MemoryManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly, embeddingService: this.resolveEmbeddingService() });
                 const taskSync = new PlatformTaskSyncImpl('https://ava-supernova.com/api', platformKey);
                 this.taskManager = new TaskManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: taskSync });
-                const journalSync = new PlatformJournalSyncImpl('https://ava-supernova.com/api', platformKey);
-                this.journalManager = new JournalManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: journalSync });
+                this.journalManager = new JournalManager({ globalDir: newScopedDir, projectRoot: this.projectRoot });
                 // History: scope it too. Migrate any legacy transcripts from the
                 // old unscoped ~/.ava/history into the scoped dir (one-time),
                 // then re-point the SAME manager instance so the already-built
@@ -1530,14 +1513,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           getJournalStreak: this.journalManager ? async () => {
             const today = new Date().toISOString().slice(0, 10);
             const day = await this.journalManager!.getDay(today);
-            const writtenToday = !!(day?.userEntry || day?.avaEntry);
+            const writtenToday = (day?.entries.length ?? 0) > 0;
             // Simple streak check — count consecutive days backwards
             let streak = writtenToday ? 1 : 0;
             const d = new Date();
             for (let i = 1; i <= 30; i++) {
               d.setDate(d.getDate() - 1);
               const prev = await this.journalManager!.getDay(d.toISOString().slice(0, 10));
-              if (prev?.userEntry || prev?.avaEntry) streak++;
+              if ((prev?.entries.length ?? 0) > 0) streak++;
               else break;
             }
             return { days: streak, writtenToday };

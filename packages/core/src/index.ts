@@ -190,9 +190,31 @@ export { PlatformTaskSyncImpl } from './tasks/platform-sync.js';
 
 // Journal
 export { JournalManager } from './journal/journal-manager.js';
-export type { PlatformJournalSync } from './journal/journal-manager.js';
-export type { JournalEntry, JournalDay, JournalDaySummary, JournalMood } from './journal/types.js';
-export { createEmptyJournalDay } from './journal/types.js';
+export type {
+  PlatformJournalSync,
+  NewEntryInput,
+  EntryPatch,
+  SearchFilters,
+  SearchHit,
+} from './journal/journal-manager.js';
+export type {
+  JournalEntry,
+  JournalDay,
+  JournalMonthEntry,
+  JournalDaySummary,
+  JournalKind,
+  JournalMood,
+  JournalAuthor,
+} from './journal/types.js';
+export {
+  createEmptyJournalDay,
+  migrateDay,
+  newEntryId,
+  kindById,
+  BUILTIN_KINDS,
+  DEFAULT_USER_KIND,
+  DEFAULT_AVA_KIND,
+} from './journal/types.js';
 export { PlatformJournalSyncImpl } from './journal/platform-sync.js';
 
 // Briefing

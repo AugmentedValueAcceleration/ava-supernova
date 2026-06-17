@@ -245,13 +245,15 @@ export class BriefingEngine {
   private formatJournal(data: BriefingData): string | null {
     if (!data.yesterdayJournal) return null;
 
-    const entry = data.yesterdayJournal.userEntry ?? data.yesterdayJournal.avaEntry;
+    const entries = data.yesterdayJournal.entries;
+    const userEntry = entries.find((e) => e.author === 'user');
+    const entry = userEntry ?? entries[0];
     if (!entry) return null;
 
     // Extract first meaningful line as a summary
     const content = entry.content.trim();
     const firstLine = content.split('\n')[0].slice(0, 120);
-    const source = data.yesterdayJournal.userEntry ? 'your journal' : "yesterday's session";
+    const source = userEntry ? 'your journal' : "yesterday's session";
 
     return `From ${source}: "${firstLine}"${content.length > 120 ? '...' : ''}`;
   }

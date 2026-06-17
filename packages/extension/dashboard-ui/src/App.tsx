@@ -28,6 +28,9 @@ import type {
   DashboardTaskEntry,
   DashboardJournalDay,
   DashboardJournalDaySummary,
+  DashboardJournalMonthEntry,
+  DashboardJournalKind,
+  DashboardJournalSearchHit,
   SessionStats,
   UsageHistoryData,
   SupportTicket,
@@ -162,6 +165,12 @@ export function App() {
   const [sessionTasks, setSessionTasks] = useState<Array<{ id: string; title: string; status: 'pending' | 'in_progress' | 'completed' }>>([]);
   const [journalDay, setJournalDay] = useState<DashboardJournalDay | null>(null);
   const [journalSummaries, setJournalSummaries] = useState<DashboardJournalDaySummary[]>([]);
+  const [journalYear, setJournalYear] = useState(() => new Date().getFullYear());
+  const [journalMonth, setJournalMonth] = useState(() => new Date().getMonth() + 1);
+  const [journalMonthEntries, setJournalMonthEntries] = useState<DashboardJournalMonthEntry[]>([]);
+  const [journalKinds, setJournalKinds] = useState<DashboardJournalKind[]>([]);
+  const [journalSearchHits, setJournalSearchHits] = useState<DashboardJournalSearchHit[] | null>(null);
+  const [journalYearSummaries, setJournalYearSummaries] = useState<DashboardJournalDaySummary[]>([]);
   const [selectedJournalDate, setSelectedJournalDate] = useState(() => new Date().toISOString().slice(0, 10));
   // When the user picks a day on the sidebar mini-calendar, we navigate
   // to the Planner AND want it to land on the Journal tab (not Tasks,
@@ -734,29 +743,37 @@ export function App() {
         setTasks((prev) => prev.filter((t) => t.id !== msg.id));
         break;
       case 'journal_day_loaded':
-        if (msg.day) {
-          setJournalDay(msg.day);
-        } else {
-          // No cloud data — try localStorage
-          try {
-            const local = localStorage.getItem(`ava-dash-journal-${selectedJournalDate}`);
-            if (local) setJournalDay(JSON.parse(local));
-            else setJournalDay(null);
-          } catch { setJournalDay(null); }
-        }
-        break;
-      case 'journal_day_updated':
         setJournalDay(msg.day);
-        // Refresh calendar summaries after update/delete
-        { const d = new Date(selectedJournalDate);
-          const from = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
-          const to = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-31`;
-          post({ type: 'load_journal_summaries', from, to });
-        }
+        break;
+      case 'journal_month_loaded':
+        setJournalYear(msg.year);
+        setJournalMonth(msg.month);
+        setJournalMonthEntries(msg.entries);
         break;
       case 'journal_summaries_loaded':
         setJournalSummaries(msg.summaries);
         break;
+      case 'journal_kinds_loaded':
+        setJournalKinds(msg.kinds);
+        break;
+      case 'journal_search_results':
+        setJournalSearchHits(msg.hits);
+        break;
+      case 'journal_year_summaries':
+        if (msg.year === journalYear) setJournalYearSummaries(msg.summaries);
+        break;
+      case 'journal_changed': {
+        // A local entry was added/updated/deleted — refresh the views that
+        // could have changed: the month list, that day, calendar dots, heatmap.
+        post({ type: 'load_journal_month', year: journalYear, month: journalMonth });
+        post({ type: 'load_journal_day', date: msg.date });
+        post({ type: 'load_journal_year', year: journalYear });
+        const from = `${journalYear}-${String(journalMonth).padStart(2, '0')}-01`;
+        const last = new Date(journalYear, journalMonth, 0).getDate();
+        const to = `${journalYear}-${String(journalMonth).padStart(2, '0')}-${String(last).padStart(2, '0')}`;
+        post({ type: 'load_journal_summaries', from, to });
+        break;
+      }
       case 'byok_support_sent':
         // Handled by Support page directly
         break;
@@ -1169,6 +1186,9 @@ export function App() {
       const to = `${y}-${String(m + 1).padStart(2, '0')}-${String(last).padStart(2, '0')}`;
       post({ type: 'load_journal_summaries', from, to });
       post({ type: 'load_journal_day', date: now.toISOString().slice(0, 10) });
+      post({ type: 'load_journal_month', year: journalYear, month: journalMonth });
+      post({ type: 'load_journal_kinds' });
+      post({ type: 'load_journal_year', year: journalYear });
     }
     // Load overview widget data
     if (page === 'overview') {
@@ -1290,13 +1310,16 @@ export function App() {
           <Planner
             tasks={tasks}
             sessionTasks={sessionTasks}
-            journalDay={journalDay}
             journalDate={selectedJournalDate}
             journalNavTick={plannerJournalNavTick}
-            userName={account?.name?.split(' ')[0] ?? null}
-            onSaveJournalEntry={(date, content, mood, tags) => post({ type: 'save_journal_user_entry', date, content, mood, tags })}
-            onDeleteUserEntry={(date) => post({ type: 'delete_journal_user_entry', date })}
-            onDeleteAvaEntry={(date) => post({ type: 'delete_journal_ava_entry', date })}
+            journalYear={journalYear}
+            journalMonth={journalMonth}
+            journalMonthEntries={journalMonthEntries}
+            journalKinds={journalKinds}
+            journalSearchHits={journalSearchHits}
+            journalYearSummaries={journalYearSummaries}
+            onChangeJournalMonth={(y, m) => { setJournalYear(y); setJournalMonth(m); post({ type: 'load_journal_month', year: y, month: m }); if (y !== journalYear) post({ type: 'load_journal_year', year: y }); }}
+            onClearJournalSearch={() => setJournalSearchHits(null)}
             learningCurriculums={learningCurriculums}
             tasksLoaded={isLoaded('tasks')}
             journalLoaded={isLoaded('journal_day')}

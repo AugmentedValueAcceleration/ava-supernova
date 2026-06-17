@@ -142,10 +142,13 @@ export class ReportGenerateTool implements Tool {
     try {
       const days = await journalManager.getDaysInRange(from, to);
       if (days.length === 0) return null;
-      return days.slice(-5).map(day => ({
-        date: day.date,
-        content: (day.userEntry ?? day.avaEntry)?.content.split('\n')[0].slice(0, 120) || '',
-      })).filter(d => d.content);
+      return days.slice(-5).map(day => {
+        const first = day.entries.find(e => e.author === 'user') ?? day.entries[0];
+        return {
+          date: day.date,
+          content: first?.content.split('\n')[0].slice(0, 120) || '',
+        };
+      }).filter(d => d.content);
     } catch {
       return null;
     }

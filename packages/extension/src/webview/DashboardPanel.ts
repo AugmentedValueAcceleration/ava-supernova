@@ -26,7 +26,7 @@ import {
   type DatasetConfig,
 } from '@ava/core';
 import type { Personality } from '@ava/core';
-import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, JournalDay } from '@ava/core';
+import type { MemoryEntry as CoreMemoryEntry, TaskEntry as CoreTaskEntry, JournalDay, JournalEntry, JournalKind } from '@ava/core';
 import { getNonce } from '../utils/nonce.js';
 import { apiFetch } from '../utils/platform-api.js';
 import { sessionStats } from '../session-stats.js';
@@ -43,6 +43,8 @@ import type {
   MemoryEntry,
   UsageLogEntry,
   DashboardTaskEntry,
+  DashboardJournalEntry,
+  DashboardJournalDay,
   LibraryPath,
   LibraryPathDetail,
   LibraryPaper,
@@ -607,20 +609,48 @@ export class DashboardPanel {
         await this.loadJournalDay(msg.date);
         break;
 
+      case 'load_journal_month':
+        await this.loadJournalMonth(msg.year, msg.month);
+        break;
+
+      case 'load_journal_year':
+        await this.loadJournalYear(msg.year);
+        break;
+
       case 'load_journal_summaries':
         await this.loadJournalSummaries(msg.from, msg.to);
         break;
 
-      case 'save_journal_user_entry':
-        await this.saveJournalUserEntry(msg.date, msg.content, msg.mood, msg.tags);
+      case 'load_journal_kinds':
+        await this.loadJournalKinds();
         break;
 
-      case 'delete_journal_user_entry':
-        await this.deleteJournalEntry(msg.date, 'user');
+      case 'journal_add_entry':
+        await this.addJournalEntry(msg);
         break;
 
-      case 'delete_journal_ava_entry':
-        await this.deleteJournalEntry(msg.date, 'ava');
+      case 'journal_update_entry':
+        await this.updateJournalEntry(msg);
+        break;
+
+      case 'journal_delete_entry':
+        await this.deleteJournalEntryById(msg.date, msg.id);
+        break;
+
+      case 'journal_search':
+        await this.searchJournal(msg);
+        break;
+
+      case 'journal_add_kind':
+        await this.mutateJournalKinds((m) => m.addKind({ id: msg.id, label: msg.label, color: msg.color, tracksMood: msg.tracksMood }));
+        break;
+
+      case 'journal_update_kind':
+        await this.mutateJournalKinds((m) => m.updateKind(msg.id, { label: msg.label, color: msg.color, tracksMood: msg.tracksMood }));
+        break;
+
+      case 'journal_delete_kind':
+        await this.mutateJournalKinds((m) => m.deleteKind(msg.id));
         break;
 
       // ─── Learning messages ─────────────────────────────────────────────────
@@ -3289,24 +3319,22 @@ export class DashboardPanel {
     return this.journalManager;
   }
 
-  private coreToDisplayDay(day: JournalDay) {
+  private journalEntryToDisplay(e: JournalEntry): DashboardJournalEntry {
     return {
-      date: day.date,
-      user_entry: day.userEntry ? {
-        content: day.userEntry.content,
-        mood: day.userEntry.mood,
-        tags: day.userEntry.tags,
-        created_at: day.userEntry.createdAt,
-        updated_at: day.userEntry.updatedAt,
-      } : null,
-      ava_entry: day.avaEntry ? {
-        content: day.avaEntry.content,
-        mood: day.avaEntry.mood,
-        tags: day.avaEntry.tags,
-        created_at: day.avaEntry.createdAt,
-        updated_at: day.avaEntry.updatedAt,
-      } : null,
+      id: e.id,
+      author: e.author,
+      kind: e.kind,
+      title: e.title,
+      content: e.content,
+      mood: e.mood,
+      tags: e.tags,
+      created_at: e.createdAt,
+      updated_at: e.updatedAt,
     };
+  }
+
+  private coreToDisplayDay(day: JournalDay): DashboardJournalDay {
+    return { date: day.date, entries: day.entries.map((e) => this.journalEntryToDisplay(e)) };
   }
 
   private async loadJournalDay(date: string): Promise<void> {
@@ -3316,13 +3344,49 @@ export class DashboardPanel {
       // writes — always drop the cached day so we read the latest from disk.
       mgr.invalidateCache(date);
       const day = await mgr.getDay(date);
-      if (day) {
-        this.post({ type: 'journal_day_loaded', day: this.coreToDisplayDay(day) });
-      } else {
-        this.post({ type: 'journal_day_loaded', day: { date, user_entry: null, ava_entry: null } });
-      }
+      this.post({ type: 'journal_day_loaded', day: day ? this.coreToDisplayDay(day) : { date, entries: [] } });
     } catch {
-      this.post({ type: 'journal_day_loaded', day: { date, user_entry: null, ava_entry: null } });
+      this.post({ type: 'journal_day_loaded', day: { date, entries: [] } });
+    }
+  }
+
+  private async loadJournalMonth(year: number, month: number): Promise<void> {
+    try {
+      const mgr = this.getJournalManager();
+      mgr.invalidateCache();
+      const entries = await mgr.getMonth(year, month);
+      this.post({
+        type: 'journal_month_loaded',
+        year,
+        month,
+        entries: entries.map((e) => ({ ...this.journalEntryToDisplay(e), date: e.date })),
+      });
+    } catch {
+      this.post({ type: 'journal_month_loaded', year, month, entries: [] });
+    }
+  }
+
+  private async loadJournalYear(year: number): Promise<void> {
+    try {
+      const mgr = this.getJournalManager();
+      mgr.invalidateCache();
+      const summaries = await mgr.getDaySummaries(`${year}-01-01`, `${year}-12-31`);
+      this.post({
+        type: 'journal_year_summaries',
+        year,
+        summaries: summaries.map((s) => ({
+          date: s.date,
+          count: s.count,
+          authors: s.authors,
+          dominant_mood: s.dominantMood,
+          avg_mood: s.avgMood,
+          has_user_entry: s.authors.user,
+          has_ava_entry: s.authors.ava,
+          mood: s.dominantMood,
+        })),
+      });
+    } catch {
+      this.post({ type: 'journal_year_summaries', year, summaries: [] });
     }
   }
 
@@ -3334,11 +3398,16 @@ export class DashboardPanel {
       const summaries = await mgr.getDaySummaries(from, to);
       this.post({
         type: 'journal_summaries_loaded',
-        summaries: summaries.map(s => ({
+        summaries: summaries.map((s) => ({
           date: s.date,
-          has_user_entry: s.hasUserEntry,
-          has_ava_entry: s.hasAvaEntry,
-          mood: s.mood,
+          count: s.count,
+          authors: s.authors,
+          dominant_mood: s.dominantMood,
+          avg_mood: s.avgMood,
+          // Legacy fields for the mini-calendar.
+          has_user_entry: s.authors.user,
+          has_ava_entry: s.authors.ava,
+          mood: s.dominantMood,
         })),
       });
     } catch {
@@ -3346,25 +3415,76 @@ export class DashboardPanel {
     }
   }
 
-  private async saveJournalUserEntry(date: string, content: string, mood?: number, tags?: string[]): Promise<void> {
+  private async loadJournalKinds(): Promise<void> {
     try {
-      const mgr = this.getJournalManager();
-      const day = await mgr.writeUserEntry(date, content, mood as 1 | 2 | 3 | 4 | 5 | undefined, tags);
-      this.post({ type: 'journal_day_updated', day: this.coreToDisplayDay(day) });
+      const kinds = await this.getJournalManager().listKinds();
+      this.post({ type: 'journal_kinds_loaded', kinds });
     } catch {
-      this.post({ type: 'error', message: 'Failed to save journal entry.' });
+      this.post({ type: 'journal_kinds_loaded', kinds: [] });
     }
   }
 
-  private async deleteJournalEntry(date: string, target: 'user' | 'ava'): Promise<void> {
+  private async addJournalEntry(msg: { date: string; author: 'user' | 'ava'; kind: string; content: string; title?: string; mood?: number; tags?: string[] }): Promise<void> {
+    try {
+      await this.getJournalManager().addEntry(msg.date, {
+        author: msg.author,
+        kind: msg.kind,
+        content: msg.content,
+        title: msg.title,
+        mood: msg.mood as 1 | 2 | 3 | 4 | 5 | undefined,
+        tags: msg.tags,
+      });
+      this.post({ type: 'journal_changed', date: msg.date });
+    } catch {
+      this.post({ type: 'error', message: 'Failed to add journal entry.' });
+    }
+  }
+
+  private async updateJournalEntry(msg: { date: string; id: string; kind?: string; title?: string; content?: string; mood?: number | null; tags?: string[] }): Promise<void> {
+    try {
+      await this.getJournalManager().updateEntry(msg.date, msg.id, {
+        kind: msg.kind,
+        title: msg.title,
+        content: msg.content,
+        mood: msg.mood as 1 | 2 | 3 | 4 | 5 | null | undefined,
+        tags: msg.tags,
+      });
+      this.post({ type: 'journal_changed', date: msg.date });
+    } catch {
+      this.post({ type: 'error', message: 'Failed to update journal entry.' });
+    }
+  }
+
+  private async deleteJournalEntryById(date: string, id: string): Promise<void> {
+    try {
+      await this.getJournalManager().deleteEntry(date, id);
+      this.post({ type: 'journal_changed', date });
+    } catch {
+      this.post({ type: 'error', message: 'Failed to delete journal entry.' });
+    }
+  }
+
+  private async searchJournal(msg: { query: string; kind?: string; author?: 'user' | 'ava'; from?: string; to?: string }): Promise<void> {
     try {
       const mgr = this.getJournalManager();
-      const day = target === 'user'
-        ? await mgr.deleteUserEntry(date)
-        : await mgr.deleteAvaEntry(date);
-      this.post({ type: 'journal_day_updated', day: this.coreToDisplayDay(day) });
+      mgr.invalidateCache();
+      const hits = await mgr.search(msg.query, { kind: msg.kind, author: msg.author, from: msg.from, to: msg.to });
+      this.post({
+        type: 'journal_search_results',
+        query: msg.query,
+        hits: hits.map((h) => ({ date: h.date, entry_id: h.entryId, author: h.author, kind: h.kind, title: h.title, snippet: h.snippet })),
+      });
     } catch {
-      this.post({ type: 'error', message: `Failed to delete ${target} journal entry.` });
+      this.post({ type: 'journal_search_results', query: msg.query, hits: [] });
+    }
+  }
+
+  private async mutateJournalKinds(fn: (m: JournalManager) => Promise<JournalKind[]>): Promise<void> {
+    try {
+      const kinds = await fn(this.getJournalManager());
+      this.post({ type: 'journal_kinds_loaded', kinds });
+    } catch (err) {
+      this.post({ type: 'error', message: err instanceof Error ? err.message : 'Failed to update journal kinds.' });
     }
   }
 
@@ -4844,14 +4964,18 @@ export class DashboardPanel {
           const journalDir = path.join(avaDir, 'journal');
           const files = await fs.readdir(journalDir).catch(() => []);
           const entries: unknown[] = [];
+          let kinds: unknown = null;
           for (const file of files) {
             if (!file.endsWith('.json')) continue;
             try {
               const raw = await fs.readFile(path.join(journalDir, file), 'utf-8');
-              entries.push(JSON.parse(raw));
+              // kinds.json holds the user's custom entry kinds — keep it separate
+              // from the day files so it round-trips on import.
+              if (file === 'kinds.json') kinds = JSON.parse(raw);
+              else entries.push(JSON.parse(raw));
             } catch { /* skip */ }
           }
-          content = JSON.stringify({ journal: entries }, null, 2);
+          content = JSON.stringify({ journal: entries, kinds }, null, 2);
           filename = 'ava-journal.json';
           break;
         }
@@ -4945,11 +5069,15 @@ export class DashboardPanel {
               const journalDir = path.join(avaDir, 'journal');
               const files = await fs.readdir(journalDir).catch(() => []);
               const entries: unknown[] = [];
+              let kinds: unknown = null;
               for (const file of files) {
                 if (!file.endsWith('.json')) continue;
-                try { entries.push(JSON.parse(await fs.readFile(path.join(journalDir, file), 'utf-8'))); } catch { /* skip */ }
+                try {
+                  const parsed = JSON.parse(await fs.readFile(path.join(journalDir, file), 'utf-8'));
+                  if (file === 'kinds.json') kinds = parsed; else entries.push(parsed);
+                } catch { /* skip */ }
               }
-              zip.file('ava-journal.json', JSON.stringify({ journal: entries }, null, 2));
+              zip.file('ava-journal.json', JSON.stringify({ journal: entries, kinds }, null, 2));
               break;
             }
             case 'learning':

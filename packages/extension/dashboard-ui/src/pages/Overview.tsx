@@ -804,9 +804,10 @@ function TasksWidget({ tasks: rawTasks, loaded, onNavigate }: { tasks: Dashboard
 // ── Journal Widget ───────────────────────────────────────────────────────────
 
 function JournalWidget({ journalDay, loaded, onNavigate }: { journalDay: DashboardJournalDay | null; loaded: boolean; onNavigate: (p: Page) => void }) {
-  const userEntry = journalDay?.user_entry;
-  const avaEntry = journalDay?.ava_entry;
-  const hasContent = Boolean(userEntry || avaEntry);
+  const entries = journalDay?.entries ?? [];
+  const userEntry = entries.find((e) => e.author === 'user');
+  const avaEntry = entries.find((e) => e.author === 'ava');
+  const hasContent = entries.length > 0;
 
   return (
     <WidgetCard
