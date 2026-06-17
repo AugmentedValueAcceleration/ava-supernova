@@ -815,6 +815,13 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         // chat view once sign-in succeeds. The extension host will send a
         // fresh init message shortly after with the new model/account data.
         needsSetup: false,
+        // Reflect the connection immediately so the account UI flips to
+        // "connected" on sign-in (including via onboarding) instead of waiting
+        // for the next usage report. Real tier/token counts arrive with the
+        // next platform_status message.
+        platformStatus: state.platformStatus
+          ? { ...state.platformStatus, connected: true }
+          : { connected: true, tier: null, freeTokensUsed: 0, freeTokensLimit: 0, subTokensUsed: 0, subTokensLimit: null },
       };
 
     case 'sign_in_failed':
