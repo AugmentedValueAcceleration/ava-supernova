@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
 import { HealthSubmissionModal } from './HealthSubmissionModal';
@@ -7,7 +7,7 @@ import { HealthProfilePage } from './HealthProfilePage';
 import { Skeleton } from '../components/Skeleton';
 import type {
   HealthExerciseSummary, HealthExerciseDetail,
-  HealthRecipeSummary, HealthRecipeDetail,
+  HealthRecipeSummary, HealthRecipeDetail, HealthRecipeNutrition,
   HealthWorkoutType,
   HealthTaxonomies, HealthMySubmissions as HealthMySubmissionsData, HealthProfile,
   HealthExerciseSubmissionPayload, HealthRecipeSubmissionPayload,
@@ -999,7 +999,7 @@ function Pagination({
 
 // ── Modals ─────────────────────────────────────────────────────────────
 
-function ModalShell({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+function ModalShell({ onClose, children, fillHeight }: { onClose: () => void; children: ReactNode; fillHeight?: boolean }) {
   return (
     <div
       role="dialog"
@@ -1014,8 +1014,8 @@ function ModalShell({ onClose, children }: { onClose: () => void; children: Reac
       `}</style>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[rgba(168,85,247,0.20)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] shadow-[0_0_60px_rgba(168,85,247,0.12)]"
-        style={{ animation: 'avaDetailCardIn 160ms ease-out' }}
+        className={`relative w-full max-w-3xl rounded-2xl border border-[rgba(168,85,247,0.20)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] shadow-[0_0_60px_rgba(168,85,247,0.12)] ${fillHeight ? 'flex flex-col overflow-hidden' : 'max-h-[88vh] overflow-y-auto'}`}
+        style={{ animation: 'avaDetailCardIn 160ms ease-out', ...(fillHeight ? { height: 'min(760px, 86vh)' } : {}) }}
       >
         <button
           onClick={onClose}
@@ -1035,15 +1035,16 @@ function ExerciseDetailModal({
 }: { slug: string; detail: HealthExerciseDetail | null; loading: boolean; onClose: () => void }) {
   const ready = detail && detail.slug === slug;
   return (
-    <ModalShell onClose={onClose}>
-      <div className="p-6 sm:p-8">
-        {!ready && (
-          loading
-            ? <LoadingCard label={t('health.browse.loading_exercise')} />
-            : <div className="py-16 text-center text-[12px] text-vscode-descriptionForeground">{t('health.browse.failed_to_load')}</div>
-        )}
-        {ready && <ExerciseDetailBody ex={detail!} />}
-      </div>
+    <ModalShell onClose={onClose} fillHeight>
+      {!ready
+        ? (
+          <div className="flex flex-1 items-center justify-center p-8">
+            {loading
+              ? <LoadingCard label={t('health.browse.loading_exercise')} />
+              : <div className="text-center text-[12px] text-vscode-descriptionForeground">{t('health.browse.failed_to_load')}</div>}
+          </div>
+        )
+        : <ExerciseDetailBody ex={detail!} />}
     </ModalShell>
   );
 }
@@ -1059,14 +1060,22 @@ function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
   if (ex.routine.tempo) routineEntries.push([t('health.browse.routine.tempo'), ex.routine.tempo]);
   if (ex.routine.frequency_per_week) routineEntries.push([t('health.browse.routine.freq'), ex.routine.frequency_per_week]);
 
+  type ExTab = 'overview' | 'howto' | 'routine' | 'muscles';
+  const hasRoutine = routineEntries.length > 0 || !!ex.routine.progression;
+  const hasMuscles = primaries.length > 0 || secondaries.length > 0 || ex.equipment.length > 0;
+  const tabs: { key: ExTab; label: string }[] = [
+    { key: 'overview', label: 'Overview' },
+    ...(ex.steps.length > 0 ? [{ key: 'howto' as ExTab, label: 'How-to' }] : []),
+    ...(hasRoutine ? [{ key: 'routine' as ExTab, label: 'Routine' }] : []),
+    ...(hasMuscles ? [{ key: 'muscles' as ExTab, label: 'Muscles & kit' }] : []),
+  ];
+  const [tab, setTab] = useState<ExTab>('overview');
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <header>
-        <div
-          className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em]"
-          style={{ color: accent }}
-        >
+    <div className="flex h-full flex-col">
+      <div className="flex-none px-6 pt-6 sm:px-8">
+      <header className="mb-4">
+        <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em]" style={{ color: accent }}>
           {workoutTypeLabel(ex.workout_type)}
         </div>
         <h2 className="text-[22px] font-light leading-tight text-vscode-foreground">{ex.name}</h2>
@@ -1079,32 +1088,47 @@ function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
         </div>
       </header>
 
-      {ex.description && (
-        <p className="text-[14px] leading-relaxed text-vscode-foreground/90">{ex.description}</p>
-      )}
+      <DetailTabBar tabs={tabs} active={tab} onChange={setTab} />
+      </div>
 
-      {ex.steps.length > 0 && (
-        <section>
-          <h3 className="mb-3 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.how_to_do_it')}</h3>
+      <DetailScroll>
+        {tab === 'overview' && (
+          <div className="space-y-5">
+            {ex.description && <p className="text-[14px] leading-relaxed text-vscode-foreground/90">{ex.description}</p>}
+            {ex.beginner_detail && (
+              <section>
+                <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.if_youre_new')}</h3>
+                <div className="rounded-lg border border-vscode-panelBorder/60 px-4 py-3">
+                  <p className="text-[13px] leading-relaxed text-vscode-foreground/85">{ex.beginner_detail}</p>
+                </div>
+              </section>
+            )}
+            {ex.common_mistakes && (
+              <section>
+                <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.common_mistakes')}</h3>
+                <div className="rounded-lg border border-vscode-panelBorder/60 px-4 py-3">
+                  <p className="text-[13px] leading-relaxed text-vscode-foreground/85">{ex.common_mistakes}</p>
+                </div>
+              </section>
+            )}
+            {!ex.description && !ex.beginner_detail && !ex.common_mistakes && (
+              <p className="text-[13px] text-vscode-descriptionForeground">Nothing here yet.</p>
+            )}
+          </div>
+        )}
+
+        {tab === 'howto' && (
           <ol className="space-y-2">
             {ex.steps.map((step, i) => (
               <li key={i} className="flex gap-3 rounded-md border border-vscode-panelBorder/60 px-3 py-2.5">
-                <span
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-medium"
-                  style={{ borderColor: accent, color: accent }}
-                >
-                  {i + 1}
-                </span>
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-medium" style={{ borderColor: accent, color: accent }}>{i + 1}</span>
                 <span className="text-[13px] leading-relaxed text-vscode-foreground/95">{step}</span>
               </li>
             ))}
           </ol>
-        </section>
-      )}
+        )}
 
-      {routineEntries.length > 0 && (
-        <section>
-          <h3 className="mb-3 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.how_to_use_it')}</h3>
+        {tab === 'routine' && (
           <div className="rounded-lg border border-vscode-panelBorder/60 p-4">
             <dl className="grid grid-cols-3 gap-x-5 gap-y-3 sm:grid-cols-5">
               {routineEntries.map(([label, value]) => (
@@ -1115,69 +1139,39 @@ function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
               ))}
             </dl>
             {ex.routine.progression && (
-              <p className="mt-4 border-t border-vscode-panelBorder/60 pt-3 text-[12px] italic text-vscode-descriptionForeground">
-                {ex.routine.progression}
-              </p>
+              <p className="mt-4 border-t border-vscode-panelBorder/60 pt-3 text-[12px] italic text-vscode-descriptionForeground">{ex.routine.progression}</p>
             )}
           </div>
-        </section>
-      )}
+        )}
 
-      {ex.beginner_detail && (
-        <section>
-          <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.if_youre_new')}</h3>
-          <div className="rounded-lg border border-vscode-panelBorder/60 px-4 py-3">
-            <p className="text-[13px] leading-relaxed text-vscode-foreground/85">{ex.beginner_detail}</p>
-          </div>
-        </section>
-      )}
-
-      {ex.common_mistakes && (
-        <section>
-          <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.common_mistakes')}</h3>
-          <div className="rounded-lg border border-vscode-panelBorder/60 px-4 py-3">
-            <p className="text-[13px] leading-relaxed text-vscode-foreground/85">{ex.common_mistakes}</p>
-          </div>
-        </section>
-      )}
-
-      {(primaries.length > 0 || secondaries.length > 0 || ex.equipment.length > 0) && (
-        <section className="grid gap-4 sm:grid-cols-2">
-          {(primaries.length > 0 || secondaries.length > 0) && (
-            <div>
-              <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.muscles')}</h3>
-              <div className="flex flex-wrap gap-1">
-                {primaries.map((m) => (
-                  <span
-                    key={m.slug}
-                    className="rounded px-2 py-0.5 text-[10px]"
-                    style={{ background: `${accent}26`, color: accent }}
-                  >
-                    {m.name}
-                  </span>
-                ))}
-                {secondaries.map((m) => (
-                  <span key={m.slug} className="rounded bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 text-[10px] text-vscode-descriptionForeground">
-                    {m.name}
-                  </span>
-                ))}
+        {tab === 'muscles' && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {(primaries.length > 0 || secondaries.length > 0) && (
+              <div>
+                <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.muscles')}</h3>
+                <div className="flex flex-wrap gap-1">
+                  {primaries.map((m) => (
+                    <span key={m.slug} className="rounded px-2 py-0.5 text-[10px]" style={{ background: `${accent}26`, color: accent }}>{m.name}</span>
+                  ))}
+                  {secondaries.map((m) => (
+                    <span key={m.slug} className="rounded bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 text-[10px] text-vscode-descriptionForeground">{m.name}</span>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-          {ex.equipment.length > 0 && (
-            <div>
-              <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.equipment')}</h3>
-              <div className="flex flex-wrap gap-1">
-                {ex.equipment.map((e) => (
-                  <span key={e.slug} className="rounded bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 text-[10px] capitalize text-vscode-descriptionForeground">
-                    {e.name}
-                  </span>
-                ))}
+            )}
+            {ex.equipment.length > 0 && (
+              <div>
+                <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.equipment')}</h3>
+                <div className="flex flex-wrap gap-1">
+                  {ex.equipment.map((e) => (
+                    <span key={e.slug} className="rounded bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 text-[10px] capitalize text-vscode-descriptionForeground">{e.name}</span>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-        </section>
-      )}
+            )}
+          </div>
+        )}
+      </DetailScroll>
     </div>
   );
 }
@@ -1187,16 +1181,62 @@ function RecipeDetailModal({
 }: { slug: string; detail: HealthRecipeDetail | null; loading: boolean; onClose: () => void }) {
   const ready = detail && detail.slug === slug;
   return (
-    <ModalShell onClose={onClose}>
-      {!ready && (
-        <div className="p-6 sm:p-8">
-          {loading
-            ? <LoadingCard label={t('health.browse.loading_recipe')} />
-            : <div className="py-12 text-center text-[12px] text-vscode-descriptionForeground">{t('health.browse.failed_to_load')}</div>}
-        </div>
-      )}
-      {ready && <RecipeDetailBody r={detail!} />}
+    <ModalShell onClose={onClose} fillHeight>
+      {!ready
+        ? (
+          <div className="flex flex-1 items-center justify-center p-8">
+            {loading
+              ? <LoadingCard label={t('health.browse.loading_recipe')} />
+              : <div className="text-center text-[12px] text-vscode-descriptionForeground">{t('health.browse.failed_to_load')}</div>}
+          </div>
+        )
+        : <RecipeDetailBody r={detail!} />}
     </ModalShell>
+  );
+}
+
+/** Underline tab bar for the detail overlays — separates sections that used
+ *  to stack in one long scroll. */
+function DetailTabBar<T extends string>({ tabs, active, onChange }: { tabs: { key: T; label: string }[]; active: T; onChange: (k: T) => void }) {
+  return (
+    <div className="flex gap-0.5 border-b border-vscode-panelBorder/60">
+      {tabs.map((tb) => (
+        <button key={tb.key} type="button" onClick={() => onChange(tb.key)}
+          className={`-mb-px border-b-2 px-3.5 py-2 text-[12px] font-medium transition ${active === tb.key ? 'border-[var(--accent)] text-vscode-foreground' : 'border-transparent text-vscode-descriptionForeground hover:text-vscode-foreground'}`}>
+          {tb.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Scroll area that flexes to fill the fixed-height detail modal, so the
+ *  overlay keeps one size across tabs without a hardcoded content height. */
+function DetailScroll({ children }: { children: ReactNode }) {
+  return <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 sm:px-8 sm:pb-8">{children}</div>;
+}
+
+type ExtNutKey = 'calories' | 'protein_g' | 'carbs_g' | 'fat_g' | 'fibre_g' | 'sugar_g' | 'sodium_mg' | 'saturated_fat_g';
+const EXT_NUTRITION: Array<[ExtNutKey, string]> = [
+  ['calories', 'Calories (kcal)'], ['protein_g', 'Protein (g)'], ['carbs_g', 'Carbs (g)'], ['fat_g', 'Fat (g)'],
+  ['fibre_g', 'Fibre (g)'], ['sugar_g', 'Sugar (g)'], ['sodium_mg', 'Sodium (mg)'], ['saturated_fat_g', 'Saturated fat (g)'],
+];
+
+function NutritionGrid({ n }: { n: HealthRecipeNutrition }) {
+  return (
+    <div>
+      <div className="mb-3 text-[10px] text-vscode-descriptionForeground">
+        Per serving{n.source === 'estimated' ? ' · estimated by Ava' : n.source === 'verified' ? ' · verified' : ''}
+      </div>
+      <div className="grid grid-cols-4 gap-4">
+        {EXT_NUTRITION.map(([k, label]) => (
+          <div key={k}>
+            <div className="text-[9px] uppercase tracking-wider text-vscode-descriptionForeground">{label}</div>
+            <div className="mt-1 text-[18px] font-light text-vscode-foreground">{typeof n[k] === 'number' ? n[k] : '—'}</div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -1204,21 +1244,44 @@ function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
   const [level, setLevel] = useState<'beginner' | 'intermediate' | 'expert'>('beginner');
   const v = r.versions.find((vv) => vv.level === level) || r.versions[0];
 
+  type RTab = 'overview' | 'ingredients' | 'method' | 'nutrition';
+  const hasNutrition = !!v && EXT_NUTRITION.some(([k]) => typeof v.nutrition?.[k] === 'number');
+  const tabs: { key: RTab; label: string }[] = [
+    { key: 'overview', label: 'Overview' },
+    ...(r.ingredients.length > 0 ? [{ key: 'ingredients' as RTab, label: 'Ingredients' }] : []),
+    ...(r.versions.length > 0 ? [{ key: 'method' as RTab, label: 'Method' }] : []),
+    ...(hasNutrition ? [{ key: 'nutrition' as RTab, label: 'Nutrition' }] : []),
+  ];
+  const [tab, setTab] = useState<RTab>('overview');
+
+  const levelPills = (
+    <div className="mb-3 flex gap-1">
+      {(['beginner', 'intermediate', 'expert'] as const).map((l) => {
+        if (!r.versions.some((vv) => vv.level === l)) return null;
+        const isActive = l === level;
+        return (
+          <button key={l} type="button" onClick={() => setLevel(l)}
+            className={`rounded px-2.5 py-1 text-[10px] uppercase tracking-wider transition ${isActive ? 'bg-amber-400/20 text-amber-300' : 'text-vscode-descriptionForeground hover:text-vscode-foreground'}`}>
+            {t(`health.browse.level.${l}`)}
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
-    <div>
-      {/* Hero image bleeds to the edge of the modal — magazine cover feel */}
+    <div className="flex h-full flex-col">
       {r.hero_image_url && (
-        <div className="aspect-[2/1] w-full overflow-hidden bg-vscode-editor-inactiveSelectionBackground">
+        <div className="aspect-[2/1] max-h-[200px] w-full flex-none overflow-hidden bg-vscode-editor-inactiveSelectionBackground">
           <img src={r.hero_image_url} alt="" className="h-full w-full object-cover" />
         </div>
       )}
 
-      <div className="space-y-6 p-6 sm:p-8">
-        <header>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex-none px-6 pt-6 sm:px-8">
+        <header className="mb-4">
           {r.cuisine_name && (
-            <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-amber-300">
-              {r.cuisine_name}
-            </div>
+            <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-amber-300">{r.cuisine_name}</div>
           )}
           <h2 className="text-[22px] font-light leading-tight text-vscode-foreground">{r.name}</h2>
           <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
@@ -1231,13 +1294,17 @@ function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
           </div>
         </header>
 
-        {r.overview && (
-          <p className="text-[14px] leading-relaxed text-vscode-foreground/90">{r.overview}</p>
-        )}
+        <DetailTabBar tabs={tabs} active={tab} onChange={setTab} />
+        </div>
 
-        {r.ingredients.length > 0 && (
-          <section>
-            <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.ingredients')}</h3>
+        <DetailScroll>
+          {tab === 'overview' && (
+            r.overview
+              ? <p className="text-[14px] leading-relaxed text-vscode-foreground/90">{r.overview}</p>
+              : <p className="text-[13px] text-vscode-descriptionForeground">No overview yet.</p>
+          )}
+
+          {tab === 'ingredients' && (
             <ul className="grid gap-1.5 rounded-lg border border-vscode-panelBorder/60 p-4 sm:grid-cols-2">
               {r.ingredients.map((ing, i) => (
                 <li key={i} className="flex gap-2 text-[13px]">
@@ -1251,125 +1318,70 @@ function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
                 </li>
               ))}
             </ul>
-          </section>
-        )}
+          )}
 
-        {r.versions.length > 0 && (
-          <section>
-            <div className="mb-3 flex items-center gap-3">
-              <h3 className="text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.method')}</h3>
-              <div className="flex gap-1">
-                {(['beginner', 'intermediate', 'expert'] as const).map((l) => {
-                  const has = r.versions.some((vv) => vv.level === l);
-                  if (!has) return null;
-                  const isActive = l === level;
-                  return (
-                    <button
-                      key={l}
-                      type="button"
-                      onClick={() => setLevel(l)}
-                      className={`rounded px-2.5 py-1 text-[10px] uppercase tracking-wider transition ${
-                        isActive
-                          ? 'bg-amber-400/20 text-amber-300'
-                          : 'text-vscode-descriptionForeground hover:text-vscode-foreground'
-                      }`}
-                    >
-                      {t(`health.browse.level.${l}`)}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Per-version metadata strip — timing + servings */}
-            {v && (
+          {tab === 'method' && v && (
+            <div>
+              {levelPills}
               <div className="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[11px] text-vscode-descriptionForeground">
-                {v.prep_time_minutes != null && (
-                  <span><span className="opacity-60">{t('health.browse.prep')}</span> {v.prep_time_minutes}m</span>
-                )}
-                {v.cook_time_minutes != null && (
-                  <span><span className="opacity-60">{t('health.browse.cook')}</span> {v.cook_time_minutes}m</span>
-                )}
-                {v.total_time_minutes != null && (
-                  <span><span className="opacity-60">{t('health.browse.total')}</span> {v.total_time_minutes}m</span>
-                )}
-                {v.default_servings != null && (
-                  <span><span className="opacity-60">{t('health.browse.serves')}</span> {v.default_servings}</span>
-                )}
+                {v.prep_time_minutes != null && <span><span className="opacity-60">{t('health.browse.prep')}</span> {v.prep_time_minutes}m</span>}
+                {v.cook_time_minutes != null && <span><span className="opacity-60">{t('health.browse.cook')}</span> {v.cook_time_minutes}m</span>}
+                {v.total_time_minutes != null && <span><span className="opacity-60">{t('health.browse.total')}</span> {v.total_time_minutes}m</span>}
+                {v.default_servings != null && <span><span className="opacity-60">{t('health.browse.serves')}</span> {v.default_servings}</span>}
               </div>
-            )}
-
-            {v?.description && (
-              <p className="mb-3 text-[13px] leading-relaxed text-vscode-foreground/90">{v.description}</p>
-            )}
-
-            {/* Equipment — per skill level. Was the missing piece — every
-                curated recipe row has equipment but the read path didn't
-                fetch it and the display didn't render it. */}
-            {v && v.equipment && v.equipment.length > 0 && (
-              <div className="mb-4">
-                <h4 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.equipment')}</h4>
-                <ul className="grid gap-1.5 rounded-lg border border-vscode-panelBorder/60 p-4 sm:grid-cols-2">
-                  {v.equipment.map((e, i) => (
-                    <li key={i} className="flex items-baseline gap-2 text-[13px]">
-                      <span className="text-vscode-foreground/95">{e.name}</span>
-                      {e.optional && <span className="text-[10px] text-vscode-descriptionForeground">{t('health.browse.optional')}</span>}
-                      {e.notes && <span className="text-[11px] italic text-vscode-descriptionForeground">— {e.notes}</span>}
-                    </li>
+              {v.description && <p className="mb-3 text-[13px] leading-relaxed text-vscode-foreground/90">{v.description}</p>}
+              {v.equipment && v.equipment.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.equipment')}</h4>
+                  <ul className="grid gap-1.5 rounded-lg border border-vscode-panelBorder/60 p-4 sm:grid-cols-2">
+                    {v.equipment.map((e, i) => (
+                      <li key={i} className="flex items-baseline gap-2 text-[13px]">
+                        <span className="text-vscode-foreground/95">{e.name}</span>
+                        {e.optional && <span className="text-[10px] text-vscode-descriptionForeground">{t('health.browse.optional')}</span>}
+                        {e.notes && <span className="text-[11px] italic text-vscode-descriptionForeground">— {e.notes}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {((v.diets && v.diets.length > 0) || (v.dietary_flags && v.dietary_flags.length > 0)) && (
+                <div className="mb-4 flex flex-wrap gap-1.5">
+                  {v.diets?.map((d) => (
+                    <span key={`d-${d}`} className="rounded-full border border-[rgba(168,85,247,0.30)] bg-[rgba(168,85,247,0.08)] px-2.5 py-0.5 text-[10px] uppercase tracking-wider text-[#c084fc]">{d}</span>
                   ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Diets + dietary flags as quiet chip rows so allergen-aware
-                users can scan the recipe at a glance. */}
-            {v && ((v.diets && v.diets.length > 0) || (v.dietary_flags && v.dietary_flags.length > 0)) && (
-              <div className="mb-4 flex flex-wrap gap-1.5">
-                {v.diets?.map((d) => (
-                  <span key={`d-${d}`} className="rounded-full border border-[rgba(168,85,247,0.30)] bg-[rgba(168,85,247,0.08)] px-2.5 py-0.5 text-[10px] uppercase tracking-wider text-[#c084fc]">
-                    {d}
-                  </span>
-                ))}
-                {v.dietary_flags?.map((f) => (
-                  <span key={`f-${f}`} className="rounded-full border border-amber-400/30 bg-amber-400/5 px-2.5 py-0.5 text-[10px] uppercase tracking-wider text-amber-300">
-                    {f}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {v && (
+                  {v.dietary_flags?.map((f) => (
+                    <span key={`f-${f}`} className="rounded-full border border-amber-400/30 bg-amber-400/5 px-2.5 py-0.5 text-[10px] uppercase tracking-wider text-amber-300">{f}</span>
+                  ))}
+                </div>
+              )}
               <ol className="space-y-2">
                 {v.steps.map((s, i) => (
                   <li key={i} className="flex gap-3 rounded-md border border-vscode-panelBorder/60 px-3 py-2.5">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-amber-400 text-[11px] font-medium text-amber-300">
-                      {i + 1}
-                    </span>
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-amber-400 text-[11px] font-medium text-amber-300">{i + 1}</span>
                     <div className="flex-1 text-[13px] leading-relaxed">
                       <p className="text-vscode-foreground/95">
                         {s.action}
-                        {s.tricky_flag && (
-                          <span className="ml-2 align-middle rounded-sm bg-amber-400/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-amber-300">{t('health.browse.tricky')}</span>
-                        )}
+                        {s.tricky_flag && <span className="ml-2 align-middle rounded-sm bg-amber-400/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-amber-300">{t('health.browse.tricky')}</span>}
                       </p>
-                      {s.technique_term && (
-                        <p className="mt-1 text-[11px] uppercase tracking-wider text-amber-300/80">{s.technique_term}</p>
-                      )}
-                      {s.notes && (
-                        <p className="mt-1 text-[12px] italic text-vscode-descriptionForeground">{s.notes}</p>
-                      )}
+                      {s.technique_term && <p className="mt-1 text-[11px] uppercase tracking-wider text-amber-300/80">{s.technique_term}</p>}
+                      {s.notes && <p className="mt-1 text-[12px] italic text-vscode-descriptionForeground">{s.notes}</p>}
                       {s.time_estimate_seconds != null && s.time_estimate_seconds > 0 && (
-                        <p className="mt-1 text-[10px] text-vscode-descriptionForeground/80">
-                          ~{Math.round(s.time_estimate_seconds / 60)}m
-                        </p>
+                        <p className="mt-1 text-[10px] text-vscode-descriptionForeground/80">~{Math.round(s.time_estimate_seconds / 60)}m</p>
                       )}
                     </div>
                   </li>
                 ))}
               </ol>
-            )}
-          </section>
-        )}
+            </div>
+          )}
+
+          {tab === 'nutrition' && v && (
+            <div>
+              {levelPills}
+              <NutritionGrid n={v.nutrition} />
+            </div>
+          )}
+        </DetailScroll>
       </div>
     </div>
   );
