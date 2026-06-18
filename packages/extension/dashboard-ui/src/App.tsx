@@ -340,7 +340,7 @@ export function App() {
     post({ type: 'load_health_exercises', limit, offset, workoutType, q, seq, locale: getLocale() });
     window.setTimeout(() => setHealthExercisesLoading(false), 15000);
   }, []);
-  const handleLoadHealthRecipes = useCallback((limit?: number, offset?: number, course?: string, q?: string, collection?: string) => {
+  const handleLoadHealthRecipes = useCallback((limit?: number, offset?: number, course?: string, q?: string, collection?: string, extra?: { collections?: string[]; diets?: string[]; flags?: string[]; cuisines?: string[]; maxTime?: number; sort?: 'name' }) => {
     healthRecipesSeqRef.current += 1;
     const seq = healthRecipesSeqRef.current;
     setHealthRecipesLoading(true);
@@ -348,7 +348,7 @@ export function App() {
     const now = Date.now();
     healthPerfPostTs.set(seq, now);
     console.log(`[health-perf] webview POST load_health_recipes seq=${seq} at ${now} (+${now - HEALTH_PERF_BUNDLE_EVAL}ms since eval)`);
-    post({ type: 'load_health_recipes', limit, offset, course, collection, q, seq, locale: getLocale() });
+    post({ type: 'load_health_recipes', limit, offset, course, collection, q, seq, locale: getLocale(), ...extra });
     window.setTimeout(() => setHealthRecipesLoading(false), 15000);
   }, []);
   const handleLoadHealthExerciseDetail = useCallback((slug: string) => {

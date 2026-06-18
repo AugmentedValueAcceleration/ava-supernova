@@ -990,7 +990,15 @@ export class DashboardPanel {
         const t0 = Date.now();
         const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
         if (msg.course) params.set('course', msg.course);
-        if (msg.collection) params.set('collection', msg.collection);
+        // Structured filters — collection(s)/diet/flag/cuisine are comma-separated
+        // multi-selects; the single `collection` folds into the list for back-compat.
+        const collSlugs = [...(msg.collection ? [msg.collection] : []), ...(msg.collections ?? [])];
+        if (collSlugs.length) params.set('collection', collSlugs.join(','));
+        if (msg.diets?.length) params.set('diet', msg.diets.join(','));
+        if (msg.flags?.length) params.set('flag', msg.flags.join(','));
+        if (msg.cuisines?.length) params.set('cuisine', msg.cuisines.join(','));
+        if (msg.maxTime != null) params.set('max_time', String(msg.maxTime));
+        if (msg.sort) params.set('sort', msg.sort);
         if (msg.q && msg.q.trim()) params.set('q', msg.q.trim());
         if (msg.locale && msg.locale !== 'en') params.set('locale', msg.locale);
         try {
@@ -1087,16 +1095,27 @@ export class DashboardPanel {
       // write to the catalog as the authenticated user.
 
       case 'load_health_taxonomies': {
-        const empty: HealthTaxonomies = { allergens: [], contraindications: [], cuisines: [], diets: [], dietary_flags: [] };
+        const empty: HealthTaxonomies = { allergens: [], contraindications: [], cuisines: [], diets: [], dietary_flags: [], collections: [] };
         this.log('[health] load taxonomies — start');
         try {
           // Use the Node https helper instead of global fetch — global
           // fetch has been unreliable in some VSCode extension host
           // builds; httpGetJson talks to the same endpoint via Node's
           // native https stack with no extra runtime surface.
-          const data = await httpGetJson('https://ava-supernova.com/api/health/taxonomies') as HealthTaxonomies;
-          this.log(`[health] taxonomies loaded a=${data?.allergens?.length ?? 0} c=${data?.contraindications?.length ?? 0} cu=${data?.cuisines?.length ?? 0}`);
-          this.post({ type: 'health_taxonomies_loaded', taxonomies: data ?? empty });
+          const raw = await httpGetJson('https://ava-supernova.com/api/health/taxonomies') as Partial<HealthTaxonomies> | null;
+          // Normalise every axis to an array — older API builds (pre-deploy)
+          // don't return `collections`, and a missing field must never crash
+          // the filter UI's `.length` reads.
+          const data: HealthTaxonomies = {
+            allergens: raw?.allergens ?? [],
+            contraindications: raw?.contraindications ?? [],
+            cuisines: raw?.cuisines ?? [],
+            diets: raw?.diets ?? [],
+            dietary_flags: raw?.dietary_flags ?? [],
+            collections: raw?.collections ?? [],
+          };
+          this.log(`[health] taxonomies loaded a=${data.allergens.length} c=${data.contraindications.length} cu=${data.cuisines.length} col=${data.collections.length}`);
+          this.post({ type: 'health_taxonomies_loaded', taxonomies: data });
         } catch (err) {
           this.log(`[health] load taxonomies error: ${err instanceof Error ? err.message : String(err)}`);
           this.post({ type: 'health_taxonomies_loaded', taxonomies: empty });

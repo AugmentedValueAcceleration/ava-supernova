@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
 import { HealthSubmissionModal } from './HealthSubmissionModal';
@@ -87,7 +87,7 @@ interface Props {
   recipeDetail: HealthRecipeDetail | null;
   detailLoading: boolean;
   onLoadExercises: (limit?: number, offset?: number, workoutType?: string, q?: string) => void;
-  onLoadRecipes: (limit?: number, offset?: number, course?: string, q?: string, collection?: string) => void;
+  onLoadRecipes: (limit?: number, offset?: number, course?: string, q?: string, collection?: string, extra?: { collections?: string[]; diets?: string[]; flags?: string[]; cuisines?: string[]; maxTime?: number; sort?: 'name' }) => void;
   onLoadExerciseDetail: (slug: string) => void;
   onLoadRecipeDetail: (slug: string) => void;
   // Submission flow
@@ -173,10 +173,26 @@ export function Health({
   };
   const [exerciseFilter, setExerciseFilter] = useState<'all' | HealthWorkoutType>('all');
   const [recipeFilter, setRecipeFilter] = useState<'all' | string>('all');
-  // "From Scratch" section — the curated `unprocessed` collection (made entirely
-  // from fresh ingredients, nothing processed). A separate dimension that
-  // composes with the course chips, so From Scratch + Breakfast works.
-  const [recipeFromScratch, setRecipeFromScratch] = useState(false);
+  // Structured recipe filters. Collections + course are the always-on Tier-1
+  // chips; diets / dietary-flags (free-from) / cuisines / max-time / sort live
+  // in the Tier-2 "Filters" panel. Slugs OR within an axis, AND across axes —
+  // the backend resolves + intersects them. (Replaces the single From Scratch
+  // toggle, which was just the `unprocessed` collection.)
+  const [recipeCollections, setRecipeCollections] = useState<Set<string>>(new Set());
+  const [recipeDiets, setRecipeDiets] = useState<Set<string>>(new Set());
+  const [recipeFlags, setRecipeFlags] = useState<Set<string>>(new Set());
+  const [recipeCuisines, setRecipeCuisines] = useState<Set<string>>(new Set());
+  const [recipeMaxTime, setRecipeMaxTime] = useState<number | null>(null);
+  const [recipeSort, setRecipeSort] = useState<'curated' | 'name'>('curated');
+  // The structured-filter payload for onLoadRecipes' `extra` arg.
+  const recipeExtra = () => ({
+    collections: recipeCollections.size ? [...recipeCollections] : undefined,
+    diets: recipeDiets.size ? [...recipeDiets] : undefined,
+    flags: recipeFlags.size ? [...recipeFlags] : undefined,
+    cuisines: recipeCuisines.size ? [...recipeCuisines] : undefined,
+    maxTime: recipeMaxTime ?? undefined,
+    sort: recipeSort === 'curated' ? undefined : recipeSort,
+  });
   // Search state — local to the page; resets on close/reopen. Debounced
   // to 300ms via the effects below so we don't fire a request per keystroke.
   const [exerciseSearch, setExerciseSearch] = useState('');
@@ -217,8 +233,10 @@ export function Health({
       onLoadExercises(PAGE_SIZE, 0, exerciseFilter === 'all' ? undefined : exerciseFilter);
     }
     if (tab === 'recipes' && recipes.length === 0 && recipesTotal === 0 && !recipesLoading) {
-      onLoadRecipes(PAGE_SIZE, 0, recipeFilter === 'all' ? undefined : recipeFilter, undefined, recipeFromScratch ? 'unprocessed' : undefined);
+      onLoadRecipes(PAGE_SIZE, 0, recipeFilter === 'all' ? undefined : recipeFilter, undefined, undefined, recipeExtra());
     }
+    // Filter chips need the taxonomies (collections / diets / flags / cuisines).
+    if (tab === 'recipes' && !taxonomies) onLoadTaxonomies();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -230,12 +248,13 @@ export function Health({
   };
   const handleRecipeFilterChange = (next: 'all' | string) => {
     setRecipeFilter(next);
-    onLoadRecipes(PAGE_SIZE, 0, next === 'all' ? undefined : next, recipeSearch.trim() || undefined, recipeFromScratch ? 'unprocessed' : undefined);
+    onLoadRecipes(PAGE_SIZE, 0, next === 'all' ? undefined : next, recipeSearch.trim() || undefined, undefined, recipeExtra());
   };
-  // From Scratch toggle — resets to page 0, keeps the current course + search.
-  const handleFromScratchToggle = (next: boolean) => {
-    setRecipeFromScratch(next);
-    onLoadRecipes(PAGE_SIZE, 0, recipeFilter === 'all' ? undefined : recipeFilter, recipeSearch.trim() || undefined, next ? 'unprocessed' : undefined);
+  // Toggle a slug in a structured multi-select axis (immutable Set + reload).
+  const toggleRecipeAxis = (set: Set<string>, setSet: (s: Set<string>) => void) => (slug: string) => {
+    const next = new Set(set);
+    if (next.has(slug)) next.delete(slug); else next.add(slug);
+    setSet(next);
   };
 
   // Page navigation — current offset comes from App.tsx so we always
@@ -244,7 +263,7 @@ export function Health({
     onLoadExercises(PAGE_SIZE, newOffset, exerciseFilter === 'all' ? undefined : exerciseFilter, exerciseSearch.trim() || undefined);
   };
   const goRecipesPage = (newOffset: number) => {
-    onLoadRecipes(PAGE_SIZE, newOffset, recipeFilter === 'all' ? undefined : recipeFilter, recipeSearch.trim() || undefined, recipeFromScratch ? 'unprocessed' : undefined);
+    onLoadRecipes(PAGE_SIZE, newOffset, recipeFilter === 'all' ? undefined : recipeFilter, recipeSearch.trim() || undefined, undefined, recipeExtra());
   };
 
   // Search — debounced 300ms. Fires on every value change including the
@@ -269,12 +288,27 @@ export function Health({
         PAGE_SIZE, 0,
         recipeFilter === 'all' ? undefined : recipeFilter,
         recipeSearch.trim() || undefined,
-        recipeFromScratch ? 'unprocessed' : undefined,
+        undefined,
+        recipeExtra(),
       );
     }, 300);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recipeSearch]);
+
+  // Structured filters changed (collections / diets / flags / cuisines / time /
+  // sort) — reload page 0 with the current course + search. Course changes go
+  // through handleRecipeFilterChange; search through its own debounce above.
+  useEffect(() => {
+    onLoadRecipes(
+      PAGE_SIZE, 0,
+      recipeFilter === 'all' ? undefined : recipeFilter,
+      recipeSearch.trim() || undefined,
+      undefined,
+      recipeExtra(),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recipeCollections, recipeDiets, recipeFlags, recipeCuisines, recipeMaxTime, recipeSort]);
 
   // ESC closes whichever modal is open.
   useEffect(() => {
@@ -389,8 +423,20 @@ export function Health({
             offset={recipesOffset}
             filter={recipeFilter}
             onFilter={handleRecipeFilterChange}
-            fromScratch={recipeFromScratch}
-            onFromScratch={handleFromScratchToggle}
+            taxonomies={taxonomies}
+            collections={recipeCollections}
+            diets={recipeDiets}
+            flags={recipeFlags}
+            cuisines={recipeCuisines}
+            maxTime={recipeMaxTime}
+            sort={recipeSort}
+            onToggleCollection={toggleRecipeAxis(recipeCollections, setRecipeCollections)}
+            onToggleDiet={toggleRecipeAxis(recipeDiets, setRecipeDiets)}
+            onToggleFlag={toggleRecipeAxis(recipeFlags, setRecipeFlags)}
+            onToggleCuisine={toggleRecipeAxis(recipeCuisines, setRecipeCuisines)}
+            onMaxTime={setRecipeMaxTime}
+            onSort={setRecipeSort}
+            onClearFilters={() => { setRecipeCollections(new Set()); setRecipeDiets(new Set()); setRecipeFlags(new Set()); setRecipeCuisines(new Set()); setRecipeMaxTime(null); setRecipeSort('curated'); }}
             onPage={goRecipesPage}
             loading={recipesLoading}
             error={recipesError}
@@ -730,8 +776,20 @@ interface RecipesGridProps {
   offset: number;
   filter: 'all' | string;
   onFilter: (f: 'all' | string) => void;
-  fromScratch: boolean;
-  onFromScratch: (next: boolean) => void;
+  taxonomies: HealthTaxonomies | null;
+  collections: Set<string>;
+  diets: Set<string>;
+  flags: Set<string>;
+  cuisines: Set<string>;
+  maxTime: number | null;
+  sort: 'curated' | 'name';
+  onToggleCollection: (slug: string) => void;
+  onToggleDiet: (slug: string) => void;
+  onToggleFlag: (slug: string) => void;
+  onToggleCuisine: (slug: string) => void;
+  onMaxTime: (n: number | null) => void;
+  onSort: (s: 'curated' | 'name') => void;
+  onClearFilters: () => void;
   onPage: (newOffset: number) => void;
   loading: boolean;
   error: boolean;
@@ -743,7 +801,9 @@ interface RecipesGridProps {
   onView: (v: View) => void;
 }
 
-function RecipesGrid({ items, total, offset, filter, onFilter, fromScratch, onFromScratch, onPage, loading, error, onOpen, search, onSearch, onRefresh, view, onView }: RecipesGridProps) {
+function RecipesGrid({ items, total, offset, filter, onFilter, taxonomies, collections, diets, flags, cuisines, maxTime, sort, onToggleCollection, onToggleDiet, onToggleFlag, onToggleCuisine, onMaxTime, onSort, onClearFilters, onPage, loading, error, onOpen, search, onSearch, onRefresh, view, onView }: RecipesGridProps) {
+  const tier2Count = collections.size + diets.size + flags.size + cuisines.size + (maxTime != null ? 1 : 0) + (sort !== 'curated' ? 1 : 0);
+
   if (loading && items.length === 0 && !search) {
     return (
       <ul className={browseLayoutClass(view)}>
@@ -753,6 +813,7 @@ function RecipesGrid({ items, total, offset, filter, onFilter, fromScratch, onFr
       </ul>
     );
   }
+  const TIME_PRESETS = [15, 30, 45, 60];
   return (
     <div>
       <div className="flex items-center gap-3 mb-3">
@@ -767,31 +828,52 @@ function RecipesGrid({ items, total, offset, filter, onFilter, fromScratch, onFr
         <ViewToggle view={view} onView={onView} />
         <RefreshButton onClick={onRefresh} loading={loading && search.length === 0} />
       </div>
-      {/* From Scratch — the curated `unprocessed` collection. A separate
-          dimension (rounded pill) that composes with the course chips below. */}
-      <div className="mb-3 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => onFromScratch(!fromScratch)}
-          title={tt('health.browse.from_scratch_hint', 'Made entirely from scratch — fresh ingredients, nothing processed')}
-          className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium transition ${
-            fromScratch
-              ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]'
-              : 'border-[var(--border)] bg-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-          }`}
-        >
-          <span aria-hidden>✦</span>
-          {tt('health.browse.from_scratch', 'From Scratch')}
-        </button>
-      </div>
+
+      {/* Course — the meal-type tabs (single-select), kept inline. */}
       <FilterRow>
         <FilterChip active={filter === 'all'} onClick={() => onFilter('all')}>{t('health.browse.filter.all')}</FilterChip>
         {COURSE_ORDER.map((c) => (
-          <FilterChip key={c} active={filter === c} onClick={() => onFilter(c)}>
-            {courseLabel(c)}
-          </FilterChip>
+          <FilterChip key={c} active={filter === c} onClick={() => onFilter(c)}>{courseLabel(c)}</FilterChip>
         ))}
       </FilterRow>
+
+      {/* Filter categories — one compact multi-select dropdown each, inline.
+          Keeps every axis visible without a wall of 80+ chips, and there's no
+          hidden overlay. Collections + diet + dietary-flags + cuisine are
+          multi-select; time + sort show their current value. */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        {(taxonomies?.collections?.length ?? 0) > 0 && (
+          <FilterDropdown label={tt('health.browse.group.collections', 'Collections')} options={taxonomies!.collections} selected={collections} onToggle={onToggleCollection} />
+        )}
+        {(taxonomies?.diets?.length ?? 0) > 0 && (
+          <FilterDropdown label={tt('health.browse.group.diet', 'Diet')} options={taxonomies!.diets} selected={diets} onToggle={onToggleDiet} />
+        )}
+        {(taxonomies?.dietary_flags?.length ?? 0) > 0 && (
+          <FilterDropdown label={tt('health.browse.group.dietary', 'Dietary needs')} options={taxonomies!.dietary_flags} selected={flags} onToggle={onToggleFlag} />
+        )}
+        {(taxonomies?.cuisines?.length ?? 0) > 0 && (
+          <FilterDropdown label={tt('health.browse.group.cuisine', 'Cuisine')} options={taxonomies!.cuisines} selected={cuisines} onToggle={onToggleCuisine} />
+        )}
+        <FilterDropdown
+          label={tt('health.browse.group.time', 'Time')}
+          options={TIME_PRESETS.map((m) => ({ slug: String(m), name: `≤ ${m} min` }))}
+          selected={new Set(maxTime != null ? [String(maxTime)] : [])}
+          onToggle={(s) => onMaxTime(maxTime === Number(s) ? null : Number(s))}
+          valueLabel={maxTime != null ? `≤ ${maxTime} min` : undefined}
+        />
+        <FilterDropdown
+          label={tt('health.browse.group.sort', 'Sort')}
+          options={[{ slug: 'curated', name: tt('health.browse.sort.curated', 'Curated') }, { slug: 'name', name: tt('health.browse.sort.name', 'A–Z') }]}
+          selected={new Set([sort])}
+          onToggle={(s) => onSort(s as 'curated' | 'name')}
+          valueLabel={sort === 'name' ? tt('health.browse.sort.name', 'A–Z') : tt('health.browse.sort.curated', 'Curated')}
+        />
+        {tier2Count > 0 && (
+          <button onClick={onClearFilters} className="ml-1 cursor-pointer border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-secondary)]">
+            {tt('health.browse.clear_all', 'Clear filters')}
+          </button>
+        )}
+      </div>
 
       {items.length === 0 ? (
         error ? (
@@ -810,6 +892,68 @@ function RecipesGrid({ items, total, offset, filter, onFilter, fromScratch, onFr
           </ul>
           <Pagination total={total} offset={offset} onPage={onPage} loading={loading} />
         </>
+      )}
+    </div>
+  );
+}
+
+/** One filter axis as a compact multi-select dropdown. The trigger shows the
+ *  axis name + a selected count (or a single value via `valueLabel`); the
+ *  popover is an opaque checklist — opaque on purpose, because the page's
+ *  --bg-card token is translucent and would show through. Closes on outside
+ *  click or Escape. */
+function FilterDropdown({ label, options, selected, onToggle, valueLabel }: {
+  label: string;
+  options: { slug: string; name: string }[];
+  selected: Set<string>;
+  onToggle: (slug: string) => void;
+  valueLabel?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+  const count = selected.size;
+  const active = valueLabel ? true : count > 0;
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium transition ${
+          active && (valueLabel ? valueLabel !== tt('health.browse.sort.curated', 'Curated') : true)
+            ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]'
+            : 'border-[var(--border)] bg-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+        }`}
+      >
+        {valueLabel ? `${label}: ${valueLabel}` : `${label}${count > 0 ? ` · ${count}` : ''}`}
+        <span aria-hidden className="text-[8px] opacity-70">&#9662;</span>
+      </button>
+      {open && (
+        <div className="absolute left-0 z-50 mt-1.5 max-h-72 w-60 overflow-y-auto rounded-xl border border-[var(--border)] bg-[#1a1028] p-1.5 shadow-2xl">
+          {options.map((o) => {
+            const on = selected.has(o.slug);
+            return (
+              <button
+                key={o.slug}
+                type="button"
+                onClick={() => onToggle(o.slug)}
+                className={`flex w-full cursor-pointer items-center gap-2.5 rounded-lg border-none bg-transparent px-2.5 py-1.5 text-left text-[12px] transition ${
+                  on ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-input)]'
+                }`}
+              >
+                <span className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border text-[8px] ${on ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : 'border-[var(--border)]'}`}>{on ? '✓' : ''}</span>
+                {o.name}
+              </button>
+            );
+          })}
+        </div>
       )}
     </div>
   );

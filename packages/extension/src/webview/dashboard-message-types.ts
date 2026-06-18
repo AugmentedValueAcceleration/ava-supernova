@@ -621,12 +621,21 @@ export interface HealthTaxonomyDietaryFlag {
   sort_order: number;
 }
 
+/** Curated collection (Unprocessed, …) — the operator-driven filter axis. */
+export interface HealthTaxonomyCollection {
+  slug: string;
+  name: string;
+  description?: string | null;
+  sort_order: number;
+}
+
 export interface HealthTaxonomies {
   allergens: HealthTaxonomyAllergen[];
   contraindications: HealthTaxonomyContraindication[];
   cuisines: HealthTaxonomyCuisine[];
   diets: HealthTaxonomyDiet[];
   dietary_flags: HealthTaxonomyDietaryFlag[];
+  collections: HealthTaxonomyCollection[];
 }
 
 export type HealthSubmissionStatus = 'pending' | 'rejected' | 'published';
@@ -1612,7 +1621,7 @@ export type DashboardToExtMessage =
   // limit + offset are optional; the host defaults to limit=24 offset=0
   // if either is missing.
   | { type: 'load_health_exercises'; limit?: number; offset?: number; workoutType?: string; q?: string; seq?: number; locale?: string }
-  | { type: 'load_health_recipes'; limit?: number; offset?: number; course?: string; collection?: string; q?: string; seq?: number; locale?: string }
+  | { type: 'load_health_recipes'; limit?: number; offset?: number; course?: string; collection?: string; q?: string; seq?: number; locale?: string; collections?: string[]; diets?: string[]; flags?: string[]; cuisines?: string[]; maxTime?: number; sort?: 'name' }
   | { type: 'load_health_exercise_detail'; slug: string; locale?: string }
   | { type: 'load_health_recipe_detail'; slug: string; locale?: string }
   | { type: 'load_health_taxonomies' }
