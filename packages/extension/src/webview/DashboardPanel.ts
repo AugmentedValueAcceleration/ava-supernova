@@ -161,6 +161,25 @@ export class DashboardPanel {
     DashboardPanel.currentPanel = new DashboardPanel(panel, extensionUri, context, viewProvider);
   }
 
+  /** Reveal the dashboard and (re)show the welcome overlay. Used by the
+   *  "Ava: Show Welcome Tour" command — non-destructive, works even when the
+   *  "show on startup" setting is off. */
+  public static showWelcomeTour(extensionUri: vscode.Uri, context: vscode.ExtensionContext, viewProvider?: AvaViewProvider): void {
+    const existed = !!DashboardPanel.currentPanel;
+    DashboardPanel.show(extensionUri, context, viewProvider);
+    // If the panel was already open, post immediately. A freshly-created panel
+    // shows the welcome via its init payload (when the setting is on); if the
+    // setting is off, the post after webview_ready handles it.
+    if (existed) DashboardPanel.currentPanel?.post({ type: 'show_welcome' });
+    else DashboardPanel.currentPanel?.queueWelcomeTour();
+  }
+
+  /** Show the welcome once the webview signals ready (for freshly-opened panels). */
+  private welcomeTourQueued = false;
+  private queueWelcomeTour(): void {
+    this.welcomeTourQueued = true;
+  }
+
   // ─── Constructor ───────────────────────────────────────────────────────────
 
   private constructor(
@@ -222,6 +241,12 @@ export class DashboardPanel {
         this.log(`[health-perf] HOST recv webview_ready at ${tReady}`);
         await this.sendInit();
         this.log(`[health-perf] HOST sendInit done ${Date.now() - tReady}ms`);
+        // A "Show Welcome Tour" command opened this fresh panel — force-show
+        // the overlay now that the webview is ready (covers the setting-off case).
+        if (this.welcomeTourQueued) {
+          this.welcomeTourQueued = false;
+          this.post({ type: 'show_welcome' });
+        }
         // Also initialise the chat engine
         if (this.viewProvider) {
           this.viewProvider.initChatForUnifiedPanel().catch((err) => console.error('[Ava] Chat init failed:', err));
@@ -1825,6 +1850,14 @@ export class DashboardPanel {
         await this.loadAvatar();
         break;
 
+      case 'set_welcome_on_startup':
+        // The welcome overlay's "Show on startup" checkbox. Persists to the
+        // VS Code setting so it also appears (and can be re-enabled) in Settings.
+        await vscode.workspace.getConfiguration('ava-supernova').update(
+          'preferences.showWelcomeOnStartup', msg.enabled, vscode.ConfigurationTarget.Global,
+        );
+        break;
+
       // ─── Overview widget messages ───────────────────────────────────────────────
 
       case 'load_weather':
@@ -1965,7 +1998,11 @@ export class DashboardPanel {
     // know the user is signed in but the account snapshot is still
     // loading — surfaces (NavSidebar account block, Billing) show their
     // own loading state until account_updated arrives.
-    this.post({ type: 'init', account: null, connections, settings, providerKeys, locale, platformKey: platformKey || undefined, providerSource });
+    // Welcome overlay gate — shows on the dashboard on every startup while the
+    // "show welcome on startup" preference is on (default true), for everyone
+    // regardless of sign-in. The overlay's checkbox + the VS Code setting toggle it.
+    const welcomeOnStartup = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.showWelcomeOnStartup') ?? true;
+    this.post({ type: 'init', account: null, connections, settings, providerKeys, locale, platformKey: platformKey || undefined, providerSource, showWelcome: welcomeOnStartup, welcomeOnStartup });
 
     // Background account fetch — fire-and-forget. Posts account_updated
     // when the platform responds (or times out at 10s). The dashboard

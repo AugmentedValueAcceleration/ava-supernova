@@ -1404,12 +1404,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       locale: this.currentLocale,
       providerSource: this.providerSource,
       platformStatus,
-      // First-run welcome modal gate. Appears once after the user has
-      // passed setup (so the modal isn't racing with SignInScreen /
-      // needsSetup states). Dismissed via the mark_onboarded message,
-      // which flips ava.onboardedV1 in globalState forever on this
-      // install.
-      showWelcome: !this.context.globalState.get('ava.onboardedV1') && !!this.agent,
+      // Onboarding/welcome now lives in the dashboard (Command Centre) — the
+      // chat webview no longer hosts it. See dashboard-ui WelcomeOnboarding.
     });
 
     // Auto-fire history list on init so the chat panel can drop its

@@ -4,6 +4,7 @@ import { post } from './vscode';
 
 import { NavSidebar } from './components/NavSidebar';
 import { DashboardTopBar } from './components/DashboardTopBar';
+import { WelcomeOnboarding } from './components/WelcomeOnboarding';
 import { ConnectAccount } from './pages/ConnectAccount';
 import { Overview } from './pages/Overview';
 import { Memory } from './pages/Memory';
@@ -83,6 +84,10 @@ export function App() {
   useLocale(); // re-render on language change
   const [initialized, setInitialized] = useState(false);
   const [page, setPage] = useState<Page>('overview');
+  // First-run welcome overlay — shows over the dashboard on startup for everyone
+  // (signed in or not) while the "show welcome on startup" preference is on.
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [welcomeOnStartup, setWelcomeOnStartup] = useState(true);
 
   // Chat page dispatch — forwards extension messages to the Chat reducer
   const chatDispatchRef = useRef<((msg: ExtToDashboardMessage) => void) | null>(null);
@@ -568,11 +573,16 @@ export function App() {
     }
 
     switch (msg.type) {
+      case 'show_welcome':
+        setShowWelcome(true);
+        break;
       case 'init':
         setAccount(msg.account);
         setConnections(msg.connections);
         setSettings(msg.settings);
         setProviderKeys(msg.providerKeys);
+        setShowWelcome(Boolean((msg as { showWelcome?: boolean }).showWelcome));
+        setWelcomeOnStartup((msg as { welcomeOnStartup?: boolean }).welcomeOnStartup ?? true);
         // accountLoading is true when we have a key but no account yet —
         // sendInit posts init with account=null and fetches the account
         // in the background, so this fires the skeleton immediately.
@@ -1566,6 +1576,15 @@ export function App() {
             {renderPage()}
           </main>
         </div>
+      )}
+      {showWelcome && (
+        <WelcomeOnboarding
+          isConnected={!!account}
+          welcomeOnStartup={welcomeOnStartup}
+          onSetWelcomeOnStartup={(enabled) => { setWelcomeOnStartup(enabled); post({ type: 'set_welcome_on_startup', enabled }); }}
+          onClose={() => setShowWelcome(false)}
+          onNavigate={(p) => setPagePersist(p as Page)}
+        />
       )}
     </div>
   );

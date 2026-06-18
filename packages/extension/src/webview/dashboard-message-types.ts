@@ -1246,7 +1246,13 @@ export type ExtToDashboardMessage =
       /** Persisted Platform/API-Key routing choice, so the NavSidebar toggle
        *  renders the host's actual source on load instead of guessing. */
       providerSource?: 'platform' | 'byok';
+      /** Render the welcome overlay on this init (gated by the "show welcome on
+       *  startup" preference). Shown for everyone, signed in or not. */
+      showWelcome?: boolean;
+      /** Current value of the "show welcome on startup" preference. */
+      welcomeOnStartup?: boolean;
     }
+  | { type: 'show_welcome' }
   | { type: 'account_updated'; account: AccountInfo | null }
   | { type: 'dataset:config'; config: {
       enabled: boolean;
@@ -1472,6 +1478,7 @@ export type ExtToDashboardMessage =
 
 export type DashboardToExtMessage =
   | { type: 'webview_ready' }
+  | { type: 'set_welcome_on_startup'; enabled: boolean }
   | { type: 'connect_account'; key: string }
   | { type: 'disconnect_account' }
   | { type: 'skip_account' }

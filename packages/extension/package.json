@@ -106,6 +106,12 @@
         "category": "Ava"
       },
       {
+        "command": "ava-supernova.openWelcome",
+        "title": "Show Welcome Tour",
+        "shortTitle": "Welcome",
+        "category": "Ava"
+      },
+      {
         "command": "ava-supernova.openDocs",
         "title": "%command.openDocs.title%",
         "shortTitle": "Docs",
@@ -353,6 +359,12 @@
             "default": true,
             "order": 5,
             "description": "%setting.autoMemory.description%"
+          },
+          "ava-supernova.preferences.showWelcomeOnStartup": {
+            "type": "boolean",
+            "default": true,
+            "order": 5,
+            "description": "Show the Ava welcome tour each time the panel opens. Turn off to hide it; you can re-enable it here or replay it any time with the 'Ava: Show Welcome Tour' command."
           },
           "ava-supernova.preferences.memoryLocalOnly": {
             "type": "boolean",

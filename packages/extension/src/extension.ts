@@ -111,6 +111,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('ava-supernova.clearChat', () => viewProvider!.clearChat()),
     vscode.commands.registerCommand('ava-supernova.switchModel', () => viewProvider!.switchModel()),
     vscode.commands.registerCommand('ava-supernova.showHistory', () => viewProvider!.showHistory()),
+    vscode.commands.registerCommand('ava-supernova.openWelcome', () => DashboardPanel.showWelcomeTour(context.extensionUri, context, viewProvider)),
     vscode.commands.registerCommand('ava-supernova.openDocs', () => DocsPanel.show(context.extensionUri)),
     vscode.commands.registerCommand('ava-supernova.openDashboard', openUnifiedPanel),
     vscode.commands.registerCommand('ava-supernova.previewDocument', async (resourceUri?: vscode.Uri) => {

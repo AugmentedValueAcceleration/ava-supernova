@@ -76,7 +76,6 @@ import { MemoryPanel } from './components/MemoryPanel';
 import { TasksPanel, DEFAULT_WIDTH } from './components/TasksPanel';
 import { TasksSpine } from './components/TasksSpine';
 import { ContextBar } from './components/ContextBar';
-import { WelcomeModal } from './components/WelcomeModal';
 import type { AvaMode, ImageAttachment } from './components/InputArea';
 import { t, setLocale, loadStrings } from './i18n';
 import { SecretsProvider } from './hooks/useSecrets';
@@ -1288,23 +1287,11 @@ export function App() {
   // signalled it on the initial init message and the user hasn't
   // dismissed it yet. The host owns the persisted "has onboarded"
   // flag; the webview just renders if told to.
-  const activeModelName = state.models.find(m => m.id === state.activeModel)?.name ?? state.activeModel;
 
   return (
     <SecretsProvider>
-    {state.showWelcome && !state.needsSetup && !state.consentRequired && (
-      <WelcomeModal
-        modelName={activeModelName}
-        freeTokensLimit={state.platformStatus?.freeTokensLimit ?? null}
-        freeTokensUsed={state.platformStatus?.freeTokensUsed ?? null}
-        isConnected={!!state.platformStatus?.connected}
-        onClose={() => {
-          postMessage({ type: 'mark_onboarded' });
-          dispatch({ type: 'dismiss_welcome' } as never);
-        }}
-        onOpenDashboardPage={(page) => postMessage({ type: 'open_dashboard_page', page })}
-      />
-    )}
+    {/* Onboarding moved to the dashboard (Command Centre) — see
+        dashboard-ui WelcomeOnboarding. The chat no longer hosts a welcome. */}
     <div className="relative flex flex-row h-screen">
       {/* Main chat column */}
       <div className="relative flex flex-col flex-1 min-w-0 h-full">

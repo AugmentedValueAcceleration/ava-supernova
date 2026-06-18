@@ -36,9 +36,8 @@ export type ExtToWebviewMessage =
       localeStrings?: Record<string, string>;
       providerSource?: ProviderSource;
       platformStatus?: PlatformStatus;
-      /** True when this install has never completed the first-run
-       *  welcome modal. Shown once on first initialization after
-       *  sign-in / setup; dismissed permanently via mark_onboarded. */
+      /** Legacy chat welcome flag — onboarding now lives in the dashboard,
+       *  so the chat no longer sends or renders this. */
       showWelcome?: boolean;
     }
   | ({ type: 'platform_status' } & PlatformStatus)
@@ -256,7 +255,7 @@ export type WebviewToExtMessage =
   | { type: 'mark_onboarded' }
   /** Dashboard-page deep-links triggered from the welcome modal's
    *  "Open docs" / "Creative Studio" / "Settings" shortcuts. */
-  | { type: 'open_dashboard_page'; page: 'documentation' | 'creative-studio' | 'account' }
+  | { type: 'open_dashboard_page'; page: 'documentation' | 'creative-studio' | 'account' | 'journal' | 'learning' | 'health' }
   | { type: 'request_history' }
   | { type: 'load_conversation'; conversationId: string }
   | { type: 'delete_conversation'; conversationId: string }
