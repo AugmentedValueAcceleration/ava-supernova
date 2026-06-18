@@ -41,6 +41,11 @@
       "require": "./dist/billing/credits.js",
       "types": "./dist/billing/credits.d.ts"
     },
+    "./creative": {
+      "import": "./dist/creative/index.js",
+      "require": "./dist/creative/index.js",
+      "types": "./dist/creative/index.d.ts"
+    },
     "./audit": {
       "import": "./dist/audit/index.js",
       "require": "./dist/audit/index.js",
