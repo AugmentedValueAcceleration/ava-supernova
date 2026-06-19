@@ -42,7 +42,7 @@ const PROVIDERS = [
     name: 'GLM (Zhipu AI)',
     placeholder: '...',
     signupUrl: 'https://z.ai',
-    description: 'GLM-5, GLM-4.7 — best tool-call reliability',
+    description: 'GLM-5.2 — open-weights, 1M context, top-tier coding',
   },
   {
     id: 'qwen' as const,

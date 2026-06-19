@@ -40,9 +40,7 @@ const PROVIDER_USD_RATES: Record<string, Record<string, ProviderRate>> = {
     'qwen3.5-flash':{ inputPerMillion: 0.05,  outputPerMillion: 0.15 },
   },
   zhipu: {
-    'glm-5.1':     { inputPerMillion: 1.40, outputPerMillion: 4.40 },
-    'glm-5':       { inputPerMillion: 1.00, outputPerMillion: 3.20 },
-    'glm-4.7':     { inputPerMillion: 0.60, outputPerMillion: 2.20 },
+    'glm-5.2':     { inputPerMillion: 1.40, outputPerMillion: 4.40 },
     'glm-4.5-air': { inputPerMillion: 0.20, outputPerMillion: 1.10 },
   },
   mistral: {

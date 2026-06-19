@@ -13,7 +13,7 @@ import type { ModelDefinition } from '../core/types.js';
  * Priority (all coordinator-eligible Plus models are 1M context; Flash tiers are 256K).
  * Every plan has access to every model — tier differs by token allowance, not model access.
  *   Platform  → Qwen 3.6 Plus (1M) → Qwen 3.5 Plus (1M) → Qwen 3.5 Flash (256K)
- *   BYOK      → Kimi K2.6 > Opus 4.8 > Sonnet > K2.5 > DeepSeek > GLM-5 > Mistral > Qwen
+ *   BYOK      → Kimi K2.6 > Opus 4.8 > Sonnet > K2.5 > DeepSeek > GLM-5.2 > Mistral > Qwen
  *
  * BYOK ordering puts Kimi K2.6 at the top because Ava is an agentic coder first
  * and K2.6 is SoTA on the benchmarks that measure that job:
@@ -46,7 +46,7 @@ const BYOK_PRIORITY = [
   { id: 'kimi-k2.5',            reason: 'Kimi K2.5 — legacy agentic fallback' },
   { id: 'deepseek-v4-pro',      reason: 'DeepSeek V4 Pro — frontier coding + long-context reasoning' },
   { id: 'qwen3.6-plus',         reason: 'Qwen 3.6 Plus — flagship Maestro coordinator: #1 SWE-bench Pro, Terminal-Bench leader, 1M context, reasoning-capable' },
-  { id: 'glm-5',                reason: 'Zhipu GLM-5 — 200K context, tools + vision' },
+  { id: 'glm-5.2',              reason: 'Zhipu GLM-5.2 — open-weights, 1M context, tools + vision' },
   { id: 'mistral-large-3',      reason: 'Mistral Large 3 — broad-knowledge fallback (non-reasoning today)' },
   { id: 'qwen3.5-plus',         reason: 'Qwen 3.5 Plus — 1M context fallback' },
   { id: 'qwen3.5-flash',        reason: 'Qwen 3.5 Flash — lightweight fallback' },

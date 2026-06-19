@@ -64,7 +64,7 @@ function fallbackNote(model: ModelDefinition): string {
     `Your current model (${model.name || model.id}) doesn't support images.`,
     'To analyse images, switch to a vision-capable model:',
     '- Qwen 3.6 Plus / Qwen 3.5 Omni Plus / Omni Flash (multimodal)',
-    '- Kimi K2.5, GLM-5, Mistral Large, Claude (BYOK)',
+    '- Kimi K2.5, GLM-5.2, Mistral Large, Claude (BYOK)',
   ].join('\n');
 }
 

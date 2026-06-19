@@ -5,7 +5,7 @@ Pick the model that fits your workflow. **Qwen Flash is free with a platform acc
 | Model | Best For |
 |---|---|
 | **Qwen Flash** | **FREE** (300 credits) — Fast and reliable |
-| **GLM-5** | Best tool-call reliability, vision, thinking (77.8% SWE-Bench) |
+| **GLM-5.2** | Open-weights, 1M context, vision + thinking, top open-weight coding |
 | **Kimi K2.5** | Best tool calling, vision, 256K context (76.8% SWE-Bench) |
 | **DeepSeek V3.2** | Best value at $0.28/M, fast general-purpose coding |
 | **DeepSeek Reasoner** | Complex reasoning tasks with chain-of-thought |
