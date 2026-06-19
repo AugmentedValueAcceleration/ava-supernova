@@ -1784,9 +1784,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // (see orchestration-gate dedupe below) without re-threading.
     this.sharedState = sharedState;
 
-    // Auto Mode — detect available providers and create coordinator
+    // Auto Mode — detect available providers and create coordinator.
+    // The provider-source toggle is authoritative: 'byok' means the user is
+    // running their own keys this turn, so platform is withheld entirely.
+    // Routing + the persona team then run on their chosen model, never a
+    // managed one — and `hasPlatform` goes false so the BYOK persona pin fires.
+    const usePlatform = this.providerSource === 'platform' && !!platformKey;
     const availableProviders = new Set<string>();
-    if (platformKey) availableProviders.add('platform');
+    if (usePlatform) availableProviders.add('platform');
     if (qwenApiKey) availableProviders.add('qwen');
     if (minimaxApiKey) availableProviders.add('minimax');
     const kimiKey = await this.context.secrets.get('ava-supernova.provider.kimi.apiKey') || undefined;
@@ -1819,7 +1824,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         cwd,
         sharedState,
         availableProviders,
-        platformKey,
+        platformKey: usePlatform ? platformKey : undefined,
         mode: routingMode,
         // Thread Decisions folder state through to spawned task agents so
         // Builder agents share the same project context as the conductor.
