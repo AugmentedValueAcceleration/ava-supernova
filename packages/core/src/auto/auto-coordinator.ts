@@ -74,6 +74,15 @@ export class AutoCoordinator {
    * Conductor.needsOrchestration gate.
    */
   private intentGate: { provider: Provider; model: ModelDefinition } | null;
+  /**
+   * True when a platform key is present. On platform we split light-tier
+   * personas onto a cheap fast model (a cost optimisation — the platform
+   * holds every key). On BYOK (false) we DON'T: the whole persona team runs
+   * on the user's one coordinator model, so the full Ava orchestration runs
+   * on the model they actually chose, never silently handed to a model they
+   * may not even have a key for.
+   */
+  private readonly hasPlatform: boolean;
   // The Agent currently executing inside run(). May be the planning task agent
   // or a Builder spawned by TaskExecutor. inject() forwards to whichever is
   // active so user mid-run messages reach the agent that's actually running.
@@ -182,10 +191,11 @@ export class AutoCoordinator {
     // Prefers Qwen 3.5 Flash on platform; falls through to Haiku/DeepSeek
     // on BYOK. Null if nothing viable is reachable — in that case the
     // spawn decision falls back to the regex-based Conductor gate only.
+    this.hasPlatform = !!opts.platformKey || opts.availableProviders.has('platform');
     this.intentGate = resolveIntentGateModel(
       opts.providerRegistry,
       opts.availableProviders,
-      !!opts.platformKey || opts.availableProviders.has('platform'),
+      this.hasPlatform,
     );
 
     // The coordinator's own agent — handles direct tasks (chat, simple questions).
@@ -947,12 +957,16 @@ Should these tasks be executed as a plan? Output yes or no.`;
       const taskConductor = new Conductor({
         provider: route.provider,
         model: route.model,
-        // Thread the intent-gate's cheap fast pair through so personas
-        // tagged modelTier:'light' (critics, summarisers, readers) run
-        // on it instead of the heavy route model. Null = Conductor
-        // falls back to the heavy pair for everything.
-        lightProvider: this.intentGate?.provider,
-        lightModel: this.intentGate?.model,
+        // PLATFORM: thread the intent-gate's cheap fast pair through so
+        // personas tagged modelTier:'light' (critics, summarisers, readers)
+        // run on it instead of the heavy route model — a cost optimisation
+        // the platform can afford because it holds every key.
+        // BYOK: pass nothing, so the Conductor runs EVERY persona on the
+        // user's coordinator model. The full persona team — the real Ava
+        // magic — runs on the exact model they chose, never split off to a
+        // cheaper model they might not have a key for.
+        lightProvider: this.hasPlatform ? this.intentGate?.provider : undefined,
+        lightModel: this.hasPlatform ? this.intentGate?.model : undefined,
         // Vision bridge so text-only personas can see attached images.
         visionProvider: this.visionProvider ?? undefined,
         visionModel: this.visionModel ?? undefined,
