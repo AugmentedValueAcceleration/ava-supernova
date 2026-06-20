@@ -1803,7 +1803,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     // 'aurora' when they pick the EU-stack Mistral-only routing,
     // otherwise 'auto'. AutoCoordinator honours this for coordinator
     // selection (V4 Pro on Supernova, Mistral Large 3 on Aurora) and
-    // for the Builder spawn model (Qwen 3.6 Plus on Supernova,
+    // for the Builder spawn model (Qwen 3.7 Plus on Supernova,
     // Mistral Small 4 on Aurora).
     // Prefer the fleet passed in by setActiveModel — it is known synchronously
     // at switch time, BEFORE the activeModel config write lands. Re-reading the
@@ -1851,8 +1851,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     // Auto Mode + Supernova Mode + Aurora Mode — resolve the correct
     // coordinator via the core helper. Auto picks the platform default
-    // ladder (Qwen 3.6 Plus on platform). Supernova pins to DeepSeek V4
-    // Pro and runs Builder spawns on Qwen 3.6 Plus. Aurora pins to
+    // ladder (Qwen 3.7 Plus on platform). Supernova pins to DeepSeek V4
+    // Pro and runs Builder spawns on Qwen 3.7 Plus. Aurora pins to
     // Mistral Large 3 with Builder on Mistral Small 4 — Mistral-only
     // routing for the EU-stack guarantee.
     if (modelId === 'auto' || modelId === 'supernova' || modelId === 'aurora') {
