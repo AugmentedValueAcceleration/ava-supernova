@@ -1409,8 +1409,17 @@ export class Agent {
         // reset the offset so further additions are tracked from the new
         // post-compression length.
         absorbSinceLastSnapshot();
+        const msgsBeforeCompress = messages.length;
         messages = await this.compressContext(messages, onEvent, signal);
         lastSnapshotOffset = messages.length;
+        // ── Dataset event: context compression fired ────────────────────
+        avaEvents.emit('context_compression', {
+          operation: 'compress',
+          messages_before: msgsBeforeCompress,
+          messages_after: messages.length,
+          tokens_before: estimatedTotal,
+          token_budget: maxInputTokens,
+        });
       }
 
       // Still over budget? Fall back to truncation.
@@ -1435,6 +1444,14 @@ export class Agent {
       lastSnapshotOffset = messages.length;
       const dropped = preCount - messages.length;
       if (dropped > 0) {
+        // ── Dataset event: fell back to truncation ──────────────────────
+        avaEvents.emit('context_compression', {
+          operation: 'truncate',
+          messages_before: preCount,
+          messages_after: messages.length,
+          tokens_before: estimatedTotal,
+          token_budget: maxInputTokens,
+        });
         onEvent({
           type: 'error',
           error: Object.assign(

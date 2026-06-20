@@ -19,6 +19,8 @@ export type DatasetName =
   | 'mode-transitions'
   | 'generation-effectiveness'
   | 'knowledge-pack-effectiveness'
+  | 'context-management'
+  | 'perception'
   | 'billing-credits';
 
 export const ALL_DATASETS: readonly DatasetName[] = [
@@ -32,6 +34,8 @@ export const ALL_DATASETS: readonly DatasetName[] = [
   'mode-transitions',
   'generation-effectiveness',
   'knowledge-pack-effectiveness',
+  'context-management',
+  'perception',
   'billing-credits',
 ] as const;
 
@@ -51,6 +55,7 @@ export function eventToDataset(eventType: AvaEventType): DatasetName {
     case 'persona_handoff':
     case 'persona_complete':
     case 'persona_veto':
+    case 'team_depth_decision':
       return 'persona-handoffs';
 
     case 'verification_decision':
@@ -89,6 +94,12 @@ export function eventToDataset(eventType: AvaEventType): DatasetName {
     case 'knowledge_pack_activated':
     case 'knowledge_pack_used':
       return 'knowledge-pack-effectiveness';
+
+    case 'context_compression':
+      return 'context-management';
+
+    case 'vision_bridge':
+      return 'perception';
 
     case 'credits_charged':
       return 'billing-credits';

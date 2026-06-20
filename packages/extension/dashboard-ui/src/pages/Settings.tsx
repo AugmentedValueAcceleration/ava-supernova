@@ -199,7 +199,7 @@ export function Settings({
     'tool-trajectories', 'persona-handoffs', 'verification-pairs',
     'auto-mode-classification', 'error-recovery', 'memory-operations',
     'continuation-recovery', 'mode-transitions', 'generation-effectiveness',
-    'knowledge-pack-effectiveness',
+    'knowledge-pack-effectiveness', 'context-management', 'perception',
   ];
   const [datasetConfig, setDatasetConfig] = useState<DatasetConfigShape | null>(null);
   useEffect(() => {

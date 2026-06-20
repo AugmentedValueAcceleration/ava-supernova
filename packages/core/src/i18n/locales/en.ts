@@ -2717,7 +2717,7 @@ export const enStrings = {
   'dash.settings.dataset_capture_desc': 'Records Ava\'s tool choices, persona handoffs, memory ops, etc. to ~/.ava/datasets/. Local-only by default. Never captures your prompts or files — only her decisions and shape-only context.',
   'dash.settings.dataset_capture_title': 'Capture Ava\'s actions as training data',
   'dash.settings.dataset_kinds': 'Dataset kinds',
-  'dash.settings.dataset_kinds_desc': 'The 10 distinct training datasets Ava generates. All on by default; uncheck any you\'d rather not contribute to.',
+  'dash.settings.dataset_kinds_desc': 'The 12 distinct training datasets Ava generates. All on by default; uncheck any you\'d rather not contribute to.',
   'dash.settings.dataset_modes': 'Modes captured',
   'dash.settings.dataset_modes_desc': 'Choose which thought modes feed the dataset. Toggle any off to keep that mode private.',
   'dash.settings.dataset_note': 'All capture is local and append-only. Nothing leaves your machine until you explicitly push to your private dataset repo (separate, opt-in).',
@@ -2770,6 +2770,8 @@ export const enStrings = {
   'dash.settings.dataset_kind.mode-transitions': 'Mode transitions',
   'dash.settings.dataset_kind.generation-effectiveness': 'Generation effectiveness',
   'dash.settings.dataset_kind.knowledge-pack-effectiveness': 'Knowledge-pack effectiveness',
+  'dash.settings.dataset_kind.context-management': 'Context management',
+  'dash.settings.dataset_kind.perception': 'Perception (vision)',
 
   // ── Health · Browse course taxonomy (cards/detail labels) ─────────────
   'health.browse.course.beverage': 'Beverages',

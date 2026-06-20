@@ -24,6 +24,18 @@ describe('Phase 1 dataset signals — routing', () => {
   });
 });
 
+describe('Phase 2 dataset signals — routing', () => {
+  it('routes team_depth_decision into persona-handoffs', () => {
+    expect(eventToDataset('team_depth_decision')).toBe('persona-handoffs');
+  });
+  it('routes context_compression into context-management', () => {
+    expect(eventToDataset('context_compression')).toBe('context-management');
+  });
+  it('routes vision_bridge into perception', () => {
+    expect(eventToDataset('vision_bridge')).toBe('perception');
+  });
+});
+
 describe('categorizeToolPurpose', () => {
   it('marks read-only verify tools as verification', () => {
     expect(categorizeToolPurpose('grep')).toBe('verification');
@@ -100,5 +112,65 @@ describe('Phase 1 dataset signals — emit shape (no raw text)', () => {
     for (const v of Object.values(p)) {
       expect(['number', 'boolean']).toContain(typeof v);
     }
+  });
+});
+
+describe('Phase 2 dataset signals — emit shape (no raw text)', () => {
+  beforeEach(() => {
+    avaEvents.clearAllHandlers();
+  });
+
+  it('team_depth_decision is mode/depth/trigger/size only', async () => {
+    const received: AvaEvent[] = [];
+    avaEvents.onAll((e) => received.push(e));
+    withTrajectory(baseCtx, () => {
+      avaEvents.emit('team_depth_decision', {
+        mode: 'work', depth: 'full', trigger: 'classifier', team_size: 5,
+      });
+    });
+    await flushMicrotasks();
+    const p = received[0].payload as any;
+    expect(received[0].event_type).toBe('team_depth_decision');
+    expect(p.depth).toBe('full');
+    expect(p.trigger).toBe('classifier');
+    expect(p.team_size).toBe(5);
+  });
+
+  it('context_compression is counts + operation only', async () => {
+    const received: AvaEvent[] = [];
+    avaEvents.onAll((e) => received.push(e));
+    withTrajectory(baseCtx, () => {
+      avaEvents.emit('context_compression', {
+        operation: 'compress', messages_before: 40, messages_after: 12,
+        tokens_before: 130000, token_budget: 120000,
+      });
+    });
+    await flushMicrotasks();
+    const p = received[0].payload as any;
+    expect(p.operation).toBe('compress');
+    expect(p.messages_before).toBe(40);
+    expect(p.messages_after).toBe(12);
+    // Only the operation enum is a string; the rest are numbers.
+    for (const [k, v] of Object.entries(p)) {
+      if (k === 'operation') expect(typeof v).toBe('string');
+      else expect(typeof v).toBe('number');
+    }
+  });
+
+  it('vision_bridge is model id + counts + bool only', async () => {
+    const received: AvaEvent[] = [];
+    avaEvents.onAll((e) => received.push(e));
+    withTrajectory(baseCtx, () => {
+      avaEvents.emit('vision_bridge', {
+        describer_model: 'qwen3.7-plus', image_count: 2, described_count: 2,
+        latency_ms: 850, success: true,
+      });
+    });
+    await flushMicrotasks();
+    const p = received[0].payload as any;
+    expect(received[0].event_type).toBe('vision_bridge');
+    expect(p.describer_model).toBe('qwen3.7-plus');
+    expect(p.image_count).toBe(2);
+    expect(p.success).toBe(true);
   });
 });

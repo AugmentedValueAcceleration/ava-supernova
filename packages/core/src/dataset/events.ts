@@ -62,6 +62,7 @@ export type AvaEventType =
   | 'persona_handoff'
   | 'persona_complete'
   | 'persona_veto'
+  | 'team_depth_decision'
   // Verification (Dataset 3)
   | 'verification_decision'
   | 'correction_received'
@@ -91,6 +92,10 @@ export type AvaEventType =
   // Knowledge pack effectiveness (Dataset 10)
   | 'knowledge_pack_activated'
   | 'knowledge_pack_used'
+  // Context management (Dataset 11 — Phase 2)
+  | 'context_compression'
+  // Perception / vision bridge (Dataset 12 — Phase 2)
+  | 'vision_bridge'
   // Credits / billing metering (added 2026-04-22)
   | 'credits_charged';
 
@@ -160,6 +165,18 @@ export interface PersonaVetoPayload {
   vetoing_persona: string;              // persona.id that vetoed
   veto_category: string;               // role-derived category, never the raw reason text
   reason_word_count: number;           // shape of the reason, not its content
+}
+
+/**
+ * The Conductor decided whether to run the light or full persona team for
+ * this task. Trains the "how much orchestration does this task need" signal.
+ * Shape-only: mode, the depth, what drove it, and team size.
+ */
+export interface TeamDepthDecisionPayload {
+  mode: string;                        // the mode that drove the decision
+  depth: 'light' | 'full';
+  trigger: 'classifier' | 'regex_fallback';  // upstream Flash classifier vs the regex safety net
+  team_size: number;                   // personas in the chosen team
 }
 
 /* DATASET 3 — Verification vs speculation ──────────────────────────────── */
@@ -359,6 +376,37 @@ export interface KnowledgePackUsedPayload {
   reference_count: number;
 }
 
+/* DATASET 11 — Context management (Phase 2) ────────────────────────────── */
+
+/**
+ * Ava compressed or truncated the working context to stay under the model's
+ * window. Trains context-management strategy: when compression fires, how
+ * much it reclaims. Pure counts — no message content.
+ */
+export interface ContextCompressionPayload {
+  operation: 'compress' | 'truncate';
+  messages_before: number;
+  messages_after: number;
+  tokens_before: number;                // estimated tokens before the transform
+  token_budget: number;                 // the input-token budget being enforced
+}
+
+/* DATASET 12 — Perception / vision bridge (Phase 2) ────────────────────── */
+
+/**
+ * A text-only coordinator couldn't see attached images, so the vision bridge
+ * described them with a vision model and injected the text. Trains the
+ * image→text relay signal. Shape-only: which model, how many images, latency,
+ * whether descriptions were produced (vs a "switch model" fallback).
+ */
+export interface VisionBridgePayload {
+  describer_model: string;              // the vision model id (or 'none' if unavailable)
+  image_count: number;
+  described_count: number;              // images successfully described
+  latency_ms: number;
+  success: boolean;                     // at least one image described (vs fallback note)
+}
+
 /* Credits / billing metering (added 2026-04-22) ──────────────────────────── */
 
 /**
@@ -397,6 +445,7 @@ export interface AvaEventPayloadMap {
   persona_handoff: PersonaHandoffPayload;
   persona_complete: PersonaCompletePayload;
   persona_veto: PersonaVetoPayload;
+  team_depth_decision: TeamDepthDecisionPayload;
   verification_decision: VerificationDecisionPayload;
   correction_received: CorrectionReceivedPayload;
   verification_evidence: VerificationEvidencePayload;
@@ -418,6 +467,8 @@ export interface AvaEventPayloadMap {
   generation_user_action: GenerationUserActionPayload;
   knowledge_pack_activated: KnowledgePackActivatedPayload;
   knowledge_pack_used: KnowledgePackUsedPayload;
+  context_compression: ContextCompressionPayload;
+  vision_bridge: VisionBridgePayload;
   credits_charged: CreditsChargedPayload;
 }
 

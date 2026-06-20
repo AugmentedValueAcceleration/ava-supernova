@@ -15,6 +15,7 @@
 import type { Provider } from '../providers/types.js';
 import type { ModelDefinition, Message, ContentPart } from '../core/types.js';
 import { logger } from '../core/logger.js';
+import { avaEvents } from '../dataset/emitter.js';
 
 const DESCRIBE_PROMPT =
   'You are a vision relay for a text-only AI coding/agent model that CANNOT see this image. ' +
@@ -84,6 +85,10 @@ export async function bridgeImagesForTextModel(
   if (model.supportsVision) return messages;
 
   const out: Message[] = [];
+  // Dataset signal accounting (shape-only) — totals across this turn's messages.
+  let totalImages = 0;
+  let totalDescribed = 0;
+  const startedAt = Date.now();
   for (const m of messages) {
     if (!Array.isArray(m.content)) { out.push(m); continue; }
     const parts = m.content as ContentPart[];
@@ -95,6 +100,7 @@ export async function bridgeImagesForTextModel(
       continue;
     }
 
+    totalImages += imageParts.length;
     let block: string;
     if (visionProvider && visionModel) {
       const descs: string[] = [];
@@ -103,6 +109,7 @@ export async function bridgeImagesForTextModel(
         const d = img ? await describeImageWithVision(visionProvider, visionModel, img, cache) : null;
         if (d) descs.push(d);
       }
+      totalDescribed += descs.length;
       block = descs.length
         ? `[Image — described for you by a vision model:\n${descs.join('\n\n---\n\n')}\n]`
         : fallbackNote(model);
@@ -111,6 +118,19 @@ export async function bridgeImagesForTextModel(
     }
 
     out.push({ ...m, content: textPrefix ? `${textPrefix}\n\n${block}` : block });
+  }
+
+  // ── Dataset event: the vision bridge ran for a text-only coordinator ──
+  // Only when images were actually present. Shape-only: model id, counts,
+  // latency, and whether descriptions were produced (vs a fallback note).
+  if (totalImages > 0) {
+    avaEvents.emit('vision_bridge', {
+      describer_model: visionModel?.id ?? 'none',
+      image_count: totalImages,
+      described_count: totalDescribed,
+      latency_ms: Date.now() - startedAt,
+      success: totalDescribed > 0,
+    });
   }
   return out;
 }

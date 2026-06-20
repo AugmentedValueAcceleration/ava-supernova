@@ -365,6 +365,16 @@ export class Conductor {
         : `mode=${mode}, sequential team by priority`,
     });
 
+    // ── Dataset event: how much orchestration did this task need? ────────
+    // Light vs full team, and what drove it — an upstream Flash classifier
+    // (options.depth set) or the regex safety net. Shape-only.
+    avaEvents.emit('team_depth_decision', {
+      mode,
+      depth,
+      trigger: options?.depth !== undefined ? 'classifier' : 'regex_fallback',
+      team_size: planningTeam.length,
+    });
+
     // Tracks the most-recently-completed persona id so we can emit
     // persona_handoff events between consecutive personas. Reset per
     // orchestrate() call. Works for both sequential (clean handoff
