@@ -61,9 +61,11 @@ export type AvaEventType =
   | 'persona_decision'
   | 'persona_handoff'
   | 'persona_complete'
+  | 'persona_veto'
   // Verification (Dataset 3)
   | 'verification_decision'
   | 'correction_received'
+  | 'verification_evidence'
   // Auto Mode classification (Dataset 4)
   | 'task_classification'
   | 'routing_decision'
@@ -148,6 +150,18 @@ export interface PersonaCompletePayload {
   duration_ms: number;
 }
 
+/**
+ * A veto-capable persona (Challenger, Fact Checker, Verifier…) halted the
+ * pipeline because its output tripped its veto signal. Strong negative
+ * signal — the team caught bad work before it shipped. The raw veto reason
+ * is never captured; only the kind of veto and how substantive it was.
+ */
+export interface PersonaVetoPayload {
+  vetoing_persona: string;              // persona.id that vetoed
+  veto_category: string;               // role-derived category, never the raw reason text
+  reason_word_count: number;           // shape of the reason, not its content
+}
+
 /* DATASET 3 — Verification vs speculation ──────────────────────────────── */
 
 /**
@@ -172,6 +186,22 @@ export interface CorrectionReceivedPayload {
   corrected_trajectory_id: string;      // which prior trajectory got corrected
   original_verification: boolean;       // did we verify before the wrong answer?
   correction_signature: string;         // category of correction, e.g. 'factual', 'approach', 'code-bug'
+}
+
+/**
+ * Did Ava's evidence-gathering actually *succeed* this run — not just "was
+ * verification attempted" (that's verification_decision) but "did the
+ * read-only verify tools come back ok, and did the soft-honesty gate flag
+ * an unbacked claim". This is the verifiability signal: a self-generated
+ * trajectory is only training-grade if its claims can be checked. All
+ * shape-only counts/booleans — no tool output, no response text.
+ */
+export interface VerificationEvidencePayload {
+  verify_tool_calls: number;            // calls to read-only verify tools this run
+  verify_tool_successes: number;        // how many of those returned ok
+  distinct_verify_tools: number;        // distinct verify tools used
+  verified_before_response: boolean;    // any verify tool ran at all
+  claim_flagged: boolean;               // soft-honesty gate flagged an unbacked factual claim
 }
 
 /* DATASET 4 — Auto Mode classification ─────────────────────────────────── */
@@ -366,8 +396,10 @@ export interface AvaEventPayloadMap {
   persona_decision: PersonaDecisionPayload;
   persona_handoff: PersonaHandoffPayload;
   persona_complete: PersonaCompletePayload;
+  persona_veto: PersonaVetoPayload;
   verification_decision: VerificationDecisionPayload;
   correction_received: CorrectionReceivedPayload;
+  verification_evidence: VerificationEvidencePayload;
   task_classification: TaskClassificationPayload;
   routing_decision: RoutingDecisionPayload;
   tool_error: ToolErrorPayload;

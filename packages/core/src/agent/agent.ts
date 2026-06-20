@@ -40,8 +40,8 @@ import {
 import { avaEvents, withTrajectory, withChildTrajectory, getTrajectory } from '../dataset/emitter.js';
 import type { AvaSurface, AvaMode } from '../dataset/events.js';
 import { chargeCredits, extractUsage } from '../billing/meter.js';
-import { summarizeToolArgs, summarizeToolResult, summarizeChainOutcome } from '../dataset/summarizers.js';
-import { pickVerificationTools, categorizeCorrection } from '../dataset/verification.js';
+import { summarizeToolArgs, summarizeToolResult, summarizeChainOutcome, categorizeToolPurpose } from '../dataset/summarizers.js';
+import { pickVerificationTools, categorizeCorrection, VERIFICATION_TOOLS } from '../dataset/verification.js';
 import { matchToolError } from '../tools/error-guidance.js';
 import {
   recordEditFromTool,
@@ -512,6 +512,10 @@ export class Agent {
   // Verifying tools that ran this run() (name + success), for the soft
   // honesty gate (claims-auditor) at final-answer time. Reset per run.
   private runToolEvidence: Array<{ name: string; ok: boolean }> = [];
+  // Did the soft honesty gate flag an unbacked factual claim this run?
+  // Set by the claims-auditor branch; read by the verification_evidence
+  // dataset emit in run()'s finally. Reset per run.
+  private runClaimFlagged = false;
   private _inThinkTag = false;
 
   // ─── Exploration budget tracking (token-cost discipline) ────────────────
@@ -787,6 +791,7 @@ export class Agent {
     this.lastDetectedMode = detectedMode;
     // Reset per-run tool evidence for the honesty gate (claims-auditor).
     this.runToolEvidence = [];
+    this.runClaimFlagged = false;
 
     // If we're nested inside an outer trajectory (e.g. AutoCoordinator
     // wrapped its own run), open a child trajectory so the chain is
@@ -861,6 +866,20 @@ export class Agent {
             // raw text. The mode is already on the envelope so this is a
             // small additional categorisation.
             question_signature: latestUser && /\?/.test(latestUser) ? 'question' : 'imperative',
+          });
+
+          // ── Dataset event: did the evidence-gathering actually succeed? ──
+          // Complements verification_decision (which only says verification
+          // was *attempted*). This is the verifiability signal — whether the
+          // verify tools came back ok and whether the honesty gate flagged
+          // an unbacked claim. Shape-only counts/booleans from runToolEvidence.
+          const verifyEvidence = this.runToolEvidence.filter((e) => VERIFICATION_TOOLS.has(e.name));
+          avaEvents.emit('verification_evidence', {
+            verify_tool_calls: verifyEvidence.length,
+            verify_tool_successes: verifyEvidence.filter((e) => e.ok).length,
+            distinct_verify_tools: new Set(verifyEvidence.map((e) => e.name)).size,
+            verified_before_response: verifyEvidence.length > 0,
+            claim_flagged: this.runClaimFlagged,
           });
 
           avaEvents.emit('tool_chain_complete', {
@@ -2348,6 +2367,12 @@ export class Agent {
     // claim doesn't stand as fact. Soft by design — annotates, never blocks.
     if (toolCalls.length === 0 && typeof finalContent === 'string' && finalContent.trim()) {
       const audit = auditClaims({ text: finalContent, toolsUsed: this.runToolEvidence });
+      if (audit.flagged) {
+        // Record for the verification_evidence dataset event (shape-only:
+        // a boolean, never the claim text). Captured even when there's no
+        // caveat string, so the signal reflects every flagged claim.
+        this.runClaimFlagged = true;
+      }
       if (audit.flagged && audit.caveat) {
         const caveatText = `\n\n${audit.caveat}`;
         onEvent({ type: 'stream_delta', content: caveatText });
@@ -2433,6 +2458,10 @@ export class Agent {
     const choiceEventId = avaEvents.emit('tool_choice', {
       tool_name: toolName,
       args_summary: summarizeToolArgs(toolName, args),
+      // Process category for WHY this tool was reached for — deterministic
+      // from the tool + whether we're recovering from a prior failure.
+      // A label, never the model's raw chain-of-thought.
+      reasoning_summary: categorizeToolPurpose(toolName, { recovering: !!recoveringFromErrorId }),
       prev_tools_in_trajectory: prevTools,
     });
 

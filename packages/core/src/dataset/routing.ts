@@ -50,10 +50,12 @@ export function eventToDataset(eventType: AvaEventType): DatasetName {
     case 'persona_decision':
     case 'persona_handoff':
     case 'persona_complete':
+    case 'persona_veto':
       return 'persona-handoffs';
 
     case 'verification_decision':
     case 'correction_received':
+    case 'verification_evidence':
       return 'verification-pairs';
 
     case 'task_classification':

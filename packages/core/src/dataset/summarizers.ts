@@ -66,3 +66,34 @@ export function summarizeChainOutcome(finalContent: string | null): string {
   const words = finalContent.trim().split(/\s+/).filter(Boolean).length;
   return `closed-with-text, ${words}w`;
 }
+
+import { VERIFICATION_TOOLS } from './verification.js';
+
+const EDIT_TOOLS = new Set(['file_write', 'file_edit']);
+const COMMIT_TOOLS = new Set(['git_commit', 'git_create_pr', 'rollback']);
+const EXEC_TOOLS = new Set(['bash', 'test_run', 'test_generate', 'benchmark']);
+const GENERATION_TOOLS = new Set([
+  'generate_image', 'generate_music', 'generate_video', 'generate_voice', 'remove_background',
+]);
+
+/**
+ * Derive the *purpose* of a tool call as a stable category — never the
+ * model's chain-of-thought. This fills `tool_choice.reasoning_summary`
+ * with a process label ('verification', 'targeted-edit', 'recovery'…)
+ * computed deterministically from the tool and the trajectory state, so
+ * the dataset records WHY a tool was reached for without ever capturing
+ * raw reasoning text. `recovering` is set when the prior tool failed and
+ * this call is the recovery move.
+ */
+export function categorizeToolPurpose(
+  toolName: string,
+  opts?: { recovering?: boolean },
+): string {
+  if (opts?.recovering) return 'recovery';
+  if (VERIFICATION_TOOLS.has(toolName)) return 'verification';
+  if (EDIT_TOOLS.has(toolName)) return 'targeted-edit';
+  if (COMMIT_TOOLS.has(toolName)) return 'commit-op';
+  if (EXEC_TOOLS.has(toolName)) return 'execution';
+  if (GENERATION_TOOLS.has(toolName)) return 'generation';
+  return 'action';
+}

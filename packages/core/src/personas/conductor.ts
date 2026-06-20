@@ -402,6 +402,21 @@ export class Conductor {
       vetoInfo = info;
       logger.debug(`[conductor] ${persona.id} vetoed: ${info.reason}`);
       onEvent({ type: 'persona_veto', persona: persona.id, reason: info.reason });
+
+      // ── Dataset event: a veto-capable persona halted the pipeline ────────
+      // Strong negative signal — the team caught bad work before it shipped.
+      // Category is derived from the persona's role, never the raw reason
+      // text; only the reason's word count is recorded (shape, not content).
+      const vetoCategory =
+        persona.id === 'challenger' ? 'approach-flaw'
+        : persona.id === 'fact_checker' ? 'factual-halt'
+        : persona.id === 'verifier' ? 'verification-fail'
+        : 'policy-veto';
+      avaEvents.emit('persona_veto', {
+        vetoing_persona: persona.id,
+        veto_category: vetoCategory,
+        reason_word_count: info.reason.split(/\s+/).filter(Boolean).length,
+      });
       return info;
     };
     const emitHandoff = (toPersona: PersonaDefinition, prevState: PersonaState | null): void => {
