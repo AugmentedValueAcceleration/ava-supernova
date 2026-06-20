@@ -20,7 +20,7 @@ export const QWEN_MODELS: ModelDefinition[] = [
   },
   // Qwen 3.7 Plus (June 2026) — the Maestro conductor. 1M context, vision +
   // video, reasoning, native function calling. Supersedes Qwen 3.6 Plus and the
-  // 3.5 Omni tier: better agentic coding, multimodal, and cheaper ($0.40/$1.16).
+  // 3.5 Omni tier: better agentic coding, multimodal, and cheaper ($0.40/$1.60).
   {
     id: 'qwen3.7-plus',
     name: 'Qwen 3.7 Plus',
@@ -32,7 +32,7 @@ export const QWEN_MODELS: ModelDefinition[] = [
     supportsThinking: true,
     supportsVision: true,
     desktopCapable: true,
-    pricing: { inputPerMillion: 0.40, outputPerMillion: 1.16 },
+    pricing: { inputPerMillion: 0.40, outputPerMillion: 1.60 },
   },
   {
     id: 'qwen3.5-plus',

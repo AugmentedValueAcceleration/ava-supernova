@@ -23,7 +23,7 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsThinking: true,
     supportsVision: true,
     desktopCapable: true, // Default Maestro coordinator. Reliable tool calls, sees images natively.
-    pricing: { inputPerMillion: 0.40, outputPerMillion: 1.16 },
+    pricing: { inputPerMillion: 0.40, outputPerMillion: 1.60 },
   },
   // Qwen 3.5 Plus — 1M context
   {
