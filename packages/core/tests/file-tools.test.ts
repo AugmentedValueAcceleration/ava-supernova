@@ -6,6 +6,8 @@ vi.mock('node:fs/promises', () => ({
   readFile: vi.fn(),
   writeFile: vi.fn(async () => undefined),
   mkdir: vi.fn(async () => undefined),
+  // FileEditTool stats the file first for a size-guard before reading.
+  stat: vi.fn(async () => ({ size: 100 })),
 }));
 
 // Mock security — tests use fake paths outside cwd
@@ -17,11 +19,12 @@ vi.mock('../src/tools/security.js', () => ({
   containsCredentials: vi.fn(() => false),
 }));
 
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, stat } from 'node:fs/promises';
 
 const mockReadFile = readFile as unknown as ReturnType<typeof vi.fn>;
 const mockWriteFile = writeFile as unknown as ReturnType<typeof vi.fn>;
 const mockMkdir = mkdir as unknown as ReturnType<typeof vi.fn>;
+const mockStat = stat as unknown as ReturnType<typeof vi.fn>;
 
 import { FileReadTool } from '../src/tools/file-read.js';
 import { FileWriteTool } from '../src/tools/file-write.js';
@@ -34,6 +37,7 @@ beforeEach(() => {
   // Restore default implementations (clearAllMocks only clears history, not impl)
   mockWriteFile.mockResolvedValue(undefined);
   mockMkdir.mockResolvedValue(undefined);
+  mockStat.mockResolvedValue({ size: 100 });
 });
 
 // ── FileReadTool ─────────────────────────────────────────────────────────────

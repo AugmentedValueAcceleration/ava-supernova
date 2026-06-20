@@ -22,6 +22,19 @@ const mockRename = rename as unknown as ReturnType<typeof vi.fn>;
 const mockReaddir = readdir as unknown as ReturnType<typeof vi.fn>;
 const mockUnlink = unlink as unknown as ReturnType<typeof vi.fn>;
 
+/**
+ * Find the writeFile call that wrote the conversation record. save() now wraps
+ * the write in withLock(), which writeFiles a `.lock` (pid) file first — so the
+ * record is no longer mock.calls[0]. Match on the record's JSON shape instead.
+ */
+function writtenRecord(): any {
+  const call = mockWriteFile.mock.calls.find(
+    (c) => typeof c[1] === 'string' && (c[1] as string).includes('"messages"'),
+  );
+  if (!call) throw new Error('no conversation-record writeFile call found');
+  return JSON.parse(call[1] as string);
+}
+
 function makeRecord(overrides: Partial<ConversationRecord> = {}): ConversationRecord {
   return {
     id: 'test-id',
@@ -179,7 +192,7 @@ describe('HistoryManager', () => {
 
     await manager.saveConversation(conv);
     expect(mockWriteFile).toHaveBeenCalled();
-    const writtenData = JSON.parse(mockWriteFile.mock.calls[0][1]);
+    const writtenData = writtenRecord();
     expect(writtenData.title).toBe('Help me fix the login bug');
   });
 
@@ -190,7 +203,7 @@ describe('HistoryManager', () => {
     const manager = new HistoryManager();
     const result = await manager.renameConversation('test-id', 'New Title');
     expect(result).toBe(true);
-    const writtenData = JSON.parse(mockWriteFile.mock.calls[0][1]);
+    const writtenData = writtenRecord();
     expect(writtenData.title).toBe('New Title');
   });
 
@@ -208,7 +221,7 @@ describe('HistoryManager', () => {
     const manager = new HistoryManager();
     const result = await manager.pinConversation('test-id', true);
     expect(result).toBe(true);
-    const writtenData = JSON.parse(mockWriteFile.mock.calls[0][1]);
+    const writtenData = writtenRecord();
     expect(writtenData.pinned).toBe(true);
   });
 

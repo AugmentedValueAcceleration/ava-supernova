@@ -52,9 +52,11 @@ describe('HttpRequestTool', () => {
 
   beforeEach(() => vi.clearAllMocks());
 
-  it('has name "http_request" and riskLevel "safe"', () => {
+  it('has name "http_request" and riskLevel "dangerous"', () => {
+    // riskLevel is 'dangerous' — http_request can reach arbitrary URLs, so it
+    // carries SSRF/private-host guards and is gated like other risky tools.
     expect(tool.name).toBe('http_request');
-    expect(tool.riskLevel).toBe('safe');
+    expect(tool.riskLevel).toBe('dangerous');
   });
 
   it('makes GET request and returns status + body', async () => {

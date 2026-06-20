@@ -309,8 +309,10 @@ describe('BaseProvider', () => {
 
   describe('baseUrl', () => {
     it('uses default base URL when config does not specify one', () => {
+      // Default deliberately includes /v1 so BaseProvider's
+      // `${baseUrl}/chat/completions` resolves correctly — see deepseek/index.ts.
       const provider = createProvider();
-      expect((provider as any).baseUrl).toBe('https://api.deepseek.com');
+      expect((provider as any).baseUrl).toBe('https://api.deepseek.com/v1');
     });
 
     it('uses config base URL when specified', () => {

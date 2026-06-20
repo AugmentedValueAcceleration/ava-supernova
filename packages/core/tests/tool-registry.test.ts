@@ -27,13 +27,21 @@ describe('ToolRegistry', () => {
     registry.registerBuiltins();
     const schemas = registry.getSchemas();
     const names = schemas.map((s) => s.function.name);
-    expect(names).toContain('file_read');
-    expect(names).toContain('file_write');
-    expect(names).toContain('file_edit');
+    // getSchemas() presents file tools to the model under short convention
+    // names (file_read → read, file_write → write, file_edit → edit) via
+    // INTERNAL_TO_MODEL_NAME; other tools keep their names.
+    expect(names).toContain('read');
+    expect(names).toContain('write');
+    expect(names).toContain('edit');
     expect(names).toContain('glob');
     expect(names).toContain('grep');
     expect(names).toContain('bash');
     expect(names).toContain('present_plan');
+    // Internal identity stays stable — the agent + dataset capture key off
+    // these (e.g. VERIFICATION_TOOLS matches 'file_read', not 'read').
+    expect(registry.getTool('file_read')).toBeDefined();
+    expect(registry.getTool('file_write')).toBeDefined();
+    expect(registry.getTool('file_edit')).toBeDefined();
   });
 
   it('executes a safe tool without confirmation', async () => {
@@ -57,8 +65,14 @@ describe('ToolRegistry', () => {
     const handler = vi.fn(async () => true);
     registry.setConfirmationHandler(handler);
 
+    // write_tool → default 'file_ops' category; strict/file_ops = 'first_time',
+    // so the first invocation this session prompts.
     await registry.execute('write_tool', { arg: 'val' }, { cwd: '.' });
-    expect(handler).toHaveBeenCalledWith('write_tool', { arg: 'val' });
+    expect(handler).toHaveBeenCalled();
+    // Handler signature is (name, args, toolCallId) — assert the first two
+    // robustly rather than pinning the optional trailing arg.
+    expect(handler.mock.calls[0][0]).toBe('write_tool');
+    expect(handler.mock.calls[0][1]).toEqual({ arg: 'val' });
   });
 
   it('auto-approves write tools in balanced mode', async () => {
@@ -73,10 +87,15 @@ describe('ToolRegistry', () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
-  it('requires confirmation for dangerous tools in balanced mode', async () => {
+  it('requires confirmation for an always-ask category', async () => {
+    // Confirmation is category-based now, not raw riskLevel: in balanced mode
+    // the risky categories (shell/system/database) default to 'always_ask'.
+    // danger_tool maps to the default 'file_ops' category, so force that
+    // category to 'always_ask' to exercise the gate the real risky tools hit.
     const tool = makeTool({ name: 'danger_tool', riskLevel: 'dangerous' });
     registry.register(tool);
     registry.setPermissionMode('balanced');
+    registry.setCategoryPermission('file_ops', 'always_ask');
 
     const handler = vi.fn(async () => true);
     registry.setConfirmationHandler(handler);

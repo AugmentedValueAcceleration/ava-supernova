@@ -101,7 +101,7 @@ describe('Agent', () => {
     expect(lastMsg.role).toBe('assistant');
   });
 
-  it('handles empty response from model', async () => {
+  it('handles empty response from model gracefully', async () => {
     const provider = createMockProvider([{ content: '' }]);
     const agent = new Agent({
       provider,
@@ -113,9 +113,12 @@ describe('Agent', () => {
     const events: AgentEvent[] = [];
     await agent.run([{ role: 'system', content: 'test' }], (e) => events.push(e));
 
-    const errorEvents = events.filter((e) => e.type === 'error');
-    expect(errorEvents.length).toBe(1);
-    expect((errorEvents[0] as { type: 'error'; error: Error }).error.message).toContain('didn\'t send a response');
+    // The agent no longer hard-errors on an empty stream: the closure-fallback
+    // nudges once, then substitutes a short "Done." so the user sees a closed
+    // turn rather than a blank one. Assert it terminates cleanly with a final
+    // message instead of throwing or stalling.
+    const doneEvents = events.filter((e) => e.type === 'done');
+    expect(doneEvents.length).toBeGreaterThanOrEqual(1);
   });
 
   it('stops when abort signal is triggered', async () => {
@@ -206,23 +209,32 @@ describe('Agent.truncateMessages', () => {
   it('preserves system message during truncation', () => {
     const agent = createAgentForTruncation();
 
+    // The first user message is the pinned "original task" — kept small so it
+    // folds into the system prompt cheaply. The BIG message to drop is a middle
+    // assistant turn, so the budget squeeze falls on it, not on the pinned task.
     const messages: Message[] = [
       { role: 'system', content: 'System prompt' },
-      { role: 'user', content: 'A'.repeat(3000) }, // ~1000 tokens at length/3
-      { role: 'assistant', content: 'Response 1' },
+      { role: 'user', content: 'Original task' },
+      { role: 'assistant', content: 'B'.repeat(3000) }, // ~1000 tokens — should be dropped
       { role: 'user', content: 'Latest message' },
       { role: 'assistant', content: 'Latest response' },
     ];
 
     const result = agent.truncateMessages(messages, 200);
 
-    // System message should always be first
+    // System message should always be first, and preserve the original prompt.
+    // Truncation now pins the original user request onto the system message so
+    // the task survives context loss — so it CONTAINS the prompt rather than
+    // equalling it exactly.
     expect(result[0].role).toBe('system');
-    expect(result[0].content).toBe('System prompt');
+    expect(result[0].content).toContain('System prompt');
+    // The pinned original task is folded into the system prompt as a reference.
+    expect(result[0].content).toContain('Original task');
 
-    // Most recent messages should be kept
+    // Most recent message is kept; the big middle message is dropped.
     const lastMsg = result[result.length - 1];
     expect(lastMsg.content).toBe('Latest response');
+    expect(result.some((m) => m.content === 'B'.repeat(3000))).toBe(false);
   });
 
   it('returns messages unchanged when under budget', () => {

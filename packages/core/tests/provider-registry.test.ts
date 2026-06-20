@@ -112,10 +112,13 @@ describe('ProviderRegistry', () => {
       expect(ids).toContain('m3');
     });
 
-    it('includes built-in free models even with no custom providers', () => {
-      const models = registry.listAllModels();
-      // Registry comes with free tier models pre-registered
-      expect(models.length).toBeGreaterThan(0);
+    it('starts empty and surfaces models once a provider is registered', () => {
+      // There is no built-in free provider any more — free users get Qwen via
+      // the platform provider registered at runtime (see provider-registry.ts
+      // constructor). So a fresh registry has no models until one is registered.
+      expect(registry.listAllModels().length).toBe(0);
+      registry.registerCustom('platform', createMockProvider('platform', [makeModel('qwen3.5-flash', 'platform')]));
+      expect(registry.listAllModels().length).toBeGreaterThan(0);
     });
   });
 

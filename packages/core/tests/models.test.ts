@@ -26,15 +26,17 @@ describe('Model definitions', () => {
       }
     });
 
-    it('contains deepseek-chat and deepseek-reasoner', () => {
+    it('contains the V4 variants (deepseek-v4-pro and deepseek-v4-flash)', () => {
+      // Legacy aliases deepseek-chat / deepseek-reasoner are deliberately
+      // not exposed — see deepseek/models.ts (they deprecate 2026-07-24).
       const ids = DEEPSEEK_MODELS.map((m) => m.id);
-      expect(ids).toContain('deepseek-chat');
-      expect(ids).toContain('deepseek-reasoner');
+      expect(ids).toContain('deepseek-v4-pro');
+      expect(ids).toContain('deepseek-v4-flash');
     });
 
-    it('deepseek-reasoner supports thinking', () => {
-      const reasoner = DEEPSEEK_MODELS.find((m) => m.id === 'deepseek-reasoner');
-      expect(reasoner?.supportsThinking).toBe(true);
+    it('deepseek-v4-pro supports thinking', () => {
+      const pro = DEEPSEEK_MODELS.find((m) => m.id === 'deepseek-v4-pro');
+      expect(pro?.supportsThinking).toBe(true);
     });
   });
 

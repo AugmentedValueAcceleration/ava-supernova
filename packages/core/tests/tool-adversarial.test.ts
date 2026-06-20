@@ -153,7 +153,7 @@ describe('Bash dangerous command detection', () => {
     setupExec('');
     const result = await bash.execute({ command: 'rm -rf /' }, ctx);
     expect(result.output).toContain('Security warning');
-    expect(result.output).toContain('root filesystem');
+    expect(result.output).toContain('Recursive delete');
   });
 
   it('warns on fork bomb', async () => {
