@@ -302,7 +302,7 @@ function loadLocalAssets(): any[] {
   }
 }
 
-function saveLocalAsset(type: string, url: string, title: string, prompt: string) {
+function saveLocalAsset(type: string, url: string, title: string, prompt: string, completeEventId?: string | null) {
   // Always save to localStorage (Creative Studio's local store)
   const assets = loadLocalAssets();
   const id = `${type}_${Date.now()}`;
@@ -314,6 +314,9 @@ function saveLocalAsset(type: string, url: string, title: string, prompt: string
     prompt,
     url,
     created_at: new Date().toISOString(),
+    // Dataset link (shape-only): the generation_complete event_id, so a later
+    // kept/retried/discarded action on this asset can reference the generation.
+    completeEventId: completeEventId ?? null,
   });
   try {
     localStorage.setItem('ava-creative-assets', JSON.stringify(assets));
@@ -345,6 +348,16 @@ function deleteLocalAsset(id: string) {
   window.dispatchEvent(new CustomEvent('ava-creative-assets-updated'));
 }
 
+/** Report what the user did with a generated asset (kept/retried/discarded/
+ *  edited) as a shape-only dataset signal. Looks up the asset's stored
+ *  completeEventId so the host can link the action to the generation. No-op if
+ *  the asset has no link (e.g. capture was off at generation time). */
+function postCreativeUserAction(itemId: string, action: 'kept' | 'retried' | 'discarded' | 'edited') {
+  const asset = loadLocalAssets().find((a: any) => a.id === itemId);
+  const cid = asset?.completeEventId;
+  if (cid) post({ type: 'creative_user_action', completeEventId: cid, action } as any);
+}
+
 /* ══════════════════════════════════════════════════════════════════════
    Creative Studio
    ══════════════════════════════════════════════════════════════════════ */
@@ -370,7 +383,13 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
       const msg = event.data;
       if (msg?.type === 'creative_result') {
         if (msg.success && pendingResolve.current) {
-          pendingResolve.current(msg.data);
+          // Carry the dataset link (generation_complete event_id) through with
+          // the data so saveLocalAsset can persist it on the asset, letting a
+          // later kept/retried/discarded action reference this generation.
+          const out = (msg.data && typeof msg.data === 'object')
+            ? { ...msg.data, completeEventId: msg.completeEventId ?? null }
+            : msg.data;
+          pendingResolve.current(out);
         } else if (!msg.success && pendingReject.current) {
           pendingReject.current(msg.error || t('dash.creative.generation_failed'));
         }
@@ -576,7 +595,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
           size: imageSize,
           negative_prompt: negative,
         }).then(data => {
-          if (data?.url) saveLocalAsset('image', data.url, imagePrompt.slice(0, 60), imagePrompt);
+          if (data?.url) saveLocalAsset('image', data.url, imagePrompt.slice(0, 60), imagePrompt, data.completeEventId);
           else throw new Error(data?.error || t('dash.creative.err_no_image_url'));
         }),
       );
@@ -606,7 +625,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
         duration: musicDuration,
       });
       if (data.url) {
-        saveLocalAsset('music', data.url, musicPrompt.slice(0, 60), musicPrompt);
+        saveLocalAsset('music', data.url, musicPrompt.slice(0, 60), musicPrompt, data.completeEventId);
         // Clear the composer + lyrics on success — see image handler.
         setMusicPrompt('');
         setMusicLyrics('');
@@ -634,7 +653,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
         emotion: voiceEmotion,
       });
       if (data.url) {
-        saveLocalAsset('voice', data.url, voiceText.slice(0, 60), voiceText);
+        saveLocalAsset('voice', data.url, voiceText.slice(0, 60), voiceText, data.completeEventId);
         // Clear the text on success — see image handler.
         setVoiceText('');
       } else throw new Error(data.error || t('dash.creative.err_no_voice_url'));
@@ -659,7 +678,7 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
         first_frame_image: videoReference?.dataUrl,
       });
       if (data.url) {
-        saveLocalAsset('video', data.url, videoPrompt.slice(0, 60), videoPrompt);
+        saveLocalAsset('video', data.url, videoPrompt.slice(0, 60), videoPrompt, data.completeEventId);
         // Clear the composer + first-frame on success — see image
         // handler. Reference image consumed; user starts fresh.
         setVideoPrompt('');
@@ -899,12 +918,14 @@ export function CreativeStudio({ account }: { account?: AccountInfo | null }) {
             key={item.id}
             item={item}
             onRegenerate={(it) => {
+              postCreativeUserAction(it.id, 'retried');
               if (it.kind === 'image') setImagePrompt(it.prompt);
               else if (it.kind === 'music') setMusicPrompt(it.prompt);
               else if (it.kind === 'voice') setVoiceText(it.prompt);
               else if (it.kind === 'video') setVideoPrompt(it.prompt);
             }}
             onDelete={(it) => {
+              postCreativeUserAction(it.id, 'discarded'); // before delete — asset still present to resolve its link
               deleteLocalAsset(it.id);
               if (it.cloud) post({ type: 'delete_cloud_asset', id: it.id } as any);
             }}
@@ -1216,6 +1237,7 @@ function FeedCard({
   };
 
   const handleDownload = () => {
+    postCreativeUserAction(item.id, 'kept'); // downloading is the clearest "kept" signal
     const a = document.createElement('a');
     a.href = item.url;
     a.download = `${item.kind}_${item.id}`;

@@ -1481,6 +1481,11 @@ export type ExtToDashboardMessage =
       success: boolean;
       error?: string;
       data?: unknown;
+      // Dataset link: the generation_complete event_id (shape-only capture).
+      // The webview stores this on the gallery item so a later kept/retried/
+      // discarded action can reference this exact generation. Null if capture
+      // is off or the generation failed.
+      completeEventId?: string | null;
     };
 
 // ─── Dashboard Webview → Extension Host ──────────────────────────────────────
@@ -1682,6 +1687,9 @@ export type DashboardToExtMessage =
   | { type: 'load_latest_release' }
   // Creative Studio (proxied through extension host for CORS)
   | { type: 'creative_generate'; endpoint: string; body: Record<string, unknown> }
+  // Creative Studio dataset signal: what the user did with a generated asset.
+  // completeEventId links back to the generation_complete event (shape-only).
+  | { type: 'creative_user_action'; completeEventId: string; action: 'kept' | 'retried' | 'discarded' | 'edited' | 'unknown' }
   // ── Chat messages (forwarded to AvaViewProvider) ────────────────────────
   | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }> }
   // Command palette — a pre-classified user-aid intent fired by a palette

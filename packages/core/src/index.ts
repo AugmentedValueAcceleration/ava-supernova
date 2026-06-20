@@ -380,6 +380,14 @@ export {
 } from './dataset/config.js';
 export { ALL_DATASETS, type DatasetName } from './dataset/routing.js';
 export type { AvaMode } from './dataset/events.js';
+// Creative Studio generation tracking — UI-originated generations + user actions
+// (kept/retried/discarded/edited) run outside an agent trajectory, so these
+// wrap a synthetic one. Surfaces call them from the host/sidecar.
+export {
+  trackUiGeneration,
+  emitGenerationUserAction,
+  type GenerationUserAction,
+} from './dataset/generation-emit.js';
 
 // Generation
 export { GenerationManager } from './tools/generation-manager.js';
