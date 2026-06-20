@@ -97,7 +97,7 @@ export class AutoCoordinator {
   private readonly mode: RoutingMode;
   /** Provider+model the Builder agent (TaskExecutor spawn) runs on. In
    *  Auto mode this is the coordinator model — Builder inherits whatever
-   *  the conductor brain runs on. In Supernova mode it's Qwen 3.6 Plus
+   *  the conductor brain runs on. In Supernova mode it's Qwen 3.7 Plus
    *  per the locked routing map (Terminal-Bench leader on real agent
    *  loops, vision-aware so screenshots don't need a re-route). */
   private readonly builderProvider: Provider;
@@ -151,7 +151,7 @@ export class AutoCoordinator {
       this.mode,
     );
 
-    // Resolve the Builder model. Supernova spawns Qwen 3.6 Plus, Aurora
+    // Resolve the Builder model. Supernova spawns Qwen 3.7 Plus, Aurora
     // spawns Mistral Medium 3.5 (the merged flagship — 128B dense,
     // 256K context, vision encoder from scratch, 77.6% SWE-Bench Verified,
     // modified-MIT open weights). Auto reuses the coordinator model for
@@ -422,7 +422,7 @@ export class AutoCoordinator {
 
         const executor = new TaskExecutor({
           // Builder model — Auto reuses the coordinator, Supernova pins to
-          // Qwen 3.6 Plus per the polyglot routing map. See constructor.
+          // Qwen 3.7 Plus per the polyglot routing map. See constructor.
           provider: this.builderProvider,
           model: this.builderModel,
           toolRegistry: this.toolRegistry,

@@ -16,7 +16,7 @@ const baseCtx = {
   session_id: 'sess-test',
   surface: 'cli' as const,
   mode: 'work' as const,
-  model_id: 'qwen3.6-plus',
+  model_id: 'qwen3.7-plus',
 };
 
 async function flush(): Promise<void> {

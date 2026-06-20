@@ -1069,7 +1069,7 @@ export class Agent {
     // Knowledge-pack auto-activation removed in v0.59.2. The 12 builtin
     // domain packs (marketing, finance, devops, etc.) added ~750-1000
     // tokens of static framework guidance per matched keyword, which
-    // frontier models like Qwen 3.6 Plus / DeepSeek V4 Pro / Mistral
+    // frontier models like Qwen 3.7 Plus / DeepSeek V4 Pro / Mistral
     // Large 3 already cover from training. After the chat-tier
     // rebalance, that silent injection started bumping ~1-credit chat
     // turns into the next bracket without the user asking for it.

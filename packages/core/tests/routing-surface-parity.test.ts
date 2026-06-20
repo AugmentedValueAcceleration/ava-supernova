@@ -93,17 +93,17 @@ describe('Supernova — DeepSeek reachable on both surfaces', () => {
         expect(modelFor(r, c)).toBe(`deepseek-v4-flash${suffix}`);
       }
       // Builder + vision stay on Qwen per the polyglot map.
-      expect(modelFor(r, 'coding')).toBe('qwen3.6-plus');
+      expect(modelFor(r, 'coding')).toBe('qwen3.7-plus');
     });
   }
 });
 
 describe('Maestro — Qwen on both surfaces', () => {
   for (const [label, setup] of [['platform', platform], ['BYOK qwen', byok('qwen')]] as const) {
-    it(`routes core work to Qwen 3.6 Plus (${label})`, () => {
+    it(`routes core work to Qwen 3.7 Plus (${label})`, () => {
       const r = router('auto', setup);
       for (const c of ['coding', 'planning', 'security', 'long_context'] as const) {
-        expect(modelFor(r, c)).toBe('qwen3.6-plus');
+        expect(modelFor(r, c)).toBe('qwen3.7-plus');
       }
     });
   }
@@ -122,15 +122,15 @@ describe('Coordinator pinning per mode', () => {
     // qwen-only Supernova user — polyglot fallback, never null.
     expect(coordinatorFor('supernova', byok('qwen'))).not.toBeNull();
   });
-  it('Maestro coordinator is the Qwen 3.6 Plus flagship on both surfaces', () => {
+  it('Maestro coordinator is the Qwen 3.7 Plus flagship on both surfaces', () => {
     // Regression: the flagship was absent from the BYOK ladder, so a
-    // qwen-only user got 3.5 Plus as the classifier-brain instead of 3.6 Plus.
-    expect(coordinatorFor('auto', platform)).toBe('qwen3.6-plus');
-    expect(coordinatorFor('auto', byok('qwen'))).toBe('qwen3.6-plus');
+    // qwen-only user got 3.5 Plus as the classifier-brain instead of 3.7 Plus.
+    expect(coordinatorFor('auto', platform)).toBe('qwen3.7-plus');
+    expect(coordinatorFor('auto', byok('qwen'))).toBe('qwen3.7-plus');
   });
   it('reasoning-capable flagship outranks the non-reasoning Mistral Large 3', () => {
     // The BYOK ladder is "ordered by reasoning capability — best first", so the
-    // reasoning-capable 3.6 Plus must beat non-reasoning Large 3 for multi-key users.
-    expect(coordinatorFor('auto', byok('qwen', 'mistral'))).toBe('qwen3.6-plus');
+    // reasoning-capable 3.7 Plus must beat non-reasoning Large 3 for multi-key users.
+    expect(coordinatorFor('auto', byok('qwen', 'mistral'))).toBe('qwen3.7-plus');
   });
 });

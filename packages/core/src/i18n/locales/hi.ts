@@ -2069,7 +2069,7 @@ export const hiStrings: Partial<Record<StringKey, string>> = {
   'input.mode.brainstorm': 'विचार विमर्श',
   'input.mode.teach': 'शिक्षण',
   'input.attach_image': 'छवि संलग्न करें',
-  'input.attach_image_unsupported': 'यह मॉडल केवल पाठ है — छवियां संलग्न करने के लिए दृष्टि-क्षमता वाले मॉडल पर स्विच करें (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.6 Plus)।',
+  'input.attach_image_unsupported': 'यह मॉडल केवल पाठ है — छवियां संलग्न करने के लिए दृष्टि-क्षमता वाले मॉडल पर स्विच करें (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.7 Plus)।',
   'input.compress_usage': 'संदर्भ उपयोग — संपीड़ित करने के लिए क्लिक करें',
   'input.compress_click': 'संदर्भ संपीड़ित करने के लिए क्लिक करें',
   'input.voice_input': 'आवाज़ इनपुट',

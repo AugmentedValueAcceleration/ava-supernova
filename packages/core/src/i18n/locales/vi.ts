@@ -2069,7 +2069,7 @@ export const viStrings: Partial<Record<StringKey, string>> = {
   'input.mode.brainstorm': 'Bão não',
   'input.mode.teach': 'Dạy',
   'input.attach_image': 'Đính kèm hình ảnh',
-  'input.attach_image_unsupported': 'Mô hình này chỉ hỗ trợ văn bản — chuyển sang mô hình có khả năng xử lý hình ảnh (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.6 Plus) để đính kèm hình ảnh.',
+  'input.attach_image_unsupported': 'Mô hình này chỉ hỗ trợ văn bản — chuyển sang mô hình có khả năng xử lý hình ảnh (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.7 Plus) để đính kèm hình ảnh.',
   'input.compress_usage': 'Sử dụng ngữ cảnh — nhấp để nén',
   'input.compress_click': 'Nhấp để nén ngữ cảnh',
   'input.voice_input': 'Nhập giọng nói',

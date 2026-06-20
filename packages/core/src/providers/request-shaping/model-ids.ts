@@ -25,7 +25,6 @@ export const MODEL_API_NAMES: Record<string, string> = {
   // Qwen legacy rolling aliases -> current generation
   'qwen-flash':        'qwen3.5-flash',
   'qwen-turbo':        'qwen3.5-flash',
-  'qwen3-omni-flash':  'qwen3.5-omni-flash',
   // Managed DeepSeek V4 — strip the `-platform` disambiguator
   'deepseek-v4-pro-platform':   'deepseek-v4-pro',
   'deepseek-v4-flash-platform': 'deepseek-v4-flash',
@@ -48,18 +47,18 @@ export const MODEL_API_NAMES: Record<string, string> = {
  * When a request carries images, reroute text-only models to a vision-capable
  * equivalent. Keys/values are POST-translation ids (run after MODEL_API_NAMES).
  *
- * qwen3.5-flash is text-only; the rest of the 3.5 generation is natively
- * multimodal. DeepSeek V4 (Pro + Flash) is text-only at the API level (verified
- * against api.deepseek.com 2026-04-25) so image requests go to Qwen Omni Plus.
- * Aurora's Large 3 coordinator is text-only -> Medium 3.5 (vision encoder
- * trained from scratch), keeping the EU-stack guarantee instead of falling to Qwen.
+ * qwen3.5-flash is text-only. DeepSeek V4 (Pro + Flash) is text-only at the API
+ * level (verified against api.deepseek.com 2026-04-25) so image requests reroute
+ * to Qwen 3.7 Plus (native vision + video). Aurora's Large 3 coordinator is
+ * text-only -> Medium 3.5 (vision encoder trained from scratch), keeping the
+ * EU-stack guarantee instead of falling to Qwen.
  */
 export const VISION_REROUTE: Record<string, string> = {
-  'qwen3.5-flash':       'qwen3.5-omni-flash',
-  'qwen-flash':          'qwen3.5-omni-flash',
-  'qwen-turbo':          'qwen3.5-omni-flash',
-  'deepseek-v4-pro':     'qwen3.5-omni-plus',
-  'deepseek-v4-flash':   'qwen3.5-omni-plus',
+  'qwen3.5-flash':       'qwen3.7-plus',
+  'qwen-flash':          'qwen3.7-plus',
+  'qwen-turbo':          'qwen3.7-plus',
+  'deepseek-v4-pro':     'qwen3.7-plus',
+  'deepseek-v4-flash':   'qwen3.7-plus',
   'mistral-large-2512':  'mistral-medium-3-5',
 };
 

@@ -2069,7 +2069,7 @@ export const arStrings: Partial<Record<StringKey, string>> = {
   'input.mode.brainstorm': 'عصف ذهني',
   'input.mode.teach': 'تعليم',
   'input.attach_image': 'إرفاق صورة',
-  'input.attach_image_unsupported': 'هذا النموذج للنصوص فقط — انتقل إلى نموذج يدعم الرؤية (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.6 Plus) لإرفاق الصور.',
+  'input.attach_image_unsupported': 'هذا النموذج للنصوص فقط — انتقل إلى نموذج يدعم الرؤية (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.7 Plus) لإرفاق الصور.',
   'input.compress_usage': 'استخدام السياق — انقر للضغط',
   'input.compress_click': 'انقر لضغط السياق',
   'input.voice_input': 'إدخال صوتي',

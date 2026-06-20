@@ -2049,7 +2049,7 @@ export const plStrings: Partial<Record<StringKey, string>> = {
   'input.mode.brainstorm': 'Burza mózgów',
   'input.mode.teach': 'Naucz',
   'input.attach_image': 'Dołącz obraz',
-  'input.attach_image_unsupported': 'Ten model obsługuje tylko tekst — przełącz się na model z obsługą wizji (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.6 Plus), aby dołączyć obrazy.',
+  'input.attach_image_unsupported': 'Ten model obsługuje tylko tekst — przełącz się na model z obsługą wizji (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.7 Plus), aby dołączyć obrazy.',
   'input.compress_usage': 'Użycie kontekstu — kliknij, aby skompresować',
   'input.compress_click': 'Kliknij, aby skompresować kontekst',
   'input.voice_input': 'Wejście głosowe',

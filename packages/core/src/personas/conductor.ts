@@ -177,7 +177,7 @@ export class Conductor {
    *
    * Every other mode (work, plan, security, brainstorm) is gated on an
    * explicit-signal regex — the user has to ask for the team. Most prompts
-   * in those modes are things the coordinator (Qwen 3.6 Plus) can handle
+   * in those modes are things the coordinator (Qwen 3.7 Plus) can handle
    * directly with file reads + writes + tool calls, without spawning 3–9
    * specialists on an expensive model. That was the old token sink: a
    * casual "plan adding a settings button" in Plan mode was triggering

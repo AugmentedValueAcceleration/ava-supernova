@@ -37,25 +37,24 @@ describe('resolveApiModel — model-id translation', () => {
   it('rolls Qwen legacy aliases forward', () => {
     expect(resolveApiModel('qwen-flash')).toBe('qwen3.5-flash');
     expect(resolveApiModel('qwen-turbo')).toBe('qwen3.5-flash');
-    expect(resolveApiModel('qwen3-omni-flash')).toBe('qwen3.5-omni-flash');
   });
 
   it('passes unknown ids through unchanged', () => {
-    expect(resolveApiModel('qwen3.6-plus')).toBe('qwen3.6-plus');
+    expect(resolveApiModel('qwen3.7-plus')).toBe('qwen3.7-plus');
     expect(resolveApiModel('some-future-model')).toBe('some-future-model');
   });
 
   it('reroutes text-only models to vision variants when images are present', () => {
-    expect(resolveApiModel('qwen3.5-flash', true)).toBe('qwen3.5-omni-flash');
-    // DeepSeek V4 is text-only at the API level -> Qwen Omni Plus
-    expect(resolveApiModel('deepseek-v4-pro-platform', true)).toBe('qwen3.5-omni-plus');
+    expect(resolveApiModel('qwen3.5-flash', true)).toBe('qwen3.7-plus');
+    // DeepSeek V4 is text-only at the API level -> Qwen 3.7 Plus (native vision + video)
+    expect(resolveApiModel('deepseek-v4-pro-platform', true)).toBe('qwen3.7-plus');
     // Aurora's Large 3 coordinator -> Medium 3.5 (its own vision encoder),
     // applied AFTER the id translation (large-3 -> large-2512 -> medium-2604).
     expect(resolveApiModel('mistral-large-3-platform', true)).toBe('mistral-medium-3-5');
   });
 
   it('does not reroute natively-multimodal models', () => {
-    expect(resolveApiModel('qwen3.5-omni-plus', true)).toBe('qwen3.5-omni-plus');
+    expect(resolveApiModel('qwen3.7-plus', true)).toBe('qwen3.7-plus');
     expect(resolveApiModel('mistral-medium-3.5', true)).toBe('mistral-medium-3-5');
   });
 });
@@ -156,7 +155,7 @@ describe('shapeParams — per-provider quirks', () => {
   });
 
   it('Qwen: drops frequency_penalty', () => {
-    const p = shapeParams('qwen', 'qwen3.6-plus', { frequency_penalty: 0.5 });
+    const p = shapeParams('qwen', 'qwen3.7-plus', { frequency_penalty: 0.5 });
     expect(p).not.toHaveProperty('frequency_penalty');
   });
 

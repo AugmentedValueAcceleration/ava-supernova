@@ -46,7 +46,7 @@ export interface AvaEvent<T extends AvaEventType = AvaEventType> {
   session_id: string;                   // agent session UUID
   surface: AvaSurface;
   mode: AvaMode;
-  model_id: string;                     // e.g. 'qwen3.6-plus'
+  model_id: string;                     // e.g. 'qwen3.7-plus'
   payload: AvaEventPayloadMap[T];
 }
 

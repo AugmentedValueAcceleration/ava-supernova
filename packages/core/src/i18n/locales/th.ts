@@ -2069,7 +2069,7 @@ export const thStrings: Partial<Record<StringKey, string>> = {
   'input.mode.brainstorm': 'ระดมสมอง',
   'input.mode.teach': 'สอน',
   'input.attach_image': 'แนบรูปภาพ',
-  'input.attach_image_unsupported': 'โมเดลนี้เป็นข้อความเท่านั้น — สลับไปใช้โมเดลที่รองรับภาพ (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.6 Plus) เพื่อแนบรูปภาพ',
+  'input.attach_image_unsupported': 'โมเดลนี้เป็นข้อความเท่านั้น — สลับไปใช้โมเดลที่รองรับภาพ (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.7 Plus) เพื่อแนบรูปภาพ',
   'input.compress_usage': 'การใช้บริบท — คลิกเพื่อบีบอัด',
   'input.compress_click': 'คลิกเพื่อบีบอัดบริบท',
   'input.voice_input': 'ป้อนเสียง',

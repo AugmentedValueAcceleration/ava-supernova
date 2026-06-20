@@ -3,16 +3,18 @@ import type { ModelDefinition } from '../../core/types.js';
 /**
  * Platform models — available on managed plans + free accounts.
  * Paid plans: Qwen family + the managed coordinators (Supernova/Aurora).
- * Free accounts: Qwen only (Omni Flash default).
+ * Free accounts: Qwen only (3.5 Flash default).
  * MiniMax is BYOK only — users supply their own MiniMax API key (see
  *   providers/minimax/models.ts). It carries no managed/platform entry.
  * Kimi is BYOK only — users supply a Moonshot API key to use K2.6 / K2.5.
  */
 export const PLATFORM_MODELS: ModelDefinition[] = [
-  // Qwen 3.6 Plus — flagship conductor. Agentic coding, 1M context, always-on CoT.
+  // Qwen 3.7 Plus — flagship Maestro conductor. Agentic coding, 1M context,
+  // vision + video, reasoning. Supersedes Qwen 3.6 Plus + the 3.5 Omni tier:
+  // better agentic coding, multimodal, and cheaper.
   {
-    id: 'qwen3.6-plus',
-    name: 'Qwen 3.6 Plus',
+    id: 'qwen3.7-plus',
+    name: 'Qwen 3.7 Plus',
     provider: 'platform',
     contextWindow: 1000000,
     maxOutputTokens: 65536,
@@ -20,37 +22,8 @@ export const PLATFORM_MODELS: ModelDefinition[] = [
     supportsStreaming: true,
     supportsThinking: true,
     supportsVision: true,
-    desktopCapable: true, // Default Maestro coordinator. Reliable tool calls, fast enough.
-    pricing: { inputPerMillion: 0.29, outputPerMillion: 1.70 },
-  },
-  // Qwen 3.5 Omni Plus — multimodal
-  {
-    id: 'qwen3.5-omni-plus',
-    name: 'Qwen 3.5 Omni Plus',
-    provider: 'platform',
-    contextWindow: 256000,
-    maxOutputTokens: 128000,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsThinking: true,
-    supportsVision: true,
-    desktopCapable: true, // Multimodal coordinator with reliable tool calls.
-    pricing: { inputPerMillion: 0.26, outputPerMillion: 1.56 },
-  },
-  // Qwen 3.5 Omni Flash — multimodal fast-path (vision + audio).
-  // Not desktop-capable: Flash variants drop tool-call args under
-  // sequential pressure; fine for chat / single-shot, brittle for the
-  // multi-call desktop_* cadence.
-  {
-    id: 'qwen3.5-omni-flash',
-    name: 'Qwen 3.5 Omni Flash',
-    provider: 'platform',
-    contextWindow: 256000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsVision: true,
-    pricing: { inputPerMillion: 0.065, outputPerMillion: 0.26 },
+    desktopCapable: true, // Default Maestro coordinator. Reliable tool calls, sees images natively.
+    pricing: { inputPerMillion: 0.40, outputPerMillion: 1.16 },
   },
   // Qwen 3.5 Plus — 1M context
   {

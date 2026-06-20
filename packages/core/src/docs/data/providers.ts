@@ -33,7 +33,7 @@ export const PROVIDERS: ProviderFact[] = [
     kind: 'orchestration',
     notes: 'One conductor drives the entire persona pipeline (Scout, Architect, Builder, Verifier). A cheap fast model handles the upstream intent gate so the conductor only spins up when orchestration is actually needed. Default for everyone, live on every plan.',
     models: [
-      { id: 'qwen3.6-plus', displayName: 'Qwen 3.6 Plus — conductor + every persona', inputPricePerM: 0.29, outputPricePerM: 1.70, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus — conductor + every persona', inputPricePerM: 0.29, outputPricePerM: 1.70, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash — upstream intent gate / classifier', inputPricePerM: 0.05, outputPricePerM: 0.40, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
     ],
   },
@@ -44,7 +44,7 @@ export const PROVIDERS: ProviderFact[] = [
     notes: 'Best-of-breed routing — the coordinator picks the right specialist for each subtask. Frontier reasoning where it matters, flash-tier cost where it does not.',
     models: [
       { id: 'deepseek-v4-pro-platform', displayName: 'DeepSeek V4 Pro — coordinator + planning, chat, long-context, security, brainstorm; Researcher, CVE Researcher, Ideator personas', inputPricePerM: 0.435, outputPricePerM: 0.87, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
-      { id: 'qwen3.6-plus', displayName: 'Qwen 3.6 Plus — Builder + coding, image-gen; Architect persona', inputPricePerM: 0.29, outputPricePerM: 1.70, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus — Builder + coding, image-gen; Architect persona', inputPricePerM: 0.29, outputPricePerM: 1.70, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'deepseek-v4-flash-platform', displayName: 'DeepSeek V4 Flash — Teach route; Code Reviewer, Fact Checker, Quiz Master, Recon, Scanner, Curriculum Architect, Tutor, Curator, Explorer, Refiner, Security Verifier/Reporter personas', inputPricePerM: 0.14, outputPricePerM: 0.28, contextWindow: 1_000_000, capabilities: ['tools', 'thinking', 'streaming'] },
       { id: 'qwen3.5-plus', displayName: 'Qwen 3.5 Plus — Content Writer persona (cost-sensitive long-output writing)', inputPricePerM: 0.20, outputPricePerM: 1.20, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.5-flash', displayName: 'Qwen 3.5 Flash — intent gate; Scout, Verifier, Sequencer, Challenger, Integrator personas (depth ≤ 2)', inputPricePerM: 0.05, outputPricePerM: 0.40, contextWindow: 256_000, capabilities: ['tools', 'streaming'] },
@@ -67,9 +67,9 @@ export const PROVIDERS: ProviderFact[] = [
     id: 'qwen',
     name: 'Qwen (Alibaba Cloud)',
     kind: 'managed',
-    notes: 'Qwen 3.6 Plus coordinates Auto Mode; 3.5 Flash and 3.5 Omni Flash are the fast-path options. All models available on every plan.',
+    notes: 'Qwen 3.7 Plus coordinates Auto Mode; 3.5 Flash and 3.5 Omni Flash are the fast-path options. All models available on every plan.',
     models: [
-      { id: 'qwen3.6-plus', displayName: 'Qwen 3.6 Plus', inputPricePerM: 0.29, outputPricePerM: 1.70, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
+      { id: 'qwen3.7-plus', displayName: 'Qwen 3.7 Plus', inputPricePerM: 0.29, outputPricePerM: 1.70, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.5-omni-plus', displayName: 'Qwen 3.5 Omni Plus', inputPricePerM: 0.26, outputPricePerM: 1.56, contextWindow: 256_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },
       { id: 'qwen3.5-omni-flash', displayName: 'Qwen 3.5 Omni Flash', inputPricePerM: 0.065, outputPricePerM: 0.26, contextWindow: 256_000, capabilities: ['tools', 'vision', 'streaming'] },
       { id: 'qwen3.5-plus', displayName: 'Qwen 3.5 Plus', inputPricePerM: 0.20, outputPricePerM: 1.20, contextWindow: 1_000_000, capabilities: ['tools', 'vision', 'thinking', 'streaming'] },

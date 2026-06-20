@@ -35,7 +35,7 @@ export interface ChargeOpts {
   cacheHit?: boolean;
   /** Provider's raw usage numbers (dual-write for Stage 2 billing parity). */
   rawTokens?: RawTokenUsage;
-  /** Model identifier for audit (e.g. 'qwen3.6-plus'). */
+  /** Model identifier for audit (e.g. 'qwen3.7-plus'). */
   model?: string;
 }
 

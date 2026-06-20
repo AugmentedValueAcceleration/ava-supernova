@@ -8,7 +8,7 @@ export type PersonaPhase = 'idle' | 'active' | 'complete' | 'error';
 
 /**
  * Model tier a persona runs on.
- * - 'heavy' = coordinator model (Qwen 3.6 Plus / Claude Sonnet / Kimi K2.5).
+ * - 'heavy' = coordinator model (Qwen 3.7 Plus / Claude Sonnet / Kimi K2.5).
  *   Architects, Builders, Researchers — the personas doing real reasoning
  *   or generating code. Pays the premium for quality.
  * - 'light' = cheap fast model (Qwen 3.5 Flash / Claude Haiku).

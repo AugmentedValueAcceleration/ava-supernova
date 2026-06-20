@@ -2041,7 +2041,7 @@ export const esStrings: Partial<Record<StringKey, string>> = {
   'input.mode.brainstorm': 'Lluvia de ideas',
   'input.mode.teach': 'Enseñar',
   'input.attach_image': 'Adjuntar imagen',
-  'input.attach_image_unsupported': 'Este modelo es solo texto: cambia a un modelo con capacidad de visión (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.6 Plus) para adjuntar imágenes.',
+  'input.attach_image_unsupported': 'Este modelo es solo texto: cambia a un modelo con capacidad de visión (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.7 Plus) para adjuntar imágenes.',
   'input.compress_usage': 'Uso del contexto: haz clic para comprimir',
   'input.compress_click': 'Haz clic para comprimir el contexto',
   'input.voice_input': 'Entrada de voz',

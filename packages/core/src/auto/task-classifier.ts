@@ -17,7 +17,7 @@ const MODEL_ALIASES: Record<string, string> = {
   'm3': 'MiniMax-M3',
   'm2.7': 'MiniMax-M2.7',
   // Qwen
-  'qwen': 'qwen3.6-plus',
+  'qwen': 'qwen3.7-plus',
   'qwen flash': 'qwen3.5-flash',
   'qwen omni flash': 'qwen3.5-omni-flash',
   'qwen plus': 'qwen3.5-plus',

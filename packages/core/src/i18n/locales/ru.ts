@@ -2069,7 +2069,7 @@ export const ruStrings: Partial<Record<StringKey, string>> = {
   'input.mode.brainstorm': 'Мозговой штурм',
   'input.mode.teach': 'Обучение',
   'input.attach_image': 'Прикрепить изображение',
-  'input.attach_image_unsupported': 'Эта модель работает только с текстом — переключитесь на модель с поддержкой изображений (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.6 Plus), чтобы прикреплять изображения.',
+  'input.attach_image_unsupported': 'Эта модель работает только с текстом — переключитесь на модель с поддержкой изображений (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.7 Plus), чтобы прикреплять изображения.',
   'input.compress_usage': 'Использование контекста — нажмите для сжатия',
   'input.compress_click': 'Нажмите для сжатия контекста',
   'input.voice_input': 'Голосовой ввод',

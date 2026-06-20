@@ -26,36 +26,36 @@ interface RouteEntry {
 }
 
 // Maestro routing — Qwen-only, tier-differentiated by task. Heavy reasoning
-// and long-context work go to Qwen 3.6 Plus (#1 on SWE-bench Pro, Terminal-
+// and long-context work go to Qwen 3.7 Plus (#1 on SWE-bench Pro, Terminal-
 // Bench 2.0, SkillsBench as of 2026-04-20). Light orchestration / chat go to
 // Qwen 3.5 Flash. Vision-input tasks land on Qwen 3.5 Omni Plus — the dedicated
-// vision+audio specialist. (Qwen 3.6 Plus is ALSO vision-capable; the Omni tier
+// vision+audio specialist. (Qwen 3.7 Plus is ALSO vision-capable; the Omni tier
 // is under modernisation review vs the newer Qwen 3.6 Flash.)
 // MiniMax reserved for creative generation (image/video/music/voice).
 const DEFAULT_ROUTES: Record<TaskCategory, RouteEntry> = {
-  coding:       { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — #1 SWE-bench Pro + Terminal-Bench 2.0, 1M context', fallbackModelId: 'qwen3.5-plus' },
-  // Vision needs an actually vision-capable Qwen — Omni Plus is the only one.
-  vision:       { modelId: 'qwen3.5-omni-plus', reason: 'Qwen 3.5 Omni Plus — dedicated vision + audio multimodal specialist', fallbackModelId: 'qwen3.5-omni-flash', requiresVision: true },
+  coding:       { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — #1 SWE-bench Pro + Terminal-Bench 2.0, 1M context', fallbackModelId: 'qwen3.5-plus' },
+  // Vision — Qwen 3.7 Plus sees images + video natively (1M context).
+  vision:       { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — native vision + video, 1M context', fallbackModelId: 'qwen3.5-plus', requiresVision: true },
   // image_gen orchestrates the generate_image tool call to Wan/MiniMax —
   // no agentic depth needed at this layer. Flash is ~6× cheaper.
-  image_gen:    { modelId: 'qwen3.5-flash',     reason: 'Qwen 3.5 Flash — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'qwen3.5-omni-plus' },
+  image_gen:    { modelId: 'qwen3.5-flash',     reason: 'Qwen 3.5 Flash — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'qwen3.7-plus' },
   // computer_use route retired alongside the Holo3 integration.
-  planning:     { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — 1M context for architecture + planning depth', fallbackModelId: 'qwen3.5-plus' },
+  planning:     { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — 1M context for architecture + planning depth', fallbackModelId: 'qwen3.5-plus' },
   // Chat = direct conversational response. Flash's $0.05/$0.40 pricing and
-  // faster TTFT are right for typical chat turns; 3.6 Plus is the warm
+  // faster TTFT are right for typical chat turns; 3.7 Plus is the warm
   // fallback if Flash is unavailable.
-  chat:         { modelId: 'qwen3.5-flash',     reason: 'Qwen 3.5 Flash — fast TTFT, cheapest input/output for typical chat turns', fallbackModelId: 'qwen3.6-plus' },
-  long_context: { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — hybrid linear-attention + MoE efficient at 1M', fallbackModelId: 'qwen3.5-plus' },
+  chat:         { modelId: 'qwen3.5-flash',     reason: 'Qwen 3.5 Flash — fast TTFT, cheapest input/output for typical chat turns', fallbackModelId: 'qwen3.7-plus' },
+  long_context: { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — hybrid linear-attention + MoE efficient at 1M', fallbackModelId: 'qwen3.5-plus' },
   // Teach leans on long-form coherent output more than frontier reasoning.
   // 3.5 Plus is the cost-sensitive long-output tier.
-  teach:        { modelId: 'qwen3.5-plus',      reason: 'Qwen 3.5 Plus — cost-sensitive long-form coherent output for tutorials', fallbackModelId: 'qwen3.6-plus', creationModelId: 'qwen3.6-plus' },
-  security:     { modelId: 'qwen3.6-plus',      reason: 'Qwen 3.6 Plus — security analysis with full codebase context + depth', fallbackModelId: 'qwen3.5-plus' },
+  teach:        { modelId: 'qwen3.5-plus',      reason: 'Qwen 3.5 Plus — cost-sensitive long-form coherent output for tutorials', fallbackModelId: 'qwen3.7-plus', creationModelId: 'qwen3.7-plus' },
+  security:     { modelId: 'qwen3.7-plus',      reason: 'Qwen 3.7 Plus — security analysis with full codebase context + depth', fallbackModelId: 'qwen3.5-plus' },
   // Brainstorm = ideation, not depth-bound reasoning. Qwen 3.5 Plus is
   // the right cognitive shape for breadth — cheaper, faster, creatively
-  // wider than 3.6 Plus, whose RLHF favours careful reasoning over the
-  // diverse-angles output ideation rewards. 3.6 Plus stays as the
+  // wider than 3.7 Plus, whose RLHF favours careful reasoning over the
+  // diverse-angles output ideation rewards. 3.7 Plus stays as the
   // fallback for the rare deep-reasoning brainstorm workload.
-  brainstorm:   { modelId: 'qwen3.5-plus',      reason: 'Qwen 3.5 Plus — breadth over depth for ideation, cheaper and creatively wider than 3.6 Plus', fallbackModelId: 'qwen3.6-plus' },
+  brainstorm:   { modelId: 'qwen3.5-plus',      reason: 'Qwen 3.5 Plus — breadth over depth for ideation, cheaper and creatively wider than 3.7 Plus', fallbackModelId: 'qwen3.7-plus' },
 };
 
 /**
@@ -202,7 +202,7 @@ export class ModelRouter {
     // Kimi removed — Kimi is BYOK only, so `platform:kimi-*` never resolved.
     // MiniMax excluded from reasoning fallback — reserved for creative generation.
     if (this.hasPlatform) {
-      const platformModels = ['qwen3.6-plus', 'qwen3.5-omni-plus', 'qwen3.5-omni-flash', 'qwen3.5-flash'];
+      const platformModels = ['qwen3.7-plus', 'qwen3.5-plus', 'qwen3.5-flash'];
       for (const id of platformModels) {
         const result = this.providerRegistry.resolveModel(`platform:${id}`);
         if (result) return { modelId: `platform:${id}`, provider: result.provider, model: result.model, reason };
@@ -212,7 +212,7 @@ export class ModelRouter {
     // BYOK models (dynamic — try whatever providers are available, best first).
     // Fable 5 first: Anthropic's Mythos-class flagship. K2.6 next: SoTA
     // agentic coding. K2.5 kept as legacy fallback. MiniMax excluded — creative only.
-    const byokModels = ['claude-fable-5', 'kimi-k2.6', 'claude-opus-4-8', 'claude-sonnet-4-6', 'kimi-k2.5', 'deepseek-chat', 'glm-5.2', 'mistral-medium-3.5', 'qwen3.5-omni-plus', 'qwen3.5-omni-flash', 'qwen3.5-flash'];
+    const byokModels = ['claude-fable-5', 'kimi-k2.6', 'claude-opus-4-8', 'claude-sonnet-4-6', 'kimi-k2.5', 'deepseek-chat', 'glm-5.2', 'mistral-medium-3.5', 'qwen3.7-plus', 'qwen3.5-plus', 'qwen3.5-flash'];
     for (const id of byokModels) {
       const result = this.providerRegistry.resolveModel(id);
       if (result && this.isProviderAvailable(result.provider.name)) {

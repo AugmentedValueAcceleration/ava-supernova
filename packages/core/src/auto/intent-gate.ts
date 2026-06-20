@@ -9,7 +9,7 @@ import { chargeCredits, extractUsage } from '../billing/meter.js';
  * Flash-based intent gate.
  *
  * Runs upstream of the persona spawn decision. Decides whether the
- * coordinator (Ava / Qwen 3.6 Plus) can handle the prompt directly with
+ * coordinator (Ava / Qwen 3.7 Plus) can handle the prompt directly with
  * its own tools, or whether the task genuinely warrants the specialist
  * team (Architect / Scout / Challenger / etc.).
  *
@@ -62,7 +62,7 @@ export function resolveIntentGateModel(
 ): { provider: Provider; model: ModelDefinition } | null {
   // Platform priority — Qwen Flash family first
   if (hasPlatform) {
-    for (const id of ['qwen3.5-flash', 'qwen3.5-omni-flash', 'qwen-flash']) {
+    for (const id of ['qwen3.5-flash', 'qwen-flash']) {
       const resolved = providerRegistry.resolveModel(`platform:${id}`);
       if (resolved) return { provider: resolved.provider, model: resolved.model };
     }

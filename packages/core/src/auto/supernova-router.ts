@@ -8,7 +8,7 @@ import type { TaskCategory } from './types.js';
  * is actually best at:
  *
  *   - DeepSeek V4 Pro    — coordinator, deep reasoning, long-context synthesis
- *   - Qwen 3.6 Plus      — agent loops (Terminal-Bench leader), vision input,
+ *   - Qwen 3.7 Plus      — agent loops (Terminal-Bench leader), vision input,
  *                          MCP tool orchestration, production-tested
  *   - DeepSeek V4 Flash  — mid-tier review/verification, anomaly price/perf
  *   - Qwen 3.5 Plus      — cost-sensitive long-output writing
@@ -27,11 +27,11 @@ export const SUPERNOVA_COORDINATOR_ID = 'deepseek-v4-pro';
 /** Builder agent — TaskExecutor spawn for any session task. Terminal-Bench
  *  leader; production-tested in our existing personas; vision-aware so an
  *  attached screenshot doesn't need a re-route. */
-export const SUPERNOVA_BUILDER_ID = 'qwen3.6-plus';
+export const SUPERNOVA_BUILDER_ID = 'qwen3.7-plus';
 
 /** Vision input override — any prompt with images bypasses persona / category
- *  routing and lands on Omni Plus. V4 has no vision via API. */
-export const SUPERNOVA_VISION_ID = 'qwen3.5-omni-plus';
+ *  routing and lands on Qwen 3.7 Plus (native vision + video). V4 is blind via API. */
+export const SUPERNOVA_VISION_ID = 'qwen3.7-plus';
 
 /** Intent gate — cheapest classifier in the roster. Same model Auto Mode uses
  *  upstream of spawn decisions. No reason to swap; Qwen Flash at $0.065 input
@@ -53,21 +53,20 @@ export interface SupernovaRouteEntry {
 }
 
 export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
-  // Builder dominates — Qwen 3.6 Plus is the Terminal-Bench leader and what
+  // Builder dominates — Qwen 3.7 Plus is the Terminal-Bench leader and what
   // we've tuned the Builder persona against.
-  coding:       { modelId: 'qwen3.6-plus',                reason: 'Qwen 3.6 Plus — Terminal-Bench leader, production-tested Builder',                  fallbackModelId: 'deepseek-v4-flash' },
-  // Vision input → Omni only path.
-  vision:       { modelId: 'qwen3.5-omni-plus',           reason: 'Qwen 3.5 Omni Plus — dedicated vision + audio specialist (3.6 Plus is also vision-capable, kept as fallback)', fallbackModelId: 'qwen3.6-plus', requiresVision: true },
+  coding:       { modelId: 'qwen3.7-plus',                reason: 'Qwen 3.7 Plus — Terminal-Bench leader, production-tested Builder',                  fallbackModelId: 'deepseek-v4-flash' },
+  // Vision input → Qwen 3.7 Plus (native vision + video).
+  vision:       { modelId: 'qwen3.7-plus',                reason: 'Qwen 3.7 Plus — native vision + video, 1M context', fallbackModelId: 'qwen3.5-plus', requiresVision: true },
   // image_gen orchestrates a generate_image tool call to Wan / MiniMax —
-  // no agentic depth needed at this layer. Omni Flash is materially cheaper
-  // than 3.6 Plus and still vision-capable for the result handoff.
-  image_gen:    { modelId: 'qwen3.5-omni-flash',          reason: 'Qwen 3.5 Omni Flash — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'qwen3.5-omni-plus' },
+  // no agentic depth needed at this layer. Flash is cheapest.
+  image_gen:    { modelId: 'qwen3.5-flash',               reason: 'Qwen 3.5 Flash — orchestrates generate_image tool calls; depth not required at this layer', fallbackModelId: 'qwen3.7-plus' },
   // computer_use route retired alongside the Holo3 integration.
   // Planning is Architect + Researcher territory — Architect is Qwen 3.6
   // Plus per the map, but planning leans heavily on Researcher's
   // long-context synthesis where V4 Pro wins. Default to V4 Pro; Architect
-  // gets routed back to Qwen 3.6 Plus per persona below.
-  planning:     { modelId: 'deepseek-v4-pro',    reason: 'DeepSeek V4 Pro — long-context planning + synthesis depth',                          fallbackModelId: 'qwen3.6-plus' },
+  // gets routed back to Qwen 3.7 Plus per persona below.
+  planning:     { modelId: 'deepseek-v4-pro',    reason: 'DeepSeek V4 Pro — long-context planning + synthesis depth',                          fallbackModelId: 'qwen3.7-plus' },
   // Chat is a single-turn response — doesn't exercise V4 Pro's MoE
   // coordinator strengths (specialist dispatch, multi-step reasoning).
   // V4 Flash is the right tier: same DeepSeek family, 1M context, MIT
@@ -75,13 +74,13 @@ export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
   // Pro stays reserved for the workloads where the coordinator pattern
   // actually pays off (planning, orchestration, security, brainstorm,
   // long_context).
-  chat:         { modelId: 'deepseek-v4-flash',  reason: 'DeepSeek V4 Flash — fast chat tier, V4 Pro reserved for orchestration',              fallbackModelId: 'qwen3.6-plus' },
+  chat:         { modelId: 'deepseek-v4-flash',  reason: 'DeepSeek V4 Flash — fast chat tier, V4 Pro reserved for orchestration',              fallbackModelId: 'qwen3.7-plus' },
   // 1M-context grunt: V4 Pro shines (10% KV cache footprint at 1M).
-  long_context: { modelId: 'deepseek-v4-pro',    reason: 'DeepSeek V4 Pro — 1M context with 10% KV cache footprint',                           fallbackModelId: 'qwen3.6-plus' },
+  long_context: { modelId: 'deepseek-v4-pro',    reason: 'DeepSeek V4 Pro — 1M context with 10% KV cache footprint',                           fallbackModelId: 'qwen3.7-plus' },
   // Teach = Tutor + Curriculum Architect (both medium-depth) → V4 Flash sweet spot.
-  teach:        { modelId: 'deepseek-v4-flash',  reason: 'DeepSeek V4 Flash — mid-depth teaching at flash-tier cost',                          fallbackModelId: 'qwen3.6-plus', creationModelId: 'deepseek-v4-pro' },
+  teach:        { modelId: 'deepseek-v4-flash',  reason: 'DeepSeek V4 Flash — mid-depth teaching at flash-tier cost',                          fallbackModelId: 'qwen3.7-plus', creationModelId: 'deepseek-v4-pro' },
   // Security = CVE Researcher leads — depth 4 reasoning over attack surface.
-  security:     { modelId: 'deepseek-v4-pro',    reason: 'DeepSeek V4 Pro — deep reasoning over attack surface',                               fallbackModelId: 'qwen3.6-plus' },
+  security:     { modelId: 'deepseek-v4-pro',    reason: 'DeepSeek V4 Pro — deep reasoning over attack surface',                               fallbackModelId: 'qwen3.7-plus' },
   // Brainstorm = ideation, not depth-bound reasoning. V4 Flash is the
   // right cognitive shape for breadth — fast, cheap, less RLHF-cautious
   // than V4 Pro Think-Max, which produces more samey ideation output
@@ -93,7 +92,7 @@ export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
 // ── Per-persona override map ──────────────────────────────────────────────
 //
 // Used by Conductor when spawning specific personas. Persona is finer-grained
-// than task category — a "planning" task might invoke Architect (Qwen 3.6 Plus)
+// than task category — a "planning" task might invoke Architect (Qwen 3.7 Plus)
 // AND Researcher (V4 Pro) within the same orchestration. Persona override
 // wins over the category route when set.
 //
@@ -101,8 +100,8 @@ export const SUPERNOVA_ROUTES: Record<TaskCategory, SupernovaRouteEntry> = {
 
 export const SUPERNOVA_PERSONA_MODEL: Record<string, string> = {
   // Heavy specialists — chosen per the locked routing map.
-  architect:           'qwen3.6-plus',                  // vision-aware planning, MCP, production-tested
-  builder:             'qwen3.6-plus',                  // Terminal-Bench leader, real agent loops
+  architect:           'qwen3.7-plus',                  // vision-aware planning, MCP, production-tested
+  builder:             'qwen3.7-plus',                  // Terminal-Bench leader, real agent loops
   curator:             'deepseek-v4-flash',    // mid-tier reasoning, cost-effective
   researcher:          'deepseek-v4-pro',      // long-context synthesis
   cve_researcher:      'deepseek-v4-pro',      // deep reasoning over attack chain
@@ -129,8 +128,8 @@ export const SUPERNOVA_PERSONA_MODEL: Record<string, string> = {
   explorer:            'deepseek-v4-flash',
   refiner:             'deepseek-v4-flash',
 
-  // Vision specialist — locked to Omni regardless of where else V4 might win.
-  design_reviewer:     'qwen3.5-omni-plus',
+  // Vision specialist — Qwen 3.7 Plus sees images + video natively.
+  design_reviewer:     'qwen3.7-plus',
 };
 
 /**

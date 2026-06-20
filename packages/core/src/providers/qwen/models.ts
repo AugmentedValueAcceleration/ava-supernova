@@ -1,11 +1,10 @@
 import type { ModelDefinition } from '../../core/types.js';
 
 export const QWEN_MODELS: ModelDefinition[] = [
-  // Qwen 3.7 Max (May 2026) — Alibaba's strongest model. BYOK-only here:
-  // exposed for users with their own DashScope key. NOT wired into the
-  // Maestro coordinator slot — at $2.50/$7.50 it would ~3× the managed
-  // coordinator cost and break the credit-plan margin. Qwen 3.6 Plus
-  // stays the Maestro conductor.
+  // Qwen 3.7 Max (June 2026) — Alibaba's heavy flagship. BYOK-only: exposed
+  // for users with their own DashScope key, NOT wired into the Maestro
+  // coordinator slot ($2.50/$7.50 would break the credit-plan margin).
+  // Qwen 3.7 Plus is the Maestro conductor.
   {
     id: 'qwen3.7-max',
     name: 'Qwen 3.7 Max',
@@ -19,9 +18,12 @@ export const QWEN_MODELS: ModelDefinition[] = [
     desktopCapable: true,
     pricing: { inputPerMillion: 2.50, outputPerMillion: 7.50 },
   },
+  // Qwen 3.7 Plus (June 2026) — the Maestro conductor. 1M context, vision +
+  // video, reasoning, native function calling. Supersedes Qwen 3.6 Plus and the
+  // 3.5 Omni tier: better agentic coding, multimodal, and cheaper ($0.40/$1.16).
   {
-    id: 'qwen3.6-plus',
-    name: 'Qwen 3.6 Plus',
+    id: 'qwen3.7-plus',
+    name: 'Qwen 3.7 Plus',
     provider: 'qwen',
     contextWindow: 1000000,
     maxOutputTokens: 65536,
@@ -30,32 +32,7 @@ export const QWEN_MODELS: ModelDefinition[] = [
     supportsThinking: true,
     supportsVision: true,
     desktopCapable: true,
-    pricing: { inputPerMillion: 0.29, outputPerMillion: 1.70 },
-  },
-  {
-    id: 'qwen3.5-omni-plus',
-    name: 'Qwen 3.5 Omni Plus',
-    provider: 'qwen',
-    contextWindow: 256000,
-    maxOutputTokens: 128000,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsThinking: true,
-    supportsVision: true,
-    desktopCapable: true,
-    pricing: { inputPerMillion: 0.26, outputPerMillion: 1.56 },
-  },
-  {
-    id: 'qwen3.5-omni-flash',
-    name: 'Qwen 3.5 Omni Flash',
-    provider: 'qwen',
-    contextWindow: 256000,
-    maxOutputTokens: 8192,
-    supportsToolCalls: true,
-    supportsStreaming: true,
-    supportsThinking: false,
-    supportsVision: true,
-    pricing: { inputPerMillion: 0.065, outputPerMillion: 0.26 },
+    pricing: { inputPerMillion: 0.40, outputPerMillion: 1.16 },
   },
   {
     id: 'qwen3.5-plus',

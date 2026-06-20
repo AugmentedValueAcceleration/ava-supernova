@@ -4,11 +4,11 @@
 // ($19 / 5,000 credits + rounding). Action costs reflect value delivered,
 // not linear raw cost — a Flash call burns 1 credit, a full orchestration
 // burns 10, a video generation burns 100. Target 55% net margin at typical
-// (60%) utilisation, sized against published Qwen 3.6 Plus rates with no
+// (60%) utilisation, sized against published Qwen 3.7 Plus rates with no
 // provider-discount assumption.
 //
 // Rebalanced 2026-04-23 after Alibaba walked back the 50% discount on
-// 3.6 Plus. Prior allowances (Free 1,500 / Pro 15,000 / Ultra 35,000 /
+// 3.7 Plus. Prior allowances (Free 1,500 / Pro 15,000 / Ultra 35,000 /
 // Enterprise 75,000) were penciled against a $0.0025/credit design and a
 // discount cushion, neither of which held at launch. New allowances
 // (5K / 10K / 20K paid) make 55% margin achievable on published rates.
@@ -137,10 +137,10 @@ export const MODEL_COST_MULTIPLIER: Record<string, number> = {
   // 2 credits per typical chat turn at the 40% margin floor.
   'deepseek-v4-flash':            0.5,
   'deepseek-v4-flash-platform':   0.5,
-  // Qwen 3.6 Plus: 1.5 → 0.7. Maestro chat used to charge 6 credits/turn
+  // Qwen 3.7 Plus: 1.5 → 0.7. Maestro chat used to charge 6 credits/turn
   // (~79% margin); now 3 credits (~40%). The biggest concrete win for
   // users — daily-driver Maestro doubles at the same plan price.
-  'qwen3.6-plus':               0.7,
+  'qwen3.7-plus':               0.7,
   'qwen-plus':                  0.7,
   'qwen3.5-plus':               0.6,
   'qwen3.5-omni-plus':          0.6,
@@ -241,7 +241,7 @@ const TOKEN_SCALING_ACTIONS: ReadonlySet<CreditAction> = new Set([
 export const TOKENS_PER_BRACKET = 16_000;
 
 /** Output tokens cost ~3-6× more than input across our model lineup
- *  (Qwen 3.6 Plus: 5.86×, V4 Pro: 2.0×, Qwen Flash: 8×). A flat 4× weight
+ *  (Qwen 3.7 Plus: 5.86×, V4 Pro: 2.0×, Qwen Flash: 8×). A flat 4× weight
  *  is the reasonable midpoint without per-model pricing tables here.
  *  The cache discount weight (0.1×) reflects ~90% provider cache savings. */
 export const OUTPUT_TOKEN_WEIGHT = 4;
@@ -397,7 +397,7 @@ export const CREDIT_TOPUPS: CreditTopupDefinition[] = [
   // IDs (`credits_1500` etc.) are legacy identifiers — the number in the id
   // is the pre-rebalance credit count, not the current one. Don't rename
   // without rotating Stripe Price mappings too. Credit quantities rebalanced
-  // 2026-04-23 against published Qwen 3.6 Plus rates. Entry bundle sits
+  // 2026-04-23 against published Qwen 3.7 Plus rates. Entry bundle sits
   // slightly worse than Pro's per-credit rate (nudges to plan), middle
   // bundle matches plan, top bundle rewards larger top-up with a 6% discount.
   { id: 'credits_1500',  credits:   750, price:  3, label: '750 credits',   subtitle: 'Quick boost', effectiveRate: '$4.00 / 1K credits' },
