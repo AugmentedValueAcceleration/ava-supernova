@@ -33,7 +33,8 @@ export class HealthProfileAskTool implements Tool {
           enum: HEALTH_PROFILE_FIELD_IDS,
           description:
             'Which profile field to ask for. General/body: sex, date_of_birth, height_cm, weight_kg. ' +
-            'Health: goal, weekly_focus, allergens, dietary, equipment, injuries, minutes_per_day.',
+            'Health: goal, weekly_focus, allergens, dietary, equipment, injuries, minutes_per_day. ' +
+            'Food & taste: likes, dislikes, cuisines.',
         },
         question: {
           type: 'string',

@@ -71,6 +71,7 @@ export function emptyHealthProfile(): HealthProfile {
     updated_at: null,
     goals: { primary: null, weekly_focus: null },
     constraints: { allergens: [], dietary: [], injuries: [], equipment_available: [], minutes_per_day_target: null },
+    food: { likes: [], dislikes: [], cuisines: [] },
     schedule: {
       training_window: { start: null, end: null },
       meal_times: { breakfast: null, lunch: null, dinner: null },

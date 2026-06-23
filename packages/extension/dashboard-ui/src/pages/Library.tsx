@@ -45,8 +45,12 @@ interface Props {
   paperDetailLoading: boolean;
   onLoadPaperDetail: (id: string) => void;
   onClearPaperDetail: () => void;
-  /** Cloud-synced creative assets from /api/creative-assets. */
+  /** Cloud-synced creative assets from /api/creative-assets. Documents tab only
+   *  now — the Assets tab is local-first (see `localCreative`). */
   cloudAssets: CreativeAsset[];
+  /** Local-first creative gallery (~/.ava/users/<id>/creative) — the source the
+   *  Assets tab reads. No cloud; everything Creative Studio makes is saved here. */
+  localCreative: CreativeAsset[];
   /** True while the host is fetching the cloud asset list. Drives a
    *  non-blocking "Pulling cloud assets…" pill above the grid so the
    *  user understands incomplete-looking thumbnails are still in
@@ -164,6 +168,7 @@ export function Library({
   onLoadPaperDetail,
   onClearPaperDetail,
   cloudAssets,
+  localCreative,
   cloudAssetsLoading,
   onReloadCloudAssets,
   images,
@@ -176,7 +181,7 @@ export function Library({
   // it valuable. Assets / Documents are tertiary browse surfaces.
   const [tab, setTab] = useState<TopTab>('courses');
   const [typeFilter, setTypeFilter] = useState<AssetTypeFilter>('all');
-  const [sourceFilter, setSourceFilter] = useState<AssetSource>('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [docType, setDocType] = useState<DocTypeFilter>('all');
   const [docSource, setDocSource] = useState<AssetSource>('all');
   const [newDocOpen, setNewDocOpen] = useState(false);
@@ -196,24 +201,23 @@ export function Library({
   // live on the Documents tab to match what the user expects.
   const assetItems = useMemo(() => {
     const list: UnifiedItem[] = [];
-    if (sourceFilter === 'all' || sourceFilter === 'cloud') {
-      for (const a of cloudAssets) {
-        const k = cloudAssetKind(a);
-        if (['image', 'music', 'video', 'voice', 'graphic'].includes(k)) {
-          list.push(unifyCloudAsset(a));
-        }
+    // Local-first creative gallery is the primary source. Voice/music/sfx are
+    // hidden — Creative Studio no longer produces audio, so only image + video.
+    for (const a of localCreative) {
+      const k = cloudAssetKind(a);
+      if (['image', 'video', 'graphic'].includes(k)) {
+        list.push({ ...unifyCloudAsset(a), source: 'local' });
       }
     }
-    if (sourceFilter === 'all' || sourceFilter === 'local') {
-      for (const img of images) {
-        const k = localFileKind(img);
-        if (['image', 'music', 'video'].includes(k)) list.push(unifyLocalImage(img, projectRoot));
-      }
+    // Plus image/video files scanned from the open workspace.
+    for (const img of images) {
+      const k = localFileKind(img);
+      if (['image', 'video'].includes(k)) list.push(unifyLocalImage(img, projectRoot));
     }
     return typeFilter === 'all'
       ? list
       : list.filter(i => i.kind === typeFilter || (typeFilter === 'image' && i.kind === 'graphic'));
-  }, [cloudAssets, images, projectRoot, sourceFilter, typeFilter]);
+  }, [localCreative, images, projectRoot, typeFilter]);
 
   // Documents tab — office docs from both sources, filterable by source
   // (cloud/local) and kind (document/spreadsheet). Matches the Assets tab
@@ -305,24 +309,8 @@ export function Library({
               top-level tabs so hierarchy stays clear: primary nav ≠ filter. */}
           <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-[var(--border-card)]">
             <div className="flex items-center gap-1">
-              <span className="mr-1 text-[10px] uppercase tracking-wider text-[var(--text-muted)] self-end pb-2">Source</span>
-              {(['all', 'cloud', 'local'] as AssetSource[]).map(s => (
-                <button
-                  key={s}
-                  onClick={() => setSourceFilter(s)}
-                  className={`px-2.5 py-2 text-[11px] font-medium border-b-2 transition ${
-                    sourceFilter === s
-                      ? 'border-[var(--accent)] text-[var(--accent)]'
-                      : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                  }`}
-                >
-                  {s === 'all' ? 'All' : s === 'cloud' ? 'Cloud' : 'Local'}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-1">
               <span className="mr-1 text-[10px] uppercase tracking-wider text-[var(--text-muted)] self-end pb-2">Type</span>
-              {(['all', 'image', 'music', 'video', 'voice'] as AssetTypeFilter[]).map(t => (
+              {(['all', 'image', 'video'] as AssetTypeFilter[]).map(t => (
                 <button
                   key={t}
                   onClick={() => setTypeFilter(t)}
@@ -335,6 +323,16 @@ export function Library({
                   {t === 'all' ? 'All' : t[0].toUpperCase() + t.slice(1)}
                 </button>
               ))}
+            </div>
+            <div className="ml-auto mb-1 flex items-center gap-2">
+              <ViewToggle mode={viewMode} onChange={setViewMode} />
+              <button
+                onClick={() => post({ type: 'open_creative_folder' })}
+                title="Open the local creative folder on disk"
+                className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
+              >
+                Open save folder
+              </button>
             </div>
           </div>
 
@@ -386,11 +384,19 @@ export function Library({
           )}
 
           {assetItems.length > 0 && (
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-              {assetItems.map(item => (
-                <AssetCard key={item.id} item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />
-              ))}
-            </div>
+            viewMode === 'grid' ? (
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+                {assetItems.map(item => (
+                  <AssetCard key={item.id} item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {assetItems.map(item => (
+                  <AssetRow key={item.id} item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />
+                ))}
+              </div>
+            )
           )}
         </div>
       )}
@@ -437,12 +443,15 @@ export function Library({
                 ))}
               </div>
             </div>
-            <button
-              onClick={() => setNewDocOpen(true)}
-              className="mb-1 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
-            >
-              + New document
-            </button>
+            <div className="mb-1 flex items-center gap-2">
+              <ViewToggle mode={viewMode} onChange={setViewMode} />
+              <button
+                onClick={() => setNewDocOpen(true)}
+                className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
+              >
+                + New document
+              </button>
+            </div>
           </div>
 
           {/* Same non-blocking pill as the Assets tab — cloud documents
@@ -464,11 +473,19 @@ export function Library({
               </p>
             </div>
           ) : documentItems.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {documentItems.map(item => (
-                <AssetCard key={item.id} item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />
-              ))}
-            </div>
+            viewMode === 'grid' ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {documentItems.map(item => (
+                  <AssetCard key={item.id} item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {documentItems.map(item => (
+                  <AssetRow key={item.id} item={item} selected={selected?.id === item.id} onSelect={() => setSelected(selected?.id === item.id ? null : item)} />
+                ))}
+              </div>
+            )
           ) : cloudAssetsLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {Array.from({ length: 8 }).map((_, i) => (
@@ -1039,5 +1056,77 @@ function AssetCard({
         </div>
       </div>
     </button>
+  );
+}
+
+/** List-view row — same item, horizontal layout. Mirrors the IDE Library's
+ *  list mode: small thumbnail, title + kind, source badge on the right. */
+function AssetRow({
+  item,
+  selected,
+  onSelect,
+}: {
+  item: UnifiedItem;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      onClick={onSelect}
+      className={`group flex w-full items-center gap-3 rounded-lg border bg-[var(--bg-card)] p-2 text-left transition hover:border-[var(--accent)]/50 ${
+        selected ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]/30' : 'border-[var(--border)]'
+      }`}
+    >
+      {item.thumbnail ? (
+        <img
+          src={item.thumbnail}
+          alt={item.title}
+          className="h-10 w-10 flex-shrink-0 rounded object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded bg-[var(--text-muted)]/10 text-lg opacity-50">
+          {ASSET_TYPE_ICONS[item.kind] || '\u{1F4C4}'}
+        </div>
+      )}
+      <p className="min-w-0 flex-1 truncate text-[12px] font-medium text-[var(--text-primary)]">{item.title}</p>
+      <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium ${
+        item.source === 'cloud'
+          ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
+          : 'bg-[var(--text-muted)]/10 text-[var(--text-muted)]'
+      }`}>
+        {item.source === 'cloud' ? '☁ cloud' : '\u{1F4BE} local'}
+      </span>
+      <span className="flex-shrink-0 text-[9px] text-[var(--text-muted)]">{item.kind}</span>
+    </button>
+  );
+}
+
+/** Grid/list view switch — small segmented toggle. Shared by Assets +
+ *  Documents tabs so the two surfaces stay consistent. */
+function ViewToggle({
+  mode,
+  onChange,
+}: {
+  mode: 'grid' | 'list';
+  onChange: (m: 'grid' | 'list') => void;
+}) {
+  return (
+    <div className="flex items-center gap-0.5 rounded-lg border border-[var(--border-card)] p-0.5">
+      {(['grid', 'list'] as const).map(v => (
+        <button
+          key={v}
+          onClick={() => onChange(v)}
+          title={v === 'grid' ? 'Grid view' : 'List view'}
+          className={`rounded-md px-2 py-1 text-[12px] leading-none transition ${
+            mode === v
+              ? 'bg-[var(--accent)]/15 text-[var(--accent)]'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+          }`}
+        >
+          {v === 'grid' ? '▦' : '☰'}
+        </button>
+      ))}
+    </div>
   );
 }

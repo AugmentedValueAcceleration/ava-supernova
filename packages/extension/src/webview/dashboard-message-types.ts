@@ -760,6 +760,15 @@ export interface HealthProfile {
     equipment_available: string[]; // slugs from public.equipment
     minutes_per_day_target: number | null;
   };
+  /** Food taste — steers meal plans toward what the user enjoys and away from
+   *  what they don't. Distinct from `dietary` (rules) and `allergens` (hard
+   *  avoid): likes/dislikes are soft, cuisines focus the global catalogue.
+   *  Optional for legacy profiles written before this section existed. */
+  food?: {
+    likes: string[];     // free-text foods the user enjoys
+    dislikes: string[];  // free-text foods to keep out of plans (soft)
+    cuisines: string[];  // favourite cuisine slugs (italian, thai, korean…)
+  };
   schedule: {
     training_window: { start: string | null; end: string | null }; // 24h "HH:MM"
     meal_times: { breakfast: string | null; lunch: string | null; dinner: string | null };
@@ -1415,6 +1424,7 @@ export type ExtToDashboardMessage =
   | { type: 'library_loaded'; images: LibraryImage[]; projectRoot: string; hasFolder?: boolean }
   | { type: 'library_image_deleted'; path: string }
   | { type: 'cloud_assets_loaded'; assets: CreativeAsset[] }
+  | { type: 'local_creative_loaded'; assets: CreativeAsset[] }
   | { type: 'cloud_assets_error'; message: string }
   | { type: 'cloud_asset_deleted'; id: string }
   // Personality
@@ -1773,7 +1783,10 @@ export type DashboardToExtMessage =
   | { type: 'open_docs' }
   // Creative Studio — persist a generated asset URL to disk under the
   // user's project root. Host downloads the URL and writes the bytes.
-  | { type: 'save_creative_to_disk'; url: string; filename: string; assetType?: string }
+  | { type: 'save_creative_to_disk'; url: string; filename: string; assetType?: string; prompt?: string }
+  | { type: 'load_local_creative' }
+  | { type: 'delete_local_creative'; id: string }
+  | { type: 'open_creative_folder' }
   // Import-from-disk picker. Dashboard asks host to pop the VS Code open
   // dialog; host replies with an 'import_files_picked' listing files read.
   | { type: 'import_pick_files' };

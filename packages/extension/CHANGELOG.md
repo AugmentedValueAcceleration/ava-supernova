@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.77.1 — 2026-06-23 — Creations stay local; meal plans to your taste
+
+### Changed
+- **Creative Studio + Library go fully local-first.** Everything you make in Creative Studio — images and video — now saves straight to your own machine, in the same clean local folder your data exports to. No cloud round-trip. The Library's Assets tab reads from that folder (so what you see is what's on disk), and a new **Open save folder** button jumps you straight to it. Voice and audio generation have stepped out of Creative Studio for now.
+
+### Added
+- **Grid/list toggle in the Library.** Both the Assets and Documents tabs now switch between a thumbnail grid and a tidy list, whichever suits the moment.
+- **Meal plans that know your taste.** Add your favourite foods, your dislikes and your go-to cuisines to your health profile, and Ava shapes meal plans around them — and when you ask for a new plan she checks what flavour you're in the mood for first.
+
+### Fixed
+- **Crisper dropdowns.** The Journal year picker (and its kin) now use the same solid, opaque dropdown across the app — no more see-through menus.
+
 ## 0.77.0 — 2026-06-23 — Ava's full attention on your health
 
 ### Added

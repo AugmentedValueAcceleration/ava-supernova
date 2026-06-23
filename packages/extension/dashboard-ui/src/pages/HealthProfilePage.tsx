@@ -76,6 +76,11 @@ export function HealthProfilePage({ profile, taxonomies, onSave, onLoadTaxonomie
     setDraft({ ...draft, constraints: { ...draft.constraints, ...next } });
   const patchSchedule = (next: Partial<HealthProfile['schedule']>) =>
     setDraft({ ...draft, schedule: { ...draft.schedule, ...next } });
+  // Food section is optional on legacy profiles — default it so the controls
+  // always have arrays to bind to.
+  const food = draft.food ?? { likes: [], dislikes: [], cuisines: [] };
+  const patchFood = (next: Partial<NonNullable<HealthProfile['food']>>) =>
+    setDraft({ ...draft, food: { ...food, ...next } });
 
   return (
     <div className="w-full space-y-8 pb-12">
@@ -175,6 +180,38 @@ export function HealthProfilePage({ profile, taxonomies, onSave, onLoadTaxonomie
         </Field>
       </Section>
 
+      {/* Food & taste — steers meal plans toward what you enjoy. */}
+      <Section title={t('health.profile.food_taste')} subtitle={t('health.profile.food_taste_subtitle')}>
+        <Field label={t('health.profile.likes')}>
+          <textarea
+            rows={2}
+            value={food.likes.join('\n')}
+            onChange={e => patchFood({ likes: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) })}
+            placeholder={t('health.profile.likes_placeholder')}
+            className={`${inputCls} resize-y font-[inherit]`}
+          />
+        </Field>
+        <Field label={t('health.profile.dislikes')}>
+          <textarea
+            rows={2}
+            value={food.dislikes.join('\n')}
+            onChange={e => patchFood({ dislikes: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) })}
+            placeholder={t('health.profile.dislikes_placeholder')}
+            className={`${inputCls} resize-y font-[inherit]`}
+          />
+        </Field>
+        <Field label={t('health.profile.cuisines')}>
+          <PickerChips
+            selected={food.cuisines}
+            options={CUISINE_OPTIONS.map(o => ({ slug: o.slug, label: o.label }))}
+            onToggle={slug => {
+              const exists = food.cuisines.includes(slug);
+              patchFood({ cuisines: exists ? food.cuisines.filter(s => s !== slug) : [...food.cuisines, slug] });
+            }}
+          />
+        </Field>
+      </Section>
+
       {/* Schedule */}
       <Section title={t('health.profile.schedule')} subtitle={t('health.profile.schedule_subtitle')}>
         <FieldGrid>
@@ -224,6 +261,14 @@ const DEFAULT_DIETARY_OPTIONS = [
   { slug: 'halal',          labelKey: 'health.profile.diet.halal' },
   { slug: 'kosher',         labelKey: 'health.profile.diet.kosher' },
 ];
+
+// Global cuisines for the favourites picker — single-word slugs humanise to a
+// clean label, so no i18n key is needed (matches the catalogue's worldwide set).
+const CUISINE_OPTIONS = [
+  'italian', 'french', 'spanish', 'greek', 'mediterranean', 'indian', 'thai',
+  'vietnamese', 'chinese', 'japanese', 'korean', 'mexican', 'american',
+  'caribbean', 'moroccan', 'lebanese', 'turkish', 'british', 'brazilian', 'ethiopian',
+].map(slug => ({ slug, label: slug.charAt(0).toUpperCase() + slug.slice(1) }));
 
 const DEFAULT_EQUIPMENT_OPTIONS = [
   { slug: 'bodyweight',    labelKey: 'health.profile.equip.bodyweight' },

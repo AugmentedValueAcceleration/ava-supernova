@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { t, useLocale } from '../i18n';
 import { Skeleton } from '../components/Skeleton';
+import { Select } from '../components/Select';
 import { MiniDatePicker } from '../components/MiniDatePicker';
 import { post } from '../vscode';
 import { MarkdownRenderer } from '../chat/components/MarkdownRenderer';
@@ -125,13 +126,13 @@ export function Journal({ year, month, monthEntries, kinds, searchHits, yearSumm
       {/* Header: year + new entry */}
       <div className="flex items-center gap-3 mb-3">
         <h1 className="text-[22px] font-semibold text-[#cdd6f4]">Journal</h1>
-        <select
-          value={year}
-          onChange={(e) => onChangeMonth(Number(e.target.value), month)}
-          className="text-xs rounded-md px-2 py-1 bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-card)] cursor-pointer outline-none"
-        >
-          {years.map((y) => <option key={y} value={y}>{y}</option>)}
-        </select>
+        <Select
+          value={String(year)}
+          onChange={(v) => onChangeMonth(Number(v), month)}
+          options={years.map((y) => ({ value: String(y), label: String(y) }))}
+          size="sm"
+          className="w-[88px]"
+        />
         <button
           onClick={() => setShowHeatmap((s) => !s)}
           className="px-2.5 py-1 rounded-md text-[11px] border border-[var(--border-card)] cursor-pointer transition"

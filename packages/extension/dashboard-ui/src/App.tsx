@@ -488,6 +488,9 @@ export function App() {
   const [libraryProjectRoot, setLibraryProjectRoot] = useState('');
   const [libraryHasFolder, setLibraryHasFolder] = useState(true);
   const [libraryCloudAssets, setLibraryCloudAssets] = useState<CreativeAsset[]>([]);
+  // Local-first creative gallery (~/.ava/users/<id>/creative) — what the Assets
+  // tab shows now. Cloud assets are kept only for the Documents tab.
+  const [libraryLocalCreative, setLibraryLocalCreative] = useState<CreativeAsset[]>([]);
   // Non-blocking loading indicator. The Library grid renders whatever
   // it has immediately and shows an inline "Pulling cloud assets…" pill
   // alongside while the fetch is in flight. Hard 15s safety timeout
@@ -511,7 +514,8 @@ export function App() {
   // beginLibraryLoad, so the dep reference is in scope.
   const handleReloadCloudAssets = useCallback(() => {
     beginLibraryLoad();
-    post({ type: 'load_cloud_assets' });
+    post({ type: 'load_cloud_assets' });   // Documents tab
+    post({ type: 'load_local_creative' });  // Assets tab (local-first)
   }, [beginLibraryLoad]);
   const finishLibraryLoad = useCallback(() => {
     setLibraryCloudAssetsLoading(false);
@@ -1037,6 +1041,10 @@ export function App() {
         setLibraryCloudAssets(msg.assets);
         finishLibraryLoad();
         break;
+      case 'local_creative_loaded':
+        setLibraryLocalCreative(msg.assets);
+        finishLibraryLoad();
+        break;
       case 'cloud_assets_error':
         // Logged on the host side; UI keeps whatever it had and the
         // pill goes away.
@@ -1281,6 +1289,7 @@ export function App() {
       post({ type: 'load_library' });
       beginLibraryLoad();
       post({ type: 'load_cloud_assets' });
+      post({ type: 'load_local_creative' });
       post({ type: 'load_library_paths' });
     }
     // Back-compat: 'learning-library' is the legacy nav target. Any
@@ -1551,6 +1560,7 @@ export function App() {
             onLoadPaperDetail={handleLoadPaperDetail}
             onClearPaperDetail={handleClearPaperDetail}
             cloudAssets={libraryCloudAssets}
+            localCreative={libraryLocalCreative}
             cloudAssetsLoading={libraryCloudAssetsLoading}
             onReloadCloudAssets={handleReloadCloudAssets}
             images={libraryImages}

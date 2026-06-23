@@ -95,6 +95,14 @@ const SEX_OPTIONS: ProfileFieldOption[] = [
   { value: 'other',  labelKey: 'health.fill.sex.other' },
 ];
 
+// Global cuisines — favourites focus the catalogue's worldwide recipes. Single-
+// word slugs humanise cleanly (no i18n key needed), like the allergen list.
+const CUISINE_OPTIONS: ProfileFieldOption[] = [
+  'italian', 'french', 'spanish', 'greek', 'mediterranean', 'indian', 'thai',
+  'vietnamese', 'chinese', 'japanese', 'korean', 'mexican', 'american',
+  'caribbean', 'moroccan', 'lebanese', 'turkish', 'british', 'brazilian', 'ethiopian',
+].map((value) => ({ value }));
+
 export const HEALTH_PROFILE_FIELDS: Record<string, ProfileFieldDef> = {
   // — General (identity / body, account-level) —
   sex:           { target: 'general', path: 'sex',           control: 'select', labelKey: 'health.fill.field.sex',    options: SEX_OPTIONS },
@@ -110,6 +118,11 @@ export const HEALTH_PROFILE_FIELDS: Record<string, ProfileFieldDef> = {
   equipment:     { target: 'health', path: 'constraints.equipment_available',  control: 'multiselect', labelKey: 'health.fill.field.equipment', options: EQUIPMENT_OPTIONS },
   injuries:      { target: 'health', path: 'constraints.injuries',             control: 'text',        labelKey: 'health.fill.field.injuries', multiline: true, asArray: true },
   minutes_per_day: { target: 'health', path: 'constraints.minutes_per_day_target', control: 'number',  labelKey: 'health.fill.field.minutes',  unit: 'min' },
+
+  // — Food & taste (steers meal plans) —
+  likes:         { target: 'health', path: 'food.likes',     control: 'text',        labelKey: 'health.fill.field.likes',    multiline: true, asArray: true },
+  dislikes:      { target: 'health', path: 'food.dislikes',  control: 'text',        labelKey: 'health.fill.field.dislikes', multiline: true, asArray: true },
+  cuisines:      { target: 'health', path: 'food.cuisines',  control: 'multiselect', labelKey: 'health.fill.field.cuisines', options: CUISINE_OPTIONS },
 
   // — Schedule (when they train / eat) — 24h "HH:MM" —
   training_start: { target: 'health', path: 'schedule.training_window.start', control: 'time', labelKey: 'health.fill.field.training_start' },

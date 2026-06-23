@@ -18,6 +18,16 @@ function creativeParamsSummary(body: Record<string, unknown>): string {
   return parts.join(', ');
 }
 
+/** Normalise a Creative Studio asset type to a local-store CreativeKind. */
+function normaliseCreativeKind(raw?: string): CreativeKind {
+  const k = (raw ?? '').toLowerCase();
+  if (k === 'video') return 'video';
+  if (k === 'music' || k === 'audio') return 'music';
+  if (k === 'voice') return 'voice';
+  if (k === 'sfx') return 'sfx';
+  return 'image';
+}
+
 /** Simple JSON GET for use in extension host (no global fetch in Electron) */
 function httpGetJson(url: string): Promise<unknown> {
   return new Promise((resolve, reject) => {
@@ -82,6 +92,7 @@ import type {
 } from './dashboard-message-types.js';
 import * as healthStore from './health-file-store.js';
 import { readGeneralProfile, writeGeneralProfile, emptyGeneralProfile } from './general-file-store.js';
+import { readLocalCreative, saveLocalCreative, deleteLocalCreative, type CreativeKind } from './creative-store.js';
 
 /** Chat message types that should be forwarded to AvaViewProvider */
 const CHAT_MESSAGE_TYPES = new Set([
@@ -158,6 +169,9 @@ export class DashboardPanel {
     // can't be inlined as base64 — too large).
     const localResourceRoots: vscode.Uri[] = [
       vscode.Uri.joinPath(extensionUri, 'dist', 'dashboard'),
+      // The local creative gallery lives under ~/.ava/users/<id>/creative — allow
+      // the webview to load those images/videos via asWebviewUri.
+      vscode.Uri.file(AVA_HOME),
     ];
     const workspaceFolders = vscode.workspace.workspaceFolders ?? [];
     for (const folder of workspaceFolders) {
@@ -1616,6 +1630,22 @@ export class DashboardPanel {
         await this.loadCloudAssets();
         break;
 
+      case 'load_local_creative':
+        await this.loadLocalCreative();
+        break;
+
+      case 'delete_local_creative':
+        await deleteLocalCreative(this.getUserDataDir(), msg.id);
+        await this.loadLocalCreative();
+        break;
+
+      case 'open_creative_folder': {
+        const dir = path.join(this.getUserDataDir(), 'creative');
+        try { await (await import('node:fs/promises')).mkdir(dir, { recursive: true }); } catch { /* ignore */ }
+        await vscode.env.openExternal(vscode.Uri.file(dir));
+        break;
+      }
+
       case 'download_cloud_asset':
         await this.downloadCloudAsset(msg.url, msg.filename);
         break;
@@ -1655,27 +1685,22 @@ export class DashboardPanel {
         break;
       }
       case 'save_creative_to_disk': {
-        // Creative Studio generated an asset — download URL and save to project
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (workspaceFolders && msg.url && msg.filename) {
-          const fs = await import('node:fs/promises');
-          const projectRoot = workspaceFolders[0].uri.fsPath;
-          const savePath = path.join(projectRoot, msg.filename);
-          try {
-            await fs.mkdir(path.dirname(savePath), { recursive: true });
-            // Download the URL
-            const res = await fetch(msg.url);
-            if (res.ok) {
-              const buf = Buffer.from(await res.arrayBuffer());
-              await fs.writeFile(savePath, buf);
-              this.log(`[Creative] Saved ${msg.assetType} to ${msg.filename} (${(buf.length / 1024).toFixed(1)} KB)`);
-              // Refresh library so it shows up
-              await this.loadLibraryFiles();
-            } else {
-              this.log(`[Creative] Failed to download ${msg.url}: ${res.status}`);
-            }
-          } catch (err: any) {
-            this.log(`[Creative] Save to disk failed: ${err.message}`);
+        // Creative Studio generated an asset — save it to the account-scoped
+        // LOCAL creative gallery (~/.ava/users/<id>/creative). Local-first, no
+        // cloud, no workspace required.
+        if (msg.url) {
+          const kind = normaliseCreativeKind(msg.assetType);
+          const saved = await saveLocalCreative(this.getUserDataDir(), {
+            url: msg.url,
+            kind,
+            prompt: msg.prompt ?? '',
+            title: msg.filename ?? '',
+          });
+          if (saved) {
+            this.log(`[Creative] Saved ${kind} locally (${saved.path})`);
+            await this.loadLocalCreative();
+          } else {
+            this.log(`[Creative] Local save failed for ${msg.url}`);
           }
         }
         break;
@@ -3010,6 +3035,30 @@ export class DashboardPanel {
 
   private getUserDataDir(): string {
     return this.accountScopedDir ?? this.viewProvider?.getAccountScopedDir() ?? AVA_HOME;
+  }
+
+  /** Load the account-scoped LOCAL creative gallery (~/.ava/users/<id>/creative)
+   *  and post it to the Assets tab. Local-first — no cloud fetch. Binaries are
+   *  served to the webview via asWebviewUri (AVA_HOME is in localResourceRoots). */
+  private async loadLocalCreative(): Promise<void> {
+    try {
+      const items = await readLocalCreative(this.getUserDataDir());
+      const assets = items.map((it) => {
+        const uri = this.panel.webview.asWebviewUri(vscode.Uri.file(it.absolutePath)).toString();
+        return {
+          id: it.id,
+          asset_type: it.kind,
+          title: it.title || 'Untitled',
+          prompt: it.prompt || '',
+          url: uri,
+          thumbnail_url: it.kind === 'image' ? uri : undefined,
+          created_at: it.createdAt,
+        };
+      });
+      this.post({ type: 'local_creative_loaded', assets: assets as never });
+    } catch {
+      this.post({ type: 'local_creative_loaded', assets: [] });
+    }
   }
 
   // ─── Local Memories (BYOK) ──────────────────────────────────────────────────
@@ -4508,6 +4557,7 @@ export class DashboardPanel {
       updated_at: null,
       goals: { primary: null, weekly_focus: null },
       constraints: { allergens: [], dietary: [], injuries: [], equipment_available: [], minutes_per_day_target: null },
+      food: { likes: [], dislikes: [], cuisines: [] },
       schedule: {
         training_window: { start: null, end: null },
         meal_times: { breakfast: null, lunch: null, dinner: null },

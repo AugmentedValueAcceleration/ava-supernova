@@ -87,7 +87,7 @@ export function Select({ value, onChange, options, size = 'md', className = '', 
         type="button"
         onClick={() => setOpen(!open)}
         title={title}
-        className={`flex w-full items-center justify-between rounded-lg border border-[var(--border-input)] bg-[var(--bg-input)] ${btnSize} text-left text-white outline-none transition focus:border-[var(--accent)]`}
+        className={`flex w-full items-center justify-between rounded-lg border border-[var(--border-input)] bg-[#1a1028] ${btnSize} text-left text-white outline-none transition focus:border-[var(--accent)]`}
       >
         <span className="truncate">{selected?.label ?? value}</span>
         <ChevronDownIcon className={`ml-2 h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform ${open ? 'rotate-180' : ''}`} />

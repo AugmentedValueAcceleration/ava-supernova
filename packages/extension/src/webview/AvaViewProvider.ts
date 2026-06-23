@@ -3919,6 +3919,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         const parts = [mt.breakfast && `breakfast ${mt.breakfast}`, mt.lunch && `lunch ${mt.lunch}`, mt.dinner && `dinner ${mt.dinner}`].filter(Boolean);
         if (parts.length) lines.push(`Meal times: ${parts.join(', ')}`);
       }
+      if (p?.food?.likes?.length) lines.push(`Food likes: ${p.food.likes.join(', ')}`);
+      if (p?.food?.dislikes?.length) lines.push(`Food dislikes (keep out of plans): ${p.food.dislikes.join(', ')}`);
+      if (p?.food?.cuisines?.length) lines.push(`Favourite cuisines: ${p.food.cuisines.join(', ')}`);
       return lines.length ? lines.join('\n') : undefined;
     } catch {
       return undefined;
