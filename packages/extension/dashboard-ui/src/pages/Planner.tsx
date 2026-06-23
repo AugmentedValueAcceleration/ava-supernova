@@ -46,6 +46,8 @@ interface PlannerProps {
   // Multi-week Health plans — the "Plans" tab. Threaded straight
   // through to the HealthPlans surface.
   healthPlans: HealthPlanSummary[];
+  /** Full (dated) plans with days — drives the calendar's per-day content. */
+  activeHealthPlans: HealthPlan[];
   healthPlanOpen: HealthPlan | null;
   onOpenHealthPlan: (id: string) => void;
   onSaveHealthPlan: (plan: HealthPlan) => void;
@@ -85,7 +87,7 @@ export function Planner({
   journalYear, journalMonth, journalMonthEntries, journalKinds, journalSearchHits, journalYearSummaries, onChangeJournalMonth, onClearJournalSearch,
   learningCurriculums,
   tasksLoaded, journalLoaded, learningLoaded,
-  healthPlans, healthPlanOpen, onOpenHealthPlan, onSaveHealthPlan, onDeleteHealthPlan, onCloseHealthPlan,
+  healthPlans, activeHealthPlans, healthPlanOpen, onOpenHealthPlan, onSaveHealthPlan, onDeleteHealthPlan, onCloseHealthPlan,
   planExerciseResults, planRecipeResults, planCatalogSearching, planExerciseTotal, planRecipeTotal,
   onSearchPlanExercises, onSearchPlanRecipes,
   planExerciseDetails, planRecipeDetails, onLoadPlanExerciseDetail, onLoadPlanRecipeDetail,
@@ -160,6 +162,7 @@ export function Planner({
       {activeTab === 'plans' && (
         <HealthPlans
           plans={healthPlans}
+          fullPlans={activeHealthPlans}
           planOpen={healthPlanOpen}
           onOpenPlan={onOpenHealthPlan}
           onSavePlan={onSaveHealthPlan}

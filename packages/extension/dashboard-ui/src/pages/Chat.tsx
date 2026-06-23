@@ -321,6 +321,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
               confirmationId: action.confirmationId,
               summary: action.summary,
               ...(action.isAskUser ? { isAskUser: true } : {}),
+              ...(action.profileField ? { profileField: action.profileField } : {}),
             },
           };
           return next;
@@ -337,6 +338,7 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
               confirmationId: action.confirmationId,
               summary: action.summary,
               ...(action.isAskUser ? { isAskUser: true } : {}),
+              ...(action.profileField ? { profileField: action.profileField } : {}),
             },
           },
         ];
@@ -660,6 +662,29 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
 
 /* ── Initial state ────────────────────────────────────────────────────────── */
 
+/**
+ * Persistence for the HEALTH room's conversation. The Health page (and the room
+ * inside it) unmounts when the user navigates away, AND a full webview reload
+ * wipes JS memory — both would otherwise clear the room. Two layers keep it:
+ *   1. A module-level state cache → instant restore across in-session navigation.
+ *   2. sessionStorage of the messages → survives a webview reload (refresh).
+ * sessionStorage clears when the webview truly closes, which lines up with the
+ * host starting a fresh healthConversation, so there's no stale desync. The main
+ * chat needs neither — it's always-mounted at the App level. Cleared by the
+ * room's Clear-chat button.
+ */
+let healthRoomStateCache: ChatState | null = null;
+const HEALTH_ROOM_MSGS_KEY = 'ava-health-room-messages';
+function readHealthRoomMessages(): UIMessage[] | null {
+  try { const raw = sessionStorage.getItem(HEALTH_ROOM_MSGS_KEY); const v = raw ? JSON.parse(raw) : null; return Array.isArray(v) && v.length ? v : null; } catch { return null; }
+}
+function writeHealthRoomMessages(messages: UIMessage[]): void {
+  try { sessionStorage.setItem(HEALTH_ROOM_MSGS_KEY, JSON.stringify(messages)); } catch { /* quota / unavailable */ }
+}
+function clearHealthRoomMessages(): void {
+  try { sessionStorage.removeItem(HEALTH_ROOM_MSGS_KEY); } catch { /* ignore */ }
+}
+
 const initialState: ChatState = {
   messages: [],
   currentAssistantId: null,
@@ -742,13 +767,40 @@ export interface ChatPageProps {
    *  to MessageBubble so user-message bubbles render the operator's photo
    *  instead of the generic gradient + person SVG. */
   userAvatarUrl?: string | null;
+  /** Conversation lane this surface drives. 'main' (default) is the normal
+   *  chat. 'health' is the focused Ava Health & Fitness room — every send is
+   *  tagged surface:'health' so the host runs it on the separate health thread,
+   *  and forced into health mode so the room's briefing always applies. */
+  lane?: 'main' | 'health';
 }
 
 // Sidebar-toggle / flip / collapsed / side props are still in ChatPageProps
 // for caller compatibility but are no longer consumed — the chat header
 // dropped its sidebar-toggle button to match the IDE chat header.
-export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userAvatarUrl }: ChatPageProps) {
-  const [state, dispatch] = useReducer(chatReducer, initialState);
+export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userAvatarUrl, lane = 'main' }: ChatPageProps) {
+  // Health room rehydrates so its conversation survives both navigation (module
+  // cache) and a webview reload (sessionStorage messages). The main chat always
+  // starts fresh (it's never unmounted).
+  const [state, dispatch] = useReducer(
+    chatReducer,
+    initialState,
+    (init) => {
+      if (lane !== 'health') return init;
+      if (healthRoomStateCache) return healthRoomStateCache;
+      const saved = readHealthRoomMessages();
+      return saved ? { ...init, messages: saved } : init;
+    },
+  );
+
+  // Snapshot the health room's state on every change (cheap module cache for
+  // navigation); persist the messages to sessionStorage once a turn settles
+  // (gated on !isStreaming to avoid a serialize-per-token storm) so a refresh
+  // restores them.
+  useEffect(() => {
+    if (lane !== 'health') return;
+    healthRoomStateCache = state;
+    if (!state.isStreaming) writeHealthRoomMessages(state.messages);
+  }, [state, lane]);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const justLoadedRef = useRef(false);
 
@@ -878,12 +930,15 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
   // ── Callbacks ──────────────────────────────────────────────────────────────
 
   const handleSend = useCallback((text: string, mode: AvaMode, attachments?: ImageAttachment[]) => {
-    post({ type: 'send_message', text, mode, attachments });
-  }, []);
+    // In the health room every turn is health-scoped — force the mode so the
+    // briefing always applies, and tag the lane so the host runs it on the
+    // separate health thread.
+    post({ type: 'send_message', text, mode: lane === 'health' ? 'health' : mode, attachments, surface: lane });
+  }, [lane]);
 
   const handlePaletteAction = useCallback((tool: PaletteTool, action: string, mode: AvaMode) => {
-    post({ type: 'palette_intent', tool, action, mode });
-  }, []);
+    post({ type: 'palette_intent', tool, action, mode: lane === 'health' ? 'health' : mode, surface: lane });
+  }, [lane]);
 
   const handleModelSwitch = useCallback((modelId: string) => {
     post({ type: 'switch_model', modelId });
@@ -910,6 +965,17 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     post({ type: 'new_chat' });
   }, []);
 
+  /** Clear ONLY this room's conversation — the health thread. Resets the view +
+   *  the module cache, and tells the host to drop its healthConversation. The
+   *  main chat is untouched (separate lane). The room uses this in place of
+   *  New Chat. */
+  const handleClearChat = useCallback(() => {
+    dispatch({ type: 'chat_cleared' } as ChatAction);
+    healthRoomStateCache = null;
+    clearHealthRoomMessages();
+    post({ type: 'clear_chat', surface: 'health' });
+  }, []);
+
   // History panel handlers (handleLoadConversation / handleDeleteConversation
   // / handleSearchHistory / handleRenameConversation / handlePinConversation
   // / handleExportConversation) lived here when the chat surfaced a slide-
@@ -923,11 +989,11 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     if (lastUserMsg?.content) {
       // Remove the error message first so it doesn't accumulate
       dispatch({ type: 'remove_last_error' });
-      post({ type: 'send_message', text: lastUserMsg.content, mode: 'code' });
+      post({ type: 'send_message', text: lastUserMsg.content, mode: lane === 'health' ? 'health' : 'code', surface: lane });
     } else {
-      post({ type: 'send_message', text: t('app.continue'), mode: 'code' });
+      post({ type: 'send_message', text: t('app.continue'), mode: lane === 'health' ? 'health' : 'code', surface: lane });
     }
-  }, [state.messages]);
+  }, [state.messages, lane]);
 
   // Repurposed as a prefill hook for empty-state starter chips. Was
   // previously wired to immediately send. Prefilling lets the operator
@@ -1037,9 +1103,12 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             conversationTitle={state.conversationTitle}
             sessionCredits={state.sessionCredits}
             platformStatus={state.platformStatus}
+            showNewChat={lane !== 'health'}
+            showClearChat={lane === 'health'}
+            onClearChat={handleClearChat}
           />
 
-          {(state.accountLoading || state.historyLoading) ? (
+          {(state.accountLoading || (lane !== 'health' && state.historyLoading)) ? (
             <div
               role="status"
               aria-live="polite"
@@ -1087,6 +1156,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             onCompress={handleCompress}
             userName={userName}
             userAvatarUrl={userAvatarUrl}
+            lane={lane}
           />
           )}
 
@@ -1129,6 +1199,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
               state.models.find((m) => m.id === state.activeModel)?.supportsVision
             }
             prefill={pendingPrefill}
+            lockedModeLabel={lane === 'health' ? t('health.room.mode_label') : undefined}
           />
 
           {/* HistoryPanel slide-over removed — dashboard chat routes
@@ -1151,8 +1222,9 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
         </div>
 
         {/* Tasks — always present: full panel when open, thin self-advertising
-            spine when collapsed. */}
-        {state.tasksOpen ? (
+            spine when collapsed. The Ava Health room is focused on plans, not
+            tasks, so the rail is omitted there entirely. */}
+        {lane !== 'health' && (state.tasksOpen ? (
           <TasksPanel
             todayTasks={state.todayTasks}
             allTasks={state.allTasks}
@@ -1170,7 +1242,7 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             sessionTasks={state.sessionTasks}
             onExpand={handleToggleTasks}
           />
-        )}
+        ))}
       </div>
     </SecretsProvider>
   );

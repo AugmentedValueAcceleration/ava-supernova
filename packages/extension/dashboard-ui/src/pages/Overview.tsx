@@ -12,8 +12,7 @@ import type {
   DashboardJournalDay,
   DashboardLearningCurriculum,
   DashboardTaskEntry,
-  HealthDailyPlan,
-  HealthProfile,
+  HealthPlan,
   MemoryEntry,
   Page,
   SessionStats,
@@ -106,17 +105,8 @@ interface OverviewProps {
   latestRelease: ReleaseInfo | null;
   articleLoading?: boolean;
   onOpenArticle?: (slug: string) => void;
-  // Health Dashboard tab — local-first profile + today's plan
-  healthProfile: HealthProfile | null;
-  healthDailyPlan: HealthDailyPlan | null;
-  onSaveHealthDailyPlan: (plan: HealthDailyPlan) => void;
-  onGenerateHealthMorningBrief: (date: string) => void;
-  healthMorningBriefGenerating: boolean;
-  healthMorningBriefError: string | null;
-  // Jumps to the Health & Nutrition page's Profile tab — used by the
-  // dashboard's "Set your goals" pointer to close the discoverability
-  // gap (the brief references goals, but goals are set elsewhere).
-  onNavigateToHealthProfile: () => void;
+  // Command Center health tab — active plans for the Today / This-week glance.
+  activeHealthPlans: HealthPlan[];
   // Per-source load signals — true once the first load has landed.
   // Drive the Daily widgets' skeleton-vs-content decision so they
   // never flash a misleading empty state before data arrives.
@@ -149,13 +139,7 @@ export function Overview({
   latestRelease,
   articleLoading,
   onOpenArticle,
-  healthProfile,
-  healthDailyPlan,
-  onSaveHealthDailyPlan,
-  onGenerateHealthMorningBrief,
-  healthMorningBriefGenerating,
-  healthMorningBriefError,
-  onNavigateToHealthProfile,
+  activeHealthPlans,
   tasksLoaded,
   journalLoaded,
   weatherLoaded,
@@ -377,17 +361,9 @@ export function Overview({
         </div>
       )}
 
-      {/* ── Health tab — daily plan, brief, status, quick log ─────────── */}
+      {/* ── Health tab — Today / This week glance from active plans ───── */}
       {tab === 'health' && (
-        <HealthDashboard
-          profile={healthProfile}
-          plan={healthDailyPlan}
-          onSavePlan={onSaveHealthDailyPlan}
-          onGenerateMorningBrief={onGenerateHealthMorningBrief}
-          briefGenerating={healthMorningBriefGenerating}
-          briefError={healthMorningBriefError}
-          onNavigateToProfile={onNavigateToHealthProfile}
-        />
+        <HealthDashboard activePlans={activeHealthPlans} />
       )}
 
     </div>

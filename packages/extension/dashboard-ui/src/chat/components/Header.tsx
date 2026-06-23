@@ -30,6 +30,13 @@ interface HeaderProps {
   platformStatus?: { connected: boolean; tier: string | null; freeTokensUsed: number; freeTokensLimit: number; subTokensUsed: number; subTokensLimit: number | null } | null;
   /** @deprecated extension-only Platform/API-key toggle — IDE doesn't have it; provider routing is set in Settings. */
   onProviderSourceChange?: (source: ProviderSource) => void;
+  /** Hides the New Chat button — the Ava Health room runs its own thread and
+   *  must not offer a reset that would clear the main chat. Default shown. */
+  showNewChat?: boolean;
+  /** Shows a Clear-chat button in place of New Chat — the Ava Health room uses
+   *  this to clear only its own thread (never the main chat). Default hidden. */
+  showClearChat?: boolean;
+  onClearChat?: () => void;
 }
 
 export function Header({
@@ -41,6 +48,9 @@ export function Header({
   onNewChat,
   conversationTitle,
   platformStatus,
+  showNewChat = true,
+  showClearChat = false,
+  onClearChat,
 }: HeaderProps) {
   useLocale();
 
@@ -134,7 +144,9 @@ export function Header({
         {/* New Chat — labelled pill, matching IDE chat header at
             DashboardPages.tsx:4256-4273. Replaces the per-sidebar
             New Chat icon button (which is being dropped from the
-            dashboard NavSidebar in this same commit). */}
+            dashboard NavSidebar in this same commit). Hidden in the Ava
+            Health room — its own thread has no main-chat reset. */}
+        {showNewChat && (
         <button
           onClick={onNewChat}
           title={t('header.new_chat')}
@@ -156,6 +168,33 @@ export function Header({
           </svg>
           {tt('header.new_chat', 'New Chat')}
         </button>
+        )}
+
+        {/* Clear chat — the Ava Health room's reset. Clears only this focused
+            thread (never the main chat). Replaces New Chat in the room. */}
+        {showClearChat && (
+        <button
+          onClick={onClearChat}
+          title={tt('header.clear_chat', 'Clear chat')}
+          aria-label="Clear chat"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px',
+            background: 'rgba(168,85,247,0.1)',
+            border: '1px solid rgba(168,85,247,0.25)',
+            borderRadius: 8,
+            color: '#a855f7',
+            fontSize: 11, fontWeight: 600, cursor: 'pointer',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.2)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(168,85,247,0.1)'; }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          </svg>
+          {tt('header.clear_chat', 'Clear chat')}
+        </button>
+        )}
       </div>
     </div>
 

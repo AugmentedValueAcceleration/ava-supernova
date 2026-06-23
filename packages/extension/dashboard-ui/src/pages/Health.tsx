@@ -1,19 +1,14 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { t, tt, useLocale } from '../i18n';
 import { post } from '../App';
-import { HealthSubmissionModal } from './HealthSubmissionModal';
-import { HealthMySubmissions } from './HealthMySubmissions';
-import { HealthProfilePage } from './HealthProfilePage';
+import { Chat } from './Chat';
+import type { ExtToDashboardMessage } from '../types/messages';
 import { Skeleton } from '../components/Skeleton';
 import type {
   HealthExerciseSummary, HealthExerciseDetail,
   HealthRecipeSummary, HealthRecipeDetail, HealthRecipeNutrition,
   HealthWorkoutType,
-  HealthTaxonomies, HealthMySubmissions as HealthMySubmissionsData, HealthProfile,
-  HealthExerciseSubmissionPayload, HealthRecipeSubmissionPayload,
-  HealthSubmissionStatus,
-  HealthExerciseDraft, HealthRecipeDraft,
-  HealthGenerateExerciseIntake, HealthGenerateRecipeIntake,
+  HealthTaxonomies, HealthSubmissionStatus,
 } from '../types/messages';
 
 /**
@@ -64,7 +59,7 @@ const WORKOUT_TYPE_ACCENT: Record<HealthWorkoutType, string> = {
 const COURSE_ORDER = ['breakfast', 'main', 'starter', 'side', 'snack', 'dessert'] as const;
 const courseLabel = (course: string): string => t(`health.browse.course.${course}`);
 
-type Tab = 'exercises' | 'recipes' | 'mine' | 'profile';
+type Tab = 'exercises' | 'recipes' | 'ava';
 /** Card layout for the browse grids. Persisted + shared across both tabs. */
 type View = 'grid' | 'list';
 const VIEW_KEY = 'ava-health-view';
@@ -90,29 +85,18 @@ interface Props {
   onLoadRecipes: (limit?: number, offset?: number, course?: string, q?: string, collection?: string, extra?: { collections?: string[]; diets?: string[]; flags?: string[]; cuisines?: string[]; maxTime?: number; sort?: 'name' }) => void;
   onLoadExerciseDetail: (slug: string) => void;
   onLoadRecipeDetail: (slug: string) => void;
-  // Submission flow
+  // Recipe/exercise taxonomies — used by the browse filters.
   taxonomies: HealthTaxonomies | null;
-  mySubmissions: HealthMySubmissionsData;
-  submissionResult: { kind: 'exercise' | 'recipe'; ok: boolean; error?: string; status?: HealthSubmissionStatus; submissionName?: string } | null;
-  submissionInflight: boolean;
   onLoadTaxonomies: () => void;
-  onLoadMySubmissions: () => void;
-  onClearMyRejectedSubmissions: () => void;
-  clearingMySubmissions: boolean;
-  onSubmitExercise: (p: HealthExerciseSubmissionPayload) => void;
-  onSubmitRecipe: (p: HealthRecipeSubmissionPayload) => void;
-  onClearSubmissionResult: () => void;
-  // Ava-assisted draft generation
-  exerciseDraft: HealthExerciseDraft | null;
-  recipeDraft: HealthRecipeDraft | null;
-  draftInflight: boolean;
-  draftError: string | null;
-  onGenerateExerciseDraft: (intake: HealthGenerateExerciseIntake) => void;
-  onGenerateRecipeDraft: (intake: HealthGenerateRecipeIntake) => void;
-  onClearDraft: () => void;
-  // Profile tab — local-first health profile data
-  profile: HealthProfile | null;
-  onSaveProfile: (next: HealthProfile) => void;
+  // Profile + the user's own data (plans, submissions) now live in
+  // Account → "{name}'s profile". This deep-links there.
+  onNavigateToProfile: (subTab: 'general' | 'health' | 'plans' | 'submissions') => void;
+  /** Registers the Ava-tab chat's dispatch with App so host events tagged
+   *  lane:'health' route to this focused room (not the main chat). */
+  onRegisterHealthChatDispatch: (fn: (msg: ExtToDashboardMessage) => void) => void;
+  /** Operator's first name + avatar — passed through to the room's chat. */
+  userName?: string | null;
+  userAvatarUrl?: string | null;
   // Deep-link — when another surface navigates here wanting a specific
   // tab (e.g. the Health Dashboard's "Set your goals" pointer). Consumed
   // once on mount so a later plain visit lands on the default tab.
@@ -139,25 +123,11 @@ export function Health({
   onLoadExerciseDetail,
   onLoadRecipeDetail,
   taxonomies,
-  mySubmissions,
-  submissionResult,
-  submissionInflight,
   onLoadTaxonomies,
-  onLoadMySubmissions,
-  onClearMyRejectedSubmissions,
-  clearingMySubmissions,
-  onSubmitExercise,
-  onSubmitRecipe,
-  onClearSubmissionResult,
-  exerciseDraft,
-  recipeDraft,
-  draftInflight,
-  draftError,
-  onGenerateExerciseDraft,
-  onGenerateRecipeDraft,
-  onClearDraft,
-  profile,
-  onSaveProfile,
+  onNavigateToProfile,
+  onRegisterHealthChatDispatch,
+  userName,
+  userAvatarUrl,
   initialTab,
   onConsumeInitialTab,
 }: Props) {
@@ -202,19 +172,6 @@ export function Health({
    *  once the host responds to the load-detail message. */
   const [modalExerciseSlug, setModalExerciseSlug] = useState<string | null>(null);
   const [modalRecipeSlug, setModalRecipeSlug] = useState<string | null>(null);
-  const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
-
-  // Open the submission modal — preloads taxonomies on first open so the
-  // kind picker is immediately functional, and clears any prior result.
-  const openSubmissionModal = () => {
-    if (!taxonomies) onLoadTaxonomies();
-    onClearSubmissionResult();
-    setSubmissionModalOpen(true);
-  };
-
-  // Load My Submissions on first mount + when the result of a fresh
-  // submission lands (the host triggers a reload on success).
-  useEffect(() => { onLoadMySubmissions(); }, [onLoadMySubmissions]);
 
   // Honour a deep-link tab request, then clear it so the next plain
   // visit to this page lands on the default Exercises tab.
@@ -354,30 +311,37 @@ export function Health({
               </button>
             </p>
           </div>
-          <button
-            type="button"
-            onClick={openSubmissionModal}
-            className="shrink-0 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer"
-          >
-            {t('health.browse.contribute')}
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onNavigateToProfile('plans')}
+              className="rounded-md border border-[var(--border)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--accent)]/40 transition cursor-pointer"
+            >
+              {t('health.browse.your_plans')}
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigateToProfile('health')}
+              className="rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer"
+            >
+              {t('health.browse.edit_profile')}
+            </button>
+          </div>
         </div>
 
         {/* Top tabs — canonical dashboard style (border-b-2 + --accent var,
             matches Settings/Planner/History/Overview). */}
         <div className="mt-5 flex items-end gap-0.5 border-b border-[var(--border)]">
-          {(['exercises', 'recipes', 'mine', 'profile'] as Tab[]).map((tabKey) => {
+          {(['exercises', 'recipes', 'ava'] as Tab[]).map((tabKey) => {
             const isActive = tab === tabKey;
             const count =
               tabKey === 'exercises' ? exercisesTotal :
               tabKey === 'recipes' ? recipesTotal :
-              tabKey === 'mine' ? mySubmissions.exercises.length + mySubmissions.recipes.length :
-              0; // profile tab has no count
+              0; // ava tab has no count
             const label =
               tabKey === 'exercises' ? t('health.browse.tab.exercises') :
               tabKey === 'recipes' ? t('health.browse.tab.recipes') :
-              tabKey === 'mine' ? t('health.browse.tab.mine') :
-              t('health.browse.tab.profile');
+              t('health.browse.tab.ava');
             return (
               <button
                 key={tabKey}
@@ -396,8 +360,35 @@ export function Health({
         </div>
       </div>
 
-      {/* Content area */}
-      <div className="flex-1 overflow-y-auto px-6 py-5">
+      {/* Content area. The Ava room needs a full-bleed, non-scrolling region
+          (the chat owns its own scroll); every other tab keeps the padded,
+          scrolling layout. */}
+      <div className={`flex-1 min-h-0 ${tab === 'ava' ? 'overflow-hidden' : 'overflow-y-auto px-6 py-5'}`}>
+        {/* Ava Health & Fitness room — ALWAYS mounted (hidden off-tab) so its
+            conversation survives switching between the other Health tabs. Its
+            own lane: sends tag surface:'health', host events tagged lane:'health'
+            route here, never the main chat. */}
+        <div className={`h-full flex-col ${tab === 'ava' ? 'flex' : 'hidden'}`}>
+          <div className="shrink-0 border-b border-[var(--border)] bg-[var(--accent)]/5 px-4 py-2 text-[11px] leading-snug text-[var(--text-muted)]">
+            {t('health.room.disclaimer')}{' '}
+            <button
+              type="button"
+              onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/health/safety' })}
+              className="cursor-pointer border-none bg-transparent p-0 text-vscode-descriptionForeground underline decoration-dotted underline-offset-2 transition hover:text-vscode-foreground"
+            >
+              {t('health.browse.safety_link')}
+            </button>
+          </div>
+          <div className="min-h-0 flex-1">
+            <Chat
+              lane="health"
+              onRegisterDispatch={onRegisterHealthChatDispatch}
+              isActive={tab === 'ava'}
+              userName={userName}
+              userAvatarUrl={userAvatarUrl}
+            />
+          </div>
+        </div>
         {tab === 'exercises' && (
           <ExercisesGrid
             items={exercises}
@@ -448,44 +439,7 @@ export function Health({
             onView={changeView}
           />
         )}
-        {tab === 'mine' && (
-          <HealthMySubmissions
-            data={mySubmissions}
-            onRefresh={onLoadMySubmissions}
-            onContribute={openSubmissionModal}
-            onClearRejected={onClearMyRejectedSubmissions}
-            clearing={clearingMySubmissions}
-          />
-        )}
-        {tab === 'profile' && (
-          <HealthProfilePage
-            profile={profile}
-            taxonomies={taxonomies}
-            onSave={onSaveProfile}
-            onLoadTaxonomies={onLoadTaxonomies}
-          />
-        )}
       </div>
-
-      {/* Submission modal — covers everything; opens from the Contribute button. */}
-      <HealthSubmissionModal
-        open={submissionModalOpen}
-        onClose={() => { setSubmissionModalOpen(false); onClearDraft(); }}
-        taxonomies={taxonomies}
-        inflight={submissionInflight}
-        result={submissionResult ? { kind: submissionResult.kind, ok: submissionResult.ok, error: submissionResult.error, submissionName: submissionResult.submissionName } : null}
-        onSubmitExercise={onSubmitExercise}
-        onSubmitRecipe={onSubmitRecipe}
-        onClearResult={onClearSubmissionResult}
-        onRetryTaxonomies={onLoadTaxonomies}
-        exerciseDraft={exerciseDraft}
-        recipeDraft={recipeDraft}
-        draftInflight={draftInflight}
-        draftError={draftError}
-        onGenerateExerciseDraft={onGenerateExerciseDraft}
-        onGenerateRecipeDraft={onGenerateRecipeDraft}
-        onClearDraft={onClearDraft}
-      />
 
       {/* Overlay modals — one mounts at a time, whichever was clicked. */}
       {modalExerciseSlug && (
@@ -1049,7 +1003,7 @@ function ExerciseDetailModal({
   );
 }
 
-function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
+export function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
   const accent = WORKOUT_TYPE_ACCENT[ex.workout_type];
   const primaries = ex.muscles.filter((m) => m.role === 'primary');
   const secondaries = ex.muscles.filter((m) => m.role === 'secondary');
@@ -1073,6 +1027,11 @@ function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
 
   return (
     <div className="flex h-full flex-col">
+      {ex.thumbnail_url && (
+        <div className="aspect-[2/1] max-h-[200px] w-full flex-none overflow-hidden bg-vscode-editor-inactiveSelectionBackground">
+          <img src={ex.thumbnail_url} alt="" className="h-full w-full object-cover" />
+        </div>
+      )}
       <div className="flex-none px-6 pt-6 sm:px-8">
       <header className="mb-4">
         <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em]" style={{ color: accent }}>
@@ -1240,7 +1199,7 @@ function NutritionGrid({ n }: { n: HealthRecipeNutrition }) {
   );
 }
 
-function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
+export function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
   const [level, setLevel] = useState<'beginner' | 'intermediate' | 'expert'>('beginner');
   const v = r.versions.find((vv) => vv.level === level) || r.versions[0];
 

@@ -1,6 +1,10 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { t, useLocale } from '../i18n';
+import { t, tt, useLocale } from '../i18n';
 import { Select } from '../components/Select';
+// The rich, tabbed catalogue detail bodies — reused so a recipe/exercise opened
+// from a plan or the day view reads identically to the library, with the full
+// schema (skill levels, full nutrition, diets, equipment, per-step technique).
+import { ExerciseDetailBody, RecipeDetailBody } from './Health';
 import type {
   HealthPlan, HealthPlanSummary, HealthPlanType, HealthPlanStatus,
   HealthPlanDay, HealthPlanExercise, HealthPlanMeal,
@@ -31,6 +35,8 @@ const PICKER_PAGE_SIZE = 24;
 
 interface Props {
   plans: HealthPlanSummary[];
+  /** Full (dated) plans with days — gives the calendar real per-day content. */
+  fullPlans?: HealthPlan[];
   planOpen: HealthPlan | null;
   onOpenPlan: (id: string) => void;
   onSavePlan: (plan: HealthPlan) => void;
@@ -47,24 +53,31 @@ interface Props {
   recipeDetails: Record<string, HealthRecipeDetail>;
   onLoadExerciseDetail: (slug: string) => void;
   onLoadRecipeDetail: (slug: string) => void;
+  /** When provided, the setup wizard shows an "Ask Ava" door beside
+   *  "Build myself" — handing the chosen type to Ava in the health room
+   *  (catalogue-aware, profile-loaded) instead of the manual builder.
+   *  Omitted on surfaces that only offer manual building. */
+  onAskAva?: (type: HealthPlanType) => void;
 }
 
 export function HealthPlans({
-  plans, planOpen, onOpenPlan, onSavePlan, onDeletePlan, onClosePlan,
+  plans, fullPlans, planOpen, onOpenPlan, onSavePlan, onDeletePlan, onClosePlan,
   exerciseResults, recipeResults, catalogSearching, exerciseTotal, recipeTotal, onSearchExercises, onSearchRecipes,
   exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail,
+  onAskAva,
 }: Props) {
   useLocale();
   const [setupOpen, setSetupOpen] = useState(false);
 
   return (
     <>
-      <BasePlansTab plans={plans} onNew={() => setSetupOpen(true)} onOpen={onOpenPlan} onDelete={onDeletePlan} />
+      <BasePlansTab plans={plans} fullPlans={fullPlans} exerciseDetails={exerciseDetails} recipeDetails={recipeDetails} onLoadExerciseDetail={onLoadExerciseDetail} onLoadRecipeDetail={onLoadRecipeDetail} onNew={() => setSetupOpen(true)} onOpen={onOpenPlan} onDelete={onDeletePlan} />
       {(setupOpen || planOpen) && (
         <PlanOverlay
           planOpen={planOpen}
           onCancelSetup={() => setSetupOpen(false)}
           onCreate={onSavePlan}
+          onAskAva={onAskAva ? (type) => { setSetupOpen(false); onAskAva(type); } : undefined}
           onClose={() => { onClosePlan(); setSetupOpen(false); }}
           onSave={onSavePlan}
           onDelete={onDeletePlan}
@@ -92,13 +105,14 @@ export function HealthPlans({
  * it scrolls.
  */
 function PlanOverlay({
-  planOpen, onCancelSetup, onCreate, onClose, onSave, onDelete,
+  planOpen, onCancelSetup, onCreate, onAskAva, onClose, onSave, onDelete,
   exerciseResults, recipeResults, catalogSearching, exerciseTotal, recipeTotal, onSearchExercises, onSearchRecipes,
   exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail,
 }: {
   planOpen: HealthPlan | null;
   onCancelSetup: () => void;
   onCreate: (plan: HealthPlan) => void;
+  onAskAva?: (type: HealthPlanType) => void;
   onClose: () => void;
   onSave: (plan: HealthPlan) => void;
   onDelete: (id: string) => void;
@@ -116,7 +130,9 @@ function PlanOverlay({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 sm:p-6">
-      <div className="flex h-full w-full max-w-[1180px] flex-col overflow-hidden rounded-xl border border-[rgba(168,85,247,0.25)] bg-gradient-to-br from-[#100d1a] to-[#181327] shadow-[0_0_80px_rgba(168,85,247,0.15)]">
+      {/* Both phases are content-sized modals (capped at 88vh, body scrolls if
+          longer) — the builder is a tidy day editor, not a full-screen sprawl. */}
+      <div className={`flex flex-col overflow-hidden rounded-xl border border-[rgba(168,85,247,0.25)] bg-gradient-to-br from-[#100d1a] to-[#181327] shadow-[0_0_80px_rgba(168,85,247,0.15)] max-h-[88vh] ${planOpen ? 'w-full max-w-[860px]' : 'w-full max-w-[720px]'}`}>
         {planOpen ? (
           <PlanBuilder
             plan={planOpen}
@@ -136,7 +152,7 @@ function PlanOverlay({
             onLoadRecipeDetail={onLoadRecipeDetail}
           />
         ) : (
-          <PlanSetup onCancel={onCancelSetup} onCreate={onCreate} />
+          <PlanSetup onCancel={onCancelSetup} onCreate={onCreate} onAskAva={onAskAva} />
         )}
       </div>
     </div>
@@ -289,12 +305,22 @@ function dayTotals(day: HealthPlanDay, recipeDetails: Record<string, HealthRecip
 /** The Plans tab itself. Never an overlay. Two inner tabs: Calendar (a
  *  month grid sized to one page) and Programs (the plan list) — so the
  *  list is never stacked under the calendar forcing a scroll. */
-function BasePlansTab({ plans, onNew, onOpen, onDelete }: {
+function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, onNew, onOpen, onDelete }: {
   plans: HealthPlanSummary[];
+  /** Full (dated) plans with their days — drives the per-day content shown in
+   *  the calendar cells AND the day view. Summaries alone can only draw a dot. */
+  fullPlans?: HealthPlan[];
+  exerciseDetails: Record<string, HealthExerciseDetail>;
+  recipeDetails: Record<string, HealthRecipeDetail>;
+  onLoadExerciseDetail: (slug: string) => void;
+  onLoadRecipeDetail: (slug: string) => void;
   onNew: () => void;
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
+  // A clicked calendar day opens the DAY view (what's on that date across every
+  // plan), not a single plan's editor.
+  const [dayKey, setDayKey] = useState<string | null>(null);
   const [tab, setTab] = useState<'calendar' | 'programs'>('calendar');
   // Default the calendar to the month of a dated plan so a created plan is
   // visible the moment the tab opens — not a blank current month.
@@ -325,23 +351,27 @@ function BasePlansTab({ plans, onNew, onOpen, onDelete }: {
     return map;
   }, [plans]);
 
-  // Which plan covers a date? Prefer an active plan, then most recently
-  // updated — so clicking a day opens the plan you'd expect, not creation.
-  const planForDate = useCallback((key: string): HealthPlanSummary | null => {
-    const sel = new Date(`${key}T00:00:00`).getTime();
-    const covering = plans.filter(p => {
-      if (!p.start_date) return false;
-      const start = new Date(`${p.start_date}T00:00:00`).getTime();
-      if (isNaN(start)) return false;
-      return sel >= start && sel <= start + (p.duration_days - 1) * 86400000;
-    });
-    if (covering.length === 0) return null;
-    covering.sort((a, b) => {
-      if ((a.status === 'active') !== (b.status === 'active')) return a.status === 'active' ? -1 : 1;
-      return (b.updated_at ?? '').localeCompare(a.updated_at ?? '');
-    });
-    return covering[0];
-  }, [plans]);
+  // Per-date content — the session title + the day's moves / meals — from the
+  // full dated plans, so the calendar cells show what's actually on, not a dot.
+  const planContent = useMemo(() => {
+    const map = new Map<string, { title: string | null; training: string[]; meals: string[] }>();
+    for (const p of fullPlans ?? []) {
+      if (!p.start_date) continue;
+      const start = new Date(`${p.start_date}T00:00:00`);
+      if (isNaN(start.getTime())) continue;
+      for (const day of p.days) {
+        const d = new Date(start);
+        d.setDate(d.getDate() + (day.day_index - 1));
+        const key = ymd(d);
+        const cur = map.get(key) ?? { title: null as string | null, training: [] as string[], meals: [] as string[] };
+        if (day.title && !cur.title) cur.title = day.title;
+        if (p.type === 'fitness' || p.type === 'combined') for (const ex of day.training) if (ex.name) cur.training.push(ex.name);
+        if (p.type === 'meal' || p.type === 'combined') for (const m of day.meals) if (m.name) cur.meals.push(m.name);
+        map.set(key, cur);
+      }
+    }
+    return map;
+  }, [fullPlans]);
 
   return (
     <div className="space-y-4">
@@ -380,13 +410,17 @@ function BasePlansTab({ plans, onNew, onOpen, onDelete }: {
       </div>
 
       {tab === 'calendar' ? (
-        <MonthCalendar
-          month={month}
-          onMonthChange={setMonth}
-          marks={planMarks}
-          selected={null}
-          onSelectDate={(key) => { const p = planForDate(key); if (p) onOpen(p.id); else onNew(); }}
-        />
+        <div className="flex min-h-[64vh]">
+          <MonthCalendar
+            month={month}
+            onMonthChange={setMonth}
+            marks={planMarks}
+            content={planContent}
+            selected={null}
+            onSelectDate={(key) => setDayKey(key)}
+            fill
+          />
+        </div>
       ) : plans.length === 0 ? (
         <div className="rounded-lg border border-dashed border-[var(--border)] px-4 py-10 text-center">
           <div className="text-[12px] text-[var(--text-secondary)]">{t('health.plans.empty_title')}</div>
@@ -400,6 +434,196 @@ function BasePlansTab({ plans, onNew, onOpen, onDelete }: {
             <PlanCard key={p.id} plan={p} onOpen={() => onOpen(p.id)} onDelete={() => onDelete(p.id)} />
           ))}
         </div>
+      )}
+
+      {dayKey && (
+        <HealthDayView
+          dateKey={dayKey}
+          plans={fullPlans ?? []}
+          exerciseDetails={exerciseDetails}
+          recipeDetails={recipeDetails}
+          onLoadExerciseDetail={onLoadExerciseDetail}
+          onLoadRecipeDetail={onLoadRecipeDetail}
+          onClose={() => setDayKey(null)}
+          onNewPlan={() => { setDayKey(null); onNew(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Day view — a date's agenda, EXTENSIBLE by source ─────────────────────────
+// A day belongs to no single plan: it's whatever is scheduled on that DATE,
+// gathered from every active plan. The body is a list of SECTIONS, each fed by
+// a source. Training + meals today; tasks, learning paths, a journal entry slot
+// in tomorrow by adding one builder to `sections` below — the view renders
+// whatever sections exist, so new content types never restructure anything.
+
+function planDayForDate(plan: HealthPlan, dateKey: string): HealthPlanDay | null {
+  if (!plan.start_date) return null;
+  const start = new Date(`${plan.start_date}T00:00:00`).getTime();
+  const sel = new Date(`${dateKey}T00:00:00`).getTime();
+  if (isNaN(start) || isNaN(sel)) return null;
+  const idx = Math.round((sel - start) / 86400000) + 1;
+  if (idx < 1 || idx > plan.duration_days) return null;
+  return plan.days.find(d => d.day_index === idx) ?? null;
+}
+
+interface DayAgendaItem { id: string; kind: 'exercise' | 'recipe'; slug?: string; title: string; meta?: string; slot?: string; thumb?: string | null; planId: string; planTitle: string }
+interface DayAgendaSection { key: string; label: string; icon: string; accent: string; items: DayAgendaItem[] }
+
+function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, onClose, onNewPlan }: {
+  dateKey: string;
+  plans: HealthPlan[];
+  exerciseDetails: Record<string, HealthExerciseDetail>;
+  recipeDetails: Record<string, HealthRecipeDetail>;
+  onLoadExerciseDetail: (slug: string) => void;
+  onLoadRecipeDetail: (slug: string) => void;
+  onClose: () => void;
+  onNewPlan: () => void;
+}) {
+  useLocale();
+  // Clicking an item opens what you clicked — its exercise / recipe detail —
+  // not the plan editor.
+  const [detail, setDetail] = useState<{ kind: 'exercise' | 'recipe'; slug: string; name: string } | null>(null);
+  const openItem = (item: DayAgendaItem) => {
+    if (!item.slug) return;
+    if (item.kind === 'exercise') onLoadExerciseDetail(item.slug); else onLoadRecipeDetail(item.slug);
+    setDetail({ kind: item.kind, slug: item.slug, name: item.title });
+  };
+  const date = new Date(`${dateKey}T00:00:00`);
+  const dateLabel = date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+
+  const { sections, mealTotals, mealsEstimated, hasMeals } = useMemo(() => {
+    const training: DayAgendaItem[] = [];
+    const meals: DayAgendaItem[] = [];
+    const allMeals: HealthPlanMeal[] = [];
+    for (const p of plans) {
+      const day = planDayForDate(p, dateKey);
+      if (!day) continue;
+      if (p.type === 'fitness' || p.type === 'combined') {
+        for (const ex of day.training) if (ex.name) training.push({
+          id: `${p.id}:${ex.id}`, kind: 'exercise', slug: ex.ref?.slug, title: ex.name, meta: exerciseSummary(ex),
+          thumb: ex.ref ? (exerciseDetails[ex.ref.slug]?.thumbnail_url ?? null) : null,
+          planId: p.id, planTitle: p.title,
+        });
+      }
+      if (p.type === 'meal' || p.type === 'combined') {
+        for (const meal of day.meals) if (meal.name) {
+          allMeals.push(meal);
+          meals.push({
+            id: `${p.id}:${meal.id}`, kind: 'recipe', slug: meal.ref?.slug, title: meal.name, meta: mealSummary(meal, recipeDetails), slot: mealSlotLabel(meal.slot),
+            thumb: meal.ref ? (recipeDetails[meal.ref.slug]?.hero_image_url ?? null) : null,
+            planId: p.id, planTitle: p.title,
+          });
+        }
+      }
+    }
+    const { totals, estimated } = dayTotals({ day_index: 0, kind: 'rest', title: null, training: [], meals: allMeals, notes: null }, recipeDetails);
+    const sections: DayAgendaSection[] = [
+      { key: 'training', label: t('health.plans.training'), icon: '🏋', accent: '#a855f7', items: training },
+      { key: 'meals', label: t('health.plans.meals'), icon: '🍽', accent: '#f59e0b', items: meals },
+      // ── Future sources plug in here as more sections, e.g.:
+      //   { key: 'tasks',    label: t('…'), icon: '✓', accent: '#34d399', items: tasksForDate(dateKey) },
+      //   { key: 'learning', label: t('…'), icon: '★', accent: '#60a5fa', items: learningForDate(dateKey) },
+    ];
+    return { sections, mealTotals: totals, mealsEstimated: estimated, hasMeals: allMeals.length > 0 };
+  }, [dateKey, plans, exerciseDetails, recipeDetails]);
+
+  // Pull the catalogue details for the day's items so thumbnails (and meal
+  // macros) resolve.
+  useEffect(() => {
+    for (const p of plans) {
+      const day = planDayForDate(p, dateKey);
+      if (!day) continue;
+      for (const ex of day.training) if (ex.ref && !exerciseDetails[ex.ref.slug]) onLoadExerciseDetail(ex.ref.slug);
+      for (const meal of day.meals) if (meal.ref && !recipeDetails[meal.ref.slug]) onLoadRecipeDetail(meal.ref.slug);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateKey]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const anything = sections.some(s => s.items.length > 0);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 sm:p-6" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="flex max-h-[88vh] w-full max-w-[760px] flex-col overflow-hidden rounded-xl border border-[rgba(168,85,247,0.25)] bg-gradient-to-br from-[#100d1a] to-[#181327] shadow-[0_0_80px_rgba(168,85,247,0.15)]">
+        <div className="flex shrink-0 items-center justify-between border-b border-[rgba(168,85,247,0.14)] px-6 py-3">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{tt('health.plans.on_this_day', 'On this day')}</div>
+            <h2 className="text-[16px] font-semibold text-[var(--text-primary)]">{dateLabel}</h2>
+          </div>
+          <button type="button" onClick={onClose} aria-label={t('health.plans.cancel')} className="flex h-8 w-8 items-center justify-center rounded-full border-none bg-black/30 text-[15px] text-[var(--text-muted)] hover:text-white cursor-pointer">×</button>
+        </div>
+
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
+          {!anything ? (
+            <div className="rounded-lg border border-dashed border-[var(--border)] px-4 py-12 text-center">
+              <div className="text-[12px] text-[var(--text-secondary)]">{tt('health.plans.day_empty', 'Nothing scheduled this day.')}</div>
+              <button type="button" onClick={onNewPlan} className="mx-auto mt-3 block rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 cursor-pointer">{t('health.plans.new_plan')}</button>
+            </div>
+          ) : sections.map(section => (
+            <div key={section.key}>
+              <div className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                <span aria-hidden>{section.icon}</span>{section.label}
+                {section.items.length > 0 && <span className="opacity-60">· {section.items.length}</span>}
+              </div>
+              {section.items.length === 0 ? (
+                <div className="rounded-md border border-dashed border-[var(--border)] px-3 py-2.5 text-[11px] italic text-[var(--text-muted)]">
+                  {section.key === 'training' ? tt('health.plans.no_workout', 'No workout — rest.') : tt('health.plans.no_meals', 'No meals.')}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {section.items.map(item => (
+                    <button key={item.id} type="button" disabled={!item.slug} onClick={() => openItem(item)} title={item.planTitle} className="group flex items-center gap-3 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-input)]/30 p-2 text-left transition enabled:hover:border-[var(--accent)]/50 enabled:hover:bg-[var(--accent)]/5 disabled:cursor-default cursor-pointer">
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md ring-1 ring-inset ring-white/[0.06]">
+                        {item.thumb ? (
+                          <img src={item.thumb} alt="" loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-[18px] opacity-90" style={{ background: `linear-gradient(135deg, ${section.accent}2e, ${section.accent}0d)` }} aria-hidden>{section.icon}</div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate text-[12px] font-medium text-[var(--text-primary)]">
+                            {item.slot && <span className="mr-1.5 text-[9px] uppercase tracking-wide text-[var(--text-muted)]">{item.slot}</span>}{item.title}
+                          </span>
+                          <span className="shrink-0 text-[14px] leading-none text-[var(--accent)] opacity-0 transition group-hover:opacity-100">›</span>
+                        </div>
+                        {item.meta && <div className="truncate text-[10px] text-[var(--text-muted)]">{item.meta}</div>}
+                        <div className="truncate text-[9px] text-[var(--text-muted)] opacity-70">{item.planTitle}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {section.key === 'meals' && hasMeals && (
+                <div className="mt-2 flex flex-wrap items-center gap-3 rounded-md border border-amber-400/20 bg-amber-400/5 px-3 py-2">
+                  <span className="text-[10px] uppercase tracking-[0.14em] text-amber-300/80">{t('health.plans.day_total')}</span>
+                  {MACRO_FIELDS.map(f => (
+                    <span key={f.key} className="text-[11px] text-[var(--text-secondary)]">{t(f.labelKey)} <span className="font-semibold text-[var(--text-primary)]">{mealTotals[f.key] ?? 0}{f.unit}</span></span>
+                  ))}
+                  {mealsEstimated && <span className="text-[9px] italic text-[var(--text-muted)]">{t('health.plans.estimated')}</span>}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Clicking an item opens ITS detail — the exercise guide / the recipe. */}
+      {detail && (
+        <ItemDetailModal
+          detail={detail}
+          exercise={detail.kind === 'exercise' ? exerciseDetails[detail.slug] : undefined}
+          recipe={detail.kind === 'recipe' ? recipeDetails[detail.slug] : undefined}
+          onClose={() => setDetail(null)}
+        />
       )}
     </div>
   );
@@ -445,15 +669,16 @@ function PlanCard({ plan, onOpen, onDelete }: {
 // ── Overlay phase: Setup ─────────────────────────────────────────────
 // Fills the overlay panel — header / scrolling body / footer.
 
-function PlanSetup({ onCancel, onCreate }: {
+function PlanSetup({ onCancel, onCreate, onAskAva }: {
   onCancel: () => void;
   onCreate: (plan: HealthPlan) => void;
+  onAskAva?: (type: HealthPlanType) => void;
 }) {
   const [type, setType] = useState<HealthPlanType | null>(null);
   const [duration, setDuration] = useState<number>(28);
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex flex-col">
       <div className="flex items-center justify-between gap-3 border-b border-[rgba(168,85,247,0.14)] px-6 py-4">
         <div>
           <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">{t('health.plans.new_plan_title_short')}</h2>
@@ -465,7 +690,7 @@ function PlanSetup({ onCancel, onCreate }: {
         </button>
       </div>
 
-      <div className="flex-1 min-h-0 space-y-6 overflow-y-auto px-6 py-6">
+      <div className="space-y-5 overflow-y-auto px-6 py-5">
         <div>
           <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{t('health.plans.type_label')}</div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -508,23 +733,49 @@ function PlanSetup({ onCancel, onCreate }: {
               </button>
             ))}
           </div>
+          {onAskAva && <p className="mt-1.5 text-[10px] italic text-[var(--text-muted)]">{t('health.plans.length_ava_note')}</p>}
         </div>
-      </div>
 
-      <div className="flex items-center gap-3 border-t border-[rgba(168,85,247,0.14)] px-6 py-4">
-        <button
-          type="button"
-          disabled={!type}
-          onClick={() => { if (type) onCreate(blankPlan(type, duration)); }}
-          className={`rounded-md px-4 py-2 text-[12px] font-medium transition ${
-            type
-              ? 'border border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20 cursor-pointer'
-              : 'border border-[var(--border)] text-[var(--text-muted)] cursor-not-allowed opacity-60'
-          }`}
-        >
-          {t('health.plans.start_building')}
-        </button>
-        {!type && <span className="text-[10px] italic text-[var(--text-muted)]">{t('health.plans.pick_type_first')}</span>}
+        {/* The two doors — proper cards with a description each, so the choice
+            reads clearly and the panel doesn't sprawl into empty space. Dimmed
+            until a type is chosen. */}
+        <div>
+          <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{t('health.plans.how_label')}</div>
+          <div className={`grid grid-cols-1 gap-3 ${onAskAva ? 'sm:grid-cols-2' : ''}`}>
+            {/* Manual door — build it yourself, day by day. */}
+            <button
+              type="button"
+              disabled={!type}
+              onClick={() => { if (type) onCreate(blankPlan(type, duration)); }}
+              className={`rounded-lg border px-4 py-3 text-left transition ${
+                type
+                  ? 'border-[var(--accent)]/40 bg-[var(--accent)]/5 hover:border-[var(--accent)]/70 hover:bg-[var(--accent)]/10 cursor-pointer'
+                  : 'border-[var(--border)] cursor-not-allowed opacity-50'
+              }`}
+            >
+              <div className="text-[13px] font-medium text-[var(--text-primary)]">{onAskAva ? t('health.plans.build_myself') : t('health.plans.start_building')}</div>
+              <div className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">{t('health.plans.build_myself_desc')}</div>
+            </button>
+
+            {/* Ava door — hand the type to Ava in the focused health room. */}
+            {onAskAva && (
+              <button
+                type="button"
+                disabled={!type}
+                onClick={() => { if (type) onAskAva(type); }}
+                className={`rounded-lg border px-4 py-3 text-left transition ${
+                  type
+                    ? 'border-[var(--accent)] bg-[var(--accent)]/15 hover:bg-[var(--accent)]/25 cursor-pointer'
+                    : 'border-[var(--border)] cursor-not-allowed opacity-50'
+                }`}
+              >
+                <div className="text-[13px] font-medium text-[var(--accent)]">{t('health.plans.ask_ava')}</div>
+                <div className="mt-1 text-[10px] leading-relaxed text-[var(--text-muted)]">{t('health.plans.ask_ava_hint')}</div>
+              </button>
+            )}
+          </div>
+          {!type && <p className="mt-2 text-[10px] italic text-[var(--text-muted)]">{t('health.plans.pick_type_first')}</p>}
+        </div>
       </div>
     </div>
   );
@@ -555,7 +806,6 @@ function PlanBuilder({
 }) {
   const [draft, setDraft] = useState<HealthPlan>(plan);
   const [selectedDay, setSelectedDay] = useState<number>(1);
-  const [month, setMonth] = useState<Date>(() => new Date(`${plan.start_date ?? todayISO()}T00:00:00`));
   const [confirming, setConfirming] = useState(false);
   const [picker, setPicker] = useState<'exercise' | 'recipe' | null>(null);
   const saveTimer = useRef<number | undefined>(undefined);
@@ -565,7 +815,6 @@ function PlanBuilder({
   useEffect(() => {
     setDraft(plan);
     setSelectedDay(1);
-    setMonth(new Date(`${plan.start_date ?? todayISO()}T00:00:00`));
   }, [plan.id]);
   useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
 
@@ -590,28 +839,6 @@ function PlanBuilder({
     return map;
   }, [draft.days]);
 
-  const startISO = draft.start_date ?? todayISO();
-  const dateForDay = useCallback((dayIndex: number): string => {
-    const d = new Date(`${startISO}T00:00:00`);
-    d.setDate(d.getDate() + dayIndex - 1);
-    return ymd(d);
-  }, [startISO]);
-  const dayForDate = useCallback((key: string): number | null => {
-    const start = new Date(`${startISO}T00:00:00`);
-    const sel = new Date(`${key}T00:00:00`);
-    const idx = Math.round((sel.getTime() - start.getTime()) / 86400000) + 1;
-    return idx >= 1 && idx <= draft.duration_days ? idx : null;
-  }, [startISO, draft.duration_days]);
-  const calendarMarks = useMemo(() => {
-    const map = new Map<string, { training: boolean; meals: boolean }>();
-    for (const d of draft.days) {
-      map.set(dateForDay(d.day_index), {
-        training: showTraining && d.training.length > 0,
-        meals: showMeals && d.meals.length > 0,
-      });
-    }
-    return map;
-  }, [draft.days, dateForDay, showTraining, showMeals]);
 
   // On open, load detail for catalogue items the plan already references.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -698,9 +925,9 @@ function PlanBuilder({
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       {/* Header */}
-      <div className="space-y-2 border-b border-[rgba(168,85,247,0.14)] px-6 py-3">
+      <div className="shrink-0 space-y-2 border-b border-[rgba(168,85,247,0.14)] px-6 py-3">
         <div className="flex items-center justify-between gap-3">
           <button type="button" onClick={closeWithFlush}
             className="border-none bg-transparent text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">
@@ -743,40 +970,54 @@ function PlanBuilder({
         />
       </div>
 
-      {/* Body — calendar and the day editor side by side, each scrolls
-          on its own; the overlay itself never grows past the screen. */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden p-6 lg:grid-cols-[340px_1fr]">
-        <div className="min-h-0 overflow-y-auto">
-          <MonthCalendar
-            month={month}
-            onMonthChange={setMonth}
-            marks={calendarMarks}
-            selected={dateForDay(selectedDay)}
-            onSelectDate={(key) => {
-              const idx = dayForDate(key);
-              if (idx != null) setSelectedDay(idx);
-            }}
-          />
+      {/* Body — compact: pick a day from the strip, then its Workouts + Meals
+          sections. No calendar; the day strip is the navigation. */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        <div className="mb-4 flex flex-wrap gap-1.5">
+          {draft.days.map((d) => {
+            const date = planDate(draft.start_date, d.day_index);
+            const active = selectedDay === d.day_index;
+            const has = (showTraining && d.training.length > 0) || (showMeals && d.meals.length > 0);
+            return (
+              <button
+                key={d.day_index}
+                type="button"
+                onClick={() => setSelectedDay(d.day_index)}
+                className={`rounded-lg border px-2.5 py-1.5 text-left transition cursor-pointer ${
+                  active ? 'border-[var(--accent)] bg-[var(--accent)]/15' : 'border-[var(--border)] hover:border-[var(--accent)]/40'
+                }`}
+              >
+                <div className={`flex items-center gap-1.5 text-[11px] font-semibold leading-none ${active ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>
+                  {t('health.plans.day_n', { n: d.day_index })}
+                  {has && <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden />}
+                </div>
+                <div className="mt-1 text-[9px] leading-none text-[var(--text-muted)]">
+                  {date ? date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' }) : (d.kind === 'rest' ? t('health.week.rest') : '·')}
+                </div>
+              </button>
+            );
+          })}
         </div>
-        <div className="min-h-0 overflow-y-auto">
-          <DayPanel
-            day={selDay}
-            startDate={draft.start_date}
-            showTraining={showTraining}
-            showMeals={showMeals}
-            recipeDetails={recipeDetails}
-            exerciseDetails={exerciseDetails}
-            onChange={upsertDay}
-            onAddExercises={() => setPicker('exercise')}
-            onAddMeals={() => setPicker('recipe')}
-            onLoadExerciseDetail={onLoadExerciseDetail}
-            onLoadRecipeDetail={onLoadRecipeDetail}
-          />
-        </div>
+        <DayPanel
+          day={selDay}
+          startDate={draft.start_date}
+          // Always show BOTH sections in the day view — a day is a workout AND
+          // meals, regardless of the plan's headline type. Empty sections show
+          // an add affordance so any plan can carry both.
+          showTraining
+          showMeals
+          recipeDetails={recipeDetails}
+          exerciseDetails={exerciseDetails}
+          onChange={upsertDay}
+          onAddExercises={() => setPicker('exercise')}
+          onAddMeals={() => setPicker('recipe')}
+          onLoadExerciseDetail={onLoadExerciseDetail}
+          onLoadRecipeDetail={onLoadRecipeDetail}
+        />
       </div>
 
       {/* Footer */}
-      <div className="flex items-center border-t border-[rgba(168,85,247,0.14)] px-6 py-3">
+      <div className="flex shrink-0 items-center border-t border-[rgba(168,85,247,0.14)] px-6 py-3">
         {confirming ? (
           <div className="flex items-center gap-3">
             <span className="text-[11px] text-[var(--text-secondary)]">{t('health.plans.delete_confirm')}</span>
@@ -793,12 +1034,20 @@ function PlanBuilder({
 
 /** A real month calendar. Weekday columns, the month's dates, training /
  *  meal pills per day. Clicking an in-plan date selects that day. */
-function MonthCalendar({ month, onMonthChange, marks, selected, onSelectDate }: {
+function MonthCalendar({ month, onMonthChange, marks, content, selected, onSelectDate, fill }: {
   month: Date;
   onMonthChange: (d: Date) => void;
   marks: Map<string, { training: boolean; meals: boolean }>;
+  /** Per-date plan content — the session title + the day's moves / meals — so
+   *  the cells show what's actually on, not just a dot. Built from the full
+   *  (dated) plans; falls back to `marks` dots where there's no detail. */
+  content?: Map<string, { title: string | null; training: string[]; meals: string[] }>;
   selected: string | null;
   onSelectDate: (key: string) => void;
+  /** When true, the calendar grows to fill its container and the day cells
+   *  stretch to equal height (squarer, fills the page). Used by the standalone
+   *  Plans calendar; the builder's compact side calendar leaves it off. */
+  fill?: boolean;
 }) {
   const year = month.getFullYear();
   const mon = month.getMonth();
@@ -812,7 +1061,7 @@ function MonthCalendar({ month, onMonthChange, marks, selected, onSelectDate }: 
   const monthLabel = new Date(year, mon, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[rgba(168,85,247,0.18)] bg-gradient-to-br from-[#100d1a] to-[#181327] shadow-[0_4px_28px_rgba(0,0,0,0.28)]">
+    <div className={`overflow-hidden rounded-xl border border-[rgba(168,85,247,0.18)] bg-gradient-to-br from-[#100d1a] to-[#181327] shadow-[0_4px_28px_rgba(0,0,0,0.28)] ${fill ? 'flex flex-1 flex-col' : ''}`}>
       <div className="flex items-center justify-between border-b border-[rgba(168,85,247,0.12)] bg-[var(--accent)]/5 px-4 py-2.5">
         <button type="button" onClick={() => onMonthChange(new Date(year, mon - 1, 1))} aria-label={t('health.plans.prev_month')}
           className="flex h-7 w-7 items-center justify-center rounded-md border-none bg-[var(--accent)]/10 text-[14px] text-[var(--text-secondary)] transition hover:bg-[var(--accent)]/25 hover:text-white cursor-pointer">‹</button>
@@ -821,26 +1070,33 @@ function MonthCalendar({ month, onMonthChange, marks, selected, onSelectDate }: 
           className="flex h-7 w-7 items-center justify-center rounded-md border-none bg-[var(--accent)]/10 text-[14px] text-[var(--text-secondary)] transition hover:bg-[var(--accent)]/25 hover:text-white cursor-pointer">›</button>
       </div>
 
-      <div className="p-3">
+      <div className={`p-3 ${fill ? 'flex min-h-0 flex-1 flex-col' : ''}`}>
         <div className="mb-1.5 grid grid-cols-7 gap-1.5">
           {[0, 1, 2, 3, 4, 5, 6].map(i => (
             <div key={i} className="text-center text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{weekdayInitial(i)}</div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1.5">
+        <div className={`grid grid-cols-7 gap-1.5 ${fill ? 'flex-1 auto-rows-fr' : ''}`}>
           {cells.map((date, i) => {
             if (!date) return <div key={i} />;
             const key = ymd(date);
             const mk = marks.get(key);
+            const c = content?.get(key);
             const isToday = key === today;
             const isSelected = key === selected;
             const hasContent = !!mk && (mk.training || mk.meals);
+            const items = c ? [
+              ...c.training.map((name) => ({ icon: '🏋', name })),
+              ...c.meals.map((name) => ({ icon: '🍽', name })),
+            ] : [];
+            const shown = items.slice(0, fill ? 4 : 2);
+            const extra = items.length - shown.length;
             return (
               <button
                 key={i}
                 type="button"
                 onClick={() => onSelectDate(key)}
-                className={`flex min-h-[54px] flex-col gap-1 rounded-lg border p-1.5 text-left transition cursor-pointer ${
+                className={`flex min-h-[54px] flex-col gap-1 overflow-hidden rounded-lg border p-1.5 text-left transition cursor-pointer ${
                   isSelected
                     ? 'border-[var(--accent)] bg-[var(--accent)]/15'
                     : hasContent
@@ -848,17 +1104,35 @@ function MonthCalendar({ month, onMonthChange, marks, selected, onSelectDate }: 
                       : 'border-[rgba(168,85,247,0.08)] hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/5'
                 }`}
               >
-                <span className={`flex h-[17px] w-[17px] items-center justify-center rounded-full text-[10px] ${
-                  isToday ? 'bg-[var(--accent)] font-bold text-white'
-                    : isSelected ? 'font-semibold text-[var(--accent)]'
-                    : 'font-medium text-[var(--text-secondary)]'
-                }`}>
-                  {date.getDate()}
-                </span>
-                <span className="mt-auto flex flex-wrap gap-1">
-                  {mk?.training && <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden />}
-                  {mk?.meals && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" aria-hidden />}
-                </span>
+                <div className="flex items-center justify-between gap-1">
+                  <span className={`flex h-[17px] w-[17px] items-center justify-center rounded-full text-[10px] ${
+                    isToday ? 'bg-[var(--accent)] font-bold text-white'
+                      : isSelected ? 'font-semibold text-[var(--accent)]'
+                      : 'font-medium text-[var(--text-secondary)]'
+                  }`}>
+                    {date.getDate()}
+                  </span>
+                  {/* Dots only when we have no detailed content to show. */}
+                  {!c && (mk?.training || mk?.meals) && (
+                    <span className="flex gap-1">
+                      {mk?.training && <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden />}
+                      {mk?.meals && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" aria-hidden />}
+                    </span>
+                  )}
+                </div>
+                {c && (
+                  <div className="mt-0.5 flex min-h-0 flex-col gap-0.5 overflow-hidden">
+                    {c.title && <div className="truncate text-[10px] font-semibold leading-tight text-[var(--text-primary)]">{c.title}</div>}
+                    {shown.map((it, idx) => (
+                      <div key={idx} className="flex items-center gap-1 text-[9px] leading-tight text-[var(--text-secondary)]">
+                        <span aria-hidden className="shrink-0 opacity-70">{it.icon}</span>
+                        <span className="truncate">{it.name}</span>
+                      </div>
+                    ))}
+                    {extra > 0 && <div className="text-[8px] text-[var(--text-muted)]">+{extra} more</div>}
+                    {c.title && items.length === 0 && <div className="text-[9px] italic text-[var(--text-muted)]">{t('health.week.rest')}</div>}
+                  </div>
+                )}
               </button>
             );
           })}
@@ -904,7 +1178,7 @@ function DayPanel({ day, startDate, showTraining, showMeals, recipeDetails, exer
           {day.title && <span className="text-[12px] text-[var(--text-secondary)]">{day.title}</span>}
           <button type="button" onClick={() => setEditing(true)} className={`ml-auto ${pillBtn}`}>{t('health.plans.edit_day')}</button>
         </div>
-        <DayReadView day={day} showTraining={showTraining} showMeals={showMeals} exerciseDetails={exerciseDetails} recipeDetails={recipeDetails} totals={totals} estimated={estimated} onLoadExerciseDetail={onLoadExerciseDetail} onLoadRecipeDetail={onLoadRecipeDetail} />
+        <DayReadView day={day} exerciseDetails={exerciseDetails} recipeDetails={recipeDetails} totals={totals} estimated={estimated} onLoadExerciseDetail={onLoadExerciseDetail} onLoadRecipeDetail={onLoadRecipeDetail} />
       </div>
     );
   }
@@ -1008,10 +1282,8 @@ function mealSummary(meal: HealthPlanMeal, recipeDetails: Record<string, HealthR
 /** The calm, scannable view of a day — small cards, each clickable to open
  *  the exercise's technique guide or the recipe. Free-text items (no library
  *  ref) render as plain, non-clickable cards. */
-function DayReadView({ day, showTraining, showMeals, exerciseDetails, recipeDetails, totals, estimated, onLoadExerciseDetail, onLoadRecipeDetail }: {
+function DayReadView({ day, exerciseDetails, recipeDetails, totals, estimated, onLoadExerciseDetail, onLoadRecipeDetail }: {
   day: HealthPlanDay;
-  showTraining: boolean;
-  showMeals: boolean;
   exerciseDetails: Record<string, HealthExerciseDetail>;
   recipeDetails: Record<string, HealthRecipeDetail>;
   totals: MealMacros;
@@ -1032,28 +1304,19 @@ function DayReadView({ day, showTraining, showMeals, exerciseDetails, recipeDeta
     setDetail({ kind: 'recipe', slug: meal.ref.slug, name: meal.name || t('health.plans.meal_fallback') });
   };
 
-  if (day.training.length === 0 && day.meals.length === 0) {
-    return (
-      <div className="rounded-md border border-dashed border-[var(--border)] px-3 py-4 text-[11px] italic text-[var(--text-muted)]">
-        {showTraining && showMeals
-          ? t('health.plans.nothing_scheduled_both')
-          : showMeals
-            ? t('health.plans.nothing_scheduled_meals')
-            : t('health.plans.nothing_scheduled_training')}
-      </div>
-    );
-  }
-
   const cardCls = (clickable: boolean) =>
     `flex flex-col gap-1 rounded-md border border-[var(--border)] bg-[var(--bg-input)]/30 px-3 py-2 text-left transition ${
       clickable ? 'cursor-pointer hover:border-[var(--accent)]/50 hover:bg-[var(--accent)]/5' : 'cursor-default'
     }`;
+  const emptyCls = 'rounded-md border border-dashed border-[var(--border)] px-3 py-2.5 text-[11px] italic text-[var(--text-muted)]';
 
+  // Both sections always show — a day is training AND meals. Empty sections
+  // read as "nothing here yet" rather than vanishing.
   return (
     <div className="space-y-4">
-      {showTraining && day.training.length > 0 && (
-        <div className="space-y-1.5">
-          <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">{t('health.plans.training')}</div>
+      <div className="space-y-1.5">
+        <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">{t('health.plans.training')}</div>
+        {day.training.length > 0 ? (
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {day.training.map(ex => {
               const clickable = !!ex.ref;
@@ -1068,38 +1331,45 @@ function DayReadView({ day, showTraining, showMeals, exerciseDetails, recipeDeta
               );
             })}
           </div>
-        </div>
-      )}
-      {showMeals && day.meals.length > 0 && (
-        <div className="space-y-1.5">
-          <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">{t('health.plans.meals')}</div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {day.meals.map(meal => {
-              const clickable = !!meal.ref;
-              return (
-                <button key={meal.id} type="button" disabled={!clickable} onClick={() => openMeal(meal)} className={cardCls(clickable)}>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-[12px] font-medium text-[var(--text-primary)]">
-                      <span className="mr-1.5 text-[10px] uppercase text-[var(--text-muted)]">{mealSlotLabel(meal.slot)}</span>{meal.name || t('health.plans.meal_fallback')}
-                    </span>
-                    {clickable && <span className="shrink-0 text-[14px] leading-none text-[var(--accent)]">›</span>}
-                  </div>
-                  <span className="text-[10px] text-[var(--text-muted)]">{mealSummary(meal, recipeDetails)}</span>
-                </button>
-              );
-            })}
-          </div>
-          <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-400/20 bg-amber-400/5 px-3 py-2">
-            <span className="text-[10px] uppercase tracking-[0.14em] text-amber-300/80">{t('health.plans.day_total')}</span>
-            {MACRO_FIELDS.map(f => (
-              <span key={f.key} className="text-[11px] text-[var(--text-secondary)]">
-                {t(f.labelKey)} <span className="font-semibold text-[var(--text-primary)]">{totals[f.key] ?? 0}{f.unit}</span>
-              </span>
-            ))}
-            {estimated && <span className="text-[9px] italic text-[var(--text-muted)]">{t('health.plans.estimated')}</span>}
-          </div>
-        </div>
-      )}
+        ) : (
+          <div className={emptyCls}>{tt('health.plans.no_workout', 'No workout — rest day. Use Edit day to add one.')}</div>
+        )}
+      </div>
+
+      <div className="space-y-1.5">
+        <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">{t('health.plans.meals')}</div>
+        {day.meals.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {day.meals.map(meal => {
+                const clickable = !!meal.ref;
+                return (
+                  <button key={meal.id} type="button" disabled={!clickable} onClick={() => openMeal(meal)} className={cardCls(clickable)}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-[12px] font-medium text-[var(--text-primary)]">
+                        <span className="mr-1.5 text-[10px] uppercase text-[var(--text-muted)]">{mealSlotLabel(meal.slot)}</span>{meal.name || t('health.plans.meal_fallback')}
+                      </span>
+                      {clickable && <span className="shrink-0 text-[14px] leading-none text-[var(--accent)]">›</span>}
+                    </div>
+                    <span className="text-[10px] text-[var(--text-muted)]">{mealSummary(meal, recipeDetails)}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-400/20 bg-amber-400/5 px-3 py-2">
+              <span className="text-[10px] uppercase tracking-[0.14em] text-amber-300/80">{t('health.plans.day_total')}</span>
+              {MACRO_FIELDS.map(f => (
+                <span key={f.key} className="text-[11px] text-[var(--text-secondary)]">
+                  {t(f.labelKey)} <span className="font-semibold text-[var(--text-primary)]">{totals[f.key] ?? 0}{f.unit}</span>
+                </span>
+              ))}
+              {estimated && <span className="text-[9px] italic text-[var(--text-muted)]">{t('health.plans.estimated')}</span>}
+            </div>
+          </>
+        ) : (
+          <div className={emptyCls}>{tt('health.plans.no_meals', 'No meals yet. Use Edit day to add some.')}</div>
+        )}
+      </div>
       {day.notes && (
         <div className="rounded-md border border-[var(--border)] px-3 py-2 text-[11px] leading-relaxed text-[var(--text-secondary)]">{day.notes}</div>
       )}
@@ -1126,119 +1396,32 @@ function ItemDetailModal({ detail, exercise, recipe, onClose }: {
 }) {
   const loaded = detail.kind === 'exercise' ? !!exercise : !!recipe;
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 sm:p-6" onClick={onClose}>
       <div
-        className="flex max-h-[85vh] w-full max-w-[640px] flex-col overflow-hidden rounded-xl border border-[rgba(168,85,247,0.25)] bg-gradient-to-br from-[#100d1a] to-[#181327] shadow-[0_0_60px_rgba(168,85,247,0.18)]"
         onClick={(e) => e.stopPropagation()}
+        className="relative flex w-full max-w-[820px] flex-col overflow-hidden rounded-2xl border border-[rgba(168,85,247,0.20)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] shadow-[0_0_60px_rgba(168,85,247,0.12)]"
+        style={{ height: 'min(760px, 86vh)' }}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-[rgba(168,85,247,0.14)] px-5 py-3">
-          <span className="text-[14px] font-semibold text-[var(--text-primary)]">{detail.name}</span>
-          <button type="button" onClick={onClose} className="border-none bg-transparent text-[14px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">✕</button>
-        </div>
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-          {!loaded ? (
-            <div className="py-8 text-center text-[12px] italic text-[var(--text-muted)]">{t('health.plans.loading')}</div>
-          ) : exercise ? (
-            <ExerciseDetailBody ex={exercise} />
-          ) : recipe ? (
-            <RecipeDetailBody rec={recipe} />
-          ) : (
-            <div className="py-8 text-center text-[12px] italic text-[var(--text-muted)]">{t('health.plans.no_detail')}</div>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={t('health.plans.cancel')}
+          className="absolute right-3 top-3 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-none bg-black/40 text-lg text-white transition hover:bg-black/60"
+        >
+          ×
+        </button>
+        {/* The rich, tabbed catalogue detail — the SAME component the library
+            uses, so a recipe/exercise reads identically wherever it's opened. */}
+        {!loaded ? (
+          <div className="flex flex-1 items-center justify-center text-[12px] italic text-[var(--text-muted)]">{t('health.plans.loading')}</div>
+        ) : exercise ? (
+          <ExerciseDetailBody ex={exercise} />
+        ) : recipe ? (
+          <RecipeDetailBody r={recipe} />
+        ) : (
+          <div className="flex flex-1 items-center justify-center text-[12px] italic text-[var(--text-muted)]">{t('health.plans.no_detail')}</div>
+        )}
       </div>
-    </div>
-  );
-}
-
-const detailChip = 'rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] capitalize text-[var(--text-muted)]';
-const detailHd = 'text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]';
-
-function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
-  const r = ex.routine;
-  const routineParts = [
-    r.sets != null ? t('health.plans.n_sets', { n: r.sets }) : null,
-    r.reps_target ? t('health.plans.n_reps', { n: r.reps_target }) : null,
-    r.rest_seconds != null ? t('health.plans.n_rest', { n: r.rest_seconds }) : null,
-    r.tempo ? t('health.plans.tempo', { v: r.tempo }) : null,
-    r.frequency_per_week ? t('health.plans.per_week', { n: r.frequency_per_week }) : null,
-  ].filter(Boolean);
-  return (
-    <div className="space-y-4 text-[12px] leading-relaxed text-[var(--text-secondary)]">
-      <div className="flex flex-wrap gap-1.5">
-        <span className={detailChip}>{ex.exercise_type}</span>
-        <span className={detailChip}>{ex.workout_type}</span>
-        {typeof ex.difficulty === 'number' && <span className={detailChip}>{t('health.plans.difficulty', { n: ex.difficulty })}</span>}
-      </div>
-      {ex.thumbnail_url && <img src={ex.thumbnail_url} alt="" className="w-full rounded-lg object-cover" />}
-      {ex.description && <p>{ex.description}</p>}
-      {routineParts.length > 0 && (
-        <div><div className={detailHd}>{t('health.plans.routine')}</div><p className="mt-1">{routineParts.join('  ·  ')}{r.progression ? ` — ${r.progression}` : ''}</p></div>
-      )}
-      {ex.steps.length > 0 && (
-        <div>
-          <div className={detailHd}>{t('health.plans.how_to')}</div>
-          <ol className="mt-1 list-decimal space-y-1 pl-5">{ex.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
-        </div>
-      )}
-      {ex.common_mistakes && <div><div className={detailHd}>{t('health.plans.common_mistakes')}</div><p className="mt-1">{ex.common_mistakes}</p></div>}
-      {ex.muscles.length > 0 && (
-        <div><div className={detailHd}>{t('health.plans.muscles')}</div><div className="mt-1 flex flex-wrap gap-1.5">{ex.muscles.map(mu => <span key={mu.slug} className={detailChip}>{mu.name}{mu.role === 'secondary' ? ` ${t('health.plans.secondary_suffix')}` : ''}</span>)}</div></div>
-      )}
-      {ex.equipment.length > 0 && (
-        <div><div className={detailHd}>{t('health.plans.equipment')}</div><div className="mt-1 flex flex-wrap gap-1.5">{ex.equipment.map(eq => <span key={eq.slug} className={detailChip}>{eq.name}</span>)}</div></div>
-      )}
-      {ex.demo_video_url && <a href={ex.demo_video_url} target="_blank" rel="noreferrer" className="inline-block text-[12px] text-[var(--accent)] hover:underline">{t('health.plans.watch_demo')}</a>}
-    </div>
-  );
-}
-
-function RecipeDetailBody({ rec }: { rec: HealthRecipeDetail }) {
-  const version = rec.versions.find(v => v.level === 'intermediate') ?? rec.versions[0];
-  const n = version?.nutrition;
-  const timeParts = version ? [
-    version.prep_time_minutes != null ? t('health.plans.m_prep', { n: version.prep_time_minutes }) : null,
-    version.cook_time_minutes != null ? t('health.plans.m_cook', { n: version.cook_time_minutes }) : null,
-  ].filter(Boolean) : [];
-  return (
-    <div className="space-y-4 text-[12px] leading-relaxed text-[var(--text-secondary)]">
-      <div className="flex flex-wrap gap-1.5">
-        {rec.course && <span className={detailChip}>{rec.course}</span>}
-        {rec.cuisine_name && <span className={detailChip}>{rec.cuisine_name}</span>}
-        {version?.default_servings != null && <span className={detailChip}>{t('health.plans.n_servings', { n: version.default_servings })}</span>}
-      </div>
-      {rec.hero_image_url && <img src={rec.hero_image_url} alt="" className="w-full rounded-lg object-cover" />}
-      {(rec.overview || version?.description) && <p>{rec.overview ?? version?.description}</p>}
-      {timeParts.length > 0 && <p className="text-[var(--text-muted)]">{timeParts.join('  ·  ')}</p>}
-      {n && typeof n.calories === 'number' && (
-        <div>
-          <div className={detailHd}>{n.source === 'verified' ? t('health.plans.nutrition_per_serving') : t('health.plans.nutrition_per_serving_est')}</div>
-          <div className="mt-1 flex flex-wrap gap-3">
-            {n.calories != null && <span>{t('health.plans.macro.cal')} <span className="font-semibold text-[var(--text-primary)]">{n.calories}</span></span>}
-            {n.protein_g != null && <span>{t('health.plans.macro.protein')} <span className="font-semibold text-[var(--text-primary)]">{n.protein_g}g</span></span>}
-            {n.carbs_g != null && <span>{t('health.plans.macro.carbs')} <span className="font-semibold text-[var(--text-primary)]">{n.carbs_g}g</span></span>}
-            {n.fat_g != null && <span>{t('health.plans.macro.fat')} <span className="font-semibold text-[var(--text-primary)]">{n.fat_g}g</span></span>}
-          </div>
-        </div>
-      )}
-      {rec.ingredients.length > 0 && (
-        <div>
-          <div className={detailHd}>{t('health.plans.ingredients')}</div>
-          <ul className="mt-1 space-y-0.5">
-            {[...rec.ingredients].sort((a, b) => a.sort_order - b.sort_order).map((ing, i) => (
-              <li key={i}>{[ing.quantity != null ? ing.quantity : null, ing.unit, ing.name].filter(v => v != null && v !== '').join(' ')}{ing.optional ? ` ${t('health.plans.optional_suffix')}` : ''}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {version && version.steps.length > 0 && (
-        <div>
-          <div className={detailHd}>{t('health.plans.method')}</div>
-          <ol className="mt-1 list-decimal space-y-1 pl-5">
-            {[...version.steps].sort((a, b) => a.sort_order - b.sort_order).map((s, i) => <li key={i}>{s.action}</li>)}
-          </ol>
-        </div>
-      )}
     </div>
   );
 }

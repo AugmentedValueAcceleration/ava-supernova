@@ -8,6 +8,8 @@ import { ToolCallBlock } from './ToolCallBlock';
 import { PlanCard } from './PlanCard';
 import { TodoCard } from './TodoCard';
 import { AskUserCard } from './AskUserCard';
+import { ProfileFieldCard } from './ProfileFieldCard';
+import { OpenHealthRoomCard } from './OpenHealthRoomCard';
 import { CopyButton } from './CopyButton';
 import { FeedbackButtons } from './FeedbackButtons';
 import { useSecrets } from '../hooks/useSecrets';
@@ -450,6 +452,12 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
         }
         if (tc.name === 'present_plan') {
           return <PlanCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />;
+        }
+        if (tc.name === 'health_profile_ask') {
+          return <ProfileFieldCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />;
+        }
+        if (tc.name === 'open_health_room') {
+          return <OpenHealthRoomCard key={tc.id} toolCall={tc} />;
         }
         if (tc.name === 'ask_user') {
           return <AskUserCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />;

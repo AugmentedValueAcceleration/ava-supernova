@@ -124,8 +124,8 @@ export function ModelSelector({ models, activeModel, needsSetup, onSwitch, onOpe
         <div
           style={{
             position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 999,
-            background: 'rgba(26, 16, 40, 0.95)',
-            border: '1px solid rgba(168, 85, 247, 0.12)',
+            background: '#160f23',
+            border: '1px solid rgba(168, 85, 247, 0.25)',
             borderRadius: 10,
             padding: 6,
             minWidth: 240,

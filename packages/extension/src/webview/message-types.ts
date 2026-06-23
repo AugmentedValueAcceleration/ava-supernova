@@ -76,6 +76,10 @@ export type ExtToWebviewMessage =
       /** The tool's own description from its schema — surfaces 'what does this actually do?' on the confirmation card. */
       toolDescription?: string;
       isAskUser?: boolean;
+      /** health_profile_ask — renders a structured profile-field card (goal cards,
+       *  chips, number box) instead of the plain ask_user text box. The webview
+       *  resolves the control/options from the shared HEALTH_PROFILE_FIELDS registry. */
+      profileField?: { field: string; question: string; currentValue?: unknown };
     }
   | {
       type: 'usage';
@@ -206,7 +210,7 @@ export interface MemoryEntryUI {
 
 // ─── Webview → Extension Host ────────────────────────────────────────────────
 
-export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write';
+export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write' | 'health';
 
 /**
  * Command palette — the user-aid tool categories a palette button can target.
@@ -217,15 +221,18 @@ export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainst
 export type PaletteTool = 'task' | 'journal' | 'memory' | 'support' | 'learning' | 'creative' | 'plans';
 
 export type WebviewToExtMessage =
-  | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }> }
+  | { type: 'send_message'; text: string; mode: AvaMode; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' }
   /**
    * Fired by a command-palette button. Carries the pre-classified intent
    * (tool + action) and the mode the input is currently in. The host turns
    * it into a directive turn — the user sees a short label, Ava receives the
    * confirmed intent. `action` is 'create' for most tools; for `creative`
    * it is one of 'image' | 'music' | 'video' | 'voice'.
+   * `surface` routes the turn to a conversation lane — 'health' runs it in the
+   * focused Ava Health & Fitness room (its own thread); default/'main' is the
+   * main chat.
    */
-  | { type: 'palette_intent'; tool: PaletteTool; action: string; mode: AvaMode }
+  | { type: 'palette_intent'; tool: PaletteTool; action: string; mode: AvaMode; surface?: 'main' | 'health' }
   /**
    * Sent by the error-message Retry button. Unlike send_message, the
    * extension first runs a conversation repair pass (fix orphan tool
@@ -244,7 +251,7 @@ export type WebviewToExtMessage =
       alwaysForProject?: boolean;
     }
   | { type: 'switch_model'; modelId: string }
-  | { type: 'clear_chat' }
+  | { type: 'clear_chat'; surface?: 'main' | 'health' }
   | { type: 'cancel' }
   | { type: 'interrupt' }
   | { type: 'open_dashboard' }
@@ -312,6 +319,8 @@ export interface ToolCallDisplay {
   /** Tool's own schema description — shown beneath the summary on confirmation cards. */
   toolDescription?: string;
   isAskUser?: boolean;
+  /** health_profile_ask — structured profile-field card payload. */
+  profileField?: { field: string; question: string; currentValue?: unknown };
 }
 
 /**

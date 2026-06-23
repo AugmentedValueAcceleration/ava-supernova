@@ -28,6 +28,7 @@ export const KIMI_MODELS: ModelDefinition[] = [
     supportsThinking: true,
     supportsVision: true,
     desktopCapable: true, // Top BYOK coordinator. SoTA agentic coding tool-calling.
+    hiddenFromPicker: true, // superseded by Kimi K2.7 Code — kept for routing/fallback only
     pricing: { inputPerMillion: 0.95, outputPerMillion: 4.00 },
   },
   {
@@ -41,6 +42,7 @@ export const KIMI_MODELS: ModelDefinition[] = [
     supportsThinking: true,
     supportsVision: true,
     desktopCapable: true,
+    hiddenFromPicker: true, // superseded by Kimi K2.7 Code — kept for routing/fallback only
     pricing: { inputPerMillion: 0.60, outputPerMillion: 3.00 },
   },
 ];

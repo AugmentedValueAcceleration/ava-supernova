@@ -168,6 +168,14 @@ export interface ModelDefinition {
    * back to false (or remove) to re-enable instantly.
    */
   disabled?: boolean;
+  /**
+   * Picker-only hide. When true, the model is omitted from the user-facing
+   * model dropdown but stays FULLY resolvable — unlike `disabled`, routing
+   * tables and fallback chains can still use it. Use to retire a superseded
+   * model from the catalogue the user sees (newer version exists) while it
+   * keeps serving as an internal fallback or intent-gate. See getModelList.
+   */
+  hiddenFromPicker?: boolean;
   pricing?: {
     inputPerMillion: number;
     outputPerMillion: number;

@@ -45,6 +45,7 @@ export const QWEN_MODELS: ModelDefinition[] = [
     supportsThinking: true,
     supportsVision: true,
     desktopCapable: true,
+    hiddenFromPicker: true, // superseded by Qwen 3.7 Plus — kept for routing/fallback only
     pricing: { inputPerMillion: 0.20, outputPerMillion: 1.20 },
   },
   {

@@ -23,6 +23,7 @@ import {
   getPlanModePrefix,
   getBrainstormModePrefix,
   getWriteModePrefix,
+  getHealthRoomPrefix,
   killBackgroundProcesses,
   detectProjectRoot,
   loadProjectInstructions,
@@ -43,13 +44,16 @@ import {
   GenerationManager,
   haltIntent,
   createEmbeddingServiceFromConfig,
+  HEALTH_PROFILE_FIELDS,
+  humaniseSlug,
 } from '@ava/core';
 import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, ContentPart, PermissionMode, Message, AssistantMessage } from '@ava/core';
 import { creditsFor } from '@ava/core/billing/credits';
 import type { ExtToWebviewMessage, WebviewToExtMessage, AvaMode, ProviderSource, PlatformStatus, PaletteTool } from './message-types.js';
 import { buildPaletteDirective } from './palette-directives.js';
 import { ExtensionHealthPlanStore } from './health-plan-store-impl.js';
-import { migrateHealthFromGlobalState } from './health-file-store.js';
+import { migrateHealthFromGlobalState, readProfile, writeProfile, emptyHealthProfile, listPlanIds, readPlan } from './health-file-store.js';
+import { readGeneralProfile, writeGeneralProfile, emptyGeneralProfile } from './general-file-store.js';
 import type { AccountInfo } from './dashboard-message-types.js';
 import { DashboardPanel } from './DashboardPanel.js';
 import { SecretAccess } from '../secrets/secret-access.js';
@@ -69,6 +73,54 @@ import { buildCurrentSystemPrompt as buildCurrentSystemPromptFn } from './system
 import { HistoryCoordinator } from './history-coordinator.js';
 import { setCloudSync, cloudSyncEnabled } from './data-mode.js';
 
+// ── Profile-fill value helpers (health_profile_ask) ──────────────────────────
+// Shared between buildProfileFieldPayload (read current) and applyProfileField
+// (coerce + save). The field shape comes from the core HEALTH_PROFILE_FIELDS
+// registry; these turn the card's answer into the stored value and back.
+type ProfileFieldShape = { control: string; asArray?: boolean; unit?: string; options?: Array<{ value: string; labelKey?: string }> };
+
+function getByPath(obj: any, path: string): unknown {
+  return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
+}
+function setByPath(obj: any, path: string, value: unknown): void {
+  const keys = path.split('.');
+  let cur = obj;
+  for (let i = 0; i < keys.length - 1; i++) {
+    if (cur[keys[i]] == null || typeof cur[keys[i]] !== 'object') cur[keys[i]] = {};
+    cur = cur[keys[i]];
+  }
+  cur[keys[keys.length - 1]] = value;
+}
+function coerceProfileFieldValue(def: ProfileFieldShape, raw: unknown): unknown {
+  switch (def.control) {
+    case 'number': {
+      if (raw === '' || raw == null) return null;
+      const n = Number(raw);
+      return Number.isFinite(n) ? n : null;
+    }
+    case 'multiselect':
+      return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string') : [];
+    case 'text': {
+      if (def.asArray) {
+        const s = typeof raw === 'string' ? raw : Array.isArray(raw) ? raw.join('\n') : '';
+        return s.split('\n').map((x) => x.trim()).filter(Boolean);
+      }
+      return typeof raw === 'string' && raw.trim() ? raw.trim() : null;
+    }
+    case 'select':
+    case 'date':
+    default:
+      return typeof raw === 'string' && raw ? raw : null;
+  }
+}
+function describeProfileValue(def: ProfileFieldShape, value: unknown): string {
+  if (value == null || (Array.isArray(value) && value.length === 0)) return 'none';
+  if (Array.isArray(value)) return value.map((v) => humaniseSlug(String(v))).join(', ');
+  if (def.control === 'number' && def.unit) return `${value} ${def.unit}`;
+  if (def.control === 'select') return humaniseSlug(String(value));
+  return String(value);
+}
+
 export class AvaViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'ava-supernova.chatView';
   private static readonly SILENT_TOOLS = new Set(['detect_language']);
@@ -83,6 +135,18 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   private sharedState?: Record<string, unknown>;
   private activeModelDef?: ModelDefinition;
   private conversation?: Conversation;
+  /** Second conversation thread — the focused "Ava Health & Fitness" room.
+   *  Same Ava: shares memoryManager, health profile, tools and model with the
+   *  main chat, but keeps its OWN message history so health planning never
+   *  lands in the main thread (and the health dataset collects clean). The
+   *  main chat and this lane both live in the dashboard webview; outbound
+   *  events are tagged via activeLane so each surface renders only its own. */
+  private healthConversation?: Conversation;
+  /** Which surface the in-flight turn belongs to. Set at the top of
+   *  handleUserMessage and read by postMessage to stamp outbound events so the
+   *  right surface (main chat vs Ava tab) renders them. One run pipeline (the
+   *  isRunning guard) → no concurrency, so a scalar is safe. */
+  private activeLane: 'main' | 'health' = 'main';
   private toolRegistry?: ToolRegistry;
   private providerRegistry: ProviderRegistry;
   private healthTracker: ProviderHealthTracker;
@@ -704,7 +768,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         const validAttachments = Array.isArray(rawAttachments)
           ? rawAttachments.filter((a: unknown) => a && typeof a === 'object' && typeof (a as Record<string, unknown>).data === 'string')
           : undefined;
-        mapped = { type: 'send_message', text: msg.text as string, mode: (msg.mode ?? 'code') as AvaMode, attachments: validAttachments as any };
+        mapped = { type: 'send_message', text: msg.text as string, mode: (msg.mode ?? 'code') as AvaMode, attachments: validAttachments as any, surface: msg.surface as ('main' | 'health' | undefined) };
       }
         break;
       case 'tool_confirmation_response':
@@ -724,7 +788,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         mapped = { type: 'switch_model', modelId: msg.modelId as string };
         break;
       case 'clear_chat':
-        mapped = { type: 'clear_chat' };
+        mapped = { type: 'clear_chat', surface: msg.surface as ('main' | 'health' | undefined) };
         break;
       case 'cancel':
         mapped = { type: 'cancel' };
@@ -861,6 +925,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           tool: msg.tool as PaletteTool,
           action: msg.action as string,
           mode: (msg.mode ?? 'code') as AvaMode,
+          surface: msg.surface as ('main' | 'health' | undefined),
         };
         break;
       default:
@@ -1968,10 +2033,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
     const allModels = this.providerRegistry.listAllPossibleModels()
       .filter((m) => {
-        if (this.providerSource === 'platform') {
-          return m.provider === 'platform' || m.available;
-        }
-        return m.provider !== 'platform';
+        // Promote the FULL catalogue: every BYOK model is always listed — it
+        // renders locked ("Add key", non-selectable) when its provider key
+        // isn't set (available:false). Platform entries only apply when
+        // signed into the platform. (Was: keyless BYOK hidden in platform
+        // mode — which buried the catalogue. Operator decision 2026-06-21.)
+        if (m.provider === 'platform') return this.providerSource === 'platform';
+        return true;
       })
       // MiniMax is reserved for Creative Studio on platform (no chat use).
       // BYOK MiniMax — where the user has supplied their own key — stays
@@ -1992,39 +2060,33 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         return !isAdminGatedPlatformModel || isAdmin;
       });
 
-    // Filter by platform-enabled models (if cached)
+    // Gate platform entries by the platform-enabled cache; every BYOK model
+    // stays (we want the whole catalogue), key or not.
     const enabledIds = this.enabledModelIds;
     const filtered = enabledIds
-      ? allModels.filter((m) => m.provider === 'platform' || enabledIds.has(m.id))
+      ? allModels.filter((m) => m.provider !== 'platform' || enabledIds.has(m.id))
       : allModels;
 
-    // Deduplicate: if platform has a model, skip the BYOK version with the same base ID
+    // Detect mode prerequisites from the whole pool (incl. platform) BEFORE
+    // stripping platform-section. The 3 orchestrated modes need to know if a
+    // platform/BYOK fleet path exists to show their own gating.
+    const hasPlatform = filtered.some(m => m.provider === 'platform' && m.available);
+    const hasQwen = filtered.some(m => m.provider === 'qwen' && m.available);
+    const hasDeepSeek = filtered.some(m => m.provider === 'deepseek' && m.available);
+    const hasMistral = filtered.some(m => m.provider === 'mistral' && m.available);
+
+    // Individual models = the BYOK catalogue, ALWAYS shown (available reflects
+    // whether the key is set). Platform-section raw models stay collapsed into
+    // the 3 orchestrated modes below (project_byok_mode_gating). Dedup by id so
+    // a model defined for two BYOK providers isn't listed twice.
     const seen = new Set<string>();
-    const deduped = filtered.filter((m) => {
-      const baseId = m.id;
-      if (m.provider === 'platform') {
-        seen.add(baseId);
-        return true;
-      }
-      if (seen.has(baseId)) return false;
-      seen.add(baseId);
+    const byokOnly = filtered.filter((m) => {
+      if (m.provider === 'platform') return false;
+      if (m.hiddenFromPicker) return false; // superseded (newer version exists) — still routable, just not shown
+      if (seen.has(m.id)) return false;
+      seen.add(m.id);
       return true;
     });
-
-    // Detect mode prerequisites from the deduped pool BEFORE stripping
-    // platform-section. Plans surface only the 3 modes; raw individual
-    // models are now BYOK-only — but we still need to know if a plan
-    // path exists so Aurora/Supernova can show their plan-side gating.
-    const hasPlatform = deduped.some(m => m.provider === 'platform' && m.available);
-    const hasQwen = deduped.some(m => m.provider === 'qwen' && m.available);
-    const hasDeepSeek = deduped.some(m => m.provider === 'deepseek' && m.available);
-    const hasMistral = deduped.some(m => m.provider === 'mistral' && m.available);
-
-    // Strip platform-section raw models — plans = the 3 modes only.
-    // Decision 2026-04-29 (project_byok_mode_gating). The 3 modes
-    // get surfaced below; raw model selection stays a BYOK-only
-    // power-user path.
-    const byokOnly = deduped.filter(m => m.provider !== 'platform');
 
     const modelList = byokOnly.map((m) => ({
       id: `${m.provider}:${m.id}`,
@@ -2445,11 +2507,11 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
 
       case 'send_message':
-        await this.handleUserMessage(message.text, message.mode, message.attachments);
+        await this.handleUserMessage(message.text, message.mode, message.attachments, { surface: message.surface });
         break;
 
       case 'palette_intent':
-        await this.handlePaletteIntent(message.tool, message.action, message.mode);
+        await this.handlePaletteIntent(message.tool, message.action, message.mode, message.surface);
         break;
 
       case 'retry_after_error':
@@ -2484,7 +2546,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         break;
 
       case 'clear_chat':
-        this.clearChat();
+        // Lane-aware: the Health room clears ONLY its own thread (drop the
+        // healthConversation so the next health turn rebuilds it fresh); the
+        // main chat is untouched. Default (no surface) clears the main chat.
+        if (message.surface === 'health') {
+          this.healthConversation = undefined;
+        } else {
+          this.clearChat();
+        }
         break;
 
       case 'cancel':
@@ -2764,21 +2833,21 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
    * receives the confirmed intent (no intent detection needed) while the
    * chat shows the user a short clean label instead of the raw directive.
    */
-  private async handlePaletteIntent(tool: PaletteTool, action: string, mode: AvaMode): Promise<void> {
+  private async handlePaletteIntent(tool: PaletteTool, action: string, mode: AvaMode, surface?: 'main' | 'health'): Promise<void> {
     const built = buildPaletteDirective(tool, action);
     if (!built) {
       this.log(`handlePaletteIntent: unknown palette intent "${tool}.${action}" — ignored`);
       return;
     }
-    this.log(`handlePaletteIntent: ${tool}.${action} (mode=${mode})`);
-    await this.handleUserMessage(built.directive, mode, undefined, { displayText: built.label });
+    this.log(`handlePaletteIntent: ${tool}.${action} (mode=${mode}, surface=${surface ?? 'main'})`);
+    await this.handleUserMessage(built.directive, mode, undefined, { displayText: built.label, surface });
   }
 
   private async handleUserMessage(
     text: string,
     mode: AvaMode = 'code',
     attachments?: Array<{ type: 'image'; data: string; name: string }>,
-    options?: { displayText?: string },
+    options?: { displayText?: string; surface?: 'main' | 'health' },
   ): Promise<void> {
     this.log(`handleUserMessage called: text="${text.slice(0, 40)}", mode=${mode}, providerSource=${this.providerSource}`);
 
@@ -2872,6 +2941,23 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     }
     this.isRunning = true;
     this.runAbortController = new AbortController();
+
+    // Lane swap — point the single run pipeline at the right conversation
+    // thread for this turn. For a health-room turn we run against the health
+    // thread and restore the main thread in the finally. The isRunning guard
+    // above guarantees no overlapping turn, so a pointer swap is safe and
+    // avoids re-threading 40 `this.conversation` call sites. activeLane (set
+    // here, cleared in finally) tags outbound events to the right surface.
+    const surface = options?.surface ?? 'main';
+    this.activeLane = surface;
+    const mainConversation = this.conversation;
+    if (surface === 'health') {
+      if (!this.healthConversation) {
+        this.healthConversation = new Conversation();
+        this.healthConversation.setSystemPrompt(await this.buildCurrentSystemPrompt());
+      }
+      this.conversation = this.healthConversation;
+    }
 
     // Clear per-turn flags before the turn starts. The Conductor-gate
     // dedupe only applies within a single turn — a fresh user message
@@ -3430,7 +3516,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       }
 
       await this.historyManager.saveConversation(this.conversation);
-      this.setLastConversationId(this.conversation.id);
+      // Only the main thread is the "last conversation" restored on reload —
+      // a health-room turn must never make the health thread the one the main
+      // chat reopens into.
+      if (this.activeLane === 'main') {
+        this.setLastConversationId(this.conversation.id);
+      }
     } catch (error) {
       // Abort errors from cancellation — not a real error, just clean up
       const isAbort = error instanceof DOMException && error.name === 'AbortError';
@@ -3458,6 +3549,12 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     } finally {
       this.isRunning = false;
       this.runAbortController = undefined;
+      // Restore the main thread + lane after a health-room turn. The health
+      // thread keeps its appended messages (same object reference); only the
+      // active pointer flips back so the main chat owns this.conversation
+      // again between turns. Mirrors the isRunning lifecycle exactly.
+      this.conversation = mainConversation;
+      this.activeLane = 'main';
       this.updateStatusBar('ready');
       // Safety net: always send 'done' so the UI clears isStreaming.
       // If 'done' was already sent via onEvent, this is a harmless no-op in the reducer.
@@ -3780,8 +3877,80 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         return getBrainstormModePrefix(text || 'Help me brainstorm ideas.');
       case 'write':
         return getWriteModePrefix(text || 'What would you like to write?');
+      case 'health':
+        return getHealthRoomPrefix(text || 'Help me with a plan.', this.getHealthProfileSummary(), this.getHealthPlansSummary());
       default:
         return text;
+    }
+  }
+
+  /** Compact summary of the local HealthProfile for the Health Room prefix
+   *  (mirrors the morning brief). Returns undefined when essentially empty so
+   *  the prompt asks for the gaps. Local-first, on-device only. */
+  private getHealthProfileSummary(): string | undefined {
+    try {
+      const p: any = readProfile(join(this.accountScopedDir, 'health'));
+      // Body basics now live in the account-level general profile; fall back to
+      // the legacy health.body for profiles not yet migrated.
+      const g: any = readGeneralProfile(this.accountScopedDir);
+      const sex = g?.sex ?? p?.body?.sex;
+      const dob = g?.date_of_birth ?? p?.body?.date_of_birth;
+      const heightCm = g?.height_cm ?? p?.body?.height_cm;
+      const weightKg = g?.weight_kg ?? p?.body?.weight_kg;
+      const lines: string[] = [];
+      if (p?.goals?.primary) lines.push(`Primary goal: ${String(p.goals.primary).replace(/_/g, ' ')}`);
+      if (p?.goals?.weekly_focus) lines.push(`This week's focus: ${p.goals.weekly_focus}`);
+      if (sex) lines.push(`Sex: ${sex}`);
+      if (dob) {
+        const age = Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 3600 * 1000));
+        if (age > 0 && age < 130) lines.push(`Age: ${age}`);
+      }
+      if (heightCm) lines.push(`Height: ${heightCm} cm`);
+      if (weightKg) lines.push(`Weight: ${weightKg} kg`);
+      if (p?.constraints?.allergens?.length) lines.push(`Allergens: ${p.constraints.allergens.join(', ')}`);
+      if (p?.constraints?.dietary?.length) lines.push(`Dietary preferences: ${p.constraints.dietary.join(', ')}`);
+      if (p?.constraints?.injuries?.length) lines.push(`Injuries / limitations: ${p.constraints.injuries.join(', ')}`);
+      if (p?.constraints?.equipment_available?.length) lines.push(`Equipment available: ${p.constraints.equipment_available.join(', ')}`);
+      if (p?.constraints?.minutes_per_day_target) lines.push(`Time budget per day: ${p.constraints.minutes_per_day_target} minutes`);
+      const tw = p?.schedule?.training_window;
+      if (tw?.start && tw?.end) lines.push(`Training window: ${tw.start}–${tw.end}`);
+      const mt = p?.schedule?.meal_times;
+      if (mt && (mt.breakfast || mt.lunch || mt.dinner)) {
+        const parts = [mt.breakfast && `breakfast ${mt.breakfast}`, mt.lunch && `lunch ${mt.lunch}`, mt.dinner && `dinner ${mt.dinner}`].filter(Boolean);
+        if (parts.length) lines.push(`Meal times: ${parts.join(', ')}`);
+      }
+      return lines.length ? lines.join('\n') : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /** Compact summary of the user's current (non-archived) plans for the Health
+   *  Room prefix, so Ava knows what exists and can EDIT it with
+   *  health_plan_update_day rather than only building new ones. */
+  private getHealthPlansSummary(): string | undefined {
+    try {
+      const healthDir = join(this.accountScopedDir, 'health');
+      const lines: string[] = [];
+      for (const id of listPlanIds(healthDir)) {
+        const p: any = readPlan(healthDir, id);
+        if (!p || p.status === 'archived') continue;
+        const days: any[] = Array.isArray(p.days) ? p.days : [];
+        const dayBits = days.map((d) => {
+          const bits = [`day ${d.day_index}`, d.kind || 'rest'];
+          if (d.title) bits.push(d.title);
+          const tc = Array.isArray(d.training) ? d.training.length : 0;
+          const mc = Array.isArray(d.meals) ? d.meals.length : 0;
+          if (tc) bits.push(`${tc} exercise${tc === 1 ? '' : 's'}`);
+          if (mc) bits.push(`${mc} meal${mc === 1 ? '' : 's'}`);
+          return bits.join(' · ');
+        });
+        const started = p.start_date ? `, started ${p.start_date}` : '';
+        lines.push(`- "${p.title}" (${p.type}, ${p.status}${started}, ${days.length} days) — id: ${p.id}\n  ${dayBits.join('\n  ')}`);
+      }
+      return lines.length ? lines.join('\n') : undefined;
+    } catch {
+      return undefined;
     }
   }
 
@@ -3829,8 +3998,56 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         summary: this.formatToolSummary(toolName, args),
         toolDescription,
         ...(toolName === 'ask_user' ? { isAskUser: true } : {}),
+        ...(toolName === 'health_profile_ask' ? { profileField: this.buildProfileFieldPayload(args) } : {}),
       });
     });
+  }
+
+  /** Build the card payload for a health_profile_ask confirmation: the field id,
+   *  Ava's question, and the current saved value (so the card pre-selects what's
+   *  already there). The webview looks up the control/options from the shared
+   *  HEALTH_PROFILE_FIELDS registry. */
+  private buildProfileFieldPayload(args: Record<string, unknown>): { field: string; question: string; currentValue: unknown } | undefined {
+    const field = typeof args.field === 'string' ? args.field : '';
+    const def = HEALTH_PROFILE_FIELDS[field];
+    if (!def) return undefined;
+    const question = typeof args.question === 'string' ? args.question : '';
+    let currentValue: unknown = undefined;
+    try {
+      if (def.target === 'general') {
+        const g: any = readGeneralProfile(this.accountScopedDir);
+        currentValue = g ? getByPath(g, def.path) : undefined;
+      } else {
+        const h: any = readProfile(join(this.accountScopedDir, 'health'));
+        currentValue = h ? getByPath(h, def.path) : undefined;
+      }
+    } catch { /* default to empty */ }
+    return { field, question, currentValue };
+  }
+
+  /** Save one profile field's answer (from a health_profile_ask card) to the
+   *  General / Health store, then re-push the updated profile to the webview so
+   *  the profile pages reflect it. Returns a short confirmation for Ava. */
+  private async applyProfileField(field: string, rawValue: unknown): Promise<string> {
+    const def = HEALTH_PROFILE_FIELDS[field];
+    if (!def) return `Couldn't save — unknown field "${field}".`;
+    const value = coerceProfileFieldValue(def, rawValue);
+    const label = field.replace(/_/g, ' ');
+    if (def.target === 'general') {
+      const g: any = readGeneralProfile(this.accountScopedDir) ?? emptyGeneralProfile();
+      setByPath(g, def.path, value);
+      g.updated_at = new Date().toISOString();
+      await writeGeneralProfile(this.accountScopedDir, g);
+      this.postMessage({ type: 'general_profile_loaded', profile: g } as any);
+    } else {
+      const healthDir = join(this.accountScopedDir, 'health');
+      const h: any = readProfile(healthDir) ?? emptyHealthProfile();
+      setByPath(h, def.path, value);
+      h.updated_at = new Date().toISOString();
+      await writeProfile(healthDir, h);
+      this.postMessage({ type: 'health_profile_loaded', profile: h } as any);
+    }
+    return `Saved ${label}: ${describeProfileValue(def, value)}.`;
   }
 
   // ─── Secret grant flow ─────────────────────────────────────────────────────
@@ -3991,6 +4208,23 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       } else {
         pending.resolve(false);
       }
+    } else if (pending.toolName === 'health_profile_ask') {
+      // userResponse is JSON: { field, value } or { field, skipped: true }
+      if (approved && userResponse) {
+        let parsed: any = null;
+        try { parsed = JSON.parse(userResponse); } catch { /* malformed */ }
+        if (parsed?.skipped && typeof parsed.field === 'string') {
+          pending.resolve(`User skipped ${String(parsed.field).replace(/_/g, ' ')} for now — move on, don't re-ask it.`);
+        } else if (parsed && typeof parsed.field === 'string') {
+          this.applyProfileField(parsed.field, parsed.value)
+            .then((msg) => pending.resolve(msg))
+            .catch(() => pending.resolve('Saved their answer (details unconfirmed).'));
+        } else {
+          pending.resolve(`User response: ${userResponse}`);
+        }
+      } else {
+        pending.resolve('User closed the profile question without answering — move on, don\'t re-ask it.');
+      }
     } else if (pending.toolName === 'switch_mode') {
       if (approved) {
         const args = (pending as any).args || {};
@@ -4089,6 +4323,15 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
   // ── Webview HTML ───────────────────────────────────────────────────────────
 
   private postMessage(message: ExtToWebviewMessage): void {
+    // Stamp the lane of the in-flight turn so the dashboard's two chat
+    // surfaces (main chat + the Ava Health & Fitness tab) each render only
+    // their own stream — both live in the same webview, so without this tag a
+    // health turn's deltas would leak into the main chat. Default 'main', so
+    // every existing surface behaves exactly as before; the Ava tab opts in by
+    // filtering for lane === 'health'. Additive field — non-chat consumers
+    // ignore it.
+    (message as { lane?: 'main' | 'health' }).lane = this.activeLane;
+
     // Broadcast to all active webviews — keeps sidebar + editor panel in sync
     this.view?.webview.postMessage(message);
     this.panel?.webview.postMessage(message);

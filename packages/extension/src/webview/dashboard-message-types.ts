@@ -737,7 +737,12 @@ export interface HealthMySubmissionRecipe {
 export interface HealthProfile {
   schema_version: 1;
   updated_at: string | null;
-  body: {
+  /** @deprecated Body basics moved to GeneralProfile (general.json) on
+   *  2026-06-21 — they're identity facts reusable beyond health, not health
+   *  choices. Kept optional so legacy profile.json files still parse and the
+   *  one-time migration can seed GeneralProfile from them. New writes omit it;
+   *  every read of body fields now goes through GeneralProfile. */
+  body?: {
     sex: 'female' | 'male' | 'other' | null;
     date_of_birth: string | null; // ISO date — DOB stored so age stays accurate over time
     height_cm: number | null;
@@ -760,6 +765,24 @@ export interface HealthProfile {
     meal_times: { breakfast: string | null; lunch: string | null; dinner: string | null };
     sleep_target: { bedtime: string | null; wake: string | null };
   };
+}
+
+/**
+ * General profile — identity + body basics, stored at ACCOUNT level
+ * (<scopedDir>/general.json), separate from health so it's reusable beyond the
+ * health surface. Split out of HealthProfile.body on 2026-06-21; the health
+ * room + plans + morning brief read across both. See general-file-store.ts.
+ */
+export interface GeneralProfile {
+  schema_version: 1;
+  updated_at: string | null;
+  display_name: string | null;   // optional override; falls back to the account name
+  sex: 'female' | 'male' | 'other' | null;
+  date_of_birth: string | null;  // ISO date — DOB stored so age stays accurate over time
+  height_cm: number | null;
+  weight_kg: number | null;
+  body_fat_pct: number | null;
+  units: 'metric' | 'imperial' | null;
 }
 
 /**
@@ -1037,7 +1060,7 @@ export type Page = 'overview' | 'chat' | 'keys' | 'usage' | 'memory' | 'tasks' |
 // ─── Chat UI Types ──────────────────────────────────────────────────────────
 
 export type ProviderSource = 'platform' | 'byok';
-export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write';
+export type AvaMode = 'code' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write' | 'health';
 
 export interface ChatPlatformStatus {
   connected: boolean;
@@ -1059,6 +1082,9 @@ export interface ToolCallDisplay {
   confirmationId?: string;
   summary?: string;
   isAskUser?: boolean;
+  /** health_profile_ask — structured profile-field card payload (goal cards,
+   *  chips, number box). The webview resolves the control from HEALTH_PROFILE_FIELDS. */
+  profileField?: { field: string; question: string; currentValue?: unknown };
 }
 
 /**
@@ -1345,11 +1371,14 @@ export type ExtToDashboardMessage =
   | { type: 'health_my_submissions_cleared'; ok: boolean; exercises_cleared?: number; recipes_cleared?: number; error?: string }
   | { type: 'health_profile_loaded'; profile: HealthProfile }
   | { type: 'health_profile_saved'; profile: HealthProfile }
+  | { type: 'general_profile_loaded'; profile: GeneralProfile | null }
+  | { type: 'general_profile_saved'; profile: GeneralProfile }
   | { type: 'health_daily_plan_loaded'; plan: HealthDailyPlan }
   | { type: 'health_daily_plan_saved'; plan: HealthDailyPlan }
   // Multi-week Plans — library summaries + a single full plan.
   | { type: 'health_plans_loaded'; plans: HealthPlanSummary[] }
   | { type: 'health_plan_loaded'; plan: HealthPlan | null }
+  | { type: 'active_health_plans_loaded'; plans: HealthPlan[] }
   | { type: 'health_plan_saved'; plan: HealthPlan; plans: HealthPlanSummary[] }
   | { type: 'health_plan_deleted'; id: string; plans: HealthPlanSummary[] }
   // Catalog search for the plan editor's "+ Add" picker — separate from
@@ -1423,7 +1452,7 @@ export type ExtToDashboardMessage =
   | { type: 'stream_end' }
   | { type: 'tool_call_start'; toolCall: { id: string; name: string; arguments: string } }
   | { type: 'tool_call_end'; toolCallId: string; result: string; success: boolean }
-  | { type: 'tool_confirmation_request'; confirmationId: string; toolCallId?: string; toolName: string; toolCategory?: string; args: Record<string, unknown>; summary: string; isAskUser?: boolean }
+  | { type: 'tool_confirmation_request'; confirmationId: string; toolCallId?: string; toolName: string; toolCategory?: string; args: Record<string, unknown>; summary: string; isAskUser?: boolean; profileField?: { field: string; question: string; currentValue?: unknown } }
   | { type: 'category_permissions'; permissions: Record<string, string>; mode: string }
   | { type: 'audit_log'; entries: Array<{ timestamp: string; toolName: string; category: string; riskLevel: string; approvalMethod: string; status: string; argsSummary: string; fullArgs?: Record<string, unknown>; result?: string }> }
   | { type: 'usage'; usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number; cached_tokens?: number }; cost?: number; contextWindow?: number; credits?: number }
@@ -1636,11 +1665,14 @@ export type DashboardToExtMessage =
   | { type: 'clear_my_rejected_health_submissions' }
   | { type: 'load_health_profile' }
   | { type: 'save_health_profile'; profile: HealthProfile }
+  | { type: 'load_general_profile' }
+  | { type: 'save_general_profile'; profile: GeneralProfile }
   | { type: 'load_health_daily_plan'; date: string }
   | { type: 'save_health_daily_plan'; plan: HealthDailyPlan }
   // Multi-week Plans — library list, single load, save (upsert), delete.
   | { type: 'load_health_plans' }
   | { type: 'load_health_plan'; id: string }
+  | { type: 'load_active_health_plans' }
   | { type: 'save_health_plan'; plan: HealthPlan }
   | { type: 'delete_health_plan'; id: string }
   // Catalog search for the plan editor's "+ Add" picker.
@@ -1691,18 +1723,19 @@ export type DashboardToExtMessage =
   // completeEventId links back to the generation_complete event (shape-only).
   | { type: 'creative_user_action'; completeEventId: string; action: 'kept' | 'retried' | 'discarded' | 'edited' | 'unknown' }
   // ── Chat messages (forwarded to AvaViewProvider) ────────────────────────
-  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }> }
+  | { type: 'send_message'; text: string; mode: AvaMode | string; attachments?: Array<{ type: 'image'; data: string; name: string }>; surface?: 'main' | 'health' }
   // Command palette — a pre-classified user-aid intent fired by a palette
   // button. `action` is 'create' for most tools; 'image'|'music'|'video'|
-  // 'voice' for `creative`. See COMMAND_PALETTE_PLAN.md.
-  | { type: 'palette_intent'; tool: 'task' | 'journal' | 'memory' | 'support' | 'learning' | 'creative' | 'plans'; action: string; mode: AvaMode | string }
+  // 'voice' for `creative`. See COMMAND_PALETTE_PLAN.md. `surface: 'health'`
+  // routes the turn to the focused Ava Health & Fitness room (its own thread).
+  | { type: 'palette_intent'; tool: 'task' | 'journal' | 'memory' | 'support' | 'learning' | 'creative' | 'plans'; action: string; mode: AvaMode | string; surface?: 'main' | 'health' }
   | { type: 'tool_confirmation_response'; confirmationId: string; approved: boolean; alwaysAllowCategory?: boolean; planSelection?: string; userResponse?: string }
   | { type: 'set_category_permission'; category: string; permission: string }
   | { type: 'request_audit_log' }
   | { type: 'export_audit_log'; format: 'markdown' | 'json' }
   | { type: 'export_full_account_data' }
   | { type: 'switch_model'; modelId: string }
-  | { type: 'clear_chat' }
+  | { type: 'clear_chat'; surface?: 'main' | 'health' }
   | { type: 'cancel' }
   | { type: 'interrupt' }
   | { type: 'request_history' }

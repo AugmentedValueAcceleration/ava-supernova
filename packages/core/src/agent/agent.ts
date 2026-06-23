@@ -253,6 +253,8 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'curator',
     // Utility
     'get_datetime', 'detect_language',
+    // Hand a fitness/meal plan request off to the focused Health room.
+    'open_health_room',
     // Mode switch
     'switch_mode',
   ]),
@@ -279,6 +281,8 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // forcing a mode switch and back.
     'todo_write',
     'get_datetime', 'weather', 'news', 'ask_user',
+    // Hand a fitness/meal plan request off to the focused Health room.
+    'open_health_room',
     'switch_mode',
   ]),
   brainstorm: new Set([
@@ -317,6 +321,18 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     'bash', 'git_status', 'git_diff', 'web_search', 'analyze_architecture',
     'audit_dependencies', 'debug_logs', 'memory_save', 'memory_recall',
     'test_run', 'ask_user',
+    'switch_mode',
+  ]),
+  // Health Room — Ava focused entirely on the user's health & fitness. Same
+  // Ava, health-scoped: the plan + catalogue tools are her kit, memory carries
+  // the relationship, web_search backs facts. Coding / file / shell tools are
+  // deliberately OUT — this room composes plans from the real catalogue, it
+  // doesn't touch the codebase.
+  health: new Set([
+    'health_plan_create', 'health_plan_update_day', 'health_catalogue_search',
+    'health_profile_ask',
+    'memory_save', 'memory_recall', 'memory_update',
+    'web_search', 'ask_user', 'get_datetime',
     'switch_mode',
   ]),
   // Write mode — the author's surface. Markdown is the editable source;
@@ -390,6 +406,7 @@ function detectModeFromMessages(messages: Message[]): string | null {
     if (text.startsWith('[Teach Mode]')) return 'teach';
     if (text.startsWith('[Security Audit Mode]')) return 'security';
     if (text.startsWith('[Desktop Automation Mode]')) return 'desktop';
+    if (text.startsWith('[Health Room]')) return 'health';
     break;
   }
   return null;

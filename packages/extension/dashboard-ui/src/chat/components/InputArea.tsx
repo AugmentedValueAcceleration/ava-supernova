@@ -55,6 +55,10 @@ interface InputAreaProps {
   /** Fired when a command-palette button is clicked. Carries the
    *  pre-classified intent (tool + action) and the current input mode. */
   onPaletteAction?: (tool: PaletteTool, action: string, mode: AvaMode) => void;
+  /** When set, the mode switcher is replaced by a static label — used by the
+   *  Ava Health & Fitness room, which is locked to health and must not offer
+   *  Code/Plan/etc. The caller forces the actual mode on send. */
+  lockedModeLabel?: string;
 }
 
 const MODES: { id: AvaMode; labelKey: string; icon: string }[] = [
@@ -79,7 +83,7 @@ const PLACEHOLDER_KEYS: Record<AvaMode, string> = {
   write: 'input.placeholder.write',
 };
 
-export function InputArea({ onSend, onCancel, isStreaming, disabled, platformStatus, modelSupportsVision, prefill, onPaletteAction }: InputAreaProps) {
+export function InputArea({ onSend, onCancel, isStreaming, disabled, platformStatus, modelSupportsVision, prefill, onPaletteAction, lockedModeLabel }: InputAreaProps) {
   useLocale();
   const [text, setText] = useState('');
   // Mode persists across page reload — same shape as webview-ui.
@@ -497,7 +501,21 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
              below" pattern + the modesExpanded collapsible strip are
              dropped. */}
         <div className="flex items-end gap-2 px-2 py-2">
-          {/* Mode pill (left of input) — opens upward */}
+          {/* Locked-mode label — the Ava Health room can't switch modes, so the
+              pill becomes a static badge naming the room. */}
+          {lockedModeLabel ? (
+            <div
+              style={{
+                flexShrink: 0, alignSelf: 'center',
+                padding: '5px 10px', borderRadius: 8,
+                background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                color: '#fff', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
+              }}
+            >
+              {lockedModeLabel}
+            </div>
+          ) : (
+          /* Mode pill (left of input) — opens upward */
           <div className="relative" ref={modeMenuRef} style={{ flexShrink: 0, alignSelf: 'center' }}>
             <button
               onClick={() => setModesExpanded(!modesExpanded)}
@@ -555,6 +573,7 @@ export function InputArea({ onSend, onCancel, isStreaming, disabled, platformSta
               </div>
             )}
           </div>
+          )}
 
           {/* Textarea — flex-1 in the new single-row layout */}
           <textarea

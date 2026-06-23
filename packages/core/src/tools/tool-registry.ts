@@ -42,6 +42,8 @@ import { JournalWriteTool } from './journal.js';
 import { HealthPlanCreateTool } from './health-plan-create.js';
 import { HealthPlanUpdateDayTool } from './health-plan-update-day.js';
 import { HealthCatalogueSearchTool } from './health-catalogue-search.js';
+import { HealthProfileAskTool } from './health-profile-ask.js';
+import { OpenHealthRoomTool } from './open-health-room.js';
 import { DocumentManageTool } from './document-manage.js';
 import { DocumentAuthorTool } from './document-author.js';
 import { GitCommitTool } from './git-commit.js';
@@ -391,6 +393,8 @@ export class ToolRegistry {
       new TaskManageTool(),
       new JournalWriteTool(),
       new HealthCatalogueSearchTool(),
+      new HealthProfileAskTool(),
+      new OpenHealthRoomTool(),
       new HealthPlanCreateTool(),
       new HealthPlanUpdateDayTool(),
       new DocumentManageTool(),
@@ -503,8 +507,10 @@ export class ToolRegistry {
   // ── Permission check ────────────────────────────────────────────────────
 
   needsConfirmation(tool: Tool, args?: Record<string, unknown>): boolean {
-    // Plans, ask_user, and switch_mode always require confirmation — collaboration checkpoints
-    if (tool.name === 'present_plan' || tool.name === 'ask_user' || tool.name === 'switch_mode') return true;
+    // Plans, ask_user, switch_mode, and the profile-fill card always require
+    // confirmation — collaboration checkpoints where the user's input IS the
+    // result (the host bridges the answer back as the tool result).
+    if (tool.name === 'present_plan' || tool.name === 'ask_user' || tool.name === 'switch_mode' || tool.name === 'health_profile_ask') return true;
 
     // Tools that handle approval inside their own execute() (desktop-safety-gate
     // pattern) skip the generic flow — they carry richer per-invocation

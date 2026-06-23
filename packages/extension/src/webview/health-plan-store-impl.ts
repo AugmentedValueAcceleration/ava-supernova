@@ -50,6 +50,17 @@ export class ExtensionHealthPlanStore implements HealthPlanStore {
     private readonly onPlansChanged?: () => void,
   ) {}
 
+  // Run plan mutations one at a time. create/updateDay are read-modify-write
+  // on a plan file; Ava can emit several update_day calls in a single turn, and
+  // running them concurrently means each reads the same base and clobbers the
+  // others' changes (lost updates). Chaining them keeps the read+write atomic.
+  private opQueue: Promise<unknown> = Promise.resolve();
+  private serialize<T>(fn: () => Promise<T>): Promise<T> {
+    const run = this.opQueue.catch(() => {}).then(fn);
+    this.opQueue = run.catch(() => {});
+    return run;
+  }
+
   async list(): Promise<HealthPlanSummary[]> {
     const dir = this.getHealthDir();
     const out: HealthPlanSummary[] = [];
@@ -61,6 +72,9 @@ export class ExtensionHealthPlanStore implements HealthPlanStore {
   }
 
   async create(input: HealthPlanCreateInput): Promise<HealthPlanCreated> {
+    return this.serialize(() => this._create(input));
+  }
+  private async _create(input: HealthPlanCreateInput): Promise<HealthPlanCreated> {
     const id = newId();
     const now = new Date().toISOString();
 
@@ -124,6 +138,9 @@ export class ExtensionHealthPlanStore implements HealthPlanStore {
   }
 
   async updateDay(planId: string, day: HealthPlanDay): Promise<HealthPlanDayUpdated | null> {
+    return this.serialize(() => this._updateDay(planId, day));
+  }
+  private async _updateDay(planId: string, day: HealthPlanDay): Promise<HealthPlanDayUpdated | null> {
     const dir = this.getHealthDir();
     const plan = healthStore.readPlan(dir, planId);
     if (!plan) return null;

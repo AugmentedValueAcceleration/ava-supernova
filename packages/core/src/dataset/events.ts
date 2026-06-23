@@ -30,7 +30,7 @@
 // ─── Common envelope ────────────────────────────────────────────────────────
 
 export type AvaSurface = 'cli' | 'extension' | 'ide' | 'companion';
-export type AvaMode = 'work' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write' | 'desktop';
+export type AvaMode = 'work' | 'plan' | 'chat' | 'teach' | 'security' | 'brainstorm' | 'write' | 'desktop' | 'health';
 
 /**
  * Every event carries this envelope. The discriminator is `event_type`;

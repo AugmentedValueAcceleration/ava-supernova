@@ -55,7 +55,7 @@ import type {
   HealthTaxonomies,
   HealthMySubmissions,
   HealthProfile,
-  HealthDailyPlan,
+  GeneralProfile,
   HealthPlan,
   HealthPlanSummary,
   HealthExerciseSubmissionPayload,
@@ -93,6 +93,20 @@ export function App() {
   const chatDispatchRef = useRef<((msg: ExtToDashboardMessage) => void) | null>(null);
   const registerChatDispatch = useCallback((fn: (msg: ExtToDashboardMessage) => void) => {
     chatDispatchRef.current = fn;
+  }, []);
+  // Second chat dispatch — the focused Ava Health & Fitness room. Host events
+  // from a health-lane turn are tagged lane:'health' and routed here instead of
+  // the main chat, so the two surfaces never cross-render.
+  const healthChatDispatchRef = useRef<((msg: ExtToDashboardMessage) => void) | null>(null);
+  // The Ava room mounts only when the user first opens the Health page — well
+  // after the one-time chat_init / chat_platform_status fired. Cache them so we
+  // can replay on registration; otherwise the room is stuck on "Loading your
+  // account…" / "No providers configured" forever.
+  const lastChatSetupRef = useRef<Map<string, ExtToDashboardMessage>>(new Map());
+  const registerHealthChatDispatch = useCallback((fn: (msg: ExtToDashboardMessage) => void) => {
+    healthChatDispatchRef.current = fn;
+    // Replay cached setup so the freshly-mounted room has account/provider/model.
+    for (const cached of lastChatSetupRef.current.values()) fn(cached);
   }, []);
 
   // Sidebar collapse state
@@ -263,20 +277,26 @@ export function App() {
   const [healthTaxonomies, setHealthTaxonomies] = useState<HealthTaxonomies | null>(null);
   const [healthMySubmissions, setHealthMySubmissions] = useState<HealthMySubmissions>({ exercises: [], recipes: [] });
   const [healthClearingMySubmissions, setHealthClearingMySubmissions] = useState(false);
-  // Health profile — local-first body stats + goals + constraints + schedule + privacy
+  // Health profile — local-first goals + constraints + schedule (body basics
+  // moved to the general profile).
   const [healthProfile, setHealthProfile] = useState<HealthProfile | null>(null);
+  // General profile — account-level identity + body basics, shown under the
+  // Account "{name}'s profile" tab. Reusable beyond health.
+  const [generalProfile, setGeneralProfile] = useState<GeneralProfile | null>(null);
+  // Deep-link into the Account profile tab's sub-tab (set by Health's "Edit
+  // profile →"). Consumed once by AccountPage.
+  const [profileInitialSubTab, setProfileInitialSubTab] = useState<'general' | 'health' | 'plans' | 'submissions' | null>(null);
   // Deep-link target for the Health page's inner tab. Set when another
   // surface (e.g. the Health Dashboard's "Set your goals" pointer)
   // navigates here wanting a specific tab; Health consumes it once on
   // mount then clears it so a later sidebar visit lands on the default.
-  const [healthInitialTab, setHealthInitialTab] = useState<'exercises' | 'recipes' | 'mine' | 'profile' | null>(null);
-  // Daily plan — keyed by today's ISO date. Reloaded on dashboard mount,
-  // saved through onSavePlan / quick-log interactions.
-  const [healthDailyPlan, setHealthDailyPlan] = useState<HealthDailyPlan | null>(null);
+  const [healthInitialTab, setHealthInitialTab] = useState<'exercises' | 'recipes' | 'ava' | null>(null);
   // Multi-week Plans — the library (lightweight summaries) plus the one
   // full plan currently open in the editor. Loaded on dashboard mount.
   const [healthPlans, setHealthPlans] = useState<HealthPlanSummary[]>([]);
   const [healthPlanOpen, setHealthPlanOpen] = useState<HealthPlan | null>(null);
+  // Full data for active, dated plans — feeds the Command Center Today/Week view.
+  const [activeHealthPlans, setActiveHealthPlans] = useState<HealthPlan[]>([]);
   // Catalog search results for the plan editor's "+ Add" picker — kept
   // separate from the Health page's grid state. seq drops stale hits.
   const [planExerciseResults, setPlanExerciseResults] = useState<HealthExerciseSummary[]>([]);
@@ -291,10 +311,6 @@ export function App() {
   // Picker pagination — total catalogue count for the current filter.
   const [planExerciseTotal, setPlanExerciseTotal] = useState(0);
   const [planRecipeTotal, setPlanRecipeTotal] = useState(0);
-  // Morning brief generation state — separate from plan loading so
-  // the button can show its own busy / error register.
-  const [healthMorningBriefGenerating, setHealthMorningBriefGenerating] = useState(false);
-  const [healthMorningBriefError, setHealthMorningBriefError] = useState<string | null>(null);
   const [healthSubmissionResult, setHealthSubmissionResult] = useState<
     { kind: 'exercise' | 'recipe'; ok: boolean; error?: string; status?: HealthSubmissionStatus; submissionName?: string } | null
   >(null);
@@ -384,9 +400,9 @@ export function App() {
     setHealthProfile(profile);
     post({ type: 'save_health_profile', profile });
   }, []);
-  const handleSaveHealthDailyPlan = useCallback((plan: HealthDailyPlan) => {
-    setHealthDailyPlan(plan);
-    post({ type: 'save_health_daily_plan', plan });
+  const handleSaveGeneralProfile = useCallback((profile: GeneralProfile) => {
+    setGeneralProfile(profile);
+    post({ type: 'save_general_profile', profile });
   }, []);
   // Multi-week Plans — single open, save (upsert), delete. The library
   // list loads via the dashboard-mount pre-warm.
@@ -418,11 +434,6 @@ export function App() {
   }, []);
   const handleLoadPlanRecipeDetail = useCallback((slug: string) => {
     post({ type: 'load_plan_recipe_detail', slug });
-  }, []);
-  const handleGenerateHealthMorningBrief = useCallback((date: string) => {
-    setHealthMorningBriefGenerating(true);
-    setHealthMorningBriefError(null);
-    post({ type: 'generate_health_morning_brief', date });
   }, []);
   const handleSubmitHealthExercise = useCallback((payload: HealthExerciseSubmissionPayload) => {
     setHealthSubmissionInflight(true);
@@ -562,8 +573,26 @@ export function App() {
     if (event.origin && !event.origin.startsWith('vscode-webview://') && !event.origin.startsWith('vscode-file://')) return;
     const msg = event.data as ExtToDashboardMessage;
 
-    // Forward ALL messages to chat dispatch — it filters internally
-    chatDispatchRef.current?.(msg);
+    // Route chat-stream messages by lane so the main chat and the Ava Health
+    // & Fitness room never cross-render. The host stamps every outbound message
+    // with its turn's lane (default 'main'). Health-lane turns go only to the
+    // health surface; everything else (incl. shared setup like chat_init) goes
+    // to the main chat — and ALSO to the health surface so it has the same
+    // model/account context. Each surface still filters CHAT_MESSAGE_TYPES.
+    const lane = (msg as { lane?: 'main' | 'health' }).lane;
+    // The host remaps init → chat_init and platform_status → chat_platform_status
+    // before they reach the dashboard, so those are the only setup types seen
+    // here. Mirror them to the health surface so its chat has model/account
+    // context too — and cache the latest of each so a room mounted later (when
+    // the user first opens Health) gets them replayed on registration.
+    const isHealthSetup = msg.type === 'chat_init' || msg.type === 'chat_platform_status';
+    if (isHealthSetup) lastChatSetupRef.current.set(msg.type, msg);
+    if (lane === 'health') {
+      healthChatDispatchRef.current?.(msg);
+    } else {
+      chatDispatchRef.current?.(msg);
+      if (isHealthSetup) healthChatDispatchRef.current?.(msg);
+    }
 
     // Auto-register every data source the moment its first load lands —
     // powers the per-page skeleton / empty-state distinction.
@@ -898,14 +927,17 @@ export function App() {
         // normalised (e.g. updated_at stamped server-side).
         setHealthProfile(msg.profile);
         break;
-      case 'health_daily_plan_loaded':
-        setHealthDailyPlan(msg.plan);
+      case 'general_profile_loaded':
+        setGeneralProfile(msg.profile);
         break;
-      case 'health_daily_plan_saved':
-        setHealthDailyPlan(msg.plan);
+      case 'general_profile_saved':
+        setGeneralProfile(msg.profile);
         break;
       case 'health_plans_loaded':
         setHealthPlans(msg.plans);
+        break;
+      case 'active_health_plans_loaded':
+        setActiveHealthPlans(msg.plans);
         break;
       case 'health_plan_loaded':
         setHealthPlanOpen(msg.plan);
@@ -913,10 +945,12 @@ export function App() {
       case 'health_plan_saved':
         setHealthPlans(msg.plans);
         setHealthPlanOpen(msg.plan);
+        post({ type: 'load_active_health_plans' });
         break;
       case 'health_plan_deleted':
         setHealthPlans(msg.plans);
         setHealthPlanOpen(prev => (prev && prev.id === msg.id ? null : prev));
+        post({ type: 'load_active_health_plans' });
         break;
       case 'plan_exercises_searched':
         if (msg.seq !== planExSearchSeq.current) break;
@@ -940,13 +974,6 @@ export function App() {
         if (rec) setPlanRecipeDetails(prev => ({ ...prev, [msg.slug]: rec }));
         break;
       }
-      case 'health_morning_brief_generated':
-        setHealthMorningBriefGenerating(false);
-        setHealthMorningBriefError(msg.ok ? null : (msg.error ?? 'Unknown error'));
-        // Plan state is already updated by the host's
-        // health_daily_plan_saved echo (fired in the same handler);
-        // nothing else to do here.
-        break;
       case 'health_my_submissions_cleared':
         setHealthClearingMySubmissions(false);
         // Refresh the list either way — on success the rows are gone,
@@ -1125,19 +1152,48 @@ export function App() {
     // opens instantly, the same way Health's Exercises / Recipes do.
     handleSearchPlanExercises({ q: '', offset: 0, category: null });
     handleSearchPlanRecipes({ q: '', offset: 0, category: null });
-    // Health profile — local-first via globalState, so this is just
-    // an extension-host round-trip, not a network call. Loads once
-    // per dashboard mount so the Profile tab opens instantly.
+    // Health + general profiles — local-first host round-trips (no network).
+    // Loaded once per dashboard mount so the profile tabs open instantly.
     post({ type: 'load_health_profile' });
+    post({ type: 'load_general_profile' });
     // Today's daily plan — same local-first storage. Date computed
     // here in the webview so the host doesn't have to know what
     // "today" is in the user's timezone.
-    const now = new Date();
-    const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    post({ type: 'load_health_daily_plan', date: todayIso });
     // Multi-week Plans library — lightweight summaries, loads once per
     // dashboard mount so the Plans tab renders its grid instantly.
     post({ type: 'load_health_plans' });
+    // Active plans (full) for the Command Center Today/Week glance.
+    post({ type: 'load_active_health_plans' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Refresh health plans when landing on a surface that shows them. Ava can
+  // create/update a plan in the Health room since the last load (she writes
+  // straight to the local store, outside the dashboard's save flow), so the
+  // Command Center / Plans / profile would otherwise read stale state. Cheap
+  // local reads; fires only on entering these pages.
+  useEffect(() => {
+    if (page === 'overview' || page === 'account' || page === 'health') {
+      post({ type: 'load_active_health_plans' });
+      post({ type: 'load_health_plans' });
+    }
+  }, [page]);
+
+  // Main-chat → Health room handoff. When Ava (in the main chat) calls
+  // open_health_room for a plan request, the handoff button dispatches this
+  // event; we jump to Health → the Ava room and seed it with the plan type so
+  // she picks up building right where they left off. Same path as onAskAvaPlan.
+  useEffect(() => {
+    const onOpenRoom = (e: Event) => {
+      const planType = (e as CustomEvent).detail as string | undefined;
+      setHealthInitialTab('ava');
+      setPagePersist('health');
+      if (planType === 'fitness' || planType === 'meal' || planType === 'combined') {
+        post({ type: 'palette_intent', tool: 'plans', action: planType, mode: 'health', surface: 'health' });
+      }
+    };
+    window.addEventListener('ava-open-health-room', onOpenRoom);
+    return () => window.removeEventListener('ava-open-health-room', onOpenRoom);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1335,6 +1391,7 @@ export function App() {
             journalLoaded={isLoaded('journal_day')}
             learningLoaded={isLoaded('learning')}
             healthPlans={healthPlans}
+            activeHealthPlans={activeHealthPlans}
             healthPlanOpen={healthPlanOpen}
             onOpenHealthPlan={handleOpenHealthPlan}
             onSaveHealthPlan={handleSaveHealthPlan}
@@ -1372,6 +1429,63 @@ export function App() {
             avatarDataUrl={avatarDataUrl}
             connections={connections}
             isPlatform={!!account}
+            generalProfile={generalProfile}
+            onSaveGeneralProfile={handleSaveGeneralProfile}
+            healthProfile={healthProfile}
+            onSaveHealthProfile={handleSaveHealthProfile}
+            healthTaxonomies={healthTaxonomies}
+            onLoadHealthTaxonomies={handleLoadHealthTaxonomies}
+            healthPlans={{
+              plans: healthPlans,
+              fullPlans: activeHealthPlans,
+              planOpen: healthPlanOpen,
+              onOpenPlan: handleOpenHealthPlan,
+              onSavePlan: handleSaveHealthPlan,
+              onDeletePlan: handleDeleteHealthPlan,
+              onClosePlan: handleCloseHealthPlan,
+              exerciseResults: planExerciseResults,
+              recipeResults: planRecipeResults,
+              catalogSearching: planCatalogSearching,
+              exerciseTotal: planExerciseTotal,
+              recipeTotal: planRecipeTotal,
+              onSearchExercises: handleSearchPlanExercises,
+              onSearchRecipes: handleSearchPlanRecipes,
+              exerciseDetails: planExerciseDetails,
+              recipeDetails: planRecipeDetails,
+              onLoadExerciseDetail: handleLoadPlanExerciseDetail,
+              onLoadRecipeDetail: handleLoadPlanRecipeDetail,
+            }}
+            healthSubmissions={{
+              data: healthMySubmissions,
+              onRefresh: handleLoadMyHealthSubmissions,
+              onClearRejected: handleClearMyRejectedHealthSubmissions,
+              clearing: healthClearingMySubmissions,
+              taxonomies: healthTaxonomies,
+              inflight: healthSubmissionInflight,
+              result: healthSubmissionResult
+                ? { kind: healthSubmissionResult.kind, ok: healthSubmissionResult.ok, error: healthSubmissionResult.error, submissionName: healthSubmissionResult.submissionName }
+                : null,
+              onSubmitExercise: handleSubmitHealthExercise,
+              onSubmitRecipe: handleSubmitHealthRecipe,
+              onClearResult: handleClearHealthSubmissionResult,
+              onRetryTaxonomies: handleLoadHealthTaxonomies,
+              exerciseDraft: healthExerciseDraft,
+              recipeDraft: healthRecipeDraft,
+              draftInflight: healthDraftInflight,
+              draftError: healthDraftError,
+              onGenerateExerciseDraft: handleGenerateHealthExerciseDraft,
+              onGenerateRecipeDraft: handleGenerateHealthRecipeDraft,
+              onClearDraft: handleClearHealthDraft,
+            }}
+            onAskAvaPlan={(type) => {
+              // The room lives in Health — navigate there, open the Ava tab,
+              // and seed Ava with the chosen plan type.
+              setHealthInitialTab('ava');
+              setPagePersist('health');
+              post({ type: 'palette_intent', tool: 'plans', action: type, mode: 'health', surface: 'health' });
+            }}
+            profileInitialSubTab={profileInitialSubTab}
+            onConsumeProfileInitialSubTab={() => setProfileInitialSubTab(null)}
           />
         );
 
@@ -1412,7 +1526,7 @@ export function App() {
             />
           );
         }
-        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} healthProfile={healthProfile} healthDailyPlan={healthDailyPlan} onSaveHealthDailyPlan={handleSaveHealthDailyPlan} onGenerateHealthMorningBrief={handleGenerateHealthMorningBrief} healthMorningBriefGenerating={healthMorningBriefGenerating} healthMorningBriefError={healthMorningBriefError} onNavigateToHealthProfile={() => { setHealthInitialTab('profile'); setPagePersist('health'); }} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} />;
+        return <Overview account={account} connections={connections} onNavigate={setPagePersist} logs={usageLogs} sessionStats={sessionStatsData} mode={mode} tasks={tasks} journalDay={journalDay} learningCurriculums={learningCurriculums} memories={account ? memories : localMemories} memoryTotal={account ? memoryTotal : undefined} weatherData={weatherData} newsArticles={newsArticles} latestRelease={latestRelease} articleLoading={articleLoading} onOpenArticle={(slug) => { setArticleLoading(true); post({ type: 'load_news_article', slug }); }} activeHealthPlans={activeHealthPlans} tasksLoaded={isLoaded('tasks')} journalLoaded={isLoaded('journal_day')} weatherLoaded={isLoaded('weather')} />;
       case 'memory':
         return <Memory memories={account ? memories : localMemories} mode={mode} serverTotal={account ? memoryTotal : undefined} serverHasMore={account ? memoryHasMore : undefined} loaded={account ? isLoaded('memories') : isLoaded('local_memories')} />;
       case 'history':
@@ -1472,25 +1586,11 @@ export function App() {
             onLoadExerciseDetail={handleLoadHealthExerciseDetail}
             onLoadRecipeDetail={handleLoadHealthRecipeDetail}
             taxonomies={healthTaxonomies}
-            mySubmissions={healthMySubmissions}
-            submissionResult={healthSubmissionResult}
-            submissionInflight={healthSubmissionInflight}
             onLoadTaxonomies={handleLoadHealthTaxonomies}
-            onLoadMySubmissions={handleLoadMyHealthSubmissions}
-            onClearMyRejectedSubmissions={handleClearMyRejectedHealthSubmissions}
-            clearingMySubmissions={healthClearingMySubmissions}
-            onSubmitExercise={handleSubmitHealthExercise}
-            onSubmitRecipe={handleSubmitHealthRecipe}
-            onClearSubmissionResult={handleClearHealthSubmissionResult}
-            exerciseDraft={healthExerciseDraft}
-            recipeDraft={healthRecipeDraft}
-            draftInflight={healthDraftInflight}
-            draftError={healthDraftError}
-            onGenerateExerciseDraft={handleGenerateHealthExerciseDraft}
-            onGenerateRecipeDraft={handleGenerateHealthRecipeDraft}
-            onClearDraft={handleClearHealthDraft}
-            profile={healthProfile}
-            onSaveProfile={handleSaveHealthProfile}
+            onNavigateToProfile={(subTab) => { setProfileInitialSubTab(subTab); setPagePersist('account'); }}
+            onRegisterHealthChatDispatch={registerHealthChatDispatch}
+            userName={account?.name?.split(' ')[0] ?? null}
+            userAvatarUrl={account?.avatar_url ?? null}
             initialTab={healthInitialTab}
             onConsumeInitialTab={() => setHealthInitialTab(null)}
           />

@@ -14,8 +14,30 @@
 // non-async); writes are async + atomic-enough for this low-frequency data.
 
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
-import { writeFile, unlink, mkdir } from 'node:fs/promises';
+import { writeFile, unlink, mkdir, rename } from 'node:fs/promises';
 import { join } from 'node:path';
+
+// Per-path write serialization. Ava can fire several health_plan_update_day
+// calls in one turn; each is a read-modify-write of the SAME plan file, and
+// plain concurrent writeFile()s interleave and corrupt the JSON ("extra data"
+// past the end → readPlan returns null → the plan vanishes from every surface).
+// We chain writes to a path and write atomically (temp file + rename) so a
+// write is all-or-nothing and the file is always valid JSON.
+const writeChains = new Map<string, Promise<unknown>>();
+async function atomicWriteSerialized(path: string, data: string): Promise<void> {
+  const prev = writeChains.get(path) ?? Promise.resolve();
+  const next = prev.catch(() => {}).then(async () => {
+    const tmp = `${path}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    await writeFile(tmp, data, 'utf-8');
+    await rename(tmp, path); // atomic on the same filesystem
+  });
+  writeChains.set(path, next);
+  try {
+    await next;
+  } finally {
+    if (writeChains.get(path) === next) writeChains.delete(path);
+  }
+}
 import type * as vscode from 'vscode';
 import type { HealthProfile, HealthDailyPlan, HealthPlan } from './dashboard-message-types.js';
 
@@ -38,7 +60,23 @@ export function readProfile(healthDir: string): HealthProfile | null {
 }
 export async function writeProfile(healthDir: string, profile: HealthProfile): Promise<void> {
   await mkdir(healthDir, { recursive: true });
-  await writeFile(profilePath(healthDir), JSON.stringify(profile, null, 2), 'utf-8');
+  await atomicWriteSerialized(profilePath(healthDir), JSON.stringify(profile, null, 2));
+}
+/** Empty health-profile scaffold — the shape new writes (e.g. the profile-fill
+ *  flow) start from when no profile.json exists yet. Mirrors DashboardPanel's
+ *  getHealthProfile() fallback. */
+export function emptyHealthProfile(): HealthProfile {
+  return {
+    schema_version: 1,
+    updated_at: null,
+    goals: { primary: null, weekly_focus: null },
+    constraints: { allergens: [], dietary: [], injuries: [], equipment_available: [], minutes_per_day_target: null },
+    schedule: {
+      training_window: { start: null, end: null },
+      meal_times: { breakfast: null, lunch: null, dinner: null },
+      sleep_target: { bedtime: null, wake: null },
+    },
+  };
 }
 
 // ── Plans (multi-week) ───────────────────────────────────────────────────────
@@ -53,7 +91,7 @@ export function readPlan(healthDir: string, id: string): HealthPlan | null {
 }
 export async function writePlan(healthDir: string, plan: HealthPlan): Promise<void> {
   await mkdir(plansDir(healthDir), { recursive: true });
-  await writeFile(join(plansDir(healthDir), `${plan.id}.json`), JSON.stringify(plan, null, 2), 'utf-8');
+  await atomicWriteSerialized(join(plansDir(healthDir), `${plan.id}.json`), JSON.stringify(plan, null, 2));
 }
 export async function deletePlan(healthDir: string, id: string): Promise<void> {
   await unlink(join(plansDir(healthDir), `${id}.json`)).catch(() => {});

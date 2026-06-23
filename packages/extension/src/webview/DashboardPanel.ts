@@ -71,6 +71,7 @@ import type {
   HealthTaxonomies,
   HealthMySubmissions,
   HealthProfile,
+  GeneralProfile,
   HealthDailyPlan,
   HealthPlan,
   HealthPlanSummary,
@@ -80,6 +81,7 @@ import type {
   RoadmapTheme,
 } from './dashboard-message-types.js';
 import * as healthStore from './health-file-store.js';
+import { readGeneralProfile, writeGeneralProfile, emptyGeneralProfile } from './general-file-store.js';
 
 /** Chat message types that should be forwarded to AvaViewProvider */
 const CHAT_MESSAGE_TYPES = new Set([
@@ -1342,6 +1344,22 @@ export class DashboardPanel {
         break;
       }
 
+      case 'load_general_profile': {
+        this.post({ type: 'general_profile_loaded', profile: this.getGeneralProfile() });
+        break;
+      }
+
+      case 'save_general_profile': {
+        const profile: GeneralProfile = {
+          ...msg.profile,
+          schema_version: 1,
+          updated_at: new Date().toISOString(),
+        };
+        await writeGeneralProfile(this.getUserDataDir(), profile);
+        this.post({ type: 'general_profile_saved', profile });
+        break;
+      }
+
       case 'load_health_daily_plan': {
         const plan = this.getHealthDailyPlan(msg.date);
         this.post({ type: 'health_daily_plan_loaded', plan });
@@ -1367,6 +1385,11 @@ export class DashboardPanel {
 
       case 'load_health_plan': {
         this.post({ type: 'health_plan_loaded', plan: this.getHealthPlan(msg.id) });
+        break;
+      }
+
+      case 'load_active_health_plans': {
+        this.post({ type: 'active_health_plans_loaded', plans: this.getActiveHealthPlans() });
         break;
       }
 
@@ -1451,13 +1474,15 @@ export class DashboardPanel {
         // credit) OR BYOK Qwen header (caller's own key).
         try {
           const profile = this.getHealthProfile();
+          const general = this.getGeneralProfile();
           const plan = this.getHealthDailyPlan(msg.date);
 
           // Derive age from DOB so the model sees the current age,
-          // not a snapshot from years ago.
+          // not a snapshot from years ago. Body basics come from the general
+          // profile now.
           let age: number | null = null;
-          if (profile.body.date_of_birth) {
-            const dob = new Date(profile.body.date_of_birth);
+          if (general.date_of_birth) {
+            const dob = new Date(general.date_of_birth);
             const now = new Date();
             if (!Number.isNaN(dob.getTime())) {
               age = now.getFullYear() - dob.getFullYear() - (now < new Date(now.getFullYear(), dob.getMonth(), dob.getDate()) ? 1 : 0);
@@ -1468,10 +1493,10 @@ export class DashboardPanel {
             date: msg.date,
             hour: new Date().getHours(),
             profile: {
-              sex: profile.body.sex,
+              sex: general.sex,
               age_years: age,
-              height_cm: profile.body.height_cm,
-              weight_kg: profile.body.weight_kg,
+              height_cm: general.height_cm,
+              weight_kg: general.weight_kg,
               primary_goal: profile.goals.primary,
               weekly_focus: profile.goals.weekly_focus,
               allergens: profile.constraints.allergens,
@@ -2063,6 +2088,16 @@ export class DashboardPanel {
             // Re-emit sync status now the scoped path is known, so a
             // Sync page opened before this resolved corrects its counts.
             this.loadSyncStatus().catch(() => { /* non-fatal */ });
+            // Re-emit health data too. It loaded on dashboard mount against the
+            // un-scoped fallback dir (~/.ava — empty for signed-in users whose
+            // data lives under ~/.ava/users/<id>), so the Command Center, Plans
+            // and profile would otherwise show nothing until a manual reload.
+            try {
+              this.post({ type: 'active_health_plans_loaded', plans: this.getActiveHealthPlans() });
+              this.post({ type: 'health_plans_loaded', plans: this.getHealthPlanIndex() });
+              this.post({ type: 'health_profile_loaded', profile: this.getHealthProfile() });
+              this.post({ type: 'general_profile_loaded', profile: this.getGeneralProfile() });
+            } catch { /* non-fatal — surfaces refetch on next navigation */ }
           }
         })
         .catch(() => {
@@ -4158,10 +4193,17 @@ export class DashboardPanel {
     // saved, else 0 (the Sync UI disables the push button on a 0 count).
     {
       const stored = healthStore.readProfile(this.healthDir());
-      const hasData = !!stored && stored.schema_version === 1 && (
-        stored.body.height_cm != null || stored.body.weight_kg != null ||
-        stored.body.sex != null || stored.body.date_of_birth != null ||
-        stored.goals.primary != null
+      const general = readGeneralProfile(this.getUserDataDir());
+      const hasData = (
+        (!!stored && stored.schema_version === 1 && (
+          stored.goals.primary != null ||
+          stored.constraints.allergens.length > 0 || stored.constraints.dietary.length > 0 ||
+          stored.constraints.injuries.length > 0 || stored.constraints.equipment_available.length > 0
+        )) ||
+        (!!general && (
+          general.height_cm != null || general.weight_kg != null ||
+          general.sex != null || general.date_of_birth != null
+        ))
       );
       const localCount = hasData ? 1 : 0;
       const synced = syncState['health_profile'];
@@ -4456,14 +4498,14 @@ export class DashboardPanel {
   private healthDir(): string { return path.join(this.getUserDataDir(), 'health'); }
 
   /** Read the operator's HealthProfile from `<scopedDir>/health/profile.json`.
-   *  Returns the empty scaffold when none saved. Local-first, on-device only. */
+   *  Returns the empty scaffold when none saved. Local-first, on-device only.
+   *  Body basics now live in the general profile — see getGeneralProfile. */
   private getHealthProfile(): HealthProfile {
     const stored = healthStore.readProfile(this.healthDir());
     if (stored && stored.schema_version === 1) return stored;
     return {
       schema_version: 1,
       updated_at: null,
-      body: { sex: null, date_of_birth: null, height_cm: null, weight_kg: null, body_fat_pct: null },
       goals: { primary: null, weekly_focus: null },
       constraints: { allergens: [], dietary: [], injuries: [], equipment_available: [], minutes_per_day_target: null },
       schedule: {
@@ -4472,6 +4514,29 @@ export class DashboardPanel {
         sleep_target: { bedtime: null, wake: null },
       },
     };
+  }
+
+  /** Read the account-level GeneralProfile from `<scopedDir>/general.json`.
+   *  On first read, seeds it (in memory, then persists in the background) from
+   *  any legacy HealthProfile.body so existing users keep their body basics.
+   *  Returns the empty scaffold when there's nothing to read or seed from. */
+  private getGeneralProfile(): GeneralProfile {
+    const scoped = this.getUserDataDir();
+    const stored = readGeneralProfile(scoped);
+    if (stored) return stored;
+    const seeded = emptyGeneralProfile();
+    const legacyBody = healthStore.readProfile(this.healthDir())?.body;
+    if (legacyBody) {
+      seeded.sex = legacyBody.sex;
+      seeded.date_of_birth = legacyBody.date_of_birth;
+      seeded.height_cm = legacyBody.height_cm;
+      seeded.weight_kg = legacyBody.weight_kg;
+      seeded.body_fat_pct = legacyBody.body_fat_pct;
+      // Persist the migration so it only happens once. Non-destructive — the
+      // legacy health.body is left in place, just no longer read.
+      writeGeneralProfile(scoped, seeded).catch(() => {});
+    }
+    return seeded;
   }
 
   /** Read the daily plan for a given ISO date (YYYY-MM-DD). Returns
@@ -4521,6 +4586,17 @@ export class DashboardPanel {
       }
     }
     return out.sort((a, b) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''));
+  }
+
+  /** Full data for every ACTIVE, dated plan — feeds the Command Center's
+   *  Today / This-week glance. One active plan per type, so this is small. */
+  private getActiveHealthPlans(): HealthPlan[] {
+    const out: HealthPlan[] = [];
+    for (const id of this.getHealthPlanIds()) {
+      const p = this.getHealthPlan(id);
+      if (p && p.status === 'active' && p.start_date) out.push(p);
+    }
+    return out;
   }
 
   /** Upsert a plan, stamping updated_at. Activating a plan archives any
@@ -4879,13 +4955,26 @@ export class DashboardPanel {
 
   private async handleLoadLatestRelease(): Promise<void> {
     try {
-      const data = await httpGetJson('https://ava-supernova.com/api/releases?limit=1') as
-        { releases?: Array<{ version: string; title: string; published_at: string }> } | Array<{ version: string; title: string; published_at: string }>;
+      const data = await httpGetJson('https://ava-supernova.com/api/releases?limit=25') as
+        { releases?: Array<{ version: string; title: string; published_at: string; platform?: string }> } | Array<{ version: string; title: string; published_at: string; platform?: string }>;
       const list = Array.isArray(data) ? data : ((data as any).releases ?? []);
+
+      // The Command Centre is the EXTENSION surface, so it must show the latest
+      // *extension* release — not whatever shipped most recently across IDE /
+      // Hub / core. A bare ?limit=1 was surfacing the IDE's version (e.g.
+      // v0.26.2) in the extension's version pill and release-notes widget.
+      // Releases with no explicit platform are treated as extension (matches
+      // the Releases page). Fall back to the newest of anything if, somehow,
+      // no extension release is in the window.
+      type Rel = { version: string; title: string; published_at: string; platform?: string };
+      const extension = (list as Rel[])
+        .filter((r: Rel) => (r.platform || 'extension') === 'extension')
+        .sort((a: Rel, b: Rel) => (b.published_at || '').localeCompare(a.published_at || ''));
+      const pick: Rel | null = extension[0] ?? (list as Rel[])[0] ?? null;
 
       this.post({
         type: 'latest_release_loaded',
-        release: list.length > 0 ? { version: list[0].version, title: list[0].title, published_at: list[0].published_at } : null,
+        release: pick ? { version: pick.version, title: pick.title, published_at: pick.published_at } : null,
       });
     } catch {
       this.post({ type: 'latest_release_loaded', release: null });

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.77.0 — 2026-06-23 — Ava's full attention on your health
+
+### Added
+- **A focused Health & Fitness room.** A dedicated space where Ava turns her full attention to your training and food — the same Ava (shared memory, voice), with your profile on the table and the full exercise + recipe library in hand. She asks for what she needs one thing at a time (a tap, not a form), so plans fit you from the first message.
+- **Profile-fill cards.** When your health profile is thin, Ava asks for fields one at a time via the real profile controls, saving as you tap.
+- **Tailored, catalogue-grounded plans.** Ask for a fitness, meal, or combined plan and Ava composes it from real exercises and recipes — shaped by your goal, equipment, time, injuries and allergens. She asks how many days you train rather than assuming seven, programs rest days, and can edit a plan you already have.
+- **A date-centric day view.** Plans surface across the Planner and Command Centre. Click a day to see everything scheduled that date — workouts and meals together, aggregated from every active plan — extensible to tasks and learning later. Tap any item for the full exercise/recipe detail (technique, sets & reps, full nutrition, diets, equipment).
+- **Main-chat → Health room handoff.** Ask for a plan in the main chat and Ava points you into the Health room with one tap.
+
+### Fixed
+- **Command Centre version pill + release-notes widget** now scope to the extension (were surfacing the latest release across all platforms, e.g. the IDE's version).
+
 ## 0.75.1 — 2026-06-14 — Claude Fable 5 temporarily disabled; model picker fixes
 
 ### Changed

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { t, useLocale } from '../i18n';
 import type { HealthProfile, HealthTaxonomies } from '../types/messages';
-import { Select } from '../components/Select';
+import { Section, FieldGrid, Field, NumberInput, TimeInput, PickerChips, inputCls } from './ProfilePrimitives';
 
 /**
  * Profile tab on the Health page — body stats, goals, constraints,
@@ -28,12 +28,6 @@ const GOAL_OPTIONS: Array<{ value: HealthProfile['goals']['primary']; labelKey: 
   { value: 'athletic',     labelKey: 'health.profile.goal.athletic',    hintKey: 'health.profile.goal.athletic.hint' },
   { value: 'recovery',     labelKey: 'health.profile.goal.recovery',    hintKey: 'health.profile.goal.recovery.hint' },
   { value: 'longevity',    labelKey: 'health.profile.goal.longevity',   hintKey: 'health.profile.goal.longevity.hint' },
-];
-
-const SEX_OPTIONS: Array<{ value: HealthProfile['body']['sex']; labelKey: string }> = [
-  { value: 'female', labelKey: 'health.profile.sex.female' },
-  { value: 'male', labelKey: 'health.profile.sex.male' },
-  { value: 'other', labelKey: 'health.profile.sex.other' },
 ];
 
 interface Props {
@@ -76,8 +70,6 @@ export function HealthProfilePage({ profile, taxonomies, onSave, onLoadTaxonomie
     );
   }
 
-  const patchBody = (next: Partial<HealthProfile['body']>) =>
-    setDraft({ ...draft, body: { ...draft.body, ...next } });
   const patchGoals = (next: Partial<HealthProfile['goals']>) =>
     setDraft({ ...draft, goals: { ...draft.goals, ...next } });
   const patchConstraints = (next: Partial<HealthProfile['constraints']>) =>
@@ -86,49 +78,8 @@ export function HealthProfilePage({ profile, taxonomies, onSave, onLoadTaxonomie
     setDraft({ ...draft, schedule: { ...draft.schedule, ...next } });
 
   return (
-    <div className="max-w-2xl space-y-8 pb-12">
+    <div className="w-full space-y-8 pb-12">
       <Intro />
-
-      {/* Body */}
-      <Section title={t('health.profile.body')} subtitle={t('health.profile.body_subtitle')}>
-        <FieldGrid>
-          <Field label={t('health.profile.sex')}>
-            <Select
-              value={draft.body.sex ?? ''}
-              onChange={v => patchBody({ sex: (v as HealthProfile['body']['sex']) || null })}
-              options={[{ value: '', label: '—' }, ...SEX_OPTIONS.map(o => ({ value: o.value as string, label: t(o.labelKey) }))]}
-            />
-          </Field>
-          <Field label={t('health.profile.date_of_birth')}>
-            <input
-              type="date"
-              value={draft.body.date_of_birth ?? ''}
-              onChange={e => patchBody({ date_of_birth: e.target.value || null })}
-              className={inputCls}
-            />
-          </Field>
-          <Field label={t('health.profile.height')} className="sm:col-span-2">
-            <HeightField
-              cm={draft.body.height_cm}
-              onChange={v => patchBody({ height_cm: v })}
-            />
-          </Field>
-          <Field label={t('health.profile.weight')} className="sm:col-span-2">
-            <WeightField
-              kg={draft.body.weight_kg}
-              onChange={v => patchBody({ weight_kg: v })}
-            />
-          </Field>
-          <Field label={t('health.profile.body_fat')}>
-            <NumberInput
-              value={draft.body.body_fat_pct}
-              onChange={v => patchBody({ body_fat_pct: v })}
-              placeholder="—"
-              step={0.1}
-            />
-          </Field>
-        </FieldGrid>
-      </Section>
 
       {/* Goals */}
       <Section title={t('health.profile.goals')} subtitle={t('health.profile.goals_subtitle')}>
@@ -304,188 +255,3 @@ function Intro() {
     </div>
   );
 }
-
-function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
-  return (
-    <section>
-      <h3 className="text-[13px] font-medium text-[var(--text-primary)]">{title}</h3>
-      {subtitle && <p className="mt-0.5 text-[11px] text-[var(--text-muted)] leading-relaxed">{subtitle}</p>}
-      <div className="mt-3 space-y-3">{children}</div>
-    </section>
-  );
-}
-
-function FieldGrid({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{children}</div>;
-}
-
-function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
-  return (
-    <label className={`block ${className ?? ''}`}>
-      <div className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)] mb-1">{label}</div>
-      {children}
-    </label>
-  );
-}
-
-// Solid background — matches the canonical dashboard input register.
-// Transparent reads as "empty" against the dark dashboard surface.
-// color-scheme: dark makes the browser render native input chrome
-// (date picker calendar, number spinner arrows, time picker) in
-// dark mode instead of bright white-on-dark which is unreadable.
-const inputCls = 'w-full rounded-md border border-[var(--border-input)] bg-[var(--bg-input)] px-2.5 py-1.5 text-[12px] text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/60 transition [color-scheme:dark]';
-
-/**
- * Height field — single source of truth is cm (matches the data
- * shape), but the operator gets three live inputs: cm, ft, and in.
- * Typing in any one immediately recomputes the others. The
- * conversion rounds total inches to the nearest whole inch and
- * normalises the carry (60.6 in → 5 ft 1 in, not 5 ft 0 in + leftover).
- */
-function HeightField({ cm, onChange }: { cm: number | null; onChange: (cm: number | null) => void }) {
-  // Derive ft + in from cm by rounding total inches first. Avoids
-  // the edge case where round(in) → 12 makes the display nonsense.
-  let ft: number | null = null;
-  let inches: number | null = null;
-  if (cm != null && Number.isFinite(cm)) {
-    const totalIn = Math.round(cm / 2.54);
-    ft = Math.floor(totalIn / 12);
-    inches = totalIn % 12;
-  }
-
-  const setFromImperial = (newFt: number | null, newIn: number | null) => {
-    if (newFt == null && newIn == null) { onChange(null); return; }
-    const totalIn = (newFt ?? 0) * 12 + (newIn ?? 0);
-    onChange(Math.round(totalIn * 2.54));
-  };
-
-  return (
-    <div className="grid grid-cols-[1fr_auto_auto] gap-2 items-center">
-      <div>
-        <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1">cm</div>
-        <NumberInput value={cm} onChange={onChange} placeholder="178" />
-      </div>
-      <div className="w-16">
-        <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1">ft</div>
-        <NumberInput value={ft} onChange={v => setFromImperial(v, inches)} placeholder="5" />
-      </div>
-      <div className="w-16">
-        <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1">in</div>
-        <NumberInput value={inches} onChange={v => setFromImperial(ft, v)} placeholder="10" />
-      </div>
-    </div>
-  );
-}
-
-/**
- * Weight field — kg is the source of truth (matches the data shape).
- * Operator gets four live cells: kg, total lbs, and stone + lb (the
- * UK "12 st 4 lb" format). Typing in any recomputes the rest. Total
- * pounds is rounded first, then split into stone + remainder so the
- * carry edge case can't show "5 st 14 lb" instead of "6 st 0 lb".
- */
-function WeightField({ kg, onChange }: { kg: number | null; onChange: (kg: number | null) => void }) {
-  let lbs: number | null = null;
-  let stone: number | null = null;
-  let stoneLb: number | null = null;
-  if (kg != null && Number.isFinite(kg)) {
-    lbs = Math.round(kg * 2.20462);
-    stone = Math.floor(lbs / 14);
-    stoneLb = lbs % 14;
-  }
-
-  // kg stored to one decimal — finer than that is noise for a
-  // bodyweight field and keeps the round-trip stable.
-  const kgFromLbs = (totalLbs: number) => Math.round((totalLbs / 2.20462) * 10) / 10;
-
-  const setFromLbs = (newLbs: number | null) => {
-    if (newLbs == null) { onChange(null); return; }
-    onChange(kgFromLbs(newLbs));
-  };
-  const setFromStone = (newStone: number | null, newLb: number | null) => {
-    if (newStone == null && newLb == null) { onChange(null); return; }
-    onChange(kgFromLbs((newStone ?? 0) * 14 + (newLb ?? 0)));
-  };
-
-  return (
-    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 items-center">
-      <div>
-        <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1">kg</div>
-        <NumberInput value={kg} onChange={onChange} placeholder="78" step={0.1} />
-      </div>
-      <div className="w-16">
-        <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1">lbs</div>
-        <NumberInput value={lbs} onChange={setFromLbs} placeholder="172" />
-      </div>
-      <div className="w-14">
-        <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1">st</div>
-        <NumberInput value={stone} onChange={v => setFromStone(v, stoneLb)} placeholder="12" />
-      </div>
-      <div className="w-14">
-        <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1">lb</div>
-        <NumberInput value={stoneLb} onChange={v => setFromStone(stone, v)} placeholder="4" />
-      </div>
-    </div>
-  );
-}
-
-function NumberInput({ value, onChange, placeholder, step }: { value: number | null; onChange: (next: number | null) => void; placeholder?: string; step?: number }) {
-  return (
-    <input
-      type="number"
-      step={step ?? 1}
-      value={value ?? ''}
-      onChange={e => {
-        const v = e.target.value.trim();
-        onChange(v === '' ? null : Number(v));
-      }}
-      placeholder={placeholder}
-      className={inputCls}
-    />
-  );
-}
-
-function TimeInput({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
-  return (
-    <input
-      type="time"
-      value={value ?? ''}
-      onChange={e => onChange(e.target.value || null)}
-      className={inputCls}
-    />
-  );
-}
-
-function PickerChips({ selected, options, onToggle, emptyHint }: {
-  selected: string[];
-  options: Array<{ slug: string; label: string }>;
-  onToggle: (slug: string) => void;
-  emptyHint?: string;
-}) {
-  useLocale();
-  if (options.length === 0) {
-    return <div className="text-[10px] text-[var(--text-muted)] italic">{emptyHint ?? t('health.profile.no_options')}</div>;
-  }
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {options.map(o => {
-        const active = selected.includes(o.slug);
-        return (
-          <button
-            key={o.slug}
-            type="button"
-            onClick={() => onToggle(o.slug)}
-            className={`rounded-full border px-2.5 py-1 text-[10px] transition cursor-pointer ${
-              active
-                ? 'border-[var(--accent)] bg-[var(--accent)]/15 text-[var(--accent)]'
-                : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--accent)]/40'
-            }`}
-          >
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
