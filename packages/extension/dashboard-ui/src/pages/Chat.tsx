@@ -14,7 +14,7 @@ import type { ImageAttachment } from '../chat/components/InputArea';
 import type { PaletteTool } from '../chat/components/CommandPalette';
 import { Header } from '../chat/components/Header';
 import { MemoryPanel } from '../chat/components/MemoryPanel';
-import { TasksPanel, DEFAULT_WIDTH } from '../chat/components/TasksPanel';
+import { TasksPanel, DEFAULT_WIDTH, type UpdateTaskInput } from '../chat/components/TasksPanel';
 import { TasksSpine } from '../chat/components/TasksSpine';
 import { SecretsProvider } from '../chat/hooks/useSecrets';
 import { t, setLocale, loadStrings } from '../i18n';
@@ -1040,8 +1040,20 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
     post({ type: 'toggle_task', taskId });
   }, []);
 
-  const handleCreateTask = useCallback((task: { title: string; priority?: string; category?: string; due_date?: string }) => {
+  const handleCreateTask = useCallback((task: { title: string; priority?: string; category?: string; due_date?: string; due_time?: string; recurrence?: string; reminder_lead?: number; subtasks?: string[] }) => {
     post({ type: 'panel_create_task', ...task });
+  }, []);
+
+  const handleToggleSubtask = useCallback((taskId: string, subtaskId: string) => {
+    post({ type: 'toggle_subtask', taskId, subtaskId });
+  }, []);
+
+  const handleUpdateTask = useCallback((taskId: string, updates: UpdateTaskInput) => {
+    post({ type: 'panel_update_task', taskId, updates });
+  }, []);
+
+  const handleOpenTasksFolder = useCallback(() => {
+    post({ type: 'open_tasks_folder' });
   }, []);
 
   const handleTasksWidthChange = useCallback((width: number) => {
@@ -1233,6 +1245,9 @@ export function Chat({ onRegisterDispatch, isActive, onNavigate, userName, userA
             onClose={handleCloseTasks}
             onToggleTask={handleToggleTask}
             onCreateTask={handleCreateTask}
+            onToggleSubtask={handleToggleSubtask}
+            onUpdateTask={handleUpdateTask}
+            onOpenFolder={handleOpenTasksFolder}
             width={state.tasksPanelWidth}
             onWidthChange={handleTasksWidthChange}
           />

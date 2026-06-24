@@ -1,5 +1,5 @@
 import { readFile, writeFile, rename, mkdir, unlink } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, renameSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type {
@@ -11,11 +11,60 @@ import type {
   TaskSource,
   TaskRecurrence,
   TaskSubtask,
+  TaskReminderLead,
+  TaskContext,
   TaskListOptions,
 } from './types.js';
 import { createEmptyTaskStore } from './types.js';
 
 const TASKS_FILENAME = 'tasks.json';
+
+/**
+ * One-time move of a scoped account's global task store into a dedicated
+ * `tasks/` subfolder: `<scopedRoot>/tasks.json` → `<scopedRoot>/tasks/tasks.json`.
+ * Mirrors the `creative/` layout so the panel's "Open save folder" button has a
+ * clean target, and keeps the account root tidy. Safe to call on every startup —
+ * it no-ops once moved. Callers then construct TaskManager with
+ * `globalDir: join(scopedRoot, 'tasks')`.
+ *
+ * SYNCHRONOUS on purpose: TaskManager reads its store lazily, so the move must
+ * finish before the manager is constructed — otherwise an empty store could be
+ * written to the new path first and the move would silently skip (data loss).
+ * Call it immediately before `new TaskManager(...)`.
+ */
+export function migrateGlobalTasksToSubfolder(scopedRoot: string): void {
+  const oldFile = join(scopedRoot, TASKS_FILENAME);
+  const newDir = join(scopedRoot, 'tasks');
+  const newFile = join(newDir, TASKS_FILENAME);
+  if (!existsSync(oldFile) || existsSync(newFile)) return;
+  try {
+    mkdirSync(newDir, { recursive: true });
+    try {
+      renameSync(oldFile, newFile);
+    } catch {
+      // Cross-device or locked: copy then remove.
+      writeFileSync(newFile, readFileSync(oldFile, 'utf-8'), 'utf-8');
+      try { unlinkSync(oldFile); } catch { /* leave the original */ }
+    }
+  } catch {
+    /* leave the old file in place — TaskManager will still read the new dir empty */
+  }
+}
+
+/**
+ * The wall-clock moment a task's reminder should fire, in epoch ms — or null if
+ * the task has no reminder (no `reminderLead`, or no `dueDate` to anchor to).
+ * Date-only tasks default to a 09:00 local due time. Parsed as LOCAL time
+ * (no trailing Z) so "18:00" means 6pm where the user is.
+ * Pure + shared so the extension host and the IDE sidecar compute it identically.
+ */
+export function reminderFireTimeMs(entry: TaskEntry): number | null {
+  if (entry.reminderLead === undefined || !entry.dueDate) return null;
+  const time = entry.dueTime && /^\d{2}:\d{2}$/.test(entry.dueTime) ? entry.dueTime : '09:00';
+  const dueMs = new Date(`${entry.dueDate}T${time}:00`).getTime();
+  if (Number.isNaN(dueMs)) return null;
+  return dueMs - entry.reminderLead * 60_000;
+}
 
 /** Optional platform sync interface — mirrors PlatformMemorySync pattern. */
 export interface PlatformTaskSync {
@@ -30,11 +79,14 @@ export interface TaskCreateOptions {
   priority?: TaskPriority;
   status?: TaskStatus;
   dueDate?: string;
+  dueTime?: string;
   category?: TaskCategory;
   source?: TaskSource;
   project?: string;
   recurrence?: TaskRecurrence;
   subtasks?: TaskSubtask[];
+  reminderLead?: TaskReminderLead;
+  context?: TaskContext;
   scope?: 'global' | 'project';
 }
 
@@ -45,9 +97,14 @@ export interface TaskUpdateOptions {
   priority?: TaskPriority;
   status?: TaskStatus;
   dueDate?: string;
+  dueTime?: string;
   category?: TaskCategory;
   recurrence?: TaskRecurrence;
   subtasks?: TaskSubtask[];
+  reminderLead?: TaskReminderLead;
+  context?: TaskContext;
+  /** Scheduler bookkeeping — stamp when a reminder has fired. */
+  reminderFiredAt?: string;
 }
 
 export class TaskManager {
@@ -113,12 +170,15 @@ export class TaskManager {
       priority: opts.priority ?? 'medium',
       status: opts.status ?? 'todo',
       dueDate: opts.dueDate,
+      dueTime: opts.dueTime,
       // Neutral default — not everyone uses Ava to build software.
       category: opts.category ?? 'personal',
       source: opts.source ?? 'user',
       project: opts.project ?? (this.projectDir ? basename(join(this.projectDir, '..')) : 'global'),
       recurrence: opts.recurrence ?? 'none',
       subtasks: opts.subtasks ?? [],
+      reminderLead: opts.reminderLead,
+      context: opts.context,
       createdAt: now,
       updatedAt: now,
     };
@@ -213,6 +273,32 @@ export class TaskManager {
     );
   }
 
+  /**
+   * Reminders that are due to fire right now and haven't yet — for the
+   * host/sidecar scheduler. Skips done/archived tasks and anything already
+   * stamped (`reminderFiredAt`). Caps catch-up so a task due more than 24h ago
+   * doesn't nag on next launch.
+   */
+  async getDueReminders(nowMs: number = Date.now()): Promise<TaskEntry[]> {
+    const all = await this.listTasks();
+    const DAY = 24 * 60 * 60_000;
+    return all.filter(e => {
+      if (e.status === 'done' || e.status === 'archived') return false;
+      if (e.reminderFiredAt) return false;
+      const fire = reminderFireTimeMs(e);
+      if (fire === null || nowMs < fire) return false;
+      const time = e.dueTime && /^\d{2}:\d{2}$/.test(e.dueTime) ? e.dueTime : '09:00';
+      const dueMs = new Date(`${e.dueDate}T${time}:00`).getTime();
+      if (Number.isNaN(dueMs) || nowMs > dueMs + DAY) return false;
+      return true;
+    });
+  }
+
+  /** Stamp a task's reminder as fired (dedupe guard for the scheduler). */
+  async markReminderFired(id: string): Promise<TaskEntry | null> {
+    return this.updateTask(id, { reminderFiredAt: new Date().toISOString() });
+  }
+
   /** Complete a task — sets status to 'done' and records completedAt. */
   async completeTask(id: string): Promise<TaskEntry | null> {
     const entry = await this.getTask(id);
@@ -229,6 +315,24 @@ export class TaskManager {
   /** Restore an archived task to todo. */
   async restoreTask(id: string): Promise<TaskEntry | null> {
     return this.updateTask(id, { status: 'todo' });
+  }
+
+  /** Add a subtask to a task. Returns the updated task. */
+  async addSubtask(taskId: string, title: string): Promise<TaskEntry | null> {
+    const entry = await this.getTask(taskId);
+    if (!entry) return null;
+    const subtasks = [...entry.subtasks, { id: randomUUID(), title, done: false }];
+    return this.updateTask(taskId, { subtasks });
+  }
+
+  /** Toggle (or set) a subtask's done state. Returns the updated task. */
+  async toggleSubtask(taskId: string, subtaskId: string, done?: boolean): Promise<TaskEntry | null> {
+    const entry = await this.getTask(taskId);
+    if (!entry) return null;
+    const subtasks = entry.subtasks.map(s =>
+      s.id === subtaskId ? { ...s, done: done ?? !s.done } : s
+    );
+    return this.updateTask(taskId, { subtasks });
   }
 
   // ── Session Tasks (in-memory) ──────────────────────────────────────────────
@@ -371,11 +475,15 @@ export class TaskManager {
           priority: entry.priority,
           status: 'todo',
           dueDate: nextDueStr,
+          dueTime: entry.dueTime,
           category: entry.category,
           source: entry.source,
           project: entry.project,
           recurrence: entry.recurrence,
           subtasks: entry.subtasks.map(s => ({ ...s, done: false })),
+          reminderLead: entry.reminderLead,
+          // Fresh instance — no reminder has fired for it yet.
+          context: entry.context,
           createdAt: now,
           updatedAt: now,
         });
@@ -414,7 +522,10 @@ export class TaskManager {
     try {
       const raw = await readFile(filePath, 'utf-8');
       const data = JSON.parse(raw) as TaskStore;
-      if (data.version === 1 && Array.isArray(data.entries)) {
+      if ((data.version === 1 || data.version === 2) && Array.isArray(data.entries)) {
+        // Forward-migrate v1 → v2 in memory. All v2 additions are optional, so
+        // existing entries are already valid; we just bump the version stamp.
+        data.version = 2;
         return data;
       }
       return createEmptyTaskStore();
@@ -474,10 +585,25 @@ export class TaskManager {
         entry.completedAt = undefined;
       }
     }
+    // Changing when a task is due re-arms its reminder (so a moved task fires
+    // again), unless the caller is explicitly stamping reminderFiredAt itself.
+    const timingChanged =
+      (updates.dueDate !== undefined && updates.dueDate !== entry.dueDate) ||
+      (updates.dueTime !== undefined && updates.dueTime !== entry.dueTime) ||
+      (updates.reminderLead !== undefined && updates.reminderLead !== entry.reminderLead);
+
     if (updates.dueDate !== undefined) entry.dueDate = updates.dueDate;
+    if (updates.dueTime !== undefined) entry.dueTime = updates.dueTime;
     if (updates.category !== undefined) entry.category = updates.category;
     if (updates.recurrence !== undefined) entry.recurrence = updates.recurrence;
     if (updates.subtasks !== undefined) entry.subtasks = updates.subtasks;
+    if (updates.reminderLead !== undefined) entry.reminderLead = updates.reminderLead;
+    if (updates.context !== undefined) entry.context = updates.context;
+    if (updates.reminderFiredAt !== undefined) {
+      entry.reminderFiredAt = updates.reminderFiredAt;
+    } else if (timingChanged) {
+      entry.reminderFiredAt = undefined;
+    }
     entry.updatedAt = new Date().toISOString();
     store.lastModified = new Date().toISOString();
 

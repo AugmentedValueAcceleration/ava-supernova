@@ -1143,13 +1143,31 @@ export interface MemoryEntryUI {
   branch?: string | null;
 }
 
+export interface TaskSubtaskUI {
+  id: string;
+  title: string;
+  done: boolean;
+}
+
+export interface TaskContextUI {
+  kind: 'chat' | 'file' | 'plan' | 'lesson' | 'other';
+  ref: string;
+  label?: string;
+}
+
 export interface TodayTaskUI {
   id: string;
   title: string;
+  description?: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   status: 'todo' | 'in-progress' | 'done';
   dueDate?: string;
+  dueTime?: string;
   category: string;
+  recurrence?: 'none' | 'daily' | 'weekdays' | 'weekly' | 'monthly';
+  reminderLead?: number;
+  subtasks?: TaskSubtaskUI[];
+  context?: TaskContextUI;
 }
 
 export interface SessionTaskUI {
@@ -1768,7 +1786,10 @@ export type DashboardToExtMessage =
   | { type: 'request_today_tasks' }
   | { type: 'request_all_tasks' }
   | { type: 'toggle_task'; taskId: string }
-  | { type: 'panel_create_task'; title: string; description?: string; priority?: string; category?: string; due_date?: string; recurrence?: string }
+  | { type: 'panel_create_task'; title: string; description?: string; priority?: string; category?: string; due_date?: string; due_time?: string; recurrence?: string; reminder_lead?: number; subtasks?: string[] }
+  | { type: 'panel_update_task'; taskId: string; updates: { title?: string; description?: string; priority?: string; category?: string; due_date?: string; due_time?: string; recurrence?: string; reminder_lead?: number } }
+  | { type: 'toggle_subtask'; taskId: string; subtaskId: string }
+  | { type: 'open_tasks_folder' }
   | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; model?: string; mode?: string }
   | { type: 'save_secrets'; secrets: Array<{ id: string; label: string; value: string }> }
   | { type: 'load_secrets' }

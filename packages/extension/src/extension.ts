@@ -8,6 +8,7 @@ import { DocumentPreviewPanel } from './webview/DocumentPreviewPanel.js';
 import {
   killBackgroundProcesses,
   TaskManager,
+  migrateGlobalTasksToSubfolder,
   JournalManager,
   AVA_HOME,
   installDatasetConsumer,
@@ -35,10 +36,13 @@ export function activate(context: vscode.ExtensionContext): void {
 
   viewProvider = new AvaViewProvider(context.extensionUri, context);
 
-  // Task Manager (shared instance)
+  // Task Manager (shared instance). Tasks live in a dedicated `tasks/`
+  // subfolder (mirrors `creative/`) so the panel's open-folder button has a
+  // clean target; migrate any legacy flat tasks.json once.
   const globalDir = AVA_HOME ?? path.join(os.homedir(), '.ava');
   const projectRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-  const taskManager = new TaskManager({ globalDir, projectRoot });
+  migrateGlobalTasksToSubfolder(globalDir);
+  const taskManager = new TaskManager({ globalDir: path.join(globalDir, 'tasks'), projectRoot });
 
   // Keep sidebar registration for backwards compat (will still work if user prefers sidebar)
   context.subscriptions.push(

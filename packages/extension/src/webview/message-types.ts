@@ -293,7 +293,10 @@ export type WebviewToExtMessage =
   | { type: 'request_today_tasks' }
   | { type: 'request_all_tasks' }
   | { type: 'toggle_task'; taskId: string }
-  | { type: 'panel_create_task'; title: string; description?: string; priority?: string; category?: string; due_date?: string; recurrence?: string }
+  | { type: 'panel_create_task'; title: string; description?: string; priority?: string; category?: string; due_date?: string; due_time?: string; recurrence?: string; reminder_lead?: number; subtasks?: string[] }
+  | { type: 'panel_update_task'; taskId: string; updates: { title?: string; description?: string; priority?: string; category?: string; due_date?: string; due_time?: string; recurrence?: string; reminder_lead?: number } }
+  | { type: 'toggle_subtask'; taskId: string; subtaskId: string }
+  | { type: 'open_tasks_folder' }
   | { type: 'rate_message'; messageId: string; rating: 'up' | 'down'; reason?: string; model?: string; mode?: string }
   | { type: 'save_secrets'; secrets: Array<{ id: string; label: string; value: string }> }
   | { type: 'accept_consent' }

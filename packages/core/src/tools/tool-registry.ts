@@ -38,6 +38,7 @@ import { ProposeToolTool } from './propose-tool.js';
 import { GetDateTimeTool } from './get-datetime.js';
 import { DetectLanguageTool } from './detect-language.js';
 import { TaskManageTool } from './task-manage.js';
+import { TaskSuggestTool } from './task-suggest.js';
 import { JournalWriteTool } from './journal.js';
 import { HealthPlanCreateTool } from './health-plan-create.js';
 import { HealthPlanUpdateDayTool } from './health-plan-update-day.js';
@@ -164,7 +165,7 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   document_manage: 'documents', document_author: 'documents',
   report_generate: 'documents', email_draft: 'documents',
   doc_generate: 'documents', todo_write: 'documents',
-  task_manage: 'documents', journal_write: 'documents',
+  task_manage: 'documents', task_suggest: 'documents', journal_write: 'documents',
   present_plan: 'documents', apply_plan: 'documents', switch_mode: 'documents', browse_library: 'file_ops',
   // Memory — persistent knowledge
   memory_save: 'memory', memory_recall: 'memory',
@@ -391,6 +392,7 @@ export class ToolRegistry {
       new GetDateTimeTool(),
       new DetectLanguageTool(),
       new TaskManageTool(),
+      new TaskSuggestTool(),
       new JournalWriteTool(),
       new HealthCatalogueSearchTool(),
       new HealthProfileAskTool(),

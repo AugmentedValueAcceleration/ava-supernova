@@ -9,12 +9,37 @@ export interface CreateTaskInput {
   priority?: string;
   category?: string;
   due_date?: string;
+  due_time?: string;
+  recurrence?: string;
+  reminder_lead?: number;
+  subtasks?: string[];
+}
+
+/** Fields the detail editor can change on an existing task. */
+export interface UpdateTaskInput {
+  title?: string;
+  priority?: string;
+  category?: string;
+  due_date?: string;
+  due_time?: string;
+  recurrence?: string;
+  reminder_lead?: number;
 }
 
 /** Preset categories that seed the picker. Default is neutral, not coding —
  *  and the field is free-form, so a user can type ANY label (fitness, garden…). */
 const CATEGORY_OPTIONS = ['personal', 'coding', 'admin', 'meeting', 'health', 'finance', 'errands', 'study', 'home'] as const;
 const PRIORITY_OPTIONS = ['low', 'medium', 'high', 'urgent'] as const;
+const RECURRENCE_OPTIONS = ['none', 'daily', 'weekdays', 'weekly', 'monthly'] as const;
+/** Reminder lead presets — minutes before due. 0 = at the due time. */
+const REMINDER_OPTIONS: { value: number; label: string }[] = [
+  { value: -1, label: 'No reminder' },
+  { value: 0, label: 'At time' },
+  { value: 10, label: '10 min before' },
+  { value: 30, label: '30 min before' },
+  { value: 60, label: '1 hour before' },
+  { value: 1440, label: '1 day before' },
+];
 
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 500;
@@ -28,6 +53,9 @@ interface TasksPanelProps {
   onClose: () => void;
   onToggleTask: (taskId: string) => void;
   onCreateTask: (task: CreateTaskInput) => void;
+  onToggleSubtask: (taskId: string, subtaskId: string) => void;
+  onUpdateTask: (taskId: string, updates: UpdateTaskInput) => void;
+  onOpenFolder: () => void;
   width: number;
   onWidthChange: (width: number) => void;
 }
@@ -40,6 +68,9 @@ export function TasksPanel({
   onClose,
   onToggleTask,
   onCreateTask,
+  onToggleSubtask,
+  onUpdateTask,
+  onOpenFolder,
   width,
   onWidthChange,
 }: TasksPanelProps) {
@@ -163,6 +194,17 @@ export function TasksPanel({
           <path d="M3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 3.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 7.5h8v1H6v-1zm-2.25 5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5zM6 11.5h8v1H6v-1z"/>
         </svg>
         <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>{t('tasks.today')}</span>
+        {/* Open the on-disk tasks folder — mirrors the Library's "Open save folder". */}
+        <button
+          onClick={onOpenFolder}
+          title={tt('tasks.open_folder', 'Open the tasks folder on disk')}
+          aria-label={tt('tasks.open_folder', 'Open the tasks folder on disk')}
+          className="ml-auto mr-5 flex items-center justify-center w-6 h-6 rounded-md text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition"
+        >
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M1.75 3.5A1.75 1.75 0 0 1 3.5 1.75h2.19c.46 0 .9.18 1.23.51l.82.82h4.51c.97 0 1.75.78 1.75 1.75v7.41c0 .97-.78 1.75-1.75 1.75H3.5a1.75 1.75 0 0 1-1.75-1.75V3.5z"/>
+          </svg>
+        </button>
       </div>
 
       {/* Quick add — pinned under the header. The front door. */}
@@ -183,6 +225,8 @@ export function TasksPanel({
           filter={filter}
           onFilterChange={setFilter}
           onToggleTask={onToggleTask}
+          onToggleSubtask={onToggleSubtask}
+          onUpdateTask={onUpdateTask}
         />
 
         {avaCompletedTasks.length > 0 && (
@@ -303,10 +347,15 @@ function QuickAdd({
   const [priority, setPriority] = useState('medium');
   const [category, setCategory] = useState('personal');
   const [dueDate, setDueDate] = useState('');
+  const [dueTime, setDueTime] = useState('');
+  const [recurrence, setRecurrence] = useState('none');
+  const [reminderLead, setReminderLead] = useState(-1);
+  const [subtasks, setSubtasks] = useState<string[]>([]);
+  const [subInput, setSubInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (open) inputRef.current?.focus();
+    if (open) setTimeout(() => inputRef.current?.focus(), 30);
   }, [open]);
 
   const reset = useCallback(() => {
@@ -314,7 +363,19 @@ function QuickAdd({
     setPriority('medium');
     setCategory('personal');
     setDueDate('');
+    setDueTime('');
+    setRecurrence('none');
+    setReminderLead(-1);
+    setSubtasks([]);
+    setSubInput('');
   }, []);
+
+  const addSub = useCallback(() => {
+    const v = subInput.trim();
+    if (!v) return;
+    setSubtasks((s) => [...s, v]);
+    setSubInput('');
+  }, [subInput]);
 
   const submit = useCallback(() => {
     const trimmed = title.trim();
@@ -322,10 +383,19 @@ function QuickAdd({
     // "Today" view implies the task belongs to today unless a date is picked,
     // so it shows up where the user added it. The "All" view stays date-free.
     const due = dueDate || (defaultDueToday ? new Date().toISOString().slice(0, 10) : undefined);
-    onCreate({ title: trimmed, priority, category, due_date: due });
+    onCreate({
+      title: trimmed,
+      priority,
+      category,
+      due_date: due,
+      due_time: dueTime || undefined,
+      recurrence: recurrence !== 'none' ? recurrence : undefined,
+      reminder_lead: reminderLead >= 0 ? reminderLead : undefined,
+      subtasks: subtasks.length ? subtasks : undefined,
+    });
     reset();
-    inputRef.current?.focus(); // keep open for rapid entry
-  }, [title, dueDate, defaultDueToday, priority, category, onCreate, reset]);
+    setOpen(false);
+  }, [title, dueDate, defaultDueToday, priority, category, dueTime, recurrence, reminderLead, subtasks, onCreate, reset]);
 
   const cancel = useCallback(() => {
     reset();
@@ -349,75 +419,130 @@ function QuickAdd({
     );
   }
 
+  const labelCls = 'mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]';
+  const fieldCls = 'w-full px-2.5 py-2 rounded-md text-xs outline-none';
+
+  // A clean, centred overlay — roomy, every field on show (no "More" toggle).
   return (
     <div
-      className="mx-3 mt-2.5 p-2 rounded-lg flex flex-col gap-2"
-      style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}
+      onClick={cancel}
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-5"
+      style={{ background: 'rgba(10,6,18,0.6)', backdropFilter: 'blur(4px)' }}
     >
-      <input
-        ref={inputRef}
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') submit();
-          else if (e.key === 'Escape') cancel();
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="flex flex-col gap-4 rounded-2xl p-6 overflow-y-auto"
+        style={{
+          width: 'min(480px, 92vw)', maxHeight: '88vh',
+          background: 'linear-gradient(180deg, rgba(30,18,46,0.99) 0%, rgba(22,14,36,1) 100%)',
+          border: '1px solid rgba(168,85,247,0.3)', boxShadow: '0 24px 64px rgba(0,0,0,0.55)',
         }}
-        placeholder={tt('tasks.add_placeholder', 'What needs doing?')}
-        className="w-full px-2 py-1.5 rounded-md text-xs outline-none"
-        style={QUICK_INPUT_STYLE}
-      />
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-[15px] font-bold text-[var(--text-primary)]">{tt('tasks.new_task', 'New task')}</span>
+          <button
+            onClick={cancel}
+            aria-label={tt('tasks.cancel', 'Cancel')}
+            className="ml-auto flex h-7 w-7 items-center justify-center rounded-lg border-none bg-white/[0.04] text-base leading-none text-[var(--text-secondary)] cursor-pointer hover:bg-white/[0.08]"
+          >
+            ×
+          </button>
+        </div>
 
-      <div className="flex items-center gap-1.5">
-        <select
-          value={priority}
-          onChange={(e) => setPriority(e.target.value)}
-          title={tt('tasks.priority', 'Priority')}
-          className="flex-1 min-w-0 px-1.5 py-1 rounded-md text-[10px] outline-none cursor-pointer"
-          style={QUICK_INPUT_STYLE}
-        >
-          {PRIORITY_OPTIONS.map((p) => (
-            <option key={p} value={p}>{tt(`tasks.priority_${p}`, p)}</option>
-          ))}
-        </select>
         <input
-          list="quickadd-categories"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          title={tt('tasks.category', 'Category')}
-          placeholder={tt('tasks.category', 'Category')}
-          className="flex-1 min-w-0 px-1.5 py-1 rounded-md text-[10px] outline-none"
+          ref={inputRef}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') submit(); else if (e.key === 'Escape') cancel(); }}
+          placeholder={tt('tasks.add_placeholder', 'What needs doing?')}
+          className="w-full px-3 py-2.5 rounded-md text-sm outline-none"
           style={QUICK_INPUT_STYLE}
         />
-        <datalist id="quickadd-categories">
-          {CATEGORY_OPTIONS.map((c) => <option key={c} value={c} />)}
-        </datalist>
-        <input
-          type="date"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          title={tt('tasks.due_date', 'Due date')}
-          className="flex-1 min-w-0 px-1.5 py-1 rounded-md text-[10px] outline-none cursor-pointer"
-          style={QUICK_INPUT_STYLE}
-        />
-      </div>
 
-      <div className="flex items-center gap-1.5">
-        <button
-          onClick={submit}
-          disabled={!title.trim()}
-          className="px-3 py-1 rounded-md text-[11px] font-semibold border-none cursor-pointer transition
-                     disabled:opacity-30 disabled:cursor-default"
-          style={{ background: '#A855F7', color: 'white' }}
-        >
-          {tt('tasks.add', 'Add')}
-        </button>
-        <button
-          onClick={cancel}
-          className="px-2.5 py-1 rounded-md text-[11px] font-medium border-none cursor-pointer bg-transparent
-                     text-[var(--text-secondary)] opacity-50 hover:opacity-90 transition"
-        >
-          {tt('tasks.cancel', 'Cancel')}
-        </button>
+        <div className="flex gap-2.5">
+          <div className="flex-1 min-w-0">
+            <span className={labelCls}>{tt('tasks.priority', 'Priority')}</span>
+            <select value={priority} onChange={(e) => setPriority(e.target.value)} className={`${fieldCls} cursor-pointer`} style={QUICK_INPUT_STYLE}>
+              {PRIORITY_OPTIONS.map((p) => <option key={p} value={p}>{tt(`tasks.priority_${p}`, p)}</option>)}
+            </select>
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className={labelCls}>{tt('tasks.category', 'Category')}</span>
+            <input list="quickadd-categories" value={category} onChange={(e) => setCategory(e.target.value)} className={fieldCls} style={QUICK_INPUT_STYLE} />
+            <datalist id="quickadd-categories">{CATEGORY_OPTIONS.map((c) => <option key={c} value={c} />)}</datalist>
+          </div>
+        </div>
+
+        <div className="flex gap-2.5">
+          <div className="flex-1 min-w-0">
+            <span className={labelCls}>{tt('tasks.due_date', 'Due date')}</span>
+            <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className={`${fieldCls} cursor-pointer`} style={QUICK_INPUT_STYLE} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className={labelCls}>{tt('tasks.due_time', 'Time')}</span>
+            <input type="time" value={dueTime} onChange={(e) => setDueTime(e.target.value)} className={`${fieldCls} cursor-pointer`} style={QUICK_INPUT_STYLE} />
+          </div>
+        </div>
+
+        <div className="flex gap-2.5">
+          <div className="flex-1 min-w-0">
+            <span className={labelCls}>{tt('tasks.recurrence', 'Repeat')}</span>
+            <select value={recurrence} onChange={(e) => setRecurrence(e.target.value)} className={`${fieldCls} cursor-pointer`} style={QUICK_INPUT_STYLE}>
+              {RECURRENCE_OPTIONS.map((r) => <option key={r} value={r}>{tt(`tasks.recurrence_${r}`, r)}</option>)}
+            </select>
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className={labelCls}>{tt('tasks.reminder', 'Reminder')}</span>
+            <select value={reminderLead} onChange={(e) => setReminderLead(Number(e.target.value))} className={`${fieldCls} cursor-pointer`} style={QUICK_INPUT_STYLE}>
+              {REMINDER_OPTIONS.map((r) => <option key={r.value} value={r.value}>{tt(`tasks.reminder_${r.value}`, r.label)}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <span className={labelCls}>{tt('tasks.subtasks', 'Subtasks')}</span>
+          {subtasks.length > 0 && (
+            <div className="mb-2 flex flex-col gap-1">
+              {subtasks.map((s, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="h-3.5 w-3.5 flex-shrink-0 rounded border border-white/20" />
+                  <span className="flex-1 text-xs text-[var(--text-secondary)]">{s}</span>
+                  <button onClick={() => setSubtasks((arr) => arr.filter((_, j) => j !== i))} aria-label="Remove" className="border-none bg-transparent text-[15px] leading-none text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-secondary)]">×</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-1.5">
+            <input
+              value={subInput}
+              onChange={(e) => setSubInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSub(); } }}
+              placeholder={tt('tasks.add_step', 'Add a step…')}
+              className={`${fieldCls} flex-1`}
+              style={QUICK_INPUT_STYLE}
+            />
+            <button onClick={addSub} className="rounded-md border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3.5 text-xs font-semibold text-[var(--accent)] cursor-pointer hover:bg-[var(--accent)]/20 transition">
+              {tt('tasks.add', 'Add')}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-1 flex gap-2">
+          <button
+            onClick={submit}
+            disabled={!title.trim()}
+            className="flex-1 py-2.5 rounded-lg text-[13px] font-semibold border-none cursor-pointer transition disabled:opacity-40 disabled:cursor-default"
+            style={{ background: '#A855F7', color: 'white' }}
+          >
+            {tt('tasks.create_task', 'Create task')}
+          </button>
+          <button
+            onClick={cancel}
+            className="px-4 py-2.5 rounded-lg text-[13px] font-medium border-none cursor-pointer bg-white/[0.05] text-[var(--text-secondary)] hover:bg-white/[0.08] transition"
+          >
+            {tt('tasks.cancel', 'Cancel')}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -429,12 +554,16 @@ function YourTasks({
   filter,
   onFilterChange,
   onToggleTask,
+  onToggleSubtask,
+  onUpdateTask,
 }: {
   todayTasks: TodayTaskUI[];
   allTasks: TodayTaskUI[];
   filter: PersonalFilter;
   onFilterChange: (f: PersonalFilter) => void;
   onToggleTask: (id: string) => void;
+  onToggleSubtask: (taskId: string, subtaskId: string) => void;
+  onUpdateTask: (taskId: string, updates: UpdateTaskInput) => void;
 }) {
   const tasks = filter === 'today' ? todayTasks : allTasks;
   const activeTasks = tasks.filter(t => t.status !== 'done');
@@ -477,7 +606,13 @@ function YourTasks({
           {activeTasks.length > 0 && (
             <div className="flex flex-col gap-0.5">
               {activeTasks.map(task => (
-                <TaskItem key={task.id} task={task} onToggle={() => onToggleTask(task.id)} />
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  onToggle={() => onToggleTask(task.id)}
+                  onToggleSubtask={onToggleSubtask}
+                  onUpdateTask={onUpdateTask}
+                />
               ))}
             </div>
           )}
@@ -492,7 +627,14 @@ function YourTasks({
               </div>
               <div className="flex flex-col gap-0.5">
                 {doneTasks.map(task => (
-                  <TaskItem key={task.id} task={task} onToggle={() => onToggleTask(task.id)} done />
+                  <TaskItem
+                    key={task.id}
+                    task={task}
+                    onToggle={() => onToggleTask(task.id)}
+                    onToggleSubtask={onToggleSubtask}
+                    onUpdateTask={onUpdateTask}
+                    done
+                  />
                 ))}
               </div>
             </>
@@ -602,68 +744,258 @@ function formatDueShort(iso: string): string {
   if (isNaN(d.getTime())) return iso;
   return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }
+function recurrenceLabel(r?: string): string | null {
+  if (!r || r === 'none') return null;
+  return tt(`tasks.recurrence_${r}`, r);
+}
+function reminderLabel(lead?: number): string | null {
+  if (lead === undefined || lead < 0) return null;
+  const opt = REMINDER_OPTIONS.find(o => o.value === lead);
+  return opt ? tt(`tasks.reminder_${lead}`, opt.label) : null;
+}
 
-function TaskItem({ task, onToggle, done }: { task: TodayTaskUI; onToggle: () => void; done?: boolean }) {
+function TaskItem({
+  task,
+  onToggle,
+  onToggleSubtask,
+  onUpdateTask,
+  done,
+}: {
+  task: TodayTaskUI;
+  onToggle: () => void;
+  onToggleSubtask: (taskId: string, subtaskId: string) => void;
+  onUpdateTask: (taskId: string, updates: UpdateTaskInput) => void;
+  done?: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
   const style = PRIORITY_STYLES[task.priority];
   const today = new Date().toISOString().slice(0, 10);
   const overdue = !!task.dueDate && !done && task.dueDate < today;
   const dueToday = !!task.dueDate && !done && task.dueDate === today;
-  const hasMeta = !done && (task.category || task.dueDate);
+  const subs = task.subtasks ?? [];
+  const subDone = subs.filter(s => s.done).length;
+  const recurs = recurrenceLabel(task.recurrence);
+  const remind = reminderLabel(task.reminderLead);
+  const hasMeta = !done && (task.category || task.dueDate || task.dueTime || recurs || subs.length > 0 || remind || task.context);
+  // Expandable when there's something to show, or it's editable.
+  const expandable = !done || !!task.description || subs.length > 0 || !!task.context;
 
   return (
-    <div
-      className="group flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-white/[0.04] transition cursor-pointer"
-      onClick={onToggle}
-    >
-      <div
-        className={`flex items-center justify-center w-4 h-4 rounded-full border flex-shrink-0 transition mt-px
-          ${done
-            ? 'border-emerald-400/50 text-emerald-400'
-            : 'border-white/[0.15] text-transparent group-hover:border-white/[0.3] group-hover:text-white/[0.15]'
-          }`}
-        style={{ fontSize: 9 }}
-      >
-        ✓
-      </div>
+    <div className="rounded-lg hover:bg-white/[0.04] transition">
+      <div className="group flex items-start gap-2 px-2 py-1.5">
+        {/* Checkbox toggles complete; stop propagation so it doesn't also expand. */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggle(); }}
+          aria-label={tt('tasks.toggle_complete', 'Toggle complete')}
+          className={`flex items-center justify-center w-4 h-4 rounded-full border flex-shrink-0 transition mt-px bg-transparent cursor-pointer
+            ${done
+              ? 'border-emerald-400/50 text-emerald-400'
+              : 'border-white/[0.15] text-transparent group-hover:border-white/[0.3] group-hover:text-white/[0.15]'
+            }`}
+          style={{ fontSize: 9 }}
+        >
+          ✓
+        </button>
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className={`text-xs flex-1 truncate transition ${done ? 'line-through opacity-30' : 'opacity-80'}`}>
-            {task.title}
-          </span>
-          {style && !done && (
-            <span
-              className="text-[9px] px-1.5 py-0 rounded-full font-medium flex-shrink-0"
-              style={{ backgroundColor: style.bg, color: style.text }}
-            >
-              {task.priority}
+        {/* Body — click to expand the detail. */}
+        <div
+          className={`flex-1 min-w-0 ${expandable ? 'cursor-pointer' : ''}`}
+          onClick={() => expandable && setExpanded(x => !x)}
+        >
+          <div className="flex items-center gap-2">
+            <span className={`text-xs flex-1 truncate transition ${done ? 'line-through opacity-30' : 'opacity-80'}`}>
+              {task.title}
             </span>
-          )}
-        </div>
-
-        {hasMeta && (
-          <div className="flex items-center gap-1.5 mt-0.5">
-            {task.category && (
+            {style && !done && (
               <span
-                className="text-[9px] px-1.5 rounded-full font-medium"
-                style={{ color: categoryColor(task.category), backgroundColor: `${categoryColor(task.category)}1a` }}
+                className="text-[9px] px-1.5 py-0 rounded-full font-medium flex-shrink-0"
+                style={{ backgroundColor: style.bg, color: style.text }}
               >
-                {task.category}
-              </span>
-            )}
-            {task.dueDate && (
-              <span
-                className="text-[9px]"
-                style={{
-                  color: overdue ? '#ef4444' : dueToday ? '#f59e0b' : 'var(--text-muted)',
-                  opacity: overdue || dueToday ? 1 : 0.6,
-                }}
-              >
-                {formatDueShort(task.dueDate)}{overdue ? ' · overdue' : ''}
+                {task.priority}
               </span>
             )}
           </div>
+
+          {hasMeta && (
+            <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+              {task.category && (
+                <span
+                  className="text-[9px] px-1.5 rounded-full font-medium"
+                  style={{ color: categoryColor(task.category), backgroundColor: `${categoryColor(task.category)}1a` }}
+                >
+                  {task.category}
+                </span>
+              )}
+              {task.dueDate && (
+                <span
+                  className="text-[9px]"
+                  style={{
+                    color: overdue ? '#ef4444' : dueToday ? '#f59e0b' : 'var(--text-muted)',
+                    opacity: overdue || dueToday ? 1 : 0.6,
+                  }}
+                >
+                  {formatDueShort(task.dueDate)}{task.dueTime ? ` · ${task.dueTime}` : ''}{overdue ? ' · overdue' : ''}
+                </span>
+              )}
+              {!task.dueDate && task.dueTime && (
+                <span className="text-[9px] text-[var(--text-muted)] opacity-60">{task.dueTime}</span>
+              )}
+              {recurs && (
+                <span className="text-[9px] text-[var(--text-muted)] opacity-70" title={tt('tasks.recurrence', 'Repeat')}>↻ {recurs}</span>
+              )}
+              {remind && (
+                <span className="text-[9px] text-[var(--text-muted)] opacity-70" title={tt('tasks.reminder', 'Reminder')}>🔔 {remind}</span>
+              )}
+              {subs.length > 0 && (
+                <span className="text-[9px] text-[var(--text-muted)] opacity-70" title={tt('tasks.subtasks', 'Subtasks')}>
+                  ☑ {subDone}/{subs.length}
+                </span>
+              )}
+              {task.context && (
+                <span className="text-[9px] text-[var(--text-muted)] opacity-60 truncate max-w-[120px]" title={task.context.label || task.context.ref}>
+                  📎 {task.context.label || task.context.kind}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {expandable && (
+          <button
+            onClick={() => setExpanded(x => !x)}
+            className="flex-shrink-0 mt-0.5 opacity-30 hover:opacity-70 bg-transparent border-none cursor-pointer transition"
+            aria-label={tt('tasks.expand', 'Expand')}
+          >
+            <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"
+              className="transition-transform" style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>
+              <path d="M6 4l4 4-4 4V4z" />
+            </svg>
+          </button>
         )}
+      </div>
+
+      {expanded && (
+        <div className="px-2 pb-2 pl-8 flex flex-col gap-2">
+          {task.description && (
+            <p className="text-[11px] leading-relaxed text-[var(--text-secondary)] whitespace-pre-wrap">{task.description}</p>
+          )}
+
+          {subs.length > 0 && (
+            <div className="flex flex-col gap-0.5">
+              {subs.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => onToggleSubtask(task.id, s.id)}
+                  className="flex items-center gap-2 px-1 py-0.5 rounded text-left bg-transparent border-none cursor-pointer hover:bg-white/[0.03] transition"
+                >
+                  <span
+                    className={`flex items-center justify-center w-3.5 h-3.5 rounded border flex-shrink-0 transition text-[8px]
+                      ${s.done ? 'border-emerald-400/50 text-emerald-400' : 'border-white/[0.2] text-transparent'}`}
+                  >
+                    ✓
+                  </span>
+                  <span className={`text-[11px] ${s.done ? 'line-through opacity-40' : 'opacity-80'}`}>{s.title}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {task.context && (
+            <div className="text-[10px] text-[var(--text-muted)] opacity-70">
+              📎 {tt('tasks.from', 'From')} {task.context.label || task.context.kind}
+            </div>
+          )}
+
+          {!done && (
+            editing ? (
+              <TaskEditForm
+                task={task}
+                onSave={(u) => { onUpdateTask(task.id, u); setEditing(false); }}
+                onCancel={() => setEditing(false)}
+              />
+            ) : (
+              <button
+                onClick={() => setEditing(true)}
+                className="self-start text-[10px] font-medium px-2 py-0.5 rounded-md cursor-pointer border transition
+                           text-[var(--accent)] border-[var(--accent)]/30 bg-[var(--accent)]/[0.06] hover:bg-[var(--accent)]/15"
+              >
+                {tt('tasks.edit', 'Edit')}
+              </button>
+            )
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Inline editor for an existing task — priority, category, date, time,
+ *  recurrence and reminder. Title is edited via the field at the top. */
+function TaskEditForm({
+  task,
+  onSave,
+  onCancel,
+}: {
+  task: TodayTaskUI;
+  onSave: (updates: UpdateTaskInput) => void;
+  onCancel: () => void;
+}) {
+  useLocale();
+  const [title, setTitle] = useState(task.title);
+  const [priority, setPriority] = useState(task.priority);
+  const [category, setCategory] = useState(task.category || 'personal');
+  const [dueDate, setDueDate] = useState(task.dueDate || '');
+  const [dueTime, setDueTime] = useState(task.dueTime || '');
+  const [recurrence, setRecurrence] = useState(task.recurrence || 'none');
+  const [reminderLead, setReminderLead] = useState(task.reminderLead ?? -1);
+
+  const save = useCallback(() => {
+    onSave({
+      title: title.trim() || task.title,
+      priority,
+      category,
+      due_date: dueDate || undefined,
+      due_time: dueTime || undefined,
+      recurrence,
+      reminder_lead: reminderLead,
+    });
+  }, [title, priority, category, dueDate, dueTime, recurrence, reminderLead, onSave, task.title]);
+
+  return (
+    <div className="p-2 rounded-lg flex flex-col gap-2" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        className="w-full px-2 py-1 rounded-md text-[11px] outline-none"
+        style={QUICK_INPUT_STYLE}
+      />
+      <div className="flex items-center gap-1.5">
+        <select value={priority} onChange={(e) => setPriority(e.target.value as TodayTaskUI['priority'])} className="flex-1 min-w-0 px-1.5 py-1 rounded-md text-[10px] outline-none cursor-pointer" style={QUICK_INPUT_STYLE}>
+          {PRIORITY_OPTIONS.map((p) => <option key={p} value={p}>{tt(`tasks.priority_${p}`, p)}</option>)}
+        </select>
+        <input list="edit-categories" value={category} onChange={(e) => setCategory(e.target.value)} className="flex-1 min-w-0 px-1.5 py-1 rounded-md text-[10px] outline-none" style={QUICK_INPUT_STYLE} />
+        <datalist id="edit-categories">{CATEGORY_OPTIONS.map((c) => <option key={c} value={c} />)}</datalist>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="flex-1 min-w-0 px-1.5 py-1 rounded-md text-[10px] outline-none cursor-pointer" style={QUICK_INPUT_STYLE} />
+        <input type="time" value={dueTime} onChange={(e) => setDueTime(e.target.value)} className="flex-1 min-w-0 px-1.5 py-1 rounded-md text-[10px] outline-none cursor-pointer" style={QUICK_INPUT_STYLE} />
+      </div>
+      <div className="flex items-center gap-1.5">
+        <select value={recurrence} onChange={(e) => setRecurrence(e.target.value as typeof RECURRENCE_OPTIONS[number])} className="flex-1 min-w-0 px-1.5 py-1 rounded-md text-[10px] outline-none cursor-pointer" style={QUICK_INPUT_STYLE}>
+          {RECURRENCE_OPTIONS.map((r) => <option key={r} value={r}>{tt(`tasks.recurrence_${r}`, r)}</option>)}
+        </select>
+        <select value={reminderLead} onChange={(e) => setReminderLead(Number(e.target.value))} className="flex-1 min-w-0 px-1.5 py-1 rounded-md text-[10px] outline-none cursor-pointer" style={QUICK_INPUT_STYLE}>
+          {REMINDER_OPTIONS.map((r) => <option key={r.value} value={r.value}>{tt(`tasks.reminder_${r.value}`, r.label)}</option>)}
+        </select>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <button onClick={save} className="px-3 py-1 rounded-md text-[11px] font-semibold border-none cursor-pointer transition" style={{ background: '#A855F7', color: 'white' }}>
+          {tt('tasks.save', 'Save')}
+        </button>
+        <button onClick={onCancel} className="px-2.5 py-1 rounded-md text-[11px] font-medium border-none cursor-pointer bg-transparent text-[var(--text-secondary)] opacity-50 hover:opacity-90 transition">
+          {tt('tasks.cancel', 'Cancel')}
+        </button>
       </div>
     </div>
   );

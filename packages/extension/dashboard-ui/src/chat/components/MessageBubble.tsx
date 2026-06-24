@@ -10,6 +10,7 @@ import { TodoCard } from './TodoCard';
 import { AskUserCard } from './AskUserCard';
 import { ProfileFieldCard } from './ProfileFieldCard';
 import { OpenHealthRoomCard } from './OpenHealthRoomCard';
+import { TaskSuggestCard } from './TaskSuggestCard';
 import { CopyButton } from './CopyButton';
 import { FeedbackButtons } from './FeedbackButtons';
 import { useSecrets } from '../hooks/useSecrets';
@@ -458,6 +459,9 @@ export function MessageBubble({ message, onConfirmation, onContinue, onRate, use
         }
         if (tc.name === 'open_health_room') {
           return <OpenHealthRoomCard key={tc.id} toolCall={tc} />;
+        }
+        if (tc.name === 'task_suggest') {
+          return <TaskSuggestCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />;
         }
         if (tc.name === 'ask_user') {
           return <AskUserCard key={tc.id} toolCall={tc} onConfirmation={onConfirmation} />;

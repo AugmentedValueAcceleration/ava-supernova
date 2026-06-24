@@ -43,7 +43,7 @@ function httpGetJson(url: string): Promise<unknown> {
   });
 }
 import {
-  MemoryManager, TaskManager, JournalManager, AVA_HOME,
+  MemoryManager, TaskManager, migrateGlobalTasksToSubfolder, JournalManager, AVA_HOME,
   loadPersonality, savePersonality, resetPersonality,
   loadDatasetConfig, saveDatasetConfig, configPathFor,
   exportEncryptedBackup, importEncryptedBackup, gatherBundle,
@@ -3207,9 +3207,10 @@ export class DashboardPanel {
 
   private getTaskManager(): TaskManager {
     if (!this.taskManager) {
-      const globalDir = this.getUserDataDir();
+      const scopedRoot = this.getUserDataDir();
+      migrateGlobalTasksToSubfolder(scopedRoot);
       const projectRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-      this.taskManager = new TaskManager({ globalDir, projectRoot });
+      this.taskManager = new TaskManager({ globalDir: path.join(scopedRoot, 'tasks'), projectRoot });
     }
     return this.taskManager;
   }

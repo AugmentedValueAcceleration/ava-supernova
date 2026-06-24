@@ -1,7 +1,21 @@
+import { randomUUID } from 'node:crypto';
 import type { Tool, ToolResult, ToolExecutionContext, ToolRiskLevel } from './types.js';
 import type { FunctionSchema } from '../providers/types.js';
 import type { TaskManager, TaskCreateOptions } from '../tasks/task-manager.js';
-import type { TaskEntry } from '../tasks/types.js';
+import type { TaskEntry, TaskReminderLead, TaskSubtask } from '../tasks/types.js';
+
+/** Map the tool's reminder enum to minutes-before-due. */
+const REMINDER_TO_MINUTES: Record<string, TaskReminderLead> = {
+  at_time: 0, '10m': 10, '30m': 30, '1h': 60, '1d': 1440,
+};
+
+/** Turn a list of subtask titles into TaskSubtask rows. */
+function toSubtasks(value: unknown): TaskSubtask[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const titles = value.filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
+  if (titles.length === 0) return undefined;
+  return titles.map(title => ({ id: randomUUID(), title: title.trim(), done: false }));
+}
 
 export class TaskManageTool implements Tool {
   readonly name = 'task_manage';
@@ -53,6 +67,20 @@ export class TaskManageTool implements Tool {
         due_date: {
           type: 'string',
           description: 'Due date in YYYY-MM-DD format. Only set this when the user gives a real date or deadline — never invent one. Leave unset for tasks with no due date.',
+        },
+        due_time: {
+          type: 'string',
+          description: 'Time of day the task is due, in 24h HH:MM (e.g. "18:00"). Only when the user gives a real time ("call mum at 6"). Needs a due_date to anchor to.',
+        },
+        reminder: {
+          type: 'string',
+          enum: ['at_time', '10m', '30m', '1h', '1d'],
+          description: 'Fire a reminder this far before the task is due: at_time, 10m, 30m, 1h, or 1d before. Only set when the user wants reminding. Needs a due_date.',
+        },
+        subtasks: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional checklist — a list of subtask titles to break the task into steps.',
         },
         recurrence: {
           type: 'string',
@@ -146,6 +174,7 @@ export class TaskManageTool implements Tool {
       return { success: false, output: 'Missing required field: title' };
     }
 
+    const reminder = args.reminder as string | undefined;
     const opts: TaskCreateOptions = {
       title,
       description: args.description as string | undefined,
@@ -156,6 +185,9 @@ export class TaskManageTool implements Tool {
       // No auto due-date — a task only lands in "Today" if the user gave a
       // real deadline. Auto-stamping today polluted the Today view.
       dueDate: args.due_date as string | undefined,
+      dueTime: args.due_time as string | undefined,
+      reminderLead: reminder ? REMINDER_TO_MINUTES[reminder] : undefined,
+      subtasks: toSubtasks(args.subtasks),
       recurrence: (args.recurrence as TaskCreateOptions['recurrence']) ?? 'none',
       scope: (args.scope as 'project' | 'global') ?? 'project',
       source: 'ava',
@@ -198,10 +230,18 @@ export class TaskManageTool implements Tool {
     if (args.priority !== undefined) updates.priority = args.priority;
     if (args.category !== undefined) updates.category = args.category;
     if (args.due_date !== undefined) updates.dueDate = args.due_date;
+    if (args.due_time !== undefined) updates.dueTime = args.due_time;
+    if (args.reminder !== undefined) {
+      updates.reminderLead = REMINDER_TO_MINUTES[args.reminder as string];
+    }
+    if (args.subtasks !== undefined) {
+      const subs = toSubtasks(args.subtasks);
+      if (subs) updates.subtasks = subs;
+    }
     if (args.recurrence !== undefined) updates.recurrence = args.recurrence;
 
     if (Object.keys(updates).length === 0) {
-      return { success: false, output: 'No fields to update. Provide title, description, priority, category, due_date, or recurrence.' };
+      return { success: false, output: 'No fields to update. Provide title, description, priority, category, due_date, due_time, reminder, subtasks, or recurrence.' };
     }
 
     const entry = await tm.updateTask(taskId, updates);

@@ -372,6 +372,12 @@
             "order": 6,
             "description": "%setting.memoryLocalOnly.description%"
           },
+          "ava-supernova.preferences.taskReminders": {
+            "type": "boolean",
+            "default": true,
+            "order": 7,
+            "description": "Show a notification when a task with a reminder falls due. Reminders fire while VS Code is open, even if the Tasks panel is closed. Turn off to silence all task reminders."
+          },
           "ava-supernova.preferences.useLocalEmbeddings": {
             "type": "boolean",
             "default": false,

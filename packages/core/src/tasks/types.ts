@@ -33,6 +33,19 @@ export interface TaskSubtask {
   done: boolean;
 }
 
+/** How long before a task is due its reminder should fire, in minutes.
+ *  0 = at the due time; 1440 = a day before. undefined = no reminder. */
+export type TaskReminderLead = 0 | 10 | 30 | 60 | 1440;
+
+/** Where a task came from — the provenance that makes it Ava's, not a
+ *  generic to-do. `ref` is an opaque pointer the surface can resolve
+ *  (a message id, a file path, a plan id…); `label` is the human hint. */
+export interface TaskContext {
+  kind: 'chat' | 'file' | 'plan' | 'lesson' | 'other';
+  ref: string;
+  label?: string;
+}
+
 /** A single task entry. */
 export interface TaskEntry {
   /** Unique identifier (UUID v4). */
@@ -47,6 +60,8 @@ export interface TaskEntry {
   status: TaskStatus;
   /** Optional due date (ISO 8601 date string, e.g. "2026-03-15"). */
   dueDate?: string;
+  /** Optional time of day the task is due, 'HH:MM' (24h). Pairs with dueDate. */
+  dueTime?: string;
   /** Category for grouping. */
   category: TaskCategory;
   /** Who created this task. */
@@ -57,6 +72,12 @@ export interface TaskEntry {
   recurrence: TaskRecurrence;
   /** Subtasks for breaking down work. */
   subtasks: TaskSubtask[];
+  /** Minutes before due that a reminder should fire (undefined = none). */
+  reminderLead?: TaskReminderLead;
+  /** When a reminder last fired for this entry (ISO 8601) — dedupe guard. */
+  reminderFiredAt?: string;
+  /** Where this task came from. */
+  context?: TaskContext;
   /** When created (ISO 8601). */
   createdAt: string;
   /** When last updated (ISO 8601). */
@@ -67,8 +88,8 @@ export interface TaskEntry {
 
 /** The full task store persisted as JSON. */
 export interface TaskStore {
-  /** Schema version for future migrations. */
-  version: 1;
+  /** Schema version. v1 stores are read and forward-migrated to v2. */
+  version: 1 | 2;
   /** When this store was last modified (ISO 8601). */
   lastModified: string;
   /** The task entries. */
@@ -98,7 +119,7 @@ export const TASK_CATEGORIES: TaskCategory[] = [
 /** Default empty task store. */
 export function createEmptyTaskStore(): TaskStore {
   return {
-    version: 1,
+    version: 2,
     lastModified: new Date().toISOString(),
     entries: [],
   };

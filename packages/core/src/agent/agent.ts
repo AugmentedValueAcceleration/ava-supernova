@@ -233,7 +233,7 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
     // Memory — delete is out (rare, destructive)
     'memory_save', 'memory_recall', 'memory_update',
     // Planning / tasks
-    'present_plan', 'todo_write', 'task_manage', 'apply_plan',
+    'present_plan', 'todo_write', 'task_manage', 'task_suggest', 'apply_plan',
     // Testing
     'test_run', 'test_generate',
     // Architecture / docs gen
@@ -277,9 +277,10 @@ const MODE_ALLOWED_TOOLS: Record<string, Set<string>> = {
   ]),
   chat: new Set([
     'web_search', 'memory_save', 'memory_recall', 'memory_update', 'journal_write',
-    // todo_write so a quick "add X to my list" mid-chat works without
-    // forcing a mode switch and back.
-    'todo_write',
+    // todo_write for Ava's own session steps. task_suggest is her DEFAULT for a
+    // task-worthy thing she notices (a tap-to-add card); task_manage is for when
+    // the user explicitly says "add X to my list" — create directly then.
+    'todo_write', 'task_suggest', 'task_manage',
     'get_datetime', 'weather', 'news', 'ask_user',
     // Hand a fitness/meal plan request off to the focused Health room.
     'open_health_room',

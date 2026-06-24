@@ -180,7 +180,7 @@ export { loadStore as loadSelfImprovementStore, saveStore as saveSelfImprovement
 export type { SelfImprovement, SelfImprovementStore } from './memory/self-improvement.js';
 
 // Tasks
-export { TaskManager } from './tasks/task-manager.js';
+export { TaskManager, migrateGlobalTasksToSubfolder, reminderFireTimeMs } from './tasks/task-manager.js';
 export type { PlatformTaskSync, TaskCreateOptions, TaskUpdateOptions } from './tasks/task-manager.js';
 export type {
   TaskEntry,
@@ -191,6 +191,8 @@ export type {
   TaskRecurrence,
   TaskSource,
   TaskSubtask,
+  TaskReminderLead,
+  TaskContext,
   TaskListOptions,
 } from './tasks/types.js';
 export { TASK_PRIORITIES, TASK_CATEGORIES, createEmptyTaskStore } from './tasks/types.js';

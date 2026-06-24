@@ -11,6 +11,7 @@ import {
   HistoryManager,
   MemoryManager,
   TaskManager,
+  migrateGlobalTasksToSubfolder,
   PlatformMemorySync,
   PlatformTaskSyncImpl,
   JournalManager,
@@ -543,11 +544,14 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
     const taskLocalOnly = (vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.taskLocalOnly') ?? true)
       || syncPrefs.tasks === false
       || !cloudAllowed;
-    this.taskManager = new TaskManager({ globalDir: AVA_HOME, projectRoot: this.projectRoot, sync: taskSync, localOnly: taskLocalOnly });
+    migrateGlobalTasksToSubfolder(AVA_HOME);
+    this.taskManager = new TaskManager({ globalDir: join(AVA_HOME, 'tasks'), projectRoot: this.projectRoot, sync: taskSync, localOnly: taskLocalOnly });
     if (taskSync && !taskLocalOnly) {
       // Pull on session start so tasks made on device A show up on B.
       this.taskManager.pullLatest().catch(() => {});
     }
+    // Reminders fire host-side, independent of the panel being open.
+    this.startReminderScheduler();
 
     // Journal is fully local — entries live on-device only and never sync to
     // the cloud. Download/transfer is handled by the local export system.
@@ -876,8 +880,24 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           priority: msg.priority as string | undefined,
           category: msg.category as string | undefined,
           due_date: msg.due_date as string | undefined,
+          due_time: msg.due_time as string | undefined,
           recurrence: msg.recurrence as string | undefined,
+          reminder_lead: msg.reminder_lead as number | undefined,
+          subtasks: msg.subtasks as string[] | undefined,
         };
+        break;
+      case 'panel_update_task':
+        mapped = {
+          type: 'panel_update_task',
+          taskId: msg.taskId as string,
+          updates: (msg.updates ?? {}) as Record<string, unknown>,
+        } as any;
+        break;
+      case 'toggle_subtask':
+        mapped = { type: 'toggle_subtask', taskId: msg.taskId as string, subtaskId: msg.subtaskId as string } as any;
+        break;
+      case 'open_tasks_folder':
+        mapped = { type: 'open_tasks_folder' } as any;
         break;
       case 'rate_message':
         mapped = { type: 'rate_message', messageId: msg.messageId as string, rating: msg.rating as 'up' | 'down', reason: msg.reason as string | undefined };
@@ -1092,6 +1112,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
   dispose(): void {
     this.stopHeartbeat();
+    this.stopReminderScheduler();
     killBackgroundProcesses();
     this.settingsListener?.dispose();
     this.statusBar.dispose();
@@ -1123,6 +1144,70 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = undefined;
     }
+  }
+
+  // ─── Task reminders ────────────────────────────────────────────────────────
+  // A host-side scheduler so a task reminder fires even when the panel (or the
+  // whole dashboard) is closed — it only needs the extension host alive. The
+  // notification surface is VS Code's own (no OS-permission gate exists for an
+  // extension; the IDE mirror uses the native notification API which DOES ask).
+  // Respect the user's preference toggle; dedupe via the task's reminderFiredAt.
+  private reminderTimer?: ReturnType<typeof setInterval>;
+  private snoozedReminders = new Map<string, { fireAt: number; title: string }>();
+
+  private startReminderScheduler(): void {
+    if (this.reminderTimer) return;
+    this.reminderTimer = setInterval(() => { this.tickReminders().catch(() => {}); }, 30_000);
+    // First sweep shortly after start so a reminder due at launch surfaces.
+    setTimeout(() => { this.tickReminders().catch(() => {}); }, 8_000);
+  }
+
+  private stopReminderScheduler(): void {
+    if (this.reminderTimer) {
+      clearInterval(this.reminderTimer);
+      this.reminderTimer = undefined;
+    }
+  }
+
+  private async tickReminders(): Promise<void> {
+    const enabled = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.taskReminders') ?? true;
+    if (!enabled || !this.taskManager) return;
+    const now = Date.now();
+
+    // Snoozed re-fires first.
+    for (const [id, s] of this.snoozedReminders) {
+      if (now >= s.fireAt) {
+        this.snoozedReminders.delete(id);
+        this.fireReminder(id, s.title);
+      }
+    }
+
+    try {
+      const due = await this.taskManager.getDueReminders(now);
+      for (const task of due) {
+        // Stamp first so a slow notification can't double-fire on the next tick.
+        await this.taskManager.markReminderFired(task.id).catch(() => {});
+        this.fireReminder(task.id, task.title);
+      }
+    } catch { /* best-effort */ }
+  }
+
+  private fireReminder(taskId: string, title: string): void {
+    const OPEN = 'Open tasks';
+    const DONE = 'Mark done';
+    const SNOOZE = 'Snooze 10m';
+    void vscode.window.showInformationMessage(`⏰ ${title}`, OPEN, DONE, SNOOZE).then((choice) => {
+      if (choice === DONE) {
+        this.taskManager?.completeTask(taskId).then(() => {
+          void this.sendTodayTasks();
+          void this.sendAllTasks();
+        }).catch(() => {});
+      } else if (choice === SNOOZE) {
+        this.snoozedReminders.set(taskId, { fireAt: Date.now() + 10 * 60_000, title });
+      } else if (choice === OPEN) {
+        try { this.view?.show?.(true); } catch { /* view may not be resolvable */ }
+      }
+    });
   }
 
   private handlePong(): void {
@@ -1277,7 +1362,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
                 const memoryLocalOnly = vscode.workspace.getConfiguration('ava-supernova').get<boolean>('preferences.memoryLocalOnly') ?? true;
                 this.memoryManager = new MemoryManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync, localOnly: memoryLocalOnly, embeddingService: this.resolveEmbeddingService() });
                 const taskSync = new PlatformTaskSyncImpl('https://ava-supernova.com/api', platformKey);
-                this.taskManager = new TaskManager({ globalDir: newScopedDir, projectRoot: this.projectRoot, sync: taskSync });
+                migrateGlobalTasksToSubfolder(newScopedDir);
+                this.taskManager = new TaskManager({ globalDir: join(newScopedDir, 'tasks'), projectRoot: this.projectRoot, sync: taskSync });
                 this.journalManager = new JournalManager({ globalDir: newScopedDir, projectRoot: this.projectRoot });
                 // History: scope it too. Migrate any legacy transcripts from the
                 // old unscoped ~/.ava/history into the scoped dir (one-time),
@@ -2216,14 +2302,7 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       const todayTasks = await this.taskManager.getTodayTasks();
       this.postMessage({
         type: 'today_tasks',
-        tasks: todayTasks.map(t => ({
-          id: t.id,
-          title: t.title,
-          priority: t.priority,
-          status: t.status === 'archived' ? 'done' as const : t.status,
-          dueDate: t.dueDate,
-          category: t.category,
-        })),
+        tasks: todayTasks.map(t => this.toTodayTaskUI(t)),
       });
     } catch {
       this.postMessage({ type: 'today_tasks', tasks: [] });
@@ -2237,18 +2316,67 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       const all = await this.taskManager.listTasks({ status: ['todo', 'in-progress'] });
       this.postMessage({
         type: 'all_tasks',
-        tasks: all.map(t => ({
-          id: t.id,
-          title: t.title,
-          priority: t.priority,
-          status: t.status === 'archived' ? 'done' as const : t.status,
-          dueDate: t.dueDate,
-          category: t.category,
-        })),
+        tasks: all.map(t => this.toTodayTaskUI(t)),
       });
     } catch {
       this.postMessage({ type: 'all_tasks', tasks: [] });
     }
+  }
+
+  /** Open the account-scoped tasks folder on disk (mirror of the Library's
+   *  "Open save folder"). Lands at `<scoped>/tasks`. */
+  private async openTasksFolder(): Promise<void> {
+    try {
+      const dir = join(this.accountScopedDir, 'tasks');
+      const fs = await import('node:fs/promises');
+      await fs.mkdir(dir, { recursive: true }).catch(() => {});
+      await vscode.env.openExternal(vscode.Uri.file(dir));
+    } catch { /* best-effort */ }
+  }
+
+  /** Create a task the user accepted from a task_suggest card. Global scope,
+   *  source 'ava' (she proposed it, they accepted). Refreshes the panel. */
+  private async createSuggestedTask(p: Record<string, unknown>): Promise<string> {
+    if (!this.taskManager) return 'Task manager unavailable.';
+    const title = String(p.title ?? '').trim();
+    if (!title) return 'No task title.';
+    type AddOpts = Parameters<TaskManager['addTask']>[0];
+    await this.taskManager.addTask({
+      title,
+      description: p.description as string | undefined,
+      priority: (p.priority as AddOpts['priority']) ?? 'medium',
+      category: (p.category as AddOpts['category']) ?? 'personal',
+      dueDate: p.due_date as string | undefined,
+      dueTime: p.due_time as string | undefined,
+      reminderLead: p.reminder_lead as AddOpts['reminderLead'],
+      recurrence: (p.recurrence as AddOpts['recurrence']) ?? 'none',
+      subtasks: Array.isArray(p.subtasks)
+        ? (p.subtasks as string[]).map((t) => ({ id: crypto.randomUUID(), title: t, done: false }))
+        : undefined,
+      scope: 'global',
+      source: 'ava',
+    });
+    await this.sendTodayTasks();
+    await this.sendAllTasks();
+    return `Added "${title}" to their tasks.`;
+  }
+
+  /** Map a core TaskEntry to the panel's TodayTaskUI (carries the rich fields). */
+  private toTodayTaskUI(t: import('@ava/core').TaskEntry): import('./dashboard-message-types').TodayTaskUI {
+    return {
+      id: t.id,
+      title: t.title,
+      description: t.description,
+      priority: t.priority,
+      status: t.status === 'archived' ? 'done' as const : (t.status as 'todo' | 'in-progress' | 'done'),
+      dueDate: t.dueDate,
+      dueTime: t.dueTime,
+      category: t.category,
+      recurrence: t.recurrence,
+      reminderLead: t.reminderLead,
+      subtasks: t.subtasks?.map(s => ({ id: s.id, title: s.title, done: s.done })),
+      context: t.context,
+    };
   }
 
   /** Send completed Ava tasks from this project's store. */
@@ -2741,7 +2869,13 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
 
       case 'toggle_task':
         if (this.taskManager && message.taskId) {
-          await this.taskManager.completeTask(message.taskId);
+          // Real toggle — un-checking a done task restores it to todo.
+          const existing = await this.taskManager.getTask(message.taskId);
+          if (existing?.status === 'done') {
+            await this.taskManager.updateTask(message.taskId, { status: 'todo' });
+          } else {
+            await this.taskManager.completeTask(message.taskId);
+          }
           await this.sendTodayTasks();
           await this.sendAllTasks();
         }
@@ -2756,6 +2890,9 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
             priority: (message.priority as AddOpts['priority']) ?? 'medium',
             category: (message.category as AddOpts['category']) ?? 'personal',
             dueDate: message.due_date,
+            dueTime: message.due_time,
+            reminderLead: message.reminder_lead as AddOpts['reminderLead'],
+            subtasks: message.subtasks?.map((title: string) => ({ id: crypto.randomUUID(), title, done: false })),
             recurrence: (message.recurrence as AddOpts['recurrence']) ?? 'none',
             // Personal tasks from the Tasks panel go GLOBAL (~/.ava/tasks.json),
             // not per-workspace — same fix as the dashboard Planner. Project
@@ -2767,6 +2904,37 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
           await this.sendTodayTasks();
           await this.sendAllTasks();
         }
+        break;
+
+      case 'panel_update_task':
+        if (this.taskManager && message.taskId) {
+          type UpdOpts = Parameters<TaskManager['updateTask']>[1];
+          const u = (message.updates ?? {}) as Record<string, unknown>;
+          const updates: UpdOpts = {};
+          if (u.title !== undefined) updates.title = u.title as string;
+          if (u.description !== undefined) updates.description = u.description as string;
+          if (u.priority !== undefined) updates.priority = u.priority as UpdOpts['priority'];
+          if (u.category !== undefined) updates.category = u.category as string;
+          if (u.due_date !== undefined) updates.dueDate = u.due_date as string;
+          if (u.due_time !== undefined) updates.dueTime = u.due_time as string;
+          if (u.recurrence !== undefined) updates.recurrence = u.recurrence as UpdOpts['recurrence'];
+          if (u.reminder_lead !== undefined) updates.reminderLead = u.reminder_lead as UpdOpts['reminderLead'];
+          await this.taskManager.updateTask(message.taskId, updates);
+          await this.sendTodayTasks();
+          await this.sendAllTasks();
+        }
+        break;
+
+      case 'toggle_subtask':
+        if (this.taskManager && message.taskId && message.subtaskId) {
+          await this.taskManager.toggleSubtask(message.taskId, message.subtaskId);
+          await this.sendTodayTasks();
+          await this.sendAllTasks();
+        }
+        break;
+
+      case 'open_tasks_folder':
+        await this.openTasksFolder();
         break;
 
       case 'rate_message':
@@ -4227,6 +4395,22 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         }
       } else {
         pending.resolve('User closed the profile question without answering — move on, don\'t re-ask it.');
+      }
+    } else if (pending.toolName === 'task_suggest') {
+      // userResponse is the (possibly user-edited) task JSON on Add; a dismiss
+      // comes through as not-approved. The task only persists on Add.
+      if (approved && userResponse) {
+        let parsed: any = null;
+        try { parsed = JSON.parse(userResponse); } catch { /* malformed */ }
+        if (parsed?.title) {
+          this.createSuggestedTask(parsed)
+            .then((msg) => pending.resolve(msg))
+            .catch(() => pending.resolve('Added the task to their list.'));
+        } else {
+          pending.resolve('User added the suggested task.');
+        }
+      } else {
+        pending.resolve('User dismissed the task suggestion — don\'t re-suggest it.');
       }
     } else if (pending.toolName === 'switch_mode') {
       if (approved) {
