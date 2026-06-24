@@ -9,28 +9,11 @@ import { MistralProvider } from './mistral/index.js';
 import { AnthropicProvider } from './anthropic/index.js';
 import { MiniMaxProvider } from './minimax/index.js';
 import { XiaomiProvider } from './xiaomi/index.js';
-import { DEEPSEEK_MODELS } from './deepseek/models.js';
-import { KIMI_MODELS } from './kimi/models.js';
-import { QWEN_MODELS } from './qwen/models.js';
-import { ZHIPU_MODELS } from './zhipu/models.js';
-import { MISTRAL_MODELS } from './mistral/models.js';
-import { ANTHROPIC_MODELS } from './anthropic/models.js';
-import { MINIMAX_MODELS } from './minimax/models.js';
-import { XIAOMI_MODELS } from './xiaomi/models.js';
+// Single source of truth for the model catalogue — also exported browser-safe
+// via `@ava/core/models` so the IDE renderer shares the exact same list.
+import { ALL_MODELS } from './catalog.js';
 
 type ProviderFactory = (config: ProviderConfig) => Provider;
-
-/** Every model Ava supports, keyed by provider name. */
-const ALL_MODELS: Record<string, ModelDefinition[]> = {
-  deepseek: DEEPSEEK_MODELS,
-  kimi: KIMI_MODELS,
-  qwen: QWEN_MODELS,
-  zhipu: ZHIPU_MODELS,
-  mistral: MISTRAL_MODELS,
-  anthropic: ANTHROPIC_MODELS,
-  minimax: MINIMAX_MODELS,
-  xiaomi: XIAOMI_MODELS,
-};
 
 const BUILT_IN_PROVIDERS: Record<string, ProviderFactory> = {
   deepseek: (config) => new DeepSeekProvider(config),
