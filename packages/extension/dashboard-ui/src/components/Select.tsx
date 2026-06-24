@@ -78,7 +78,9 @@ export function Select({ value, onChange, options, size = 'md', className = '', 
   }, [open, reposition]);
 
   const selected = options.find(o => o.value === value);
-  const btnSize = size === 'sm' ? 'px-2.5 py-1 text-[12px]' : 'px-4 py-2.5 text-sm';
+  // `sm` matches the canonical input register (inputCls: px-2.5 py-1.5 text-[12px])
+  // so dropdowns line up exactly beside text inputs and date pickers.
+  const btnSize = size === 'sm' ? 'px-2.5 py-1.5 text-[12px]' : 'px-4 py-2.5 text-sm';
   const optSize = size === 'sm' ? 'px-3 py-1.5 text-[12px]' : 'px-4 py-2 text-sm';
 
   return (

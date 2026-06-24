@@ -26,13 +26,22 @@ export function MiniDatePicker({ value, onChange }: MiniDatePickerProps) {
     const d = new Date(v.y, v.m + delta, 1);
     return { y: d.getFullYear(), m: d.getMonth() };
   });
+  const stepYear = (delta: number) => setView((v) => ({ y: v.y + delta, m: v.m }));
+
+  const navBtn = 'text-[var(--text-muted)] bg-transparent border-none cursor-pointer hover:text-white px-1 leading-none';
 
   return (
-    <div className="rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-3 shadow-2xl" style={{ width: 220 }}>
+    <div className="rounded-xl border border-[var(--border-card)] p-3 shadow-2xl" style={{ width: 220, background: '#1b1230' }}>
       <div className="flex items-center justify-between mb-2">
-        <button onClick={() => step(-1)} className="text-xs text-[var(--text-muted)] bg-transparent border-none cursor-pointer hover:text-white">{'◀'}</button>
+        <span className="flex items-center">
+          <button onClick={() => stepYear(-1)} title="Previous year" className={`${navBtn} text-[13px]`}>{'«'}</button>
+          <button onClick={() => step(-1)} title="Previous month" className={`${navBtn} text-xs`}>{'‹'}</button>
+        </span>
         <span className="text-[11px] font-medium text-[var(--text-secondary)]">{label}</span>
-        <button onClick={() => step(1)} className="text-xs text-[var(--text-muted)] bg-transparent border-none cursor-pointer hover:text-white">{'▶'}</button>
+        <span className="flex items-center">
+          <button onClick={() => step(1)} title="Next month" className={`${navBtn} text-xs`}>{'›'}</button>
+          <button onClick={() => stepYear(1)} title="Next year" className={`${navBtn} text-[13px]`}>{'»'}</button>
+        </span>
       </div>
       <div className="grid grid-cols-7 gap-0.5 text-center mb-1">
         {DOW.map((d, i) => <span key={i} className="text-[9px] text-[var(--text-muted)]">{d}</span>)}

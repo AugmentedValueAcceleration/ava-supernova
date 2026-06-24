@@ -2,7 +2,39 @@ import { useEffect, useRef, useState } from 'react';
 import { t, useLocale } from '../i18n';
 import type { GeneralProfile } from '../types/messages';
 import { Select } from '../components/Select';
+import { MiniDatePicker } from '../components/MiniDatePicker';
 import { Section, FieldGrid, Field, NumberInput, HeightField, WeightField, inputCls } from './ProfilePrimitives';
+
+/** A themed date field: a button showing the picked date (or "—") that opens
+ *  our custom MiniDatePicker, replacing the native (light) browser calendar. */
+function DateField({ value, onChange }: { value: string | null; onChange: (iso: string | null) => void }) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => { if (wrap.current && !wrap.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [open]);
+  const pretty = value ? new Date(`${value}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+  return (
+    <div className="relative" ref={wrap}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="flex w-full items-center justify-between rounded-lg border border-[var(--border-input)] bg-[#1a1028] px-2.5 py-1.5 text-[12px] text-left text-white outline-none transition focus:border-[var(--accent)] cursor-pointer"
+      >
+        <span className={value ? '' : 'text-[var(--text-muted)]'}>{pretty}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-2 text-[var(--text-muted)] shrink-0"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+      </button>
+      {open && (
+        <div className="absolute left-0 mt-1 z-30">
+          <MiniDatePicker value={value ?? ''} onChange={(iso) => { onChange(iso || null); setOpen(false); }} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 /**
  * General profile editor — identity + body basics (name, DOB, sex, height,
@@ -70,18 +102,14 @@ export function GeneralProfilePage({ profile, accountName, onSave }: Props) {
         <FieldGrid>
           <Field label={t('health.profile.sex')}>
             <Select
+              size="sm"
               value={draft.sex ?? ''}
               onChange={v => patch({ sex: (v as GeneralProfile['sex']) || null })}
               options={[{ value: '', label: '—' }, ...SEX_OPTIONS.map(o => ({ value: o.value as string, label: t(o.labelKey) }))]}
             />
           </Field>
           <Field label={t('health.profile.date_of_birth')}>
-            <input
-              type="date"
-              value={draft.date_of_birth ?? ''}
-              onChange={e => patch({ date_of_birth: e.target.value || null })}
-              className={inputCls}
-            />
+            <DateField value={draft.date_of_birth ?? null} onChange={v => patch({ date_of_birth: v })} />
           </Field>
         </FieldGrid>
       </Section>
@@ -95,7 +123,12 @@ export function GeneralProfilePage({ profile, accountName, onSave }: Props) {
             <WeightField kg={draft.weight_kg} onChange={v => patch({ weight_kg: v })} />
           </Field>
           <Field label={t('health.profile.body_fat')}>
-            <NumberInput value={draft.body_fat_pct} onChange={v => patch({ body_fat_pct: v })} placeholder="—" step={0.1} />
+            {/* Mirror the height/weight unit-sublabel so this input lines up
+                with the kg / lbs / st cells beside it instead of floating high. */}
+            <div>
+              <div className="text-[9px] uppercase tracking-wider text-[var(--text-muted)] mb-1">%</div>
+              <NumberInput value={draft.body_fat_pct} onChange={v => patch({ body_fat_pct: v })} placeholder="—" step={0.1} />
+            </div>
           </Field>
         </FieldGrid>
       </Section>
