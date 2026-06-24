@@ -6,7 +6,7 @@ import type { ExtToDashboardMessage } from '../types/messages';
 import { Skeleton } from '../components/Skeleton';
 import type {
   HealthExerciseSummary, HealthExerciseDetail,
-  HealthRecipeSummary, HealthRecipeDetail, HealthRecipeNutrition,
+  HealthRecipeSummary, HealthRecipeDetail,
   HealthWorkoutType,
   HealthTaxonomies, HealthSubmissionStatus,
 } from '../types/messages';
@@ -345,7 +345,7 @@ export function Health({
             return (
               <button
                 key={tabKey}
-                onClick={() => setTab(tabKey)}
+                onClick={() => { setTab(tabKey); setModalExerciseSlug(null); setModalRecipeSlug(null); }}
                 className={`-mb-px border-b-2 border-x-0 border-t-0 bg-transparent px-4 py-2 text-xs transition cursor-pointer ${
                   isActive
                     ? 'border-[var(--accent)] text-[var(--accent)] font-semibold'
@@ -360,10 +360,10 @@ export function Health({
         </div>
       </div>
 
-      {/* Content area. The Ava room needs a full-bleed, non-scrolling region
-          (the chat owns its own scroll); every other tab keeps the padded,
-          scrolling layout. */}
-      <div className={`flex-1 min-h-0 ${tab === 'ava' ? 'overflow-hidden' : 'overflow-y-auto px-6 py-5'}`}>
+      {/* Content area. The Ava room AND an open detail page need a full-bleed,
+          non-scrolling region (they own their own scroll); the catalogue grids
+          keep the padded, scrolling layout. */}
+      <div className={`flex-1 min-h-0 ${(tab === 'ava' || (tab === 'exercises' && modalExerciseSlug) || (tab === 'recipes' && modalRecipeSlug)) ? 'overflow-hidden' : 'overflow-y-auto px-6 py-5'}`}>
         {/* Ava Health & Fitness room — ALWAYS mounted (hidden off-tab) so its
             conversation survives switching between the other Health tabs. Its
             own lane: sends tag surface:'health', host events tagged lane:'health'
@@ -390,24 +390,39 @@ export function Health({
           </div>
         </div>
         {tab === 'exercises' && (
-          <ExercisesGrid
-            items={exercises}
-            total={exercisesTotal}
-            offset={exercisesOffset}
-            filter={exerciseFilter}
-            onFilter={handleExerciseFilterChange}
-            onPage={goExercisesPage}
-            loading={exercisesLoading}
-            error={exercisesError}
-            onOpen={openExercise}
-            search={exerciseSearch}
-            onSearch={setExerciseSearch}
-            onRefresh={() => goExercisesPage(0)}
-            view={view}
-            onView={changeView}
-          />
+          modalExerciseSlug ? (
+            <DetailPageView onBack={() => setModalExerciseSlug(null)} backLabel={t('health.browse.tab.exercises')}>
+              {exerciseDetail && exerciseDetail.slug === modalExerciseSlug
+                ? <ExerciseDetailBody ex={exerciseDetail} />
+                : <div className="flex h-full items-center justify-center p-8">{detailLoading ? <LoadingCard label={t('health.browse.loading_exercise')} /> : <div className="text-center text-[12px] text-vscode-descriptionForeground">{t('health.browse.failed_to_load')}</div>}</div>}
+            </DetailPageView>
+          ) : (
+            <ExercisesGrid
+              items={exercises}
+              total={exercisesTotal}
+              offset={exercisesOffset}
+              filter={exerciseFilter}
+              onFilter={handleExerciseFilterChange}
+              onPage={goExercisesPage}
+              loading={exercisesLoading}
+              error={exercisesError}
+              onOpen={openExercise}
+              search={exerciseSearch}
+              onSearch={setExerciseSearch}
+              onRefresh={() => goExercisesPage(0)}
+              view={view}
+              onView={changeView}
+            />
+          )
         )}
         {tab === 'recipes' && (
+          modalRecipeSlug ? (
+            <DetailPageView onBack={() => setModalRecipeSlug(null)} backLabel={t('health.browse.tab.recipes')}>
+              {recipeDetail && recipeDetail.slug === modalRecipeSlug
+                ? <RecipeDetailBody r={recipeDetail} />
+                : <div className="flex h-full items-center justify-center p-8">{detailLoading ? <LoadingCard label={t('health.browse.loading_recipe')} /> : <div className="text-center text-[12px] text-vscode-descriptionForeground">{t('health.browse.failed_to_load')}</div>}</div>}
+            </DetailPageView>
+          ) : (
           <RecipesGrid
             items={recipes}
             total={recipesTotal}
@@ -438,26 +453,11 @@ export function Health({
             view={view}
             onView={changeView}
           />
+          )
         )}
       </div>
-
-      {/* Overlay modals — one mounts at a time, whichever was clicked. */}
-      {modalExerciseSlug && (
-        <ExerciseDetailModal
-          slug={modalExerciseSlug}
-          detail={exerciseDetail}
-          loading={detailLoading}
-          onClose={() => setModalExerciseSlug(null)}
-        />
-      )}
-      {modalRecipeSlug && (
-        <RecipeDetailModal
-          slug={modalRecipeSlug}
-          detail={recipeDetail}
-          loading={detailLoading}
-          onClose={() => setModalRecipeSlug(null)}
-        />
-      )}
+      {/* Recipe / exercise detail now render inline as a full page within the
+          tab content (see the blocks above), not as an overlay modal. */}
     </div>
   );
 }
@@ -953,53 +953,23 @@ function Pagination({
 
 // ── Modals ─────────────────────────────────────────────────────────────
 
-function ModalShell({ onClose, children, fillHeight }: { onClose: () => void; children: ReactNode; fillHeight?: boolean }) {
+/** Full-page detail view inside the Health tab — a back bar over the detail
+ *  body, which owns its own scroll. Replaces the old modal overlay for a
+ *  page-style UX (navigate in, "← Back"). */
+function DetailPageView({ onBack, backLabel, children }: { onBack: () => void; backLabel: string; children: ReactNode }) {
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm p-3 sm:p-6"
-      style={{ animation: 'avaDetailModalIn 120ms ease-out' }}
-      onClick={onClose}
-    >
-      <style>{`
-        @keyframes avaDetailModalIn { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes avaDetailCardIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
-      `}</style>
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className={`relative w-full max-w-3xl rounded-2xl border border-[rgba(168,85,247,0.20)] bg-gradient-to-br from-[#0f0f17] to-[#1a1625] shadow-[0_0_60px_rgba(168,85,247,0.12)] ${fillHeight ? 'flex flex-col overflow-hidden' : 'max-h-[88vh] overflow-y-auto'}`}
-        style={{ animation: 'avaDetailCardIn 160ms ease-out', ...(fillHeight ? { height: 'min(760px, 86vh)' } : {}) }}
-      >
+    <div className="flex h-full flex-col">
+      <div className="flex-none border-b border-[var(--border)] px-6 py-2.5">
         <button
-          onClick={onClose}
-          aria-label={t('health.browse.close')}
-          className="absolute top-3 right-3 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-none bg-black/40 text-lg text-white transition hover:bg-black/60"
+          type="button"
+          onClick={onBack}
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[var(--border)] bg-transparent px-2.5 py-1 text-[11px] font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)]"
         >
-          ×
+          ← {backLabel}
         </button>
-        {children}
       </div>
+      <div className="min-h-0 flex-1">{children}</div>
     </div>
-  );
-}
-
-function ExerciseDetailModal({
-  slug, detail, loading, onClose,
-}: { slug: string; detail: HealthExerciseDetail | null; loading: boolean; onClose: () => void }) {
-  const ready = detail && detail.slug === slug;
-  return (
-    <ModalShell onClose={onClose} fillHeight>
-      {!ready
-        ? (
-          <div className="flex flex-1 items-center justify-center p-8">
-            {loading
-              ? <LoadingCard label={t('health.browse.loading_exercise')} />
-              : <div className="text-center text-[12px] text-vscode-descriptionForeground">{t('health.browse.failed_to_load')}</div>}
-          </div>
-        )
-        : <ExerciseDetailBody ex={detail!} />}
-    </ModalShell>
   );
 }
 
@@ -1014,14 +984,14 @@ export function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
   if (ex.routine.tempo) routineEntries.push([t('health.browse.routine.tempo'), ex.routine.tempo]);
   if (ex.routine.frequency_per_week) routineEntries.push([t('health.browse.routine.freq'), ex.routine.frequency_per_week]);
 
-  type ExTab = 'overview' | 'howto' | 'routine' | 'muscles';
+  type ExTab = 'overview' | 'howto';
   const hasRoutine = routineEntries.length > 0 || !!ex.routine.progression;
   const hasMuscles = primaries.length > 0 || secondaries.length > 0 || ex.equipment.length > 0;
+  // Routine + Muscles & kit now live inside Overview (less tab clutter); only
+  // the step-by-step How-to gets its own tab.
   const tabs: { key: ExTab; label: string }[] = [
-    { key: 'overview', label: 'Overview' },
-    ...(ex.steps.length > 0 ? [{ key: 'howto' as ExTab, label: 'How-to' }] : []),
-    ...(hasRoutine ? [{ key: 'routine' as ExTab, label: 'Routine' }] : []),
-    ...(hasMuscles ? [{ key: 'muscles' as ExTab, label: 'Muscles & kit' }] : []),
+    { key: 'overview', label: t('health.browse.overview') },
+    ...(ex.steps.length > 0 ? [{ key: 'howto' as ExTab, label: t('health.browse.howto') }] : []),
   ];
   const [tab, setTab] = useState<ExTab>('overview');
 
@@ -1070,8 +1040,53 @@ export function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
                 </div>
               </section>
             )}
-            {!ex.description && !ex.beginner_detail && !ex.common_mistakes && (
-              <p className="text-[13px] text-vscode-descriptionForeground">Nothing here yet.</p>
+            {hasRoutine && (
+              <section>
+                <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.routine')}</h3>
+                <div className="rounded-lg border border-vscode-panelBorder/60 p-4">
+                  <dl className="grid grid-cols-3 gap-x-5 gap-y-3 sm:grid-cols-5">
+                    {routineEntries.map(([label, value]) => (
+                      <div key={label}>
+                        <dt className="text-[9px] font-medium uppercase tracking-wider text-vscode-descriptionForeground">{label}</dt>
+                        <dd className="mt-1 text-[14px] text-vscode-foreground">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  {ex.routine.progression && (
+                    <p className="mt-4 border-t border-vscode-panelBorder/60 pt-3 text-[12px] italic text-vscode-descriptionForeground">{ex.routine.progression}</p>
+                  )}
+                </div>
+              </section>
+            )}
+            {hasMuscles && (
+              <section className="grid gap-4 sm:grid-cols-2">
+                {(primaries.length > 0 || secondaries.length > 0) && (
+                  <div>
+                    <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.muscles')}</h3>
+                    <div className="flex flex-wrap gap-1">
+                      {primaries.map((m) => (
+                        <span key={m.slug} className="rounded px-2 py-0.5 text-[10px]" style={{ background: `${accent}26`, color: accent }}>{m.name}</span>
+                      ))}
+                      {secondaries.map((m) => (
+                        <span key={m.slug} className="rounded bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 text-[10px] text-vscode-descriptionForeground">{m.name}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {ex.equipment.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.equipment')}</h3>
+                    <div className="flex flex-wrap gap-1">
+                      {ex.equipment.map((e) => (
+                        <span key={e.slug} className="rounded bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 text-[10px] capitalize text-vscode-descriptionForeground">{e.name}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
+            {!ex.description && !ex.beginner_detail && !ex.common_mistakes && !hasRoutine && !hasMuscles && (
+              <p className="text-[13px] text-vscode-descriptionForeground">{t('health.browse.nothing_here')}</p>
             )}
           </div>
         )}
@@ -1086,71 +1101,8 @@ export function ExerciseDetailBody({ ex }: { ex: HealthExerciseDetail }) {
             ))}
           </ol>
         )}
-
-        {tab === 'routine' && (
-          <div className="rounded-lg border border-vscode-panelBorder/60 p-4">
-            <dl className="grid grid-cols-3 gap-x-5 gap-y-3 sm:grid-cols-5">
-              {routineEntries.map(([label, value]) => (
-                <div key={label}>
-                  <dt className="text-[9px] font-medium uppercase tracking-wider text-vscode-descriptionForeground">{label}</dt>
-                  <dd className="mt-1 text-[14px] text-vscode-foreground">{value}</dd>
-                </div>
-              ))}
-            </dl>
-            {ex.routine.progression && (
-              <p className="mt-4 border-t border-vscode-panelBorder/60 pt-3 text-[12px] italic text-vscode-descriptionForeground">{ex.routine.progression}</p>
-            )}
-          </div>
-        )}
-
-        {tab === 'muscles' && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {(primaries.length > 0 || secondaries.length > 0) && (
-              <div>
-                <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.muscles')}</h3>
-                <div className="flex flex-wrap gap-1">
-                  {primaries.map((m) => (
-                    <span key={m.slug} className="rounded px-2 py-0.5 text-[10px]" style={{ background: `${accent}26`, color: accent }}>{m.name}</span>
-                  ))}
-                  {secondaries.map((m) => (
-                    <span key={m.slug} className="rounded bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 text-[10px] text-vscode-descriptionForeground">{m.name}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {ex.equipment.length > 0 && (
-              <div>
-                <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.equipment')}</h3>
-                <div className="flex flex-wrap gap-1">
-                  {ex.equipment.map((e) => (
-                    <span key={e.slug} className="rounded bg-vscode-editor-inactiveSelectionBackground px-2 py-0.5 text-[10px] capitalize text-vscode-descriptionForeground">{e.name}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </DetailScroll>
     </div>
-  );
-}
-
-function RecipeDetailModal({
-  slug, detail, loading, onClose,
-}: { slug: string; detail: HealthRecipeDetail | null; loading: boolean; onClose: () => void }) {
-  const ready = detail && detail.slug === slug;
-  return (
-    <ModalShell onClose={onClose} fillHeight>
-      {!ready
-        ? (
-          <div className="flex flex-1 items-center justify-center p-8">
-            {loading
-              ? <LoadingCard label={t('health.browse.loading_recipe')} />
-              : <div className="text-center text-[12px] text-vscode-descriptionForeground">{t('health.browse.failed_to_load')}</div>}
-          </div>
-        )
-        : <RecipeDetailBody r={detail!} />}
-    </ModalShell>
   );
 }
 
@@ -1180,21 +1132,45 @@ const EXT_NUTRITION: Array<[ExtNutKey, string]> = [
   ['calories', 'Calories (kcal)'], ['protein_g', 'Protein (g)'], ['carbs_g', 'Carbs (g)'], ['fat_g', 'Fat (g)'],
   ['fibre_g', 'Fibre (g)'], ['sugar_g', 'Sugar (g)'], ['sodium_mg', 'Sodium (mg)'], ['saturated_fat_g', 'Saturated fat (g)'],
 ];
+// i18n key per nutrient for the table header (units dropped — the column is compact).
+const NUTRI_LABEL_KEY: Record<ExtNutKey, string> = {
+  calories: 'health.browse.nutri.calories', protein_g: 'health.browse.nutri.protein',
+  carbs_g: 'health.browse.nutri.carbs', fat_g: 'health.browse.nutri.fat',
+  fibre_g: 'health.browse.nutri.fibre', sugar_g: 'health.browse.nutri.sugar',
+  sodium_mg: 'health.browse.nutri.sodium', saturated_fat_g: 'health.browse.nutri.sat_fat',
+};
 
-function NutritionGrid({ n }: { n: HealthRecipeNutrition }) {
+/** Per-serving nutrition as a table — one row per skill level, so the macro
+ *  differences across beginner / intermediate / expert read at a glance.
+ *  Columns with no data on any level are dropped. */
+function NutritionTable({ versions }: { versions: HealthRecipeDetail['versions'] }) {
+  const cols = EXT_NUTRITION.filter(([k]) => versions.some((vv) => typeof vv.nutrition?.[k] === 'number'));
+  if (cols.length === 0) return null;
   return (
     <div>
-      <div className="mb-3 text-[10px] text-vscode-descriptionForeground">
-        Per serving{n.source === 'estimated' ? ' · estimated by Ava' : n.source === 'verified' ? ' · verified' : ''}
+      <div className="overflow-x-auto rounded-lg border border-vscode-panelBorder/60">
+        <table className="w-full border-collapse text-[12px]">
+          <thead>
+            <tr className="border-b border-vscode-panelBorder/60 text-left text-vscode-descriptionForeground">
+              <th className="py-2 pl-3 pr-3 font-medium">{t('health.browse.per_serving')}</th>
+              {cols.map(([k]) => (
+                <th key={k} className="whitespace-nowrap px-3 py-2 font-medium">{t(NUTRI_LABEL_KEY[k])}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {versions.map((vv, i) => (
+              <tr key={vv.level} className={i < versions.length - 1 ? 'border-b border-vscode-panelBorder/60' : ''}>
+                <td className="py-2 pl-3 pr-3 capitalize text-vscode-foreground/90">{t(`health.browse.level.${vv.level}`)}</td>
+                {cols.map(([k]) => (
+                  <td key={k} className="px-3 py-2 text-vscode-foreground">{typeof vv.nutrition?.[k] === 'number' ? vv.nutrition[k] : '—'}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      <div className="grid grid-cols-4 gap-4">
-        {EXT_NUTRITION.map(([k, label]) => (
-          <div key={k}>
-            <div className="text-[9px] uppercase tracking-wider text-vscode-descriptionForeground">{label}</div>
-            <div className="mt-1 text-[18px] font-light text-vscode-foreground">{typeof n[k] === 'number' ? n[k] : '—'}</div>
-          </div>
-        ))}
-      </div>
+      <p className="mt-2 text-[10px] text-vscode-descriptionForeground">{t('health.browse.per_serving_estimated')}</p>
     </div>
   );
 }
@@ -1203,13 +1179,16 @@ export function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
   const [level, setLevel] = useState<'beginner' | 'intermediate' | 'expert'>('beginner');
   const v = r.versions.find((vv) => vv.level === level) || r.versions[0];
 
-  type RTab = 'overview' | 'ingredients' | 'method' | 'nutrition';
-  const hasNutrition = !!v && EXT_NUTRITION.some(([k]) => typeof v.nutrition?.[k] === 'number');
+  type RTab = 'overview' | 'ingredients' | 'method' | 'storage';
+  const hasNutrition = r.versions.some((vv) => EXT_NUTRITION.some(([k]) => typeof vv.nutrition?.[k] === 'number'));
+  const st = r.storage;
+  const hasStorage = !!st && (st.keeps_fridge_days != null || st.keeps_freezer_months != null || !!st.from_frozen_notes);
+  // Nutrition now lives inside Overview (less tab clutter).
   const tabs: { key: RTab; label: string }[] = [
-    { key: 'overview', label: 'Overview' },
-    ...(r.ingredients.length > 0 ? [{ key: 'ingredients' as RTab, label: 'Ingredients' }] : []),
-    ...(r.versions.length > 0 ? [{ key: 'method' as RTab, label: 'Method' }] : []),
-    ...(hasNutrition ? [{ key: 'nutrition' as RTab, label: 'Nutrition' }] : []),
+    { key: 'overview', label: t('health.browse.overview') },
+    ...(r.ingredients.length > 0 ? [{ key: 'ingredients' as RTab, label: t('health.browse.ingredients') }] : []),
+    ...(r.versions.length > 0 ? [{ key: 'method' as RTab, label: t('health.browse.method') }] : []),
+    ...(hasStorage ? [{ key: 'storage' as RTab, label: t('health.browse.storage') }] : []),
   ];
   const [tab, setTab] = useState<RTab>('overview');
 
@@ -1258,9 +1237,17 @@ export function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
 
         <DetailScroll>
           {tab === 'overview' && (
-            r.overview
-              ? <p className="text-[14px] leading-relaxed text-vscode-foreground/90">{r.overview}</p>
-              : <p className="text-[13px] text-vscode-descriptionForeground">No overview yet.</p>
+            <div className="space-y-5">
+              {r.overview
+                ? <p className="text-[14px] leading-relaxed text-vscode-foreground/90">{r.overview}</p>
+                : <p className="text-[13px] text-vscode-descriptionForeground">{t('health.browse.no_overview')}</p>}
+              {hasNutrition && (
+                <section>
+                  <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.browse.nutrition')}</h3>
+                  <NutritionTable versions={r.versions} />
+                </section>
+              )}
+            </div>
           )}
 
           {tab === 'ingredients' && (
@@ -1334,10 +1321,33 @@ export function RecipeDetailBody({ r }: { r: HealthRecipeDetail }) {
             </div>
           )}
 
-          {tab === 'nutrition' && v && (
-            <div>
-              {levelPills}
-              <NutritionGrid n={v.nutrition} />
+          {tab === 'storage' && st && (
+            <div className="space-y-4">
+              {(st.keeps_fridge_days != null || st.keeps_freezer_months != null) && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {st.keeps_fridge_days != null && (
+                    <div className="rounded-lg border border-vscode-panelBorder/60 p-4">
+                      <div className="text-[18px]" aria-hidden>❄️</div>
+                      <div className="mt-1 text-[9px] uppercase tracking-wider text-vscode-descriptionForeground">{t('health.storage.fridge')}</div>
+                      <div className="mt-0.5 text-[18px] font-light text-vscode-foreground">{st.keeps_fridge_days} {t(st.keeps_fridge_days === 1 ? 'health.storage.day' : 'health.storage.days')}</div>
+                    </div>
+                  )}
+                  {st.keeps_freezer_months != null && (
+                    <div className="rounded-lg border border-vscode-panelBorder/60 p-4">
+                      <div className="text-[18px]" aria-hidden>🧊</div>
+                      <div className="mt-1 text-[9px] uppercase tracking-wider text-vscode-descriptionForeground">{t('health.storage.freezer')}</div>
+                      <div className="mt-0.5 text-[18px] font-light text-vscode-foreground">{st.keeps_freezer_months} {t(st.keeps_freezer_months === 1 ? 'health.storage.month' : 'health.storage.months')}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {st.from_frozen_notes && (
+                <div>
+                  <h4 className="mb-2 text-[10px] font-medium uppercase tracking-[0.3em] text-vscode-descriptionForeground">{t('health.storage.cooking_frozen')}</h4>
+                  <p className="rounded-lg border border-vscode-panelBorder/60 px-4 py-3 text-[13px] leading-relaxed text-vscode-foreground/90">{st.from_frozen_notes}</p>
+                </div>
+              )}
+              <p className="text-[10px] text-vscode-descriptionForeground">{t('health.storage.disclaimer')}</p>
             </div>
           )}
         </DetailScroll>
