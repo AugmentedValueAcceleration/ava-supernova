@@ -134,6 +134,12 @@ export function Settings({
   const [localModelLabel, setLocalModelLabel] = useState('');
   const [localHasSavedKey, setLocalHasSavedKey] = useState(false);
   const [localSavedTick, setLocalSavedTick] = useState(0);
+  // Detect: the models the endpoint reports via GET /models, and which of them
+  // the user has ticked to surface in the picker (all ticked by default).
+  const [detectedModels, setDetectedModels] = useState<string[]>([]);
+  const [enabledModels, setEnabledModels] = useState<Set<string>>(new Set());
+  const [detecting, setDetecting] = useState(false);
+  const [detectError, setDetectError] = useState('');
 
   useEffect(() => {
     post({ type: 'load_local_model' });
@@ -151,22 +157,52 @@ export function Settings({
         setLocalHasSavedKey(!!msg.hasApiKey);
         // Don't echo the key back — leave the input blank when loaded.
         setLocalApiKey('');
+        const saved: string[] = Array.isArray(msg.models) ? msg.models : [];
+        setDetectedModels(saved);
+        setEnabledModels(new Set(saved));
+      } else if (msg && msg.type === 'local_models_detected') {
+        setDetecting(false);
+        if (msg.error) {
+          setDetectError(String(msg.error));
+        } else {
+          setDetectError('');
+          const found: string[] = Array.isArray(msg.models) ? msg.models : [];
+          setDetectedModels(found);
+          setEnabledModels(new Set(found)); // default: all ticked
+        }
       }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  const localIsConfigured = !!(localBaseUrl.trim() && localModelName.trim());
+  const localIsConfigured = !!(localBaseUrl.trim() && (enabledModels.size > 0 || localModelName.trim()));
+  const canSaveLocal = !!localBaseUrl.trim() && (enabledModels.size > 0 || !!localModelName.trim());
+
+  const handleDetectModels = () => {
+    if (!localBaseUrl.trim()) return;
+    setDetecting(true);
+    setDetectError('');
+    post({ type: 'detect_local_models', baseUrl: localBaseUrl.trim(), apiKey: localApiKey.trim() || undefined });
+  };
+
+  const toggleEnabledModel = (id: string) => {
+    setEnabledModels(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   const handleSaveLocalModel = () => {
-    if (!localBaseUrl.trim() || !localModelName.trim()) return;
+    if (!canSaveLocal) return;
     post({
       type: 'save_local_model',
       baseUrl: localBaseUrl.trim(),
       modelName: localModelName.trim(),
       apiKey: localApiKey.trim() || undefined,
       modelLabel: localModelLabel.trim() || undefined,
+      models: [...enabledModels],
     });
     setLocalSavedTick(n => n + 1);
     setTimeout(() => setLocalSavedTick(n => n + 1), 1800);
@@ -179,6 +215,9 @@ export function Settings({
     setLocalApiKey('');
     setLocalModelLabel('');
     setLocalHasSavedKey(false);
+    setDetectedModels([]);
+    setEnabledModels(new Set());
+    setDetectError('');
   };
 
   useEffect(() => setLocal(settings), [settings]);
@@ -585,8 +624,36 @@ export function Settings({
             </p>
           </div>
 
+          {/* Detect — list the models the endpoint is serving (GET /models) so
+              the user picks from their library instead of typing each name. */}
+          <div className="col-span-2">
+            <button
+              onClick={handleDetectModels}
+              disabled={!localBaseUrl.trim() || detecting}
+              className="rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-semibold text-[var(--accent)] transition hover:bg-[var(--accent)]/20 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {detecting ? t('dash.settings.detecting') : t('dash.settings.detect_models')}
+            </button>
+            {detectError && <p className="mt-2 text-[11px] text-red-400">{detectError}</p>}
+            {detectedModels.length > 0 && (
+              <div className="mt-2">
+                <p className="mb-1.5 text-[10px] text-[var(--text-muted)]">
+                  {tt('dash.settings.detect_found', 'Found {n} — tick the ones to show in the picker:').replace('{n}', String(detectedModels.length))}
+                </p>
+                <div className="flex max-h-44 flex-col gap-1 overflow-y-auto rounded-md border border-[var(--border-input)] bg-[var(--bg-input)] p-2">
+                  {detectedModels.map(id => (
+                    <label key={id} className="flex cursor-pointer items-center gap-2 text-xs">
+                      <input type="checkbox" checked={enabledModels.has(id)} onChange={() => toggleEnabledModel(id)} />
+                      <span className="font-mono text-white">{id}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div>
-            <p className="mb-1 text-xs font-medium">{t('dash.settings.model_name')}</p>
+            <p className="mb-1 text-xs font-medium">{t('dash.settings.model_name')} <span className="font-normal text-[var(--text-muted)]">{t('dash.settings.optional_paren')}</span></p>
             <input
               value={localModelName}
               onChange={e => setLocalModelName(e.target.value)}

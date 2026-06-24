@@ -578,9 +578,17 @@ export interface HealthRecipeVersionDetail {
   equipment: HealthRecipeEquipment[];
 }
 
+export interface HealthRecipeStorage {
+  keeps_fridge_days: number | null;
+  keeps_freezer_months: number | null;
+  from_frozen_notes: string | null;
+}
+
 export interface HealthRecipeDetail extends HealthRecipeSummary {
   overview: string | null;
   source_attribution: string | null;
+  /** Storage / keeping info — may be absent on older API responses. */
+  storage?: HealthRecipeStorage;
   ingredients: HealthRecipeIngredient[];
   versions: HealthRecipeVersionDetail[];
 }
@@ -1328,7 +1336,8 @@ export type ExtToDashboardMessage =
   // baseUrl + modelName empty == not configured. hasApiKey is a boolean
   // (don't echo the raw key back to the webview — the dashboard renders
   // bullets to indicate "configured" without exposing the value).
-  | { type: 'local_model_loaded'; baseUrl: string; modelName: string; hasApiKey: boolean; modelLabel: string }
+  | { type: 'local_model_loaded'; baseUrl: string; modelName: string; hasApiKey: boolean; modelLabel: string; models: string[] }
+  | { type: 'local_models_detected'; models: string[]; error?: string }
   | { type: 'sync_prefs_loaded'; prefs: Record<string, boolean> }
   | { type: 'memories_loaded'; memories: MemoryEntry[]; total?: number; hasMore?: boolean }
   | { type: 'memories_more_loaded'; memories: MemoryEntry[]; total?: number; hasMore?: boolean }
@@ -1563,9 +1572,10 @@ export type DashboardToExtMessage =
   // Local / custom OpenAI-compatible provider — Ollama, LM Studio, vLLM.
   // baseUrl + modelName are the required fields; apiKey + modelLabel
   // are optional. Empty / missing string clears the value.
-  | { type: 'save_local_model'; baseUrl: string; modelName: string; apiKey?: string; modelLabel?: string }
+  | { type: 'save_local_model'; baseUrl: string; modelName: string; apiKey?: string; modelLabel?: string; models?: string[] }
   | { type: 'remove_local_model' }
   | { type: 'load_local_model' }
+  | { type: 'detect_local_models'; baseUrl: string; apiKey?: string }
   | { type: 'load_memories' }
   | { type: 'load_more_memories' }
   | { type: 'delete_memory'; id: string }

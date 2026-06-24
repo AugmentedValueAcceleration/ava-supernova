@@ -44,6 +44,7 @@ function httpGetJson(url: string): Promise<unknown> {
 }
 import {
   MemoryManager, TaskManager, migrateGlobalTasksToSubfolder, JournalManager, AVA_HOME,
+  listOpenAICompatibleModels,
   loadPersonality, savePersonality, resetPersonality,
   loadDatasetConfig, saveDatasetConfig, configPathFor,
   exportEncryptedBackup, importEncryptedBackup, gatherBundle,
@@ -326,7 +327,7 @@ export class DashboardPanel {
         break;
 
       case 'save_local_model':
-        await this.saveLocalModel(msg.baseUrl, msg.modelName, msg.apiKey, msg.modelLabel);
+        await this.saveLocalModel(msg.baseUrl, msg.modelName, msg.apiKey, msg.modelLabel, msg.models);
         break;
 
       case 'remove_local_model':
@@ -335,6 +336,10 @@ export class DashboardPanel {
 
       case 'load_local_model':
         await this.loadLocalModel();
+        break;
+
+      case 'detect_local_models':
+        await this.detectLocalModels(msg.baseUrl, msg.apiKey);
         break;
 
       case 'load_memories':
@@ -2716,12 +2721,21 @@ export class DashboardPanel {
     modelName: string,
     apiKey?: string,
     modelLabel?: string,
+    models?: string[],
   ): Promise<void> {
     if (baseUrl?.trim()) {
       await this.secrets.store('ava-supernova.provider.local.baseUrl', baseUrl.trim());
     }
     if (modelName?.trim()) {
       await this.secrets.store('ava-supernova.provider.local.modelName', modelName.trim());
+    }
+    // Enabled-model list (from Detect) — the set surfaced in the picker under
+    // "Local". A single manual model name is the fallback (see loadLocalModel).
+    const cleanModels = (models ?? []).map((m) => m.trim()).filter(Boolean);
+    if (cleanModels.length > 0) {
+      await this.secrets.store('ava-supernova.provider.local.models', JSON.stringify(cleanModels));
+    } else {
+      await this.secrets.delete('ava-supernova.provider.local.models');
     }
     // Empty apiKey is meaningful — it removes any prior value rather than
     // leaving stale auth in storage.
@@ -2741,6 +2755,7 @@ export class DashboardPanel {
   private async removeLocalModel(): Promise<void> {
     await this.secrets.delete('ava-supernova.provider.local.baseUrl');
     await this.secrets.delete('ava-supernova.provider.local.modelName');
+    await this.secrets.delete('ava-supernova.provider.local.models');
     await this.secrets.delete('ava-supernova.provider.local.apiKey');
     await this.secrets.delete('ava-supernova.provider.local.modelLabel');
     await this.loadLocalModel();
@@ -2751,7 +2766,31 @@ export class DashboardPanel {
     const modelName = (await this.secrets.get('ava-supernova.provider.local.modelName')) || '';
     const apiKey = (await this.secrets.get('ava-supernova.provider.local.apiKey')) || '';
     const modelLabel = (await this.secrets.get('ava-supernova.provider.local.modelLabel')) || '';
-    this.post({ type: 'local_model_loaded', baseUrl, modelName, hasApiKey: !!apiKey, modelLabel });
+    let models: string[] = [];
+    try {
+      const raw = await this.secrets.get('ava-supernova.provider.local.models');
+      if (raw) models = (JSON.parse(raw) as string[]).filter((m) => typeof m === 'string');
+    } catch { /* corrupt → fall back to single model below */ }
+    this.post({ type: 'local_model_loaded', baseUrl, modelName, hasApiKey: !!apiKey, modelLabel, models });
+  }
+
+  /** Detect the models an OpenAI-compatible endpoint is serving (GET /models),
+   *  host-side so localhost is reachable without webview CORS. */
+  private async detectLocalModels(baseUrl: string, apiKey?: string): Promise<void> {
+    if (!baseUrl?.trim()) {
+      this.post({ type: 'local_models_detected', models: [], error: 'Enter a base URL first.' });
+      return;
+    }
+    try {
+      const models = await listOpenAICompatibleModels(baseUrl.trim(), apiKey?.trim() || undefined);
+      this.post({ type: 'local_models_detected', models });
+    } catch (err) {
+      this.post({
+        type: 'local_models_detected',
+        models: [],
+        error: err instanceof Error ? err.message : 'Could not reach that endpoint.',
+      });
+    }
   }
 
   // ─── Conversations (History) ────────────────────────────────────────────────

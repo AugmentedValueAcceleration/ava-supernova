@@ -1294,34 +1294,42 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
       try {
         // Local provider config — 4 SecretStorage keys read in parallel
         // for the same reason as the BYOK loop above. Saves ~30-60ms.
-        const [localBaseUrl, localModelName, localApiKeyRaw, localModelLabelRaw] = await Promise.all([
+        const [localBaseUrl, localModelName, localApiKeyRaw, localModelLabelRaw, localModelsRaw] = await Promise.all([
           this.context.secrets.get('ava-supernova.provider.local.baseUrl'),
           this.context.secrets.get('ava-supernova.provider.local.modelName'),
           this.context.secrets.get('ava-supernova.provider.local.apiKey'),
           this.context.secrets.get('ava-supernova.provider.local.modelLabel'),
+          this.context.secrets.get('ava-supernova.provider.local.models'),
         ]);
-        if (localBaseUrl && localModelName) {
+        // Enabled-model list from Detect; fall back to the single manual name.
+        let localModelIds: string[] = [];
+        try {
+          if (localModelsRaw) localModelIds = (JSON.parse(localModelsRaw) as string[]).filter((m) => typeof m === 'string' && m.trim().length > 0);
+        } catch { /* corrupt → fall back below */ }
+        if (localModelIds.length === 0 && localModelName) localModelIds = [localModelName];
+
+        if (localBaseUrl && localModelIds.length > 0) {
           const localApiKey = localApiKeyRaw || 'local';
-          const localModelLabel = localModelLabelRaw || localModelName;
-          // Build a one-entry models list for the registered local model.
-          // Conservative defaults — Ollama models vary widely, the operator
-          // can tune these later if a specific local model needs more.
-          const localModel = {
-            id: localModelName,
-            name: localModelLabel,
+          // A custom display label only applies to a single registered model;
+          // a detected library shows each model by its own id. Conservative
+          // defaults — Ollama models vary widely.
+          const singleLabel = localModelLabelRaw && localModelIds.length === 1 ? localModelLabelRaw : undefined;
+          const localModels = localModelIds.map((id) => ({
+            id,
+            name: singleLabel ?? id,
             provider: 'generic',
             contextWindow: 32000,
             maxOutputTokens: 4096,
             supportsToolCalls: true,
             supportsStreaming: true,
-          };
+          }));
           const localProvider = new GenericProvider({
             apiKey: localApiKey,
             baseUrl: localBaseUrl,
-            models: [localModel],
+            models: localModels,
           });
           this.providerRegistry.registerCustom('generic', localProvider);
-          this.log(`Local provider registered: ${localModelName} @ ${localBaseUrl}`);
+          this.log(`Local provider registered: ${localModelIds.length} model(s) @ ${localBaseUrl}`);
         }
       } catch (err) {
         this.log(`Local provider failed to register: ${err}`);
