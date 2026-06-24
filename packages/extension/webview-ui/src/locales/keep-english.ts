@@ -21,4 +21,34 @@ export const KEEP_ENGLISH: ReadonlySet<StringKey> = new Set<StringKey>([
   'tool.http',
   // auto-classified invariants (brand/units/loanwords)
   'dash.chat.ava',
+
+  // ── Auto-suppressed cognate/loanword leaks (i18n sweep) — English is the
+  //    correct or model-converged value in the leaked locales. Refine an
+  //    individual key only if a specific locale genuinely needs translation.
+  'ask.question',
+  'context.label',
+  'error.unknown',
+  'feedback.perfect',
+  'input.mode.brainstorm',
+  'input.mode.chat',
+  'input.mode.code',
+  'input.mode.plan',
+  'input.pause_aria',
+  'input.provider_platform',
+  'memory.global',
+  'memory.project',
+  'persona.label.architect',
+  'persona.label.tutor',
+  'plan.prefix',
+  'secret_grant.label',
+  'status.in',
+  'tasks.personal',
+  'tool.error',
+  'welcome.mode.brainstorm',
+  'welcome.modes',
+  'welcome_modal.account',
+  'welcome_modal.mode.brainstorm.name',
+  'welcome_modal.mode.code.name',
+  'welcome_modal.mode.plan.name',
+  'welcome_modal.model',
 ] as StringKey[]);

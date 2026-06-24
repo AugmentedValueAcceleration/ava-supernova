@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useLocale } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { post } from '../App';
 
 interface SupportMessage {
@@ -27,14 +27,15 @@ interface SupportConversation {
 }
 
 // Intent-based ticket reasons (migration 317) — same set as web + IDE.
+// label/placeholder carry i18n keys resolved with t() at render time.
 const SUPPORT_CATEGORIES = [
-  { slug: 'bug', label: 'Bug or broken', icon: '🐞', placeholder: 'What broke, and what were you doing when it happened?' },
-  { slug: 'question', label: 'Question / how-to', icon: '❓', placeholder: 'What are you trying to do?' },
-  { slug: 'feature', label: 'Feature request', icon: '✨', placeholder: 'What would you love Ava to do?' },
-  { slug: 'billing', label: 'Billing & payments', icon: '💳', placeholder: 'Tell us about the billing or payment issue…' },
-  { slug: 'account', label: 'Account & login', icon: '👤', placeholder: 'What is happening with your account or sign-in?' },
-  { slug: 'feedback', label: 'Feedback', icon: '💬', placeholder: "What's on your mind?" },
-  { slug: 'other', label: 'Something else', icon: '💭', placeholder: 'How can we help?' },
+  { slug: 'bug',      labelKey: 'support.cat.bug',      icon: '🐞', placeholderKey: 'support.cat.bug.placeholder' },
+  { slug: 'question', labelKey: 'support.cat.question', icon: '❓', placeholderKey: 'support.cat.question.placeholder' },
+  { slug: 'feature',  labelKey: 'support.cat.feature',  icon: '✨', placeholderKey: 'support.cat.feature.placeholder' },
+  { slug: 'billing',  labelKey: 'support.cat.billing',  icon: '💳', placeholderKey: 'support.cat.billing.placeholder' },
+  { slug: 'account',  labelKey: 'support.cat.account',  icon: '👤', placeholderKey: 'support.cat.account.placeholder' },
+  { slug: 'feedback', labelKey: 'support.cat.feedback', icon: '💬', placeholderKey: 'support.cat.feedback.placeholder' },
+  { slug: 'other',    labelKey: 'support.cat.other',    icon: '💭', placeholderKey: 'support.cat.other.placeholder' },
 ] as const;
 const categoryMeta = (slug?: string | null) => SUPPORT_CATEGORIES.find(c => c.slug === slug) || null;
 
@@ -119,9 +120,9 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
           Ava's voice; no corporate framing. */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[22px] font-semibold text-[#cdd6f4] mb-1">Support</h1>
+          <h1 className="text-[22px] font-semibold text-[#cdd6f4] mb-1">{t('dash.support.title')}</h1>
           <p className="text-[13px] text-[#6c7086]">
-            Stuck on something? Send it through and I&apos;ll take a look first — the team picks up if I can&apos;t solve it.
+            {t('support.header_subtitle')}
           </p>
         </div>
         <div className="relative">
@@ -129,20 +130,20 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
             onClick={() => setMenuOpen(o => !o)}
             className="rounded-lg border border-[var(--border-card)] bg-transparent px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-white hover:border-[var(--accent)]/40 transition cursor-pointer"
           >
-            + New ticket
+            {t('support.new_ticket_plus')}
           </button>
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
               <div className="absolute right-0 top-10 z-50 w-56 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-1 shadow-xl shadow-black/40">
-                <p className="px-2.5 py-1.5 text-[10px] uppercase tracking-wider text-[var(--text-muted)]">New ticket — pick a reason</p>
+                <p className="px-2.5 py-1.5 text-[10px] uppercase tracking-wider text-[var(--text-muted)]">{t('support.pick_reason_heading')}</p>
                 {SUPPORT_CATEGORIES.map(c => (
                   <button
                     key={c.slug}
                     onClick={() => pickNewReason(c.slug)}
                     className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)] hover:text-white cursor-pointer"
                   >
-                    <span className="text-sm">{c.icon}</span>{c.label}
+                    <span className="text-sm">{c.icon}</span>{t(c.labelKey)}
                   </button>
                 ))}
               </div>
@@ -158,11 +159,11 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
             with the chat surface. */}
         <aside className="w-56 shrink-0 flex flex-col gap-px overflow-y-auto rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-2">
           <div className="px-2 py-1.5 text-[10px] uppercase tracking-wider font-medium text-[var(--text-muted)]">
-            Conversations
+            {t('support.conversations')}
           </div>
           {conversations.length === 0 && !loading && (
             <div className="px-2 py-3 text-[11px] text-[var(--text-muted)] leading-relaxed">
-              Nothing here yet. Send a message to start a thread.
+              {t('support.rail_empty')}
             </div>
           )}
           {conversations.map(conv => {
@@ -189,11 +190,11 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
                   )}
                 </div>
                 <p className="text-[11px] leading-snug truncate">
-                  {conv.lastMessage?.preview || conv.summary || 'New conversation'}
+                  {conv.lastMessage?.preview || conv.summary || t('support.new_conversation')}
                 </p>
                 {categoryMeta(conv.category) && (
                   <span className="mt-1 inline-flex items-center gap-1 rounded border border-[var(--border-card)] px-1.5 py-0.5 text-[9px] text-[var(--text-muted)]">
-                    <span>{categoryMeta(conv.category)!.icon}</span>{categoryMeta(conv.category)!.label}
+                    <span>{categoryMeta(conv.category)!.icon}</span>{t(categoryMeta(conv.category)!.labelKey)}
                   </span>
                 )}
               </button>
@@ -229,7 +230,7 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={isNewTicket && !newCategory}
-                placeholder={isNewTicket ? (newCatMeta ? newCatMeta.placeholder : 'Pick a reason above to start…') : 'Reply…'}
+                placeholder={isNewTicket ? (newCatMeta ? t(newCatMeta.placeholderKey) : t('support.pick_reason_placeholder')) : t('support.reply_placeholder')}
                 rows={1}
                 className="flex-1 rounded-lg border border-[var(--border-card)] bg-[var(--bg-input)] px-3 py-2 text-sm text-white outline-none resize-none focus:border-[var(--accent)]/60 transition leading-relaxed disabled:opacity-50"
                 style={{ maxHeight: 160 }}
@@ -239,11 +240,11 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
                 disabled={!input.trim() || sending || (isNewTicket && !newCategory)}
                 className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed shrink-0"
               >
-                Send
+                {t('dash.support.send')}
               </button>
             </div>
             <div className="mt-1.5 px-1 text-[10px] text-[var(--text-muted)]">
-              Enter to send · Shift+Enter for a new line
+              {t('support.enter_hint')}
             </div>
           </div>
         </section>
@@ -255,14 +256,14 @@ export function SupportChat({ conversations, activeMessages, activeConversationI
           onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/terms' })}
           className="hover:text-[var(--text-secondary)] transition cursor-pointer"
         >
-          Terms of Service
+          {t('dash.support.terms')}
         </button>
         <span className="opacity-40">·</span>
         <button
           onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/privacy' })}
           className="hover:text-[var(--text-secondary)] transition cursor-pointer"
         >
-          Privacy Policy
+          {t('dash.support.privacy')}
         </button>
       </div>
     </div>
@@ -276,11 +277,10 @@ function EmptyState({ newCategory }: { newCategory: string | null }) {
     return (
       <div className="h-full flex flex-col items-start justify-center max-w-md">
         <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed mb-2">
-          {picked.icon} {picked.label}
+          {picked.icon} {t(picked.labelKey)}
         </p>
         <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
-          Tell me what&apos;s going on in the box below — I&apos;ll do my best to help right now, and if it needs the team I&apos;ll
-          hand it over and they&apos;ll pick up the same thread.
+          {t('support.empty.picked_body')}
         </p>
       </div>
     );
@@ -288,11 +288,10 @@ function EmptyState({ newCategory }: { newCategory: string | null }) {
   return (
     <div className="h-full flex flex-col items-start justify-center max-w-md">
       <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-3">
-        Hey — I&apos;m Ava.
+        {t('support.empty.greeting')}
       </p>
       <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
-        Hit <span className="text-white">+ New ticket</span> up top and pick what it&apos;s about — I&apos;ll route you to the
-        right place and do my best to help right now.
+        {t('support.empty.hint_pre')} <span className="text-white">{t('support.new_ticket_plus')}</span> {t('support.empty.hint_post')}
       </p>
     </div>
   );
@@ -333,10 +332,9 @@ function ByokChat() {
   return (
     <div className="w-full flex flex-col gap-4">
       <div>
-        <h1 className="text-[22px] font-semibold text-[#cdd6f4] mb-1">Need help?</h1>
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4] mb-1">{t('support.byok.title')}</h1>
         <p className="text-[13px] text-[#6c7086]">
-          You&apos;re running BYOK without a platform account, so live chat support is off. These three places will get you
-          unstuck — connect an account any time to bring me back into the loop.
+          {t('support.byok.subtitle')}
         </p>
       </div>
 
@@ -347,8 +345,8 @@ function ByokChat() {
         >
           <span className="text-2xl leading-none">🐙</span>
           <div>
-            <p className="text-sm font-medium text-white">GitHub Issues</p>
-            <p className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-relaxed">Report bugs, request features, ask questions in the open.</p>
+            <p className="text-sm font-medium text-white">{t('support.byok.github')}</p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-relaxed">{t('support.byok.github_desc')}</p>
           </div>
         </button>
 
@@ -358,8 +356,8 @@ function ByokChat() {
         >
           <span className="text-2xl leading-none">💬</span>
           <div>
-            <p className="text-sm font-medium text-white">Community</p>
-            <p className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-relaxed">Discord server — get help from people building with Ava.</p>
+            <p className="text-sm font-medium text-white">{t('support.byok.community')}</p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-relaxed">{t('support.byok.community_desc')}</p>
           </div>
         </button>
 
@@ -369,8 +367,8 @@ function ByokChat() {
         >
           <span className="text-2xl leading-none">📖</span>
           <div>
-            <p className="text-sm font-medium text-white">Documentation</p>
-            <p className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-relaxed">Setup guides, references, and the deeper how-it-works.</p>
+            <p className="text-sm font-medium text-white">{t('support.byok.docs')}</p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-relaxed">{t('support.byok.docs_desc')}</p>
           </div>
         </button>
       </div>
@@ -380,14 +378,14 @@ function ByokChat() {
           onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/terms' })}
           className="hover:text-[var(--text-secondary)] transition cursor-pointer"
         >
-          Terms of Service
+          {t('dash.support.terms')}
         </button>
         <span className="opacity-40">·</span>
         <button
           onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/privacy' })}
           className="hover:text-[var(--text-secondary)] transition cursor-pointer"
         >
-          Privacy Policy
+          {t('dash.support.privacy')}
         </button>
       </div>
     </div>

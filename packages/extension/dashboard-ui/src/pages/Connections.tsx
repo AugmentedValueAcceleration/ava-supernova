@@ -10,45 +10,47 @@ interface ConnectionsProps {
 
 interface FieldDef {
   key: string;
-  label: string;
+  /** i18n key for the field label, resolved with t() at render time. */
+  labelKey: string;
   placeholder: string;
   type?: string;
 }
 
-const SERVICE_DEFS: Record<string, { icon: React.FC<{ className?: string }>; title: string; description: string; fields: FieldDef[] }> = {
+// title/description carry i18n keys resolved with t() at render time.
+const SERVICE_DEFS: Record<string, { icon: React.FC<{ className?: string }>; titleKey: string; descKey: string; fields: FieldDef[] }> = {
   github: {
     icon: GitHubIcon,
-    title: 'GitHub',
-    description: 'Connect your GitHub account to let Ava create branches, PRs, and issues.',
+    titleKey: 'dash.connections.github',
+    descKey: 'connections.github_desc',
     fields: [
-      { key: 'token', label: 'Personal Access Token', placeholder: 'ghp_...', type: 'password' },
+      { key: 'token', labelKey: 'dash.connections.pat', placeholder: 'ghp_...', type: 'password' },
     ],
   },
   email: {
     icon: EnvelopeIcon,
-    title: 'Email (SMTP)',
-    description: 'Allow Ava to send emails on your behalf with your approval.',
+    titleKey: 'dash.connections.email',
+    descKey: 'connections.email_desc',
     fields: [
-      { key: 'host', label: 'SMTP Host', placeholder: 'smtp.gmail.com' },
-      { key: 'port', label: 'Port', placeholder: '587' },
-      { key: 'user', label: 'Username / Email', placeholder: 'you@example.com' },
-      { key: 'pass', label: 'Password / App Password', placeholder: 'App password', type: 'password' },
+      { key: 'host', labelKey: 'dash.connections.smtp_host', placeholder: 'smtp.gmail.com' },
+      { key: 'port', labelKey: 'dash.connections.smtp_port', placeholder: '587' },
+      { key: 'user', labelKey: 'dash.connections.smtp_user', placeholder: 'you@example.com' },
+      { key: 'pass', labelKey: 'dash.connections.smtp_password', placeholder: 'App password', type: 'password' },
     ],
   },
   slack: {
     icon: ChatBubbleIcon,
-    title: 'Slack',
-    description: 'Post messages or summaries to your Slack workspace.',
+    titleKey: 'dash.connections.slack',
+    descKey: 'connections.slack_desc',
     fields: [
-      { key: 'webhook', label: 'Incoming Webhook URL', placeholder: 'https://hooks.slack.com/...', type: 'password' },
+      { key: 'webhook', labelKey: 'dash.connections.slack_webhook', placeholder: 'https://hooks.slack.com/...', type: 'password' },
     ],
   },
   discord: {
     icon: GameControllerIcon,
-    title: 'Discord',
-    description: 'Send notifications or summaries to your Discord server.',
+    titleKey: 'dash.connections.discord',
+    descKey: 'connections.discord_desc',
     fields: [
-      { key: 'webhook', label: 'Webhook URL', placeholder: 'https://discord.com/api/webhooks/...', type: 'password' },
+      { key: 'webhook', labelKey: 'dash.connections.discord_webhook', placeholder: 'https://discord.com/api/webhooks/...', type: 'password' },
     ],
   },
 };
@@ -97,7 +99,7 @@ export function Connections({ connections }: ConnectionsProps) {
       <div className="mb-10">
         <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.connections.title')}</h1>
         <p className="mt-1.5 text-[13px] text-[#6c7086]">
-          {connectedCount}/4 services connected. Credentials are stored securely in VS Code's secret storage.
+          {connectedCount}/4 {t('connections.services_connected')}
         </p>
       </div>
 
@@ -123,8 +125,8 @@ export function Connections({ connections }: ConnectionsProps) {
                   <Icon className="h-5 w-5" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold">{def.title}</p>
-                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">{def.description}</p>
+                  <p className="text-sm font-semibold">{t(def.titleKey)}</p>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">{t(def.descKey)}</p>
                 </div>
                 <span
                   className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${
@@ -133,7 +135,7 @@ export function Connections({ connections }: ConnectionsProps) {
                       : 'border-[var(--border-card)] text-[var(--text-muted)]'
                   }`}
                 >
-                  {connected ? 'Connected' : 'Not connected'}
+                  {connected ? t('dash.connections.connected') : t('dash.connections.not_connected')}
                 </span>
                 <span className="text-xs text-[var(--text-muted)]">{isOpen ? '\u25B2' : '\u25BC'}</span>
               </button>
@@ -145,7 +147,7 @@ export function Connections({ connections }: ConnectionsProps) {
                     {def.fields.map(field => (
                       <div key={field.key}>
                         <label className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">
-                          {field.label}
+                          {t(field.labelKey)}
                         </label>
                         <input
                           type={field.type ?? 'text'}
@@ -163,14 +165,14 @@ export function Connections({ connections }: ConnectionsProps) {
                         disabled={saving === service}
                         className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover)] disabled:opacity-70"
                       >
-                        {saving === service ? 'Saving...' : connected ? 'Update' : 'Connect'}
+                        {saving === service ? t('dash.connections.saving') : connected ? t('dash.connections.update') : t('dash.connections.connect')}
                       </button>
                       {connected && (
                         <button
                           onClick={() => handleDisconnect(service)}
                           className="rounded-lg border border-red-500/30 px-4 py-2 text-xs text-red-400 transition hover:bg-red-500/10"
                         >
-                          Disconnect
+                          {t('dash.connections.disconnect')}
                         </button>
                       )}
                     </div>

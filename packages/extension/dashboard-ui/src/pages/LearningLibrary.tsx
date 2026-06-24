@@ -158,7 +158,7 @@ export function LearningLibrary({ paths, detail }: Props) {
               </div>
               <h2 style={{ fontSize: 24, fontWeight: 700, color: '#fff', margin: '0 0 4px', lineHeight: 1.2 }}>{selected.title}</h2>
               {selected.author_name && (
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 10px' }}>by {selected.author_name}</p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 10px' }}>{t('learning_library.by_author', { author: selected.author_name })}</p>
               )}
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65, margin: 0 }}>{selected.description}</p>
             </div>
@@ -166,9 +166,9 @@ export function LearningLibrary({ paths, detail }: Props) {
 
           {/* Stats row */}
           <div style={{ display: 'flex', gap: 20, marginTop: 18, flexWrap: 'wrap' }}>
-            {selected.estimated_hours ? <Stat icon={'⏱'} label={`${selected.estimated_hours}h`} sub="estimated" /> : null}
-            <Stat icon={'👥'} label={String(selected.fork_count)} sub={`learner${selected.fork_count !== 1 ? 's' : ''}`} />
-            {selected.average_rating ? <Stat icon={'⭐'} label={`${selected.average_rating}/5`} sub="rating" /> : null}
+            {selected.estimated_hours ? <Stat icon={'⏱'} label={`${selected.estimated_hours}h`} sub={t('learning_library.stat_estimated')} /> : null}
+            <Stat icon={'👥'} label={String(selected.fork_count)} sub={t('dash.learning_library.learners')} />
+            {selected.average_rating ? <Stat icon={'⭐'} label={`${selected.average_rating}/5`} sub={t('learning_library.stat_rating')} /> : null}
             {moduleCount > 0 ? <Stat icon={'📦'} label={String(moduleCount)} sub={`module${moduleCount !== 1 ? 's' : ''}`} /> : null}
             {lessonCount > 0 ? <Stat icon={'📝'} label={String(lessonCount)} sub={`lesson${lessonCount !== 1 ? 's' : ''}`} /> : null}
           </div>
@@ -192,7 +192,7 @@ export function LearningLibrary({ paths, detail }: Props) {
         {/* Curriculum — a visual learning path */}
         {selected.content?.modules && (
           <div style={{ marginBottom: 24 }}>
-            <h3 style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.8, margin: '0 0 16px' }}>Your learning path</h3>
+            <h3 style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.8, margin: '0 0 16px' }}>{t('learning_library.your_path')}</h3>
             <div style={{ position: 'relative' }}>
               {/* The vertical journey spine */}
               <div style={{ position: 'absolute', left: 17, top: 8, bottom: 8, width: 2, background: 'linear-gradient(to bottom, var(--gradient-start), var(--gradient-end))', opacity: 0.4 }} />
@@ -262,7 +262,7 @@ export function LearningLibrary({ paths, detail }: Props) {
           </button>
           {/* Star rating */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>Rate this course</span>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>{t('learning_library.rate_course')}</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               {[1, 2, 3, 4, 5].map(star => (
                 <button
@@ -272,7 +272,7 @@ export function LearningLibrary({ paths, detail }: Props) {
                     background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 1, lineHeight: 1,
                     color: (selected.average_rating || 0) >= star ? '#fbbf24' : 'var(--text-muted)',
                   }}
-                  title={`Rate ${star}/5`}
+                  title={t('learning_library.rate_star', { star })}
                 >
                   {'\u2605'}
                 </button>
@@ -283,7 +283,7 @@ export function LearningLibrary({ paths, detail }: Props) {
 
         {selected.prerequisites && (
           <p style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            <strong style={{ color: 'var(--text-secondary)' }}>Prerequisites:</strong> {selected.prerequisites}
+            <strong style={{ color: 'var(--text-secondary)' }}>{t('dash.learning_library.prerequisites')}:</strong> {selected.prerequisites}
           </p>
         )}
       </div>
@@ -294,13 +294,13 @@ export function LearningLibrary({ paths, detail }: Props) {
   return (
     <div style={{ padding: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 600, color: '#cdd6f4' }}>Learning Library</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 600, color: '#cdd6f4' }}>{t('dash.learning_library.title')}</h1>
         <button
           onClick={() => { post({ type: 'load_library_paths' }); }}
           style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-card)', background: 'transparent', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer' }}
-          title="Refresh library"
+          title={t('learning_library.refresh_title')}
         >
-          Refresh
+          {t('health.browse.refresh')}
         </button>
       </div>
       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
@@ -333,7 +333,7 @@ export function LearningLibrary({ paths, detail }: Props) {
               fontSize: 11, fontWeight: 500,
             }}
           >
-            {sub === 'all' ? 'All' : sub}
+            {sub === 'all' ? t('dash.library.all') : sub}
           </button>
         ))}
       </div>
@@ -345,11 +345,11 @@ export function LearningLibrary({ paths, detail }: Props) {
             value={levelFilter}
             onChange={setLevelFilter}
             options={[
-              { value: 'all', label: 'All levels' },
-              { value: 'beginner', label: 'Beginner' },
-              { value: 'intermediate', label: 'Intermediate' },
-              { value: 'advanced', label: 'Advanced' },
-              { value: 'mixed', label: 'Mixed' },
+              { value: 'all', label: t('dash.learning_library.all_levels') },
+              { value: 'beginner', label: t('dash.learning_library.beginner') },
+              { value: 'intermediate', label: t('dash.learning_library.intermediate') },
+              { value: 'advanced', label: t('dash.learning_library.advanced') },
+              { value: 'mixed', label: t('dash.learning_library.mixed') },
             ]}
           />
         </div>
@@ -360,9 +360,9 @@ export function LearningLibrary({ paths, detail }: Props) {
             value={sort}
             onChange={v => setSort(v as SortOption)}
             options={[
-              { value: 'popular', label: 'Most Popular' },
-              { value: 'newest', label: 'Newest' },
-              { value: 'rating', label: 'Highest Rated' },
+              { value: 'popular', label: t('dash.learning_library.most_popular') },
+              { value: 'newest', label: t('dash.learning_library.newest') },
+              { value: 'rating', label: t('dash.learning_library.highest_rated') },
             ]}
           />
         </div>
@@ -372,8 +372,8 @@ export function LearningLibrary({ paths, detail }: Props) {
       {filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>{'\uD83D\uDCDA'}</div>
-          <p style={{ fontSize: 13 }}>No paths found matching your filters.</p>
-          <p style={{ fontSize: 11, marginTop: 4 }}>Try a different search or ask Ava to create a custom learning path.</p>
+          <p style={{ fontSize: 13 }}>{t('learning_library.no_paths_filters')}</p>
+          <p style={{ fontSize: 11, marginTop: 4 }}>{t('learning_library.no_paths_hint')}</p>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
@@ -420,7 +420,7 @@ export function LearningLibrary({ paths, detail }: Props) {
                   padding: '3px 9px', borderRadius: 999, fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.5px',
                   background: 'rgba(0,0,0,0.22)', color: '#fff',
                 }}>
-                  {path.source === 'curated' ? t('dash.learning_library.curated') : 'Community'}
+                  {path.source === 'curated' ? t('dash.learning_library.curated') : t('dash.learning_library.community')}
                 </span>
               </div>
 

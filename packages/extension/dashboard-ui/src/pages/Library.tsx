@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { useLocale } from '../i18n';
+import { t, useLocale } from '../i18n';
 import { post } from '../App';
 import type { LibraryImage, LibraryPath, LibraryPathDetail, LibraryPaper, PapersTab, PaperDiscipline, CreativeAsset, Page } from '../types/messages';
 import { LearningLibrary } from './LearningLibrary';
@@ -245,9 +245,9 @@ export function Library({
           No top-level Refresh button (IDE doesn't have one — refresh is
           handled by the kind-specific sub-views). */}
       <div className="mb-6">
-        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">Library</h1>
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('dash.library.title')}</h1>
         <p className="mt-0.5 text-xs text-[#9b8caa]">
-          Your courses, assets, and documents — everything Ava has made for you.
+          {t('library.subtitle_made')}
         </p>
       </div>
 
@@ -255,26 +255,26 @@ export function Library({
           No counts (IDE doesn't show them); underlined active state in lavender. */}
       <div className="mb-6 flex gap-0.5 border-b border-[rgba(168,85,247,0.12)]">
         {([
-          { key: 'courses',   label: 'Courses' },
-          { key: 'papers',    label: 'Papers' },
-          { key: 'assets',    label: 'Assets' },
-          { key: 'documents', label: 'Documents' },
-        ] as const).map(t => (
+          { key: 'courses',   label: t('library.tab.courses') },
+          { key: 'papers',    label: t('library.tab.papers') },
+          { key: 'assets',    label: t('library.tab.assets') },
+          { key: 'documents', label: t('library.tab.documents') },
+        ] as const).map(tb => (
           <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
+            key={tb.key}
+            onClick={() => setTab(tb.key)}
             className="px-4 py-2 text-xs transition"
             style={{
               border: 'none',
               background: 'transparent',
               cursor: 'pointer',
-              fontWeight: tab === t.key ? 600 : 500,
-              color: tab === t.key ? '#c084fc' : '#6c7086',
-              borderBottom: `2px solid ${tab === t.key ? '#a855f7' : 'transparent'}`,
+              fontWeight: tab === tb.key ? 600 : 500,
+              color: tab === tb.key ? '#c084fc' : '#6c7086',
+              borderBottom: `2px solid ${tab === tb.key ? '#a855f7' : 'transparent'}`,
               marginBottom: -1,
             }}
           >
-            {t.label}
+            {tb.label}
           </button>
         ))}
       </div>
@@ -309,18 +309,18 @@ export function Library({
               top-level tabs so hierarchy stays clear: primary nav ≠ filter. */}
           <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-[var(--border-card)]">
             <div className="flex items-center gap-1">
-              <span className="mr-1 text-[10px] uppercase tracking-wider text-[var(--text-muted)] self-end pb-2">Type</span>
-              {(['all', 'image', 'video'] as AssetTypeFilter[]).map(t => (
+              <span className="mr-1 text-[10px] uppercase tracking-wider text-[var(--text-muted)] self-end pb-2">{t('library.filter.type')}</span>
+              {(['all', 'image', 'video'] as AssetTypeFilter[]).map(f => (
                 <button
-                  key={t}
-                  onClick={() => setTypeFilter(t)}
+                  key={f}
+                  onClick={() => setTypeFilter(f)}
                   className={`px-2.5 py-2 text-[11px] font-medium border-b-2 transition ${
-                    typeFilter === t
+                    typeFilter === f
                       ? 'border-[var(--accent)] text-[var(--accent)]'
                       : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                   }`}
                 >
-                  {t === 'all' ? 'All' : t[0].toUpperCase() + t.slice(1)}
+                  {f === 'all' ? t('dash.library.all') : f === 'image' ? t('library.kind.image') : t('library.kind.video')}
                 </button>
               ))}
             </div>
@@ -328,10 +328,10 @@ export function Library({
               <ViewToggle mode={viewMode} onChange={setViewMode} />
               <button
                 onClick={() => post({ type: 'open_creative_folder' })}
-                title="Open the local creative folder on disk"
+                title={t('library.open_save_folder.title')}
                 className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
               >
-                Open save folder
+                {t('library.open_save_folder')}
               </button>
             </div>
           </div>
@@ -344,7 +344,7 @@ export function Library({
           {cloudAssetsLoading && (
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--border-card)] bg-[var(--bg-card)] px-3 py-1.5 text-[11px] text-[var(--text-secondary)]">
               <span className="ava-library-spinner" aria-hidden />
-              Pulling cloud assets…
+              {t('library.pulling_cloud_assets')}
               <style>{`
                 .ava-library-spinner {
                   width: 11px; height: 11px; border-radius: 50%;
@@ -365,9 +365,9 @@ export function Library({
           {assetItems.length === 0 && !cloudAssetsLoading && (
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
               <div className="text-4xl mb-3">{hasImagesFolder ? '\u{1F3A8}' : '\u{1F4C1}'}</div>
-              <p className="text-sm font-medium text-[var(--text-primary)]">No assets yet</p>
+              <p className="text-sm font-medium text-[var(--text-primary)]">{t('library.no_assets')}</p>
               <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                Ask Ava to generate an image, or head to Creative Studio to start.
+                {t('library.no_assets_hint')}
               </p>
             </div>
           )}
@@ -411,7 +411,7 @@ export function Library({
           <div className="mb-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-[var(--border-card)]">
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
               <div className="flex items-center gap-1">
-                <span className="mr-1 text-[10px] uppercase tracking-wider text-[var(--text-muted)] self-end pb-2">Source</span>
+                <span className="mr-1 text-[10px] uppercase tracking-wider text-[var(--text-muted)] self-end pb-2">{t('library.filter.source')}</span>
                 {(['all', 'cloud', 'local'] as AssetSource[]).map(s => (
                   <button
                     key={s}
@@ -422,23 +422,23 @@ export function Library({
                         : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                     }`}
                   >
-                    {s === 'all' ? 'All' : s === 'cloud' ? 'Cloud' : 'Local'}
+                    {s === 'all' ? t('dash.library.all') : s === 'cloud' ? t('library.source.cloud') : t('library.source.local')}
                   </button>
                 ))}
               </div>
               <div className="flex items-center gap-1">
-                <span className="mr-1 text-[10px] uppercase tracking-wider text-[var(--text-muted)] self-end pb-2">Type</span>
-                {(['all', 'document', 'spreadsheet'] as DocTypeFilter[]).map(t => (
+                <span className="mr-1 text-[10px] uppercase tracking-wider text-[var(--text-muted)] self-end pb-2">{t('library.filter.type')}</span>
+                {(['all', 'document', 'spreadsheet'] as DocTypeFilter[]).map(dt => (
                   <button
-                    key={t}
-                    onClick={() => setDocType(t)}
+                    key={dt}
+                    onClick={() => setDocType(dt)}
                     className={`px-2.5 py-2 text-[11px] font-medium border-b-2 transition ${
-                      docType === t
+                      docType === dt
                         ? 'border-[var(--accent)] text-[var(--accent)]'
                         : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                     }`}
                   >
-                    {t === 'all' ? 'All' : t === 'document' ? 'Documents' : 'Spreadsheets'}
+                    {dt === 'all' ? t('dash.library.all') : dt === 'document' ? t('library.filter.documents') : t('library.filter.spreadsheets')}
                   </button>
                 ))}
               </div>
@@ -449,7 +449,7 @@ export function Library({
                 onClick={() => setNewDocOpen(true)}
                 className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
               >
-                + New document
+                {t('library.new_document_plus')}
               </button>
             </div>
           </div>
@@ -460,16 +460,16 @@ export function Library({
           {cloudAssetsLoading && (
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--border-card)] bg-[var(--bg-card)] px-3 py-1.5 text-[11px] text-[var(--text-secondary)]">
               <span className="ava-library-spinner" aria-hidden />
-              Pulling cloud documents…
+              {t('library.pulling_cloud_documents')}
             </div>
           )}
 
           {documentItems.length === 0 && !cloudAssetsLoading ? (
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
               <div className="text-4xl mb-3">{'\u{1F4C4}'}</div>
-              <p className="text-sm font-medium text-[var(--text-primary)]">No documents yet</p>
+              <p className="text-sm font-medium text-[var(--text-primary)]">{t('library.no_documents')}</p>
               <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                Click <span className="font-medium text-[var(--accent)]">+ New document</span> to start from blank or a template — or ask Ava to write one for you.
+                {t('library.no_documents_hint_pre')} <span className="font-medium text-[var(--accent)]">{t('library.new_document_plus')}</span> {t('library.no_documents_hint_post')}
               </p>
             </div>
           ) : documentItems.length > 0 ? (
@@ -632,7 +632,7 @@ function PreviewModal({
         <button
           onClick={onClose}
           className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center text-lg border-none cursor-pointer transition"
-          aria-label="Close preview"
+          aria-label={t('library.close_preview')}
         >
           ×
         </button>
@@ -657,7 +657,7 @@ function PreviewModal({
           <div className="flex flex-col items-center justify-center gap-2 py-14 bg-[var(--bg-input)]">
             <span className="text-6xl opacity-40">{ASSET_TYPE_ICONS[item.kind] || '\u{1F4C4}'}</span>
             <p className="text-[11px] text-[var(--text-muted)]">
-              Inline playback unavailable — use Open to play in your default app.
+              {t('library.inline_playback_unavailable')}
             </p>
           </div>
         ) : (
@@ -706,7 +706,7 @@ function PreviewModal({
                 onClick={handleOpen}
                 className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition"
               >
-                {isOfficeDoc ? 'Open (LibreOffice)' : 'Open'}
+                {isOfficeDoc ? t('library.open_libreoffice') : t('dash.library.open')}
               </button>
             )}
             {isLocal && (
@@ -714,7 +714,7 @@ function PreviewModal({
                 onClick={handleReveal}
                 className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition"
               >
-                Reveal
+                {t('library.reveal')}
               </button>
             )}
             <button
@@ -725,14 +725,14 @@ function PreviewModal({
                   : 'border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
               }`}
             >
-              Download
+              {t('library.download')}
             </button>
             {!isLocal && cloudUrl && (
               <button
                 onClick={handleCopyUrl}
                 className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition"
               >
-                {copied ? 'Copied ✓' : 'Copy URL'}
+                {copied ? t('library.copied') : t('library.copy_url')}
               </button>
             )}
             <button
@@ -743,7 +743,7 @@ function PreviewModal({
                   : 'border-[var(--border)] text-[var(--text-muted)] hover:text-red-400 hover:border-red-500/40'
               }`}
             >
-              {confirmDelete ? 'Confirm delete' : 'Delete'}
+              {confirmDelete ? t('library.confirm_delete') : t('library.delete')}
             </button>
           </div>
         </div>
@@ -860,7 +860,7 @@ function MediaPlayer({ src, kind }: { src: string; kind: 'audio' | 'video' }) {
       >
         <button
           onClick={toggle}
-          aria-label={playing ? 'Pause' : 'Play'}
+          aria-label={playing ? t('input.pause_aria') : t('library.play')}
           className="flex-shrink-0 w-8 h-8 rounded-full bg-[var(--accent)] hover:bg-[var(--accent)]/90 text-white flex items-center justify-center border-none cursor-pointer transition"
         >
           {playing ? (
@@ -904,7 +904,7 @@ function MediaPlayer({ src, kind }: { src: string; kind: 'audio' | 'video' }) {
         {kind === 'video' && (
           <button
             onClick={toggleFullscreen}
-            aria-label="Fullscreen"
+            aria-label={t('library.fullscreen')}
             className="flex-shrink-0 w-7 h-7 rounded hover:bg-white/10 text-white flex items-center justify-center border-none cursor-pointer transition"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 14v6h6M20 10V4h-6M20 4l-7 7M4 20l7-7"/></svg>
@@ -925,21 +925,24 @@ function MediaPlayer({ src, kind }: { src: string; kind: 'audio' | 'video' }) {
 // the filename prompt (vscode.window.showInputBox) and write to
 // documents/ on disk. After the write fires, the local library scan
 // picks up the new file and it surfaces in this tab.
-const BLANK_FORMATS: { id: BlankFormat; label: string; icon: string; ext: string }[] = [
-  { id: 'docx', label: 'Word Document',  icon: '\u{1F4C4}', ext: '.docx' },
-  { id: 'xlsx', label: 'Spreadsheet',    icon: '\u{1F4CA}', ext: '.xlsx' },
-  { id: 'csv',  label: 'CSV',            icon: '\u{1F4C8}', ext: '.csv'  },
-  { id: 'md',   label: 'Markdown',       icon: '\u{1F4DD}', ext: '.md'   },
-  { id: 'pdf',  label: 'PDF',            icon: '\u{1F4D1}', ext: '.pdf'  },
+// label/desc carry i18n keys; resolved with t() at render time so the
+// modal re-localises when the user changes language. Format names that
+// stay English everywhere (CSV / Markdown / PDF) keep literal labels.
+const BLANK_FORMATS: { id: BlankFormat; labelKey: string; label: string; icon: string; ext: string }[] = [
+  { id: 'docx', labelKey: 'library.format.word',  label: 'Word Document', icon: '\u{1F4C4}', ext: '.docx' },
+  { id: 'xlsx', labelKey: 'library.format.spreadsheet', label: 'Spreadsheet', icon: '\u{1F4CA}', ext: '.xlsx' },
+  { id: 'csv',  labelKey: '', label: 'CSV',            icon: '\u{1F4C8}', ext: '.csv'  },
+  { id: 'md',   labelKey: '', label: 'Markdown',       icon: '\u{1F4DD}', ext: '.md'   },
+  { id: 'pdf',  labelKey: '', label: 'PDF',            icon: '\u{1F4D1}', ext: '.pdf'  },
 ];
 
-const TEMPLATES: { id: TemplateId; label: string; desc: string; icon: string }[] = [
-  { id: 'proposal',      label: 'Project Proposal', desc: 'Executive summary, objectives, timeline', icon: '\u{1F4BC}' },
-  { id: 'report',        label: 'Status Report',    desc: 'Progress, issues, next steps',            icon: '\u{1F4C8}' },
-  { id: 'invoice',       label: 'Invoice',          desc: 'Items table, payment terms',              icon: '\u{1F9FE}' },
-  { id: 'letter',        label: 'Formal Letter',    desc: 'Recipient, body, closing',                icon: '\u{2709}\u{FE0F}' },
-  { id: 'meeting_notes', label: 'Meeting Notes',    desc: 'Agenda, discussion, action items',        icon: '\u{1F5D2}\u{FE0F}' },
-  { id: 'resume',        label: 'Resume',           desc: 'Contact, experience, education, skills',  icon: '\u{1F465}' },
+const TEMPLATES: { id: TemplateId; labelKey: string; descKey: string; icon: string }[] = [
+  { id: 'proposal',      labelKey: 'library.template.proposal.label', descKey: 'library.template.proposal.desc', icon: '\u{1F4BC}' },
+  { id: 'report',        labelKey: 'library.template.report.label',   descKey: 'library.template.report.desc',   icon: '\u{1F4C8}' },
+  { id: 'invoice',       labelKey: 'library.template.invoice.label',  descKey: 'library.template.invoice.desc',  icon: '\u{1F9FE}' },
+  { id: 'letter',        labelKey: 'library.template.letter.label',   descKey: 'library.template.letter.desc',   icon: '\u{2709}\u{FE0F}' },
+  { id: 'meeting_notes', labelKey: 'library.template.meeting.label',  descKey: 'library.template.meeting.desc',  icon: '\u{1F5D2}\u{FE0F}' },
+  { id: 'resume',        labelKey: 'library.template.resume.label',   descKey: 'library.template.resume.desc',   icon: '\u{1F465}' },
 ];
 
 function NewDocumentModal({ onClose }: { onClose: () => void }) {
@@ -964,17 +967,17 @@ function NewDocumentModal({ onClose }: { onClose: () => void }) {
         <button
           onClick={onClose}
           className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 text-[var(--text-muted)] hover:text-white flex items-center justify-center text-lg border-none cursor-pointer transition"
-          aria-label="Close"
+          aria-label={t('dash.library.close')}
         >
           ×
         </button>
 
-        <h2 className="text-base font-semibold text-[var(--text-primary)] mb-1">New document</h2>
+        <h2 className="text-base font-semibold text-[var(--text-primary)] mb-1">{t('library.new_document')}</h2>
         <p className="text-xs text-[var(--text-muted)] mb-5">
-          Files save to your project's <code className="font-mono text-[10px] px-1 rounded bg-[var(--bg-input)]">documents/</code> folder and appear here.
+          {t('library.new_document_note_pre')} <code className="font-mono text-[10px] px-1 rounded bg-[var(--bg-input)]">documents/</code> {t('library.new_document_note_post')}
         </p>
 
-        <h3 className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-medium mb-2">Blank file</h3>
+        <h3 className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-medium mb-2">{t('library.blank_file')}</h3>
         <div className="grid grid-cols-3 gap-2 mb-5">
           {BLANK_FORMATS.map(f => (
             <button
@@ -983,13 +986,13 @@ function NewDocumentModal({ onClose }: { onClose: () => void }) {
               className="flex flex-col items-center gap-1.5 rounded-xl border border-[var(--border-card)] bg-[var(--bg-input)] p-3 text-center transition hover:border-[var(--accent)]/50 hover:bg-[var(--accent)]/5 cursor-pointer"
             >
               <span className="text-2xl">{f.icon}</span>
-              <span className="text-[11px] font-medium text-[var(--text-primary)]">{f.label}</span>
+              <span className="text-[11px] font-medium text-[var(--text-primary)]">{f.labelKey ? t(f.labelKey) : f.label}</span>
               <span className="text-[9px] text-[var(--text-muted)]">{f.ext}</span>
             </button>
           ))}
         </div>
 
-        <h3 className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-medium mb-2">From template</h3>
+        <h3 className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-medium mb-2">{t('library.from_template')}</h3>
         <div className="grid grid-cols-2 gap-2">
           {TEMPLATES.map(tmpl => (
             <button
@@ -999,8 +1002,8 @@ function NewDocumentModal({ onClose }: { onClose: () => void }) {
             >
               <span className="text-xl shrink-0">{tmpl.icon}</span>
               <div className="min-w-0">
-                <span className="block text-[11px] font-medium text-[var(--text-primary)]">{tmpl.label}</span>
-                <span className="block text-[10px] text-[var(--text-muted)] leading-snug">{tmpl.desc}</span>
+                <span className="block text-[11px] font-medium text-[var(--text-primary)]">{t(tmpl.labelKey)}</span>
+                <span className="block text-[10px] text-[var(--text-muted)] leading-snug">{t(tmpl.descKey)}</span>
               </div>
             </button>
           ))}

@@ -14,7 +14,9 @@ function getMonthKey(dateStr: string): string {
 }
 
 const PLAT_COLOURS: Record<string, string> = { core: '#89b4fa', extension: '#a855f7', ide: '#a6e3a1', companion: '#fab387' };
-const PLAT_LABELS: Record<string, string> = { core: 'Core', extension: 'Extension', ide: 'IDE', companion: 'Companion' };
+// i18n keys for platform names, resolved with t() at render time.
+const PLAT_LABEL_KEYS: Record<string, string> = { core: 'dash.releases.core', extension: 'dash.releases.extension', ide: 'dash.releases.ide', companion: 'dash.releases.companion' };
+const platLabel = (p: string): string => (PLAT_LABEL_KEYS[p] ? t(PLAT_LABEL_KEYS[p]) : p);
 
 export function Releases({ releases }: { releases: ReleaseNote[] }) {
   useLocale();
@@ -50,7 +52,7 @@ export function Releases({ releases }: { releases: ReleaseNote[] }) {
   if (releases.length === 0) {
     return (
       <div className="flex items-center justify-center h-40 text-sm text-[var(--text-muted)]">
-        Loading release notes...
+        {t('releases.loading')}
       </div>
     );
   }
@@ -70,7 +72,7 @@ export function Releases({ releases }: { releases: ReleaseNote[] }) {
             value={selectedMonth}
             onChange={setSelectedMonth}
             options={[
-              { value: '', label: 'All months' },
+              { value: '', label: t('dash.releases.all_months') },
               ...months.map(([key, label]) => ({ value: key, label })),
             ]}
           />
@@ -89,7 +91,7 @@ export function Releases({ releases }: { releases: ReleaseNote[] }) {
               color: platformTab === tab ? (tab === 'core' || tab === 'extension' ? '#fff' : '#11111b') : 'var(--text-muted)',
             }}
           >
-            {tab === 'all' ? t('dash.releases.all') : PLAT_LABELS[tab]}
+            {tab === 'all' ? t('dash.releases.all') : platLabel(tab)}
           </button>
         ))}
       </div>
@@ -119,18 +121,18 @@ export function Releases({ releases }: { releases: ReleaseNote[] }) {
                       background: `${PLAT_COLOURS[(release as any).platform || 'extension'] || '#6c7086'}18`,
                     }}
                   >
-                    {PLAT_LABELS[(release as any).platform || 'extension'] || 'Extension'}
+                    {platLabel((release as any).platform || 'extension')}
                   </span>
                   {isLatest && (
                     <span className="text-[9px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 px-1.5 py-0.5 rounded tracking-wider">
-                      LATEST
+                      {t('dash.releases.latest')}
                     </span>
                   )}
                   <span className="text-sm text-[var(--text-secondary)]">{release.title}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-[var(--text-muted)] bg-[var(--bg-input)] px-1.5 py-0.5 rounded">
-                    {release.tool_count} tools
+                    {t('dash.releases.tools_count', { count: release.tool_count })}
                   </span>
                   <span className="text-[10px] text-[var(--text-muted)]">
                     {new Date(release.published_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
@@ -148,7 +150,7 @@ export function Releases({ releases }: { releases: ReleaseNote[] }) {
                 <div className="px-4 pb-4 border-t border-[var(--border-card)]">
                   {release.highlights.length > 0 && (
                     <div className="mt-3 mb-4 rounded-lg bg-[var(--bg-input)] p-3">
-                      <h3 className="text-xs font-semibold text-white mb-2">Highlights</h3>
+                      <h3 className="text-xs font-semibold text-white mb-2">{t('dash.releases.highlights')}</h3>
                       <ul className="space-y-1">
                         {release.highlights.map((h: string, i: number) => (
                           <li key={i} className="flex items-start gap-2 text-xs text-[var(--text-secondary)]">
@@ -171,7 +173,7 @@ export function Releases({ releases }: { releases: ReleaseNote[] }) {
 
         {filtered.length === 0 && (
           <div className="text-center text-sm text-[var(--text-muted)] py-8">
-            No releases for this month.
+            {t('dash.releases.no_releases')}
           </div>
         )}
       </div>

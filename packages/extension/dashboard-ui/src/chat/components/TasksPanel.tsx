@@ -31,14 +31,16 @@ export interface UpdateTaskInput {
 const CATEGORY_OPTIONS = ['personal', 'coding', 'admin', 'meeting', 'health', 'finance', 'errands', 'study', 'home'] as const;
 const PRIORITY_OPTIONS = ['low', 'medium', 'high', 'urgent'] as const;
 const RECURRENCE_OPTIONS = ['none', 'daily', 'weekdays', 'weekly', 'monthly'] as const;
-/** Reminder lead presets — minutes before due. 0 = at the due time. */
-const REMINDER_OPTIONS: { value: number; label: string }[] = [
-  { value: -1, label: 'No reminder' },
-  { value: 0, label: 'At time' },
-  { value: 10, label: '10 min before' },
-  { value: 30, label: '30 min before' },
-  { value: 60, label: '1 hour before' },
-  { value: 1440, label: '1 day before' },
+/** Reminder lead presets — minutes before due. 0 = at the due time.
+ *  `key` is the stable i18n key (shared with the IDE panel); `label` is the
+ *  English fallback used when a locale hasn't translated it yet. */
+const REMINDER_OPTIONS: { value: number; key: string; label: string }[] = [
+  { value: -1, key: 'tasks.reminder_none', label: 'No reminder' },
+  { value: 0, key: 'tasks.reminder_at_time', label: 'At time' },
+  { value: 10, key: 'tasks.reminder_10m', label: '10 min before' },
+  { value: 30, key: 'tasks.reminder_30m', label: '30 min before' },
+  { value: 60, key: 'tasks.reminder_1h', label: '1 hour before' },
+  { value: 1440, key: 'tasks.reminder_1d', label: '1 day before' },
 ];
 
 const MIN_WIDTH = 200;
@@ -494,7 +496,7 @@ function QuickAdd({
           <div className="flex-1 min-w-0">
             <span className={labelCls}>{tt('tasks.reminder', 'Reminder')}</span>
             <select value={reminderLead} onChange={(e) => setReminderLead(Number(e.target.value))} className={`${fieldCls} cursor-pointer`} style={QUICK_INPUT_STYLE}>
-              {REMINDER_OPTIONS.map((r) => <option key={r.value} value={r.value}>{tt(`tasks.reminder_${r.value}`, r.label)}</option>)}
+              {REMINDER_OPTIONS.map((r) => <option key={r.value} value={r.value}>{tt(r.key, r.label)}</option>)}
             </select>
           </div>
         </div>
@@ -695,7 +697,7 @@ function CollapsibleSection({
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
+  if (mins < 1) return tt('tasks.just_now', 'just now');
   if (mins < 60) return `${mins}m ago`;
   const hours = Math.floor(diff / 3600000);
   if (hours < 24) return `${hours}h ago`;
@@ -751,7 +753,7 @@ function recurrenceLabel(r?: string): string | null {
 function reminderLabel(lead?: number): string | null {
   if (lead === undefined || lead < 0) return null;
   const opt = REMINDER_OPTIONS.find(o => o.value === lead);
-  return opt ? tt(`tasks.reminder_${lead}`, opt.label) : null;
+  return opt ? tt(opt.key, opt.label) : null;
 }
 
 function TaskItem({
@@ -986,7 +988,7 @@ function TaskEditForm({
           {RECURRENCE_OPTIONS.map((r) => <option key={r} value={r}>{tt(`tasks.recurrence_${r}`, r)}</option>)}
         </select>
         <select value={reminderLead} onChange={(e) => setReminderLead(Number(e.target.value))} className="flex-1 min-w-0 px-1.5 py-1 rounded-md text-[10px] outline-none cursor-pointer" style={QUICK_INPUT_STYLE}>
-          {REMINDER_OPTIONS.map((r) => <option key={r.value} value={r.value}>{tt(`tasks.reminder_${r.value}`, r.label)}</option>)}
+          {REMINDER_OPTIONS.map((r) => <option key={r.value} value={r.value}>{tt(r.key, r.label)}</option>)}
         </select>
       </div>
       <div className="flex items-center gap-1.5">

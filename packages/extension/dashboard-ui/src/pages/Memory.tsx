@@ -419,16 +419,16 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
           <button
             onClick={() => postLoad({ type: 'load_local_memories' })}
             className="rounded-lg border border-[rgba(168,85,247,0.2)] bg-transparent px-3 py-1.5 text-xs text-[#9ca3af] transition hover:text-white"
-            title="Refresh memories"
+            title={t('memory.refresh_title')}
           >
-            Refresh
+            {t('health.browse.refresh')}
           </button>
           {memories.length > 0 && !deletingAll && (
             <button
               onClick={() => setConfirmDeleteAll(true)}
               className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs text-[#f87171] transition hover:bg-red-500/20"
             >
-              Delete All
+              {t('memory.delete_all')}
             </button>
           )}
         </div>
@@ -439,8 +439,8 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
         <div className="mb-6 flex items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
           <div>
-            <p className="text-sm text-amber-400">Deleting all memories... This may take a moment.</p>
-            <p className="text-xs text-amber-400/60 mt-1">Please stay on this page — leaving will interrupt the deletion.</p>
+            <p className="text-sm text-amber-400">{t('dash.memory.deleting_progress')}</p>
+            <p className="text-xs text-amber-400/60 mt-1">{t('dash.memory.deleting_warning')}</p>
           </div>
         </div>
       )}
@@ -448,9 +448,9 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
       {/* Delete All Confirmation */}
       {confirmDeleteAll && (
         <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4">
-          <p className="text-sm font-medium text-red-400 mb-2">Delete all memories?</p>
+          <p className="text-sm font-medium text-red-400 mb-2">{t('memory.delete_all_q')}</p>
           <p className="text-xs text-[var(--text-muted)] mb-4">
-            This permanently deletes every memory — on this machine and any cloud copy. It cannot be undone.
+            {t('memory.delete_all_body')}
           </p>
           <div className="flex flex-wrap gap-2">
             <button
@@ -458,13 +458,13 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
               disabled={deletingAll}
               className="rounded-lg bg-red-500 px-4 py-1.5 text-xs font-medium text-white transition hover:bg-red-600 disabled:opacity-50"
             >
-              Delete Everything
+              {t('memory.delete_everything')}
             </button>
             <button
               onClick={() => setConfirmDeleteAll(false)}
               className="rounded-lg border border-[var(--border-card)] px-4 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-white"
             >
-              Cancel
+              {t('dash.memory.cancel')}
             </button>
           </div>
         </div>
@@ -472,7 +472,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
 
       {!cloudSync && (
         <div className="mb-6 rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] px-4 py-3 text-xs text-[var(--text-muted)]">
-          Memories are stored on this machine — turn on Cloud sync to back them up across devices.
+          {t('memory.local_only_notice')}
         </div>
       )}
 
@@ -510,11 +510,11 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
       {(memories.length > 0 || (contradictions && contradictions.length > 0) || (patterns && patterns.length > 0)) && (
         <div className="mb-4 flex gap-1 rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] p-1">
           {[
-            { key: 'active' as ViewMode, label: 'Active', count: activeEntries.length },
-            { key: 'stale' as ViewMode, label: 'Stale', count: staleEntries.length },
-            { key: 'archived' as ViewMode, label: 'Archived', count: archivedEntries.length },
-            ...(contradictions && contradictions.length > 0 ? [{ key: 'contradictions' as ViewMode, label: 'Conflicts', count: contradictions.length }] : []),
-            ...(patterns && patterns.length > 0 ? [{ key: 'patterns' as ViewMode, label: 'Patterns', count: patterns.length }] : []),
+            { key: 'active' as ViewMode, label: t('memory.tab.active'), count: activeEntries.length },
+            { key: 'stale' as ViewMode, label: t('memory.tab.stale'), count: staleEntries.length },
+            { key: 'archived' as ViewMode, label: t('memory.tab.archived'), count: archivedEntries.length },
+            ...(contradictions && contradictions.length > 0 ? [{ key: 'contradictions' as ViewMode, label: t('memory.tab.conflicts'), count: contradictions.length }] : []),
+            ...(patterns && patterns.length > 0 ? [{ key: 'patterns' as ViewMode, label: t('memory.tab.patterns'), count: patterns.length }] : []),
           ].map(tab => (
             <button
               key={tab.key}
@@ -651,14 +651,14 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
         {/* Stale mode info banner */}
         {viewMode === 'stale' && staleEntries.length > 0 && (
           <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-xs text-amber-300">
-            These memories haven't been recalled in 90+ days. Review them — archive what's no longer needed, update what's outdated.
+            {t('memory.stale_banner')}
           </div>
         )}
 
         {/* Archived mode info banner */}
         {viewMode === 'archived' && archivedEntries.length > 0 && (
           <div className="rounded-lg border border-[var(--border-card)] bg-[var(--bg-card)] px-4 py-3 text-xs text-[var(--text-muted)]">
-            Archived memories are excluded from Ava's active recall. Restore any that are still relevant.
+            {t('memory.archived_banner')}
           </div>
         )}
 
@@ -670,12 +670,12 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
         ) : filtered.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[var(--border-card)] bg-[var(--bg-card)] p-8 text-center text-sm text-[var(--text-muted)]">
             {search || categoryFilter
-              ? 'No memories match your filters.'
+              ? t('dash.memory.no_match')
               : viewMode === 'archived'
-                ? 'No archived memories.'
+                ? t('memory.empty_archived')
                 : viewMode === 'stale'
-                  ? 'No stale memories — everything is fresh!'
-                  : 'No memories yet. Ava will remember things as you work together — patterns, preferences, decisions, and more.'}
+                  ? t('memory.empty_stale')
+                  : t('memory.empty_active')}
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -708,13 +708,13 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
                         onClick={() => saveEdit(m)}
                         className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[var(--accent-hover)]"
                       >
-                        Save
+                        {t('memory.save')}
                       </button>
                       <button
                         onClick={() => setEditingId(null)}
                         className="rounded-lg border border-[var(--border-input)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)]"
                       >
-                        Cancel
+                        {t('dash.memory.cancel')}
                       </button>
                     </div>
                   </div>
@@ -732,7 +732,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
                         </span>
                       )}
                       {m.archived && (
-                        <span className="text-[10px] text-[var(--text-muted)] font-medium">Archived</span>
+                        <span className="text-[10px] text-[var(--text-muted)] font-medium">{t('memory.archived_label')}</span>
                       )}
                       {m.tags && m.tags.length > 0 && (
                         <div className="flex gap-1 ml-1">
@@ -748,7 +748,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
                           <button
                             onClick={() => restoreEntry(m.id)}
                             className="rounded p-1.5 text-[var(--text-muted)] transition hover:bg-emerald-500/10 hover:text-emerald-400"
-                            title="Restore"
+                            title={t('memory.restore_title')}
                           >
                             <RestoreIcon className="h-3.5 w-3.5" />
                           </button>
@@ -757,7 +757,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
                             <button
                               onClick={() => startEdit(m)}
                               className="rounded p-1.5 text-[var(--text-muted)] transition hover:bg-[var(--bg-input)] hover:text-white"
-                              title="Edit"
+                              title={t('memory.edit_title')}
                             >
                               <PencilIcon className="h-3.5 w-3.5" />
                             </button>
@@ -765,7 +765,7 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
                               <button
                                 onClick={() => archiveEntry(m.id)}
                                 className="rounded p-1.5 text-[var(--text-muted)] transition hover:bg-amber-500/10 hover:text-amber-400"
-                                title="Archive"
+                                title={t('memory.archive_title')}
                               >
                                 <ArchiveIcon className="h-3.5 w-3.5" />
                               </button>
@@ -778,20 +778,20 @@ export function Memory({ memories, serverTotal, serverHasMore, graphStats, contr
                               onClick={() => confirmDelete(m.id)}
                               className="rounded bg-red-500 px-2 py-1 text-[10px] font-semibold text-white transition hover:bg-red-600"
                             >
-                              Confirm
+                              {t('dash.memory.confirm')}
                             </button>
                             <button
                               onClick={() => setConfirmDeleteId(null)}
                               className="rounded px-2 py-1 text-[10px] text-[var(--text-muted)] transition hover:bg-[var(--bg-input)]"
                             >
-                              Cancel
+                              {t('dash.memory.cancel')}
                             </button>
                           </>
                         ) : (
                           <button
                             onClick={() => setConfirmDeleteId(m.id)}
                             className="rounded p-1.5 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
-                            title="Delete"
+                            title={t('memory.delete_title')}
                           >
                             <TrashIcon className="h-3.5 w-3.5" />
                           </button>

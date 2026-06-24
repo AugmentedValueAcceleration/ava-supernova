@@ -74,6 +74,7 @@ const SURFACES = [
     localeFiles() {
       return fs.readdirSync(this.dir).filter(f => /^package\.nls(\.[a-z-]+)?\.json$/i.test(f));
     },
+    keepEnglishFile: path.join(repoRoot, 'packages/extension/package.nls.keep.ts'),
   },
 ];
 

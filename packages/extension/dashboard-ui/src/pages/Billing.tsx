@@ -70,11 +70,11 @@ export function Billing({ account }: BillingProps) {
           project_billing_architecture). */}
       {(() => {
         const tierConfig: Record<string, { label: string; chipColor: string; chipBg: string; limitText: string }> = {
-          free:       { label: 'Free',       chipColor: '#a6e3a1', chipBg: 'rgba(166,227,161,0.10)', limitText: '300 credits' },
-          pro:        { label: 'Pro',        chipColor: '#89b4fa', chipBg: 'rgba(137,180,250,0.10)', limitText: '5,000 credits' },
-          ultra:      { label: 'Ultra',      chipColor: '#cba6f7', chipBg: 'rgba(203,166,247,0.10)', limitText: '10,000 credits' },
-          enterprise: { label: 'Enterprise', chipColor: '#f9e2af', chipBg: 'rgba(249,226,175,0.10)', limitText: '20,000 credits' },
-          admin:      { label: 'Admin',      chipColor: '#f38ba8', chipBg: 'rgba(243,139,168,0.10)', limitText: 'Unlimited' },
+          free:       { label: t('dash.billing.plan.free'),       chipColor: '#a6e3a1', chipBg: 'rgba(166,227,161,0.10)', limitText: '300 credits' },
+          pro:        { label: t('dash.billing.plan.pro'),        chipColor: '#89b4fa', chipBg: 'rgba(137,180,250,0.10)', limitText: '5,000 credits' },
+          ultra:      { label: t('dash.billing.plan.ultra'),      chipColor: '#cba6f7', chipBg: 'rgba(203,166,247,0.10)', limitText: '10,000 credits' },
+          enterprise: { label: t('dash.billing.plan.enterprise'), chipColor: '#f9e2af', chipBg: 'rgba(249,226,175,0.10)', limitText: '20,000 credits' },
+          admin:      { label: t('dash.billing.plan.admin'),      chipColor: '#f38ba8', chipBg: 'rgba(243,139,168,0.10)', limitText: 'Unlimited' },
         };
         const tc = tierConfig[account.tier ?? 'free'] ?? tierConfig.free;
         const isFree = account.tier === 'free';
@@ -110,7 +110,7 @@ export function Billing({ account }: BillingProps) {
                   onClick={() => openUrl(dashboardBillingUrl())}
                   className="rounded-lg bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] px-[18px] py-2 text-xs font-semibold text-white transition hover:opacity-90"
                 >
-                  Manage Plan
+                  {t('billing.manage_plan')}
                 </button>
               )}
             </div>
@@ -118,11 +118,11 @@ export function Billing({ account }: BillingProps) {
             {/* Credits Remaining — separate card with big number */}
             <div className="mb-4 rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
               <div className="mb-2 flex items-baseline justify-between">
-                <div className="text-xs text-[var(--text-muted)]">Credits Remaining</div>
+                <div className="text-xs text-[var(--text-muted)]">{t('billing.credits_remaining')}</div>
                 <div className="text-[11px] text-[#45475a]">
                   {limit > 0
                     ? `${remaining.toLocaleString()} of ${limit.toLocaleString()}`
-                    : 'No credits this period'}
+                    : t('billing.no_credits_period')}
                 </div>
               </div>
               <div className="mb-2.5 text-[28px] font-bold text-[#cdd6f4] tabular-nums">
@@ -145,10 +145,10 @@ export function Billing({ account }: BillingProps) {
               </div>
               <div className="mt-2 text-[11px] text-[var(--text-muted)]">
                 {account.tier === 'free'
-                  ? 'Resets monthly. Upgrade for more.'
+                  ? t('billing.resets_monthly')
                   : account.tier === 'admin'
-                    ? 'Unlimited usage.'
-                    : 'Includes your monthly plan allowance + any top-ups.'}
+                    ? t('billing.unlimited_usage')
+                    : t('billing.includes_allowance')}
               </div>
             </div>
 
@@ -158,11 +158,11 @@ export function Billing({ account }: BillingProps) {
             {topUpBalance > 0 && (
               <div className="mb-4 flex items-center justify-between rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-5">
                 <div>
-                  <div className="mb-1 text-xs text-[var(--text-muted)]">Top-Up Balance</div>
+                  <div className="mb-1 text-xs text-[var(--text-muted)]">{t('billing.topup_balance')}</div>
                   <div className="text-lg font-bold text-[#f9e2af]">{topUpBalance.toLocaleString()}</div>
                 </div>
                 <span className="rounded-lg px-2.5 py-[3px] text-[10px] font-semibold" style={{ color: '#f9e2af', background: 'rgba(249,226,175,0.10)' }}>
-                  Active
+                  {t('billing.active')}
                 </span>
               </div>
             )}
@@ -181,7 +181,7 @@ export function Billing({ account }: BillingProps) {
           makes the 10M "Best value" label honest. */}
       {account.tier !== 'admin' && (
         <div className="mb-10">
-        <SectionGroup label="Top Up Credits" description="Running low? Add extra credits — they never expire.">
+        <SectionGroup label={t('billing.topup_credits')} description={t('billing.topup_credits_desc')}>
           <div className="grid gap-3 sm:grid-cols-3">
             {CREDIT_TOPUPS.map((pkg: CreditTopupDefinition) => (
               <PurchaseCard
@@ -192,7 +192,7 @@ export function Billing({ account }: BillingProps) {
                 effectiveRate={pkg.effectiveRate}
                 popular={pkg.popular}
                 state="live"
-                ctaLabel="Buy credits"
+                ctaLabel={t('billing.buy_credits')}
                 onClick={() => openUrl(dashboardBillingUrl())}
               />
             ))}
@@ -206,7 +206,7 @@ export function Billing({ account }: BillingProps) {
           where they'd land on cancellation. Upgrade buttons deep-link to
           the web billing dashboard where Stripe checkout runs. */}
       {account.tier !== 'admin' && (
-        <SectionGroup label="Plans">
+        <SectionGroup label={t('billing.plans')}>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {(['free', 'pro', 'ultra', 'enterprise'] as const).map((tier) => (
               <PlanCard
@@ -250,7 +250,7 @@ function PlanCard({
         <TierBadge tier={tier} />
         {isCurrent && (
           <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--gradient-start)]">
-            Your plan
+            {t('billing.your_plan')}
           </span>
         )}
       </div>
@@ -270,7 +270,7 @@ function PlanCard({
 
       {isCurrent ? (
         <div className="mt-4 w-full rounded-lg border border-[var(--border-input)] py-2.5 text-center text-xs text-[var(--text-muted)]">
-          Current plan
+          {t('billing.current_plan_badge')}
         </div>
       ) : tier === 'free' ? (
         // Paid users always see a clean exit. Deep-link to the web
@@ -281,14 +281,14 @@ function PlanCard({
           onClick={onUpgrade}
           className="mt-4 w-full rounded-lg border border-[var(--border-input)] py-2.5 text-center text-xs text-[var(--text-secondary)] transition hover:bg-[var(--bg-input)]"
         >
-          Downgrade to Free
+          {t('billing.downgrade_free')}
         </button>
       ) : (
         <button
           onClick={onUpgrade}
           className="mt-4 w-full rounded-lg bg-gradient-to-r from-[var(--gradient-start)] to-[var(--gradient-end)] py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
         >
-          Upgrade to {tier.charAt(0).toUpperCase() + tier.slice(1)}
+          {t('billing.upgrade_to', { tier: t(`dash.billing.plan.${tier}`) })}
         </button>
       )}
     </div>

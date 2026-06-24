@@ -38,10 +38,11 @@ function parsePlanArgs(argsJson: string): PlanData | null {
 
 // ─── Confidence config ────────────────────────────────────────────────────
 
+// labelKey carries the i18n key, resolved with t() at render time.
 const CONFIDENCE = {
-  high:   { label: 'High confidence', color: '#4caf50', bg: 'rgba(76,175,80,0.12)', icon: '\u2714' },
-  medium: { label: 'Medium confidence', color: '#ff9800', bg: 'rgba(255,152,0,0.12)', icon: '\u25C6' },
-  low:    { label: 'Low confidence', color: '#f44336', bg: 'rgba(244,67,54,0.12)', icon: '\u26A0' },
+  high:   { labelKey: 'plan.confidence.high', color: '#4caf50', bg: 'rgba(76,175,80,0.12)', icon: '\u2714' },
+  medium: { labelKey: 'plan.confidence.medium', color: '#ff9800', bg: 'rgba(255,152,0,0.12)', icon: '\u25C6' },
+  low:    { labelKey: 'plan.confidence.low', color: '#f44336', bg: 'rgba(244,67,54,0.12)', icon: '\u26A0' },
 };
 
 // ─── Status config ────────────────────────────────────────────────────────
@@ -135,11 +136,11 @@ export function PlanCard({ toolCall, onConfirmation }: PlanCardProps) {
 
         {/* Step count + confidence */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-[10px] opacity-30">{plan.steps.length} steps</span>
+          <span className="text-[10px] opacity-30">{t('plan.step_count', { count: plan.steps.length })}</span>
           {conf && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-full"
                   style={{ background: conf.bg, color: conf.color }}>
-              {conf.icon} {conf.label}
+              {conf.icon} {t(conf.labelKey)}
             </span>
           )}
           <span className="opacity-20 text-[10px]">{expanded ? '\u25B2' : '\u25BC'}</span>

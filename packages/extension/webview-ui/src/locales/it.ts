@@ -399,7 +399,7 @@ export const itStrings: Record<StringKey, string> = {
   'thinking.in_progress': 'Elaborazione in corso',
   'thinking.thinking': 'Elaborazione...',
   'thinking.thought_for': 'Elaborato per {duration}',
-  'welcome_modal.account': 'Account',
+  'welcome_modal.account': 'Profilo',
   'welcome_modal.back': 'Indietro',
   'welcome_modal.byok_no_limit': 'BYOK — nessun limite',
   'welcome_modal.card.creative': 'Creativo',

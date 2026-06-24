@@ -24,7 +24,7 @@ interface HelpPageProps {
 function getHelpTabs(): { key: HelpTab; label: string }[] {
   return [
     { key: 'support', label: t('dash.help.tab_support') },
-    { key: 'docs', label: 'Docs' },
+    { key: 'docs', label: t('dash.library.docs') },
     { key: 'releases', label: t('dash.help.tab_releases') },
     { key: 'roadmap', label: t('dash.help.tab_roadmap') },
   ];
@@ -38,8 +38,8 @@ export function HelpPage({ releases, mode, supportConversations, supportMessages
     <div className="space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">Help</h1>
-        <p className="mt-1.5 text-[13px] text-[#6c7086]">Support, documentation, release notes, and roadmap</p>
+        <h1 className="text-[22px] font-semibold text-[#cdd6f4]">{t('help.title')}</h1>
+        <p className="mt-1.5 text-[13px] text-[#6c7086]">{t('help.subtitle')}</p>
       </div>
 
       {/* Tab bar */}
@@ -94,7 +94,7 @@ export function HelpPage({ releases, mode, supportConversations, supportMessages
           onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/terms' })}
           className="cursor-pointer border-none bg-transparent p-0 transition hover:text-[var(--text-secondary)]"
         >
-          Terms of Service
+          {t('dash.support.terms')}
         </button>
         <span className="opacity-40">·</span>
         <button
@@ -102,7 +102,7 @@ export function HelpPage({ releases, mode, supportConversations, supportMessages
           onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/privacy' })}
           className="cursor-pointer border-none bg-transparent p-0 transition hover:text-[var(--text-secondary)]"
         >
-          Privacy Policy
+          {t('dash.support.privacy')}
         </button>
         <span className="opacity-40">·</span>
         <button
@@ -110,7 +110,7 @@ export function HelpPage({ releases, mode, supportConversations, supportMessages
           onClick={() => post({ type: 'open_url', url: 'https://ava-supernova.com/health/safety' })}
           className="cursor-pointer border-none bg-transparent p-0 transition hover:text-[var(--text-secondary)]"
         >
-          Health &amp; Fitness Safety
+          {t('help.health_safety')}
         </button>
       </div>
     </div>
