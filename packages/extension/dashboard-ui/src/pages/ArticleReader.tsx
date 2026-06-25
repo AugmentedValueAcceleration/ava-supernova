@@ -43,7 +43,7 @@ const CATEGORIES: Record<string, { label: string; icon: string }> = {
   'technology':       { label: 'Technology',         icon: '💻' },
   'open-source':      { label: 'Open Source',        icon: '📦' },
   'security-privacy': { label: 'Security & Privacy', icon: '🛡️' },
-  'world':            { label: 'World',              icon: '🌍' },
+  'world':            { label: 'World News',         icon: '🌍' },
   'sport':            { label: 'Sport',              icon: '⚽' },
   'business':         { label: 'Business & Economy', icon: '📈' },
   'science':          { label: 'Science',            icon: '🔬' },

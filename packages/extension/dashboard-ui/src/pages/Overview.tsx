@@ -576,13 +576,13 @@ function WeatherWidget({ weather, loaded }: { weather: WeatherData | null; loade
 
 // Mirrors packages/web/src/lib/news-categories.ts — IDs MUST match it.
 const NEWS_CATEGORIES = [
-  'ai', 'technology', 'open-source', 'security-privacy', 'world', 'sport',
-  'business', 'science', 'health', 'food', 'education',
+  'world', 'ai', 'technology', 'open-source', 'security-privacy',
+  'business', 'science', 'health', 'food', 'education', 'sport',
 ] as const;
 
 const NEWS_CATEGORY_LABELS: Record<string, string> = {
-  ai: 'AI', technology: 'Technology', 'open-source': 'Open Source',
-  'security-privacy': 'Security & Privacy', world: 'World', sport: 'Sport',
+  world: 'World News', ai: 'AI', technology: 'Technology', 'open-source': 'Open Source',
+  'security-privacy': 'Security & Privacy', sport: 'Sport',
   business: 'Business & Economy', science: 'Science', health: 'Health & Fitness',
   food: 'Food & Nutrition', education: 'Education',
 };
@@ -606,9 +606,16 @@ function formatCategoryLabel(slug: string): string {
 function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { articles: NewsArticle[]; articleLoading?: boolean; onOpenArticle?: (slug: string) => void }) {
   const articles = Array.isArray(rawArticles) ? rawArticles : [];
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+
+  const PER_PAGE = 6;
+  const totalPages = Math.max(1, Math.ceil(articles.length / PER_PAGE));
+  const safePage = Math.min(page, totalPages - 1);
+  const pageArticles = articles.slice(safePage * PER_PAGE, safePage * PER_PAGE + PER_PAGE);
 
   const handleCategoryChange = (cat: string | null) => {
     setSelectedCategory(cat);
+    setPage(0);
     if (cat) {
       post({ type: 'load_news', category: cat });
     } else {
@@ -667,8 +674,9 @@ function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { 
       {!articleLoading && articles.length === 0 ? (
         <p className="py-4 text-xs text-[var(--text-muted)]">{t('dash.cc.no_news')}</p>
       ) : !articleLoading && (
+        <>
         <div className="space-y-2">
-          {articles.map((article, idx) => (
+          {pageArticles.map((article, idx) => (
             <button
               key={article.slug || idx}
               onClick={() => handleArticleClick(article.slug)}
@@ -696,6 +704,22 @@ function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { 
             </button>
           ))}
         </div>
+        {totalPages > 1 && (
+          <div className="mt-3 flex items-center justify-between border-t border-[var(--border-card)] pt-2">
+            <button
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={safePage === 0}
+              className="rounded-md px-2 py-1 text-[11px] font-medium text-[var(--text-muted)] transition enabled:hover:text-[var(--text-secondary)] disabled:opacity-30"
+            >‹ Prev</button>
+            <span className="text-[10px] text-[var(--text-muted)]">{safePage + 1} / {totalPages}</span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={safePage >= totalPages - 1}
+              className="rounded-md px-2 py-1 text-[11px] font-medium text-[var(--text-muted)] transition enabled:hover:text-[var(--text-secondary)] disabled:opacity-30"
+            >Next ›</button>
+          </div>
+        )}
+        </>
       )}
     </WidgetCard>
   );
