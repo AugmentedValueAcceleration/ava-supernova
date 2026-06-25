@@ -4892,7 +4892,7 @@ export class DashboardPanel {
 
   private async handleLoadNews(category?: string): Promise<void> {
     try {
-      const params = new URLSearchParams({ limit: '5' });
+      const params = new URLSearchParams({ limit: '24' });
       if (category) params.set('category', category);
 
       const data = await httpGetJson(`https://ava-supernova.com/api/news?${params}`) as
