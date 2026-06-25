@@ -574,17 +574,26 @@ function WeatherWidget({ weather, loaded }: { weather: WeatherData | null; loade
 
 // ── News Widget ──────────────────────────────────────────────────────────────
 
+// Mirrors packages/web/src/lib/news-categories.ts — IDs MUST match it.
 const NEWS_CATEGORIES = [
-  'ai-agents', 'models', 'dev-tools', 'open-source', 'education',
-  'productivity', 'companions', 'health', 'enterprise', 'industry',
+  'ai', 'technology', 'open-source', 'security-privacy', 'world', 'sport',
+  'business', 'science', 'health', 'food', 'education',
 ] as const;
 
+const NEWS_CATEGORY_LABELS: Record<string, string> = {
+  ai: 'AI', technology: 'Technology', 'open-source': 'Open Source',
+  'security-privacy': 'Security & Privacy', world: 'World', sport: 'Sport',
+  business: 'Business & Economy', science: 'Science', health: 'Health & Fitness',
+  food: 'Food & Nutrition', education: 'Education',
+};
+
 function formatCategoryLabel(slug: string): string {
-  // Try i18n key first (e.g. 'ai-agents' → 'news.ai_agents')
+  // Localised name if we have a translation, else the canonical English label,
+  // else a title-cased fallback.
   const i18nKey = `news.${slug.replace(/-/g, '_')}`;
   const translated = t(i18nKey);
   if (translated !== i18nKey) return translated;
-  // Fallback: title-case
+  if (NEWS_CATEGORY_LABELS[slug]) return NEWS_CATEGORY_LABELS[slug];
   return slug
     .split('-')
     .map(word => {

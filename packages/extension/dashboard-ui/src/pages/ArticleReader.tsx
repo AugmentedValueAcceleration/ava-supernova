@@ -37,17 +37,19 @@ export interface RelatedArticle {
 
 /* ── Constants ─────────────────────────────────────────────────────── */
 
-const CATEGORIES: Record<string, { labelKey: string; icon: string }> = {
-  'ai-agents':    { labelKey: 'news.ai_agents',              icon: '🤖' },
-  'models':       { labelKey: 'dash.article.cat_models',     icon: '🧠' },
-  'dev-tools':    { labelKey: 'dash.article.cat_dev_tools',  icon: '🛠️' },
-  'open-source':  { labelKey: 'news.open_source',            icon: '📦' },
-  'education':    { labelKey: 'dash.article.cat_education',   icon: '🎓' },
-  'productivity': { labelKey: 'dash.article.cat_productivity', icon: '⚡' },
-  'companions':   { labelKey: 'dash.article.cat_companions', icon: '💬' },
-  'health':       { labelKey: 'dash.article.cat_health',     icon: '🏥' },
-  'enterprise':   { labelKey: 'dash.article.cat_enterprise', icon: '🏢' },
-  'industry':     { labelKey: 'dash.article.cat_industry',   icon: '📰' },
+// Mirrors packages/web/src/lib/news-categories.ts — IDs MUST match it.
+const CATEGORIES: Record<string, { label: string; icon: string }> = {
+  'ai':               { label: 'AI',                 icon: '🤖' },
+  'technology':       { label: 'Technology',         icon: '💻' },
+  'open-source':      { label: 'Open Source',        icon: '📦' },
+  'security-privacy': { label: 'Security & Privacy', icon: '🛡️' },
+  'world':            { label: 'World',              icon: '🌍' },
+  'sport':            { label: 'Sport',              icon: '⚽' },
+  'business':         { label: 'Business & Economy', icon: '📈' },
+  'science':          { label: 'Science',            icon: '🔬' },
+  'health':           { label: 'Health & Fitness',   icon: '🩺' },
+  'food':             { label: 'Food & Nutrition',   icon: '🍳' },
+  'education':        { label: 'Education',          icon: '🎓' },
 };
 
 const GRADIENTS = [
@@ -154,7 +156,7 @@ export function ArticleReader({ article, related, onBack, onNavigateToArticle }:
         <div className="absolute right-3 top-3 flex items-center gap-1.5">
           {cat && (
             <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[9px] font-bold text-white backdrop-blur-sm">
-              {cat.icon} {t(cat.labelKey)}
+              {cat.icon} {cat.label}
             </span>
           )}
           {article.priority === 'breaking' && (
@@ -350,7 +352,7 @@ export function ArticleReader({ article, related, onBack, onNavigateToArticle }:
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     {relCat && (
                       <span className="absolute left-2 top-2 rounded bg-black/40 px-1.5 py-0.5 text-[8px] font-bold text-white backdrop-blur-sm">
-                        {relCat.icon} {t(relCat.labelKey)}
+                        {relCat.icon} {relCat.label}
                       </span>
                     )}
                   </div>
