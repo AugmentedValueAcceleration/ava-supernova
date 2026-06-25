@@ -4899,6 +4899,7 @@ export class DashboardPanel {
         { posts?: Array<Record<string, unknown>>; articles?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>;
       const list = (Array.isArray(data) ? data : ((data as any).posts ?? (data as any).articles ?? [])) as Array<{
         title?: string; category?: string; reading_time?: number; slug?: string; published_at?: string;
+        image_url?: string | null;
       }>;
 
       this.post({
@@ -4909,6 +4910,7 @@ export class DashboardPanel {
           reading_time: a.reading_time ?? 0,
           slug: a.slug ?? '',
           date: a.published_at ?? '',
+          image_url: a.image_url ?? null,
         })),
       });
     } catch {

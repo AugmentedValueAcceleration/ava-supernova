@@ -40,6 +40,7 @@ interface NewsArticle {
   category: string;
   reading_time: number;
   date: string;
+  image_url?: string | null;
 }
 
 // ── Release info (from extension host) ───────────────────────────────────────
@@ -683,9 +684,13 @@ function NewsWidget({ articles: rawArticles, articleLoading, onOpenArticle }: { 
               className="group block w-full rounded-xl border border-[var(--border-card)] bg-[var(--bg-card)] p-3.5 text-left transition hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/[0.03]"
             >
               <div className="flex items-start gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg mt-0.5 text-[var(--accent)]" style={{ background: 'rgba(168,85,247,0.08)' }}>
-                  <Newspaper weight="duotone" size={14} />
-                </div>
+                {article.image_url ? (
+                  <img src={article.image_url} alt="" loading="lazy" className="h-10 w-10 shrink-0 rounded-lg object-cover mt-0.5" />
+                ) : (
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg mt-0.5 text-[var(--accent)]" style={{ background: 'rgba(168,85,247,0.08)' }}>
+                    <Newspaper weight="duotone" size={14} />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="text-[12px] font-medium text-white leading-snug group-hover:text-[var(--accent)] transition-colors">{article.title}</p>
                   <div className="flex items-center gap-2 mt-1.5">
