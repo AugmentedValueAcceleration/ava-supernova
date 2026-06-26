@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.79.0 — 2026-06-26 — Accurate model lineup; sharper image generation
+
+### Changed
+- **The model lineup is accurate everywhere.** The model picker, settings, onboarding walkthrough and provider descriptions now match the live roster — Qwen 3.7 Plus, Kimi K2.7 Code, GLM-5.2, DeepSeek V4, MiniMax M3, Mistral, Xiaomi and the full BYOK set. Stale names and a couple of models that no longer exist have been removed.
+- **Image generation runs on Wan 2.7.** Images now generate on the newest Wan model for cleaner, more on-topic results.
+
+### Fixed
+- **Honest free-tier wording.** Onboarding no longer implies any model is "free" — the 300 monthly credits are a free allowance you spend across any model, and that's now stated plainly. Every model spends credits.
+
 ## 0.77.1 — 2026-06-23 — Creations stay local; meal plans to your taste
 
 ### Changed
