@@ -21,7 +21,7 @@ const PROVIDERS = [
     name: 'Anthropic (Claude)',
     placeholder: 'sk-ant-...',
     signupUrl: 'https://console.anthropic.com',
-    description: 'Claude Opus 4.6, Sonnet 4.6, Haiku 4.5',
+    description: 'Claude Opus 4.8, Sonnet 4.6, Haiku 4.5',
   },
   {
     id: 'deepseek' as const,
@@ -35,7 +35,7 @@ const PROVIDERS = [
     name: 'Kimi (Moonshot)',
     placeholder: 'sk-...',
     signupUrl: 'https://platform.moonshot.ai',
-    description: 'Kimi K2.5 — best multi-step tool calling',
+    description: 'Kimi K2.7 Code — agentic coding leader',
   },
   {
     id: 'glm' as const,

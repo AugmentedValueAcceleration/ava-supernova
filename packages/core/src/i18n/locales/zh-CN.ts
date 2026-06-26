@@ -2049,7 +2049,7 @@ export const zhCNStrings: Partial<Record<StringKey, string>> = {
   'input.mode.brainstorm': '头脑风暴',
   'input.mode.teach': '教学',
   'input.attach_image': '附加图片',
-  'input.attach_image_unsupported': '此模型仅支持文本 — 请切换至支持视觉的模型（Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.7 Plus）以附加图片。',
+  'input.attach_image_unsupported': '此模型仅支持文本 — 请切换至支持视觉的模型（Qwen 3.7 Plus）以附加图片。',
   'input.compress_usage': '上下文使用量 — 点击压缩',
   'input.compress_click': '点击压缩上下文',
   'input.voice_input': '语音输入',

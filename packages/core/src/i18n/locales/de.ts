@@ -2049,7 +2049,7 @@ export const deStrings: Partial<Record<StringKey, string>> = {
   'input.mode.brainstorm': 'Brainstorming',
   'input.mode.teach': 'Lehren',
   'input.attach_image': 'Bild anhängen',
-  'input.attach_image_unsupported': 'Dieses Modell ist nur für Text — wechsle zu einem Modell mit Bilderkennung (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.7 Plus), um Bilder anzuhängen.',
+  'input.attach_image_unsupported': 'Dieses Modell ist nur für Text — wechsle zu einem Modell mit Bilderkennung (Qwen 3.7 Plus), um Bilder anzuhängen.',
   'input.compress_usage': 'Kontextnutzung — zum Komprimieren klicken',
   'input.compress_click': 'Zum Komprimieren des Kontexts klicken',
   'input.voice_input': 'Spracheingabe',

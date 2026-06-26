@@ -2069,7 +2069,7 @@ export const koStrings: Partial<Record<StringKey, string>> = {
   'input.mode.brainstorm': '브레인스토밍',
   'input.mode.teach': '가르치기',
   'input.attach_image': '이미지 첨부',
-  'input.attach_image_unsupported': '이 모델은 텍스트 전용입니다 — 이미지를 첨부하려면 비전 기능을 지원하는 모델 (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.7 Plus) 으로 전환하세요.',
+  'input.attach_image_unsupported': '이 모델은 텍스트 전용입니다 — 이미지를 첨부하려면 비전 기능을 지원하는 모델 (Qwen 3.7 Plus) 으로 전환하세요.',
   'input.compress_usage': '컨텍스트 사용량 — 클릭하여 압축',
   'input.compress_click': '컨텍스트를 압축하려면 클릭',
   'input.voice_input': '음성 입력',

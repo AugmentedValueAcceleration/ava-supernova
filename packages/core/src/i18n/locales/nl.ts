@@ -2069,7 +2069,7 @@ export const nlStrings: Partial<Record<StringKey, string>> = {
   'input.mode.brainstorm': 'Brainstormen',
   'input.mode.teach': 'Leren',
   'input.attach_image': 'Afbeelding bijvoegen',
-  'input.attach_image_unsupported': 'Dit model is alleen tekst — schakel over naar een model met visiemogelijkheden (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.7 Plus) om afbeeldingen bij te voegen.',
+  'input.attach_image_unsupported': 'Dit model is alleen tekst — schakel over naar een model met visiemogelijkheden (Qwen 3.7 Plus) om afbeeldingen bij te voegen.',
   'input.compress_usage': 'Contextgebruik — klik om te comprimeren',
   'input.compress_click': 'Klik om context te comprimeren',
   'input.voice_input': 'Steminput',

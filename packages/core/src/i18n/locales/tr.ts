@@ -2069,7 +2069,7 @@ export const trStrings: Partial<Record<StringKey, string>> = {
   'input.mode.brainstorm': 'Beyin Fırtınası',
   'input.mode.teach': 'Öğret',
   'input.attach_image': 'Resim ekle',
-  'input.attach_image_unsupported': 'Bu model sadece metin desteklidir — resim eklemek için görüntü yeteneğine sahip bir modele geçin (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.7 Plus)',
+  'input.attach_image_unsupported': 'Bu model sadece metin desteklidir — resim eklemek için görüntü yeteneğine sahip bir modele geçin (Qwen 3.7 Plus)',
   'input.compress_usage': 'Bağlam kullanımı — sıkıştırmak için tıklayın',
   'input.compress_click': 'Bağlamı sıkıştırmak için tıklayın',
   'input.voice_input': 'Ses girişi',

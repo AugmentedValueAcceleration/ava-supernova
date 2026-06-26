@@ -2067,7 +2067,7 @@ export const idStrings: Partial<Record<StringKey, string>> = {
   'input.mode.brainstorm': 'Curah Ide',
   'input.mode.teach': 'Ajarkan',
   'input.attach_image': 'Lampirkan gambar',
-  'input.attach_image_unsupported': 'Model ini hanya teks — beralih ke model yang mampu visi (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.7 Plus) untuk melampirkan gambar.',
+  'input.attach_image_unsupported': 'Model ini hanya teks — beralih ke model yang mampu visi (Qwen 3.7 Plus) untuk melampirkan gambar.',
   'input.compress_usage': 'Penggunaan konteks — klik untuk mengompres',
   'input.compress_click': 'Klik untuk mengompres konteks',
   'input.voice_input': 'Input suara',

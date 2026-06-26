@@ -2049,7 +2049,7 @@ export const ukStrings: Partial<Record<StringKey, string>> = {
   'input.mode.brainstorm': 'Мозковий штурм',
   'input.mode.teach': 'Навчати',
   'input.attach_image': 'Прикріпити зображення',
-  'input.attach_image_unsupported': 'Ця модель лише для тексту — перейдіть на модель з підтримкою зображень (Qwen 3.5 Omni Plus / Omni Flash, Qwen 3.7 Plus) для прикріплення зображень.',
+  'input.attach_image_unsupported': 'Ця модель лише для тексту — перейдіть на модель з підтримкою зображень (Qwen 3.7 Plus) для прикріплення зображень.',
   'input.compress_usage': 'Використання контексту — натисніть для стиснення',
   'input.compress_click': 'Натисніть, щоб стиснути контекст',
   'input.voice_input': 'Голосовий ввід',
