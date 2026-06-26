@@ -1,20 +1,19 @@
 # Choose Your Model
 
-Pick the model that fits your workflow. **Qwen Flash is free with a platform account (300 credits/month).**
+Pick the model that fits your workflow. The free tier gives you **300 credits a month** on managed models — no card, no trial. (Every model spends credits; none is unlimited-free.)
 
 | Model | Best For |
 |---|---|
-| **Qwen Flash** | **FREE** (300 credits) — Fast and reliable |
-| **GLM-5.2** | Open-weights, 1M context, vision + thinking, top open-weight coding |
-| **Kimi K2.5** | Best tool calling, vision, 256K context (76.8% SWE-Bench) |
-| **DeepSeek V3.2** | Best value at $0.28/M, fast general-purpose coding |
-| **DeepSeek Reasoner** | Complex reasoning tasks with chain-of-thought |
-| **Qwen 3.5 Plus** | Vision + thinking, 256K context, $0.20/M input |
-| **Mistral Large** | Vision, 262K context, strong European provider |
-| **Codestral** | Code-specialized, 256K context |
-| **Devstral 2** | Built for agentic coding, 262K context |
-| **Claude Opus 4.6** | Frontier model, most capable, vision |
+| **Qwen 3.5 Flash** | Free-tier default — fast and reliable for everyday turns |
+| **Qwen 3.7 Plus** | Flagship Qwen — agentic coding, 1M context, vision |
+| **DeepSeek V4 Pro** | Frontier reasoning, 1M context (MIT open-weight) |
+| **DeepSeek V4 Flash** | Best value — fast general-purpose coding |
+| **Kimi K2.7 Code** | Agentic coding, strong tool calling, 256K context |
+| **GLM-5.2** | Open-weights, 1M context, vision + thinking |
+| **Mistral Medium 3.5** | EU frontier, 256K context, vision |
+| **Codestral / Devstral 2** | Code-specialised, agentic |
+| **Claude Opus 4.8** | Frontier model, most capable, vision |
 | **Claude Sonnet 4.6** | Balanced speed and intelligence, vision |
 | **Claude Haiku 4.5** | Fastest Anthropic model, affordable |
 
-You can switch models at any time from the dropdown in the chat header.
+You can switch models any time from the dropdown in the chat header.
