@@ -102,12 +102,12 @@ Bring your own key for any provider, or use Ava-managed models on a plan. Every 
 | Provider | Models |
 |---|---|
 | **Ava Managed** | Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.5 Flash, plus the managed Mistral (Aurora) coordinators |
-| **Qwen (Alibaba)** | Qwen 3.7 Plus, Qwen 3.7 Max, Qwen 3.5 Flash — 1M context, vision, reasoning |
+| **Qwen (Alibaba)** | Qwen 3.7 Plus, Qwen 3.7 Max, Qwen 3.5 Plus, Qwen 3.5 Flash — 1M context, vision, reasoning |
 | **DeepSeek** | V4 Pro, V4 Flash — MIT open-weight, 1M context |
-| **Moonshot** | Kimi K2.7 Code — 1T MoE / 32B active, 256K context |
-| **Zhipu** | GLM-5.2 — MIT open-weight, 1M context |
-| **Mistral** | Medium 3.5, Small 4, Large 3, Codestral, Devstral — EU, open weights, up to 262K context |
-| **MiniMax** | M3, M2.7 — 1M context (BYOK) |
+| **Moonshot** | Kimi K2.7 Code, K2.6, K2.5 — up to 1T MoE / 32B active, 256K context |
+| **Zhipu** | GLM-5.2, GLM-4.5 Air — MIT open-weight, up to 1M context |
+| **Mistral** | Medium 3.5, Small 4, Large 3, Codestral, Devstral 2 — EU, open weights, up to 262K context |
+| **MiniMax** | M3, M2.7, M2.7 HighSpeed — up to 1M context (BYOK) |
 | **Xiaomi** | MiMo V2.5, V2.5-Pro — 1M context, native multimodal |
 | **Anthropic** | Claude Opus 4.8, Sonnet 4.6, Haiku 4.5 |
 | **Custom / Local** | Ollama, LM Studio, vLLM, or any standard API-format endpoint — the $0 path |

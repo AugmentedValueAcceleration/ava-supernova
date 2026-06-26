@@ -242,12 +242,12 @@ Every plan gets every managed model. Tiers differ only on monthly credit allowan
 | Source | Models |
 |---|---|
 | **Ava Managed** | Qwen 3.7 Plus, Qwen 3.5 Plus, Qwen 3.5 Flash, plus the managed Mistral (Aurora) coordinators |
-| **BYOK — Qwen** | Qwen 3.7 Plus, Qwen 3.7 Max, Qwen 3.5 Flash |
+| **BYOK — Qwen** | Qwen 3.7 Plus, Qwen 3.7 Max, Qwen 3.5 Plus, Qwen 3.5 Flash |
 | **BYOK — DeepSeek** | V4 Pro, V4 Flash *(MIT-licensed open-weight, 1M context)* |
-| **BYOK — Moonshot** | Kimi K2.7 Code |
-| **BYOK — Zhipu** | GLM-5.2 *(MIT-licensed open-weight, 1M context)* |
-| **BYOK — Mistral** | Medium 3.5, Small 4, Large 3, Codestral, Devstral |
-| **BYOK — MiniMax** | M3, M2.7 |
+| **BYOK — Moonshot** | Kimi K2.7 Code, K2.6, K2.5 |
+| **BYOK — Zhipu** | GLM-5.2, GLM-4.5 Air *(MIT-licensed open-weight, up to 1M context)* |
+| **BYOK — Mistral** | Medium 3.5, Small 4, Large 3, Codestral, Devstral 2 |
+| **BYOK — MiniMax** | M3, M2.7, M2.7 HighSpeed |
 | **BYOK — Xiaomi** | MiMo V2.5, V2.5-Pro |
 | **BYOK — Anthropic** | Claude Opus 4.8, Sonnet 4.6, Haiku 4.5 |
 | **BYOK — Custom** | Ollama, LM Studio, vLLM, any standard API endpoint |
