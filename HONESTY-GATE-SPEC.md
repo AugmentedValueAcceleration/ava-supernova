@@ -1,7 +1,9 @@
 # Honesty Gate — Spec (active verify-or-restate)
 
-Status: **planned, not built.** Supersedes the soft first-cut in
-`packages/core/src/agent/claims-auditor.ts`.
+Status: **implemented** — severity tiers + active verify-or-restate loop are
+in `claims-auditor.ts` and the agent loop. Auditor unit-tested (19/19) and the
+full core suite is green (630/630); the live re-run has **not** yet been
+verified against a real model.
 
 ## Purpose
 

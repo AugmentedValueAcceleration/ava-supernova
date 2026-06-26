@@ -15,7 +15,7 @@ import { t } from '../i18n/index.js';
 import { logger } from '../core/logger.js';
 import { buildToolPrompt, parseToolCalls, formatToolResult } from './text-tool-parser.js';
 import { bridgeImagesForTextModel } from './vision-bridge.js';
-import { auditClaims } from './claims-auditor.js';
+import { auditClaims, type ClaimAuditResult } from './claims-auditor.js';
 import { autoExtractAndSave } from '../memory/auto-extract.js';
 import type { MemoryManager } from '../memory/memory-manager.js';
 import { maybeBuildDesignReinjection, isUIFilePath as isUIFilePathLocal } from './design-reinjection.js';
@@ -534,6 +534,23 @@ export class Agent {
   // Set by the claims-auditor branch; read by the verification_evidence
   // dataset emit in run()'s finally. Reset per run.
   private runClaimFlagged = false;
+  // Latest claims-auditor result this run (set at answer finalization).
+  // Read by the verify-or-restate guard in runInner. Reset per run.
+  private lastAudit: ClaimAuditResult | null = null;
+  // Did the honesty gate already fire its one verify-or-restate re-prompt
+  // this run? Caps the active loop at a single attempt. Reset per run.
+  private honestyVerifyAttempted = false;
+
+  /** Build the verify-or-restate re-prompt for the honesty gate. Maps the
+   *  claim to the tool that would actually check it, and offers the honest
+   *  alternative (restate without asserting). Internal — never shown as text. */
+  private buildHonestyVerifyNudge(audit: ClaimAuditResult): string {
+    const claim = audit.claims[0] ?? 'a completion/state claim';
+    const how = audit.tier === 'critical'
+      ? 'run a real check (audit_dependencies, a scan, or grep for the actual pattern)'
+      : 'run the tool that checks it (test_run for tests, bash or git_diff for code changes, http_request or browser for an endpoint, file_read for a file)';
+    return `[Honesty check — you stated "${claim}" but ran no tool that verifies it this turn. Do ONE of two things now, no exceptions: (a) ${how}, then report the actual result; or (b) restate without asserting it as done — e.g. "I changed X, but haven't verified it yet." Do not repeat the unbacked claim as fact.]`;
+  }
   private _inThinkTag = false;
 
   // ─── Exploration budget tracking (token-cost discipline) ────────────────
@@ -810,6 +827,8 @@ export class Agent {
     // Reset per-run tool evidence for the honesty gate (claims-auditor).
     this.runToolEvidence = [];
     this.runClaimFlagged = false;
+    this.lastAudit = null;
+    this.honestyVerifyAttempted = false;
 
     // If we're nested inside an outer trajectory (e.g. AutoCoordinator
     // wrapped its own run), open a child trajectory so the chain is
@@ -1879,6 +1898,33 @@ export class Agent {
             error: new Error(t('error.msg.empty_response')),
           });
         }
+        // ─── Honesty gate: verify-or-restate (active, every-model) ─────
+        // A high-stakes completion/security claim with no verifying tool
+        // behind it doesn't get to close on a guess. Re-prompt once to
+        // verify (call the right tool) or restate without the claim —
+        // mirrors the pre-closure file-verify guard above. Bounded to one
+        // attempt per run; if it still can't back it, the claims-auditor's
+        // deterministic caveat floor has already annotated the reply.
+        const honestyAudit = this.lastAudit;
+        if (
+          this.loopPreventionEnabled &&
+          !this.honestyVerifyAttempted &&
+          honestyAudit?.flagged &&
+          (honestyAudit.tier === 'high' || honestyAudit.tier === 'critical') &&
+          !signal?.aborted &&
+          typeof assistantMessage.content === 'string' &&
+          assistantMessage.content.trim().length > 0
+        ) {
+          this.honestyVerifyAttempted = true;
+          logger.debug(
+            `[agent] Honesty gate: unbacked ${honestyAudit.tier} claim — re-prompting to verify or restate`,
+          );
+          const nudge = this.buildHonestyVerifyNudge(honestyAudit);
+          messages = messages.slice(0, -1);
+          messages = [...messages, { role: 'user' as const, content: nudge }];
+          continue;
+        }
+
         // Memory extraction — runs post-turn, extracts genuinely durable
         // user/project facts (name, preferences, decisions, architecture).
         // Bounded by the Memory Agent's regex + single LLM call.
@@ -2402,13 +2448,23 @@ export class Agent {
     // claim doesn't stand as fact. Soft by design — annotates, never blocks.
     if (toolCalls.length === 0 && typeof finalContent === 'string' && finalContent.trim()) {
       const audit = auditClaims({ text: finalContent, toolsUsed: this.runToolEvidence });
+      this.lastAudit = audit;
       if (audit.flagged) {
         // Record for the verification_evidence dataset event (shape-only:
         // a boolean, never the claim text). Captured even when there's no
         // caveat string, so the signal reflects every flagged claim.
         this.runClaimFlagged = true;
       }
-      if (audit.flagged && audit.caveat) {
+      // Active honesty gate: a high/critical claim with no verifying tool is
+      // about to get one verify-or-restate re-prompt in runInner — so DON'T
+      // append the caveat yet in that case. Append it now for soft claims,
+      // once the re-prompt is already spent, or when loop prevention is off:
+      // that's the deterministic floor.
+      const willReRun =
+        this.loopPreventionEnabled &&
+        !this.honestyVerifyAttempted &&
+        (audit.tier === 'high' || audit.tier === 'critical');
+      if (audit.flagged && audit.caveat && !willReRun) {
         const caveatText = `\n\n${audit.caveat}`;
         onEvent({ type: 'stream_delta', content: caveatText });
         finalContent = finalContent + caveatText;

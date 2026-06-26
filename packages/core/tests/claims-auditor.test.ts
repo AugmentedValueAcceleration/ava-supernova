@@ -47,3 +47,29 @@ describe('claims-auditor: does NOT flag when honest or backed', () => {
     expect(auditClaims({ text: 'I made the edit.', toolsUsed: [{ name: 'test_run', ok: false }] }).flagged).toBe(false);
   });
 });
+
+describe('claims-auditor: severity tiers (honesty-gate upgrade)', () => {
+  it('classifies an unbacked security claim as critical', () => {
+    const r = auditClaims({ text: "It's fully secure now, no vulnerabilities.", toolsUsed: noTools });
+    expect(r.flagged).toBe(true);
+    expect(r.tier).toBe('critical');
+    expect(r.caveat).toMatch(/security/i);
+  });
+  it('classifies an unbacked completion claim as high', () => {
+    expect(auditClaims({ text: 'Done — fixed the missing arg.', toolsUsed: noTools }).tier).toBe('high');
+  });
+  it('classifies a bare "verified" as soft', () => {
+    expect(auditClaims({ text: 'Verified.', toolsUsed: noTools }).tier).toBe('soft');
+  });
+  it('security tier beats completion when both are present', () => {
+    expect(auditClaims({ text: "It's done and it's secure.", toolsUsed: noTools }).tier).toBe('critical');
+  });
+  it('tier is null when not flagged', () => {
+    expect(auditClaims({ text: 'I updated the file.', toolsUsed: noTools }).tier).toBeNull();
+  });
+  it('a non-verifying tool (generate_image) does not clear a high claim', () => {
+    const r = auditClaims({ text: 'Done — deployed.', toolsUsed: [{ name: 'generate_image', ok: true }] });
+    expect(r.flagged).toBe(true);
+    expect(r.tier).toBe('high');
+  });
+});
