@@ -781,6 +781,10 @@ export interface HealthProfile {
     training_window: { start: string | null; end: string | null }; // 24h "HH:MM"
     meal_times: { breakfast: string | null; lunch: string | null; dinner: string | null };
     sleep_target: { bedtime: string | null; wake: string | null };
+    /** How long the user has to cook. `default` applies to every day unless
+     *  overridden in `by_day` (keys '0'–'6' = Sun–Sat). Tier: '15'|'30'|'60'|'60+'.
+     *  Optional so existing profiles stay valid; absent = no constraint. */
+    cooking_time?: { default: string | null; by_day: Record<string, string> };
   };
 }
 

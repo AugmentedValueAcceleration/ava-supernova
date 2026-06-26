@@ -237,8 +237,58 @@ export function HealthProfilePage({ profile, taxonomies, onSave, onLoadTaxonomie
             <TimeInput value={draft.schedule.sleep_target.wake} onChange={v => patchSchedule({ sleep_target: { ...draft.schedule.sleep_target, wake: v } })} />
           </Field>
         </FieldGrid>
+        <CookingTimeField value={draft.schedule.cooking_time} onChange={v => patchSchedule({ cooking_time: v })} />
       </Section>
 
+    </div>
+  );
+}
+
+// ── Cooking-time field — how long the user has to cook. A single default
+// tier (≤15/≤30/≤60/60+), optionally set per day for shift/irregular schedules.
+// Feeds the meal planner so quick meals land on tight days.
+const COOK_TIERS = [
+  { v: '', k: 'health.profile.cooking_any' },
+  { v: '15', k: 'health.profile.cooking_15' },
+  { v: '30', k: 'health.profile.cooking_30' },
+  { v: '60', k: 'health.profile.cooking_60' },
+  { v: '60+', k: 'health.profile.cooking_60plus' },
+];
+const COOK_DAYS = [1, 2, 3, 4, 5, 6, 0]; // Mon→Sun, via health.plans.weekday.N
+
+type CookTime = { default: string | null; by_day: Record<string, string> };
+
+function CookingTimeField({ value, onChange }: { value: CookTime | undefined; onChange: (v: CookTime) => void }) {
+  const cook: CookTime = value ?? { default: null, by_day: {} };
+  const [perDay, setPerDay] = useState(Object.keys(cook.by_day).length > 0);
+  const setDay = (d: number, v: string) => {
+    const by = { ...cook.by_day };
+    if (v) by[String(d)] = v; else delete by[String(d)];
+    onChange({ ...cook, by_day: by });
+  };
+  return (
+    <div className="mt-4">
+      <Field label={t('health.profile.cooking_time')}>
+        <select className={inputCls} value={cook.default ?? ''} onChange={e => onChange({ ...cook, default: e.target.value || null })}>
+          {COOK_TIERS.map(o => <option key={o.v} value={o.v}>{t(o.k)}</option>)}
+        </select>
+      </Field>
+      <p className="mt-1 text-xs text-gray-500">{t('health.profile.cooking_time_hint')}</p>
+      <button type="button" onClick={() => setPerDay(p => !p)} className="mt-2 text-xs text-[var(--accent,#a855f7)] underline-offset-2 hover:underline">
+        {t('health.profile.cooking_per_day')}
+      </button>
+      {perDay && (
+        <FieldGrid>
+          {COOK_DAYS.map(d => (
+            <Field key={d} label={t(`health.plans.weekday.${d}`)}>
+              <select className={inputCls} value={cook.by_day[String(d)] ?? ''} onChange={e => setDay(d, e.target.value)}>
+                <option value="">{t('health.profile.cooking_same')}</option>
+                {COOK_TIERS.slice(1).map(o => <option key={o.v} value={o.v}>{t(o.k)}</option>)}
+              </select>
+            </Field>
+          ))}
+        </FieldGrid>
+      )}
     </div>
   );
 }
