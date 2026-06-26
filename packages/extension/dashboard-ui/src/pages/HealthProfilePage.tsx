@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { t, useLocale } from '../i18n';
 import type { HealthProfile, HealthTaxonomies } from '../types/messages';
 import { Section, FieldGrid, Field, NumberInput, TimeInput, PickerChips, inputCls } from './ProfilePrimitives';
+import { Select } from '../components/Select';
 
 /**
  * Profile tab on the Health page — body stats, goals, constraints,
@@ -244,9 +245,11 @@ export function HealthProfilePage({ profile, taxonomies, onSave, onLoadTaxonomie
   );
 }
 
-// ── Cooking-time field — how long the user has to cook. A single default
-// tier (≤15/≤30/≤60/60+), optionally set per day for shift/irregular schedules.
-// Feeds the meal planner so quick meals land on tight days.
+// ── Cooking-time field — how long the user has to cook, set per day AND per
+// meal type (Breakfast/Lunch/Dinner), each defaulting to "Any". A 7-day grid:
+// rows = days, columns = meals. This per-slot granularity is the data Ava needs
+// to slot the right recipe into each real meal — a quick weekday breakfast, a
+// longer weekend dinner — instead of one blunt time for the whole day.
 const COOK_TIERS = [
   { v: '', k: 'health.profile.cooking_any' },
   { v: '15', k: 'health.profile.cooking_15' },
@@ -255,40 +258,44 @@ const COOK_TIERS = [
   { v: '60+', k: 'health.profile.cooking_60plus' },
 ];
 const COOK_DAYS = [1, 2, 3, 4, 5, 6, 0]; // Mon→Sun, via health.plans.weekday.N
+type MealKey = 'breakfast' | 'lunch' | 'dinner';
+const COOK_MEALS: { m: MealKey; k: string }[] = [
+  { m: 'breakfast', k: 'health.profile.breakfast' },
+  { m: 'lunch', k: 'health.profile.lunch' },
+  { m: 'dinner', k: 'health.profile.dinner' },
+];
 
-type CookTime = { default: string | null; by_day: Record<string, string> };
+type MealCook = { breakfast: string | null; lunch: string | null; dinner: string | null };
+type CookTime = { by_day: Record<string, MealCook> };
 
 function CookingTimeField({ value, onChange }: { value: CookTime | undefined; onChange: (v: CookTime) => void }) {
-  const cook: CookTime = value ?? { default: null, by_day: {} };
-  const [perDay, setPerDay] = useState(Object.keys(cook.by_day).length > 0);
-  const setDay = (d: number, v: string) => {
+  const cook: CookTime = value ?? { by_day: {} };
+  const cellVal = (d: number, meal: MealKey) => cook.by_day[String(d)]?.[meal] ?? '';
+  const setCell = (d: number, meal: MealKey, v: string) => {
     const by = { ...cook.by_day };
-    if (v) by[String(d)] = v; else delete by[String(d)];
-    onChange({ ...cook, by_day: by });
+    const prev: MealCook = by[String(d)] ?? { breakfast: null, lunch: null, dinner: null };
+    const day: MealCook = { ...prev, [meal]: v || null };
+    if (!day.breakfast && !day.lunch && !day.dinner) delete by[String(d)];
+    else by[String(d)] = day;
+    onChange({ by_day: by });
   };
   return (
     <div className="mt-4">
-      <Field label={t('health.profile.cooking_time')}>
-        <select className={inputCls} value={cook.default ?? ''} onChange={e => onChange({ ...cook, default: e.target.value || null })}>
-          {COOK_TIERS.map(o => <option key={o.v} value={o.v}>{t(o.k)}</option>)}
-        </select>
-      </Field>
+      <div className="text-sm font-medium text-gray-200">{t('health.profile.cooking_time')}</div>
       <p className="mt-1 text-xs text-gray-500">{t('health.profile.cooking_time_hint')}</p>
-      <button type="button" onClick={() => setPerDay(p => !p)} className="mt-2 text-xs text-[var(--accent,#a855f7)] underline-offset-2 hover:underline">
-        {t('health.profile.cooking_per_day')}
-      </button>
-      {perDay && (
-        <FieldGrid>
-          {COOK_DAYS.map(d => (
-            <Field key={d} label={t(`health.plans.weekday.${d}`)}>
-              <select className={inputCls} value={cook.by_day[String(d)] ?? ''} onChange={e => setDay(d, e.target.value)}>
-                <option value="">{t('health.profile.cooking_same')}</option>
-                {COOK_TIERS.slice(1).map(o => <option key={o.v} value={o.v}>{t(o.k)}</option>)}
-              </select>
-            </Field>
-          ))}
-        </FieldGrid>
-      )}
+      <div className="mt-3 grid items-center gap-x-2 gap-y-1.5" style={{ gridTemplateColumns: 'auto repeat(3, minmax(0, 1fr))' }}>
+        <div />
+        {COOK_MEALS.map(m => <div key={m.m} className="text-center text-[11px] text-gray-500">{t(m.k)}</div>)}
+        {COOK_DAYS.map(d => (
+          <Fragment key={d}>
+            <div className="pr-2 text-xs text-gray-300">{t(`health.plans.weekday.${d}`)}</div>
+            {COOK_MEALS.map(m => (
+              <Select key={m.m} size="sm" value={cellVal(d, m.m)} onChange={v => setCell(d, m.m, v)}
+                options={COOK_TIERS.map(o => ({ value: o.v, label: t(o.k) }))} />
+            ))}
+          </Fragment>
+        ))}
+      </div>
     </div>
   );
 }

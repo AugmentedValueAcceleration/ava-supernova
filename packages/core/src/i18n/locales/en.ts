@@ -2072,8 +2072,6 @@ export const enStrings = {
   'health.profile.cooking_30': '≤30 min',
   'health.profile.cooking_60': '≤60 min',
   'health.profile.cooking_60plus': '60+ min',
-  'health.profile.cooking_per_day': 'Set per day',
-  'health.profile.cooking_same': 'Same every day',
   'health.profile.no_options': 'No options available',
 
   // ── Health · Submission modal (contribute) ─────────────────────────────

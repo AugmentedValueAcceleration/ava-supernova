@@ -781,10 +781,12 @@ export interface HealthProfile {
     training_window: { start: string | null; end: string | null }; // 24h "HH:MM"
     meal_times: { breakfast: string | null; lunch: string | null; dinner: string | null };
     sleep_target: { bedtime: string | null; wake: string | null };
-    /** How long the user has to cook. `default` applies to every day unless
-     *  overridden in `by_day` (keys '0'–'6' = Sun–Sat). Tier: '15'|'30'|'60'|'60+'.
+    /** How long the user has to cook, set per day AND per meal — the data Ava
+     *  needs to slot the right recipe into each real slot (a quick weekday
+     *  breakfast, a longer weekend dinner). `by_day` keyed '0'–'6' (Sun–Sat);
+     *  each day carries a tier per meal ('15'|'30'|'60'|'60+', null = Any).
      *  Optional so existing profiles stay valid; absent = no constraint. */
-    cooking_time?: { default: string | null; by_day: Record<string, string> };
+    cooking_time?: { by_day: Record<string, { breakfast: string | null; lunch: string | null; dinner: string | null }> };
   };
 }
 
