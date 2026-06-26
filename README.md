@@ -50,6 +50,7 @@ The same agent engine (`@ava/core`) powers every surface — same tools, same pe
 
 - **She remembers you.** A layered memory system learns your style, conventions, decisions, and the bugs you've fixed before — curated by a dedicated Memory Agent so context stays lean and recall stays sharp. Local-first, opt-in semantic recall.
 - **She thinks before she builds.** 24 specialist personas across 7 modes plan, verify, and challenge before executing. Simple questions skip orchestration entirely — zero overhead.
+- **She won't fake a "done."** A built-in honesty gate checks every claim of completion or success — "it's fixed", "tests pass", "deployed" — against the tools she actually ran that turn, and flags any it can't back with evidence. A guess never stands as fact. Always on, no off-switch.
 - **She picks the right fleet for the work.** You pick the job; the right multi-model fleet falls out of it (see [Models & Fleets](#models--fleets)).
 - **She teaches for free.** Switch to Teach mode, say "teach me Rust," and she builds a personalised curriculum and teaches it lesson by lesson — fact-checked against the live web. Same credits as every other mode.
 - **She explains herself.** Ask "how does your memory work?" and she reads her own implementation and walks you through it.

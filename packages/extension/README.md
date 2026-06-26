@@ -28,6 +28,12 @@ Switch roles with a keystroke. Same brain. Same memory. Different mindset.
 
 ---
 
+## Honest by construction
+
+Every claim of completion — "it's fixed", "tests pass", "deployed" — is checked against the tools Ava actually ran that turn. If a claim isn't backed by evidence, a built-in **honesty gate** flags it rather than letting it stand as fact. Same discipline a good engineer uses on a junior's PR — review, don't merge on trust — built into the agent itself. Always on; not a setting you can switch off.
+
+---
+
 ## Three fleets, three jobs
 
 You don't pick a model. You pick the work, and the right fleet falls out of it. Two fleets ship today; a third is rolling out.

@@ -22,6 +22,7 @@ On first launch, Ava runs an interactive setup wizard — pick a provider, paste
 ## What you get
 
 - **Full agent loop** — Ava reads, writes, edits, searches, runs commands, and uses git autonomously, with your approval at the level you choose.
+- **Honesty gate** — completion claims ("done", "tests pass", "deployed") are checked against the tools actually run that turn; unbacked claims are flagged, not asserted as fact. Always on, no off-switch.
 - **7 modes** — Code (`>>`), Plan (`::`), Chat (`..`), Teach (`??`), Security (`!!`), Brainstorm (`**`), Write (`<<`). Switch mid-session.
 - **24 specialist personas** — complex tasks activate an internal team (Scout → Architect → Verifier → Sequencer → Challenger → Builder for code); simple tasks go direct.
 - **Persistent memory** — Ava remembers your conventions, decisions, and past fixes across sessions. Local-first.
