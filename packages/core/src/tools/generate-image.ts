@@ -9,23 +9,14 @@ import { chargeCredits } from '../billing/meter.js';
 /**
  * Generate an AI image and save it to the project.
  *
- * Supports Wan2.6 (DashScope/Qwen) and MiniMax image-01.
- * Smart prompt enhancement based on purpose (icons get transparent bg).
- * Vision verification loop using Qwen VL to check quality.
+ * Renders on Wan 2.7 (DashScope/Qwen) — direct with a BYOK Qwen key, or via the
+ * Ava platform with a managed account. Smart prompt enhancement based on purpose
+ * (icons get transparent bg). Vision verification loop using Qwen VL.
  */
 
 const DASHSCOPE_BASE = 'https://dashscope-intl.aliyuncs.com';
 const API_URL = `${DASHSCOPE_BASE}/api/v1/services/aigc/multimodal-generation/generation`;
 const VISION_URL = `${DASHSCOPE_BASE}/compatible-mode/v1/chat/completions`;
-
-const MINIMAX_IMAGE_URL = 'https://api.minimax.io/v1/image_generation';
-
-// MiniMax supported aspect ratios
-const MINIMAX_ASPECT_MAP: Record<string, string> = {
-  'square':    '1:1',
-  'portrait':  '3:4',
-  'landscape': '4:3',
-};
 
 const SIZE_MAP: Record<string, string> = {
   'square':    '1280*1280',
@@ -64,8 +55,8 @@ export class GenerateImageTool implements Tool {
     name: 'generate_image',
     description:
       'Generate an AI image and save it to the project. ' +
-      'Uses MiniMax image-01 when on a MiniMax model, or Wan2.6 when on a Qwen model. ' +
-      'Requires an active Qwen or MiniMax model — if neither is selected, tell the user to switch. ' +
+      'Renders on Wan 2.7. Requires an active Qwen model or a platform account — ' +
+      'if neither is available, tell the user to switch to a Qwen model or sign in. ' +
       'Use for custom icons, illustrations, backgrounds, promotional graphics, or any visual asset. ' +
       'Images are saved to the project\'s images/ folder. Provide a descriptive prompt and a meaningful filename. ' +
       'Supports square, portrait, and landscape sizes. ' +
@@ -100,18 +91,12 @@ export class GenerateImageTool implements Tool {
     },
   };
 
-  // Detect image backend from the active chat model
-  private detectImageBackend(context: ToolExecutionContext): 'minimax' | 'wan2.6' | null {
+  // Image generation runs on Wan (Qwen/DashScope). Gate on a Qwen active model
+  // so the Qwen/platform key path is available. MiniMax is chat-only, not images.
+  private canGenerate(context: ToolExecutionContext): boolean {
     const state = context.sharedState as Record<string, unknown> | undefined;
     const activeModel = (state?.activeModelId as string || '').toLowerCase();
-
-    if (activeModel.startsWith('minimax')) return 'minimax';
-    if (activeModel.startsWith('qwen') || activeModel.startsWith('wan')) return 'wan2.6';
-
-    // Platform models — check prefix
-    if (activeModel === 'qwen3.5-omni-flash' || activeModel === 'qwen3.5-omni-plus' || activeModel === 'qwen3.5-plus' || activeModel === 'qwen3.5-flash') return 'wan2.6';
-
-    return null;
+    return activeModel.startsWith('qwen') || activeModel.startsWith('wan');
   }
 
   async execute(args: Record<string, unknown>, context: ToolExecutionContext): Promise<ToolResult> {
@@ -128,25 +113,20 @@ export class GenerateImageTool implements Tool {
     const savePath = targetPath || `images/${rawFilename}.png`;
     genManager?.create({ id: jobId, type: 'image', prompt: rawPrompt, filename: rawFilename, targetPath: savePath });
 
-    const backend = this.detectImageBackend(context);
-    if (!backend) {
+    if (!this.canGenerate(context)) {
       return {
         success: false,
-        output: 'Image generation requires a Qwen or MiniMax model. Switch to a Qwen model (uses Wan2.6) or a MiniMax model (uses image-01) to use this tool.',
+        output: 'Image generation runs on Wan and requires a Qwen model. Switch to a Qwen model to use this tool.',
       };
     }
-    const useMinimax = backend === 'minimax';
 
     const size = SIZE_MAP[sizeKey] || '1280*1280';
-    const minimaxAspect = MINIMAX_ASPECT_MAP[sizeKey] || '1:1';
 
-    const resolved = useMinimax ? this.resolveMinimaxKey(context) : this.resolveApiKey(context);
+    const resolved = this.resolveApiKey(context);
     if (!resolved.apiKey && !resolved.usePlatform) {
       return {
         success: false,
-        output: useMinimax
-          ? 'MiniMax image generation requires either a platform account or a MiniMax API key. Sign in to your account, or add a MiniMax key in Settings > API Keys.'
-          : 'Image generation requires either a platform account or a Qwen API key. Sign in to your account, or add a Qwen key in Settings > API Keys.',
+        output: 'Image generation requires either a platform account or a Qwen API key. Sign in to your account, or add a Qwen key in Settings > API Keys.',
       };
     }
     const { apiKey, usePlatform, platformKey } = resolved;
@@ -155,7 +135,7 @@ export class GenerateImageTool implements Tool {
     const promptAddition = PURPOSE_PROMPT_ADDITIONS[purpose] || '';
     const enhancedPrompt = rawPrompt + promptAddition;
 
-    const modelLabel = useMinimax ? 'MiniMax image-01' : 'Wan2.6';
+    const modelLabel = 'Wan 2.7';
     const tracker = startGenerationTracking({
       type: 'image',
       model: modelLabel,
@@ -178,16 +158,9 @@ export class GenerateImageTool implements Tool {
       }
 
       try {
-        let imageUrl: string | null;
-        if (useMinimax) {
-          imageUrl = usePlatform
-            ? await this.generateViaPlatform(currentPrompt, size, platformKey!, 'minimax')
-            : await this.generateMinimax(currentPrompt, minimaxAspect, apiKey!);
-        } else {
-          imageUrl = usePlatform
-            ? await this.generateViaPlatform(currentPrompt, size, platformKey!, 'wan2.6')
-            : await this.generateImage(currentPrompt, size, apiKey!);
-        }
+        const imageUrl: string | null = usePlatform
+          ? await this.generateViaPlatform(currentPrompt, size, platformKey!)
+          : await this.generateImage(currentPrompt, size, apiKey!);
         if (!imageUrl) {
           lastError = 'No image URL returned';
           continue;
@@ -286,7 +259,7 @@ export class GenerateImageTool implements Tool {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'wan2.6-t2i',
+        model: 'wan2.7-image',
         input: {
           messages: [
             {
@@ -309,40 +282,6 @@ export class GenerateImageTool implements Tool {
 
     const data = await res.json() as Record<string, unknown>;
     return this.findImageUrl(data);
-  }
-
-  private async generateMinimax(prompt: string, aspectRatio: string, apiKey: string): Promise<string | null> {
-    const res = await fetch(MINIMAX_IMAGE_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'image-01',
-        prompt,
-        aspect_ratio: aspectRatio,
-        response_format: 'url',
-        n: 1,
-      }),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`MiniMax image API error: ${errText}`);
-    }
-
-    const data = await res.json() as any;
-    // MiniMax returns { data: { images: [{ url: "..." }] } } or similar
-    if (data?.data?.images?.[0]?.url) return data.data.images[0].url;
-    if (data?.data?.[0]?.url) return data.data[0].url;
-    if (data?.url) return data.url;
-    // Try base64 fallback — not used with response_format: 'url' but just in case
-    if (data?.data?.images?.[0]?.base64) {
-      // Return as data URI so downloadImage can handle it
-      return `data:image/png;base64,${data.data.images[0].base64}`;
-    }
-    return null;
   }
 
   private async downloadImage(imageUrl: string, context: ToolExecutionContext): Promise<Buffer | null> {
@@ -525,22 +464,7 @@ export class GenerateImageTool implements Tool {
     return { usePlatform: false };
   }
 
-  private resolveMinimaxKey(context: ToolExecutionContext): { apiKey?: string; usePlatform: boolean; platformKey?: string } {
-    const state = context.sharedState as Record<string, unknown> | undefined;
-    const getKey = state?.getProviderKey as ((p: string) => string | undefined) | undefined;
-
-    // BYOK MiniMax key — via sealed getter or legacy sharedState fallback
-    const minimaxKey = getKey?.('minimax') ?? (state?.minimaxApiKey as string | undefined);
-    if (minimaxKey) return { apiKey: minimaxKey, usePlatform: false };
-
-    // Platform key — route through platform API
-    const platformKey = getKey?.('platform') ?? (state?.platformKey as string | undefined);
-    if (platformKey) return { usePlatform: true, platformKey };
-
-    return { usePlatform: false };
-  }
-
-  private async generateViaPlatform(prompt: string, size: string, platformKey: string, model: string = 'wan2.6'): Promise<string | null> {
+  private async generateViaPlatform(prompt: string, size: string, platformKey: string, model: string = 'wan2.7'): Promise<string | null> {
     const res = await fetch('https://ava-supernova.com/api/generate-image', {
       method: 'POST',
       headers: {
