@@ -71,7 +71,9 @@ export function HealthPlans({
 
   return (
     <>
-      <BasePlansTab plans={plans} fullPlans={fullPlans} exerciseDetails={exerciseDetails} recipeDetails={recipeDetails} onLoadExerciseDetail={onLoadExerciseDetail} onLoadRecipeDetail={onLoadRecipeDetail} onNew={() => setSetupOpen(true)} onOpen={onOpenPlan} onDelete={onDeletePlan} />
+      <BasePlansTab plans={plans} fullPlans={fullPlans} exerciseDetails={exerciseDetails} recipeDetails={recipeDetails} onLoadExerciseDetail={onLoadExerciseDetail} onLoadRecipeDetail={onLoadRecipeDetail} onNew={() => setSetupOpen(true)} onOpen={onOpenPlan} onDelete={onDeletePlan}
+        onSavePlan={onSavePlan}
+        exerciseResults={exerciseResults} recipeResults={recipeResults} catalogSearching={catalogSearching} onSearchExercises={onSearchExercises} onSearchRecipes={onSearchRecipes} />
       {(setupOpen || planOpen) && (
         <PlanOverlay
           planOpen={planOpen}
@@ -217,7 +219,7 @@ function emptyExercise(): HealthPlanExercise {
   return { id: newId('ex'), ref: null, name: '', sets: null, reps: null, weight: null, rest_seconds: null, tempo: null, notes: null };
 }
 function emptyMeal(slot: HealthPlanMeal['slot']): HealthPlanMeal {
-  return { id: newId('ml'), slot, ref: null, name: '', servings: null, calories: null, protein_g: null, carbs_g: null, fat_g: null, notes: null };
+  return { id: newId('ml'), slot, ref: null, name: '', servings: null, calories: null, protein_g: null, carbs_g: null, fat_g: null, cook_time_minutes: null, notes: null };
 }
 function defaultDay(dayIndex: number): HealthPlanDay {
   return { day_index: dayIndex, kind: 'rest', title: null, training: [], meals: [], notes: null };
@@ -305,7 +307,8 @@ function dayTotals(day: HealthPlanDay, recipeDetails: Record<string, HealthRecip
 /** The Plans tab itself. Never an overlay. Two inner tabs: Calendar (a
  *  month grid sized to one page) and Programs (the plan list) — so the
  *  list is never stacked under the calendar forcing a scroll. */
-function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, onNew, onOpen, onDelete }: {
+function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, onNew, onOpen, onDelete,
+  onSavePlan, exerciseResults, recipeResults, catalogSearching, onSearchExercises, onSearchRecipes }: {
   plans: HealthPlanSummary[];
   /** Full (dated) plans with their days — drives the per-day content shown in
    *  the calendar cells AND the day view. Summaries alone can only draw a dot. */
@@ -317,6 +320,14 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
   onNew: () => void;
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
+  // Editing the calendar day view in place routes through the same save +
+  // catalogue-search handlers the plan builder uses.
+  onSavePlan: (plan: HealthPlan) => void;
+  exerciseResults: HealthExerciseSummary[];
+  recipeResults: HealthRecipeSummary[];
+  catalogSearching: boolean;
+  onSearchExercises: PlanSearch;
+  onSearchRecipes: PlanSearch;
 }) {
   // A clicked calendar day opens the DAY view (what's on that date across every
   // plan), not a single plan's editor.
@@ -332,24 +343,27 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
   // Mark every day each plan spans: a training dot for fitness/combined, a
   // meal dot for meal/combined. This is what makes created plans actually
   // show up on the calendar (it used to be hardcoded empty).
+  // Dots reflect the day's ACTUAL content (from the full dated plans), not just
+  // the plan's type/range — so deleting every meal on a day clears its dot.
   const planMarks = useMemo(() => {
     const map = new Map<string, { training: boolean; meals: boolean }>();
-    for (const p of plans) {
+    for (const p of fullPlans ?? []) {
       if (!p.start_date) continue;
       const start = new Date(`${p.start_date}T00:00:00`);
       if (isNaN(start.getTime())) continue;
-      const training = p.type === 'fitness' || p.type === 'combined';
-      const meals = p.type === 'meal' || p.type === 'combined';
-      for (let i = 0; i < p.duration_days; i++) {
+      for (const day of p.days) {
+        const hasTraining = (p.type === 'fitness' || p.type === 'combined') && day.training.some(e => e.name);
+        const hasMeals = (p.type === 'meal' || p.type === 'combined') && day.meals.some(m => m.name);
+        if (!hasTraining && !hasMeals) continue;
         const d = new Date(start);
-        d.setDate(d.getDate() + i);
+        d.setDate(d.getDate() + (day.day_index - 1));
         const key = ymd(d);
         const prev = map.get(key) ?? { training: false, meals: false };
-        map.set(key, { training: prev.training || training, meals: prev.meals || meals });
+        map.set(key, { training: prev.training || hasTraining, meals: prev.meals || hasMeals });
       }
     }
     return map;
-  }, [plans]);
+  }, [fullPlans]);
 
   // Per-date content — the session title + the day's moves / meals — from the
   // full dated plans, so the calendar cells show what's actually on, not a dot.
@@ -446,6 +460,12 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
           onLoadRecipeDetail={onLoadRecipeDetail}
           onClose={() => setDayKey(null)}
           onNewPlan={() => { setDayKey(null); onNew(); }}
+          onSavePlan={onSavePlan}
+          exerciseResults={exerciseResults}
+          recipeResults={recipeResults}
+          catalogSearching={catalogSearching}
+          onSearchExercises={onSearchExercises}
+          onSearchRecipes={onSearchRecipes}
         />
       )}
     </div>
@@ -459,20 +479,30 @@ function BasePlansTab({ plans, fullPlans, exerciseDetails, recipeDetails, onLoad
 // in tomorrow by adding one builder to `sections` below — the view renders
 // whatever sections exist, so new content types never restructure anything.
 
-function planDayForDate(plan: HealthPlan, dateKey: string): HealthPlanDay | null {
+/** The 1-based day_index a plan assigns to a calendar date, or null when the
+ *  date falls outside the plan's range. Unlike planDayForDate it does NOT
+ *  require the day object to exist — so an empty/rest day can still be edited. */
+function dayIndexForDate(plan: HealthPlan, dateKey: string): number | null {
   if (!plan.start_date) return null;
   const start = new Date(`${plan.start_date}T00:00:00`).getTime();
   const sel = new Date(`${dateKey}T00:00:00`).getTime();
   if (isNaN(start) || isNaN(sel)) return null;
   const idx = Math.round((sel - start) / 86400000) + 1;
   if (idx < 1 || idx > plan.duration_days) return null;
+  return idx;
+}
+
+function planDayForDate(plan: HealthPlan, dateKey: string): HealthPlanDay | null {
+  const idx = dayIndexForDate(plan, dateKey);
+  if (idx == null) return null;
   return plan.days.find(d => d.day_index === idx) ?? null;
 }
 
-interface DayAgendaItem { id: string; kind: 'exercise' | 'recipe'; slug?: string; title: string; meta?: string; slot?: string; thumb?: string | null; planId: string; planTitle: string }
+interface DayAgendaItem { id: string; kind: 'exercise' | 'recipe'; slug?: string; title: string; meta?: string; slot?: string; thumb?: string | null; planId: string; planTitle: string; itemId: string; dayIndex: number }
 interface DayAgendaSection { key: string; label: string; icon: string; accent: string; items: DayAgendaItem[] }
 
-function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, onClose, onNewPlan }: {
+function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadExerciseDetail, onLoadRecipeDetail, onClose, onNewPlan,
+  onSavePlan, exerciseResults, recipeResults, catalogSearching, onSearchExercises, onSearchRecipes }: {
   dateKey: string;
   plans: HealthPlan[];
   exerciseDetails: Record<string, HealthExerciseDetail>;
@@ -481,6 +511,12 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
   onLoadRecipeDetail: (slug: string) => void;
   onClose: () => void;
   onNewPlan: () => void;
+  onSavePlan: (plan: HealthPlan) => void;
+  exerciseResults: HealthExerciseSummary[];
+  recipeResults: HealthRecipeSummary[];
+  catalogSearching: boolean;
+  onSearchExercises: PlanSearch;
+  onSearchRecipes: PlanSearch;
 }) {
   useLocale();
   // Clicking an item opens what you clicked — its exercise / recipe detail —
@@ -494,16 +530,117 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
   const date = new Date(`${dateKey}T00:00:00`);
   const dateLabel = date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 
+  // ── Editing: snapshot the covering plans into working copies on entering edit
+  // mode; every change mutates the matching plan's day and autosaves (debounced)
+  // through the same path the plan builder uses. ──────────────────────────────
+  const covered = plans.some(p => dayIndexForDate(p, dateKey) != null);
+  const [editing, setEditing] = useState(false);
+  const [working, setWorking] = useState<HealthPlan[]>([]);
+  // Add / swap happens INLINE inside a section (no second overlay): a compact
+  // catalogue strip drops in under the section header.
+  const [inlineSearch, setInlineSearch] = useState<{ section: 'training' | 'meals'; kind: 'exercise' | 'recipe'; mode: 'add' | 'swap'; planId: string; dayIndex: number; itemId?: string } | null>(null);
+  // Which item's delete is awaiting confirmation (id) — same confirm style as
+  // deleting a whole program.
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const workingRef = useRef<HealthPlan[]>([]);
+  workingRef.current = working;
+  const pendingSave = useRef<Map<string, HealthPlan>>(new Map());
+  const saveTimer = useRef<number | undefined>(undefined);
+
+  const flushSaves = () => {
+    if (saveTimer.current !== undefined) { clearTimeout(saveTimer.current); saveTimer.current = undefined; }
+    for (const p of pendingSave.current.values()) onSavePlan(p);
+    pendingSave.current.clear();
+  };
+  const scheduleSave = (plan: HealthPlan) => {
+    pendingSave.current.set(plan.id, plan);
+    if (saveTimer.current !== undefined) clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(flushSaves, 600);
+  };
+  // Flush any pending save when the modal unmounts so nothing is lost.
+  useEffect(() => () => flushSaves(), []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Hold the modal's size steady while editing: freeze its height the moment
+  // Edit is clicked so adding / deleting scrolls inside a stable frame instead
+  // of resizing the whole overlay. A min height stops it ever collapsing.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const MIN_PANEL_H = 400;
+  const [frozenH, setFrozenH] = useState<number | null>(null);
+  const enterEdit = () => {
+    setFrozenH(panelRef.current?.offsetHeight ?? null);
+    setWorking(plans.map(p => JSON.parse(JSON.stringify(p)) as HealthPlan));
+    setEditing(true);
+  };
+  const exitEdit = () => { flushSaves(); setInlineSearch(null); setConfirmingId(null); setFrozenH(null); setEditing(false); };
+
+  // Apply a mutation to one plan's day (building the day if it doesn't exist
+  // yet), persist it, and reflect it in the working copies.
+  const updatePlanDay = (planId: string, dayIndex: number, mutate: (day: HealthPlanDay) => HealthPlanDay) => {
+    const p = workingRef.current.find(x => x.id === planId);
+    if (!p) return;
+    const existing = p.days.find(d => d.day_index === dayIndex) ?? defaultDay(dayIndex);
+    const nextDay = mutate(existing);
+    const days = p.days.filter(d => d.day_index !== dayIndex);
+    if (!isEmptyDay(nextDay)) days.push(nextDay);
+    days.sort((a, b) => a.day_index - b.day_index);
+    const nextPlan: HealthPlan = { ...p, days };
+    // Update the ref synchronously so rapid successive edits (e.g. two quick
+    // deletes) each build on the previous one — otherwise the second read would
+    // see pre-edit state and its save would revert the first edit.
+    const nextWorking = workingRef.current.map(x => (x.id === planId ? nextPlan : x));
+    workingRef.current = nextWorking;
+    setWorking(nextWorking);
+    scheduleSave(nextPlan);
+  };
+
+  // Where a newly-added item lands: the active plan that owns that section on
+  // this date (at most one of each in practice). null ⇒ Add disabled.
+  const addTargets = useMemo(() => {
+    let training: { planId: string; dayIndex: number } | null = null;
+    let meals: { planId: string; dayIndex: number } | null = null;
+    for (const p of working) {
+      const idx = dayIndexForDate(p, dateKey);
+      if (idx == null) continue;
+      if (!training && (p.type === 'fitness' || p.type === 'combined')) training = { planId: p.id, dayIndex: idx };
+      if (!meals && (p.type === 'meal' || p.type === 'combined')) meals = { planId: p.id, dayIndex: idx };
+    }
+    return { training, meals };
+  }, [working, dateKey]);
+
+  // Add a catalogue item, or swap one in place — routed to its source plan.
+  const handleInlinePick = (it: { slug: string; name: string }) => {
+    if (!inlineSearch) return;
+    const { kind, mode, planId, dayIndex, itemId } = inlineSearch;
+    if (kind === 'exercise') {
+      onLoadExerciseDetail(it.slug);
+      if (mode === 'add') updatePlanDay(planId, dayIndex, day => ({ ...day, kind: day.kind === 'rest' ? 'training' : day.kind, training: [...day.training, { ...emptyExercise(), ref: { kind: 'exercise', slug: it.slug }, name: it.name }] }));
+      else if (itemId) updatePlanDay(planId, dayIndex, day => ({ ...day, training: day.training.map(e => (e.id === itemId ? { ...e, ref: { kind: 'exercise', slug: it.slug }, name: it.name } : e)) }));
+    } else {
+      onLoadRecipeDetail(it.slug);
+      if (mode === 'add') updatePlanDay(planId, dayIndex, day => ({ ...day, meals: [...day.meals, { ...emptyMeal('breakfast'), ref: { kind: 'recipe', slug: it.slug }, name: it.name, servings: 1 }] }));
+      else if (itemId) updatePlanDay(planId, dayIndex, day => ({ ...day, meals: day.meals.map(m => (m.id === itemId ? { ...m, ref: { kind: 'recipe', slug: it.slug }, name: it.name } : m)) }));
+    }
+    setInlineSearch(null);
+  };
+  const deleteItem = (section: 'training' | 'meals', planId: string, dayIndex: number, itemId: string) => {
+    if (section === 'training') updatePlanDay(planId, dayIndex, day => ({ ...day, training: day.training.filter(e => e.id !== itemId) }));
+    else updatePlanDay(planId, dayIndex, day => ({ ...day, meals: day.meals.filter(m => m.id !== itemId) }));
+  };
+
   const { sections, mealTotals, mealsEstimated, hasMeals } = useMemo(() => {
+    // While editing, render from the working copies so edits show instantly.
+    const source = editing ? working : plans;
     const training: DayAgendaItem[] = [];
     const meals: DayAgendaItem[] = [];
     const allMeals: HealthPlanMeal[] = [];
-    for (const p of plans) {
-      const day = planDayForDate(p, dateKey);
+    for (const p of source) {
+      const idx = dayIndexForDate(p, dateKey);
+      if (idx == null) continue;
+      const day = p.days.find(d => d.day_index === idx);
       if (!day) continue;
       if (p.type === 'fitness' || p.type === 'combined') {
         for (const ex of day.training) if (ex.name) training.push({
-          id: `${p.id}:${ex.id}`, kind: 'exercise', slug: ex.ref?.slug, title: ex.name, meta: exerciseSummary(ex),
+          id: `${p.id}:${ex.id}`, itemId: ex.id, dayIndex: idx, kind: 'exercise', slug: ex.ref?.slug, title: ex.name, meta: exerciseSummary(ex),
           thumb: ex.ref ? (exerciseDetails[ex.ref.slug]?.thumbnail_url ?? null) : null,
           planId: p.id, planTitle: p.title,
         });
@@ -512,7 +649,7 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
         for (const meal of day.meals) if (meal.name) {
           allMeals.push(meal);
           meals.push({
-            id: `${p.id}:${meal.id}`, kind: 'recipe', slug: meal.ref?.slug, title: meal.name, meta: mealSummary(meal, recipeDetails), slot: mealSlotLabel(meal.slot),
+            id: `${p.id}:${meal.id}`, itemId: meal.id, dayIndex: idx, kind: 'recipe', slug: meal.ref?.slug, title: meal.name, meta: mealSummary(meal, recipeDetails), slot: mealSlotLabel(meal.slot),
             thumb: meal.ref ? (recipeDetails[meal.ref.slug]?.hero_image_url ?? null) : null,
             planId: p.id, planTitle: p.title,
           });
@@ -523,12 +660,9 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
     const sections: DayAgendaSection[] = [
       { key: 'training', label: t('health.plans.training'), icon: '🏋', accent: '#a855f7', items: training },
       { key: 'meals', label: t('health.plans.meals'), icon: '🍽', accent: '#f59e0b', items: meals },
-      // ── Future sources plug in here as more sections, e.g.:
-      //   { key: 'tasks',    label: t('…'), icon: '✓', accent: '#34d399', items: tasksForDate(dateKey) },
-      //   { key: 'learning', label: t('…'), icon: '★', accent: '#60a5fa', items: learningForDate(dateKey) },
     ];
     return { sections, mealTotals: totals, mealsEstimated: estimated, hasMeals: allMeals.length > 0 };
-  }, [dateKey, plans, exerciseDetails, recipeDetails]);
+  }, [dateKey, editing, working, plans, exerciseDetails, recipeDetails]);
 
   // Pull the catalogue details for the day's items so thumbnails (and meal
   // macros) resolve.
@@ -552,67 +686,113 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 sm:p-6" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="flex max-h-[88vh] w-full max-w-[760px] flex-col overflow-hidden rounded-xl border border-[rgba(168,85,247,0.25)] bg-gradient-to-br from-[#100d1a] to-[#181327] shadow-[0_0_80px_rgba(168,85,247,0.15)]">
+      <div ref={panelRef} onClick={(e) => e.stopPropagation()}
+        style={{ minHeight: MIN_PANEL_H, ...(editing && frozenH ? { height: Math.max(frozenH, MIN_PANEL_H) } : {}) }}
+        className="flex max-h-[88vh] w-full max-w-[760px] flex-col overflow-hidden rounded-xl border border-[rgba(168,85,247,0.25)] bg-gradient-to-br from-[#100d1a] to-[#181327] shadow-[0_0_80px_rgba(168,85,247,0.15)]">
         <div className="flex shrink-0 items-center justify-between border-b border-[rgba(168,85,247,0.14)] px-6 py-3">
           <div>
             <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{tt('health.plans.on_this_day', 'On this day')}</div>
             <h2 className="text-[16px] font-semibold text-[var(--text-primary)]">{dateLabel}</h2>
           </div>
-          <button type="button" onClick={onClose} aria-label={t('health.plans.cancel')} className="flex h-8 w-8 items-center justify-center rounded-full border-none bg-black/30 text-[15px] text-[var(--text-muted)] hover:text-white cursor-pointer">×</button>
+          <div className="flex items-center gap-2">
+            {covered && (
+              <button type="button" onClick={() => (editing ? exitEdit() : enterEdit())} className="rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 cursor-pointer">
+                {editing ? tt('health.plans.done', 'Done') : tt('health.plans.edit', 'Edit')}
+              </button>
+            )}
+            <button type="button" onClick={() => { flushSaves(); onClose(); }} aria-label={t('health.plans.cancel')} className="flex h-8 w-8 items-center justify-center rounded-full border-none bg-black/30 text-[15px] text-[var(--text-muted)] hover:text-white cursor-pointer">×</button>
+          </div>
         </div>
 
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
-          {!anything ? (
+          {!editing && !anything ? (
             <div className="rounded-lg border border-dashed border-[var(--border)] px-4 py-12 text-center">
               <div className="text-[12px] text-[var(--text-secondary)]">{tt('health.plans.day_empty', 'Nothing scheduled this day.')}</div>
               <button type="button" onClick={onNewPlan} className="mx-auto mt-3 block rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 cursor-pointer">{t('health.plans.new_plan')}</button>
             </div>
-          ) : sections.map(section => (
-            <div key={section.key}>
-              <div className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                <span aria-hidden>{section.icon}</span>{section.label}
-                {section.items.length > 0 && <span className="opacity-60">· {section.items.length}</span>}
-              </div>
-              {section.items.length === 0 ? (
-                <div className="rounded-md border border-dashed border-[var(--border)] px-3 py-2.5 text-[11px] italic text-[var(--text-muted)]">
-                  {section.key === 'training' ? tt('health.plans.no_workout', 'No workout — rest.') : tt('health.plans.no_meals', 'No meals.')}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {section.items.map(item => (
-                    <button key={item.id} type="button" disabled={!item.slug} onClick={() => openItem(item)} title={item.planTitle} className="group flex items-center gap-3 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-input)]/30 p-2 text-left transition enabled:hover:border-[var(--accent)]/50 enabled:hover:bg-[var(--accent)]/5 disabled:cursor-default cursor-pointer">
-                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md ring-1 ring-inset ring-white/[0.06]">
-                        {item.thumb ? (
-                          <img src={item.thumb} alt="" loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-[18px] opacity-90" style={{ background: `linear-gradient(135deg, ${section.accent}2e, ${section.accent}0d)` }} aria-hidden>{section.icon}</div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="truncate text-[12px] font-medium text-[var(--text-primary)]">
-                            {item.slot && <span className="mr-1.5 text-[9px] uppercase tracking-wide text-[var(--text-muted)]">{item.slot}</span>}{item.title}
-                          </span>
-                          <span className="shrink-0 text-[14px] leading-none text-[var(--accent)] opacity-0 transition group-hover:opacity-100">›</span>
-                        </div>
-                        {item.meta && <div className="truncate text-[10px] text-[var(--text-muted)]">{item.meta}</div>}
-                        <div className="truncate text-[9px] text-[var(--text-muted)] opacity-70">{item.planTitle}</div>
-                      </div>
+          ) : sections.map(section => {
+            const sectionKey = section.key as 'training' | 'meals';
+            const addTarget = sectionKey === 'training' ? addTargets.training : addTargets.meals;
+            const searchKind: 'exercise' | 'recipe' = sectionKey === 'training' ? 'exercise' : 'recipe';
+            const open = editing && inlineSearch?.section === sectionKey;
+            return (
+              <div key={section.key}>
+                <div className="mb-2 flex min-h-[28px] items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                    <span aria-hidden>{section.icon}</span>{section.label}
+                    {section.items.length > 0 && <span className="opacity-60">· {section.items.length}</span>}
+                  </div>
+                  {editing && addTarget && (
+                    <button type="button"
+                      onClick={() => setInlineSearch(open && inlineSearch?.mode === 'add' ? null : { section: sectionKey, kind: searchKind, mode: 'add', planId: addTarget.planId, dayIndex: addTarget.dayIndex })}
+                      className="shrink-0 rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2.5 py-1 text-[11px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/20 transition cursor-pointer">
+                      {sectionKey === 'training' ? t('health.plans.add_exercises') : t('health.plans.add_recipes')}
                     </button>
-                  ))}
+                  )}
                 </div>
-              )}
-              {section.key === 'meals' && hasMeals && (
-                <div className="mt-2 flex flex-wrap items-center gap-3 rounded-md border border-amber-400/20 bg-amber-400/5 px-3 py-2">
-                  <span className="text-[10px] uppercase tracking-[0.14em] text-amber-300/80">{t('health.plans.day_total')}</span>
-                  {MACRO_FIELDS.map(f => (
-                    <span key={f.key} className="text-[11px] text-[var(--text-secondary)]">{t(f.labelKey)} <span className="font-semibold text-[var(--text-primary)]">{mealTotals[f.key] ?? 0}{f.unit}</span></span>
-                  ))}
-                  {mealsEstimated && <span className="text-[9px] italic text-[var(--text-muted)]">{t('health.plans.estimated')}</span>}
-                </div>
-              )}
-            </div>
-          ))}
+
+                {open && inlineSearch && (
+                  <InlineCatalogSearch
+                    kind={inlineSearch.kind}
+                    mode={inlineSearch.mode}
+                    accent={section.accent}
+                    results={inlineSearch.kind === 'exercise' ? exerciseResults : recipeResults}
+                    searching={catalogSearching}
+                    onSearch={inlineSearch.kind === 'exercise' ? onSearchExercises : onSearchRecipes}
+                    onPick={handleInlinePick}
+                    onClose={() => setInlineSearch(null)}
+                  />
+                )}
+
+                {section.items.length === 0 ? (
+                  <div className="rounded-md border border-dashed border-[var(--border)] px-3 py-2.5 text-[11px] italic text-[var(--text-muted)]">
+                    {sectionKey === 'training' ? tt('health.plans.no_workout', 'No workout — rest.') : tt('health.plans.no_meals', 'No meals.')}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {section.items.map(item => (
+                      editing ? (
+                        <div key={item.id} title={item.planTitle} className="group flex items-center gap-3 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-input)]/30 p-2 text-left">
+                          <AgendaCardInner item={item} icon={section.icon} accent={section.accent} />
+                          {confirmingId === item.id ? (
+                            <div className="flex shrink-0 items-center gap-1.5 self-center rounded-md border border-red-500/30 bg-[var(--bg-input)] px-2 py-1">
+                              <span className="text-[10px] text-[var(--text-secondary)]">{t('health.plans.delete_q')}</span>
+                              <button type="button" onClick={() => { deleteItem(sectionKey, item.planId, item.dayIndex, item.itemId); setConfirmingId(null); }} className="border-none bg-transparent text-[10px] font-semibold text-red-300 hover:text-red-200 cursor-pointer">{t('health.plans.yes')}</button>
+                              <button type="button" onClick={() => setConfirmingId(null)} className="border-none bg-transparent text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">{t('health.plans.no')}</button>
+                            </div>
+                          ) : (
+                            <div className="flex shrink-0 items-center gap-0.5 self-center">
+                              <button type="button" title={tt('health.plans.swap', 'Swap')}
+                                onClick={() => setInlineSearch({ section: sectionKey, kind: searchKind, mode: 'swap', planId: item.planId, dayIndex: item.dayIndex, itemId: item.itemId })}
+                                className="flex h-6 w-6 items-center justify-center rounded-md border-none bg-transparent text-[12px] text-[var(--text-muted)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] cursor-pointer">⇄</button>
+                              <button type="button" title={t('health.plans.remove')}
+                                onClick={() => setConfirmingId(item.id)}
+                                className="flex h-6 w-6 items-center justify-center rounded-md border-none bg-transparent text-[12px] text-[var(--text-muted)] hover:bg-red-400/10 hover:text-red-300 cursor-pointer">✕</button>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <button key={item.id} type="button" disabled={!item.slug} onClick={() => openItem(item)} title={item.planTitle} className="group flex items-center gap-3 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-input)]/30 p-2 text-left transition enabled:hover:border-[var(--accent)]/50 enabled:hover:bg-[var(--accent)]/5 disabled:cursor-default cursor-pointer">
+                          <AgendaCardInner item={item} icon={section.icon} accent={section.accent} />
+                          <span className="shrink-0 self-center text-[14px] leading-none text-[var(--accent)] opacity-0 transition group-hover:opacity-100">›</span>
+                        </button>
+                      )
+                    ))}
+                  </div>
+                )}
+
+                {sectionKey === 'meals' && hasMeals && (
+                  <div className="mt-2 flex flex-wrap items-center gap-3 rounded-md border border-amber-400/20 bg-amber-400/5 px-3 py-2">
+                    <span className="text-[10px] uppercase tracking-[0.14em] text-amber-300/80">{t('health.plans.day_total')}</span>
+                    {MACRO_FIELDS.map(f => (
+                      <span key={f.key} className="text-[11px] text-[var(--text-secondary)]">{t(f.labelKey)} <span className="font-semibold text-[var(--text-primary)]">{mealTotals[f.key] ?? 0}{f.unit}</span></span>
+                    ))}
+                    {mealsEstimated && <span className="text-[9px] italic text-[var(--text-muted)]">{t('health.plans.estimated')}</span>}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -625,6 +805,91 @@ function HealthDayView({ dateKey, plans, exerciseDetails, recipeDetails, onLoadE
           onClose={() => setDetail(null)}
         />
       )}
+
+    </div>
+  );
+}
+
+/** The thumbnail + title/meta/plan block — shared by the read card and the edit
+ *  card so both look identical (image-1 design); only the trailing control
+ *  differs (a chevron vs swap/delete). */
+function AgendaCardInner({ item, icon, accent }: { item: DayAgendaItem; icon: string; accent: string }) {
+  return (
+    <>
+      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md ring-1 ring-inset ring-white/[0.06]">
+        {item.thumb ? (
+          <img src={item.thumb} alt="" loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-[18px] opacity-90" style={{ background: `linear-gradient(135deg, ${accent}2e, ${accent}0d)` }} aria-hidden>{icon}</div>
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[12px] font-medium text-[var(--text-primary)]">
+          {item.slot && <span className="mr-1.5 text-[9px] uppercase tracking-wide text-[var(--text-muted)]">{item.slot}</span>}{item.title}
+        </div>
+        {item.meta && <div className="truncate text-[10px] text-[var(--text-muted)]">{item.meta}</div>}
+        <div className="truncate text-[9px] text-[var(--text-muted)] opacity-70">{item.planTitle}</div>
+      </div>
+    </>
+  );
+}
+
+/** Compact catalogue search that drops INLINE inside a section (no overlay).
+ *  Picking a result adds it / swaps it in place. */
+function InlineCatalogSearch({ kind, mode, accent, results, searching, onSearch, onPick, onClose }: {
+  kind: 'exercise' | 'recipe';
+  mode: 'add' | 'swap';
+  accent: string;
+  results: Array<HealthExerciseSummary | HealthRecipeSummary>;
+  searching: boolean;
+  onSearch: PlanSearch;
+  onPick: (it: { slug: string; name: string }) => void;
+  onClose: () => void;
+}) {
+  const [query, setQuery] = useState('');
+  useEffect(() => {
+    const tmr = window.setTimeout(() => onSearch({ q: query.trim(), offset: 0, category: null }), query ? 300 : 0);
+    return () => clearTimeout(tmr);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+  const icon = kind === 'exercise' ? '🏋' : '🍽';
+  return (
+    <div className="mb-2 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/[0.05] p-2">
+      <div className="mb-2 flex items-center gap-2">
+        <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)}
+          placeholder={kind === 'exercise' ? t('health.plans.picker.search_exercises') : t('health.plans.picker.search_recipes')}
+          className="flex-1 rounded-md border border-[var(--border)] bg-transparent px-2.5 py-1.5 text-[12px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none" />
+        <button type="button" onClick={onClose} aria-label={t('health.plans.cancel')} className="shrink-0 rounded-md border-none bg-transparent px-1.5 py-1 text-[var(--text-muted)] hover:text-white cursor-pointer">✕</button>
+      </div>
+      <div className="max-h-[230px] overflow-y-auto">
+        {searching && results.length === 0 ? (
+          <div className="py-6 text-center text-[11px] text-[var(--text-muted)]">{t('health.plans.searching')}</div>
+        ) : results.length === 0 ? (
+          <div className="py-6 text-center text-[11px] text-[var(--text-muted)]">{kind === 'exercise' ? t('health.plans.picker.no_exercises') : t('health.plans.picker.no_recipes')}</div>
+        ) : (
+          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+            {results.map(r => {
+              const slug = (r as HealthExerciseSummary | HealthRecipeSummary).slug;
+              const name = (r as HealthExerciseSummary | HealthRecipeSummary).name;
+              const thumb = kind === 'exercise' ? ((r as HealthExerciseSummary).thumbnail_url ?? null) : ((r as HealthRecipeSummary).hero_image_url ?? null);
+              return (
+                <button key={slug} type="button" onClick={() => onPick({ slug, name })}
+                  className="group flex items-center gap-2.5 overflow-hidden rounded-md border border-[var(--border)] bg-[var(--bg-input)]/30 p-1.5 text-left transition hover:border-[var(--accent)]/50 hover:bg-[var(--accent)]/5 cursor-pointer">
+                  <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded ring-1 ring-inset ring-white/[0.06]">
+                    {thumb ? (
+                      <img src={thumb} alt="" loading="lazy" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-[14px] opacity-80" style={{ background: `linear-gradient(135deg, ${accent}2e, ${accent}0d)` }} aria-hidden>{icon}</div>
+                    )}
+                  </div>
+                  <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-[var(--text-primary)]">{name}</span>
+                  <span className="shrink-0 text-[12px] text-[var(--accent)] opacity-0 transition group-hover:opacity-100">{mode === 'swap' ? '⇄' : '+'}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1276,6 +1541,7 @@ function mealSummary(meal: HealthPlanMeal, recipeDetails: Record<string, HealthR
   const { macros } = mealMacros(meal, recipeDetails);
   if (macros.calories != null) parts.push(t('health.plans.n_cal', { n: macros.calories }));
   if (macros.protein_g != null) parts.push(t('health.plans.n_protein', { n: macros.protein_g }));
+  if (meal.cook_time_minutes != null) parts.push(t('health.plans.n_cook', { n: meal.cook_time_minutes }));
   return parts.join('  ·  ') || '—';
 }
 
@@ -1455,11 +1721,13 @@ function routineSets(detail: HealthExerciseDetail | undefined): number | null {
   return null;
 }
 
-function ExerciseRow({ ex, detail, onChange, onRemove }: {
+function ExerciseRow({ ex, detail, onChange, onRemove, onSwap }: {
   ex: HealthPlanExercise;
   detail: HealthExerciseDetail | undefined;
   onChange: (e: HealthPlanExercise) => void;
   onRemove: () => void;
+  /** When set, a swap button replaces this exercise with another from the catalogue. */
+  onSwap?: () => void;
 }) {
   const recSets = routineSets(detail);
   const recRest = detail?.routine?.rest_seconds ?? null;
@@ -1476,6 +1744,7 @@ function ExerciseRow({ ex, detail, onChange, onRemove }: {
     <div className="space-y-2 rounded-md border border-[var(--border)] bg-[var(--bg-input)]/40 p-2">
       <div className="flex items-center gap-2">
         <input value={ex.name} onChange={(e) => onChange({ ...ex, name: e.target.value })} placeholder={t('health.plans.exercise_name_placeholder')} className={`${editInput} flex-1`} />
+        {onSwap && <button type="button" onClick={onSwap} title={tt('health.plans.swap', 'Swap')} className="border-none bg-transparent px-1 text-[var(--text-muted)] hover:text-[var(--accent)] cursor-pointer">⇄</button>}
         <button type="button" onClick={onRemove} title={t('health.plans.remove')} className="border-none bg-transparent px-1 text-[var(--text-muted)] hover:text-red-300 cursor-pointer">✕</button>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -1494,11 +1763,13 @@ function ExerciseRow({ ex, detail, onChange, onRemove }: {
   );
 }
 
-function MealRow({ meal, recipeDetails, onChange, onRemove }: {
+function MealRow({ meal, recipeDetails, onChange, onRemove, onSwap }: {
   meal: HealthPlanMeal;
   recipeDetails: Record<string, HealthRecipeDetail>;
   onChange: (m: HealthPlanMeal) => void;
   onRemove: () => void;
+  /** When set, a swap button replaces this meal with another recipe from the catalogue. */
+  onSwap?: () => void;
 }) {
   const isRecipe = !!meal.ref;
   const { macros, estimated, pending } = mealMacros(meal, recipeDetails);
@@ -1519,6 +1790,7 @@ function MealRow({ meal, recipeDetails, onChange, onRemove }: {
           ]}
         />
         <input value={meal.name} onChange={(e) => onChange({ ...meal, name: e.target.value })} placeholder={t('health.plans.meal_name_placeholder')} className={`${editInput} flex-1`} />
+        {onSwap && <button type="button" onClick={onSwap} title={tt('health.plans.swap', 'Swap')} className="border-none bg-transparent px-1 text-[var(--text-muted)] hover:text-[var(--accent)] cursor-pointer">⇄</button>}
         <button type="button" onClick={onRemove} title={t('health.plans.remove')} className="border-none bg-transparent px-1 text-[var(--text-muted)] hover:text-red-300 cursor-pointer">✕</button>
       </div>
 

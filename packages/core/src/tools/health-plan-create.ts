@@ -121,6 +121,7 @@ export class HealthPlanCreateTool implements Tool {
                     protein_g: { type: 'number' },
                     carbs_g: { type: 'number' },
                     fat_g: { type: 'number' },
+                    cook_time_minutes: { type: 'number', description: "The recipe's real cook/prep time in minutes. Set it to show the meal fits the user's cooking-time ceiling for that slot." },
                     notes: { type: 'string' },
                   },
                   required: ['slot', 'name'],
@@ -266,6 +267,7 @@ function normaliseMeal(raw: unknown): HealthPlanMeal | null {
     protein_g: typeof r.protein_g === 'number' ? r.protein_g : null,
     carbs_g: typeof r.carbs_g === 'number' ? r.carbs_g : null,
     fat_g: typeof r.fat_g === 'number' ? r.fat_g : null,
+    cook_time_minutes: typeof r.cook_time_minutes === 'number' ? r.cook_time_minutes : null,
     notes: typeof r.notes === 'string' ? r.notes : null,
   };
 }

@@ -948,7 +948,10 @@ export function App() {
         break;
       case 'health_plan_saved':
         setHealthPlans(msg.plans);
-        setHealthPlanOpen(msg.plan);
+        // Only refresh the plan if its editor is already open — never OPEN it.
+        // A silent day-view edit autosaves through here; it must not pop the
+        // full PlanBuilder over the day view.
+        setHealthPlanOpen(prev => (prev && prev.id === msg.plan.id ? msg.plan : prev));
         post({ type: 'load_active_health_plans' });
         break;
       case 'health_plan_deleted':

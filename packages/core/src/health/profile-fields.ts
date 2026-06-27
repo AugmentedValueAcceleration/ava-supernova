@@ -11,7 +11,7 @@
 // exactly one definition — no drift between "what Ava can ask", "what the card
 // renders", and "where it saves".
 
-export type ProfileFieldControl = 'select' | 'multiselect' | 'number' | 'text' | 'date' | 'time';
+export type ProfileFieldControl = 'select' | 'multiselect' | 'number' | 'text' | 'date' | 'time' | 'cooking_grid';
 
 export interface ProfileFieldOption {
   /** persisted slug (sent to plans/recipes) — never translated */
@@ -130,6 +130,11 @@ export const HEALTH_PROFILE_FIELDS: Record<string, ProfileFieldDef> = {
   breakfast_time: { target: 'health', path: 'schedule.meal_times.breakfast',  control: 'time', labelKey: 'health.fill.field.breakfast' },
   lunch_time:     { target: 'health', path: 'schedule.meal_times.lunch',      control: 'time', labelKey: 'health.fill.field.lunch' },
   dinner_time:    { target: 'health', path: 'schedule.meal_times.dinner',     control: 'time', labelKey: 'health.fill.field.dinner' },
+
+  // How long they have to cook, per day AND per meal — a 7×3 grid (the composite
+  // control). One card gathers the lot; the host renders the SAME grid as the
+  // profile page and saves the whole { by_day } object. See summariseCookingTime.
+  cooking_time:   { target: 'health', path: 'schedule.cooking_time',          control: 'cooking_grid', labelKey: 'health.fill.field.cooking_time' },
 };
 
 export const HEALTH_PROFILE_FIELD_IDS = Object.keys(HEALTH_PROFILE_FIELDS);
@@ -138,4 +143,69 @@ export const HEALTH_PROFILE_FIELD_IDS = Object.keys(HEALTH_PROFILE_FIELDS);
 export function humaniseSlug(slug: string): string {
   const s = slug.replace(/_/g, ' ');
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// ─── Cooking-time grid → compact prompt line ─────────────────────────────────
+//
+// The grid is 7 days × 3 meals (21 cells), almost all "Any". Dumping every cell
+// would bloat the prompt, so we collapse it: only non-default slots, and
+// consecutive display-order days that share an identical meal-triple fold into a
+// range. Shared by the extension host AND the IDE sidecar so the two profile
+// summaries can never drift. English / model-facing.
+
+type MealCook = { breakfast: string | null; lunch: string | null; dinner: string | null };
+export type CookingTime = { by_day: Record<string, MealCook> };
+
+const COOK_DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; // index = day key 0–6
+const COOK_DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Mon→Sun
+const COOK_MEAL_ORDER: (keyof MealCook)[] = ['breakfast', 'lunch', 'dinner'];
+
+/** A single tier → its compact label ('15'→'≤15', '60+'→'60+'). */
+function cookTierLabel(tier: string): string {
+  return tier === '60+' ? '60+' : `≤${tier}`;
+}
+
+/** Per-day "breakfast ≤15, lunch ≤30" from its set meal tiers, or '' if none set. */
+function cookDaySignature(day: MealCook | undefined): string {
+  if (!day) return '';
+  const parts: string[] = [];
+  for (const meal of COOK_MEAL_ORDER) {
+    const tier = day[meal];
+    if (tier) parts.push(`${meal} ${cookTierLabel(tier)}`);
+  }
+  return parts.join(', ');
+}
+
+/**
+ * Compact, model-facing summary of the cooking-time grid, or null when nothing
+ * is set. e.g. "Cooking time (max minutes per meal; unset = no limit): Mon–Fri
+ * breakfast ≤15, lunch ≤30, dinner ≤30; Sat–Sun dinner 60+."
+ */
+export function summariseCookingTime(cookTime: CookingTime | undefined | null): string | null {
+  const byDay = cookTime?.by_day;
+  if (!byDay) return null;
+
+  // Walk Mon→Sun, folding into a run only when days are BOTH adjacent in the
+  // display order AND share a signature — an unset day in between breaks the run
+  // (so "Mon–Thu" never implies a constrained Tue/Wed).
+  const groups: { days: number[]; sig: string }[] = [];
+  let lastIdx = -2;
+  for (let i = 0; i < COOK_DISPLAY_ORDER.length; i++) {
+    const d = COOK_DISPLAY_ORDER[i];
+    const sig = cookDaySignature(byDay[String(d)]);
+    if (!sig) continue; // day with no constraints — skip, and leave a gap
+    const last = groups[groups.length - 1];
+    if (last && last.sig === sig && i === lastIdx + 1) last.days.push(d);
+    else groups.push({ days: [d], sig });
+    lastIdx = i;
+  }
+  if (!groups.length) return null;
+
+  const segments = groups.map((g) => {
+    const label = g.days.length === 1
+      ? COOK_DAY_NAMES[g.days[0]]
+      : `${COOK_DAY_NAMES[g.days[0]]}–${COOK_DAY_NAMES[g.days[g.days.length - 1]]}`;
+    return `${label} ${g.sig}`;
+  });
+  return `Cooking time (max minutes per meal; unset = no limit): ${segments.join('; ')}.`;
 }

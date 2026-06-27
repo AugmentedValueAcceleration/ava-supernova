@@ -7,6 +7,7 @@ import { t, useLocale } from '../../i18n';
 // the browser bundle).
 import { HEALTH_PROFILE_FIELDS, humaniseSlug } from '../../../../../core/dist/health/profile-fields.js';
 import { TimeInput } from '../../pages/ProfilePrimitives';
+import { CookingTimeGrid, type CookTime } from '../../components/CookingTimeGrid';
 
 /**
  * Profile-field card — the Health room's structured "Ava fills your profile"
@@ -48,7 +49,12 @@ export function ProfileFieldCard({ toolCall, onConfirmation }: Props) {
   const [multi, setMulti] = useState<string[]>(Array.isArray(currentValue) ? currentValue.map(String) : []);
   const [text, setText] = useState<string>(
     def?.asArray && Array.isArray(currentValue) ? currentValue.join('\n')
-    : currentValue != null && !Array.isArray(currentValue) ? String(currentValue) : '',
+    : currentValue != null && !Array.isArray(currentValue) && def?.control !== 'cooking_grid' ? String(currentValue) : '',
+  );
+  const [grid, setGrid] = useState<CookTime>(
+    currentValue && typeof currentValue === 'object' && !Array.isArray(currentValue) && (currentValue as CookTime).by_day
+      ? (currentValue as CookTime)
+      : { by_day: {} },
   );
 
   const send = (value: unknown) =>
@@ -121,6 +127,15 @@ export function ProfileFieldCard({ toolCall, onConfirmation }: Props) {
                 })}
               </div>
               <Actions onSave={() => send(multi)} onSkip={skip} />
+            </>
+          )}
+
+          {/* — Cooking grid (per-day × per-meal time) — */}
+          {def.control === 'cooking_grid' && (
+            <>
+              <div className="mb-2 text-[10px] text-[var(--text-muted)]">{t('health.fill.cooking_grid_hint')}</div>
+              <CookingTimeGrid value={grid} onChange={setGrid} />
+              <Actions onSave={() => send(grid)} onSkip={skip} />
             </>
           )}
 

@@ -47,6 +47,7 @@ import {
   createEmbeddingServiceFromConfig,
   HEALTH_PROFILE_FIELDS,
   humaniseSlug,
+  summariseCookingTime,
 } from '@ava/core';
 import type { AgentEvent, ConductorEvent, Provider, ModelDefinition, ContentPart, PermissionMode, Message, AssistantMessage } from '@ava/core';
 import { creditsFor } from '@ava/core/billing/credits';
@@ -92,6 +93,24 @@ function setByPath(obj: any, path: string, value: unknown): void {
   }
   cur[keys[keys.length - 1]] = value;
 }
+// The cooking-time grid arrives as { by_day: { '0'–'6': { breakfast, lunch,
+// dinner } } } with tiers '15'|'30'|'60'|'60+' or null. Normalise: keep only
+// valid day keys + tiers, and drop days where every meal is unset.
+const COOK_TIERS = new Set(['15', '30', '60', '60+']);
+function coerceCookingGrid(raw: unknown): { by_day: Record<string, { breakfast: string | null; lunch: string | null; dinner: string | null }> } {
+  const out: Record<string, { breakfast: string | null; lunch: string | null; dinner: string | null }> = {};
+  const byDay = (raw as any)?.by_day;
+  if (byDay && typeof byDay === 'object') {
+    for (const key of Object.keys(byDay)) {
+      if (!/^[0-6]$/.test(key)) continue;
+      const d = byDay[key] ?? {};
+      const tier = (v: unknown) => (typeof v === 'string' && COOK_TIERS.has(v) ? v : null);
+      const day = { breakfast: tier(d.breakfast), lunch: tier(d.lunch), dinner: tier(d.dinner) };
+      if (day.breakfast || day.lunch || day.dinner) out[key] = day;
+    }
+  }
+  return { by_day: out };
+}
 function coerceProfileFieldValue(def: ProfileFieldShape, raw: unknown): unknown {
   switch (def.control) {
     case 'number': {
@@ -101,6 +120,8 @@ function coerceProfileFieldValue(def: ProfileFieldShape, raw: unknown): unknown 
     }
     case 'multiselect':
       return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string') : [];
+    case 'cooking_grid':
+      return coerceCookingGrid(raw);
     case 'text': {
       if (def.asArray) {
         const s = typeof raw === 'string' ? raw : Array.isArray(raw) ? raw.join('\n') : '';
@@ -116,6 +137,10 @@ function coerceProfileFieldValue(def: ProfileFieldShape, raw: unknown): unknown 
 }
 function describeProfileValue(def: ProfileFieldShape, value: unknown): string {
   if (value == null || (Array.isArray(value) && value.length === 0)) return 'none';
+  if (def.control === 'cooking_grid') {
+    const s = summariseCookingTime(value as any);
+    return s ? s.replace(/^Cooking time[^:]*:\s*/, '').replace(/\.$/, '') : 'none';
+  }
   if (Array.isArray(value)) return value.map((v) => humaniseSlug(String(v))).join(', ');
   if (def.control === 'number' && def.unit) return `${value} ${def.unit}`;
   if (def.control === 'select') return humaniseSlug(String(value));
@@ -4095,6 +4120,8 @@ export class AvaViewProvider implements vscode.WebviewViewProvider {
         const parts = [mt.breakfast && `breakfast ${mt.breakfast}`, mt.lunch && `lunch ${mt.lunch}`, mt.dinner && `dinner ${mt.dinner}`].filter(Boolean);
         if (parts.length) lines.push(`Meal times: ${parts.join(', ')}`);
       }
+      const cookLine = summariseCookingTime(p?.schedule?.cooking_time);
+      if (cookLine) lines.push(cookLine);
       if (p?.food?.likes?.length) lines.push(`Food likes: ${p.food.likes.join(', ')}`);
       if (p?.food?.dislikes?.length) lines.push(`Food dislikes (keep out of plans): ${p.food.dislikes.join(', ')}`);
       if (p?.food?.cuisines?.length) lines.push(`Favourite cuisines: ${p.food.cuisines.join(', ')}`);

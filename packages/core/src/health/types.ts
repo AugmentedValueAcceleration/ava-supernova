@@ -39,6 +39,9 @@ export interface HealthPlanMeal {
   protein_g: number | null;
   carbs_g: number | null;
   fat_g: number | null;
+  /** The recipe's real cook/prep time in minutes — shown so the user can see the
+   *  meal fits the cooking-time ceiling they set for that slot. null = unstated. */
+  cook_time_minutes: number | null;
   notes: string | null;
 }
 

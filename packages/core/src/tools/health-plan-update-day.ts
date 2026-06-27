@@ -74,6 +74,7 @@ export class HealthPlanUpdateDayTool implements Tool {
               protein_g: { type: 'number' },
               carbs_g: { type: 'number' },
               fat_g: { type: 'number' },
+              cook_time_minutes: { type: 'number', description: "The recipe's real cook/prep time in minutes. Set it to show the meal fits the user's cooking-time ceiling for that slot." },
               notes: { type: 'string' },
             },
             required: ['slot', 'name'],

@@ -25,8 +25,9 @@ export {
   HEALTH_PROFILE_FIELDS,
   HEALTH_PROFILE_FIELD_IDS,
   humaniseSlug,
+  summariseCookingTime,
 } from './health/profile-fields.js';
-export type { ProfileFieldDef, ProfileFieldOption, ProfileFieldControl } from './health/profile-fields.js';
+export type { ProfileFieldDef, ProfileFieldOption, ProfileFieldControl, CookingTime } from './health/profile-fields.js';
 
 // Personality
 export type { Personality } from './config/personality.js';

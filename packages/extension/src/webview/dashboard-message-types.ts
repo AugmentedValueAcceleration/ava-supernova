@@ -906,6 +906,7 @@ export interface HealthPlanMeal {
   protein_g: number | null;
   carbs_g: number | null;
   fat_g: number | null;
+  cook_time_minutes: number | null;  // recipe's real cook/prep time; shown so it visibly fits the slot's ceiling
   notes: string | null;
 }
 
