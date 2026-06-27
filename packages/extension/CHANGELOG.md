@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.80.0 — 2026-06-27 — The honesty gate: a guess never stands as fact
+
+### Added
+- **An honesty gate, always on.** When Ava says something is done, fixed, deployed, or passing but ran nothing that actually checked it, the gate catches the unbacked claim. On high-stakes claims (completion and security) it re-prompts her to verify — run the real check — or restate it honestly before the answer lands; on anything it still can't back, it appends a clear "unverified — treat as changed, not confirmed" caveat. There's no off-switch: honesty isn't a setting you toggle.
+
 ## 0.79.0 — 2026-06-26 — Accurate model lineup; sharper image generation
 
 ### Changed
