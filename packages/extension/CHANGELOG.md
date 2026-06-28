@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.80.1 — 2026-06-28 — One consistent look, and a day you can shape
+
+### Added
+- **An editable day view.** Open any date in the Planner and you can now add, swap and delete what's scheduled — workouts and meals together — right on the day card, without digging into the plan builder. And before Ava builds a meal plan she asks how long you've got to cook each day, so the plan fits your real evenings.
+
+### Changed
+- **One look, across everything.** Every panel — Planner, Journal, Billing, Health and the rest — now shares the same visual language on both the extension and the IDE: the same outlined buttons, underline tabs and accent colour. Nothing reads as "from a different app" anymore.
+- **Billing, cleaner and honest.** Plan and top-up cards line up consistently across both surfaces, every upgrade and top-up routes to your web dashboard, and signed-out users get a clear prompt instead of a blank tab. The old "cloud storage" lines are gone from every plan — your data is local-first, so there was never anything there to sell.
+
 ## 0.80.0 — 2026-06-27 — The honesty gate: a guess never stands as fact
 
 ### Added
